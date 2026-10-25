@@ -1,7 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use crate::determinism::{code_only, matching_patterns, non_test};
+use crate::determinism::{
+    code_only, matching_patterns, non_test, shared_dialog_action_id_projection_ranges,
+};
 
 const OPENERS: [&str; 16] = [
     "req.menu(",
@@ -412,6 +414,8 @@ pub fn scan(workspace: &Path) -> BTreeMap<String, usize> {
         let mut current = String::from("<top>");
         let non_test = non_test(&text).unwrap_or_else(|error| panic!("scan {rel}: {error}"));
         let code = code_only(&non_test);
+        let action_id_projections =
+            shared_dialog_action_id_projection_ranges(&code).unwrap_or_default();
         let patterns: Vec<_> = OPENERS.iter().chain(NOT_OPENING.iter()).copied().collect();
         let matches = matching_patterns(&code, &patterns);
         let (opener_matches, not_opening_matches) = matches.split_at(OPENERS.len());
@@ -442,6 +446,10 @@ pub fn scan(workspace: &Path) -> BTreeMap<String, usize> {
                 .filter(|(pattern, _)| {
                     opener_matches[*pattern].iter().any(|opener| {
                         (line_start..line_end).contains(&opener.start)
+                            && !(OPENERS[*pattern] == "Dialog::new("
+                                && action_id_projections
+                                    .iter()
+                                    .any(|projection| projection.start == opener.start))
                             && !not_opening_matches
                                 .iter()
                                 .flatten()
@@ -976,6 +984,387 @@ pub fn scanner_matches_calls_across_comments_without_losing_owners() {
         scanned, expected,
         "match exact token sequences at their first-token line, preserve one hit per opener type and physical line, and bound preview/fallback exclusions"
     );
+    action_id_projection_first_red_is_a_production_root_case();
+    action_id_projection_controls_are_conservative();
+}
+
+fn action_id_projection_first_red_is_a_production_root_case() {
+    let workspace = std::env::temp_dir().join(format!(
+        "visual-harness-action-id-first-red-{}",
+        std::process::id()
+    ));
+    let source = workspace.join("crates/holla-ui/src/lib.rs");
+    let package = source
+        .parent()
+        .and_then(Path::parent)
+        .expect("package root");
+    std::fs::create_dir_all(source.parent().expect("source parent"))
+        .expect("create production source root");
+    std::fs::write(
+        package.join("Cargo.toml"),
+        "[package]\nname = \"holla-ui\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("write package manifest");
+    std::fs::write(
+        &source,
+        concat!(
+            "use termrock::{Dialog, Id};\n",
+            "const DIALOG: Id = Id::root(\"holla.action\");\n",
+            "fn action_id_owners() {\n",
+            "    let cancel = Dialog::new(DIALOG).action_id(0);\n",
+            "    let review = Dialog::new(DIALOG).action_id(1);\n",
+            "    let actions = [\n",
+            "        Dialog::new(DIALOG).action_id(0),\n",
+            "        Dialog::new(DIALOG).action_id(1),\n",
+            "    ];\n",
+            "    let _ = (cancel, review, actions);\n",
+            "}\n",
+        ),
+    )
+    .expect("write production first-red source");
+
+    let raw = std::fs::read_to_string(&source).expect("read first-red source");
+    let production = non_test(&raw).expect("project first-red source");
+    let code = code_only(&production);
+    let legacy_matches = matching_patterns(&code, &["Dialog::new("]);
+    assert_eq!(
+        legacy_matches[0].len(),
+        4,
+        "the old rule reports four production-root openers on four lines"
+    );
+
+    let scanned = scan(&workspace);
+    std::fs::remove_dir_all(&workspace).expect("remove first-red source root");
+    assert_eq!(
+        scanned,
+        BTreeMap::new(),
+        "pure action-ID projections have no overlay owner"
+    );
+}
+
+fn action_id_projection_controls_are_conservative() {
+    let workspace = std::env::temp_dir().join(format!(
+        "visual-harness-action-id-controls-{}",
+        std::process::id()
+    ));
+    let source_root = workspace.join("crates/holla-ui/src");
+    std::fs::create_dir_all(&source_root).expect("create production source root");
+    std::fs::write(
+        workspace.join("crates/holla-ui/Cargo.toml"),
+        "[package]\nname = \"holla-ui\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("write package manifest");
+    let source = concat!(
+        "use super::*;\n",
+        "use termrock::{Dialog, Id};\n",
+        "const DIALOG: Id = Id::root(\"holla.action\");\n",
+        "#[cfg(test)] mod external_tests;\n",
+        "fn id_only_owners() {\n",
+        "    let cancel = Dialog::new(DIALOG).action_id(0);\n",
+        "    let actions = [\n",
+        "        Dialog::new(DIALOG).action_id(0),\n",
+        "        Dialog::new(DIALOG).action_id(1),\n",
+        "    ];\n",
+        "    let _ = (cancel, actions);\n",
+        "}\n",
+        "fn comments_and_multiline_tokens() {\n",
+        "    let _owner = Dialog /* gap */\n",
+        "        :: /* gap */ new\n",
+        "        (DIALOG)\n",
+        "        . /* gap */ action_id\n",
+        "        (1);\n",
+        "}\n",
+        "fn same_line_mixture() { let _id = Dialog::new(DIALOG).action_id(1); let _props = Dialog::new(DIALOG).title(\"real\"); }\n",
+        "fn props_builder() -> Dialog<'static> { Dialog::new(DIALOG).title(\"title\").actions(ACTIONS).layer(LAYER) }\n",
+        "fn returned_props() -> Dialog<'static> { Dialog::new(DIALOG) }\n",
+        "fn update_path() { let props = Dialog::new(DIALOG).title(\"title\").update(cx, state); props.draw(cx, area); }\n",
+        "fn nested_real_constructor() {\n",
+        "    Dialog::new(\n",
+        "        Dialog::new(DIALOG).title(\"inner\")\n",
+        "    ).action_id(1);\n",
+        "}\n",
+        "fn action_ids_prefix() { Dialog::new(DIALOG).action_ids(1); }\n",
+        "fn unsupported_argument() { Dialog::new(make_id()).action_id(1); }\n",
+        "fn braced_const_argument() { Dialog::new(const { DIALOG }).action_id(1); }\n",
+        "fn array_argument() { Dialog::new([DIALOG]).action_id(1); }\n",
+        "fn macro_argument() { Dialog::new(dialog_id!()).action_id(1); }\n",
+        "fn unsupported_extra_chain() { let _id = Dialog::new(DIALOG).action_id(1).title(\"builder\"); }\n",
+        "fn unsupported_operator_context() { let _same = Dialog::new(DIALOG).action_id(1) == other; }\n",
+        "fn where_clause<T>() where T: Bound { let _id = Dialog::new(DIALOG).action_id(1); }\n",
+        "fn custom_local_import() { use custom::Dialog; let _id = Dialog::new(DIALOG).action_id(0); }\n",
+        "fn local_extern_crate_shadow() { extern crate custom as Dialog; let _id = Dialog::new(DIALOG).action_id(0); }\n",
+        "fn wildcard_local_import() { use custom::*; let _id = Dialog::new(DIALOG).action_id(0); }\n",
+        "fn unknown_local_attribute() { #[inject_binding] struct Inject; let _id = Dialog::new(DIALOG).action_id(0); }\n",
+        "fn local_type_shadow() { struct Dialog; let _id = Dialog::new(DIALOG).action_id(0); }\n",
+        "fn generic_type_shadow<Dialog>() { let _id = Dialog::new(DIALOG).action_id(0); }\n",
+        "fn parameter_shadow(Dialog: ()) { let _id = Dialog::new(DIALOG).action_id(0); }\n",
+        "fn unknown_macro_before_projection() { inject_binding!(); let _id = Dialog::new(DIALOG).action_id(0); }\n",
+        "fn macro_body_projection() { macro_rules! project { () => { Dialog::new(DIALOG).action_id(0) }; } project!(); }\n",
+        "fn raw_macro_body_projection() { macro_rules! r#project { () => { Dialog::new(DIALOG).action_id(0) }; } }\n",
+        "fn fully_qualified_path() { termrock::Dialog::new(DIALOG).action_id(0); }\n",
+        "struct Wrapper<T>(T); impl<Dialog> Wrapper<Dialog> { fn impl_generic_shadow() { let _id = Dialog::new(DIALOG).action_id(0); } }\n",
+        "mod nested { fn nested_module_owner() { Dialog::new(DIALOG).action_id(0); } }\n",
+        "fn standard_macro_before_projection() { assert!(true); let _id = Dialog::new(DIALOG).action_id(0); }\n",
+        "fn outer_macro_scope() {\n",
+        "    inject_binding!();\n",
+        "    fn nested_macro_owner() {\n",
+        "        let _owner = Dialog::new(DIALOG).action_id(0);\n",
+        "    }\n",
+        "}\n",
+        "mod macro_parent;\n",
+        "#[cfg(test)] mod inherited_derive;\n",
+    );
+    let lib = source_root.join("lib.rs");
+    std::fs::write(&lib, source).expect("write production source fixture");
+    std::fs::write(
+        source_root.join("production_tests_helper.rs"),
+        concat!(
+            "use termrock::{Dialog, Id};\n",
+            "const DIALOG: Id = Id::root(\"holla.disk.selection\");\n",
+            "fn helper_owner() { let _owner = Dialog::new(DIALOG).action_id(1); }\n",
+            "fn disk_props() -> Dialog<'static> { Dialog::new(DIALOG).title(\"Select disk candidates\").actions(ACTIONS).body_rows(2) }\n",
+        ),
+    )
+    .expect("write production helper fixture");
+    std::fs::write(
+        source_root.join("external_tests.rs"),
+        concat!(
+            "use termrock::{Dialog, Id};\n",
+            "const DIALOG: Id = Id::root(\"holla.external\");\n",
+            "#[test] fn external_id_only() { let _owner = Dialog::new(DIALOG).action_id(0); }\n",
+            "#[test] fn external_real_owner() { Dialog::new(DIALOG).title(\"real props\"); Dialog::confirm(DIALOG, \"title\", \"body\"); }\n",
+        ),
+    )
+    .expect("write external cfg(test) source fixture");
+    let macro_parent = source_root.join("macro_parent.rs");
+    std::fs::create_dir_all(source_root.join("macro_parent"))
+        .expect("create out-of-line macro child root");
+    std::fs::write(
+        &macro_parent,
+        concat!(
+            "pub mod custom {\n",
+            "    pub struct Dialog;\n",
+            "    impl Dialog {\n",
+            "        pub fn new<T>(_: T) -> Self { Self }\n",
+            "        pub fn action_id(self, _: usize) -> usize { 0 }\n",
+            "    }\n",
+            "}\n",
+            "macro_rules! assert { ($name:ident) => { use crate::macro_parent::custom::$name; }; }\n",
+            "#[cfg(test)] mod inherited_macro;\n",
+        ),
+    )
+    .expect("write parent macro shadow fixture");
+    std::fs::write(
+        source_root.join("macro_parent/inherited_macro.rs"),
+        concat!(
+            "use termrock::{Dialog, Id};\n",
+            "const DIALOG: Id = Id::root(\"holla.parent-macro\");\n",
+            "fn inherited_parent_macro_without_glob() {\n",
+            "    assert!(Dialog);\n",
+            "    let _owner = Dialog::new(DIALOG).action_id(0);\n",
+            "}\n",
+        ),
+    )
+    .expect("write out-of-line child without super glob");
+    std::fs::write(
+        source_root.join("inherited_derive.rs"),
+        concat!(
+            "#[derive(Clone)] struct Marker;\n",
+            "use termrock::{Dialog, Id};\n",
+            "const DIALOG: Id = Id::root(\"holla.unproven-derive\");\n",
+            "fn inherited_derive_scope() { let _owner = Dialog::new(DIALOG).action_id(0); }\n",
+        ),
+    )
+    .expect("write unproven external derive fixture");
+    std::fs::write(
+        source_root.join("alias.rs"),
+        concat!(
+            "use termrock::Dialog as SharedDialog;\n",
+            "fn alias_only() { let _owner = Dialog::new(DIALOG).action_id(0); }\n",
+        ),
+    )
+    .expect("write alias binding fixture");
+    std::fs::write(
+        source_root.join("ambiguous.rs"),
+        concat!(
+            "use termrock::Dialog;\n",
+            "use custom::Dialog;\n",
+            "fn ambiguous_import() { let _owner = Dialog::new(DIALOG).action_id(0); }\n",
+        ),
+    )
+    .expect("write ambiguous import fixture");
+    std::fs::write(
+        source_root.join("macro_binding.rs"),
+        concat!(
+            "use termrock::Dialog;\n",
+            "macro_rules! Dialog { () => {}; }\n",
+            "fn macro_binding() { let _owner = Dialog::new(DIALOG).action_id(0); }\n",
+        ),
+    )
+    .expect("write macro binding fixture");
+    std::fs::write(
+        source_root.join("wildcard_import.rs"),
+        concat!(
+            "use custom::*;\n",
+            "use termrock::Dialog;\n",
+            "fn wildcard_import_owner() { let _owner = Dialog::new(DIALOG).action_id(0); }\n",
+        ),
+    )
+    .expect("write wildcard import fixture");
+    std::fs::write(
+        source_root.join("extern_shadow.rs"),
+        concat!(
+            "extern crate Dialog;\n",
+            "use termrock::Dialog;\n",
+            "fn extern_binding_owner() { let _owner = Dialog::new(DIALOG).action_id(0); }\n",
+        ),
+    )
+    .expect("write external-crate binding fixture");
+    std::fs::write(
+        source_root.join("root_type_shadow.rs"),
+        concat!(
+            "use termrock::Dialog;\n",
+            "struct Dialog;\n",
+            "fn root_type_shadow_owner() { let _owner = Dialog::new(DIALOG).action_id(0); }\n",
+        ),
+    )
+    .expect("write root type binding fixture");
+    std::fs::write(
+        source_root.join("root_attribute.rs"),
+        concat!(
+            "#[inject_binding] struct Inject;\n",
+            "use termrock::Dialog;\n",
+            "fn root_attribute_owner() { let _owner = Dialog::new(DIALOG).action_id(0); }\n",
+        ),
+    )
+    .expect("write root attribute fixture");
+    std::fs::write(
+        source_root.join("spaced_separator.rs"),
+        concat!(
+            "use termrock: /* gap */ : Dialog;\n",
+            "fn spaced_separator_owner() { let _owner = Dialog::new(DIALOG).action_id(0); }\n",
+        ),
+    )
+    .expect("write malformed spaced-separator fixture");
+    std::fs::write(
+        source_root.join("unknown.rs"),
+        "use custom::Dialog;\nfn unknown_binding() { let _owner = Dialog::new(DIALOG).action_id(0); }\n",
+    )
+    .expect("write unknown binding fixture");
+    std::fs::write(
+        source_root.join("crate_shadow.rs"),
+        concat!(
+            "mod termrock { pub struct Dialog; }\n",
+            "use termrock::Dialog;\n",
+            "fn local_crate_binding() { let _owner = Dialog::new(DIALOG).action_id(0); }\n",
+        ),
+    )
+    .expect("write shadowed shared-crate path fixture");
+    std::fs::write(
+        source_root.join("conditional_import.rs"),
+        concat!(
+            "#[cfg(feature = \"shared-dialog\")] use termrock::Dialog;\n",
+            "fn conditional_import_owner() { let _owner = Dialog::new(DIALOG).action_id(0); }\n",
+        ),
+    )
+    .expect("write conditional import fixture");
+    std::fs::write(
+        source_root.join("attribute_macro.rs"),
+        concat!(
+            "use termrock::Dialog;\n",
+            "#[inject_binding] fn attribute_macro_owner() { let _owner = Dialog::new(DIALOG).action_id(0); }\n",
+        ),
+    )
+    .expect("write unknown attribute macro fixture");
+
+    let lib_non_test = non_test(source).expect("tokenize fixture source");
+    let lib_code = code_only(&lib_non_test);
+    let projections = shared_dialog_action_id_projection_ranges(&lib_code)
+        .expect("find proven action-ID projections");
+    assert_eq!(
+        projections.len(),
+        5,
+        "only the let/array, comment-separated, and same-line mixed ID projections qualify"
+    );
+    let projected_lines: Vec<_> = projections
+        .iter()
+        .map(|projection| {
+            lib_code.as_bytes()[..projection.start]
+                .iter()
+                .filter(|byte| **byte == b'\n')
+                .count()
+                + 1
+        })
+        .collect();
+    assert_eq!(projected_lines, [6, 8, 9, 14, 20]);
+    assert!(
+        shared_dialog_action_id_projection_ranges(
+            "use termrock::Dialog; fn malformed() { Dialog::new(ID).action_id(0;"
+        )
+        .is_err()
+    );
+
+    let scanned = scan(&workspace);
+    std::fs::remove_dir_all(&workspace).expect("remove action-ID source fixture");
+    let expected = BTreeMap::from([
+        ("crates/holla-ui/src/alias.rs::alias_only".to_string(), 1),
+        ("crates/holla-ui/src/ambiguous.rs::ambiguous_import".to_string(), 1),
+        ("crates/holla-ui/src/attribute_macro.rs::attribute_macro_owner".to_string(), 1),
+        ("crates/holla-ui/src/conditional_import.rs::conditional_import_owner".to_string(), 1),
+        ("crates/holla-ui/src/crate_shadow.rs::local_crate_binding".to_string(), 1),
+        ("crates/holla-ui/src/external_tests.rs::external_real_owner".to_string(), 2),
+        ("crates/holla-ui/src/inherited_derive.rs::inherited_derive_scope".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::action_ids_prefix".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::array_argument".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::braced_const_argument".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::custom_local_import".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::local_extern_crate_shadow".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::wildcard_local_import".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::unknown_local_attribute".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::fully_qualified_path".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::generic_type_shadow".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::impl_generic_shadow".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::local_type_shadow".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::macro_argument".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::macro_body_projection".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::raw_macro_body_projection".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::nested_module_owner".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::nested_real_constructor".to_string(), 2),
+        ("crates/holla-ui/src/lib.rs::parameter_shadow".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::props_builder".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::returned_props".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::same_line_mixture".to_string(), 1),
+        (
+            "crates/holla-ui/src/lib.rs::standard_macro_before_projection".to_string(),
+            1,
+        ),
+        ("crates/holla-ui/src/lib.rs::nested_macro_owner".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::unknown_macro_before_projection".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::update_path".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::unsupported_argument".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::unsupported_extra_chain".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::unsupported_operator_context".to_string(), 1),
+        ("crates/holla-ui/src/lib.rs::where_clause".to_string(), 1),
+        ("crates/holla-ui/src/production_tests_helper.rs::disk_props".to_string(), 1),
+        ("crates/holla-ui/src/unknown.rs::unknown_binding".to_string(), 1),
+        ("crates/holla-ui/src/macro_binding.rs::macro_binding".to_string(), 1),
+        (
+            "crates/holla-ui/src/macro_parent/inherited_macro.rs::inherited_parent_macro_without_glob"
+                .to_string(),
+            1,
+        ),
+        ("crates/holla-ui/src/wildcard_import.rs::wildcard_import_owner".to_string(), 1),
+        ("crates/holla-ui/src/extern_shadow.rs::extern_binding_owner".to_string(), 1),
+        ("crates/holla-ui/src/root_type_shadow.rs::root_type_shadow_owner".to_string(), 1),
+        ("crates/holla-ui/src/root_attribute.rs::root_attribute_owner".to_string(), 1),
+        ("crates/holla-ui/src/spaced_separator.rs::spaced_separator_owner".to_string(), 1),
+    ]);
+    assert_eq!(
+        scanned, expected,
+        "retain all real, shadowed, unsupported, macro, and uncertain candidates; exclude only proven terminal Id projections"
+    );
+    assert!(!scanned.contains_key("crates/holla-ui/src/production_tests_helper.rs::helper_owner"));
+    assert!(!scanned.contains_key("crates/holla-ui/src/external_tests.rs::external_id_only"));
 }
 
 pub fn quit_model_exclusion_is_source_and_span_qualified() {

@@ -72,6 +72,12 @@ pub(super) fn code_only(text: &str) -> String {
     .expect("lexical mask preserves UTF-8")
 }
 
+pub(super) fn shared_dialog_action_id_projection_ranges(
+    source: &str,
+) -> Result<Vec<std::ops::Range<usize>>, String> {
+    rust_source::shared_dialog_action_id_projection_ranges(source)
+}
+
 fn matching_pattern_offsets(code: &str, pattern: &str) -> Vec<usize> {
     matching_patterns_checked(code, &[pattern])
         .expect("scanner source has balanced delimiters")
