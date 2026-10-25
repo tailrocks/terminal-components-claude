@@ -38,7 +38,7 @@ impl QuickSwitcher {
             Some(3) => "Queries · Tab scope",
             _ => "All · Tab scope",
         };
-        // Baseline card: borders + title + query + gap + up to 12 rows + hint row.
+
         let rows = u16::try_from(self.items.len().clamp(1, 12)).unwrap_or(12);
         Picker::new(ID)
             .title("Open Quickly")
