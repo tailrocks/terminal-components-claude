@@ -20,7 +20,7 @@ use termrock_core::event::{Input, MouseKind};
 use termrock_core::platform::ClientPlatform;
 use termrock_runtime::event::Axis;
 use termrock_runtime::hit::{Bar, RegionKind, Registry};
-use termrock_runtime::{App, Id, Runtime};
+use termrock_runtime::{App, Id, PendingInput, Runtime};
 use termrock_theme::Theme as ThemeType;
 
 /// The sizes a screen must survive.
@@ -257,27 +257,19 @@ impl<S: Scenario> Probe<S> {
         }
     }
 
-    fn handle(&mut self, input: Input) {
-        // The runtime takes an input only once the app is ready. A pending
-        // input is settled and retried, so a probe that arrives too early
-        // loses the step instead of panicking the harness.
-        let mut input = input;
-        for _ in 0..16 {
-            match self.rt.handle(input) {
-                Ok(_) => break,
-                Err(pending) => {
-                    input = pending.into_input();
-                    let _ = self.rt.settle();
-                }
-            }
-        }
+    fn handle(&mut self, input: Input) -> Result<(), PendingInput> {
+        // Keep a rejected input available to the caller. The harness must not
+        // retry it until a frame is presented or silently discard it.
+        let _ = self.rt.handle(input)?;
         self.draw();
+        Ok(())
     }
 
     fn resize(&mut self, w: u16, h: u16) {
         self.area = Rect::new(0, 0, w, h);
         self.buf = Buffer::empty(self.area);
-        self.handle(Input::Resize(w, h));
+        self.handle(Input::Resize(w, h))
+            .expect("a published probe must accept input");
     }
 
     fn buffer(&self) -> &Buffer {
@@ -333,7 +325,8 @@ impl<S: Scenario> Probe<S> {
             kind,
             pos: at,
             mods: termrock_core::keys::KeyModifiers::NONE,
-        }));
+        }))
+        .expect("a published probe must accept input");
     }
 
     /// One wheel page. `true` when the frame changed.
@@ -690,6 +683,76 @@ macro_rules! reach_tests {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use std::cell::Cell;
+    use std::rc::Rc;
+
+    use termrock_runtime::{Cx, Response, Ui};
+
+    struct CountingApp {
+        updates: Rc<Cell<usize>>,
+    }
+
+    impl App for CountingApp {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            self.updates.set(self.updates.get() + 1);
+            Response::ignored()
+        }
+
+        fn draw(&self, _ui: &mut Ui<'_>) {}
+    }
+
+    struct CountingScenario;
+
+    impl Scenario for CountingScenario {
+        type App = CountingApp;
+
+        fn fresh() -> Self::App {
+            CountingApp {
+                updates: Rc::new(Cell::new(0)),
+            }
+        }
+    }
+
+    fn ready_probe(updates: Rc<Cell<usize>>) -> Probe<CountingScenario> {
+        Probe::new(CountingApp { updates }, ThemeType::junie())
+    }
+
+    #[test]
+    fn accepted_probe_input_is_delivered_once() {
+        let updates = Rc::new(Cell::new(0));
+        let mut probe = ready_probe(Rc::clone(&updates));
+        updates.set(0);
+
+        probe
+            .handle(Input::Resize(80, 24))
+            .expect("a ready probe accepts one input");
+
+        assert_eq!(updates.get(), 1);
+    }
+
+    #[test]
+    fn unready_probe_returns_the_unchanged_pending_input() {
+        let updates = Rc::new(Cell::new(0));
+        let area = Rect::new(0, 0, 80, 24);
+        let mut probe = Probe::<CountingScenario> {
+            rt: Runtime::new(
+                CountingApp {
+                    updates: Rc::clone(&updates),
+                },
+                ThemeType::junie(),
+            ),
+            buf: Buffer::empty(area),
+            area,
+        };
+
+        let pending = probe
+            .handle(Input::Resize(31, 17))
+            .expect_err("an uninitialized probe cannot consume input");
+
+        assert!(matches!(pending.into_input(), Input::Resize(31, 17)));
+        assert_eq!(updates.get(), 0);
+    }
 
     fn buf(lines: &[&str]) -> Buffer {
         let w = lines.iter().map(|l| l.chars().count()).max().unwrap_or(0) as u16;

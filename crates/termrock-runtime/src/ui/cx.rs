@@ -246,11 +246,11 @@ impl core::fmt::Debug for Cx<'_> {
 
 /// Advance the serial that identifies one update within a runtime.
 ///
-/// The serial saturates at the end of its range instead of aborting the
-/// process: only 2^64 updates in one runtime reach the limit.
-fn next_callback_serial(serial: &mut u64) -> u64 {
-    *serial = serial.saturating_add(1);
-    *serial
+/// Return `None` when the serial is exhausted, without changing it.
+fn next_callback_serial(serial: &mut u64) -> Option<u64> {
+    let next = (*serial).checked_add(1)?;
+    *serial = next;
+    Some(next)
 }
 
 impl<'f> Cx<'f> {
@@ -361,10 +361,9 @@ impl<'f> Cx<'f> {
         command: Option<ActionKey>,
         update_cause: UpdateCause,
     ) -> Self {
-        // The callback serial identifies one update within a runtime. It
-        // saturates only after 2^64 updates, and saturating keeps the token
-        // monotone instead of aborting the process.
-        let callback_serial = next_callback_serial(&mut services.callback_serial);
+        // Reusing an exhausted callback serial could alias an earlier update.
+        let callback_serial = next_callback_serial(&mut services.callback_serial)
+            .expect("runtime callback token exhausted");
         let update_token = UpdateToken::new(services.runtime_id, callback_serial);
         let cache = &mut core.cache;
         let keymap = &core.keymap;
@@ -1105,13 +1104,22 @@ mod diagnostics_tests {
 mod callback_serial_tests {
     use super::*;
 
+    fn next_token(serial: &mut u64) -> Option<UpdateToken> {
+        next_callback_serial(serial).map(|callback| UpdateToken::new(7, callback))
+    }
+
     #[test]
-    fn the_callback_serial_saturates_instead_of_aborting_the_process() {
+    fn callback_tokens_remain_unique_and_exhaust_without_reuse() {
         let mut serial = 0;
-        assert_eq!(next_callback_serial(&mut serial), 1);
-        assert_eq!(next_callback_serial(&mut serial), 2);
-        serial = u64::MAX;
-        assert_eq!(next_callback_serial(&mut serial), u64::MAX);
+        let first = next_token(&mut serial);
+        let second = next_token(&mut serial);
+        assert_eq!(first, Some(UpdateToken::new(7, 1)));
+        assert_eq!(second, Some(UpdateToken::new(7, 2)));
+        assert_ne!(first, second);
+
+        serial = u64::MAX - 1;
+        assert_eq!(next_token(&mut serial), Some(UpdateToken::new(7, u64::MAX)));
+        assert_eq!(next_token(&mut serial), None);
         assert_eq!(serial, u64::MAX);
     }
 }
