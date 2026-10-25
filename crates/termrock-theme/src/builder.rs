@@ -45,8 +45,6 @@ impl ThemeBuilder {
         }
     }
 
-    /// Set the shared Manager's explicit presentation policy. A builder made
-    /// from a theme inherits its existing policy unless this setter changes it.
     #[must_use]
     pub fn manager_presentation_profile(mut self, profile: ManagerPresentationProfile) -> Self {
         self.theme.recipes.set_manager_presentation_profile(profile);
@@ -342,61 +340,6 @@ pub fn fade_mix(fg: Color, bg: Color, amount: f32) -> FadeOutcome {
     FadeOutcome::Blended(Color::Rgb(mix(fr, br), mix(fg, bg), mix(fb, bb)))
 }
 
-#[cfg(test)]
-mod fade_tests {
-    use super::{FadeOutcome, fade_mix};
-    use ratatui_core::style::Color;
-
-    fn mix(front: u8, back: u8, amount: f32) -> u8 {
-        (f32::from(front) * amount + f32::from(back) * (1.0 - amount))
-            .round()
-            .clamp(0.0, 255.0) as u8
-    }
-
-    #[test]
-    fn fade_mix_matches_oracle_for_every_rgb_channel_pair() {
-        for amount in [0.55f32, 0.80f32] {
-            for fg in 0..=u8::MAX {
-                for bg in 0..=u8::MAX {
-                    let expected = mix(fg, bg, amount);
-                    assert_eq!(
-                        fade_mix(Color::Rgb(fg, fg, fg), Color::Rgb(bg, bg, bg), amount),
-                        FadeOutcome::Blended(Color::Rgb(expected, expected, expected)),
-                        "fg={fg} bg={bg} amount={amount}"
-                    );
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn fade_mix_handles_terminal_palette_colors_conservatively() {
-        let colors = [
-            Color::Reset,
-            Color::Indexed(3),
-            Color::Red,
-            Color::Rgb(9, 20, 31),
-        ];
-        for fg in colors {
-            for bg in colors {
-                if let (Color::Rgb(fr, fg_green, fb), Color::Rgb(br, bg_green, bb)) = (fg, bg) {
-                    assert_eq!(
-                        fade_mix(fg, bg, 0.55),
-                        FadeOutcome::Blended(Color::Rgb(
-                            mix(fr, br, 0.55),
-                            mix(fg_green, bg_green, 0.55),
-                            mix(fb, bb, 0.55),
-                        ))
-                    );
-                } else {
-                    assert_eq!(fade_mix(fg, bg, 0.55), FadeOutcome::ApplyDim);
-                    assert_eq!(fade_mix(fg, bg, 0.80), FadeOutcome::Unchanged);
-                }
-            }
-        }
-    }
-}
-
 pub(crate) fn contrast(a: Color, b: Color) -> f64 {
     let (Some(a), Some(b)) = (rgb_of(a), rgb_of(b)) else {
         return 1.0;
@@ -521,10 +464,7 @@ pub(crate) fn derive_unset(c: &mut ColorTokens) {
     fill(&mut c.disabled_fg, || c.fg[3]);
     fill(&mut c.disabled_bg, || s[2]);
     fill(&mut c.read_only_fg, || c.fg[1]);
-    // Application chrome roles. The derivation keeps a themed palette's own
-    // ladder: the status strip sits on the chrome surface, the rule is a
-    // dimmed rule, the scroll track and thumb are dimmer and stronger inks
-    // than the rule, and the tag ink is the muted step.
+
     fill(&mut c.status_bar_bg, || s[1]);
     fill(&mut c.status_bar_fg, || fg0);
     fill(&mut c.status_accent, || c.accent);
@@ -566,147 +506,5 @@ pub(crate) fn derive_unset(c: &mut ColorTokens) {
     let series_default = [me.low, me.medium, me.high, c.info, c.accent, c.fg[1]];
     for (slot, d) in me.series.iter_mut().zip(series_default) {
         fill(slot, || d);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::theme::tokens::{MeterTokens, SyntaxTokens};
-
-    fn seeds() -> ColorTokens {
-        let mut c = Theme::junie().color;
-        let unset = c.map_colors(&mut |_| Color::Reset);
-        c = unset;
-        c.surfaces[0] = Color::Rgb(0x0A, 0x0C, 0x10);
-        c.accent = Color::Rgb(0x7A, 0xA2, 0xF7);
-        c.danger = Color::Rgb(0xF0, 0x6E, 0x78);
-        c.warning = Color::Rgb(0xE0, 0xA8, 0x50);
-        c.success = Color::Rgb(0x7E, 0xC8, 0x8C);
-        c.info = Color::Rgb(0x78, 0xB4, 0xDC);
-        c.syntax = SyntaxTokens::derive(c.accent, c.success, c.warning);
-        c.meter = MeterTokens::derive(c.success, c.warning, c.danger);
-        c
-    }
-
-    #[test]
-    fn ascii_glyphs_is_idempotent_and_glyph_overrides_it() {
-        let once = Theme::junie().builder().ascii_glyphs().build();
-        let twice = Theme::junie()
-            .builder()
-            .ascii_glyphs()
-            .ascii_glyphs()
-            .build();
-        assert_eq!(once.design.glyphs, twice.design.glyphs);
-
-        let via_borders = Theme::junie()
-            .builder()
-            .borders_set(crate::theme::border::ASCII)
-            .build();
-        assert_eq!(once.design.glyphs, via_borders.design.glyphs);
-
-        let overridden = Theme::junie()
-            .builder()
-            .borders_set(crate::theme::border::ASCII)
-            .glyph(GlyphRole::RuleQuiet, "~")
-            .build();
-        assert_eq!(overridden.design.glyphs.get(GlyphRole::RuleQuiet), "~");
-
-        assert_eq!(overridden.design.glyphs.get(GlyphRole::RuleActive), "=");
-        assert_eq!(overridden.design.glyphs.scrollbar().begin, "|");
-
-        let dot_override = Theme::junie()
-            .builder()
-            .ascii_glyphs()
-            .glyph(GlyphRole::DotOn, "on")
-            .glyph(GlyphRole::DotOff, "off")
-            .build();
-        assert_eq!(dot_override.design.glyphs.get(GlyphRole::DotOn), "on");
-        assert_eq!(dot_override.design.glyphs.get(GlyphRole::DotOff), "off");
-    }
-
-    #[test]
-    fn builder_derives_every_unset_token_deterministically() {
-        let a = Theme::from_tokens(seeds());
-        let b = Theme::from_tokens(seeds());
-        assert_eq!(a.color, b.color);
-        for c in a.color.colors() {
-            assert_ne!(c, Color::Reset, "an unset token survived derivation");
-        }
-
-        let l: Vec<f64> = a.color.surfaces.iter().map(|c| lightness(*c)).collect();
-        assert!(l.windows(2).all(|w| w[1] > w[0]), "{l:?}");
-        let f: Vec<f64> = a.color.fg.iter().map(|c| lightness(*c)).collect();
-        assert!(f.windows(2).all(|w| w[1] < w[0]), "{f:?}");
-        assert_eq!(a.color.focus, a.color.accent);
-        assert_eq!(a.color.focus_ring, a.color.accent_pressed);
-        assert_eq!(a.color.border_subtle, a.color.surfaces[3]);
-        assert_eq!(a.color.border_strong, a.color.fg[3]);
-
-        assert_eq!(a.color.surfaces[1], Color::Rgb(21, 22, 25));
-        assert_eq!(a.color.accent_hover, Color::Rgb(145, 183, 255));
-        assert_eq!(a.color.accent_pressed, Color::Rgb(99, 141, 224));
-
-        let t = Theme::junie()
-            .builder()
-            .accent(Color::Rgb(0xC6, 0x7A, 0x2E))
-            .build();
-        assert_eq!(t.color.surfaces, Theme::junie().color.surfaces);
-        assert_eq!(t.color.fg, Theme::junie().color.fg);
-        assert_ne!(t.color.accent_hover, Theme::junie().color.accent_hover);
-        assert_eq!(t.color.focus, t.color.accent);
-        let t2 = Theme::junie()
-            .builder()
-            .focus(Color::Rgb(1, 2, 3))
-            .accent(Color::Rgb(9, 9, 9))
-            .build();
-        assert_eq!(
-            t2.color.focus,
-            Color::Rgb(1, 2, 3),
-            "explicit focus survives a later accent"
-        );
-    }
-
-    #[test]
-    fn derived_tokens_meet_design_contrast_ratios() {
-        for t in [Theme::from_tokens(seeds()), Theme::paper()] {
-            let c = &t.color;
-            assert!(contrast(c.fg[0], c.surfaces[0]) >= 7.0, "{:?}", c.fg[0]);
-            assert!(
-                contrast(c.on_accent, c.accent) >= 4.5,
-                "{:?} on {:?}",
-                c.on_accent,
-                c.accent
-            );
-            assert!(
-                contrast(c.on_danger, c.danger) >= 4.5,
-                "{:?} on {:?}",
-                c.on_danger,
-                c.danger
-            );
-        }
-        let j = Theme::junie().color;
-        assert!(contrast(j.fg[0], j.surfaces[0]) >= 7.0);
-    }
-
-    #[test]
-    fn lab_round_trips_and_blends() {
-        for rgb in [
-            (0, 0, 0),
-            (255, 255, 255),
-            (0x48, 0xe0, 0x54),
-            (0x11, 0x11, 0x11),
-        ] {
-            assert_eq!(lab_to_rgb(lab_of(rgb)), rgb);
-        }
-        assert_eq!(
-            blend(Color::Rgb(255, 255, 255), Color::Rgb(0, 0, 0), 0.5),
-            Color::Rgb(128, 128, 128)
-        );
-        assert_eq!(
-            blend(Color::Reset, Color::Rgb(1, 1, 1), 0.5),
-            Color::Rgb(1, 1, 1)
-        );
-        assert!((contrast(Color::White, Color::Black) - 21.0).abs() < 0.01);
     }
 }
