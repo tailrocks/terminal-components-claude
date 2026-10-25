@@ -994,6 +994,207 @@ fn unknown_function_body_macro_recovers_only_inline_range_and_keeps_external_rou
 }
 
 #[test]
+fn bounded_body_macros_preserve_inline_and_direct_file_test_ranges() {
+    let dir = empty_workspace();
+    let source = concat!(
+        "fn production_before() { None::<u8>.expect(\"before\"); }\n",
+        "fn free_body_macro() { unknown_free_items!(); }\n",
+        "impl Example { fn method(&self) { unknown_method_items!(); } }\n",
+        "#[cfg(test)] mod inline_candidate { fn inline_test() { None::<u8>.expect(\"inline\"); } }\n",
+        "#[test]\n",
+        "#[ignore]\n",
+        "fn direct_candidate() {\n",
+        "    None::<u8>.expect(\"direct\");\n",
+        "}\n",
+        "fn production_after() { None::<u8>.expect(\"after\"); }\n",
+    );
+    write_member_file(&dir, "src/lib.rs", source);
+
+    let ranges: Vec<_> = module_graph::cfg_test_ranges(source)
+        .iter()
+        .map(|range| (range.start, range.end))
+        .collect();
+    assert_eq!(
+        ranges,
+        [(4, 9)],
+        "only the literal inline module and directly marked file-level function survive the bounded free/method macro uncertainty"
+    );
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        own14_source_lines(&[1, 10]),
+        "both production expectations remain while the inline and direct test bodies are excluded"
+    );
+}
+
+#[test]
+fn bounded_body_fallback_does_not_certify_unproven_test_items() {
+    let candidates = [
+        (
+            "qualified test attribute",
+            "#[qualified::test]\nfn candidate() { None::<u8>.expect(\"candidate\"); }\n",
+        ),
+        (
+            "malformed test arguments",
+            "#[test(extra)]\nfn candidate() { None::<u8>.expect(\"candidate\"); }\n",
+        ),
+        (
+            "cfg_attr provenance",
+            "#[cfg_attr(test, test)]\nfn candidate() { None::<u8>.expect(\"candidate\"); }\n",
+        ),
+        (
+            "unknown outer attribute",
+            "#[unknown]\n#[test]\nfn candidate() { None::<u8>.expect(\"candidate\"); }\n",
+        ),
+        (
+            "path provenance",
+            "#[path = \"candidate.rs\"]\n#[test]\nfn candidate() { None::<u8>.expect(\"candidate\"); }\n",
+        ),
+        (
+            "derive provenance",
+            "#[derive(Clone)]\n#[test]\nfn candidate() { None::<u8>.expect(\"candidate\"); }\n",
+        ),
+        (
+            "cfg-only function",
+            "#[cfg(test)]\nfn candidate() { None::<u8>.expect(\"candidate\"); }\n",
+        ),
+        (
+            "bench marker",
+            "#[bench]\nfn candidate() { None::<u8>.expect(\"candidate\"); }\n",
+        ),
+        (
+            "nested direct test",
+            "mod nested { #[test] fn candidate() { None::<u8>.expect(\"candidate\"); } }\n",
+        ),
+    ];
+
+    for (label, candidate) in candidates {
+        let dir = empty_workspace();
+        let source = format!("fn uncertain() {{ unknown_body_items!(); }}\n{candidate}");
+        write_member_file(&dir, "src/lib.rs", &source);
+        assert!(
+            module_graph::cfg_test_ranges(&source).is_empty(),
+            "{label} must not receive the direct file-level certificate"
+        );
+        let candidate_line = source_line_number(&source, "None::<u8>.expect(\"candidate\")");
+        assert_eq!(
+            own14_findings(&check_scratch(&dir)),
+            own14_source_lines(&[candidate_line]),
+            "{label} remains a production finding"
+        );
+    }
+}
+
+#[test]
+fn direct_test_certificate_uses_whole_scope_imports_and_ignores_unrelated_test_paths() {
+    for (imports, after_candidate) in [
+        ("use custom::test;\n", false),
+        ("use custom::*;\n", false),
+        ("use custom::make as test;\n", false),
+        ("use custom::test;\n", true),
+    ] {
+        let dir = empty_workspace();
+        let candidate = concat!(
+            "#[test]\n",
+            "fn candidate() {\n",
+            "    None::<u8>.expect(\"candidate\");\n",
+            "}\n",
+        );
+        let source = if after_candidate {
+            format!("fn uncertain() {{ unknown_body_items!(); }}\n{candidate}{imports}")
+        } else {
+            format!("fn uncertain() {{ unknown_body_items!(); }}\n{imports}{candidate}")
+        };
+        write_member_file(&dir, "src/lib.rs", &source);
+        assert!(
+            module_graph::cfg_test_ranges(&source).is_empty(),
+            "same-scope import must shadow even when it follows the test function: {imports:?}"
+        );
+        let candidate_line = source_line_number(&source, "None::<u8>.expect(\"candidate\")");
+        assert_eq!(
+            own14_findings(&check_scratch(&dir)),
+            own14_source_lines(&[candidate_line]),
+            "possibly shadowed test attribute remains production"
+        );
+    }
+
+    let dir = empty_workspace();
+    let source = concat!(
+        "fn uncertain() { unknown_body_items!(); }\n",
+        "use custom::test::helper;\n",
+        "#[test]\n",
+        "fn candidate() {\n",
+        "    None::<u8>.expect(\"candidate\");\n",
+        "}\n",
+    );
+    write_member_file(&dir, "src/lib.rs", source);
+    assert_eq!(
+        module_graph::cfg_test_ranges(source)
+            .iter()
+            .map(|range| (range.start, range.end))
+            .collect::<Vec<_>>(),
+        [(3, 6)],
+        "a path containing `test` without binding that name is not shadowing"
+    );
+    assert!(own14_findings(&check_scratch(&dir)).is_empty());
+}
+
+#[test]
+fn direct_test_certificate_keeps_shared_production_physical_lines() {
+    let dir = empty_workspace();
+    let source = concat!(
+        "fn production() { None::<u8>.expect(\"production\"); } #[test] fn candidate() { None::<u8>.expect(\"candidate\"); }\n",
+        "fn uncertain() { unknown_body_items!(); }\n",
+    );
+    write_member_file(&dir, "src/lib.rs", source);
+
+    assert!(
+        module_graph::cfg_test_ranges(source).is_empty(),
+        "the direct function cannot certify a physical line that also contains production tokens"
+    );
+    let shared_line = source_line_number(source, "fn production() ");
+    assert!(
+        own14_findings(&check_scratch(&dir))
+            .iter()
+            .any(|(file, line)| file == "crates/demo-preview/src/lib.rs" && *line == shared_line),
+        "the shared production expectation remains visible to OWN-14"
+    );
+}
+
+#[test]
+fn later_scope_uncertainty_invalidates_an_early_direct_test_certificate() {
+    for (label, suffix) in [
+        (
+            "unknown later attribute",
+            "#[unknown::route]\nfn later() {}\n",
+        ),
+        (
+            "unresolved later include",
+            "include!(concat!(\"later.inc.rs\"));\n",
+        ),
+        ("later module item macro", "root_items!();\n"),
+    ] {
+        let dir = empty_workspace();
+        let source = format!(
+            "fn uncertain() {{ unknown_body_items!(); }}\n\
+             #[test]\n\
+             fn candidate() {{ None::<u8>.expect(\"candidate\"); }}\n\
+             {suffix}"
+        );
+        write_member_file(&dir, "src/lib.rs", &source);
+        assert!(
+            module_graph::cfg_test_ranges(&source).is_empty(),
+            "{label} must invalidate an earlier direct-function certificate"
+        );
+        let candidate_line = source_line_number(&source, "None::<u8>.expect(\"candidate\")");
+        assert_eq!(
+            own14_findings(&check_scratch(&dir)),
+            own14_source_lines(&[candidate_line]),
+            "{label} leaves the early candidate as a production finding"
+        );
+    }
+}
+
+#[test]
 fn uncertainty_after_a_bounded_body_macro_still_rejects_all_ranges() {
     for suffix in [
         "#[unknown::route]\nfn later() {}\n",
