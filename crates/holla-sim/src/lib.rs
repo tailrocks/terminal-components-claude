@@ -1,3 +1,4 @@
+pub mod activity_supervisor;
 pub mod catalogue;
 pub mod clock;
 pub mod disk_scan;

@@ -1,3 +1,4 @@
+use crate::activity_supervisor::ActivitySupervisor;
 use crate::clock::Clock;
 use crate::domain::activity::Activity;
 use crate::domain::debian::DebianState;
@@ -85,6 +86,7 @@ pub struct World {
     pub effect_revision: u64,
     pub scenario: Scenario,
     pub clock: Clock,
+    pub activity_supervisor: ActivitySupervisor,
     pub host: Host,
     pub cwd: String,
     pub discovery: Vec<Discovery>,
@@ -107,6 +109,7 @@ impl World {
             effect_revision: 0,
             scenario,
             clock: Clock::new(),
+            activity_supervisor: ActivitySupervisor::new(),
             host,
             cwd: cwd.to_owned(),
             discovery: vec![],
@@ -196,6 +199,7 @@ impl World {
 
     fn step(&mut self) -> Vec<Msg> {
         let now = self.clock.now_ms;
+        self.activity_supervisor.advance_to(now);
         let mut msgs = vec![];
         for d in &mut self.discovery {
             if d.done || d.failed || now < d.at_ms {
@@ -216,7 +220,13 @@ impl World {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::activity_supervisor::{
+        ActivityExecutionPhase, ActivityExecutionStart, ActivityStopMilestone, ActivityStopPhase,
+        ActivityStopProfile,
+    };
+    use crate::domain::activity::{Activity, ActivityState};
     use crate::domain::host::Environment;
+    use std::error::Error;
 
     #[test]
     fn discovery_is_progressive_and_failures_settle() {
@@ -331,5 +341,74 @@ mod tests {
         assert!(!w.discovering());
         assert!(w.tick(80).is_empty());
         assert_eq!(w.now_ms(), i64::MAX);
+    }
+
+    #[test]
+    fn tick_advances_activity_stop_reaping_at_the_deadline() -> Result<(), Box<dyn Error>> {
+        let mut world = World::new(Scenario::FirstUse, Host::local("devbox"), "~/scratch/empty");
+        let activity = Activity::new(1, "worker", "~/work", ActivityState::Running, 0);
+        let id = world.activity_supervisor.register(
+            &activity,
+            ActivityExecutionStart::Running,
+            ActivityStopProfile::Responsive,
+        )?;
+        let now_ms = world.now_ms();
+        world
+            .activity_supervisor
+            .admit_stop(id, &activity, now_ms)?
+            .commit();
+
+        assert!(world.tick(239).is_empty());
+        assert_eq!(
+            world
+                .activity_supervisor
+                .execution(id)
+                .map(|execution| execution.phase()),
+            Some(ActivityExecutionPhase::Cancelling)
+        );
+        assert!(world.tick(1).is_empty());
+        assert_eq!(
+            world
+                .activity_supervisor
+                .execution(id)
+                .map(|execution| execution.phase()),
+            Some(ActivityExecutionPhase::Stopped)
+        );
+        assert_eq!(world.effect_revision, 0);
+        Ok(())
+    }
+
+    #[test]
+    fn seek_advances_activity_stop_milestones_at_scheduled_times() -> Result<(), Box<dyn Error>> {
+        let mut world = World::new(Scenario::FirstUse, Host::local("devbox"), "~/scratch/empty");
+        let activity = Activity::new(2, "detached", "~/work", ActivityState::Running, 0);
+        let id = world.activity_supervisor.register(
+            &activity,
+            ActivityExecutionStart::Detached,
+            ActivityStopProfile::Resistant,
+        )?;
+        let now_ms = world.now_ms();
+        world
+            .activity_supervisor
+            .admit_stop(id, &activity, now_ms)?
+            .commit();
+
+        world.seek(1_000);
+        let execution = world
+            .activity_supervisor
+            .execution(id)
+            .ok_or("execution missing")?;
+        assert_eq!(execution.phase(), ActivityExecutionPhase::Stopped);
+        assert_eq!(execution.stop_phase(), ActivityStopPhase::Reaped);
+        assert_eq!(
+            execution.milestones(),
+            &[
+                ActivityStopMilestone::TermSent { at_ms: 0 },
+                ActivityStopMilestone::KillSent { at_ms: 800 },
+                ActivityStopMilestone::Reaped { at_ms: 960 },
+            ]
+        );
+        assert_eq!(world.effect_revision, 0);
+        Ok(())
     }
 }
