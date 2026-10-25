@@ -1,8 +1,8 @@
-# Safety invariants for the session ESC bridge
+# Safety contracts for retained unsafe operations
 
-This page keeps the safety rationale and caller rules for the session ESC bridge in maintained documentation. It is a contract record, not a new safety audit or proof of product behavior. It does not authorize a change to unsafe code or lint policy.
+This page keeps source-pinned safety rationale and caller rules for the session ESC bridge and retained diagnostics. It is a contract record, not a safety audit or proof of product behavior. It does not authorize a change to unsafe code or lint policy.
 
-## Source record
+## Session bridge source record
 
 The source mapping uses the frozen product input `1d6ee92adf6ccca38eeee64b1371cba1497e8fcd`. The safety inventory was prepared at work input `c817b99e9e43abbbf3519d56b2f5ee86924243d8`. The source file is `crates/termrock-session/src/esc_bridge.rs`; its SHA-256 at the frozen product input is `2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316`. The source API inventory contains 1,122 groups. Its SHA-256 is `6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619`. The safety rationale inventory contains 42 records. Its SHA-256 is `6d4173b5b8b59af2f7bde4dc680bbd0e67acb73cedaafc4823803d95684fa7c5`.
 
@@ -66,12 +66,31 @@ Each row identifies the original `SAFETY` comment lines and the next unsafe oper
 | 1136–1136 | 1137 | // SAFETY: same fd, setting the close-on-exec bit only. |
 | 1144–1144 | 1145 | // SAFETY: `fd` is the open side-pty slave descriptor owned by `install`. |
 
+## Retained Unix process-diagnostic operations
+
+The following locations refer to frozen work input `c817b99e9e43abbbf3519d56b2f5ee86924243d8`. The hashes bind the full source files at that input. The line numbers are historical. The maintained rules below describe source preconditions. They do not prove that a caller meets them or that the operation is safe on every supported platform.
+
+| Source and SHA-256 | Source lines | Maintained rule and limit |
+|---|---:|---|
+| `crates/termrock-visibility-tests/src/lib.rs` — `a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0` | 592–602 | `set_nonblocking` borrows a descriptor from a live pipe `File`. `F_GETFL` must succeed. `F_SETFL` uses those flags with `O_NONBLOCK` added. The call does not transfer the descriptor. The source sets these flags before it moves the pipe into its reader or writer thread. |
+| Same file and hash | 650–668 | The child check gives `waitid` a live, writable `siginfo_t` that the source zero-initializes. It uses `P_PID`, `WEXITED`, `WNOHANG`, and `WNOWAIT`. Read `si_pid` only after `waitid` succeeds; zero means that no event was reported. `WNOWAIT` leaves the child waitable. An unrelated reaper can still race with this check. This record does not prove exclusive child ownership. |
+| Same file and hash | 324–330, 696–700 | Before spawning, the source requests `process_group(0)`. It then passes the negative child ID to `kill` to signal that process group. The helper ignores the `kill` result. Later `Child::wait` handles the direct child; it does not prove that every descendant exited. This record does not prove group membership or exclusive process ownership. |
+| `crates/termrock-visibility-tests/src/bin/capture-command.rs` — `6cd9c64d85dcda7392ba234f06f54af816f3859b0147759e0420df94c9de0867` | 473–490 | The signal installer zero-initializes a live local `sigaction`, sets the handler and flags, initializes `sa_mask` with `sigemptyset`, and checks each result. The handler only records a signal in `AtomicI32`. The mask and action remain live while libc reads them. This record does not prove platform ABI or signal-delivery behavior. |
+| `tools/refactor-proof/src/observer/client.rs` — `903ecfadb486a388239726e07e450c00a66f1b1fda650deb0b6b89184d1db7c7` | 41–60, 163–168 | The host must supply two live, valid, distinct inherited pipe descriptors and transfer exclusive ownership of each to `ObserverClient` exactly once. `OwnedFd::from_raw_fd` takes ownership; the `File` values close the descriptors when dropped. Environment parsing checks integer syntax and a nonempty nonce. It does not check that a descriptor is open, that the two descriptors differ, or that ownership was transferred exclusively. The current source caller found at this input is `tools/refactor-proof/src/host/verify.rs:88`; no current producer is established. Keep those host conditions as an open assumption. The older fixture-lifetime statement in `SAFETY.md` is historical and does not establish these conditions for this client. |
+
+Keep this unresolved obligation as `T20-OBS-FD-01`. The maintained [observer transport note](../../tools/refactor-proof/observer-transport.md) records the open producer and ownership questions. T01 must inventory them. T38 must approve public-path cases before test edits. T20 owns the bounded client and supported-launcher contract extension. It must decide whether the launcher transfers or lends each endpoint, how it enforces distinct ownership and one-time construction, and how it handles a probe followed by construction. T06 tracks the existing lint scope. T36 must check the final source and evidence. A parseable descriptor number or an open descriptor does not prove exclusive ownership. Do not claim that environment values enforce these rules.
+
+Before T20 closes this item, the design and approved plan must cover a valid request/response pipe pair and nonce; absent, malformed, negative, closed, out-of-range, or equal descriptor values; partial endpoint acquisition; repeated construction; and `require_transport` followed by construction. They must also cover unrelated open descriptors, stale environment values, unsupported platforms, and a transport-kind mismatch. These are future review obligations, not T37 tests or passing cases. Behavior remains `NOT VERIFIED`.
+
+The source record for retained and retired visibility safety rationale is [`t37-tools/safety-rationale.json`](../implementation/pr38-final/results/t37-tools/safety-rationale.json), SHA-256 `4dd097c5697b9b6757f855aa48bd2b9a2fdeb201a536a8a14e650712d4bcfebf`. It binds the source input, file hashes, original line text, and current caller. Its retained-operation map is evidence of source locations, not fresh platform, signal, process-ownership, or descriptor-ownership proof. The observer module's existing `unsafe_code` expectation and the existing `refactor-proof` lint policy remain unchanged.
+
 ## Maintenance rules
 
 - Keep `[workspace.lints.rust] unsafe_code = "deny"` and the existing `undocumented_unsafe_blocks` policy. Do not add or widen a lint allowance.
 - Sol high decision `T37-SAFETY-01` found no active `undocumented_unsafe_blocks` conflict in the foundation manifests. Keep the current lint policy. Stop and request a new scoped Sol high decision if another active lint conflict appears.
 - Keep the source mapping and rationale when the corresponding operation remains. Update the source commit, file hash, and line map when the operation moves or changes.
-- The source API inventory is broader than this page. This first transfer maps nine production `esc_bridge.rs` API groups that define the bridge contract and one historical test-only helper group. Each other owner must classify API prose before removing it.
+- This page maps nine production `esc_bridge.rs` API groups that define the bridge contract and one historical test-only helper group. The foundation source API inventory is broader. The bounded caller contracts selected for T37 are in [authoring guidance](authoring.md#runtime-routing-and-layer-receipts), with source hashes and line spans retained in [`source-api-prose.json`](../../docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json). That archive is provenance, not maintained guidance or per-group semantic equivalence. T01 must classify the cleaned-source API obligations; T35 must publish current caller guidance.
+- The safety inventory also records test-only allocator, fixture process-termination, and visibility queue-lock operations retired with their legacy tests. Their rationale is historical evidence, not an active production guarantee. Retained diagnostic rationale is mapped above before T37 removes its inline comments.
 - T37 runs no replacement tests. Product behavior remains `NOT VERIFIED` until an approved later task proves it through real production paths.
 
 ## Evidence limits
