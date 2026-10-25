@@ -535,7 +535,9 @@ impl Activity {
         self.state = ActivityState::Stopped;
         self.ended_tick = Some(tick);
         self.exit = Some(exit);
-        self.waiting = None;
+        if let Some(p) = self.waiting.take() {
+            self.paused_ticks += tick.saturating_sub(p.since_tick);
+        }
     }
 
 
@@ -724,18 +726,31 @@ impl Activity {
                 .collect();
             let rest = self.script.lines.split_off(self.cursor);
             self.script.lines.append(&mut spliced);
-            self.script.lines.extend(rest);
             if let Some((ticks, exit)) = b.end {
+                // the program exits along this branch: the lines after the
+                // prompt are never reached, so none of them is flushed as
+                // final output
                 self.script.ends_at = Some(elapsed + ticks);
                 self.script.exit = exit;
+            } else {
+                self.script.lines.extend(rest);
             }
         }
     }
 
+    /// Run time on the script clock: the time a prompt waited for the
+    /// operator is not counted. The fixture clock advances with runtime
+    /// ticks, which arrive on wall time, so a wait on the operator lasts as
+    /// long as the operator (or a capture harness) takes to answer; counting
+    /// it would make the same scenario and keys show a different duration
+    /// from run to run.
     pub fn duration_ticks(&self, now: u64) -> u64 {
-        self.ended_tick
-            .unwrap_or(now)
-            .saturating_sub(self.started_tick)
+        match self.ended_tick {
+            Some(end) => end
+                .saturating_sub(self.started_tick)
+                .saturating_sub(self.paused_ticks),
+            None => self.elapsed(now),
+        }
     }
 
     pub fn services(&self) -> Vec<String> {
@@ -995,6 +1010,59 @@ mod tests {
         n.advance(2);
         assert_eq!(n.exit, Some(2));
         assert_eq!(n.last_line(), Some("kept"));
+    }
+
+    #[test]
+    fn duration_does_not_depend_on_how_long_a_prompt_waited() {
+        let script = || {
+            Script::ending(
+                vec![
+                    line(0, "$ ./deploy.sh"),
+                    prompt(2, "Proceed? [y/N] ", false),
+                    line(3, "rolling out"),
+                ],
+                5,
+                0,
+            )
+            .branches(vec![vec![
+                Branch {
+                    matches: Some("y".into()),
+                    lines: vec![],
+                    end: None,
+                },
+                Branch {
+                    matches: None,
+                    lines: vec![toned(0, "cancelled by operator", LineTone::Warning)],
+                    end: Some((1, 2)),
+                },
+            ]])
+        };
+        // the same keys answered after 1 tick and after 30: one duration
+        let run = |answer_at: u64| {
+            let mut a = act(script(), 0);
+            a.advance(2);
+            a.send_input(b"n\r", answer_at).unwrap();
+            for t in answer_at..answer_at + 5 {
+                a.advance(t);
+            }
+            a
+        };
+        let (fast, slow) = (run(3), run(32));
+        assert_eq!(fast.state, ActivityState::Failed);
+        assert_eq!(slow.state, ActivityState::Failed);
+        assert_eq!(fast.duration_ticks(100), 3);
+        assert_eq!(slow.duration_ticks(100), fast.duration_ticks(100));
+        // the branch ended the program: the line after the prompt never runs
+        assert_eq!(slow.last_line(), Some("cancelled by operator"));
+        assert!(
+            !slow.output.iter().any(|(_, t, _)| t == "rolling out"),
+            "a line the program never reached is not flushed"
+        );
+        // while a prompt waits, the running duration stands still too
+        let mut w = act(script(), 0);
+        w.advance(2);
+        assert_eq!(w.duration_ticks(2), 2);
+        assert_eq!(w.duration_ticks(40), 2);
     }
 
     #[test]
