@@ -7,7 +7,7 @@
     clippy::panic
 )]
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 #[path = "common/tab_navigation.rs"]
@@ -20,8 +20,9 @@ use tablepro_ui::{
     form_fields, gate, parse, preview_for,
 };
 use termrock::{
-    App, Axis, Cx, GridEditor, Id, ItemKey, KeyCode, KeyMap, KeyModifiers, MouseKind, Part,
-    PartRef, Response, Size, StateFlags, Theme, Ui,
+    App, Axis, Button, Cx, Diagnostic, GridEditor, Id, Intent, ItemKey, KeyCode, KeyMap,
+    KeyModifiers, LayerOpening, LayerSize, LayerSpec, MouseKind, Part, PartRef, Response, Size,
+    StateFlags, Theme, Ui,
 };
 use termrock_test_support::Harness;
 
@@ -1039,6 +1040,753 @@ fn history_y_does_not_copy_from_search_query_or_modal_focus() {
     assert!(harness.tab_to(query_id), "the query editor is focusable");
     let _ = harness.key(KeyCode::Char('y'));
     assert!(copies.borrow().is_empty(), "query text cannot copy History");
+}
+
+#[test]
+fn history_right_opens_scrollable_full_detail_without_history_side_effects() {
+    let sql_tail = "SELECT_SQL_TAIL_SENTINEL WHERE note = '尾部🙂'";
+    let error_tail = "ERROR_TAIL_SENTINEL: retained full error detail";
+    let long_sql = (0..80)
+        .map(|row| format!("FROM event_{row} WHERE marker = 'row_{row}'"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let mut entry = history_entry(&format!("SELECT common_prefix\n{long_sql}\n{sql_tail}"));
+    entry.connection = "Production · 東京".to_owned();
+    entry.database = "ledger_full_name".to_owned();
+    entry.schema = "tenant_full_name".to_owned();
+    entry.error = Some(format!("first error line\n{error_tail}"));
+    entry.source = HistorySource::Explain;
+
+    for (width, height) in [(72, 20), (120, 40)] {
+        let mut app = connected();
+        app.workbench.history = History::default();
+        app.workbench.history.push(entry.clone());
+        let query_count = app.workbench.query_counter;
+        let history_count = app.workbench.history.entries.len();
+        let (mut harness, copies) = clipboard_harness(app, width, height);
+        let _ = harness.ctrl('y');
+        let history_key = harness
+            .app()
+            .workbench
+            .active_key()
+            .expect("History is active");
+        let list = Id::root("tablepro.workbench.history.list");
+        assert_eq!(harness.focus(), Some(list));
+
+        let _ = harness.key(KeyCode::Right);
+        let detail = Id::root("tablepro.history-detail");
+        let text = detail.sub("text");
+        let detail_close = detail.part(Part::CLOSE);
+        let detail_area = harness.area_of(detail).expect("native detail dialog opens");
+        let text_area = harness
+            .area_of(text)
+            .expect("native wrapped viewport opens");
+        assert!(!text_area.is_empty());
+        assert_eq!(detail_area.intersection(text_area), text_area);
+        assert_eq!(
+            detail_area.intersection(termrock::Rect::new(0, 0, width, height)),
+            detail_area
+        );
+        assert!(harness.text().contains("Connection: Production · 東京"));
+        assert!(harness.text().contains("Database: ledger_full_name"));
+        assert!(harness.text().contains("Ctrl+C"));
+        assert!(
+            !harness.text().contains(error_tail),
+            "the first viewport page begins at the detail header"
+        );
+
+        let _ = harness.key(KeyCode::End);
+        assert!(harness.text().contains(sql_tail));
+        assert!(harness.text().contains(error_tail));
+        assert_history_detail_copy_help_outside_text(&harness);
+        let _ = harness.key(KeyCode::Home);
+        assert!(harness.text().contains("Source: Explain"));
+        assert!(!harness.text().contains(error_tail));
+
+        if width == 120 {
+            let _ = harness.resize(96, 32);
+            let resized_detail = harness
+                .area_of(detail)
+                .expect("detail survives a fitting resize");
+            let resized_text = harness
+                .area_of(text)
+                .expect("viewport survives a fitting resize");
+            let resized_screen = termrock::Rect::new(0, 0, 96, 32);
+            assert_eq!(resized_detail.intersection(resized_screen), resized_detail);
+            assert_eq!(resized_text.intersection(resized_detail), resized_text);
+            let _ = harness.key(KeyCode::End);
+            assert!(harness.text().contains(sql_tail));
+            assert!(harness.text().contains(error_tail));
+            let _ = harness.resize(120, 40);
+            let _ = harness.key(KeyCode::End);
+            assert!(harness.text().contains(sql_tail));
+            assert!(harness.text().contains(error_tail));
+
+            let _ = harness.resize(71, 20);
+            assert!(
+                harness.area_of(detail).is_none(),
+                "the viewport owner is dismissed below the app minimum"
+            );
+            assert_ne!(
+                harness.focus(),
+                Some(text),
+                "below-min close cannot retain stale viewport focus",
+            );
+            assert_ne!(
+                harness.focus(),
+                Some(detail_close),
+                "below-min close cannot retain stale close focus",
+            );
+            let _ = harness.resize(72, 20);
+            assert!(
+                harness.area_of(detail).is_none(),
+                "the detail stays dismissed through minimum-size recovery"
+            );
+            assert_ne!(
+                harness.focus(),
+                Some(text),
+                "minimum-size recovery cannot retain stale viewport focus",
+            );
+            assert_ne!(
+                harness.focus(),
+                Some(detail_close),
+                "minimum-size recovery cannot retain stale close focus",
+            );
+            assert!(
+                harness.tab_to(list),
+                "native Tab navigation returns to the History list before reopen",
+            );
+            assert_eq!(harness.focus(), Some(list));
+            let _ = harness.key(KeyCode::Right);
+            let recovered_detail = harness
+                .area_of(detail)
+                .expect("Right reopens detail after recovering the minimum size");
+            let recovered_text = harness
+                .area_of(text)
+                .expect("the full-text viewport is restored after reopening");
+            let recovered_screen = termrock::Rect::new(0, 0, 72, 20);
+            assert_eq!(
+                recovered_detail.intersection(recovered_screen),
+                recovered_detail
+            );
+            assert_eq!(
+                recovered_text.intersection(recovered_detail),
+                recovered_text
+            );
+            assert!(harness.text().contains("Connection: Production · 東京"));
+            assert!(
+                !harness.text().contains(error_tail),
+                "reopened detail starts at its header after minimum-size recovery"
+            );
+            let _ = harness.key(KeyCode::End);
+            assert!(harness.text().contains(sql_tail));
+            assert!(harness.text().contains(error_tail));
+        } else {
+            let _ = harness.key(KeyCode::Esc);
+            assert!(harness.area_of(detail).is_none());
+            assert_eq!(harness.focus(), Some(list));
+        }
+        assert_eq!(harness.app().workbench.active_key(), Some(history_key));
+        assert_eq!(harness.app().workbench.query_counter, query_count);
+        assert_eq!(harness.app().workbench.history.entries.len(), history_count);
+        assert!(copies.borrow().is_empty());
+    }
+}
+
+const HISTORY_DETAIL_ID: Id = Id::root("tablepro.history-detail");
+const HISTORY_DETAIL_TEXT: Id = HISTORY_DETAIL_ID.sub("text");
+const HISTORY_DETAIL_CLOSE: Id = HISTORY_DETAIL_ID.part(Part::CLOSE);
+const HISTORY_DETAIL_COPY_HELP: &str = "Ctrl+C Copy selection · y Copy selection";
+const FOREIGN_DETAIL_FOCUS: Id = Id::root("tablepro.history-detail.foreign-focus");
+
+#[test]
+fn history_detail_first_end_after_open_scrolls_without_pointer_redraw() {
+    let sql_tail = "DETAIL_FIRST_END_SQL_TAIL";
+    let error_tail = "DETAIL_FIRST_END_ERROR_TAIL";
+    let rows = (0..48)
+        .map(|row| format!("FROM detail_end_row_{row}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let mut app = connected();
+    app.workbench.history = History::default();
+    let mut entry = history_entry(&format!("SELECT first page\n{rows}\n{sql_tail}"));
+    entry.error = Some(format!("first error line\n{error_tail}"));
+    app.workbench.history.push(entry);
+    let (mut harness, copies) = clipboard_harness(app, 72, 20);
+    let _ = harness.ctrl('y');
+    let _ = harness.key(KeyCode::Right);
+    assert!(harness.is_open(HISTORY_DETAIL_ID));
+
+    // End is the first keyboard event after opening; no mouse, area probe, or redraw intervenes.
+    let _ = harness.key(KeyCode::End);
+    assert!(harness.text().contains(sql_tail));
+    assert!(harness.text().contains(error_tail));
+    assert!(copies.borrow().is_empty());
+    assert_history_detail_diagnostics_clean(harness.diagnostics());
+}
+
+fn history_detail_harness(
+    sql: &str,
+    error: Option<&str>,
+) -> (Harness<ClipboardProbeApp>, Rc<RefCell<Vec<String>>>, Id) {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    let mut entry = history_entry(sql);
+    entry.error = error.map(str::to_owned);
+    app.workbench.history.push(entry);
+    let (mut harness, copies) = clipboard_harness(app, 120, 40);
+    let _ = harness.ctrl('y');
+    let _ = harness.key(KeyCode::Right);
+    assert!(harness.is_open(HISTORY_DETAIL_ID));
+    let list = Id::root("tablepro.workbench.history.list");
+    (harness, copies, list)
+}
+
+fn select_detail_word(harness: &mut Harness<ClipboardProbeApp>, word: &str) {
+    let (x, y) = harness.find(word).expect("the detail word is visible");
+    let _ = harness.double_click(x, y);
+}
+
+fn assert_history_detail_copy_help_outside_text(harness: &Harness<ClipboardProbeApp>) {
+    let text_area = harness
+        .area_of(HISTORY_DETAIL_TEXT)
+        .expect("the native text viewport is present");
+    assert!(!text_area.is_empty());
+    let (_, help_y) = harness
+        .find(HISTORY_DETAIL_COPY_HELP)
+        .expect("persistent Copy help remains visible");
+    let text_bottom = text_area.y.saturating_add(text_area.height);
+    assert!(
+        help_y < text_area.y || help_y >= text_bottom,
+        "persistent Copy help is outside the scrollable text viewport"
+    );
+}
+
+fn assert_history_detail_diagnostics_clean(diagnostics: &[Diagnostic]) {
+    assert!(
+        !diagnostics.iter().any(|diagnostic| matches!(
+            diagnostic,
+            Diagnostic::UndeliveredIntent { owner }
+                if *owner == HISTORY_DETAIL_ID
+                    || *owner == HISTORY_DETAIL_TEXT
+                    || *owner == HISTORY_DETAIL_CLOSE
+        )),
+        "detail lifecycle intents must be serviced by their exact owner: {diagnostics:?}"
+    );
+    assert!(
+        !diagnostics.iter().any(|diagnostic| matches!(
+            diagnostic,
+            Diagnostic::DuplicateLayerDraw { id } if *id == HISTORY_DETAIL_ID
+        )),
+        "a stale same-ID renderer must not claim the replacement draw slot: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn history_detail_empty_ctrl_c_does_not_quit_or_copy() {
+    let (mut harness, copies, _) = history_detail_harness("DETAIL_EMPTY_SELECTION", None);
+    let _ = harness.ctrl('c');
+    assert!(copies.borrow().is_empty());
+    assert!(harness.is_open(HISTORY_DETAIL_ID));
+    assert!(!harness.app().should_quit());
+    assert_history_detail_diagnostics_clean(harness.diagnostics());
+}
+
+#[test]
+fn history_detail_ctrl_c_copies_the_selected_sql_word_once() {
+    let target = "DETAILSQLTARGET";
+    let (mut harness, copies, _) = history_detail_harness(target, None);
+    select_detail_word(&mut harness, target);
+    let _ = harness.ctrl('c');
+    assert_eq!(copies.borrow().as_slice(), &[target.to_owned()]);
+    assert!(harness.is_open(HISTORY_DETAIL_ID));
+    assert_history_detail_diagnostics_clean(harness.diagnostics());
+}
+
+#[test]
+fn history_detail_native_y_copies_the_selected_error_word_once() {
+    let target = "DETAILERRORTARGET";
+    let (mut harness, copies, _) = history_detail_harness("SELECT detail error copy", Some(target));
+    select_detail_word(&mut harness, target);
+    let _ = harness.key(KeyCode::Char('y'));
+    assert_eq!(copies.borrow().as_slice(), &[target.to_owned()]);
+    assert!(harness.is_open(HISTORY_DETAIL_ID));
+    assert_history_detail_diagnostics_clean(harness.diagnostics());
+}
+
+#[test]
+fn history_detail_selection_first_escape_clears_then_closes_and_restores_focus() {
+    let target = "DETAILESCAPETARGET";
+    for (width, height) in [(72, 20), (120, 40)] {
+        let (mut harness, copies, list) = history_detail_harness(target, None);
+        if (width, height) == (72, 20) {
+            let _ = harness.resize(width, height);
+        }
+        select_detail_word(&mut harness, target);
+        let selected_frame = harness.text().to_owned();
+        if width == 72 {
+            assert!(selected_frame.contains(HISTORY_DETAIL_COPY_HELP));
+            assert_history_detail_copy_help_outside_text(&harness);
+        }
+        for hint in ["Ctrl+C", "Copy selection", "Esc", "Clear selection"] {
+            assert!(
+                selected_frame.contains(hint),
+                "selected {hint:?} hint is fully visible at {width}x{height}:\n{selected_frame}"
+            );
+        }
+        let _ = harness.key(KeyCode::Esc);
+        assert!(harness.is_open(HISTORY_DETAIL_ID));
+        assert!(copies.borrow().is_empty());
+        let cleared_frame = harness.text().to_owned();
+        for hint in ["Ctrl+C", "Copy selection", "Esc", "Close"] {
+            assert!(
+                cleared_frame.contains(hint),
+                "cleared {hint:?} hint is fully visible at {width}x{height}:\n{cleared_frame}"
+            );
+        }
+        let _ = harness.key(KeyCode::Esc);
+        assert!(!harness.is_open(HISTORY_DETAIL_ID));
+        assert_eq!(harness.focus(), Some(list));
+        assert_history_detail_diagnostics_clean(harness.diagnostics());
+    }
+}
+
+#[test]
+fn history_detail_native_close_restores_history_focus_without_cancel_leaks() {
+    let (mut harness, copies, list) = history_detail_harness("SELECT native close", None);
+    assert!(harness.area_of(HISTORY_DETAIL_CLOSE).is_some());
+    let _ = harness.click_id(HISTORY_DETAIL_CLOSE);
+    assert!(!harness.is_open(HISTORY_DETAIL_ID));
+    let _ = harness.tick();
+    assert_eq!(harness.focus(), Some(list));
+    let _ = harness.ctrl('c');
+    assert!(copies.borrow().is_empty());
+    assert!(
+        harness.app().should_quit(),
+        "root Ctrl+C remains active after native detail close"
+    );
+    assert_history_detail_diagnostics_clean(harness.diagnostics());
+}
+
+#[test]
+fn history_detail_closes_when_owner_becomes_inactive_and_then_closes() {
+    let old_sql = "SELECT INACTIVE_DETAIL_OWNER_A";
+    let (mut harness, copies, _) = history_detail_harness(old_sql, None);
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History A is active");
+    assert!(harness.is_open(HISTORY_DETAIL_ID));
+
+    let query_key = harness
+        .app_mut()
+        .workbench
+        .new_query("SELECT ACTIVE_OWNER_B")
+        .expect("the replacement active Query tab opens");
+    assert_ne!(query_key, history_key);
+    let _ = harness.tick();
+    assert_eq!(harness.app().workbench.active_key(), Some(query_key));
+    assert!(harness.app().workbench.tab(query_key).is_some());
+    assert!(
+        !harness.is_open(HISTORY_DETAIL_ID),
+        "detail owned by inactive History A closes after Query B becomes active"
+    );
+    assert!(
+        harness.area_of(HISTORY_DETAIL_ID).is_none(),
+        "no stale detail area remains"
+    );
+    assert_ne!(harness.focus(), Some(HISTORY_DETAIL_TEXT));
+    assert!(copies.borrow().is_empty());
+
+    let history_index = harness
+        .app()
+        .workbench
+        .tabs()
+        .iter()
+        .position(|tab| tab.key() == history_key)
+        .expect("inactive History A remains closable");
+    assert!(
+        harness.app_mut().workbench.close_tab(history_index),
+        "closing inactive History A does not affect active Query B"
+    );
+    let _ = harness.tick();
+    assert!(harness.app().workbench.tab(history_key).is_none());
+    assert_eq!(harness.app().workbench.active_key(), Some(query_key));
+    assert!(harness.area_of(HISTORY_DETAIL_ID).is_none());
+    assert!(copies.borrow().is_empty());
+    assert_history_detail_diagnostics_clean(harness.diagnostics());
+}
+
+#[test]
+fn history_detail_rejects_colliding_replacement_workbench_and_restores_quit() {
+    let old_sql = "SELECT OLD_WORKBENCH_DETAIL_OWNER";
+    let target = "NEW_WORKBENCH_DETAIL_COPY_TARGET";
+    let replacement_sql = format!("SELECT {target} FROM replacement_owner");
+    let (mut harness, copies, list) = history_detail_harness(old_sql, None);
+    let old_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("old History owner is active");
+    assert!(harness.is_open(HISTORY_DETAIL_ID));
+
+    let mut replacement = connected();
+    replacement.workbench.history = History::default();
+    replacement
+        .workbench
+        .history
+        .push(history_entry(&replacement_sql));
+    let replacement_key = replacement
+        .workbench
+        .open_history()
+        .expect("replacement History opens");
+    assert_eq!(
+        replacement_key, old_key,
+        "a different Workbench generation deliberately reuses the same TabKey"
+    );
+
+    harness.app_mut().workbench = replacement.workbench;
+    harness.draw();
+    let _ = harness.tick();
+    assert_eq!(harness.app().workbench.active_key(), Some(old_key));
+    assert!(!harness.is_open(HISTORY_DETAIL_ID));
+    assert!(
+        harness.area_of(HISTORY_DETAIL_ID).is_none(),
+        "the old generation's modal area must not survive the key collision"
+    );
+    assert!(!harness.text().contains("OLD_WORKBENCH_DETAIL_OWNER"));
+    assert!(copies.borrow().is_empty());
+    assert!(!harness.app().should_quit());
+
+    assert!(
+        harness.tab_to(list),
+        "replacement History list can regain focus"
+    );
+    let _ = harness.key(KeyCode::Right);
+    assert!(harness.is_open(HISTORY_DETAIL_ID));
+    assert!(harness.text().contains(&replacement_sql));
+    assert!(!harness.text().contains(old_sql));
+    select_detail_word(&mut harness, target);
+    let _ = harness.ctrl('c');
+    assert_eq!(copies.borrow().as_slice(), &[target.to_owned()]);
+    assert_eq!(copies.borrow().len(), 1, "the new generation copies once");
+
+    let _ = harness.key(KeyCode::Esc);
+    assert!(
+        harness.is_open(HISTORY_DETAIL_ID),
+        "Escape clears the new selection first"
+    );
+    let _ = harness.key(KeyCode::Esc);
+    assert!(!harness.is_open(HISTORY_DETAIL_ID));
+    assert_eq!(harness.focus(), Some(list));
+    let _ = harness.ctrl('c');
+    assert!(
+        harness.app().should_quit(),
+        "root Ctrl+C is restored after the colliding Workbench detail closes"
+    );
+    assert_eq!(copies.borrow().len(), 1);
+    assert_history_detail_diagnostics_clean(harness.diagnostics());
+}
+
+const COVERING_DETAIL_ID: Id = Id::root("tablepro.history-detail.cover-probe");
+const COVERING_DETAIL_FOCUS: Id = Id::root("tablepro.history-detail.cover-probe.focus");
+
+struct CoveringHistoryDetailProbeApp {
+    app: ClipboardProbeApp,
+    detail_seen: bool,
+    cover_opening: Option<LayerOpening>,
+}
+
+impl App for CoveringHistoryDetailProbeApp {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut response = App::update(&mut self.app, cx);
+        if self.cover_opening.is_none() && cx.layer_opening(HISTORY_DETAIL_ID).is_some() {
+            if self.detail_seen {
+                self.cover_opening = Some(
+                    cx.open_layer_with_token(
+                        COVERING_DETAIL_ID,
+                        LayerSpec::modal(COVERING_DETAIL_ID)
+                            .size(LayerSize::Fixed(30, 8))
+                            .initial_focus(COVERING_DETAIL_FOCUS)
+                            .restore_focus(true),
+                    )
+                    .expect("the test cover receives its exact opening token"),
+                );
+                response |= Response::changed();
+            } else {
+                self.detail_seen = true;
+            }
+        }
+
+        if let Some(opening) = self.cover_opening {
+            if cx.layer_opening(COVERING_DETAIL_ID) == Some(opening) {
+                let close_requested = cx.intents(COVERING_DETAIL_FOCUS).any(
+                    |intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('x')),
+                );
+                if close_requested {
+                    let _ = cx.close_layer(COVERING_DETAIL_ID, None);
+                    response |= Response::changed();
+                } else {
+                    response |= Button::new(COVERING_DETAIL_FOCUS, "Cover")
+                        .update(cx)
+                        .erase();
+                }
+            }
+            while cx.take_layer_intent_receipt_for(opening).is_some() {}
+        }
+        response
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        App::draw(&self.app, ui);
+        let Some(opening) = self.cover_opening else {
+            return;
+        };
+        let _ = ui.layer_for(opening, |ui, area| {
+            if !area.is_empty() {
+                let _ = Button::new(COVERING_DETAIL_FOCUS, "Cover").draw(ui, area);
+            }
+        });
+    }
+
+    fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        App::on_esc(&mut self.app, cx)
+    }
+
+    fn should_quit(&self) -> bool {
+        App::should_quit(&self.app)
+    }
+
+    fn keymap(&self) -> &KeyMap {
+        App::keymap(&self.app)
+    }
+
+    fn min_size(&self) -> Size {
+        App::min_size(&self.app)
+    }
+}
+
+#[test]
+fn history_detail_cover_preserves_scroll_copy_and_focus_ownership() {
+    let target = "COVERED_DETAIL_COPY_TARGET";
+    let sql = format!(
+        "{}\n{target}",
+        (0..80)
+            .map(|line| format!("SELECT cover_line_{line} WHERE owner = 'detail'"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench.history.push(history_entry(&sql));
+    let copies = Rc::new(RefCell::new(Vec::new()));
+    let probe = CoveringHistoryDetailProbeApp {
+        app: ClipboardProbeApp {
+            app,
+            copies: copies.clone(),
+        },
+        detail_seen: false,
+        cover_opening: None,
+    };
+    let mut harness = Harness::new(probe, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let list = Id::root("tablepro.workbench.history.list");
+    assert_eq!(harness.focus(), Some(list));
+    let _ = harness.key(KeyCode::Right);
+    assert!(harness.is_open(HISTORY_DETAIL_ID));
+    let _ = harness.tick();
+    assert!(harness.is_open(COVERING_DETAIL_ID));
+    assert_eq!(harness.focus(), Some(COVERING_DETAIL_FOCUS));
+    let cover_area = harness
+        .layer_area(COVERING_DETAIL_ID)
+        .expect("cover is open");
+    assert_eq!((cover_area.width, cover_area.height), (30, 8));
+    assert!(!harness.text().contains(target));
+
+    let _ = harness.key(KeyCode::End);
+    assert!(
+        !harness.text().contains(target),
+        "End is not routed into the covered detail viewport"
+    );
+    let _ = harness.ctrl('c');
+    assert!(
+        copies.borrow().is_empty(),
+        "covered selection state cannot copy"
+    );
+    assert!(harness.is_open(HISTORY_DETAIL_ID));
+    assert!(harness.is_open(COVERING_DETAIL_ID));
+    assert!(
+        !harness.app().should_quit(),
+        "covered Ctrl+C does not quit the app"
+    );
+
+    let _ = harness.key(KeyCode::Char('x'));
+    assert!(!harness.is_open(COVERING_DETAIL_ID));
+    assert!(harness.is_open(HISTORY_DETAIL_ID));
+    let _ = harness.tick();
+    assert_eq!(harness.focus(), Some(HISTORY_DETAIL_TEXT));
+    assert!(
+        !harness.text().contains(target),
+        "cover close preserves the pre-cover scroll"
+    );
+    let _ = harness.key(KeyCode::End);
+    assert!(
+        harness.text().contains(target),
+        "uncovered detail scrolls normally"
+    );
+    let (x, y) = harness.find(target).expect("the detail word is visible");
+    let _ = harness.double_click(x, y);
+    let _ = harness.ctrl('c');
+    assert_eq!(copies.borrow().as_slice(), &[target.to_owned()]);
+    assert_eq!(copies.borrow().len(), 1);
+
+    let _ = harness.key(KeyCode::Esc);
+    assert!(harness.is_open(HISTORY_DETAIL_ID));
+    let _ = harness.key(KeyCode::Esc);
+    assert!(!harness.is_open(HISTORY_DETAIL_ID));
+    assert_eq!(harness.focus(), Some(list));
+    let _ = harness.ctrl('c');
+    assert!(
+        harness.app().should_quit(),
+        "root keymap is restored after uncover and close"
+    );
+    assert_eq!(copies.borrow().len(), 1);
+    assert_history_detail_diagnostics_clean(harness.diagnostics());
+}
+
+struct ForeignHistoryDetailProbeApp {
+    app: TableProApp,
+    old_opening: Option<LayerOpening>,
+    foreign_opening: Option<LayerOpening>,
+    foreign_draws: Cell<usize>,
+}
+
+impl App for ForeignHistoryDetailProbeApp {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut response = App::update(&mut self.app, cx);
+        if self.foreign_opening.is_none()
+            && let Some(old) = cx.layer_opening(HISTORY_DETAIL_ID)
+        {
+            let _ = cx.close_layer(HISTORY_DETAIL_ID, None);
+            let foreign = cx
+                .open_layer_with_token(
+                    HISTORY_DETAIL_ID,
+                    LayerSpec::modal(HISTORY_DETAIL_ID)
+                        .size(LayerSize::Fixed(24, 7))
+                        .initial_focus(FOREIGN_DETAIL_FOCUS)
+                        .restore_focus(false),
+                )
+                .expect("the same-ID foreign opening replaces the stale detail");
+            self.old_opening = Some(old);
+            self.foreign_opening = Some(foreign);
+            response |= Response::changed();
+        }
+        if let Some(foreign) = self.foreign_opening
+            && cx.layer_opening(HISTORY_DETAIL_ID) == Some(foreign)
+        {
+            let close_requested = cx
+                .intents(FOREIGN_DETAIL_FOCUS)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('x')));
+            if close_requested {
+                let _ = cx.close_layer(HISTORY_DETAIL_ID, None);
+                response |= Response::changed();
+            } else {
+                response |= Button::new(FOREIGN_DETAIL_FOCUS, "Foreign")
+                    .update(cx)
+                    .erase();
+            }
+        }
+        if let Some(foreign) = self.foreign_opening {
+            // Retire only this fixture's token even after its layer has closed.
+            while cx.take_layer_intent_receipt_for(foreign).is_some() {}
+        }
+        response
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        App::draw(&self.app, ui);
+        let Some(foreign) = self.foreign_opening else {
+            return;
+        };
+        let draws = &self.foreign_draws;
+        let _ = ui.layer(HISTORY_DETAIL_ID, |ui, area| {
+            if ui.layer_id() == foreign.layer_id() && !area.is_empty() {
+                let _ = Button::new(FOREIGN_DETAIL_FOCUS, "Foreign").draw(ui, area);
+                draws.set(draws.get().saturating_add(1));
+            }
+        });
+    }
+
+    fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        App::on_esc(&mut self.app, cx)
+    }
+    fn should_quit(&self) -> bool {
+        App::should_quit(&self.app)
+    }
+    fn keymap(&self) -> &KeyMap {
+        App::keymap(&self.app)
+    }
+    fn min_size(&self) -> Size {
+        App::min_size(&self.app)
+    }
+}
+
+#[test]
+fn history_detail_stale_same_id_draw_preserves_foreign_focus_size_and_close() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT foreign owner"));
+    let mut harness = Harness::new(
+        ForeignHistoryDetailProbeApp {
+            app,
+            old_opening: None,
+            foreign_opening: None,
+            foreign_draws: Cell::new(0),
+        },
+        Theme::junie(),
+        120,
+        40,
+    );
+    let _ = harness.ctrl('y');
+    let _ = harness.key(KeyCode::Right);
+
+    assert!(harness.is_open(HISTORY_DETAIL_ID));
+    let probe = harness.app();
+    let old = probe.old_opening.expect("product detail opening");
+    let foreign = probe.foreign_opening.expect("foreign replacement opening");
+    assert_ne!(old, foreign);
+    assert!(
+        probe.foreign_draws.get() > 0,
+        "foreign renderer owns the draw slot"
+    );
+    assert_eq!(harness.focus(), Some(FOREIGN_DETAIL_FOCUS));
+    let area = harness
+        .layer_area(HISTORY_DETAIL_ID)
+        .expect("foreign layer is live");
+    assert_eq!((area.width, area.height), (24, 7));
+    assert_history_detail_diagnostics_clean(harness.diagnostics());
+
+    let _ = harness.resize(90, 30);
+    let _ = harness.tick();
+    assert!(harness.is_open(HISTORY_DETAIL_ID));
+    assert_eq!(harness.focus(), Some(FOREIGN_DETAIL_FOCUS));
+    let resized = harness
+        .layer_area(HISTORY_DETAIL_ID)
+        .expect("foreign layer survives resize");
+    assert_eq!((resized.width, resized.height), (24, 7));
+    assert_history_detail_diagnostics_clean(harness.diagnostics());
+
+    let _ = harness.key(KeyCode::Char('x'));
+    assert!(!harness.is_open(HISTORY_DETAIL_ID));
+    let _ = harness.ctrl('c');
+    assert!(
+        harness.app().should_quit(),
+        "root Ctrl+C remains active after foreign replacement closes"
+    );
+    assert_history_detail_diagnostics_clean(harness.diagnostics());
 }
 
 #[test]

@@ -607,6 +607,27 @@ impl HistoryRows {
         current_copy_entry(displayed, &entries).map(|entry| entry.sql.clone())
     }
 
+    pub(super) fn selected_detail_entry(
+        &self,
+        workbench: &Workbench,
+        controls_by_tab: &HashMap<TabKey, HistoryControls>,
+    ) -> Option<HistoryEntry> {
+        let key = workbench.active_key()?;
+        if !matches!(workbench.tab(key), Some(Tab::History(_))) {
+            return None;
+        }
+        let fallback = HistoryControls::default();
+        let controls = controls_by_tab.get(&key).unwrap_or(&fallback);
+        let entries = eligible_entries(workbench, key, controls)?;
+        let owner = workbench.owner_token();
+        let store = self.state.borrow();
+        let displayed = store.displayed_for(key, &owner)?;
+        let cursor = displayed.cursor?;
+        let captured = displayed_entry(&displayed.visible, cursor)?;
+        let current = unique_entry(&entries, cursor)?;
+        (current == captured).then(|| current.clone())
+    }
+
     pub(super) fn invalidate_display(&self) {
         self.state.borrow_mut().displayed = None;
     }
@@ -761,12 +782,17 @@ fn displayed_entry(displayed: &[HistoryEntry], key: ItemKey) -> Option<&HistoryE
 #[cfg(test)]
 mod tests {
     use super::{
-        DisplayedRows, RowsState, activation_entry, copy_area, current_copy_entry, item_key,
+        DisplayedRows, HistoryRows, RowsState, activation_entry, copy_area, current_copy_entry,
+        item_key,
     };
+    use std::collections::HashMap;
     use std::sync::Arc;
     use std::sync::Weak;
-    use tablepro_domain::model::{HistoryEntry, HistorySource};
+    use tablepro_domain::model::{History, HistoryEntry, HistorySource};
     use termrock::{ItemKey, Rect};
+
+    use crate::tabs::Tab;
+    use crate::workbench::Workbench;
 
     fn entry(id: usize, sql: &str) -> HistoryEntry {
         HistoryEntry {
@@ -794,6 +820,40 @@ mod tests {
             copy_entry: Some(selected),
             copy_visible: true,
         }
+    }
+
+    fn history_workbench(
+        entries: &[HistoryEntry],
+    ) -> Result<(Workbench, crate::tabs::TabKey), &'static str> {
+        let connection = tablepro_demo::db::connections()
+            .into_iter()
+            .next()
+            .ok_or("demo connection")?;
+        let mut workbench = Workbench::new(connection, tablepro_demo::db::Catalog::acme_prod());
+        workbench.history = History::default();
+        workbench.history.entries = entries.to_vec();
+        let key = workbench.open_history().ok_or("History tab")?;
+        Ok((workbench, key))
+    }
+
+    fn displayed_detail(
+        workbench: &Workbench,
+        key: crate::tabs::TabKey,
+        visible: Vec<HistoryEntry>,
+        cursor: Option<ItemKey>,
+    ) -> HistoryRows {
+        let rows = HistoryRows::default();
+        rows.state.borrow_mut().displayed = Some(DisplayedRows {
+            tab: key,
+            owner: workbench.owner_token(),
+            visible,
+            cursor,
+            open_entry: None,
+            open_visible: false,
+            copy_entry: None,
+            copy_visible: false,
+        });
+        rows
     }
 
     #[test]
@@ -871,6 +931,149 @@ mod tests {
         let current = [&selected, &first];
 
         assert_eq!(current_copy_entry(&displayed, &current), Some(&selected));
+    }
+
+    #[test]
+    fn detail_capture_requires_a_unique_current_full_equal_displayed_entry()
+    -> Result<(), &'static str> {
+        let first = entry(7, "SELECT first");
+        let selected = entry(8, "SELECT selected\nFROM all_rows WHERE note = '尾部🙂'");
+        let (mut workbench, key) = history_workbench(&[first.clone(), selected.clone()])?;
+        let rows = displayed_detail(
+            &workbench,
+            key,
+            vec![first.clone(), selected.clone()],
+            Some(item_key(&selected)),
+        );
+
+        assert_eq!(
+            rows.selected_detail_entry(&workbench, &HashMap::new()),
+            Some(selected.clone())
+        );
+
+        workbench.history.entries.swap(0, 1);
+        assert_eq!(
+            rows.selected_detail_entry(&workbench, &HashMap::new()),
+            Some(selected.clone()),
+            "reordering does not change the captured record"
+        );
+        workbench
+            .history
+            .entries
+            .first_mut()
+            .ok_or("selected History entry")?
+            .database = "replacement_db".to_owned();
+        assert_eq!(
+            rows.selected_detail_entry(&workbench, &HashMap::new()),
+            None,
+            "metadata replacement fails closed"
+        );
+        *workbench
+            .history
+            .entries
+            .first_mut()
+            .ok_or("selected History entry")? = selected.clone();
+        workbench.history.entries.push(selected.clone());
+        assert_eq!(
+            rows.selected_detail_entry(&workbench, &HashMap::new()),
+            None,
+            "duplicate cursor keys fail closed"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn detail_capture_rejects_changed_sql_removed_filtered_and_wrong_cursor()
+    -> Result<(), &'static str> {
+        let selected = entry(7, "SELECT displayed\nFROM original");
+        let (mut workbench, key) = history_workbench(std::slice::from_ref(&selected))?;
+        let rows = displayed_detail(
+            &workbench,
+            key,
+            vec![selected.clone()],
+            Some(item_key(&selected)),
+        );
+
+        workbench
+            .history
+            .entries
+            .first_mut()
+            .ok_or("selected History entry")?
+            .sql = "SELECT changed\nFROM replacement".to_owned();
+        assert_eq!(
+            rows.selected_detail_entry(&workbench, &HashMap::new()),
+            None,
+            "same id with changed SQL fails closed"
+        );
+        *workbench
+            .history
+            .entries
+            .first_mut()
+            .ok_or("selected History entry")? = selected.clone();
+        workbench.history.entries.clear();
+        assert_eq!(
+            rows.selected_detail_entry(&workbench, &HashMap::new()),
+            None,
+            "removed entries fail closed"
+        );
+        workbench.history.entries.push(selected.clone());
+        let Some(Tab::History(history)) = workbench.tab_mut(key) else {
+            return Err("History remains active");
+        };
+        history.search = "not a match".to_owned();
+        assert_eq!(
+            rows.selected_detail_entry(&workbench, &HashMap::new()),
+            None,
+            "filtered entries fail closed"
+        );
+
+        let (workbench, key) = history_workbench(std::slice::from_ref(&selected))?;
+        let rows = displayed_detail(
+            &workbench,
+            key,
+            vec![selected.clone()],
+            Some(ItemKey::num(99)),
+        );
+        assert_eq!(
+            rows.selected_detail_entry(&workbench, &HashMap::new()),
+            None,
+            "a cursor absent from the displayed rows fails closed"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn detail_capture_rejects_duplicate_display_and_replaced_workbench_owner()
+    -> Result<(), &'static str> {
+        let selected = entry(7, "SELECT selected");
+        let duplicate = entry(7, "SELECT duplicate");
+        let (workbench, key) = history_workbench(std::slice::from_ref(&selected))?;
+        let duplicate_display = displayed_detail(
+            &workbench,
+            key,
+            vec![selected.clone(), duplicate],
+            Some(item_key(&selected)),
+        );
+        assert_eq!(
+            duplicate_display.selected_detail_entry(&workbench, &HashMap::new()),
+            None,
+            "duplicate visible keys fail closed"
+        );
+
+        let rows = displayed_detail(
+            &workbench,
+            key,
+            vec![selected.clone()],
+            Some(item_key(&selected)),
+        );
+        let (replacement, replacement_key) = history_workbench(std::slice::from_ref(&selected))?;
+        assert_eq!(key, replacement_key, "fixture deliberately reuses the key");
+        assert_eq!(
+            rows.selected_detail_entry(&replacement, &HashMap::new()),
+            None,
+            "a replacement Workbench owner cannot reuse displayed state"
+        );
+        Ok(())
     }
 
     #[test]
