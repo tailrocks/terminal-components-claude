@@ -10,6 +10,12 @@ Historical narrative and per-increment receipts stay in
 record and the matrix disagree, this record states the current decision and
 the matrix section is marked superseded by it.
 
+T37 retires the legacy test targets and harnesses named in this record. Test
+paths, counts, and results below are historical at their recorded source
+revisions. They are not current commands or proof. T01 and T38 must rebuild
+the requirements and approve any future cases. Product behavior remains
+`NOT VERIFIED`.
+
 ## Delivery path
 
 | Item | Value |

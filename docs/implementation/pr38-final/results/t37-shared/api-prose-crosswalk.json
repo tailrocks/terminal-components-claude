@@ -1,0 +1,537 @@
+{
+  "schema": "t37.api-prose-crosswalk.v1",
+  "task_id": "T37",
+  "status": "PARTIAL_CROSSWALK_T01_T35_REMAIN",
+  "source": {
+    "work_input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+    "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "inventory_path": "docs/implementation/pr38-final/results/t37-components/removed-rustdoc.jsonl",
+    "inventory_source_worktree": "/Users/donbeave/Downloads/termrock-t37-components",
+    "inventory_sha256": "44540f7e878b477d87f0b8b74185398baa0c56f0218e8ac07a18d083394dae93",
+    "inventory_bytes": 374967,
+    "removed_rustdoc_groups": 722,
+    "removed_rustdoc_lines": 1800,
+    "source_paths": 61,
+    "record_type": "removed-rustdoc-provenance-only",
+    "limitation": "The ledger binds each removed group to a source SHA and line range. It does not classify each group as caller guidance, internal description, or redundant wording. This is a section-level maintained-document crosswalk, not a 722-row semantic-equivalence claim."
+  },
+  "groups_by_crate": {
+    "termrock-controls": 77,
+    "termrock-editors": 26,
+    "termrock-feedback": 195,
+    "termrock-fields": 41,
+    "termrock-forms": 34,
+    "termrock-grid": 43,
+    "termrock-navigation": 86,
+    "termrock-overlays": 48,
+    "termrock-viewport": 46,
+    "termrock": 126
+  },
+  "maintained_documents": [
+    {
+      "path": "docs/architecture.md",
+      "sections": [
+        "Current source-backed boundaries"
+      ],
+      "covered_guidance": [
+        "key and modifier ownership",
+        "event adapter identity",
+        "backend-free dependency boundary"
+      ],
+      "gaps": [
+        "source facts are pinned to earlier reviewed snapshots and need T01 source reconciliation"
+      ],
+      "status": "Test citations now name frozen immutable history and state that T37 retired those targets. No fresh behavior proof is claimed."
+    },
+    {
+      "path": "docs/contracts/authoring.md",
+      "sections": [
+        "Public surface snapshot",
+        "Component owner checklist and evidence",
+        "Total clipped composition",
+        "Prepared-frame consumer sequence",
+        "Evidence boundary",
+        "Bounded work obligations",
+        "Event routing and committed layout"
+      ],
+      "covered_guidance": [
+        "caller-owned data and borrows",
+        "callback and frame lifetimes",
+        "update/draw/response separation",
+        "stable identity and typed input",
+        "focus, hit registration, references, and clipping",
+        "optional frame geometry",
+        "measurement and prepared frames",
+        "routed viewport revision identity and exhaustion",
+        "event-local wheel route ownership and source resolution",
+        "windowed radio choice preserving original keys and full input data",
+        "List selection-binding eligibility",
+        "Tabs committed-layout receipts",
+        "Notice logical cut and reveal geometry",
+        "custom input host registration uses visible host geometry"
+      ],
+      "gaps": [
+        "component-specific caller APIs and edge rules for Controls, Navigation, Feedback, Viewport, Grid, Editors, Fields, Forms, and Overlays"
+      ],
+      "status": "PARTIAL; selected source-backed caller rules were transferred. The 722-group archive remains provenance only. Component edge rules remain T01/T35 work. Test links are pinned historical evidence."
+    },
+    {
+      "path": "docs/contracts/overrides.md",
+      "sections": [
+        "Scope mechanisms",
+        "Component API examples",
+        "Evidence limits"
+      ],
+      "covered_guidance": [
+        "global/family/variant/part patch scope",
+        "slot callback ownership and part boundaries",
+        "overlay closure lifetime and restoration",
+        "per-component builder availability and limits"
+      ],
+      "gaps": [
+        "complete component API guidance and all component-specific style fallbacks"
+      ],
+      "status": "PARTIAL; test links are commit-pinned historical evidence."
+    },
+    {
+      "path": "docs/contracts/theming.md",
+      "sections": [
+        "Theme shape and visual scenarios",
+        "ASCII theme-builder configuration",
+        "Resolution order",
+        "Slot merge law and consumer interpretation",
+        "Semantic style provenance",
+        "Concern ownership",
+        "Acceptance boundary"
+      ],
+      "covered_guidance": [
+        "theme ownership",
+        "capability handling",
+        "theme builder behavior",
+        "override resolution",
+        "Slot Set/Clear/Inherit distinctions",
+        "consumer-specific fallback limits"
+      ],
+      "gaps": [
+        "rendered output rules for every component, theme, state, and color level"
+      ],
+      "status": "PARTIAL; test and visual links are historical evidence."
+    },
+    {
+      "path": "docs/contracts/migration.md",
+      "sections": [
+        "historical concept crosswalk table"
+      ],
+      "covered_guidance": [
+        "Response flow versus invalidation",
+        "typed intents and registered geometry",
+        "stable identity",
+        "semantic surfaces and color/reset distinctions"
+      ],
+      "gaps": [
+        "current post-T37 source-owner mapping and per-component behavior"
+      ],
+      "status": "HISTORICAL CROSSWALK; pinned test links are not active targets."
+    },
+    {
+      "path": "docs/guides/quickstart.md",
+      "sections": [
+        "Choose terminal colors",
+        "An app updates, then draws",
+        "Follow a complete consumer",
+        "Historical facade test targets",
+        "Historical source"
+      ],
+      "covered_guidance": [
+        "terminal color selection",
+        "update/draw separation",
+        "prepared-frame presentation sequence"
+      ],
+      "gaps": [
+        "current copy-ready examples and approved executable journeys"
+      ],
+      "status": "PRE-T37 SNAPSHOT; old test commands removed, remaining test links are historical. T35 owns rewrite."
+    },
+    {
+      "path": "docs/architecture/form-lanes-stage1.md",
+      "sections": [
+        "historical form-lanes implementation report"
+      ],
+      "covered_guidance": [
+        "two-lane layout",
+        "data-aware measurement",
+        "validation/update/draw boundary",
+        "radio windowing and clipping"
+      ],
+      "gaps": [
+        "current T18 form API and field-kind contracts"
+      ],
+      "status": "HISTORICAL; test target is linked to frozen source input1d6 and results are not current proof."
+    },
+    {
+      "path": "docs/development.md",
+      "sections": [
+        "Workspace commands",
+        "CLI option discovery",
+        "Backend-free dependency checks",
+        "Historical frozen CLI parity evidence",
+        "Rust comments",
+        "Safety evidence",
+        "Documentation compatibility"
+      ],
+      "covered_guidance": [
+        "non-test build/format/lint commands",
+        "explicit CLI-help and diagnostic preservation",
+        "generator ownership boundary",
+        "historical tool provenance"
+      ],
+      "gaps": [
+        "replacement test and capture procedures; T38 and T04 own those designs"
+      ],
+      "status": "ACTIVE NON-TEST GUIDANCE; retired procedures are labelled historical."
+    },
+    {
+      "path": "docs/architecture/termrock-migration-matrix.md",
+      "sections": [
+        "2026-10-22 decision checkpoint and historical appendices"
+      ],
+      "covered_guidance": [
+        "past architecture decisions and test provenance"
+      ],
+      "gaps": [
+        "current API guidance"
+      ],
+      "status": "HISTORICAL; suite counts and results are superseded by T37."
+    },
+    {
+      "path": "docs/architecture/termrock-migration-record.md",
+      "sections": [
+        "coordinator ledger and historical receipts"
+      ],
+      "covered_guidance": [
+        "past owner decisions and evidence limits"
+      ],
+      "gaps": [
+        "cleaned-source map"
+      ],
+      "status": "HISTORICAL; test paths/counts/results are not current."
+    },
+    {
+      "path": "docs/architecture/termrock-coordinator-plan.md",
+      "sections": [
+        "pre-T37 coordinator plan"
+      ],
+      "covered_guidance": [
+        "historical acceptance surface"
+      ],
+      "gaps": [
+        "current commands and source inventory"
+      ],
+      "status": "HISTORICAL; no old test command is current."
+    },
+    {
+      "path": "docs/handoff/README.md",
+      "sections": [
+        "dated handoff entries"
+      ],
+      "covered_guidance": [
+        "historical branch and gate reports"
+      ],
+      "gaps": [
+        "current user guidance"
+      ],
+      "status": "HISTORICAL ARCHIVE; test statuses do not apply to current source."
+    },
+    {
+      "path": "docs/verification/paired-process-receipt-hardening-20261021.md",
+      "sections": [
+        "launch receipts",
+        "verification evidence"
+      ],
+      "covered_guidance": [
+        "historical receipt and child-cleanup design"
+      ],
+      "gaps": [
+        "current executable test procedure"
+      ],
+      "status": "HISTORICAL; old test results are not current proof."
+    }
+  ],
+  "transfers_required_for_t37": [
+    {
+      "decision": "T37-PROBE-02",
+      "source_obligation": "Bounded-work and viewport performance obligations survive removal of ViewportWorkProbe, ViewportWorkSnapshot, TextViewport::work_probe, private hooks, and testing re-exports.",
+      "destination": "docs/contracts/authoring.md#bounded-work-obligations",
+      "disposition": "Recorded. T17/T33 remain open; no replacement instrumentation before T38; behavior and performance NOT VERIFIED."
+    },
+    {
+      "decision": "T37-FROZEN-01",
+      "source_obligation": "Retire the legacy PTY Nextest runner while retaining immutable tag/oracle/snapshot/receipt/reference provenance.",
+      "destination": "docs/development.md#historical-frozen-cli-parity-evidence",
+      "disposition": "Recorded. Old runner commands removed; annotated unsigned tag object and peeled commit recorded; no replacement runner or current visual gate claimed."
+    },
+    {
+      "decision": "T37-QUALIFIED-01",
+      "source_obligation": "Retire active qualified-capture acquisition/qualification harness and exclusive fixtures/tests; preserve pins, proof outputs, receipts, source hashes, licenses, and repair provenance.",
+      "destination": "docs/development.md#documentation-compatibility",
+      "disposition": "Recorded as historical provenance only; no repin or current qualification claim."
+    },
+    {
+      "decision": "T37-doc-citations",
+      "source_obligation": "Do not leave active documentation links or commands to removed tests and harnesses.",
+      "destination": "Maintained contracts, quickstart, development page, form-lanes report, and historical architecture/handoff records",
+      "disposition": "Relative links to removed tests were replaced by immutable source links or removed. Historical results now state that their cases are not current targets or proof."
+    },
+    {
+      "decision": "T37-component-api-prose",
+      "source_obligation": "Preserve selected caller rules recovered from accepted component-source review after removing Rustdoc and test targets.",
+      "destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+      "disposition": "Six reviewed rule groups transferred. Full 722-row semantic classification and component guides remain T01/T35 work."
+    }
+  ],
+  "future_documentation_obligations": {
+    "T01": "Rebuild the API and requirement inventory from cleaned source. Compare retained caller contracts with the 722-row T00 provenance ledger and assign unresolved requirements to owners.",
+    "T35": "Rewrite user guidance for current public APIs after T38 and component/application work. Include component-specific guidance whose removed Rustdoc has no current maintained contract.",
+    "component_areas": [
+      {
+        "crate": "termrock-controls",
+        "groups": 77,
+        "topics": [
+          "Button focus and disabled policy",
+          "radio/checkbox/toggle keyboard selection",
+          "Form-only keyboard registration",
+          "composition and part ownership"
+        ]
+      },
+      {
+        "crate": "termrock-navigation",
+        "groups": 86,
+        "topics": [
+          "List and Tabs identity",
+          "keyboard bindings and close-affordance policy",
+          "filtering, overflow, and viewport geometry"
+        ]
+      },
+      {
+        "crate": "termrock-feedback",
+        "groups": 195,
+        "topics": [
+          "Notice cut/wrap metadata",
+          "accounts/settings panel geometry",
+          "status and disclosure behavior"
+        ]
+      },
+      {
+        "crate": "termrock-viewport",
+        "groups": 46,
+        "topics": [
+          "window and selection mapping",
+          "scrolling and clipping",
+          "bounded-work obligations"
+        ]
+      },
+      {
+        "crate": "termrock-grid",
+        "groups": 43,
+        "topics": [
+          "schema and ragged-row holes",
+          "cell decoration/action ownership",
+          "viewport and scrollbar geometry"
+        ]
+      },
+      {
+        "crate": "termrock-editors",
+        "groups": 26,
+        "topics": [
+          "editor selection and completion",
+          "diff row/cell borrowing"
+        ]
+      },
+      {
+        "crate": "termrock-fields",
+        "groups": 41,
+        "topics": [
+          "editing, validation, and text-area mapping"
+        ]
+      },
+      {
+        "crate": "termrock-forms",
+        "groups": 34,
+        "topics": [
+          "measurement side effects",
+          "update/draw order",
+          "submission and invalid-layout behavior"
+        ]
+      },
+      {
+        "crate": "termrock-overlays",
+        "groups": 48,
+        "topics": [
+          "dialog/menu/picker closure and interaction contracts"
+        ]
+      },
+      {
+        "crate": "termrock",
+        "groups": 126,
+        "topics": [
+          "facade composition adapters and caller-facing slots"
+        ]
+      }
+    ]
+  },
+  "behavior_status": "NOT VERIFIED",
+  "no_replacement_tests_or_harnesses_added": true,
+  "component_source_review": {
+    "reviewer_agent_id": "/root/t37_components_review",
+    "reviewer_model": "gpt-6.1-sol",
+    "reviewer_effort": "high",
+    "decision": "ACCEPT",
+    "input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+    "output_commit": "96fe6a2a1430967831777da2da6402206c4716ff",
+    "scope": "Component source cleanup only. The reviewer accepted the source token, literal, and deletion ledgers. Global metadata, generated CI, build, and API prose transfer remain open.",
+    "behavior_status": "NOT VERIFIED",
+    "selected_tests": 0,
+    "source_obligations": [
+      {
+        "area": "Routed viewport input",
+        "source": "crates/termrock-viewport/src/viewport.rs",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "caller_rules": [
+          "Use one source revision for routed update and draw.",
+          "Advance the revision when order, content, or layout data changes.",
+          "Do not reuse a revision while an old route can arrive.",
+          "Fail closed at revision exhaustion."
+        ],
+        "disposition": "Transferred as selected caller guidance; no behavior proof."
+      },
+      {
+        "area": "Event-local wheel routing",
+        "source": "crates/termrock-runtime/src/ui/mod.rs",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "caller_rules": [
+          "Link the returned route key to its containing parent.",
+          "Resolve the live source from event position and axis before acknowledging the event."
+        ],
+        "disposition": "Transferred as selected caller guidance; no behavior proof."
+      },
+      {
+        "area": "Windowed radio choice",
+        "source": "crates/termrock-controls/src/choice.rs",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "caller_rules": [
+          "Keep original option indices as keys.",
+          "Pass the full option list to update and input handling after drawing a clipped window."
+        ],
+        "disposition": "Transferred as selected caller guidance; no behavior proof."
+      },
+      {
+        "area": "Custom input host registration",
+        "source": "crates/termrock-fields/src/input.rs",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "caller_rules": [
+          "Pass the visible host control area to register_editor.",
+          "Do not register hidden or off-screen input geometry.",
+          "The method registers the full host area for focus and pointer routing."
+        ],
+        "disposition": "Transferred as selected caller guidance; no behavior proof."
+      },
+      {
+        "area": "List selection bindings",
+        "source": "crates/termrock-navigation/src/list.rs",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "caller_rules": [
+          "Publish selection bindings only when the list is live, non-empty, and enabled.",
+          "Use the same eligibility rules as List::draw."
+        ],
+        "disposition": "Transferred as selected caller guidance; no behavior proof."
+      },
+      {
+        "area": "Tabs committed layout",
+        "source": "crates/termrock-navigation/src/tabs.rs",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "caller_rules": [
+          "Use the receipt from the preceding committed layout for warm-frame overflow reservation.",
+          "Do not infer that receipt from a previously painted frame."
+        ],
+        "disposition": "Transferred as selected caller guidance; no behavior proof."
+      },
+      {
+        "area": "Notice cut metadata and reveal geometry",
+        "source": [
+          "crates/termrock-feedback/src/notice.rs",
+          "crates/termrock-overlays/src/notice_reveal.rs"
+        ],
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "caller_rules": [
+          "Match cut metadata to logical Notice geometry.",
+          "For a window, use body width and logical row count.",
+          "Match reveal geometry to that body and draw it after live Notice content."
+        ],
+        "disposition": "Transferred as selected caller guidance; no behavior proof."
+      }
+    ],
+    "remaining_review_constraints": [
+      "The 722-row Rustdoc ledger remains provenance only; the crosswalk does not claim per-row semantic equivalence.",
+      "T01 must rebuild the source API and requirement inventory and classify all retained caller obligations.",
+      "T35 must produce current component-level user guidance for edge rules not covered by maintained contracts.",
+      "No test, harness, fixture, or behavior verification was added."
+    ],
+    "accepted_followups": [
+      {
+        "decision": "FOUNDATION-TESTING-01/02",
+        "reviewer_agent_id": "/root/t00_independent_review",
+        "reviewer_model": "gpt-6.1-sol",
+        "reviewer_effort": "high",
+        "output_commit": "f03e22c14a5817272cd5643094e974f9c25f1b6a",
+        "parent_commit": "96fe6a2a1430967831777da2da6402206c4716ff",
+        "changed_path": "crates/termrock/src/lib.rs",
+        "scope": "Remove only the testing-feature facade re-export for ProjectedFrame, RenderModel, and StyledQuery; 21 tokens deleted. No Cargo command or test ran.",
+        "review_state": "ACCEPTED_AND_QUEUED_FOR_INTEGRATION",
+        "behavior_status": "NOT VERIFIED"
+      }
+    ]
+  },
+  "source_review_adjustments": {
+    "path": "docs/architecture.md",
+    "change": "Marked test-body citations as immutable historical evidence; pinned the removed key/modifier test link to frozen source input 1d6; stated NOT VERIFIED behavior status.",
+    "reason": "T37 removes source test functions that the active architecture page cited."
+  },
+  "changed_document_hashes": {
+    "docs/architecture.md": "6cb619ea6b957839cc8c6602273e415b33d7d4515e24cb08d89fed8799b622ad",
+    "docs/architecture/form-lanes-stage1.md": "908b0f34b96feb6d2e71192d77981d32d23f4dc8c6a84bc4572dbfd73eb689ee",
+    "docs/architecture/termrock-coordinator-plan.md": "773b900f18da704656b9d16895912f499aa96ee33db7df03b303ed314d08a482",
+    "docs/architecture/termrock-migration-matrix.md": "b95719f57c80df1808c7482c11de2bfb7ba7fbe02559c79c19eb3724a2647bf4",
+    "docs/architecture/termrock-migration-record.md": "30dba7c53e3fa844df443e6a050441b29b9caf9a6b833d441da34fd4685809a1",
+    "docs/contracts/authoring.md": "293e714293f9cb01194c04664d42b3d11f467775f86241ec8e42e2eac03a78f0",
+    "docs/contracts/migration.md": "f09aa9ce2e8dabf830599fa6b7420fbdfa4cd9e0c669321217e716aee2fc9442",
+    "docs/contracts/overrides.md": "fca60cdda39e10f52fd331ce3aa55042d02002e5c9f372dcf6a7d867fc89dc7c",
+    "docs/contracts/theming.md": "46a58000b43bce4e5623d170409fb6e9913b6045d568a22a0e36d95c8d668ea4",
+    "docs/development.md": "44b9062c3d4289456e4072f2c86cb83f7a6388a120a2003178ac81ec68d64aef",
+    "docs/guides/quickstart.md": "ec601be8d7769315313c158fec07813461652b2d00ee911f92ef42bd4f4f72c8",
+    "docs/handoff/README.md": "d357bacb999e6f5037ecc8702f4cf31b3f77156e0589714fc7542f934f7a55d0",
+    "docs/verification/paired-process-receipt-hardening-20261021.md": "6801f04039f9c69320145cbe0ab790dbea190b431b0d165c4effb50970c4d353"
+  },
+  "documentation_validation": {
+    "json_parse": {
+      "command": "python3 -m json.tool docs/implementation/pr38-final/results/t37-shared/api-prose-crosswalk.json",
+      "exit_code": 0
+    },
+    "local_markdown_links": {
+      "command": "Python link check over the 13 changed Markdown files; resolve each relative Markdown target and report missing targets.",
+      "exit_code": 0,
+      "checked_files": 13,
+      "broken_links": 0
+    },
+    "diff_whitespace": {
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    "added_test_execution_commands": {
+      "command": "git diff --unified=0 | rg '^\\+.*(cargo nextest run|cargo test|pytest|python3 -m unittest|make test)'",
+      "exit_code": 1,
+      "meaning": "No matching added test invocation was found."
+    },
+    "tests_or_harnesses_added_or_run": 0,
+    "product_behavior": "NOT VERIFIED"
+  }
+}
