@@ -119,7 +119,7 @@
       "path": "/Users/donbeave/Downloads/terminal-components-claude",
       "branch": "parity/termrock-visual-baseline",
       "starting_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "current_sha": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
+      "current_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "pending_upstream_refresh": null,
       "code_input_sha": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
       "completed_upstream_refreshes": [
@@ -152,7 +152,8 @@
           "expectation_change": "unaccepted",
           "behavior_proof": "none"
         }
-      ]
+      ],
+      "last_reviewed_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed"
     },
     "reference": {
       "path": "/Users/donbeave/Downloads/termrock-pr26-reference-20261026",
@@ -169,26 +170,31 @@
     {
       "path": "AGENTS.md",
       "owner": "/root/t00_import_rules",
-      "state": "REVIEW"
+      "state": "RELEASED",
+      "release_reason": "Overall T00 ACCEPT at ce82fd3c2bda98990cdbb5da675df1b1816f64ed."
     },
     {
       "path": "docs/implementation/pr38-final/**",
       "owner": "/root/t00_import_rules",
-      "state": "REVIEW",
+      "state": "ACTIVE_T37_CHECKPOINT_OWNER",
       "exceptions": [
         "results/t00-source/**",
         "results/t00-review/**"
-      ]
+      ],
+      "t00_scope_released": true,
+      "continuation_scope": "T37 dispatch and checkpoint records only; no product source changes."
     },
     {
       "path": "docs/implementation/pr38-final/results/t00-source/**",
       "owner": "/root/t00_source_capture",
-      "state": "ACTIVE"
+      "state": "RELEASED",
+      "release_reason": "Overall T00 ACCEPT at ce82fd3c2bda98990cdbb5da675df1b1816f64ed."
     },
     {
       "path": "docs/implementation/pr38-final/results/t00-review/**",
       "owner": "/root/t00_independent_review",
-      "state": "PREPARING"
+      "state": "RELEASED",
+      "release_reason": "Overall T00 ACCEPT at ce82fd3c2bda98990cdbb5da675df1b1816f64ed."
     },
     {
       "path": ".git/index",
@@ -223,11 +229,12 @@
     },
     {
       "id": "/root/t00_import_rules",
-      "role": "T00 package import and root links implementer",
+      "role": "T00 import implementer; T37 dispatch checkpoint owner",
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "ACCEPTED_SCOPED"
+      "status": "ACTIVE_T37_CHECKPOINT_OWNER",
+      "completed_task": "T00 ACCEPT at ce82fd3c2bda98990cdbb5da675df1b1816f64ed"
     },
     {
       "id": "/root/t00_independent_review",
@@ -236,16 +243,17 @@
       "effort": "high",
       "assignment": "explicit",
       "status": "COMPLETED_ACCEPT",
-      "review_output_sha": null,
-      "review_target_sha": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
-      "previous_reviewed_sha": "5847dfd26c7064dac491e540bc69b0ac22e2fc18"
+      "review_output_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
+      "review_target_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
+      "previous_reviewed_sha": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
+      "decision": "ACCEPT"
     }
   ],
   "model_selection_limits": [
     "Agent records use explicit coordinator assignments; the worker runtime provides no independent model-identity attestation."
   ],
   "task_states": {
-    "T00": "REVIEW",
+    "T00": "ACCEPTED",
     "T01": "NOT_STARTED",
     "T02": "BLOCKED",
     "T03": "BLOCKED",
@@ -282,10 +290,12 @@
     "T34": "NOT_STARTED",
     "T35": "NOT_STARTED",
     "T36": "NOT_STARTED",
-    "T37": "NOT_STARTED",
+    "T37": "READY",
     "T38": "NOT_STARTED"
   },
-  "ready_tasks": [],
+  "ready_tasks": [
+    "T37"
+  ],
   "blocked_tasks": [
     {
       "id": "T02",
@@ -315,10 +325,15 @@
       "sha256": "e82d575937f4d40951be3ddebf4d552344d88908fe62441610e6eccfdfb821fd",
       "status": "actual source identity record; independently accepted"
     },
-    "independent_review": "results/t00-review/ (pending)",
+    "independent_review": {
+      "path": "results/t00-final-review.json",
+      "sha256": "59c8c45df5272bbe5ac85c8c50e73922ac2ed6ebb560e51a99553d5181c12357",
+      "reviewed_commit": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
+      "status": "Overall T00 ACCEPT; exact-head independent review."
+    },
     "root_instructions": "AGENTS.md",
-    "import_record_sha256": "8e4553691466250fd9a97d896a97c8856d440d70a91da72b3f2cd4afdca0c457",
-    "review_decision": "results/run-state.json:review",
+    "import_record_sha256": "a74f45c515b75c88fc4f773fd21544f0374e811523a332fd49ae1ac7b1c8f384",
+    "review_decision": "results/t00-final-review.json",
     "source_capture_script": {
       "path": "results/t00-source/capture_source.py",
       "owner": "/root/t00_source_capture",
@@ -640,15 +655,16 @@
       "path": "results/run-state.json:source_capture_review",
       "status": "ACCEPT at e4354e82ed7801acc69a9e3512300b634a38f7ae"
     },
-    "completed_upstream_refresh_review": "/root/t00_independent_review; gpt-6.1-sol high; both approved refreshes merged normally, final source input 1d6ee92."
+    "completed_upstream_refresh_review": "/root/t00_independent_review; gpt-6.1-sol high; both approved refreshes merged normally, final source input 1d6ee92.",
+    "final_checkpoint_review": "results/t00-final-review.json"
   },
   "review": {
     "required_model": "gpt-6.1-sol",
     "required_effort": "high",
     "reviewer_id": "/root/t00_independent_review",
-    "status": "ACCEPT_SCOPED_IMPORT_AND_SOURCE_PENDING_FINAL_CHECKPOINT_REVIEW",
-    "reviewed_output_sha": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
-    "accepted_scope": "Package import and additive root links at e2fa510c; source/tool evidence at e4354e82.",
+    "status": "ACCEPTED",
+    "reviewed_output_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
+    "accepted_scope": "Overall T00 package import, root instruction links, source/tool evidence, and checkpoint state.",
     "evidence": [
       "22 committed package hashes",
       "plan hash",
@@ -661,13 +677,13 @@
       "git diff --check passes"
     ],
     "limits": [
-      "Overall T00 acceptance awaits exact final checkpoint review.",
-      "Product behavior remains NOT VERIFIED."
-    ]
+      "Product behavior remains NOT VERIFIED.",
+      "Remote CI contains cancelled jobs with unknown outcomes; tool installation and guard probe limits remain recorded."
+    ],
+    "decision": "ACCEPT"
   },
   "blockers": [
-    "T00 final checkpoint commit awaits independent review.",
-    "T37 and dependent Termrock source work await overall T00 acceptance.",
+    "T02, T03, and T04 remain blocked until T38 passes independent review.",
     "The unaccepted fixture expectation change remains source history; it is not product behavior proof.",
     "Classify tc-proof and visibility publisher/capture ownership before any related removal.",
     "T37 must inventory all argparse descriptions derived from Python __doc__ and preserve identical help text before docstring removal."
@@ -686,10 +702,11 @@
     "upstream-refresh-final": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
     "T00-source-capture": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
     "T00-source-capture-initial": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
-    "T00-source-capture-corrected": "e4354e82ed7801acc69a9e3512300b634a38f7ae"
+    "T00-source-capture-corrected": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
+    "T00-final-checkpoint-reviewed": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed"
   },
   "task_units": {
-    "T00_overall": "REVIEW_PENDING_CHECKPOINT_REVIEW",
+    "T00_overall": "ACCEPTED",
     "T00_import": "ACCEPTED",
     "T00_source_capture": "ACCEPTED",
     "T00_independent_review": "ACCEPT"
@@ -779,7 +796,7 @@
     }
   ],
   "source_capture_refresh": {
-    "status": "ACCEPTED_SCOPED_PENDING_FINAL_CHECKPOINT_REVIEW",
+    "status": "ACCEPTED_SCOPED",
     "immutable_base_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
     "overlay_shas": [
       "31f856f43d20920ea99aa81b8f40adeeb5bff358",
@@ -885,10 +902,24 @@
       "limits": [
         "Product behavior remains NOT VERIFIED."
       ]
+    },
+    {
+      "scope": "Overall T00 package, instruction import, source/tool evidence, and final checkpoint.",
+      "decision": "ACCEPT",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "reviewed_output_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
+      "evidence_path": "results/t00-final-review.json",
+      "evidence_sha256": "59c8c45df5272bbe5ac85c8c50e73922ac2ed6ebb560e51a99553d5181c12357",
+      "required_corrections": [],
+      "limits": [
+        "Product behavior remains NOT VERIFIED."
+      ]
     }
   ],
   "source_capture_validation": {
-    "status": "ACCEPTED_SCOPED_PENDING_FINAL_CHECKPOINT_REVIEW",
+    "status": "ACCEPTED_SCOPED",
     "input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
     "previous_reviewed_commit": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
     "output_commit": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
@@ -1006,17 +1037,21 @@
   },
   "overall_task_review": {
     "task_id": "T00",
-    "status": "REVIEW_PENDING_CHECKPOINT_REVIEW",
-    "target_commit": null,
-    "target_commit_note": "Coordinator assigns exact final checkpoint SHA after this checkpoint commit.",
-    "reviewer_id": null,
-    "decision": null,
+    "status": "ACCEPTED",
+    "target_commit": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
+    "target_commit_note": "Exact checkpoint commit accepted by independent review; this commit records the decision and task-state transition.",
+    "reviewer_id": "/root/t00_independent_review",
+    "reviewer_model": "gpt-6.1-sol",
+    "reviewer_effort": "high",
+    "decision": "ACCEPT",
+    "decision_record": "results/t00-final-review.json",
     "scoped_decisions": {
       "import": "ACCEPT at e2fa510c9fe993dce39e1f3bf56d62a2a9d9f1a0",
-      "source_capture": "ACCEPT at e4354e82ed7801acc69a9e3512300b634a38f7ae"
+      "source_capture": "ACCEPT at e4354e82ed7801acc69a9e3512300b634a38f7ae",
+      "final_checkpoint": "ACCEPT at ce82fd3c2bda98990cdbb5da675df1b1816f64ed"
     },
     "limits": [
-      "T00 is not accepted until the final checkpoint commit passes its review."
+      "Product behavior remains NOT VERIFIED."
     ]
   },
   "source_correction_work": {

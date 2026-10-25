@@ -1,0 +1,37 @@
+{
+  "schema": "termrock-review-decision-v1",
+  "task_id": "T00",
+  "scope": "Overall T00 acceptance at the exact final checkpoint commit, including the package import, additive root instruction links, and frozen source/tool evidence.",
+  "reviewed_commit": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
+  "decision": "ACCEPT",
+  "reviewer": {
+    "id": "/root/t00_independent_review",
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "recorded_at": "2026-10-26",
+  "evidence": [
+    "Independent reviewer accepted exact checkpoint ce82fd3c2bda98990cdbb5da675df1b1816f64ed.",
+    "No required corrections remain.",
+    "The imported package and additive root links were accepted at e2fa510c9fe993dce39e1f3bf56d62a2a9d9f1a0.",
+    "The frozen 1d6 source/tool evidence was accepted at e4354e82ed7801acc69a9e3512300b634a38f7ae.",
+    "All 63 indexed source evidence hashes, the source validator, and both extensionless executable shebang checks passed.",
+    "No authored product source, CI input or generated workflow, snapshot, or oracle changes were made by T00."
+  ],
+  "source_input": {
+    "immutable_base_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+    "overlay_shas": [
+      "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    ],
+    "frozen_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "evidence_commit": "e4354e82ed7801acc69a9e3512300b634a38f7ae"
+  },
+  "limits": [
+    "Product behavior remains NOT VERIFIED. No Cargo build, check, documentation, or test command ran.",
+    "The 1d6 CI snapshot contains 100 jobs: 95 cancelled with unknown outcomes, 2 skipped, 1 failed aggregate gate, and 2 successful; 98 jobs are non-success.",
+    "mise install exited 1 because Java temurin-27.0.0+35 metadata was unavailable for macos-x64; all 17 declared tools were already installed.",
+    "The build guard rejected cargo --version and cargo nextest --version as unsupported probes; Cargo did not run.",
+    "The fixture expectation change remains unaccepted and provides no behavior proof."
+  ]
+}
