@@ -752,6 +752,159 @@ fn expression_macros_do_not_disable_test_module_proof() {
 }
 
 #[test]
+fn method_body_item_macro_preserves_inline_cfg_test_boundary() {
+    let dir = empty_workspace();
+    let source = concat!(
+        "fn production_before() { None::<u8>.expect(\"before\"); }\n",
+        "struct Error;\n",
+        "impl std::fmt::Display for Error {\n",
+        "    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {\n",
+        "        let _ = Some(1_u8).expect(\"method production\");\n",
+        "        match true {\n",
+        "            true => {\n",
+        "                write!(formatter, \"error\")\n",
+        "            }\n",
+        "            false => Ok(()),\n",
+        "        }\n",
+        "    }\n",
+        "}\n",
+        "#[cfg(test)]\n",
+        "mod tests {\n",
+        "    #[test]\n",
+        "    fn fixture() { None::<u8>.expect(\"fixture\"); }\n",
+        "}\n",
+        "fn production_after() { None::<u8>.expect(\"after\"); }\n",
+    );
+    write_member_file(&dir, "src/lib.rs", source);
+
+    let report = check_scratch(&dir);
+    assert_eq!(
+        own14_findings(&report),
+        own14_source_lines(&[
+            source_line_number(source, "production_before"),
+            source_line_number(source, "method production"),
+            source_line_number(source, "production_after"),
+        ]),
+        "method-local write! must not erase the proven sibling cfg(test) range: {:?}",
+        report.findings
+    );
+}
+
+#[test]
+fn impl_item_and_method_signature_macros_keep_inline_test_expectations_production() {
+    for uncertain_impl in [
+        "impl Error { declare_items!(); }\n",
+        "impl Error { fn render(value: signature_type!()) { body_items!(); } }\n",
+    ] {
+        let dir = empty_workspace();
+        let source = format!(
+            "fn production_before() {{ None::<u8>.expect(\"before\"); }}\n\
+             {uncertain_impl}\
+             #[cfg(test)]\n\
+             mod tests {{ fn fixture() {{ None::<u8>.expect(\"fixture\"); }} }}\n\
+             fn production_after() {{ None::<u8>.expect(\"after\"); }}\n"
+        );
+        write_member_file(&dir, "src/lib.rs", &source);
+
+        assert_eq!(
+            own14_findings(&check_scratch(&dir)),
+            own14_source_lines(&[
+                source_line_number(&source, "production_before"),
+                source_line_number(&source, "fixture()"),
+                source_line_number(&source, "production_after"),
+            ]),
+            "unproven impl-level or signature syntax must retain every candidate"
+        );
+    }
+}
+
+fn impl_test_boundary_source(impl_items: &str) -> String {
+    format!(
+        "fn production_before() {{ None::<u8>.expect(\"before\"); }}\n\
+         struct Error;\n\
+         {impl_items}\
+         #[cfg(test)]\n\
+         mod tests {{ fn fixture() {{ None::<u8>.expect(\"fixture\"); }} }}\n\
+         fn production_after() {{ None::<u8>.expect(\"after\"); }}\n"
+    )
+}
+
+fn assert_impl_test_boundary_findings(impl_items: &str, retain_fixture_expect: bool) {
+    let dir = empty_workspace();
+    let source = impl_test_boundary_source(impl_items);
+    write_member_file(&dir, "src/lib.rs", &source);
+
+    let mut expected = vec![source_line_number(&source, "production_before")];
+    if retain_fixture_expect {
+        expected.push(source_line_number(&source, "fixture()"));
+    }
+    expected.push(source_line_number(&source, "production_after"));
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        own14_source_lines(&expected),
+        "unexpected inline test boundary classification for {impl_items:?}"
+    );
+}
+
+#[test]
+fn method_recovery_preserves_preexisting_plain_associated_item_classification() {
+    assert_impl_test_boundary_findings("impl Error { const CODE: u8 = 1; }\n", false);
+    assert_impl_test_boundary_findings(
+        "trait HasOutput { type Output; }\nimpl HasOutput for Error { type Output = (); }\n",
+        false,
+    );
+}
+
+#[test]
+fn unsupported_associated_items_with_method_body_macros_remain_fail_closed() {
+    assert_impl_test_boundary_findings(
+        "impl Error { const CODE: u8 = 1; fn render(&self) { body_items!(); } }\n",
+        true,
+    );
+    assert_impl_test_boundary_findings(
+        "trait HasOutput { type Output; fn render(&self); }\n\
+         impl HasOutput for Error { type Output = (); fn render(&self) { body_items!(); } }\n",
+        true,
+    );
+}
+
+#[test]
+fn impl_header_and_method_provenance_uncertainty_remain_fail_closed() {
+    assert_impl_test_boundary_findings(
+        "impl trait_path!() for Error { fn render(&self) { body_items!(); } }\n",
+        true,
+    );
+    assert_impl_test_boundary_findings(
+        "impl Error { #[unknown::route] fn render(&self) { body_items!(); } }\n",
+        true,
+    );
+    assert_impl_test_boundary_findings(
+        "impl Error { #[cfg(test)] fn render(&self) { body_items!(); } }\n",
+        true,
+    );
+}
+
+#[test]
+fn method_local_macro_definitions_and_unresolved_includes_remain_fail_closed() {
+    assert_impl_test_boundary_findings(
+        "impl Error { fn render(&self) { macro_rules! local { () => {}; } local!(); } }\n",
+        true,
+    );
+    assert_impl_test_boundary_findings(
+        "impl Error { fn render(&self) { include!(concat!(\"missing\", \".rs\")); } }\n",
+        true,
+    );
+}
+
+#[test]
+fn signature_only_method_does_not_invalidate_another_bounded_method_body() {
+    assert_impl_test_boundary_findings(
+        "impl Error { fn signature_only(value: signature_type!()) {} fn body_macro(&self) { body_items!(); } }\n",
+        false,
+    );
+}
+
+#[test]
 fn closure_leading_matches_reproduces_inline_cfg_test_classification_mismatch() {
     let dir = empty_workspace();
     let source = inline_cfg_test_boundary_source("matches!(Some(1_u8), Some(_))");

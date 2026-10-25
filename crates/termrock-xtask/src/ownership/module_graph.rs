@@ -2336,6 +2336,24 @@ fn range_skipped_item_uncertainty(
     end: usize,
     enclosing_imports: &TestAttributeImports,
 ) -> SkippedItemUncertainty {
+    let previous = range_skipped_item_uncertainty_legacy(tokens, start, end, enclosing_imports);
+    if previous == SkippedItemUncertainty::Other
+        && item_head(tokens, start, end) == Some("impl")
+        && impl_method_range_uncertainty(tokens, start, end, enclosing_imports)
+            == SkippedItemUncertainty::BoundedFunctionBodyMacro
+    {
+        SkippedItemUncertainty::BoundedFunctionBodyMacro
+    } else {
+        previous
+    }
+}
+
+fn range_skipped_item_uncertainty_legacy(
+    tokens: &Tokens,
+    start: usize,
+    end: usize,
+    enclosing_imports: &TestAttributeImports,
+) -> SkippedItemUncertainty {
     let mut index = start;
     let mut test_attributes = BTreeSet::new();
     let mut local_imports = TestAttributeImports::default();
@@ -2439,6 +2457,117 @@ fn range_skipped_item_uncertainty(
     } else {
         SkippedItemUncertainty::None
     }
+}
+
+fn impl_method_range_uncertainty(
+    tokens: &Tokens,
+    start: usize,
+    end: usize,
+    enclosing_imports: &TestAttributeImports,
+) -> SkippedItemUncertainty {
+    let Some((body_open, body_close)) = ordinary_impl_body(tokens, start, end) else {
+        return SkippedItemUncertainty::Other;
+    };
+
+    // An unknown invocation in the impl header can alter the associated-item
+    // grammar, so only method-only impls with a literal header use the bounded
+    // function-body exception.
+    let mut header = start;
+    while header < body_open {
+        if macro_invocation_group(tokens, header, body_open).is_some() {
+            return SkippedItemUncertainty::Other;
+        }
+        header += 1;
+    }
+
+    let mut index = body_open + 1;
+    let mut bounded_function_body_macro = false;
+    while index < body_close {
+        if is_punct(tokens, index, ';') {
+            index += 1;
+            continue;
+        }
+
+        while is_punct(tokens, index, '#') {
+            let Some((next, inner, attribute)) = parse_attribute(tokens, index, body_close) else {
+                return SkippedItemUncertainty::Other;
+            };
+            if inner
+                || !attribute.complete
+                || attribute.predicate != Predicate::ALWAYS
+                || attribute.path.is_some()
+                || !attribute.derives.is_empty()
+                || !attribute.test_attributes.is_empty()
+                || attribute.literal_cfg_test
+            {
+                return SkippedItemUncertainty::Other;
+            }
+            index = next;
+        }
+        if index >= body_close {
+            return SkippedItemUncertainty::Other;
+        }
+
+        // Associated consts, types, and impl-level macros can generate items
+        // outside a method body. Keep them uncertain until their grammar has a
+        // separate proof; this extension covers ordinary method bodies only.
+        if item_head(tokens, index, body_close) != Some("fn") {
+            return SkippedItemUncertainty::Other;
+        }
+        let Some(item_end) = skip_item(tokens, index, body_close) else {
+            return SkippedItemUncertainty::Other;
+        };
+        if item_end <= index || ordinary_function_body(tokens, index, item_end).is_none() {
+            return SkippedItemUncertainty::Other;
+        }
+        match range_skipped_item_uncertainty(tokens, index, item_end, enclosing_imports) {
+            SkippedItemUncertainty::None => {}
+            SkippedItemUncertainty::BoundedFunctionBodyMacro => {
+                bounded_function_body_macro = true;
+            }
+            SkippedItemUncertainty::Other => return SkippedItemUncertainty::Other,
+        }
+        index = item_end;
+    }
+
+    if bounded_function_body_macro {
+        SkippedItemUncertainty::BoundedFunctionBodyMacro
+    } else {
+        SkippedItemUncertainty::None
+    }
+}
+
+fn ordinary_impl_body(tokens: &Tokens, start: usize, end: usize) -> Option<(usize, usize)> {
+    if item_head(tokens, start, end) != Some("impl") {
+        return None;
+    }
+    let mut angle_depth = 0usize;
+    let mut index = start;
+    while index < end {
+        if is_punct(tokens, index, '<') {
+            angle_depth = angle_depth.checked_add(1)?;
+            index += 1;
+            continue;
+        }
+        if is_punct(tokens, index, '>') && angle_depth > 0 {
+            angle_depth -= 1;
+            index += 1;
+            continue;
+        }
+        if is_open(tokens, index) {
+            let close = tokens.pairs.get(index).and_then(|close| *close)?;
+            if close >= end {
+                return None;
+            }
+            if is_punct(tokens, index, '{') && angle_depth == 0 {
+                return (close + 1 == end).then_some((index, close));
+            }
+            index = close + 1;
+            continue;
+        }
+        index += 1;
+    }
+    None
 }
 
 fn ordinary_function_body(tokens: &Tokens, start: usize, end: usize) -> Option<(usize, usize)> {
