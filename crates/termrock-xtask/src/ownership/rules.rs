@@ -445,14 +445,372 @@ fn match_scenario_switches(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
+const MAX_SIGNATURE_BYTES: usize = 8 * 1024;
+const MAX_DELIMITER_DEPTH: usize = 256;
+const MAX_PARSE_DEPTH: usize = 64;
+const MAX_RETURN_TYPE_STEPS: usize = 1024;
+
+// File-level declarations only; unknown blocks and unsupported syntax keep the original view.
+fn return_type_generic_angle_masks(file: &ScannedFile) -> Vec<Vec<usize>> {
+    let mut source = String::new();
+    let mut line_starts = Vec::with_capacity(file.lines.len());
+    for line in &file.lines {
+        line_starts.push(source.len());
+        source.push_str(&line.code);
+        source.push('\n');
+    }
+
+    let mut masks = vec![Vec::new(); file.lines.len()];
+    let mut delimiters = Vec::new();
+    let mut uncertain = false;
+    for (line_index, line) in file.lines.iter().enumerate() {
+        if !uncertain
+            && delimiters.is_empty()
+            && let Some(fn_offset) = ordinary_fn_offset(&line.code)
+        {
+            let fn_start = line_starts[line_index] + fn_offset;
+            if let Some(angles) = named_function_return_type_angles(&source, fn_start) {
+                for angle in angles {
+                    let angle_line = line_starts
+                        .partition_point(|start| *start <= angle)
+                        .saturating_sub(1);
+                    let local_offset = angle - line_starts[angle_line];
+                    if local_offset < file.lines[angle_line].code.len() {
+                        masks[angle_line].push(local_offset);
+                    }
+                }
+            }
+        }
+
+        if uncertain {
+            continue;
+        }
+        for byte in line.code.bytes() {
+            match byte {
+                b'(' | b'[' | b'{' => {
+                    if delimiters.len() == MAX_DELIMITER_DEPTH {
+                        uncertain = true;
+                        break;
+                    }
+                    delimiters.push(match byte {
+                        b'(' => b')',
+                        b'[' => b']',
+                        _ => b'}',
+                    });
+                }
+                b')' | b']' | b'}' if delimiters.pop() != Some(byte) => {
+                    uncertain = true;
+                    delimiters.clear();
+                    break;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    for mask in &mut masks {
+        mask.sort_unstable();
+        mask.dedup();
+    }
+    masks
+}
+
+fn ordinary_fn_offset(code: &str) -> Option<usize> {
+    let (offset, _) = code
+        .char_indices()
+        .find(|(_, character)| !character.is_whitespace())?;
+    let bytes = code.as_bytes();
+    (bytes.get(offset..)?.starts_with(b"fn")
+        && bytes.get(offset + 2).is_some_and(u8::is_ascii_whitespace))
+    .then_some(offset)
+}
+
+fn named_function_return_type_angles(source: &str, start: usize) -> Option<Vec<usize>> {
+    let bytes = source.as_bytes();
+    let limit = start.saturating_add(MAX_SIGNATURE_BYTES).min(bytes.len());
+    if !bytes.get(start..limit)?.starts_with(b"fn")
+        || !bytes.get(start + 2).is_some_and(u8::is_ascii_whitespace)
+    {
+        return None;
+    }
+
+    let mut cursor = start + 2;
+    skip_ascii_whitespace(bytes, &mut cursor, limit);
+    parse_ascii_identifier(bytes, &mut cursor, limit)?;
+    skip_ascii_whitespace(bytes, &mut cursor, limit);
+    if bytes.get(cursor) != Some(&b'(') {
+        return None;
+    }
+    cursor = skip_balanced_parameters(bytes, cursor, limit)?;
+    skip_ascii_whitespace(bytes, &mut cursor, limit);
+    if !bytes.get(cursor..limit)?.starts_with(b"->") {
+        return None;
+    }
+    cursor += 2;
+
+    let mut parser = SimpleReturnTypeParser {
+        bytes,
+        cursor,
+        limit,
+        angles: Vec::new(),
+        depth: 0,
+        steps: 0,
+    };
+    parser.parse_type()?;
+    parser.skip_whitespace();
+    (parser.peek() == Some(b'{')).then_some(parser.angles)
+}
+
+fn skip_ascii_whitespace(bytes: &[u8], cursor: &mut usize, limit: usize) {
+    while *cursor < limit && bytes[*cursor].is_ascii_whitespace() {
+        *cursor += 1;
+    }
+}
+
+fn parse_ascii_identifier(bytes: &[u8], cursor: &mut usize, limit: usize) -> Option<()> {
+    if *cursor >= limit {
+        return None;
+    }
+    let first = bytes[*cursor];
+    if !(first.is_ascii_alphabetic() || first == b'_') {
+        return None;
+    }
+    *cursor += 1;
+    while *cursor < limit && (bytes[*cursor].is_ascii_alphanumeric() || bytes[*cursor] == b'_') {
+        *cursor += 1;
+    }
+    Some(())
+}
+
+fn skip_balanced_parameters(bytes: &[u8], start: usize, limit: usize) -> Option<usize> {
+    if bytes.get(start) != Some(&b'(') {
+        return None;
+    }
+    let mut closing = vec![b')'];
+    let mut cursor = start + 1;
+    while cursor < limit {
+        let byte = bytes[cursor];
+        match byte {
+            b'(' | b'[' | b'{' => {
+                if closing.len() == MAX_PARSE_DEPTH {
+                    return None;
+                }
+                closing.push(match byte {
+                    b'(' => b')',
+                    b'[' => b']',
+                    _ => b'}',
+                });
+            }
+            b')' | b']' | b'}' => {
+                if closing.pop() != Some(byte) {
+                    return None;
+                }
+                if closing.is_empty() {
+                    return Some(cursor + 1);
+                }
+            }
+            _ => {}
+        }
+        cursor += 1;
+    }
+    None
+}
+
+struct SimpleReturnTypeParser<'a> {
+    bytes: &'a [u8],
+    cursor: usize,
+    limit: usize,
+    angles: Vec<usize>,
+    depth: usize,
+    steps: usize,
+}
+
+impl SimpleReturnTypeParser<'_> {
+    fn parse_type(&mut self) -> Option<()> {
+        self.skip_whitespace();
+        if self.depth == MAX_PARSE_DEPTH || self.step().is_none() {
+            return None;
+        }
+        self.depth += 1;
+        let result = self.parse_type_inner();
+        self.depth -= 1;
+        result
+    }
+
+    fn parse_type_inner(&mut self) -> Option<()> {
+        match self.peek()? {
+            b'&' => self.parse_reference(),
+            b'(' => self.parse_tuple_or_group(),
+            _ => self.parse_path(),
+        }
+    }
+
+    fn parse_reference(&mut self) -> Option<()> {
+        self.cursor += 1;
+        self.skip_whitespace();
+        if self.peek() == Some(b'\'') {
+            self.parse_lifetime()?;
+            self.skip_whitespace();
+        }
+        if self.consume_keyword(b"mut") {
+            self.skip_whitespace();
+        }
+        self.parse_type()
+    }
+
+    fn parse_tuple_or_group(&mut self) -> Option<()> {
+        self.cursor += 1;
+        self.skip_whitespace();
+        if self.consume(b')') {
+            return Some(());
+        }
+        self.parse_type()?;
+        loop {
+            self.skip_whitespace();
+            if self.consume(b')') {
+                return Some(());
+            }
+            if !self.consume(b',') {
+                return None;
+            }
+            self.skip_whitespace();
+            if self.consume(b')') {
+                return Some(());
+            }
+            self.parse_type()?;
+        }
+    }
+
+    fn parse_path(&mut self) -> Option<()> {
+        self.parse_identifier()?;
+        self.parse_optional_generics()?;
+        loop {
+            self.skip_whitespace();
+            if !self.consume_double_colon() {
+                return Some(());
+            }
+            self.step()?;
+            self.skip_whitespace();
+            self.parse_identifier()?;
+            self.parse_optional_generics()?;
+        }
+    }
+
+    fn parse_optional_generics(&mut self) -> Option<()> {
+        self.skip_whitespace();
+        if self.peek() != Some(b'<') {
+            return Some(());
+        }
+        self.angles.push(self.cursor);
+        self.cursor += 1;
+        self.skip_whitespace();
+        if self.peek() == Some(b'>') {
+            return None;
+        }
+        loop {
+            self.step()?;
+            if self.peek() == Some(b'\'') {
+                self.parse_lifetime()?;
+            } else {
+                self.parse_type()?;
+            }
+            self.skip_whitespace();
+            if self.consume(b'>') {
+                self.angles.push(self.cursor - 1);
+                return Some(());
+            }
+            if !self.consume(b',') {
+                return None;
+            }
+            self.skip_whitespace();
+            if self.consume(b'>') {
+                self.angles.push(self.cursor - 1);
+                return Some(());
+            }
+        }
+    }
+
+    fn parse_lifetime(&mut self) -> Option<()> {
+        if !self.consume(b'\'') {
+            return None;
+        }
+        self.parse_identifier()
+    }
+
+    fn parse_identifier(&mut self) -> Option<()> {
+        parse_ascii_identifier(self.bytes, &mut self.cursor, self.limit)
+    }
+
+    fn consume_double_colon(&mut self) -> bool {
+        if self
+            .bytes
+            .get(self.cursor..self.limit)
+            .is_some_and(|rest| rest.starts_with(b"::"))
+        {
+            self.cursor += 2;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn consume_keyword(&mut self, keyword: &[u8]) -> bool {
+        let end = self.cursor.saturating_add(keyword.len());
+        let matches = self
+            .bytes
+            .get(self.cursor..self.limit)
+            .is_some_and(|rest| rest.starts_with(keyword));
+        let boundary = end >= self.limit
+            || !self.bytes[end].is_ascii_alphanumeric() && self.bytes[end] != b'_';
+        if matches && boundary {
+            self.cursor = end;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn step(&mut self) -> Option<()> {
+        if self.steps == MAX_RETURN_TYPE_STEPS {
+            return None;
+        }
+        self.steps += 1;
+        Some(())
+    }
+
+    fn skip_whitespace(&mut self) {
+        skip_ascii_whitespace(self.bytes, &mut self.cursor, self.limit);
+    }
+
+    fn peek(&self) -> Option<u8> {
+        (self.cursor < self.limit).then(|| self.bytes[self.cursor])
+    }
+
+    fn consume(&mut self, byte: u8) -> bool {
+        if self.peek() == Some(byte) {
+            self.cursor += 1;
+            true
+        } else {
+            false
+        }
+    }
+}
+
 fn match_size_switches(file: &ScannedFile, findings: &mut Vec<Finding>) {
-    for line in production_lines(file) {
+    let generic_angles = return_type_generic_angle_masks(file);
+    for (line_index, line) in file.lines.iter().enumerate() {
+        if file.is_test_line(line.number) {
+            continue;
+        }
         let tokens = words(&line.code);
         let sized = tokens.iter().any(|w| *w == "width" || *w == "height");
         if !sized {
             continue;
         }
-        let normalized = line.code.replace("->", "  ").replace("=>", "  ");
+        let mut normalized = line.code.replace("->", "  ").replace("=>", "  ");
+        for angle in &generic_angles[line_index] {
+            normalized.replace_range(*angle..*angle + 1, " ");
+        }
         let compared = ["<=", ">=", "==", "!=", "<", ">"]
             .iter()
             .any(|op| normalized.contains(op));

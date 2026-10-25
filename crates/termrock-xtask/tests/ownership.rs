@@ -86,6 +86,25 @@ fn own14_source_lines(lines: &[usize]) -> Vec<(String, usize)> {
         .collect()
 }
 
+fn own11_findings(report: &termrock_xtask::ownership::Report) -> Vec<(String, usize)> {
+    let mut findings: Vec<_> = report
+        .findings
+        .iter()
+        .filter(|finding| finding.rule == "OWN-11")
+        .map(|finding| (finding.file.clone(), finding.line))
+        .collect();
+    findings.sort();
+    findings
+}
+
+fn source_line_number(source: &str, fragment: &str) -> usize {
+    source
+        .lines()
+        .position(|line| line.contains(fragment))
+        .map(|index| index + 1)
+        .expect("fixture line exists")
+}
+
 fn empty_workspace() -> tempfile::TempDir {
     scratch_workspace("", &empty_exceptions())
 }
@@ -2866,4 +2885,127 @@ fn shipped_exceptions_parse() {
         assert!(!exception.reason.is_empty(), "reason required");
         assert!(!exception.review.is_empty(), "review required");
     }
+}
+
+#[test]
+fn ordinary_return_type_generics_are_not_size_switches() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "fn fixture(width: u16, height: u16, trusted: bool) -> Harness<App> {\n    let _ = trusted;\n}\n",
+    );
+
+    assert_eq!(
+        own11_findings(&check_scratch(&dir)),
+        Vec::<(String, usize)>::new(),
+        "the production-root Harness<App> reproducer has no width/height comparison"
+    );
+}
+
+#[test]
+fn return_type_generic_mask_keeps_comparisons_and_uncertain_syntax() {
+    let source = r#"fn simple(width: u16, height: u16, trusted: bool) -> Harness<App> {}
+
+fn nested(width: u16, height: u16) -> Result<api::Harness<App>, Option<&'static App>> {}
+
+fn tuple(width: u16, height: u16) -> (api::Harness<App>, Option<&'static App>) {}
+
+fn multiline(width: u16, height: u16) -> Result<
+    Harness<App>,
+    Option<&'static App>,
+> {
+    if width < 80 {}
+}
+
+fn same_line(width: u16, height: u16) -> Harness<App> { if width < 80 {} }
+
+fn nested_call(width: u16, height: u16) -> Harness<App> { let _ = build::<Harness<App>>() < width; }
+
+fn match_guard(width: u16, height: u16) -> Harness<App> {
+    match value {
+        item if width >= 80 => {}
+        _ => {}
+    }
+}
+
+fn less(width: u16) { let _ = width < 1; }
+fn greater(height: u16) { let _ = height > 1; }
+fn less_equal(width: u16) { let _ = width <= 1; }
+fn greater_equal(height: u16) { let _ = height >= 1; }
+fn equal(width: u16) { let _ = width == 1; }
+fn not_equal(height: u16) { let _ = height != 1; }
+
+const width: usize = 80;
+const height: usize = 24;
+const WIDTH_EXCEEDS_HEIGHT: bool = width > height;
+
+fn const_braces(width: usize, height: usize) -> ArrayHolder<{ WIDTH }> {}
+fn const_compare(width: usize, height: usize) -> ArrayHolder<{ WIDTH > HEIGHT }> {}
+fn const_array(width: usize, height: usize) -> ArrayHolder<[u8; WIDTH]> {}
+fn where_clause(width: u16, height: u16) -> Harness<App> where App: Copy {}
+pub fn prefixed(width: u16, height: u16) -> Harness<App> {}
+fn malformed(width: u16, height: u16) -> Harness<App {}
+fn expression_like(width: u16, height: u16) -> width < height > other {}
+type Callback = fn(width: u16, height: u16) -> Harness<App>;
+
+macro_rules! generated {
+    () => {
+        fn macro_lookalike(width: u16, height: u16) -> Harness<App> {}
+    };
+}
+
+fn unrelated(width_hint: u16, height_hint: u16) -> Harness<App> { let _ = left < right; }
+fn no_size() -> Harness<App> { let _ = left < right; }
+"#;
+    let dir = empty_workspace();
+    write_member_file(&dir, "src/lib.rs", source);
+
+    let expected_fragments = [
+        "if width < 80",
+        "fn same_line",
+        "fn nested_call",
+        "item if width >= 80",
+        "fn less(",
+        "fn greater(",
+        "fn less_equal(",
+        "fn greater_equal(",
+        "fn equal(",
+        "fn not_equal(",
+        "const WIDTH_EXCEEDS_HEIGHT:",
+        "fn const_braces(",
+        "fn const_compare(",
+        "fn const_array(",
+        "fn where_clause(",
+        "pub fn prefixed(",
+        "fn malformed(",
+        "fn expression_like(",
+        "type Callback =",
+        "fn macro_lookalike(",
+    ];
+    let mut expected: Vec<_> = expected_fragments
+        .iter()
+        .map(|fragment| {
+            (
+                "crates/demo-preview/src/lib.rs".to_string(),
+                source_line_number(source, fragment),
+            )
+        })
+        .collect();
+    expected.sort();
+
+    let report = check_scratch(&dir);
+    assert_eq!(
+        own11_findings(&report),
+        expected,
+        "supported return generics are masked; body operators and uncertain forms stay visible"
+    );
+    assert!(
+        report
+            .findings
+            .iter()
+            .all(|finding| finding.rule == "OWN-11"),
+        "the focused source fixture must not change neighboring ownership rules: {:?}",
+        report.findings
+    );
 }
