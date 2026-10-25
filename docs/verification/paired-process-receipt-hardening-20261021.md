@@ -2,12 +2,6 @@
 
 This record covers the launch-identity and child-cleanup increment merged into the PR #38 branch. It does not admit a replacement baseline build or establish full application parity.
 
-This is a historical verification record. T37 retires the test targets and
-harnesses named below. Their paths, counts, and results describe the recorded
-source revisions only; they are not current procedures or proof. Preserve the
-tag, oracle, snapshots, and receipts. Product behavior remains
-`NOT VERIFIED`.
-
 ## Scope and decisions
 
 - Delivery base: `parity/termrock-visual-baseline` at `df30dc013aa6d78df6f9eb58fc67f3f3d61be37f`.

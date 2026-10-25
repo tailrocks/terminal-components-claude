@@ -9,7 +9,7 @@ Install the checked-out workspace's pinned developer tools with `mise install`, 
 | `main` | Workspace packages, with default members for facade and applications | Use the pinned toolchain and guarded commands for `cargo check --workspace --all-targets`, `cargo fmt --all -- --check`, and `cargo clippy --workspace --all-targets -- -D warnings`. |
 | `design/interaction-polish` and historical `wip/*` branches | Earlier `junie-tui` workspace | These branches have separate source, suites, and instructions. Their historical command lists are not current procedures for this workspace. |
 
-Format, check, and lint the affected workspace with its configured commands. Do not run old Nextest or workspace test commands after T37. T38 must approve any replacement test plan before test edits or execution. A compile, format, or lint result proves only its recorded command and source revision; it does not prove product behavior.
+Format, check, and lint the affected workspace with its configured commands. T37 runs no tests. Do not run old Nextest or workspace test commands after cleanup. One GPT-6.1-Sol agent at medium effort must design the T38 test architecture. A different GPT-6.1-Sol agent at medium effort must review it. Before a later task edits or executes tests, an independent GPT-6.1-Sol reviewer at medium effort must approve that task's test plan. A compile, format, or lint result proves only its recorded command and source revision; it does not prove product behavior.
 
 At source input `1d6ee92adf6ccca38eeee64b1371cba1497e8fcd`, the facade's `testing` feature gated the [`ex01_button`, `ex02_text_input`, and consumer targets](https://github.com/tailrocks/terminal-components-claude/blob/1d6ee92adf6ccca38eeee64b1371cba1497e8fcd/crates/termrock/Cargo.toml#L8-L75). T37 retires those targets. The pinned manifest is historical; T05 will classify the remaining feature surface.
 
@@ -19,11 +19,13 @@ CLI option discovery is application-specific. The [Showcase parser](https://gith
 
 A backend-free consumer claim needs an isolated consumer's resolved dependency graph without workspace feature unification; an in-workspace compile or an optional dependency declaration is not enough. The current `termrock-core` manifest enables its optional Crossterm adapter by default ([feature declaration](https://github.com/tailrocks/terminal-components-claude/blob/f4611b1fe98a98b78c9e2c32a6c9522fe72fd863/crates/termrock-core/Cargo.toml#L8-L16)). Bind the check to the current owning gate before publishing an invocation; historical commands and tool pins are not current instructions.
 
-## Historical frozen CLI parity evidence
+## Retired capture and frozen CLI history
 
-T00 records the former [`tools/frozen_baseline.py`](https://github.com/tailrocks/terminal-components-claude/blob/1d6ee92adf6ccca38eeee64b1371cba1497e8fcd/tools/frozen_baseline.py) as an evidence-capture or test-harness tool, with source SHA-256 `fab5c2bbd40858d3fd13eb421411e7af065406edf46d8276d8d88918270f365e`. Sol high decision T37-FROZEN-01 retires it as a legacy PTY Nextest runner. T37 also retires `tools/test_frozen_baseline.py`, the paired-runner patch and extensions, and the exclusive frame helper. `tools/baseline_capture.sh` remains a separate command and has a separate source owner.
+At frozen product input `1d6ee92adf6ccca38eeee64b1371cba1497e8fcd`, the former [`tools/frozen_baseline.py`](https://github.com/tailrocks/terminal-components-claude/blob/1d6ee92adf6ccca38eeee64b1371cba1497e8fcd/tools/frozen_baseline.py) had source SHA-256 `fab5c2bbd40858d3fd13eb421411e7af065406edf46d8276d8d88918270f365e`. Sol high decision T37-FROZEN-01 retires it as a legacy PTY Nextest runner. T37 also retires `tools/test_frozen_baseline.py`, the paired-runner patch and extensions, and the exclusive frame helper.
 
-Do not run the old prepare, build, candidate-build, compare, live-compare, or runner-guard procedures. Their scenario counts, commands, and test results are historical evidence only. Keep annotated, unsigned `visual-baseline` tag object `2718a6b8127a522a3d351d0b4bdb7542fc8da542` and peeled commit `4169783ae883788186d161af09ba9c481bd84e5c`, with its oracle, snapshots, receipts, and reference decisions, immutable. This page does not define a replacement capture gate. T04 may propose one only after T38 review. Product behavior and visual parity remain `NOT VERIFIED`.
+Sol high decision T37-CAPTURE-01 retires `tools/capture.sh`, `tools/capture_exec.sh`, `tools/baseline_capture.sh`, `tools/capture_provenance.py`, `tools/parity_replay.py`, and `tools/parity_approve.py` as the legacy 499-recipe execution and approval closure. The review found no established production diagnostic owner or caller. These files and their commands are not current capture, replay, or approval procedures. T37 does not provide a replacement runner or fresh reference approval. T04 may propose a replacement only after T38 review.
+
+Do not run the old prepare, build, candidate-build, compare, live-compare, parity replay, capture, approval, or runner-guard procedures. Their commands, recipes, scenario counts, reports, and results are source-pinned historical evidence only. Keep baseline and parity data, recipes, replays, manifests, receipts, reports, hashes, and review records unchanged. Keep annotated, unsigned `visual-baseline` tag object `2718a6b8127a522a3d351d0b4bdb7542fc8da542` and peeled commit `4169783ae883788186d161af09ba9c481bd84e5c`, with its oracle, snapshots, receipts, and reference decisions, immutable. This page does not define a replacement capture gate. Product behavior and visual parity remain `NOT VERIFIED`.
 
 ## Consumer slots
 
@@ -31,7 +33,22 @@ Do not run the old prepare, build, candidate-build, compare, live-compare, or ru
 
 ## Rust comments
 
-Keep Rust comments only for a safety invariant, legally required notice, or non-obvious behavior constraint that cannot be recovered from code or tests and is necessary to maintain correctness. Do not replace removed prose with `#[doc = "..."]`. Preserve structural compiler attributes such as `#[doc(hidden)]` and actual runtime metadata such as `#[arg(help = "...")]`. Existing Clap derive documentation consumed as CLI help metadata is retained where removing it would change user-visible help; that narrow use does not make general API documentation in source the policy. Frozen Rust fixtures whose exact bytes are validation inputs remain unchanged. Put contracts, API guidance, examples, and design rationale in maintained Markdown.
+Remove nonfunctional source comments, Rust doc comments, and docstrings. Move required safety rationale, API rules, caller obligations, examples, and design rationale to maintained Markdown. Do not replace removed prose with `#[doc = "..."]`. Preserve legal and SPDX notices, parser and linter directives, shell shebangs, generated-required bytes, and structural compiler attributes such as `#[doc(hidden)]`. Keep user-visible command help as explicit runtime metadata. Use Clap `#[command]` or `#[arg]` attributes, or an explicit parser description string. Do not use Rust or Python docstrings as command help. Keep frozen Rust fixtures whose exact bytes are validation inputs unchanged.
+
+## Workspace lint rationale
+
+The root `Cargo.toml` at work input `c817b99e9e43abbbf3519d56b2f5ee86924243d8` has SHA-256 `d2a15fe80af76877bf5307d7a8beb3f882c5823c46af14ef437a729c2ca92f98`. Its line references below are source-pinned. T37 keeps the lint levels and lint set unchanged.
+
+| Source lines | Maintained rationale |
+|---:|---|
+| 139–140 | The workspace denies `unsafe_code`. The source comment names `crates/tui`; that is an earlier path and is historical. It does not describe a current workspace crate. |
+| 147–149 | Clippy's `all` group is denied for correctness, suspicious-code, style, complexity, and performance findings. The broader `pedantic` group warns. |
+| 151–161 | The separately denied lints protect stated rules: no panics during normal interaction; structural handling of ragged rows instead of index panics; no material TODO or stub; no library output to stdout; and documented unsafe operations. Other listed denies remain as written in the manifest. |
+| 164–165 | `arithmetic_side_effects` warns because it provides a useful signal but is too noisy to deny. Saturating arithmetic is the stated rule; denying the lint would produce too many findings. |
+| 166–167 | `missing_docs`, `missing_panics_doc`, and `missing_errors_doc` are allowed as documentation-specific lints during the minimal-comment migration. This does not permit unsafe-code or correctness-lint changes. |
+| 169–175 | `must_use_candidate` is allowed because it is noisy; `Response` is marked `#[must_use]` deliberately. The cast allowances cover terminal coordinates and match the pinned Ratatui 0.1.2 policy recorded at `ratatui-core-0.1.2/Cargo.toml:179–182`. |
+
+The full lint configuration remains the source of truth. This table preserves the intent of its removed explanatory comments. It does not authorize a lint waiver, a broader allowance, or a change to an existing level.
 
 ## Safety evidence
 
