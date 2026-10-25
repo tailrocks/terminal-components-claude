@@ -1,3 +1,4 @@
+#![cfg(test)]
 pub mod scoped_targets;
 pub mod state_waits;
 pub mod typed_input;
