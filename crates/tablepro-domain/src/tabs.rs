@@ -324,14 +324,67 @@ impl QueryTab {
         Ok(rows)
     }
     pub fn explain(&mut self, catalog: &Catalog) -> Result<(), String> {
+        self.explain_statement(catalog, false).map(|_| ())
+    }
+
+    /// Explains the selected statement or the statement under the editor cursor.
+    ///
+    /// Returns the exact SQL source used to create the successful plan.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the selected or cursor statement is empty, invalid,
+    /// is not a SELECT, or cannot be planned.
+    pub fn explain_statement(
+        &mut self,
+        catalog: &Catalog,
+        analyze: bool,
+    ) -> Result<String, String> {
         self.sync_query_text();
-        let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
+        let statement_text = {
+            let editor = self.editor_state.editor();
+            if let Some(selected) = editor.selected_text() {
+                Self::explain_selection_statement(selected)?
+            } else if let Some((start, end)) =
+                sql::statement_at(editor.text(), editor.cursor_offset())
+            {
+                editor
+                    .text()
+                    .get(start..end)
+                    .ok_or_else(|| "Explain statement is not a valid range".to_owned())?
+            } else {
+                return Err("No SQL statement at cursor".to_owned());
+            }
+        };
+        let statement = sql::parse(statement_text).map_err(|error| error.message)?;
         let sql::Statement::Select(select) = statement else {
             return Err("Explain accepts SELECT statements".to_owned());
         };
-        self.plan = Some(sql::explain(catalog, &select, false).map_err(|error| error.message)?);
-        Ok(())
+        let plan = sql::explain(catalog, &select, analyze).map_err(|error| error.message)?;
+        self.plan = Some(plan);
+        Ok(statement_text.to_owned())
     }
+
+    fn explain_selection_statement(selected: &str) -> Result<&str, String> {
+        let mut statement = None;
+        for (start, end) in sql::split_statements(selected) {
+            let candidate = selected
+                .get(start..end)
+                .ok_or_else(|| "Explain selection is not a valid statement".to_owned())?;
+            let has_sql_tokens = sql::tokenize(candidate).into_iter().any(|token| {
+                !matches!(token.kind, sql::TokKind::Whitespace | sql::TokKind::Comment)
+            });
+            if !has_sql_tokens {
+                continue;
+            }
+            if statement.is_some() {
+                return Err("Explain selection must contain exactly one statement".to_owned());
+            }
+            statement = Some(candidate);
+        }
+        statement.ok_or_else(|| "Explain requires a non-empty selection".to_owned())
+    }
+
     pub fn has_pending_result(&self) -> bool {
         self.result
             .as_ref()
@@ -701,5 +754,154 @@ mod query_execution_timing_tests {
             unreachable!("result")
         };
         assert_eq!(grid.model.pending(), &pending);
+    }
+}
+
+#[cfg(test)]
+mod query_explain_tests {
+    use super::*;
+
+    const MULTI_STATEMENT_SQL: &str =
+        "SELECT * FROM customers WHERE id = '界;🙂'; -- ; comment\nSELECT * FROM orders;";
+
+    fn plan_relation(plan: &PlanNode) -> Option<&str> {
+        plan.relation
+            .as_deref()
+            .or_else(|| plan.children.iter().find_map(|child| plan_relation(child)))
+    }
+
+    fn explained_relation(tab: &QueryTab) -> Option<&str> {
+        tab.plan.as_ref().and_then(plan_relation)
+    }
+
+    #[test]
+    fn explain_and_analyze_use_the_live_statement_at_the_cursor() {
+        let catalog = Catalog::acme_prod();
+        let mut tab = QueryTab::new(1, "SELECT * FROM customers");
+        tab.editor_state.editor_mut().set_text(MULTI_STATEMENT_SQL);
+        tab.editor_state.editor_mut().begin_edit();
+        tab.editor_state
+            .editor_mut()
+            .jump_to(MULTI_STATEMENT_SQL.len());
+        let saved_text = tab.saved_text.clone();
+        let cursor = tab.editor_state.editor().cursor_offset();
+        let selection = tab.editor_state.editor().selected_text().map(str::to_owned);
+        assert!(tab.dirty());
+
+        assert_eq!(tab.explain(&catalog), Ok(()));
+        assert_eq!(explained_relation(&tab), Some("public.orders"));
+        assert!(
+            tab.plan
+                .as_ref()
+                .is_some_and(|plan| plan.actual_ms.is_none())
+        );
+        assert_eq!(tab.query, MULTI_STATEMENT_SQL);
+        assert_eq!(tab.editor_state.editor().text(), MULTI_STATEMENT_SQL);
+        assert_eq!(tab.editor_state.editor().cursor_offset(), cursor);
+        assert_eq!(
+            tab.editor_state.editor().selected_text().map(str::to_owned),
+            selection
+        );
+        assert!(tab.editor_state.editor().is_editing());
+        assert_eq!(tab.saved_text, saved_text);
+        assert!(tab.dirty());
+
+        assert_eq!(
+            tab.explain_statement(&catalog, true),
+            Ok("-- ; comment\nSELECT * FROM orders".to_owned())
+        );
+        assert_eq!(explained_relation(&tab), Some("public.orders"));
+        assert!(
+            tab.plan
+                .as_ref()
+                .is_some_and(|plan| plan.actual_ms.is_some())
+        );
+        assert_eq!(tab.query, MULTI_STATEMENT_SQL);
+        assert_eq!(tab.editor_state.editor().cursor_offset(), cursor);
+        assert_eq!(
+            tab.editor_state.editor().selected_text().map(str::to_owned),
+            selection
+        );
+        assert!(tab.editor_state.editor().is_editing());
+        assert_eq!(tab.saved_text, saved_text);
+        assert!(tab.dirty());
+
+        let Some(first_statement) = MULTI_STATEMENT_SQL.find("customers") else {
+            unreachable!("first statement anchor exists")
+        };
+        tab.editor_state.editor_mut().jump_to(first_statement);
+        let first_cursor = tab.editor_state.editor().cursor_offset();
+        assert_eq!(tab.explain(&catalog), Ok(()));
+        assert_eq!(explained_relation(&tab), Some("public.customers"));
+        assert!(
+            tab.plan
+                .as_ref()
+                .is_some_and(|plan| plan.actual_ms.is_none())
+        );
+        assert_eq!(tab.editor_state.editor().cursor_offset(), first_cursor);
+        assert_eq!(tab.editor_state.editor().text(), MULTI_STATEMENT_SQL);
+        assert_eq!(tab.query, MULTI_STATEMENT_SQL);
+    }
+
+    #[test]
+    fn empty_and_non_select_explain_errors_keep_the_last_plan() {
+        let catalog = Catalog::acme_prod();
+        let mut tab = QueryTab::new(1, "SELECT * FROM orders");
+        assert_eq!(tab.explain(&catalog), Ok(()));
+        let previous_plan = tab.plan.clone();
+
+        tab.replace_query("");
+        assert_eq!(
+            tab.explain(&catalog),
+            Err("No SQL statement at cursor".to_owned())
+        );
+        assert_eq!(tab.plan, previous_plan);
+
+        tab.replace_query("DELETE FROM orders;");
+        assert_eq!(
+            tab.explain_statement(&catalog, true),
+            Err("Explain accepts SELECT statements".to_owned())
+        );
+        assert_eq!(tab.plan, previous_plan);
+    }
+
+    #[test]
+    fn selected_statement_ignores_trailing_line_comment_only_range() {
+        let selected = "SELECT * FROM customers;\n-- trailing ; comment";
+
+        assert_eq!(
+            QueryTab::explain_selection_statement(selected),
+            Ok("SELECT * FROM customers")
+        );
+    }
+
+    #[test]
+    fn selected_statement_ignores_trailing_block_comment_only_range() {
+        let selected = "SELECT * FROM customers; /* trailing ; comment */";
+
+        assert_eq!(
+            QueryTab::explain_selection_statement(selected),
+            Ok("SELECT * FROM customers")
+        );
+    }
+
+    #[test]
+    fn comment_only_selection_is_rejected_as_empty() {
+        let selected = "-- comment; still comment\n/* another ; comment */";
+
+        assert_eq!(
+            QueryTab::explain_selection_statement(selected),
+            Err("Explain requires a non-empty selection".to_owned())
+        );
+    }
+
+    #[test]
+    fn selected_batch_counts_only_meaningful_statements() {
+        let selected = "SELECT * FROM customers; -- comment\nSELECT * FROM orders;";
+
+        assert_eq!(
+            QueryTab::explain_selection_statement(selected),
+            Err("Explain selection must contain exactly one statement".to_owned())
+        );
     }
 }

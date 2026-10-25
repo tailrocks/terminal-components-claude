@@ -680,6 +680,11 @@ fn query_keymap(map: KeyMap) -> KeyMap {
     )
     .bind(
         KeyPhase::Bubble,
+        Chord::with(KeyCode::F(7), KeyModifiers::SHIFT),
+        EXPLAIN_ANALYZE,
+    )
+    .bind(
+        KeyPhase::Bubble,
         Chord::with(KeyCode::Char('p'), KeyModifiers::CONTROL),
         PREVIEW,
     )
@@ -760,6 +765,7 @@ pub struct TableProApp {
     commit_preview_state: ViewportState,
     query_safety: query_safety::QuerySafetyController,
     query_panes: RefCell<QueryPaneState>,
+    explain_contexts: RefCell<ExplainContextState>,
     switcher: QuickSwitcher,
     tab_list: TabList,
     safe_mode_picker: SafeModePicker,
@@ -859,6 +865,69 @@ impl core::fmt::Debug for TableProApp {
     }
 }
 
+struct CapturedExplainContext {
+    statement_sql: String,
+    plan: tablepro_sql::sql::PlanNode,
+}
+
+#[derive(Default)]
+struct ExplainContextState {
+    owner: Option<std::sync::Weak<()>>,
+    statements: HashMap<TabKey, CapturedExplainContext>,
+}
+
+impl ExplainContextState {
+    fn sync(&mut self, workbench: &Workbench) {
+        let same_owner = self
+            .owner
+            .as_ref()
+            .is_some_and(|owner| workbench.matches_owner(owner));
+        if !same_owner {
+            self.owner = Some(workbench.owner_token());
+            self.statements.clear();
+        }
+        self.statements.retain(|key, context| {
+            matches!(
+                workbench.tab(*key),
+                Some(Tab::Query(query))
+                    if query.error.is_none()
+                        && query.result.is_none()
+                        && query.plan.as_ref() == Some(&context.plan)
+            )
+        });
+    }
+
+    fn capture(&mut self, workbench: &Workbench, key: TabKey, statement_sql: String) {
+        self.sync(workbench);
+        let Some(Tab::Query(query)) = workbench.tab(key) else {
+            self.statements.remove(&key);
+            return;
+        };
+        if query.error.is_some() || query.result.is_some() {
+            self.statements.remove(&key);
+            return;
+        }
+        let Some(plan) = query.plan.as_ref() else {
+            self.statements.remove(&key);
+            return;
+        };
+        self.statements.insert(
+            key,
+            CapturedExplainContext {
+                statement_sql,
+                plan: plan.clone(),
+            },
+        );
+    }
+
+    fn matching_sql(&self, key: TabKey, plan: &tablepro_sql::sql::PlanNode) -> Option<&str> {
+        self.statements
+            .get(&key)
+            .filter(|context| &context.plan == plan)
+            .map(|context| context.statement_sql.as_str())
+    }
+}
+
 impl Default for TableProApp {
     fn default() -> Self {
         Self::new()
@@ -908,6 +977,7 @@ impl TableProApp {
             commit_preview_state: ViewportState::default(),
             query_safety: query_safety::QuerySafetyController::default(),
             query_panes: RefCell::new(QueryPaneState::default()),
+            explain_contexts: RefCell::new(ExplainContextState::default()),
             switcher: QuickSwitcher::default(),
             tab_list: TabList::default(),
             safe_mode_picker: SafeModePicker::default(),
@@ -995,6 +1065,7 @@ impl TableProApp {
 
     fn sync_query_panes(&self) {
         self.query_panes.borrow_mut().sync(&self.workbench);
+        self.explain_contexts.borrow_mut().sync(&self.workbench);
     }
 
     fn active_query_pane_mode(&self) -> QueryPaneMode {
@@ -3849,7 +3920,13 @@ impl TableProApp {
                 if query.plan.is_some() && query.error.is_none() && query.result.is_none() =>
             {
                 if let Some(plan) = query.plan.as_ref() {
-                    let editor_area = paint_query_plan(ui, area, inner, query.query.as_str(), plan);
+                    let contexts = self.explain_contexts.borrow();
+                    let statement_sql = self
+                        .workbench
+                        .active_key()
+                        .and_then(|key| contexts.matching_sql(key, plan))
+                        .unwrap_or(query.query.as_str());
+                    let editor_area = paint_query_plan(ui, area, inner, statement_sql, plan);
                     if let Some(id) = self.query_id() {
                         self.draw_query_editor(ui, id, editor_area, &query.editor_state);
                     }
@@ -3963,13 +4040,13 @@ impl TableProApp {
                     && query.error.is_none()
                     && query.result.is_none()
                 {
-                    paint_plan_results(
-                        ui,
-                        layout.content,
-                        query.query.as_str(),
-                        plan,
-                        inner.right(),
-                    );
+                    let contexts = self.explain_contexts.borrow();
+                    let statement_sql = self
+                        .workbench
+                        .active_key()
+                        .and_then(|key| contexts.matching_sql(key, plan))
+                        .unwrap_or(query.query.as_str());
+                    paint_plan_results(ui, layout.content, statement_sql, plan, inner.right());
                 } else if let Some(message) = query.error.as_deref() {
                     paint_query_error_results(ui, layout.content, message);
                 } else if let Some(result) = query.result.as_ref() {
@@ -8789,6 +8866,7 @@ impl TableProApp {
 impl App for TableProApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.query_panes.get_mut().sync(&self.workbench);
+        self.explain_contexts.get_mut().sync(&self.workbench);
         let mut response = self.roll_connection_status(cx);
         response |= Self::update_history_focus(cx);
         response |= self.update_history_controls(cx);
@@ -8921,11 +8999,22 @@ impl App for TableProApp {
                     if let Some(id) = self.query_id() {
                         cx.focus(id);
                     }
-                    if let Some(Tab::Query(query)) = self.workbench.active_mut() {
+                    let key = self.workbench.active_key();
+                    let result = if let Some(Tab::Query(query)) = self.workbench.active_mut() {
                         query.editor_state.editor_mut().set_diagnostics(Vec::new());
-                        if query.explain(&self.catalog).is_ok() {
-                            "Explain plan ready".clone_into(&mut self.status);
+                        Some(query.explain_statement(&self.catalog, false))
+                    } else {
+                        None
+                    };
+                    if let Some(Ok(statement_sql)) = result {
+                        if let Some(key) = key {
+                            self.explain_contexts.get_mut().capture(
+                                &self.workbench,
+                                key,
+                                statement_sql,
+                            );
                         }
+                        "Explain plan ready".clone_into(&mut self.status);
                     }
                     response |= Response::changed();
                 }
@@ -8934,17 +9023,26 @@ impl App for TableProApp {
                     if let Some(id) = self.query_id() {
                         cx.focus(id);
                     }
-                    if let Some(Tab::Query(query)) = self.workbench.active_mut() {
-                        query.sync_query_text();
+                    let key = self.workbench.active_key();
+                    let result = if let Some(Tab::Query(query)) = self.workbench.active_mut() {
                         query.editor_state.editor_mut().set_diagnostics(Vec::new());
-                        if let Ok(statement) = crate::sql::parse(query.query.trim())
-                            && let crate::sql::Statement::Select(select) = statement
-                            && let Ok(plan) = crate::sql::explain(&self.catalog, &select, true)
-                        {
-                            query.plan = Some(plan);
+                        let result = query.explain_statement(&self.catalog, true);
+                        if result.is_ok() {
                             query.error = None;
-                            "Explain plan ready".clone_into(&mut self.status);
                         }
+                        Some(result)
+                    } else {
+                        None
+                    };
+                    if let Some(Ok(statement_sql)) = result {
+                        if let Some(key) = key {
+                            self.explain_contexts.get_mut().capture(
+                                &self.workbench,
+                                key,
+                                statement_sql,
+                            );
+                        }
+                        "Explain plan ready".clone_into(&mut self.status);
                     }
                     response |= Response::changed();
                 }
@@ -9979,5 +10077,389 @@ mod action_namespace_tests {
                 "duplicate application action: {key:?}"
             );
         }
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::expect_used)]
+mod explain_context_tests {
+    use super::*;
+    use termrock_test_support::Harness;
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct ExplainEditorSnapshot {
+        app_query: String,
+        query_text: String,
+        editor_text: String,
+        cursor: usize,
+        selection: Option<String>,
+        editing: bool,
+        saved_text: String,
+        dirty: bool,
+        focus: Option<Id>,
+    }
+
+    fn explain_editor_snapshot(harness: &Harness<TableProApp>) -> ExplainEditorSnapshot {
+        let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+            unreachable!("connected query remains active")
+        };
+        let editor = query.editor_state.editor();
+        ExplainEditorSnapshot {
+            app_query: harness.app().query().to_owned(),
+            query_text: query.query.clone(),
+            editor_text: editor.text().to_owned(),
+            cursor: editor.cursor_offset(),
+            selection: editor.selected_text().map(str::to_owned),
+            editing: editor.is_editing(),
+            saved_text: query.saved_text.clone(),
+            dirty: query.dirty(),
+            focus: harness.focus(),
+        }
+    }
+
+    fn dismiss_completion_if_open(harness: &mut Harness<TableProApp>) {
+        let query_id = harness.app().query_id().expect("connected query editor");
+        let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+            unreachable!("connected query remains active")
+        };
+        if !query.editor_state.is_completion_open() {
+            return;
+        }
+        assert!(harness.is_open(query_id.sub("completion")));
+        assert!(!query.editor_state.is_completion_details_open());
+        let before = explain_editor_snapshot(harness);
+
+        let _ = harness.key(KeyCode::Esc);
+
+        let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+            unreachable!("connected query remains active")
+        };
+        assert!(!query.editor_state.is_completion_open());
+        assert!(!harness.is_open(query_id.sub("completion")));
+        assert_eq!(explain_editor_snapshot(harness), before);
+    }
+
+    fn new_workbench() -> Workbench {
+        let catalog = Catalog::acme_prod();
+        let connection = db::connections()
+            .into_iter()
+            .next()
+            .unwrap_or_else(|| fallback_connection(&catalog));
+        Workbench::new(connection, catalog)
+    }
+
+    fn explain(workbench: &mut Workbench, key: TabKey) -> String {
+        let catalog = workbench.catalog.clone();
+        let Some(Tab::Query(query)) = workbench.tab_mut(key) else {
+            unreachable!("query tab exists")
+        };
+        query
+            .explain_statement(&catalog, false)
+            .expect("test query explains")
+    }
+
+    fn plan(workbench: &Workbench, key: TabKey) -> &tablepro_sql::sql::PlanNode {
+        let Some(Tab::Query(query)) = workbench.tab(key) else {
+            unreachable!("query tab exists")
+        };
+        query.plan.as_ref().expect("test query has a plan")
+    }
+
+    #[test]
+    fn contexts_are_per_tab_and_survive_editor_and_cursor_changes() {
+        let mut workbench = new_workbench();
+        let first = workbench
+            .new_query("SELECT * FROM customers WHERE id = 1")
+            .expect("first query key");
+        let second = workbench
+            .new_query("SELECT * FROM orders")
+            .expect("second query key");
+        let mut contexts = ExplainContextState::default();
+
+        let first_sql = explain(&mut workbench, first);
+        contexts.capture(&workbench, first, first_sql.clone());
+        let second_sql = explain(&mut workbench, second);
+        contexts.capture(&workbench, second, second_sql.clone());
+        workbench.activate(first);
+        if let Some(Tab::Query(query)) = workbench.tab_mut(first) {
+            query.editor_state.editor_mut().jump_to(0);
+            query
+                .editor_state
+                .editor_mut()
+                .set_text("SELECT * FROM orders WHERE status = 'changed'");
+        }
+        workbench.activate(second);
+        contexts.sync(&workbench);
+
+        assert_eq!(
+            contexts.matching_sql(first, plan(&workbench, first)),
+            Some(first_sql.as_str())
+        );
+        assert_eq!(
+            contexts.matching_sql(second, plan(&workbench, second)),
+            Some(second_sql.as_str())
+        );
+    }
+
+    #[test]
+    fn replaced_plan_and_closed_tab_retire_captured_sql() {
+        let mut workbench = new_workbench();
+        let key = workbench
+            .new_query("SELECT * FROM customers WHERE id = 1")
+            .expect("query key");
+        let mut contexts = ExplainContextState::default();
+        let previous_sql = explain(&mut workbench, key);
+        let previous_plan = plan(&workbench, key).clone();
+        contexts.capture(&workbench, key, previous_sql);
+
+        if let Some(Tab::Query(query)) = workbench.tab_mut(key) {
+            query
+                .editor_state
+                .editor_mut()
+                .set_text("SELECT * FROM orders");
+        }
+        let replacement_sql = explain(&mut workbench, key);
+        let replacement_plan = plan(&workbench, key).clone();
+        assert_ne!(replacement_plan, previous_plan);
+        contexts.sync(&workbench);
+        assert_eq!(contexts.matching_sql(key, &replacement_plan), None);
+
+        contexts.capture(&workbench, key, replacement_sql);
+        assert!(workbench.close_tab_from_picker(key));
+        contexts.sync(&workbench);
+        assert_eq!(contexts.matching_sql(key, &replacement_plan), None);
+    }
+
+    #[test]
+    fn error_and_result_retire_context() {
+        let mut workbench = new_workbench();
+        let key = workbench
+            .new_query("SELECT * FROM orders")
+            .expect("query key");
+        let mut contexts = ExplainContextState::default();
+        let statement_sql = explain(&mut workbench, key);
+        let explained_plan = plan(&workbench, key).clone();
+        contexts.capture(&workbench, key, statement_sql.clone());
+
+        if let Some(Tab::Query(query)) = workbench.tab_mut(key) {
+            query.error = Some("replacement error".to_owned());
+        }
+        contexts.sync(&workbench);
+        assert_eq!(contexts.matching_sql(key, &explained_plan), None);
+
+        if let Some(Tab::Query(query)) = workbench.tab_mut(key) {
+            query.error = None;
+        }
+        contexts.capture(&workbench, key, statement_sql);
+        let result = tablepro_sql::sql::parse("SELECT * FROM orders")
+            .ok()
+            .and_then(|statement| match statement {
+                tablepro_sql::sql::Statement::Select(select) => {
+                    tablepro_sql::sql::run_select(&workbench.catalog, &select).ok()
+                }
+                _ => None,
+            })
+            .expect("orders query returns a result");
+        if let Some(Tab::Query(query)) = workbench.tab_mut(key) {
+            query.result = Some(GridView::from_result(&result));
+        }
+        contexts.sync(&workbench);
+        assert_eq!(contexts.matching_sql(key, &explained_plan), None);
+    }
+
+    #[test]
+    fn replacement_workbench_with_colliding_tab_key_clears_context() {
+        let mut workbench = new_workbench();
+        let key = workbench
+            .new_query("SELECT * FROM customers WHERE id = 1")
+            .expect("original query key");
+        let mut contexts = ExplainContextState::default();
+        let original_sql = explain(&mut workbench, key);
+        contexts.capture(&workbench, key, original_sql);
+
+        let mut replacement = new_workbench();
+        let replacement_key = replacement
+            .new_query("SELECT * FROM orders")
+            .expect("replacement query key");
+        assert_eq!(replacement_key, key);
+        let replacement_sql = explain(&mut replacement, replacement_key);
+        let replacement_plan = plan(&replacement, replacement_key).clone();
+        contexts.sync(&replacement);
+        assert_eq!(
+            contexts.matching_sql(replacement_key, &replacement_plan),
+            None
+        );
+
+        contexts.capture(&replacement, replacement_key, replacement_sql);
+        assert_eq!(
+            contexts.matching_sql(replacement_key, &replacement_plan),
+            Some("SELECT * FROM orders")
+        );
+    }
+
+    #[test]
+    fn captured_sql_is_omitted_from_app_debug() {
+        let mut app = TableProApp::default();
+        let key = app
+            .workbench
+            .new_query("SELECT * FROM orders")
+            .expect("query key");
+        let statement_sql = explain(&mut app.workbench, key);
+        app.explain_contexts.get_mut().capture(
+            &app.workbench,
+            key,
+            format!("{statement_sql} -- private context marker"),
+        );
+
+        assert!(!format!("{app:?}").contains("private context marker"));
+    }
+
+    #[test]
+    fn results_painter_keeps_captured_sql_after_editor_changes() {
+        let mut app = TableProApp::default();
+        let connection = app
+            .connections
+            .iter()
+            .position(|connection| connection.name == "Production")
+            .unwrap_or(usize::MAX);
+        assert!(app.connect(connection), "production connection");
+        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+        let query_id = harness.app().query_id().expect("connected query editor");
+        assert!(harness.tab_to(query_id));
+
+        let _ = harness.type_str("SELECT * FROM orders");
+        dismiss_completion_if_open(&mut harness);
+        let _ = harness.ctrl('x');
+        let key = harness
+            .app()
+            .workbench
+            .active_key()
+            .expect("active query key");
+        assert!(
+            harness.find("Planning 0.210 ms").is_some(),
+            "{}",
+            harness.text()
+        );
+
+        let previous_context_sql = {
+            let plan = match harness.app().workbench.active() {
+                Some(Tab::Query(query)) => query.plan.as_ref(),
+                _ => None,
+            }
+            .expect("captured plan exists");
+            harness
+                .app()
+                .explain_contexts
+                .borrow()
+                .matching_sql(key, plan)
+                .map(str::to_owned)
+        };
+        assert_eq!(
+            previous_context_sql.as_deref(),
+            Some("SELECT * FROM orders")
+        );
+        let (query_text, cursor, selection, previous_plan) = match harness.app().workbench.active()
+        {
+            Some(Tab::Query(query)) => (
+                query.editor_state.editor().text().to_owned(),
+                query.editor_state.editor().cursor_offset(),
+                query
+                    .editor_state
+                    .editor()
+                    .selected_text()
+                    .map(str::to_owned),
+                query.plan.clone(),
+            ),
+            _ => unreachable!("connected query remains active"),
+        };
+        let _ = harness.key(KeyCode::F(6));
+        assert_ne!(harness.focus(), Some(query_id));
+        assert_eq!(harness.app().query(), query_text);
+        let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+            unreachable!("connected query remains active")
+        };
+        assert_eq!(query.editor_state.editor().text(), query_text);
+        assert_eq!(query.editor_state.editor().cursor_offset(), cursor);
+        assert_eq!(
+            query
+                .editor_state
+                .editor()
+                .selected_text()
+                .map(str::to_owned),
+            selection
+        );
+        assert_eq!(query.plan, previous_plan);
+        let Some(plan) = query.plan.as_ref() else {
+            unreachable!("captured plan remains available")
+        };
+        assert_eq!(
+            harness
+                .app()
+                .explain_contexts
+                .borrow()
+                .matching_sql(key, plan),
+            previous_context_sql.as_deref()
+        );
+        assert!(
+            harness.diagnostics().is_empty(),
+            "F6 settled the query owner before the private Results painter: {:?}",
+            harness.diagnostics()
+        );
+
+        {
+            let app = harness.app_mut();
+            app.sync_query_panes();
+            app.query_panes.get_mut().set(key, QueryPaneMode::Results);
+            app.workbench.maximized = true;
+        }
+        assert_eq!(
+            harness.app().visible_query_pane_mode(),
+            QueryPaneMode::Results
+        );
+        harness.draw();
+        assert!(
+            harness.find("Planning 0.210 ms").is_some(),
+            "Results pane omitted the captured plan facts: {}",
+            harness.text()
+        );
+
+        let changed_sql = "SELECT * FROM customers WHERE id = 1";
+        let previous_plan = match harness.app().workbench.active() {
+            Some(Tab::Query(query)) => query.plan.clone(),
+            _ => unreachable!("connected query remains active"),
+        };
+        {
+            let app = harness.app_mut();
+            let Some(Tab::Query(query)) = app.workbench.active_mut() else {
+                unreachable!("connected query remains active")
+            };
+            query.editor_state.editor_mut().jump_to(0);
+            query.editor_state.editor_mut().set_text(changed_sql);
+            query.sync_query_text();
+            assert_eq!(query.query, changed_sql);
+            assert_eq!(query.plan, previous_plan);
+        }
+
+        harness.draw();
+        assert!(
+            harness.find("Planning 0.210 ms").is_some(),
+            "Results painter retargeted the prior plan after editor changes: {}",
+            harness.text()
+        );
+        {
+            harness.app_mut().workbench.maximized = false;
+        }
+        assert_eq!(harness.app().visible_query_pane_mode(), QueryPaneMode::None);
+        harness.draw();
+        assert!(
+            harness.find("Planning 0.210 ms").is_some(),
+            "legacy pane lost the captured plan facts: {}",
+            harness.text()
+        );
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
     }
 }

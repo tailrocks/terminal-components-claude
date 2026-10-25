@@ -17,7 +17,8 @@ use tablepro_ui::{
     form_fields, gate, parse, preview_for,
 };
 use termrock::{
-    Axis, GridEditor, Id, ItemKey, KeyCode, MouseKind, Part, PartRef, StateFlags, Theme,
+    Axis, GridEditor, Id, ItemKey, KeyCode, KeyModifiers, MouseKind, Part, PartRef, StateFlags,
+    Theme,
 };
 use termrock_test_support::Harness;
 
@@ -1382,4 +1383,488 @@ fn history_native_controls_are_nonoverlapping_and_reachable_at_minimum_size() {
         "{:?}",
         harness.diagnostics()
     );
+}
+
+#[cfg(test)]
+mod cursor_explain_tests {
+    use super::*;
+    use termrock_test_support::Harness;
+
+    const FIRST: &str = "SELECT * FROM customers WHERE id = '界;🙂'; -- ; comment";
+    const SECOND: &str = "SELECT * FROM orders;";
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct ExplainEditorSnapshot {
+        app_query: String,
+        query_text: String,
+        editor_text: String,
+        cursor: usize,
+        selection: Option<String>,
+        editing: bool,
+        saved_text: String,
+        dirty: bool,
+        focus: Option<Id>,
+    }
+
+    fn query_editor(width: u16, height: u16) -> Harness<TableProApp> {
+        let mut harness = Harness::new(connected(), Theme::junie(), width, height);
+        let query_id = harness.app().query_id().expect("connected query tab");
+        assert!(tab_navigation::tab_to(&mut harness, query_id));
+        assert_eq!(harness.focus(), Some(query_id));
+        harness
+    }
+
+    fn explain_editor_snapshot(harness: &Harness<TableProApp>) -> ExplainEditorSnapshot {
+        let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+            panic!("connected query remains active")
+        };
+        let editor = query.editor_state.editor();
+        ExplainEditorSnapshot {
+            app_query: harness.app().query().to_owned(),
+            query_text: query.query.clone(),
+            editor_text: editor.text().to_owned(),
+            cursor: editor.cursor_offset(),
+            selection: editor.selected_text().map(str::to_owned),
+            editing: editor.is_editing(),
+            saved_text: query.saved_text.clone(),
+            dirty: query.dirty(),
+            focus: harness.focus(),
+        }
+    }
+
+    fn dismiss_completion_if_open(harness: &mut Harness<TableProApp>) {
+        let query_id = harness.app().query_id().expect("connected query editor");
+        let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+            panic!("connected query remains active")
+        };
+        if !query.editor_state.is_completion_open() {
+            return;
+        }
+        assert!(harness.is_open(query_id.sub("completion")));
+        assert!(!query.editor_state.is_completion_details_open());
+        let before = explain_editor_snapshot(harness);
+
+        let _ = harness.key(KeyCode::Esc);
+
+        let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+            panic!("connected query remains active")
+        };
+        assert!(!query.editor_state.is_completion_open());
+        assert!(!harness.is_open(query_id.sub("completion")));
+        assert_eq!(explain_editor_snapshot(harness), before);
+    }
+
+    fn type_two_statements(harness: &mut Harness<TableProApp>) -> String {
+        let _ = harness.type_str(FIRST);
+        let _ = harness.key(KeyCode::Enter);
+        let _ = harness.type_str(SECOND);
+        let sql = format!("{FIRST}\n{SECOND}");
+        let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+            panic!("connected query remains active")
+        };
+        assert_eq!(query.editor_state.editor().text(), sql);
+        assert!(query.editor_state.editor().is_editing());
+        sql
+    }
+
+    fn active_plan_relation(harness: &Harness<TableProApp>) -> Option<String> {
+        fn plan_relation(plan: &tablepro_ui::sql::PlanNode) -> Option<String> {
+            plan.relation
+                .clone()
+                .or_else(|| plan.children.iter().find_map(|child| plan_relation(child)))
+        }
+
+        match harness.app().workbench.active() {
+            Some(Tab::Query(query)) => query.plan.as_ref().and_then(plan_relation),
+            _ => None,
+        }
+    }
+
+    fn assert_editor_snapshot(
+        harness: &Harness<TableProApp>,
+        expected_sql: &str,
+        saved_text: &str,
+        cursor: usize,
+        selection: Option<&str>,
+    ) {
+        assert_eq!(harness.app().query(), expected_sql);
+        let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+            panic!("connected query remains active")
+        };
+        let editor = query.editor_state.editor();
+        assert_eq!(editor.text(), expected_sql);
+        assert_eq!(editor.cursor_offset(), cursor);
+        assert_eq!(editor.selected_text(), selection);
+        assert!(editor.is_editing());
+        assert_eq!(harness.focus(), harness.app().query_id());
+        assert_eq!(query.saved_text, saved_text);
+        assert!(query.dirty());
+    }
+
+    fn assert_nonexecution_snapshot(
+        harness: &Harness<TableProApp>,
+        history: &[HistoryEntry],
+        result: &Option<ResultGrid>,
+        last_status: &Option<String>,
+    ) {
+        assert_eq!(harness.app().workbench.history.entries.as_slice(), history);
+        let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+            panic!("connected query remains active")
+        };
+        assert_eq!(
+            query.result.as_ref().map(|grid| &grid.model),
+            result.as_ref()
+        );
+        assert_eq!(
+            query
+                .last_status
+                .as_ref()
+                .map(|status| status.summary.as_str()),
+            last_status.as_deref()
+        );
+    }
+
+    #[test]
+    fn captured_plan_facts_follow_native_tab_identity() {
+        let mut harness = query_editor(120, 40);
+        let first_key = harness
+            .app()
+            .workbench
+            .active_key()
+            .expect("connected query key");
+        let _ = harness.type_str("SELECT * FROM customers WHERE id = 1");
+        dismiss_completion_if_open(&mut harness);
+        let _ = harness.ctrl('x');
+        assert_eq!(
+            active_plan_relation(&harness).as_deref(),
+            Some("public.customers")
+        );
+        assert!(
+            harness.find("Planning 0.300 ms").is_some(),
+            "{}",
+            harness.text()
+        );
+
+        let _ = harness.ctrl('t');
+        let second_key = harness.app().workbench.active_key().expect("new query key");
+        assert_ne!(first_key, second_key);
+        let _ = harness.type_str("SELECT * FROM orders");
+        dismiss_completion_if_open(&mut harness);
+        let _ = harness.ctrl('x');
+        assert_eq!(
+            active_plan_relation(&harness).as_deref(),
+            Some("public.orders")
+        );
+        assert!(
+            harness.find("Planning 0.210 ms").is_some(),
+            "{}",
+            harness.text()
+        );
+
+        let tab_strip = Id::root("tablepro.workbench.tab-strip");
+        let _ = harness.click_part(
+            tab_strip,
+            PartRef::item(Part::TAB, ItemKey::num(first_key.get())),
+        );
+        assert_eq!(harness.app().workbench.active_key(), Some(first_key));
+        assert_eq!(
+            active_plan_relation(&harness).as_deref(),
+            Some("public.customers")
+        );
+        assert!(
+            harness.find("Planning 0.300 ms").is_some(),
+            "{}",
+            harness.text()
+        );
+
+        let _ = harness.click_part(
+            tab_strip,
+            PartRef::item(Part::TAB, ItemKey::num(second_key.get())),
+        );
+        assert_eq!(harness.app().workbench.active_key(), Some(second_key));
+        assert_eq!(
+            active_plan_relation(&harness).as_deref(),
+            Some("public.orders")
+        );
+        assert!(
+            harness.find("Planning 0.210 ms").is_some(),
+            "{}",
+            harness.text()
+        );
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+
+    #[test]
+    fn explain_uses_cursor_statement_and_analyze_aliases_keep_editor_live() {
+        for (width, height) in [(120, 40), (80, 24)] {
+            let mut harness = query_editor(width, height);
+            let sql = type_two_statements(&mut harness);
+            let query_id = harness.app().query_id().expect("query editor");
+            let active_key = harness.app().workbench.active_key();
+            let connection = harness.app().workbench.connection.clone();
+            let catalog_snapshot = format!("{:?}", harness.app().workbench.catalog);
+            let (saved_text, cursor, selection, history, result, last_status) = {
+                let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+                    panic!("connected query remains active")
+                };
+                (
+                    query.saved_text.clone(),
+                    query.editor_state.editor().cursor_offset(),
+                    query
+                        .editor_state
+                        .editor()
+                        .selected_text()
+                        .map(str::to_owned),
+                    harness.app().workbench.history.entries.clone(),
+                    query.result.as_ref().map(|grid| grid.model.clone()),
+                    query
+                        .last_status
+                        .as_ref()
+                        .map(|status| status.summary.clone()),
+                )
+            };
+            assert_eq!(harness.focus(), Some(query_id));
+            assert_eq!(
+                harness.app().query(),
+                sql,
+                "the full editor buffer remains the query snapshot"
+            );
+
+            dismiss_completion_if_open(&mut harness);
+            let _ = harness.ctrl('x');
+            assert_eq!(
+                active_plan_relation(&harness).as_deref(),
+                Some("public.orders")
+            );
+            assert!(
+                harness.find("Planning 0.210 ms").is_some(),
+                "{}",
+                harness.text()
+            );
+            assert!(harness.find("Planning").is_some(), "{}", harness.text());
+            assert!(harness.find("Seq Scan").is_some(), "{}", harness.text());
+            assert_eq!(harness.app().status(), "Explain plan ready");
+            assert_editor_snapshot(&harness, &sql, &saved_text, cursor, selection.as_deref());
+            let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+                panic!("connected query remains active")
+            };
+            assert!(
+                query
+                    .plan
+                    .as_ref()
+                    .is_some_and(|plan| plan.actual_ms.is_none())
+            );
+            assert_nonexecution_snapshot(&harness, &history, &result, &last_status);
+
+            dismiss_completion_if_open(&mut harness);
+            let _ = harness.alt('x');
+            assert_eq!(
+                active_plan_relation(&harness).as_deref(),
+                Some("public.orders")
+            );
+            assert!(
+                harness.find("Planning 0.210 ms").is_some(),
+                "{}",
+                harness.text()
+            );
+            assert!(harness.find("Planning").is_some(), "{}", harness.text());
+            assert!(matches!(
+                harness.app().workbench.active(),
+                Some(Tab::Query(query))
+                    if query.plan.as_ref().is_some_and(|plan| plan.actual_ms.is_some())
+            ));
+            assert_editor_snapshot(&harness, &sql, &saved_text, cursor, selection.as_deref());
+            assert_nonexecution_snapshot(&harness, &history, &result, &last_status);
+
+            dismiss_completion_if_open(&mut harness);
+            let _ = harness.ctrl('x');
+            assert!(matches!(
+                harness.app().workbench.active(),
+                Some(Tab::Query(query))
+                    if query.plan.as_ref().is_some_and(|plan| plan.actual_ms.is_none())
+            ));
+            dismiss_completion_if_open(&mut harness);
+            let _ = harness.key_mod(KeyCode::F(7), KeyModifiers::SHIFT);
+            assert_eq!(
+                active_plan_relation(&harness).as_deref(),
+                Some("public.orders")
+            );
+            assert!(
+                harness.find("Planning 0.210 ms").is_some(),
+                "{}",
+                harness.text()
+            );
+            assert!(matches!(
+                harness.app().workbench.active(),
+                Some(Tab::Query(query))
+                    if query.plan.as_ref().is_some_and(|plan| plan.actual_ms.is_some())
+            ));
+            assert_editor_snapshot(&harness, &sql, &saved_text, cursor, selection.as_deref());
+            assert_nonexecution_snapshot(&harness, &history, &result, &last_status);
+
+            let _ = harness.key(KeyCode::Home);
+            let _ = harness.key(KeyCode::Up);
+            let _ = harness.key(KeyCode::Home);
+            assert_eq!(
+                active_plan_relation(&harness).as_deref(),
+                Some("public.orders")
+            );
+            assert!(
+                harness.find("Planning 0.210 ms").is_some(),
+                "cursor movement retargeted stored plan facts: {}",
+                harness.text()
+            );
+            let first_cursor = match harness.app().workbench.active() {
+                Some(Tab::Query(query)) => query.editor_state.editor().cursor_offset(),
+                _ => unreachable!("connected query remains active"),
+            };
+            dismiss_completion_if_open(&mut harness);
+            let _ = harness.ctrl('x');
+            assert_eq!(
+                active_plan_relation(&harness).as_deref(),
+                Some("public.customers")
+            );
+            assert!(
+                harness.find("Planning 0.300 ms").is_some(),
+                "{}",
+                harness.text()
+            );
+            assert!(harness.find("Planning").is_some(), "{}", harness.text());
+            assert!(harness.find("Index Scan").is_some(), "{}", harness.text());
+            assert_editor_snapshot(&harness, &sql, &saved_text, first_cursor, None);
+            let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+                panic!("connected query remains active")
+            };
+            assert!(
+                query
+                    .plan
+                    .as_ref()
+                    .is_some_and(|plan| plan.actual_ms.is_none())
+            );
+            assert_nonexecution_snapshot(&harness, &history, &result, &last_status);
+            assert_eq!(harness.app().workbench.active_key(), active_key);
+            assert_eq!(harness.app().workbench.connection, connection);
+            assert_eq!(
+                format!("{:?}", harness.app().workbench.catalog),
+                catalog_snapshot
+            );
+            assert!(
+                harness.diagnostics().is_empty(),
+                "{:?}",
+                harness.diagnostics()
+            );
+        }
+    }
+
+    #[test]
+    fn selected_statement_overrides_cursor_and_selected_batch_keeps_previous_plan() {
+        let mut harness = query_editor(120, 40);
+        let sql = type_two_statements(&mut harness);
+        let active_key = harness.app().workbench.active_key();
+        let connection = harness.app().workbench.connection.clone();
+        let catalog_snapshot = format!("{:?}", harness.app().workbench.catalog);
+        let history = harness.app().workbench.history.entries.clone();
+        dismiss_completion_if_open(&mut harness);
+        let _ = harness.ctrl('x');
+        assert_eq!(
+            active_plan_relation(&harness).as_deref(),
+            Some("public.orders")
+        );
+        assert!(
+            harness.find("Planning 0.210 ms").is_some(),
+            "{}",
+            harness.text()
+        );
+
+        let _ = harness.key(KeyCode::Home);
+        let _ = harness.key(KeyCode::Up);
+        let _ = harness.key(KeyCode::Home);
+        let _ = harness.key_mod(KeyCode::Down, KeyModifiers::SHIFT);
+        let (cursor, selection) = match harness.app().workbench.active() {
+            Some(Tab::Query(query)) => (
+                query.editor_state.editor().cursor_offset(),
+                query
+                    .editor_state
+                    .editor()
+                    .selected_text()
+                    .map(str::to_owned),
+            ),
+            _ => unreachable!("connected query remains active"),
+        };
+        let expected_first_selection = format!("{FIRST}\n");
+        assert_eq!(
+            selection.as_deref(),
+            Some(expected_first_selection.as_str())
+        );
+        assert_eq!(cursor, FIRST.len() + 1);
+        dismiss_completion_if_open(&mut harness);
+        let _ = harness.ctrl('x');
+        assert_eq!(
+            active_plan_relation(&harness).as_deref(),
+            Some("public.customers"),
+            "the selected statement wins even though the cursor is at the second statement"
+        );
+        assert!(
+            harness.find("Planning 0.300 ms").is_some(),
+            "{}",
+            harness.text()
+        );
+        assert_editor_snapshot(&harness, &sql, "", cursor, selection.as_deref());
+
+        let _ = harness.key(KeyCode::Home);
+        let _ = harness.key(KeyCode::Up);
+        let _ = harness.key(KeyCode::Home);
+        let _ = harness.key_mod(KeyCode::Down, KeyModifiers::SHIFT);
+        for _ in SECOND.chars() {
+            let _ = harness.key_mod(KeyCode::Right, KeyModifiers::SHIFT);
+        }
+        let (batch_cursor, batch) = match harness.app().workbench.active() {
+            Some(Tab::Query(query)) => (
+                query.editor_state.editor().cursor_offset(),
+                query
+                    .editor_state
+                    .editor()
+                    .selected_text()
+                    .map(str::to_owned),
+            ),
+            _ => unreachable!("connected query remains active"),
+        };
+        assert_eq!(batch.as_deref(), Some(sql.as_str()));
+        assert_eq!(batch_cursor, sql.len());
+        let previous_plan = match harness.app().workbench.active() {
+            Some(Tab::Query(query)) => query.plan.clone(),
+            _ => unreachable!("connected query remains active"),
+        };
+        dismiss_completion_if_open(&mut harness);
+        let _ = harness.ctrl('x');
+        let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+            panic!("connected query remains active")
+        };
+        assert_eq!(query.plan, previous_plan);
+        assert!(
+            harness.find("Planning 0.300 ms").is_some(),
+            "failed batch selection replaced the captured plan facts: {}",
+            harness.text()
+        );
+        assert!(query.result.is_none());
+        assert!(query.last_status.is_none());
+        assert_eq!(harness.app().workbench.history.entries, history);
+        assert_editor_snapshot(&harness, &sql, "", batch_cursor, batch.as_deref());
+        assert_eq!(harness.app().status(), "Explain plan ready");
+        assert_eq!(harness.app().workbench.active_key(), active_key);
+        assert_eq!(harness.app().workbench.connection, connection);
+        assert_eq!(
+            format!("{:?}", harness.app().workbench.catalog),
+            catalog_snapshot
+        );
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
 }
