@@ -1,4 +1,4 @@
-//! First-use new-workspace prelude at 120×40.
+
 
 use termrock::author::PaintStyle;
 use termrock::{Color, Modifier, Position, Rect, Style, Ui};

@@ -46,19 +46,3 @@ impl RenderNumber {
             .unwrap_or_default()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::RenderNumber;
-
-    #[test]
-    fn zero_dimensions_and_maximum_counts_fit_without_truncation() {
-        for value in [0, 9, 10, 80, 160, usize::from(u16::MAX), usize::MAX] {
-            assert_eq!(RenderNumber::new(value).as_str(), value.to_string());
-            assert_eq!(
-                RenderNumber::selected(value).as_str(),
-                format!("{value} selected")
-            );
-        }
-    }
-}

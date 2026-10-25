@@ -1,4 +1,4 @@
-//! Responsive Manager details backed by the live selected row and World.
+
 
 use termrock::controls::MasterDetail;
 use termrock::{
@@ -139,7 +139,7 @@ pub(super) fn update(app: &mut App, cx: &mut Cx<'_>) -> Response<()> {
         }
     }
 
-    // Do not mirror a wide master-focus reconciliation into the App's active-detail latch.
+
     if app.manager_detail_state.drawer_open() {
         app.manager.set_detail_open(true);
     }
