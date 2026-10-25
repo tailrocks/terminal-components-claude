@@ -1,8 +1,12 @@
 use crate::domain::activity::Activity;
-use crate::sim::task_run::{PromptId, TaskRun, TaskRunId, TaskRunState};
+use crate::screens::activity::ActivityProjection;
+use crate::sim::{
+    activity_supervisor::ActivityExecutionId,
+    task_run::{PromptId, TaskRun, TaskRunId, TaskRunState},
+};
 use termrock::{
-    BlurPolicy, Cx, FgStep, FrameRead, Id, ItemKey, Modifier, Rect, Response, Role, StylePatch,
-    TextAction, TextInput, TextInputState, TextSection, TypingPolicy, Ui,
+    BlurPolicy, Button, Cx, FgStep, FrameRead, Id, ItemKey, Modifier, Rect, Response, Role,
+    StylePatch, TextAction, TextInput, TextInputState, TextSection, TypingPolicy, Ui,
 };
 
 pub(crate) enum Event {
@@ -16,6 +20,11 @@ pub(crate) enum Event {
         route_id: u64,
         run_id: TaskRunId,
         prompt_id: PromptId,
+    },
+    Stop {
+        route_id: u64,
+        run_id: TaskRunId,
+        execution_id: ActivityExecutionId,
     },
 }
 
@@ -31,6 +40,7 @@ pub(crate) struct TaskRunScreen {
     route_id: u64,
     run_id: TaskRunId,
     activity_id: u32,
+    execution_id: Option<ActivityExecutionId>,
     observed_prompt: Option<PromptId>,
     input: TextInputState,
     answer: String,
@@ -44,6 +54,7 @@ impl TaskRunScreen {
             route_id,
             run_id,
             activity_id,
+            execution_id: None,
             observed_prompt: None,
             input: TextInputState::default(),
             answer: String::new(),
@@ -61,6 +72,26 @@ impl TaskRunScreen {
     pub(crate) const fn activity_id(&self) -> u32 {
         self.activity_id
     }
+
+    pub(crate) const fn execution_id(&self) -> Option<ActivityExecutionId> {
+        self.execution_id
+    }
+
+    pub(crate) fn bind_execution(&mut self, execution_id: ActivityExecutionId) {
+        self.execution_id = Some(execution_id);
+    }
+
+    fn stop_owner_id(&self) -> Option<Id> {
+        self.execution_id.map(|execution_id| {
+            Id::root("holla.task-run.stop")
+                .item(ItemKey::pair(self.route_id, self.run_id.get()))
+                .item(ItemKey::pair(
+                    u64::from(self.activity_id),
+                    execution_id.generation(),
+                ))
+        })
+    }
+
     pub(crate) const fn current_prompt_id(&self) -> Option<PromptId> {
         self.observed_prompt
     }
@@ -103,6 +134,8 @@ impl TaskRunScreen {
         run: &TaskRun,
         area: Rect,
         allow_input: bool,
+        stop_enabled: bool,
+        stop_label: &'static str,
     ) -> (Response<()>, Option<Event>) {
         let prompt = run.active_prompt();
         let prompt_id = prompt.map(|prompt| prompt.id());
@@ -124,13 +157,17 @@ impl TaskRunScreen {
                 self.focus_pending = false;
             }
             let response = self.poll_retired_inputs(cx);
+            let (stop_response, stop_event) =
+                self.update_stop(cx, allow_input, stop_enabled, stop_label);
             // A key routed for the previous prompt cannot reach the new prompt.
-            return (response | Response::changed(), None);
+            return (response | stop_response | Response::changed(), stop_event);
         }
 
         let mut response = self.poll_retired_inputs(cx);
         let Some(prompt) = prompt else {
-            return (response, None);
+            let (stop_response, stop_event) =
+                self.update_stop(cx, allow_input, stop_enabled, stop_label);
+            return (response | stop_response, stop_event);
         };
         let Some(id) = self.current_input_id() else {
             return (response, None);
@@ -176,12 +213,38 @@ impl TaskRunScreen {
         } else {
             None
         };
-        (response, event)
+        let (stop_response, stop_event) =
+            self.update_stop(cx, allow_input, stop_enabled, stop_label);
+        let event = event.or(stop_event);
+        (response | stop_response, event)
+    }
+
+    fn update_stop(
+        &self,
+        cx: &mut Cx<'_>,
+        allow_input: bool,
+        stop_enabled: bool,
+        stop_label: &'static str,
+    ) -> (Response<()>, Option<Event>) {
+        let Some((id, execution_id)) = self.stop_owner_id().zip(self.execution_id) else {
+            return (Response::ignored(), None);
+        };
+        let response = Button::new(id, stop_label)
+            .disabled(!allow_input || !stop_enabled)
+            .update(cx);
+        let activated = response.activated();
+        let event = activated.then_some(Event::Stop {
+            route_id: self.route_id,
+            run_id: self.run_id,
+            execution_id,
+        });
+        (response.erase(), event)
     }
 
     /// Service this covered screen's exact input owners without admitting edits or actions.
     pub(crate) fn poll_covered(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let mut response = self.poll_retired_inputs(cx);
+        let (stop_response, _) = self.update_stop(cx, false, false, "Stopping…");
+        let mut response = stop_response | self.poll_retired_inputs(cx);
         if let Some(id) = self.current_input_id() {
             let mut update =
                 answer_input(id)
@@ -205,8 +268,16 @@ impl TaskRunScreen {
 
     /// Poll retired owners without accepting edits and report when all can be dropped.
     pub(crate) fn poll_retired(&mut self, cx: &mut Cx<'_>) -> (Response<()>, bool) {
-        let response = self.poll_retired_inputs(cx);
-        (response, self.retired_inputs.is_empty())
+        let (stop_response, _) = self.update_stop(cx, false, false, "Stopping…");
+        let response = stop_response | self.poll_retired_inputs(cx);
+        let stop_ready = self.stop_owner_id().is_none_or(|id| {
+            cx.area(id).is_none()
+                && !cx.state(id).contains(termrock::StateFlags::FOCUSED)
+                && cx.capture_owner() != Some(id)
+                && cx.intents(id).next().is_none()
+                && cx.top_layer() == termrock::LayerId::PAGE
+        });
+        (response, self.retired_inputs.is_empty() && stop_ready)
     }
 
     fn retain_current_input(&mut self) {
@@ -253,6 +324,7 @@ impl TaskRunScreen {
     pub(crate) fn draw(
         &self,
         activity: &Activity,
+        projection: &ActivityProjection,
         run: &TaskRun,
         now_ms: i64,
         ui: &mut Ui<'_>,
@@ -300,23 +372,43 @@ impl TaskRunScreen {
             run.duration_ms()
         );
         render_line(ui, area, 3, &duration, muted);
+        let execution = projection.stop_grace_ms.map_or_else(
+            || format!("Execution: {}", projection.state_label),
+            |elapsed| format!("Execution: stopping · stop grace {elapsed} ms"),
+        );
+        render_line(ui, area, 4, &execution, muted);
+        if let Some(id) = self.stop_owner_id() {
+            Button::new(
+                id,
+                if projection.stop_enabled {
+                    "Stop"
+                } else if projection.state_label == "stopping" {
+                    "Stopping…"
+                } else {
+                    "Stopped"
+                },
+            )
+            .disabled(!projection.stop_enabled)
+            .draw(
+                ui,
+                Rect::new(
+                    area.right().saturating_sub(22),
+                    area.y.saturating_add(4),
+                    area.width.min(22),
+                    1,
+                ),
+            );
+        }
 
         let input_area = Self::input_area_for(area, run.active_prompt().is_some());
         let reserved_rows = if input_area.is_some() { 4 } else { 0 };
         let output_end = area.height.saturating_sub(reserved_rows);
         let mut row = 5;
-        for line in &activity.lines {
+        for line in &projection.lines {
             if row >= output_end {
                 break;
             }
             render_line(ui, area, row, line, muted);
-            row = row.saturating_add(1);
-        }
-        for output in run.output() {
-            if row >= output_end {
-                break;
-            }
-            render_line(ui, area, row, output.text(), muted);
             row = row.saturating_add(1);
         }
         if row < output_end {

@@ -448,9 +448,72 @@ impl ActivitySupervisor {
         Ok(id)
     }
 
+    /// Returns the current generation for one display ID, if it is registered.
+    ///
+    /// Producers use this only while publishing the exact Activity snapshot that they just
+    /// registered. A view must retain the returned identity; it must not reconstruct one at draw
+    /// time.
+    pub fn current_execution_id(&self, activity_id: u32) -> Option<ActivityExecutionId> {
+        self.current_by_activity_id.get(&activity_id).copied()
+    }
+
     /// Returns the execution for this exact identity, if it is still registered.
     pub fn execution(&self, id: ActivityExecutionId) -> Option<&ActivityExecution> {
         self.executions.get(&id)
+    }
+
+    /// Records a natural or immediate simulated terminal event without a stop lifecycle.
+    ///
+    /// This releases a live execution without TERM, KILL, or reaping milestones. An explicit stop
+    /// remains owned by its scheduled reaping lifecycle, even if its linked TaskRun was cancelled
+    /// immediately to freeze authored output.
+    ///
+    /// # Errors
+    /// Returns an error if the identity is unknown or stale, the Activity snapshot changed, or a
+    /// queued execution has not started.
+    pub fn observe_terminal_exit(
+        &mut self,
+        id: ActivityExecutionId,
+        snapshot: &Activity,
+    ) -> Result<(), ActivitySupervisorError> {
+        let current = self.current_by_activity_id.get(&id.activity_id).copied();
+        if current != Some(id) {
+            return Err(if current.is_some() {
+                ActivitySupervisorError::StaleExecution {
+                    activity_id: id.activity_id,
+                    generation: id.generation,
+                }
+            } else {
+                ActivitySupervisorError::UnknownExecution {
+                    activity_id: id.activity_id,
+                    generation: id.generation,
+                }
+            });
+        }
+        let execution =
+            self.executions
+                .get_mut(&id)
+                .ok_or(ActivitySupervisorError::UnknownExecution {
+                    activity_id: id.activity_id,
+                    generation: id.generation,
+                })?;
+        if &execution.snapshot != snapshot {
+            return Err(ActivitySupervisorError::StaleActivitySnapshot {
+                activity_id: id.activity_id,
+            });
+        }
+        match execution.phase {
+            ActivityExecutionPhase::Queued => Err(ActivitySupervisorError::NotLive {
+                activity_id: id.activity_id,
+            }),
+            ActivityExecutionPhase::Running
+            | ActivityExecutionPhase::Waiting
+            | ActivityExecutionPhase::Detached => {
+                execution.phase = ActivityExecutionPhase::Stopped;
+                Ok(())
+            }
+            ActivityExecutionPhase::Cancelling | ActivityExecutionPhase::Stopped => Ok(()),
+        }
     }
 
     /// Returns the supervisor's monotonic simulation-time high-water mark.
@@ -640,6 +703,61 @@ mod tests {
         let activity = fixture_activity(id, "worker", ActivityState::Running);
         let execution = supervisor.register(&activity, state, profile)?;
         Ok((activity, execution))
+    }
+
+    #[test]
+    fn terminal_observation_releases_naturally_without_stop_milestones()
+    -> Result<(), Box<dyn Error>> {
+        let mut supervisor = ActivitySupervisor::new();
+        let (activity, id) = register(
+            &mut supervisor,
+            1,
+            ActivityExecutionStart::Waiting,
+            ActivityStopProfile::Responsive,
+        )?;
+        supervisor.observe_terminal_exit(id, &activity)?;
+        let execution = supervisor.execution(id).ok_or("execution missing")?;
+        assert_eq!(execution.phase(), ActivityExecutionPhase::Stopped);
+        assert_eq!(execution.stop_phase(), ActivityStopPhase::NotRequested);
+        assert_eq!(execution.stop_requested_ms(), None);
+        assert_eq!(execution.kill_deadline_ms(), None);
+        assert_eq!(execution.reap_deadline_ms(), None);
+        assert!(execution.milestones().is_empty());
+
+        supervisor.observe_terminal_exit(id, &activity)?;
+        assert!(
+            supervisor
+                .execution(id)
+                .ok_or("execution missing")?
+                .milestones()
+                .is_empty()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn terminal_observation_does_not_release_an_explicit_stop() -> Result<(), Box<dyn Error>> {
+        let mut supervisor = ActivitySupervisor::new();
+        let (activity, id) = register(
+            &mut supervisor,
+            1,
+            ActivityExecutionStart::Running,
+            ActivityStopProfile::Responsive,
+        )?;
+        supervisor.admit_stop(id, &activity, 0)?.commit();
+
+        supervisor.observe_terminal_exit(id, &activity)?;
+        let execution = supervisor.execution(id).ok_or("execution missing")?;
+        assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+        assert_eq!(execution.stop_phase(), ActivityStopPhase::TermSent);
+        assert_eq!(execution.reap_deadline_ms(), Some(240));
+
+        supervisor.advance_to(240);
+        assert_eq!(
+            supervisor.execution(id).map(ActivityExecution::phase),
+            Some(ActivityExecutionPhase::Stopped)
+        );
+        Ok(())
     }
 
     #[test]

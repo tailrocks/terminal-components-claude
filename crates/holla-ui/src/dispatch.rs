@@ -4,6 +4,9 @@ use crate::domain::{
     docker::ContainerState,
 };
 use crate::scenario::Scenario;
+use crate::sim::activity_supervisor::{
+    ActivityExecutionId, ActivityExecutionStart, ActivityStopProfile,
+};
 use crate::sim::{
     catalogue::{self, IntentError},
     plans::{self, ReviewedPlan},
@@ -46,7 +49,16 @@ pub(crate) enum Destination {
     Database,
     Monitor,
     Clone,
-    Activity(u32, String),
+    Activity {
+        id: u32,
+        message: String,
+        execution_id: ActivityExecutionId,
+    },
+    ActivityNotice {
+        id: u32,
+        message: String,
+        execution_id: ActivityExecutionId,
+    },
 }
 
 pub(crate) struct PortArgsStart {
@@ -413,8 +425,24 @@ fn simulate(world: &mut World, action: &Action) -> Destination {
             "test cache::stores ... FAILED".into(),
             "error: assertion failed · exit code 1".into(),
         ];
+        let execution_id = match world.activity_supervisor.register(
+            &activity,
+            ActivityExecutionStart::Running,
+            ActivityStopProfile::Responsive,
+        ) {
+            Ok(id) => id,
+            Err(error) => return Destination::Notice(format!("Activity unavailable · {error}")),
+        };
+        world
+            .activity_supervisor
+            .observe_terminal_exit(execution_id, &activity)
+            .expect("a newly registered exact Activity snapshot can exit naturally");
         world.activities.push(activity);
-        return Destination::Notice(format!("{} failed · exit code 1 · simulated", action.title));
+        return Destination::ActivityNotice {
+            id,
+            message: format!("{} failed · exit code 1 · simulated", action.title),
+            execution_id,
+        };
     }
     Destination::Notice(format!(
         "Would run: {} · simulated, nothing executed",
@@ -438,11 +466,36 @@ fn start_activity(world: &mut World, action: &Action) -> Destination {
             world.now_ms(),
         );
         activity.lines = lines;
+        let execution_id = match world.activity_supervisor.register(
+            &activity,
+            ActivityExecutionStart::Detached,
+            ActivityStopProfile::Responsive,
+        ) {
+            Ok(id) => id,
+            Err(error) => return Destination::Notice(format!("Activity unavailable · {error}")),
+        };
         world.activities.push(activity);
-        return Destination::Activity(id, "Following container logs · merged stream".into());
+        return Destination::Activity {
+            id,
+            message: "Following container logs · merged stream".into(),
+            execution_id,
+        };
     }
-    world.activities.push(task_run_activity(world, action, id));
-    Destination::Notice(format!("Activity started: {} · simulated", action.title))
+    let activity = task_run_activity(world, action, id);
+    let execution_id = match world.activity_supervisor.register(
+        &activity,
+        ActivityExecutionStart::Running,
+        ActivityStopProfile::Responsive,
+    ) {
+        Ok(execution_id) => execution_id,
+        Err(error) => return Destination::Notice(format!("Activity unavailable · {error}")),
+    };
+    world.activities.push(activity);
+    Destination::ActivityNotice {
+        id,
+        message: format!("Activity started: {} · simulated", action.title),
+        execution_id,
+    }
 }
 fn workdir_label(action: &Action) -> &str {
     if action.workdir.is_empty() {
@@ -588,10 +641,22 @@ mod tests {
     fn merged_logs_keep_sorted_service_identity_and_navigate_to_activity() {
         let mut world = settled(Scenario::DockerCleanup);
         let logs = action(&world, "docker.logs");
-        let Destination::Activity(id, message) = invoke(&mut world, &logs) else {
+        let Destination::Activity {
+            id,
+            message,
+            execution_id,
+        } = invoke(&mut world, &logs)
+        else {
             panic!("logs must become an activity");
         };
         assert_eq!(message, "Following container logs · merged stream");
+        assert_eq!(
+            world
+                .activity_supervisor
+                .execution(execution_id)
+                .map(|execution| execution.snapshot().id),
+            Some(id)
+        );
         let output = &world
             .activities
             .iter()

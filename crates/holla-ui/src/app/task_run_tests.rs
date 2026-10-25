@@ -13,6 +13,7 @@ use crate::{
     scenario::Scenario,
     screens::task_run::TaskRunScreen,
     sim::{
+        activity_supervisor::{ActivityExecutionStart, ActivityStopProfile},
         catalogue,
         task_run::{TaskRun, TaskRunId, TaskRunState, TaskScriptId},
         world::World,
@@ -212,6 +213,16 @@ fn install_owner(app: &mut App) -> Result<(u64, TaskRunId), String> {
         .start(TaskScriptId::DevServerDemo, now)
         .map_err(|error| error.to_string())?;
     let _updates = app.task_runs.advance_to(now);
+    let execution_id = app
+        .world
+        .activity_supervisor
+        .register(
+            &activity,
+            ActivityExecutionStart::Running,
+            ActivityStopProfile::Resistant,
+        )
+        .map_err(|error| error.to_string())?;
+    app.activity_executions.insert(activity_id, execution_id);
     app.world.activities.push(activity.clone());
     app.activities.show(activity_id);
     let route_id = app
@@ -222,6 +233,7 @@ fn install_owner(app: &mut App) -> Result<(u64, TaskRunId), String> {
         run_id,
         TaskRunOwner {
             route_id,
+            execution_id,
             scenario: app.world.scenario,
             cwd: app.world.cwd.clone(),
             effect_revision: app.world.effect_revision,
@@ -233,7 +245,9 @@ fn install_owner(app: &mut App) -> Result<(u64, TaskRunId), String> {
             },
         },
     );
-    app.task_run_screen = Some(TaskRunScreen::new(route_id, run_id, activity_id));
+    let mut screen = TaskRunScreen::new(route_id, run_id, activity_id);
+    screen.bind_execution(execution_id);
+    app.task_run_screen = Some(screen);
     app.route = Route::TaskRun;
     Ok((route_id, run_id))
 }
@@ -246,9 +260,18 @@ fn assert_generic(world: &mut World, selected: &Action) -> TestResult {
     let host = world.host.clone();
     let cwd = world.cwd.clone();
     let revision = world.effect_revision;
-    let destination = dispatch::invoke(world, selected);
-    assert!(
-        matches!(destination, Destination::Notice(ref message) if message.contains("Activity started:"))
+    let (activity_id, message, execution_id) = match dispatch::invoke(world, selected) {
+        Destination::ActivityNotice {
+            id,
+            message,
+            execution_id,
+        } => (id, message, execution_id),
+        _ => return Err("generic simulation omitted its structured Activity notice".into()),
+    };
+    assert_eq!(activity_id, expected_id);
+    assert_eq!(
+        message,
+        format!("Activity started: {} · simulated", expected.title)
     );
     assert_eq!(world.activities.len(), count + 1);
     let Some(activity) = world.activities.last() else {
@@ -258,6 +281,17 @@ fn assert_generic(world: &mut World, selected: &Action) -> TestResult {
     assert_eq!(activity.name, expected.title);
     assert_eq!(activity.scope, expected.workdir);
     assert!(matches!(activity.state, ActivityState::Running));
+    assert_eq!(
+        world.activity_supervisor.current_execution_id(activity.id),
+        Some(execution_id)
+    );
+    assert_eq!(
+        world
+            .activity_supervisor
+            .execution(execution_id)
+            .map(|execution| execution.snapshot()),
+        Some(activity)
+    );
     assert_eq!(world.host, host);
     assert_eq!(world.cwd, cwd);
     assert_eq!(world.effect_revision, revision);

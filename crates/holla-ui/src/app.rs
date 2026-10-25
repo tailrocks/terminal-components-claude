@@ -20,8 +20,15 @@ use crate::{
         task_run::{self, TaskRunScreen},
     },
     sim::{
+        activity_supervisor::{
+            ActivityExecutionId, ActivityExecutionPhase, ActivityExecutionStart,
+            ActivityStopOutcome, ActivityStopProfile,
+        },
         catalogue, pg,
-        task_run::{PromptId, TaskRun, TaskRunId, TaskRunStore, TaskScriptId},
+        task_run::{
+            PromptId, TaskRun, TaskRunEvent, TaskRunId, TaskRunState, TaskRunStore, TaskRunUpdate,
+            TaskScriptId,
+        },
         world::World,
     },
 };
@@ -185,6 +192,7 @@ struct ReturnLocation {
 
 struct TaskRunOwner {
     route_id: u64,
+    execution_id: ActivityExecutionId,
     scenario: Scenario,
     cwd: String,
     effect_revision: u64,
@@ -231,6 +239,7 @@ pub struct App {
     home: HomeState,
     plan: Option<PlanState>,
     activities: Activities,
+    activity_executions: BTreeMap<u32, ActivityExecutionId>,
     task_runs: TaskRunStore,
     task_run_owners: BTreeMap<TaskRunId, TaskRunOwner>,
     task_run_screen: Option<TaskRunScreen>,
@@ -1483,6 +1492,7 @@ impl App {
             home,
             plan: None,
             activities,
+            activity_executions: BTreeMap::new(),
             task_runs: TaskRunStore::default(),
             task_run_owners: BTreeMap::new(),
             task_run_screen: None,
@@ -1575,6 +1585,23 @@ impl App {
                 self.pending_task_run_return = None;
                 self.set_status(message);
             }
+            Destination::ActivityNotice {
+                id,
+                message,
+                execution_id,
+            } => {
+                self.pending_task_run_return = None;
+                if let Some(snapshot) = self
+                    .world
+                    .activities
+                    .iter()
+                    .find(|activity| activity.id == id)
+                    .cloned()
+                {
+                    self.bind_activity_execution(&snapshot, execution_id);
+                }
+                self.set_status(message);
+            }
             Destination::Preview(action) => {
                 self.remember_task_run_return(&action, cx);
                 self.open_dialog(dialogs::Intent::Preview(action), cx);
@@ -1658,7 +1685,12 @@ impl App {
                 self.route = Route::Plan;
                 cx.focus(plan::STEPS);
             }
-            Destination::Activity(id, message) => {
+            Destination::Activity {
+                id,
+                message,
+                execution_id,
+            } => {
+                self.activity_executions.insert(id, execution_id);
                 self.activities.show(id);
                 self.route = Route::Activity;
                 self.set_status(message);
@@ -1764,15 +1796,50 @@ impl App {
                 return;
             }
         };
-        self.advance_task_runs_to_world();
         let activity = dispatch::task_run_activity(&self.world, &action, activity_id);
+        let execution_id = match self.world.activity_supervisor.register(
+            &activity,
+            ActivityExecutionStart::Running,
+            ActivityStopProfile::Resistant,
+        ) {
+            Ok(execution_id) => execution_id,
+            Err(error) => {
+                let compensation = self.task_runs.cancel(run_id, started_ms);
+                let message = match compensation {
+                    Ok(update) => {
+                        let terminal = update.events().iter().any(|event| {
+                            matches!(
+                                event,
+                                TaskRunEvent::Cancelled { .. } | TaskRunEvent::Completed { .. }
+                            )
+                        });
+                        if terminal {
+                            format!(
+                                "Activity registration failed · {error} · TaskRun entry cancelled"
+                            )
+                        } else {
+                            format!(
+                                "Activity registration failed · {error} · cancellation incomplete"
+                            )
+                        }
+                    }
+                    Err(cancel_error) => format!(
+                        "Activity registration failed · {error} · TaskRun compensation failed: {cancel_error}"
+                    ),
+                };
+                self.set_status(message);
+                return;
+            }
+        };
         let title = action.title.clone();
+        self.activity_executions.insert(activity_id, execution_id);
         self.world.activities.push(activity.clone());
         self.activities.show(activity_id);
         self.task_run_owners.insert(
             run_id,
             TaskRunOwner {
                 route_id,
+                execution_id,
                 scenario: self.world.scenario,
                 cwd: self.world.cwd.clone(),
                 effect_revision: self.world.effect_revision,
@@ -1783,8 +1850,11 @@ impl App {
         );
         self.next_task_run_route_id = next_route_id;
         self.retire_task_run_screen(cx);
-        self.task_run_screen = Some(TaskRunScreen::new(route_id, run_id, activity_id));
+        let mut screen = TaskRunScreen::new(route_id, run_id, activity_id);
+        screen.bind_execution(execution_id);
+        self.task_run_screen = Some(screen);
         self.route = Route::TaskRun;
+        self.advance_task_runs_to_world();
         self.set_status(format!("Activity started: {title} · simulated"));
     }
 
@@ -1806,9 +1876,110 @@ impl App {
         response
     }
 
+    fn bind_activity_execution(&mut self, snapshot: &Activity, execution_id: ActivityExecutionId) {
+        if self.activity_snapshot_is_unique(snapshot)
+            && self
+                .world
+                .activity_supervisor
+                .current_execution_id(snapshot.id)
+                == Some(execution_id)
+            && self
+                .world
+                .activity_supervisor
+                .execution(execution_id)
+                .is_some_and(|execution| {
+                    execution.id() == execution_id && execution.snapshot() == snapshot
+                })
+        {
+            self.activity_executions.insert(snapshot.id, execution_id);
+        }
+    }
+
     fn advance_task_runs_to_world(&mut self) {
         let now_ms = self.world.now_ms();
-        let _updates = self.task_runs.advance_to(now_ms);
+        let updates = self.task_runs.advance_to(now_ms);
+        self.observe_task_run_updates(&updates, false);
+    }
+
+    fn observe_task_run_updates(&mut self, updates: &[TaskRunUpdate], observe_cancelled: bool) {
+        for update in updates {
+            let terminal = update.events().iter().any(|event| {
+                matches!(event, TaskRunEvent::Completed { .. })
+                    || observe_cancelled && matches!(event, TaskRunEvent::Cancelled { .. })
+            });
+            if terminal {
+                self.observe_task_run_terminal(update.run_id());
+            }
+        }
+    }
+
+    fn observe_task_run_terminal(&mut self, run_id: TaskRunId) {
+        let Some(owner) = self.task_run_owners.get(&run_id) else {
+            return;
+        };
+        let snapshot = owner.activity.clone();
+        let execution_id = owner.execution_id;
+        if execution_id.activity_id() != snapshot.id || !self.activity_snapshot_is_unique(&snapshot)
+        {
+            return;
+        }
+        let _ = self
+            .world
+            .activity_supervisor
+            .observe_terminal_exit(execution_id, &snapshot);
+    }
+
+    fn activity_snapshot_is_unique(&self, snapshot: &Activity) -> bool {
+        let mut matching = self
+            .world
+            .activities
+            .iter()
+            .filter(|activity| activity.id == snapshot.id);
+        matches!(matching.next(), Some(activity) if activity == snapshot)
+            && matching.next().is_none()
+    }
+
+    fn activity_projections(&self) -> BTreeMap<u32, activity::ActivityProjection> {
+        let mut projections = BTreeMap::new();
+        for snapshot in &self.world.activities {
+            let execution = self
+                .activity_executions
+                .get(&snapshot.id)
+                .and_then(|id| self.world.activity_supervisor.execution(*id))
+                .filter(|execution| {
+                    self.world
+                        .activity_supervisor
+                        .current_execution_id(snapshot.id)
+                        == Some(execution.id())
+                        && execution.snapshot() == snapshot
+                });
+            let mut owners = self
+                .task_run_owners
+                .iter()
+                .filter(|(_, owner)| owner.activity.id == snapshot.id);
+            let first_owner = owners.next();
+            let has_extra_owner = owners.next().is_some();
+            let (run, link_valid) = match first_owner {
+                None => (None, true),
+                Some((run_id, owner))
+                    if !has_extra_owner
+                        && owner.activity == *snapshot
+                        && self.task_run_owner_execution_is_current(owner) =>
+                {
+                    (
+                        self.task_runs.get(*run_id),
+                        self.task_run_owner_is_live(owner.route_id, *run_id),
+                    )
+                }
+                _ => (None, false),
+            };
+            let mut projection = activity::project(snapshot, execution, run, self.world.now_ms());
+            if !link_valid {
+                projection.stop_enabled = false;
+            }
+            projections.insert(snapshot.id, projection);
+        }
+        projections
     }
 
     fn task_run_owner_is_live(&self, route_id: u64, run_id: TaskRunId) -> bool {
@@ -1821,21 +1992,29 @@ impl App {
             || owner.effect_revision != self.world.effect_revision
             || self.task_runs.get(run_id).is_none()
             || !dispatch::task_run_source_is_current(&self.world, &owner.action)
+            || !self.task_run_owner_execution_is_current(owner)
         {
             return false;
         }
-        let mut count = 0usize;
-        let mut exact_snapshot = false;
-        for activity in self
-            .world
-            .activities
-            .iter()
-            .filter(|a| a.id == owner.activity.id)
-        {
-            count = count.saturating_add(1);
-            exact_snapshot |= activity == &owner.activity;
-        }
-        count == 1 && exact_snapshot
+        true
+    }
+
+    fn task_run_owner_execution_is_current(&self, owner: &TaskRunOwner) -> bool {
+        owner.execution_id.activity_id() == owner.activity.id
+            && self.activity_executions.get(&owner.activity.id).copied() == Some(owner.execution_id)
+            && self
+                .world
+                .activity_supervisor
+                .current_execution_id(owner.activity.id)
+                == Some(owner.execution_id)
+            && self.activity_snapshot_is_unique(&owner.activity)
+            && self
+                .world
+                .activity_supervisor
+                .execution(owner.execution_id)
+                .is_some_and(|execution| {
+                    execution.id() == owner.execution_id && execution.snapshot() == &owner.activity
+                })
     }
 
     fn task_run_screen_matches(&self, route_id: u64, run_id: TaskRunId) -> bool {
@@ -1847,15 +2026,219 @@ impl App {
     fn task_run_owner_binding_is_current(&self, route_id: u64, run_id: TaskRunId) -> bool {
         self.task_run_screen_matches(route_id, run_id)
             && self.task_run_screen.as_ref().is_some_and(|screen| {
-                self.task_run_owners
-                    .get(&run_id)
-                    .is_some_and(|owner| screen.activity_id() == owner.activity.id)
+                self.task_run_owners.get(&run_id).is_some_and(|owner| {
+                    screen.activity_id() == owner.activity.id
+                        && screen.execution_id() == Some(owner.execution_id)
+                })
             })
             && self.task_run_owner_is_live(route_id, run_id)
     }
 
     fn task_run_route_is_current(&self, route_id: u64, run_id: TaskRunId) -> bool {
         self.route == Route::TaskRun && self.task_run_owner_binding_is_current(route_id, run_id)
+    }
+
+    fn handle_activity_stop_event(&mut self, event: activity::StopEvent, controls_visible: bool) {
+        if !controls_visible
+            || self.route != Route::Activity
+            || self.overlay.is_some()
+            || self.retired_overlay.is_some()
+            || self.pending_port_review.is_some()
+            || self.port_args_opening.is_some()
+            || self.menu.is_open()
+            || self.activities.current_id() != Some(event.snapshot.id)
+            || self.activities.current_view_token() != Some(event.view_token)
+            || !self.activity_snapshot_is_unique(&event.snapshot)
+            || self.activity_executions.get(&event.snapshot.id).copied() != Some(event.execution_id)
+            || self
+                .world
+                .activity_supervisor
+                .current_execution_id(event.snapshot.id)
+                != Some(event.execution_id)
+        {
+            self.set_status("Activity view changed · stop ignored".into());
+            return;
+        }
+        let linked_run = match self.linked_task_run_for_activity(&event.snapshot) {
+            Ok(run_id) => run_id,
+            Err(message) => {
+                self.set_status(message);
+                return;
+            }
+        };
+        self.request_activity_stop(event.execution_id, &event.snapshot, linked_run);
+    }
+
+    fn handle_task_run_stop_event(
+        &mut self,
+        route_id: u64,
+        run_id: TaskRunId,
+        execution_id: ActivityExecutionId,
+        controls_visible: bool,
+    ) {
+        let Some(owner) = self.task_run_owners.get(&run_id) else {
+            self.set_status("Task run owner changed · stop ignored".into());
+            return;
+        };
+        let snapshot = owner.activity.clone();
+        let screen_matches = self.task_run_screen.as_ref().is_some_and(|screen| {
+            screen.route_id() == route_id
+                && screen.run_id() == run_id
+                && screen.activity_id() == snapshot.id
+                && screen.execution_id() == Some(execution_id)
+        });
+        if !controls_visible
+            || self.route != Route::TaskRun
+            || !screen_matches
+            || !self.task_run_owner_binding_is_current(route_id, run_id)
+            || self.activity_executions.get(&snapshot.id).copied() != Some(execution_id)
+            || !self.activity_snapshot_is_unique(&snapshot)
+        {
+            self.set_status("Task run view changed · stop ignored".into());
+            return;
+        }
+        self.request_activity_stop(execution_id, &snapshot, Some(run_id));
+    }
+
+    fn linked_task_run_for_activity(
+        &self,
+        snapshot: &Activity,
+    ) -> Result<Option<TaskRunId>, String> {
+        let mut owners = self
+            .task_run_owners
+            .iter()
+            .filter(|(_, owner)| owner.activity.id == snapshot.id);
+        let first_owner = owners.next();
+        let has_extra_owner = owners.next().is_some();
+        match first_owner {
+            None => Ok(None),
+            Some((run_id, owner))
+                if !has_extra_owner
+                    && owner.activity == *snapshot
+                    && owner.execution_id.activity_id() == snapshot.id
+                    && self.task_run_owner_is_live(owner.route_id, *run_id) =>
+            {
+                Ok(Some(*run_id))
+            }
+            _ => Err("Task run owner changed · stop unavailable".into()),
+        }
+    }
+
+    fn request_activity_stop(
+        &mut self,
+        execution_id: ActivityExecutionId,
+        snapshot: &Activity,
+        linked_run: Option<TaskRunId>,
+    ) {
+        if !self.activity_snapshot_is_unique(snapshot)
+            || self.activity_executions.get(&snapshot.id).copied() != Some(execution_id)
+            || self
+                .world
+                .activity_supervisor
+                .current_execution_id(snapshot.id)
+                != Some(execution_id)
+        {
+            self.set_status("Activity changed · stop ignored".into());
+            return;
+        }
+        let Some(execution) = self.world.activity_supervisor.execution(execution_id) else {
+            self.set_status("Activity execution changed · stop ignored".into());
+            return;
+        };
+        if execution.snapshot() != snapshot {
+            self.set_status("Activity changed · stop ignored".into());
+            return;
+        }
+        if execution.phase() == ActivityExecutionPhase::Cancelling {
+            self.set_status("Activity is stopping · its grace period is still active".into());
+            return;
+        }
+        if let Some(run_id) = linked_run {
+            if !self
+                .task_run_owners
+                .get(&run_id)
+                .is_some_and(|owner| owner.execution_id == execution_id)
+            {
+                self.set_status("Task run owner changed · stop ignored".into());
+                return;
+            }
+            let Some(run) = self.task_runs.get(run_id) else {
+                self.set_status("Task run owner changed · stop ignored".into());
+                return;
+            };
+            if matches!(
+                run.state(),
+                TaskRunState::Completed | TaskRunState::Cancelled
+            ) {
+                let _ = self
+                    .world
+                    .activity_supervisor
+                    .observe_terminal_exit(execution_id, snapshot);
+                self.set_status("Task run already ended · no stop grace started".into());
+                return;
+            }
+        }
+
+        let now_ms = self.world.now_ms();
+        let admission =
+            match self
+                .world
+                .activity_supervisor
+                .admit_stop(execution_id, snapshot, now_ms)
+            {
+                Ok(admission) => admission,
+                Err(error) => {
+                    self.set_status(format!("Activity stop unavailable · {error}"));
+                    return;
+                }
+            };
+
+        if let Some(run_id) = linked_run {
+            match self.task_runs.cancel(run_id, now_ms) {
+                Ok(update) => {
+                    let completed = update
+                        .events()
+                        .iter()
+                        .any(|event| matches!(event, TaskRunEvent::Completed { .. }));
+                    let cancelled = update
+                        .events()
+                        .iter()
+                        .any(|event| matches!(event, TaskRunEvent::Cancelled { .. }));
+                    if completed {
+                        let _ = admission;
+                        self.observe_task_run_updates(&[update], false);
+                        self.set_status(
+                            "Task run completed before Stop · execution ownership released".into(),
+                        );
+                        return;
+                    }
+                    if !cancelled {
+                        let _ = admission;
+                        self.set_status(
+                            "Task cancellation did not complete · stop not committed".into(),
+                        );
+                        return;
+                    }
+                }
+                Err(error) => {
+                    let _ = admission;
+                    self.set_status(format!("Task cancellation failed · {error}"));
+                    return;
+                }
+            }
+        }
+
+        match admission.commit() {
+            ActivityStopOutcome::CancelledBeforeStart => {
+                self.set_status("Activity cancelled before start · simulated".into());
+            }
+            ActivityStopOutcome::TermSent => {
+                self.set_status(
+                    "Activity stopping · TaskRun output frozen · execution remains owned".into(),
+                );
+            }
+            _ => self.set_status("Activity stop outcome changed · refresh the view".into()),
+        }
     }
 
     fn task_run_prompt_event_is_current(
@@ -1906,6 +2289,38 @@ impl App {
             self.invalidate_task_run_route(cx);
             return (Response::changed(), None);
         };
+        let projections = self.activity_projections();
+        let projection = self
+            .task_run_owners
+            .get(&run_id)
+            .and_then(|owner| projections.get(&owner.activity.id))
+            .cloned()
+            .unwrap_or_else(|| {
+                self.task_run_owners.get(&run_id).map_or_else(
+                    || activity::ActivityProjection {
+                        execution_id: None,
+                        state_label: "unavailable".into(),
+                        stop_grace_ms: None,
+                        stop_enabled: false,
+                        lines: Vec::new(),
+                    },
+                    |owner| {
+                        activity::project(&owner.activity, None, Some(run), self.world.now_ms())
+                    },
+                )
+            });
+        let stop_enabled = projection.stop_enabled
+            && self
+                .task_run_screen
+                .as_ref()
+                .is_some_and(|screen| screen.execution_id() == projection.execution_id);
+        let stop_label = if stop_enabled {
+            "Stop"
+        } else if projection.state_label == "stopping" {
+            "Stopping…"
+        } else {
+            "Stopped"
+        };
         let viewport = cx.viewport();
         let body = if too_small(viewport) {
             Rect::default()
@@ -1915,7 +2330,7 @@ impl App {
         self.task_run_screen
             .as_mut()
             .map_or((Response::ignored(), None), |screen| {
-                screen.update(cx, run, body, allow_input)
+                screen.update(cx, run, body, allow_input, stop_enabled, stop_label)
             })
     }
 
@@ -1925,7 +2340,12 @@ impl App {
             .map_or_else(Response::ignored, |screen| screen.poll_covered(cx))
     }
 
-    fn handle_task_run_event(&mut self, event: task_run::Event, cx: &mut Cx<'_>) {
+    fn handle_task_run_event(
+        &mut self,
+        event: task_run::Event,
+        cx: &mut Cx<'_>,
+        controls_visible: bool,
+    ) {
         match event {
             task_run::Event::Answer {
                 route_id,
@@ -1944,11 +2364,14 @@ impl App {
                     self.set_status("Task prompt changed · answer ignored".into());
                     return;
                 }
-                if let Err(error) =
-                    self.task_runs
-                        .answer_prompt(run_id, prompt_id, &answer, self.world.now_ms())
+                match self
+                    .task_runs
+                    .answer_prompt(run_id, prompt_id, &answer, self.world.now_ms())
                 {
-                    self.set_status(format!("Task prompt changed · {error}"));
+                    Ok(update) => self.observe_task_run_updates(&[update], false),
+                    Err(error) => {
+                        self.set_status(format!("Task prompt changed · {error}"));
+                    }
                 }
             }
             task_run::Event::Cancel {
@@ -1958,6 +2381,11 @@ impl App {
             } => {
                 self.cancel_task_run_prompt(route_id, run_id, prompt_id, cx);
             }
+            task_run::Event::Stop {
+                route_id,
+                run_id,
+                execution_id,
+            } => self.handle_task_run_stop_event(route_id, run_id, execution_id, controls_visible),
         }
     }
 
@@ -1980,7 +2408,18 @@ impl App {
             return;
         }
         match self.task_runs.cancel(run_id, self.world.now_ms()) {
-            Ok(_) => self.set_status("Task run cancelled · simulated · no process executed".into()),
+            Ok(update) => {
+                let completed = update
+                    .events()
+                    .iter()
+                    .any(|event| matches!(event, TaskRunEvent::Completed { .. }));
+                self.observe_task_run_updates(&[update], true);
+                if completed {
+                    self.set_status("Task run completed · simulated · no process executed".into());
+                } else {
+                    self.set_status("Task run cancelled · simulated · no process executed".into());
+                }
+            }
             Err(error) => self.set_status(format!("Task cancellation failed · {error}")),
         }
     }
@@ -2551,18 +2990,28 @@ impl App {
         }
         Response::ignored()
     }
-    fn strip_draw(&self, ui: &mut Ui<'_>, area: Rect) {
+    fn strip_draw(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        projections: &BTreeMap<u32, activity::ActivityProjection>,
+    ) {
         if self.world.activities.is_empty() || area.is_empty() {
             return;
         }
         ui.register_control(STRIP, area, Focusability::ClickOnly);
         let mut x = area.x;
         for (index, activity) in activity::ordered(&self.world).into_iter().enumerate() {
+            let status = projections
+                .get(&activity.id)
+                .and_then(activity::strip_status)
+                .map_or_else(String::new, |status| format!(" · {status}"));
             let label = format!(
-                " {} {} {} ",
+                " {} {} {}{} ",
                 activity::state_glyph(activity.state),
                 index.saturating_add(1),
-                activity.name
+                activity.name,
+                status,
             );
             let width = termrock::width(&label).min(area.right().saturating_sub(x));
             if width == 0 {
@@ -2592,7 +3041,13 @@ impl App {
             faint,
         );
     }
-    fn chrome(&self, ui: &mut Ui<'_>, area: Rect, peek: Option<&str>) {
+    fn chrome(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        peek: Option<&str>,
+        projections: &BTreeMap<u32, activity::ActivityProjection>,
+    ) {
         let regions = AppShell::new()
             .header(1)
             .gap(1)
@@ -2664,6 +3119,7 @@ impl App {
             self.strip_draw(
                 ui,
                 Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
+                projections,
             );
         }
         if self.route == Route::Home {
@@ -3229,7 +3685,6 @@ impl App {
             .plan
             .as_mut()
             .map_or_else(|| (Response::ignored(), None), |plan| plan.update(cx));
-        let activity_response = self.activities.update(&self.world, cx);
         let files_response = self.files.update(cx);
         let mut menu = menu_bar().update(cx, &mut self.menu);
         let brand = brand().update(cx);
@@ -3239,6 +3694,32 @@ impl App {
             && !matches!(menu.action_ref(), Some(MenuAction::Chosen(_)))
         {
             self.disk_scan_menu_origin = None;
+        }
+        let activity_projections = self.activity_projections();
+        let activity_stop_allowed = self.route == Route::Activity
+            && !too_small(viewport)
+            && cx.top_layer() == termrock::LayerId::PAGE
+            && !menu_was_open
+            && !self.menu.is_open()
+            && !menu_action_pending
+            && !retired_overlay_was_pending
+            && !pending_port_review_was_pending
+            && self.overlay.is_none()
+            && self.retired_overlay.is_none()
+            && self.pending_port_review.is_none()
+            && self.port_args_opening.is_none()
+            && !brand.activated()
+            && !(cx.update_cause() == termrock::UpdateCause::Event && cx.command().is_some());
+        let (activity_response, activity_stop_event) = self.activities.update(
+            &self.world,
+            &activity_projections,
+            activity_stop_allowed,
+            cx,
+        );
+        let mut activity_response = activity_response;
+        if let Some(event) = activity_stop_event {
+            self.handle_activity_stop_event(event, activity_stop_allowed);
+            activity_response |= Response::changed();
         }
         let disk_scan_open_blocked = retired_overlay_was_pending
             || pending_port_review_was_pending
@@ -3280,14 +3761,12 @@ impl App {
             && !(cx.update_cause() == termrock::UpdateCause::Event && cx.command().is_some());
         let (task_run_response, task_run_event) = if self.route == Route::TaskRun {
             self.update_task_run_screen(cx, task_run_input_allowed)
-        } else if self.route == Route::DiskScan {
-            (self.poll_covered_task_run_screen(cx), None)
         } else {
-            (Response::ignored(), None)
+            (self.poll_covered_task_run_screen(cx), None)
         };
         let mut task_run_response = task_run_response;
         if task_run_input_allowed && let Some(event) = task_run_event {
-            self.handle_task_run_event(event, cx);
+            self.handle_task_run_event(event, cx, task_run_input_allowed);
             task_run_response |= Response::changed();
         }
         let controls = retired
@@ -3467,6 +3946,7 @@ impl termrock::App for App {
             return;
         }
         let (body, home_area) = shell_areas(area);
+        let activity_projections = self.activity_projections();
         let peek = match self.route {
             Route::Home => self.home.draw(&self.world, ui, home_area),
             Route::Plan => {
@@ -3476,7 +3956,8 @@ impl termrock::App for App {
                 None
             }
             Route::Activity => {
-                self.activities.draw(&self.world, ui, body);
+                self.activities
+                    .draw(&self.world, &activity_projections, ui, body);
                 None
             }
             Route::Disk => {
@@ -3513,7 +3994,25 @@ impl termrock::App for App {
                             self.task_runs.get(run_id),
                         )
                     {
-                        screen.draw(&owner.activity, run, self.world.now_ms(), ui, body);
+                        let projection = activity_projections
+                            .get(&owner.activity.id)
+                            .cloned()
+                            .unwrap_or_else(|| {
+                                activity::project(
+                                    &owner.activity,
+                                    None,
+                                    Some(run),
+                                    self.world.now_ms(),
+                                )
+                            });
+                        screen.draw(
+                            &owner.activity,
+                            &projection,
+                            run,
+                            self.world.now_ms(),
+                            ui,
+                            body,
+                        );
                     } else {
                         task_run::TaskRunScreen::draw_stale(ui, body);
                     }
@@ -3528,7 +4027,7 @@ impl termrock::App for App {
         } else {
             None
         };
-        self.chrome(ui, area, peek.as_deref());
+        self.chrome(ui, area, peek.as_deref(), &activity_projections);
         if let Some(overlay) = &self.overlay {
             match overlay {
                 Overlay::Dialog(dialog) => dialog.draw(ui),
@@ -8053,3 +8552,7 @@ mod task_args_tests;
 #[cfg(test)]
 #[path = "app/task_run_tests.rs"]
 mod task_run_tests;
+
+#[cfg(test)]
+#[path = "app/activity_stop_tests.rs"]
+mod activity_stop_tests;
