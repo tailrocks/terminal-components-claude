@@ -23,7 +23,7 @@ activities-multi 160 50 paper 16 2d2500f090ae3598
 activities-multi 160 50 paper 256 65d099e549189fcd
 activities-multi 160 50 paper mono e228677cd489dd5c
 activities-multi 160 50 paper truecolor bfab3bd61caacedc
-activities-multi 80 24 junie 16 1e852f351304fae1
+activities-multi 80 24 junie 16 3f0cadc5433b8f3e
 activities-multi 80 24 junie 256 bc9c9c0e2773dfae
 activities-multi 80 24 junie mono 23472ea3bed8d7d7
 activities-multi 80 24 junie truecolor c8e338a0fc87c21e
