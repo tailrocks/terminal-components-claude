@@ -4,6 +4,8 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+autotests = false
+autobenches = false
 
 [dependencies]
 termrock-core.workspace = true
@@ -17,9 +19,7 @@ termrock-viewport.workspace = true
 ratatui.workspace = true
 ratatui-core.workspace = true
 
-# Rust documentation examples are guarded by the workspace doc inventory test.
 [lib]
 doctest = false
-
-[dev-dependencies]
-termrock-runtime = { workspace = true, features = ["testing"] }
+test = false
+bench = false

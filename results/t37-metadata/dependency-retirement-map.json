@@ -1,0 +1,564 @@
+{
+  "fixed_input": "d402f893d159ac26da5db4d18c13510afdbce12f",
+  "root_workspace": {
+    "removed_members": [
+      "crates/termrock-conformance",
+      "crates/termrock-test-support"
+    ],
+    "added_members": [],
+    "removed_default_members": [
+      "crates/termrock-conformance"
+    ],
+    "removed_workspace_dependency_keys": [
+      "holla",
+      "image",
+      "jackin-preview",
+      "pulldown-cmark",
+      "rayon",
+      "showcase",
+      "tablepro",
+      "tempfile",
+      "termrock-conformance",
+      "termrock-test-support",
+      "termrock-xtask",
+      "trybuild",
+      "tuiscotti"
+    ],
+    "added_workspace_dependency_keys": [],
+    "remaining_workspace_dependency_consumers": {
+      "termrock-core": 20,
+      "termrock-layout": 15,
+      "termrock-theme": 16,
+      "termrock-text": 14,
+      "termrock-render": 12,
+      "termrock-collections": 11,
+      "termrock-runtime": 13,
+      "termrock-controls": 8,
+      "termrock-fields": 5,
+      "termrock-feedback": 5,
+      "termrock-navigation": 5,
+      "termrock-viewport": 4,
+      "termrock-overlays": 4,
+      "termrock-grid": 1,
+      "termrock-editors": 1,
+      "termrock-forms": 1,
+      "termrock-terminal": 2,
+      "termrock-session": 2,
+      "termrock-shell": 1,
+      "termrock": 17,
+      "showcase-data": 3,
+      "showcase-demos": 1,
+      "showcase-ui": 2,
+      "jackin-preview-domain": 5,
+      "jackin-preview-sim": 3,
+      "jackin-preview-presentation": 3,
+      "jackin-preview-host-ui": 1,
+      "jackin-preview-capsule-ui": 1,
+      "jackin-preview-app": 2,
+      "holla-domain": 4,
+      "holla-catalog": 2,
+      "holla-plan": 2,
+      "holla-sim": 1,
+      "holla-ui": 2,
+      "tablepro-domain": 1,
+      "tablepro-sql": 2,
+      "tablepro-demo": 3,
+      "tablepro-ui": 2,
+      "clap": 2,
+      "ratatui": 26,
+      "unicode-width": 13,
+      "unicode-segmentation": 8,
+      "serde": 2,
+      "serde_json": 2,
+      "sha2": 2,
+      "ratatui-core": 19,
+      "ratatui-crossterm": 3,
+      "bitflags": 1
+    },
+    "orphan_remaining_keys": []
+  },
+  "manifest_dependency_changes": [
+    {
+      "manifest": "crates/holla-ui/Cargo.toml",
+      "package_before": "holla-ui",
+      "package_after": "holla-ui",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-test-support"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/jackin-preview-app/Cargo.toml",
+      "package_before": "jackin-preview-app",
+      "package_after": "jackin-preview-app",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-test-support"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/showcase-demos/Cargo.toml",
+      "package_before": "showcase-demos",
+      "package_after": "showcase-demos",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-test-support"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/showcase-ui/Cargo.toml",
+      "package_before": "showcase-ui",
+      "package_after": "showcase-ui",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-test-support"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/showcase/Cargo.toml",
+      "package_before": "showcase",
+      "package_after": "showcase",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "tuiscotti"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/tablepro-ui/Cargo.toml",
+      "package_before": "tablepro-ui",
+      "package_after": "tablepro-ui",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-test-support"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/tablepro-ui/manual-api-contracts/workbench-tabs-privacy/Cargo.toml",
+      "package_before": "workbench-tabs-privacy-api-contract",
+      "package_after": null,
+      "removed_dependencies": {
+        "dependencies": [
+          "tablepro-ui"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": true
+    },
+    {
+      "manifest": "crates/termrock-conformance/Cargo.toml",
+      "package_before": "termrock-conformance",
+      "package_after": null,
+      "removed_dependencies": {
+        "dependencies": [
+          "image",
+          "ratatui",
+          "rayon",
+          "serde",
+          "serde_json",
+          "sha2",
+          "tempfile",
+          "termrock",
+          "termrock-test-support",
+          "tuiscotti"
+        ],
+        "dev-dependencies": [
+          "unicode-segmentation",
+          "unicode-width"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": true
+    },
+    {
+      "manifest": "crates/termrock-consumer-example/Cargo.toml",
+      "package_before": "termrock-consumer-example",
+      "package_after": "termrock-consumer-example",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "ratatui"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-controls/Cargo.toml",
+      "package_before": "termrock-controls",
+      "package_after": "termrock-controls",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-fields",
+          "termrock-layout",
+          "termrock-navigation",
+          "termrock-overlays",
+          "termrock-runtime",
+          "termrock-test-support",
+          "termrock-theme"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-e2e/Cargo.toml",
+      "package_before": "termrock-e2e",
+      "package_after": "termrock-e2e",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "jsonschema"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-editors/Cargo.toml",
+      "package_before": "termrock-editors",
+      "package_after": "termrock-editors",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-controls",
+          "termrock-runtime"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-feedback/Cargo.toml",
+      "package_before": "termrock-feedback",
+      "package_after": "termrock-feedback",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock",
+          "termrock-test-support"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-fields/Cargo.toml",
+      "package_before": "termrock-fields",
+      "package_after": "termrock-fields",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-runtime",
+          "termrock-test-support"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-forms/Cargo.toml",
+      "package_before": "termrock-forms",
+      "package_after": "termrock-forms",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-runtime"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-grid/Cargo.toml",
+      "package_before": "termrock-grid",
+      "package_after": "termrock-grid",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-runtime",
+          "termrock-test-support"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-navigation/Cargo.toml",
+      "package_before": "termrock-navigation",
+      "package_after": "termrock-navigation",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-overlays",
+          "termrock-runtime",
+          "termrock-test-support"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-overlays/Cargo.toml",
+      "package_before": "termrock-overlays",
+      "package_after": "termrock-overlays",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-runtime",
+          "termrock-test-support"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-runtime/Cargo.toml",
+      "package_before": "termrock-runtime",
+      "package_after": "termrock-runtime",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock",
+          "termrock-controls",
+          "termrock-session",
+          "termrock-test-support",
+          "termrock-viewport"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-shell/Cargo.toml",
+      "package_before": "termrock-shell",
+      "package_after": "termrock-shell",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-runtime",
+          "termrock-shell",
+          "termrock-test-support"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-terminal/Cargo.toml",
+      "package_before": "termrock-terminal",
+      "package_after": "termrock-terminal",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-runtime"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-test-support/Cargo.toml",
+      "package_before": "termrock-test-support",
+      "package_after": null,
+      "removed_dependencies": {
+        "dependencies": [
+          "bitflags",
+          "ratatui-core",
+          "serde",
+          "serde_json",
+          "termrock"
+        ],
+        "dev-dependencies": [
+          "termrock-collections",
+          "termrock-controls",
+          "termrock-core",
+          "termrock-editors",
+          "termrock-feedback",
+          "termrock-forms",
+          "termrock-grid",
+          "termrock-navigation",
+          "termrock-overlays",
+          "termrock-runtime",
+          "termrock-text",
+          "termrock-theme",
+          "termrock-viewport"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": true
+    },
+    {
+      "manifest": "crates/termrock-text/Cargo.toml",
+      "package_before": "termrock-text",
+      "package_after": "termrock-text",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-test-support"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-theme/Cargo.toml",
+      "package_before": "termrock-theme",
+      "package_after": "termrock-theme",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-controls",
+          "termrock-core",
+          "termrock-grid",
+          "termrock-layout",
+          "termrock-navigation",
+          "termrock-overlays",
+          "termrock-runtime",
+          "termrock-test-support",
+          "termrock-text",
+          "unicode-width"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-theme/manual-api-contracts/paint-style-pilot/Cargo.toml",
+      "package_before": "paint-style-api-contract-pilot",
+      "package_after": null,
+      "removed_dependencies": {
+        "dependencies": [
+          "ratatui-core",
+          "termrock-theme"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": true
+    },
+    {
+      "manifest": "crates/termrock-viewport/Cargo.toml",
+      "package_before": "termrock-viewport",
+      "package_after": "termrock-viewport",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "termrock-runtime",
+          "termrock-test-support"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-visibility-publisher/Cargo.toml",
+      "package_before": "termrock-visibility-publisher",
+      "package_after": "termrock-visibility-publisher",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "rcgen"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-visibility-tests/Cargo.toml",
+      "package_before": "termrock-visibility-tests",
+      "package_after": "termrock-visibility-tests",
+      "removed_dependencies": {
+        "dependencies": [
+          "tempfile"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/termrock-xtask/Cargo.toml",
+      "package_before": "termrock-xtask",
+      "package_after": "termrock-xtask",
+      "removed_dependencies": {
+        "dependencies": [
+          "pulldown-cmark",
+          "termrock-test-support"
+        ],
+        "dev-dependencies": [
+          "tempfile"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "crates/visual-harness/Cargo.toml",
+      "package_before": "visual-harness",
+      "package_after": "visual-harness",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "libtest-mimic",
+          "sha2",
+          "termrock-core",
+          "tuiscotti"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "external-consumer-demo/Cargo.toml",
+      "package_before": "external-consumer-demo",
+      "package_after": "external-consumer-demo",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "ratatui"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "tools/frozen-cli-frame-support/Cargo.toml",
+      "package_before": "frozen-cli-frame-support",
+      "package_after": null,
+      "removed_dependencies": {
+        "dependencies": [
+          "sha2",
+          "tuiscotti"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": true
+    },
+    {
+      "manifest": "tools/refactor-proof/Cargo.toml",
+      "package_before": "refactor-proof",
+      "package_after": "refactor-proof",
+      "removed_dependencies": {
+        "dependencies": [
+          "tempfile"
+        ],
+        "dev-dependencies": [
+          "libc",
+          "tempfile"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    },
+    {
+      "manifest": "tools/termrock-visibility-publisher/Cargo.toml",
+      "package_before": "termrock-visibility-publisher",
+      "package_after": "termrock-visibility-publisher",
+      "removed_dependencies": {
+        "dev-dependencies": [
+          "rcgen"
+        ]
+      },
+      "added_dependencies": {},
+      "manifest_retired": false
+    }
+  ]
+}

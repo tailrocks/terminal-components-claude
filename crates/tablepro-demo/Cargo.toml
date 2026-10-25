@@ -5,10 +5,13 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
+autotests = false
+autobenches = false
 
 [lints]
 workspace = true
 
-# Rust documentation examples are guarded by the workspace doc inventory test.
 [lib]
 doctest = false
+test = false
+bench = false

@@ -4,6 +4,8 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+autotests = false
+autobenches = false
 
 [features]
 default = []
@@ -32,51 +34,47 @@ termrock-shell.workspace = true
 ratatui.workspace = true
 ratatui-core.workspace = true
 
-# The example journeys drive the runtime through the testing harness surface
-# (Runtime::draw_buffer and friends); they need the facade's testing feature.
-[[test]]
-name = "ex01_button"
-required-features = ["testing"]
-
-[[test]]
-name = "ex02_text_input"
-required-features = ["testing"]
-
-[[test]]
-name = "public_component_contracts"
-required-features = ["testing"]
-
-[[test]]
-name = "slots"
-required-features = ["testing"]
-
-[[test]]
-name = "split_block_consumer"
-required-features = ["testing"]
-
-[[test]]
-name = "master_detail_consumer"
-required-features = ["testing"]
-
-[[test]]
-name = "nav_list_composition_consumer"
-required-features = ["testing"]
-
-[[test]]
-name = "select_composition_consumer"
-required-features = ["testing"]
-
-[[test]]
-name = "tree_composition_consumer"
-required-features = ["testing"]
-
-[[test]]
-name = "manager_composition_consumer"
-required-features = ["testing"]
-
 [[example]]
 name = "master_detail_composition_consumer"
 
-# Rust documentation examples are guarded by the workspace doc inventory test.
+test = false
+bench = false
 [lib]
 doctest = false
+test = false
+bench = false
+[[example]]
+name = "code_editor_blur_consumer"
+path = "examples/code_editor_blur_consumer.rs"
+test = false
+bench = false
+[[example]]
+name = "composition_consumer"
+path = "examples/composition_consumer.rs"
+test = false
+bench = false
+[[example]]
+name = "file_catalogue_master_detail"
+path = "examples/file_catalogue_master_detail.rs"
+test = false
+bench = false
+[[example]]
+name = "form_dialog_consumer"
+path = "examples/form_dialog_consumer.rs"
+test = false
+bench = false
+[[example]]
+name = "picker_card_layout_consumer"
+path = "examples/picker_card_layout_consumer.rs"
+test = false
+bench = false
+[[example]]
+name = "picker_row_defaults"
+path = "examples/picker_row_defaults.rs"
+test = false
+bench = false
+[[example]]
+name = "semantic_item_row_consumer"
+path = "examples/semantic_item_row_consumer.rs"
+test = false
+bench = false

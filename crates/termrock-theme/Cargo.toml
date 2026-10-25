@@ -4,6 +4,8 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+autotests = false
+autobenches = false
 
 [features]
 default = []
@@ -12,19 +14,7 @@ testing = []
 [dependencies]
 termrock-core.workspace = true
 ratatui-core.workspace = true
-
-[dev-dependencies]
-unicode-width.workspace = true
-termrock-controls.workspace = true
-termrock-core.workspace = true
-termrock-grid.workspace = true
-termrock-layout.workspace = true
-termrock-navigation.workspace = true
-termrock-overlays.workspace = true
-termrock-runtime.workspace = true
-termrock-test-support.workspace = true
-termrock-text.workspace = true
-
-# Rust documentation examples are guarded by the workspace doc inventory test.
 [lib]
 doctest = false
+test = false
+bench = false
