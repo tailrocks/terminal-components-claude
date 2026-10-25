@@ -20,7 +20,7 @@
     "target": {
       "pull_request": 38,
       "branch": "parity/termrock-visual-baseline",
-      "head": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "head": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
       "base": "a97e351df736b576904bc450619ca347ea64d65b",
       "status": "draft-open"
     },
@@ -34,7 +34,9 @@
     "common_ancestor": "cc14dd6beae526884aabdf897e309be837b4f504",
     "historical_review_target": "e08ac57d10ae54c87337eae0be08b1f5e8f4bda4",
     "historical_review_reference": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
-    "source_capture_evidence": "results/t00-source/source-record.json (owned by /root/t00_source_capture; pending)"
+    "source_capture_evidence": "results/t00-source/source-record.json (pending refresh for approved upstream input)",
+    "initial_t00_input_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+    "approved_upstream_refresh_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
   },
   "worktrees": {
     "plan_root": "/Users/donbeave/Downloads/termrock-pr38-plan",
@@ -42,7 +44,14 @@
       "path": "/Users/donbeave/Downloads/terminal-components-claude",
       "branch": "parity/termrock-visual-baseline",
       "starting_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "current_sha": "d51945d0592eee33a563efc717b07bf8847cbebd"
+      "current_sha": "e2fa510c9fe993dce39e1f3bf56d62a2a9d9f1a0",
+      "pending_upstream_refresh": {
+        "from_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+        "to_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+        "review_status": "APPROVED_BY_SOL_HIGH_AS_REPORTED_BY_COORDINATOR",
+        "merge_status": "PENDING_NORMAL_MERGE",
+        "merge_owner": "/root"
+      }
     },
     "reference": {
       "path": "/Users/donbeave/Downloads/termrock-pr26-reference-20261026",
@@ -102,7 +111,9 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "ACTIVE"
+      "status": "ACTIVE_PENDING_SOURCE_REFRESH",
+      "current_input_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "next_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
     },
     {
       "id": "/root/t00_import_rules",
@@ -110,7 +121,7 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "COMMITTED_PENDING_REVIEW"
+      "status": "ACCEPTED_SCOPED"
     },
     {
       "id": "/root/t00_independent_review",
@@ -118,7 +129,7 @@
       "model": "gpt-6.1-sol",
       "effort": "high",
       "assignment": "explicit",
-      "status": "READY_FOR_REVIEW",
+      "status": "COMPLETED_ACCEPT",
       "review_output_sha": null
     }
   ],
@@ -192,17 +203,97 @@
     "source_capture": "results/t00-source/source-record.json (pending)",
     "independent_review": "results/t00-review/ (pending)",
     "root_instructions": "AGENTS.md",
-    "import_record_sha256": "00a7e3b20c8d81bcfd63738a230453ab0304ecd7dad42d0d2615987bbd57e0d5"
+    "import_record_sha256": "fe11ec1364f5e443b98ae7011a3a043924990b1890c6c573f4ef33e2750f839c",
+    "review_decision": "results/run-state.json:review",
+    "source_capture_script": {
+      "path": "results/t00-source/capture_source.py",
+      "owner": "/root/t00_source_capture",
+      "status": "present; source worker owns; refresh run pending after merge",
+      "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "refresh_for_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+    },
+    "tracked_tree_inventory": {
+      "path": "results/t00-source/tracked-tree.jsonl.gz",
+      "owner": "/root/t00_source_capture",
+      "status": "present; old-input evidence preserved; refresh required after merge",
+      "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "refresh_for_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+    },
+    "legacy_test_file_inventory": {
+      "path": "results/t00-source/test-files.jsonl.gz",
+      "owner": "/root/t00_source_capture",
+      "status": "present; old-input evidence preserved; refresh required after merge",
+      "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "refresh_for_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+    },
+    "current_ci_capture": {
+      "path": "results/t00-source/ci-current.json",
+      "owner": "/root/t00_source_capture",
+      "status": "present; old-input evidence preserved; refresh required after merge",
+      "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "refresh_for_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+    },
+    "current_ci_job_inventory": {
+      "path": "results/t00-source/ci-job-inventory.json",
+      "owner": "/root/t00_source_capture",
+      "status": "present; old-input evidence preserved; refresh required after merge",
+      "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "refresh_for_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+    },
+    "current_ci_job_excerpts": {
+      "path": "results/t00-source/ci-job-excerpts.json",
+      "owner": "/root/t00_source_capture",
+      "status": "present; old-input evidence preserved; refresh required after merge",
+      "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "refresh_for_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+    },
+    "upstream_refresh_review": "Coordinator-reported Sol high approval for 31f856f43d20920ea99aa81b8f40adeeb5bff358; exact review record pending.",
+    "ci_inventory_31f": {
+      "path": "results/t00-source/ci-head-31f-job-inventory.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "status": "present; content and hash validation pending"
+    },
+    "ci_required_job_excerpt": {
+      "path": "results/t00-source/ci-required-job-excerpt.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": null,
+      "status": "present; source attribution and validation pending"
+    }
   },
   "review": {
     "required_model": "gpt-6.1-sol",
     "required_effort": "high",
     "reviewer_id": "/root/t00_independent_review",
-    "status": "PENDING",
-    "reviewed_output_sha": "d51945d0592eee33a563efc717b07bf8847cbebd"
+    "status": "ACCEPT_SCOPED",
+    "reviewed_output_sha": "e2fa510c9fe993dce39e1f3bf56d62a2a9d9f1a0",
+    "accepted_scope": "Package import, additive root links, and checkpoint record.",
+    "evidence": [
+      "22 committed package hashes",
+      "plan hash",
+      "import record hash",
+      "10 root links resolve",
+      "original root AGENTS bytes preserved as prefix",
+      "CLAUDE symlink unchanged",
+      "39 task states present",
+      "protected-path diff clean",
+      "git diff --check passes"
+    ],
+    "limits": [
+      "T00 source inventory remains pending.",
+      "No product behavior was verified."
+    ]
   },
   "blockers": [
-    "T37 and all dependent Termrock source work remain pending T00 independent review."
+    "T00 source capture and tool inventory remain active.",
+    "T37 and all dependent Termrock source work await overall T00 acceptance.",
+    "mise metadata failure blocks pinned-tool installation evidence.",
+    "The tool guard does not support its requested version query.",
+    "T37 remains NOT_STARTED until overall T00 acceptance and coordinator approval of the ownership split.",
+    "Classify tc-proof and visibility publisher/capture ownership before any related removal.",
+    "T37 must inventory all argparse descriptions derived from Python __doc__ and preserve identical help text before docstring removal.",
+    "PR 38 source refresh to 31f856f43d20920ea99aa81b8f40adeeb5bff358 is approved but awaits coordinator normal merge.",
+    "Current T00 source artifacts are tied to 3a2c977c881cd1745de16425c982791ee3ef2cc3 and cannot establish the refreshed source inventory."
   ],
   "root_instruction_patch": {
     "patch_path": "AGENTS.patch",
@@ -214,5 +305,91 @@
   },
   "output_commits": {
     "T00-import": "d51945d0592eee33a563efc717b07bf8847cbebd"
+  },
+  "task_units": {
+    "T00_overall": "ACTIVE_PENDING_SOURCE_REFRESH",
+    "T00_import": "ACCEPTED",
+    "T00_source_capture": "ACTIVE_PENDING_SOURCE_REFRESH",
+    "T00_independent_review": "ACCEPT"
+  },
+  "tool_limits": [
+    {
+      "tool": "mise install",
+      "status": "BLOCKED",
+      "reason": "Metadata failure reported by the source-capture worker; exact diagnostics remain pending in its source record."
+    },
+    {
+      "tool": "guard version query",
+      "status": "UNSUPPORTED",
+      "reason": "The tool guard does not support the requested version query; exact command details remain pending in the source record."
+    }
+  ],
+  "product_behavior": {
+    "status": "NOT VERIFIED",
+    "reason": "T00 source and instruction capture only; no product tests or behavior probes were run."
+  },
+  "t37_planning_recommendations": [
+    {
+      "id": "T37-scope-split-review",
+      "source": {
+        "agent_id": "/root/t00_independent_review",
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "status": "PENDING_COORDINATOR_DECISION",
+      "task_state_effect": "None. T37 remains NOT_STARTED and is not accepted.",
+      "dispatch_authorized": false,
+      "groups": [
+        "Foundations, runtime, and session.",
+        "Component families.",
+        "Applications.",
+        "Tools and scripts."
+      ],
+      "shared_owners": [
+        "One owner for workspace manifests, locks, CI inputs, and generator outputs.",
+        "One owner for maintained documentation citations and safety contracts."
+      ],
+      "scope_exclusions": [
+        "All source groups exclude manifests, lockfiles, and generated files."
+      ],
+      "preserve": [
+        "docs/audits/**",
+        "docs/implementation/visibility/**",
+        "Snapshots, approved oracle bytes, and tag bytes.",
+        "Non-gated runtime snapshot and clock APIs."
+      ],
+      "preconditions": [
+        "Complete T00 source classification before T37 dispatch.",
+        "Classify tc-proof and visibility publisher/capture ownership before any removal."
+      ],
+      "limits": [
+        "This is a planning recommendation. It does not authorize T37 start, removal, or acceptance."
+      ],
+      "tool_help_preservation": {
+        "status": "REQUIRED_FOR_T37",
+        "rule": "Python __doc__ used as argparse description is functional CLI help. Before removing a docstring, preserve identical text in an explicit argparse description literal.",
+        "known_sites": [
+          "tools/acceptance_architecture.py:841",
+          "tools/capture_provenance.py:1050",
+          "tools/frozen_baseline.py:6270",
+          "tools/visibility/queue.py:2859",
+          "tools/visibility/status.py:4482",
+          "tools/visibility/subjects.py:2969",
+          "tools/visibility/deferred.py:1237"
+        ],
+        "inventory_may_find_more": true,
+        "architecture_replacement": false,
+        "task_state_effect": "No change. T37 remains NOT_STARTED."
+      }
+    }
+  ],
+  "source_capture_refresh": {
+    "status": "PENDING_NORMAL_MERGE",
+    "captured_input_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+    "required_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+    "merge_owner": "/root",
+    "exact_merge_status": "PENDING",
+    "old_capture_preserved": true,
+    "source_capture_files_modified_by_checkpoint_owner": false
   }
 }

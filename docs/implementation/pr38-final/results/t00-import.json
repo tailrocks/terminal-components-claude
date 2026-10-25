@@ -118,6 +118,34 @@
     "No Cargo command or test command run; no tests authorized for this import-only work.",
     "The worker runtime has no independent model-identity attestation; assignment settings were explicit."
   ],
-  "review_state": "REVIEW",
-  "commit_message": "docs(plan): import reviewed PR 38 package"
+  "review_state": "ACCEPT_SCOPED",
+  "commit_message": "docs(plan): import reviewed PR 38 package",
+  "review_decision": {
+    "decision": "ACCEPT",
+    "reviewer_id": "/root/t00_independent_review",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "reviewed_output_commit": "e2fa510c9fe993dce39e1f3bf56d62a2a9d9f1a0",
+    "scope": "Package import, additive root links, and checkpoint record only.",
+    "limits": [
+      "Does not accept T00 source capture.",
+      "Does not verify product behavior."
+    ]
+  },
+  "checkpoint_commit": "e2fa510c9fe993dce39e1f3bf56d62a2a9d9f1a0",
+  "upstream_refresh": {
+    "previous_input_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+    "approved_next_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+    "review": {
+      "decision": "APPROVED",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "reviewer_id": null,
+      "reviewer_id_note": "Coordinator reported approval; reviewer ID not supplied in that message."
+    },
+    "merge_status": "PENDING_NORMAL_MERGE",
+    "merge_owner": "/root",
+    "source_capture_status": "REFRESH_REQUIRED_AFTER_MERGE",
+    "preservation": "Existing source-capture files for the old input remain untouched."
+  }
 }
