@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use super::{App, Motion};
 use crate::domain::mise::Trust;
 use crate::domain::ranking::{Pin, Usage};

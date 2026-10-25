@@ -1,3 +1,4 @@
+#![cfg(test)]
 #![expect(
     clippy::expect_used,
     clippy::unwrap_used,
