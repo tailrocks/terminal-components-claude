@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use super::*;
 use crate::domain::effect::Mutation;
 use termrock::{Dialog, ItemKey, KeyCode, MouseKind, PartRef, Theme};
