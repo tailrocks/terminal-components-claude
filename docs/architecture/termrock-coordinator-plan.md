@@ -6,6 +6,12 @@ pushed to directly. `design/interaction-polish` (PR #26) and the
 
 Ledger: [termrock-migration-record.md](./termrock-migration-record.md).
 
+This plan predates T37. Test names, suite counts, and test commands below are
+historical at the source revision recorded by each section. T37 retires those
+legacy targets and harnesses. Do not run old commands or treat their results
+as current evidence. T01 and T38 must establish current requirements and
+approve future tests. Product behavior remains `NOT VERIFIED`.
+
 ## Acceptance surface
 
 - Reference inventory: 302 screens (holla 125, showcase 84, jackin 49,
