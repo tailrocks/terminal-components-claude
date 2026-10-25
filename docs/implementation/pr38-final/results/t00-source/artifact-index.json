@@ -1,5 +1,5 @@
 {
-  "artifact_count": 62,
+  "artifact_count": 63,
   "artifacts": [
     {
       "path": "analyze_latest_test_delta.py",
@@ -33,8 +33,8 @@
     },
     {
       "path": "ci-head-1d6-required-failure.json",
-      "sha256": "b6f3f7d59f15476f1acfa724257412be972202e714c7c26980dfdf901544f831",
-      "size_bytes": 1110
+      "sha256": "639b8cc7de15c47daadd2ceb165bb5c0da3db83ee2fee6ff0ba082955c6aef23",
+      "size_bytes": 1158
     },
     {
       "path": "ci-head-1d6-required-job-excerpt.txt",
@@ -43,8 +43,8 @@
     },
     {
       "path": "ci-head-1d6-rest.json",
-      "sha256": "0b154a2646a2b6e281986c0ffebac5cdc0289e20771e9f998a254521a6fa370a",
-      "size_bytes": 358826
+      "sha256": "1ff45c0dff72fe837ee658b424d80b87e5b36e26147cb9c27a72be24709fc71f",
+      "size_bytes": 358846
     },
     {
       "path": "ci-head-1d6-snapshot.json",
@@ -73,8 +73,8 @@
     },
     {
       "path": "commands.json",
-      "sha256": "8a4b1b7c8c6356ab66aabb6c1177fc11c500b31045d6d01c6752072972cc2bd4",
-      "size_bytes": 7454
+      "sha256": "75e75900854d49dfda246861cd559e074869078f3fc366f8a16eb63f503725ee",
+      "size_bytes": 8346
     },
     {
       "path": "declaration-overlay-1d6.json",
@@ -98,18 +98,18 @@
     },
     {
       "path": "generated-and-legal.json",
-      "sha256": "8fa75d46a8c50f3162b3118b0fa4fba634f83c29664e2d6a36fc9f2aefa89afb",
-      "size_bytes": 10879
+      "sha256": "01c34da828382b6d34b922ae5005631f7175df9c64a637dd9387d3b247c8bd82",
+      "size_bytes": 10943
     },
     {
       "path": "inventory-summary.json",
-      "sha256": "888c636940530283f2f340a6f9a9eccd1051393e1a0a1f499a3c6d86b1231c4e",
-      "size_bytes": 2633
+      "sha256": "11be7ef3a19fb3d9666dd7a99c41656684051ca6606a3bbba2b64c0edeed9906",
+      "size_bytes": 3577
     },
     {
       "path": "ownership-boundaries.json",
-      "sha256": "4b18ec864f11f6901a4e3e10923e37fb204fbb4211d08102b6848dd582faea0b",
-      "size_bytes": 16597
+      "sha256": "cc44155d5be5ff14ff5a07f074024ee86ed9e40e0d018cc8da704820992a2cd4",
+      "size_bytes": 16735
     },
     {
       "path": "ownership-delta-31f.json",
@@ -118,13 +118,18 @@
     },
     {
       "path": "safety-contracts.json",
-      "sha256": "f3274871713e866392a86d8b0e0858cdc4ded83c369b4c4f4675e0f8a6fa51fa",
+      "sha256": "5624415b65e95752713ef57f38354f89cdecce314960b37dd285e9bfc7b90f12",
       "size_bytes": 1780
     },
     {
       "path": "scan_source_declarations.py",
-      "sha256": "4ba3b5c65c4433207c25e05e0e037d2270a510bf9e4bdcc7d421084b5a51d923",
-      "size_bytes": 40082
+      "sha256": "4c3fc158b40a27281ea5b9b855969c8886d55fb920421587a7dfcf39ea465e1c",
+      "size_bytes": 40986
+    },
+    {
+      "path": "script-directives.json",
+      "sha256": "0065e65c97519c44b859e5188a5baa80662ea3ce95954eaf01758ebcf06e4eaf",
+      "size_bytes": 1289
     },
     {
       "path": "source-deltas/31f-to-1d6/new/crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
@@ -243,8 +248,8 @@
     },
     {
       "path": "source-report.md",
-      "sha256": "62ebfee661f3bb3a496d92066f439614a5f7f7cccfb3410d56adbe04527b23dc",
-      "size_bytes": 5376
+      "sha256": "18338746ac53a6a8d9a9bac3acfa8192ce522fda3bc3fd7625a1f2da08246beb",
+      "size_bytes": 5460
     },
     {
       "path": "source-state.json",
@@ -253,8 +258,8 @@
     },
     {
       "path": "source-summary-1d6.json",
-      "sha256": "950d169aa4f64917d89b9089f8f3584a2023a4978d9f6f3f275efece7c32e665",
-      "size_bytes": 3229
+      "sha256": "8af5ec64185926c1d2b079be3e15bdd70910615a0862c390992f8de00cf73e35",
+      "size_bytes": 3279
     },
     {
       "path": "test-files-1d6.jsonl.gz",
@@ -278,13 +283,13 @@
     },
     {
       "path": "test-inventory.json",
-      "sha256": "57bb4026f334138ce2496e9d027333fb6b05fe1c7916eb4b03cd4b67908a72ca",
-      "size_bytes": 33005864
+      "sha256": "2e684820b5cae6a2817be4ce5760a17d940b3d6054738f2c329a569b061048a6",
+      "size_bytes": 33007051
     },
     {
       "path": "toolchain.json",
-      "sha256": "8f60b7b0c0f4d3345630469c1a12c512370fb30e405c193ba4b432faaaf6c5b3",
-      "size_bytes": 5456
+      "sha256": "f354c57b3d10341f4dcc7de99ff4dd3bb1873d3cccbefe0bab0cafe8a352895e",
+      "size_bytes": 5968
     },
     {
       "path": "tracked-tree-1d6.jsonl.gz",
@@ -303,13 +308,13 @@
     },
     {
       "path": "validate_source_records.py",
-      "sha256": "84f7d80296076d36c6ae3878532f5289ab7b1174233e9f3c031aa8fef39f6618",
-      "size_bytes": 2397
+      "sha256": "0c2490d52be4f4aa7b41ffe8369f6803f9f9ee63e405c373b02218ac0f99e301",
+      "size_bytes": 3066
     },
     {
       "path": "worker-result.json",
-      "sha256": "02fb2ab024864959348dc98d41368b08b9a677fd43c6b052849c20396d0f20c9",
-      "size_bytes": 9637
+      "sha256": "68592355d5db726b824a691ff684ca54fdc2727ec839549f8ca4c08d422d6834",
+      "size_bytes": 10620
     }
   ],
   "exclusion": "artifact-index.json does not contain its own digest. Verify its file hash from Git after commit.",

@@ -16,6 +16,7 @@ by_path={x['path']:x for x in tree}
 def source_candidate(e):
     p=e['path']; low=p.lower(); lang=e['language']
     if e['size_bytes']>20_000_000: return False
+    if lang=='extensionless' and e['mode']=='100755': return True
     if lang in {'rust','python','shell','toml','yaml','markdown','javascript','typescript'}: return True
     if lang=='json':
         return p.startswith(('.github/','.github-gen/','.velnor/','.config/','tools/')) or p=='component-ownership.json'
@@ -127,6 +128,9 @@ def matching_brace(source, opening):
 
 for e in source_entries:
     p=e['path']; s=text(e); lang=e['language']; low=p.lower(); lines=s.splitlines()
+    # Include small extensionless executable scripts by file mode, then classify shell only after a shebang check.
+    if lang=='extensionless' and e['mode']=='100755' and lines and lines[0].startswith('#!'):
+        lang='shell'
     if lang=='rust':
         for m in TEST_ATTR.finditer(s):
             q=FN.search(s[m.end():m.end()+2500])
@@ -419,11 +423,15 @@ for e in test_entries:
     parts=set(PurePosixPath(e['path']).parts)
     if parts & {'fixtures','fixture'}:
         fixture_inventory.append({'path':e['path'],'blob_oid':e['blob_oid'],'sha256':e['sha256'],'size_bytes':e['size_bytes'],'language':e['language'],'classification':'fixture path candidate; retained as source/evidence, not deletion authorization','test_reasons':e['test_reasons']})
+extensionless_executable_scripts=[]
+for e in source_entries:
+    if e['language']=='extensionless' and e['mode']=='100755' and text(e).startswith('#!'):
+        extensionless_executable_scripts.append({'path':e['path'],'blob_oid':e['blob_oid'],'sha256':e['sha256'],'size_bytes':e['size_bytes'],'mode':e['mode'],'classification':'extensionless executable shell script detected by tracked mode and shebang'})
 inv={
  'source_commit':REV,'tracked_paths':len(tree),'tracked_bytes':sum(x['size_bytes'] for x in tree),'unique_blob_oids':len({x['blob_oid'] for x in tree}),
  'whole_tree_ledger':'tracked-tree.jsonl.gz','test_related_ledger':'test-files.jsonl.gz','test_related_path_count':len(test_entries),'test_related_language_counts':lang_counts,'test_related_reason_counts':by_reason,
  'hash_method':'SHA-256 over git blob bytes at source commit; complete tree and test-candidate ledgers are already written and retained.',
- 'source_scan_boundary':{'source_files_read':len(source_entries),'unique_source_blobs_read':len(source_oids),'excluded_from_text_scan':'Large binary, HTML, ANSI, raw terminal and immutable visual artifact content; all remain in the full hash ledgers.'},
+ 'source_scan_boundary':{'source_files_read':len(source_entries),'unique_source_blobs_read':len(source_oids),'executable_script_rule':'Include extensionless files with tracked mode 100755; classify as shell when the first line is a shebang.','extensionless_executable_scripts':extensionless_executable_scripts,'excluded_from_text_scan':'Large binary, HTML, ANSI, raw terminal and immutable visual artifact content; all remain in the full hash ledgers.'},
  'rust_test_functions':rust_tests,'test_function_counts':test_function_counts,'test_modules':test_modules,'test_testing_cfg_scopes':cfg_items,'rustdoc_fences':rustdoc,'markdown_rust_examples':markdown_examples,'macro_test_candidates':macros,'macro_invocation_candidates':macro_invocations,'module_include_edges':imports,
  'cargo_manifests':manifest_rows,'workspace_members':sorted(set(workspace)),'cargo_targets':declared_targets,'implicit_cargo_target_candidates':implicit_target_candidates,'test_target_candidates':test_target_candidates,'implicit_test_source_files':implicit_test_files,'bench_and_example_paths':bench_example_files,'doctest_optouts':doctest_optouts,'test_optouts':no_test_optouts,
  'dev_dependencies':dev_deps,'normal_dependencies_of_test_only_packages':test_only_normal_deps,'python_test_functions_and_other_test_declarations':harnesses,'fixtures':fixture_inventory,'test_harnesses_and_config':{'nextest_config':'.config/nextest.toml','ci_workflows':[p for p in sorted(all_paths) if p.startswith('.github/workflows/')],'visual_and_pty_harness_files':runner_paths},

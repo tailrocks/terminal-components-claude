@@ -17,10 +17,11 @@
   },
   "jobs_returned": 100,
   "limits": [
-    "This is one timestamped remote snapshot. In-progress job states can change after capture.",
+    "This is one timestamped remote snapshot. Later runs may have different states.",
     "A complete job page does not imply completed builds or tests.",
     "A successful test step inside a cancelled job is a step-level result; the whole job is still cancelled."
   ],
+  "non_success_job_count": 98,
   "pages": [
     {
       "http_status": 200,

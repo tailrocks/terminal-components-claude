@@ -52,6 +52,16 @@ def main() -> None:
         "completed/success": 2,
     }
 
+    inventory = json.loads((ROOT / "test-inventory.json").read_text())
+    directives = inventory["required_comment_directives"]
+    assert len(directives) == 3_025
+    script_paths = {row["path"] for row in inventory["source_scan_boundary"]["extensionless_executable_scripts"]}
+    assert script_paths == {"tools/refactor-proof/bin/tc-proof", "tools/refactor-proof/bin/tc-proof-host"}
+    for path in script_paths:
+        assert any(row["path"] == path and row["source"].startswith("#!") for row in directives)
+    script_record = json.loads((ROOT / "script-directives.json").read_text())
+    assert {row["path"] for row in script_record["scripts"]} == script_paths
+
     findings = json.loads((ROOT / "finding-deltas-e08-to-1d6.json").read_text())
     assert len(findings["f13"]["moved_files"]) == 7
     assert findings["f13"]["behavior_proof_rows"] == 6

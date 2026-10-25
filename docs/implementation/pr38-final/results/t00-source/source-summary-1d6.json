@@ -17,6 +17,7 @@
       "to": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
     }
   ],
+  "extensionless_executable_scripts_included": 2,
   "hash_method": "SHA-256 over source Git blob bytes. The immutable 3a ledgers are overlaid only with exact changed blobs at 31f and 1d6. No unchanged path was rehashed.",
   "intermediate_commit": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
   "inventory_counts": {
@@ -40,7 +41,7 @@
     "preserved_asset_rows": 93740,
     "production_or_mixed_diagnostic_sites": 85,
     "production_or_test_runner_path_candidates": 130,
-    "required_comment_directives": 3023,
+    "required_comment_directives": 3025,
     "test_target_candidates": 426,
     "unsafe_source_sites": 93
   },
@@ -53,7 +54,7 @@
   ],
   "schema": "t00.source-inventory-summary.v1",
   "source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-  "source_files_text_scanned": 1296,
+  "source_files_text_scanned": 1298,
   "test_related": {
     "language_path_counts": {
       "ansi": 15998,
@@ -78,7 +79,7 @@
     "unique_blob_oids": 68471
   },
   "test_related_ledger": "test-files-1d6.jsonl.gz",
-  "unique_source_blobs_text_scanned": 1286,
+  "unique_source_blobs_text_scanned": 1288,
   "whole_tree": {
     "tracked_blob_bytes": 16734723891,
     "tracked_paths": 94896,

@@ -2,7 +2,7 @@
   "inventory": {
     "bounded_declaration_inventory": "test-inventory.json",
     "complete_path_and_blob_hashes": "tracked-tree-1d6.jsonl.gz",
-    "directive_lines": 3023,
+    "directive_lines": 3025,
     "unsafe_source_sites": 93
   },
   "lint_directives": [

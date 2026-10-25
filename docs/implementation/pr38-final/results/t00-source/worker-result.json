@@ -89,7 +89,7 @@
       "command": "python3 docs/implementation/pr38-final/results/t00-source/scan_source_declarations.py",
       "evidence_path": "inventory-summary.json",
       "exit_code": 0,
-      "result": "Bounded read-only inventory completed. It scanned 1,296 source/config/docs paths and 1,286 unique source blobs. It did not scan large immutable artifact contents or execute tests.",
+      "result": "Initial bounded scan before extensionless-executable correction. It scanned 1,296 source/config/docs paths and 1,286 unique blobs. This record is superseded by the corrected scan entry below.",
       "selected_tests": 0
     },
     {
@@ -127,23 +127,44 @@
       "selected_tests": 0
     },
     {
-      "command": "git rev-parse MERGE^{tree} 3a2c977c881cd1745de16425c982791ee3ef2cc3^{tree}",
+      "command": "git rev-parse '17bf5d8fd77541d3e7eefddbacd108793938499b^{tree}' '3a2c977c881cd1745de16425c982791ee3ef2cc3^{tree}'",
       "exit_code": 0,
-      "result": "CI merge checkout 17bf5d8fd77541d3e7eefddbacd108793938499b and source 3a have the same tree 63ee1ad48fe8ea34ffa2703c5cae05d0d81faa09.",
+      "result": "Both references resolve to tree 63ee1ad48fe8ea34ffa2703c5cae05d0d81faa09.",
+      "selected_tests": 0
+    },
+    {
+      "command": "mise exec -- rustc --version --verbose",
+      "evidence_path": "toolchain.json",
+      "exit_code": 0,
+      "result": "Rust 1.99.1; commit 58cf8f9c35b355199727627d07ae34a4e2846d67; host aarch64-apple-darwin; LLVM 23.1.1.",
+      "selected_tests": 0
+    },
+    {
+      "command": "mise exec -- mbx --version",
+      "evidence_path": "toolchain.json",
+      "exit_code": 0,
+      "result": "mbx 1.27.0.",
+      "selected_tests": 0
+    },
+    {
+      "command": "python3 docs/implementation/pr38-final/results/t00-source/scan_source_declarations.py",
+      "evidence_path": "test-inventory.json",
+      "exit_code": 0,
+      "result": "Corrected bounded read-only scan: 1,298 source/config/docs paths, 1,288 unique blobs, 3,025 directive lines. It records both extensionless executable shell shebangs.",
       "selected_tests": 0
     },
     {
       "command": "python3 docs/implementation/pr38-final/results/t00-source/build_artifact_index.py",
       "evidence_path": "artifact-index.json",
       "exit_code": 0,
-      "result": "Indexed 62 T00 evidence files with SHA-256; artifact-index.json excludes its own digest.",
+      "result": "Indexed 63 T00 evidence files with SHA-256; artifact-index.json excludes its own digest.",
       "selected_tests": 0
     },
     {
       "command": "python3 docs/implementation/pr38-final/results/t00-source/validate_source_records.py",
       "evidence_path": "validate_source_records.py",
       "exit_code": 0,
-      "result": "JSON files valid (27); six ledgers reconciled; 1d6 test paths are a subset of the full tree; CI pagination is complete at 100 jobs; F13 records seven moves and six proofs; no __pycache__.",
+      "result": "JSON files valid (28); six ledgers reconciled; 1d6 test paths are a subset of the full tree; CI pagination is complete at 100 jobs; F13 records seven moves and six proofs; both extensionless shebangs are present; no __pycache__.",
       "selected_tests": 0
     }
   ],
@@ -177,7 +198,7 @@
   ],
   "model": "gpt-6-luna",
   "output_commit": null,
-  "output_commit_pending_reason": "The coordinator has not committed the owned T00 source evidence directory. The coordinator will bind the exact output commit in run-state after this evidence commit.",
+  "output_commit_pending_reason": "The initial source unit is committed at 5847dfd26c7064dac491e540bc69b0ac22e2fc18. This commit contains corrections to that unit. Keep this field null to avoid a self-referential commit hash; the coordinator records the final correction commit in run-state.",
   "red_evidence": null,
   "requirements": [
     "Captured PR38, PR26, base, common ancestor, and historical review IDs.",

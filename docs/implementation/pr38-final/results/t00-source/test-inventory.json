@@ -642124,6 +642124,16 @@
     },
     {
       "line": 1,
+      "path": "tools/refactor-proof/bin/tc-proof",
+      "source": "#!/usr/bin/env bash"
+    },
+    {
+      "line": 1,
+      "path": "tools/refactor-proof/bin/tc-proof-host",
+      "source": "#!/usr/bin/env bash"
+    },
+    {
+      "line": 1,
       "path": "tools/refactor-proof/scripts/dev-tc-proof-host.sh",
       "source": "#!/usr/bin/env bash"
     },
@@ -692049,8 +692059,27 @@
   "source_commit": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
   "source_scan_boundary": {
     "excluded_from_text_scan": "Large binary, HTML, ANSI, raw terminal and immutable visual artifact content; all remain in the full hash ledgers.",
-    "source_files_read": 1296,
-    "unique_source_blobs_read": 1286
+    "executable_script_rule": "Include extensionless files with tracked mode 100755; classify as shell when the first line is a shebang.",
+    "extensionless_executable_scripts": [
+      {
+        "blob_oid": "b3ddbcdc0df54da0712ca2e491d0bea010049fdd",
+        "classification": "extensionless executable shell script detected by tracked mode and shebang",
+        "mode": "100755",
+        "path": "tools/refactor-proof/bin/tc-proof",
+        "sha256": "6fa6a1b627c5748e3251f26a57898b4dc5d8e92966cc19e7acedbd47cc407470",
+        "size_bytes": 246
+      },
+      {
+        "blob_oid": "768183c8d0b739c55fefc40428a6e042505fd7e3",
+        "classification": "extensionless executable shell script detected by tracked mode and shebang",
+        "mode": "100755",
+        "path": "tools/refactor-proof/bin/tc-proof-host",
+        "sha256": "d7ff209319f0ec35de311894a7d2dfa0029aef5f205378026d187575d3c81cc0",
+        "size_bytes": 251
+      }
+    ],
+    "source_files_read": 1298,
+    "unique_source_blobs_read": 1288
   },
   "test_function_counts": {
     "other_named_cases": 0,

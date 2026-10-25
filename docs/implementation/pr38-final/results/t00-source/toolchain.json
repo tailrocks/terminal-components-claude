@@ -102,6 +102,18 @@
   "reported_cargo": "cargo 1.99.1 (5f94df478 2026-08-27) (Homebrew), reported by mbx doctor. The guard rejects cargo --version, so Cargo version was not queried through Cargo.",
   "schema": "t00.toolchain-evidence.v1",
   "source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "through_mise_version_probes": [
+    {
+      "command": "mise exec -- rustc --version --verbose",
+      "exit_code": 0,
+      "output": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: aarch64-apple-darwin\nrelease: 1.99.1\nLLVM version: 23.1.1"
+    },
+    {
+      "command": "mise exec -- mbx --version",
+      "exit_code": 0,
+      "output": "mbx 1.27.0"
+    }
+  ],
   "tool_paths": {
     "cargo": "/Users/donbeave/Library/Application Support/mbx/bin/cargo",
     "cargo-nextest": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.149/cargo-nextest",
@@ -122,14 +134,14 @@
       "command": "rustc --version",
       "evidence_path": "toolchain.json",
       "exit_code": 0,
-      "result": "rustc 1.99.1 (58cf8f9c3 2026-10-13) (Homebrew)",
+      "result": "rustc 1.99.1 (58cf8f9c3 2026-10-13) (Homebrew); direct executable probe.",
       "selected_tests": 0
     },
     {
       "command": "mbx --version",
       "evidence_path": "toolchain.json",
       "exit_code": 0,
-      "result": "mbx 1.27.0",
+      "result": "mbx 1.27.0; direct executable probe.",
       "selected_tests": 0
     },
     {

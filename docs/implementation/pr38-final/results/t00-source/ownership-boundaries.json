@@ -246,7 +246,8 @@
     }
   ],
   "complete_static_reconciliation": "test-inventory.json, test-files-1d6.jsonl.gz, tracked-tree-1d6.jsonl.gz; 7353 textual module/import/include edges, 743 cfg(test/testing) scopes, 13 macro-generated test candidates, 49 macro invocation groups.",
-  "generated_and_directive_rules": "The inventory records 3023 parser, lint, shell, legal, generator, and shebang directive lines. Current Velnor generated files name .velnor/config.toml as their source. Do not hand-edit generated output. Preserve .github generator headers.",
+  "extensionless_executable_scripts": "script-directives.json",
+  "generated_and_directive_rules": "The inventory records 3025 parser, lint, shell, legal, generator, and shebang directive lines. It includes extensionless executable scripts by tracked mode and shebang. Current Velnor generated files name .velnor/config.toml as their source. Do not hand-edit generated output. Preserve .github generator headers.",
   "generated_and_legal_inventory": "generated-and-legal.json",
   "legal_files": [
     {

@@ -1,0 +1,29 @@
+{
+  "detector": "Tracked mode 100755 plus a first-line shebang.",
+  "schema": "t00.extensionless-executable-script-directives.v1",
+  "scripts": [
+    {
+      "blob_oid": "b3ddbcdc0df54da0712ca2e491d0bea010049fdd",
+      "classification": "extensionless executable shell script detected by tracked mode and shebang",
+      "directive_line": 1,
+      "mode": "100755",
+      "path": "tools/refactor-proof/bin/tc-proof",
+      "sha256": "6fa6a1b627c5748e3251f26a57898b4dc5d8e92966cc19e7acedbd47cc407470",
+      "shebang": "#!/usr/bin/env bash",
+      "size_bytes": 246,
+      "source_inventory_path": "test-inventory.json:source_scan_boundary.extensionless_executable_scripts"
+    },
+    {
+      "blob_oid": "768183c8d0b739c55fefc40428a6e042505fd7e3",
+      "classification": "extensionless executable shell script detected by tracked mode and shebang",
+      "directive_line": 1,
+      "mode": "100755",
+      "path": "tools/refactor-proof/bin/tc-proof-host",
+      "sha256": "d7ff209319f0ec35de311894a7d2dfa0029aef5f205378026d187575d3c81cc0",
+      "shebang": "#!/usr/bin/env bash",
+      "size_bytes": 251,
+      "source_inventory_path": "test-inventory.json:source_scan_boundary.extensionless_executable_scripts"
+    }
+  ],
+  "source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+}

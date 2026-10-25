@@ -172,10 +172,11 @@
     }
   ],
   "directive_inventory": {
-    "count": 3023,
+    "count": 3025,
     "path": "test-inventory.json:required_comment_directives",
     "scope": "Parser, lint, cfg, shebang, shell, license, generated, and include/path directives."
   },
+  "extensionless_executable_scripts": "script-directives.json",
   "generator": "Velnor Actions 0.1.48 for current .github outputs",
   "generator_source": ".velnor/config.toml",
   "legal_files": [
