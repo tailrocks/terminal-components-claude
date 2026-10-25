@@ -41,7 +41,8 @@
     "integration": {
       "path": "/Users/donbeave/Downloads/terminal-components-claude",
       "branch": "parity/termrock-visual-baseline",
-      "starting_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3"
+      "starting_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "current_sha": "d51945d0592eee33a563efc717b07bf8847cbebd"
     },
     "reference": {
       "path": "/Users/donbeave/Downloads/termrock-pr26-reference-20261026",
@@ -58,12 +59,12 @@
     {
       "path": "AGENTS.md",
       "owner": "/root/t00_import_rules",
-      "state": "READY_FOR_REVIEW"
+      "state": "REVIEW"
     },
     {
       "path": "docs/implementation/pr38-final/**",
       "owner": "/root/t00_import_rules",
-      "state": "READY_FOR_REVIEW",
+      "state": "REVIEW",
       "exceptions": [
         "results/t00-source/**",
         "results/t00-review/**"
@@ -109,7 +110,7 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "READY_FOR_REVIEW"
+      "status": "COMMITTED_PENDING_REVIEW"
     },
     {
       "id": "/root/t00_independent_review",
@@ -117,7 +118,7 @@
       "model": "gpt-6.1-sol",
       "effort": "high",
       "assignment": "explicit",
-      "status": "PREPARING",
+      "status": "READY_FOR_REVIEW",
       "review_output_sha": null
     }
   ],
@@ -190,14 +191,15 @@
     "import_record": "results/t00-import.json",
     "source_capture": "results/t00-source/source-record.json (pending)",
     "independent_review": "results/t00-review/ (pending)",
-    "root_instructions": "AGENTS.md"
+    "root_instructions": "AGENTS.md",
+    "import_record_sha256": "00a7e3b20c8d81bcfd63738a230453ab0304ecd7dad42d0d2615987bbd57e0d5"
   },
   "review": {
     "required_model": "gpt-6.1-sol",
     "required_effort": "high",
     "reviewer_id": "/root/t00_independent_review",
     "status": "PENDING",
-    "reviewed_output_sha": null
+    "reviewed_output_sha": "d51945d0592eee33a563efc717b07bf8847cbebd"
   },
   "blockers": [
     "T37 and all dependent Termrock source work remain pending T00 independent review."
@@ -209,5 +211,8 @@
     "target_after_sha256": "95c53c363bb545a8ef824eda7acb5d20f498eb48eca89f05a9a4facf16df1da0",
     "check": "git apply --check passed before apply",
     "result": "Applied additively; original instructions remain."
+  },
+  "output_commits": {
+    "T00-import": "d51945d0592eee33a563efc717b07bf8847cbebd"
   }
 }

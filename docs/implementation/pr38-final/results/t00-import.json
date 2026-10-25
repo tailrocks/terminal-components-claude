@@ -2,8 +2,8 @@
   "task_id": "T00",
   "subtask": "package import and root instruction links",
   "input_commit": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-  "output_commit": null,
-  "integration_head_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+  "output_commit": "d51945d0592eee33a563efc717b07bf8847cbebd",
+  "integration_head_sha": "d51945d0592eee33a563efc717b07bf8847cbebd",
   "model": "gpt-6-luna",
   "effort": "max",
   "agent_id": "/root/t00_import_rules",
@@ -112,11 +112,12 @@
     "root_AGENTS_patch_sha256": "6ca84ba1017af12142689ad6f5f664f924717b30b2d0ba1f8dcde47f8a2eeff2"
   },
   "limits": [
-    "No commit created because source and review agents are still writing; coordinator owns final integration commit.",
+    "Import unit committed as d51945d0592eee33a563efc717b07bf8847cbebd; coordinator owns later integration commits.",
     "T00 source capture, tool inventory, current build-failure records, and fresh source-finding checks remain with /root/t00_source_capture.",
     "Independent Sol high review is pending.",
     "No Cargo command or test command run; no tests authorized for this import-only work.",
     "The worker runtime has no independent model-identity attestation; assignment settings were explicit."
   ],
-  "review_state": "REVIEW"
+  "review_state": "REVIEW",
+  "commit_message": "docs(plan): import reviewed PR 38 package"
 }
