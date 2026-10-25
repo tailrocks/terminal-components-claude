@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::catalogue::{IntentError, resolve_intent};
-use crate::domain::action::{Action, Availability, Risk};
+use crate::domain::action::{Action, ActionKind, Availability, Risk};
 use crate::domain::args::{AcceptedInputs, InputError, InputField, InputSchema, SchemaError};
 use crate::domain::host::{Environment, HostKind};
 use crate::domain::mise::{MiseTask, Trust};
@@ -116,12 +116,13 @@ impl ProducerSnapshot {
     }
 }
 
-/// Finds the explicitly declared producer for a canonical action row.
+/// Finds the explicitly declared producer for a canonical action or its remembered row.
 ///
-/// The exact fixture identity is the declaration. Other tasks keep their existing dispatch
-/// behavior, while a stale `test-nextest` row still selects this producer and fails closed.
+/// The exact canonical intent is the declaration. Other tasks keep their existing dispatch
+/// behavior, while a stale canonical or remembered `test-nextest` row still selects this
+/// producer and fails closed.
 pub fn task_args_producer_for(row: &Action) -> Result<Option<TaskArgsProducer>, SchemaError> {
-    if row.id == NEXTTEST_ROW_ID {
+    if row.id == NEXTTEST_ROW_ID || row.intent_id() == Some(NEXTTEST_ROW_ID) {
         nextest_task_producer().map(Some)
     } else {
         Ok(None)
@@ -206,18 +207,11 @@ impl TaskArgsSession {
         row: &Action,
         producer: &TaskArgsProducer,
     ) -> Result<Self, TaskArgsError> {
-        let task = current_task(world, producer)?;
-        ensure_task_binding(task, producer)?;
-        let action = current_task_action(world, producer)?;
-        let normalized = normalized_task_action(&action, task.trust, &task.defined_in)?;
-        if normalized_task_action(row, task.trust, &task.defined_in)? != normalized {
-            return Err(TaskArgsError::StaleAction);
-        }
-
+        let (normalized, task) = canonical_task_binding(world, row, producer)?;
         let initially_trusted = task.trust == Trust::Trusted;
         Ok(Self {
             producer: ProducerSnapshot::from(producer),
-            task: TaskSnapshot::from(task),
+            task,
             action: normalized,
             context: ContextSnapshot::from(world),
             initially_trusted,
@@ -248,12 +242,12 @@ impl TaskArgsSession {
         if !world.trust_mise_file(file) {
             return Err(TaskArgsError::TrustTransitionChanged);
         }
-        let current_task = current_task(world, producer)?;
+        let current_row = current_row_by_id(world, &row.id)?;
+        let (current_action, current_task) = canonical_task_binding(world, &current_row, producer)?;
         if current_task.trust != Trust::Trusted {
             return Err(TaskArgsError::TrustTransitionChanged);
         }
-        let current_action = current_task_action(world, producer)?;
-        if normalized_task_action(&current_action, Trust::Trusted, file)? != self.action {
+        if current_task.definition_path != file || current_action != self.action {
             return Err(TaskArgsError::TrustTransitionChanged);
         }
         if ContextSnapshot::from(&*world) != self.context {
@@ -306,8 +300,7 @@ impl TaskArgsSession {
         if ContextSnapshot::from(world) != self.context {
             return Err(TaskArgsError::StaleContext);
         }
-        let task = current_task(world, producer)?;
-        ensure_task_binding(task, producer)?;
+        let (normalized, task) = canonical_task_binding(world, row, producer)?;
         if task.trust != expected_trust {
             return Err(if expected_trust == Trust::Trusted {
                 TaskArgsError::TrustTransitionChanged
@@ -315,16 +308,12 @@ impl TaskArgsSession {
                 TaskArgsError::NeedsTrust
             });
         }
-        let current_action = current_task_action(world, producer)?;
-        let normalized = normalized_task_action(&current_action, task.trust, &task.defined_in)?;
-        if normalized != self.action
-            || normalized_task_action(row, task.trust, &task.defined_in)? != normalized
-        {
+        if normalized != self.action {
             return Err(TaskArgsError::StaleAction);
         }
         if self.task.id != task.id
-            || self.task.definition_path != task.defined_in
-            || self.task.body != task.command
+            || self.task.definition_path != task.definition_path
+            || self.task.body != task.body
             || (self.initially_trusted && self.task.trust != task.trust)
         {
             return Err(TaskArgsError::TaskDefinitionChanged);
@@ -343,18 +332,84 @@ fn ensure_task_binding(task: &MiseTask, producer: &TaskArgsProducer) -> Result<(
     Ok(())
 }
 
-fn current_task_action(
+fn current_row_by_id(world: &World, row_id: &str) -> Result<Action, TaskArgsError> {
+    let mut matching = crate::catalogue::catalogue(world)
+        .into_iter()
+        .filter(|action| action.id == row_id);
+    let Some(row) = matching.next() else {
+        return Err(TaskArgsError::StaleAction);
+    };
+    if matching.next().is_some() {
+        return Err(TaskArgsError::StaleAction);
+    }
+    Ok(row)
+}
+
+fn canonical_task_binding(
     world: &World,
+    row: &Action,
     producer: &TaskArgsProducer,
-) -> Result<Action, TaskArgsError> {
+) -> Result<(Action, TaskSnapshot), TaskArgsError> {
+    let declared = nextest_task_producer().map_err(|_| TaskArgsError::StaleProducer)?;
+    if producer != &declared {
+        return Err(TaskArgsError::StaleProducer);
+    }
+
+    let task = current_task(world, producer)?;
+    ensure_task_binding(task, producer)?;
+
     let expected_id = format!("task:{}", producer.task_id);
+    if row.intent_id() != Some(expected_id.as_str()) {
+        return Err(TaskArgsError::UnsupportedTask);
+    }
+    let current_row = current_row_by_id(world, &row.id)?;
+    if current_row.intent() != row.intent()
+        || current_row.command != row.command
+        || current_row.target != row.target
+        || current_row.workdir != row.workdir
+    {
+        return Err(TaskArgsError::StaleAction);
+    }
+
+    let resolved = match resolve_intent(world, row) {
+        Ok(action) => action,
+        Err(IntentError::NeedsTrust) if task.trust == Trust::Untrusted => {
+            unique_canonical_task_action(world, &expected_id)?
+        }
+        Err(error) => return Err(map_intent_error(error)),
+    };
+    let canonical = unique_canonical_task_action(world, &expected_id)?;
+    if resolved != canonical {
+        return Err(TaskArgsError::StaleAction);
+    }
+
+    let expected_command = format!("mise run {}", producer.task_id);
+    let expected_workdir = producer
+        .definition_path
+        .rsplit_once('/')
+        .map_or_else(|| world.cwd.clone(), |(directory, _)| directory.to_owned());
+    if canonical.id != expected_id
+        || canonical.intent_id() != Some(expected_id.as_str())
+        || canonical.kind != ActionKind::Task
+        || canonical.command != expected_command
+        || canonical.target != expected_workdir
+        || canonical.workdir != expected_workdir
+    {
+        return Err(TaskArgsError::StaleAction);
+    }
+
+    let normalized = normalized_task_action(&canonical, task.trust, &task.defined_in)?;
+    Ok((normalized, TaskSnapshot::from(task)))
+}
+
+fn unique_canonical_task_action(world: &World, expected_id: &str) -> Result<Action, TaskArgsError> {
     let mut matching = crate::catalogue::catalogue(world)
         .into_iter()
         .filter(|action| action.id == expected_id);
     let Some(action) = matching.next() else {
         return Err(TaskArgsError::StaleAction);
     };
-    if matching.next().is_some() || action.intent_id() != Some(expected_id.as_str()) {
+    if matching.next().is_some() || action.intent_id() != Some(expected_id) {
         return Err(TaskArgsError::StaleAction);
     }
     Ok(action)
@@ -553,39 +608,12 @@ fn bind_current(
     row: &Action,
     producer: &TaskArgsProducer,
 ) -> Result<(Action, TaskSnapshot, ContextSnapshot), TaskArgsError> {
-    if row.id != format!("task:{}", producer.task_id) {
-        return Err(TaskArgsError::UnsupportedTask);
-    }
-    let task = current_task(world, producer)?;
-    if task.id != producer.task_id
-        || task.defined_in != producer.definition_path
-        || task.command != producer.task_body
-    {
-        return Err(TaskArgsError::TaskDefinitionChanged);
-    }
+    let (action, task) = canonical_task_binding(world, row, producer)?;
     if task.trust != Trust::Trusted {
         return Err(TaskArgsError::NeedsTrust);
     }
 
-    let action = resolve_intent(world, row).map_err(map_intent_error)?;
-    let expected_command = format!("mise run {}", producer.task_id);
-    let expected_workdir = producer
-        .definition_path
-        .rsplit_once('/')
-        .map_or_else(|| world.cwd.clone(), |(directory, _)| directory.to_owned());
-    if action.id != format!("task:{}", producer.task_id)
-        || action.command != expected_command
-        || action.target != expected_workdir
-        || action.workdir != expected_workdir
-    {
-        return Err(TaskArgsError::StaleAction);
-    }
-
-    Ok((
-        action,
-        TaskSnapshot::from(task),
-        ContextSnapshot::from(world),
-    ))
+    Ok((action, task, ContextSnapshot::from(world)))
 }
 
 fn current_task<'a>(
@@ -717,11 +745,14 @@ mod tests {
         prepare_nextest_invocation, simulate_nextest_invocation, task_args_producer_for,
     };
     use crate::catalogue;
+    use crate::domain::action::{Action, Availability, FixtureCommand};
     use crate::domain::mise::Trust;
+    use crate::domain::ranking::{Pin, Usage};
     use crate::fixtures::nextest_args_world;
     use crate::world::World;
 
     const NEXTTEST_ROW_ID: &str = "task:test-nextest";
+    const NEXTTEST_COMMAND: &str = "mise run test-nextest";
 
     fn action_for(world: &World, id: &str) -> Result<crate::domain::action::Action, TaskArgsError> {
         catalogue::catalogue(world)
@@ -765,6 +796,36 @@ mod tests {
         }
         let producer = nextest_task_producer().expect("fixture producer is valid");
         let row = action_for(&world, NEXTTEST_ROW_ID).expect("nextest task row is present");
+        (world, producer, row)
+    }
+
+    fn remembered_fixture(pinned: bool, trust: Trust) -> (World, TaskArgsProducer, Action) {
+        let mut world = nextest_args_world();
+        let path = world.cwd.clone();
+        if pinned {
+            world.memory.pins.push(Pin {
+                path,
+                command: NEXTTEST_COMMAND.to_owned(),
+            });
+        } else {
+            world.memory.usage.push(Usage {
+                path,
+                command: NEXTTEST_COMMAND.to_owned(),
+                count: 1,
+            });
+        }
+        if let Some(mise) = &mut world.mise
+            && let Some(task) = mise.tasks.iter_mut().find(|task| task.id == "test-nextest")
+        {
+            task.trust = trust;
+        }
+        let producer = nextest_task_producer().expect("fixture producer is valid");
+        let row_id = if pinned {
+            format!("pin:{NEXTTEST_COMMAND}")
+        } else {
+            format!("recent:{NEXTTEST_COMMAND}")
+        };
+        let row = action_for(&world, &row_id).expect("remembered nextest row is present");
         (world, producer, row)
     }
 
@@ -978,6 +1039,267 @@ mod tests {
                     .is_none()
             );
         }
+
+        for pinned in [false, true] {
+            let (_, _, remembered) = remembered_fixture(pinned, Trust::Trusted);
+            assert_eq!(remembered.intent_id(), Some(NEXTTEST_ROW_ID));
+            assert!(
+                task_args_producer_for(&remembered)
+                    .expect("remembered row uses the declared producer")
+                    .is_some()
+            );
+        }
+
+        let unknown = Action::unavailable_memory(NEXTTEST_COMMAND, &world.cwd);
+        assert!(
+            task_args_producer_for(&unknown)
+                .expect("unknown memory row has no schema error")
+                .is_none(),
+            "matching display and command text cannot grant producer support"
+        );
+        let mut fixture = Action::fixture_memory(FixtureCommand::CargoTest, &world.cwd);
+        fixture.title = NEXTTEST_COMMAND.to_owned();
+        fixture.command = NEXTTEST_COMMAND.to_owned();
+        assert!(
+            task_args_producer_for(&fixture)
+                .expect("fixture command has no schema error")
+                .is_none(),
+            "FixtureCommand intent cannot acquire support from matching text"
+        );
+    }
+
+    #[test]
+    fn remembered_untrusted_intent_approves_exact_file_and_returns_canonical_action() {
+        let (mut world, producer, row) = remembered_fixture(false, Trust::Untrusted);
+        assert_eq!(row.id, format!("recent:{NEXTTEST_COMMAND}"));
+        assert_eq!(row.intent_id(), Some(NEXTTEST_ROW_ID));
+        let untrusted_accepted = producer
+            .accept(&[("profile", "ci")])
+            .expect("declared schema accepts the profile");
+        assert_eq!(
+            prepare_nextest_invocation(&world, &row, &producer, &untrusted_accepted),
+            Err(TaskArgsError::NeedsTrust)
+        );
+        let mut session = TaskArgsSession::begin(&world, &row, &producer)
+            .expect("fresh remembered row binds to canonical task");
+        assert_eq!(session.action.id, NEXTTEST_ROW_ID);
+        let refreshed = session
+            .approve_trust(&mut world, &row, &producer, producer.definition_path())
+            .expect("exact-file Trust returns the refreshed canonical action");
+        assert_eq!(refreshed.id, NEXTTEST_ROW_ID);
+        assert_eq!(refreshed.intent_id(), Some(NEXTTEST_ROW_ID));
+        assert_eq!(refreshed.availability, Availability::Ready);
+
+        let canonical = action_for(&world, NEXTTEST_ROW_ID).expect("task is now trusted");
+        let plan = session
+            .accept(
+                &world,
+                &canonical,
+                &producer,
+                &[("filter", "test(tests::parser)")],
+            )
+            .expect("same bound session accepts after exact Trust");
+        assert_eq!(plan.action.id, NEXTTEST_ROW_ID);
+        assert_eq!(
+            argv_strings(plan.invocation()),
+            vec![
+                "run",
+                "test-nextest",
+                "--filterset=test(tests::parser)",
+                "-P",
+                "default"
+            ]
+        );
+        assert_eq!(
+            simulate_nextest_invocation(&world, &producer, &plan)
+                .expect("canonical accepted plan revalidates")
+                .invocation,
+            *plan.invocation()
+        );
+        assert_eq!(world.effect_revision, 0);
+        assert!(world.activities.is_empty());
+    }
+
+    #[test]
+    fn remembered_alias_plan_uses_canonical_action_and_preserves_filter_as_data() {
+        let (world, producer, row) = remembered_fixture(true, Trust::Trusted);
+        let accepted = producer
+            .accept(&[
+                ("filter", "suite name; $(touch /tmp/no-execution)"),
+                ("profile", "ci"),
+            ])
+            .expect("declared schema accepts the filter as data");
+        let plan = prepare_nextest_invocation(&world, &row, &producer, &accepted)
+            .expect("fresh pin binds to canonical task");
+        assert_eq!(plan.action.id, NEXTTEST_ROW_ID);
+        assert_eq!(
+            plan.invocation().argv()[2],
+            "--filterset=suite name; $(touch /tmp/no-execution)"
+        );
+        assert_eq!(
+            nextest_review_facts(&world, &producer, &plan)
+                .expect("the canonical plan revalidates for review")
+                .invocation,
+            *plan.invocation()
+        );
+        assert_eq!(
+            simulate_nextest_invocation(&world, &producer, &plan)
+                .expect("the canonical plan revalidates for simulation")
+                .invocation,
+            *plan.invocation()
+        );
+        assert_eq!(world.effect_revision, 0);
+        assert!(world.activities.is_empty());
+    }
+
+    #[test]
+    fn remembered_alias_rejects_stale_rows_changed_task_and_adapter() {
+        let (world, producer, row) = remembered_fixture(true, Trust::Trusted);
+        let accepted = producer
+            .accept(&[("profile", "ci")])
+            .expect("declared schema accepts the profile");
+        let plan = prepare_nextest_invocation(&world, &row, &producer, &accepted)
+            .expect("fresh pin binds to canonical task");
+
+        let mut changed_target = row.clone();
+        changed_target.target.push_str("/changed");
+        assert_eq!(
+            prepare_nextest_invocation(&world, &changed_target, &producer, &accepted),
+            Err(TaskArgsError::StaleAction)
+        );
+
+        let mut changed_workdir = row.clone();
+        changed_workdir.workdir.push_str("/changed");
+        assert_eq!(
+            prepare_nextest_invocation(&world, &changed_workdir, &producer, &accepted),
+            Err(TaskArgsError::StaleAction)
+        );
+
+        let mut changed_world = nextest_args_world();
+        changed_world.memory.pins.push(Pin {
+            path: changed_world.cwd.clone(),
+            command: NEXTTEST_COMMAND.to_owned(),
+        });
+        if let Some(mise) = &mut changed_world.mise
+            && let Some(task) = mise.tasks.iter_mut().find(|task| task.id == "test-nextest")
+        {
+            task.command.push_str(" --changed-body");
+        }
+        let changed_row = action_for(&changed_world, &row.id)
+            .expect("changed task still exposes its remembered row");
+        assert_eq!(
+            prepare_nextest_invocation(&changed_world, &changed_row, &producer, &accepted),
+            Err(TaskArgsError::TaskDefinitionChanged)
+        );
+
+        let (mut removed_world, producer, removed_row) = remembered_fixture(true, Trust::Trusted);
+        removed_world.memory.pins.clear();
+        let accepted = producer
+            .accept(&[("profile", "ci")])
+            .expect("declared schema accepts the profile");
+        assert_eq!(
+            prepare_nextest_invocation(&removed_world, &removed_row, &producer, &accepted),
+            Err(TaskArgsError::StaleAction)
+        );
+
+        let mut changed_producer = producer.clone();
+        changed_producer.adapter_version = changed_producer.adapter_version.saturating_add(1);
+        assert_eq!(
+            prepare_nextest_invocation(&world, &row, &changed_producer, &accepted),
+            Err(TaskArgsError::StaleProducer)
+        );
+
+        let mut changed_schema = producer.clone();
+        changed_schema.schema = nextest_schema(2).expect("alternate schema is valid");
+        let changed_schema_accepted = changed_schema
+            .accept(&[("profile", "ci")])
+            .expect("alternate schema accepts the profile");
+        assert_eq!(
+            prepare_nextest_invocation(&world, &row, &changed_schema, &changed_schema_accepted),
+            Err(TaskArgsError::StaleProducer)
+        );
+
+        assert_eq!(
+            nextest_review_facts(&world, &producer, &plan)
+                .expect("a stale attempt does not consume or replace the original plan")
+                .invocation,
+            *plan.invocation()
+        );
+        assert_eq!(
+            simulate_nextest_invocation(&world, &producer, &plan)
+                .expect("the original immutable plan remains simulatable")
+                .invocation,
+            *plan.invocation()
+        );
+        assert_eq!(world.effect_revision, 0);
+        assert!(world.activities.is_empty());
+    }
+
+    #[test]
+    fn remembered_alias_rejects_removed_task_and_changed_definition() {
+        let (mut removed_world, producer, removed_row) = remembered_fixture(false, Trust::Trusted);
+        if let Some(mise) = &mut removed_world.mise {
+            mise.tasks.retain(|task| task.id != "test-nextest");
+        }
+        let accepted = producer
+            .accept(&[("profile", "ci")])
+            .expect("declared schema accepts the profile");
+        assert_eq!(
+            prepare_nextest_invocation(&removed_world, &removed_row, &producer, &accepted),
+            Err(TaskArgsError::TaskDefinitionChanged)
+        );
+
+        let (mut changed_world, producer, changed_row) = remembered_fixture(false, Trust::Trusted);
+        if let Some(mise) = &mut changed_world.mise
+            && let Some(task) = mise.tasks.iter_mut().find(|task| task.id == "test-nextest")
+        {
+            task.defined_in = "~/other/mise.toml".to_owned();
+        }
+        let accepted = producer
+            .accept(&[("profile", "ci")])
+            .expect("declared schema accepts the profile");
+        assert_eq!(
+            prepare_nextest_invocation(&changed_world, &changed_row, &producer, &accepted),
+            Err(TaskArgsError::TaskDefinitionChanged)
+        );
+    }
+
+    #[test]
+    fn remembered_alias_rejects_ambiguous_current_rows_and_task_ids() {
+        let (mut ambiguous_world, producer, ambiguous_row) =
+            remembered_fixture(true, Trust::Trusted);
+        ambiguous_world.memory.pins.push(Pin {
+            path: ambiguous_world.cwd.clone(),
+            command: NEXTTEST_COMMAND.to_owned(),
+        });
+        let accepted = producer
+            .accept(&[("profile", "ci")])
+            .expect("declared schema accepts the profile");
+        assert_eq!(
+            prepare_nextest_invocation(&ambiguous_world, &ambiguous_row, &producer, &accepted),
+            Err(TaskArgsError::StaleAction)
+        );
+
+        let (mut ambiguous_task_world, producer, remembered_row) =
+            remembered_fixture(false, Trust::Trusted);
+        let duplicate_task = ambiguous_task_world
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.tasks.iter().find(|task| task.id == "test-nextest"))
+            .cloned()
+            .expect("nextest task is present");
+        if let Some(mise) = &mut ambiguous_task_world.mise {
+            mise.tasks.push(duplicate_task);
+        }
+        assert_eq!(
+            prepare_nextest_invocation(
+                &ambiguous_task_world,
+                &remembered_row,
+                &producer,
+                &accepted
+            ),
+            Err(TaskArgsError::AmbiguousTask)
+        );
     }
 
     #[test]
