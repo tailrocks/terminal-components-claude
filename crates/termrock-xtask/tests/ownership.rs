@@ -3298,7 +3298,19 @@ fn const_braces(width: usize, height: usize) -> ArrayHolder<{ WIDTH }> {}
 fn const_compare(width: usize, height: usize) -> ArrayHolder<{ WIDTH > HEIGHT }> {}
 fn const_array(width: usize, height: usize) -> ArrayHolder<[u8; WIDTH]> {}
 fn where_clause(width: u16, height: u16) -> Harness<App> where App: Copy {}
-pub fn prefixed(width: u16, height: u16) -> Harness<App> {}
+pub async fn prefixed(width: u16, height: u16) -> Harness<App> {}
+pub fn public_generic(width: u16, height: u16) -> Result<api::Harness<App>, Option<&'static App>> {}
+pub(crate) fn crate_generic(width: u16, height: u16) -> Option<api::Harness<App>> {}
+pub fn same_line_public(width: u16, height: u16) -> Harness<App> { if width < 80 {} }
+pub(crate) fn later_line_crate(width: u16, height: u16) -> Harness<App> {
+    if height >= 80 {}
+}
+pub() fn empty_visibility(width: u16, height: u16) -> Harness<App> {}
+pub(crate fn unclosed_visibility(width: u16, height: u16) -> Harness<App> {}
+pub(crate)) fn extra_close_visibility(width: u16, height: u16) -> Harness<App> {}
+pub((crate)) fn nested_visibility(width: u16, height: u16) -> Harness<App> {}
+pub(in crate::module) fn unsupported_restricted_visibility(width: u16, height: u16) -> Harness<App> {}
+pub(width < height) fn arbitrary_visibility(width: u16, height: u16) -> Harness<App> {}
 fn malformed(width: u16, height: u16) -> Harness<App {}
 fn expression_like(width: u16, height: u16) -> width < height > other {}
 type Callback = fn(width: u16, height: u16) -> Harness<App>;
@@ -3331,7 +3343,15 @@ fn no_size() -> Harness<App> { let _ = left < right; }
         "fn const_compare(",
         "fn const_array(",
         "fn where_clause(",
-        "pub fn prefixed(",
+        "pub async fn prefixed(",
+        "pub fn same_line_public(",
+        "if height >= 80",
+        "pub() fn empty_visibility(",
+        "pub(crate fn unclosed_visibility(",
+        "pub(crate)) fn extra_close_visibility(",
+        "pub((crate)) fn nested_visibility(",
+        "pub(in crate::module) fn unsupported_restricted_visibility(",
+        "pub(width < height) fn arbitrary_visibility(",
         "fn malformed(",
         "fn expression_like(",
         "type Callback =",
