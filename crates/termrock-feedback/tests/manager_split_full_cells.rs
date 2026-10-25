@@ -155,13 +155,13 @@ fn standard_junie_mono_keeps_historical_full_cells() {
 }
 
 #[test]
-fn paper_profile_changes_only_truecolor_and_standard_is_an_explicit_fallback() {
+fn paper_profile_uses_only_explicit_mono_and_truecolor_policies() {
     let paper = Theme::paper();
     assert_eq!(
         paper.manager_presentation_profile(),
         ManagerPresentationProfile::Paper
     );
-    for level in [ColorLevel::Mono, ColorLevel::Ansi16, ColorLevel::Ansi256] {
+    for level in [ColorLevel::Ansi16, ColorLevel::Ansi256] {
         let declared_paper = render(paper.clone(), level);
         let explicit_standard = render(
             paper
@@ -178,6 +178,28 @@ fn paper_profile_changes_only_truecolor_and_standard_is_an_explicit_fallback() {
         );
     }
 
+    let paper_mono = render(paper.clone(), ColorLevel::Mono);
+    let standard_mono = render(
+        paper
+            .clone()
+            .builder()
+            .manager_presentation_profile(ManagerPresentationProfile::Standard)
+            .build(),
+        ColorLevel::Mono,
+    );
+    assert_ne!(
+        paper_mono.buffer().content,
+        standard_mono.buffer().content,
+        "only explicit Paper provenance selects the Paper Mono component policy"
+    );
+    assert_eq!(symbol(&paper_mono, 76, 0), Some("W"));
+    assert_eq!(symbol(&paper_mono, 110, 0), Some("2"));
+    assert_eq!(symbol(&paper_mono, 3, 4), Some("▎"));
+    assert_eq!(symbol(&paper_mono, 41, 36), Some("▎"));
+    assert_eq!(symbol(&standard_mono, 73, 0), Some("W"));
+    assert_eq!(symbol(&standard_mono, 107, 0), Some("●"));
+    assert_eq!(symbol(&standard_mono, 3, 4), Some(" "));
+
     let paper_truecolor = render(paper.clone(), ColorLevel::TrueColor);
     let standard_truecolor = render(
         paper
@@ -190,7 +212,7 @@ fn paper_profile_changes_only_truecolor_and_standard_is_an_explicit_fallback() {
     assert_ne!(
         paper_truecolor.buffer().content,
         standard_truecolor.buffer().content,
-        "only the explicit Paper TrueColor policy selects the restored component presentation"
+        "explicit Paper TrueColor continues to select the component presentation"
     );
     assert_eq!(symbol(&standard_truecolor, 73, 0), Some("W"));
     assert_eq!(symbol(&standard_truecolor, 107, 0), Some("●"));
@@ -200,7 +222,7 @@ fn paper_profile_changes_only_truecolor_and_standard_is_an_explicit_fallback() {
         from_tokens.manager_presentation_profile(),
         ManagerPresentationProfile::Standard
     );
-    let from_tokens_scene = render(from_tokens, ColorLevel::TrueColor);
+    let from_tokens_scene = render(from_tokens.clone(), ColorLevel::TrueColor);
     assert_eq!(symbol(&from_tokens_scene, 73, 0), Some("W"));
     assert_eq!(symbol(&from_tokens_scene, 107, 0), Some("●"));
     assert_eq!(
@@ -208,6 +230,16 @@ fn paper_profile_changes_only_truecolor_and_standard_is_an_explicit_fallback() {
         Some(Color::Rgb(0x17, 0x3f, 0x1c)),
         "matching tokens do not replace the Standard component's current literal selection"
     );
+    let from_tokens_mono = render(from_tokens.clone(), ColorLevel::Mono);
+    assert_eq!(symbol(&from_tokens_mono, 73, 0), Some("W"));
+    assert_eq!(symbol(&from_tokens_mono, 107, 0), Some("●"));
+    assert_eq!(symbol(&from_tokens_mono, 3, 4), Some(" "));
+    assert_eq!(
+        background(&from_tokens_mono, 3, 3),
+        Some(Color::Black),
+        "Paper-looking tokens keep the Standard Mono literal fallback"
+    );
+
     let custom_palette = Theme::paper()
         .builder()
         .capability_palettes(CapabilityPalettes::new(Theme::paper().color))
@@ -217,12 +249,15 @@ fn paper_profile_changes_only_truecolor_and_standard_is_an_explicit_fallback() {
         ManagerPresentationProfile::Paper,
         "adding palettes preserves explicit Theme::paper provenance"
     );
-    let custom_palette_scene = render(custom_palette, ColorLevel::TrueColor);
+    let custom_palette_scene = render(custom_palette.clone(), ColorLevel::TrueColor);
     assert_eq!(symbol(&custom_palette_scene, 76, 0), Some("W"));
     assert_eq!(
         background(&custom_palette_scene, 3, 3),
         Some(Theme::paper().color.accent_tint)
     );
+    let custom_palette_mono = render(custom_palette, ColorLevel::Mono);
+    assert_eq!(symbol(&custom_palette_mono, 76, 0), Some("W"));
+    assert_eq!(symbol(&custom_palette_mono, 3, 4), Some("▎"));
 
     let custom_tokens = Theme::from_tokens(Theme::paper().color)
         .builder()
@@ -233,9 +268,80 @@ fn paper_profile_changes_only_truecolor_and_standard_is_an_explicit_fallback() {
         ManagerPresentationProfile::Standard,
         "custom palettes do not infer Paper provenance"
     );
-    let custom_tokens_scene = render(custom_tokens, ColorLevel::TrueColor);
+    let custom_tokens_scene = render(custom_tokens.clone(), ColorLevel::TrueColor);
     assert_eq!(symbol(&custom_tokens_scene, 73, 0), Some("W"));
     assert_eq!(symbol(&custom_tokens_scene, 107, 0), Some("●"));
+    let custom_tokens_mono = render(custom_tokens, ColorLevel::Mono);
+    assert_eq!(symbol(&custom_tokens_mono, 73, 0), Some("W"));
+    assert_eq!(symbol(&custom_tokens_mono, 107, 0), Some("●"));
+    assert_eq!(symbol(&custom_tokens_mono, 3, 4), Some(" "));
+}
+
+#[test]
+fn paper_mono_saved_presentation_uses_component_semantic_roles() {
+    let paper = Theme::paper();
+    let mono = paper.clone().downgrade(ColorLevel::Mono);
+    let scene = render(paper.clone(), ColorLevel::Mono);
+
+    assert_eq!(mono.color.accent_tint, Color::Reset);
+    assert_eq!(mono.color.surfaces[3], Color::Reset);
+    assert_eq!(mono.color.border_subtle, Color::Reset);
+    assert_eq!(symbol(&scene, 76, 0), Some("W"));
+    assert_eq!(symbol(&scene, 107, 0), Some("t"));
+    assert_eq!(symbol(&scene, 110, 0), Some("2"));
+    assert_eq!(symbol(&scene, 3, 4), Some("▎"));
+    assert_eq!(symbol(&scene, 41, 36), Some("▎"));
+    assert_eq!(symbol(&scene, 14, 39), Some("E"));
+    assert_eq!(symbol(&scene, 42, 3), Some(" "));
+    assert_eq!(background(&scene, 3, 3), Some(mono.color.surfaces[0]));
+    assert_eq!(foreground(&scene, 3, 3), Some(mono.color.fg[0]));
+    assert_eq!(foreground(&scene, 7, 3), Some(mono.color.accent));
+    assert_eq!(foreground(&scene, 110, 0), Some(mono.color.fg[2]));
+    assert_eq!(foreground(&scene, 26, 2), Some(mono.color.border_strong));
+    assert_eq!(foreground(&scene, 39, 2), Some(mono.color.fg[0]));
+    assert_eq!(foreground(&scene, 42, 14), Some(mono.color.fg[0]));
+    assert_eq!(foreground(&scene, 42, 15), Some(mono.color.fg[1]));
+
+    let mut changed = frame();
+    changed.running = 7;
+    changed.workspace_name = "payments-platform-next";
+    changed.workdir = "/workspace/payments-platform-next";
+    let changed_scene = render_frame(Theme::paper(), ColorLevel::Mono, &changed, false);
+    assert_eq!(symbol(&changed_scene, 110, 0), Some("7"));
+    assert_eq!(symbol(&changed_scene, 79, 2), Some("-"));
+    assert_eq!(symbol(&changed_scene, 84, 4), Some("-"));
+}
+
+#[test]
+fn paper_mono_keeps_other_manager_state_geometry() {
+    let paper = Theme::paper();
+
+    let mut empty = frame();
+    empty.mode = SplitMode::Empty;
+    let empty_scene = render_frame(paper.clone(), ColorLevel::Mono, &empty, false);
+    assert_eq!(symbol(&empty_scene, 72, 0), Some("W"));
+    assert_eq!(symbol(&empty_scene, 42, 3), Some("─"));
+
+    let mut expanded = frame();
+    expanded.mode = SplitMode::Expanded;
+    let expanded_scene = render_frame(paper.clone(), ColorLevel::Mono, &expanded, false);
+    assert_eq!(symbol(&expanded_scene, 53, 0), Some("W"));
+    assert_eq!(symbol(&expanded_scene, 107, 0), Some("●"));
+    assert_eq!(symbol(&expanded_scene, 7, 4), Some("p"));
+
+    let mut degraded = frame();
+    degraded.alert = Some(SplitAlert {
+        index_error: Some("index unavailable"),
+        daemon_stale: true,
+    });
+    let degraded_scene = render_frame(paper.clone(), ColorLevel::Mono, &degraded, false);
+    assert_eq!(symbol(&degraded_scene, 41, 0), Some("W"));
+    assert_eq!(symbol(&degraded_scene, 42, 3), Some("─"));
+
+    let drawer_scene = render_frame(paper, ColorLevel::Mono, &frame(), true);
+    assert_eq!(symbol(&drawer_scene, 73, 0), Some("W"));
+    assert_eq!(symbol(&drawer_scene, 107, 0), Some("●"));
+    assert_eq!(symbol(&drawer_scene, 41, 2), Some("▎"));
 }
 
 #[test]
