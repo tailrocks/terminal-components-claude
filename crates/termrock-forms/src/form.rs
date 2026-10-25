@@ -1606,6 +1606,23 @@ impl<'a> Form<'a> {
         FormAction::Action(self.submit)
     }
 
+    pub(crate) fn submit_current<D: FormData + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut FormState,
+        data: &mut D,
+    ) -> Response<FormAction> {
+        if let Err(error) = self.validate_layout(data) {
+            cx.diagnostic(Diagnostic::InvalidComponentLayout {
+                owner: self.id,
+                field: error.field_id(),
+            });
+            return Response::ignored().for_id(self.id);
+        }
+        st.reconcile_fields_with_data(self.fields, data);
+        Response::action(self.submit_form(cx, st, data)).for_id(self.id)
+    }
+
     pub fn update<D: FormData + ?Sized>(
         &self,
         cx: &mut Cx<'_>,

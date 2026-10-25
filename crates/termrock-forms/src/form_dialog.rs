@@ -361,6 +361,42 @@ impl<'a> FormDialog<'a> {
         combine_responses(self.id, action, form_response, dialog_response)
     }
 
+    /// Submits the current native form values after a scoped command bubbles
+    /// past the focused child control.
+    ///
+    /// The caller should run [`Self::update`] first so native controls can
+    /// consume the same input frame. Submission then commits any active draft,
+    /// validates through [`Form`], and applies this dialog's submit policy.
+    pub fn submit_current<D: FormData + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        state: &mut FormDialogState,
+        data: &mut D,
+    ) -> Response<FormDialogAction> {
+        let form_response = self.form().submit_current(cx, &mut state.form, data);
+        let action = form_response
+            .action_ref()
+            .copied()
+            .map(|action| match action {
+                FormAction::Changed(id) => FormDialogAction::Changed(id),
+                FormAction::Committed(id) => FormDialogAction::Committed(id),
+                FormAction::Chose(id) => FormDialogAction::Chose(id),
+                FormAction::Invalid(id) => FormDialogAction::Invalid(id),
+                FormAction::Action(key) if key == self.cancel => FormDialogAction::Cancelled,
+                FormAction::Action(key) => FormDialogAction::Action(key),
+            });
+
+        if let Some(FormAction::Action(key)) = form_response.action_ref().copied()
+            && (key == self.cancel
+                || (key == self.submit
+                    && self.submit_policy == FormDialogSubmitPolicy::CloseOnSubmit))
+        {
+            cx.close_layer(self.id, Some(key));
+        }
+
+        combine_responses(self.id, action, form_response, Response::ignored())
+    }
+
     /// Draws the dialog chrome and delegates its resolved body slot to Form.
     pub fn draw<D: FormData + ?Sized>(
         &self,
@@ -412,6 +448,7 @@ mod tests {
     use termrock_core::event::{Input, Key, KeyCode, KeyModifiers, MouseKind};
     use termrock_core::id::Id;
     use termrock_core::response::Response;
+    use termrock_core::response::StateFlags;
     use termrock_fields::input::TextInput;
     use termrock_runtime::layer::{Dismiss, LayerSpec};
     use termrock_runtime::{App, Cx, Runtime, Ui};
@@ -421,6 +458,7 @@ mod tests {
     use crate::form::{FieldMut, FieldRef};
 
     const DIALOG: Id = Id::root("form-dialog.tests");
+    const SUBMIT_SCOPE: Id = DIALOG.sub("submit-commands");
     const NAME: Id = Id::root("form-dialog.tests.name");
     const NOTE: Id = Id::root("form-dialog.tests.note");
     const CHOOSER: Id = Id::root("form-dialog.tests.chooser");
@@ -428,6 +466,17 @@ mod tests {
     const CANCEL: ActionKey = ActionKey::custom("form-dialog.tests.cancel");
     const ACTIONS: &[Action<'static>] =
         &[Action::quiet(CANCEL, "Cancel"), Action::new(SAVE, "Save")];
+    const SUBMIT_BINDINGS: &[termrock_runtime::Binding<ActionKey>] = &[termrock_runtime::Binding {
+        action: SAVE,
+        chord: Some(termrock_core::Chord::with(
+            KeyCode::Char('s'),
+            KeyModifiers::CONTROL,
+        )),
+        cmd: SAVE,
+        label: "Save",
+        priority: 1,
+        visible: false,
+    }];
     const FIELDS: &[FieldSpec<'static>] = &[
         FieldSpec::new(NAME, "Name", FieldKind::Text(TextInput::new(NAME))),
         FieldSpec::new(NOTE, "Details", FieldKind::Note),
@@ -524,10 +573,77 @@ mod tests {
         }
     }
 
+    #[derive(Default)]
+    struct ScopedSubmitApp {
+        state: FormDialogState,
+        data: Data,
+        opened: bool,
+        actions: Vec<FormDialogAction>,
+        scoped_saves: usize,
+        submit_policy: FormDialogSubmitPolicy,
+    }
+
+    impl ScopedSubmitApp {
+        fn dialog(&self) -> FormDialog<'static> {
+            FormDialog::new(DIALOG, "Edit record", FIELDS)
+                .actions(ACTIONS)
+                .submit(SAVE)
+                .cancel_action(CANCEL)
+                .submit_policy(self.submit_policy)
+                .field_sizing(FieldSizingPolicy::Intrinsic)
+                .width(42)
+        }
+    }
+
+    impl App for ScopedSubmitApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if !self.opened {
+                self.opened = true;
+                let layer = self.dialog().layer(cx, &self.data);
+                cx.open_layer(DIALOG, layer);
+            }
+
+            let dialog = self.dialog();
+            let response = dialog.update(cx, &mut self.state, &mut self.data);
+            let scoped_save = cx.intents(SUBMIT_SCOPE).any(|intent| {
+                matches!(intent, termrock_core::Intent::Binding(action)
+                    if termrock_runtime::Binding::command(SUBMIT_BINDINGS, action) == Some(SAVE))
+            });
+            if scoped_save && response.action_ref().is_none() {
+                self.scoped_saves += 1;
+                let submitted = dialog.submit_current(cx, &mut self.state, &mut self.data);
+                if let Some(action) = submitted.action_ref() {
+                    self.actions.push(*action);
+                }
+                return response.erase() | submitted.erase();
+            }
+            if let Some(action) = response.action_ref() {
+                self.actions.push(*action);
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let dialog = self.dialog();
+            ui.layer(DIALOG, |ui, area| {
+                ui.command_scope(SUBMIT_SCOPE, SUBMIT_BINDINGS, |ui| {
+                    dialog.draw(ui, area, &self.state, &self.data);
+                });
+            });
+        }
+    }
+
     fn press(code: KeyCode) -> Input {
         Input::Key(Key {
             code,
             mods: KeyModifiers::NONE,
+        })
+    }
+
+    fn press_ctrl(code: KeyCode) -> Input {
+        Input::Key(Key {
+            code,
+            mods: KeyModifiers::CONTROL,
         })
     }
 
@@ -563,6 +679,81 @@ mod tests {
         );
         assert!(runtime.render_snapshot().is_ok());
         assert!(runtime.is_open(DIALOG));
+    }
+
+    #[test]
+    fn scoped_submit_commits_pending_draft_and_runs_required_validation() {
+        let mut buffer = Buffer::empty(SCREEN);
+
+        let invalid = ScopedSubmitApp {
+            data: Data {
+                required: true,
+                ..Data::default()
+            },
+            submit_policy: FormDialogSubmitPolicy::KeepOpen,
+            ..ScopedSubmitApp::default()
+        };
+        let mut runtime = Runtime::new(invalid, Theme::junie());
+        let _ = runtime.initialize();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.focus(), Some(NAME));
+        let _ = termrock_runtime::stub::deliver(&mut runtime, press_ctrl(KeyCode::Char('s')));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(
+            runtime.app().actions.last(),
+            Some(&FormDialogAction::Invalid(NAME))
+        );
+        assert!(runtime.is_open(DIALOG));
+        assert_eq!(runtime.focus(), Some(NAME));
+        assert_eq!(runtime.app().scoped_saves, 1);
+
+        let _ = termrock_runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert!(runtime.state_of(NAME).contains(StateFlags::EDITING));
+        for code in [KeyCode::Char('A'), KeyCode::Char('d'), KeyCode::Char('a')] {
+            let _ = termrock_runtime::stub::deliver(&mut runtime, press(code));
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        }
+        assert!(
+            runtime.app().data.name.is_empty(),
+            "draft stays uncommitted"
+        );
+        let _ = termrock_runtime::stub::deliver(&mut runtime, press_ctrl(KeyCode::Char('s')));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().scoped_saves, 2);
+        assert_eq!(runtime.app().data.name, "Ada");
+        assert_eq!(
+            runtime.app().actions.last(),
+            Some(&FormDialogAction::Action(SAVE))
+        );
+        assert!(
+            runtime.is_open(DIALOG),
+            "KeepOpen applies to scoped submits"
+        );
+        assert!(runtime.render_snapshot().is_ok());
+
+        let close_on_submit = ScopedSubmitApp {
+            data: Data {
+                required: true,
+                ..Data::default()
+            },
+            ..ScopedSubmitApp::default()
+        };
+        let mut runtime = Runtime::new(close_on_submit, Theme::junie());
+        let _ = runtime.initialize();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        for code in [KeyCode::Char('B'), KeyCode::Char('o')] {
+            let _ = termrock_runtime::stub::deliver(&mut runtime, press(code));
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        }
+        let _ = termrock_runtime::stub::deliver(&mut runtime, press_ctrl(KeyCode::Char('s')));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().data.name, "Bo");
+        assert_eq!(
+            runtime.app().actions.last(),
+            Some(&FormDialogAction::Action(SAVE))
+        );
+        assert!(!runtime.is_open(DIALOG), "CloseOnSubmit closes the layer");
     }
 
     #[test]
