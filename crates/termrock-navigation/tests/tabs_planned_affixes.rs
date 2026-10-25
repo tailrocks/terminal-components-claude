@@ -36,6 +36,8 @@ struct AffixTab {
     wide_suffix: Cell<bool>,
     suppress_suffix: Cell<bool>,
     suppress_affixes: Cell<bool>,
+    trailing_padding: Cell<u16>,
+    plate_separators: Cell<bool>,
     marks: Cell<TabMarks>,
     display_calls: Cell<usize>,
     affix_calls: Cell<usize>,
@@ -56,17 +58,25 @@ fn tab_key(tab: &AffixTab) -> ItemKey {
 
 fn tab_affixes(tab: &AffixTab) -> TabAffixes {
     tab.affix_calls.set(tab.affix_calls.get().saturating_add(1));
-    if tab.suppress_affixes.get() {
-        return TabAffixes::default();
+    let mut affixes = if tab.suppress_affixes.get() {
+        TabAffixes::default()
+    } else {
+        let mut affixes = TabAffixes::default().prefix(format!("{}{}", tab.prefix.get(), tab.id));
+        if !tab.suppress_suffix.get() {
+            let suffix = if tab.wide_suffix.get() {
+                "界".to_owned()
+            } else {
+                format!("s{}", tab.id)
+            };
+            affixes = affixes.suffix(suffix);
+        }
+        affixes
+    };
+    if tab.trailing_padding.get() > 0 {
+        affixes = affixes.trailing_padding(tab.trailing_padding.get());
     }
-    let mut affixes = TabAffixes::default().prefix(format!("{}{}", tab.prefix.get(), tab.id));
-    if !tab.suppress_suffix.get() {
-        let suffix = if tab.wide_suffix.get() {
-            "界".to_owned()
-        } else {
-            format!("s{}", tab.id)
-        };
-        affixes = affixes.suffix(suffix);
+    if tab.plate_separators.get() {
+        affixes = affixes.plate_separators(true);
     }
     affixes
 }
@@ -103,6 +113,7 @@ struct Page {
     tabs_area: Rect,
     explicit_meta: bool,
     custom_rows: bool,
+    reuse_last_layout: Cell<bool>,
     clip_x: u16,
 }
 
@@ -116,6 +127,8 @@ impl Page {
                 wide_suffix: Cell::new(false),
                 suppress_suffix: Cell::new(false),
                 suppress_affixes: Cell::new(false),
+                trailing_padding: Cell::new(0),
+                plate_separators: Cell::new(false),
                 marks: Cell::new(TabMarks::default()),
                 display_calls: Cell::new(0),
                 affix_calls: Cell::new(0),
@@ -135,6 +148,7 @@ impl Page {
             tabs_area: Rect::new(0, 0, WIDTH, 2),
             explicit_meta,
             custom_rows,
+            reuse_last_layout: Cell::new(false),
             clip_x: 0,
         }
     }
@@ -175,6 +189,14 @@ impl App for Page {
                 return;
             }
             let widget = planned_tabs(self.explicit_meta);
+            if self.reuse_last_layout.get() {
+                let layouts = self.layouts.borrow();
+                let Some(layout) = layouts.last() else {
+                    return;
+                };
+                assert!(widget.draw_layout(ui, layout).is_ok());
+                return;
+            }
             let previous = ui.layout(TABS).map(|facts| TabWindowReceipt {
                 viewport_len: facts.viewport_len,
                 content_len: facts.content_len,
@@ -199,6 +221,199 @@ fn harness(count: u64, explicit_meta: bool) -> Harness<Page> {
     )
 }
 
+fn harness_rect_text(h: &Harness<Page>, area: Rect) -> String {
+    let mut text = String::new();
+    for x in area.x..area.right() {
+        text.push_str(
+            h.buffer()
+                .cell((x, area.y))
+                .expect("part lies in the frame")
+                .symbol(),
+        );
+    }
+    text
+}
+
+#[test]
+fn trailing_padding_keeps_default_debug_and_custom_row_behavior() {
+    assert_eq!(
+        format!("{:?}", TabAffixes::default()),
+        "TabAffixes { prefix: None, suffix: None }"
+    );
+    let padding_only = TabAffixes::default().trailing_padding(1);
+    assert_eq!(
+        format!("{padding_only:?}"),
+        "TabAffixes { prefix: None, suffix: None, trailing_padding: 1 }"
+    );
+    assert_ne!(padding_only, TabAffixes::default());
+    assert_eq!(
+        TabAffixes::default().trailing_padding(0),
+        TabAffixes::default()
+    );
+
+    let mut baseline = Harness::new(Page::new(1, false, true), Theme::junie(), WIDTH, HEIGHT);
+    let mut padded = Harness::new(Page::new(1, false, true), Theme::junie(), WIDTH, HEIGHT);
+    padded.app().items[0].trailing_padding.set(3);
+    let baseline_post_bootstrap_calls = baseline.app().items[0].custom_row_calls.get();
+    let padded_post_bootstrap_calls = padded.app().items[0].custom_row_calls.get();
+    assert!(baseline_post_bootstrap_calls > 0);
+    assert!(padded_post_bootstrap_calls > 0);
+    baseline.draw();
+    padded.draw();
+    assert_eq!(baseline.text(), padded.text());
+    assert_eq!(
+        baseline.app().items[0].custom_row_calls.get(),
+        baseline_post_bootstrap_calls + 1
+    );
+    assert_eq!(
+        padded.app().items[0].custom_row_calls.get(),
+        padded_post_bootstrap_calls + 1
+    );
+    assert_eq!(baseline.app().items[0].affix_calls.get(), 0);
+    assert_eq!(padded.app().items[0].affix_calls.get(), 0);
+    assert!(baseline.diagnostics().is_empty());
+    assert!(padded.diagnostics().is_empty());
+}
+
+#[test]
+fn plate_separators_are_opt_in_and_change_only_separator_paint() {
+    let default = TabAffixes::default();
+    let opt_in = default.clone().plate_separators(true);
+    assert_eq!(
+        format!("{default:?}"),
+        "TabAffixes { prefix: None, suffix: None }"
+    );
+    assert_eq!(
+        format!("{opt_in:?}"),
+        "TabAffixes { prefix: None, suffix: None, plate_separators: true }"
+    );
+    assert_eq!(default.clone().plate_separators(false), default);
+    assert_ne!(opt_in, default);
+
+    let mut default_harness = harness(12, false);
+    let mut plate_harness = harness(12, false);
+    for item in &default_harness.app().items {
+        item.trailing_padding.set(1);
+    }
+    for item in &plate_harness.app().items {
+        item.trailing_padding.set(1);
+        item.plate_separators.set(true);
+    }
+    default_harness.draw();
+    plate_harness.draw();
+
+    assert_eq!(default_harness.text(), plate_harness.text());
+    assert!(
+        plate_harness.text().contains("Tab1"),
+        "the opt-in preserves the original Display text"
+    );
+    let default_layout = last_layout(default_harness.app());
+    let plate_layout = last_layout(plate_harness.app());
+    assert_eq!(default_layout.rows().len(), plate_layout.rows().len());
+    let mut checked_prefix_separator = false;
+    let mut checked_suffix_separator = false;
+    for (default_row, plate_row) in default_layout.rows().iter().zip(plate_layout.rows()) {
+        assert_eq!(default_row.key, plate_row.key);
+        assert_eq!(default_row.logical_tab, plate_row.logical_tab);
+        assert_eq!(default_row.visible_tab, plate_row.visible_tab);
+        assert_eq!(default_row.logical_content, plate_row.logical_content);
+        assert_eq!(default_row.label_extent, plate_row.label_extent);
+        for part in [Part::PREFIX, Part::META] {
+            let reference = PartRef::item(part, default_row.key);
+            assert_eq!(
+                default_layout.part_bounds(reference),
+                plate_layout.part_bounds(reference),
+                "the opt-in does not change {part:?} geometry"
+            );
+        }
+
+        let (prefix, prefix_visible) = plate_layout
+            .part_bounds(PartRef::item(Part::PREFIX, plate_row.key))
+            .expect("the row has a semantic prefix");
+        let (suffix, suffix_visible) = plate_layout
+            .part_bounds(PartRef::item(Part::META, plate_row.key))
+            .expect("the row has a semantic suffix");
+        let mut separator_cells = Vec::with_capacity(2);
+        if prefix_visible.is_empty() {
+            assert!(prefix.intersection(plate_row.visible_tab).is_empty());
+        } else {
+            checked_prefix_separator = true;
+            separator_cells.push((
+                prefix_visible
+                    .x
+                    .saturating_add(prefix_visible.width.saturating_sub(1)),
+                prefix_visible.y,
+            ));
+        }
+        if suffix_visible.is_empty() {
+            assert!(suffix.intersection(plate_row.visible_tab).is_empty());
+        } else {
+            checked_suffix_separator = true;
+            separator_cells.push((suffix_visible.x, suffix_visible.y));
+        }
+        let mut text_cells = Vec::with_capacity(2);
+        if prefix_visible.width > 1 {
+            text_cells.push((prefix_visible.x, prefix_visible.y));
+        }
+        if suffix_visible.width > 1 {
+            text_cells.push((suffix_visible.x.saturating_add(1), suffix_visible.y));
+        }
+        let plate_x = plate_row.logical_tab.right().saturating_sub(3);
+        let plate_cell = plate_harness.cell(plate_x, plate_row.logical_tab.y);
+        for (x, y) in separator_cells {
+            let default_cell = default_harness.cell(x, y);
+            let plate_separator = plate_harness.cell(x, y);
+            assert_eq!(default_cell.symbol(), " ");
+            assert_eq!(plate_separator.symbol(), " ");
+            assert_eq!(plate_separator.fg, plate_cell.fg);
+            assert_eq!(plate_separator.bg, plate_cell.bg);
+            assert_eq!(
+                plate_separator.modifier, plate_cell.modifier,
+                "row={plate_row:?} prefix={prefix:?} suffix={suffix:?} tab={:?} content={:?} separator=({x},{y}) cell={plate_separator:?}; sampled plate=({plate_x},{}) cell={plate_cell:?}; default={default_cell:?}",
+                plate_row.logical_tab, plate_row.logical_content, plate_row.logical_tab.y,
+            );
+            assert_ne!(
+                default_cell.fg, plate_separator.fg,
+                "the default semantic style still owns this separator"
+            );
+        }
+        for (x, y) in text_cells {
+            let default_cell = default_harness.cell(x, y);
+            let plate_text = plate_harness.cell(x, y);
+            assert_eq!(default_cell.symbol(), plate_text.symbol());
+            assert_eq!(default_cell.fg, plate_text.fg);
+            assert_eq!(default_cell.bg, plate_text.bg);
+            assert_eq!(default_cell.modifier, plate_text.modifier);
+        }
+    }
+    assert!(
+        checked_prefix_separator,
+        "a visible prefix separator is checked"
+    );
+    assert!(
+        checked_suffix_separator,
+        "a visible suffix separator is checked"
+    );
+
+    let _ = default_harness.click_part(TABS, more_part());
+    let _ = plate_harness.click_part(TABS, more_part());
+    assert!(default_harness.is_open(MENU));
+    assert!(plate_harness.is_open(MENU));
+    let hidden = PartRef::item(Part::ROW, ItemKey::num(3));
+    let default_hidden = default_harness
+        .area_of_part(MENU_ITEMS, hidden)
+        .expect("the hidden default row is in More");
+    let plate_hidden = plate_harness
+        .area_of_part(MENU_ITEMS, hidden)
+        .expect("the hidden opt-in row is in More");
+    assert_eq!(
+        harness_rect_text(&default_harness, default_hidden),
+        harness_rect_text(&plate_harness, plate_hidden)
+    );
+    assert!(default_harness.diagnostics().is_empty());
+    assert!(plate_harness.diagnostics().is_empty());
+}
+
 fn more_part() -> PartRef {
     PartRef::item(Part::OVERFLOW, ItemKey::index(2))
 }
@@ -209,6 +424,51 @@ fn last_layout(page: &Page) -> TabLayout {
         .last()
         .expect("the planned frame was captured")
         .clone()
+}
+
+#[test]
+fn plate_separator_opt_in_is_a_noop_without_affixes_or_padding() {
+    let mut baseline = harness(2, false);
+    let mut opted_in = harness(2, false);
+    for item in &baseline.app().items {
+        item.suppress_affixes.set(true);
+    }
+    for item in &opted_in.app().items {
+        item.suppress_affixes.set(true);
+        item.plate_separators.set(true);
+    }
+
+    baseline.draw();
+    opted_in.draw();
+
+    assert_eq!(baseline.buffer(), opted_in.buffer());
+    assert_eq!(baseline.text(), opted_in.text());
+    let baseline_layout = last_layout(baseline.app());
+    let opted_in_layout = last_layout(opted_in.app());
+    assert_eq!(baseline_layout.rows().len(), opted_in_layout.rows().len());
+    for (baseline_row, opted_in_row) in baseline_layout.rows().iter().zip(opted_in_layout.rows()) {
+        assert_eq!(baseline_row.key, opted_in_row.key);
+        assert_eq!(baseline_row.logical_tab, opted_in_row.logical_tab);
+        assert_eq!(baseline_row.visible_tab, opted_in_row.visible_tab);
+        assert_eq!(baseline_row.logical_content, opted_in_row.logical_content);
+        assert_eq!(baseline_row.label_extent, opted_in_row.label_extent);
+    }
+    for (baseline_item, opted_in_item) in baseline.app().items.iter().zip(&opted_in.app().items) {
+        assert_eq!(
+            baseline_item.display_calls.get(),
+            opted_in_item.display_calls.get()
+        );
+        assert_eq!(
+            baseline_item.affix_calls.get(),
+            opted_in_item.affix_calls.get()
+        );
+        assert_eq!(
+            baseline_item.custom_row_calls.get(),
+            opted_in_item.custom_row_calls.get()
+        );
+    }
+    assert!(baseline.diagnostics().is_empty());
+    assert!(opted_in.diagnostics().is_empty());
 }
 
 #[test]
@@ -599,6 +859,255 @@ fn affixed_logical_extent_counts_trailing_wide_suffix_and_trims_blank_tail() {
 }
 
 #[test]
+fn trailing_plate_padding_preserves_semantic_positions_and_cell_style() {
+    let mut base = harness(2, false);
+    let mut padded_active = harness(2, false);
+    padded_active.app().items[0].trailing_padding.set(1);
+    base.draw();
+    padded_active.draw();
+
+    let base_layout = last_layout(base.app());
+    let padded_layout = last_layout(padded_active.app());
+    let base_active = base_layout
+        .rows()
+        .iter()
+        .find(|row| row.key == ItemKey::num(1))
+        .expect("the active row is planned");
+    let padded_active_row = padded_layout
+        .rows()
+        .iter()
+        .find(|row| row.key == ItemKey::num(1))
+        .expect("the padded active row is planned");
+    assert_eq!(
+        base_active.logical_content.x,
+        padded_active_row.logical_content.x
+    );
+    assert_eq!(base_active.label_extent, padded_active_row.label_extent);
+    assert_eq!(
+        base_layout
+            .part_bounds(PartRef::item(Part::PREFIX, ItemKey::num(1)))
+            .map(|bounds| bounds.0),
+        padded_layout
+            .part_bounds(PartRef::item(Part::PREFIX, ItemKey::num(1)))
+            .map(|bounds| bounds.0)
+    );
+    assert_eq!(
+        base_layout
+            .part_bounds(PartRef::item(Part::META, ItemKey::num(1)))
+            .map(|bounds| bounds.0),
+        padded_layout
+            .part_bounds(PartRef::item(Part::META, ItemKey::num(1)))
+            .map(|bounds| bounds.0)
+    );
+    assert_eq!(
+        padded_active_row.logical_tab.width,
+        base_active.logical_tab.width + 1
+    );
+    assert_eq!(
+        padded_layout
+            .rows()
+            .iter()
+            .find(|row| row.key == ItemKey::num(2))
+            .expect("the later tab remains visible")
+            .logical_tab
+            .x,
+        base_layout
+            .rows()
+            .iter()
+            .find(|row| row.key == ItemKey::num(2))
+            .expect("the later tab remains visible")
+            .logical_tab
+            .x
+            + 1,
+        "only later tab geometry advances by the extra plate cell"
+    );
+
+    let active_pad = padded_active.cell(
+        padded_active_row.logical_tab.right().saturating_sub(3),
+        padded_active_row.logical_tab.y,
+    );
+    let active_pad_x = padded_active_row.logical_tab.right().saturating_sub(3);
+    assert_eq!(active_pad.symbol(), " ");
+    let active_plate = padded_active.cell(
+        padded_active_row.logical_tab.x,
+        padded_active_row.logical_tab.y,
+    );
+    let active_prefix = padded_layout
+        .part_bounds(PartRef::item(Part::PREFIX, ItemKey::num(1)))
+        .expect("the active row has a semantic prefix")
+        .0;
+    let active_suffix = padded_layout
+        .part_bounds(PartRef::item(Part::META, ItemKey::num(1)))
+        .expect("the active row has a semantic suffix")
+        .0;
+    let close_area = padded_active.area_of_part(TABS, PartRef::item(Part::CLOSE, ItemKey::num(1)));
+    let nearby_cells = (active_pad_x.saturating_sub(1)..padded_active_row.logical_tab.right())
+        .map(|x| {
+            format!(
+                "{x}: {:?}",
+                padded_active.cell(x, padded_active_row.logical_tab.y)
+            )
+        })
+        .collect::<Vec<_>>();
+    let previous_close_cell = base.cell(active_pad_x, base_active.logical_tab.y);
+    assert_eq!(
+        padded_active.area_of_part(TABS, PartRef::item(Part::TAB, ItemKey::num(1)),),
+        Some(padded_active_row.visible_tab),
+        "the native hit owner includes the plate padding"
+    );
+    assert_eq!(active_pad.fg, active_plate.fg);
+    assert_eq!(active_pad.bg, active_plate.bg);
+    assert_eq!(
+        active_pad.modifier, active_plate.modifier,
+        "row={padded_active_row:?} prefix={active_prefix:?} suffix={active_suffix:?} close_owner={close_area:?} pad=({active_pad_x},{}) cell={active_pad:?}; leading plate cell={active_plate:?}; previous same-coordinate cell={previous_close_cell:?}; nearby={nearby_cells:?}",
+        padded_active_row.logical_tab.y,
+    );
+    let active_rule = padded_active.cell(
+        padded_active_row.logical_tab.x,
+        padded_active_row.logical_tab.y.saturating_add(1),
+    );
+    let active_pad_rule = padded_active.cell(
+        active_pad_x,
+        padded_active_row.logical_tab.y.saturating_add(1),
+    );
+    assert_eq!(
+        active_pad_rule.fg, active_rule.fg,
+        "the active rule spans the plate padding"
+    );
+    assert_eq!(active_pad_rule.bg, active_rule.bg);
+    assert_eq!(active_pad_rule.modifier, active_rule.modifier);
+
+    let mut padded_inactive = harness(2, false);
+    padded_inactive.app().items[1].trailing_padding.set(1);
+    padded_inactive.draw();
+    let layout = last_layout(padded_inactive.app());
+    let inactive = layout
+        .rows()
+        .iter()
+        .find(|row| row.key == ItemKey::num(2))
+        .expect("the inactive padded row is planned");
+    let inactive_pad = padded_inactive.cell(
+        inactive.logical_tab.right().saturating_sub(3),
+        inactive.logical_tab.y,
+    );
+    assert_eq!(inactive_pad.symbol(), " ");
+    let inactive_plate = padded_inactive.cell(inactive.logical_tab.x, inactive.logical_tab.y);
+    assert_eq!(inactive_pad.fg, inactive_plate.fg);
+    assert_eq!(inactive_pad.bg, inactive_plate.bg);
+    assert_eq!(inactive_pad.modifier, inactive_plate.modifier);
+    let inactive_rule = padded_inactive.cell(inactive.logical_tab.x, inactive.logical_tab.y + 1);
+    let inactive_pad_rule = padded_inactive.cell(
+        inactive.logical_tab.right().saturating_sub(3),
+        inactive.logical_tab.y + 1,
+    );
+    assert_eq!(inactive_pad_rule.fg, inactive_rule.fg);
+    assert_eq!(inactive_pad_rule.bg, inactive_rule.bg);
+    assert_eq!(inactive_pad_rule.modifier, inactive_rule.modifier);
+    assert!(padded_active.diagnostics().is_empty());
+    assert!(padded_inactive.diagnostics().is_empty());
+}
+
+#[test]
+fn trailing_padding_is_captured_once_and_never_enters_more_text() {
+    let mut h = harness(12, false);
+    h.app().items[0].trailing_padding.set(1);
+    h.app().items[2].trailing_padding.set(1);
+    h.draw();
+    let planned = last_layout(h.app());
+    let planned_row = planned
+        .rows()
+        .iter()
+        .find(|row| row.key == ItemKey::num(1))
+        .expect("the active padded row is visible");
+    assert_eq!(planned_row.logical_tab.width, 15);
+    let calls = h.app().items[0].affix_calls.get();
+    let frozen = planned.clone();
+
+    h.app().items[0].trailing_padding.set(3);
+    h.app().reuse_last_layout.set(true);
+    h.draw();
+    assert_eq!(planned, last_layout(h.app()));
+    assert_eq!(h.app().items[0].affix_calls.get(), calls);
+    assert_eq!(planned, frozen);
+
+    h.app().reuse_last_layout.set(false);
+    h.draw();
+    assert_ne!(planned, last_layout(h.app()));
+    assert_eq!(h.app().items[0].affix_calls.get(), calls + 1);
+
+    let mut plain_menu = harness(12, false);
+    let mut padded_menu = harness(12, false);
+    padded_menu.app().items[2].trailing_padding.set(1);
+    plain_menu.draw();
+    padded_menu.draw();
+    let _ = plain_menu.click_part(TABS, more_part());
+    let _ = padded_menu.click_part(TABS, more_part());
+    assert!(plain_menu.is_open(MENU));
+    assert!(padded_menu.is_open(MENU));
+    let hidden = PartRef::item(Part::ROW, ItemKey::num(3));
+    let plain_row = plain_menu
+        .area_of_part(MENU_ITEMS, hidden)
+        .expect("the plain hidden row has a menu owner");
+    let padded_row = padded_menu
+        .area_of_part(MENU_ITEMS, hidden)
+        .expect("the padded hidden row has a menu owner");
+    assert_eq!(
+        harness_rect_text(&plain_menu, plain_row),
+        harness_rect_text(&padded_menu, padded_row)
+    );
+    assert!(plain_menu.diagnostics().is_empty());
+    assert!(padded_menu.diagnostics().is_empty());
+}
+
+#[test]
+fn padding_only_rows_and_extreme_clipping_keep_geometry_bounded() {
+    let mut plain = harness(1, false);
+    plain.app().items[0].suppress_affixes.set(true);
+    plain.draw();
+    let plain_row = last_layout(plain.app()).rows()[0].clone();
+
+    let mut padding_only = harness(1, false);
+    padding_only.app().items[0].suppress_affixes.set(true);
+    padding_only.app().items[0].trailing_padding.set(2);
+    padding_only.draw();
+    let padding_layout = last_layout(padding_only.app());
+    let padding_row = padding_layout.rows()[0].clone();
+    assert_eq!(
+        padding_row.logical_tab.width,
+        plain_row.logical_tab.width + 2
+    );
+    assert_eq!(padding_row.label_extent, plain_row.label_extent);
+    assert!(
+        padding_layout
+            .part_bounds(PartRef::item(Part::PREFIX, ItemKey::num(1)))
+            .is_none()
+    );
+    assert!(
+        padding_layout
+            .part_bounds(PartRef::item(Part::META, ItemKey::num(1)))
+            .is_none()
+    );
+
+    let mut clipped = Harness::new(Page::new(2, false, false), Theme::junie(), WIDTH, HEIGHT);
+    clipped.app().items[0].trailing_padding.set(u16::MAX);
+    clipped.app_mut().tabs_area = Rect::new(0, 0, 12, 2);
+    clipped.draw();
+    let layout = last_layout(clipped.app());
+    for row in layout.rows() {
+        assert!(
+            Rect::new(0, 0, 12, 2).contains(Position::new(row.logical_tab.x, row.logical_tab.y))
+        );
+        assert!(row.logical_tab.right() <= 12);
+        assert!(row.visible_tab.right() <= 12);
+    }
+    assert!(
+        clipped.diagnostics().is_empty(),
+        "{:?}",
+        clipped.diagnostics()
+    );
+}
+
+#[test]
 fn empty_and_unicode_affixes_keep_one_owned_width_and_skip_empty_plans() {
     let mut h = harness(2, false);
     h.app_mut().items[0].prefix.set('界');
@@ -658,6 +1167,7 @@ fn affix_geometry_coexists_with_live_mark_and_close_owners() {
     h.app_mut().items[0]
         .marks
         .set(TabMarks::default().dirty(true));
+    h.app().items[0].trailing_padding.set(1);
     h.draw();
 
     let key = ItemKey::num(1);
@@ -682,15 +1192,24 @@ fn affix_geometry_coexists_with_live_mark_and_close_owners() {
     let close_bounds = layout
         .part_bounds(PartRef::item(Part::CLOSE, key))
         .expect("the close target retains its independent allocation");
+    let plate_padding_x = row.logical_tab.right().saturating_sub(3);
+    let plate_padding = Rect::new(plate_padding_x, row.logical_tab.y, 1, 1);
     assert!(prefix.intersection(mark).is_empty());
     assert!(prefix.intersection(close_bounds.0).is_empty());
     assert!(suffix.intersection(mark).is_empty());
     assert!(suffix.intersection(close_bounds.0).is_empty());
+    assert!(mark.right() <= plate_padding_x);
+    assert!(plate_padding.intersection(close_bounds.0).is_empty());
+    assert!(
+        row.logical_tab
+            .contains(Position::new(plate_padding_x, row.logical_tab.y))
+    );
     assert_eq!(
         h.area_of_part(TABS, PartRef::item(Part::CLOSE, key)),
         Some(close_bounds.1),
         "the hit registry publishes the plan's clipped close owner"
     );
+    assert_eq!(h.cell(plate_padding_x, row.logical_tab.y).symbol(), " ");
     assert!(
         row.logical_content
             .contains(Position::new(prefix.x, prefix.y))
