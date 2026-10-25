@@ -15,6 +15,7 @@ use crate::{
         home::{self, HomeState},
         plan::{self, PlanState},
         plan_gate::PlanGate,
+        port_args::PortArgsEditor,
         review, snapshot,
     },
     sim::{catalogue, pg, world::World},
@@ -22,8 +23,9 @@ use crate::{
 use termrock::{
     ActionKey, AppShell, Binding, Brand, Chord, Color, Constraints, Cx, Dialog, FgStep,
     Focusability, FrameRead, Hint, HintBar, HintKey, HintLayer, Id, Intent, ItemKey, KeyCode,
-    KeyMap, KeyPhase, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem, MenuState, Part,
-    PartRef, Phase, Rect, Response, Role, StatusBar, StatusItem, StylePatch, Surface, TooSmall, Ui,
+    KeyMap, KeyPhase, LayerOpening, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem,
+    MenuState, Part, PartRef, Phase, Rect, Response, Role, StatusBar, StatusItem, StylePatch,
+    Surface, TooSmall, Ui,
 };
 
 use crate::layout::{self, MIN_HEIGHT, MIN_WIDTH};
@@ -173,9 +175,24 @@ struct ReturnLocation {
     focus: Option<Id>,
 }
 
+struct PortArgsOpening {
+    token: LayerOpening,
+    route: Route,
+    origin_focus: Option<Id>,
+}
+
+struct PendingPortReview {
+    opening: LayerOpening,
+    route: Route,
+    origin_focus: Option<Id>,
+    producer: crate::sim::port_args::PortArgsProducer,
+    plan: Box<crate::sim::port_args::PortInvocationPlan>,
+}
+
 enum Overlay {
     Dialog(Box<ProductDialog>),
     Args(Box<TaskArgsEditor>),
+    PortArgs(Box<PortArgsEditor>),
     Clone(ClonePicker),
     Actions(Actions),
     Gate(PlanGate),
@@ -194,6 +211,8 @@ pub struct App {
     files_return: Option<ReturnLocation>,
     overlay: Option<Overlay>,
     retired_overlay: Option<Overlay>,
+    port_args_opening: Option<PortArgsOpening>,
+    pending_port_review: Option<PendingPortReview>,
     menu: MenuState,
     keymap: KeyMap,
     status: Option<String>,
@@ -1431,6 +1450,8 @@ impl App {
             files_return: None,
             overlay: None,
             retired_overlay: None,
+            port_args_opening: None,
+            pending_port_review: None,
             menu: MenuState::default(),
             keymap,
             status: None,
@@ -1444,12 +1465,96 @@ impl App {
         dialog.open(cx);
         self.overlay = Some(Overlay::Dialog(Box::new(dialog)));
     }
+    fn poll_pending_port_review(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let Some((opening, route, origin_focus)) = self
+            .pending_port_review
+            .as_ref()
+            .map(|pending| (pending.opening, pending.route, pending.origin_focus))
+        else {
+            return Response::ignored();
+        };
+
+        if self.route != route {
+            self.pending_port_review.take();
+            self.set_status("Port action changed · review again".to_owned());
+            return Response::changed();
+        }
+        match cx.layer_opening(crate::screens::port_args::DIALOG) {
+            Some(current) if current == opening => return Response::ignored(),
+            Some(_) => {
+                self.pending_port_review.take();
+                self.set_status("Port input changed · review again".to_owned());
+                return Response::changed();
+            }
+            None => {}
+        }
+
+        if cx.area(crate::screens::port_args::DIALOG).is_some()
+            || cx
+                .state(crate::screens::port_args::DIALOG)
+                .contains(termrock::StateFlags::FOCUSED)
+            || cx.area(crate::screens::port_args::PORT).is_some()
+            || cx
+                .state(crate::screens::port_args::PORT)
+                .contains(termrock::StateFlags::FOCUSED)
+            || cx.top_layer() != termrock::LayerId::PAGE
+        {
+            return Response::ignored();
+        }
+        let Some(published_focus) = cx.focused_in_scope(termrock::ScopeId::ROOT) else {
+            return Response::ignored();
+        };
+        if origin_focus.is_some_and(|origin| origin != published_focus) {
+            self.pending_port_review.take();
+            self.set_status("Port input focus changed · review again".to_owned());
+            return Response::changed();
+        }
+
+        let Some(pending) = self.pending_port_review.take() else {
+            return Response::ignored();
+        };
+        if self.route != pending.route {
+            self.set_status("Port action changed · review again".to_owned());
+            return Response::changed();
+        }
+
+        let destination = dispatch::review_port_args(&self.world, pending.producer, *pending.plan);
+        self.destination(destination, cx);
+        Response::changed()
+    }
     fn destination(&mut self, destination: Destination, cx: &mut Cx<'_>) {
         match destination {
             Destination::Notice(message) => self.set_status(message),
             Destination::Preview(action) => self.open_dialog(dialogs::Intent::Preview(action), cx),
             Destination::Trust { action, file, args } => {
                 self.open_dialog(dialogs::Intent::Trust { action, file, args }, cx);
+            }
+            Destination::PortArgs(start) => {
+                if self.pending_port_review.is_some() || self.port_args_opening.is_some() {
+                    self.set_status("Port review is still settling · try again".to_owned());
+                    return;
+                }
+                let dispatch::PortArgsStart {
+                    action,
+                    producer,
+                    session,
+                } = *start;
+                match PortArgsEditor::new(action, producer, session) {
+                    Ok(editor) => {
+                        let origin_focus = cx.focused_in_scope(termrock::ScopeId::ROOT);
+                        if let Some(token) = editor.open(cx) {
+                            self.port_args_opening = Some(PortArgsOpening {
+                                token,
+                                route: self.route,
+                                origin_focus,
+                            });
+                            self.overlay = Some(Overlay::PortArgs(Box::new(editor)));
+                        } else {
+                            self.set_status("Port input could not open · try again".to_owned());
+                        }
+                    }
+                    Err(message) => self.set_status(message),
+                }
             }
             Destination::TaskArgs(start) => {
                 let dispatch::TaskArgsStart {
@@ -1464,6 +1569,20 @@ impl App {
                     }
                     Err(message) => self.set_status(message),
                 }
+            }
+            Destination::PortArgsReview {
+                producer,
+                plan,
+                facts,
+            } => {
+                self.open_dialog(
+                    dialogs::Intent::PortArgsReview {
+                        producer,
+                        plan: Some(plan),
+                        facts,
+                    },
+                    cx,
+                );
             }
             Destination::TaskArgsReview {
                 producer,
@@ -1751,6 +1870,40 @@ impl App {
                         }
                         dialogs::Event::ReturnToCloneReview(request) => {
                             self.open_dialog(dialogs::Intent::CloneReview(request), cx);
+                        }
+                    }
+                }
+                (response, closed)
+            }
+            Overlay::PortArgs(editor) => {
+                let (response, event) = editor.update(cx, &self.world);
+                let closed = event.is_some();
+                if let Some(event) = event {
+                    match event {
+                        crate::screens::port_args::Event::Cancelled => {
+                            self.port_args_opening.take();
+                        }
+                        crate::screens::port_args::Event::Rejected(message) => {
+                            self.port_args_opening.take();
+                            self.set_status(message);
+                        }
+                        crate::screens::port_args::Event::Accepted { producer, plan } => {
+                            if let Some(opening) = self.port_args_opening.take() {
+                                if opening.route != self.route || self.pending_port_review.is_some()
+                                {
+                                    self.set_status("Port input changed · review again".to_owned());
+                                } else {
+                                    self.pending_port_review = Some(PendingPortReview {
+                                        opening: opening.token,
+                                        route: opening.route,
+                                        origin_focus: opening.origin_focus,
+                                        producer,
+                                        plan,
+                                    });
+                                }
+                            } else {
+                                self.set_status("Port input changed · review again".to_owned());
+                            }
                         }
                     }
                 }
@@ -2319,7 +2472,7 @@ impl App {
         let hints = HintLayer::from_bindings(GLOBAL);
         let editing = match &self.overlay {
             Some(Overlay::Dialog(dialog)) => dialog.is_editing(),
-            Some(Overlay::Args(_)) => true,
+            Some(Overlay::Args(_) | Overlay::PortArgs(_)) => true,
             Some(Overlay::Gate(gate)) => gate.is_editing(),
             Some(Overlay::Clone(_) | Overlay::Actions(_) | Overlay::DiskSelection(_)) => false,
             None => self.route == Route::Home && self.home.is_editing(),
@@ -2334,7 +2487,8 @@ impl App {
             )
         });
         let actions_hints = matches!(self.overlay, Some(Overlay::Actions(_))).then(Actions::hints);
-        let args_hints = matches!(self.overlay, Some(Overlay::Args(_))).then(task_args_hints);
+        let args_hints = matches!(self.overlay, Some(Overlay::Args(_) | Overlay::PortArgs(_)))
+            .then(task_args_hints);
         let mut bar = HintBar::derived(FOOTER).screen(&hints);
         if let Some(mode_hints) = actions_hints
             .as_ref()
@@ -2374,7 +2528,7 @@ impl App {
     fn refresh_query_bindings(&mut self, cx: &Cx<'_>) {
         let scope = Chord::with(KeyCode::Char('s'), termrock::KeyModifiers::CONTROL);
         self.keymap.remove(KeyPhase::Capture, scope);
-        if !matches!(self.overlay, Some(Overlay::Args(_))) {
+        if !matches!(self.overlay, Some(Overlay::Args(_) | Overlay::PortArgs(_))) {
             self.keymap.add(KeyPhase::Capture, scope, SCOPE);
         }
         let enter = Chord::key(KeyCode::Enter);
@@ -2500,6 +2654,7 @@ impl App {
             None => Response::ignored(),
             Some(Overlay::Dialog(mut dialog)) => dialog.poll(cx).0,
             Some(Overlay::Args(mut editor)) => editor.poll(cx),
+            Some(Overlay::PortArgs(mut editor)) => editor.poll(cx),
             Some(Overlay::Gate(mut gate)) => gate.poll(cx).0,
             Some(Overlay::Clone(mut picker)) => picker.update(cx).0,
             Some(Overlay::Actions(mut picker)) => picker.update(cx).0,
@@ -2511,6 +2666,7 @@ impl App {
                 response
             }
         };
+        let port_review = self.poll_pending_port_review(cx);
 
         let viewport = cx.viewport();
         let (home_response, home_action) =
@@ -2524,7 +2680,12 @@ impl App {
         let files_response = self.files.update(cx);
         let mut menu = menu_bar().update(cx, &mut self.menu);
         let brand = brand().update(cx);
-        let controls = retired | home_response | plan_response | activity_response | files_response;
+        let controls = retired
+            | port_review
+            | home_response
+            | plan_response
+            | activity_response
+            | files_response;
         if too_small(cx.viewport()) {
             let overlay = self
                 .overlay
@@ -2532,6 +2693,7 @@ impl App {
                 .map_or_else(Response::ignored, |overlay| match overlay {
                     Overlay::Dialog(dialog) => dialog.poll(cx).0,
                     Overlay::Args(editor) => editor.poll(cx),
+                    Overlay::PortArgs(editor) => editor.poll(cx),
                     Overlay::Gate(gate) => gate.poll(cx).0,
                     Overlay::Clone(picker) => picker.update(cx).0,
                     Overlay::Actions(picker) => picker.update(cx).0,
@@ -2542,6 +2704,9 @@ impl App {
                 self.quit = true;
             }
             return controls | overlay | menu.erase() | brand.erase() | Response::consumed();
+        }
+        if self.pending_port_review.is_some() {
+            return controls | menu.erase() | brand.erase() | Response::consumed();
         }
         if self.overlay.is_some() {
             return controls | menu.erase() | brand.erase() | self.update_overlay(cx);
@@ -2694,6 +2859,7 @@ impl termrock::App for App {
             match overlay {
                 Overlay::Dialog(dialog) => dialog.draw(ui),
                 Overlay::Args(editor) => editor.draw(ui),
+                Overlay::PortArgs(editor) => editor.draw(ui),
                 Overlay::Clone(picker) => picker.draw(ui),
                 Overlay::Actions(picker) => picker.draw(ui),
                 Overlay::Gate(gate) => gate.draw(ui),
@@ -2954,6 +3120,9 @@ fn paint_activities_multi_chips_from(ui: &mut Ui<'_>, area: Rect, y: u16, mut x:
         x = x.saturating_add(close_w).saturating_add(1);
     }
 }
+
+#[cfg(test)]
+mod port_args_tests;
 
 #[cfg(test)]
 #[expect(

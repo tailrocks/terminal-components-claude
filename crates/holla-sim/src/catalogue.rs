@@ -25,6 +25,7 @@ pub fn catalogue(w: &World) -> Vec<Action> {
     github_actions(w, &mut out);
     debian_actions(w, &mut out);
     flow_actions(w, &mut out);
+    out.push(crate::port_args::catalogue_action(w));
     recent_actions(w, &mut out);
     out
 }

@@ -10,6 +10,7 @@ use crate::domain::{
 };
 use crate::sim::{
     catalogue, pg,
+    port_args::{PortArgsProducer, PortInvocationPlan, PortParseDisposition, PortReviewFacts},
     task_args::{InvocationPlan, SafeReviewFacts, TaskArgsProducer},
     world::World,
 };
@@ -25,6 +26,7 @@ const TERMINATE: ActionKey = ActionKey::application("holla.pg.terminate");
 const BROWSE_FILES: ActionKey = ActionKey::application("holla.folder-browser.browse");
 const EDIT_CLONE_OPTIONS: ActionKey = ActionKey::application("holla.clone.edit-options");
 const SIMULATE_TASK_ARGS: ActionKey = ActionKey::application("holla.task-args.simulate");
+const SIMULATE_PORT_ARGS: ActionKey = ActionKey::application("holla.port-args.simulate");
 pub(crate) const CLONE_PROTOCOL: Id = Id::root("holla.clone.protocol");
 pub(crate) const CLONE_DESTINATION: Id = Id::root("holla.clone.destination");
 const CLONE_PROTOCOLS: [&str; 2] = ["SSH", "HTTPS"];
@@ -200,6 +202,11 @@ pub(crate) enum Intent {
         action: Action,
         file: String,
         args: Option<Box<TaskArgsStart>>,
+    },
+    PortArgsReview {
+        producer: PortArgsProducer,
+        plan: Option<Box<PortInvocationPlan>>,
+        facts: PortReviewFacts,
     },
     TaskArgsReview {
         producer: TaskArgsProducer,
@@ -381,6 +388,36 @@ impl ProductDialog {
                 ]);
                 view.commands.push(action.command.clone());
                 view.actions.push(confirm_action("Trust file"));
+            }
+            Intent::PortArgsReview { facts: review, .. } => {
+                view.title = "Review port lookup".into();
+                view.description =
+                    "Structured simulation only. No process will be launched or listener result inferred."
+                        .into();
+                let (disposition, warning) = match review.disposition {
+                    PortParseDisposition::Parsed => ("parsed as u16", "none"),
+                    PortParseDisposition::LegacyFallbackTo5173 => (
+                        "legacy fallback to 5173",
+                        "Invalid text: historical fallback",
+                    ),
+                };
+                view.facts = facts(&[
+                    (
+                        "Action",
+                        crate::screens::args::quote_value(&review.action_title),
+                    ),
+                    ("Host", crate::screens::args::quote_value(&review.host_name)),
+                    ("Environment", format!("{:?}", review.environment)),
+                    ("Input", disposition.into()),
+                    ("Fallback warning", warning.into()),
+                    ("Effective port", review.effective_port.to_string()),
+                    ("Effect revision", review.effect_revision.to_string()),
+                ]);
+                view.commands = crate::screens::args::format_invocation_lines(&review.invocation);
+                view.actions = vec![
+                    UiAction::quiet(ActionKey::CANCEL, "Cancel"),
+                    UiAction::new(SIMULATE_PORT_ARGS, "Simulate · nothing executed"),
+                ];
             }
             Intent::TaskArgsReview { facts: review, .. } => {
                 view.title = "Review task inputs".into();
@@ -691,7 +728,10 @@ impl ProductDialog {
         cx.open_layer(DIALOG, props.layer(cx));
         cx.focus(if matches!(self.intent, Intent::CloneOptions(_)) {
             CLONE_DESTINATION
-        } else if matches!(self.intent, Intent::TaskArgsReview { .. }) {
+        } else if matches!(
+            self.intent,
+            Intent::PortArgsReview { .. } | Intent::TaskArgsReview { .. }
+        ) {
             props.action_id(1)
         } else if matches!(self.intent, Intent::Alias(_)) {
             props.input_id()
@@ -896,6 +936,14 @@ impl ProductDialog {
                     execution.destination
                 ))
             }
+            Intent::PortArgsReview { producer, plan, .. } if key == SIMULATE_PORT_ARGS => {
+                match plan.take() {
+                    Some(plan) => Event::Destination(Box::new(dispatch::confirm_port_args(
+                        world, producer, *plan,
+                    ))),
+                    None => notice("Port input review already consumed"),
+                }
+            }
             Intent::TaskArgsReview { producer, plan, .. } if key == SIMULATE_TASK_ARGS => {
                 match plan.take() {
                     Some(plan) => Event::Destination(Box::new(dispatch::confirm_task_args(
@@ -930,6 +978,7 @@ impl ProductDialog {
             | Intent::CustomAction
             | Intent::SnapshotPage
             | Intent::DefinitionTrust
+            | Intent::PortArgsReview { .. }
             | Intent::TaskArgsReview { .. } => Event::Close,
         }
     }
@@ -1020,6 +1069,7 @@ fn notice(message: impl Into<String>) -> Event {
 #[cfg(test)]
 #[expect(
     clippy::panic,
+    clippy::unwrap_used,
     reason = "Fixed test fixtures and enum outcomes must be present"
 )]
 mod tests {
@@ -1048,5 +1098,72 @@ mod tests {
         );
         assert_eq!(world.pg, sessions);
         assert_eq!(world.effect_revision, 0);
+    }
+
+    #[test]
+    fn port_review_consumer_takes_the_same_plan_once_and_only_simulates() {
+        let mut world = fixtures::world_for(Scenario::RustDirty);
+        let producer = crate::sim::port_args::port_args_producer().unwrap();
+        let row = crate::sim::catalogue::catalogue(&world)
+            .into_iter()
+            .find(|action| action.id == "system.port")
+            .unwrap();
+        let mut session =
+            crate::sim::port_args::PortArgsSession::begin(&world, &row, &producer).unwrap();
+        let plan = session
+            .accept(&world, &row, &producer, &[("port", "8080")])
+            .unwrap();
+        let report =
+            crate::sim::port_args::simulate_port_invocation(&world, &producer, &plan).unwrap();
+        assert_eq!(
+            report.status,
+            crate::sim::task_args::ExecutionStatus::NothingExecuted
+        );
+        let expected = format!(
+            "Simulation confirmed · nothing executed · {}",
+            crate::screens::args::format_invocation(&report.invocation)
+        );
+        let facts = crate::sim::port_args::port_review_facts(&world, &producer, &plan).unwrap();
+        let mut dialog = ProductDialog::new(
+            Intent::PortArgsReview {
+                producer,
+                plan: Some(Box::new(plan)),
+                facts,
+            },
+            &world,
+        );
+        let before = (
+            world.cwd.clone(),
+            world.host.clone(),
+            world.effect_revision,
+            world.activities.len(),
+        );
+
+        let first = dialog.confirm(&mut world, SIMULATE_PORT_ARGS);
+        let Event::Destination(first) = first else {
+            panic!("first confirmation returns the exact simulation notice");
+        };
+        let Destination::Notice(first) = first.as_ref() else {
+            panic!("first confirmation returns the exact simulation notice");
+        };
+        assert_eq!(first, &expected);
+
+        let second = dialog.confirm(&mut world, SIMULATE_PORT_ARGS);
+        let Event::Destination(second) = second else {
+            panic!("second confirmation reports the consumed review");
+        };
+        let Destination::Notice(second) = second.as_ref() else {
+            panic!("second confirmation reports the consumed review");
+        };
+        assert_eq!(second.as_str(), "Port input review already consumed");
+        assert_eq!(
+            (
+                world.cwd.clone(),
+                world.host.clone(),
+                world.effect_revision,
+                world.activities.len(),
+            ),
+            before
+        );
     }
 }
