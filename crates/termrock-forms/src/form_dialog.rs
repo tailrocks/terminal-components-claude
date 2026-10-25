@@ -11,7 +11,9 @@ use termrock_overlays::dialog::{Dialog, DialogAction, DialogState};
 use termrock_runtime::layer::{Dismiss, DismissReason, LayerSpec};
 use termrock_runtime::{Cx, Ui};
 
-use crate::form::{FieldKind, FieldSizingPolicy, FieldSpec, Form, FormAction, FormData, FormState};
+use crate::form::{
+    EnterPolicy, FieldKind, FieldSizingPolicy, FieldSpec, Form, FormAction, FormData, FormState,
+};
 use crate::theme::DesignTokens;
 use termrock_runtime::FrameRead;
 use termrock_runtime::author::LayerSlotAuthor;
@@ -112,6 +114,7 @@ pub struct FormDialog<'a> {
     cancel: ActionKey,
     dismiss: Dismiss,
     field_sizing: FieldSizingPolicy,
+    enter_policy: EnterPolicy,
     layout: FormDialogLayoutPolicy,
     submit_policy: FormDialogSubmitPolicy,
 }
@@ -146,6 +149,7 @@ impl<'a> FormDialog<'a> {
             cancel: ActionKey::CANCEL,
             dismiss: Dismiss::ESC,
             field_sizing: FieldSizingPolicy::Fixed,
+            enter_policy: EnterPolicy::SubmitsWhenIdle,
             layout: FormDialogLayoutPolicy::Intrinsic,
             submit_policy: FormDialogSubmitPolicy::CloseOnSubmit,
         }
@@ -199,6 +203,16 @@ impl<'a> FormDialog<'a> {
         self
     }
 
+    /// Sets how Enter behaves when a form field is not editing.
+    ///
+    /// The default submits, matching [`Form`]. Use [`EnterPolicy::Never`] when
+    /// the caller handles submission through a separate scoped command.
+    #[must_use]
+    pub const fn enter_policy(mut self, policy: EnterPolicy) -> Self {
+        self.enter_policy = policy;
+        self
+    }
+
     #[must_use]
     pub const fn layout_policy(mut self, policy: FormDialogLayoutPolicy) -> Self {
         self.layout = policy;
@@ -219,6 +233,7 @@ impl<'a> FormDialog<'a> {
         Form::new(self.form_id(), self.fields)
             .actions(self.actions)
             .submit(self.submit)
+            .enter(self.enter_policy)
             .field_sizing(self.field_sizing)
     }
 
@@ -462,6 +477,7 @@ mod tests {
     const NAME: Id = Id::root("form-dialog.tests.name");
     const NOTE: Id = Id::root("form-dialog.tests.note");
     const CHOOSER: Id = Id::root("form-dialog.tests.chooser");
+    const SELECT: Id = Id::root("form-dialog.tests.select-policy");
     const SAVE: ActionKey = ActionKey::custom("form-dialog.tests.save");
     const CANCEL: ActionKey = ActionKey::custom("form-dialog.tests.cancel");
     const ACTIONS: &[Action<'static>] =
@@ -486,6 +502,12 @@ mod tests {
             FieldKind::Chooser(Button::new(CHOOSER, "Choose")),
         ),
     ];
+    const SELECT_OPTIONS: &[&str] = &["first", "second"];
+    const SELECT_FIELDS: &[FieldSpec<'static>] = &[FieldSpec::new(
+        SELECT,
+        "Profile",
+        FieldKind::Select(termrock_overlays::select::LabelSelect::new(SELECT)),
+    )];
     const SCREEN: Rect = Rect::new(0, 0, 64, 24);
 
     #[derive(Default)]
@@ -629,6 +651,86 @@ mod tests {
                 ui.command_scope(SUBMIT_SCOPE, SUBMIT_BINDINGS, |ui| {
                     dialog.draw(ui, area, &self.state, &self.data);
                 });
+            });
+        }
+    }
+
+    #[derive(Default)]
+    struct SelectPolicyData {
+        choice: usize,
+    }
+
+    impl FormData for SelectPolicyData {
+        fn value(&self, id: Id) -> FieldRef<'_> {
+            if id == SELECT {
+                FieldRef::Choice(self.choice)
+            } else {
+                FieldRef::Text("")
+            }
+        }
+
+        fn value_mut(&mut self, id: Id) -> FieldMut<'_> {
+            if id == SELECT {
+                FieldMut::Choice(&mut self.choice)
+            } else {
+                FieldMut::ReadOnly
+            }
+        }
+
+        fn options(&self, id: Id) -> &[&str] {
+            if id == SELECT { SELECT_OPTIONS } else { &[] }
+        }
+
+        fn value_and_options(&mut self, id: Id) -> (FieldMut<'_>, &[&str]) {
+            if id == SELECT {
+                (FieldMut::Choice(&mut self.choice), SELECT_OPTIONS)
+            } else {
+                (FieldMut::ReadOnly, &[])
+            }
+        }
+    }
+
+    #[derive(Default)]
+    struct SelectPolicyApp {
+        state: FormDialogState,
+        data: SelectPolicyData,
+        opened: bool,
+        actions: Vec<FormDialogAction>,
+        enter_policy: Option<EnterPolicy>,
+    }
+
+    impl SelectPolicyApp {
+        fn dialog(&self) -> FormDialog<'static> {
+            let dialog = FormDialog::new(DIALOG, "Select profile", SELECT_FIELDS)
+                .actions(ACTIONS)
+                .submit(SAVE)
+                .cancel_action(CANCEL)
+                .width(42);
+            match self.enter_policy {
+                Some(policy) => dialog.enter_policy(policy),
+                None => dialog,
+            }
+        }
+    }
+
+    impl App for SelectPolicyApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if !self.opened {
+                self.opened = true;
+                let layer = self.dialog().layer(cx, &self.data);
+                cx.open_layer(DIALOG, layer);
+            }
+            let response = self.dialog().update(cx, &mut self.state, &mut self.data);
+            if let Some(action) = response.action_ref() {
+                self.actions.push(*action);
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let dialog = self.dialog();
+            ui.layer(DIALOG, |ui, area| {
+                dialog.draw(ui, area, &self.state, &self.data)
             });
         }
     }
@@ -812,6 +914,64 @@ mod tests {
                 "{code:?} was not returned as the chooser action"
             );
         }
+    }
+
+    #[test]
+    fn select_enter_policy_preserves_default_submit_and_allows_native_popup_opt_in() {
+        let mut buffer = Buffer::empty(SCREEN);
+
+        let mut runtime = Runtime::new(SelectPolicyApp::default(), Theme::junie());
+        let _ = runtime.initialize();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.focus(), Some(SELECT));
+        let _ = termrock_runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert!(!runtime.is_open(DIALOG), "default Enter still submits");
+        assert!(
+            runtime.layer_area(SELECT).is_none(),
+            "default Enter does not open Select"
+        );
+        assert_eq!(
+            runtime.app().actions.last(),
+            Some(&FormDialogAction::Action(SAVE))
+        );
+
+        let opt_in = SelectPolicyApp {
+            enter_policy: Some(EnterPolicy::Never),
+            ..SelectPolicyApp::default()
+        };
+        let mut runtime = Runtime::new(opt_in, Theme::junie());
+        let _ = runtime.initialize();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.focus(), Some(SELECT));
+        let _ = termrock_runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert!(
+            runtime.is_open(DIALOG),
+            "Never leaves the parent dialog open"
+        );
+        assert!(
+            runtime.layer_area(SELECT).is_some(),
+            "Enter opens native Select"
+        );
+        assert_eq!(runtime.app().data.choice, 0, "opening does not choose");
+        assert_ne!(
+            runtime.app().actions.last(),
+            Some(&FormDialogAction::Action(SAVE))
+        );
+
+        let _ = termrock_runtime::stub::deliver(&mut runtime, press(KeyCode::Down));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = termrock_runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert!(runtime.is_open(DIALOG), "choosing does not submit");
+        assert!(runtime.layer_area(SELECT).is_none(), "choice closes Select");
+        assert_eq!(runtime.app().data.choice, 1);
+        assert_eq!(
+            runtime.app().actions.last(),
+            Some(&FormDialogAction::Committed(SELECT))
+        );
+        assert!(runtime.diagnostics().is_empty());
     }
 
     #[test]
