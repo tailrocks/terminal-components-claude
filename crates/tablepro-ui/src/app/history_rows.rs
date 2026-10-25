@@ -16,6 +16,13 @@ use super::HISTORY_LIST;
 use super::history_controls::{ConnectionScope, HistoryControls};
 
 const OPEN_CONTROL: &str = "history.open";
+const COPY_CONTROL: &str = "history.copy";
+const COPY_BUTTON_WIDTH: u16 = 6;
+
+pub(super) enum HistoryAction {
+    Open(String),
+    Copy(String),
+}
 
 #[derive(Default)]
 pub(super) struct HistoryRows {
@@ -42,6 +49,8 @@ struct DisplayedRows {
     cursor: Option<ItemKey>,
     open_entry: Option<HistoryEntry>,
     open_visible: bool,
+    copy_entry: Option<HistoryEntry>,
+    copy_visible: bool,
 }
 
 impl TabRows {
@@ -172,6 +181,29 @@ fn open_area(inner: Rect, list_y: u16) -> Rect {
     Rect::new(inner.x.saturating_add(44), list_y.saturating_add(10), 17, 1)
 }
 
+fn copy_area(inner: Rect, list_y: u16) -> Option<Rect> {
+    let x = inner.x.saturating_add(44);
+    let right = inner.x.saturating_add(inner.width);
+    let width = right.saturating_sub(x);
+    if width < COPY_BUTTON_WIDTH {
+        return None;
+    }
+
+    let preferred_y = list_y.saturating_add(11);
+    let compact_y = list_y.saturating_add(5);
+    // At the 72x20 minimum, the old Copy row is below the framed body.
+    // The compact slot is between the two-line SQL preview and the facts.
+    let y = if preferred_y >= inner.y && preferred_y < inner.bottom() {
+        preferred_y
+    } else if compact_y >= inner.y && compact_y < inner.bottom() {
+        compact_y
+    } else {
+        return None;
+    };
+
+    Some(Rect::new(x, y, COPY_BUTTON_WIDTH, 1))
+}
+
 impl HistoryRows {
     pub(super) fn update(
         &self,
@@ -179,7 +211,7 @@ impl HistoryRows {
         workbench: &mut Workbench,
         controls_by_tab: &HashMap<TabKey, HistoryControls>,
         history_route_visible: bool,
-    ) -> (Response<()>, Option<String>) {
+    ) -> (Response<()>, Option<HistoryAction>) {
         let Some(key) = workbench.active_key() else {
             return (self.service_hidden(cx, workbench, controls_by_tab), None);
         };
@@ -219,7 +251,7 @@ impl HistoryRows {
         }
 
         let mut response = Response::ignored();
-        let mut open_sql = None;
+        let mut accepted = None;
         let selected_fallback = history.selected;
         let duplicate = duplicate_keys(&entries);
         let duplicate_item = |entry: &&HistoryEntry| duplicate.contains(&item_key(entry));
@@ -246,8 +278,8 @@ impl HistoryRows {
         if let Some(ListAction::Activated(activated)) = action
             && let Some(displayed) = store.displayed_for(key, &owner)
         {
-            open_sql = activation_entry(displayed.cursor, activated, &displayed.visible, &entries)
-                .map(|current| current.sql.clone());
+            accepted = activation_entry(displayed.cursor, activated, &displayed.visible, &entries)
+                .map(|current| HistoryAction::Open(current.sql.clone()));
         }
 
         let button_id = key.control(OPEN_CONTROL);
@@ -267,10 +299,25 @@ impl HistoryRows {
         let button_response = button.update(cx);
         if button_response.activated()
             && let Some(current) = button_entry
+            && accepted.is_none()
         {
-            open_sql = Some(current.sql.clone());
+            accepted = Some(HistoryAction::Open(current.sql.clone()));
         }
         response |= button_response.erase();
+
+        let copy_id = key.control(COPY_CONTROL);
+        let copy_entry = store
+            .displayed_for(key, &owner)
+            .and_then(|displayed| current_copy_entry(displayed, &entries));
+        let copy_button = Button::new(copy_id, "Copy").disabled(copy_entry.is_none());
+        let copy_response = copy_button.update(cx);
+        if copy_response.activated()
+            && let Some(current) = copy_entry
+            && accepted.is_none()
+        {
+            accepted = Some(HistoryAction::Copy(current.sql.clone()));
+        }
+        response |= copy_response.erase();
 
         drop(entries);
         let mut history_changed = false;
@@ -294,9 +341,9 @@ impl HistoryRows {
         }
         store.last_active = Some((key, owner.clone()));
         let (inactive_response, _) =
-            service_inactive_open_buttons(cx, &mut store, workbench, Some(key), true, None);
+            service_inactive_buttons(cx, &mut store, workbench, Some(key), true, None);
         response |= inactive_response;
-        (response, open_sql)
+        (response, accepted)
     }
 
     fn service_hidden(
@@ -362,7 +409,7 @@ impl HistoryRows {
                 retired_last_list = Some((key, owner));
             }
         }
-        let (open_response, retired_open_owner) = service_inactive_open_buttons(
+        let (button_response, retired_button_owners) = service_inactive_buttons(
             cx,
             &mut store,
             workbench,
@@ -370,8 +417,8 @@ impl HistoryRows {
             list_bucket_safe,
             retired_last_list.as_ref(),
         );
-        response |= open_response;
-        if retired_open_owner && let Some((key, owner)) = retired_last_list {
+        response |= button_response;
+        if retired_button_owners && let Some((key, owner)) = retired_last_list {
             if store
                 .tabs
                 .get(&key)
@@ -434,6 +481,8 @@ impl HistoryRows {
                 cursor,
                 open_entry: None,
                 open_visible: false,
+                copy_entry: None,
+                copy_visible: false,
             })
         };
         selected
@@ -482,12 +531,88 @@ impl HistoryRows {
         }
     }
 
+    pub(super) fn draw_copy_button(
+        &self,
+        ui: &mut Ui<'_>,
+        key_owner: (TabKey, &Weak<()>),
+        inner: Rect,
+        list_y: u16,
+        entries: &[&HistoryEntry],
+        selected: Option<usize>,
+    ) {
+        let (key, owner) = key_owner;
+        let mut store = self.state.borrow_mut();
+        if let Some(displayed) = store.displayed.as_mut()
+            && displayed.tab == key
+            && Weak::ptr_eq(&displayed.owner, owner)
+        {
+            displayed.copy_visible = false;
+            displayed.copy_entry = None;
+        }
+        let Some(displayed) = store.displayed_for(key, owner) else {
+            return;
+        };
+        let Some(area) = copy_area(inner, list_y) else {
+            return;
+        };
+        if ui.is_inert() || area.intersection(inner) != area || area.intersection(ui.full()) != area
+        {
+            return;
+        }
+        let selected_entry = selected.and_then(|index| entries.get(index)).copied();
+        let captured = selected_entry
+            .filter(|entry| {
+                let item = item_key(entry);
+                displayed.cursor == Some(item)
+                    && displayed
+                        .visible
+                        .iter()
+                        .filter(|visible| item_key(visible) == item)
+                        .count()
+                        == 1
+                    && displayed.visible.iter().any(|visible| visible == *entry)
+            })
+            .cloned();
+        let button = Button::new(key.control(COPY_CONTROL), "Copy").disabled(captured.is_none());
+        let drawn = button.draw(ui, area);
+        let fully_visible = drawn == area
+            && drawn.width == COPY_BUTTON_WIDTH
+            && drawn.height == 1
+            && drawn.intersection(inner) == drawn
+            && drawn.intersection(ui.full()) == drawn;
+        if let Some(displayed) = store.displayed.as_mut()
+            && displayed.tab == key
+            && Weak::ptr_eq(&displayed.owner, owner)
+        {
+            displayed.copy_visible = fully_visible;
+            displayed.copy_entry = fully_visible.then_some(captured).flatten();
+        }
+    }
+
+    pub(super) fn selected_copy_sql(
+        &self,
+        workbench: &Workbench,
+        controls_by_tab: &HashMap<TabKey, HistoryControls>,
+    ) -> Option<String> {
+        let key = workbench.active_key()?;
+        if !matches!(workbench.tab(key), Some(Tab::History(_))) {
+            return None;
+        }
+        let fallback = HistoryControls::default();
+        let controls = controls_by_tab.get(&key).unwrap_or(&fallback);
+        let entries = eligible_entries(workbench, key, controls)?;
+        let owner = workbench.owner_token();
+        let store = self.state.borrow();
+        let displayed = store.displayed_for(key, &owner)?;
+        current_copy_entry(displayed, &entries).map(|entry| entry.sql.clone())
+    }
+
     pub(super) fn invalidate_display(&self) {
         self.state.borrow_mut().displayed = None;
     }
 }
 
-fn service_inactive_open_buttons(
+fn service_inactive_buttons(
     cx: &mut Cx<'_>,
     store: &mut RowsState,
     workbench: &Workbench,
@@ -521,33 +646,40 @@ fn service_inactive_open_buttons(
 
     let mut response = Response::ignored();
     let mut prune = Vec::new();
-    let mut retired_open_owner = false;
+    let mut retired_button_owners = false;
     for (key, owner) in candidates {
-        let owner_id = key.control(OPEN_CONTROL);
         let owner_matches = workbench.matches_owner(&owner);
         let live_history = owner_matches && matches!(workbench.tab(key), Some(Tab::History(_)));
         if active_key == Some(key) && live_history {
             continue;
         }
 
-        let bucket_safe = match lifecycle_bucket(cx, owner_id) {
-            LifecycleBucket::Empty => true,
-            LifecycleBucket::Lifecycle => {
-                response |= Button::new(owner_id, "Open in new tab")
-                    .disabled(true)
-                    .update(cx)
-                    .erase();
-                true
-            }
-            LifecycleBucket::Other => {
-                diagnose(cx, owner_id);
-                false
-            }
-        };
-        if retire_list_owner.is_some_and(|(retire_key, retire_owner)| {
+        let retiring_owner = retire_list_owner.is_some_and(|(retire_key, retire_owner)| {
             *retire_key == key && Weak::ptr_eq(retire_owner, &owner)
-        }) {
-            retired_open_owner = bucket_safe && retired(cx, owner_id);
+        });
+        let mut buttons_safe = true;
+        let mut buttons_retired = true;
+        for (control, label) in [(OPEN_CONTROL, "Open in new tab"), (COPY_CONTROL, "Copy")] {
+            let owner_id = key.control(control);
+            let bucket_safe = match lifecycle_bucket(cx, owner_id) {
+                LifecycleBucket::Empty => true,
+                LifecycleBucket::Lifecycle => {
+                    response |= Button::new(owner_id, label)
+                        .disabled(true)
+                        .update(cx)
+                        .erase();
+                    true
+                }
+                LifecycleBucket::Other => {
+                    diagnose(cx, owner_id);
+                    false
+                }
+            };
+            buttons_safe &= bucket_safe;
+            buttons_retired &= bucket_safe && retired(cx, owner_id);
+        }
+        if retiring_owner {
+            retired_button_owners = buttons_retired;
         }
         let last_active_owner = store
             .last_active
@@ -557,12 +689,16 @@ fn service_inactive_open_buttons(
             });
         if !live_history
             && cx.update_cause() == UpdateCause::Settle
-            && bucket_safe
+            && buttons_safe
             && list_bucket_safe
             && !last_active_owner
-            && retired(cx, owner_id)
         {
-            prune.push((key, owner));
+            let controls_retired = [OPEN_CONTROL, COPY_CONTROL]
+                .into_iter()
+                .all(|control| retired(cx, key.control(control)));
+            if controls_retired {
+                prune.push((key, owner));
+            }
         }
     }
 
@@ -575,7 +711,7 @@ fn service_inactive_open_buttons(
             store.tabs.remove(&key);
         }
     }
-    (response, retired_open_owner)
+    (response, retired_button_owners)
 }
 
 fn activation_entry<'a>(
@@ -590,6 +726,23 @@ fn activation_entry<'a>(
     let captured = displayed_entry(displayed, activated)?;
     let current = unique_entry(current, activated)?;
     (current == captured).then_some(current)
+}
+
+fn current_copy_entry<'a>(
+    displayed: &DisplayedRows,
+    current: &'a [&'a HistoryEntry],
+) -> Option<&'a HistoryEntry> {
+    if !displayed.copy_visible {
+        return None;
+    }
+    let cursor = displayed.cursor?;
+    let captured = displayed.copy_entry.as_ref()?;
+    if item_key(captured) != cursor {
+        return None;
+    }
+    let shown = displayed_entry(&displayed.visible, cursor)?;
+    let current = unique_entry(current, cursor)?;
+    (shown == captured && current == shown).then_some(current)
 }
 
 fn displayed_entry(displayed: &[HistoryEntry], key: ItemKey) -> Option<&HistoryEntry> {
@@ -607,9 +760,13 @@ fn displayed_entry(displayed: &[HistoryEntry], key: ItemKey) -> Option<&HistoryE
 
 #[cfg(test)]
 mod tests {
-    use super::activation_entry;
+    use super::{
+        DisplayedRows, RowsState, activation_entry, copy_area, current_copy_entry, item_key,
+    };
+    use std::sync::Arc;
+    use std::sync::Weak;
     use tablepro_domain::model::{HistoryEntry, HistorySource};
-    use termrock::ItemKey;
+    use termrock::{ItemKey, Rect};
 
     fn entry(id: usize, sql: &str) -> HistoryEntry {
         HistoryEntry {
@@ -623,6 +780,19 @@ mod tests {
             rows: Some(2),
             error: None,
             source: HistorySource::Editor,
+        }
+    }
+
+    fn displayed_copy(entries: Vec<HistoryEntry>, selected: HistoryEntry) -> DisplayedRows {
+        DisplayedRows {
+            tab: crate::tabs::TabKey::new(1),
+            owner: Weak::new(),
+            visible: entries,
+            cursor: Some(item_key(&selected)),
+            open_entry: None,
+            open_visible: false,
+            copy_entry: Some(selected),
+            copy_visible: true,
         }
     }
 
@@ -691,6 +861,78 @@ mod tests {
             )
             .is_none()
         );
+    }
+
+    #[test]
+    fn copy_keeps_the_exact_full_entry_after_reordering() {
+        let first = entry(7, "SELECT first");
+        let selected = entry(8, "SELECT selected\nFROM full_source WHERE note = '尾部🙂'");
+        let displayed = displayed_copy(vec![first.clone(), selected.clone()], selected.clone());
+        let current = [&selected, &first];
+
+        assert_eq!(current_copy_entry(&displayed, &current), Some(&selected));
+    }
+
+    #[test]
+    fn copy_rejects_changed_removed_ambiguous_or_hidden_entries() {
+        let selected = entry(8, "SELECT selected\nFROM full_source");
+        let displayed = displayed_copy(vec![selected.clone()], selected.clone());
+
+        let mut changed_metadata = selected.clone();
+        changed_metadata.connection = "Staging".to_owned();
+        assert!(current_copy_entry(&displayed, &[&changed_metadata]).is_none());
+
+        let mut changed_sql = selected.clone();
+        changed_sql.sql.push_str(" WHERE replaced = true");
+        assert!(current_copy_entry(&displayed, &[&changed_sql]).is_none());
+
+        let replacement = entry(9, "SELECT replacement");
+        assert!(current_copy_entry(&displayed, &[&replacement]).is_none());
+
+        let duplicate = selected.clone();
+        assert!(current_copy_entry(&displayed, &[&selected, &duplicate]).is_none());
+        assert!(current_copy_entry(&displayed, &[]).is_none());
+
+        let mut wrong_cursor = displayed_copy(vec![selected.clone()], selected.clone());
+        wrong_cursor.cursor = Some(ItemKey::num(9));
+        assert!(current_copy_entry(&wrong_cursor, &[&selected]).is_none());
+
+        let mut hidden = displayed;
+        hidden.copy_visible = false;
+        assert!(current_copy_entry(&hidden, &[&selected]).is_none());
+    }
+
+    #[test]
+    fn displayed_copy_witness_requires_the_same_weak_owner() {
+        let entry = entry(8, "SELECT selected");
+        let owner_token = Arc::new(());
+        let owner = Arc::downgrade(&owner_token);
+        let other_token = Arc::new(());
+        let other = Arc::downgrade(&other_token);
+        let key = crate::tabs::TabKey::new(1);
+        let displayed = DisplayedRows {
+            tab: key,
+            owner: owner.clone(),
+            visible: vec![entry.clone()],
+            cursor: Some(item_key(&entry)),
+            open_entry: None,
+            open_visible: false,
+            copy_entry: Some(entry),
+            copy_visible: true,
+        };
+        let state = RowsState {
+            displayed: Some(displayed),
+            ..RowsState::default()
+        };
+
+        assert!(state.displayed_for(key, &owner).is_some());
+        assert!(state.displayed_for(key, &other).is_none());
+    }
+
+    #[test]
+    fn copy_area_fails_closed_when_its_full_button_cannot_fit() {
+        assert!(copy_area(Rect::new(0, 0, 49, 20), 3).is_none());
+        assert!(copy_area(Rect::new(0, 0, 66, 8), 3).is_none());
     }
 }
 
