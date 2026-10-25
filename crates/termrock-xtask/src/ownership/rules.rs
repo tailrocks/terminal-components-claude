@@ -894,7 +894,9 @@ fn match_library_preview_deps(
 
 fn match_library_stored_frames(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for span in &file.strings {
-        if span.text.contains("baselines/") {
+        let fully_certified_test_span = span.start_line <= span.end_line
+            && (span.start_line..=span.end_line).all(|line| file.is_test_line(line));
+        if span.text.contains("baselines/") && !fully_certified_test_span {
             findings.push(finding(
                 file,
                 "OWN-13",
@@ -1048,6 +1050,13 @@ mod tests {
         names.iter().map(|s| s.to_string()).collect()
     }
 
+    fn own13_findings(file: &super::super::scan::ScannedFile) -> Vec<Finding> {
+        match_file(file, &preview(&[]))
+            .into_iter()
+            .filter(|finding| finding.rule == "OWN-13")
+            .collect()
+    }
+
     #[test]
     fn ui_paint_needs_a_ui_receiver() {
         let file = scan_file(
@@ -1177,6 +1186,76 @@ mod tests {
         );
         let hits = match_file(&file, &preview(&["demo"]));
         assert!(!hits.iter().any(|f| f.rule == "OWN-07"));
+    }
+
+    #[test]
+    fn exact_root_cfg_test_excludes_certified_frames_with_uncertain_item_body() {
+        let source = concat!(
+            "#![cfg(test)]\n",
+            "const FRAME: &str = r#\"baselines/\n",
+            "expected.txt\"#;\n",
+            "fn generated() { unknown_balanced_items!({ fn nested() {} }); }\n",
+        );
+        let file = scan_file("crates/termrock/src/lib.rs", "crates/termrock", source);
+        assert!(
+            file.test_ranges
+                .iter()
+                .any(|range| range.contains(2) && range.contains(3))
+        );
+        assert!(own13_findings(&file).is_empty());
+    }
+
+    #[test]
+    fn inline_cfg_test_frame_is_excluded_but_neighboring_production_frame_remains() {
+        let source = "#[cfg(test)]\nmod tests {\n    const TEST: &str = \"baselines/test.txt\";\n}\nconst PROD: &str = \"baselines/prod.txt\";\n";
+        let file = scan_file("crates/termrock/src/lib.rs", "crates/termrock", source);
+        let findings = own13_findings(&file);
+        assert_eq!(findings.len(), 1);
+        assert_eq!(findings[0].line, 5);
+    }
+
+    #[test]
+    fn multiline_frame_crossing_certified_boundary_remains_reported() {
+        let mut file = scan_file(
+            "crates/termrock/src/lib.rs",
+            "crates/termrock",
+            "const FRAME: &str = r#\"baselines/\nexpected.txt\"#;\n",
+        );
+        file.test_ranges = vec![super::super::scan::LineRange { start: 1, end: 1 }];
+        let findings = own13_findings(&file);
+        assert_eq!(findings.len(), 1);
+        assert_eq!(findings[0].line, 1);
+    }
+
+    #[test]
+    fn ambiguous_unknown_and_malformed_test_contexts_keep_own13_findings() {
+        let sources = [
+            "#[cfg(any(test, feature = \"snapshots\"))]\nconst FRAME: &str = \"baselines/any.txt\";\n",
+            "#[custom_rewrite]\n#[cfg(test)]\nconst FRAME: &str = \"baselines/custom.txt\";\n",
+            "#![cfg(test)]\nfn incomplete() {\nconst FRAME: &str = \"baselines/malformed.txt\";\n",
+        ];
+        for source in sources {
+            let file = scan_file("crates/termrock/src/lib.rs", "crates/termrock", source);
+            assert_eq!(own13_findings(&file).len(), 1, "{source:?}");
+        }
+    }
+
+    #[test]
+    fn cfg_test_lookalike_inside_string_does_not_certify_its_frame() {
+        let source = "const FRAME: &str = \"#[cfg(test)] baselines/lookalike.txt\";\n";
+        let file = scan_file("crates/termrock/src/lib.rs", "crates/termrock", source);
+        let findings = own13_findings(&file);
+        assert_eq!(findings.len(), 1);
+        assert_eq!(findings[0].line, 1);
+    }
+
+    #[test]
+    fn source_without_local_test_certificate_keeps_own13_finding() {
+        let source = "const FRAME: &str = \"baselines/shared.txt\";\n";
+        let file = scan_file("crates/termrock/src/lib.rs", "crates/termrock", source);
+        let findings = own13_findings(&file);
+        assert_eq!(findings.len(), 1);
+        assert_eq!(findings[0].line, 1);
     }
 
     #[test]
