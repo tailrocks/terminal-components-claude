@@ -112,10 +112,11 @@ fn assert_accounts_route_entry(level: ColorLevel, key: KeyCode, action: &str) {
 
 fn assert_current_saved_frame(
     harness: &mut Harness<App>,
+    level: ColorLevel,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // Match the retained normal observation: current App, Paper theme, fixed
-    // capability, then an ordinary draw. This is not the historical renderer
-    // or the repository visual-baseline target.
+    // Exercise the current App with the explicit Paper theme and fixed
+    // capability. This checks the real Manager route without using the visual
+    // baseline target or replacing its World-backed data and actions.
     harness.draw();
     assert_eq!(harness.app().route(), Route::Manager);
     assert_eq!(harness.focus(), Some(MANAGER));
@@ -130,35 +131,65 @@ fn assert_current_saved_frame(
     );
     assert_eq!(harness.buffer().area, Rect::new(0, 0, WIDTH, HEIGHT));
 
-    // Brand, current saved-workspace card, separator, tree row, action buttons,
-    // and every one of the nine currently published hints have literal cells.
-    assert_text_at(harness, 73, 0, "Workspaces")?;
-    assert_text_at(harness, 85, 0, "inside the Construct")?;
-    assert_text_at(harness, 107, 0, "●")?;
-    assert_text_at(harness, 109, 0, "2 running")?;
+    // The Paper TrueColor policy restores the retained nonlegacy saved chrome.
+    // Mono keeps the current shared presentation; the assertions remain exact
+    // for both capabilities and do not alter the World/action checks below.
+    if level == ColorLevel::TrueColor {
+        assert_text_at(harness, 76, 0, "Workspaces")?;
+        assert_text_at(harness, 88, 0, "inside the Construct")?;
+        assert_text_at(harness, 107, 0, "t")?;
+        assert_text_at(harness, 110, 0, "2 running")?;
+        assert_eq!(cell_text(harness, 42, 3, 75)?, " ".repeat(75));
+        assert_text_at(harness, 3, 4, "▎")?;
+        assert_text_at(harness, 41, 36, "▎")?;
+        assert_text_at(harness, 51, 36, "▎")?;
+    } else {
+        assert_text_at(harness, 73, 0, "Workspaces")?;
+        assert_text_at(harness, 85, 0, "inside the Construct")?;
+        assert_text_at(harness, 107, 0, "●")?;
+        assert_text_at(harness, 109, 0, "2 running")?;
+        assert_eq!(cell_text(harness, 42, 3, 75)?, "─".repeat(75));
+        assert_text_at(harness, 3, 4, " ")?;
+        assert_text_at(harness, 41, 36, " ")?;
+    }
     assert_text_at(harness, 42, 2, "Current directory · payments-platform")?;
     assert_text_at(harness, 102, 2, "saved workspace")?;
-    assert_eq!(cell_text(harness, 42, 3, 75)?, "─".repeat(75));
     assert_text_at(harness, 5, 4, "▸")?;
     assert_text_at(harness, 7, 4, "payments-platform")?;
     assert_text_at(harness, 42, 4, "Working dir")?;
     assert_text_at(harness, 56, 4, "/workspace/payments-platform")?;
-    assert_text_at(harness, 41, 36, " ")?;
     assert_text_at(harness, 42, 36, "Launch")?;
-    assert_text_at(harness, 51, 36, " ")?;
     assert_text_at(harness, 52, 36, "Edit")?;
+    if level != ColorLevel::TrueColor {
+        assert_text_at(harness, 51, 36, " ")?;
+    }
 
-    for (key, label, x) in [
-        ("Enter", "Launch", 1),
-        ("n", "New", 15),
-        ("e", "Edit", 22),
-        ("Tab", "Details", 30),
-        ("c", "Accounts", 43),
-        ("u", "Usage", 55),
-        ("s", "Settings", 64),
-        ("?", "Help", 76),
-        ("q", "Quit", 84),
-    ] {
+    let hints = if level == ColorLevel::TrueColor {
+        [
+            ("Enter", "Launch", 14),
+            ("n", "New", 28),
+            ("e", "Edit", 35),
+            ("Tab", "Details", 43),
+            ("c", "Accounts", 56),
+            ("u", "Usage", 68),
+            ("s", "Settings", 77),
+            ("?", "Help", 89),
+            ("q", "Quit", 97),
+        ]
+    } else {
+        [
+            ("Enter", "Launch", 1),
+            ("n", "New", 15),
+            ("e", "Edit", 22),
+            ("Tab", "Details", 30),
+            ("c", "Accounts", 43),
+            ("u", "Usage", 55),
+            ("s", "Settings", 64),
+            ("?", "Help", 76),
+            ("q", "Quit", 84),
+        ]
+    };
+    for (key, label, x) in hints {
         assert_text_at(harness, x, 39, key)?;
         let label_x = x
             .checked_add(u16::try_from(key.len())?)
@@ -438,7 +469,7 @@ fn assert_hint_commands(level: ColorLevel) -> Result<(), Box<dyn std::error::Err
 
 fn returning120_paper_contract(level: ColorLevel) -> Result<(), Box<dyn std::error::Error>> {
     let mut harness = returning_paper(level);
-    assert_current_saved_frame(&mut harness)?;
+    assert_current_saved_frame(&mut harness, level)?;
     assert_world_backed_repaint(level)?;
     assert_hint_commands(level)?;
     Ok(())

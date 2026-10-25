@@ -309,6 +309,8 @@ pub enum ManagerPresentationProfile {
     Standard,
     /// Use the Junie shared-Manager presentation policy when rendered in Mono.
     Junie,
+    /// Use the Paper shared-Manager semantic palette and saved layout in TrueColor.
+    Paper,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
