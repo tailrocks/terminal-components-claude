@@ -99,8 +99,7 @@ fn apply_paint(paint: PaintStyle, output: &mut ratatui_core::buffer::Cell, roles
     } else if paint.underline_cleared() {
         output.underline_color = Color::Reset;
     }
-    // This mirrors Ratatui Cell::set_style: removal wins for a modifier that
-    // appears in both fields.
+
     output.modifier.insert(style.add_modifier);
     output.modifier.remove(style.sub_modifier);
 }
@@ -139,7 +138,7 @@ fn apply_patch(
         Slot::Set(_) => output.underline_color = style.underline_color.unwrap_or(Color::Reset),
         Slot::Clear => output.underline_color = Color::Reset,
     }
-    // StylePatch applies remove first, then add, so addition wins overlaps.
+
     output.modifier.remove(explicit.remove);
     output.modifier.insert(explicit.add);
 }
@@ -363,9 +362,6 @@ impl LayerDraw {
             .unwrap_or(false)
     }
 
-    /// Write the replayed underlay onto this layer cell and keep its symbol.
-    /// A later raw edit can then change the resolved ink without losing the
-    /// inherited foreground.
     pub(crate) fn materialize_underlay(
         &mut self,
         pos: Position,
@@ -381,12 +377,6 @@ impl LayerDraw {
         let _roles = intent.composite(page_cell, page_roles, dst);
     }
 
-    /// `content_dim` carries the frozen low-color-level content dim: every
-    /// cell this layer wrote is composed with `dim` added while fg/bg/bold
-    /// are preserved. Dimmed greys stay at their own ink — the frozen frames
-    /// keep the scroll track at DarkGray and the popup border at Gray, which
-    /// the theme authors per slot rather than a composite lift. High color
-    /// levels pass `false` (no content dim).
     pub(crate) fn composite_onto(
         &self,
         page: &mut Buffer,
@@ -413,9 +403,7 @@ impl LayerDraw {
                     }
                 } else {
                     *dst = src.clone();
-                    // The frozen content dim lands on the layer's own content
-                    // cells only; underlay-intent cells (the dimmed backdrop
-                    // region) keep the underlay treatment without the dim.
+
                     if content_dim {
                         dst.modifier.insert(ratatui_core::style::Modifier::DIM);
                     }
@@ -467,117 +455,5 @@ impl LayerPool {
 
     pub(crate) fn find(&self, id: Id) -> Option<usize> {
         self.active().iter().position(|d| d.id == id)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use ratatui_core::style::Style;
-
-    #[test]
-    fn only_written_cells_composite() {
-        let screen = Rect::new(0, 0, 4, 2);
-        let mut pool = LayerPool::default();
-        pool.begin();
-        pool.push(
-            Id::root("l"),
-            LayerId(1),
-            LayerSpec::modal(Id::root("l")),
-            screen,
-            screen,
-        );
-        let first = pool.active_mut().first_mut();
-        assert!(first.is_some());
-        if let Some(d) = first {
-            d.buf.set_stringn(0, 0, "ab", 4, Style::new());
-            d.mark(Position::new(0, 0), None);
-            d.mark(Position::new(1, 0), None);
-            d.mark(Position::new(9, 9), None);
-        }
-        let mut page = Buffer::empty(screen);
-        page.set_stringn(0, 0, "xxxx", 4, Style::new());
-        if let Some(d) = pool.active().first() {
-            d.composite_onto(
-                &mut page,
-                &mut vec![CellRoles::default(); screen.area() as usize],
-                false,
-            );
-            assert!(d.is_written(Position::new(1, 0)));
-            assert!(!d.is_written(Position::new(2, 0)));
-        }
-        let row: String = (0..4u16)
-            .filter_map(|x| page.cell((x, 0)).map(|c| c.symbol().to_owned()))
-            .collect();
-        assert_eq!(row, "abxx");
-        assert_eq!(pool.find(Id::root("l")), Some(0));
-        pool.begin();
-        assert!(pool.active().is_empty());
-    }
-    #[test]
-    fn reused_layer_clears_origins_and_inherited_channels_stay_local() {
-        use crate::theme::{FgStep, Role, StylePatch, Surface, Theme};
-        let screen = Rect::new(3, 2, 4, 2);
-        let id = Id::root("pooled.origins");
-        let spec = LayerSpec::modal(id);
-        let mut d = LayerDraw::new(id, LayerId(1), spec, screen, screen);
-        let theme = Theme::junie();
-        let semantic = crate::theme::resolve::bind(
-            &theme,
-            StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Ghost))
-                .set_bg(Role::Surface(Surface::Overlay)),
-            None,
-            Surface::Canvas,
-        )
-        .style;
-        let pos = Position::new(3, 2);
-        d.buf
-            .set_stringn(pos.x, pos.y, "X", 1, semantic.into_style());
-        d.mark(pos, Some(semantic));
-        let original = d.roles_at(pos);
-        d.mark(
-            pos,
-            Some(
-                Style::new()
-                    .add_modifier(ratatui_core::style::Modifier::BOLD)
-                    .into(),
-            ),
-        );
-        assert_eq!(d.roles_at(pos), original);
-        d.mark(
-            pos,
-            Some(Style::new().bg(ratatui_core::style::Color::Red).into()),
-        );
-        assert_eq!(
-            d.roles_at(pos),
-            CellRoles {
-                fg: original.fg,
-                bg: None
-            }
-        );
-        for next in [screen, Rect::new(1, 1, 8, 3)] {
-            d.reset(id, LayerId(1), spec, next, next);
-            assert!(!d.is_written(pos));
-            assert_eq!(d.roles_at(pos), CellRoles::default());
-            d.mark(
-                pos,
-                Some(Style::new().fg(ratatui_core::style::Color::Red).into()),
-            );
-            let mut page = Buffer::empty(next);
-            let mut roles = vec![original; next.area() as usize];
-            d.composite_onto(&mut page, &mut roles, false);
-            let index = usize::from(pos.y.saturating_sub(next.y))
-                .saturating_mul(usize::from(next.width))
-                .saturating_add(usize::from(pos.x.saturating_sub(next.x)));
-            assert_eq!(roles.get(index), Some(&CellRoles::default()));
-            assert!(
-                roles
-                    .iter()
-                    .enumerate()
-                    .filter(|(i, _)| *i != index)
-                    .all(|(_, r)| *r == original)
-            );
-        }
     }
 }

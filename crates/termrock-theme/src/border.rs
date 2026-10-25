@@ -12,26 +12,3 @@ pub const ASCII: Set<'static> = Set {
     horizontal_top: "-",
     horizontal_bottom: "-",
 };
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn ascii_border_set_is_pure_ascii() {
-        let s = ASCII;
-        for g in [
-            s.top_left,
-            s.top_right,
-            s.bottom_left,
-            s.bottom_right,
-            s.vertical_left,
-            s.vertical_right,
-            s.horizontal_top,
-            s.horizontal_bottom,
-        ] {
-            assert!(g.is_ascii() && g.len() == 1, "{g:?}");
-            assert_eq!(unicode_width::UnicodeWidthStr::width(g), 1);
-        }
-    }
-}

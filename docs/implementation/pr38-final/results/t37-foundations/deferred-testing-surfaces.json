@@ -1,0 +1,1014 @@
+{
+  "schema": "t37.deferred-testing-surface-groups.v2",
+  "task_id": "T37",
+  "work_input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "scope": "Owned Rust source files in termrock-core, termrock-layout, termrock-theme, termrock-text, termrock-render, termrock-collections, termrock-runtime, termrock-session, termrock-shell, and termrock-terminal.",
+  "decision": "All 48 in-scope T00 testing-surface records are accounted for. The 43 active source scopes were retired under independent Sol high approvals T37-FOUNDATION-TESTING-01/02/03; four nested test scopes and the approved shell::reach scope were removed with their parents. No testing-feature-gated API scope remains in owned Rust source. Preserve the normal PartStyle::note API and calls; remove only its testing-only recording body.",
+  "input_scope_accounting": {
+    "raw_cfg_testing_scope_records": 48,
+    "retired_active_source_scope_records": 43,
+    "removed_nested_test_or_approved_harness_scope_records": 5,
+    "retained_testing_cfg_scope_records": 0,
+    "inventory_source": "docs/implementation/pr38-final/results/t00-source/test-inventory.json:test_testing_cfg_scopes",
+    "scope_count_is_not_api_count": true,
+    "accounting": "43 + 5 = 48; each input scope occurs once in a group or removed_scopes."
+  },
+  "removed_scopes": [
+    {
+      "path": "crates/termrock-runtime/src/ui/measure.rs",
+      "input_lines": [
+        118,
+        123
+      ],
+      "reason": "Feature-gated assertions and test function were inside the removed cfg(test) module."
+    },
+    {
+      "path": "crates/termrock-runtime/src/ui/mod.rs",
+      "input_lines": [
+        2929,
+        2942
+      ],
+      "reason": "Feature-gated assertions were inside the removed cfg(test) module."
+    },
+    {
+      "path": "crates/termrock-shell/src/lib.rs",
+      "input_lines": [
+        26
+      ],
+      "reason": "Public shell::reach test harness and its module declaration were retired under T37-PROBE/source migration approval."
+    }
+  ],
+  "groups": [
+    {
+      "id": "core-intent-queue-probes",
+      "public_paths": [
+        "termrock_core::intent::IntentQueue::probes"
+      ],
+      "input_scope_lines": {
+        "crates/termrock-core/src/intent.rs": [
+          188,
+          206,
+          211,
+          236,
+          583
+        ]
+      },
+      "retained_non_test_callers": [
+        {
+          "path": "crates/termrock-runtime/src/runtime.rs",
+          "symbol": "Runtime::intent_probes",
+          "condition": "feature = testing",
+          "role": "Feature-gated diagnostic wrapper reads IntentQueue::probes."
+        },
+        {
+          "path": "crates/termrock-core/src/intent.rs",
+          "symbol": "IntentQueue::bucket_index",
+          "condition": "normal queue path; counter increment is feature-gated",
+          "role": "Insertion and lookup paths call bucket_index. Queue storage and insertion/dispatch behavior remain unchanged."
+        }
+      ],
+      "legacy_only_callers": [
+        "crates/termrock-test-support/tests/perf.rs"
+      ],
+      "shared_lifecycle_fields": [
+        "IntentQueue.probes: Cell<usize> is testing-only.",
+        "bucket_index counter increment and IntentQueue Debug counter field are testing-only and approved for removal.",
+        "Production queue fields arena, buckets, used, table, overflow and queue behavior remain unchanged."
+      ],
+      "status": "Retired under the listed independent Sol high decision; no replacement was added."
+    },
+    {
+      "id": "runtime-stub-harness",
+      "public_paths": [
+        "termrock_runtime::stub::{Control, Stub, deliver, key, mouse, runtime, step}",
+        "termrock_runtime::runtime::stub::{Control, Stub, deliver, key, mouse, runtime, step}",
+        "termrock_runtime::stub re-export"
+      ],
+      "input_scope_lines": {
+        "crates/termrock-runtime/src/lib.rs": [
+          55
+        ],
+        "crates/termrock-runtime/src/runtime.rs": [
+          3301
+        ]
+      },
+      "retained_non_test_callers": [],
+      "legacy_only_caller_files": {
+        "integration_test_targets": [
+          "crates/termrock-conformance/tests/button_busy_frames.rs",
+          "crates/termrock-conformance/tests/control_states.rs",
+          "crates/termrock-conformance/tests/visual_baseline/button_busy_live.rs",
+          "crates/termrock-conformance/tests/visual_baseline/negative_controls_phase8ap.rs",
+          "crates/termrock-conformance/tests/visual_baseline/showcase_pending_s2.rs",
+          "crates/termrock-conformance/tests/visual_baseline/showcase_pending_s3.rs",
+          "crates/termrock-conformance/tests/visual_baseline/showcase_pending_s4.rs",
+          "crates/termrock-conformance/tests/visual_baseline/showcase_pending_s5.rs",
+          "crates/termrock-controls/tests/gutter_recipe_gate.rs",
+          "crates/termrock-editors/tests/code_binding_state.rs",
+          "crates/termrock-editors/tests/code_editor_external_find.rs",
+          "crates/termrock-editors/tests/code_editor_fill_height.rs",
+          "crates/termrock-editors/tests/code_footer_characterization.rs",
+          "crates/termrock-editors/tests/code_idle_scroll_position.rs",
+          "crates/termrock-editors/tests/completing_code_editor.rs",
+          "crates/termrock-editors/tests/completion_integration.rs",
+          "crates/termrock-editors/tests/diff_keyboard_selection.rs",
+          "crates/termrock-feedback/tests/route_hints.rs",
+          "crates/termrock-fields/tests/textarea_window.rs",
+          "crates/termrock-forms/tests/form_lanes_consumer.rs",
+          "crates/termrock-forms/tests/form_textarea_window.rs",
+          "crates/termrock-navigation/tests/gutter_recipe_gate.rs",
+          "crates/termrock-overlays/tests/context_menu_cursor_contract.rs",
+          "crates/termrock-theme/tests/theme_holla_states.rs"
+        ],
+        "unit_test_source_files": [
+          {
+            "path": "crates/termrock-controls/src/brand.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 205,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-controls/src/button.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 579,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-controls/src/choice.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 1537,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-controls/src/empty.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 200,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-controls/src/master_detail.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 599,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-controls/src/panel.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 701,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-controls/src/props.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 1533,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-controls/src/radio_field.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 49,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-controls/src/split.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 979,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-editors/src/code.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 2191,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-editors/src/diff.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 864,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-feedback/src/keyhint.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 238,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-feedback/src/progress.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 516,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-feedback/src/session_chrome.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 221,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-feedback/src/status.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 734,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-fields/src/field.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 227,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-fields/src/field_error.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 98,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-fields/src/input.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 2119,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-fields/src/note.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 130,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-fields/src/textarea.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 1570,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-forms/src/form.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 2631,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-forms/src/form_dialog.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 457,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-grid/src/grid.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 3777,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-grid/src/table.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 627,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-navigation/src/chip.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 918,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-navigation/src/filter_list.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 1212,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-navigation/src/list.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 1410,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-navigation/src/nav_list.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 1111,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-navigation/src/steps.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 992,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-navigation/src/tabs.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 5455,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-navigation/src/tree.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 2057,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-overlays/src/completion.rs",
+            "test_modules": [
+              {
+                "module": "width_tests",
+                "input_line": 955,
+                "kind": "cfg(test/testing)-module"
+              },
+              {
+                "module": "detail_selection_tests",
+                "input_line": 1013,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-overlays/src/dialog.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 1374,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-overlays/src/menu.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 1632,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-overlays/src/picker.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 790,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-overlays/src/select.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 948,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-overlays/src/select_field.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 49,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-runtime/src/capture.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 260,
+                "kind": "cfg(test/testing)-module"
+              },
+              {
+                "module": "runtime_tests",
+                "input_line": 320,
+                "kind": "cfg(test/testing)-module"
+              },
+              {
+                "module": "pointer_tests",
+                "input_line": 420,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-runtime/src/focus.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 360,
+                "kind": "cfg(test/testing)-module"
+              },
+              {
+                "module": "runtime_tests",
+                "input_line": 570,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-runtime/src/hit.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 1404,
+                "kind": "cfg(test/testing)-module"
+              },
+              {
+                "module": "runtime_tests",
+                "input_line": 2306,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-runtime/src/layer.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 882,
+                "kind": "cfg(test/testing)-module"
+              },
+              {
+                "module": "runtime_tests",
+                "input_line": 1344,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-runtime/src/scroll_region.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 867,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          },
+          {
+            "path": "crates/termrock-viewport/src/viewport.rs",
+            "test_modules": [
+              {
+                "module": "tests",
+                "input_line": 3648,
+                "kind": "cfg(test/testing)-module"
+              }
+            ]
+          }
+        ]
+      },
+      "caller_counts": {
+        "integration_test_targets": 24,
+        "unit_test_source_files": 43,
+        "total_files": 67
+      },
+      "shared_lifecycle_fields": [
+        "Control defines owner, area, focusability, editor, capture, scroll, and decor registrations.",
+        "Stub owns page and layer controls, event logs, focus/open/close/resize requests, event progress, Escape hit count, and drain controls.",
+        "stub::runtime and stub::step drive the real Runtime; no production state or API is changed by this evidence."
+      ],
+      "status": "Retired under the listed independent Sol high decision; no replacement was added."
+    },
+    {
+      "id": "runtime-render-model-and-projected-frame",
+      "public_paths": [
+        "termrock_runtime::runtime::RenderModel",
+        "termrock_runtime::runtime::RenderSnapshot::bind_model",
+        "termrock_runtime::runtime::ProjectedFrame",
+        "termrock_runtime::runtime::ProjectedFrame::commit_inspected",
+        "termrock_runtime::runtime::Runtime::draw_projection",
+        "termrock_runtime::runtime::Runtime::draw_bound_projection"
+      ],
+      "input_scope_lines": {
+        "crates/termrock-runtime/src/runtime.rs": [
+          363,
+          370,
+          377,
+          420,
+          427,
+          434,
+          441,
+          467,
+          647,
+          764
+        ]
+      },
+      "retained_non_test_callers": [
+        {
+          "path": "crates/termrock-test-support/src/digest.rs",
+          "symbols": [
+            "RenderModel",
+            "RenderSnapshot::bind_model",
+            "Runtime::draw_bound_projection"
+          ],
+          "role": "Shared test-support library; no product caller."
+        }
+      ],
+      "legacy_only_callers": [
+        "crates/termrock-controls/tests/props_rich_perf.rs",
+        "crates/termrock-runtime/tests/focus_restoration.rs",
+        "crates/termrock-runtime/tests/scene_snapshot.rs",
+        "crates/termrock-runtime/tests/ui_focus_presentation.rs",
+        "crates/termrock-test-support/tests/perf.rs",
+        "crates/termrock-test-support/tests/perf_collections.rs",
+        "crates/termrock-runtime/src/runtime.rs (cfg(test) module)"
+      ],
+      "method_name_scope_note": "draw_scene and draw_buffer are in the same feature-gated Runtime impl. Name-only matches elsewhere include Ui or local helpers; this list records only callers whose receiver is identified as the Runtime projection API.",
+      "shared_lifecycle_fields": [
+        "Runtime.projection: Option<ProjectionFacts> exists only under feature testing.",
+        "ProjectionFacts contains LastFrame and painted cursor.",
+        "ProjectedFrame::commit_inspected swaps registry, focus ring, bindings, typing, layout, declared state, snapshot, and cursor from the active Runtime frame.",
+        "RenderModel stores the model and paint closure with a cloned RenderSnapshot whose cache identity is reset.",
+        "Production RenderSnapshot, Runtime::render_snapshot, prepare, draw_prepared, and acknowledge_presented remain ungated and unchanged."
+      ],
+      "status": "Retired under the listed independent Sol high decision; no replacement was added."
+    },
+    {
+      "id": "runtime-testing-inspection-impl",
+      "public_paths": [
+        "termrock_runtime::runtime::Runtime::{hover,state_of,focus_visible,top_layer,is_open,cursor,resolved,resolved_in,last_invalidate,records,clear_records,projection_registry,projection_ring,projection_cursor,draw_scene,draw_buffer,region_count,registry,advance_clock,repaint_after,capture_owner,set_focus,intent_probes,style_cache_stats,open_spec,layer_area,record_diagnostic}"
+      ],
+      "input_scope_lines": {
+        "crates/termrock-runtime/src/runtime.rs": [
+          31,
+          3102
+        ]
+      },
+      "retained_non_test_callers": [
+        {
+          "path": "crates/termrock-test-support/src/harness.rs",
+          "symbols": [
+            "Runtime::record_diagnostic",
+            "Runtime::records",
+            "Runtime::resolved",
+            "Runtime::resolved_in",
+            "Runtime::last_invalidate"
+          ],
+          "role": "Shared test-support library. These are not product application callers."
+        },
+        {
+          "path": "crates/termrock-test-support/src/digest.rs",
+          "symbols": [
+            "Runtime::draw_projection",
+            "Runtime::draw_bound_projection"
+          ],
+          "role": "Shared test-support library."
+        }
+      ],
+      "legacy_only_callers": [
+        "crates/termrock-runtime/src/runtime.rs (cfg(test) module)",
+        "crates/termrock-runtime/tests/focus_restoration.rs",
+        "crates/termrock-runtime/tests/scene_snapshot.rs",
+        "crates/termrock-runtime/tests/ui_focus_presentation.rs",
+        "crates/termrock-test-support/tests/perf.rs"
+      ],
+      "shared_lifecycle_fields": [
+        "Reads Runtime focus, layer, cursor, frame registry, snapshot, invalidation, capture, diagnostics, and theme cache state.",
+        "record_diagnostic appends to FrameServices.diagnostics; records and clear_records access FrameServices.records.",
+        "This implementation is separate from the ungated prepared-frame presentation lifecycle."
+      ],
+      "status": "Retired under the listed independent Sol high decision; no replacement was added."
+    },
+    {
+      "id": "ui-styled-query-probe-state",
+      "public_paths": [
+        "termrock_runtime::ui::StyledQuery",
+        "termrock_runtime::ui::Ui::note_styled",
+        "termrock_runtime::ui::Ui::styled_parts",
+        "termrock_runtime::ui::Ui::styled_queries",
+        "termrock_runtime::ui::Ui::style_cache_stats",
+        "termrock::StyledQuery (testing feature re-export)"
+      ],
+      "input_scope_lines": {
+        "crates/termrock-runtime/src/ui/mod.rs": [
+          85,
+          87,
+          107,
+          208,
+          210,
+          627,
+          642,
+          647,
+          652
+        ]
+      },
+      "retained_non_test_callers": [
+        {
+          "path": "crates/termrock-runtime/src/author.rs",
+          "symbols": [
+            "PartStyle::note -> Ui::note_styled"
+          ],
+          "condition": "call body is testing-feature gated; public PartStyle::note remains ungated."
+        },
+        {
+          "path": "crates/termrock-runtime/src/rowui.rs",
+          "symbols": [
+            "RowUi style resolution and ColumnsUi cell resolution -> Ui::note_styled"
+          ],
+          "condition": "each note call is testing-feature gated; row style and paint behavior remain unchanged."
+        }
+      ],
+      "legacy_only_callers": [
+        "crates/termrock-conformance/tests/conformance.rs",
+        "crates/termrock-runtime/src/ui/measure.rs (removed cfg(test) module)",
+        "crates/termrock-runtime/src/ui/mod.rs (removed cfg(test) module)",
+        "crates/termrock-test-support/src/harness.rs",
+        "crates/termrock-test-support/tests/perf.rs"
+      ],
+      "shared_lifecycle_fields": [
+        "FrameState.styled_parts/styled_queries and clears are testing-only and approved for removal.",
+        "Runtime::resolved is part of the approved Runtime testing impl and removed with it.",
+        "StyleCache hits/misses counters, updates, and derived Debug output remain unchanged.",
+        "PartStyle::note signature/calls stay; its current no-testing no-op branch becomes unconditional after the testing-only note call is removed."
+      ],
+      "status": "Retired under T37-FOUNDATION-TESTING-02; facade re-export removal is assigned to components owner."
+    },
+    {
+      "id": "rowui-style-probe-call-sites",
+      "public_paths": [],
+      "input_scope_lines": {
+        "crates/termrock-runtime/src/rowui.rs": [
+          687,
+          716,
+          770,
+          819,
+          907,
+          1263,
+          1281,
+          1597,
+          1675
+        ]
+      },
+      "retained_non_test_callers": [
+        {
+          "path": "crates/termrock-runtime/src/rowui.rs",
+          "symbols": [
+            "RowUi::style_of_with_defaults",
+            "marker/trailing-part/label/cell style helpers",
+            "ColumnsUi::cell_part_with_defaults"
+          ],
+          "condition": "note_styled calls or owner fields are testing-feature gated."
+        },
+        {
+          "path": "crates/termrock-runtime/src/author.rs",
+          "symbols": [
+            "PartStyle::note"
+          ],
+          "condition": "ungated public API; feature-dependent body only."
+        }
+      ],
+      "legacy_only_callers": [
+        "crates/termrock-conformance/tests/conformance.rs",
+        "crates/termrock-runtime/src/rowui.rs (cfg(test) module)"
+      ],
+      "shared_lifecycle_fields": [
+        "ColumnsUi.owner exists only under testing.",
+        "Each probe records owner/family/variant/part/resolved style into FrameState.styled_parts and styled_queries."
+      ],
+      "status": "Retired testing-only calls and ColumnsUi probe identity under T37-FOUNDATION-TESTING-02."
+    },
+    {
+      "id": "part-style-note-compatibility",
+      "public_paths": [
+        "termrock_runtime::author::PartStyle::note",
+        "termrock_runtime::PartStyle::note"
+      ],
+      "input_scope_lines": {
+        "crates/termrock-runtime/src/author.rs": [
+          138,
+          140
+        ]
+      },
+      "retained_non_test_callers": [
+        {
+          "path": "crates/termrock-runtime/src/author.rs",
+          "symbols": [
+            "PartStyle::resolve calls PartStyle::note"
+          ],
+          "role": "Normal author path."
+        },
+        {
+          "path": "crates/termrock-controls/src",
+          "symbols": [
+            "normal component author paths use PartStyle"
+          ],
+          "role": "Production component code; API preserved."
+        }
+      ],
+      "legacy_only_callers": [
+        "crates/termrock-runtime/src/author.rs (cfg(test) unit tests)"
+      ],
+      "shared_lifecycle_fields": [
+        "The method has no shared mutable field of its own.",
+        "Only its existing call to Ui::note_styled is gated by testing.",
+        "The method signature and normal call sites must remain."
+      ],
+      "status": "Retained public method and normal calls; removed only the testing-only note_styled call and made the existing no-op branch unconditional."
+    },
+    {
+      "id": "cx-event-record-probes",
+      "public_paths": [
+        "termrock_runtime::ui::Cx::record"
+      ],
+      "input_scope_lines": {
+        "crates/termrock-runtime/src/ui/cx.rs": [
+          179,
+          1018
+        ]
+      },
+      "retained_non_test_callers": [],
+      "legacy_only_callers": [
+        "crates/termrock-runtime/src/runtime.rs (test stub and cfg(test) modules)"
+      ],
+      "shared_lifecycle_fields": [
+        "FrameServices.records stores static event tags.",
+        "Cx::record appends tags only under testing.",
+        "Runtime::records and clear_records expose and reset this vector through the testing-only Runtime impl.",
+        "The existing cfg_attr dead-code expectation remains unchanged."
+      ],
+      "status": "Retired Cx::record and exclusive FrameServices.records state under T37-FOUNDATION-TESTING-03."
+    },
+    {
+      "id": "theme-fingerprint",
+      "public_paths": [
+        "termrock_theme::Theme::fingerprint"
+      ],
+      "input_scope_lines": {
+        "crates/termrock-theme/src/lib.rs": [
+          712
+        ]
+      },
+      "retained_non_test_callers": [
+        {
+          "path": "crates/termrock-test-support/src/conformance/driver.rs",
+          "symbols": [
+            "Runtime::theme().fingerprint()"
+          ],
+          "role": "Shared test-support library; no product application caller."
+        }
+      ],
+      "legacy_only_callers": [
+        "crates/termrock-conformance/tests/conformance.rs",
+        "crates/termrock-theme/src/lib.rs (cfg(test) module)",
+        "crates/termrock-theme/src/recipe.rs (cfg(test) module)",
+        "crates/termrock-theme/tests/capability_palettes.rs",
+        "crates/termrock-theme/tests/overrides.rs"
+      ],
+      "shared_lifecycle_fields": [
+        "Computes a Debug-formatted Theme hash under test or testing only.",
+        "Theme values and recipe behavior remain unchanged.",
+        "Do not confuse this API with termrock_text::secret::Secret::fingerprint."
+      ],
+      "status": "Retired under the listed independent Sol high decision; no replacement was added."
+    },
+    {
+      "id": "style-cache-hit-miss-counters",
+      "public_paths": [
+        "termrock_theme::resolve::StyleCache::stats",
+        "termrock_runtime::ui::Ui::style_cache_stats",
+        "termrock_runtime::runtime::Runtime::style_cache_stats"
+      ],
+      "input_scope_lines": {
+        "crates/termrock-theme/src/resolve.rs": [
+          1354
+        ]
+      },
+      "retained_non_test_callers": [
+        {
+          "path": "crates/termrock-runtime/src/ui/mod.rs",
+          "symbol": "Ui::style_cache_stats -> StyleCache::stats",
+          "condition": "testing feature only."
+        },
+        {
+          "path": "crates/termrock-runtime/src/runtime.rs",
+          "symbol": "Runtime::style_cache_stats -> StyleCache::stats",
+          "condition": "testing feature only."
+        }
+      ],
+      "legacy_only_callers": [
+        "crates/termrock-runtime/src/ui/measure.rs (removed cfg(test) module)",
+        "crates/termrock-runtime/src/ui/mod.rs (removed cfg(test) module)",
+        "crates/termrock-theme/src/lib.rs (cfg(test) module)",
+        "crates/termrock-theme/src/resolve.rs (cfg(test) module)",
+        "crates/termrock-theme/tests/level_profiles.rs"
+      ],
+      "shared_lifecycle_fields": [
+        "StyleCache.slots and StyleCache.generation hold actual cache state and remain unchanged.",
+        "StyleCache.hits and StyleCache.misses are diagnostic counters. Their fields, increments, and derived Debug output remain token-identical.",
+        "Only the testing-only StyleCache::stats getter and Runtime/Ui wrappers are removed."
+      ],
+      "status": "Retired stats getter and wrappers under T37-FOUNDATION-TESTING-01; retained counter fields, increments, and derived Debug output token-identically."
+    }
+  ],
+  "preserved_production_contracts": [
+    "IntentQueue insertion and dispatch",
+    "Runtime::render_snapshot",
+    "RenderSnapshot",
+    "RenderSnapshotError",
+    "PreparedFrame and PaintedFrame",
+    "normal prepare/draw_prepared/acknowledge_presented lifecycle",
+    "real FrameServices.diagnostics and production diagnostic emission",
+    "clock_paste diagnostics",
+    "runtime capture routing"
+  ],
+  "manifest_owner_followup": "The Cargo testing feature declarations and feature forwarding remain untouched in this source fragment. The shared metadata owner must check whether any external source still requires them after the accepted API retirements. Owned Rust source search found no remaining testing-feature cfg declarations.",
+  "runtime_test_execution": false,
+  "selected_test_cases": 0,
+  "zero_case_status": "NOT VERIFIED",
+  "reviewer_note": "All approved source retirements are implemented. PartStyle::note remains ungated, callable, and a no-op. Shared facade removal is assigned to the components owner.",
+  "limits": [
+    "Caller classification uses fixed c817 inventory and source locations. Shared test-support modules are test infrastructure, not product callers.",
+    "Method-name hits without receiver type resolution are not attributed to Runtime.",
+    "This is structural source evidence, not behavior proof.",
+    "No Cargo command or test code ran."
+  ],
+  "review_decisions": {
+    "T37-FOUNDATION-TESTING-01": {
+      "decision": "APPROVED",
+      "reviewer": "/root/t00_independent_review",
+      "input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "scope": [
+        "Runtime testing inspection impl 3102-3299",
+        "RenderModel and RenderSnapshot::bind_model",
+        "ProjectionFacts and ProjectedFrame",
+        "exclusive Runtime projection storage and initializer",
+        "IntentQueue::probes and testing-only field/init/increment/Debug field",
+        "Theme::fingerprint",
+        "StyleCache::stats and Runtime/Ui wrappers"
+      ],
+      "constraints": [
+        "Keep RenderSnapshot and Runtime::render_snapshot.",
+        "Keep PreparedFrame, PaintedFrame, prepare, draw_prepared, acknowledge_presented, real diagnostics, and clock_paste.",
+        "Keep StyleCache slots/generation/cache algorithm.",
+        "Keep StyleCache hits/misses, increments, and derived Debug output unchanged.",
+        "Do not add probe replacements before T38."
+      ]
+    },
+    "T37-FOUNDATION-TESTING-02": {
+      "decision": "APPROVED",
+      "reviewer": "/root/t00_independent_review",
+      "input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "scope": [
+        "StyledQuery",
+        "FrameState.styled_parts/styled_queries and clears",
+        "Ui::note_styled, styled_parts, styled_queries",
+        "testing-only RowUi/ColumnsUi recording calls and ColumnsUi.owner field/init",
+        "PartStyle::note testing body"
+      ],
+      "constraints": [
+        "Keep PartStyle::note signature and normal callers.",
+        "Preserve its existing no-op branch unconditionally.",
+        "Keep style resolution, Resolved values, slot dispatch, painting, and cache calls unchanged.",
+        "Remove facade re-export through shared owner.",
+        "Do not add replacement style probes before T38."
+      ]
+    },
+    "T37-FOUNDATION-TESTING-03": {
+      "decision": "APPROVED",
+      "reviewer": "/root/t00_independent_review",
+      "input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "scope": [
+        "runtime::stub module and root re-export",
+        "Cx::record",
+        "FrameServices.records field/default state and cfg_attr expectation"
+      ],
+      "constraints": [
+        "Keep real FrameServices.diagnostics and production diagnostics APIs/emission.",
+        "Keep production event/focus/layer state.",
+        "Do not add replacement control/app/harness before T38."
+      ]
+    }
+  },
+  "facade_reexport_change_owner": {
+    "path": "crates/termrock/src/lib.rs:103",
+    "owner": "components owner",
+    "accepted_owner_commit": "f03e22c14a5817272cd5643094e974f9c25f1b6a"
+  }
+}

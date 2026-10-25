@@ -1,0 +1,18 @@
+{
+  "schema": "t37.foundation-comment-audit.v1",
+  "task_id": "T37",
+  "work_input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "removed_non_safety_comment_count": 2396,
+  "retained_safety_group_count": 0,
+  "removed_accepted_production_safety_group_count": 28,
+  "safety_transfer_acceptance_commit": "58daa658503503eec4fc907c3590f978586f5068",
+  "safety_transfer_reviewed_source_commit": "d92192664d0490e1b750029bf8c8a715217af4d4",
+  "safety_contract_path": "docs/contracts/safety-invariants.md",
+  "safety_decision_id": "T37-SAFETY-01",
+  "retained_safety_comments": [],
+  "remaining_non_safety_comment_count": 0,
+  "required_linter_attributes_identical_after_approved_scope_removals": true,
+  "linter_attribute_count": 28,
+  "legal_notice_files_in_owned_crates": []
+}
