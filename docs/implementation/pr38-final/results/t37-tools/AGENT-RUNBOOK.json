@@ -299,7 +299,7 @@
     "retained_source_token_evidence": {
       "path": "docs/implementation/pr38-final/results/t37-tools/retained-source-token-comparison.json",
       "sha256": "141ed2258a30a848a2f5c4fbd22415cb1e6d54bf61eb5cec070e802e8443018d",
-      "summary": "Final source hashes and approved orphan closures are reconciled in source-correction-delta.json. The fixture branch deletion is recorded separately in spawn_context_check; other surviving-function token deltas are punctuation only. The one-off lexical checker was not retained."
+      "summary": "Final hashes and approved closures are reconciled in source-correction-delta.json. Against initial source output 697a, spawn_context_check has one approved fixture branch deletion; other token deltas are recorded separately. The one-off lexical checker was not retained."
     },
     "source_prose_evidence": {
       "path": "docs/implementation/pr38-final/results/t37-tools/source-prose-map.json",
@@ -315,7 +315,7 @@
     },
     "source_correction_delta": {
       "path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json",
-      "sha256": "38fb4428c827867942f7380036e210f4eab006c9cc8343a3671b2da064e45958",
+      "sha256": "e981e196de54e7a319c373b1584eb6e6063c5f4adbd992f79abe3a828603be5c",
       "details": "Exact c817 line ranges/hashes, all removed Rust items, retained call paths, public format-retention exception, schema classifications and approved E2E/proof fixture closures."
     }
   },
