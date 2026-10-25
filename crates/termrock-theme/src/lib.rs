@@ -301,8 +301,9 @@ impl Theme {
 
     /// Build the Paper theme and declare its shared-Manager presentation policy.
     ///
-    /// The policy affects the shared Manager only at TrueColor; other capability
-    /// levels retain the standard component presentation.
+    /// The policy selects Paper semantic ink at Mono and TrueColor. Its saved
+    /// Manager layout applies only to an alert-free Saved frame without the
+    /// detail drawer; ANSI16 and ANSI256 retain the standard component layout.
     pub fn paper() -> Theme {
         let mut theme = builtin::paper::theme();
         theme
