@@ -194,14 +194,14 @@ pickers	100	30	16	     Quit & leave  ┆ Pickers  One modal list for files, tabs
 pickers	100	30	256	     Quit & leave  ┆ Pickers  One modal list for files, tabs and levels: search, scope, tag, alter…
 pickers	100	30	mono	     Quit & leave  ┆ Pickers  One modal list for files, tabs and levels: search, scope, tag, alter…
 pickers	100	30	truecolor	     Quit & leave  ┆ Pickers  One modal list for files, tabs and levels: search, scope, tag, alter…
-pickers	120	40	16	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action
-pickers	120	40	256	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action
-pickers	120	40	mono	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action
-pickers	120	40	truecolor	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action
-pickers	160	50	16	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action
-pickers	160	50	256	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action
-pickers	160	50	mono	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action
-pickers	160	50	truecolor	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action
+pickers	120	40	16	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action.
+pickers	120	40	256	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action.
+pickers	120	40	mono	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action.
+pickers	120	40	truecolor	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action.
+pickers	160	50	16	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action.
+pickers	160	50	256	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action.
+pickers	160	50	mono	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action.
+pickers	160	50	truecolor	   Overview             ┃ Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action.
 pickers	80	24	16	     Chips & sele… ┆ Pickers  One modal list for files, tabs and levels: searc…
 pickers	80	24	256	     Chips & sele… ┆ Pickers  One modal list for files, tabs and levels: searc…
 pickers	80	24	mono	     Chips & sele… ┆ Pickers  One modal list for files, tabs and levels: searc…
