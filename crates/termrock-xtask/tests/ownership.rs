@@ -414,6 +414,104 @@ fn cfg_test_external_module_is_excluded_but_neighboring_production_is_scanned() 
 }
 
 #[test]
+fn exact_file_root_test_gate_filters_local_scan_with_incomplete_module_graph() {
+    let root_source = concat!(
+        "use termrock::Ui;\n",
+        "fn paint_banner(ui: &mut Ui) { ui.fill(area, style); }\n",
+        "fn production_before() { None::<u8>.expect(\"before\"); }\n",
+        "fn uncertain() { unknown_body_items!(); }\n",
+        "#[cfg(test)]\n",
+        "#[path = \"candidate.rs\"]\n",
+        "mod candidate;\n",
+        "fn production_after() { None::<u8>.expect(\"after\"); }\n",
+        "fn production_call(ui: &mut Ui) { paint_banner(ui); }\n",
+    );
+    let candidate_body = concat!(
+        "use super::*;\n",
+        "struct Adapter;\n",
+        "trait Draw { fn draw(&self, ui: &mut Ui); }\n",
+        "impl Draw for Adapter {\n",
+        "    fn draw(&self, ui: &mut Ui) {\n",
+        "        paint_banner(ui);\n",
+        "        None::<u8>.expect(\"adapter\");\n",
+        "    }\n",
+        "}\n",
+        "#[test]\n",
+        "fn candidate_test() { None::<u8>.expect(\"fixture\"); }\n",
+    );
+
+    for guarded in [false, true] {
+        let dir = empty_workspace();
+        write_member_file(&dir, "src/lib.rs", root_source);
+        let candidate_source = if guarded {
+            format!("#![cfg(test)]\n{candidate_body}")
+        } else {
+            candidate_body.to_string()
+        };
+        write_member_file(&dir, "src/candidate.rs", &candidate_source);
+
+        let member = dir.path().join("crates/demo-preview");
+        let candidate_path =
+            std::fs::canonicalize(member.join("src/candidate.rs")).expect("candidate source");
+        let analysis = module_graph::analyze_member(&member);
+        assert!(
+            !analysis.complete,
+            "unknown body macro keeps global analysis incomplete"
+        );
+        assert!(analysis.test_only.is_empty());
+        assert!(
+            analysis.sources.contains(&candidate_path),
+            "the file-local gate must not remove source inventory"
+        );
+
+        let report = check_scratch(&dir);
+        let mut expected_own14 = own14_source_lines(&[
+            source_line_number(root_source, "None::<u8>.expect(\"before\")"),
+            source_line_number(root_source, "None::<u8>.expect(\"after\")"),
+        ]);
+        if !guarded {
+            expected_own14.push((
+                "crates/demo-preview/src/candidate.rs".to_string(),
+                source_line_number(&candidate_source, "None::<u8>.expect(\"adapter\")"),
+            ));
+            expected_own14.push((
+                "crates/demo-preview/src/candidate.rs".to_string(),
+                source_line_number(&candidate_source, "None::<u8>.expect(\"fixture\")"),
+            ));
+        }
+        expected_own14.sort();
+        assert_eq!(
+            own14_findings(&report),
+            expected_own14,
+            "only the explicitly guarded file may suppress its test-only expects"
+        );
+
+        let mut actual_own04: Vec<_> = report
+            .findings
+            .iter()
+            .filter(|finding| finding.rule == "OWN-04")
+            .map(|finding| (finding.file.clone(), finding.line))
+            .collect();
+        actual_own04.sort();
+        let mut expected_own04 = vec![(
+            "crates/demo-preview/src/lib.rs".to_string(),
+            source_line_number(root_source, "paint_banner(ui);"),
+        )];
+        if !guarded {
+            expected_own04.push((
+                "crates/demo-preview/src/candidate.rs".to_string(),
+                source_line_number(&candidate_source, "paint_banner(ui);"),
+            ));
+        }
+        expected_own04.sort();
+        assert_eq!(
+            actual_own04, expected_own04,
+            "test-only trait draw calls are local to the guarded source file"
+        );
+    }
+}
+
+#[test]
 fn mixed_test_spans_never_mask_production_on_shared_physical_lines() {
     let dir = empty_workspace();
     write_member_file(
