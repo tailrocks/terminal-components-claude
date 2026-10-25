@@ -262,7 +262,7 @@ const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
 const SECTION_CAPTION: &str = "the live widget";
 const SECTION_WIDE: u16 = 76;
 const BLURB: &str =
-    "One modal list for files, tabs, levels, commands and branches: search, scope, status";
+    "One modal list for files, tabs and levels: search, scope, tag, alternate action.";
 const QUICK_NOTE: &str = "Quick: fuzzy as you type, Tab scope, Alt+Enter alternate · Tabs: live, Delete closes · Level: no search box · Commands: disabled rows say why · Remote: loads, r retries";
 const APPLIED_META: &str = "read back from a built picker";
 const LAST_ACTION: &str = "none yet · QueryChanged · Chosen(i) · ChosenAlt(i) · Submit · Secondary(i) · NextScope · PrevScope · Back · Cancelled";
@@ -1472,7 +1472,7 @@ mod tests {
         let text = h.text();
         assert!(
             text.contains(
-                "One modal list for files, tabs, levels, commands and branches: search, scope, status"
+                "One modal list for files, tabs and levels: search, scope, tag, alternate action."
             ),
             "{text}"
         );

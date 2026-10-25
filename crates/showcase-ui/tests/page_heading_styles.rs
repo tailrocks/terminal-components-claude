@@ -102,7 +102,7 @@ const HEADINGS: &[Heading] = &[
         route: "pickers",
         page: PageId::Pickers,
         title: "Pickers",
-        meta: "One modal list for files, tabs, levels, commands and branches: search, scope, status",
+        meta: "One modal list for files, tabs and levels: search, scope, tag, alternate action.",
     },
     Heading {
         route: "progress",
