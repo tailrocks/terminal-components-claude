@@ -40,8 +40,8 @@ const INSTANT_ALLOWED: [(&str, usize, &str); 5] = [
     ),
     (
         "crates/termrock-session/src/esc_bridge.rs",
-        1,
-        "live terminal poll deadline accounts for transport timeouts and split-ESC delivery",
+        4,
+        "live poll/split-ESC timing plus three keyboard-probe deadlines (capability acceptance/transport readiness); probe/setup clocks are injectable; captures use fixture render clocks",
     ),
 ];
 
