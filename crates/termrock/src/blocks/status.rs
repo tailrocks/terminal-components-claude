@@ -45,6 +45,26 @@ fn tone_style(tone: StatusTone, theme: &Theme) -> Style {
     Style::default().fg(color)
 }
 
+fn fitting_right_suffix(right: &[StatusSeg<'_>], available: usize) -> (usize, usize) {
+    let mut first = right.len();
+    let mut total = 0usize;
+    for index in (0..right.len()).rev() {
+        let gap = if first < right.len() { 1usize } else { 0 };
+        let Some(next_total) = total
+            .checked_add(usize::from(width(right[index].text)))
+            .and_then(|width| width.checked_add(gap))
+        else {
+            break;
+        };
+        if next_total > available {
+            break;
+        }
+        first = index;
+        total = next_total;
+    }
+    (first, total)
+}
+
 /// Paint a status bar on the first line of `area`.
 ///
 /// `left` segments start at `area.x`, `right` segments end at
@@ -85,19 +105,10 @@ pub fn paint_status(
         x = x.saturating_add(width(seg.text));
     }
     let left_end = x.min(end);
-    let (first, total) = {
-        let mut first = 0usize;
-        loop {
-            let total = right[first..]
-                .iter()
-                .map(|seg| width(seg.text))
-                .sum::<u16>()
-                .saturating_add(right.len().saturating_sub(first).saturating_sub(1) as u16);
-            if first >= right.len() || left_end.saturating_add(total) <= end {
-                break (first, total);
-            }
-            first = first.saturating_add(1);
-        }
+    let (first, total) = fitting_right_suffix(right, usize::from(end.saturating_sub(left_end)));
+    // The helper only accepts a suffix bounded by this u16-sized area.
+    let Ok(total) = u16::try_from(total) else {
+        return painted;
     };
     let mut x = end.saturating_sub(total);
     for (offset, seg) in right[first..].iter().enumerate() {
@@ -258,6 +269,52 @@ mod tests {
         );
         assert_eq!(painted, 8);
         assert_eq!(row_text(&buffer, 0, 10), "abcdef  CD");
+    }
+
+    #[test]
+    fn oversized_right_segments_do_not_corrupt_the_left_region() {
+        let area = Rect::new(0, 0, 60_000, 1);
+        let dropped = "A".repeat(40_000);
+        let retained = "B".repeat(40_000);
+        let (buffer, painted) = render(
+            StatusApp::new(
+                area,
+                vec![("L", StatusTone::Normal)],
+                vec![
+                    (dropped.as_str(), StatusTone::Secondary),
+                    (retained.as_str(), StatusTone::Success),
+                ],
+            ),
+            area,
+        );
+
+        assert_eq!(painted, 40_001);
+        assert_eq!(buffer.cell((0, 0)).map(|cell| cell.symbol()), Some("L"));
+        assert_eq!(
+            buffer.cell((19_999, 0)).map(|cell| cell.symbol()),
+            Some(" ")
+        );
+        assert_eq!(
+            buffer.cell((20_000, 0)).map(|cell| cell.symbol()),
+            Some("B")
+        );
+        assert_eq!(
+            buffer.cell((59_999, 0)).map(|cell| cell.symbol()),
+            Some("B")
+        );
+    }
+
+    #[test]
+    fn excessive_right_segment_count_preserves_gaps_and_left_content() {
+        let area = Rect::new(0, 0, 8, 1);
+        let right = vec![("x", StatusTone::Normal); 65_537];
+        let (buffer, painted) = render(
+            StatusApp::new(area, vec![("L", StatusTone::Normal)], right),
+            area,
+        );
+
+        assert_eq!(painted, 5);
+        assert_eq!(row_text(&buffer, 0, 8), "Lx x x x");
     }
 
     #[test]
