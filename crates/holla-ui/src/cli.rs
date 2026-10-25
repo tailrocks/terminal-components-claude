@@ -56,7 +56,8 @@ Scenarios: first-use, rust-dirty, monorepo-root, monorepo-child, docker-cleanup,
 \x20          parity-git-batch, parity-task-sources, parity-cargo, parity-docker, parity-brew-services,\n\
 \x20          parity-gradle, parity-idea, parity-upgrade-managers, parity-executor, parity-task-input,\n\
 \x20          parity-custom-actions, parity-disk-scan, parity-disk-navigation, parity-insights,\n\
-\x20          parity-delete-safety, parity-cleanup-results, parity-platforms, parity-platforms-linux\n\
+\x20          parity-delete-safety, parity-cleanup-results, parity-platforms, parity-platforms-linux,\n\
+\x20          parity-activity-stop\n\
 Motion:    explicit --motion wins; otherwise HOLLA_NO_MOTION=1 selects reduced motion\n\
 Frame:     with --motion paused, the exact fixture tick to render\n\n\
 Keys: type to filter · ↑↓ move · Enter run · Ctrl+O actions · Ctrl+P preview · F10 menu · F1 help · q quit\n\
@@ -192,6 +193,7 @@ mod tests {
             ("parity-cleanup-results", Screen::Finder),
             ("parity-platforms", Screen::Finder),
             ("parity-platforms-linux", Screen::Finder),
+            ("parity-activity-stop", Screen::Activity),
         ];
         assert_eq!(expected.len(), Scenario::ALL.len());
         for (name, screen) in expected {

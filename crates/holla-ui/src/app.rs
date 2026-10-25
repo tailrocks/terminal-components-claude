@@ -1484,6 +1484,12 @@ impl App {
         home.history = crate::sim::catalogue::history_enabled();
         let file_snapshot = crate::sim::fixtures::files_for_cwd(&world.cwd);
         let files = files::State::new(file_snapshot, &world.cwd);
+        let activity_executions = world
+            .scenario_activity_execution_ids()
+            .iter()
+            .copied()
+            .map(|execution_id| (execution_id.activity_id(), execution_id))
+            .collect();
         Self {
             world,
             source_theme: None,
@@ -1492,7 +1498,7 @@ impl App {
             home,
             plan: None,
             activities,
-            activity_executions: BTreeMap::new(),
+            activity_executions,
             task_runs: TaskRunStore::default(),
             task_run_owners: BTreeMap::new(),
             task_run_screen: None,
@@ -7930,7 +7936,7 @@ mod tests {
                 scenario.name()
             );
         }
-        assert_eq!(Scenario::ALL.len(), 34);
+        assert_eq!(Scenario::ALL.len(), 35);
     }
     #[test]
     fn every_real_app_scenario_renders_purely_with_persistent_identity() {

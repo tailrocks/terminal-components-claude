@@ -34,6 +34,7 @@ pub enum Scenario {
     ParityCleanupResults,
     ParityPlatforms,
     ParityPlatformsLinux,
+    ParityActivityStop,
 }
 
 /// Opening page from the visual-baseline `App::start` match.
@@ -82,7 +83,7 @@ impl Scenario {
         Scenario::HardCases,
     ];
 
-    pub const PARITY: [Scenario; 23] = [
+    pub const PARITY: [Scenario; 24] = [
         Scenario::ParityDiscovery,
         Scenario::ParityHistory,
         Scenario::ParityFiles,
@@ -106,9 +107,10 @@ impl Scenario {
         Scenario::ParityCleanupResults,
         Scenario::ParityPlatforms,
         Scenario::ParityPlatformsLinux,
+        Scenario::ParityActivityStop,
     ];
 
-    pub const ALL: [Scenario; 34] = [
+    pub const ALL: [Scenario; 35] = [
         Scenario::FirstUse,
         Scenario::RustDirty,
         Scenario::MonorepoRoot,
@@ -143,6 +145,7 @@ impl Scenario {
         Scenario::ParityCleanupResults,
         Scenario::ParityPlatforms,
         Scenario::ParityPlatformsLinux,
+        Scenario::ParityActivityStop,
     ];
 
     pub const fn name(self) -> &'static str {
@@ -181,6 +184,7 @@ impl Scenario {
             Scenario::ParityCleanupResults => "parity-cleanup-results",
             Scenario::ParityPlatforms => "parity-platforms",
             Scenario::ParityPlatformsLinux => "parity-platforms-linux",
+            Scenario::ParityActivityStop => "parity-activity-stop",
         }
     }
 
@@ -193,6 +197,7 @@ impl Scenario {
             Scenario::DiskCleanup => Screen::Disk,
             Scenario::UpgradePlan => Screen::Plan,
             Scenario::LaunchFailure => Screen::Activity,
+            Scenario::ParityActivityStop => Screen::Activity,
             Scenario::FirstUse
             | Scenario::RustDirty
             | Scenario::MonorepoRoot
@@ -227,14 +232,15 @@ impl Scenario {
         }
     }
 
-    /// First finder heading on the baseline frame.
+    /// First visible heading on the baseline frame.
     ///
     /// Worlds with no recommended row lead with Recent here. The rest lead
-    /// with Suggested here. Disk and the failed activity paint their own page.
+    /// with Suggested here. Disk and Activity scenarios paint their own page.
     pub const fn boot_title(self) -> &'static str {
         match self {
             Scenario::DiskCleanup => "Disk usage",
             Scenario::LaunchFailure => "failed",
+            Scenario::ParityActivityStop => "ordinary worker",
             Scenario::ParityFiles
             | Scenario::ParityDiskScan
             | Scenario::ParityPlatforms
@@ -280,8 +286,8 @@ mod tests {
     #[test]
     fn names_round_trip() {
         assert_eq!(Scenario::CONCEPT.len(), 11);
-        assert_eq!(Scenario::PARITY.len(), 23);
-        assert_eq!(Scenario::ALL.len(), 34);
+        assert_eq!(Scenario::PARITY.len(), 24);
+        assert_eq!(Scenario::ALL.len(), 35);
         for s in Scenario::ALL {
             assert_eq!(Scenario::from_name(s.name()), Some(s));
         }

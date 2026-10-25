@@ -1,3 +1,6 @@
+use crate::activity_supervisor::{
+    ActivityExecutionStart, ActivityStopProfile, ActivitySupervisorError,
+};
 use crate::domain::activity::{Activity, ActivityState};
 use crate::domain::debian::{DebianState, OrphanPackage};
 use crate::domain::disk::{Candidate, DiskState, Family, Freshness};
@@ -93,6 +96,7 @@ pub fn files_for_cwd(cwd: &str) -> crate::files::FilesSnapshot {
 
 pub fn cwd_for(scenario: Scenario) -> &'static str {
     match scenario {
+        Scenario::ParityActivityStop => "~/work/activity-stop",
         Scenario::FirstUse => "~/scratch/empty",
         Scenario::RustDirty | Scenario::LaunchFailure => "~/work/pave",
         Scenario::MonorepoRoot | Scenario::ActivitiesMulti => "~/work/monorepo",
@@ -141,6 +145,7 @@ pub fn host_for(scenario: Scenario) -> Host {
         | Scenario::ActivitiesMulti
         | Scenario::LaunchFailure
         | Scenario::HardCases => Host::local("devbox"),
+        Scenario::ParityActivityStop => Host::local("devbox"),
         _ => Host::local("mbp"),
     }
 }
@@ -185,6 +190,7 @@ pub fn world_for(scenario: Scenario) -> World {
         Scenario::DiskCleanup => seed_disk_cleanup(&mut w),
         Scenario::UpgradePlan => seed_upgrade_plan(&mut w),
         Scenario::ActivitiesMulti => seed_activities_multi(&mut w),
+        Scenario::ParityActivityStop => return parity_activity_stop_world(w),
         Scenario::RemoteHost => seed_remote_host(&mut w),
         Scenario::HardCases => seed_hard_cases(&mut w),
         Scenario::ParityDiscovery
@@ -863,6 +869,95 @@ fn seed_activities_multi(w: &mut World) {
     w.activities = vec![dev, watch, deploy, seed];
 }
 
+fn parity_activity_stop_world(world: World) -> World {
+    match seed_parity_activity_stop(world) {
+        Ok(world) => world,
+        Err(error) => parity_activity_stop_setup_failure(error),
+    }
+}
+
+fn parity_activity_stop_setup_failure(error: ActivitySupervisorError) -> World {
+    let scenario = Scenario::ParityActivityStop;
+    let mut world = World::new(scenario, host_for(scenario), cwd_for(scenario));
+    world.discovery = World::default_schedule();
+    let mut diagnostic = Activity::new(
+        0,
+        "Activity stop fixture unavailable",
+        cwd_for(scenario),
+        ActivityState::Failed,
+        0,
+    );
+    diagnostic.lines = vec![format!("Activity stop fixture unavailable · {error}")];
+    world.activities.push(diagnostic);
+    world
+}
+
+fn seed_parity_activity_stop(mut world: World) -> Result<World, ActivitySupervisorError> {
+    let mut ordinary = Activity::new(
+        1,
+        "ordinary worker",
+        "~/work/activity-stop/workers/ordinary",
+        ActivityState::Running,
+        0,
+    );
+    ordinary.lines = vec!["worker started".into(), "health check: ready".into()];
+    world.register_scenario_activity(
+        ordinary,
+        ActivityExecutionStart::Running,
+        ActivityStopProfile::Responsive,
+    )?;
+
+    let mut queued = Activity::new(
+        2,
+        "queued worker",
+        "~/work/activity-stop/queue",
+        ActivityState::Running,
+        0,
+    );
+    queued.lines = vec!["waiting for a worker slot".into()];
+    world.register_scenario_activity(
+        queued,
+        ActivityExecutionStart::Queued,
+        ActivityStopProfile::Responsive,
+    )?;
+
+    let mut detached = Activity::new(
+        3,
+        "detached follower",
+        "~/work/activity-stop/containers/api",
+        ActivityState::Detached,
+        0,
+    );
+    detached.lines = vec![
+        "container log stream attached".into(),
+        "service: api · state: healthy".into(),
+    ];
+    world.register_scenario_activity(
+        detached,
+        ActivityExecutionStart::Detached,
+        ActivityStopProfile::Responsive,
+    )?;
+
+    let mut resistant = Activity::new(
+        4,
+        "resistant worker",
+        "~/work/activity-stop/workers/resistant",
+        ActivityState::Running,
+        0,
+    );
+    resistant.lines = vec![
+        "worker started".into(),
+        "shutdown hook: waiting for response".into(),
+    ];
+    world.register_scenario_activity(
+        resistant,
+        ActivityExecutionStart::Running,
+        ActivityStopProfile::Resistant,
+    )?;
+
+    Ok(world)
+}
+
 fn seed_remote_host(w: &mut World) {
     w.git = Some(GitRepo {
         root: "/srv/payments".into(),
@@ -1114,6 +1209,7 @@ mod tests {
     fn activities_multi_carries_four_states() {
         let w = settled(Scenario::ActivitiesMulti);
         assert_eq!(w.activities.len(), 4);
+        assert!(w.scenario_activity_execution_ids().is_empty());
         for state in [
             ActivityState::Running,
             ActivityState::Waiting,
@@ -1123,6 +1219,105 @@ mod tests {
             assert!(
                 w.activities.iter().any(|a| a.state == state),
                 "missing {state:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn parity_activity_stop_owns_four_exact_setup_executions() {
+        use crate::activity_supervisor::{ActivityExecutionPhase, ActivityStopProfile};
+
+        let world = world_for(Scenario::ParityActivityStop);
+        assert_eq!(world.effect_revision, 0);
+        assert_eq!(world.activities.len(), 4);
+        assert_eq!(world.scenario_activity_execution_ids().len(), 4);
+
+        let expected = [
+            (
+                1,
+                ActivityExecutionPhase::Running,
+                ActivityStopProfile::Responsive,
+            ),
+            (
+                2,
+                ActivityExecutionPhase::Queued,
+                ActivityStopProfile::Responsive,
+            ),
+            (
+                3,
+                ActivityExecutionPhase::Detached,
+                ActivityStopProfile::Responsive,
+            ),
+            (
+                4,
+                ActivityExecutionPhase::Running,
+                ActivityStopProfile::Resistant,
+            ),
+        ];
+        for ((activity, execution_id), (activity_id, phase, profile)) in world
+            .activities
+            .iter()
+            .zip(world.scenario_activity_execution_ids())
+            .zip(expected)
+        {
+            assert_eq!(activity.id, activity_id);
+            assert_eq!(execution_id.activity_id(), activity_id);
+            assert_eq!(
+                world.activity_supervisor.current_execution_id(activity_id),
+                Some(*execution_id)
+            );
+            let execution = world.activity_supervisor.execution(*execution_id).unwrap();
+            assert_eq!(execution.snapshot(), activity);
+            assert_eq!(execution.phase(), phase);
+            assert_eq!(execution.profile(), profile);
+            assert!(execution.is_owned());
+        }
+    }
+
+    #[test]
+    fn parity_activity_stop_duplicate_setup_uses_fresh_failed_world() {
+        let scenario = Scenario::ParityActivityStop;
+        let mut world = World::new(scenario, host_for(scenario), cwd_for(scenario));
+        world.discovery = World::default_schedule();
+        let mut duplicate = Activity::new(
+            4,
+            "preexisting conflict",
+            cwd_for(scenario),
+            ActivityState::Running,
+            0,
+        );
+        duplicate.lines = vec!["fixture conflict".into()];
+        world.activities.push(duplicate);
+
+        let failed_world = parity_activity_stop_world(world);
+
+        assert_eq!(failed_world.scenario, scenario);
+        assert_eq!(failed_world.effect_revision, 0);
+        assert_eq!(failed_world.activities.len(), 1);
+        let diagnostic = &failed_world.activities[0];
+        assert_eq!(diagnostic.id, 0);
+        assert_eq!(diagnostic.state, ActivityState::Failed);
+        assert_eq!(
+            diagnostic.lines,
+            vec![
+                "Activity stop fixture unavailable · activity ID 4 is already registered"
+                    .to_owned()
+            ]
+        );
+        assert!(failed_world.scenario_activity_execution_ids().is_empty());
+        assert_eq!(
+            failed_world
+                .activity_supervisor
+                .current_execution_id(diagnostic.id),
+            None
+        );
+        for activity_id in 1..=4 {
+            assert_eq!(
+                failed_world
+                    .activity_supervisor
+                    .current_execution_id(activity_id),
+                None,
+                "failed setup leaves no registered worker {activity_id}"
             );
         }
     }

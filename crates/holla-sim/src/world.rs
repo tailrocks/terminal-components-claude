@@ -1,4 +1,7 @@
-use crate::activity_supervisor::ActivitySupervisor;
+use crate::activity_supervisor::{
+    ActivityExecutionId, ActivityExecutionStart, ActivityStopProfile, ActivitySupervisor,
+    ActivitySupervisorError,
+};
 use crate::clock::Clock;
 use crate::domain::activity::Activity;
 use crate::domain::debian::DebianState;
@@ -101,6 +104,7 @@ pub struct World {
     pub debian: Option<DebianState>,
     pub memory: Memory,
     pub activities: Vec<Activity>,
+    scenario_activity_execution_ids: Vec<ActivityExecutionId>,
 }
 
 impl World {
@@ -123,7 +127,46 @@ impl World {
             debian: None,
             memory: Memory::default(),
             activities: vec![],
+            scenario_activity_execution_ids: Vec::new(),
         }
+    }
+
+    /// Registers and publishes one Activity during deterministic scenario setup.
+    ///
+    /// Rejects an ID already present in `activities` before changing the supervisor. The exact
+    /// returned identity is retained for App fixture adoption; rendering must not reconstruct it.
+    ///
+    /// # Errors
+    /// Returns [`ActivitySupervisorError::DuplicateActivityId`] when the display ID already exists
+    /// in the World or supervisor, or [`ActivitySupervisorError::GenerationExhausted`] when no
+    /// supervisor identity remains.
+    pub fn register_scenario_activity(
+        &mut self,
+        activity: Activity,
+        start: ActivityExecutionStart,
+        profile: ActivityStopProfile,
+    ) -> Result<ActivityExecutionId, ActivitySupervisorError> {
+        if self
+            .activities
+            .iter()
+            .any(|existing| existing.id == activity.id)
+        {
+            return Err(ActivitySupervisorError::DuplicateActivityId {
+                activity_id: activity.id,
+            });
+        }
+
+        let execution_id = self
+            .activity_supervisor
+            .register(&activity, start, profile)?;
+        self.activities.push(activity);
+        self.scenario_activity_execution_ids.push(execution_id);
+        Ok(execution_id)
+    }
+
+    /// Returns exact supervisor identities captured during scenario setup.
+    pub fn scenario_activity_execution_ids(&self) -> &[ActivityExecutionId] {
+        &self.scenario_activity_execution_ids
     }
 
     pub fn now_ms(&self) -> i64 {
@@ -248,6 +291,37 @@ mod tests {
 
         assert!(w.tick(100).is_empty());
         let _ = Environment::Local;
+    }
+
+    #[test]
+    fn scenario_registration_rejects_existing_activity_before_supervisor_mutation() {
+        let mut world = World::new(
+            Scenario::ParityActivityStop,
+            Host::local("devbox"),
+            "~/work/activity-stop",
+        );
+        let existing = Activity::new(
+            7,
+            "static row",
+            "~/work/activity-stop",
+            ActivityState::Running,
+            0,
+        );
+        world.activities.push(existing.clone());
+
+        let result = world.register_scenario_activity(
+            existing.clone(),
+            ActivityExecutionStart::Running,
+            ActivityStopProfile::Responsive,
+        );
+
+        assert_eq!(
+            result,
+            Err(ActivitySupervisorError::DuplicateActivityId { activity_id: 7 })
+        );
+        assert_eq!(world.activities, vec![existing]);
+        assert!(world.scenario_activity_execution_ids().is_empty());
+        assert_eq!(world.activity_supervisor.current_execution_id(7), None);
     }
 
     #[test]

@@ -14,8 +14,8 @@ use crate::{
     },
     sim::{
         activity_supervisor::{
-            ActivityExecutionId, ActivityExecutionPhase, ActivityExecutionStart, ActivityStopPhase,
-            ActivityStopProfile,
+            ActivityExecutionId, ActivityExecutionPhase, ActivityExecutionStart,
+            ActivityStopMilestone, ActivityStopPhase, ActivityStopProfile,
         },
         catalogue,
         task_run::{TaskRun, TaskRunId, TaskRunState, TaskScriptId},
@@ -49,6 +49,30 @@ fn harness(app: App) -> Harness<App> {
             initial: SimulationMoment::from_millis(4_000),
         },
     )
+}
+
+fn parity_activity_stop_app() -> App {
+    App::for_scenario_without_history(Scenario::ParityActivityStop, Motion::Paused, 4_000)
+        .with_source_theme(Theme::junie())
+}
+
+fn scenario_activity_execution(
+    app: &App,
+    activity_id: u32,
+) -> Result<(Activity, ActivityExecutionId), String> {
+    let activity = app
+        .world
+        .activities
+        .iter()
+        .find(|activity| activity.id == activity_id)
+        .cloned()
+        .ok_or_else(|| format!("scenario Activity {activity_id} is missing"))?;
+    let execution_id = app
+        .activity_executions
+        .get(&activity_id)
+        .copied()
+        .ok_or_else(|| format!("scenario Activity {activity_id} has no captured execution"))?;
+    Ok((activity, execution_id))
 }
 
 fn enter_dev(harness: &mut Harness<App>) {
@@ -1116,5 +1140,384 @@ fn task_run_stop_button_also_works_without_an_open_prompt() -> TestResult {
             .map(|execution| execution.phase()),
         Some(ActivityExecutionPhase::Cancelling)
     );
+    Ok(())
+}
+
+#[test]
+fn parity_activity_stop_app_adopts_exact_setup_handles_without_task_runs() -> TestResult {
+    let app = parity_activity_stop_app();
+    assert!(matches!(app.route, Route::Activity));
+    assert_eq!(app.world.effect_revision, 0);
+    assert!(app.task_runs.is_empty());
+    assert_eq!(app.activity_executions.len(), 4);
+    assert_eq!(app.world.scenario_activity_execution_ids().len(), 4);
+
+    for (activity, execution_id) in app
+        .world
+        .activities
+        .iter()
+        .zip(app.world.scenario_activity_execution_ids())
+    {
+        assert_eq!(execution_id.activity_id(), activity.id);
+        assert_eq!(
+            app.activity_executions.get(&activity.id),
+            Some(execution_id)
+        );
+        assert_eq!(
+            app.world
+                .activity_supervisor
+                .execution(*execution_id)
+                .map(|execution| execution.snapshot()),
+            Some(activity)
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn parity_activity_stop_responsive_button_reaps_at_240_ms_and_freezes_output() -> TestResult {
+    let app = parity_activity_stop_app();
+    let (snapshot, execution_id) = scenario_activity_execution(&app, 1)?;
+    let view_token = app
+        .activities
+        .current_view_token()
+        .ok_or("ordinary Activity view token is missing")?;
+    let mut harness = harness(app);
+    let stop_id = activity_stop_id(1, view_token, execution_id);
+    assert!(
+        harness.area_of(stop_id).is_some(),
+        "rendered Stop button is visible"
+    );
+    let original_lines = snapshot.lines.clone();
+    let _ = harness.click_id(stop_id);
+
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("ordinary supervisor execution is missing")?;
+    assert_eq!(execution.snapshot(), &snapshot);
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::TermSent);
+    assert_eq!(execution.stop_requested_ms(), Some(4_000));
+    assert_eq!(execution.reap_deadline_ms(), Some(4_240));
+    assert_eq!(
+        execution.milestones(),
+        &[ActivityStopMilestone::TermSent { at_ms: 4_000 }]
+    );
+    assert_eq!(harness.app().world.effect_revision, 0);
+    assert!(harness.app().task_runs.is_empty());
+
+    harness.app_mut().world.seek(4_160);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("ordinary execution disappeared during grace")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::TermSent);
+    assert_eq!(execution.snapshot().lines, original_lines);
+    assert_eq!(
+        harness
+            .app()
+            .activity_projections()
+            .get(&1)
+            .map(|projection| projection.lines.clone()),
+        Some(original_lines.clone())
+    );
+
+    harness.app_mut().world.seek(4_240);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("ordinary execution disappeared after reap")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Stopped);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::Reaped);
+    assert_eq!(
+        execution.milestones(),
+        &[
+            ActivityStopMilestone::TermSent { at_ms: 4_000 },
+            ActivityStopMilestone::Reaped { at_ms: 4_240 },
+        ]
+    );
+    assert_eq!(execution.snapshot(), &snapshot);
+    assert_eq!(execution.snapshot().lines, original_lines);
+    assert_eq!(
+        harness
+            .app()
+            .activity_projections()
+            .get(&1)
+            .map(|projection| projection.lines.clone()),
+        Some(original_lines)
+    );
+    assert_eq!(harness.app().world.effect_revision, 0);
+    Ok(())
+}
+
+#[test]
+fn parity_activity_stop_queued_button_cancels_without_grace() -> TestResult {
+    let mut app = parity_activity_stop_app();
+    let (snapshot, execution_id) = scenario_activity_execution(&app, 2)?;
+    let view_token = update_detail_route(&mut app, snapshot.id)?;
+    let mut harness = harness(app);
+    let stop_id = activity_stop_id(snapshot.id, view_token, execution_id);
+    assert!(
+        harness.area_of(stop_id).is_some(),
+        "queued Stop button is visible"
+    );
+    assert!(
+        harness
+            .app()
+            .activity_projections()
+            .get(&snapshot.id)
+            .is_some_and(|projection| projection.stop_enabled),
+        "queued execution can be cancelled before start"
+    );
+    assert_eq!(
+        harness
+            .app()
+            .activity_projections()
+            .get(&snapshot.id)
+            .map(|projection| projection.state_label.as_str()),
+        Some("queued")
+    );
+    let _ = harness.click_id(stop_id);
+
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("queued supervisor execution is missing")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Stopped);
+    assert_eq!(
+        execution.stop_phase(),
+        ActivityStopPhase::CancelledBeforeStart
+    );
+    assert_eq!(execution.stop_requested_ms(), Some(4_000));
+    assert_eq!(execution.kill_deadline_ms(), None);
+    assert_eq!(execution.reap_deadline_ms(), None);
+    assert_eq!(
+        execution.milestones(),
+        &[ActivityStopMilestone::CancelledBeforeStart { at_ms: 4_000 }]
+    );
+    assert_eq!(execution.snapshot(), &snapshot);
+    assert_eq!(harness.app().world.effect_revision, 0);
+    assert!(harness.app().task_runs.is_empty());
+    Ok(())
+}
+
+#[test]
+fn parity_activity_stop_detached_owner_reaps_at_240_ms() -> TestResult {
+    let mut app = parity_activity_stop_app();
+    let (snapshot, execution_id) = scenario_activity_execution(&app, 3)?;
+    let view_token = update_detail_route(&mut app, snapshot.id)?;
+    let initial = app
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("detached supervisor execution is missing")?;
+    assert_eq!(initial.phase(), ActivityExecutionPhase::Detached);
+    assert!(initial.is_owned());
+    assert!(
+        app.activity_projections()
+            .get(&snapshot.id)
+            .is_some_and(|projection| projection.stop_enabled)
+    );
+    let original_lines = snapshot.lines.clone();
+    let mut harness = harness(app);
+    let stop_id = activity_stop_id(snapshot.id, view_token, execution_id);
+    assert!(
+        harness.area_of(stop_id).is_some(),
+        "detached Stop button is visible"
+    );
+    let _ = harness.click_id(stop_id);
+
+    harness.app_mut().world.seek(4_160);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("detached execution disappeared during grace")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert!(execution.is_owned());
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::TermSent);
+    assert_eq!(execution.snapshot().lines, original_lines);
+
+    harness.app_mut().world.seek(4_240);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("detached execution disappeared after reap")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Stopped);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::Reaped);
+    assert!(!execution.is_owned());
+    assert_eq!(
+        execution.milestones(),
+        &[
+            ActivityStopMilestone::TermSent { at_ms: 4_000 },
+            ActivityStopMilestone::Reaped { at_ms: 4_240 },
+        ]
+    );
+    assert_eq!(execution.snapshot(), &snapshot);
+    assert_eq!(execution.snapshot().lines, original_lines);
+    assert_eq!(harness.app().world.effect_revision, 0);
+    Ok(())
+}
+
+#[test]
+fn parity_activity_stop_resistant_button_sends_kill_at_800_and_reaps_at_960_ms() -> TestResult {
+    let mut app = parity_activity_stop_app();
+    let (snapshot, execution_id) = scenario_activity_execution(&app, 4)?;
+    let view_token = update_detail_route(&mut app, snapshot.id)?;
+    let original_lines = snapshot.lines.clone();
+    let mut harness = harness(app);
+    let stop_id = activity_stop_id(snapshot.id, view_token, execution_id);
+    assert!(
+        harness.area_of(stop_id).is_some(),
+        "resistant Stop button is visible"
+    );
+    let _ = harness.click_id(stop_id);
+
+    harness.app_mut().world.seek(4_720);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("resistant execution disappeared before KILL")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::TermSent);
+    assert_eq!(execution.kill_deadline_ms(), Some(4_800));
+    assert_eq!(execution.reap_deadline_ms(), Some(4_960));
+    assert_eq!(execution.snapshot().lines, original_lines);
+
+    harness.app_mut().world.seek(4_800);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("resistant execution disappeared at KILL")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::KillSent);
+    assert!(execution.is_owned());
+    assert_eq!(
+        execution.milestones(),
+        &[
+            ActivityStopMilestone::TermSent { at_ms: 4_000 },
+            ActivityStopMilestone::KillSent { at_ms: 4_800 },
+        ]
+    );
+    assert_eq!(execution.snapshot().lines, original_lines);
+
+    harness.app_mut().world.seek(4_880);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("resistant execution disappeared before reap")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::KillSent);
+    assert!(execution.is_owned());
+    assert_eq!(execution.snapshot().lines, original_lines);
+
+    harness.app_mut().world.seek(4_960);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("resistant execution disappeared after reap")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Stopped);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::Reaped);
+    assert!(!execution.is_owned());
+    assert_eq!(
+        execution.milestones(),
+        &[
+            ActivityStopMilestone::TermSent { at_ms: 4_000 },
+            ActivityStopMilestone::KillSent { at_ms: 4_800 },
+            ActivityStopMilestone::Reaped { at_ms: 4_960 },
+        ]
+    );
+    assert_eq!(execution.snapshot(), &snapshot);
+    assert_eq!(execution.snapshot().lines, original_lines);
+    assert_eq!(harness.app().world.effect_revision, 0);
+    assert!(harness.app().task_runs.is_empty());
+    Ok(())
+}
+
+#[test]
+fn parity_activity_stop_rejects_stale_view_and_accepts_current_button() -> TestResult {
+    let app = parity_activity_stop_app();
+    let (snapshot, execution_id) = scenario_activity_execution(&app, 1)?;
+    let mut harness = harness(app);
+    let stale_view_token = harness
+        .app()
+        .activities
+        .current_view_token()
+        .ok_or("ordinary Activity view token is missing")?;
+    let stale_stop_id = activity_stop_id(snapshot.id, stale_view_token, execution_id);
+    assert!(
+        harness.area_of(stale_stop_id).is_some(),
+        "initial Stop button is rendered before reopening the same Activity"
+    );
+    let current_view_token = harness
+        .app_mut()
+        .activities
+        .show_with_token(snapshot.id)
+        .ok_or("ordinary Activity view token exhausted")?;
+    assert_ne!(current_view_token, stale_view_token);
+    harness.app_mut().handle_activity_stop_event(
+        StopEvent {
+            view_token: stale_view_token,
+            execution_id,
+            snapshot: snapshot.clone(),
+        },
+        true,
+    );
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("ordinary supervisor execution is missing")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Running);
+    assert!(execution.milestones().is_empty());
+
+    let _ = harness.tick();
+    let stop_id = activity_stop_id(snapshot.id, current_view_token, execution_id);
+    assert_ne!(stop_id, stale_stop_id);
+    assert!(
+        harness.area_of(stop_id).is_some(),
+        "current Stop button is visible"
+    );
+    let _ = harness.click_id(stop_id);
+    assert_eq!(
+        harness
+            .app()
+            .world
+            .activity_supervisor
+            .execution(execution_id)
+            .map(|execution| execution.phase()),
+        Some(ActivityExecutionPhase::Cancelling)
+    );
+    assert_eq!(harness.app().world.effect_revision, 0);
     Ok(())
 }
