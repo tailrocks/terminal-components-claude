@@ -7,6 +7,9 @@
     clippy::panic
 )]
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 #[path = "common/tab_navigation.rs"]
 mod tab_navigation;
 
@@ -17,8 +20,8 @@ use tablepro_ui::{
     form_fields, gate, parse, preview_for,
 };
 use termrock::{
-    Axis, GridEditor, Id, ItemKey, KeyCode, KeyModifiers, MouseKind, Part, PartRef, StateFlags,
-    Theme,
+    App, Axis, Cx, GridEditor, Id, ItemKey, KeyCode, KeyMap, KeyModifiers, MouseKind, Part,
+    PartRef, Response, Size, StateFlags, Theme, Ui,
 };
 use termrock_test_support::Harness;
 
@@ -50,6 +53,66 @@ fn history_entry_for(sql: &str, connection: &str, failed: bool) -> HistoryEntry 
         entry.error = Some("query failed".to_owned());
     }
     entry
+}
+
+struct ClipboardProbeApp {
+    app: TableProApp,
+    copies: Rc<RefCell<Vec<String>>>,
+}
+
+impl std::ops::Deref for ClipboardProbeApp {
+    type Target = TableProApp;
+
+    fn deref(&self) -> &Self::Target {
+        &self.app
+    }
+}
+
+impl std::ops::DerefMut for ClipboardProbeApp {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.app
+    }
+}
+
+impl App for ClipboardProbeApp {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let copies = self.copies.clone();
+        cx.set_clipboard_copy_hook(move |text| copies.borrow_mut().push(text.to_owned()));
+        App::update(&mut self.app, cx)
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        App::draw(&self.app, ui);
+    }
+
+    fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        App::on_esc(&mut self.app, cx)
+    }
+
+    fn should_quit(&self) -> bool {
+        App::should_quit(&self.app)
+    }
+
+    fn keymap(&self) -> &KeyMap {
+        App::keymap(&self.app)
+    }
+
+    fn min_size(&self) -> Size {
+        App::min_size(&self.app)
+    }
+}
+
+fn clipboard_harness(
+    app: TableProApp,
+    width: u16,
+    height: u16,
+) -> (Harness<ClipboardProbeApp>, Rc<RefCell<Vec<String>>>) {
+    let copies = Rc::new(RefCell::new(Vec::new()));
+    let probe = ClipboardProbeApp {
+        app,
+        copies: copies.clone(),
+    };
+    (Harness::new(probe, Theme::junie(), width, height), copies)
 }
 
 #[test]
@@ -786,6 +849,516 @@ fn history_pointer_selects_by_entry_id_and_real_open_button_opens_full_sql() {
 }
 
 #[test]
+fn history_copy_button_uses_a_fully_visible_native_area_at_minimum_and_preferred_sizes() {
+    for (width, height, row_offset) in [(72, 20, 5), (120, 40, 11)] {
+        let sql =
+            "SELECT visible_copy\nFROM warehouse.events\nWHERE note = '尾部🙂' /* full suffix */";
+        let mut app = connected();
+        app.workbench.history = History::default();
+        app.workbench.history.push(history_entry(sql));
+        let (mut harness, copies) = clipboard_harness(app, width, height);
+        let _ = harness.ctrl('y');
+        let history_key = harness
+            .app()
+            .workbench
+            .active_key()
+            .expect("History is active");
+        let list_id = Id::root("tablepro.workbench.history.list");
+        let list_area = harness
+            .area_of(list_id)
+            .expect("the History List is visible");
+        let copy_id = history_key.control("history.copy");
+        let copy_area = harness
+            .area_of(copy_id)
+            .expect("the native Copy owner is fully visible");
+
+        assert_eq!(
+            copy_area.width, 6,
+            "Button intrinsic width includes its pads"
+        );
+        assert_eq!(copy_area.height, 1);
+        assert_eq!(copy_area.x, list_area.x.saturating_add(44));
+        assert_eq!(copy_area.y, list_area.y.saturating_add(row_offset));
+        assert!(harness.row(copy_area.y).contains("Copy"));
+        assert!(copy_area.intersection(list_area).is_empty());
+        assert!(
+            harness
+                .area_of(history_key.control("history.search"))
+                .is_some()
+        );
+        assert!(harness.text().contains("Connection"));
+        assert!(harness.text().contains("Duration"));
+        if width == 120 {
+            assert!(harness.text().contains("Rows"));
+        }
+        if width == 120 {
+            let open_area = harness
+                .area_of(history_key.control("history.open"))
+                .expect("the existing Open owner remains visible");
+            assert!(copy_area.intersection(open_area).is_empty());
+        }
+        assert!(harness.tab_to(copy_id), "Copy is in the native focus ring");
+        let _ = harness.key(KeyCode::Enter);
+        assert_eq!(copies.borrow().as_slice(), &[sql.to_owned()]);
+        assert_eq!(harness.focus(), Some(copy_id));
+        let _ = harness.click_id(copy_id);
+        assert_eq!(
+            copies.borrow().as_slice(),
+            &[sql.to_owned(), sql.to_owned()]
+        );
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+}
+
+#[test]
+fn history_copy_owner_is_absent_below_the_visible_workbench_minimum() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT hidden copy"));
+    let (mut harness, copies) = clipboard_harness(app, 71, 20);
+    let _ = harness.ctrl('y');
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History is active");
+    assert!(
+        harness
+            .area_of(history_key.control("history.copy"))
+            .is_none()
+    );
+    let _ = harness.key(KeyCode::Char('y'));
+    assert!(copies.borrow().is_empty());
+}
+
+#[test]
+fn history_y_and_native_copy_button_copy_the_selected_full_sql_once() {
+    let target = "SELECT duplicate\nFROM older_source\nWHERE note = '尾部🙂' /* exact suffix beyond preview */";
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench.history.push(history_entry(target));
+    app.workbench
+        .history
+        .push(history_entry("SELECT duplicate\nFROM newer_source"));
+    let query_count = app.workbench.query_counter;
+    let history_count = app.workbench.history.entries.len();
+    let (mut harness, copies) = clipboard_harness(app, 120, 40);
+    let _ = harness.ctrl('y');
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History is active");
+    let list_id = Id::root("tablepro.workbench.history.list");
+    assert_eq!(harness.focus(), Some(list_id));
+    let _ = harness.key(KeyCode::Down);
+    let _ = harness.key(KeyCode::Char('y'));
+
+    assert_eq!(copies.borrow().as_slice(), &[target.to_owned()]);
+    assert_eq!(harness.app().workbench.query_counter, query_count);
+    assert_eq!(harness.app().workbench.history.entries.len(), history_count);
+    assert_eq!(harness.app().workbench.active_key(), Some(history_key));
+    assert_eq!(harness.focus(), Some(list_id));
+    assert_eq!(harness.app().status(), "Copied full SQL");
+
+    let copy_id = history_key.control("history.copy");
+    assert!(
+        harness.tab_to(copy_id),
+        "the native Copy Button is focusable"
+    );
+    let _ = harness.key(KeyCode::Enter);
+    assert_eq!(copies.borrow().len(), 2);
+    assert_eq!(copies.borrow()[1], target);
+
+    let _ = harness.click_id(copy_id);
+    assert_eq!(copies.borrow().len(), 3);
+    assert_eq!(copies.borrow()[2], target);
+    assert_eq!(harness.focus(), Some(copy_id));
+    let _ = harness.tick();
+    assert_eq!(copies.borrow().len(), 3, "a tick does not repeat the copy");
+    assert_eq!(harness.app().workbench.query_counter, query_count);
+    assert_eq!(harness.app().workbench.history.entries.len(), history_count);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("Copy leaves History active")
+    };
+    assert_eq!(history.selected_query().as_deref(), Some(target));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_y_does_not_copy_from_search_query_or_modal_focus() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT copy guard"));
+    let (mut harness, copies) = clipboard_harness(app, 120, 40);
+    let _ = harness.ctrl('y');
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History is active");
+
+    let _ = harness.ctrl('o');
+    let switcher = Id::root("tablepro.quick-switcher");
+    assert!(harness.is_open(switcher));
+    let _ = harness.key(KeyCode::Char('y'));
+    assert!(
+        copies.borrow().is_empty(),
+        "modal input cannot copy History"
+    );
+    let _ = harness.key(KeyCode::Esc);
+    assert!(
+        harness.is_open(switcher),
+        "the first Esc clears the modal query"
+    );
+    let _ = harness.key(KeyCode::Esc);
+    assert!(!harness.is_open(switcher));
+
+    let search_id = history_key.control("history.search");
+    assert!(harness.tab_to(search_id), "History search is focusable");
+    let _ = harness.key(KeyCode::Char('y'));
+    assert!(
+        copies.borrow().is_empty(),
+        "search text cannot copy History"
+    );
+
+    let _ = harness.ctrl('t');
+    let query_id = harness.app().query_id().expect("a query tab opens");
+    assert!(harness.tab_to(query_id), "the query editor is focusable");
+    let _ = harness.key(KeyCode::Char('y'));
+    assert!(copies.borrow().is_empty(), "query text cannot copy History");
+}
+
+#[test]
+fn history_copy_tracks_search_connection_and_failure_projections() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    let current_connection = app.workbench.connection.name.clone();
+    let stage_ok = "SELECT copy_projection_stage_ok";
+    let production_ok = "SELECT copy_projection_production_ok";
+    let production_failed = "SELECT copy_projection_production_failed";
+    let stage_failed = "SELECT copy_projection_stage_failed";
+    app.workbench
+        .history
+        .push(history_entry_for(stage_ok, "Staging", false));
+    app.workbench
+        .history
+        .push(history_entry_for(production_ok, &current_connection, false));
+    app.workbench.history.push(history_entry_for(
+        production_failed,
+        &current_connection,
+        true,
+    ));
+    app.workbench
+        .history
+        .push(history_entry_for(stage_failed, "Staging", true));
+
+    let source_count = app.workbench.history.entries.len();
+    let query_count = app.workbench.query_counter;
+    let (mut harness, copies) = clipboard_harness(app, 120, 40);
+    let _ = harness.ctrl('y');
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History is active");
+    let search = history_key.control("history.search");
+    let scope = history_key.control("history.connection");
+    let status = history_key.control("history.status");
+    let list = Id::root("tablepro.workbench.history.list");
+    assert!(harness.tab_to(search));
+    let _ = harness.paste("copy_projection");
+    let _ = harness.key(KeyCode::Enter);
+    assert!(matches!(
+        harness.app().workbench.tab(history_key),
+        Some(Tab::History(history)) if history.search == "copy_projection" && history.entries.len() == 4
+    ));
+
+    assert!(harness.tab_to(list));
+    let _ = harness.key(KeyCode::End);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("History remains active in the All search projection")
+    };
+    assert_eq!(history.selected_query().as_deref(), Some(stage_ok));
+    let _ = harness.key(KeyCode::Char('y'));
+    assert_eq!(copies.borrow().as_slice(), &[stage_ok.to_owned()]);
+
+    assert!(harness.tab_to(scope));
+    let _ = harness.key(KeyCode::Enter);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("History remains active in the Current connection projection")
+    };
+    assert_eq!(history.entries.len(), 2);
+    assert!(
+        history
+            .entries
+            .iter()
+            .all(|entry| entry.connection == current_connection)
+    );
+    assert!(harness.tab_to(list));
+    let _ = harness.key(KeyCode::End);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("History remains active after selecting a current-connection row")
+    };
+    assert_eq!(history.selected_query().as_deref(), Some(production_ok));
+    let _ = harness.key(KeyCode::Char('y'));
+    assert_eq!(
+        copies.borrow().as_slice(),
+        &[stage_ok.to_owned(), production_ok.to_owned()]
+    );
+
+    assert!(harness.tab_to(status));
+    let _ = harness.key(KeyCode::Enter);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("History remains active in the failed-only projection")
+    };
+    assert_eq!(history.entries.len(), 1);
+    assert_eq!(history.entries[0].sql, production_failed);
+    assert!(history.entries[0].error.is_some());
+    assert!(harness.tab_to(list));
+    let _ = harness.key(KeyCode::Home);
+    let _ = harness.key(KeyCode::Char('y'));
+    assert_eq!(
+        copies.borrow().as_slice(),
+        &[
+            stage_ok.to_owned(),
+            production_ok.to_owned(),
+            production_failed.to_owned()
+        ]
+    );
+
+    assert!(harness.tab_to(scope));
+    let _ = harness.key(KeyCode::Enter);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("History remains active in the All failed-only projection")
+    };
+    assert_eq!(history.entries.len(), 2);
+    assert!(history.entries.iter().all(|entry| entry.error.is_some()));
+    assert!(harness.tab_to(list));
+    let _ = harness.key(KeyCode::Home);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("History remains active after selecting the All failure")
+    };
+    assert_eq!(history.selected_query().as_deref(), Some(stage_failed));
+    let _ = harness.key(KeyCode::Char('y'));
+    assert_eq!(
+        copies.borrow().as_slice(),
+        &[
+            stage_ok.to_owned(),
+            production_ok.to_owned(),
+            production_failed.to_owned(),
+            stage_failed.to_owned()
+        ]
+    );
+    assert_eq!(harness.app().workbench.query_counter, query_count);
+    assert_eq!(harness.app().workbench.history.entries.len(), source_count);
+    assert_eq!(harness.app().workbench.active_key(), Some(history_key));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_copy_from_an_empty_projection_is_disabled_and_has_no_effect() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT empty_projection_source"));
+    let (mut harness, copies) = clipboard_harness(app, 120, 40);
+    let _ = harness.ctrl('y');
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History is active");
+    let search = history_key.control("history.search");
+    assert!(harness.tab_to(search));
+    let _ = harness.paste("no matching copy row");
+    let _ = harness.key(KeyCode::Enter);
+
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("History remains active with an empty filter")
+    };
+    assert!(history.entries.is_empty());
+    let copy = history_key.control("history.copy");
+    assert!(harness.area_of(copy).is_some());
+    assert!(harness.state_of(copy).contains(StateFlags::DISABLED));
+    assert!(harness.tab_to(Id::root("tablepro.workbench.history.list")));
+    let _ = harness.key(KeyCode::Char('y'));
+    let _ = harness.click_id(copy);
+    assert!(copies.borrow().is_empty());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_copy_services_an_inactive_button_before_its_tab_closes() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT inactive_copy_owner"));
+    let (mut harness, copies) = clipboard_harness(app, 120, 40);
+    let _ = harness.ctrl('y');
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History is active");
+    let copy = history_key.control("history.copy");
+    assert!(harness.tab_to(copy));
+    let _ = harness.ctrl('t');
+    assert!(matches!(
+        harness.app().workbench.active(),
+        Some(Tab::Query(_))
+    ));
+    assert!(harness.app().workbench.tab(history_key).is_some());
+    assert!(harness.area_of(copy).is_none());
+    assert!(copies.borrow().is_empty());
+    let _ = harness.tick();
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+
+    let _ = harness.click_part(
+        Id::root("tablepro.workbench.tab-strip"),
+        PartRef::item(Part::CLOSE, ItemKey::num(history_key.get())),
+    );
+    let _ = harness.tick();
+    assert!(harness.app().workbench.tab(history_key).is_none());
+    assert!(harness.area_of(copy).is_none());
+    assert!(copies.borrow().is_empty());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_copy_owner_retires_on_close_and_reopens_with_history() {
+    let sql = "SELECT retained\nFROM history_copy_owner";
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench.history.push(history_entry(sql));
+    let query_count = app.workbench.query_counter;
+    let (mut harness, copies) = clipboard_harness(app, 120, 40);
+    let _ = harness.ctrl('y');
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History is active");
+    let copy_id = history_key.control("history.copy");
+    assert!(harness.tab_to(copy_id), "Copy receives focus before close");
+    let _ = harness.click_part(
+        Id::root("tablepro.workbench.tab-strip"),
+        PartRef::item(Part::CLOSE, ItemKey::num(history_key.get())),
+    );
+    let _ = harness.tick();
+    assert!(harness.app().workbench.tab(history_key).is_none());
+    assert!(harness.area_of(copy_id).is_none());
+    assert_ne!(harness.focus(), Some(copy_id));
+    assert!(copies.borrow().is_empty());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+
+    let _ = harness.ctrl('y');
+    let reopened_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History reopens");
+    assert!(matches!(
+        harness.app().workbench.active(),
+        Some(Tab::History(_))
+    ));
+    let reopened_copy = reopened_key.control("history.copy");
+    assert!(harness.area_of(reopened_copy).is_some());
+    let list_id = Id::root("tablepro.workbench.history.list");
+    assert!(harness.tab_to(list_id));
+    let _ = harness.key(KeyCode::Char('y'));
+    assert_eq!(copies.borrow().as_slice(), &[sql.to_owned()]);
+    assert_eq!(harness.app().workbench.query_counter, query_count);
+
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_copy_owner_rejects_replacement_workbench_with_a_colliding_tab_key() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT old\nFROM old_owner"));
+    let (mut harness, copies) = clipboard_harness(app, 120, 40);
+    let _ = harness.ctrl('y');
+    let old_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History is active");
+    assert!(harness.tab_to(old_key.control("history.copy")));
+
+    let mut replacement = connected();
+    replacement.workbench.history = History::default();
+    replacement
+        .workbench
+        .history
+        .push(history_entry("SELECT replacement\nFROM new_owner"));
+    let replacement_key = replacement
+        .workbench
+        .open_history()
+        .expect("replacement History opens");
+    assert_eq!(replacement_key, old_key, "the tab key collides");
+    harness.app_mut().workbench = replacement.workbench;
+    harness.draw();
+    let _ = harness.tick();
+    assert!(
+        copies.borrow().is_empty(),
+        "replacement does not replay Copy"
+    );
+    assert_eq!(harness.app().workbench.active_key(), Some(old_key));
+    let list_id = Id::root("tablepro.workbench.history.list");
+    assert!(harness.tab_to(list_id));
+    let _ = harness.key(KeyCode::Char('y'));
+    assert_eq!(copies.borrow().len(), 1);
+    assert_eq!(copies.borrow()[0], "SELECT replacement\nFROM new_owner");
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
 fn history_native_double_click_activates_the_exact_row_entry() {
     let older_sql = "SELECT duplicate\nFROM older_source\nWHERE id = 303; /* exact row */";
     let newer_sql = "SELECT duplicate\nFROM newer_source\nWHERE id = 404; /* other row */";
@@ -1004,7 +1577,7 @@ fn history_duplicate_entry_ids_cannot_activate_an_ambiguous_row() {
     let duplicate_id = app.workbench.history.entries[0].id;
     app.workbench.history.entries[1].id = duplicate_id;
     let before_queries = app.workbench.query_counter;
-    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let (mut harness, copies) = clipboard_harness(app, 120, 40);
     let _ = harness.ctrl('y');
     let history_key = harness
         .app()
@@ -1012,6 +1585,12 @@ fn history_duplicate_entry_ids_cannot_activate_an_ambiguous_row() {
         .active_key()
         .expect("History is active");
     let before_tabs = harness.app().workbench.tabs().len();
+    let copy_id = history_key.control("history.copy");
+    assert!(harness.area_of(copy_id).is_some());
+    assert!(harness.state_of(copy_id).contains(StateFlags::DISABLED));
+    let _ = harness.key(KeyCode::Char('y'));
+    let _ = harness.click_id(copy_id);
+    assert!(copies.borrow().is_empty());
     let _ = harness.key(KeyCode::Enter);
 
     assert_eq!(harness.app().workbench.active_key(), Some(history_key));
@@ -1447,7 +2026,7 @@ fn mouse_opens_table_and_switches_tabs() {
 #[test]
 fn every_screen_renders_at_representative_sizes() {
     let app = TableProApp::default();
-    let size = <TableProApp as termrock::App>::min_size(&app);
+    let size = <TableProApp as App>::min_size(&app);
     assert_eq!(size.min, (72, 20));
     assert!(size.preferred.0 >= size.min.0 && size.preferred.1 >= size.min.1);
 }
@@ -1836,7 +2415,7 @@ fn history_native_filters_apply_search_scope_status_and_survive_reopen() {
         false,
     ));
 
-    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let (mut harness, copies) = clipboard_harness(app, 120, 40);
     let _ = harness.ctrl('y');
     let history_key = harness
         .app()
@@ -1971,6 +2550,9 @@ fn history_native_filters_apply_search_scope_status_and_survive_reopen() {
         _ => panic!("history remains active"),
     };
     let query_count = harness.app().workbench.query_counter;
+    let _ = harness.key(KeyCode::Char('y'));
+    assert_eq!(copies.borrow().as_slice(), &[filtered_sql.clone()]);
+    assert_eq!(harness.app().workbench.query_counter, query_count);
     let _ = harness.key(KeyCode::Enter);
     let Some(Tab::Query(query)) = harness.app().workbench.active() else {
         panic!("native Enter opens the selected filtered History row")

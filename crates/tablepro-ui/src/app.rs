@@ -40,7 +40,7 @@ mod result_grid;
 use filter_editor::{FILTER_APPLY, FILTER_CANCEL, FILTER_COLUMN, FILTER_OPERATOR, FILTER_VALUE2};
 use filter_editor::{FilterEditor, FilterOutcome};
 use history_controls::{ConnectionScope, HistoryControls};
-use history_rows::HistoryRows;
+use history_rows::{HistoryAction, HistoryRows};
 use query_panes::{QueryContent, QueryLayout, QueryPaneMode, QueryPaneState, idle_query_top};
 use result_grid::ResultGridView;
 
@@ -334,6 +334,7 @@ const OPEN: ActionKey = ActionKey::application("tablepro.open");
 const NEW_QUERY: ActionKey = ActionKey::application("tablepro.new-query");
 const CLOSE_TAB: ActionKey = ActionKey::application("tablepro.close-tab");
 const HISTORY: ActionKey = ActionKey::application("tablepro.history");
+const COPY_HISTORY: ActionKey = ActionKey::application("tablepro.history.copy");
 const STRUCTURE: ActionKey = ActionKey::application("tablepro.structure");
 const FORM: ActionKey = ActionKey::application("tablepro.form");
 const DELETE_CONNECTION: ActionKey = ActionKey::application("tablepro.connections.delete");
@@ -646,6 +647,11 @@ fn keymap() -> KeyMap {
 
 fn query_keymap(map: KeyMap) -> KeyMap {
     map.bind(
+        KeyPhase::Bubble,
+        Chord::key(KeyCode::Char('y')),
+        COPY_HISTORY,
+    )
+    .bind(
         KeyPhase::Bubble,
         Chord::with(KeyCode::Char('y'), KeyModifiers::CONTROL),
         HISTORY,
@@ -2884,21 +2890,30 @@ impl TableProApp {
         response
     }
 
-    fn update_history_rows(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let (mut response, open_sql) = self.history_rows.update(
+    fn update_history_rows(&mut self, cx: &mut Cx<'_>) -> (Response<()>, bool) {
+        let (mut response, action) = self.history_rows.update(
             cx,
             &mut self.workbench,
             &self.history_controls,
             self.screen == Screen::Workbench && !self.form_open,
         );
-        if let Some(sql) = open_sql {
-            let previous_counter = self.workbench.query_counter;
-            self.new_query(cx, sql);
-            if self.workbench.query_counter != previous_counter {
+        let accepted = action.is_some();
+        match action {
+            Some(HistoryAction::Open(sql)) => {
+                let previous_counter = self.workbench.query_counter;
+                self.new_query(cx, sql);
+                if self.workbench.query_counter != previous_counter {
+                    response |= Response::changed();
+                }
+            }
+            Some(HistoryAction::Copy(sql)) => {
+                cx.clipboard_copy(&sql);
+                "Copied full SQL".clone_into(&mut self.status);
                 response |= Response::changed();
             }
+            None => {}
         }
-        response
+        (response, accepted)
     }
 
     fn update_history_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -7967,6 +7982,7 @@ fn paint_history_card(
         paint_history_detail(ui, inner, entry, list_y);
     }
     history_rows.draw_open_button(ui, (key, owner), inner, list_y, entries, selected);
+    history_rows.draw_copy_button(ui, (key, owner), inner, list_y, entries, selected);
 }
 
 fn paint_history_detail(ui: &mut Ui<'_>, inner: termrock::Rect, entry: &HistoryEntry, list_y: u16) {
@@ -8068,17 +8084,6 @@ fn paint_history_detail(ui: &mut Ui<'_>, inner: termrock::Rect, entry: &HistoryE
         termrock::Rect::new(x.saturating_add(21), button_y, 15, 1),
         "Run in new tab ",
         secondary,
-    );
-    let copy_y = list_y.saturating_add(11);
-    ui.paint_str(
-        termrock::Rect::new(x.saturating_add(1), copy_y, 1, 1),
-        " ",
-        fill.fg(bg),
-    );
-    ui.paint_str(
-        termrock::Rect::new(x.saturating_add(2), copy_y, 5, 1),
-        "Copy ",
-        label,
     );
 }
 
@@ -8798,7 +8803,8 @@ impl App for TableProApp {
         self.explain_contexts.get_mut().sync(&self.workbench);
         let mut response = self.roll_connection_status(cx);
         response |= self.update_history_controls(cx);
-        response |= self.update_history_rows(cx);
+        let (history_rows_response, history_action) = self.update_history_rows(cx);
+        response |= history_rows_response;
         // A status tick must not run the grid. Its first update steals focus
         // onto the result row, and the baseline frame keeps the editor focused.
         if cx.update_cause() == UpdateCause::Tick {
@@ -9007,6 +9013,21 @@ impl App for TableProApp {
                         focus_history = true;
                     }
                     response |= Response::changed();
+                }
+                c if c == COPY_HISTORY => {
+                    if !history_action
+                        && self.screen == Screen::Workbench
+                        && !self.form_open
+                        && cx.state(HISTORY_LIST).contains(StateFlags::FOCUSED)
+                        && matches!(self.workbench.active(), Some(Tab::History(_)))
+                        && let Some(sql) = self
+                            .history_rows
+                            .selected_copy_sql(&self.workbench, &self.history_controls)
+                    {
+                        cx.clipboard_copy(&sql);
+                        "Copied full SQL".clone_into(&mut self.status);
+                        response |= Response::changed();
+                    }
                 }
                 c if c == STRUCTURE => {
                     let _ = self.workbench.toggle_structure();
