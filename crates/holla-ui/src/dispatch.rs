@@ -38,6 +38,10 @@ pub(crate) enum Destination {
         plan: Box<InvocationPlan>,
         facts: SafeReviewFacts,
     },
+    TaskRunStart {
+        action: Action,
+        script: crate::sim::task_run::TaskScriptId,
+    },
     Plan(Box<ReviewedPlan>),
     Database,
     Monitor,
@@ -65,16 +69,20 @@ pub(crate) fn preview(world: &mut World, row: &Action) -> Destination {
         Ok(None) => {}
     }
     match task_args_producer_for(row) {
-        Ok(Some(producer)) => start_task_args(world, row, producer),
-        Ok(None) => match &row.availability {
-            Availability::NeedsTrust(file) => Destination::Trust {
-                action: row.clone(),
-                file: file.clone(),
-                args: None,
-            },
-            _ => Destination::Preview(row.clone()),
+        Ok(Some(producer)) => return start_task_args(world, row, producer),
+        Err(error) => return Destination::Notice(error.to_string()),
+        Ok(None) => {}
+    }
+    if let Some(destination) = task_run_destination(world, row, false) {
+        return destination;
+    }
+    match &row.availability {
+        Availability::NeedsTrust(file) => Destination::Trust {
+            action: row.clone(),
+            file: file.clone(),
+            args: None,
         },
-        Err(error) => Destination::Notice(error.to_string()),
+        _ => Destination::Preview(row.clone()),
     }
 }
 
@@ -91,6 +99,9 @@ pub(crate) fn invoke(world: &mut World, row: &Action) -> Destination {
     if let Some(producer) = producer {
         return start_task_args(world, row, producer);
     }
+    if let Some(destination) = task_run_destination(world, row, true) {
+        return destination;
+    }
 
     let action = match catalogue::resolve_intent(world, row) {
         Ok(action) => action,
@@ -104,8 +115,9 @@ pub(crate) fn invoke(world: &mut World, row: &Action) -> Destination {
             let Availability::NeedsTrust(file) = &current.availability else {
                 return Destination::Notice(IntentError::StaleTarget.to_string());
             };
+            let file = file.clone();
             return Destination::Trust {
-                file: file.clone(),
+                file,
                 action: current,
                 args: None,
             };
@@ -126,6 +138,130 @@ pub(crate) fn invoke(world: &mut World, row: &Action) -> Destination {
         Risk::Bounded => Destination::Preview(action),
         Risk::ReadOnly => simulate(world, &action),
     }
+}
+
+const DEV_TASK_ID: &str = "dev";
+const DEV_TASK_FILE: &str = "~/work/monorepo/apps/frontend/mise.toml";
+const DEV_TASK_BODY: &str = "vite --port 5199";
+const DEV_TASK_WORKDIR: &str = "~/work/monorepo/apps/frontend";
+const DEV_TASK_COMMAND: &str = "mise run dev";
+
+fn registered_dev_action(action: &Action) -> bool {
+    action.id == "task:dev"
+        && action.intent_id() == Some("task:dev")
+        && action.kind == ActionKind::Task
+        && action.scope == crate::domain::action::Scope::Here
+        && action.risk == Risk::ReadOnly
+        && action.target == DEV_TASK_WORKDIR
+        && action.workdir == DEV_TASK_WORKDIR
+        && action.command == DEV_TASK_COMMAND
+        && action.keywords == DEV_TASK_BODY
+}
+
+fn same_task_run_action(selected: &Action, current: &Action) -> bool {
+    selected.id == current.id
+        && selected.intent() == current.intent()
+        && selected.kind == current.kind
+        && selected.scope == current.scope
+        && selected.risk == current.risk
+        && selected.target == current.target
+        && selected.command == current.command
+        && selected.workdir == current.workdir
+        && selected.keywords == current.keywords
+}
+
+fn task_run_destination(world: &World, selected: &Action, launch: bool) -> Option<Destination> {
+    // Raw identity matters: recent/pin wrappers intentionally keep their ordinary static route.
+    if selected.id != "task:dev" {
+        return None;
+    }
+
+    let selected_is_registered = registered_dev_action(selected);
+    let dev_tasks: Vec<_> = world
+        .mise
+        .as_ref()
+        .into_iter()
+        .flat_map(|mise| mise.tasks.iter())
+        .filter(|task| task.id == DEV_TASK_ID)
+        .collect();
+    let current_is_registered = dev_tasks
+        .iter()
+        .any(|task| task.defined_in == DEV_TASK_FILE && task.command == DEV_TASK_BODY);
+    if !selected_is_registered && !current_is_registered {
+        return None;
+    }
+    if dev_tasks.len() != 1 {
+        return Some(Destination::Notice(
+            "Task source changed · review it again".into(),
+        ));
+    }
+    let Some(task) = dev_tasks.first().copied() else {
+        return Some(Destination::Notice(
+            "Task source changed · review it again".into(),
+        ));
+    };
+    if task.defined_in != DEV_TASK_FILE || task.command != DEV_TASK_BODY {
+        return Some(Destination::Notice(
+            "Task source changed · review it again".into(),
+        ));
+    }
+
+    let mut actions = catalogue::catalogue(world)
+        .into_iter()
+        .filter(|action| action.id == "task:dev");
+    let Some(current) = actions.next() else {
+        return Some(Destination::Notice(
+            "Task source changed · review it again".into(),
+        ));
+    };
+    if actions.next().is_some()
+        || !registered_dev_action(&current)
+        || !same_task_run_action(selected, &current)
+    {
+        return Some(Destination::Notice(
+            "Task source changed · review it again".into(),
+        ));
+    }
+
+    match catalogue::resolve_intent(world, selected) {
+        Ok(action)
+            if registered_dev_action(&action)
+                && same_task_run_action(selected, &action)
+                && matches!(&action.availability, Availability::Ready) =>
+        {
+            if launch {
+                Some(Destination::TaskRunStart {
+                    action,
+                    script: crate::sim::task_run::TaskScriptId::DevServerDemo,
+                })
+            } else {
+                Some(Destination::Preview(action))
+            }
+        }
+        Err(IntentError::NeedsTrust) => {
+            let Availability::NeedsTrust(file) = &current.availability else {
+                return Some(Destination::Notice(
+                    "Task source changed · review it again".into(),
+                ));
+            };
+            let file = file.clone();
+            Some(Destination::Trust {
+                action: current,
+                file,
+                args: None,
+            })
+        }
+        _ => Some(Destination::Notice(
+            "Task source changed · review it again".into(),
+        )),
+    }
+}
+
+pub(crate) fn task_run_source_is_current(world: &World, action: &Action) -> bool {
+    matches!(
+        task_run_destination(world, action, true),
+        Some(Destination::TaskRunStart { .. })
+    )
 }
 
 fn start_port_args(world: &World, row: &Action, producer: PortArgsProducer) -> Destination {
@@ -239,13 +375,16 @@ pub(crate) fn confirm_preview(world: &mut World, row: &Action) -> Destination {
         Err(error) => return Destination::Notice(error.to_string()),
         Ok(None) => {}
     }
+    if let Some(destination) = task_run_destination(world, row, true) {
+        return destination;
+    }
     match catalogue::resolve_intent(world, row) {
         Ok(action) if action.risk != Risk::Broad => simulate(world, &action),
         _ => invoke(world, row),
     }
 }
 
-fn next_activity_id(world: &World) -> Option<u32> {
+pub(crate) fn next_activity_id(world: &World) -> Option<u32> {
     world
         .activities
         .iter()
@@ -302,6 +441,18 @@ fn start_activity(world: &mut World, action: &Action) -> Destination {
         world.activities.push(activity);
         return Destination::Activity(id, "Following container logs · merged stream".into());
     }
+    world.activities.push(task_run_activity(world, action, id));
+    Destination::Notice(format!("Activity started: {} · simulated", action.title))
+}
+fn workdir_label(action: &Action) -> &str {
+    if action.workdir.is_empty() {
+        &action.target
+    } else {
+        &action.workdir
+    }
+}
+
+pub(crate) fn task_run_activity(world: &World, action: &Action, id: u32) -> Activity {
     let mut activity = Activity::new(
         id,
         &action.title,
@@ -313,15 +464,7 @@ fn start_activity(world: &mut World, action: &Action) -> Destination {
         format!("$ {}", action.command),
         "started · simulated".into(),
     ];
-    world.activities.push(activity);
-    Destination::Notice(format!("Activity started: {} · simulated", action.title))
-}
-fn workdir_label(action: &Action) -> &str {
-    if action.workdir.is_empty() {
-        &action.target
-    } else {
-        &action.workdir
-    }
+    activity
 }
 fn merged_log_lines(world: &World) -> Vec<String> {
     let Some(docker) = &world.docker else {

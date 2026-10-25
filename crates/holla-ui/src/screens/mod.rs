@@ -14,6 +14,7 @@ pub(crate) mod plan_gate;
 pub(crate) mod port_args;
 pub(crate) mod review;
 pub(crate) mod snapshot;
+pub(crate) mod task_run;
 
 mod context;
 

@@ -1,8 +1,8 @@
-use std::io::Write;
+use std::{collections::BTreeMap, io::Write};
 
 use crate::{
     dispatch::{self, Destination},
-    domain::{action::Scope, fixtures, ranking::Pin},
+    domain::{action::Scope, activity::Activity, fixtures, ranking::Pin},
     scenario::{Motion, Scenario, Screen},
     screens::{
         actions::{Actions, Choice},
@@ -17,8 +17,13 @@ use crate::{
         plan_gate::PlanGate,
         port_args::PortArgsEditor,
         review, snapshot,
+        task_run::{self, TaskRunScreen},
     },
-    sim::{catalogue, pg, world::World},
+    sim::{
+        catalogue, pg,
+        task_run::{PromptId, TaskRun, TaskRunId, TaskRunStore, TaskScriptId},
+        world::World,
+    },
 };
 use termrock::{
     ActionKey, AppShell, Binding, Brand, Chord, Color, Constraints, Cx, Dialog, FgStep,
@@ -158,6 +163,7 @@ enum Route {
     Review,
     Snapshot,
     DiskScan,
+    TaskRun,
 }
 
 fn opening_route(scenario: Scenario) -> Route {
@@ -175,6 +181,22 @@ fn opening_route(scenario: Scenario) -> Route {
 struct ReturnLocation {
     route: Route,
     focus: Option<Id>,
+}
+
+struct TaskRunOwner {
+    route_id: u64,
+    scenario: Scenario,
+    cwd: String,
+    effect_revision: u64,
+    action: crate::domain::action::Action,
+    activity: Activity,
+    origin: ReturnLocation,
+}
+
+struct TaskRunOverlayReturn {
+    route_id: u64,
+    run_id: TaskRunId,
+    prompt_id: Option<PromptId>,
 }
 
 struct PortArgsOpening {
@@ -209,6 +231,13 @@ pub struct App {
     home: HomeState,
     plan: Option<PlanState>,
     activities: Activities,
+    task_runs: TaskRunStore,
+    task_run_owners: BTreeMap<TaskRunId, TaskRunOwner>,
+    task_run_screen: Option<TaskRunScreen>,
+    retired_task_run_screens: Vec<TaskRunScreen>,
+    next_task_run_route_id: Option<u64>,
+    pending_task_run_return: Option<ReturnLocation>,
+    disk_scan_task_run_return: Option<TaskRunOverlayReturn>,
     files: files::State,
     files_return: Option<ReturnLocation>,
     disk_scan: disk_scan::State,
@@ -1454,6 +1483,13 @@ impl App {
             home,
             plan: None,
             activities,
+            task_runs: TaskRunStore::default(),
+            task_run_owners: BTreeMap::new(),
+            task_run_screen: None,
+            retired_task_run_screens: Vec::new(),
+            next_task_run_route_id: Some(1),
+            pending_task_run_return: None,
+            disk_scan_task_run_return: None,
             files,
             files_return: None,
             disk_scan: disk_scan::State::default(),
@@ -1535,11 +1571,19 @@ impl App {
     }
     fn destination(&mut self, destination: Destination, cx: &mut Cx<'_>) {
         match destination {
-            Destination::Notice(message) => self.set_status(message),
-            Destination::Preview(action) => self.open_dialog(dialogs::Intent::Preview(action), cx),
+            Destination::Notice(message) => {
+                self.pending_task_run_return = None;
+                self.set_status(message);
+            }
+            Destination::Preview(action) => {
+                self.remember_task_run_return(&action, cx);
+                self.open_dialog(dialogs::Intent::Preview(action), cx);
+            }
             Destination::Trust { action, file, args } => {
+                self.remember_task_run_return(&action, cx);
                 self.open_dialog(dialogs::Intent::Trust { action, file, args }, cx);
             }
+            Destination::TaskRunStart { action, script } => self.start_task_run(action, script, cx),
             Destination::PortArgs(start) => {
                 if self.pending_port_review.is_some() || self.port_args_opening.is_some() {
                     self.set_status("Port review is still settling · try again".to_owned());
@@ -1677,6 +1721,371 @@ impl App {
         }
     }
 
+    fn remember_task_run_return(&mut self, action: &crate::domain::action::Action, cx: &Cx<'_>) {
+        if action.id == "task:dev" {
+            if self.pending_task_run_return.is_none() {
+                self.pending_task_run_return = Some(self.capture_return_location(cx));
+            }
+        } else {
+            self.pending_task_run_return = None;
+        }
+    }
+
+    fn start_task_run(
+        &mut self,
+        action: crate::domain::action::Action,
+        script: TaskScriptId,
+        cx: &mut Cx<'_>,
+    ) {
+        let origin = self
+            .pending_task_run_return
+            .take()
+            .unwrap_or_else(|| self.capture_return_location(cx));
+        if script != TaskScriptId::DevServerDemo
+            || !dispatch::task_run_source_is_current(&self.world, &action)
+        {
+            self.set_status("Task source changed · review it again".into());
+            return;
+        }
+        let Some(activity_id) = dispatch::next_activity_id(&self.world) else {
+            self.set_status("Activity identity exhausted · nothing started".into());
+            return;
+        };
+        let Some(route_id) = self.next_task_run_route_id else {
+            self.set_status("Task route identity exhausted · nothing started".into());
+            return;
+        };
+        let next_route_id = route_id.checked_add(1);
+        let started_ms = self.world.now_ms();
+        let run_id = match self.task_runs.start(script, started_ms) {
+            Ok(run_id) => run_id,
+            Err(error) => {
+                self.set_status(format!("Task run unavailable · {error}"));
+                return;
+            }
+        };
+        self.advance_task_runs_to_world();
+        let activity = dispatch::task_run_activity(&self.world, &action, activity_id);
+        let title = action.title.clone();
+        self.world.activities.push(activity.clone());
+        self.activities.show(activity_id);
+        self.task_run_owners.insert(
+            run_id,
+            TaskRunOwner {
+                route_id,
+                scenario: self.world.scenario,
+                cwd: self.world.cwd.clone(),
+                effect_revision: self.world.effect_revision,
+                action,
+                activity,
+                origin,
+            },
+        );
+        self.next_task_run_route_id = next_route_id;
+        self.retire_task_run_screen(cx);
+        self.task_run_screen = Some(TaskRunScreen::new(route_id, run_id, activity_id));
+        self.route = Route::TaskRun;
+        self.set_status(format!("Activity started: {title} · simulated"));
+    }
+
+    fn retire_task_run_screen(&mut self, cx: &mut Cx<'_>) {
+        let Some(mut screen) = self.task_run_screen.take() else {
+            return;
+        };
+        screen.retire(cx);
+        self.retired_task_run_screens.push(screen);
+    }
+
+    fn poll_retired_task_run_screens(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut response = Response::ignored();
+        self.retired_task_run_screens.retain_mut(|screen| {
+            let (screen_response, ready) = screen.poll_retired(cx);
+            response |= screen_response;
+            !ready
+        });
+        response
+    }
+
+    fn advance_task_runs_to_world(&mut self) {
+        let now_ms = self.world.now_ms();
+        let _updates = self.task_runs.advance_to(now_ms);
+    }
+
+    fn task_run_owner_is_live(&self, route_id: u64, run_id: TaskRunId) -> bool {
+        let Some(owner) = self.task_run_owners.get(&run_id) else {
+            return false;
+        };
+        if owner.route_id != route_id
+            || owner.scenario != self.world.scenario
+            || owner.cwd != self.world.cwd
+            || owner.effect_revision != self.world.effect_revision
+            || self.task_runs.get(run_id).is_none()
+            || !dispatch::task_run_source_is_current(&self.world, &owner.action)
+        {
+            return false;
+        }
+        let mut count = 0usize;
+        let mut exact_snapshot = false;
+        for activity in self
+            .world
+            .activities
+            .iter()
+            .filter(|a| a.id == owner.activity.id)
+        {
+            count = count.saturating_add(1);
+            exact_snapshot |= activity == &owner.activity;
+        }
+        count == 1 && exact_snapshot
+    }
+
+    fn task_run_screen_matches(&self, route_id: u64, run_id: TaskRunId) -> bool {
+        self.task_run_screen
+            .as_ref()
+            .is_some_and(|screen| screen.route_id() == route_id && screen.run_id() == run_id)
+    }
+
+    fn task_run_owner_binding_is_current(&self, route_id: u64, run_id: TaskRunId) -> bool {
+        self.task_run_screen_matches(route_id, run_id)
+            && self.task_run_screen.as_ref().is_some_and(|screen| {
+                self.task_run_owners
+                    .get(&run_id)
+                    .is_some_and(|owner| screen.activity_id() == owner.activity.id)
+            })
+            && self.task_run_owner_is_live(route_id, run_id)
+    }
+
+    fn task_run_route_is_current(&self, route_id: u64, run_id: TaskRunId) -> bool {
+        self.route == Route::TaskRun && self.task_run_owner_binding_is_current(route_id, run_id)
+    }
+
+    fn task_run_prompt_event_is_current(
+        &self,
+        route_id: u64,
+        run_id: TaskRunId,
+        prompt_id: PromptId,
+    ) -> bool {
+        self.task_run_route_is_current(route_id, run_id)
+            && self
+                .task_run_screen
+                .as_ref()
+                .is_some_and(|screen| screen.current_prompt_id() == Some(prompt_id))
+            && self
+                .task_runs
+                .get(run_id)
+                .and_then(TaskRun::active_prompt)
+                .is_some_and(|prompt| prompt.id() == prompt_id)
+    }
+
+    fn invalidate_task_run_route(&mut self, cx: &mut Cx<'_>) {
+        self.retire_task_run_screen(cx);
+        self.route = Route::Home;
+        self.pending_task_run_return = None;
+        self.disk_scan_task_run_return = None;
+        cx.focus(home::QUERY);
+        self.set_status("Task run context changed · reopen it".into());
+    }
+
+    fn update_task_run_screen(
+        &mut self,
+        cx: &mut Cx<'_>,
+        allow_input: bool,
+    ) -> (Response<()>, Option<task_run::Event>) {
+        let Some((route_id, run_id)) = self
+            .task_run_screen
+            .as_ref()
+            .map(|screen| (screen.route_id(), screen.run_id()))
+        else {
+            self.invalidate_task_run_route(cx);
+            return (Response::changed(), None);
+        };
+        if !self.task_run_route_is_current(route_id, run_id) {
+            self.invalidate_task_run_route(cx);
+            return (Response::changed(), None);
+        }
+        let Some(run) = self.task_runs.get(run_id) else {
+            self.invalidate_task_run_route(cx);
+            return (Response::changed(), None);
+        };
+        let viewport = cx.viewport();
+        let body = if too_small(viewport) {
+            Rect::default()
+        } else {
+            shell_areas(viewport).0
+        };
+        self.task_run_screen
+            .as_mut()
+            .map_or((Response::ignored(), None), |screen| {
+                screen.update(cx, run, body, allow_input)
+            })
+    }
+
+    fn poll_covered_task_run_screen(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        self.task_run_screen
+            .as_mut()
+            .map_or_else(Response::ignored, |screen| screen.poll_covered(cx))
+    }
+
+    fn handle_task_run_event(&mut self, event: task_run::Event, cx: &mut Cx<'_>) {
+        match event {
+            task_run::Event::Answer {
+                route_id,
+                run_id,
+                prompt_id,
+                answer,
+            } => {
+                if self.route != Route::TaskRun || !self.task_run_screen_matches(route_id, run_id) {
+                    return;
+                }
+                if !self.task_run_owner_binding_is_current(route_id, run_id) {
+                    self.invalidate_task_run_route(cx);
+                    return;
+                }
+                if !self.task_run_prompt_event_is_current(route_id, run_id, prompt_id) {
+                    self.set_status("Task prompt changed · answer ignored".into());
+                    return;
+                }
+                if let Err(error) =
+                    self.task_runs
+                        .answer_prompt(run_id, prompt_id, &answer, self.world.now_ms())
+                {
+                    self.set_status(format!("Task prompt changed · {error}"));
+                }
+            }
+            task_run::Event::Cancel {
+                route_id,
+                run_id,
+                prompt_id,
+            } => {
+                self.cancel_task_run_prompt(route_id, run_id, prompt_id, cx);
+            }
+        }
+    }
+
+    fn cancel_task_run_prompt(
+        &mut self,
+        route_id: u64,
+        run_id: TaskRunId,
+        prompt_id: crate::sim::task_run::PromptId,
+        cx: &mut Cx<'_>,
+    ) {
+        if self.route != Route::TaskRun || !self.task_run_screen_matches(route_id, run_id) {
+            return;
+        }
+        if !self.task_run_owner_binding_is_current(route_id, run_id) {
+            self.invalidate_task_run_route(cx);
+            return;
+        }
+        if !self.task_run_prompt_event_is_current(route_id, run_id, prompt_id) {
+            self.set_status("Task prompt changed · cancellation ignored".into());
+            return;
+        }
+        match self.task_runs.cancel(run_id, self.world.now_ms()) {
+            Ok(_) => self.set_status("Task run cancelled · simulated · no process executed".into()),
+            Err(error) => self.set_status(format!("Task cancellation failed · {error}")),
+        }
+    }
+
+    fn cancel_current_task_run_prompt(&mut self, cx: &mut Cx<'_>) -> bool {
+        if self.route != Route::TaskRun
+            || cx.top_layer() != termrock::LayerId::PAGE
+            || self.overlay.is_some()
+            || self.retired_overlay.is_some()
+            || self.pending_port_review.is_some()
+            || self.port_args_opening.is_some()
+            || self.menu.is_open()
+        {
+            return false;
+        }
+        let Some((route_id, run_id, input_id)) = self.task_run_screen.as_ref().and_then(|screen| {
+            screen
+                .current_input_id()
+                .map(|input_id| (screen.route_id(), screen.run_id(), input_id))
+        }) else {
+            return false;
+        };
+        let viewport = cx.viewport();
+        let body = if too_small(viewport) {
+            Rect::default()
+        } else {
+            shell_areas(viewport).0
+        };
+        let input_visible = self
+            .task_run_screen
+            .as_ref()
+            .and_then(|screen| screen.input_area(body))
+            .is_some_and(|expected| cx.area(input_id) == Some(expected));
+        if !input_visible || !cx.state(input_id).contains(termrock::StateFlags::FOCUSED) {
+            return false;
+        }
+        if !self.task_run_route_is_current(route_id, run_id) {
+            self.invalidate_task_run_route(cx);
+            return true;
+        }
+        let Some(prompt_id) = self
+            .task_runs
+            .get(run_id)
+            .and_then(TaskRun::active_prompt)
+            .map(|prompt| prompt.id())
+        else {
+            return false;
+        };
+        self.cancel_task_run_prompt(route_id, run_id, prompt_id, cx);
+        true
+    }
+
+    fn leave_task_run(&mut self, cx: &mut Cx<'_>) {
+        let Some((route_id, run_id)) = self
+            .task_run_screen
+            .as_ref()
+            .map(|screen| (screen.route_id(), screen.run_id()))
+        else {
+            self.invalidate_task_run_route(cx);
+            return;
+        };
+        if !self.task_run_route_is_current(route_id, run_id) {
+            self.invalidate_task_run_route(cx);
+            return;
+        }
+        let origin = self.task_run_owners.get(&run_id).map(|owner| owner.origin);
+        self.retire_task_run_screen(cx);
+        self.disk_scan_task_run_return = None;
+        if let Some(location) = origin
+            && let Some(focus) = self.valid_disk_scan_return_focus(location)
+        {
+            self.route = location.route;
+            cx.focus(focus);
+        } else {
+            self.route = Route::Home;
+            cx.focus(home::QUERY);
+        }
+    }
+
+    fn valid_task_run_return_focus(&self, location: ReturnLocation) -> Option<Id> {
+        if location.route != Route::TaskRun {
+            return None;
+        }
+        let binding = self.disk_scan_task_run_return.as_ref()?;
+        if !self.task_run_owner_binding_is_current(binding.route_id, binding.run_id) {
+            return None;
+        }
+        let prompt_id = self
+            .task_runs
+            .get(binding.run_id)
+            .and_then(TaskRun::active_prompt)
+            .map(|prompt| prompt.id());
+        if prompt_id != binding.prompt_id {
+            return None;
+        }
+        let focus = location.focus?;
+        if focus == MENU {
+            return Some(focus);
+        }
+        let prompt_id = prompt_id?;
+        let expected =
+            TaskRunScreen::input_id_for(binding.route_id, binding.run_id.get(), prompt_id.get());
+        (focus == expected).then_some(focus)
+    }
+
     fn open_disk_scan(&mut self, cx: &mut Cx<'_>, menu_origin: Option<ReturnLocation>) {
         if self.route == Route::DiskScan
             || self.overlay.is_some()
@@ -1689,9 +2098,29 @@ impl App {
         let return_location = menu_origin
             .filter(|location| location.route == self.route && location.focus.is_some())
             .unwrap_or_else(|| self.capture_return_location(cx));
+        let task_run_return = if return_location.route == Route::TaskRun {
+            self.task_run_screen.as_ref().and_then(|screen| {
+                let route_id = screen.route_id();
+                let run_id = screen.run_id();
+                let prompt_id = self
+                    .task_runs
+                    .get(run_id)
+                    .and_then(TaskRun::active_prompt)
+                    .map(|prompt| prompt.id());
+                self.task_run_owner_binding_is_current(route_id, run_id)
+                    .then_some(TaskRunOverlayReturn {
+                        route_id,
+                        run_id,
+                        prompt_id,
+                    })
+            })
+        } else {
+            None
+        };
         match self.disk_scan.open(&self.world) {
             Ok(_) => {
                 self.disk_scan_return = Some(return_location);
+                self.disk_scan_task_run_return = task_run_return;
                 self.route = Route::DiskScan;
                 if let Some(tree) = self.disk_scan.tree_owner() {
                     cx.focus(tree);
@@ -1715,6 +2144,7 @@ impl App {
             self.route = Route::Home;
             cx.focus(home::QUERY);
         }
+        self.disk_scan_task_run_return = None;
     }
 
     fn valid_disk_scan_return_focus(&self, location: ReturnLocation) -> Option<Id> {
@@ -1746,6 +2176,7 @@ impl App {
                 location.focus.filter(|focus| *focus == MENU)
             }
             Route::DiskScan => None,
+            Route::TaskRun => self.valid_task_run_return_focus(location),
         }
     }
 
@@ -1782,8 +2213,17 @@ impl App {
             DEFINITION_TRUST => self.open_dialog(dialogs::Intent::DefinitionTrust, cx),
             ABOUT => self.open_dialog(dialogs::Intent::About, cx),
             QUIT => self.open_dialog(dialogs::Intent::Quit, cx),
-            INTERRUPT => self.quit = true,
+            INTERRUPT => {
+                if !self.cancel_current_task_run_prompt(cx) {
+                    self.quit = true;
+                }
+            }
             HOME => {
+                if self.route == Route::TaskRun {
+                    self.retire_task_run_screen(cx);
+                    self.pending_task_run_return = None;
+                    self.disk_scan_task_run_return = None;
+                }
                 if self.route == Route::DiskScan {
                     self.disk_scan.leave(&self.world);
                     self.disk_scan_return = None;
@@ -1819,6 +2259,7 @@ impl App {
             }
             ACTIONS if self.route == Route::Home => {
                 if let Some(action) = self.home.subject(&self.world, cx) {
+                    self.pending_task_run_return = Some(self.capture_return_location(cx));
                     let picker = Actions::new(action, &self.world);
                     picker.open(cx);
                     self.overlay = Some(Overlay::Actions(picker));
@@ -1872,6 +2313,9 @@ impl App {
         action: crate::domain::action::Action,
         cx: &mut Cx<'_>,
     ) {
+        if !matches!(choice, Choice::Run | Choice::Preview) {
+            self.pending_task_run_return = None;
+        }
         match choice {
             Choice::Run => {
                 let destination = dispatch::invoke(&mut self.world, &action);
@@ -1941,6 +2385,7 @@ impl App {
                 if let Some(event) = event {
                     match event {
                         dialogs::Event::Close => {
+                            self.pending_task_run_return = None;
                             if is_folder_browser && self.route != Route::Files {
                                 self.files_return = None;
                             }
@@ -2052,8 +2497,13 @@ impl App {
                 if let Some(choice) = choice {
                     match picker.reviewed_action(&self.world) {
                         Ok(action) => self.action_choice(choice, action, cx),
-                        Err(reason) => self.set_status(reason.into()),
+                        Err(reason) => {
+                            self.pending_task_run_return = None;
+                            self.set_status(reason.into());
+                        }
                     }
+                } else if closed {
+                    self.pending_task_run_return = None;
                 }
                 (response, done)
             }
@@ -2695,6 +3145,7 @@ impl App {
     /// One sim step of `world.tick`. That call moves `now_ms` only while the clock is running.
     fn advance_world(&mut self, interval_ms: i64) {
         let _ = self.world.tick(interval_ms);
+        self.advance_task_runs_to_world();
         if self
             .status_until_ms
             .is_some_and(|until| self.world.now_ms() >= until)
@@ -2739,6 +3190,7 @@ impl App {
         }
     }
     fn update_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let retired_task_runs = self.poll_retired_task_run_screens(cx);
         let retired_overlay_was_pending = self.retired_overlay.is_some();
         let pending_port_review_was_pending = self.pending_port_review.is_some();
         let menu_was_open = self.menu.is_open();
@@ -2812,13 +3264,41 @@ impl App {
         if disk_scan_event == Some(disk_scan::Event::Back) {
             self.return_from_disk_scan(cx);
         }
+        let task_run_input_allowed = self.route == Route::TaskRun
+            && !too_small(viewport)
+            && cx.top_layer() == termrock::LayerId::PAGE
+            && !menu_was_open
+            && !self.menu.is_open()
+            && !menu_action_pending
+            && !retired_overlay_was_pending
+            && !pending_port_review_was_pending
+            && self.overlay.is_none()
+            && self.retired_overlay.is_none()
+            && self.pending_port_review.is_none()
+            && self.port_args_opening.is_none()
+            && !brand.activated()
+            && !(cx.update_cause() == termrock::UpdateCause::Event && cx.command().is_some());
+        let (task_run_response, task_run_event) = if self.route == Route::TaskRun {
+            self.update_task_run_screen(cx, task_run_input_allowed)
+        } else if self.route == Route::DiskScan {
+            (self.poll_covered_task_run_screen(cx), None)
+        } else {
+            (Response::ignored(), None)
+        };
+        let mut task_run_response = task_run_response;
+        if task_run_input_allowed && let Some(event) = task_run_event {
+            self.handle_task_run_event(event, cx);
+            task_run_response |= Response::changed();
+        }
         let controls = retired
+            | retired_task_runs
             | port_review
             | home_response
             | plan_response
             | activity_response
             | files_response
-            | disk_scan_response;
+            | disk_scan_response
+            | task_run_response;
         if too_small(cx.viewport()) {
             let overlay = self
                 .overlay
@@ -2900,6 +3380,7 @@ impl App {
             | Route::Cleanup
             | Route::Review
             | Route::Snapshot => {}
+            Route::TaskRun => {}
         }
         controls | menu.erase() | brand.erase() | strip
     }
@@ -2925,6 +3406,7 @@ impl termrock::App for App {
                 clock_response = Response::changed();
             }
         }
+        self.advance_task_runs_to_world();
         let plan_key = self.route == Route::Plan
             && self.overlay.is_none()
             && !self.menu.is_open()
@@ -3021,6 +3503,25 @@ impl termrock::App for App {
                 disk_scan::draw(&self.disk_scan, ui, body);
                 None
             }
+            Route::TaskRun => {
+                if let Some(screen) = self.task_run_screen.as_ref() {
+                    let run_id = screen.run_id();
+                    let route_id = screen.route_id();
+                    if self.task_run_owner_binding_is_current(route_id, run_id)
+                        && let (Some(owner), Some(run)) = (
+                            self.task_run_owners.get(&run_id),
+                            self.task_runs.get(run_id),
+                        )
+                    {
+                        screen.draw(&owner.activity, run, self.world.now_ms(), ui, body);
+                    } else {
+                        task_run::TaskRunScreen::draw_stale(ui, body);
+                    }
+                } else {
+                    task_run::TaskRunScreen::draw_stale(ui, body);
+                }
+                None
+            }
         };
         let peek = if self.route == Route::Home && self.overlay.is_none() && !self.menu.is_open() {
             peek
@@ -3066,6 +3567,13 @@ impl termrock::App for App {
                 self.route = Route::Home;
                 cx.focus(home::QUERY);
             }
+            return Response::changed();
+        }
+        if self.route == Route::TaskRun {
+            if self.cancel_current_task_run_prompt(cx) {
+                return Response::changed();
+            }
+            self.leave_task_run(cx);
             return Response::changed();
         }
         if self.route != Route::Home {
@@ -7541,3 +8049,7 @@ mod disk_scan_tests;
 #[cfg(test)]
 #[path = "app/task_args_tests.rs"]
 mod task_args_tests;
+
+#[cfg(test)]
+#[path = "app/task_run_tests.rs"]
+mod task_run_tests;
