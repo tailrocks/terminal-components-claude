@@ -1,5 +1,6 @@
 pub(crate) mod actions;
 pub(crate) mod activity;
+pub(crate) mod args;
 pub(crate) mod cleanup;
 pub(crate) mod clone;
 pub(crate) mod dialogs;
