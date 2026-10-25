@@ -572,6 +572,842 @@ fn ctrl_y_reuses_history_tab_and_keeps_list_focus() {
         harness.diagnostics()
     );
 }
+
+#[test]
+fn history_native_down_enter_opens_the_selected_full_sql_without_execution() {
+    for (width, height) in [(120, 40), (80, 24)] {
+        let older_sql =
+            "SELECT duplicate\nFROM older_source\nWHERE note = '尾部🙂' /* exact suffix */";
+        let newer_sql = "SELECT duplicate\nFROM newer_source\nWHERE note = 'different'";
+        let mut app = connected();
+        app.workbench.history = History::default();
+        app.workbench.history.push(history_entry(older_sql));
+        app.workbench.history.push(history_entry(newer_sql));
+        let before_queries = app.workbench.query_counter;
+        let before_history = app.workbench.history.entries.len();
+        let connection = app.workbench.connection.name.clone();
+
+        let mut harness = Harness::new(app, Theme::junie(), width, height);
+        let _ = harness.ctrl('y');
+        let history_key = harness
+            .app()
+            .workbench
+            .active_key()
+            .expect("History is active");
+        let history_list = Id::root("tablepro.workbench.history.list");
+        assert_eq!(harness.focus(), Some(history_list));
+        assert_eq!(harness.app().workbench.history.entries[0].sql, newer_sql);
+        assert_eq!(harness.app().workbench.history.entries[1].sql, older_sql);
+
+        let _ = harness.key(KeyCode::Down);
+        let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+            panic!("History remains active before opening")
+        };
+        assert_eq!(history.selected, 1);
+        let _ = harness.key(KeyCode::Enter);
+
+        let query_key = harness
+            .app()
+            .workbench
+            .active_key()
+            .expect("opening allocates one new query tab");
+        let Some(Tab::Query(query)) = harness.app().workbench.tab(query_key) else {
+            panic!("the opened tab is an editable query")
+        };
+        assert_eq!(query.query, older_sql);
+        assert_eq!(query.saved_text, older_sql);
+        assert_eq!(query.editor_state.editor().text(), older_sql);
+        assert!(query.result.is_none());
+        assert!(query.error.is_none());
+        assert!(query.plan.is_none());
+        assert!(!query.running);
+        assert!(query.last_status.is_none());
+        assert_eq!(harness.app().workbench.query_counter, before_queries + 1);
+        assert_eq!(
+            harness.app().workbench.history.entries.len(),
+            before_history
+        );
+        assert_eq!(harness.app().workbench.connection.name, connection);
+        assert_eq!(harness.focus(), harness.app().query_id());
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+
+        let _ = harness.ctrl('y');
+        assert_eq!(harness.app().workbench.active_key(), Some(history_key));
+        assert_eq!(harness.focus(), Some(history_list));
+        let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+            panic!("the existing History tab is retained")
+        };
+        assert_eq!(history.selected, 1);
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+}
+
+#[test]
+fn history_native_bootstrap_falls_back_to_the_last_current_entry() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT first\nFROM first_source"));
+    app.workbench
+        .history
+        .push(history_entry("SELECT last\nFROM last_source"));
+    let history_key = app.workbench.open_history().expect("History tab opens");
+    let (last_id, last_sql, entry_count) = {
+        let Some(Tab::History(history)) = app.workbench.tab_mut(history_key) else {
+            panic!("the newly opened tab is History")
+        };
+        history.selected = usize::MAX;
+        let last = history
+            .entries
+            .last()
+            .expect("the current History source has entries");
+        (last.id, last.sql.clone(), history.entries.len())
+    };
+
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let history_list = Id::root("tablepro.workbench.history.list");
+    assert_eq!(harness.focus(), Some(history_list));
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("History remains active")
+    };
+    assert_eq!(history.selected, entry_count - 1);
+    assert_eq!(history.entries[history.selected].id, last_id);
+    assert_eq!(history.selected_query().as_deref(), Some(last_sql.as_str()));
+    assert!(
+        harness
+            .area_of_part(
+                history_list,
+                PartRef::item(Part::ROW, ItemKey::num(last_id as u64)),
+            )
+            .is_some()
+    );
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_native_home_page_down_end_tracks_more_than_ten_rows() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    for index in 0..32 {
+        app.workbench.history.push(history_entry(&format!(
+            "SELECT row_{index:02}\nFROM detail_{index:02}\nWHERE id = {index}; -- full suffix {index:02}"
+        )));
+    }
+    let oldest_sql = app.workbench.history.entries[31].sql.clone();
+    let before_queries = app.workbench.query_counter;
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let history_list = Id::root("tablepro.workbench.history.list");
+    assert_eq!(harness.focus(), Some(history_list));
+
+    let _ = harness.key(KeyCode::Home);
+    let _ = harness.key(KeyCode::PageDown);
+    let _ = harness.key(KeyCode::End);
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History remains active");
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("History remains active after list navigation")
+    };
+    assert_eq!(history.selected, 31);
+    assert!(harness.find("FROM detail_00").is_some());
+
+    let _ = harness.key(KeyCode::Enter);
+    let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+        panic!("End opens the selected History query")
+    };
+    assert_eq!(query.query, oldest_sql);
+    assert_eq!(harness.app().workbench.query_counter, before_queries + 1);
+    assert!(query.result.is_none());
+    assert!(query.plan.is_none());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_pointer_selects_by_entry_id_and_real_open_button_opens_full_sql() {
+    let older_sql = "SELECT duplicate\nFROM older_source\nWHERE id = 101; /* pointer target */";
+    let newer_sql = "SELECT duplicate\nFROM newer_source\nWHERE id = 202; /* another target */";
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench.history.push(history_entry(older_sql));
+    app.workbench.history.push(history_entry(newer_sql));
+    let older_id = app.workbench.history.entries[1].id;
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History is active");
+    let history_list = Id::root("tablepro.workbench.history.list");
+    let older_row = PartRef::item(Part::ROW, ItemKey::num(older_id as u64));
+    assert!(harness.area_of_part(history_list, older_row).is_some());
+    let _ = harness.click_part(history_list, older_row);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("History remains active after row click")
+    };
+    assert_eq!(history.selected, 1);
+
+    let open = history_key.control("history.open");
+    let open_area = harness.area_of(open).expect("the real Open button fits");
+    assert!(open_area.width > 0 && open_area.height > 0);
+    let _ = harness.click_id(open);
+    let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+        panic!("the real Open button opens a query tab")
+    };
+    assert_eq!(query.query, older_sql);
+    assert!(query.result.is_none());
+    assert!(query.plan.is_none());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_native_double_click_activates_the_exact_row_entry() {
+    let older_sql = "SELECT duplicate\nFROM older_source\nWHERE id = 303; /* exact row */";
+    let newer_sql = "SELECT duplicate\nFROM newer_source\nWHERE id = 404; /* other row */";
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench.history.push(history_entry(older_sql));
+    app.workbench.history.push(history_entry(newer_sql));
+    let older_id = app.workbench.history.entries[1].id;
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let history_list = Id::root("tablepro.workbench.history.list");
+    let older_row = PartRef::item(Part::ROW, ItemKey::num(older_id as u64));
+    let area = harness
+        .area_of_part(history_list, older_row)
+        .expect("the exact History item owns a native row part");
+    let x = area.x.saturating_add(area.width / 2);
+    let y = area.y.saturating_add(area.height / 2);
+
+    let _ = harness.double_click(x, y);
+    let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+        panic!("native double-click opens the selected query")
+    };
+    assert_eq!(query.query, older_sql);
+    assert!(query.result.is_none());
+    assert!(query.plan.is_none());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_activation_keeps_the_same_entry_after_source_reordering() {
+    let selected_sql = "SELECT first\nFROM selected_entry\nWHERE id = 11";
+    let other_sql = "SELECT second\nFROM other_entry\nWHERE id = 22";
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench.history.push(history_entry(other_sql));
+    app.workbench.history.push(history_entry(selected_sql));
+    let selected = app.workbench.history.entries[0].clone();
+    let other_id = app.workbench.history.entries[1].id;
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40).with_auto_draw(false);
+    let _ = harness.ctrl('y');
+    harness.draw();
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("active History tab key");
+    assert!(matches!(
+        harness.app().workbench.active(),
+        Some(Tab::History(_))
+    ));
+    harness.app_mut().workbench.history.entries.swap(0, 1);
+
+    let _ = harness.key(KeyCode::Enter);
+    let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+        panic!("the same exact History record remains openable after reordering")
+    };
+    assert_eq!(query.query, selected.sql);
+    assert!(query.result.is_none());
+    assert!(query.plan.is_none());
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("the existing History tab remains in the workbench")
+    };
+    assert_eq!(history.entries[0].id, other_id);
+    assert_eq!(history.entries[1].id, selected.id);
+    assert_eq!(history.entries[history.selected].id, selected.id);
+    assert_eq!(
+        history.selected_query().as_deref(),
+        Some(selected.sql.as_str())
+    );
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_removal_reconciles_before_opening_the_current_remaining_row() {
+    let removed_sql = "SELECT displayed\nFROM removed_source\nWHERE id = 55";
+    let remaining_sql = "SELECT remaining\nFROM remaining_source\nWHERE id = 66";
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench.history.push(history_entry(remaining_sql));
+    app.workbench.history.push(history_entry(removed_sql));
+    let removed_id = app.workbench.history.entries[0].id;
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40).with_auto_draw(false);
+    let _ = harness.ctrl('y');
+    harness.draw();
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History is active");
+    let query_count = harness.app().workbench.query_counter;
+    let tab_count = harness.app().workbench.tabs().len();
+    let remaining_id = harness
+        .app()
+        .workbench
+        .history
+        .entries
+        .get(1)
+        .expect("the remaining source is present before removal")
+        .id;
+    harness.app_mut().workbench.history.entries.remove(0);
+    let _ = harness.tick();
+    harness.draw();
+
+    assert_eq!(harness.app().workbench.active_key(), Some(history_key));
+    assert_eq!(harness.app().workbench.query_counter, query_count);
+    assert_eq!(harness.app().workbench.tabs().len(), tab_count);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("History remains active when its displayed source is removed")
+    };
+    assert_eq!(history.entries.len(), 1);
+    assert_ne!(history.entries[0].id, removed_id);
+    assert_eq!(history.entries[0].sql, remaining_sql);
+    assert_eq!(history.selected, 0);
+    assert_eq!(history.selected_query().as_deref(), Some(remaining_sql));
+    assert!(harness.find("FROM remaining_source").is_some());
+    let history_list = Id::root("tablepro.workbench.history.list");
+    assert!(
+        harness
+            .area_of_part(
+                history_list,
+                PartRef::item(Part::ROW, ItemKey::num(removed_id as u64)),
+            )
+            .is_none()
+    );
+    assert!(
+        harness
+            .area_of_part(
+                history_list,
+                PartRef::item(Part::ROW, ItemKey::num(remaining_id as u64)),
+            )
+            .is_some()
+    );
+
+    let _ = harness.key(KeyCode::Enter);
+    let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+        panic!("Enter opens the current, reconciled History row")
+    };
+    assert_eq!(query.query, remaining_sql);
+    assert!(query.result.is_none());
+    assert!(query.plan.is_none());
+    assert!(!query.running);
+    assert_eq!(harness.app().workbench.query_counter, query_count + 1);
+    assert_eq!(harness.app().workbench.tabs().len(), tab_count + 1);
+    assert_eq!(
+        harness.app().workbench.history.entries.len(),
+        1,
+        "opening the reconciled row does not mutate history"
+    );
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_reconciles_same_id_entry_replacement_before_activation() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench.history.push(history_entry(
+        "SELECT stale\nFROM original_entry\nWHERE id = 1",
+    ));
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40).with_auto_draw(false);
+    let _ = harness.ctrl('y');
+    harness.draw();
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History is active");
+    let query_count = harness.app().workbench.query_counter;
+    let tab_count = harness.app().workbench.tabs().len();
+    harness.app_mut().workbench.history.entries[0].sql =
+        "SELECT replacement\nFROM changed_entry\nWHERE id = 1".to_owned();
+    harness.draw();
+
+    let _ = harness.key(KeyCode::Enter);
+    assert_ne!(harness.app().workbench.active_key(), Some(history_key));
+    assert_eq!(harness.app().workbench.query_counter, query_count + 1);
+    assert_eq!(harness.app().workbench.tabs().len(), tab_count + 1);
+    let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+        panic!("activation opens the current replacement entry after redraw")
+    };
+    assert_eq!(
+        query.query,
+        "SELECT replacement\nFROM changed_entry\nWHERE id = 1"
+    );
+    assert!(query.result.is_none());
+    assert!(query.plan.is_none());
+    assert!(!query.running);
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_duplicate_entry_ids_cannot_activate_an_ambiguous_row() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT first\nFROM first_source"));
+    app.workbench
+        .history
+        .push(history_entry("SELECT second\nFROM second_source"));
+    let duplicate_id = app.workbench.history.entries[0].id;
+    app.workbench.history.entries[1].id = duplicate_id;
+    let before_queries = app.workbench.query_counter;
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History is active");
+    let before_tabs = harness.app().workbench.tabs().len();
+    let _ = harness.key(KeyCode::Enter);
+
+    assert_eq!(harness.app().workbench.active_key(), Some(history_key));
+    assert_eq!(harness.app().workbench.query_counter, before_queries);
+    assert_eq!(harness.app().workbench.tabs().len(), before_tabs);
+    assert_eq!(
+        harness.focus(),
+        Some(Id::root("tablepro.workbench.history.list"))
+    );
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_open_with_exhausted_query_counter_keeps_history_active() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT preserved\nFROM history"));
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40).with_auto_draw(false);
+    let _ = harness.ctrl('y');
+    harness.draw();
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History is active");
+    let tab_count = harness.app().workbench.tabs().len();
+    harness.app_mut().workbench.query_counter = usize::MAX;
+
+    let _ = harness.key(KeyCode::Enter);
+    assert_eq!(harness.app().workbench.active_key(), Some(history_key));
+    assert_eq!(harness.app().workbench.query_counter, usize::MAX);
+    assert_eq!(harness.app().workbench.tabs().len(), tab_count);
+    assert_eq!(
+        harness.focus(),
+        Some(Id::root("tablepro.workbench.history.list"))
+    );
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("the selected History tab remains active")
+    };
+    assert_eq!(history.selected, 0);
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_refresh_keeps_selected_query_in_sync_with_the_native_row() {
+    let selected_sql = "SELECT stable\nFROM selected_history\nWHERE id = 17";
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT other\nFROM other_history"));
+    app.workbench.history.push(history_entry(selected_sql));
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History is active");
+    let (prior_rows, prior_selected, selected_id, prior_selected_sql) =
+        match harness.app().workbench.tab(history_key) {
+            Some(Tab::History(history)) => {
+                let selected = history
+                    .entries
+                    .get(history.selected)
+                    .expect("the native selection is within the current projection");
+                (
+                    history
+                        .entries
+                        .iter()
+                        .map(|entry| (entry.id, entry.sql.clone()))
+                        .collect::<Vec<_>>(),
+                    history.selected,
+                    selected.id,
+                    selected.sql.clone(),
+                )
+            }
+            _ => panic!("History remains active"),
+        };
+
+    harness
+        .app_mut()
+        .workbench
+        .history
+        .push(history_entry("SELECT newest\nFROM inserted_history"));
+    harness.draw();
+
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("draw-only does not reconcile History's stored projection")
+    };
+    assert_eq!(
+        history
+            .entries
+            .iter()
+            .map(|entry| (entry.id, entry.sql.clone()))
+            .collect::<Vec<_>>(),
+        prior_rows
+    );
+    assert_eq!(history.selected, prior_selected);
+    assert_eq!(history.entries[history.selected].id, selected_id);
+    assert_eq!(
+        history.selected_query().as_deref(),
+        Some(prior_selected_sql.as_str())
+    );
+
+    let _ = harness.tick();
+    harness.draw();
+
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("History remains active after its source changes")
+    };
+    assert_eq!(
+        history.entries[0].sql,
+        "SELECT newest\nFROM inserted_history"
+    );
+    assert_eq!(history.selected, 1);
+    assert_eq!(history.entries[history.selected].id, selected_id);
+    assert_eq!(history.selected_query().as_deref(), Some(selected_sql));
+    assert!(harness.find("FROM selected_history").is_some());
+
+    let _ = harness.key(KeyCode::Enter);
+    let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+        panic!("the native selected History row opens as a query")
+    };
+    assert_eq!(query.query, selected_sql);
+    assert!(query.result.is_none());
+    assert!(query.plan.is_none());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_open_focus_is_serviced_when_switching_and_closing_an_inactive_tab() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT first\nFROM first_history"));
+    app.workbench
+        .history
+        .push(history_entry("SELECT second\nFROM second_history"));
+    let first = app.workbench.open_history().expect("first History tab");
+    let second_index = app.workbench.tabs().len();
+    let second_history = HistoryTab::new(&app.workbench.history);
+    let second = app
+        .workbench
+        .insert_tab(second_index, Tab::History(second_history))
+        .expect("second History tab");
+    assert!(app.workbench.activate(first));
+
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let open_first = first.control("history.open");
+    assert!(
+        harness.tab_to(open_first),
+        "the first Open button is focusable"
+    );
+    let query_count = harness.app().workbench.query_counter;
+
+    assert!(harness.app_mut().workbench.activate(second));
+    harness.draw();
+
+    assert_eq!(harness.app().workbench.active_key(), Some(second));
+    assert_ne!(harness.focus(), Some(open_first));
+    assert_eq!(harness.app().workbench.query_counter, query_count);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(first) else {
+        panic!("the inactive History tab retains its model")
+    };
+    assert_eq!(
+        history.selected_query().as_deref(),
+        Some("SELECT second\nFROM second_history")
+    );
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+
+    assert!(harness.app_mut().workbench.close_tab_from_picker(first));
+    harness.draw();
+    assert!(harness.app().workbench.tab(first).is_none());
+    assert_eq!(harness.app().workbench.active_key(), Some(second));
+    assert_eq!(harness.app().workbench.query_counter, query_count);
+    assert!(harness.area_of(open_first).is_none());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_list_focus_is_serviced_when_its_tab_closes() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT retained\nFROM closed_list_owner"));
+    let history_key = app.workbench.open_history().expect("History tab");
+    let query_count = app.workbench.query_counter;
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let history_list = Id::root("tablepro.workbench.history.list");
+    assert_eq!(harness.focus(), Some(history_list));
+
+    assert!(
+        harness
+            .app_mut()
+            .workbench
+            .close_tab_from_picker(history_key)
+    );
+    harness.draw();
+
+    assert!(harness.app().workbench.tab(history_key).is_none());
+    assert_eq!(harness.app().workbench.query_counter, query_count);
+    assert!(harness.area_of(history_list).is_none());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_open_focus_is_serviced_when_its_active_tab_closes() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT retained\nFROM closed_open_owner"));
+    let history_key = app.workbench.open_history().expect("History tab");
+    let query_count = app.workbench.query_counter;
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let open = history_key.control("history.open");
+    assert!(harness.tab_to(open), "the active Open button is focusable");
+    assert_eq!(harness.focus(), Some(open));
+
+    assert!(
+        harness
+            .app_mut()
+            .workbench
+            .close_tab_from_picker(history_key)
+    );
+    harness.draw();
+
+    assert!(harness.app().workbench.tab(history_key).is_none());
+    assert_eq!(harness.app().workbench.query_counter, query_count);
+    assert!(harness.area_of(open).is_none());
+    assert_ne!(harness.focus(), Some(open));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_open_focus_is_serviced_when_tabs_strip_closes_its_active_tab() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT retained\nFROM closed_open_owner"));
+    let history_key = app.workbench.open_history().expect("History tab");
+    let query_count = app.workbench.query_counter;
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let open = history_key.control("history.open");
+    assert!(harness.tab_to(open), "the active Open button is focusable");
+    assert_eq!(harness.focus(), Some(open));
+
+    let _ = harness.click_part(
+        Id::root("tablepro.workbench.tab-strip"),
+        PartRef::item(Part::CLOSE, ItemKey::num(history_key.get())),
+    );
+    let _ = harness.tick();
+
+    assert!(harness.app().workbench.tab(history_key).is_none());
+    assert_eq!(harness.app().workbench.query_counter, query_count);
+    assert!(harness.area_of(open).is_none());
+    assert_ne!(harness.focus(), Some(open));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+
+    let _ = harness.ctrl('y');
+    let reopened_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History reopens in a current tab");
+    assert!(
+        matches!(harness.app().workbench.active(), Some(Tab::History(_))),
+        "reopening History must not construct or execute a query"
+    );
+    assert_eq!(harness.app().workbench.query_counter, query_count);
+    let reopened_list = Id::root("tablepro.workbench.history.list");
+    assert!(harness.area_of(reopened_list).is_some());
+    assert!(harness.tab_to(reopened_list));
+    assert_eq!(harness.focus(), Some(reopened_list));
+    let Some(Tab::History(history)) = harness.app().workbench.active() else {
+        panic!("History remains active while its native List is focused")
+    };
+    assert_eq!(
+        history.selected_query().as_deref(),
+        Some("SELECT retained\nFROM closed_open_owner")
+    );
+    let reopened_open = reopened_key.control("history.open");
+    assert!(harness.area_of(reopened_open).is_some());
+    assert!(harness.tab_to(reopened_open));
+    assert_eq!(harness.focus(), Some(reopened_open));
+    assert_eq!(harness.app().workbench.query_counter, query_count);
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_rows_reset_for_a_replacement_workbench_with_a_colliding_tab_key() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT old\nFROM old_workbench"));
+    app.workbench
+        .history
+        .push(history_entry("SELECT old selected\nFROM old_selected"));
+    let old_key = app.workbench.open_history().expect("old History tab");
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let _ = harness.key(KeyCode::Down);
+    assert!(
+        harness
+            .app()
+            .workbench
+            .active()
+            .is_some_and(|tab| { matches!(tab, Tab::History(history) if history.selected == 1) })
+    );
+
+    let mut replacement = connected();
+    replacement.workbench.history = History::default();
+    replacement
+        .workbench
+        .history
+        .push(history_entry("SELECT replacement\nFROM new_workbench"));
+    replacement.workbench.history.entries[0].id = 9000;
+    let new_key = replacement
+        .workbench
+        .open_history()
+        .expect("replacement History tab");
+    let replacement_tab_count = replacement.workbench.tabs().len();
+    let replacement_query_counter = replacement.workbench.query_counter;
+    assert_eq!(old_key, new_key);
+    harness.app_mut().workbench = replacement.workbench;
+    harness.draw();
+
+    assert_eq!(harness.app().workbench.active_key(), Some(new_key));
+    assert_eq!(harness.app().workbench.tabs().len(), replacement_tab_count);
+    assert_eq!(
+        harness.app().workbench.query_counter,
+        replacement_query_counter
+    );
+    let Some(Tab::History(history)) = harness.app().workbench.tab(new_key) else {
+        panic!("replacement History tab remains active")
+    };
+    assert_eq!(history.selected, 0);
+    assert_eq!(history.entries[0].id, 9000);
+    assert_eq!(
+        history.selected_query().as_deref(),
+        Some("SELECT replacement\nFROM new_workbench")
+    );
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
 #[test]
 fn tab_strip_overflow_and_tab_list() {
     let mut app = connected();
@@ -979,17 +1815,23 @@ fn history_native_filters_apply_search_scope_status_and_survive_reopen() {
     let mut app = connected();
     app.workbench.history = History::default();
     let current = app.workbench.connection.name.clone();
-    app.workbench
-        .history
-        .push(history_entry_for("SELECT alpha FROM beta", &current, true));
-    app.workbench
-        .history
-        .push(history_entry_for("SELECT beta FROM alpha", &current, false));
-    app.workbench
-        .history
-        .push(history_entry_for("SELECT alpha FROM beta", "Staging", true));
     app.workbench.history.push(history_entry_for(
-        "SELECT alpha FROM beta",
+        "SELECT alpha FROM beta\n-- Production failure",
+        &current,
+        true,
+    ));
+    app.workbench.history.push(history_entry_for(
+        "SELECT beta FROM alpha\n-- Production success",
+        &current,
+        false,
+    ));
+    app.workbench.history.push(history_entry_for(
+        "SELECT alpha FROM beta\n-- Staging failure",
+        "Staging",
+        true,
+    ));
+    app.workbench.history.push(history_entry_for(
+        "SELECT alpha FROM beta\n-- Staging success",
         "Staging",
         false,
     ));
@@ -1017,9 +1859,25 @@ fn history_native_filters_apply_search_scope_status_and_survive_reopen() {
             }),
         Some(4)
     );
-    if let Some(Tab::History(history)) = harness.app_mut().workbench.tab_mut(history_key) {
-        history.selected = usize::MAX;
-    }
+    let initial_last = match harness.app().workbench.tab(history_key) {
+        Some(Tab::History(history)) => history
+            .entries
+            .last()
+            .expect("the source has visible History entries")
+            .clone(),
+        _ => panic!("history remains active"),
+    };
+    assert!(harness.tab_to(history_list));
+    let _ = harness.key(KeyCode::End);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("history remains active after native End")
+    };
+    assert_eq!(history.selected, history.entries.len() - 1);
+    assert_eq!(history.entries[history.selected].id, initial_last.id);
+    assert_eq!(
+        history.selected_query().as_deref(),
+        Some(initial_last.sql.as_str())
+    );
     assert!(harness.find("All connections").is_some());
     assert!(harness.find("Any status").is_some());
     assert!(harness.tab_to(search));
@@ -1083,7 +1941,46 @@ fn history_native_filters_apply_search_scope_status_and_survive_reopen() {
         panic!("history remains active")
     };
     assert_eq!(history.entries.len(), 2);
+    assert!(
+        history
+            .entries
+            .iter()
+            .all(|entry| entry.connection == "Staging")
+    );
+    assert_eq!(
+        history
+            .entries
+            .iter()
+            .filter(|entry| entry.error.is_some())
+            .count(),
+        1,
+        "the status control exposes one failed and one successful Staging row"
+    );
     assert!(harness.find("SELECT alpha FROM beta").is_some());
+
+    assert!(harness.tab_to(history_list));
+    let filtered_sql = match harness.app().workbench.tab(history_key) {
+        Some(Tab::History(history)) => {
+            let selected = &history.entries[history.selected];
+            let selected_query = history.selected_query();
+            assert_eq!(selected_query.as_deref(), Some(selected.sql.as_str()));
+            assert_eq!(selected.connection, "Staging");
+            assert!(selected.sql.contains("-- Staging"));
+            selected_query.expect("the selected row is in the committed filter projection")
+        }
+        _ => panic!("history remains active"),
+    };
+    let query_count = harness.app().workbench.query_counter;
+    let _ = harness.key(KeyCode::Enter);
+    let Some(Tab::Query(query)) = harness.app().workbench.active() else {
+        panic!("native Enter opens the selected filtered History row")
+    };
+    assert_eq!(query.query, filtered_sql);
+    assert!(query.result.is_none());
+    assert!(query.plan.is_none());
+    assert_eq!(harness.app().workbench.query_counter, query_count + 1);
+    let _ = harness.ctrl('y');
+    assert_eq!(harness.app().workbench.active_key(), Some(history_key));
 
     let tab_count = harness.app().workbench.tabs().len();
     assert!(harness.tab_to(history_list));
@@ -1165,6 +2062,22 @@ fn history_native_search_accepts_unicode_paste_and_escape_discards_draft() {
     };
     assert_eq!(history.search, "no matching row");
     assert!(history.entries.is_empty());
+    let history_list = Id::root("tablepro.workbench.history.list");
+    let open = key.control("history.open");
+    let query_count = harness.app().workbench.query_counter;
+    assert!(
+        harness.tab_to(history_list),
+        "the empty native List stays routable"
+    );
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.click_id(open);
+    assert_eq!(harness.app().workbench.active_key(), Some(key));
+    assert_eq!(harness.app().workbench.query_counter, query_count);
+    assert!(
+        harness.app().workbench.tab(key).is_some_and(|tab| {
+            matches!(tab, Tab::History(history) if history.entries.is_empty())
+        })
+    );
 
     let _ = harness.click_id(search);
     let _ = harness.ctrl('l');

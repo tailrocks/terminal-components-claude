@@ -32,6 +32,7 @@ mod connection_form_focus;
 mod explorer_collapsed;
 mod filter_editor;
 mod history_controls;
+mod history_rows;
 mod query_panes;
 mod query_safety;
 mod result_grid;
@@ -39,6 +40,7 @@ mod result_grid;
 use filter_editor::{FILTER_APPLY, FILTER_CANCEL, FILTER_COLUMN, FILTER_OPERATOR, FILTER_VALUE2};
 use filter_editor::{FilterEditor, FilterOutcome};
 use history_controls::{ConnectionScope, HistoryControls};
+use history_rows::HistoryRows;
 use query_panes::{QueryContent, QueryLayout, QueryPaneMode, QueryPaneState, idle_query_top};
 use result_grid::ResultGridView;
 
@@ -770,6 +772,7 @@ pub struct TableProApp {
     tab_list: TabList,
     safe_mode_picker: SafeModePicker,
     history_controls: HashMap<TabKey, HistoryControls>,
+    history_rows: HistoryRows,
     result_grid: ResultGridView,
     help_state: termrock::HelpOverlayState,
 
@@ -982,6 +985,7 @@ impl TableProApp {
             tab_list: TabList::default(),
             safe_mode_picker: SafeModePicker::default(),
             history_controls: HashMap::new(),
+            history_rows: HistoryRows::default(),
             result_grid: ResultGridView::default(),
             help_state: termrock::HelpOverlayState::default(),
             screen: Screen::Connections,
@@ -2880,27 +2884,21 @@ impl TableProApp {
         response
     }
 
-    fn update_history_focus(cx: &mut Cx<'_>) -> Response<()> {
-        let mut saw_focus_lifecycle = false;
-        let mut saw_other = false;
-        for intent in cx.intents(HISTORY_LIST) {
-            match intent {
-                Intent::FocusIn { .. } | Intent::FocusOut { .. } => {
-                    saw_focus_lifecycle = true;
-                }
-                _ => saw_other = true,
+    fn update_history_rows(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let (mut response, open_sql) = self.history_rows.update(
+            cx,
+            &mut self.workbench,
+            &self.history_controls,
+            self.screen == Screen::Workbench && !self.form_open,
+        );
+        if let Some(sql) = open_sql {
+            let previous_counter = self.workbench.query_counter;
+            self.new_query(cx, sql);
+            if self.workbench.query_counter != previous_counter {
+                response |= Response::changed();
             }
         }
-        if saw_other {
-            cx.diagnostic(termrock::Diagnostic::UndeliveredIntent {
-                owner: HISTORY_LIST,
-            });
-        }
-        if saw_focus_lifecycle {
-            Response::consumed()
-        } else {
-            Response::ignored()
-        }
+        response
     }
 
     fn update_history_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -3993,7 +3991,18 @@ impl TableProApp {
                 if let Some(key) = self.workbench.active_key() {
                     let fallback = HistoryControls::default();
                     let controls = self.history_controls.get(&key).unwrap_or(&fallback);
-                    paint_history_card(ui, inner, key, history, controls);
+                    let entries = history_rows::eligible_entries(&self.workbench, key, controls)
+                        .unwrap_or_default();
+                    let owner = self.workbench.owner_token();
+                    paint_history_card(
+                        ui,
+                        inner,
+                        (key, &owner),
+                        history,
+                        controls,
+                        &entries,
+                        &self.history_rows,
+                    );
                 }
             }
             None => {
@@ -7919,10 +7928,13 @@ fn data_footer_hints(filtered: bool, pending: bool) -> Vec<Hint> {
 fn paint_history_card(
     ui: &mut Ui<'_>,
     inner: termrock::Rect,
-    key: TabKey,
+    key_owner: (TabKey, &std::sync::Weak<()>),
     history: &crate::tabs::HistoryTab,
     controls: &HistoryControls,
+    entries: &[&HistoryEntry],
+    history_rows: &HistoryRows,
 ) {
+    let (key, owner) = key_owner;
     let quiet_fg = ui
         .surface_style()
         .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
@@ -7934,82 +7946,13 @@ fn paint_history_card(
     );
     let layout = controls.draw(ui, inner, key, &history.search);
     let list_y = layout.list_y;
-    ui.register_control(
-        HISTORY_LIST,
-        termrock::Rect::new(
-            inner.x,
-            list_y,
-            inner.width,
-            inner.bottom().saturating_sub(list_y),
-        ),
-        Focusability::Focusable,
+    let list_area = termrock::Rect::new(
+        inner.x,
+        list_y,
+        inner.width.min(40),
+        inner.bottom().saturating_sub(list_y),
     );
-    let selected_bg = termrock::Color::Rgb(23, 63, 28);
-    let time_right = inner.x.saturating_add(39);
-    for (offset, entry) in history.entries.iter().take(10).enumerate() {
-        let selected = offset == history.selected;
-        let y = list_y.saturating_add(offset as u16);
-        let row = termrock::Rect::new(inner.x, y, 40, 1);
-        let row_bg = if selected {
-            selected_bg
-        } else {
-            termrock::Color::Rgb(0, 0, 0)
-        };
-        let base = if selected {
-            PaintStyle::new()
-                .fg(termrock::Color::Rgb(255, 255, 255))
-                .bg(row_bg)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            PaintStyle::new()
-                .fg(termrock::Color::Rgb(255, 255, 255))
-                .bg(row_bg)
-        };
-        ui.fill(row, base);
-        if !selected {
-            ui.paint_str(
-                termrock::Rect::new(inner.x, y, 1, 1),
-                " ",
-                PaintStyle::new().fg(row_bg).bg(row_bg),
-            );
-        }
-        if selected {
-            let mark = base
-                .fg(termrock::Color::Rgb(72, 224, 84))
-                .add_modifier(Modifier::BOLD);
-            ui.paint_str(termrock::Rect::new(inner.x, y, 2, 1), "▎›", mark);
-        } else if entry.error.is_some() {
-            ui.paint_str(
-                termrock::Rect::new(inner.x.saturating_add(1), y, 1, 1),
-                "!",
-                base.fg(termrock::Color::Rgb(240, 93, 93))
-                    .add_modifier(Modifier::BOLD),
-            );
-        }
-        let when = format!("{} · {}", entry.when(), entry.duration());
-        let when_w = width(&when);
-        let when_x = time_right.saturating_sub(when_w);
-        let sql_x = inner.x.saturating_add(3);
-        let sql_max = when_x.saturating_sub(sql_x).saturating_sub(1);
-        let first = entry.sql.lines().next().unwrap_or(entry.sql.as_str());
-        let label = truncate(first, sql_max);
-        let mut text = PaintStyle::new()
-            .fg(termrock::Color::Rgb(255, 255, 255))
-            .bg(row_bg);
-        let mut time = PaintStyle::new()
-            .fg(termrock::Color::Rgb(138, 138, 138))
-            .bg(row_bg);
-        if selected {
-            text = text.add_modifier(Modifier::BOLD);
-            time = time.add_modifier(Modifier::BOLD);
-        }
-        ui.paint_str(
-            termrock::Rect::new(sql_x, y, width(&label), 1),
-            &label,
-            text,
-        );
-        ui.paint_str(termrock::Rect::new(when_x, y, when_w, 1), &when, time);
-    }
+    let selected = history_rows.draw_list(ui, key, owner, list_area, entries, history.selected);
     let rule = PaintStyle::new().fg(termrock::Color::Rgb(77, 77, 77));
     let mut rule_y = list_y;
     while rule_y < inner.bottom() {
@@ -8020,9 +7963,10 @@ fn paint_history_card(
         );
         rule_y = rule_y.saturating_add(1);
     }
-    if let Some(entry) = history.entries.get(history.selected) {
+    if let Some(entry) = selected.and_then(|index| entries.get(index)).copied() {
         paint_history_detail(ui, inner, entry, list_y);
     }
+    history_rows.draw_open_button(ui, (key, owner), inner, list_y, entries, selected);
 }
 
 fn paint_history_detail(ui: &mut Ui<'_>, inner: termrock::Rect, entry: &HistoryEntry, list_y: u16) {
@@ -8110,26 +8054,11 @@ fn paint_history_detail(ui: &mut Ui<'_>, inner: termrock::Rect, entry: &HistoryE
             label,
         );
     }
-    let open_bg = termrock::Color::Rgb(72, 224, 84);
     let run_bg = termrock::Color::Rgb(39, 39, 42);
-    let open = PaintStyle::new()
-        .fg(termrock::Color::Rgb(25, 25, 28))
-        .bg(open_bg)
-        .add_modifier(Modifier::BOLD);
     let secondary = PaintStyle::new()
         .fg(termrock::Color::Rgb(255, 255, 255))
         .bg(run_bg);
     let button_y = list_y.saturating_add(10);
-    ui.paint_str(
-        termrock::Rect::new(x.saturating_add(1), button_y, 1, 1),
-        " ",
-        PaintStyle::new().fg(open_bg).bg(open_bg),
-    );
-    ui.paint_str(
-        termrock::Rect::new(x.saturating_add(2), button_y, 16, 1),
-        "Open in new tab ",
-        open,
-    );
     ui.paint_str(
         termrock::Rect::new(x.saturating_add(20), button_y, 1, 1),
         " ",
@@ -8868,8 +8797,8 @@ impl App for TableProApp {
         self.query_panes.get_mut().sync(&self.workbench);
         self.explain_contexts.get_mut().sync(&self.workbench);
         let mut response = self.roll_connection_status(cx);
-        response |= Self::update_history_focus(cx);
         response |= self.update_history_controls(cx);
+        response |= self.update_history_rows(cx);
         // A status tick must not run the grid. Its first update steals focus
         // onto the result row, and the baseline frame keeps the editor focused.
         if cx.update_cause() == UpdateCause::Tick {
@@ -9392,10 +9321,17 @@ impl App for TableProApp {
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
+        if self.screen != Screen::Workbench
+            || self.form_open
+            || !matches!(self.workbench.active(), Some(Tab::History(_)))
+        {
+            self.history_rows.invalidate_display();
+        }
         self.sync_query_panes();
         self.prepare_grid_slots();
         let full = ui.full();
         if full.width < MIN_WIDTH || full.height < MIN_HEIGHT {
+            self.history_rows.invalidate_display();
             draw_too_small(ui, full);
             return;
         }
