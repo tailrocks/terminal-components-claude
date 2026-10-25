@@ -4,6 +4,9 @@ use crate::catalogue::{self, IntentError};
 use crate::domain::action::{Action, ActionKind, Availability, Risk, Scope};
 use crate::domain::args::{AcceptedInputs, InputError, InputField, InputSchema, SchemaError};
 use crate::domain::host::{Environment, HostKind};
+use crate::listeners::{
+    self, ListenerFacts, ListenerModel, ListenerSuggestion, ModeledPortError, ModeledPortReport,
+};
 use crate::task_args::{ExecutionStatus, Invocation, SimulatedReport};
 use crate::world::World;
 
@@ -473,6 +476,41 @@ fn port_invocation(action: &Action, port: u16) -> Invocation {
     )
 }
 
+/// Revalidates the accepted port request and projects optional deterministic listener data.
+///
+/// The request's effective numeric port is authoritative; accepted text, action labels, command
+/// strings, and argv are never reparsed to select model rows. Nothing is executed.
+///
+/// # Errors
+/// Returns a port binding error or a stale model-context error.
+pub fn modeled_port_listeners(
+    world: &World,
+    producer: &PortArgsProducer,
+    plan: &PortInvocationPlan,
+    model: Option<&ListenerModel>,
+) -> Result<ModeledPortReport, ModeledPortError> {
+    let simulation =
+        simulate_port_invocation(world, producer, plan).map_err(ModeledPortError::PortArgs)?;
+    listeners::project_port_listeners(world, plan, simulation, model)
+}
+
+/// Revalidates one suggestion against the same accepted request and exact immutable model.
+///
+/// # Errors
+/// Returns a port binding error, unavailable-model error, or stale model/suggestion error.
+pub fn validate_listener_suggestion(
+    world: &World,
+    producer: &PortArgsProducer,
+    plan: &PortInvocationPlan,
+    model: Option<&ListenerModel>,
+    suggestion: &ListenerSuggestion,
+) -> Result<ListenerFacts, ModeledPortError> {
+    let _simulation =
+        simulate_port_invocation(world, producer, plan).map_err(ModeledPortError::PortArgs)?;
+    let model = model.ok_or(ModeledPortError::ModelUnavailable)?;
+    listeners::validate_suggestion(world, plan, model, suggestion)
+}
+
 #[cfg(test)]
 #[expect(
     clippy::indexing_slicing,
@@ -481,6 +519,7 @@ fn port_invocation(action: &Action, port: u16) -> Invocation {
 )]
 mod tests {
     use super::*;
+    use crate::listeners::{ListenerAvailability, ListenerProvenance, ListenerRecord};
     use crate::scenario::Scenario;
 
     #[derive(Clone, Copy, Debug)]
@@ -873,5 +912,295 @@ mod tests {
             ACTION_COMMAND,
         );
         assert!(port_args_producer_for(&action).unwrap().is_none());
+    }
+
+    #[test]
+    fn modeled_projection_keeps_exact_argv_and_returns_only_synthetic_fixture_facts() {
+        let case = crate::fixtures::port_conflict_case().unwrap();
+        let producer = port_args_producer().unwrap();
+        let row = catalogue::catalogue(&case.world)
+            .into_iter()
+            .find(|action| action.id == ACTION_ID)
+            .unwrap();
+        let mut session = PortArgsSession::begin(&case.world, &row, &producer).unwrap();
+        let plan = session
+            .accept(&case.world, &row, &producer, &[(PORT_FIELD_ID, "5173")])
+            .unwrap();
+        let before = (
+            case.world.effect_revision,
+            case.world.cwd.clone(),
+            case.world.activities.clone(),
+            plan.accepted_inputs()
+                .value(PORT_FIELD_ID)
+                .map(str::to_owned),
+        );
+
+        let report =
+            modeled_port_listeners(&case.world, &producer, &plan, case.listeners.as_ref()).unwrap();
+        assert_eq!(report.availability(), ListenerAvailability::Listeners);
+        assert_eq!(
+            report.provenance(),
+            ListenerProvenance::DeterministicHollaSimulation
+        );
+        assert_eq!(report.simulation().status, ExecutionStatus::NothingExecuted);
+        assert_eq!(report.simulation().invocation, *plan.invocation());
+        assert_eq!(
+            report.simulation().invocation.argv(),
+            &["-nP", "-iTCP:5173", "-sTCP:LISTEN"]
+        );
+        assert_eq!(report.suggestions().len(), 1);
+
+        let facts = validate_listener_suggestion(
+            &case.world,
+            &producer,
+            &plan,
+            case.listeners.as_ref(),
+            &report.suggestions()[0],
+        )
+        .unwrap();
+        assert_eq!(facts.pid(), 5120);
+        assert_eq!(facts.synthetic_generation(), 1);
+        assert_eq!(facts.port(), 5173);
+        assert_eq!(facts.name(), "node (stale vite)");
+        assert_eq!(facts.state(), "sleeping");
+        assert_eq!(facts.cpu_percent(), 0);
+        assert_eq!(facts.memory_mb(), 310);
+        assert_eq!(
+            facts.provenance(),
+            ListenerProvenance::DeterministicHollaSimulation
+        );
+        assert_eq!(facts.execution_status(), ExecutionStatus::NothingExecuted);
+        assert_eq!(
+            (
+                case.world.effect_revision,
+                case.world.cwd.clone(),
+                case.world.activities.clone(),
+                plan.accepted_inputs()
+                    .value(PORT_FIELD_ID)
+                    .map(str::to_owned),
+            ),
+            before
+        );
+        assert_eq!(
+            simulate_port_invocation(&case.world, &producer, &plan).unwrap(),
+            report.simulation().clone()
+        );
+    }
+
+    #[test]
+    fn unavailable_and_known_empty_are_distinct_and_invalid_plans_fail_first() {
+        let (world, producer, row) = bound();
+        let mut session = PortArgsSession::begin(&world, &row, &producer).unwrap();
+        let plan = session
+            .accept(&world, &row, &producer, &[(PORT_FIELD_ID, "8080")])
+            .unwrap();
+
+        let unavailable = modeled_port_listeners(&world, &producer, &plan, None).unwrap();
+        assert_eq!(
+            unavailable.availability(),
+            ListenerAvailability::Unavailable
+        );
+        assert_eq!(
+            unavailable.simulation().status,
+            ExecutionStatus::NothingExecuted
+        );
+        assert!(unavailable.suggestions().is_empty());
+
+        let empty = ListenerModel::new(&world, vec![]).unwrap();
+        let known_empty = modeled_port_listeners(&world, &producer, &plan, Some(&empty)).unwrap();
+        assert_eq!(known_empty.availability(), ListenerAvailability::KnownEmpty);
+        assert!(known_empty.suggestions().is_empty());
+
+        let mut changed = crate::fixtures::world_for(Scenario::RustDirty);
+        changed.cwd.push_str("/changed");
+        assert_eq!(
+            modeled_port_listeners(&changed, &producer, &plan, None).err(),
+            Some(ModeledPortError::PortArgs(PortArgsError::StaleContext))
+        );
+    }
+
+    #[test]
+    fn same_port_rows_remain_distinct_and_suggestions_bind_model_and_request_identity() {
+        let (world, producer, row) = bound();
+        let mut session = PortArgsSession::begin(&world, &row, &producer).unwrap();
+        let plan = session
+            .accept(&world, &row, &producer, &[(PORT_FIELD_ID, "5173")])
+            .unwrap();
+        let model = ListenerModel::new(
+            &world,
+            vec![
+                ListenerRecord::new(5120, 1, 5173, "node A", "sleeping", 0, 310).unwrap(),
+                ListenerRecord::new(5121, 1, 5173, "node B", "running", 1, 320).unwrap(),
+            ],
+        )
+        .unwrap();
+        let report = modeled_port_listeners(&world, &producer, &plan, Some(&model)).unwrap();
+        assert_eq!(report.suggestions().len(), 2);
+        assert_eq!(
+            validate_listener_suggestion(
+                &world,
+                &producer,
+                &plan,
+                Some(&model),
+                &report.suggestions()[1],
+            )
+            .unwrap()
+            .pid(),
+            5121
+        );
+
+        let replacement = ListenerModel::new(
+            &world,
+            vec![
+                ListenerRecord::new(5120, 1, 5173, "node A", "sleeping", 0, 310).unwrap(),
+                ListenerRecord::new(5121, 1, 5173, "node B", "running", 1, 320).unwrap(),
+            ],
+        )
+        .unwrap();
+        assert_eq!(
+            validate_listener_suggestion(
+                &world,
+                &producer,
+                &plan,
+                Some(&replacement),
+                &report.suggestions()[0],
+            ),
+            Err(ModeledPortError::StaleSuggestion)
+        );
+        assert_eq!(
+            validate_listener_suggestion(&world, &producer, &plan, None, &report.suggestions()[0]),
+            Err(ModeledPortError::ModelUnavailable)
+        );
+
+        let mut other_session = PortArgsSession::begin(&world, &row, &producer).unwrap();
+        let same_port_different_raw = other_session
+            .accept(&world, &row, &producer, &[(PORT_FIELD_ID, "05173")])
+            .unwrap();
+        assert_eq!(
+            validate_listener_suggestion(
+                &world,
+                &producer,
+                &same_port_different_raw,
+                Some(&model),
+                &report.suggestions()[0],
+            ),
+            Err(ModeledPortError::StaleSuggestion)
+        );
+    }
+
+    #[test]
+    fn model_context_drift_and_replacement_records_fail_closed() {
+        for drift in [
+            ContextDrift::HostName,
+            ContextDrift::HostKind,
+            ContextDrift::Environment,
+            ContextDrift::Cwd,
+            ContextDrift::EffectRevision,
+        ] {
+            let (world, producer, row) = bound();
+            let model = ListenerModel::new(
+                &world,
+                vec![ListenerRecord::new(5120, 1, 5173, "node", "sleeping", 0, 310).unwrap()],
+            )
+            .unwrap();
+            let mut session = PortArgsSession::begin(&world, &row, &producer).unwrap();
+            let plan = session
+                .accept(&world, &row, &producer, &[(PORT_FIELD_ID, "5173")])
+                .unwrap();
+            let report = modeled_port_listeners(&world, &producer, &plan, Some(&model)).unwrap();
+            let mut changed = crate::fixtures::world_for(Scenario::RustDirty);
+            apply_context_drift(&mut changed, drift);
+            assert_eq!(
+                modeled_port_listeners(&changed, &producer, &plan, Some(&model)).err(),
+                Some(ModeledPortError::PortArgs(PortArgsError::StaleContext)),
+                "projection must reject {drift:?}"
+            );
+            assert_eq!(
+                validate_listener_suggestion(
+                    &changed,
+                    &producer,
+                    &plan,
+                    Some(&model),
+                    &report.suggestions()[0],
+                ),
+                Err(ModeledPortError::PortArgs(PortArgsError::StaleContext)),
+                "suggestion validation must reject {drift:?}"
+            );
+
+            let changed_row = catalogue::catalogue(&changed)
+                .into_iter()
+                .find(|action| action.id == ACTION_ID)
+                .unwrap();
+            let mut changed_session =
+                PortArgsSession::begin(&changed, &changed_row, &producer).unwrap();
+            let changed_plan = changed_session
+                .accept(
+                    &changed,
+                    &changed_row,
+                    &producer,
+                    &[(PORT_FIELD_ID, "5173")],
+                )
+                .unwrap();
+            let changed_simulation = simulate_port_invocation(&changed, &producer, &changed_plan);
+            assert!(
+                changed_simulation.is_ok(),
+                "fresh plan must pass the existing PortArgs gate for {drift:?}: {changed_simulation:?}"
+            );
+            assert_eq!(
+                modeled_port_listeners(&changed, &producer, &changed_plan, Some(&model)).err(),
+                Some(ModeledPortError::StaleModelContext),
+                "fresh plan must reach the model-context guard for {drift:?}"
+            );
+            assert_eq!(
+                validate_listener_suggestion(
+                    &changed,
+                    &producer,
+                    &changed_plan,
+                    Some(&model),
+                    &report.suggestions()[0],
+                ),
+                Err(ModeledPortError::StaleModelContext),
+                "fresh plan must reach suggestion model-context guard for {drift:?}"
+            );
+        }
+
+        let (world, producer, row) = bound();
+        let model = ListenerModel::new(
+            &world,
+            vec![ListenerRecord::new(5120, 1, 5173, "node", "sleeping", 0, 310).unwrap()],
+        )
+        .unwrap();
+        let mut session = PortArgsSession::begin(&world, &row, &producer).unwrap();
+        let plan = session
+            .accept(&world, &row, &producer, &[(PORT_FIELD_ID, "5173")])
+            .unwrap();
+        let report = modeled_port_listeners(&world, &producer, &plan, Some(&model)).unwrap();
+        let replacement = ListenerModel::new(
+            &world,
+            vec![ListenerRecord::new(5120, 2, 5173, "node", "sleeping", 0, 310).unwrap()],
+        )
+        .unwrap();
+        assert_eq!(
+            validate_listener_suggestion(
+                &world,
+                &producer,
+                &plan,
+                Some(&replacement),
+                &report.suggestions()[0],
+            ),
+            Err(ModeledPortError::StaleSuggestion)
+        );
+
+        let removed = ListenerModel::new(&world, vec![]).unwrap();
+        assert_eq!(
+            validate_listener_suggestion(
+                &world,
+                &producer,
+                &plan,
+                Some(&removed),
+                &report.suggestions()[0],
+            ),
+            Err(ModeledPortError::StaleSuggestion)
+        );
     }
 }

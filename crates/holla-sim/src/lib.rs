@@ -3,6 +3,7 @@ pub mod clock;
 pub mod disk_scan;
 pub mod files;
 pub mod fixtures;
+pub mod listeners;
 pub mod pg;
 pub mod plans;
 pub mod port_args;
