@@ -520,9 +520,55 @@ fn ordinary_fn_offset(code: &str) -> Option<usize> {
         .char_indices()
         .find(|(_, character)| !character.is_whitespace())?;
     let bytes = code.as_bytes();
-    (bytes.get(offset..)?.starts_with(b"fn")
-        && bytes.get(offset + 2).is_some_and(u8::is_ascii_whitespace))
-    .then_some(offset)
+    if ordinary_fn_keyword_at(bytes, offset) {
+        return Some(offset);
+    }
+
+    let visibility_end = offset.checked_add(3)?;
+    if !bytes
+        .get(offset..visibility_end)
+        .is_some_and(|visibility| visibility == b"pub")
+        || !bytes
+            .get(visibility_end)
+            .is_some_and(|next| next.is_ascii_whitespace() || *next == b'(')
+    {
+        return None;
+    }
+
+    let mut cursor = visibility_end;
+    skip_ascii_whitespace(bytes, &mut cursor, bytes.len());
+    if bytes.get(cursor) == Some(&b'(') {
+        cursor += 1;
+        skip_ascii_whitespace(bytes, &mut cursor, bytes.len());
+        let crate_end = cursor.checked_add(b"crate".len())?;
+        if !bytes
+            .get(cursor..crate_end)
+            .is_some_and(|visibility| visibility == b"crate")
+            || !bytes
+                .get(crate_end)
+                .is_some_and(|next| next.is_ascii_whitespace() || *next == b')')
+        {
+            return None;
+        }
+        cursor = crate_end;
+        skip_ascii_whitespace(bytes, &mut cursor, bytes.len());
+        if bytes.get(cursor) != Some(&b')') {
+            return None;
+        }
+        cursor += 1;
+    }
+    skip_ascii_whitespace(bytes, &mut cursor, bytes.len());
+    ordinary_fn_keyword_at(bytes, cursor).then_some(cursor)
+}
+
+fn ordinary_fn_keyword_at(bytes: &[u8], offset: usize) -> bool {
+    let Some(keyword_end) = offset.checked_add(2) else {
+        return false;
+    };
+    bytes
+        .get(offset..keyword_end)
+        .is_some_and(|keyword| keyword == b"fn")
+        && bytes.get(keyword_end).is_some_and(u8::is_ascii_whitespace)
 }
 
 fn named_function_return_type_angles(source: &str, start: usize) -> Option<Vec<usize>> {
@@ -1155,5 +1201,73 @@ mod tests {
         );
         let hits = match_file(&file, &preview(&["demo"]));
         assert!(!hits.iter().any(|f| f.rule == "OWN-11"));
+    }
+
+    #[test]
+    fn visible_return_type_generics_are_not_size_switches() {
+        let file = scan_file(
+            "crates/demo/src/lib.rs",
+            "crates/demo",
+            "fn private_view(width: u16, height: u16) -> Result<module::View<T>, Option<&'static T>> {}\n\
+             pub fn public_view(width: u16, height: u16) -> Option<module::View<T>> {}\n\
+             pub(crate) fn crate_view(width: u16, height: u16) -> Result<\n\
+                 module::View<T>,\n\
+                 Option<&'static T>,\n\
+             > {}\n",
+        );
+        let hits = match_file(&file, &preview(&["demo"]));
+        assert!(
+            !hits.iter().any(|finding| finding.rule == "OWN-11"),
+            "supported visibility prefixes must leave return-type angles masked"
+        );
+    }
+
+    #[test]
+    fn visible_return_masks_preserve_same_line_and_later_comparisons() {
+        let source = "pub fn same_line(width: u16, height: u16) -> Result<module::View<T>, Option<T>> { if width < 80 {} }\n\
+                      pub(crate) fn later_line(width: u16, height: u16) -> Option<module::View<T>> {\n\
+                          if height >= 80 {}\n\
+                      }\n";
+        let file = scan_file("crates/demo/src/lib.rs", "crates/demo", source);
+        let lines: Vec<usize> = match_file(&file, &preview(&["demo"]))
+            .into_iter()
+            .filter(|finding| finding.rule == "OWN-11")
+            .map(|finding| finding.line)
+            .collect();
+        assert_eq!(lines, vec![1, 3]);
+    }
+
+    #[test]
+    fn ordinary_fn_offsets_point_to_fn_after_supported_visibility() {
+        let sources = [
+            "fn private_view(width: u16) -> Option<T> {}",
+            "  fn indented_view(width: u16) -> Option<T> {}",
+            "\u{2003}pub \tfn public_view(width: u16) -> Option<T> {}",
+            "\tpub \t( crate )\tfn crate_view(width: u16) -> Option<T> {}",
+        ];
+        for source in sources {
+            assert_eq!(ordinary_fn_offset(source), source.find("fn"), "{source:?}");
+        }
+    }
+
+    #[test]
+    fn ordinary_fn_offsets_reject_unsupported_or_malformed_visibility() {
+        let sources = [
+            "public fn view(width: u16) -> Option<T> {}",
+            "pubfn view(width: u16) -> Option<T> {}",
+            "pub async fn view(width: u16) -> Option<T> {}",
+            "pub(self) fn view(width: u16) -> Option<T> {}",
+            "pub(super) fn view(width: u16) -> Option<T> {}",
+            "pub(in crate::module) fn view(width: u16) -> Option<T> {}",
+            "pub() fn view(width: u16) -> Option<T> {}",
+            "pub((crate)) fn view(width: u16) -> Option<T> {}",
+            "pub(crate fn view(width: u16) -> Option<T> {}",
+            "pub(crate)) fn view(width: u16) -> Option<T> {}",
+            "pub(cratex) fn view(width: u16) -> Option<T> {}",
+            "pub(width < height) fn view(width: u16) -> Option<T> {}",
+        ];
+        for source in sources {
+            assert_eq!(ordinary_fn_offset(source), None, "{source:?}");
+        }
     }
 }
