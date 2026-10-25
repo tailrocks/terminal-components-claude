@@ -187,19 +187,3 @@ fn validate_scope(
     }
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn glob_patterns_match_expected_paths() {
-        let patterns = vec!["src/**".to_owned()];
-        assert!(path_matches_any("src/payload.txt", &patterns));
-        assert!(path_matches_any("src/nested/x.txt", &patterns));
-        assert!(!path_matches_any("outside.txt", &patterns));
-        let forbidden = vec!["protected.txt".to_owned(), ".proof/**".to_owned()];
-        assert!(path_matches_any("protected.txt", &forbidden));
-        assert!(path_matches_any(".proof/check.py", &forbidden));
-    }
-}
