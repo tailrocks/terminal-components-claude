@@ -1,0 +1,1884 @@
+{
+  "schema_version": 1,
+  "task_id": "T37-tools-source-correction",
+  "fixed_input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "fixed_input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "prior_source_output_commit": "be7db4f3c98a0f742010385d28e5d510b7adb4d0",
+  "final_source_output_commit": "7fee71b6bd5091ce670d36644273ed1ffda1481d",
+  "final_source_output_tree": "26accf71f406f29b37698cdd25e7e4349d8c87f4",
+  "model": "gpt-6-luna",
+  "effort": "max",
+  "agent_id": "/root/t37_tools",
+  "authorities": [
+    {
+      "decision_id": "T37-E2E-ORPHAN-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "APPROVE",
+      "scope": "Retire the confirmed uncalled Rust PTY subject/evidence loaders and validators, actual-observation/visual comparison executor, private ordinary admission-receipt reader, private tag-producer constants and their exclusive helpers. Keep admission emission, current validation and public data formats."
+    },
+    {
+      "decision_id": "T37-E2E-FORMAT-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "APPROVE_RETENTION",
+      "scope": "Retain ExpectedGenerationReceipt, WRITE_POLICY_SCHEMA, ORACLE_CAPTURE_RECEIPT_SCHEMA_JSON, CheckReceipt.visual_comparison and visual data-only record types as public versioned-format compatibility. No current Rust producer/consumer is established for otherwise-unused exports; no harness or qualification authority follows."
+    },
+    {
+      "decision_id": "T37-PROOF-FIXTURE-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "APPROVE",
+      "scope": "Retire FIXTURE_CONTEXT_SCHEMA dispatch and true-command stub; preserve normal TC_PROOF_OPERATIONS path."
+    },
+    {
+      "decision_id": "T37-E2E-SCHEMA-02",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "APPROVE_RETENTION",
+      "scope": "Keep twelve versioned schema JSON files byte-identically; distinguish active retained formats from historical-only schemas."
+    }
+  ],
+  "files": [
+    {
+      "path": "crates/termrock-e2e/src/lib.rs",
+      "input_sha256_c817": "501bdc0adf0d51aba4854ae3024f4270888ee9a08b77a51663e47bcc2e2abc60",
+      "output_sha256": "b30e665cff6eb6c6a2473e8e0824a113e5ca4ef3030c65e8fae118bbd9c0fc4d",
+      "removed_input_line_ranges_c817": [
+        [
+          7,
+          7
+        ],
+        [
+          19,
+          19
+        ],
+        [
+          21,
+          25
+        ],
+        [
+          29,
+          40
+        ],
+        [
+          43,
+          44
+        ],
+        [
+          50,
+          50
+        ],
+        [
+          324,
+          336
+        ],
+        [
+          344,
+          358
+        ],
+        [
+          368,
+          380
+        ],
+        [
+          393,
+          404
+        ],
+        [
+          439,
+          484
+        ],
+        [
+          492,
+          523
+        ],
+        [
+          704,
+          722
+        ],
+        [
+          768,
+          796
+        ],
+        [
+          853,
+          980
+        ],
+        [
+          1010,
+          1046
+        ],
+        [
+          1054,
+          1102
+        ],
+        [
+          1173,
+          1187
+        ],
+        [
+          1264,
+          1287
+        ],
+        [
+          1370,
+          1497
+        ],
+        [
+          1593,
+          1597
+        ],
+        [
+          1756,
+          1785
+        ],
+        [
+          1836,
+          1841
+        ],
+        [
+          1846,
+          1858
+        ],
+        [
+          1860,
+          1873
+        ],
+        [
+          1875,
+          1882
+        ],
+        [
+          1884,
+          1884
+        ],
+        [
+          1886,
+          1887
+        ],
+        [
+          1890,
+          1945
+        ],
+        [
+          1949,
+          1964
+        ],
+        [
+          1966,
+          1999
+        ],
+        [
+          2001,
+          2008
+        ],
+        [
+          2010,
+          2011
+        ],
+        [
+          2013,
+          2013
+        ],
+        [
+          2015,
+          2019
+        ],
+        [
+          2021,
+          2021
+        ],
+        [
+          2023,
+          2024
+        ],
+        [
+          2027,
+          2037
+        ],
+        [
+          2039,
+          2043
+        ],
+        [
+          2045,
+          2106
+        ],
+        [
+          2108,
+          2142
+        ],
+        [
+          2144,
+          2147
+        ],
+        [
+          2149,
+          2158
+        ],
+        [
+          2160,
+          2166
+        ],
+        [
+          2168,
+          2263
+        ],
+        [
+          2265,
+          2265
+        ],
+        [
+          2268,
+          2288
+        ],
+        [
+          2290,
+          2296
+        ],
+        [
+          2298,
+          2298
+        ],
+        [
+          2301,
+          2303
+        ],
+        [
+          2305,
+          2305
+        ],
+        [
+          2308,
+          2317
+        ],
+        [
+          2319,
+          2319
+        ],
+        [
+          2322,
+          2325
+        ],
+        [
+          2329,
+          2354
+        ],
+        [
+          2356,
+          2400
+        ],
+        [
+          2405,
+          2409
+        ],
+        [
+          2412,
+          2472
+        ],
+        [
+          2474,
+          2475
+        ],
+        [
+          2481,
+          2484
+        ],
+        [
+          2486,
+          2489
+        ],
+        [
+          2493,
+          2516
+        ],
+        [
+          2519,
+          2520
+        ],
+        [
+          2522,
+          2541
+        ],
+        [
+          2544,
+          2569
+        ],
+        [
+          2573,
+          2591
+        ],
+        [
+          2593,
+          2593
+        ],
+        [
+          2596,
+          2619
+        ],
+        [
+          2621,
+          2622
+        ],
+        [
+          2625,
+          2649
+        ],
+        [
+          2652,
+          2657
+        ],
+        [
+          2659,
+          2673
+        ],
+        [
+          2675,
+          2692
+        ],
+        [
+          2694,
+          2700
+        ],
+        [
+          2702,
+          2709
+        ],
+        [
+          2711,
+          2883
+        ],
+        [
+          2885,
+          2895
+        ],
+        [
+          2897,
+          2932
+        ],
+        [
+          2934,
+          2957
+        ],
+        [
+          2959,
+          2961
+        ],
+        [
+          2963,
+          2970
+        ],
+        [
+          2972,
+          2975
+        ],
+        [
+          2977,
+          2978
+        ],
+        [
+          2981,
+          2981
+        ],
+        [
+          2983,
+          2984
+        ],
+        [
+          2987,
+          3094
+        ],
+        [
+          3096,
+          3101
+        ],
+        [
+          3103,
+          3110
+        ],
+        [
+          3112,
+          3113
+        ],
+        [
+          3115,
+          3127
+        ],
+        [
+          3132,
+          3160
+        ],
+        [
+          3162,
+          3167
+        ],
+        [
+          3169,
+          3170
+        ],
+        [
+          3173,
+          3173
+        ],
+        [
+          3176,
+          3183
+        ],
+        [
+          3185,
+          3186
+        ],
+        [
+          3189,
+          3202
+        ],
+        [
+          3205,
+          3221
+        ],
+        [
+          3224,
+          3227
+        ],
+        [
+          3229,
+          3287
+        ],
+        [
+          3289,
+          3296
+        ],
+        [
+          3298,
+          3340
+        ],
+        [
+          3342,
+          3362
+        ],
+        [
+          3364,
+          3364
+        ],
+        [
+          3366,
+          3369
+        ],
+        [
+          3372,
+          3375
+        ],
+        [
+          3377,
+          3395
+        ],
+        [
+          3397,
+          3398
+        ],
+        [
+          3400,
+          3400
+        ],
+        [
+          3402,
+          3403
+        ],
+        [
+          3406,
+          3407
+        ],
+        [
+          3410,
+          3419
+        ],
+        [
+          3421,
+          3425
+        ],
+        [
+          3427,
+          3432
+        ],
+        [
+          3434,
+          3435
+        ],
+        [
+          3437,
+          3473
+        ],
+        [
+          3475,
+          3476
+        ],
+        [
+          3478,
+          3516
+        ],
+        [
+          3518,
+          3518
+        ],
+        [
+          3521,
+          3523
+        ],
+        [
+          3525,
+          3536
+        ],
+        [
+          3541,
+          3559
+        ],
+        [
+          3561,
+          3563
+        ],
+        [
+          3568,
+          3568
+        ],
+        [
+          3571,
+          3585
+        ],
+        [
+          3588,
+          3618
+        ],
+        [
+          3620,
+          3621
+        ],
+        [
+          3623,
+          3625
+        ],
+        [
+          3627,
+          3690
+        ],
+        [
+          3692,
+          3712
+        ],
+        [
+          3714,
+          3731
+        ],
+        [
+          3733,
+          3737
+        ],
+        [
+          3739,
+          3739
+        ],
+        [
+          3741,
+          3742
+        ],
+        [
+          3745,
+          3823
+        ],
+        [
+          3825,
+          3826
+        ],
+        [
+          3828,
+          3829
+        ],
+        [
+          3831,
+          3842
+        ],
+        [
+          3846,
+          3852
+        ],
+        [
+          3856,
+          3863
+        ],
+        [
+          3865,
+          3909
+        ],
+        [
+          3915,
+          3916
+        ],
+        [
+          3918,
+          3929
+        ],
+        [
+          3931,
+          3952
+        ],
+        [
+          3955,
+          3955
+        ],
+        [
+          3958,
+          3990
+        ],
+        [
+          3992,
+          4005
+        ],
+        [
+          4007,
+          4077
+        ],
+        [
+          4079,
+          4106
+        ],
+        [
+          4108,
+          4118
+        ],
+        [
+          4120,
+          4123
+        ],
+        [
+          4125,
+          8101
+        ],
+        [
+          8103,
+          8107
+        ],
+        [
+          8109,
+          8201
+        ],
+        [
+          8203,
+          8205
+        ],
+        [
+          8208,
+          8210
+        ],
+        [
+          8212,
+          8334
+        ],
+        [
+          8336,
+          8338
+        ],
+        [
+          8340,
+          8537
+        ],
+        [
+          8539,
+          8546
+        ],
+        [
+          8548,
+          8562
+        ],
+        [
+          8564,
+          8585
+        ],
+        [
+          8587,
+          8596
+        ],
+        [
+          8598,
+          8611
+        ],
+        [
+          8613,
+          8633
+        ],
+        [
+          8635,
+          8636
+        ],
+        [
+          8638,
+          8668
+        ],
+        [
+          8670,
+          8725
+        ],
+        [
+          8728,
+          8754
+        ],
+        [
+          8757,
+          8780
+        ],
+        [
+          8784,
+          8799
+        ],
+        [
+          8801,
+          8803
+        ],
+        [
+          8806,
+          8807
+        ],
+        [
+          8809,
+          8811
+        ],
+        [
+          8813,
+          8814
+        ],
+        [
+          8817,
+          8817
+        ],
+        [
+          8819,
+          8820
+        ],
+        [
+          8823,
+          8825
+        ],
+        [
+          8827,
+          8846
+        ],
+        [
+          8848,
+          8963
+        ],
+        [
+          8965,
+          9033
+        ],
+        [
+          9035,
+          9045
+        ],
+        [
+          9047,
+          9110
+        ],
+        [
+          9112,
+          9279
+        ],
+        [
+          9281,
+          9287
+        ],
+        [
+          9290,
+          9309
+        ],
+        [
+          9311,
+          9505
+        ],
+        [
+          9507,
+          9547
+        ],
+        [
+          9549,
+          9584
+        ],
+        [
+          9587,
+          9657
+        ],
+        [
+          9659,
+          9901
+        ],
+        [
+          9903,
+          9910
+        ],
+        [
+          9913,
+          9972
+        ],
+        [
+          9974,
+          10065
+        ],
+        [
+          10067,
+          10099
+        ],
+        [
+          10101,
+          10123
+        ],
+        [
+          10126,
+          10189
+        ],
+        [
+          10191,
+          10197
+        ],
+        [
+          10200,
+          10239
+        ],
+        [
+          10241,
+          10273
+        ],
+        [
+          10275,
+          10275
+        ],
+        [
+          10277,
+          10331
+        ],
+        [
+          10334,
+          10368
+        ],
+        [
+          10371,
+          10379
+        ],
+        [
+          10382,
+          10391
+        ],
+        [
+          10393,
+          10416
+        ],
+        [
+          10418,
+          10421
+        ],
+        [
+          10424,
+          10458
+        ],
+        [
+          10461,
+          10476
+        ],
+        [
+          10478,
+          10599
+        ],
+        [
+          10601,
+          10807
+        ],
+        [
+          10809,
+          10810
+        ],
+        [
+          10812,
+          10818
+        ],
+        [
+          10820,
+          11145
+        ],
+        [
+          11148,
+          11212
+        ],
+        [
+          11214,
+          11238
+        ],
+        [
+          11241,
+          11247
+        ],
+        [
+          11249,
+          11261
+        ],
+        [
+          11264,
+          11266
+        ],
+        [
+          11268,
+          11347
+        ],
+        [
+          11350,
+          11401
+        ],
+        [
+          11404,
+          11415
+        ],
+        [
+          11417,
+          11687
+        ],
+        [
+          11689,
+          11765
+        ],
+        [
+          11767,
+          11776
+        ],
+        [
+          11778,
+          11792
+        ],
+        [
+          11794,
+          11797
+        ],
+        [
+          11799,
+          11859
+        ],
+        [
+          11862,
+          12251
+        ],
+        [
+          12254,
+          12329
+        ],
+        [
+          12332,
+          12339
+        ],
+        [
+          12342,
+          12548
+        ],
+        [
+          12550,
+          12658
+        ],
+        [
+          12664,
+          12679
+        ],
+        [
+          12681,
+          12685
+        ],
+        [
+          12687,
+          12708
+        ],
+        [
+          12711,
+          12795
+        ],
+        [
+          12797,
+          12804
+        ],
+        [
+          12807,
+          12828
+        ],
+        [
+          12831,
+          12831
+        ],
+        [
+          12833,
+          12893
+        ],
+        [
+          12896,
+          12922
+        ]
+      ],
+      "removed_input_line_count_c817": 11387,
+      "removed_named_items": [
+        {
+          "kind": "const",
+          "name": "RECEIPT_SCHEMA",
+          "input_line_c817": 22,
+          "input_line_sha256": "e9fa88d7e7669c2ed2f1c1d154881e3b4e54259e386cbec0bf67d4171022890d",
+          "classification": "orphan Rust constant for retired receipt producer"
+        },
+        {
+          "kind": "const",
+          "name": "SUBJECT_SCHEMA",
+          "input_line_c817": 23,
+          "input_line_sha256": "87807815f5de506959ef5ab6f0cb11c97ba9aa6ee2449344dbda5d03367c8ffd",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "const",
+          "name": "BUILDER_RECEIPT_SCHEMA",
+          "input_line_c817": 24,
+          "input_line_sha256": "9a7df1d6a53598dd58cdbc5913d32de2e2e8f8bced93f56605449593fa76f38f",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "const",
+          "name": "REFERENCE_BRANCH_REF",
+          "input_line_c817": 29,
+          "input_line_sha256": "52e7eb6e98ee6a28e114f5ae9424027cc14363b06b7919403538b9a0d51ed470",
+          "classification": "private legacy producer metadata"
+        },
+        {
+          "kind": "const",
+          "name": "REFERENCE_BRANCH_MEMBERSHIP",
+          "input_line_c817": 30,
+          "input_line_sha256": "2a8453948b9fd1cc7d6bee7a5cd4e8c815670f93735e9f02a8181cdd1b138db4",
+          "classification": "private legacy producer metadata"
+        },
+        {
+          "kind": "const",
+          "name": "TAG_SOURCE_VALIDATOR_PATH_ENV",
+          "input_line_c817": 39,
+          "input_line_sha256": "1bfb2d0f02d43e8aa1283e1fd812ea753a639467da69ca71dcdcc01d462b172f",
+          "classification": "private retired tag-producer input"
+        },
+        {
+          "kind": "const",
+          "name": "TAG_SOURCE_REPOSITORY_ENV",
+          "input_line_c817": 40,
+          "input_line_sha256": "8d7463f53e7d2ebb3cc41c49e7efe244b71998a58daba8bdeff62f5e55c6dd2e",
+          "classification": "private retired tag-producer input"
+        },
+        {
+          "kind": "struct",
+          "name": "SubjectManifest",
+          "input_line_c817": 326,
+          "input_line_sha256": "6b3c1649c2c73e2d9f97cdd7ed33f24bb948f16b5f10633741b0974be91b8d85",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "SubjectBuildEvidence",
+          "input_line_c817": 346,
+          "input_line_sha256": "345dd3e058c25f10d6cdf589fa1d71151bb083cb69140aeffc4abffba9cfbb23",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "BuildEvidenceReceipt",
+          "input_line_c817": 352,
+          "input_line_sha256": "91ad09a496bcd581b11a094fd6f50356d2f59a44e8b36b40acf5e600cd953999",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "Subject",
+          "input_line_c817": 370,
+          "input_line_sha256": "af1e4af204df898017421e7471036f17dbbb44667cccd0416f56ed8059b53276",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "BuildInputs",
+          "input_line_c817": 395,
+          "input_line_sha256": "586dfe64e6eba8152858775eb207f12f8a202afd44d6640e0b870bdd7d3bb161",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "LoadedEvidenceContext",
+          "input_line_c817": 893,
+          "input_line_sha256": "7bca3709fcdcb282be3f5648f73bd4ee00eaf3fdc19dfcdc2a8890d390e66830",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "SourceInputsEvidence",
+          "input_line_c817": 906,
+          "input_line_sha256": "fb32bc182b96292423469f70803f63ac0ac34fb445efd35e3dc55abc2cb10e6d",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "OracleLineage",
+          "input_line_c817": 922,
+          "input_line_sha256": "03c0baf3734c3e1cd9b4a4dce5e138ffae87d6e84735989de3dfccf91b737536",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "ReferenceBranchEvidence",
+          "input_line_c817": 930,
+          "input_line_sha256": "4a90428c537c97e4797fc21be27daa3cb93cc6140caf80699c2e95c367191295",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "SourceSnapshotEvidence",
+          "input_line_c817": 939,
+          "input_line_sha256": "fc797350f5d3dcb9cf8f9a5092ff5ddcb7f50e09d3f44861f8c1d4b69f2bc726",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "BuildEnvironmentEvidence",
+          "input_line_c817": 963,
+          "input_line_sha256": "15d05c02a76747ff0222eccf2db397f67739c879a71a6623cf48b508e2f80b87",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "BuilderRunEvidence",
+          "input_line_c817": 1012,
+          "input_line_sha256": "f649e591f5db5aff0d3a2b36d5ccadab9f798d0d08dd5c02cf549d84fa432f17",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "GitIdentityEvidence",
+          "input_line_c817": 1056,
+          "input_line_sha256": "b98f94ec367c4d1e361355c502e054f1e8e3f8fcd3545844b2efee965133f35b",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "SnapshotReferenceEvidence",
+          "input_line_c817": 1067,
+          "input_line_sha256": "a05e4c0ccc301d4230f5d0d05c30dc6f675a890ec6ce098a64dae22fdc257854",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "MetadataTargetEvidence",
+          "input_line_c817": 1075,
+          "input_line_sha256": "f146e7395720ce9aff0fb6caed3812205ff230bee6197beb8b71bfd1feaefd13",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "SubjectIdentity",
+          "input_line_c817": 1092,
+          "input_line_sha256": "ec912686a8a12febe91a7185dcc3ddebe991384869a71a3536369a4a21680f5d",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "struct",
+          "name": "LoadedSubjectEvidence",
+          "input_line_c817": 1374,
+          "input_line_sha256": "780a74fd7cd8a668d7242156737c8e25de35e9532918709d0143387588593c24",
+          "classification": "exclusive PTY subject loader"
+        },
+        {
+          "kind": "fn",
+          "name": "load_subject_manifest",
+          "input_line_c817": 1370,
+          "input_line_sha256": "71016344fc87706064e87fd353039deeffb219705001565e7ce3c8bbaba3226a",
+          "classification": "only called by retired PTY run_case path"
+        },
+        {
+          "kind": "fn",
+          "name": "load_subject_evidence",
+          "input_line_c817": 1379,
+          "input_line_sha256": "9dbbd7acf5732e0ec33fe75aa05cfc17151c7756e4a5c356c3ec028939e45113",
+          "classification": "exclusive to load_subject_manifest"
+        },
+        {
+          "kind": "fn",
+          "name": "resolve_fixed_evidence_file",
+          "input_line_c817": 1476,
+          "input_line_sha256": "87c67e6604916cfa2e6058f9f2db606d747da7620596ed0940e9f0f94448fbb0",
+          "classification": "exclusive subject evidence resolution"
+        },
+        {
+          "kind": "fn",
+          "name": "verify_evidence_digest",
+          "input_line_c817": 1836,
+          "input_line_sha256": "9f4b5f27df7c98c0079d7ebdd0464b66511ff7922523c96b9a717d4c7289c191",
+          "classification": "exclusive subject evidence validation"
+        },
+        {
+          "kind": "fn",
+          "name": "validate_subject_manifest",
+          "input_line_c817": 1846,
+          "input_line_sha256": "41f49b736cd78ae608c8f4d866c871e4b412d4307426b2f773f5d515c81490c6",
+          "classification": "exclusive PTY subject validation"
+        },
+        {
+          "kind": "fn",
+          "name": "validate_build_evidence_chain",
+          "input_line_c817": 1950,
+          "input_line_sha256": "1edd8071aff130d75aadb24508afcfd8d4a3b5ff444835fa9b529c15d369d698",
+          "classification": "exclusive PTY subject validation"
+        },
+        {
+          "kind": "fn",
+          "name": "validate_build_receipt",
+          "input_line_c817": 2412,
+          "input_line_sha256": "5d94ae18a2560e8ed5abe8d5c3fb6f36a692a8044aace903d70511dae19b145d",
+          "classification": "exclusive PTY subject validation"
+        },
+        {
+          "kind": "fn",
+          "name": "validate_mise_input",
+          "input_line_c817": 2481,
+          "input_line_sha256": "cca810099a74dd821ab4b69c19462361030500f5be146a2258c5da06a1916219",
+          "classification": "exclusive PTY subject validation"
+        },
+        {
+          "kind": "fn",
+          "name": "validate_actual_output_roots",
+          "input_line_c817": 3521,
+          "input_line_sha256": "9828e86c87786f54509ad5b6ac4f84a5f140ad7a37f38cf6a0c1c128efc1ca2a",
+          "classification": "exclusive PTY subject validation"
+        },
+        {
+          "kind": "fn",
+          "name": "resolve_actual_output_roots",
+          "input_line_c817": 3541,
+          "input_line_sha256": "0d8534a1730a0b6b877ca250ba584779863acb4b3e4a1010878d6852eb715e1f",
+          "classification": "exclusive PTY subject validation"
+        },
+        {
+          "kind": "fn",
+          "name": "canonical_existing_directory",
+          "input_line_c817": 3119,
+          "input_line_sha256": "43fb747cc540e39876513fcda00d9038b912e9a4cd3ab541d62e91df3fb4a5ce",
+          "classification": "no retained caller; the no-symlink helper remains"
+        },
+        {
+          "kind": "fn",
+          "name": "protected_root",
+          "input_line_c817": 3205,
+          "input_line_sha256": "9dc47d3c054118ad9db48c69cb58efc174bb28a5d9c2760ecdf38038b2661686",
+          "classification": "no retained caller; ProtectedRoot data type remains"
+        }
+      ]
+    },
+    {
+      "path": "crates/termrock-e2e/src/admission.rs",
+      "input_sha256_c817": "ceedd85370e1bced6312affb65bb23da888a9ccdcc5b3b453af610f77d711dc5",
+      "output_sha256": "ae35ca68d2327ca9397ff9491f6791ffbb4866187bbc070c3803920991535e7e",
+      "removed_input_line_ranges_c817": [
+        [
+          93,
+          99
+        ],
+        [
+          192,
+          272
+        ],
+        [
+          414,
+          532
+        ]
+      ],
+      "removed_input_line_count_c817": 207,
+      "removed_named_items": [
+        {
+          "kind": "struct",
+          "name": "LoadedAdmissionReceipt",
+          "input_line_c817": 94,
+          "input_line_sha256": "2091e51e62114b0fe3e0cb7d3c415b5460d27d1262bc1f2cca8f8846987efba4",
+          "classification": "exclusive ordinary reader result wrapper"
+        },
+        {
+          "kind": "fn",
+          "name": "load_pinned_admission_receipt",
+          "input_line_c817": 192,
+          "input_line_sha256": "6e4170ba0f7d2c8c9117e0b4525f87a7d9ba8d7dc254fc15392e10f917709949",
+          "classification": "ordinary reader has no retained caller"
+        },
+        {
+          "kind": "fn",
+          "name": "load_admission_envelope",
+          "input_line_c817": 210,
+          "input_line_sha256": "9b4d131042d528793b8936ac141ef407224d07f3cde688790943fcb141dce415",
+          "classification": "exclusive to retired ordinary reader"
+        },
+        {
+          "kind": "fn",
+          "name": "validate_admission_receipt",
+          "input_line_c817": 253,
+          "input_line_sha256": "0557de00872e6e6a1dbc9b5abbd4939a19c95d836016013f81681a8bbfbd517c",
+          "classification": "exclusive to retired ordinary reader"
+        }
+      ]
+    },
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "input_sha256_c817": "a918e73a811f6d2f22b82bf3fce5ac9f800d68131991831d5ce399a4493e4a52",
+      "output_sha256": "693ca7bb6f6d63be9e0b0ad2e6c5f4c306e53536aec33e5afb9677396796e575",
+      "removed_input_line_ranges_c817": [
+        [
+          8,
+          8
+        ],
+        [
+          228,
+          237
+        ],
+        [
+          534,
+          534
+        ],
+        [
+          540,
+          542
+        ],
+        [
+          561,
+          561
+        ],
+        [
+          746,
+          968
+        ],
+        [
+          976,
+          1807
+        ]
+      ],
+      "removed_input_line_count_c817": 1071,
+      "removed_named_items": [
+        {
+          "kind": "struct",
+          "name": "CapturedObservation",
+          "input_line_c817": 229,
+          "input_line_sha256": "8f00c24dfbb774e8c93a7b3db7c841a8630c9d580f39be5b21b67b2be96fa71d",
+          "classification": "exclusive actual-capture executor input"
+        },
+        {
+          "kind": "struct",
+          "name": "ValidatedActualObservation",
+          "input_line_c817": 794,
+          "input_line_sha256": "64ebee6f742550b747967108833fbdcaa75600d7642bebd42eec2dec2fee5759",
+          "classification": "exclusive actual-capture executor output"
+        },
+        {
+          "kind": "fn",
+          "name": "validate_actual_observation",
+          "input_line_c817": 746,
+          "input_line_sha256": "bcbb3bc4673d757cf7a7a3bf34e8e58b37027a1ee0df0837ce1fcd34a45ecead",
+          "classification": "no retained caller; old executor lane retired"
+        },
+        {
+          "kind": "fn",
+          "name": "compare_admitted_observations",
+          "input_line_c817": 803,
+          "input_line_sha256": "67ed55397f5f48e3a09c280c6d9f43497ef4cb159e5b3a504ede72e6717adb0b",
+          "classification": "no retained caller; old comparison executor retired"
+        },
+        {
+          "kind": "fn",
+          "name": "verify_artifact_bytes",
+          "input_line_c817": 908,
+          "input_line_sha256": "6426515a6a950b124bada2d9fe36d1ac584601ad7441dfa85c69fef9b1c14229",
+          "classification": "exclusive comparison helper"
+        },
+        {
+          "kind": "fn",
+          "name": "compare_frames",
+          "input_line_c817": 921,
+          "input_line_sha256": "93b047e1267b48cf7f7a234eee1099f5070f34edda5ffc6b2641d4ca514035b5",
+          "classification": "exclusive comparison helper"
+        },
+        {
+          "kind": "fn",
+          "name": "artifact_ref",
+          "input_line_c817": 961,
+          "input_line_sha256": "5444a237a3b90824dd40f0846955bc8b8396b666d0bd9e53c06f97ca458a393a",
+          "classification": "exclusive comparison helper"
+        },
+        {
+          "kind": "fn",
+          "name": "fidelity_binding",
+          "input_line_c817": 977,
+          "input_line_sha256": "412970cbb8dac7ef2d54e5d6fbc3960e8bbb2d6e37c1d7fcc00c9b82455a14ac",
+          "classification": "exclusive comparison helper"
+        }
+      ]
+    },
+    {
+      "path": "tools/refactor-proof/src/host/context_check.rs",
+      "input_sha256_c817": "62151751995bcbfd4e3ef216b79130661fdbc5e38428f89747005cd774292233",
+      "output_sha256": "fd5cb25dcb739d0c056253d8c3ee6a2b82501dbbb6f8f4233e6fc65cd1059039",
+      "removed_input_line_ranges_c817": [
+        [
+          6,
+          7
+        ],
+        [
+          27,
+          29
+        ],
+        [
+          33,
+          40
+        ],
+        [
+          102,
+          186
+        ]
+      ],
+      "removed_input_line_count_c817": 98,
+      "removed_named_items": [
+        {
+          "kind": "const",
+          "name": "FIXTURE_CONTEXT_SCHEMA",
+          "input_line_c817": 6,
+          "input_line_sha256": "3debb1429c6c675dce466ae9617603c741cf029a2e3bf6712bf8ffd8a138e011",
+          "classification": "legacy fixture-test context identifier"
+        },
+        {
+          "kind": "fn",
+          "name": "spawn_fixture_context_check_stub",
+          "input_line_c817": 33,
+          "input_line_sha256": "0a201fcdd41c6816eae266c46ec139aee76ecc9f19d90ea6ff79f2df592832ff",
+          "classification": "legacy stub invoked true"
+        }
+      ],
+      "control_flow_removals": [
+        {
+          "name": "fixture context dispatch",
+          "input_line_range_c817": [
+            27,
+            29
+          ],
+          "input_slice_sha256": "8622bb798caf554d5369e7845201bc4be056df2212dcd2ed089bdae1e3bd6bb8"
+        }
+      ]
+    }
+  ],
+  "other_non_comment_token_changes": [
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "kind": "import-reduction",
+      "input_line_c817": 8,
+      "input_line_sha256": "185a9498ec04f58e11ce412345fe6fffcb558605dd23ad56eb55846f46e319e7",
+      "removed_name": "ArtifactReceipt",
+      "before": "use crate::{ArtifactReceipt, Case, ExpectedGenerationInput, Geometry, RendererIdentity};",
+      "after": "use crate::{Case, ExpectedGenerationInput, Geometry, RendererIdentity};",
+      "reason": "ArtifactReceipt had no retained caller after the actual-observation executor was retired."
+    },
+    {
+      "path": "tools/refactor-proof/src/host/context_check.rs",
+      "kind": "control-flow-removal",
+      "input_line_range_c817": [
+        27,
+        29
+      ],
+      "input_slice_sha256": "8622bb798caf554d5369e7845201bc4be056df2212dcd2ed089bdae1e3bd6bb8",
+      "removed_behavior": "Fixture-context schema branch returned the fixture stub before normal tc-proof dispatch.",
+      "reason": "Only retired cfg(test) contexts referenced this lane."
+    }
+  ],
+  "retained_production_and_format_contracts": [
+    {
+      "path": "crates/termrock-e2e/src/lib.rs",
+      "contract": "The nine-flag admission CLI and its validation order, error/status format, compact JSON output, schema validators, containment/revalidation checks and no-replace publication remain."
+    },
+    {
+      "path": "crates/termrock-e2e/src/lib.rs",
+      "contract": "admit_expected_generation continues through load_expected_generation and load_oracle_capture. It retains validate_oracle_capture_receipt, validate_tag_record_binding and current admission validators."
+    },
+    {
+      "path": "crates/termrock-e2e/src/admission.rs",
+      "contract": "The retained writer is new_admission_receipt, with qualification review and binding validation. The canonical no-replace publisher remains in lib.rs. load_pinned_admission_receipt had no retained caller."
+    },
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "contract": "Keep load_expected_generation, parse_canonical_frame, opaque_png_info, expected_file_ref, PngInfoReceipt and generation validation because admission uses them."
+    },
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "contract": "Keep VisualComparisonEvidence, CheckReceipt.visual_comparison and public data-only comparison records. Retire only actual-observation/comparison executor helpers."
+    },
+    {
+      "path": "crates/termrock-e2e/src/lib.rs",
+      "contract": "Keep ExpectedGenerationReceipt, WRITE_POLICY_SCHEMA, ORACLE_CAPTURE_RECEIPT_SCHEMA_JSON, ProtectedRoot and WritePolicyReceipt as format/API types. No current Rust producer/consumer is established for the three otherwise-unused public exports."
+    },
+    {
+      "path": "tools/refactor-proof/src/host/context_check.rs",
+      "contract": "Keep context-path existence check, TC_PROOF_OPERATIONS, spawn_tc_proof_context_check, executable resolution, argument construction and proof/observer paths."
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "contract": "The separate Python subject-v2 schema consumer remains unchanged."
+    }
+  ],
+  "public_format_compatibility": {
+    "authority": "T37-E2E-FORMAT-01 (Sol high APPROVE_RETENTION)",
+    "retained_exports": [
+      "ExpectedGenerationReceipt",
+      "WRITE_POLICY_SCHEMA",
+      "ORACLE_CAPTURE_RECEIPT_SCHEMA_JSON",
+      "CheckReceipt.visual_comparison",
+      "VisualComparisonEvidence and public visual data-only record types"
+    ],
+    "current_rust_producer_or_consumer_established_for_unused_exports": false,
+    "reason": "Keep these public versioned-format identifiers and records for compatibility. This does not retain a runner, capture executor, comparison executor, or fresh qualification path. T01 must inventory these data-only API obligations."
+  },
+  "schema_retention_decision": {
+    "authority": "T37-E2E-SCHEMA-02 (Sol high APPROVE)",
+    "changed_schema_files": 0,
+    "all_twelve_json_schema_files_remain_byte_identical": true,
+    "active_retained_contract_or_format_names": [
+      "expected-generation-v1",
+      "generation-admission-v1",
+      "oracle-capture-receipt-v1",
+      "qualification-review-v1",
+      "tag-validator-toolchain-v1",
+      "subject-manifest-v2",
+      "receipt-v3"
+    ],
+    "historical_only_format_names": [
+      "receipt-v1",
+      "receipt-v2",
+      "subject-manifest-v1",
+      "trust-record-v1",
+      "trust-record-v2"
+    ],
+    "scope_note": "Active means a retained format or reader exists. It does not authorize the removed PTY/tag validator or current qualification. receipt-v3 remains a status.py diagnostic reader; no current producer is implied."
+  },
+  "source_comparison": {
+    "comparison_base": "prior_source_output_commit",
+    "surviving_function_bodies_changed": false,
+    "surviving_string_raw_string_or_byte_string_literals_changed": false,
+    "retained_body_changes": "No surviving function body changed in the correction. The only non-comment tokens outside removed items are reduction of the unused ArtifactReceipt import and deletion of the approved fixture dispatch branch.",
+    "line_and_hash_method": "Each changed file binds the full c817 SHA-256 and exact deleted c817 line ranges. Each named declaration binds its c817 declaration-line SHA-256. Ranges come from unified=0 Git hunks."
+  },
+  "retained_exports_with_no_current_source_caller": [
+    {
+      "path": "crates/termrock-e2e/src/lib.rs",
+      "name": "ExpectedGenerationReceipt",
+      "classification": "public versioned format compatibility; retain under T37-E2E-FORMAT-01"
+    },
+    {
+      "path": "crates/termrock-e2e/src/lib.rs",
+      "name": "WRITE_POLICY_SCHEMA",
+      "classification": "public versioned format compatibility; retain under T37-E2E-FORMAT-01"
+    },
+    {
+      "path": "crates/termrock-e2e/src/lib.rs",
+      "name": "ORACLE_CAPTURE_RECEIPT_SCHEMA_JSON",
+      "classification": "public versioned format compatibility; retain under T37-E2E-FORMAT-01"
+    }
+  ],
+  "removed_private_tag_producer_constants": [
+    "REFERENCE_BRANCH_REF",
+    "REFERENCE_BRANCH_MEMBERSHIP",
+    "TAG_SOURCE_VALIDATOR_PATH_ENV",
+    "TAG_SOURCE_REPOSITORY_ENV"
+  ],
+  "verification": {
+    "git_diff_check": {
+      "command": "git diff --check c817b99e9e43abbbf3519d56b2f5ee86924243d8 7fee71b6bd5091ce670d36644273ed1ffda1481d",
+      "status": "PASS"
+    },
+    "rustfmt": {
+      "command": "git diff --name-only --diff-filter=ACMRT c817b99e9e43abbbf3519d56b2f5ee86924243d8 7fee71b6bd5091ce670d36644273ed1ffda1481d -- '*.rs' | xargs mise exec -- rustfmt --edition 2024 --check",
+      "status": "PASS"
+    },
+    "cargo_commands_run": false,
+    "tests_run": false,
+    "behavior": "NOT VERIFIED",
+    "review": "Exact source review pending at final source commit.",
+    "owned_tree_structural_scan": {
+      "command": "rg -n --glob '*.rs' '#\\[[[:space:]]*(test([[:space:]]*\\])|[[:alnum:]_]+::test([[:space:]]*\\])|rstest|test_case)|#\\[[[:space:]]*cfg\\([^]]*test|^[[:space:]]*(pub[[:space:]]+)?mod[[:space:]]+tests\\b' crates/termrock-test-support crates/termrock-conformance crates/termrock-xtask crates/termrock-visibility-publisher crates/termrock-visibility-tests crates/visual-harness crates/termrock-e2e tools scripts tests external-consumer-demo parity",
+      "exit_code": 1,
+      "status": "PASS: no test annotations, cfg(test), or test modules matched."
+    },
+    "retired_helper_search": {
+      "command": "rg -n --glob '*.rs' '\\b(canonical_existing_directory|protected_root|load_pinned_admission_receipt|load_admission_envelope|validate_admission_receipt|LoadedAdmissionReceipt)\\b' crates/termrock-e2e/src",
+      "exit_code": 1,
+      "status": "PASS: no retired ordinary-reader or exclusive helper names remain."
+    },
+    "json_evidence_parse": {
+      "command": "python3 -m json.tool for every docs/implementation/pr38-final/results/t37-tools/*.json",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    "schema_bytes_unchanged": {
+      "command": "git diff --quiet c817b99e9e43abbbf3519d56b2f5ee86924243d8 7fee71b6bd5091ce670d36644273ed1ffda1481d -- crates/termrock-e2e/schemas",
+      "exit_code": 0,
+      "status": "PASS: all versioned schema files remain unchanged."
+    },
+    "source_map_hash_validation": {
+      "command": "One-off Python audit against git show c817 and final source commit",
+      "exit_code": 0,
+      "status": "PASS: all 169 input/output rows, all retained token-comparison rows and all correction rows match Git object hashes."
+    }
+  },
+  "limits": [
+    "No Cargo build, legacy test, replacement test, harness, or behavior case ran.",
+    "Shared manifests, locks, CI, generated workflows and active documentation are owned by other T37 agents.",
+    "T20-OBS-FD-01 remains open; this correction does not change observer ownership checks."
+  ],
+  "retained_format_items_exact_comparison": [
+    {
+      "path": "crates/termrock-e2e/src/lib.rs",
+      "name": "ExpectedGenerationReceipt",
+      "kind": "struct",
+      "input_line_range_c817": [
+        1125,
+        1132
+      ],
+      "input_slice_sha256": "d93b62a0aafe23c5a4fd939ba9b78a7b4bbe246b0ebf8639b4cf8b39698965ff",
+      "output_line_range": [
+        715,
+        722
+      ],
+      "output_slice_sha256": "d93b62a0aafe23c5a4fd939ba9b78a7b4bbe246b0ebf8639b4cf8b39698965ff",
+      "bytes_unchanged": true,
+      "authority": "T37-E2E-FORMAT-01"
+    },
+    {
+      "path": "crates/termrock-e2e/src/lib.rs",
+      "name": "WRITE_POLICY_SCHEMA",
+      "kind": "const",
+      "input_line_range_c817": [
+        55,
+        55
+      ],
+      "input_slice_sha256": "e4666665d95062db5314836f9cc8056299a3ad8ffdfb0655ccd7cdc21e9ec048",
+      "output_line_range": [
+        38,
+        38
+      ],
+      "output_slice_sha256": "e4666665d95062db5314836f9cc8056299a3ad8ffdfb0655ccd7cdc21e9ec048",
+      "bytes_unchanged": true,
+      "authority": "T37-E2E-FORMAT-01"
+    },
+    {
+      "path": "crates/termrock-e2e/src/lib.rs",
+      "name": "ORACLE_CAPTURE_RECEIPT_SCHEMA_JSON",
+      "kind": "const",
+      "input_line_range_c817": [
+        52,
+        53
+      ],
+      "input_slice_sha256": "37a7a414287ea532c3ea1155ebd497059c1805c2c348005bcd989fc7d4df7a19",
+      "output_line_range": [
+        35,
+        36
+      ],
+      "output_slice_sha256": "37a7a414287ea532c3ea1155ebd497059c1805c2c348005bcd989fc7d4df7a19",
+      "bytes_unchanged": true,
+      "authority": "T37-E2E-FORMAT-01"
+    },
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "name": "VisualComparisonEvidence",
+      "kind": "struct",
+      "input_line_range_c817": [
+        128,
+        136
+      ],
+      "input_slice_sha256": "e34e6fc740ca954bb6340c27af30851b27d1a7e24894d8585279bd4faca6c1ec",
+      "output_line_range": [
+        128,
+        136
+      ],
+      "output_slice_sha256": "e34e6fc740ca954bb6340c27af30851b27d1a7e24894d8585279bd4faca6c1ec",
+      "bytes_unchanged": true,
+      "authority": "T37-E2E-FORMAT-01"
+    },
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "name": "VisualAdmission",
+      "kind": "struct",
+      "input_line_range_c817": [
+        140,
+        147
+      ],
+      "input_slice_sha256": "811fed975c2f02f113b4d518660684f477d1d2025b5d7479864d02db8fb6bc27",
+      "output_line_range": [
+        140,
+        147
+      ],
+      "output_slice_sha256": "811fed975c2f02f113b4d518660684f477d1d2025b5d7479864d02db8fb6bc27",
+      "bytes_unchanged": true,
+      "authority": "T37-E2E-FORMAT-01"
+    },
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "name": "RendererComparison",
+      "kind": "struct",
+      "input_line_range_c817": [
+        151,
+        155
+      ],
+      "input_slice_sha256": "206cf8e2f8be790dfd71b4ed99024f9f1f4b2df03c794ac09990a30e24de8737",
+      "output_line_range": [
+        151,
+        155
+      ],
+      "output_slice_sha256": "206cf8e2f8be790dfd71b4ed99024f9f1f4b2df03c794ac09990a30e24de8737",
+      "bytes_unchanged": true,
+      "authority": "T37-E2E-FORMAT-01"
+    },
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "name": "ArtifactRef",
+      "kind": "struct",
+      "input_line_range_c817": [
+        159,
+        163
+      ],
+      "input_slice_sha256": "da7ed7351f6127da628b1cb2bfea1729c4b93d3e081e63c568af2cd459bb59bc",
+      "output_line_range": [
+        159,
+        163
+      ],
+      "output_slice_sha256": "da7ed7351f6127da628b1cb2bfea1729c4b93d3e081e63c568af2cd459bb59bc",
+      "bytes_unchanged": true,
+      "authority": "T37-E2E-FORMAT-01"
+    },
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "name": "FrameComparison",
+      "kind": "struct",
+      "input_line_range_c817": [
+        167,
+        178
+      ],
+      "input_slice_sha256": "e66c2d11e30f7d2751d2d249a7e2d6d493f35993d28574586309dc82a443daea",
+      "output_line_range": [
+        167,
+        178
+      ],
+      "output_slice_sha256": "e66c2d11e30f7d2751d2d249a7e2d6d493f35993d28574586309dc82a443daea",
+      "bytes_unchanged": true,
+      "authority": "T37-E2E-FORMAT-01"
+    },
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "name": "DifferingPosition",
+      "kind": "struct",
+      "input_line_range_c817": [
+        182,
+        185
+      ],
+      "input_slice_sha256": "3b22bda9d78333a82d80ad5c57fa3e243ca2e172a7a1b8f24c3c48a61838534b",
+      "output_line_range": [
+        182,
+        185
+      ],
+      "output_slice_sha256": "3b22bda9d78333a82d80ad5c57fa3e243ca2e172a7a1b8f24c3c48a61838534b",
+      "bytes_unchanged": true,
+      "authority": "T37-E2E-FORMAT-01"
+    },
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "name": "PngInfoReceipt",
+      "kind": "struct",
+      "input_line_range_c817": [
+        189,
+        194
+      ],
+      "input_slice_sha256": "edadded54b204e1ec77613fe899b47222330df70c30923625fc01c25a9cbb4d3",
+      "output_line_range": [
+        189,
+        194
+      ],
+      "output_slice_sha256": "edadded54b204e1ec77613fe899b47222330df70c30923625fc01c25a9cbb4d3",
+      "bytes_unchanged": true,
+      "authority": "T37-E2E-FORMAT-01"
+    },
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "name": "PngComparison",
+      "kind": "struct",
+      "input_line_range_c817": [
+        198,
+        207
+      ],
+      "input_slice_sha256": "43e58e35059c9c6f7aad9c4b26b05299302f0b166d7e84ba8f7018566b72ef22",
+      "output_line_range": [
+        198,
+        207
+      ],
+      "output_slice_sha256": "43e58e35059c9c6f7aad9c4b26b05299302f0b166d7e84ba8f7018566b72ef22",
+      "bytes_unchanged": true,
+      "authority": "T37-E2E-FORMAT-01"
+    },
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "name": "FidelityBinding",
+      "kind": "struct",
+      "input_line_range_c817": [
+        211,
+        219
+      ],
+      "input_slice_sha256": "342b148db4f4859d67b8304da555d80637da19e2b8428592985e9190ff0ac2b9",
+      "output_line_range": [
+        211,
+        219
+      ],
+      "output_slice_sha256": "342b148db4f4859d67b8304da555d80637da19e2b8428592985e9190ff0ac2b9",
+      "bytes_unchanged": true,
+      "authority": "T37-E2E-FORMAT-01"
+    },
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "name": "FidelityComparison",
+      "kind": "struct",
+      "input_line_range_c817": [
+        223,
+        226
+      ],
+      "input_slice_sha256": "fc63aa44862d47ae082153944288ff28098878467c40764bf1b1b35a6f8d2f0e",
+      "output_line_range": [
+        223,
+        226
+      ],
+      "output_slice_sha256": "fc63aa44862d47ae082153944288ff28098878467c40764bf1b1b35a6f8d2f0e",
+      "bytes_unchanged": true,
+      "authority": "T37-E2E-FORMAT-01"
+    },
+    {
+      "path": "crates/termrock-e2e/src/lib.rs",
+      "name": "CheckReceipt.visual_comparison",
+      "kind": "serde-field",
+      "input_line_range_c817": [
+        1199,
+        1200
+      ],
+      "input_slice_sha256": "0764054f3b9c8d0d04dc872e7e6d8900e3cd3853e3ef4819d83e80c7b12fbb47",
+      "output_line_range": [
+        774,
+        775
+      ],
+      "output_slice_sha256": "0764054f3b9c8d0d04dc872e7e6d8900e3cd3853e3ef4819d83e80c7b12fbb47",
+      "bytes_unchanged": true,
+      "preserved_attribute": "#[serde(skip_serializing_if = \"Option::is_none\", skip_deserializing)]",
+      "authority": "T37-E2E-ORPHAN-01/T37-E2E-FORMAT-01"
+    }
+  ],
+  "reproducibility_limits": {
+    "retained_source_token_checker": "The first retained-source-token-comparison.json was produced by a one-off lexical checker that was not committed. It did not leave a reproducible command or script path.",
+    "independent_review": "The Sol-high reviewer used an independent field/statement-aware check with raw-string fixture exclusion. This worker did not reconstruct or claim a reusable checker.",
+    "this_delta_method": "This correction delta binds exact Git input/output file hashes, unified=0 deleted line ranges, declaration-line hashes, and byte hashes for retained public format items. These records support audit of this correction but are not a replacement test or general parser.",
+    "limits": "Token and hash comparison do not prove runtime behavior. No Cargo build, test, or admission/capture behavior ran."
+  }
+}
