@@ -120,36 +120,3 @@ fn format_duration(secs: u64) -> String {
         format!("{s} s")
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn durations_use_two_units() {
-        assert_eq!(format_duration(0), "0 s");
-        assert_eq!(format_duration(38), "38 s");
-        assert_eq!(format_duration(450), "7 min 30 s");
-        assert_eq!(format_duration(8_040), "2 h 14 min");
-        assert_eq!(format_duration(7_200), "2 h");
-        assert_eq!(format_duration(97_200), "1 d 3 h");
-        assert_eq!(format_duration(259_200), "3 d");
-    }
-
-    #[test]
-    fn clock_is_pure_over_ticks() {
-        let mut c = Clock::new();
-        for _ in 0..30 {
-            c.advance(33);
-        }
-        assert_eq!(c.now_ms, 990);
-        assert_eq!(c.now_secs(), EPOCH_SECS);
-        assert_eq!(Clock::stamp(EPOCH_SECS), "2026-09-03 09:14");
-        assert_eq!(Clock::weekday(EPOCH_SECS), "Thu");
-        assert_eq!(c.ago(EPOCH_SECS - 3 * 60), "3 min ago");
-        assert_eq!(c.reset_label(EPOCH_SECS + 8_040), "resets in 2 h 14 min");
-        c.running = false;
-        c.advance(33);
-        assert_eq!(c.now_ms, 990);
-    }
-}

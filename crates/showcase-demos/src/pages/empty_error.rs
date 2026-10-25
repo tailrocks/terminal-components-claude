@@ -1,4 +1,4 @@
-//! Empty states, recovery actions, and read-only data surfaces.
+
 
 use termrock::{
     ActionKey, Anchor, BindingState, Bindings, Button, CellRef, Column, ColumnKey, ContextMenu,

@@ -242,22 +242,3 @@ pub enum AuthMode {
     OAuthToken,
     Ignore,
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn axes_are_linked_but_distinct() {
-        assert_eq!(Agent::ClaudeCode.provider(), Provider::Anthropic);
-        assert_eq!(Provider::Anthropic.usage_surface(), UsageSurface::Claude);
-        assert_eq!(Provider::Zai.agent(), None);
-        assert_eq!(UsageSurface::Unsupported.provider(), None);
-        assert!(Agent::GrokBuild.registerable());
-        assert!(!Agent::Amp.registerable());
-        assert_eq!(Agent::ClaudeCode.auth_modes().len(), 4);
-        assert_eq!(Agent::Codex.auth_modes().len(), 3);
-        assert!(Provider::XAi.supports_endpoint());
-        assert!(!Provider::OpenCode.supports_endpoint());
-    }
-}

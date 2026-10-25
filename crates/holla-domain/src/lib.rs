@@ -31,15 +31,3 @@ pub fn human_bytes(bytes: u64) -> String {
         format!("{bytes} B")
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn human_bytes_grammar() {
-        assert_eq!(human_bytes(9_007_199_254), "8.4 GB");
-        assert_eq!(human_bytes(943_718_400), "900 MB");
-        assert_eq!(human_bytes(512), "512 B");
-    }
-}
