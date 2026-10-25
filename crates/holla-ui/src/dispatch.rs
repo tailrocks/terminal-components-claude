@@ -425,18 +425,13 @@ fn simulate(world: &mut World, action: &Action) -> Destination {
             "test cache::stores ... FAILED".into(),
             "error: assertion failed · exit code 1".into(),
         ];
-        let execution_id = match world.activity_supervisor.register(
-            &activity,
-            ActivityExecutionStart::Running,
-            ActivityStopProfile::Responsive,
-        ) {
+        let execution_id = match world
+            .activity_supervisor
+            .register_terminal(&activity, ActivityStopProfile::Responsive)
+        {
             Ok(id) => id,
             Err(error) => return Destination::Notice(format!("Activity unavailable · {error}")),
         };
-        world
-            .activity_supervisor
-            .observe_terminal_exit(execution_id, &activity)
-            .expect("a newly registered exact Activity snapshot can exit naturally");
         world.activities.push(activity);
         return Destination::ActivityNotice {
             id,
@@ -689,5 +684,66 @@ mod tests {
         let before = world.activities.clone();
         assert!(matches!(invoke(&mut world, &logs), Destination::Notice(_)));
         assert_eq!(world.activities, before);
+    }
+
+    #[test]
+    fn launch_failure_registration_conflict_returns_notice_without_publishing_activity() {
+        let mut world = settled(Scenario::LaunchFailure);
+        let selected = action(&world, "task:test");
+        let intended_id = next_activity_id(&world).unwrap();
+        let prior = Activity::new(
+            intended_id,
+            "prior worker",
+            "fixture",
+            ActivityState::Running,
+            world.now_ms(),
+        );
+        let prior_execution = world
+            .activity_supervisor
+            .register(
+                &prior,
+                ActivityExecutionStart::Running,
+                ActivityStopProfile::Responsive,
+            )
+            .unwrap();
+        let activities_before = world.activities.clone();
+
+        let destination = invoke(&mut world, &selected);
+
+        assert!(matches!(
+            destination,
+            Destination::Notice(message)
+                if message == format!(
+                    "Activity unavailable · activity ID {intended_id} is already registered"
+                )
+        ));
+        assert_eq!(world.activities, activities_before);
+        assert_eq!(world.effect_revision, 0);
+        assert_eq!(
+            world.activity_supervisor.current_execution_id(intended_id),
+            Some(prior_execution)
+        );
+        let prior_record = world
+            .activity_supervisor
+            .execution(prior_execution)
+            .unwrap();
+        assert_eq!(prior_record.snapshot(), &prior);
+        assert_eq!(
+            prior_record.phase(),
+            crate::sim::activity_supervisor::ActivityExecutionPhase::Running
+        );
+
+        let probe = Activity::new(
+            intended_id + 1,
+            "generation probe",
+            "fixture",
+            ActivityState::Failed,
+            world.now_ms(),
+        );
+        let probe_id = world
+            .activity_supervisor
+            .register_terminal(&probe, ActivityStopProfile::Responsive)
+            .unwrap();
+        assert_eq!(probe_id.generation(), 2);
     }
 }

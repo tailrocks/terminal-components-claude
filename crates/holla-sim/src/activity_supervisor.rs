@@ -394,6 +394,42 @@ impl ActivitySupervisor {
         Ok(id)
     }
 
+    /// Registers an exact Activity snapshot that has already reached a terminal state.
+    ///
+    /// This publishes a stopped execution without adding a simulated stop lifecycle.
+    /// Duplicate display IDs and exhausted generations leave the supervisor unchanged.
+    ///
+    /// # Errors
+    /// Returns [`ActivitySupervisorError::DuplicateActivityId`] when the display ID is current,
+    /// or [`ActivitySupervisorError::GenerationExhausted`] when no generation is available.
+    pub fn register_terminal(
+        &mut self,
+        snapshot: &Activity,
+        profile: ActivityStopProfile,
+    ) -> Result<ActivityExecutionId, ActivitySupervisorError> {
+        if self.current_by_activity_id.contains_key(&snapshot.id) {
+            return Err(ActivitySupervisorError::DuplicateActivityId {
+                activity_id: snapshot.id,
+            });
+        }
+        let generation = self
+            .next_generation
+            .ok_or(ActivitySupervisorError::GenerationExhausted)?;
+        let next_generation = generation.checked_add(1);
+        let id = ActivityExecutionId {
+            activity_id: snapshot.id,
+            generation,
+        };
+        let mut execution =
+            ActivityExecution::new(id, snapshot, ActivityExecutionStart::Running, profile);
+        execution.phase = ActivityExecutionPhase::Stopped;
+
+        self.executions.insert(id, execution);
+        self.current_by_activity_id.insert(snapshot.id, id);
+        self.next_generation = next_generation;
+        Ok(id)
+    }
+
     /// Replaces a stopped execution with a newly registered snapshot and generation.
     ///
     /// The old generation remains queryable for history, but it can no longer
@@ -703,6 +739,133 @@ mod tests {
         let activity = fixture_activity(id, "worker", ActivityState::Running);
         let execution = supervisor.register(&activity, state, profile)?;
         Ok((activity, execution))
+    }
+
+    #[test]
+    fn terminal_registration_publishes_exact_stopped_snapshot_without_a_stop_lifecycle()
+    -> Result<(), Box<dyn Error>> {
+        let mut supervisor = ActivitySupervisor::new();
+        supervisor.advance_to(37);
+        let snapshot = fixture_activity(1, "finished", ActivityState::Failed);
+        let profile = ActivityStopProfile::Resistant;
+
+        let id = supervisor.register_terminal(&snapshot, profile)?;
+        let execution = supervisor
+            .execution(id)
+            .ok_or("terminal execution missing")?;
+        assert_eq!(id.activity_id(), snapshot.id);
+        assert_eq!(id.generation(), 1);
+        assert_eq!(supervisor.current_execution_id(snapshot.id), Some(id));
+        assert_eq!(execution.id(), id);
+        assert_eq!(execution.snapshot(), &snapshot);
+        assert_eq!(execution.profile(), profile);
+        assert_eq!(execution.phase(), ActivityExecutionPhase::Stopped);
+        assert!(!execution.is_owned());
+        assert_eq!(execution.stop_phase(), ActivityStopPhase::NotRequested);
+        assert_eq!(execution.stop_requested_ms(), None);
+        assert_eq!(execution.kill_deadline_ms(), None);
+        assert_eq!(execution.reap_deadline_ms(), None);
+        assert!(execution.milestones().is_empty());
+        assert_eq!(supervisor.high_water_ms(), 37);
+
+        let (_, next) = register(
+            &mut supervisor,
+            2,
+            ActivityExecutionStart::Running,
+            ActivityStopProfile::Responsive,
+        )?;
+        assert_eq!(next.generation(), 2);
+        Ok(())
+    }
+
+    #[test]
+    fn duplicate_terminal_registration_is_atomic_and_preserves_error_precedence()
+    -> Result<(), Box<dyn Error>> {
+        let mut supervisor = ActivitySupervisor::new();
+        let (original, original_id) = register(
+            &mut supervisor,
+            5,
+            ActivityExecutionStart::Running,
+            ActivityStopProfile::Responsive,
+        )?;
+        supervisor.advance_to(73);
+        let duplicate = fixture_activity(5, "replacement", ActivityState::Failed);
+        let current_before = supervisor.current_by_activity_id.clone();
+        let execution_count_before = supervisor.executions.len();
+        let generation_before = supervisor.next_generation;
+
+        assert_eq!(
+            supervisor.register_terminal(&duplicate, ActivityStopProfile::Resistant),
+            Err(ActivitySupervisorError::DuplicateActivityId { activity_id: 5 })
+        );
+        assert_eq!(supervisor.current_by_activity_id, current_before);
+        assert_eq!(supervisor.executions.len(), execution_count_before);
+        assert_eq!(supervisor.next_generation, generation_before);
+        assert_eq!(supervisor.high_water_ms(), 73);
+        let execution = supervisor
+            .execution(original_id)
+            .ok_or("original execution missing")?;
+        assert_eq!(execution.snapshot(), &original);
+        assert_eq!(execution.phase(), ActivityExecutionPhase::Running);
+        assert_eq!(supervisor.current_execution_id(5), Some(original_id));
+
+        supervisor.next_generation = None;
+        assert_eq!(
+            supervisor.register_terminal(&duplicate, ActivityStopProfile::Resistant),
+            Err(ActivitySupervisorError::DuplicateActivityId { activity_id: 5 })
+        );
+        assert_eq!(supervisor.current_by_activity_id, current_before);
+        assert_eq!(supervisor.executions.len(), execution_count_before);
+        assert_eq!(supervisor.next_generation, None);
+        assert_eq!(supervisor.high_water_ms(), 73);
+        assert_eq!(
+            supervisor
+                .execution(original_id)
+                .map(ActivityExecution::phase),
+            Some(ActivityExecutionPhase::Running)
+        );
+
+        supervisor.next_generation = generation_before;
+        let (_, next) = register(
+            &mut supervisor,
+            6,
+            ActivityExecutionStart::Running,
+            ActivityStopProfile::Responsive,
+        )?;
+        assert_eq!(next.generation(), 2);
+        Ok(())
+    }
+
+    #[test]
+    fn exhausted_terminal_registration_leaves_supervisor_unchanged() -> Result<(), Box<dyn Error>> {
+        let mut supervisor = ActivitySupervisor::new();
+        let (original, original_id) = register(
+            &mut supervisor,
+            7,
+            ActivityExecutionStart::Running,
+            ActivityStopProfile::Responsive,
+        )?;
+        supervisor.advance_to(91);
+        supervisor.next_generation = None;
+        let current_before = supervisor.current_by_activity_id.clone();
+        let execution_count_before = supervisor.executions.len();
+        let terminal = fixture_activity(8, "finished", ActivityState::Failed);
+
+        assert_eq!(
+            supervisor.register_terminal(&terminal, ActivityStopProfile::Responsive),
+            Err(ActivitySupervisorError::GenerationExhausted)
+        );
+        assert_eq!(supervisor.current_by_activity_id, current_before);
+        assert_eq!(supervisor.executions.len(), execution_count_before);
+        assert_eq!(supervisor.next_generation, None);
+        assert_eq!(supervisor.high_water_ms(), 91);
+        assert_eq!(supervisor.current_execution_id(8), None);
+        let execution = supervisor
+            .execution(original_id)
+            .ok_or("original execution missing")?;
+        assert_eq!(execution.snapshot(), &original);
+        assert_eq!(execution.phase(), ActivityExecutionPhase::Running);
+        Ok(())
     }
 
     #[test]
