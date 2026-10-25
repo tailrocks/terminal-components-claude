@@ -5,8 +5,8 @@
   "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
   "product_source_baseline": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
   "input_parent_review": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
-  "output_commit": "697a0353e5c84485b5dc36aa8058a4c71a1c236e",
-  "output_tree": "549f7242cf4eb2c07c5e724e9076c71c2bb39c4c",
+  "output_commit": "7fee71b6bd5091ce670d36644273ed1ffda1481d",
+  "output_tree": "26accf71f406f29b37698cdd25e7e4349d8c87f4",
   "source_worktree": "/Users/donbeave/Downloads/termrock-t37-tools",
   "branch": "pr38/T37-tools",
   "model": "gpt-6-luna",
@@ -190,7 +190,8 @@
     "tools/visibility/queue.py",
     "tools/visibility/status.py",
     "tools/visibility/subjects.py",
-    "tools/visibility/tests/test_queue.py"
+    "tools/visibility/tests/test_queue.py",
+    "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json"
   ],
   "record_path": "docs/implementation/pr38-final/results/t37-tools/AGENT-RUNBOOK.json",
   "change_counts": {
@@ -201,7 +202,9 @@
       "total": 169
     },
     "evidence_paths_added_in_source_commit": 8,
-    "source_commit_paths_total": 177
+    "source_commit_paths_total": 177,
+    "evidence_paths_added_after_source_commit": 1,
+    "final_fragment_paths_total": 178
   },
   "requirements": [
     {
@@ -237,7 +240,7 @@
   ],
   "deletion_classifications": {
     "source_map": "docs/implementation/pr38-final/results/t37-tools/file-deletion-map.json",
-    "source_map_sha256": "28109f17e587ea22ca8f95e7d9a0289e46718c9a2dffc67f4aace51101645057",
+    "source_map_sha256": "074a09a56c99e04bcbd8026b71f080c0ff28dd395846b9882da29da0fb7e3a17",
     "inventory_reconciliation": "docs/implementation/pr38-final/results/t37-tools/inventory-reconciliation.json",
     "inventory_reconciliation_sha256": "421e96e641f71a7d5d26ef9cddf4f1ec005c1d46d8642cd31405cd7007690b12",
     "inventory_rows": {
@@ -286,12 +289,17 @@
       "T37-CAPTURE-01: retire capture.sh, capture_exec.sh, baseline_capture.sh, capture_provenance.py, parity_replay.py, and parity_approve.py; preserve immutable baseline/parity data and receipts.",
       "T37-INVENTORY-01: retire tools/test-inventory/inventory.py and exclusive profiles.json; retain historical.json and required.json byte-identically.",
       "T37-DOC-INVENTORY-01: retire crates/termrock-xtask/src/doc_inventory.rs and its sole module export; retain ownership module, CLI, help, and diagnostics.",
-      "T37-E2E-SCHEMA-01/02: retain all 12 schema files byte-identically; classify seven active retained contracts/formats and five historical-only formats."
+      "T37-E2E-SCHEMA-01/02: retain all 12 schema files byte-identically; classify seven active retained contracts/formats and five historical-only formats.",
+      "T37-E2E-ORPHAN-01: retire the uncalled Rust PTY subject-loader/validator and actual-observation/visual-comparison executor closures; retain admission validators, public data-only formats, expected-generation helpers, and all twelve schema bytes.",
+      "T37-PROOF-FIXTURE-01: retire the fixture-context schema dispatch and true-command stub; preserve the normal tc-proof dispatch and all proof/observer paths.",
+      "T37-E2E-ORPHAN-01: retire the uncalled Rust PTY subject-loader/validator, actual-observation/comparison executor, ordinary admission reader and exclusive helpers; preserve admission writing and active validators.",
+      "T37-E2E-FORMAT-01: retain ExpectedGenerationReceipt, WRITE_POLICY_SCHEMA, ORACLE_CAPTURE_RECEIPT_SCHEMA_JSON, CheckReceipt.visual_comparison and visual data-only format records for compatibility; no current Rust producer/consumer is established for the unused exports.",
+      "T37-PROOF-FIXTURE-01: retire fixture-context schema dispatch and the true-command stub; preserve normal tc-proof dispatch and proof/observer paths."
     ],
     "retained_source_token_evidence": {
       "path": "docs/implementation/pr38-final/results/t37-tools/retained-source-token-comparison.json",
-      "sha256": "f62df5e6b1476007f15d1d18c722d882a115673a33cb35fb63390476e71a1035",
-      "summary": "No retained function string/raw-string/byte-string literal changed. Retained function-level token deltas are punctuation normalization only. Named non-comment item changes are the approved TOOLING_MEMBERS entry removal, sole doc_inventory module export removal, and unconsumed RECEIPT_SCHEMA_V2 constant removal; see the record for paths, lines, hashes, and authorities."
+      "sha256": "952abb22bad3420a381c74fe7a82e897f55af261079a52366aa1542a3e8c4dea",
+      "summary": "Final source hashes and approved orphan closures are reconciled in source-correction-delta.json. The one-off lexical checker was not retained; the Sol-high reviewer used an independent field/statement-aware check. Exact retained format byte hashes are listed."
     },
     "source_prose_evidence": {
       "path": "docs/implementation/pr38-final/results/t37-tools/source-prose-map.json",
@@ -304,6 +312,11 @@
       "sha256": "cd45841ad0660b03a028d1f1abf3aab5d5c0828b0b3b714a4f2dc10d84627c30",
       "details": "Lists 127 removed Rust import statements with fixed-input paths, hashes, and lines; all 287 cfg(test) scopes, 132 test modules, and 1,374 test-function rows; the 460 E2E/visibility function rows; all deleted functions from matched changed files; eight test-only struct field groups; and four cfg(test) fields removed from two retained ReqwestTransport structs.",
       "source_row_validation": "PASS; 550 source-bound checks. The one-off audit code was not retained."
+    },
+    "source_correction_delta": {
+      "path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json",
+      "sha256": "043c0f25e152a130c4c02913c760a359fe4d21535d45df1b8763d70862ee1a74",
+      "details": "Exact c817 line ranges/hashes, all removed Rust items, retained call paths, public format-retention exception, schema classifications and approved E2E/proof fixture closures."
     }
   },
   "preserved_help_directives_and_legal": {
@@ -408,6 +421,99 @@
       "passed_tests": 0,
       "failed_tests": 0,
       "evidence_path": "docs/implementation/pr38-final/results/t37-tools/AGENT-RUNBOOK.json"
+    },
+    {
+      "command": "git diff --check c817b99e9e43abbbf3519d56b2f5ee86924243d8 be7db4f3c98a0f742010385d28e5d510b7adb4d0",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json"
+    },
+    {
+      "command": "mise exec -- rustfmt --edition 2024 --check crates/termrock-e2e/src/lib.rs crates/termrock-e2e/src/visual.rs tools/refactor-proof/src/host/context_check.rs",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json"
+    },
+    {
+      "command": "git diff --check c817b99e9e43abbbf3519d56b2f5ee86924243d8 7fee71b6bd5091ce670d36644273ed1ffda1481d",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json"
+    },
+    {
+      "command": "mise exec -- rustfmt --edition 2024 --check crates/termrock-e2e/src/lib.rs crates/termrock-e2e/src/visual.rs crates/termrock-e2e/src/admission.rs tools/refactor-proof/src/host/context_check.rs",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json"
+    },
+    {
+      "command": "rg -n --glob \"*.rs\" \"\\b(canonical_existing_directory|protected_root|load_pinned_admission_receipt|load_admission_envelope|validate_admission_receipt|LoadedAdmissionReceipt)\\b\" crates/termrock-e2e/src",
+      "exit_code": 1,
+      "result": "PASS: no retired ordinary-reader or exclusive helper names remain in the E2E source tree.",
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json"
+    },
+    {
+      "command": "git diff --check c817b99e9e43abbbf3519d56b2f5ee86924243d8 7fee71b6bd5091ce670d36644273ed1ffda1481d",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json"
+    },
+    {
+      "command": "git diff --name-only --diff-filter=ACMRT c817b99e9e43abbbf3519d56b2f5ee86924243d8 7fee71b6bd5091ce670d36644273ed1ffda1481d -- '*.rs' | xargs mise exec -- rustfmt --edition 2024 --check",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json"
+    },
+    {
+      "command": "rg -n --glob '*.rs' '#\\[[[:space:]]*(test([[:space:]]*\\])|[[:alnum:]_]+::test([[:space:]]*\\])|rstest|test_case)|#\\[[[:space:]]*cfg\\([^]]*test|^[[:space:]]*(pub[[:space:]]+)?mod[[:space:]]+tests\\b' crates/termrock-test-support crates/termrock-conformance crates/termrock-xtask crates/termrock-visibility-publisher crates/termrock-visibility-tests crates/visual-harness crates/termrock-e2e tools scripts tests external-consumer-demo parity",
+      "exit_code": 1,
+      "result": "PASS: no test annotations, cfg(test), or test modules matched.",
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json"
+    },
+    {
+      "command": "python3 -m json.tool for every docs/implementation/pr38-final/results/t37-tools/*.json",
+      "exit_code": 0,
+      "result": "PASS",
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json"
+    },
+    {
+      "command": "git diff --quiet c817b99e9e43abbbf3519d56b2f5ee86924243d8 7fee71b6bd5091ce670d36644273ed1ffda1481d -- crates/termrock-e2e/schemas",
+      "exit_code": 0,
+      "result": "PASS: all versioned schema files remain unchanged.",
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json"
+    },
+    {
+      "command": "One-off Python audit against git show c817 and final source commit",
+      "exit_code": 0,
+      "result": "PASS: all 169 input/output rows, retained token rows, and correction rows match Git object hashes; 14 retained format slices are byte-identical.",
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json"
     }
   ],
   "approved_test_plan_id": null,
@@ -432,8 +538,14 @@
     "fixed_input": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
     "worktree_clean_after_source_commit": true,
     "toolchain_policy": "Rust commands use mise; Cargo commands must go through rust-build-guard. This worker did not invoke Cargo.",
-    "source_commit_parent": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
-    "disk_policy": "Applied. No guard bypass was attempted."
+    "source_commit_parent": "be7db4f3c98a0f742010385d28e5d510b7adb4d0",
+    "disk_policy": "Applied. No guard bypass was attempted.",
+    "source_commit_chain": [
+      "697a0353e5c84485b5dc36aa8058a4c71a1c236e",
+      "d0cf09540dbc50328351bf980d18b201d08a8ffa",
+      "be7db4f3c98a0f742010385d28e5d510b7adb4d0",
+      "7fee71b6bd5091ce670d36644273ed1ffda1481d"
+    ]
   },
   "shared_changes_needed": {
     "proposal_path": "docs/implementation/pr38-final/results/t37-tools/shared-metadata-proposals.json",
@@ -453,7 +565,8 @@
     "integration_actions": [
       "Run guarded Cargo metadata and workspace/all-targets/all-features check after shared metadata integration.",
       "Complete Velnor generation and exact independent Sol-high source review.",
-      "Preserve T20-OBS-FD-01 as an open follow-up; no T37 behavior claim."
+      "Preserve T20-OBS-FD-01 as an open follow-up; no T37 behavior claim.",
+      "T01 must inventory the retained ExpectedGenerationReceipt, WRITE_POLICY_SCHEMA, ORACLE_CAPTURE_RECEIPT_SCHEMA_JSON and visual comparison data-only public format obligations."
     ]
   },
   "approved_ownership_decisions": [
@@ -465,7 +578,10 @@
     "T37-CAPTURE-01",
     "T37-INVENTORY-01",
     "T37-DOC-INVENTORY-01",
-    "T37-TOOLS-SAFETY-01"
+    "T37-TOOLS-SAFETY-01",
+    "T37-E2E-ORPHAN-01",
+    "T37-PROOF-FIXTURE-01",
+    "T37-E2E-FORMAT-01"
   ],
   "safety_review": {
     "reviewer_id": "/root/t00_independent_review",
@@ -481,14 +597,16 @@
     "model": "gpt-6.1-sol",
     "effort": "high",
     "status": "PENDING",
-    "reviewed_commit": "697a0353e5c84485b5dc36aa8058a4c71a1c236e"
+    "reviewed_commit": "7fee71b6bd5091ce670d36644273ed1ffda1481d",
+    "review_scope": "Exact source after T37-E2E-ORPHAN-01, T37-E2E-FORMAT-01 and T37-PROOF-FIXTURE-01 closure corrections."
   },
   "limits": [
     "T37 structural cleanup does not verify product behavior; behavior is NOT VERIFIED.",
     "No legacy tests ran and no new test, harness, fixture, doctest, snapshot, or gate was added.",
     "Cargo metadata, workspace build, and Velnor generation remain shared-owner integration checks.",
     "F01, F18, and F20 dispositions are recorded in inventory-reconciliation.json; no behavior claim follows.",
-    "Observer fd ownership assumptions remain open under T20-OBS-FD-01."
+    "Observer fd ownership assumptions remain open under T20-OBS-FD-01.",
+    "T37-E2E-FORMAT-01 exports remain as data-only public compatibility; no current Rust producer/consumer was established for the three otherwise-unused exports. T01 must inventory these API obligations."
   ],
   "not_run": [
     {
@@ -510,6 +628,7 @@
   ],
   "evidence_followup_paths": [
     "docs/implementation/pr38-final/results/t37-tools/AGENT-RUNBOOK.json",
-    "docs/implementation/pr38-final/results/t37-tools/rust-source-cleanup-delta.json"
+    "docs/implementation/pr38-final/results/t37-tools/rust-source-cleanup-delta.json",
+    "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json"
   ]
 }

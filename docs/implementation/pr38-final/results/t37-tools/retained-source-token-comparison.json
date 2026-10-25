@@ -6,23 +6,73 @@
     {
       "path": "crates/termrock-e2e/src/admission.rs",
       "input_sha256": "ceedd85370e1bced6312affb65bb23da888a9ccdcc5b3b453af610f77d711dc5",
-      "output_sha256": "23057fc57dea158b559d8e07328de1a673bfcefdc0c9a4c41a33b067c03b1fd3",
+      "output_sha256": "ae35ca68d2327ca9397ff9491f6791ffbb4866187bbc070c3803920991535e7e",
       "input_functions_after_cfg_test_removal": 10,
-      "current_functions": 10,
-      "exact_retained_function_token_matches": 10,
+      "current_functions": 7,
+      "exact_retained_function_token_matches": 7,
       "retained_functions_with_token_deltas": [],
-      "functions_not_in_current": [],
+      "functions_not_in_current": [
+        {
+          "name": "load_pinned_admission_receipt",
+          "input_line": 192
+        },
+        {
+          "name": "load_admission_envelope",
+          "input_line": 210
+        },
+        {
+          "name": "validate_admission_receipt",
+          "input_line": 253
+        }
+      ],
       "current_functions_without_baseline_match": [],
       "retained_named_const_or_type_item_mismatches": [],
-      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true,
+      "approved_closure_removed_functions": [
+        {
+          "name": "load_pinned_admission_receipt",
+          "input_line": 192
+        },
+        {
+          "name": "load_admission_envelope",
+          "input_line": 210
+        },
+        {
+          "name": "validate_admission_receipt",
+          "input_line": 253
+        }
+      ],
+      "correction_delta_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json",
+      "approved_closure_removed_named_items": [
+        {
+          "kind": "struct",
+          "name": "LoadedAdmissionReceipt",
+          "input_line_c817": 94
+        },
+        {
+          "kind": "fn",
+          "name": "load_pinned_admission_receipt",
+          "input_line_c817": 192
+        },
+        {
+          "kind": "fn",
+          "name": "load_admission_envelope",
+          "input_line_c817": 210
+        },
+        {
+          "kind": "fn",
+          "name": "validate_admission_receipt",
+          "input_line_c817": 253
+        }
+      ]
     },
     {
       "path": "crates/termrock-e2e/src/lib.rs",
       "input_sha256": "501bdc0adf0d51aba4854ae3024f4270888ee9a08b77a51663e47bcc2e2abc60",
-      "output_sha256": "d0a78eff4729aae1a3dcb538c0b48b60592c83f45f0d95607cf121a84547b721",
+      "output_sha256": "b30e665cff6eb6c6a2473e8e0824a113e5ca4ef3030c65e8fae118bbd9c0fc4d",
       "input_functions_after_cfg_test_removal": 159,
-      "current_functions": 101,
-      "exact_retained_function_token_matches": 97,
+      "current_functions": 89,
+      "exact_retained_function_token_matches": 85,
       "retained_functions_with_token_deltas": [
         {
           "name": "validate_case_contract",
@@ -354,6 +404,54 @@
         {
           "name": "receipt_has_blocking_result",
           "input_line": 12916
+        },
+        {
+          "name": "load_subject_manifest",
+          "input_line": 1370
+        },
+        {
+          "name": "load_subject_evidence",
+          "input_line": 1379
+        },
+        {
+          "name": "resolve_fixed_evidence_file",
+          "input_line": 1476
+        },
+        {
+          "name": "verify_evidence_digest",
+          "input_line": 1836
+        },
+        {
+          "name": "validate_subject_manifest",
+          "input_line": 1846
+        },
+        {
+          "name": "validate_build_evidence_chain",
+          "input_line": 1950
+        },
+        {
+          "name": "validate_build_receipt",
+          "input_line": 2412
+        },
+        {
+          "name": "validate_mise_input",
+          "input_line": 2481
+        },
+        {
+          "name": "validate_actual_output_roots",
+          "input_line": 3521
+        },
+        {
+          "name": "resolve_actual_output_roots",
+          "input_line": 3541
+        },
+        {
+          "name": "canonical_existing_directory",
+          "input_line": 3119
+        },
+        {
+          "name": "protected_root",
+          "input_line": 3205
         }
       ],
       "current_functions_without_baseline_match": [],
@@ -380,15 +478,208 @@
           "consumer_search": "No retained Rust or tools/visibility consumer. The only source occurrence at c817 was the declaration; status.py:708 consumes v3, not v2.",
           "retained_neighbor": "RECEIPT_SCHEMA (v3) remains for the retained status diagnostic contract."
         }
+      ],
+      "approved_closure_removed_functions": [
+        {
+          "name": "canonical_existing_directory",
+          "input_line": 3119
+        },
+        {
+          "name": "protected_root",
+          "input_line": 3205
+        }
+      ],
+      "correction_delta_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json",
+      "approved_closure_removed_named_items": [
+        {
+          "kind": "const",
+          "name": "RECEIPT_SCHEMA",
+          "input_line_c817": 22
+        },
+        {
+          "kind": "const",
+          "name": "SUBJECT_SCHEMA",
+          "input_line_c817": 23
+        },
+        {
+          "kind": "const",
+          "name": "BUILDER_RECEIPT_SCHEMA",
+          "input_line_c817": 24
+        },
+        {
+          "kind": "const",
+          "name": "REFERENCE_BRANCH_REF",
+          "input_line_c817": 29
+        },
+        {
+          "kind": "const",
+          "name": "REFERENCE_BRANCH_MEMBERSHIP",
+          "input_line_c817": 30
+        },
+        {
+          "kind": "const",
+          "name": "TAG_SOURCE_VALIDATOR_PATH_ENV",
+          "input_line_c817": 39
+        },
+        {
+          "kind": "const",
+          "name": "TAG_SOURCE_REPOSITORY_ENV",
+          "input_line_c817": 40
+        },
+        {
+          "kind": "struct",
+          "name": "SubjectManifest",
+          "input_line_c817": 326
+        },
+        {
+          "kind": "struct",
+          "name": "SubjectBuildEvidence",
+          "input_line_c817": 346
+        },
+        {
+          "kind": "struct",
+          "name": "BuildEvidenceReceipt",
+          "input_line_c817": 352
+        },
+        {
+          "kind": "struct",
+          "name": "Subject",
+          "input_line_c817": 370
+        },
+        {
+          "kind": "struct",
+          "name": "BuildInputs",
+          "input_line_c817": 395
+        },
+        {
+          "kind": "struct",
+          "name": "LoadedEvidenceContext",
+          "input_line_c817": 893
+        },
+        {
+          "kind": "struct",
+          "name": "SourceInputsEvidence",
+          "input_line_c817": 906
+        },
+        {
+          "kind": "struct",
+          "name": "OracleLineage",
+          "input_line_c817": 922
+        },
+        {
+          "kind": "struct",
+          "name": "ReferenceBranchEvidence",
+          "input_line_c817": 930
+        },
+        {
+          "kind": "struct",
+          "name": "SourceSnapshotEvidence",
+          "input_line_c817": 939
+        },
+        {
+          "kind": "struct",
+          "name": "BuildEnvironmentEvidence",
+          "input_line_c817": 963
+        },
+        {
+          "kind": "struct",
+          "name": "BuilderRunEvidence",
+          "input_line_c817": 1012
+        },
+        {
+          "kind": "struct",
+          "name": "GitIdentityEvidence",
+          "input_line_c817": 1056
+        },
+        {
+          "kind": "struct",
+          "name": "SnapshotReferenceEvidence",
+          "input_line_c817": 1067
+        },
+        {
+          "kind": "struct",
+          "name": "MetadataTargetEvidence",
+          "input_line_c817": 1075
+        },
+        {
+          "kind": "struct",
+          "name": "SubjectIdentity",
+          "input_line_c817": 1092
+        },
+        {
+          "kind": "struct",
+          "name": "LoadedSubjectEvidence",
+          "input_line_c817": 1374
+        },
+        {
+          "kind": "fn",
+          "name": "load_subject_manifest",
+          "input_line_c817": 1370
+        },
+        {
+          "kind": "fn",
+          "name": "load_subject_evidence",
+          "input_line_c817": 1379
+        },
+        {
+          "kind": "fn",
+          "name": "resolve_fixed_evidence_file",
+          "input_line_c817": 1476
+        },
+        {
+          "kind": "fn",
+          "name": "verify_evidence_digest",
+          "input_line_c817": 1836
+        },
+        {
+          "kind": "fn",
+          "name": "validate_subject_manifest",
+          "input_line_c817": 1846
+        },
+        {
+          "kind": "fn",
+          "name": "validate_build_evidence_chain",
+          "input_line_c817": 1950
+        },
+        {
+          "kind": "fn",
+          "name": "validate_build_receipt",
+          "input_line_c817": 2412
+        },
+        {
+          "kind": "fn",
+          "name": "validate_mise_input",
+          "input_line_c817": 2481
+        },
+        {
+          "kind": "fn",
+          "name": "validate_actual_output_roots",
+          "input_line_c817": 3521
+        },
+        {
+          "kind": "fn",
+          "name": "resolve_actual_output_roots",
+          "input_line_c817": 3541
+        },
+        {
+          "kind": "fn",
+          "name": "canonical_existing_directory",
+          "input_line_c817": 3119
+        },
+        {
+          "kind": "fn",
+          "name": "protected_root",
+          "input_line_c817": 3205
+        }
       ]
     },
     {
       "path": "crates/termrock-e2e/src/visual.rs",
       "input_sha256": "a918e73a811f6d2f22b82bf3fce5ac9f800d68131991831d5ce399a4493e4a52",
-      "output_sha256": "b4e80409139112c7116d33831c44d07e545edb710eb3804cd728207c31b57180",
+      "output_sha256": "693ca7bb6f6d63be9e0b0ad2e6c5f4c306e53536aec33e5afb9677396796e575",
       "input_functions_after_cfg_test_removal": 20,
-      "current_functions": 20,
-      "exact_retained_function_token_matches": 19,
+      "current_functions": 14,
+      "exact_retained_function_token_matches": 13,
       "retained_functions_with_token_deltas": [
         {
           "name": "read_exact_generation_tree",
@@ -406,11 +697,114 @@
           "changed_tokens_include_literals": false
         }
       ],
-      "functions_not_in_current": [],
+      "functions_not_in_current": [
+        {
+          "name": "validate_actual_observation",
+          "input_line": 746
+        },
+        {
+          "name": "compare_admitted_observations",
+          "input_line": 803
+        },
+        {
+          "name": "verify_artifact_bytes",
+          "input_line": 908
+        },
+        {
+          "name": "compare_frames",
+          "input_line": 921
+        },
+        {
+          "name": "artifact_ref",
+          "input_line": 961
+        },
+        {
+          "name": "fidelity_binding",
+          "input_line": 977
+        }
+      ],
       "current_functions_without_baseline_match": [],
       "retained_named_const_or_type_item_mismatches": [],
       "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true,
-      "non_comment_change_explanation": "rustfmt removed one optional trailing comma in read_exact_generation_tree; no executable value or operation changed."
+      "non_comment_change_explanation": "rustfmt removed one optional trailing comma in read_exact_generation_tree; no executable value or operation changed.",
+      "approved_closure_removed_functions": [
+        {
+          "name": "validate_actual_observation",
+          "input_line": 746
+        },
+        {
+          "name": "compare_admitted_observations",
+          "input_line": 803
+        },
+        {
+          "name": "verify_artifact_bytes",
+          "input_line": 908
+        },
+        {
+          "name": "compare_frames",
+          "input_line": 921
+        },
+        {
+          "name": "artifact_ref",
+          "input_line": 961
+        },
+        {
+          "name": "fidelity_binding",
+          "input_line": 977
+        }
+      ],
+      "correction_delta_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json",
+      "removed_imports": [
+        {
+          "input_line": 8,
+          "removed_name": "ArtifactReceipt",
+          "input_import": "use crate::{ArtifactReceipt, Case, ExpectedGenerationInput, Geometry, RendererIdentity};",
+          "output_import": "use crate::{Case, ExpectedGenerationInput, Geometry, RendererIdentity};",
+          "reason": "ArtifactReceipt was used only by the retired actual-observation executor."
+        }
+      ],
+      "approved_closure_removed_named_items": [
+        {
+          "kind": "struct",
+          "name": "CapturedObservation",
+          "input_line_c817": 229
+        },
+        {
+          "kind": "struct",
+          "name": "ValidatedActualObservation",
+          "input_line_c817": 794
+        },
+        {
+          "kind": "fn",
+          "name": "validate_actual_observation",
+          "input_line_c817": 746
+        },
+        {
+          "kind": "fn",
+          "name": "compare_admitted_observations",
+          "input_line_c817": 803
+        },
+        {
+          "kind": "fn",
+          "name": "verify_artifact_bytes",
+          "input_line_c817": 908
+        },
+        {
+          "kind": "fn",
+          "name": "compare_frames",
+          "input_line_c817": 921
+        },
+        {
+          "kind": "fn",
+          "name": "artifact_ref",
+          "input_line_c817": 961
+        },
+        {
+          "kind": "fn",
+          "name": "fidelity_binding",
+          "input_line_c817": 977
+        }
+      ]
     },
     {
       "path": "crates/termrock-visibility-publisher/src/lib.rs",
@@ -794,15 +1188,47 @@
     {
       "path": "tools/refactor-proof/src/host/context_check.rs",
       "input_sha256": "62151751995bcbfd4e3ef216b79130661fdbc5e38428f89747005cd774292233",
-      "output_sha256": "ed057c9b2e59822251a903da912c52054055a87a24ec6fd5632c0f9f39ee2699",
+      "output_sha256": "fd5cb25dcb739d0c056253d8c3ee6a2b82501dbbb6f8f4233e6fc65cd1059039",
       "input_functions_after_cfg_test_removal": 5,
-      "current_functions": 5,
-      "exact_retained_function_token_matches": 5,
+      "current_functions": 4,
+      "exact_retained_function_token_matches": 4,
       "retained_functions_with_token_deltas": [],
-      "functions_not_in_current": [],
+      "functions_not_in_current": [
+        {
+          "name": "spawn_fixture_context_check_stub",
+          "input_line": 33
+        }
+      ],
       "current_functions_without_baseline_match": [],
       "retained_named_const_or_type_item_mismatches": [],
-      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true,
+      "approved_closure_removed_functions": [
+        {
+          "name": "spawn_fixture_context_check_stub",
+          "input_line": 33
+        }
+      ],
+      "correction_delta_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json",
+      "approved_closure_removed_named_items": [
+        {
+          "kind": "const",
+          "name": "FIXTURE_CONTEXT_SCHEMA",
+          "input_line_c817": 6
+        },
+        {
+          "kind": "fn",
+          "name": "spawn_fixture_context_check_stub",
+          "input_line_c817": 33
+        },
+        {
+          "kind": "control-flow",
+          "name": "fixture context dispatch",
+          "input_line_range_c817": [
+            27,
+            29
+          ]
+        }
+      ]
     },
     {
       "path": "tools/refactor-proof/src/host/git.rs",
@@ -1205,5 +1631,8 @@
       "authority": "T37-DOC-INVENTORY-01",
       "reason": "Remove the sole export of the retired helper; `pub mod ownership;` is unchanged."
     }
-  ]
+  ],
+  "final_output_source_commit": "7fee71b6bd5091ce670d36644273ed1ffda1481d",
+  "correction_delta_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json",
+  "post_correction_summary": "Final be7/7fee closure evidence removes the uncalled PTY subject loader, actual-observation executor, ordinary admission-receipt reader and fixture stub. Data-only public format exports remain under T37-E2E-FORMAT-01. No surviving function body or literal changed in the closure correction; one unused ArtifactReceipt import was removed."
 }
