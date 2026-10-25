@@ -50,6 +50,10 @@ fn tabs(passive: bool) -> TabsWidget {
         .passive(passive)
 }
 
+fn page_tabs(passive: bool, planned_whole_rows: bool) -> TabsWidget {
+    tabs(passive).planned_whole_rows(planned_whole_rows)
+}
+
 struct Page {
     state: TabsState,
     items: Vec<Tab>,
@@ -61,6 +65,7 @@ struct Page {
     source_len: Cell<Option<usize>>,
     passive: bool,
     disabled: bool,
+    planned_whole_rows: bool,
 }
 
 impl Page {
@@ -86,6 +91,7 @@ impl Page {
             source_len: Cell::new(None),
             passive: false,
             disabled: false,
+            planned_whole_rows: false,
         }
     }
 }
@@ -103,7 +109,8 @@ impl App for Page {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let live_len = self.live_len();
         let items = &self.items[..live_len];
-        let mut response = tabs(self.passive).update(cx, &mut self.state, items);
+        let mut response =
+            page_tabs(self.passive, self.planned_whole_rows).update(cx, &mut self.state, items);
         if let Some(action) = response.take_action() {
             self.actions.push(action);
         }
@@ -115,7 +122,7 @@ impl App for Page {
             ui.declare_state(TABS, StateFlags::DISABLED);
         }
         let area = ui.full().intersection(Rect::new(0, 0, self.width, 2));
-        let widget = tabs(self.passive);
+        let widget = page_tabs(self.passive, self.planned_whole_rows);
         let previous = ui.layout(TABS).map(|facts| TabWindowReceipt {
             viewport_len: facts.viewport_len,
             content_len: facts.content_len,
@@ -155,6 +162,27 @@ fn wide_page() -> Page {
     }));
     page.items[18].label = "hidden-menu-sizing-witness-".repeat(4);
     page.items[19].label = "target-19".to_owned();
+    page
+}
+
+fn labels_page(labels: &[&str], width: u16) -> Page {
+    let mut page = Page::new();
+    page.width = width;
+    page.items = labels
+        .iter()
+        .enumerate()
+        .map(|(index, label)| Tab {
+            id: u16::try_from(index + 1).expect("fixture key fits u16"),
+            label: (*label).to_owned(),
+            displays: Cell::new(0),
+            marks: Cell::new(0),
+        })
+        .collect();
+    page.state = TabsState::default();
+    if let Some(first) = page.items.first() {
+        page.state.set_active(0, tab_key(first));
+    }
+    page.planned_whole_rows = true;
     page
 }
 
@@ -614,6 +642,249 @@ fn wheel_input_in_the_open_menu_does_not_move_the_tabs_window() {
         h.area_of_part(MENU_ITEMS, PartRef::item(Part::ROW, first_hidden)),
         Some(row_before),
         "the menu List consumes its wheel and advances its own row viewport",
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn whole_fit_is_opt_in_and_zero_row_more_keeps_the_full_keyed_source() {
+    let labels = [
+        "oversized-first-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+        "fit-two",
+        "fit-three",
+    ];
+    let mut partial_page = labels_page(&labels, 32);
+    partial_page.planned_whole_rows = false;
+    let mut partial = Harness::new(partial_page, Theme::junie(), 32, HEIGHT);
+    let _ = partial.tick();
+    assert!(
+        partial
+            .area_of_part(TABS, PartRef::item(Part::TAB, ItemKey::num(1)))
+            .is_some(),
+        "the generic default still publishes its clipped partial row"
+    );
+
+    let mut whole = Harness::new(labels_page(&labels, 32), Theme::junie(), 32, HEIGHT);
+    let _ = whole.tick();
+    assert_eq!(whole.app().drawn_viewport.get(), 0);
+    assert!(
+        whole
+            .area_of_part(TABS, PartRef::item(Part::TAB, ItemKey::num(1)))
+            .is_none(),
+        "whole-fit omits the first row before it creates semantic geometry"
+    );
+    assert_eq!(whole.app().drawn_first.get(), 0);
+    assert_eq!(whole.app().state.first(), Some(ItemKey::num(1)));
+    assert_eq!(
+        whole.area_of_part(TABS, more_part()).map(|area| area.width),
+        Some(4),
+        "the visible More lane remains available with no emitted rows"
+    );
+    let right_arrow = whole
+        .area_of_part(TABS, PartRef::item(Part::OVERFLOW, ItemKey::index(1)))
+        .expect("the committed right-arrow lane precedes More");
+    let more_area = whole
+        .area_of_part(TABS, more_part())
+        .expect("the committed More lane remains visible");
+    assert_eq!(right_arrow.right(), more_area.x);
+    assert!(right_arrow.intersection(more_area).is_empty());
+
+    let before_draw = whole
+        .app()
+        .items
+        .iter()
+        .map(|tab| (tab.displays.get(), tab.marks.get()))
+        .collect::<Vec<_>>();
+    whole.draw();
+    for (tab, (displays, marks)) in whole.app().items.iter().zip(before_draw) {
+        assert_eq!(tab.displays.get(), displays.saturating_add(1));
+        assert_eq!(tab.marks.get(), marks.saturating_add(1));
+    }
+    assert_eq!(whole.app().drawn_viewport.get(), 0);
+
+    let whole_area = whole.area_of(TABS).expect("Tabs owns the blank strip");
+    let forward = whole.wheel(Axis::H, 1, whole_area.x.saturating_add(1), whole_area.y);
+    assert!(forward.is_changed());
+    assert_eq!(whole.app().state.first(), Some(ItemKey::num(2)));
+    assert!(whole.app().drawn_viewport.get() > 0);
+    let backward = whole.wheel(Axis::H, -1, whole_area.x.saturating_add(1), whole_area.y);
+    assert!(backward.is_changed());
+    assert_eq!(whole.app().state.first(), Some(ItemKey::num(1)));
+    assert_eq!(whole.app().drawn_viewport.get(), 0);
+
+    assert!(whole.click_part(TABS, more_part()).is_changed());
+    assert!(whole.is_open(MENU));
+    for id in 1..=3 {
+        assert!(
+            whole
+                .area_of_part(MENU_ITEMS, PartRef::item(Part::ROW, ItemKey::num(id)))
+                .is_some(),
+            "More retains source key {id} even though whole-fit emitted no row"
+        );
+    }
+    let chosen = ItemKey::num(3);
+    assert!(
+        whole
+            .click_part(MENU_ITEMS, PartRef::item(Part::ROW, chosen))
+            .is_changed()
+    );
+    assert_eq!(whole.app().state.active(), Some(chosen));
+    assert_eq!(
+        whole.app().actions.as_slice(),
+        &[TabsAction::Activated(chosen)]
+    );
+    assert!(
+        whole
+            .area_of_part(TABS, PartRef::item(Part::TAB, chosen))
+            .is_some(),
+        "selecting a fitting hidden key reveals it without a clipped predecessor"
+    );
+    assert!(whole.diagnostics().is_empty(), "{:?}", whole.diagnostics());
+}
+
+#[test]
+fn whole_fit_manual_wheel_crosses_an_oversized_middle_and_returns() {
+    let labels = [
+        "fit-one",
+        "oversized-middle-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+        "fit-three",
+        "fit-four",
+    ];
+    let mut h = Harness::new(labels_page(&labels, 32), Theme::junie(), 32, HEIGHT);
+    let _ = h.tick();
+    assert_eq!(h.app().drawn_first.get(), 0);
+    assert_eq!(h.app().drawn_viewport.get(), 1);
+    let area = h.area_of(TABS).expect("Tabs owns a visible strip");
+
+    let into_middle = h.wheel(Axis::H, 1, area.x.saturating_add(1), area.y);
+    assert!(into_middle.is_changed());
+    assert_eq!(h.app().state.first(), Some(ItemKey::num(2)));
+    assert_eq!(h.app().drawn_first.get(), 1);
+    assert_eq!(h.app().drawn_viewport.get(), 0);
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, ItemKey::num(1)))
+            .is_none(),
+        "manual ownership prevents an active off-window item from undoing the blank row"
+    );
+    h.draw();
+    assert_eq!(h.app().drawn_first.get(), 1);
+    assert_eq!(h.app().drawn_viewport.get(), 0);
+    let _ = h.resize(30, HEIGHT);
+    assert_eq!(h.app().state.first(), Some(ItemKey::num(2)));
+    assert_eq!(h.app().drawn_first.get(), 1);
+    assert_eq!(h.app().drawn_viewport.get(), 0);
+
+    let past_middle = h.wheel(Axis::H, 1, area.x.saturating_add(1), area.y);
+    assert!(past_middle.is_changed());
+    assert_eq!(h.app().state.first(), Some(ItemKey::num(3)));
+    assert!(h.app().drawn_viewport.get() > 0);
+    let back_to_middle = h.wheel(Axis::H, -1, area.x.saturating_add(1), area.y);
+    assert!(back_to_middle.is_changed());
+    assert_eq!(h.app().state.first(), Some(ItemKey::num(2)));
+    assert_eq!(h.app().drawn_viewport.get(), 0);
+    let back_to_start = h.wheel(Axis::H, -1, area.x.saturating_add(1), area.y);
+    assert!(back_to_start.is_changed());
+    assert_eq!(h.app().state.first(), Some(ItemKey::num(1)));
+    assert_eq!(h.app().drawn_viewport.get(), 1);
+    assert!(h.tab_to(TABS));
+    assert!(h.key(KeyCode::Right).is_changed());
+    assert!(h.key(KeyCode::Right).is_changed());
+    assert_eq!(h.app().state.active(), Some(ItemKey::num(3)));
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, ItemKey::num(3)))
+            .is_some(),
+        "a real active-identity change resumes follow after manual browsing"
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn whole_fit_oversized_final_has_a_finite_endpoint_and_singleton_has_no_headroom() {
+    let labels = [
+        "fit-one",
+        "fit-two",
+        "oversized-final-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    ];
+    let mut h = Harness::new(labels_page(&labels, 32), Theme::junie(), 32, HEIGHT);
+    let _ = h.tick();
+    let area = h.area_of(TABS).expect("Tabs owns a visible strip");
+    let to_second = h.wheel(Axis::H, 1, area.x.saturating_add(1), area.y);
+    assert!(to_second.is_changed());
+    let to_final_endpoint = h.wheel(Axis::H, 1, area.x.saturating_add(1), area.y);
+    assert!(to_final_endpoint.is_changed());
+    assert_eq!(h.app().state.first(), Some(ItemKey::num(3)));
+    assert_eq!(h.app().drawn_first.get(), 2);
+    assert_eq!(h.app().drawn_viewport.get(), 0);
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, ItemKey::num(3)))
+            .is_none(),
+        "the finite source endpoint does not fabricate a final TAB hit"
+    );
+    let at_endpoint = h.wheel(Axis::H, 1, area.x.saturating_add(1), area.y);
+    assert!(!at_endpoint.is_changed());
+    assert_eq!(h.app().state.first(), Some(ItemKey::num(3)));
+    let escape_endpoint = h.wheel(Axis::H, -1, area.x.saturating_add(1), area.y);
+    assert!(escape_endpoint.is_changed());
+    assert_eq!(h.app().state.first(), Some(ItemKey::num(2)));
+
+    let mut singleton = Harness::new(
+        labels_page(
+            &["oversized-singleton-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ"],
+            32,
+        ),
+        Theme::junie(),
+        32,
+        HEIGHT,
+    );
+    let _ = singleton.tick();
+    let single_area = singleton.area_of(TABS).expect("Tabs owns a visible strip");
+    let singleton_wheel =
+        singleton.wheel(Axis::H, 1, single_area.x.saturating_add(1), single_area.y);
+    assert!(!singleton_wheel.is_changed());
+    assert_eq!(singleton.app().state.first(), Some(ItemKey::num(1)));
+    assert_eq!(singleton.app().drawn_viewport.get(), 0);
+    assert!(
+        singleton
+            .area_of_part(TABS, PartRef::item(Part::TAB, ItemKey::num(1)))
+            .is_none()
+    );
+    assert!(
+        singleton.diagnostics().is_empty(),
+        "{:?}",
+        singleton.diagnostics()
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn whole_fit_active_follow_skips_a_long_blocking_sibling() {
+    let mut page = wide_page();
+    page.planned_whole_rows = true;
+    let mut h = Harness::new(page, Theme::junie(), 96, HEIGHT);
+    let _ = h.tick();
+    let active = ItemKey::num(20);
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, active))
+            .is_none()
+    );
+    assert!(h.click_part(TABS, more_part()).is_changed());
+    assert!(h.is_open(MENU));
+    let _ = h.key(KeyCode::End);
+    let target = h
+        .area_of_part(MENU_ITEMS, PartRef::item(Part::ROW, active))
+        .expect("More retains the full target key after the oversized sibling");
+    let selected = h.click(target.x.saturating_add(1), target.y);
+    assert!(selected.is_changed());
+    assert_eq!(h.app().state.active(), Some(active));
+    assert_eq!(h.app().drawn_first.get(), 19);
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, active))
+            .is_some()
+    );
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, ItemKey::num(19)))
+            .is_none(),
+        "the intrinsically oversized sibling has no partial whole-row owner"
     );
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
