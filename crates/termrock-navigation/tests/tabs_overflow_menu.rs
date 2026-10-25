@@ -55,6 +55,10 @@ struct Page {
     items: Vec<Tab>,
     actions: Vec<TabsAction>,
     keymap: KeyMap,
+    width: u16,
+    drawn_first: Cell<usize>,
+    drawn_viewport: Cell<usize>,
+    source_len: Cell<Option<usize>>,
     passive: bool,
     disabled: bool,
 }
@@ -76,15 +80,30 @@ impl Page {
             items,
             actions: Vec::new(),
             keymap: KeyMap::new(),
+            width: WIDTH,
+            drawn_first: Cell::new(0),
+            drawn_viewport: Cell::new(0),
+            source_len: Cell::new(None),
             passive: false,
             disabled: false,
         }
     }
 }
 
+impl Page {
+    fn live_len(&self) -> usize {
+        self.source_len
+            .get()
+            .unwrap_or(self.items.len())
+            .min(self.items.len())
+    }
+}
+
 impl App for Page {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let mut response = tabs(self.passive).update(cx, &mut self.state, &self.items);
+        let live_len = self.live_len();
+        let items = &self.items[..live_len];
+        let mut response = tabs(self.passive).update(cx, &mut self.state, items);
         if let Some(action) = response.take_action() {
             self.actions.push(action);
         }
@@ -95,13 +114,17 @@ impl App for Page {
         if self.disabled {
             ui.declare_state(TABS, StateFlags::DISABLED);
         }
-        let area = ui.full().intersection(Rect::new(0, 0, WIDTH, 2));
+        let area = ui.full().intersection(Rect::new(0, 0, self.width, 2));
         let widget = tabs(self.passive);
         let previous = ui.layout(TABS).map(|facts| TabWindowReceipt {
             viewport_len: facts.viewport_len,
             content_len: facts.content_len,
         });
-        let layout = widget.layout_default(area, ui.full(), &self.state, &self.items, previous);
+        let live_len = self.live_len();
+        let items = &self.items[..live_len];
+        let layout = widget.layout_default(area, ui.full(), &self.state, items, previous);
+        self.drawn_first.set(layout.first_index());
+        self.drawn_viewport.set(layout.viewport_len);
         assert!(widget.draw_layout(ui, &layout).is_ok());
     }
 
@@ -116,6 +139,23 @@ fn harness() -> Harness<Page> {
 
 fn more_part() -> PartRef {
     PartRef::item(Part::OVERFLOW, ItemKey::index(2))
+}
+
+fn wide_page() -> Page {
+    let mut page = Page::new();
+    page.width = 96;
+    for (index, tab) in page.items.iter_mut().enumerate() {
+        tab.label = format!("tab-{index:02}");
+    }
+    page.items.extend((13_u16..=20).map(|id| Tab {
+        id,
+        label: format!("tab-{:02}", id - 1),
+        displays: Cell::new(0),
+        marks: Cell::new(0),
+    }));
+    page.items[18].label = "hidden-menu-sizing-witness-".repeat(4);
+    page.items[19].label = "target-19".to_owned();
+    page
 }
 
 #[test]
@@ -188,6 +228,166 @@ fn more_click_opens_the_native_list_and_selection_activates_the_frozen_key_after
     assert!(!h.is_open(MENU));
     assert_eq!(h.focus(), Some(TABS));
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn variable_width_follow_keeps_active_tab_visible_and_commits_window_before_wheel() {
+    let mut h = Harness::new(wide_page(), Theme::junie(), 96, HEIGHT);
+    let _ = h.tick();
+    let initial_viewport = h.app().drawn_viewport.get();
+    assert!(
+        initial_viewport > 1,
+        "the initial count-based window is wider than one tab"
+    );
+    let active = ItemKey::num(20);
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, active))
+            .is_none(),
+        "the target starts behind More"
+    );
+    let _ = h.click_part(TABS, more_part());
+    assert!(h.is_open(MENU));
+    let _ = h.key(KeyCode::End);
+    let target = h
+        .area_of_part(MENU_ITEMS, PartRef::item(Part::ROW, active))
+        .expect("the hidden target is a native frozen-menu row");
+
+    let selected = h.click(target.x.saturating_add(1), target.y);
+    assert!(selected.is_changed());
+    assert_eq!(h.app().state.active(), Some(active));
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, active))
+            .is_some(),
+        "owned variable-width geometry must reveal the active target"
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+
+    let callback_counts: Vec<_> = h
+        .app()
+        .items
+        .iter()
+        .map(|tab| (tab.displays.get(), tab.marks.get()))
+        .collect();
+    let mut refinement_state = TabsState::default();
+    refinement_state.set_active(19, active);
+    let layout = tabs(false).layout_default(
+        Rect::new(0, 0, 96, 2),
+        Rect::new(0, 0, 96, HEIGHT),
+        &refinement_state,
+        &h.app().items,
+        Some(TabWindowReceipt {
+            viewport_len: initial_viewport,
+            content_len: h.app().items.len(),
+        }),
+    );
+    assert_eq!(layout.first_index(), h.app().drawn_first.get());
+    assert!(
+        layout
+            .part_bounds(PartRef::item(Part::TAB, active))
+            .is_some_and(|(_, visible)| !visible.is_empty())
+    );
+    for (tab, (displays, marks)) in h.app().items.iter().zip(callback_counts) {
+        assert_eq!(tab.displays.get(), displays.saturating_add(1));
+        assert_eq!(tab.marks.get(), marks.saturating_add(1));
+    }
+
+    let visible_indices: Vec<_> = h
+        .app()
+        .items
+        .iter()
+        .enumerate()
+        .filter_map(|(index, tab)| {
+            h.area_of_part(TABS, PartRef::item(Part::TAB, tab_key(tab)))
+                .map(|_| index)
+        })
+        .collect();
+    let painted_first = *visible_indices
+        .first()
+        .expect("the committed frame has a visible tab row");
+    assert!(painted_first > 0);
+    assert_eq!(visible_indices.as_slice(), &[painted_first]);
+    assert_eq!(h.app().drawn_first.get(), painted_first);
+    let semantic_first_before_wheel = h.app().state.first();
+    assert_eq!(
+        semantic_first_before_wheel,
+        Some(tab_key(&h.app().items[painted_first])),
+        "the committed geometry receipt must settle the semantic window before later input; initial viewport={initial_viewport}, committed first={}, visible={visible_indices:?}",
+        h.app().drawn_first.get(),
+    );
+
+    let area = h.area_of(TABS).expect("Tabs owns the committed strip");
+    let wheel = h.wheel(Axis::H, -1, area.x.saturating_add(1), area.y);
+    assert!(wheel.is_changed(), "first wheel uses the refined frame");
+    let expected_previous = tab_key(&h.app().items[painted_first - 1]);
+    assert_eq!(h.app().state.first(), Some(expected_previous));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn manual_window_keeps_active_hidden_until_identity_changes() {
+    let mut h = Harness::new(wide_page(), Theme::junie(), 96, HEIGHT);
+    let _ = h.tick();
+    let area = h.area_of(TABS).expect("Tabs owns the committed strip");
+    for _ in 0..3 {
+        assert!(
+            h.wheel(Axis::H, 1, area.x.saturating_add(1), area.y)
+                .is_changed()
+        );
+    }
+    let active = ItemKey::num(1);
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, active))
+            .is_none()
+    );
+    h.draw();
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, active))
+            .is_none()
+    );
+
+    let _ = h.resize(90, HEIGHT);
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, active))
+            .is_none()
+    );
+    assert!(h.tab_to(TABS));
+    let changed = h.key(KeyCode::Right);
+    assert!(changed.is_changed());
+    assert_eq!(h.app().state.active(), Some(ItemKey::num(2)));
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, ItemKey::num(2)))
+            .is_some(),
+        "an actual active identity change resumes follow"
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn clipped_active_geometry_does_not_refine_to_an_unreachable_row() {
+    let mut h = harness();
+    let _ = h.tick();
+    let mut state = h.app().state.clone();
+    state.set_active(11, ItemKey::num(12));
+    let tabs = tabs(false);
+    let previous = TabWindowReceipt {
+        viewport_len: h.app().drawn_viewport.get(),
+        content_len: h.app().items.len(),
+    };
+    let layout = tabs.layout_default(
+        Rect::new(0, 0, WIDTH, 2),
+        Rect::new(0, 0, 2, 2),
+        &state,
+        &h.app().items,
+        Some(previous),
+    );
+
+    assert_eq!(layout.first_index(), 0);
+    assert!(
+        layout
+            .part_bounds(PartRef::item(Part::TAB, ItemKey::num(12)))
+            .is_none_or(|(_, visible)| visible.is_empty()),
+        "a clip that cannot reach the active tab does not invent visible geometry"
+    );
 }
 
 #[test]
@@ -279,6 +479,46 @@ fn removing_a_frozen_menu_key_closes_without_activating_a_replacement() {
         .is_none()
     );
     assert_eq!(h.focus(), Some(TABS));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn stale_native_menu_choice_is_drained_when_source_retires_without_redraw() {
+    let mut h = harness();
+    let _ = h.tick();
+    let active = h.app().state.active();
+    assert!(h.click_part(TABS, more_part()).is_changed());
+    assert!(h.is_open(MENU));
+    assert_eq!(h.focus(), Some(MENU_ITEMS));
+    let stale_key = h
+        .app()
+        .items
+        .iter()
+        .filter(|tab| {
+            h.area_of_part(TABS, PartRef::item(Part::TAB, tab_key(tab)))
+                .is_none()
+        })
+        .map(tab_key)
+        .find(|key| {
+            h.area_of_part(MENU_ITEMS, PartRef::item(Part::ROW, *key))
+                .is_some()
+        })
+        .expect("the committed More list has a visible hidden-source row");
+    assert!(
+        h.area_of_part(MENU_ITEMS, PartRef::item(Part::ROW, stale_key))
+            .is_some(),
+        "the old More row is still part of the last committed frame"
+    );
+
+    // This interior source change deliberately does not invalidate or redraw
+    // the committed More list before the real native activation arrives.
+    h.app().source_len.set(Some(1));
+    let stale_choice = h.key(KeyCode::Enter);
+
+    assert!(stale_choice.is_consumed());
+    assert!(h.app().actions.is_empty());
+    assert_eq!(h.app().state.active(), active);
+    assert!(!h.is_open(MENU));
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 

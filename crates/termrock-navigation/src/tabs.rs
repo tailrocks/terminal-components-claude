@@ -864,6 +864,7 @@ struct TabsWheelFrame {
     cols: u16,
     first_index: usize,
     first_key: Option<ItemKey>,
+    geometry_follow: Option<TabsGeometryFollow>,
     last_key: Option<ItemKey>,
     terminal_first_index: Option<usize>,
     area: Rect,
@@ -881,12 +882,25 @@ impl Default for TabsWheelFrame {
             cols: 0,
             first_index: 0,
             first_key: None,
+            geometry_follow: None,
             last_key: None,
             terminal_first_index: None,
             area: Rect::new(0, 0, 0, 0),
             visible_area: Rect::new(0, 0, 0, 0),
         }
     }
+}
+
+/// A planned frame whose owned row walk advanced `first` so its active tab
+/// keeps the geometry that the same frame can attain without preceding rows.
+///
+/// This private receipt lets the next update adopt the committed window before
+/// routing input against the published hit registry.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct TabsGeometryFollow {
+    active_key: ItemKey,
+    first_key: ItemKey,
+    first_index: usize,
 }
 
 fn manual_window_owns_follow(
@@ -1073,6 +1087,14 @@ struct OwnedTabMeasurement {
     affixes: Option<OwnedTabAffixes>,
 }
 
+#[derive(Clone, Copy)]
+struct OwnedTabsWalk<'a> {
+    area: Rect,
+    clip: Rect,
+    items: &'a [OwnedTabMeasurement],
+    previous: Option<TabWindowReceipt>,
+}
+
 /// One row's exact native allocation, before choosing how to retain it.
 ///
 /// Terminal probes keep only the last record; the committed layout sink turns
@@ -1209,6 +1231,7 @@ pub struct TabLayout {
     owned_items: Option<Vec<OwnedTabMeasurement>>,
     // Private bound: the earliest suffix whose final allocated tab is visible.
     terminal_first_index: Option<usize>,
+    geometry_follow: Option<TabsGeometryFollow>,
     first_index: usize,
     active: Option<ItemKey>,
     cursor: Option<ItemKey>,
@@ -1457,7 +1480,8 @@ impl TabLayout {
         let Some(owned_items) = self.owned_items.as_ref() else {
             return self.area.is_empty()
                 && self.rows.is_empty()
-                && self.terminal_first_index.is_none();
+                && self.terminal_first_index.is_none()
+                && self.geometry_follow.is_none();
         };
         if self.area.is_empty()
             || owned_items.len() != self.content_len
@@ -1480,6 +1504,17 @@ impl TabLayout {
                         .is_none_or(|affixes| affixes.is_consistent(&item.label_segments))
             })
         });
+        let geometry_follow_matches = self.geometry_follow.is_none_or(|follow| {
+            self.active == Some(follow.active_key)
+                && self.first_index == follow.first_index
+                && owned_items
+                    .get(follow.first_index)
+                    .is_some_and(|item| item.key == follow.first_key)
+                && self
+                    .rows
+                    .iter()
+                    .any(|row| row.key == follow.active_key && !row.visible_tab.is_empty())
+        });
         let more_matches = self.more_area.is_none_or(|more| {
             self.overflow_menu
                 && self.first_index.saturating_add(self.hidden_right) > 0
@@ -1500,7 +1535,7 @@ impl TabLayout {
                     .iter()
                     .all(|row| more.intersection(row.logical_tab).is_empty())
         });
-        rows_match && more_matches
+        rows_match && geometry_follow_matches && more_matches
     }
 }
 
@@ -2366,8 +2401,89 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         true
     }
 
+    fn adopt_geometry_follow(
+        &self,
+        frame: TabsWheelFrame,
+        layout: Option<LayoutFacts>,
+        st: &mut TabsState,
+        items: &[T],
+    ) -> bool {
+        let Some(follow) = frame.geometry_follow else {
+            return false;
+        };
+        if frame.kind != TabsWheelFrameKind::Planned
+            || manual_window_owns_follow(frame.kind, st.manual_window_active, st.active)
+            || frame.content_len != items.len()
+            || frame.area.is_empty()
+            || frame.visible_area.is_empty()
+            || st.active != Some(follow.active_key)
+        {
+            return false;
+        }
+        let Some(facts) = layout else {
+            return false;
+        };
+        if facts.content_len != frame.content_len
+            || facts.viewport_len != frame.viewport_len
+            || facts.rows != frame.rows
+            || facts.cols != frame.cols
+            || frame.first_index != follow.first_index
+            || frame.first_key != Some(follow.first_key)
+        {
+            return false;
+        }
+        let last_index = items.len().saturating_sub(1);
+        if items.is_empty() || frame.last_key != Some(self.key_at(items, last_index)) {
+            return false;
+        }
+        let Some(active_index) = self.index_of(items, follow.active_key, None) else {
+            return false;
+        };
+        let Some(first_index) = self.index_of(items, follow.first_key, Some(follow.first_index))
+        else {
+            return false;
+        };
+        if first_index != follow.first_index || active_index < first_index {
+            return false;
+        }
+        if st.first == Some(follow.first_key) && st.first_index == follow.first_index {
+            return false;
+        }
+        st.first = Some(follow.first_key);
+        st.first_index = follow.first_index;
+        true
+    }
+
     const fn menu_layer_id(&self) -> Id {
         self.id.sub("overflow-menu")
+    }
+
+    fn update_retired_menu_list(
+        &self,
+        cx: &mut Cx<'_>,
+        state: &mut ListState,
+        acc: &mut Acc<TabsAction>,
+    ) {
+        let list_id = self.menu_layer_id().sub("items");
+        let list = List::new(list_id)
+            .key(tabs_menu_key as fn(&TabsMenuItem) -> ItemKey)
+            .whole_rows(true);
+        let response = list.update(cx, state, &[]);
+        acc.fold(&response.erase());
+    }
+
+    fn service_retired_menu_list(
+        &self,
+        cx: &mut Cx<'_>,
+        state: &mut TabsState,
+        acc: &mut Acc<TabsAction>,
+    ) {
+        if let Some(menu) = state.menu.as_mut() {
+            self.update_retired_menu_list(cx, &mut menu.list, acc);
+        } else {
+            let mut retired = ListState::default();
+            self.update_retired_menu_list(cx, &mut retired, acc);
+        }
     }
 
     fn show_hidden_binding_available(&self) -> bool {
@@ -2528,12 +2644,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 && opening.owner() == self.id
             {
                 cx.close_layer(layer_id, None);
+                self.service_retired_menu_list(cx, state, acc);
                 for _ in cx.intents(self.id) {
                     acc.consumed();
                 }
                 acc.changed();
                 return true;
             }
+            self.service_retired_menu_list(cx, state, acc);
             if dismissed_current {
                 for _ in cx.intents(self.id) {
                     acc.consumed();
@@ -2551,6 +2669,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             if opening.is_some() && opening == current_opening {
                 cx.close_layer(layer_id, None);
             }
+            self.service_retired_menu_list(cx, state, acc);
             state.menu = None;
             for _ in cx.intents(self.id) {
                 acc.consumed();
@@ -2568,6 +2687,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             if opening.is_some() && opening == current_opening {
                 cx.close_layer(layer_id, None);
             }
+            self.service_retired_menu_list(cx, state, acc);
             state.menu = None;
             for _ in cx.intents(self.id) {
                 acc.consumed();
@@ -2577,12 +2697,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         }
 
         let Some(menu) = state.menu.as_mut() else {
+            self.service_retired_menu_list(cx, state, acc);
             return true;
         };
         menu.items
             .retain(|item| self.index_of(items, item.key, None).is_some());
         if menu.items.is_empty() {
             cx.close_layer(layer_id, None);
+            self.update_retired_menu_list(cx, &mut menu.list, acc);
             state.menu = None;
             for _ in cx.intents(self.id) {
                 acc.consumed();
@@ -2669,6 +2791,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             st.manual_window_active = None;
         }
         let mut acc = Acc::<TabsAction>::new();
+        if self.adopt_geometry_follow(frame, layout, st, items) {
+            acc.changed();
+        }
         if self.update_menu(cx, st, items, &menu_frame, &mut acc) {
             return acc.finish(self.id);
         }
@@ -3124,6 +3249,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 wheel_frame.cols = layout.used_area.width;
                 wheel_frame.first_index = layout.first_index;
                 wheel_frame.first_key = layout.first_key();
+                wheel_frame.geometry_follow = layout.geometry_follow;
                 wheel_frame.last_key = layout
                     .owned_items
                     .as_ref()
@@ -4041,6 +4167,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             rows: Vec::new(),
             owned_items: None,
             terminal_first_index: None,
+            geometry_follow: None,
             first_index,
             active: state.active,
             cursor: state.core.cursor(),
@@ -4166,10 +4293,26 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             self.find_terminal_first_index(area, clip, &owned_items, previous, &mut extent_scratch);
 
         let requested_first_index = first_index;
-        let first_index = if state.manual_window_active == Some(state.active) {
+        let manual_window_owned = state.manual_window_active == Some(state.active);
+        let geometry_follow = if manual_window_owned {
+            None
+        } else {
+            self.refine_active_window(
+                OwnedTabsWalk {
+                    area,
+                    clip,
+                    items: &owned_items,
+                    previous,
+                },
+                state.active,
+                first_index,
+                &mut extent_scratch,
+            )
+        };
+        let first_index = if manual_window_owned {
             terminal_first_index.map_or(first_index, |terminal| first_index.min(terminal))
         } else {
-            first_index
+            geometry_follow.map_or(first_index, |follow| follow.first_index)
         };
         let mut adjusted_state = None;
         if first_index != requested_first_index {
@@ -4190,7 +4333,76 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         );
         layout.owned_items = Some(owned_items);
         layout.terminal_first_index = terminal_first_index;
+        layout.geometry_follow = geometry_follow;
         layout
+    }
+
+    fn walk_active_row(
+        &self,
+        walk: OwnedTabsWalk<'_>,
+        first_index: usize,
+        active_index: usize,
+        extent_scratch: &mut Vec<bool>,
+    ) -> Option<DefaultRowGeometry> {
+        let mut active = None;
+        let _ = self.walk_default_resolved(
+            walk.area,
+            walk.clip,
+            walk.items,
+            first_index,
+            walk.previous,
+            extent_scratch,
+            |row| {
+                if row.index == active_index {
+                    active = Some(row);
+                }
+            },
+        );
+        active
+    }
+
+    fn refine_active_window(
+        &self,
+        walk: OwnedTabsWalk<'_>,
+        active_key: Option<ItemKey>,
+        requested_first: usize,
+        extent_scratch: &mut Vec<bool>,
+    ) -> Option<TabsGeometryFollow> {
+        walk.previous?;
+        let items = walk.items;
+        let active_key = active_key?;
+        let active_index = items.iter().position(|item| item.key == active_key)?;
+        if active_index < requested_first {
+            return None;
+        }
+        let requested_row =
+            self.walk_active_row(walk, requested_first, active_index, extent_scratch);
+        if requested_row.is_some_and(|row| !row.visible_tab.is_empty()) {
+            return None;
+        }
+
+        let attainable = self.walk_active_row(walk, active_index, active_index, extent_scratch)?;
+        if attainable.visible_tab.is_empty() {
+            return None;
+        }
+
+        let first_candidate = requested_first.min(active_index);
+        let first_index = (first_candidate..=active_index).find(|&candidate_first| {
+            self.walk_active_row(walk, candidate_first, active_index, extent_scratch)
+                .is_some_and(|row| {
+                    !row.visible_tab.is_empty()
+                        && row.visible_tab.width >= attainable.visible_tab.width
+                        && row.label_extent >= attainable.label_extent
+                })
+        })?;
+        if first_index == requested_first {
+            return None;
+        }
+        Some(TabsGeometryFollow {
+            active_key,
+            first_key: items.get(first_index)?.key,
+            first_index,
+        })
     }
 
     fn find_terminal_first_index(
@@ -4634,6 +4846,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 rows: Vec::new(),
                 owned_items: None,
                 terminal_first_index: None,
+                geometry_follow: None,
                 first_index,
                 active: state.active,
                 cursor: state.core.cursor(),
@@ -4694,6 +4907,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             rows,
             owned_items: None,
             terminal_first_index: None,
+            geometry_follow: None,
             first_index,
             active: state.active,
             cursor: state.core.cursor(),
@@ -7479,6 +7693,7 @@ mod tests {
             cols: 12,
             first_index: 2,
             first_key: Some(key),
+            geometry_follow: None,
             last_key: Some(ItemKey::index(3)),
             terminal_first_index: Some(2),
             area: Rect::new(0, 0, 12, 2),
