@@ -20,7 +20,7 @@ use tablepro_ui::{
     form_fields, gate, parse, preview_for,
 };
 use termrock::{
-    App, Axis, Button, Cx, Diagnostic, GridEditor, Id, Intent, ItemKey, KeyCode, KeyMap,
+    App, Axis, Button, Cx, Diagnostic, GlyphRole, GridEditor, Id, Intent, ItemKey, KeyCode, KeyMap,
     KeyModifiers, LayerOpening, LayerSize, LayerSpec, MouseKind, Part, PartRef, Response, Size,
     StateFlags, Theme, Ui,
 };
@@ -54,6 +54,31 @@ fn history_entry_for(sql: &str, connection: &str, failed: bool) -> HistoryEntry 
         entry.error = Some("query failed".to_owned());
     }
     entry
+}
+
+fn history_row_marker<A: App>(harness: &Harness<A>, entry_id: usize) -> String {
+    let list = Id::root("tablepro.workbench.history.list");
+    let row = harness
+        .area_of_part(
+            list,
+            PartRef::item(Part::ROW, ItemKey::num(entry_id as u64)),
+        )
+        .expect("the history entry has a registered row");
+    harness
+        .cell(row.x.saturating_add(1), row.y)
+        .symbol()
+        .to_owned()
+}
+
+fn history_chosen_marker_rows<A: App>(harness: &Harness<A>) -> Vec<u16> {
+    let list = Id::root("tablepro.workbench.history.list");
+    let Some(area) = harness.area_of(list) else {
+        return Vec::new();
+    };
+    let chosen = Theme::junie().design.glyphs.get(GlyphRole::Chosen);
+    (area.y..area.bottom())
+        .filter(|&y| harness.cell(area.x.saturating_add(1), y).symbol() == chosen)
+        .collect()
 }
 
 struct ClipboardProbeApp {
@@ -630,6 +655,101 @@ fn ctrl_y_reuses_history_tab_and_keeps_list_focus() {
     ));
     assert_eq!(harness.focus(), Some(history_list));
     assert_eq!(harness.area_of(history_list), Some(history_area));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_chosen_marker_tracks_unique_cursor_without_executing_sql() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry("SELECT older_row"));
+    app.workbench
+        .history
+        .push(history_entry("SELECT newer_row"));
+    let query_count = app.workbench.query_counter;
+    let tab_count = app.workbench.tabs().len();
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("History is active");
+    let (first_id, first_sql, second_id, second_sql) = {
+        let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+            panic!("History remains active")
+        };
+        (
+            history.entries[0].id,
+            history.entries[0].sql.clone(),
+            history.entries[1].id,
+            history.entries[1].sql.clone(),
+        )
+    };
+    let list = Id::root("tablepro.workbench.history.list");
+    let first_row = harness
+        .area_of_part(
+            list,
+            PartRef::item(Part::ROW, ItemKey::num(first_id as u64)),
+        )
+        .expect("the initial preview row is registered");
+    let second_row = harness
+        .area_of_part(
+            list,
+            PartRef::item(Part::ROW, ItemKey::num(second_id as u64)),
+        )
+        .expect("the next preview row is registered");
+    let first_bg = harness.cell(first_row.x.saturating_add(3), first_row.y).bg;
+    let second_bg = harness
+        .cell(second_row.x.saturating_add(3), second_row.y)
+        .bg;
+    let chosen = Theme::junie().design.glyphs.get(GlyphRole::Chosen);
+    assert_eq!(history_row_marker(&harness, first_id), chosen);
+    assert_ne!(
+        first_bg, second_bg,
+        "the chosen preview has its selected tint"
+    );
+    assert_ne!(history_row_marker(&harness, second_id), chosen);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("History remains active")
+    };
+    assert_eq!(history.selected, 0);
+    assert_eq!(
+        history.selected_query().as_deref(),
+        Some(first_sql.as_str())
+    );
+
+    let _ = harness.key(KeyCode::Char(' '));
+    assert_eq!(history_row_marker(&harness, first_id), chosen);
+    let _ = harness.key(KeyCode::Down);
+    assert_ne!(history_row_marker(&harness, first_id), chosen);
+    assert_eq!(history_row_marker(&harness, second_id), chosen);
+    let first_bg_after_move = harness.cell(first_row.x.saturating_add(3), first_row.y).bg;
+    let second_bg_after_move = harness
+        .cell(second_row.x.saturating_add(3), second_row.y)
+        .bg;
+    assert_eq!(first_bg_after_move, second_bg);
+    assert_eq!(second_bg_after_move, first_bg);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("History remains active after moving the preview")
+    };
+    assert_eq!(history.selected, 1);
+    assert_eq!(
+        history.selected_query().as_deref(),
+        Some(second_sql.as_str())
+    );
+    assert_eq!(harness.app().workbench.query_counter, query_count);
+    assert_eq!(harness.app().workbench.tabs().len(), tab_count + 1);
+    assert!(matches!(
+        harness.app().workbench.active(),
+        Some(Tab::History(_))
+    ));
     assert!(
         harness.diagnostics().is_empty(),
         "{:?}",
@@ -1927,6 +2047,7 @@ fn history_copy_from_an_empty_projection_is_disabled_and_has_no_effect() {
     app.workbench
         .history
         .push(history_entry("SELECT empty_projection_source"));
+    let query_count = app.workbench.query_counter;
     let (mut harness, copies) = clipboard_harness(app, 120, 40);
     let _ = harness.ctrl('y');
     let history_key = harness
@@ -1943,6 +2064,7 @@ fn history_copy_from_an_empty_projection_is_disabled_and_has_no_effect() {
         panic!("History remains active with an empty filter")
     };
     assert!(history.entries.is_empty());
+    assert!(history_chosen_marker_rows(&harness).is_empty());
     let copy = history_key.control("history.copy");
     assert!(harness.area_of(copy).is_some());
     assert!(harness.state_of(copy).contains(StateFlags::DISABLED));
@@ -1950,6 +2072,7 @@ fn history_copy_from_an_empty_projection_is_disabled_and_has_no_effect() {
     let _ = harness.key(KeyCode::Char('y'));
     let _ = harness.click_id(copy);
     assert!(copies.borrow().is_empty());
+    assert_eq!(harness.app().workbench.query_counter, query_count);
     assert!(
         harness.diagnostics().is_empty(),
         "{:?}",
@@ -2333,6 +2456,7 @@ fn history_duplicate_entry_ids_cannot_activate_an_ambiguous_row() {
         .active_key()
         .expect("History is active");
     let before_tabs = harness.app().workbench.tabs().len();
+    assert!(history_chosen_marker_rows(&harness).is_empty());
     let copy_id = history_key.control("history.copy");
     assert!(harness.area_of(copy_id).is_some());
     assert!(harness.state_of(copy_id).contains(StateFlags::DISABLED));
@@ -3286,17 +3410,25 @@ fn history_native_filters_apply_search_scope_status_and_survive_reopen() {
     assert!(harness.find("SELECT alpha FROM beta").is_some());
 
     assert!(harness.tab_to(history_list));
-    let filtered_sql = match harness.app().workbench.tab(history_key) {
+    let (filtered_id, filtered_sql) = match harness.app().workbench.tab(history_key) {
         Some(Tab::History(history)) => {
             let selected = &history.entries[history.selected];
             let selected_query = history.selected_query();
             assert_eq!(selected_query.as_deref(), Some(selected.sql.as_str()));
             assert_eq!(selected.connection, "Staging");
             assert!(selected.sql.contains("-- Staging"));
-            selected_query.expect("the selected row is in the committed filter projection")
+            (
+                selected.id,
+                selected_query.expect("the selected row is in the committed filter projection"),
+            )
         }
         _ => panic!("history remains active"),
     };
+    assert_eq!(
+        history_row_marker(&harness, filtered_id),
+        Theme::junie().design.glyphs.get(GlyphRole::Chosen),
+        "the committed unique filter selection is visibly chosen"
+    );
     let query_count = harness.app().workbench.query_counter;
     let _ = harness.key(KeyCode::Char('y'));
     assert_eq!(copies.borrow().as_slice(), &[filtered_sql.clone()]);

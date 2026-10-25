@@ -174,6 +174,7 @@ fn prepare_cursor(
     } else if entries.is_empty() || !rows.initialized {
         rows.list = ListState::default();
     }
+    rows.list.choose(cursor.map(|(_, key)| key));
     rows.initialized = true;
 }
 
@@ -269,10 +270,11 @@ impl HistoryRows {
             let action = list_response.action_ref().copied();
             response |= list_response.erase();
             let cursor = rows.list.cursor();
-            (
-                action,
-                cursor.and_then(|cursor| unique_index(&entries, cursor)),
-            )
+            let selected_index = cursor.and_then(|cursor| unique_index(&entries, cursor));
+            rows.list.choose(
+                selected_index.and_then(|index| entries.get(index).map(|entry| item_key(entry))),
+            );
+            (action, selected_index)
         };
 
         if let Some(ListAction::Activated(activated)) = action
