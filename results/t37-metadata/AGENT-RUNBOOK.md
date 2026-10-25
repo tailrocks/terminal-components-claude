@@ -7,12 +7,17 @@ This work has a structural manifest pass only. The final source fragment from th
 ## Input and ownership
 
 - Fixed input: `d402f893d159ac26da5db4d18c13510afdbce12f`.
+- Original fixed source: `c817b99e9e43abbbf3519d56b2f5ee86924243d8`.
+- Product source baseline: `1d6ee92adf6ccca38eeee64b1371cba1497e8fcd`.
+- Accepted documentation baseline: `5bcc79b971ae30ee244b8fef841c6fbafdb918d0`.
 - This worktree owns Cargo manifests and locks, `.velnor`, `.config`, generator inputs, CI output generation, inventory JSON, acceptance policy JSON, component ownership JSON, and `results/t37-metadata/**`.
-- Foundation source fragments: `7368d4fc` and `2fee2c277`.
-- Component source fragments: `96fe6a2a` and `f03e22c14`.
-- Application source fragments: `4f502be8` and `fb667ed7`.
+- Foundation source fragments: `7368d4fc5a71e46cae5ee92963bcf3a6943953e9` and `2fee2c277d1213fc5fad5d81eb77479600182b69`.
+- Component source fragments: `96fe6a2a1430967831777da2da6402206c4716ff` and `f03e22c14a5817272cd5643094e974f9c25f1b6a`.
+- Application source fragments: `4f502be854a4d4c7a7585344bd9915b2a26fae79` and `fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a`.
 - The tools source worktree is still active. Its reviewed deletion proposal is at `b61d0374d87c1a17cd639f796562b614b8b19fe0d78d605ef49fb7f570032772`, with later inventory/schema evidence at `c4f5ce52766a1d82782bbd6670e49297271307af9a292a2a2408debc1038bc13`. These are proposal inputs, not a combined-source build result.
 - Do not self-approve this result.
+
+Metadata commit: `bb0ea4d7a156f2f5d48d7b0d544281876f2ef4f5`.
 
 ## Metadata changes
 
@@ -30,6 +35,17 @@ This work has a structural manifest pass only. The final source fragment from th
 - Removed stale Cargo manifest comments that cited the deleted doc-inventory test, reach harness, and public-only test. Root lint rationale comments remain unchanged pending the docs owner's accepted transfer.
 
 See `dependency-retirement-map.json`, `retirement-input-hashes.json`, `preservation-hashes.json`, and `target-survivor-map.json` for exact paths and hashes.
+
+## High-review decisions
+
+- `T37-TARGETS-01` sets the target flags above. Production and example target identities, paths, crate types, required features, and documentation settings stay fixed.
+- `T37-PROBE-01` retires only the reviewed workbench-tabs-privacy and paint-style-pilot probe packages. The workbench decision uses the two deleted fixture bins, README, and no-retained-consumer evidence. Other nested packages are not inferred from directory names.
+- `T37-PROBE-02` retires the viewport testing hooks and facade testing re-exports. Existing compatibility feature edges remain. Required work bounds remain assigned to T17/T33.
+- `T37-INVENTORY-01` retires only `profiles.json` and its capture/verify lane. The historical catalog and pending proposal remain unchanged. No inventory runner or replacement is added before T38.
+- `T37-DOC-INVENTORY-01` removes the xtask documentation-inventory helper and its `pulldown-cmark` dependency. `serde_json`, ownership checks, and the xtask CLI remain.
+- `E2E-01` keeps the `admit_expected_generation` CLI and its production publication path. `T37-E2E-SCHEMA-02` keeps all twelve schema files and the active registry/profile data byte-identical. The preservation hashes record all twelve schemas and three related data files.
+- `T37-FROZEN-01`, `T37-QUALIFIED-01`, and `CAPTURE-01` retire only their approved runnable helper closures. The frozen and qualified lock hashes are recorded. Qualified-capture pins, proof outputs, licenses, and repair provenance stay with the tools source owner.
+- `T37-CI-TESTING-01` is conditional. Keep the global testing configuration until final combined-source evidence proves that no meaningful non-test branch remains. Any remaining branch needs a narrower review. Do not treat an empty suite as a pass.
 
 ## Structural evidence
 

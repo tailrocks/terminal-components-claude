@@ -36,6 +36,97 @@
       "input_sha256": "4265116e1ee48092fec6f2a108893ac747bc1c636ca4b279dd9f64e8492822a4",
       "current_sha256": "4265116e1ee48092fec6f2a108893ac747bc1c636ca4b279dd9f64e8492822a4",
       "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/expected-generation-v1.schema.json",
+      "input_sha256": "d86c066f58c6edcc92133752d9e02102ab9564c6a7c0b60777ad0f01818b23bc",
+      "current_sha256": "d86c066f58c6edcc92133752d9e02102ab9564c6a7c0b60777ad0f01818b23bc",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/generation-admission-v1.schema.json",
+      "input_sha256": "cfec0679de8245be6e165babf7cd4df15855fef42349a28ecc9b8d5102a069a5",
+      "current_sha256": "cfec0679de8245be6e165babf7cd4df15855fef42349a28ecc9b8d5102a069a5",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/oracle-capture-receipt-v1.schema.json",
+      "input_sha256": "448577bd07ccec30596f0a60ee38ca943271183ede8a45c7a7b2c9c167187e20",
+      "current_sha256": "448577bd07ccec30596f0a60ee38ca943271183ede8a45c7a7b2c9c167187e20",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/qualification-review-v1.schema.json",
+      "input_sha256": "f3f06b64d25d806dac6ada4b081df8532e83a50f5ec5b6f811a4231c87ba08d0",
+      "current_sha256": "f3f06b64d25d806dac6ada4b081df8532e83a50f5ec5b6f811a4231c87ba08d0",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/receipt-v1.schema.json",
+      "input_sha256": "68f9c6964d6b732a5a67fa5571b01e8001717f47b0b87db3aa1ab3764768dd61",
+      "current_sha256": "68f9c6964d6b732a5a67fa5571b01e8001717f47b0b87db3aa1ab3764768dd61",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/receipt-v2.schema.json",
+      "input_sha256": "31135e33541dcc21fffed2c77d3a37a169ae5ceaeb482fa9dc8340394f9b6a5d",
+      "current_sha256": "31135e33541dcc21fffed2c77d3a37a169ae5ceaeb482fa9dc8340394f9b6a5d",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/receipt-v3.schema.json",
+      "input_sha256": "562d95a7a104a6f3127fb9f403f7cb79c24b25f77943e1eec732ed2120f476fe",
+      "current_sha256": "562d95a7a104a6f3127fb9f403f7cb79c24b25f77943e1eec732ed2120f476fe",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/subject-manifest-v1.schema.json",
+      "input_sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+      "current_sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/subject-manifest-v2.schema.json",
+      "input_sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+      "current_sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/tag-validator-toolchain-v1.schema.json",
+      "input_sha256": "979fd241c4b35c8402e3e4161ccd9bad1925c7e5af7f25c0f0b55ebe9fa1b9a6",
+      "current_sha256": "979fd241c4b35c8402e3e4161ccd9bad1925c7e5af7f25c0f0b55ebe9fa1b9a6",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/trust-record-v1.schema.json",
+      "input_sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+      "current_sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/trust-record-v2.schema.json",
+      "input_sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+      "current_sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/cases/deferred-obligations.json",
+      "input_sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+      "current_sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/cases/registry.json",
+      "input_sha256": "7327cdf90044499444c93d627747237912abe27b41708a64f0fed2a363c78476",
+      "current_sha256": "7327cdf90044499444c93d627747237912abe27b41708a64f0fed2a363c78476",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/profile.json",
+      "input_sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+      "current_sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+      "byte_identical": true
     }
-  ]
+  ],
+  "e2e_schema_count": 12
 }
