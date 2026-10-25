@@ -1,13 +1,14 @@
 use std::fmt;
 
 use crate::catalogue::{IntentError, resolve_intent};
-use crate::domain::action::{Action, Risk};
+use crate::domain::action::{Action, Availability, Risk};
 use crate::domain::args::{AcceptedInputs, InputError, InputField, InputSchema, SchemaError};
 use crate::domain::host::{Environment, HostKind};
 use crate::domain::mise::{MiseTask, Trust};
 use crate::world::World;
 
 const NEXTTEST_TASK_ID: &str = "test-nextest";
+const NEXTTEST_ROW_ID: &str = "task:test-nextest";
 const NEXTTEST_DEFINITION_PATH: &str = "~/work/pave/mise.toml";
 const NEXTTEST_TASK_BODY: &str = "cargo nextest run";
 const NEXTTEST_ADAPTER_ID: &str = "nextest-filter-profile";
@@ -115,6 +116,18 @@ impl ProducerSnapshot {
     }
 }
 
+/// Finds the explicitly declared producer for a canonical action row.
+///
+/// The exact fixture identity is the declaration. Other tasks keep their existing dispatch
+/// behavior, while a stale `test-nextest` row still selects this producer and fails closed.
+pub fn task_args_producer_for(row: &Action) -> Result<Option<TaskArgsProducer>, SchemaError> {
+    if row.id == NEXTTEST_ROW_ID {
+        nextest_task_producer().map(Some)
+    } else {
+        Ok(None)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct TaskSnapshot {
     id: String,
@@ -153,6 +166,233 @@ impl From<&World> for ContextSnapshot {
             effect_revision: world.effect_revision,
         }
     }
+}
+
+/// Unaccepted, non-cloneable input session bound before Trust or Args is shown.
+///
+/// It snapshots the full task definition, producer/schema, canonical action policy, and host
+/// context. An untrusted task can transition only through this session's exact-file approval.
+pub struct TaskArgsSession {
+    producer: ProducerSnapshot,
+    task: TaskSnapshot,
+    action: Action,
+    context: ContextSnapshot,
+    initially_trusted: bool,
+    trust_approved: bool,
+}
+
+/// Error returned while a bound draft accepts its typed values.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TaskArgsAcceptError {
+    Binding(TaskArgsError),
+    Input(InputError),
+}
+
+impl fmt::Display for TaskArgsAcceptError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Binding(error) => fmt::Display::fmt(error, f),
+            Self::Input(error) => fmt::Display::fmt(error, f),
+        }
+    }
+}
+
+impl std::error::Error for TaskArgsAcceptError {}
+
+impl TaskArgsSession {
+    /// Binds the current task row before opening Trust or Args.
+    pub fn begin(
+        world: &World,
+        row: &Action,
+        producer: &TaskArgsProducer,
+    ) -> Result<Self, TaskArgsError> {
+        let task = current_task(world, producer)?;
+        ensure_task_binding(task, producer)?;
+        let action = current_task_action(world, producer)?;
+        let normalized = normalized_task_action(&action, task.trust, &task.defined_in)?;
+        if normalized_task_action(row, task.trust, &task.defined_in)? != normalized {
+            return Err(TaskArgsError::StaleAction);
+        }
+
+        let initially_trusted = task.trust == Trust::Trusted;
+        Ok(Self {
+            producer: ProducerSnapshot::from(producer),
+            task: TaskSnapshot::from(task),
+            action: normalized,
+            context: ContextSnapshot::from(world),
+            initially_trusted,
+            trust_approved: initially_trusted,
+        })
+    }
+
+    /// Returns the exact task definition path that this draft can approve.
+    pub fn definition_path(&self) -> &str {
+        &self.task.definition_path
+    }
+
+    /// Validates and performs the one exact-file Trust transition for this draft.
+    ///
+    /// A session that began trusted cannot approve another task or reuse Trust as a general
+    /// dispatch route.
+    pub fn approve_trust(
+        &mut self,
+        world: &mut World,
+        row: &Action,
+        producer: &TaskArgsProducer,
+        file: &str,
+    ) -> Result<Action, TaskArgsError> {
+        if self.initially_trusted || self.trust_approved || file != self.task.definition_path {
+            return Err(TaskArgsError::TrustTransitionChanged);
+        }
+        self.validate_snapshot(world, row, producer, Trust::Untrusted)?;
+        if !world.trust_mise_file(file) {
+            return Err(TaskArgsError::TrustTransitionChanged);
+        }
+        let current_task = current_task(world, producer)?;
+        if current_task.trust != Trust::Trusted {
+            return Err(TaskArgsError::TrustTransitionChanged);
+        }
+        let current_action = current_task_action(world, producer)?;
+        if normalized_task_action(&current_action, Trust::Trusted, file)? != self.action {
+            return Err(TaskArgsError::TrustTransitionChanged);
+        }
+        if ContextSnapshot::from(&*world) != self.context {
+            return Err(TaskArgsError::StaleContext);
+        }
+        self.trust_approved = true;
+        Ok(current_action)
+    }
+
+    /// Validates the same bound draft, accepts values, and constructs its plan once.
+    pub fn accept(
+        &self,
+        world: &World,
+        row: &Action,
+        producer: &TaskArgsProducer,
+        values: &[(&str, &str)],
+    ) -> Result<InvocationPlan, TaskArgsAcceptError> {
+        self.validate_current(world, row, producer)
+            .map_err(TaskArgsAcceptError::Binding)?;
+        let accepted = producer
+            .accept(values)
+            .map_err(TaskArgsAcceptError::Input)?;
+        prepare_nextest_invocation(world, row, producer, &accepted)
+            .map_err(TaskArgsAcceptError::Binding)
+    }
+
+    fn validate_current(
+        &self,
+        world: &World,
+        row: &Action,
+        producer: &TaskArgsProducer,
+    ) -> Result<(), TaskArgsError> {
+        if !self.trust_approved {
+            return Err(TaskArgsError::NeedsTrust);
+        }
+        self.validate_snapshot(world, row, producer, Trust::Trusted)
+    }
+
+    fn validate_snapshot(
+        &self,
+        world: &World,
+        row: &Action,
+        producer: &TaskArgsProducer,
+        expected_trust: Trust,
+    ) -> Result<(), TaskArgsError> {
+        if !self.producer.same_adapter_binding(producer) || self.producer.schema != producer.schema
+        {
+            return Err(TaskArgsError::StaleProducer);
+        }
+        if ContextSnapshot::from(world) != self.context {
+            return Err(TaskArgsError::StaleContext);
+        }
+        let task = current_task(world, producer)?;
+        ensure_task_binding(task, producer)?;
+        if task.trust != expected_trust {
+            return Err(if expected_trust == Trust::Trusted {
+                TaskArgsError::TrustTransitionChanged
+            } else {
+                TaskArgsError::NeedsTrust
+            });
+        }
+        let current_action = current_task_action(world, producer)?;
+        let normalized = normalized_task_action(&current_action, task.trust, &task.defined_in)?;
+        if normalized != self.action
+            || normalized_task_action(row, task.trust, &task.defined_in)? != normalized
+        {
+            return Err(TaskArgsError::StaleAction);
+        }
+        if self.task.id != task.id
+            || self.task.definition_path != task.defined_in
+            || self.task.body != task.command
+            || (self.initially_trusted && self.task.trust != task.trust)
+        {
+            return Err(TaskArgsError::TaskDefinitionChanged);
+        }
+        Ok(())
+    }
+}
+
+fn ensure_task_binding(task: &MiseTask, producer: &TaskArgsProducer) -> Result<(), TaskArgsError> {
+    if task.id != producer.task_id
+        || task.defined_in != producer.definition_path
+        || task.command != producer.task_body
+    {
+        return Err(TaskArgsError::TaskDefinitionChanged);
+    }
+    Ok(())
+}
+
+fn current_task_action(
+    world: &World,
+    producer: &TaskArgsProducer,
+) -> Result<Action, TaskArgsError> {
+    let expected_id = format!("task:{}", producer.task_id);
+    let mut matching = crate::catalogue::catalogue(world)
+        .into_iter()
+        .filter(|action| action.id == expected_id);
+    let Some(action) = matching.next() else {
+        return Err(TaskArgsError::StaleAction);
+    };
+    if matching.next().is_some() || action.intent_id() != Some(expected_id.as_str()) {
+        return Err(TaskArgsError::StaleAction);
+    }
+    Ok(action)
+}
+
+fn normalized_task_action(
+    action: &Action,
+    trust: Trust,
+    definition_path: &str,
+) -> Result<Action, TaskArgsError> {
+    const UNTRUSTED_SUFFIX: &str = " · untrusted config";
+    let mut normalized = action.clone();
+    if action.risk != Risk::ReadOnly {
+        return Err(TaskArgsError::UnsupportedRisk);
+    }
+    match trust {
+        Trust::Trusted => {
+            if action.availability != Availability::Ready {
+                return Err(TaskArgsError::StaleAction);
+            }
+        }
+        Trust::Untrusted => {
+            let Availability::NeedsTrust(file) = &action.availability else {
+                return Err(TaskArgsError::NeedsTrust);
+            };
+            if file != definition_path || !action.reason.ends_with(UNTRUSTED_SUFFIX) {
+                return Err(TaskArgsError::StaleAction);
+            }
+            normalized.reason.truncate(
+                normalized
+                    .reason
+                    .len()
+                    .saturating_sub(UNTRUSTED_SUFFIX.len()),
+            );
+            normalized.availability = Availability::Ready;
+        }
+    }
+    Ok(normalized)
 }
 
 /// Structured invocation data. `argv` is an argument vector, never shell text.
@@ -430,6 +670,8 @@ pub enum TaskArgsError {
     TaskDefinitionChanged,
     AmbiguousTask,
     NeedsTrust,
+    TrustTransitionChanged,
+    UnsupportedRisk,
     StaleAction,
     StaleContext,
     StaleProducer,
@@ -446,6 +688,12 @@ impl fmt::Display for TaskArgsError {
             Self::TaskDefinitionChanged => f.write_str("task definition changed · review again"),
             Self::AmbiguousTask => f.write_str("task identity is ambiguous"),
             Self::NeedsTrust => f.write_str("task file needs trust before accepting inputs"),
+            Self::TrustTransitionChanged => {
+                f.write_str("task Trust state changed · start the input review again")
+            }
+            Self::UnsupportedRisk => {
+                f.write_str("task input producer requires a read-only action policy")
+            }
             Self::StaleAction => f.write_str("task action changed · review again"),
             Self::StaleContext => f.write_str("host or working context changed · review again"),
             Self::StaleProducer => f.write_str("task input producer changed · review again"),
@@ -464,9 +712,9 @@ impl std::error::Error for TaskArgsError {}
 #[cfg(test)]
 mod tests {
     use super::{
-        ExecutionStatus, InvocationPlan, TaskArgsError, TaskArgsProducer, nextest_review_facts,
-        nextest_schema, nextest_task_producer, prepare_nextest_invocation,
-        simulate_nextest_invocation,
+        ExecutionStatus, InvocationPlan, TaskArgsAcceptError, TaskArgsError, TaskArgsProducer,
+        TaskArgsSession, nextest_review_facts, nextest_schema, nextest_task_producer,
+        prepare_nextest_invocation, simulate_nextest_invocation, task_args_producer_for,
     };
     use crate::catalogue;
     use crate::domain::mise::Trust;
@@ -506,6 +754,230 @@ mod tests {
             nextest_task_producer().map_err(|_| TaskArgsError::InvalidAcceptedRequest)?;
         let plan = plan_for(&world, &producer, values)?;
         Ok((world, producer, plan))
+    }
+
+    fn untrusted_fixture() -> (World, TaskArgsProducer, crate::domain::action::Action) {
+        let mut world = nextest_args_world();
+        if let Some(mise) = &mut world.mise
+            && let Some(task) = mise.tasks.iter_mut().find(|task| task.id == "test-nextest")
+        {
+            task.trust = Trust::Untrusted;
+        }
+        let producer = nextest_task_producer().expect("fixture producer is valid");
+        let row = action_for(&world, NEXTTEST_ROW_ID).expect("nextest task row is present");
+        (world, producer, row)
+    }
+
+    #[test]
+    fn bound_draft_approves_only_its_exact_file_then_accepts_one_request() {
+        let (mut world, producer, row) = untrusted_fixture();
+        let draft = TaskArgsSession::begin(&world, &row, &producer);
+        assert!(draft.is_ok());
+        let Some(mut draft) = draft.ok() else { return };
+        let values = [("filter", "test(tests::parser)"), ("profile", "ci")];
+        assert_eq!(
+            draft.accept(&world, &row, &producer, &values),
+            Err(TaskArgsAcceptError::Binding(TaskArgsError::NeedsTrust))
+        );
+        assert_eq!(
+            draft.approve_trust(&mut world, &row, &producer, "~/other/mise.toml"),
+            Err(TaskArgsError::TrustTransitionChanged)
+        );
+        assert!(
+            draft
+                .approve_trust(&mut world, &row, &producer, producer.definition_path())
+                .is_ok()
+        );
+        let trusted_row = action_for(&world, NEXTTEST_ROW_ID);
+        assert!(trusted_row.is_ok());
+        let Some(trusted_row) = trusted_row.ok() else {
+            return;
+        };
+        let plan = draft.accept(&world, &trusted_row, &producer, &values);
+        assert!(
+            plan.is_ok(),
+            "same bound draft should accept after exact Trust"
+        );
+        let Some(plan) = plan.ok() else { return };
+        assert_eq!(
+            plan.accepted_inputs().value("filter"),
+            Some("test(tests::parser)")
+        );
+        assert_eq!(plan.accepted_inputs().value("profile"), Some("ci"));
+    }
+
+    #[test]
+    fn draft_rejects_changed_body_path_context_schema_and_revoked_trust() {
+        let (mut world, producer, row) = untrusted_fixture();
+        let mut before_trust = TaskArgsSession::begin(&world, &row, &producer)
+            .expect("untrusted draft binds before Trust");
+        if let Some(mise) = &mut world.mise
+            && let Some(task) = mise.tasks.iter_mut().find(|task| task.id == "test-nextest")
+        {
+            task.command.push_str(" --changed-body");
+        }
+        assert_eq!(
+            before_trust.approve_trust(&mut world, &row, &producer, producer.definition_path()),
+            Err(TaskArgsError::TaskDefinitionChanged)
+        );
+        assert!(world.mise.as_ref().is_some_and(|mise| {
+            mise.tasks
+                .iter()
+                .any(|task| task.id == "test-nextest" && task.trust == Trust::Untrusted)
+        }));
+
+        let (mut world, producer, row) = untrusted_fixture();
+        let mut changed_path = TaskArgsSession::begin(&world, &row, &producer)
+            .expect("untrusted draft binds before Trust");
+        if let Some(mise) = &mut world.mise
+            && let Some(task) = mise.tasks.iter_mut().find(|task| task.id == "test-nextest")
+        {
+            task.defined_in = "~/other/mise.toml".to_owned();
+        }
+        assert_eq!(
+            changed_path.approve_trust(&mut world, &row, &producer, producer.definition_path()),
+            Err(TaskArgsError::TaskDefinitionChanged)
+        );
+        assert!(world.mise.as_ref().is_some_and(|mise| {
+            mise.tasks
+                .iter()
+                .any(|task| task.id == "test-nextest" && task.trust == Trust::Untrusted)
+        }));
+
+        let (mut world, producer, row) = untrusted_fixture();
+        let mut changed_id = TaskArgsSession::begin(&world, &row, &producer)
+            .expect("untrusted draft binds before Trust");
+        if let Some(mise) = &mut world.mise
+            && let Some(task) = mise.tasks.iter_mut().find(|task| task.id == "test-nextest")
+        {
+            task.id = "renamed-nextest".to_owned();
+        }
+        assert_eq!(
+            changed_id.approve_trust(&mut world, &row, &producer, producer.definition_path()),
+            Err(TaskArgsError::TaskDefinitionChanged)
+        );
+        assert!(world.mise.as_ref().is_some_and(|mise| {
+            mise.tasks
+                .iter()
+                .any(|task| task.id == "renamed-nextest" && task.trust == Trust::Untrusted)
+        }));
+
+        let world = nextest_args_world();
+        let producer = nextest_task_producer().expect("fixture producer is valid");
+        let row = action_for(&world, NEXTTEST_ROW_ID).expect("nextest task row is present");
+        let draft = TaskArgsSession::begin(&world, &row, &producer)
+            .expect("trusted draft binds before Args");
+        let mut changed_schema = producer.clone();
+        changed_schema.schema = nextest_schema(2).expect("alternate schema is valid");
+        assert_eq!(
+            draft.accept(&world, &row, &changed_schema, &[]),
+            Err(TaskArgsAcceptError::Binding(TaskArgsError::StaleProducer))
+        );
+
+        let (mut world, producer, row) = untrusted_fixture();
+        let mut draft = TaskArgsSession::begin(&world, &row, &producer)
+            .expect("untrusted draft binds before Trust");
+        assert!(
+            draft
+                .approve_trust(&mut world, &row, &producer, producer.definition_path())
+                .is_ok()
+        );
+        let trusted_row = action_for(&world, NEXTTEST_ROW_ID).expect("task is now trusted");
+
+        world.cwd.push_str("/changed");
+        assert_eq!(
+            draft.accept(&world, &trusted_row, &producer, &[]),
+            Err(TaskArgsAcceptError::Binding(TaskArgsError::StaleContext))
+        );
+
+        let (mut world, producer, row) = untrusted_fixture();
+        let mut draft = TaskArgsSession::begin(&world, &row, &producer)
+            .expect("untrusted draft binds before Trust");
+        assert!(
+            draft
+                .approve_trust(&mut world, &row, &producer, producer.definition_path())
+                .is_ok()
+        );
+        if let Some(mise) = &mut world.mise
+            && let Some(task) = mise.tasks.iter_mut().find(|task| task.id == "test-nextest")
+        {
+            task.trust = Trust::Untrusted;
+        }
+        let revoked_row = action_for(&world, NEXTTEST_ROW_ID).expect("revoked row remains listed");
+        assert_eq!(
+            draft.accept(&world, &revoked_row, &producer, &[]),
+            Err(TaskArgsAcceptError::Binding(
+                TaskArgsError::TrustTransitionChanged
+            ))
+        );
+    }
+
+    #[test]
+    fn draft_rejects_each_changed_host_context_field_before_acceptance() {
+        use crate::domain::host::{Environment, HostKind};
+
+        #[derive(Clone, Copy)]
+        enum Change {
+            HostName,
+            HostKind,
+            Environment,
+            Cwd,
+            Revision,
+        }
+
+        for change in [
+            Change::HostName,
+            Change::HostKind,
+            Change::Environment,
+            Change::Cwd,
+            Change::Revision,
+        ] {
+            let (mut world, producer, row) = untrusted_fixture();
+            let mut draft = TaskArgsSession::begin(&world, &row, &producer)
+                .expect("untrusted draft binds before Trust");
+            assert!(
+                draft
+                    .approve_trust(&mut world, &row, &producer, producer.definition_path())
+                    .is_ok()
+            );
+            let trusted_row =
+                action_for(&world, NEXTTEST_ROW_ID).expect("task is trusted for input");
+            match change {
+                Change::HostName => world.host.name.push_str("-changed"),
+                Change::HostKind => world.host.kind = HostKind::Remote,
+                Change::Environment => world.host.env = Environment::Production,
+                Change::Cwd => world.cwd.push_str("/changed"),
+                Change::Revision => world.effect_revision = world.effect_revision.saturating_add(1),
+            }
+            assert_eq!(
+                draft.accept(&world, &trusted_row, &producer, &[]),
+                Err(TaskArgsAcceptError::Binding(TaskArgsError::StaleContext))
+            );
+        }
+    }
+
+    #[test]
+    fn producer_lookup_uses_only_the_explicit_nextest_action_identity() {
+        let world = nextest_args_world();
+        let rows = catalogue::catalogue(&world);
+        let nextest = rows.iter().find(|action| action.id == NEXTTEST_ROW_ID);
+        assert!(nextest.is_some());
+        if let Some(nextest) = nextest {
+            assert!(
+                task_args_producer_for(nextest)
+                    .expect("explicit producer is valid")
+                    .is_some()
+            );
+        }
+        let ordinary = rows.iter().find(|action| action.id == "task:test");
+        assert!(ordinary.is_some());
+        if let Some(ordinary) = ordinary {
+            assert!(
+                task_args_producer_for(ordinary)
+                    .expect("ordinary task has no schema error")
+                    .is_none()
+            );
+        }
     }
 
     #[test]

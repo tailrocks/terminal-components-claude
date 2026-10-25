@@ -7,6 +7,7 @@ use crate::{
     screens::{
         actions::{Actions, Choice},
         activity::{self, Activities},
+        args::TaskArgsEditor,
         cleanup,
         clone::ClonePicker,
         dialogs::{self, ProductDialog},
@@ -174,6 +175,7 @@ struct ReturnLocation {
 
 enum Overlay {
     Dialog(Box<ProductDialog>),
+    Args(Box<TaskArgsEditor>),
     Clone(ClonePicker),
     Actions(Actions),
     Gate(PlanGate),
@@ -1095,6 +1097,26 @@ fn docker_hint(key: &'static str, label: &'static str) -> Hint {
     }
 }
 
+fn task_args_hints() -> HintLayer {
+    let scope = Chord::with(KeyCode::Char('s'), termrock::KeyModifiers::CONTROL);
+    let mut hints = HintLayer::from_bindings(GLOBAL);
+    hints.hints.retain(|hint| {
+        !matches!(
+            hint.key,
+            HintKey::Chord(chord) | HintKey::ChordWithCase { chord, .. } if chord == scope
+        )
+    });
+    hints.hints.push(Hint {
+        key: HintKey::ChordWithCase {
+            chord: scope,
+            case: termrock::ChordCase::UppercaseAscii,
+        },
+        label: "Review inputs",
+        priority: 40,
+    });
+    hints
+}
+
 fn docker_cleanup_hints() -> HintLayer {
     HintLayer {
         hints: vec![
@@ -1342,9 +1364,25 @@ impl App {
     }
 
     pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64) -> Self {
-        let mut world = fixtures::world_for(scenario);
+        Self::from_fixture_world(fixtures::world_for(scenario), motion, frame)
+    }
+
+    /// Opens the dedicated, explicitly declared nextest input fixture without changing any
+    /// ordinary scenario or the normal `nextest_args_world` trust defaults.
+    pub fn for_nextest_args_fixture(motion: Motion, frame: u64) -> Self {
+        let mut world = crate::sim::fixtures::nextest_args_world();
+        if let Some(mise) = &mut world.mise
+            && let Some(task) = mise.tasks.iter_mut().find(|task| task.id == "test-nextest")
+        {
+            task.trust = crate::domain::mise::Trust::Untrusted;
+        }
+        Self::from_fixture_world(world, motion, frame)
+    }
+
+    fn from_fixture_world(mut world: World, motion: Motion, frame: u64) -> Self {
         world.seek(frame);
         world.clock.running = motion != Motion::Paused;
+        let scenario = world.scenario;
         let mut keymap = KeyMap::new();
         for binding in GLOBAL {
             if let Some(chord) = binding.chord {
@@ -1410,8 +1448,36 @@ impl App {
         match destination {
             Destination::Notice(message) => self.set_status(message),
             Destination::Preview(action) => self.open_dialog(dialogs::Intent::Preview(action), cx),
-            Destination::Trust { action, file } => {
-                self.open_dialog(dialogs::Intent::Trust { action, file }, cx);
+            Destination::Trust { action, file, args } => {
+                self.open_dialog(dialogs::Intent::Trust { action, file, args }, cx);
+            }
+            Destination::TaskArgs(start) => {
+                let dispatch::TaskArgsStart {
+                    action,
+                    producer,
+                    session,
+                } = *start;
+                match TaskArgsEditor::new(action, producer, session) {
+                    Ok(editor) => {
+                        editor.open(cx);
+                        self.overlay = Some(Overlay::Args(Box::new(editor)));
+                    }
+                    Err(message) => self.set_status(message),
+                }
+            }
+            Destination::TaskArgsReview {
+                producer,
+                plan,
+                facts,
+            } => {
+                self.open_dialog(
+                    dialogs::Intent::TaskArgsReview {
+                        producer,
+                        plan: Some(plan),
+                        facts,
+                    },
+                    cx,
+                );
             }
             Destination::Plan(review) => {
                 self.plan = Some(PlanState::new(*review));
@@ -1540,19 +1606,8 @@ impl App {
             }
             PREVIEW if self.route == Route::Home => {
                 if let Some(action) = self.home.subject(&self.world, cx) {
-                    if let crate::domain::action::Availability::NeedsTrust(file) =
-                        &action.availability
-                    {
-                        self.open_dialog(
-                            dialogs::Intent::Trust {
-                                file: file.clone(),
-                                action,
-                            },
-                            cx,
-                        );
-                    } else {
-                        self.open_dialog(dialogs::Intent::Preview(action), cx);
-                    }
+                    let destination = dispatch::preview(&mut self.world, &action);
+                    self.destination(destination, cx);
                 }
             }
             ACTIONS if self.route == Route::Home => {
@@ -1615,7 +1670,10 @@ impl App {
                 let destination = dispatch::invoke(&mut self.world, &action);
                 self.destination(destination, cx);
             }
-            Choice::Preview => self.open_dialog(dialogs::Intent::Preview(action), cx),
+            Choice::Preview => {
+                let destination = dispatch::preview(&mut self.world, &action);
+                self.destination(destination, cx);
+            }
             Choice::Copy => self.copy_osc52(&action.command),
             Choice::Alias => self.open_dialog(dialogs::Intent::Alias(action), cx),
             Choice::Pin => {
@@ -1693,6 +1751,24 @@ impl App {
                         }
                         dialogs::Event::ReturnToCloneReview(request) => {
                             self.open_dialog(dialogs::Intent::CloneReview(request), cx);
+                        }
+                    }
+                }
+                (response, closed)
+            }
+            Overlay::Args(editor) => {
+                let (response, event) = editor.update(cx, &self.world);
+                let closed = event.is_some();
+                if let Some(event) = event {
+                    match event {
+                        crate::screens::args::Event::Cancelled => {}
+                        crate::screens::args::Event::Rejected(message) => {
+                            self.set_status(message);
+                        }
+                        crate::screens::args::Event::Accepted { producer, plan } => {
+                            let destination =
+                                dispatch::review_task_args(&self.world, producer, *plan);
+                            self.destination(destination, cx);
                         }
                     }
                 }
@@ -2243,6 +2319,7 @@ impl App {
         let hints = HintLayer::from_bindings(GLOBAL);
         let editing = match &self.overlay {
             Some(Overlay::Dialog(dialog)) => dialog.is_editing(),
+            Some(Overlay::Args(_)) => true,
             Some(Overlay::Gate(gate)) => gate.is_editing(),
             Some(Overlay::Clone(_) | Overlay::Actions(_) | Overlay::DiskSelection(_)) => false,
             None => self.route == Route::Home && self.home.is_editing(),
@@ -2257,8 +2334,13 @@ impl App {
             )
         });
         let actions_hints = matches!(self.overlay, Some(Overlay::Actions(_))).then(Actions::hints);
+        let args_hints = matches!(self.overlay, Some(Overlay::Args(_))).then(task_args_hints);
         let mut bar = HintBar::derived(FOOTER).screen(&hints);
-        if let Some(mode_hints) = actions_hints.as_ref().or(home_hints.as_ref()) {
+        if let Some(mode_hints) = actions_hints
+            .as_ref()
+            .or(home_hints.as_ref())
+            .or(args_hints.as_ref())
+        {
             bar = bar.mode(mode_hints);
         }
         bar.status_text(self.status.as_deref())
@@ -2290,6 +2372,11 @@ impl App {
         synchronized
     }
     fn refresh_query_bindings(&mut self, cx: &Cx<'_>) {
+        let scope = Chord::with(KeyCode::Char('s'), termrock::KeyModifiers::CONTROL);
+        self.keymap.remove(KeyPhase::Capture, scope);
+        if !matches!(self.overlay, Some(Overlay::Args(_))) {
+            self.keymap.add(KeyPhase::Capture, scope, SCOPE);
+        }
         let enter = Chord::key(KeyCode::Enter);
         let space = Chord::key(KeyCode::Char(' '));
         self.keymap.remove(KeyPhase::Bubble, enter);
@@ -2412,6 +2499,7 @@ impl App {
         let retired = match self.retired_overlay.take() {
             None => Response::ignored(),
             Some(Overlay::Dialog(mut dialog)) => dialog.poll(cx).0,
+            Some(Overlay::Args(mut editor)) => editor.poll(cx),
             Some(Overlay::Gate(mut gate)) => gate.poll(cx).0,
             Some(Overlay::Clone(mut picker)) => picker.update(cx).0,
             Some(Overlay::Actions(mut picker)) => picker.update(cx).0,
@@ -2443,6 +2531,7 @@ impl App {
                 .as_mut()
                 .map_or_else(Response::ignored, |overlay| match overlay {
                     Overlay::Dialog(dialog) => dialog.poll(cx).0,
+                    Overlay::Args(editor) => editor.poll(cx),
                     Overlay::Gate(gate) => gate.poll(cx).0,
                     Overlay::Clone(picker) => picker.update(cx).0,
                     Overlay::Actions(picker) => picker.update(cx).0,
@@ -2604,6 +2693,7 @@ impl termrock::App for App {
         if let Some(overlay) = &self.overlay {
             match overlay {
                 Overlay::Dialog(dialog) => dialog.draw(ui),
+                Overlay::Args(editor) => editor.draw(ui),
                 Overlay::Clone(picker) => picker.draw(ui),
                 Overlay::Actions(picker) => picker.draw(ui),
                 Overlay::Gate(gate) => gate.draw(ui),
@@ -6985,3 +7075,7 @@ mod files_tests;
 #[cfg(test)]
 #[path = "app/disk_tests.rs"]
 mod disk_tests;
+
+#[cfg(test)]
+#[path = "app/task_args_tests.rs"]
+mod task_args_tests;

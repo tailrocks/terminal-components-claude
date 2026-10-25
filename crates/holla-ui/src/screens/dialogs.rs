@@ -1,14 +1,18 @@
 use std::path::Path;
 
 use super::context::Context;
-use crate::dispatch::{self, Destination};
+use crate::dispatch::{self, Destination, TaskArgsStart};
 use crate::domain::{
     action::{Action, Availability},
     github::{GhRepo, GhState},
     host::{Environment, HostKind},
     ssh::SshHost,
 };
-use crate::sim::{catalogue, pg, world::World};
+use crate::sim::{
+    catalogue, pg,
+    task_args::{InvocationPlan, SafeReviewFacts, TaskArgsProducer},
+    world::World,
+};
 use termrock::{
     Action as UiAction, ActionKey, Cx, Dialog, DialogAction, DialogState, Field, FieldError, Id,
     ItemKey, Props, Rect, Response, Select, SelectAction, SelectField, SelectState, TextInput,
@@ -20,6 +24,7 @@ const CODE: Id = Id::root("holla.dialog.code");
 const TERMINATE: ActionKey = ActionKey::application("holla.pg.terminate");
 const BROWSE_FILES: ActionKey = ActionKey::application("holla.folder-browser.browse");
 const EDIT_CLONE_OPTIONS: ActionKey = ActionKey::application("holla.clone.edit-options");
+const SIMULATE_TASK_ARGS: ActionKey = ActionKey::application("holla.task-args.simulate");
 pub(crate) const CLONE_PROTOCOL: Id = Id::root("holla.clone.protocol");
 pub(crate) const CLONE_DESTINATION: Id = Id::root("holla.clone.destination");
 const CLONE_PROTOCOLS: [&str; 2] = ["SSH", "HTTPS"];
@@ -194,6 +199,12 @@ pub(crate) enum Intent {
     Trust {
         action: Action,
         file: String,
+        args: Option<Box<TaskArgsStart>>,
+    },
+    TaskArgsReview {
+        producer: TaskArgsProducer,
+        plan: Option<Box<InvocationPlan>>,
+        facts: SafeReviewFacts,
     },
     Database {
         cancel: Option<pg::Review>,
@@ -349,7 +360,7 @@ impl ProductDialog {
                     .enabled(matches!(action.availability, Availability::Ready)),
                 );
             }
-            Intent::Trust { action, file } => {
+            Intent::Trust { action, file, .. } => {
                 view.title = "Trust this task file?".into();
                 view.facts = facts(&[
                     ("Config file", file.clone()),
@@ -370,6 +381,25 @@ impl ProductDialog {
                 ]);
                 view.commands.push(action.command.clone());
                 view.actions.push(confirm_action("Trust file"));
+            }
+            Intent::TaskArgsReview { facts: review, .. } => {
+                view.title = "Review task inputs".into();
+                view.description =
+                    "This is a structured simulation. No process will be launched.".into();
+                view.facts = facts(&[
+                    (
+                        "Task",
+                        crate::screens::args::quote_value(&review.action_title),
+                    ),
+                    ("Host", crate::screens::args::quote_value(&review.host_name)),
+                    ("Environment", format!("{:?}", review.environment)),
+                    ("Effect revision", review.effect_revision.to_string()),
+                ]);
+                view.commands = crate::screens::args::format_invocation_lines(&review.invocation);
+                view.actions = vec![
+                    UiAction::quiet(ActionKey::CANCEL, "Cancel"),
+                    UiAction::new(SIMULATE_TASK_ARGS, "Simulate · nothing executed"),
+                ];
             }
             Intent::Monitor => {
                 view.title = "System snapshot".into();
@@ -661,6 +691,8 @@ impl ProductDialog {
         cx.open_layer(DIALOG, props.layer(cx));
         cx.focus(if matches!(self.intent, Intent::CloneOptions(_)) {
             CLONE_DESTINATION
+        } else if matches!(self.intent, Intent::TaskArgsReview { .. }) {
+            props.action_id(1)
         } else if matches!(self.intent, Intent::Alias(_)) {
             props.input_id()
         } else if matches!(
@@ -790,11 +822,25 @@ impl ProductDialog {
             Intent::Preview(action) => {
                 Event::Destination(Box::new(dispatch::confirm_preview(world, action)))
             }
-            Intent::Trust { action, file } => {
+            Intent::Trust { action, file, args } => {
                 if catalogue::resolve_intent(world, action)
                     != Err(catalogue::IntentError::NeedsTrust)
                 {
                     return notice("Task changed · review it again");
+                }
+                if let Some(mut continuation) = args.take() {
+                    return match continuation.session.approve_trust(
+                        world,
+                        action,
+                        &continuation.producer,
+                        file,
+                    ) {
+                        Ok(action) => {
+                            continuation.action = action;
+                            Event::Destination(Box::new(Destination::TaskArgs(continuation)))
+                        }
+                        Err(error) => notice(error.to_string()),
+                    };
                 }
                 if world.trust_mise_file(file) {
                     let acknowledgement = format!(
@@ -850,6 +896,14 @@ impl ProductDialog {
                     execution.destination
                 ))
             }
+            Intent::TaskArgsReview { producer, plan, .. } if key == SIMULATE_TASK_ARGS => {
+                match plan.take() {
+                    Some(plan) => Event::Destination(Box::new(dispatch::confirm_task_args(
+                        world, producer, *plan,
+                    ))),
+                    None => notice("Task input review already consumed"),
+                }
+            }
             Intent::CloneReview(_) | Intent::CloneOptions(_) => Event::Close,
             Intent::Alias(action) => {
                 match world.memory.set_alias(self.dialog.draft(), &action.command) {
@@ -875,7 +929,8 @@ impl ProductDialog {
             | Intent::HomeFind
             | Intent::CustomAction
             | Intent::SnapshotPage
-            | Intent::DefinitionTrust => Event::Close,
+            | Intent::DefinitionTrust
+            | Intent::TaskArgsReview { .. } => Event::Close,
         }
     }
     pub(crate) fn draw(&self, ui: &mut Ui<'_>) {

@@ -7,13 +7,27 @@ use crate::scenario::Scenario;
 use crate::sim::{
     catalogue::{self, IntentError},
     plans::{self, ReviewedPlan},
+    task_args::{
+        InvocationPlan, SafeReviewFacts, TaskArgsProducer, TaskArgsSession, nextest_review_facts,
+        simulate_nextest_invocation, task_args_producer_for,
+    },
     world::World,
 };
 
 pub(crate) enum Destination {
     Notice(String),
     Preview(Action),
-    Trust { action: Action, file: String },
+    Trust {
+        action: Action,
+        file: String,
+        args: Option<Box<TaskArgsStart>>,
+    },
+    TaskArgs(Box<TaskArgsStart>),
+    TaskArgsReview {
+        producer: TaskArgsProducer,
+        plan: Box<InvocationPlan>,
+        facts: SafeReviewFacts,
+    },
     Plan(Box<ReviewedPlan>),
     Database,
     Monitor,
@@ -21,7 +35,37 @@ pub(crate) enum Destination {
     Activity(u32, String),
 }
 
+pub(crate) struct TaskArgsStart {
+    pub(crate) action: Action,
+    pub(crate) producer: TaskArgsProducer,
+    pub(crate) session: TaskArgsSession,
+}
+
+pub(crate) fn preview(world: &mut World, row: &Action) -> Destination {
+    // Keep declared producers off the legacy fixed-command preview route.
+    match task_args_producer_for(row) {
+        Ok(Some(producer)) => start_task_args(world, row, producer),
+        Ok(None) => match &row.availability {
+            Availability::NeedsTrust(file) => Destination::Trust {
+                action: row.clone(),
+                file: file.clone(),
+                args: None,
+            },
+            _ => Destination::Preview(row.clone()),
+        },
+        Err(error) => Destination::Notice(error.to_string()),
+    }
+}
+
 pub(crate) fn invoke(world: &mut World, row: &Action) -> Destination {
+    let producer = match task_args_producer_for(row) {
+        Ok(producer) => producer,
+        Err(error) => return Destination::Notice(error.to_string()),
+    };
+    if let Some(producer) = producer {
+        return start_task_args(world, row, producer);
+    }
+
     let action = match catalogue::resolve_intent(world, row) {
         Ok(action) => action,
         Err(IntentError::NeedsTrust) => {
@@ -37,6 +81,7 @@ pub(crate) fn invoke(world: &mut World, row: &Action) -> Destination {
             return Destination::Trust {
                 file: file.clone(),
                 action: current,
+                args: None,
             };
         }
         Err(error) => return Destination::Notice(error.to_string()),
@@ -57,7 +102,66 @@ pub(crate) fn invoke(world: &mut World, row: &Action) -> Destination {
     }
 }
 
+fn start_task_args(world: &World, row: &Action, producer: TaskArgsProducer) -> Destination {
+    let session = match TaskArgsSession::begin(world, row, &producer) {
+        Ok(session) => session,
+        Err(error) => return Destination::Notice(error.to_string()),
+    };
+    match &row.availability {
+        Availability::NeedsTrust(file) => Destination::Trust {
+            action: row.clone(),
+            file: file.clone(),
+            args: Some(Box::new(TaskArgsStart {
+                action: row.clone(),
+                producer,
+                session,
+            })),
+        },
+        Availability::Ready => Destination::TaskArgs(Box::new(TaskArgsStart {
+            action: row.clone(),
+            producer,
+            session,
+        })),
+        Availability::Blocked(reason) => Destination::Notice(reason.clone()),
+    }
+}
+
+pub(crate) fn review_task_args(
+    world: &World,
+    producer: TaskArgsProducer,
+    plan: InvocationPlan,
+) -> Destination {
+    match nextest_review_facts(world, &producer, &plan) {
+        Ok(facts) => Destination::TaskArgsReview {
+            producer,
+            plan: Box::new(plan),
+            facts,
+        },
+        Err(error) => Destination::Notice(error.to_string()),
+    }
+}
+
+pub(crate) fn confirm_task_args(
+    world: &World,
+    producer: &TaskArgsProducer,
+    plan: InvocationPlan,
+) -> Destination {
+    match simulate_nextest_invocation(world, producer, &plan) {
+        Ok(report) => Destination::Notice(format!(
+            "Simulation confirmed · nothing executed · {}",
+            crate::screens::args::format_invocation(&report.invocation)
+        )),
+        Err(error) => Destination::Notice(error.to_string()),
+    }
+}
+
 pub(crate) fn confirm_preview(world: &mut World, row: &Action) -> Destination {
+    // A direct generic confirmation must not bypass typed input acceptance.
+    match task_args_producer_for(row) {
+        Ok(Some(producer)) => return start_task_args(world, row, producer),
+        Err(error) => return Destination::Notice(error.to_string()),
+        Ok(None) => {}
+    }
     match catalogue::resolve_intent(world, row) {
         Ok(action) if action.risk != Risk::Broad => simulate(world, &action),
         _ => invoke(world, row),
