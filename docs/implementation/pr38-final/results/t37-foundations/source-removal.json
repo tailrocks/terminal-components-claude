@@ -9969,7 +9969,6 @@
     "crates/termrock-runtime/tests/underlay_stack.rs",
     "crates/termrock-runtime/tests/wheel_hit_stack.rs",
     "crates/termrock-session/tests/terminal_cleanup.rs",
-    "crates/termrock-shell/src/lib.rs::pub mod reach",
     "crates/termrock-shell/src/nav/tests.rs",
     "crates/termrock-shell/src/reach.rs",
     "crates/termrock-shell/src/router/tests.rs",
@@ -10158,6 +10157,36 @@
     "Manifest owner: check remaining Cargo testing features and feature forwarding against the full workspace consumer map.",
     "Components owner: remove the termrock facade re-export at crates/termrock/src/lib.rs:103 under accepted decision f03e22c14a5817272cd5643094e974f9c25f1b6a.",
     "Shared docs owner: complete active citation and CI/generated-input reconciliation outside these crate directories.",
-    "Integration build owner: run guarded production checks after all fragments are integrated."
-  ]
+    "Integration build owner: run guarded production checks after all fragments are integrated.",
+    "Shared docs owner: classify required API prose from the 1,122-group source map and record maintained destinations or reviewed retirement before global T37 acceptance."
+  ],
+  "removed_source_items": [
+    {
+      "path": "crates/termrock-shell/src/lib.rs",
+      "item": "pub mod reach",
+      "reason": "testing-feature shell reach harness retired under T37/T00 migration record"
+    }
+  ],
+  "api_prose_disposition": {
+    "record_path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose-disposition.json",
+    "raw_doc_group_count": 1122,
+    "source_path_count": 81,
+    "removed_with_deleted_test_or_fixture_source": 55,
+    "inside_cfg_test_scope": 3,
+    "attached_to_test_only_scope": 2,
+    "surviving_production_source_groups_removed": 1062,
+    "production_scope_visibility_counts": {
+      "explicit_public_visibility": 797,
+      "restricted_visibility": 13,
+      "visibility_unresolved_by_lexical_scan": 252
+    },
+    "required_guidance_status": "Pending shared docs owner classification and destination mapping. The source map is provenance, not maintained API guidance."
+  },
+  "source_comment_categorization": {
+    "retained_source_comment_groups": 0,
+    "non_safety_groups_removed_from_surviving_rust_source": 2396,
+    "production_safety_groups_removed_after_accepted_transfer": 28,
+    "test_only_safety_groups_removed_with_legacy_tests": 14,
+    "doc_group_scope_breakdown_path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose-disposition.json"
+  }
 }
