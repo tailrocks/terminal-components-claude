@@ -7,17 +7,22 @@ use std::{
 };
 use termrock::author::PaintStyle;
 
+mod capsule_tabs;
+
+use capsule_tabs::{CapsuleTab, Projection as CapsuleTabsProjection, Target as CapsuleTabTarget};
+use termrock::navigation::tabs::TabWindowReceipt;
+
 use termrock::{
     Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,
-    Dialog, DialogAction, DialogState, Dismiss, FrameRead, GlyphRole, HelpAction, HelpOverlay,
-    HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode,
-    KeyMap, KeyModifiers, KeyPhase, LayerEvent, LayerOpening, LayerSpec, List, ListAction,
-    ListState, MasterDetailState, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem,
-    MenuState, Modifier, Moment, NavList, NavListAction, NavListState, Panel, Part, PartRef, Phase,
-    Picker, PickerAction, PickerState, Position, ProjectedText, PropsList, PropsRow, PropsState,
-    Reconcile, Rect, Response, RowUi, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction,
-    TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause,
-    Variant, ViewportAction, ViewportLine, ViewportState,
+    Dialog, DialogAction, DialogState, Dismiss, FocusVia, FrameRead, GlyphRole, HelpAction,
+    HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item,
+    ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerEvent, LayerId, LayerOpening, LayerSpec,
+    List, ListAction, ListState, MasterDetailState, Menu, MenuAction, MenuBar, MenuBarHoverScope,
+    MenuItem, MenuState, Modifier, Moment, NavList, NavListAction, NavListState, Panel, Part,
+    PartRef, Phase, Picker, PickerAction, PickerState, Position, ProjectedText, PropsList,
+    PropsRow, PropsState, Reconcile, Rect, Response, RowUi, SecretPolicy, StatusBar, StatusItem,
+    Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui,
+    UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -508,7 +513,6 @@ impl AsItem for AgentOption {
 #[derive(Debug, Clone, Default)]
 struct CapsuleFrameCaches {
     transcripts: BTreeMap<PaneId, (u64, ProjectedText)>,
-    tabs: Option<(u64, Vec<String>)>,
     titles: BTreeMap<PaneId, (u64, String)>,
     layouts: Option<(u64, Vec<(PaneId, Rect)>)>,
 }
@@ -701,6 +705,7 @@ pub struct App {
     hint_layers: HintLayerSet,
     capsule_tab_title: String,
     capsule_tab_title_index: usize,
+    capsule_tab_target: Option<CapsuleTabTarget>,
     capsule_tab_title_dialog: bool,
     capsule_tab_title_editing: bool,
     pending_capsule_action: Option<CapsuleAction>,
@@ -933,6 +938,7 @@ impl App {
             hint_layers: HintLayerSet::default(),
             capsule_tab_title: String::new(),
             capsule_tab_title_index: 0,
+            capsule_tab_target: None,
             capsule_tab_title_dialog: false,
             capsule_tab_title_editing: false,
             pending_capsule_action: None,
@@ -1366,6 +1372,88 @@ impl App {
         })
     }
 
+    fn capsule_tabs_projection(&self) -> CapsuleTabsProjection {
+        capsule_tabs::project(
+            &self.world,
+            self.active_instance.as_deref(),
+            &self.capsule_tab_title,
+            self.capsule_tab_title_index,
+        )
+    }
+
+    fn capsule_tabs_own_focus(&self) -> bool {
+        matches!(
+            self.capsule_tabs_projection(),
+            CapsuleTabsProjection::Live { items, .. } if !items.is_empty()
+        )
+    }
+
+    fn capsule_rendered_pane_ids(&self, cx: &Cx<'_>) -> Vec<PaneId> {
+        let Some(daemon) = self
+            .active_running_instance_id()
+            .and_then(|id| self.world.daemons.get(&id))
+        else {
+            return Vec::new();
+        };
+        let Some(tab) = daemon.active_tab() else {
+            return Vec::new();
+        };
+        tab.leaves()
+            .into_iter()
+            .filter(|pane_id| {
+                tab.zoomed.is_none_or(|zoomed| zoomed == *pane_id)
+                    && daemon.pane(*pane_id).is_some()
+                    && cx
+                        .area(Self::capsule_viewport_id(*pane_id))
+                        .is_some_and(|area| !area.is_empty())
+            })
+            .collect()
+    }
+
+    fn capsule_native_owner_has_focus(&self, cx: &Cx<'_>) -> bool {
+        let Some(focused) = cx.focused_in_scope(termrock::ScopeId::ROOT) else {
+            return false;
+        };
+        focused == CAPSULE_INPUT
+            || focused == CAPSULE_MENU_BAR
+            || focused == CAPSULE_TABS
+            || self
+                .capsule_rendered_pane_ids(cx)
+                .into_iter()
+                .any(|pane_id| focused == Self::capsule_viewport_id(pane_id))
+    }
+
+    fn sync_capsule_tabs_state(&mut self, projection: &CapsuleTabsProjection) {
+        if let Some((index, key)) = projection.active_key() {
+            self.tabs_state.set_active(index, key);
+        } else {
+            self.tabs_state.invalidate();
+        }
+    }
+
+    fn set_capsule_tab_target(&mut self, target: Option<CapsuleTabTarget>) {
+        if let Some(CapsuleTabTarget::AuthoredIndex(index)) = target.as_ref() {
+            self.capsule_tab_title_index = *index;
+        }
+        self.capsule_tab_target = target;
+    }
+
+    fn capture_active_capsule_tab_target(&mut self) {
+        let target = self.capsule_tabs_projection().active_target();
+        self.set_capsule_tab_target(target);
+    }
+
+    fn capsule_tab_target_index(&self) -> Option<usize> {
+        let target = self.capsule_tab_target.as_ref()?;
+        capsule_tabs::resolve_target(
+            &self.world,
+            self.active_instance.as_deref(),
+            &self.capsule_tab_title,
+            self.capsule_tab_title_index,
+            target,
+        )
+    }
+
     fn hydrate_capsule_accounts(world: &mut World) {
         let workspace = world.workspaces.first().cloned();
         let accounts = Agent::ALL
@@ -1395,15 +1483,14 @@ impl App {
             return;
         };
         self.active_instance = Some(instance_id.clone());
-        let Some(daemon) = self.world.daemons.get(&instance_id) else {
-            return;
-        };
-        let active_tab = daemon.active;
-        self.capsule.tab = u8::try_from(active_tab).unwrap_or(u8::MAX);
-        self.capsule.selected_pane = daemon.focused_pane().unwrap_or_default();
-        self.capsule.zoomed = daemon.active_tab().is_some_and(|tab| tab.zoomed.is_some());
-        self.tabs_state
-            .set_active(active_tab, ItemKey::index(active_tab));
+        if let Some(daemon) = self.world.daemons.get(&instance_id) {
+            let active_tab = daemon.active;
+            self.capsule.tab = u8::try_from(active_tab).unwrap_or(u8::MAX);
+            self.capsule.selected_pane = daemon.focused_pane().unwrap_or_default();
+            self.capsule.zoomed = daemon.active_tab().is_some_and(|tab| tab.zoomed.is_some());
+        }
+        let projection = self.capsule_tabs_projection();
+        self.sync_capsule_tabs_state(&projection);
     }
 
     fn refresh_cockpit_account_line(&mut self, agent: Agent, context: &LaunchContext) {
@@ -1784,16 +1871,33 @@ impl App {
         MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS).hover_scope(MenuBarHoverScope::Title)
     }
 
+    fn capsule_native_tabs() -> Tabs<'static, CapsuleTab, fn(&CapsuleTab) -> ItemKey> {
+        Tabs::new(CAPSULE_TABS)
+            .key(capsule_tabs::item_key as fn(&CapsuleTab) -> ItemKey)
+            .item_affixes(capsule_tabs::item_affixes)
+            .planned_whole_rows(true)
+    }
+
     fn capsule_tab_menu_title(&self) -> String {
-        self.active_running_instance_id()
-            .and_then(|id| self.world.daemons.get(&id))
-            .and_then(|daemon| {
-                daemon
-                    .tabs
-                    .get(self.capsule_tab_title_index)
-                    .map(|tab| daemon.tab_label(tab, &|_| None))
-            })
-            .unwrap_or_default()
+        let Some(target) = self.capsule_tab_target.as_ref() else {
+            return String::new();
+        };
+        match target {
+            CapsuleTabTarget::Live(_) => self
+                .capsule_tabs_projection()
+                .target_label(target)
+                .unwrap_or_default(),
+            CapsuleTabTarget::AuthoredIndex(index) => self
+                .active_running_instance_id()
+                .and_then(|id| self.world.daemons.get(&id))
+                .and_then(|daemon| {
+                    daemon
+                        .tabs
+                        .get(*index)
+                        .map(|tab| daemon.tab_label(tab, &|_| None))
+                })
+                .unwrap_or_default(),
+        }
     }
 
     fn capsule_tab_context<'a>(&self, position: Position, title: &'a str) -> ContextMenu<'a> {
@@ -3475,7 +3579,7 @@ impl App {
         TextInput::new(CAPSULE_INPUT).placeholder("Type a command")
     }
 
-    fn capsule_viewport(pane_id: PaneId, focused: bool) -> TextViewport<'static> {
+    fn capsule_viewport(pane_id: PaneId) -> TextViewport<'static> {
         static PARTS: std::sync::OnceLock<[(Part, termrock::StylePatch); 2]> =
             std::sync::OnceLock::new();
         let parts = PARTS.get_or_init(|| {
@@ -3498,7 +3602,6 @@ impl App {
             .click_selects_word(true)
             .reserve_gutter(false)
             .scroll_gap(1)
-            .caret_when_unfocused(focused)
             .bar_cursor(true)
             .patch_part(parts)
     }
@@ -3685,7 +3788,7 @@ impl App {
             // The prefix line is transient. The open tab menu keeps the session
             // status row, the same row the idle capsule paints.
             self.status = None;
-            self.capsule_tab_title_index = self.active_capsule_tab_index();
+            self.capture_active_capsule_tab_target();
             self.capsule_tab_menu_open = true;
             self.capsule_tab_menu_state = MenuState::default();
             self.capsule_tab_menu_pos = Position::new(1, 2);
@@ -3723,10 +3826,59 @@ impl App {
         CAPSULE_PANES.item(ItemKey::num(pane_id))
     }
 
-    fn active_capsule_tab_index(&self) -> usize {
-        self.active_running_instance_id()
-            .and_then(|id| self.world.daemons.get(&id))
-            .map_or(0, |daemon| daemon.active)
+    fn commit_capsule_tab_title(&mut self, title: String) -> bool {
+        let Some(target) = self.capsule_tab_target.clone() else {
+            self.status = Some("Tab changed · choose again".into());
+            return false;
+        };
+        let Some(index) = self.capsule_tab_target_index() else {
+            self.capsule_tab_target = None;
+            self.status = Some("Tab changed · choose again".into());
+            return false;
+        };
+        match target {
+            CapsuleTabTarget::Live(binding) => {
+                if self.active_running_instance_id().as_deref()
+                    != Some(binding.instance_id.as_str())
+                {
+                    self.capsule_tab_target = None;
+                    self.status = Some("Tab changed · choose again".into());
+                    return false;
+                }
+                let Some(snapshot) =
+                    self.world
+                        .daemons
+                        .get_mut(&binding.instance_id)
+                        .and_then(|daemon| {
+                            let tab = daemon.tabs.get_mut(index)?;
+                            tab.custom_label = (!title.is_empty()).then_some(title);
+                            Some(daemon.snapshot())
+                        })
+                else {
+                    self.capsule_tab_target = None;
+                    self.status = Some("Tab changed · choose again".into());
+                    return false;
+                };
+                if let Some(instance) = self.world.instance_mut(&binding.instance_id) {
+                    instance.daemon = snapshot;
+                }
+                self.capsule_tab_target = None;
+                self.status = None;
+                self.sync_capsule_projection();
+            }
+            CapsuleTabTarget::AuthoredIndex(authored_index) => {
+                if authored_index != index {
+                    self.capsule_tab_target = None;
+                    self.status = Some("Tab changed · choose again".into());
+                    return false;
+                }
+                self.capsule_tab_title = title;
+                self.capsule_tab_title_index = authored_index;
+                self.capsule_tab_target = None;
+                self.status = None;
+            }
+        }
+        true
     }
 
     fn active_capsule_pane_ids(&self) -> Vec<PaneId> {
@@ -3775,9 +3927,9 @@ impl App {
         }
     }
 
-    fn activate_capsule_tab(&mut self, index: usize) {
+    fn activate_capsule_tab_index(&mut self, index: usize) -> bool {
         let Some(instance_id) = self.active_running_instance_id() else {
-            return;
+            return false;
         };
         let snapshot = self.world.daemons.get_mut(&instance_id).and_then(|daemon| {
             if index >= daemon.tabs.len() {
@@ -3791,7 +3943,44 @@ impl App {
                 instance.daemon = snapshot;
             }
             self.sync_capsule_projection();
+            true
+        } else {
+            false
         }
+    }
+
+    fn activate_capsule_tab_binding(&mut self, binding: &capsule_tabs::SourceBinding) -> bool {
+        let Some(instance_id) = self.active_running_instance_id() else {
+            self.status = Some("Tab changed · choose again".into());
+            return false;
+        };
+        let target = CapsuleTabTarget::Live(binding.clone());
+        let Some(index) = capsule_tabs::resolve_target(
+            &self.world,
+            Some(&instance_id),
+            &self.capsule_tab_title,
+            self.capsule_tab_title_index,
+            &target,
+        ) else {
+            self.status = Some("Tab changed · choose again".into());
+            return false;
+        };
+        let snapshot = self.world.daemons.get_mut(&instance_id).and_then(|daemon| {
+            if index >= daemon.tabs.len() {
+                return None;
+            }
+            daemon.active = index;
+            Some(daemon.snapshot())
+        });
+        let Some(snapshot) = snapshot else {
+            self.status = Some("Tab changed · choose again".into());
+            return false;
+        };
+        if let Some(instance) = self.world.instance_mut(&instance_id) {
+            instance.daemon = snapshot;
+        }
+        self.sync_capsule_projection();
+        true
     }
 
     fn project_term(term: &crate::sim::pty::TextViewport, out: &mut ProjectedText) {
@@ -3857,158 +4046,6 @@ impl App {
                 Self::hash_topology(hasher, first);
                 Self::hash_topology(hasher, second);
             }
-        }
-    }
-
-    fn hash_tab_pane(
-        hasher: &mut DefaultHasher,
-        daemon: &Daemon,
-        accounts: &AccountRegistry,
-        pane_id: PaneId,
-    ) {
-        hasher.write_u64(pane_id);
-        let Some(pane) = daemon.pane(pane_id) else {
-            hasher.write_u8(0);
-            return;
-        };
-        hasher.write_u8(1);
-        match pane.proc.agent {
-            None => hasher.write_u8(0),
-            Some(agent) => {
-                hasher.write_u8(1);
-                hasher.write(agent.label().as_bytes());
-            }
-        }
-        match pane.proc.account.as_ref().and_then(|id| accounts.get(id)) {
-            None => hasher.write_u8(0),
-            Some(account) => {
-                hasher.write_u8(1);
-                hasher.write(account.display_name.as_bytes());
-            }
-        }
-        pane.state().hash(hasher);
-    }
-
-    fn hash_tab_labels(
-        hasher: &mut DefaultHasher,
-        daemon: &Daemon,
-        accounts: &AccountRegistry,
-        node: &PaneNode,
-    ) {
-        match node {
-            PaneNode::Leaf(id) => Self::hash_tab_pane(hasher, daemon, accounts, *id),
-            PaneNode::Split { first, second, .. } => {
-                Self::hash_tab_labels(hasher, daemon, accounts, first);
-                Self::hash_tab_labels(hasher, daemon, accounts, second);
-            }
-        }
-    }
-
-    fn capsule_tabs_fingerprint(
-        world: &World,
-        instance_id: Option<&str>,
-        tab_title: &str,
-        tab_title_index: usize,
-    ) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        match instance_id.and_then(|id| world.daemons.get(id)) {
-            None => hasher.write_u8(0),
-            Some(daemon) => {
-                hasher.write_u8(1);
-                hasher.write_usize(daemon.tabs.len());
-                hasher.write_usize(daemon.active);
-                for tab in &daemon.tabs {
-                    match &tab.custom_label {
-                        None => hasher.write_u8(0),
-                        Some(label) => {
-                            hasher.write_u8(1);
-                            hasher.write(label.as_bytes());
-                        }
-                    }
-                    Self::hash_tab_labels(&mut hasher, daemon, &world.accounts, &tab.root);
-                }
-            }
-        }
-        hasher.write(tab_title.as_bytes());
-        hasher.write_usize(tab_title_index);
-        hasher.finish()
-    }
-
-    fn build_capsule_tabs(
-        world: &World,
-        instance_id: Option<&str>,
-        tab_title: &str,
-        tab_title_index: usize,
-    ) -> Vec<String> {
-        let mut dynamic = instance_id
-            .and_then(|id| world.daemons.get(id))
-            .map(|daemon| {
-                daemon
-                    .tabs
-                    .iter()
-                    .map(|tab| {
-                        let mut label = daemon.tab_label(tab, &|pane| {
-                            pane.proc
-                                .account
-                                .as_ref()
-                                .and_then(|id| world.accounts.get(id))
-                                .map(|account| account.display_name.clone())
-                        });
-                        let glyph = match daemon.tab_state(tab) {
-                            crate::domain::instance::AgentState::Blocked => "●",
-                            crate::domain::instance::AgentState::Working => "▶",
-                            crate::domain::instance::AgentState::Idle => "◆",
-                            crate::domain::instance::AgentState::Done
-                            | crate::domain::instance::AgentState::Unknown => "",
-                        };
-                        if !glyph.is_empty() {
-                            label.push(' ');
-                            label.push_str(glyph);
-                        }
-                        label
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
-        if dynamic.is_empty() {
-            dynamic.push("Mix (3) ●".into());
-        }
-        if dynamic.len() < 2 {
-            dynamic.push("Shell".into());
-        }
-        if !tab_title.is_empty()
-            && let Some(label) = dynamic.get_mut(tab_title_index)
-        {
-            *label = tab_title.to_owned();
-        }
-        if dynamic.len() < 3 {
-            dynamic.push("docs ●".into());
-        }
-        dynamic
-            .into_iter()
-            .enumerate()
-            .map(|(index, label)| format!("{} {label} ", index.saturating_add(1)))
-            .collect()
-    }
-
-    fn ensure_capsule_tabs(
-        caches: &mut CapsuleFrameCaches,
-        world: &World,
-        instance_id: Option<&str>,
-        tab_title: &str,
-        tab_title_index: usize,
-    ) {
-        let fingerprint =
-            Self::capsule_tabs_fingerprint(world, instance_id, tab_title, tab_title_index);
-        let fresh = caches
-            .tabs
-            .as_ref()
-            .is_some_and(|(cached, _)| *cached == fingerprint);
-        if !fresh {
-            caches.tabs = Some((
-                fingerprint,
-                Self::build_capsule_tabs(world, instance_id, tab_title, tab_title_index),
-            ));
         }
     }
 
@@ -4119,15 +4156,18 @@ impl App {
         }
     }
 
-    fn update_capsule_viewports(&mut self, cx: &mut Cx<'_>, result: &mut Response<()>) {
+    fn update_capsule_viewports(&mut self, cx: &mut Cx<'_>, result: &mut Response<()>) -> bool {
         let Some(instance_id) = self.active_running_instance_id() else {
-            return;
+            let _ = self.drain_retired_capsule_viewports(cx, &[], result);
+            return false;
         };
         let Some(daemon) = self.world.daemons.get(&instance_id) else {
-            return;
+            let _ = self.drain_retired_capsule_viewports(cx, &[], result);
+            return false;
         };
         let Some(tab) = daemon.active_tab() else {
-            return;
+            let _ = self.drain_retired_capsule_viewports(cx, &[], result);
+            return false;
         };
         Self::ensure_tab_projections(
             self.capsule_frame.get_mut(),
@@ -4151,7 +4191,19 @@ impl App {
                 })
             })
             .collect::<Vec<_>>();
+        let rendered_panes = sources
+            .iter()
+            .filter_map(|(pane_id, ..)| {
+                (tab.zoomed.is_none_or(|zoomed| zoomed == *pane_id)
+                    && cx
+                        .area(Self::capsule_viewport_id(*pane_id))
+                        .is_some_and(|area| !area.is_empty()))
+                .then_some(*pane_id)
+            })
+            .collect::<Vec<_>>();
         let pane_ids = daemon.panes.iter().map(|pane| pane.id).collect::<Vec<_>>();
+        let retired_pane_focus_tabs =
+            self.drain_retired_capsule_viewports(cx, &rendered_panes, result);
         self.capsule_viewports
             .retain(|pane_id, _| pane_ids.contains(pane_id));
         self.capsule_viewport_lengths
@@ -4172,15 +4224,17 @@ impl App {
         let mut focused_pane = None;
         for (pane_id, line_count, caret, focused, revision, retained) in sources {
             let id = Self::capsule_viewport_id(pane_id);
-            let clicked = cx.intents(id).any(|intent| {
-                matches!(
-                    intent,
-                    Intent::Pointer {
-                        phase: Phase::Press | Phase::DragStart,
-                        ..
-                    }
-                )
-            });
+            let rendered = rendered_panes.contains(&pane_id);
+            let clicked = rendered
+                && cx.intents(id).any(|intent| {
+                    matches!(
+                        intent,
+                        Intent::Pointer {
+                            phase: Phase::Press | Phase::DragStart,
+                            ..
+                        }
+                    )
+                });
             let previous_len = self
                 .capsule_viewport_lengths
                 .get(&pane_id)
@@ -4208,11 +4262,15 @@ impl App {
             let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
                 continue;
             };
-            let viewport_response =
-                Self::capsule_viewport(pane_id, focused).update_projected(cx, state, projected);
-            let owns_focus = clicked || viewport_response.focused();
-            let viewport_action = viewport_response.action_ref().cloned();
-            *result |= viewport_response.erase();
+            let viewport_response = rendered
+                .then(|| Self::capsule_viewport(pane_id).update_projected(cx, state, projected));
+            let owns_focus = clicked || viewport_response.as_ref().is_some_and(Response::focused);
+            let viewport_action = viewport_response
+                .as_ref()
+                .and_then(|response| response.action_ref().cloned());
+            if let Some(viewport_response) = viewport_response {
+                *result |= viewport_response.erase();
+            }
             let copied = match viewport_action {
                 Some(ViewportAction::Copy(text)) => Some(text),
                 Some(ViewportAction::SelectionChanged) => {
@@ -4240,6 +4298,43 @@ impl App {
             self.set_capsule_focused_pane(pane_id);
             self.capsule_viewport_focused = true;
         }
+        retired_pane_focus_tabs
+    }
+
+    fn drain_retired_capsule_viewports(
+        &self,
+        cx: &mut Cx<'_>,
+        rendered_panes: &[PaneId],
+        result: &mut Response<()>,
+    ) -> bool {
+        let mut focus_returned_to_tabs = false;
+        let retired = self
+            .capsule_viewports
+            .keys()
+            .copied()
+            .filter(|pane_id| !rendered_panes.contains(pane_id))
+            .collect::<Vec<_>>();
+        for pane_id in retired {
+            let owner = Self::capsule_viewport_id(pane_id);
+            let intents = cx.intents(owner).collect::<Vec<_>>();
+            if intents.is_empty() {
+                continue;
+            }
+            focus_returned_to_tabs |= intents.iter().any(|intent| {
+                matches!(
+                    intent,
+                    Intent::FocusOut { to: Some(target) } if *target == CAPSULE_TABS
+                )
+            });
+            *result |= Response::consumed();
+            if intents
+                .iter()
+                .any(|intent| !matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. }))
+            {
+                cx.diagnostic(termrock::Diagnostic::UndeliveredIntent { owner });
+            }
+        }
+        focus_returned_to_tabs
     }
 
     fn launch_failure_dialog() -> Dialog<'static> {
@@ -5670,6 +5765,10 @@ impl App {
     }
 
     fn update_capsule(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let overflow_menu = CAPSULE_TABS.sub("overflow-menu");
+        let overflow_list = overflow_menu.sub("items");
+        let overflow_restore_pending = cx.is_open(overflow_menu)
+            || cx.area(overflow_list).is_some_and(|area| !area.is_empty());
         let mut result = Response::ignored();
 
         if self.capsule_prefix {
@@ -5747,14 +5846,41 @@ impl App {
             Some(MenuAction::Chosen(action)) => {
                 self.capsule_tab_menu_open = false;
                 self.capsule_tab_menu_state = MenuState::default();
-                if let Some(response) = self.update_command(cx, action) {
-                    result |= response;
+                if self.capsule_tab_target_index().is_some() {
+                    let target = self.capsule_tab_target.clone();
+                    let target_ready = if action == CMD_CAPSULE_SPLIT_RIGHT {
+                        match target.as_ref() {
+                            Some(CapsuleTabTarget::Live(binding)) => {
+                                self.activate_capsule_tab_binding(binding)
+                            }
+                            Some(CapsuleTabTarget::AuthoredIndex(target_index)) => {
+                                self.activate_capsule_tab_index(*target_index)
+                            }
+                            None => false,
+                        }
+                    } else {
+                        true
+                    };
+                    if target_ready {
+                        if let Some(response) = self.update_command(cx, action) {
+                            result |= response;
+                        }
+                    } else {
+                        self.status = Some("Tab changed · choose again".into());
+                    }
+                    if action != CMD_TAB_RENAME {
+                        self.capsule_tab_target = None;
+                    }
+                } else {
+                    self.capsule_tab_target = None;
+                    self.status = Some("Tab changed · choose again".into());
                 }
                 cx.close_layer(CAPSULE_TAB_MENU, None);
             }
             Some(MenuAction::Closed(_)) => {
                 self.capsule_tab_menu_open = false;
                 self.capsule_tab_menu_state = MenuState::default();
+                self.capsule_tab_target = None;
             }
             _ => {}
         }
@@ -5775,6 +5901,7 @@ impl App {
                         _ => None,
                     })
                 });
+            let tab_projection = self.capsule_tabs_projection();
             let tab_context = cx.intents(CAPSULE_TABS).find_map(|intent| match intent {
                 Intent::Pointer {
                     phase: Phase::Secondary,
@@ -5782,14 +5909,16 @@ impl App {
                     part:
                         PartRef {
                             part: Part::TAB,
-                            item: Some(ItemKey::Index(index)),
+                            item: Some(key),
                         },
                     ..
-                } => Some((pos, index)),
+                } => tab_projection
+                    .target_for_key(key)
+                    .map(|target| (pos, target)),
                 _ => None,
             });
             if let Some(pos) = pane_context {
-                self.capsule_tab_title_index = self.active_capsule_tab_index();
+                self.capture_active_capsule_tab_target();
                 self.capsule_tab_menu_pos = pos;
                 self.capsule_tab_menu_open = true;
                 self.capsule_tab_menu_state = MenuState::default();
@@ -5799,8 +5928,8 @@ impl App {
                     self.capsule_tab_context(pos, &title).layer(cx),
                 );
                 result |= Response::changed();
-            } else if let Some((pos, index)) = tab_context {
-                self.capsule_tab_title_index = index;
+            } else if let Some((pos, target)) = tab_context {
+                self.set_capsule_tab_target(Some(target));
                 self.capsule_tab_menu_pos = pos;
                 self.capsule_tab_menu_open = true;
                 self.capsule_tab_menu_state = MenuState::default();
@@ -5900,6 +6029,7 @@ impl App {
             }
             return result | Response::changed();
         }
+        let live_tabs_own_focus = self.capsule_tabs_own_focus();
         if !self.capsule_input_state.is_editing()
             && self.exit_choice.is_none()
             && self
@@ -5908,12 +6038,16 @@ impl App {
                 .all(|viewport| viewport.selection().is_none())
             && !self.capsule_viewport_focused
             && !self.capsule_tab_menu_open
+            && (!live_tabs_own_focus
+                || (!overflow_restore_pending
+                    && !cx.is_open(overflow_menu)
+                    && !self.capsule_native_owner_has_focus(cx)))
             && !cx.is_open(CAPSULE_TAB_MENU)
             && !self.capsule_menu_state.is_open()
         {
             cx.focus(CAPSULE_INPUT);
         }
-        self.update_capsule_viewports(cx, &mut result);
+        let retired_pane_focus_tabs = self.update_capsule_viewports(cx, &mut result);
         let input = Self::capsule_input().update(
             cx,
             &mut self.capsule_input_state,
@@ -5942,11 +6076,11 @@ impl App {
                 self.capsule_tab_title_editing = true;
                 cx.focus(CAPSULE_INPUT);
             } else if self.capsule_tab_title_editing {
-                self.capsule_tab_title = mem::take(&mut self.capsule_input);
+                let title = mem::take(&mut self.capsule_input);
                 self.capsule_tab_title_editing = false;
                 self.capsule_tab_title_dialog = false;
                 self.capsule_input_state = TextInputState::default();
-                self.status = None;
+                self.commit_capsule_tab_title(title);
             } else if let Some(action) = self.pending_capsule_action.take() {
                 if self.capsule_split_vertical_host(cx.theme(), cx.viewport())
                     && matches!(action, CapsuleAction::Split(SplitDir::Vertical))
@@ -5965,29 +6099,97 @@ impl App {
             }
             result |= Response::changed();
         }
-        Self::ensure_capsule_tabs(
-            self.capsule_frame.get_mut(),
-            &self.world,
-            Self::active_running_instance_id_ref(&self.active_instance, &self.world),
-            &self.capsule_tab_title,
-            self.capsule_tab_title_index,
-        );
-        let tabs_response = {
-            let frame = self.capsule_frame.borrow();
-            let tabs = frame
-                .tabs
-                .as_ref()
-                .map_or(&[] as &[String], |(_, tabs)| tabs.as_slice());
-            Tabs::new(CAPSULE_TABS).update(cx, &mut self.tabs_state, tabs)
+        let projection = self.capsule_tabs_projection();
+        self.sync_capsule_tabs_state(&projection);
+        let double_click_target = cx.intents(CAPSULE_TABS).find_map(|intent| match intent {
+            Intent::Pointer {
+                phase: Phase::DoubleClick,
+                part:
+                    PartRef {
+                        part: Part::TAB,
+                        item: Some(key),
+                    },
+                ..
+            } => match projection.target_for_key(key) {
+                Some(CapsuleTabTarget::Live(binding)) => Some(CapsuleTabTarget::Live(binding)),
+                Some(CapsuleTabTarget::AuthoredIndex(_)) | None => None,
+            },
+            _ => None,
+        });
+        let tabs_response = match &projection {
+            CapsuleTabsProjection::Authored { labels, .. } => {
+                Tabs::new(CAPSULE_TABS).update(cx, &mut self.tabs_state, labels)
+            }
+            CapsuleTabsProjection::Live { items, .. } => {
+                Self::capsule_native_tabs().update(cx, &mut self.tabs_state, items)
+            }
+            CapsuleTabsProjection::Invalid => {
+                Self::capsule_native_tabs().update(cx, &mut self.tabs_state, &[])
+            }
         };
-        if let Some(TabsAction::Activated(ItemKey::Index(index))) =
-            tabs_response.action_ref().copied()
+        if let Some(TabsAction::Activated(key)) = tabs_response.action_ref().copied()
+            && let Some(target) = projection.target_for_key(key)
         {
-            self.activate_capsule_tab(index);
-            self.capsule_tab_title_index = index;
+            match target {
+                CapsuleTabTarget::Live(binding) => {
+                    self.activate_capsule_tab_binding(&binding);
+                }
+                CapsuleTabTarget::AuthoredIndex(index) => {
+                    self.activate_capsule_tab_index(index);
+                    self.capsule_tab_title_index = index;
+                }
+            }
             self.capsule_viewport_focused = false;
         }
+        if let Some(CapsuleTabTarget::Live(binding)) = double_click_target {
+            self.set_capsule_tab_target(Some(CapsuleTabTarget::Live(binding)));
+            if let Some(response) = self.update_command(cx, CMD_TAB_RENAME) {
+                result |= response;
+            }
+        }
+        let tabs_received_programmatic_focus = retired_pane_focus_tabs
+            && cx.intents(CAPSULE_TABS).any(|intent| {
+                matches!(
+                    intent,
+                    Intent::FocusIn {
+                        via: FocusVia::Programmatic
+                    }
+                )
+            });
+        let projection_is_live = matches!(
+            self.capsule_tabs_projection(),
+            CapsuleTabsProjection::Live { ref items, .. } if !items.is_empty()
+        );
+        if tabs_received_programmatic_focus
+            && projection_is_live
+            && cx.focused_in_scope(termrock::ScopeId::ROOT) == Some(CAPSULE_TABS)
+            && cx.top_layer() == LayerId::PAGE
+            && !overflow_restore_pending
+            && !cx.is_open(overflow_menu)
+            && let Some(pane_id) = self
+                .active_running_instance_id()
+                .as_ref()
+                .and_then(|id| self.world.daemons.get(id))
+                .and_then(|daemon| {
+                    let pane_id = daemon.focused_pane()?;
+                    daemon
+                        .active_tab()?
+                        .leaves()
+                        .contains(&pane_id)
+                        .then_some(pane_id)
+                })
+            && self.capsule_rendered_pane_ids(cx).contains(&pane_id)
+        {
+            let owner = Self::capsule_viewport_id(pane_id);
+            if cx.area(owner).is_some_and(|area| !area.is_empty()) {
+                cx.focus(owner);
+            }
+        }
         if self.capsule_resting_frame()
+            && (!self.capsule_tabs_own_focus()
+                || (!overflow_restore_pending
+                    && !cx.is_open(overflow_menu)
+                    && !self.capsule_native_owner_has_focus(cx)))
             && let Some(pane) = self
                 .active_running_instance_id()
                 .as_ref()
@@ -6372,13 +6574,30 @@ impl App {
                 Some(Response::changed())
             }
             CMD_TAB_RENAME if self.route == Route::Capsule => {
+                if self.capsule_tab_target.is_none() {
+                    self.capture_active_capsule_tab_target();
+                }
+                if self.capsule_tab_target_index().is_none() {
+                    self.capsule_tab_target = None;
+                    self.status = Some("Tab changed · choose again".into());
+                    return Some(Response::changed());
+                }
                 self.capsule_tab_title_dialog = true;
                 self.capsule_tab_title_editing = false;
                 self.status = Some("Change tab title".into());
+                cx.focus(CAPSULE_INPUT);
                 Some(Response::changed())
             }
             CMD_TAB_CLOSE if self.route == Route::Capsule => {
-                self.status = Some("Close tab? · Enter confirm · Esc cancel".into());
+                if self.capsule_tab_target.is_none() {
+                    self.capture_active_capsule_tab_target();
+                }
+                self.status = Some(if self.capsule_tab_target_index().is_some() {
+                    "Close tab? · Enter confirm · Esc cancel".into()
+                } else {
+                    "Tab changed · choose again".into()
+                });
+                self.capsule_tab_target = None;
                 Some(Response::changed())
             }
             CMD_COCKPIT_LOG if matches!(self.route, Route::Launch | Route::Cockpit) => {
@@ -8070,12 +8289,12 @@ impl App {
 
         let tabs_area = Rect::new(area.x, area.y, area.width, area.height.min(2));
         let tabs = Tabs::new(crate::screens::usage::TABS);
-        let previous = ui.layout(crate::screens::usage::TABS).map(|facts| {
-            termrock::navigation::tabs::TabWindowReceipt {
+        let previous = ui
+            .layout(crate::screens::usage::TABS)
+            .map(|facts| TabWindowReceipt {
                 viewport_len: facts.viewport_len,
                 content_len: facts.content_len,
-            }
-        });
+            });
         let layout = tabs.layout_default(
             tabs_area,
             ui.full(),
@@ -9767,7 +9986,7 @@ impl App {
                 .get(&pane_id)
                 .cloned()
                 .unwrap_or_default();
-            let viewport = Self::capsule_viewport(pane_id, focused);
+            let viewport = Self::capsule_viewport(pane_id);
             viewport.draw_projected(ui, viewport_area, &state, projected);
             // The menu, palette, and agent-picker frames reserve the last
             // row and put the horizontal bar there. The 120 picker keeps
@@ -9821,28 +10040,24 @@ impl App {
     }
 
     fn draw_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
-        Self::ensure_capsule_tabs(
-            &mut self.capsule_frame.borrow_mut(),
-            &self.world,
-            Self::active_running_instance_id_ref(&self.active_instance, &self.world),
-            &self.capsule_tab_title,
-            self.capsule_tab_title_index,
-        );
+        let projection = self.capsule_tabs_projection();
         let tab_area = Rect {
             x: area.x.saturating_add(1),
             width: area.width.saturating_sub(2),
             height: area.height.min(2),
             ..area
         };
-        {
-            let frame = self.capsule_frame.borrow();
-            let tabs = frame
-                .tabs
-                .as_ref()
-                .map_or(&[] as &[String], |(_, tabs)| tabs.as_slice());
-            Tabs::new(CAPSULE_TABS).draw(ui, tab_area, &self.tabs_state, tabs);
+        match &projection {
+            CapsuleTabsProjection::Authored { labels, .. } => {
+                Tabs::new(CAPSULE_TABS).draw(ui, tab_area, &self.tabs_state, labels);
+            }
+            CapsuleTabsProjection::Live { items, .. } => {
+                self.draw_capsule_native_tabs(ui, tab_area, items);
+            }
+            CapsuleTabsProjection::Invalid => {
+                self.draw_capsule_native_tabs(ui, tab_area, &[]);
+            }
         }
-        self.paint_capsule_tab_strip(ui, tab_area);
         let pane_area = Rect {
             y: area.y.saturating_add(2),
             height: area.height.saturating_sub(2),
@@ -9910,6 +10125,18 @@ impl App {
                 ui.surface_style(),
             );
         }
+    }
+
+    fn draw_capsule_native_tabs(&self, ui: &mut Ui<'_>, area: Rect, items: &[CapsuleTab]) {
+        let tabs = Self::capsule_native_tabs();
+        // The only cached value is a committed viewport receipt. Text, affixes,
+        // source membership, status and active identity are rebuilt each pass.
+        let previous = ui.layout(CAPSULE_TABS).map(|facts| TabWindowReceipt {
+            viewport_len: facts.viewport_len,
+            content_len: facts.content_len,
+        });
+        let layout = tabs.layout_default(area, area, &self.tabs_state, items, previous);
+        let _ = ui.with_overlay(&capsule_tabs::OVERLAY, |ui| tabs.draw_layout(ui, &layout));
     }
 
     fn draw_capsule_scene(&self, ui: &mut Ui<'_>, full: Rect) {
@@ -10121,144 +10348,6 @@ impl App {
                 "…",
                 overflow,
             );
-        }
-    }
-
-    fn paint_capsule_tab_strip(&self, ui: &mut Ui<'_>, area: Rect) {
-        if area.height < 2 || area.width == 0 {
-            return;
-        }
-        let instance_id = Self::active_running_instance_id_ref(&self.active_instance, &self.world);
-        let Some(daemon) = instance_id.and_then(|id| self.world.daemons.get(id)) else {
-            return;
-        };
-        let canvas = ui.paint_patch(
-            &termrock::StylePatch::new()
-                .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
-                .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
-                .remove(Modifier::BOLD),
-        );
-        let plate = ui.paint_patch(
-            &termrock::StylePatch::new()
-                .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
-                .set_bg(termrock::Role::Surface(termrock::Surface::Overlay))
-                .add(Modifier::BOLD),
-        );
-        let beside = ui.paint_patch(
-            &termrock::StylePatch::new()
-                .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary))
-                .set_bg(termrock::Role::Surface(termrock::Surface::Overlay))
-                .remove(Modifier::BOLD),
-        );
-        let idle_label = ui.paint_patch(
-            &termrock::StylePatch::new()
-                .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary))
-                .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
-                .remove(Modifier::BOLD),
-        );
-        let idle_mark = ui.paint_patch(
-            &termrock::StylePatch::new()
-                .set_fg(termrock::Role::Fg(termrock::FgStep::Muted))
-                .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
-                .remove(Modifier::BOLD),
-        );
-        let accent = ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent));
-        // Tag `border_subtle` is `#3a3a3a`. The port token is `#262626`.
-        let quiet = ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Custom(
-            termrock::Color::Rgb(0x3a, 0x3a, 0x3a),
-        )));
-        let label_row = Rect { height: 1, ..area };
-        ui.fill(label_row, canvas);
-        let rule_row = Rect {
-            y: area.y.saturating_add(1),
-            height: 1,
-            ..area
-        };
-        for col in rule_row.columns() {
-            ui.paint_str(Rect { width: 1, ..col }, "─", quiet);
-        }
-        let mut x = area.x;
-        for (index, tab) in daemon.tabs.iter().enumerate() {
-            let label =
-                if !self.capsule_tab_title.is_empty() && index == self.capsule_tab_title_index {
-                    self.capsule_tab_title.clone()
-                } else {
-                    daemon.tab_label(tab, &|pane| {
-                        pane.proc.account.as_ref().and_then(|id| {
-                            self.world
-                                .accounts
-                                .get(id)
-                                .map(|account| account.display_name.clone())
-                        })
-                    })
-                };
-            let prefix = if index < 10 {
-                Some(if index == 9 {
-                    "0".to_owned()
-                } else {
-                    (index + 1).to_string()
-                })
-            } else {
-                None
-            };
-            let glyph = match daemon.tab_state(tab) {
-                crate::domain::instance::AgentState::Blocked => "●",
-                crate::domain::instance::AgentState::Working => "▶",
-                crate::domain::instance::AgentState::Idle => "◆",
-                crate::domain::instance::AgentState::Done
-                | crate::domain::instance::AgentState::Unknown => "",
-            };
-            let mut tab_w = 1u16
-                .saturating_add(termrock::width(&label))
-                .saturating_add(2);
-            if let Some(prefix) = &prefix {
-                tab_w = tab_w
-                    .saturating_add(termrock::width(prefix))
-                    .saturating_add(1);
-            }
-            if !glyph.is_empty() {
-                tab_w = tab_w
-                    .saturating_add(termrock::width(glyph))
-                    .saturating_add(1);
-            }
-            if x.saturating_add(tab_w) > area.right() {
-                break;
-            }
-            let active = index == daemon.active;
-            let tab_rect = Rect::new(x, area.y, tab_w, 1);
-            ui.fill(tab_rect, if active { plate } else { idle_label });
-            let mut cx = x.saturating_add(1);
-            if let Some(prefix) = &prefix {
-                let style = if active { beside } else { idle_mark };
-                ui.paint_str(
-                    Rect::new(cx, area.y, termrock::width(prefix), 1),
-                    prefix,
-                    style,
-                );
-                cx = cx.saturating_add(termrock::width(prefix)).saturating_add(1);
-            }
-            let label_style = if active { plate } else { idle_label };
-            ui.paint_str(
-                Rect::new(cx, area.y, termrock::width(&label), 1),
-                &label,
-                label_style,
-            );
-            cx = cx.saturating_add(termrock::width(&label));
-            if !glyph.is_empty() {
-                let style = if active { beside } else { idle_mark };
-                ui.paint_str(
-                    Rect::new(cx.saturating_add(1), area.y, termrock::width(glyph), 1),
-                    glyph,
-                    style,
-                );
-            }
-            if active {
-                let span = Rect::new(x, rule_row.y, tab_w, 1);
-                for col in span.columns() {
-                    ui.paint_str(Rect { width: 1, ..col }, "━", accent);
-                }
-            }
-            x = x.saturating_add(tab_w).saturating_add(1);
         }
     }
 
@@ -12314,6 +12403,7 @@ impl TuiApp for App {
             self.capsule_tab_title_dialog = false;
             self.capsule_tab_title_editing = false;
             self.capsule_input_state = TextInputState::default();
+            self.capsule_tab_target = None;
             self.status = None;
             return self.route_changed();
         }
