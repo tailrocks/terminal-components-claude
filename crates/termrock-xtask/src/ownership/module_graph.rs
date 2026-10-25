@@ -483,6 +483,12 @@ pub fn cfg_test_ranges(source: &str) -> Vec<LineRange> {
     let Some(tokens) = lex(source) else {
         return Vec::new();
     };
+    if has_exact_root_file_cfg_test(&tokens) {
+        return vec![LineRange {
+            start: 1,
+            end: source.lines().count(),
+        }];
+    }
     let path = Path::new("<source>");
     let module_dir = Path::new(".");
     match parse_scope(
@@ -515,6 +521,20 @@ pub fn cfg_test_ranges(source: &str) -> Vec<LineRange> {
         }
         _ => Vec::new(),
     }
+}
+
+fn has_exact_root_file_cfg_test(tokens: &Tokens) -> bool {
+    tokens.values.len() >= 8
+        && is_punct(tokens, 0, '#')
+        && is_punct(tokens, 1, '!')
+        && is_punct(tokens, 2, '[')
+        && ident_at(tokens, 3) == Some("cfg")
+        && is_punct(tokens, 4, '(')
+        && ident_at(tokens, 5) == Some("test")
+        && is_punct(tokens, 6, ')')
+        && is_punct(tokens, 7, ']')
+        && tokens.pairs.get(2) == Some(&Some(7))
+        && tokens.pairs.get(4) == Some(&Some(6))
 }
 
 fn collect_src_sources(member: &Path) -> (Vec<PathBuf>, bool) {
@@ -2877,6 +2897,73 @@ mod tests {
         assert!(!actual.iter().any(|range| range.contains(4)));
         assert!(!actual.iter().any(|range| range.contains(6)));
         assert!(actual.iter().any(|range| range.contains(8)));
+    }
+
+    #[test]
+    fn exact_file_root_cfg_test_certifies_the_lexed_file() {
+        let source = concat!(
+            "/* leading comment */\n",
+            " \n",
+            "#![cfg(test)]\n",
+            "use super::*;\n",
+            "fn helper(value: Option<u8>) { let _ = value.expect(\"fixture\"); }\n",
+            "trait Adapter { fn draw(&self, ui: &mut Ui); }\n",
+            "struct Candidate;\n",
+            "impl Adapter for Candidate { fn draw(&self, ui: &mut Ui) { ui.paint_str(\"x\"); } }\n",
+            "#[test]\n",
+            "fn child_test() { assert!(true); }\n",
+            "fn generated() { unknown_balanced_items!({ fn nested() {} }); }\n",
+        );
+        let line_count = source.lines().count();
+        assert_eq!(
+            ranges(source),
+            [LineRange {
+                start: 1,
+                end: line_count,
+            }]
+        );
+    }
+
+    #[test]
+    fn file_root_cfg_test_gate_requires_exact_first_tokens() {
+        let candidates = [
+            ("outer attribute", "#[cfg(test)]\nfn candidate() {}\n"),
+            ("qualified cfg", "#![cfg::test(test)]\nfn candidate() {}\n"),
+            (
+                "cfg_attr",
+                "#![cfg_attr(test, cfg(test))]\nfn candidate() {}\n",
+            ),
+            (
+                "any predicate",
+                "#![cfg(any(test, unix))]\nfn candidate() {}\n",
+            ),
+            ("all predicate", "#![cfg(all(test))]\nfn candidate() {}\n"),
+            ("not predicate", "#![cfg(not(test))]\nfn candidate() {}\n"),
+            ("comment text", "// #![cfg(test)]\nfn candidate() {}\n"),
+            (
+                "string text",
+                "const GATE: &str = \"#![cfg(test)]\";\nfn candidate() {}\n",
+            ),
+            (
+                "nested attribute",
+                "mod nested { #![cfg(test)] fn candidate() {} }\n",
+            ),
+            (
+                "attribute after item",
+                "fn before() {}\n#![cfg(test)]\nfn candidate() {}\n",
+            ),
+        ];
+        for (label, source) in candidates {
+            let tokens = lex(source).unwrap_or_else(|| panic!("{label} fixture must lex"));
+            assert!(
+                !has_exact_root_file_cfg_test(&tokens),
+                "{label} must not match the exact root gate"
+            );
+        }
+
+        let malformed = "#![cfg(test)]\nfn incomplete() {\n";
+        assert!(lex(malformed).is_none());
+        assert!(ranges(malformed).is_empty());
     }
 
     #[test]
