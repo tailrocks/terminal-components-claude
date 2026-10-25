@@ -11,11 +11,12 @@ use crate::event::Chord;
 use crate::focus::{FocusRing, ScopeId};
 use crate::hit::Registry;
 use crate::id::{Id, PartRef};
-use crate::intent::{IntentIter, IntentQueue};
+use crate::intent::{IntentIter, IntentQueue, LayerIntentClaim};
 use crate::keymap::{BindingRegistry, KeyMap, ScopedBubbleBinding};
 use crate::layer::{
     Anchor, DismissReason, FocusContinuationOutcome, LayerCompletion, LayerEvent,
-    LayerEventReceipt, LayerId, LayerOpening, LayerSize, LayerSpec, LayerStack, UpdateToken,
+    LayerEventReceipt, LayerId, LayerOpening, LayerSize, LayerSpec, LayerStack, RoutedLayerEvent,
+    UpdateToken,
 };
 use crate::response::StateFlags;
 use crate::runtime::{UpdateCause, WheelRouteAttempt, WheelRouteResult};
@@ -165,7 +166,7 @@ pub struct FrameServices {
     pub(crate) viewport: Rect,
     pub(crate) layers: LayerStack,
     pub(crate) capture: CaptureSlot,
-    pub(crate) events: Vec<LayerEventReceipt>,
+    pub(crate) events: Vec<RoutedLayerEvent>,
     pub(crate) callback_serial: u64,
     pub(crate) focus_request: Option<Id>,
     pub(crate) initial_focus_layer: Option<LayerId>,
@@ -911,7 +912,7 @@ impl<'f> Cx<'f> {
             .services
             .events
             .iter()
-            .position(|receipt| receipt.opening().id() == id)?;
+            .position(|routed| routed.opening().id() == id)?;
         Some(self.services.events.remove(pos).event())
     }
 
@@ -921,24 +922,56 @@ impl<'f> Cx<'f> {
             .services
             .events
             .iter()
-            .position(|receipt| receipt.opening().id() == id)?;
-        Some(self.services.events.remove(pos))
+            .position(|routed| routed.opening().id() == id)?;
+        Some(self.services.events.remove(pos).receipt())
     }
 
-    /// Claims the next exact layer event receipt and only its matching layer
-    /// intent. Unrelated intents owned by the layer remain available to their
-    /// component and continue to participate in undelivered-intent checks.
+    /// Claims the next event receipt for this layer ID and its next matching
+    /// unclaimed intent, retaining this API's established by-ID behavior.
     pub fn take_layer_intent_receipt(&mut self, id: Id) -> Option<LayerEventReceipt> {
         let pos = self
             .services
             .events
             .iter()
-            .position(|receipt| receipt.opening().id() == id)?;
-        let receipt = *self.services.events.get(pos)?;
+            .position(|routed| routed.opening().id() == id)?;
+        let receipt = self.services.events.get(pos)?.receipt();
         if !self.intents.claim_next_layer_event(id, receipt.event()) {
             return None;
         }
-        Some(self.services.events.remove(pos))
+        Some(self.services.events.remove(pos).receipt())
+    }
+
+    /// Claims and retires the receipt for this exact layer opening.
+    ///
+    /// The opening must belong to this runtime. A matching closed opening is
+    /// valid because its dismissal receipt is delivered after the layer closes.
+    /// `AlreadyClaimed` and `NotPending` retire only the owned receipt; neither
+    /// outcome claims or recreates another intent. A payload mismatch leaves
+    /// the receipt and queue unchanged.
+    pub fn take_layer_intent_receipt_for(
+        &mut self,
+        opening: LayerOpening,
+    ) -> Option<LayerEventReceipt> {
+        if opening.runtime() != self.services.runtime_id {
+            return None;
+        }
+        let pos = self
+            .services
+            .events
+            .iter()
+            .position(|routed| routed.opening() == opening)?;
+        let claim = {
+            let routed = self.services.events.get(pos)?;
+            self.intents
+                .claim_layer_event_token(routed.token(), routed.event())
+        };
+        match claim {
+            LayerIntentClaim::Claimed
+            | LayerIntentClaim::AlreadyClaimed
+            | LayerIntentClaim::NotPending => Some(self.services.events.remove(pos).receipt()),
+            LayerIntentClaim::Mismatch => None,
+            _ => None,
+        }
     }
 
     /// Returns the opaque identity of this application update callback.

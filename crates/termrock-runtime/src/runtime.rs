@@ -25,7 +25,7 @@ use crate::intent::{FocusVia, IntentQueue, Phase};
 use crate::keymap::{BindingTableId, KeyMap, KeyPhase};
 use crate::layer::{
     Backdrop, DismissReason, FocusContinuationOutcome, LayerCompletion, LayerEvent,
-    LayerEventReceipt, LayerId, OpenLayer, PendingLayerEvent, backdrop_area, resolve_layer_area,
+    LayerEventReceipt, LayerId, OpenLayer, RoutedLayerEvent, backdrop_area, resolve_layer_area,
 };
 use crate::measure::Size;
 #[cfg(any(test, feature = "testing"))]
@@ -630,7 +630,7 @@ pub struct Runtime<A: App> {
     keymap_conflict_typing: Vec<crate::keymap::BindingDescriptor>,
     keymap_conflicts: Vec<Diagnostic>,
     staged_focus: Option<(Option<Id>, FocusVia)>,
-    layer_events_pending: Vec<PendingLayerEvent>,
+    layer_events_pending: Vec<RoutedLayerEvent>,
     focus_out_closed: Vec<Id>,
     completion_waiting: Vec<OpenLayer>,
     continuation_cancels_waiting: Vec<(crate::layer::LayerOpening, Id)>,
@@ -1692,14 +1692,20 @@ impl<A: App> Runtime<A> {
 
     fn pump_layer_events(&mut self) {
         for pending in self.services.layers.take_pending_receipts() {
-            let id = pending.opening.id();
-            let ev = pending.event;
-            let owner = pending.opening.owner();
-            self.layer_events_pending.push(pending);
-            self.intents.layer(owner, ev);
+            let receipt = LayerEventReceipt {
+                opening: pending.opening,
+                event: pending.event,
+                update: pending.update,
+            };
+            let id = receipt.opening().id();
+            let event = receipt.event();
+            let owner = receipt.opening().owner();
             if owner != id {
-                self.intents.layer(id, ev);
+                self.intents.layer(owner, event);
             }
+            let token = self.intents.layer_tracked(id, event);
+            self.layer_events_pending
+                .push(RoutedLayerEvent::new(receipt, token));
         }
     }
 
@@ -1725,13 +1731,7 @@ impl<A: App> Runtime<A> {
             self.pump_layer_events();
             self.services.focus_request = None;
             let events = core::mem::take(&mut self.layer_events_pending);
-            self.services
-                .events
-                .extend(events.into_iter().map(|pending| LayerEventReceipt {
-                    opening: pending.opening,
-                    event: pending.event,
-                    update: pending.update,
-                }));
+            self.services.events.extend(events);
             let edit_entry = self.app.edit_entry();
             let r = {
                 let mut cx = Cx::new_with_cause(
@@ -1762,14 +1762,7 @@ impl<A: App> Runtime<A> {
                 }
             }
 
-            self.layer_events_pending = core::mem::take(&mut self.services.events)
-                .into_iter()
-                .map(|receipt| PendingLayerEvent {
-                    opening: receipt.opening,
-                    event: receipt.event,
-                    update: receipt.update,
-                })
-                .collect();
+            self.layer_events_pending = core::mem::take(&mut self.services.events);
 
             for l in self.services.layers.layers() {
                 if let Some(id) = l.restore_to
@@ -3570,8 +3563,8 @@ mod tests {
     use crate::focus::Focusability;
     use crate::focus::{ScopeId, ScopeMode};
     use crate::hit::{Axes, Headroom};
-    use crate::intent::Intent;
-    use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
+    use crate::intent::{Intent, LayerIntentClaim};
+    use crate::layer::{Anchor, LayerSize, LayerSpec, LayerStack, ScreenAlign};
     use crate::ui::FrameRead;
     use ratatui::Terminal;
     use ratatui::backend::TestBackend;
@@ -3988,6 +3981,425 @@ mod tests {
                 ui.register_control(SELECTIVE_LAYER, area, Focusability::Focusable);
             });
         }
+    }
+
+    fn closed_layer_receipt(
+        stack: &mut LayerStack,
+        id: Id,
+        owner: Id,
+        runtime_id: u64,
+        event: LayerEvent,
+    ) -> LayerEventReceipt {
+        let opening = stack
+            .open_with_runtime(id, LayerSpec::modal(owner), None, runtime_id)
+            .expect("layer opening");
+        let _ = stack.take_pending_receipts();
+        assert_eq!(stack.close_with_update(id, event, None).len(), 1);
+        let pending = stack
+            .take_pending_receipts()
+            .into_iter()
+            .find(|pending| pending.opening == opening)
+            .expect("closed opening receipt");
+        LayerEventReceipt {
+            opening: pending.opening,
+            event: pending.event,
+            update: pending.update,
+        }
+    }
+
+    #[test]
+    fn exact_receipt_claim_handles_identical_same_id_events_in_both_receipt_orders() {
+        const ID: Id = Id::root("exact-receipt-order");
+        const RUNTIME_ID: u64 = 81;
+        let event = LayerEvent::Dismissed(DismissReason::Programmatic);
+
+        for reverse in [false, true] {
+            let mut stack = LayerStack::default();
+            let owned = closed_layer_receipt(&mut stack, ID, ID, RUNTIME_ID, event);
+            let foreign = closed_layer_receipt(&mut stack, ID, ID, RUNTIME_ID, event);
+
+            let mut intents = IntentQueue::new();
+            let owned_token = intents.layer_tracked(ID, event);
+            let foreign_token = intents.layer_tracked(ID, event);
+            assert!(intents.claim_next_layer_event(ID, event));
+
+            let mut services = FrameServices {
+                runtime_id: RUNTIME_ID,
+                layers: stack,
+                ..FrameServices::default()
+            };
+            services.events = if reverse {
+                vec![
+                    RoutedLayerEvent::new(foreign, foreign_token.clone()),
+                    RoutedLayerEvent::new(owned, owned_token.clone()),
+                ]
+            } else {
+                vec![
+                    RoutedLayerEvent::new(owned, owned_token.clone()),
+                    RoutedLayerEvent::new(foreign, foreign_token.clone()),
+                ]
+            };
+            let mut core = UiCore::default();
+            let last = LastFrame::default();
+            let theme = Theme::junie();
+
+            let taken = {
+                let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+                cx.take_layer_intent_receipt_for(owned.opening())
+            };
+            assert_eq!(taken, Some(owned));
+            assert_eq!(services.events.len(), 1);
+            assert_eq!(
+                intents.claim_layer_event_token(&foreign_token, event),
+                LayerIntentClaim::Claimed,
+                "the identical successor remains unclaimed"
+            );
+            let taken_foreign = {
+                let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+                cx.take_layer_intent_receipt_for(foreign.opening())
+            };
+            assert_eq!(taken_foreign, Some(foreign));
+            assert!(services.events.is_empty());
+        }
+    }
+
+    #[test]
+    fn exact_receipt_can_select_owned_event_behind_same_id_foreign_receipt() {
+        const ID: Id = Id::root("exact-receipt-behind-foreign");
+        const OWNER: Id = Id::root("exact-receipt-owner");
+        const RUNTIME_ID: u64 = 82;
+        let event = LayerEvent::Dismissed(DismissReason::Esc);
+        let mut stack = LayerStack::default();
+        let foreign = closed_layer_receipt(&mut stack, ID, OWNER, RUNTIME_ID, event);
+        let owned = closed_layer_receipt(&mut stack, ID, OWNER, RUNTIME_ID, event);
+
+        let mut intents = IntentQueue::new();
+        let foreign_token = intents.layer_tracked(ID, event);
+        let owned_token = intents.layer_tracked(ID, event);
+        let mut services = FrameServices {
+            runtime_id: RUNTIME_ID,
+            layers: stack,
+            events: vec![
+                RoutedLayerEvent::new(foreign, foreign_token.clone()),
+                RoutedLayerEvent::new(owned, owned_token.clone()),
+            ],
+            ..FrameServices::default()
+        };
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let theme = Theme::junie();
+
+        let taken = {
+            let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+            cx.take_layer_intent_receipt_for(owned.opening())
+        };
+        assert_eq!(taken, Some(owned));
+        assert_eq!(services.events.len(), 1);
+        assert_eq!(
+            intents.claim_layer_event_token(&foreign_token, event),
+            LayerIntentClaim::Claimed
+        );
+        let taken_foreign = {
+            let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+            cx.take_layer_intent_receipt_for(foreign.opening())
+        };
+        assert_eq!(taken_foreign, Some(foreign));
+    }
+
+    #[test]
+    fn exact_receipt_mismatch_leaves_receipt_and_intent_unchanged() {
+        const ID: Id = Id::root("exact-receipt-mismatch");
+        const RUNTIME_ID: u64 = 85;
+        let receipt_event = LayerEvent::Dismissed(DismissReason::Esc);
+        let queued_event = LayerEvent::Dismissed(DismissReason::OutsideClick);
+        let mut stack = LayerStack::default();
+        let receipt = closed_layer_receipt(&mut stack, ID, ID, RUNTIME_ID, receipt_event);
+
+        let mut intents = IntentQueue::new();
+        let token = intents.layer_tracked(ID, queued_event);
+        let mut services = FrameServices {
+            runtime_id: RUNTIME_ID,
+            layers: stack,
+            events: vec![RoutedLayerEvent::new(receipt, token.clone())],
+            ..FrameServices::default()
+        };
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let theme = Theme::junie();
+
+        let taken = {
+            let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+            cx.take_layer_intent_receipt_for(receipt.opening())
+        };
+        assert_eq!(taken, None);
+        assert_eq!(services.events.len(), 1);
+        assert_eq!(services.events[0].receipt(), receipt);
+        assert_eq!(
+            intents.claim_layer_event_token(&token, queued_event),
+            LayerIntentClaim::Claimed,
+            "the mismatched probe leaves its exact intent unclaimed"
+        );
+    }
+
+    #[test]
+    fn exact_receipt_retires_stale_token_without_claiming_reused_queue_event() {
+        const ID: Id = Id::root("exact-receipt-clear-reuse");
+        const RUNTIME_ID: u64 = 83;
+        let event = LayerEvent::Dismissed(DismissReason::Programmatic);
+        let mut stack = LayerStack::default();
+        let old = closed_layer_receipt(&mut stack, ID, ID, RUNTIME_ID, event);
+        let new = closed_layer_receipt(&mut stack, ID, ID, RUNTIME_ID, event);
+
+        let mut intents = IntentQueue::new();
+        let old_token = intents.layer_tracked(ID, event);
+        intents.clear();
+        let new_token = intents.layer_tracked(ID, event);
+        let mut services = FrameServices {
+            runtime_id: RUNTIME_ID,
+            layers: stack,
+            events: vec![
+                RoutedLayerEvent::new(old, old_token),
+                RoutedLayerEvent::new(new, new_token.clone()),
+            ],
+            ..FrameServices::default()
+        };
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let theme = Theme::junie();
+
+        let taken_old = {
+            let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+            cx.take_layer_intent_receipt_for(old.opening())
+        };
+        assert_eq!(taken_old, Some(old));
+        assert_eq!(services.events.len(), 1);
+        let taken_new = {
+            let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+            cx.take_layer_intent_receipt_for(new.opening())
+        };
+        assert_eq!(taken_new, Some(new));
+        assert_eq!(
+            intents.claim_layer_event_token(&new_token, event),
+            LayerIntentClaim::AlreadyClaimed
+        );
+    }
+
+    #[test]
+    fn exact_receipt_rejects_wrong_runtime_and_generation_but_accepts_closed_opening() {
+        const ID: Id = Id::root("exact-receipt-runtime");
+        const RUNTIME_ID: u64 = 84;
+        let event = LayerEvent::Dismissed(DismissReason::OutsideClick);
+        let mut stack = LayerStack::default();
+        let old = closed_layer_receipt(&mut stack, ID, ID, RUNTIME_ID, event);
+        let replacement = stack
+            .open_with_runtime(ID, LayerSpec::modal(ID), None, RUNTIME_ID)
+            .expect("new generation is live");
+        let mut other_stack = LayerStack::default();
+        let other_runtime = other_stack
+            .open_with_runtime(ID, LayerSpec::modal(ID), None, RUNTIME_ID + 1)
+            .expect("foreign runtime opening");
+
+        let mut intents = IntentQueue::new();
+        let token = intents.layer_tracked(ID, event);
+        let mut services = FrameServices {
+            runtime_id: RUNTIME_ID,
+            layers: stack,
+            events: vec![RoutedLayerEvent::new(old, token.clone())],
+            ..FrameServices::default()
+        };
+        assert!(services.layers.is_open(ID));
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let theme = Theme::junie();
+
+        let wrong_runtime = {
+            let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+            cx.take_layer_intent_receipt_for(other_runtime)
+        };
+        assert_eq!(wrong_runtime, None);
+        let wrong_generation = {
+            let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+            cx.take_layer_intent_receipt_for(replacement)
+        };
+        assert_eq!(wrong_generation, None);
+        assert_eq!(services.events.len(), 1);
+        assert_eq!(
+            intents.claim_layer_event_token(&token, event),
+            LayerIntentClaim::Claimed
+        );
+        let closed_receipt = {
+            let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+            cx.take_layer_intent_receipt_for(old.opening())
+        };
+        assert_eq!(closed_receipt, Some(old));
+        assert!(services.events.is_empty());
+    }
+
+    const EXACT_FORWARDING_LAYER: Id = Id::root("exact-forwarding-layer");
+    const EXACT_FORWARDING_CLOSE: LayerEvent = LayerEvent::Dismissed(DismissReason::Programmatic);
+
+    #[derive(Default)]
+    struct ExactReceiptClearForwardProbe {
+        old_opening: Option<crate::layer::LayerOpening>,
+        replacement_opening: Option<crate::layer::LayerOpening>,
+        update_calls: usize,
+        old_close: Option<LayerEventReceipt>,
+        replacement_opened: Option<LayerEventReceipt>,
+        replacement_close: Option<LayerEventReceipt>,
+        replacement_close_visible_after_old_retirement: bool,
+        focus_in_serviced: bool,
+    }
+
+    impl App for ExactReceiptClearForwardProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.update_calls += 1;
+            match self.update_calls {
+                1 => {
+                    // Keep the old close receipt in the service queue while a
+                    // focus transition clears its already-drained intent.
+                    let _ = cx.intents(EXACT_FORWARDING_LAYER).count();
+                    let opening = cx
+                        .open_layer_with_token(
+                            EXACT_FORWARDING_LAYER,
+                            LayerSpec::modal(EXACT_FORWARDING_LAYER),
+                        )
+                        .expect("same-ID replacement opens after the old close");
+                    cx.close_layer(EXACT_FORWARDING_LAYER, None);
+                    self.replacement_opening = Some(opening);
+                    cx.focus(A);
+                }
+                2 => {
+                    self.focus_in_serviced = cx
+                        .intents(A)
+                        .any(|intent| matches!(intent, Intent::FocusIn { .. }));
+                    let old_opening = self.old_opening.expect("old opening configured");
+                    self.old_close = cx.take_layer_intent_receipt_for(old_opening);
+                    self.replacement_close_visible_after_old_retirement = cx
+                        .intents(EXACT_FORWARDING_LAYER)
+                        .any(|intent| {
+                            matches!(intent, Intent::Layer(event) if event == EXACT_FORWARDING_CLOSE)
+                        });
+                    let replacement = self
+                        .replacement_opening
+                        .expect("same-ID replacement opening was saved");
+                    self.replacement_opened = cx.take_layer_intent_receipt_for(replacement);
+                    self.replacement_close = cx.take_layer_intent_receipt_for(replacement);
+                }
+                _ => {}
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, _ui: &mut Ui<'_>) {}
+    }
+
+    #[test]
+    fn stale_close_forwarded_across_focus_clear_cannot_claim_identical_replacement_intent() {
+        let mut rt = Runtime::new(ExactReceiptClearForwardProbe::default(), Theme::junie());
+        let runtime_id = rt.services.runtime_id;
+        let old_opening = rt
+            .services
+            .layers
+            .open_with_runtime(
+                EXACT_FORWARDING_LAYER,
+                LayerSpec::modal(EXACT_FORWARDING_LAYER),
+                None,
+                runtime_id,
+            )
+            .expect("old layer opens");
+        let _ = rt.services.layers.take_pending_receipts();
+        assert_eq!(
+            rt.services
+                .layers
+                .close_with_update(EXACT_FORWARDING_LAYER, EXACT_FORWARDING_CLOSE, None)
+                .len(),
+            1
+        );
+        rt.app.old_opening = Some(old_opening);
+
+        let _ = rt.run_update(None, UpdateCause::Event, None);
+
+        assert_eq!(rt.app.update_calls, 2, "focus settles in a second update");
+        assert!(
+            rt.app.focus_in_serviced,
+            "the addressed focus owner services FocusIn"
+        );
+        assert_eq!(
+            rt.app
+                .old_close
+                .map(|receipt| (receipt.opening(), receipt.event())),
+            Some((old_opening, EXACT_FORWARDING_CLOSE)),
+            "the old close receipt crossed the first callback and queue clear"
+        );
+        assert!(rt.app.replacement_close_visible_after_old_retirement);
+        let replacement_opening = rt
+            .app
+            .replacement_opening
+            .expect("replacement opening was recorded");
+        assert_eq!(
+            rt.app.replacement_opened.map(|receipt| receipt.event()),
+            Some(LayerEvent::Opened)
+        );
+        assert_eq!(
+            rt.app.replacement_close.map(|receipt| receipt.event()),
+            Some(EXACT_FORWARDING_CLOSE)
+        );
+        assert_ne!(replacement_opening, old_opening);
+        assert!(!rt.services.layers.is_open(EXACT_FORWARDING_LAYER));
+        assert!(rt.layer_events_pending.is_empty());
+        assert!(rt.services.events.is_empty());
+        assert!(
+            !rt.intents
+                .claim_next_layer_event(EXACT_FORWARDING_LAYER, EXACT_FORWARDING_CLOSE),
+            "the replacement close intent was claimed by its exact receipt"
+        );
+        assert!(
+            !rt.intents
+                .claim_next_layer_event(EXACT_FORWARDING_LAYER, LayerEvent::Opened),
+            "the replacement open intent was claimed by its exact receipt"
+        );
+        assert_eq!(rt.intents.undrained().count(), 0);
+        assert!(!rt.diagnostics().iter().any(|diagnostic| matches!(
+            diagnostic,
+            Diagnostic::UndeliveredIntent { owner } if *owner == EXACT_FORWARDING_LAYER
+        )));
+    }
+
+    #[test]
+    fn runtime_forwarding_preserves_tracked_token_and_untracked_owner_duplicate() {
+        const ID: Id = Id::root("routed-event-id");
+        const OWNER: Id = Id::root("routed-event-owner");
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let opening = rt
+            .services
+            .layers
+            .open_with_runtime(ID, LayerSpec::modal(OWNER), None, rt.services.runtime_id)
+            .expect("opening is queued");
+        rt.pump_layer_events();
+
+        let routed = rt
+            .layer_events_pending
+            .iter()
+            .find(|routed| routed.opening() == opening)
+            .expect("opening receipt is pending");
+        let token = routed.token().clone();
+        let event = routed.event();
+        assert_eq!(
+            rt.intents.iter(OWNER).collect::<Vec<_>>(),
+            vec![Intent::Layer(event)],
+            "the alternate owner keeps its legacy untracked duplicate"
+        );
+
+        rt.services
+            .events
+            .extend(core::mem::take(&mut rt.layer_events_pending));
+        rt.layer_events_pending = core::mem::take(&mut rt.services.events);
+        assert_eq!(rt.layer_events_pending.len(), 1);
+        assert_eq!(
+            rt.intents.claim_layer_event_token(&token, event),
+            LayerIntentClaim::Claimed,
+            "forwarding moves the same token instead of rebinding an equivalent event"
+        );
     }
 
     #[test]
