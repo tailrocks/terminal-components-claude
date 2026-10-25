@@ -1406,7 +1406,12 @@ impl StyleCache {
                 super::ColorLevel::Mono => 3,
             }],
         );
-        fnv1a(h, &theme.recipes.revision().to_le_bytes())
+        h = fnv1a(h, &theme.recipes.revision().to_le_bytes());
+        let manager_profile = match theme.manager_presentation_profile() {
+            super::ManagerPresentationProfile::Standard => 0,
+            super::ManagerPresentationProfile::Junie => 1,
+        };
+        fnv1a(h, &[manager_profile])
     }
 
     #[expect(
@@ -2064,5 +2069,58 @@ mod tests {
             "the seeded key must miss after the stamp wraps, not serve a stale patch"
         );
         assert_eq!(seeded, after, "and the recomputed patch is the same value");
+    }
+}
+
+#[cfg(test)]
+mod manager_profile_cache_tests {
+    use super::*;
+    use crate::theme::{ColorLevel, ManagerPresentationProfile};
+
+    #[test]
+    fn manager_profile_is_part_of_the_cache_key_and_revision() {
+        let junie = Theme::junie().downgrade(ColorLevel::Mono);
+        let standard = junie
+            .clone()
+            .builder()
+            .manager_presentation_profile(ManagerPresentationProfile::Standard)
+            .build();
+        let args = (
+            Family::custom("manager-cache-probe"),
+            Variant::DEFAULT,
+            Part::LABEL,
+        );
+        let junie_key = StyleCache::key(
+            &junie,
+            args.0,
+            args.1,
+            args.2,
+            StateFlags::empty(),
+            0,
+            Surface::Canvas,
+        );
+        let standard_key = StyleCache::key(
+            &standard,
+            args.0,
+            args.1,
+            args.2,
+            StateFlags::empty(),
+            0,
+            Surface::Canvas,
+        );
+        assert_ne!(junie_key, standard_key);
+
+        let mut cache = StyleCache::new();
+        let _ = cache.accumulate(&junie, args.0, args.1, args.2, StateFlags::empty(), &[], 0);
+        let _ = cache.accumulate(
+            &standard,
+            args.0,
+            args.1,
+            args.2,
+            StateFlags::empty(),
+            &[],
+            0,
+        );
+        assert_eq!(cache.stats(), (0, 2));
     }
 }

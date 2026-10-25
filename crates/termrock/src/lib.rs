@@ -132,10 +132,10 @@ pub use termrock_runtime::layer::{
 
 pub use termrock_theme::{
     Align, BorderSet, CapabilityPalettes, ColorLevel, ColorTokens, CursorStyle, Density,
-    DesignTokens, FG_STEPS, Family, FgStep, GlyphRole, MONO_RULES_PER_FAMILY, MeterFillRest,
-    MeterRole, MeterThresholds, Modifier, MonoRule, Overlay, OverlayRule, PaintStyle, PartMetrics,
-    Resolved, Role, SURFACE_LEVELS, Slot, StyleDefaults, StylePatch, Surface, SyntaxRole, Theme,
-    ThemeBuilder, Variant,
+    DesignTokens, FG_STEPS, Family, FgStep, GlyphRole, MONO_RULES_PER_FAMILY,
+    ManagerPresentationProfile, MeterFillRest, MeterRole, MeterThresholds, Modifier, MonoRule,
+    Overlay, OverlayRule, PaintStyle, PartMetrics, Resolved, Role, SURFACE_LEVELS, Slot,
+    StyleDefaults, StylePatch, Surface, SyntaxRole, Theme, ThemeBuilder, Variant,
 };
 
 pub use termrock_layout::{Constraints, Size};
