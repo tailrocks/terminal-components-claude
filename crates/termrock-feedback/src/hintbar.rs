@@ -9,7 +9,9 @@ use crate::keymap::{HintKey, HintLayer};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
-use crate::theme::{ColorLevel, Family, GlyphRole, Slot, StateRule, StylePatch, Theme, Variant};
+use crate::theme::{
+    ColorLevel, Family, FgStep, GlyphRole, Role, Slot, StateRule, StylePatch, Theme, Variant,
+};
 use crate::ui::{FrameRead, Ui};
 use termrock_runtime::Status;
 
@@ -35,6 +37,7 @@ pub struct HintBar<'a> {
     badge_override: MetadataOverride<'a>,
     status_text_override: MetadataOverride<'a>,
     centered_override: Option<bool>,
+    peek: Option<&'a str>,
     variant: Variant,
     status: Status,
 
@@ -103,6 +106,7 @@ impl<'a> HintBar<'a> {
             badge_override: MetadataOverride::Inherit,
             status_text_override: MetadataOverride::Inherit,
             centered_override: None,
+            peek: None,
             variant: Variant::DEFAULT,
             status: Status::Ready,
             #[cfg(test)]
@@ -124,6 +128,7 @@ impl<'a> HintBar<'a> {
             badge: MetadataOverride::Inherit,
             status_text: MetadataOverride::Inherit,
             centered: None,
+            peek: None,
         }
     }
 
@@ -149,6 +154,12 @@ impl<'a> HintBar<'a> {
     #[must_use]
     pub const fn status(mut self, s: Status) -> Self {
         self.status = s;
+        self
+    }
+
+    #[must_use]
+    pub const fn peek(mut self, text: Option<&'a str>) -> Self {
+        self.peek = text;
         self
     }
 
@@ -391,6 +402,18 @@ impl<'a> HintBar<'a> {
         self.fitting_heap(budget)
     }
 
+    fn full_hint_width(&self) -> u16 {
+        let count = self.layer.hints.len();
+        (0..count).fold(0u16, |used, index| {
+            used.saturating_add(self.hint(index).map_or(0, |hint| hint.width()))
+                .saturating_add(if index.saturating_add(1) < count {
+                    Self::HINT_GAP
+                } else {
+                    0
+                })
+        })
+    }
+
     fn fitting_heap(&self, budget: u16) -> (Vec<usize>, u16) {
         let n = self.layer.hints.len();
         let widths: Vec<u16> = (0..n)
@@ -487,7 +510,8 @@ impl<'a> HintBar<'a> {
 
         let mut x = area.x.saturating_add(1);
         let badge_w = self.badge_width();
-        if badge_w > 0 && x.saturating_add(badge_w) <= right_limit {
+        let badge_fits = badge_w == 0 || x.saturating_add(badge_w) <= right_limit;
+        if badge_w > 0 && badge_fits {
             if let Some(b) = self.badge_text() {
                 let cell = Rect {
                     x,
@@ -503,6 +527,36 @@ impl<'a> HintBar<'a> {
                 }
             }
             x = x.saturating_add(badge_w).saturating_add(Self::HINT_GAP);
+        }
+
+        let mut peek_text = None;
+        let mut peek_area = None;
+        if badge_fits
+            && self.message().is_none()
+            && let Some(text) = self.peek.filter(|text| !text.is_empty())
+        {
+            let full_hints = self.full_hint_width();
+            let spare = right_limit
+                .saturating_sub(x.saturating_add(full_hints))
+                .saturating_sub(Self::HINT_GAP)
+                .saturating_sub(1);
+            if spare >= 8 {
+                let clipped = crate::text::truncate(text, spare);
+                let peek_width = width(&clipped).min(spare);
+                if peek_width > 0 {
+                    let peek_x = right_limit.saturating_sub(peek_width).saturating_sub(1);
+                    let hint_limit = peek_x.saturating_sub(Self::HINT_GAP);
+                    if x.saturating_add(full_hints) <= hint_limit {
+                        right_limit = hint_limit;
+                        peek_area = Some(Rect {
+                            x: peek_x,
+                            width: peek_width,
+                            ..area
+                        });
+                        peek_text = Some(clipped);
+                    }
+                }
+            }
         }
 
         let budget = right_limit.saturating_sub(x);
@@ -557,6 +611,11 @@ impl<'a> HintBar<'a> {
                     }
                 }
             }
+        }
+        if let (Some(text), Some(cell)) = (peek_text.as_deref(), peek_area) {
+            let label = ov.style(ui, id, Family::HINTBAR, self.variant, Part::LABEL, live);
+            let secondary = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)));
+            ui.paint_str(cell, text, label.style.with_fg_from(secondary));
         }
         area
     }
@@ -645,6 +704,7 @@ pub struct DerivedHintBar<'a> {
     badge: MetadataOverride<'a>,
     status_text: MetadataOverride<'a>,
     centered: Option<bool>,
+    peek: Option<&'a str>,
 }
 
 impl<'a> DerivedHintBar<'a> {
@@ -690,11 +750,18 @@ impl<'a> DerivedHintBar<'a> {
         self
     }
 
+    #[must_use]
+    pub const fn peek(mut self, text: Option<&'a str>) -> Self {
+        self.peek = text;
+        self
+    }
+
     fn draw_layer(&self, ui: &mut Ui<'_>, area: Rect, layer: &HintLayer) -> Rect {
         let mut bar = HintBar::new(self.id, layer);
         bar.badge_override = self.badge;
         bar.status_text_override = self.status_text;
         bar.centered_override = self.centered;
+        bar.peek = self.peek;
         bar.draw(ui, area)
     }
 
@@ -727,6 +794,7 @@ impl<'a> DerivedHintBar<'a> {
                 .status_text
                 .resolve(None)
                 .is_some_and(|text| !text.is_empty())
+            || self.peek.is_some_and(|text| !text.is_empty())
         {
             return self.draw_layer(ui, area, &HintLayer::empty());
         }
@@ -890,6 +958,50 @@ mod tests {
         page
     }
 
+    fn draw_derived_page(
+        theme: &Theme,
+        screen: Rect,
+        area: Rect,
+        bar: &DerivedHintBar<'_>,
+    ) -> Buffer {
+        let mut frame = FrameState::default();
+        frame.reset(1, screen);
+        let mut page = Buffer::empty(screen);
+        let untouched = page.clone();
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
+            bar.draw(&mut ui, area);
+        }
+        assert_painted_inside(&untouched, &page, screen, area);
+        page
+    }
+
+    fn measured_size(theme: &Theme, layer: &HintLayer, peek: Option<&str>) -> Size {
+        let mut frame = FrameState::default();
+        frame.reset(1, AREA);
+        let mut page = Buffer::empty(AREA);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
+        HintBar::new(Id::root("hintbar.peek.measure"), layer)
+            .peek(peek)
+            .measure(&ui, Constraints::loose(u16::MAX, 1))
+    }
+
+    fn secondary_fg(theme: &Theme, area: Rect) -> Option<ratatui_core::style::Color> {
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
+        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)))
+            .as_style()
+            .fg
+    }
+
     fn assert_painted_inside(before: &Buffer, after: &Buffer, screen: Rect, area: Rect) {
         for y in 0..screen.height {
             for x in 0..screen.width {
@@ -1005,6 +1117,188 @@ mod tests {
         assert_eq!(page[(27, 0)].fg, theme.color.warning);
         let row = row_text(&page, area);
         assert!(!row.contains("Choose"), "{row}");
+    }
+
+    #[test]
+    fn peek_keeps_every_hint_and_respects_the_eight_cell_threshold() {
+        let theme = Theme::junie();
+        let layer = layer(&[("Choose", KeyCode::Enter), ("Next", KeyCode::Tab)]);
+        let bar = HintBar::new(Id::root("hintbar.peek.threshold"), &layer)
+            .peek(Some("Cut value continues"));
+        let base = 1u16
+            .saturating_add(bar.full_hint_width())
+            .saturating_add(HintBar::HINT_GAP)
+            .saturating_add(1);
+        let screen = Rect::new(0, 0, 120, 3);
+        let area7 = Rect::new(4, 1, base.saturating_add(7), 1);
+        let page7 = draw_page(&theme, screen, area7, &bar);
+        let row7 = row_text(&page7, area7);
+        assert!(row7.contains("Choose") && row7.contains("Next"), "{row7}");
+        let without_peek = HintBar::new(Id::root("hintbar.peek.threshold"), &layer);
+        assert_eq!(
+            page7,
+            draw_page(&theme, screen, area7, &without_peek),
+            "seven spare cells must hide the entire peek, including its clipped prefix"
+        );
+
+        let area8 = Rect::new(4, 1, base.saturating_add(8), 1);
+        let page8 = draw_page(&theme, screen, area8, &bar);
+        let row8 = row_text(&page8, area8);
+        assert!(row8.contains("Choose") && row8.contains("Next"), "{row8}");
+        assert!(row8.contains("Cut") && row8.contains('…'), "{row8}");
+    }
+
+    #[test]
+    fn peek_is_secondary_and_real_or_explicitly_empty_status_suppresses_it() {
+        let theme = Theme::junie();
+        let layer = layer(&[("Choose", KeyCode::Enter)]);
+        let area = Rect::new(3, 1, 76, 1);
+        let screen = Rect::new(0, 0, 84, 3);
+        let text = "Focused action value";
+        let label_parts = [(Part::LABEL, StylePatch::new().set_fg(Role::Warning))];
+        let page = draw_page(
+            &theme,
+            screen,
+            area,
+            &HintBar::new(Id::root("hintbar.peek.secondary"), &layer)
+                .patch_part(&label_parts)
+                .peek(Some(text)),
+        );
+        let peek_x = area.right().saturating_sub(width(text)).saturating_sub(1);
+        assert_eq!(page[(peek_x, area.y)].symbol(), "F");
+        assert_eq!(
+            Some(page[(peek_x, area.y)].fg),
+            secondary_fg(&theme, screen)
+        );
+
+        let mut status = layer.clone();
+        status.status = Some("Saved".into());
+        let status_page = draw_page(
+            &theme,
+            screen,
+            area,
+            &HintBar::new(Id::root("hintbar.peek.status"), &status).peek(Some(text)),
+        );
+        let status_row = row_text(&status_page, area);
+        assert!(status_row.contains("Saved"), "{status_row}");
+        assert!(!status_row.contains("Focused"), "{status_row}");
+
+        let mut empty_status = HintLayer::empty();
+        empty_status.status = Some("".into());
+        let empty_page = draw_page(
+            &theme,
+            screen,
+            area,
+            &HintBar::new(Id::root("hintbar.peek.empty-status"), &empty_status).peek(Some(text)),
+        );
+        assert!(!row_text(&empty_page, area).contains("Focused"));
+    }
+
+    #[test]
+    fn derived_peek_draws_without_a_hint_layer_and_none_is_byte_identical() {
+        let theme = Theme::junie();
+        let area = Rect::new(2, 1, 48, 1);
+        let screen = Rect::new(0, 0, 56, 3);
+        let layer = layer(&[("Choose", KeyCode::Enter), ("Next", KeyCode::Tab)]);
+        let none = HintBar::derived(Id::root("hintbar.peek.none"))
+            .screen(&layer)
+            .peek(None);
+        let page_none = draw_derived_page(&theme, screen, area, &none);
+        let no_peek = HintBar::derived(Id::root("hintbar.peek.none")).screen(&layer);
+        let page_default = draw_derived_page(&theme, screen, area, &no_peek);
+        assert_eq!(page_none, page_default);
+
+        let standalone = Rect::new(2, 1, 48, 1);
+        let peek = HintBar::derived(Id::root("hintbar.peek.empty-layer"))
+            .peek(Some("Standalone focused value"));
+        let page = draw_derived_page(&theme, screen, standalone, &peek);
+        assert!(row_text(&page, standalone).contains("Standalone"));
+
+        let empty_status = HintBar::derived(Id::root("hintbar.peek.derived-empty-status"))
+            .status_text(Some(""))
+            .peek(Some("suppressed value"));
+        let page = draw_derived_page(&theme, screen, standalone, &empty_status);
+        assert!(!row_text(&page, standalone).contains("suppressed"));
+    }
+
+    #[test]
+    fn peek_disappears_when_full_hints_overflow_and_clips_wide_text_inside_shifted_area() {
+        let theme = Theme::junie();
+        let crowded = layer(&[
+            ("Open", KeyCode::Enter),
+            ("Choose", KeyCode::Char(' ')),
+            ("Next", KeyCode::Tab),
+            ("Refresh", KeyCode::Char('r')),
+            ("Scope", KeyCode::Char('s')),
+            ("Cancel", KeyCode::Esc),
+        ]);
+        let crowded_bar =
+            HintBar::new(Id::root("hintbar.peek.crowded"), &crowded).peek(Some("must stay hidden"));
+        let area = Rect::new(2, 1, crowded_bar.full_hint_width(), 1);
+        assert!(crowded_bar.fitting(area.width.saturating_sub(1)).0.len() < crowded.hints.len());
+        let page = draw_page(&theme, Rect::new(0, 0, 90, 3), area, &crowded_bar);
+        assert!(!row_text(&page, area).contains("must stay"));
+
+        let layer = layer(&[("Choose", KeyCode::Enter)]);
+        let wide_area = Rect::new(7, 2, 40, 1);
+        let wide_screen = Rect::new(0, 0, 52, 5);
+        let text = "界界界界界界界界界界界界界";
+        let wide = HintBar::new(Id::root("hintbar.peek.wide"), &layer).peek(Some(text));
+        let page = draw_page(&theme, wide_screen, wide_area, &wide);
+        let row = row_text(&page, wide_area);
+        assert!(row.contains("界"), "{row}");
+        assert!(row.contains('…'), "{row}");
+    }
+
+    #[test]
+    fn peek_does_not_change_hint_bar_measurement() {
+        let theme = Theme::junie();
+        let layer = layer(&[("Choose", KeyCode::Enter), ("Next", KeyCode::Tab)]);
+        assert_eq!(
+            measured_size(&theme, &layer, None),
+            measured_size(&theme, &layer, Some("a very long focused title and reason"))
+        );
+    }
+
+    #[test]
+    fn peek_keeps_the_complete_badged_centered_stack_and_bounds_heap_fitting() {
+        let theme = Theme::junie();
+        let mut centered = layer(&[("Choose", KeyCode::Enter), ("Next", KeyCode::Tab)]);
+        centered.centered = true;
+        let area = Rect::new(5, 1, 100, 1);
+        let screen = Rect::new(0, 0, 112, 3);
+        let bar = HintBar::derived(Id::root("hintbar.peek.badged"))
+            .mode(&centered)
+            .badge(Some("EDIT"))
+            .peek(Some("Focused title — reason"));
+        let page = draw_derived_page(&theme, screen, area, &bar);
+        let row = row_text(&page, area);
+        assert!(row.contains("EDIT"), "{row}");
+        assert!(row.contains("Choose") && row.contains("Next"), "{row}");
+        assert!(row.contains("Focused title"), "{row}");
+
+        let many = HintLayer {
+            hints: (0..33)
+                .map(|_| Hint {
+                    key: crate::keymap::HintKey::Label("X"),
+                    label: "Hint",
+                    priority: 50,
+                })
+                .collect(),
+            ..HintLayer::empty()
+        };
+        let many_area = Rect::new(3, 2, 700, 1);
+        let many_screen = Rect::new(0, 0, 704, 4);
+        let many_page = draw_page(
+            &theme,
+            many_screen,
+            many_area,
+            &HintBar::new(Id::root("hintbar.peek.heap"), &many)
+                .peek(Some("long focused row value")),
+        );
+        let many_row = row_text(&many_page, many_area);
+        assert_eq!(many_row.matches("Hint").count(), 33, "{many_row}");
+        assert!(many_row.contains("long focused row value"), "{many_row}");
     }
 
     #[test]

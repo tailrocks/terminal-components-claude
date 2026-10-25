@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use termrock::RowUi;
 use termrock::layout::{ColumnSpec, Track, solve_columns};
 use termrock::theme::CursorStyle;
@@ -360,9 +362,10 @@ impl HomeState {
         clippy::too_many_lines,
         reason = "One pure Home projection keeps query, scope, rows and discovery geometry together"
     )]
-    pub(crate) fn draw(&self, world: &World, ui: &mut Ui<'_>, area: Rect) {
+    pub(crate) fn draw(&self, world: &World, ui: &mut Ui<'_>, area: Rect) -> Option<String> {
+        let clip = ui.full();
         if area.is_empty() {
-            return;
+            return None;
         }
         let scope_name = self.scope.map_or("here", Scope::label);
         let scope_label = format!(" scope ‹ {scope_name} › ");
@@ -405,7 +408,7 @@ impl HomeState {
         if let Some(view) = catalogue::parity_files_view(world, ui.full().width)
             && paint_parity_files(ui, lead_area, &view)
         {
-            return;
+            return None;
         }
         if paints_recent_lead {
             super::finder::paint_recent_lead(ui, lead_area);
@@ -413,32 +416,32 @@ impl HomeState {
         if let Some(view) = catalogue::first_use_view(world, ui.full().width, self.history)
             && paint_narrow_tag_list(ui, rows_area, &view)
         {
-            return;
+            return None;
         }
         if let Some(view) = catalogue::monorepo_root_view(world, ui.full().width, self.history)
             && paint_narrow_tag_list(ui, rows_area, &view)
         {
-            return;
+            return None;
         }
         if let Some(view) = catalogue::monorepo_child_view(world, ui.full().width)
             && paint_narrow_tag_list(ui, rows_area, &view)
         {
-            return;
+            return None;
         }
         if let Some(view) = catalogue::docker_cleanup_view(world, ui.full().width)
             && paint_narrow_tag_list(ui, rows_area, &view)
         {
-            return;
+            return None;
         }
         if let Some(view) = catalogue::remote_host_view(world, ui.full().width)
             && paint_narrow_tag_list(ui, rows_area, &view)
         {
-            return;
+            return None;
         }
         if let Some(view) = catalogue::activities_multi_view(world, ui.full().width, self.history)
             && paint_narrow_tag_list(ui, rows_area, &view)
         {
-            return;
+            return None;
         }
         if let Some(view) = catalogue::parity_discovery_view(world, ui.full().width) {
             if let Some(layout) = parity_action_layout(rows_area, ui.full().width, !rows.is_empty())
@@ -446,14 +449,14 @@ impl HomeState {
             {
                 if !layout.has_action_rows {
                     paint_empty_home_rows(ui, rows_area, self.query(), self.scope);
-                    return;
+                    return None;
                 }
                 if paint_parity_action_card(ui, layout, &view, &self.rows, &mut items) {
-                    return;
+                    return None;
                 }
             }
             if paint_parity_discovery_view(ui, rows_area, &view) {
-                return;
+                return None;
             }
         }
         if let Some(view) = catalogue::parity_discovery(world) {
@@ -462,45 +465,45 @@ impl HomeState {
             {
                 if !layout.has_action_rows {
                     paint_empty_home_rows(ui, rows_area, self.query(), self.scope);
-                    return;
+                    return None;
                 }
                 if paint_parity_action_card(ui, layout, &view, &self.rows, &mut items) {
-                    return;
+                    return None;
                 }
             }
             if paint_parity_discovery(ui, rows_area, &view) {
-                return;
+                return None;
             }
         }
         if let Some(view) = catalogue::parity_history_view(world, ui.full().width)
             && paint_parity_history(ui, rows_area, &view)
         {
-            return;
+            return None;
         }
         if let Some(view) = catalogue::parity_browser_view(world, ui.full().width)
             && paint_parity_browser(ui, rows_area, &view)
         {
-            return;
+            return None;
         }
         if let Some(view) = catalogue::parity_git_current_view(world, ui.full().width)
             && paint_parity_git_current(ui, rows_area, &view)
         {
-            return;
+            return None;
         }
         if let Some(view) = catalogue::parity_git_batch_view(world, ui.full().width)
             && paint_parity_git_batch(ui, rows_area, &view)
         {
-            return;
+            return None;
         }
         if let Some(view) = catalogue::parity_task_sources_view(world, ui.full().width)
             && paint_parity_task_sources(ui, rows_area, &view)
         {
-            return;
+            return None;
         }
         if let Some(view) = catalogue::parity_cargo_view(world, ui.full().width)
             && paint_parity_cargo(ui, rows_area, &view)
         {
-            return;
+            return None;
         }
         if let Some(view) = catalogue::first_use_plate(world, self.history)
             .or_else(|| catalogue::monorepo_root_plate(world, self.history))
@@ -510,17 +513,26 @@ impl HomeState {
             .or_else(|| catalogue::docker_cleanup_tag(world))
             && paint_parity_discovery(ui, rows_area, &view)
         {
-            return;
+            return None;
         }
         if let Some(view) = catalogue::hard_cases_tag(world)
             && paint_hard_cases_discovery(ui, rows_area, &view)
         {
-            return;
+            return None;
         }
+        let peek = RefCell::new(None);
+        let collect_peek = !ui.is_inert()
+            && !ui.is_covered_by_native_layer()
+            && ui.owner_has_focus_presentation(ROWS);
         if rows.is_empty() {
             paint_empty_home_rows(ui, rows_area, self.query(), self.scope);
         } else {
-            nav_list().draw(ui, rows_area, &self.rows, &rows);
+            nav_list_with_row(|row, cells| {
+                let row_is_visible = !cells.area().intersection(clip).is_empty();
+                let collector = (collect_peek && row_is_visible).then_some(&peek);
+                paint_action_with_peek(row, cells, collector);
+            })
+            .draw(ui, rows_area, &self.rows, &rows);
         }
         let groups = rows
             .iter()
@@ -575,6 +587,7 @@ impl HomeState {
                 );
             }
         }
+        peek.into_inner()
     }
 }
 
@@ -616,8 +629,10 @@ fn query_input(rows_own_navigation: bool) -> TextInput<'static> {
 fn section(row: &HomeRow) -> &str {
     row.section
 }
-fn nav_list()
--> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey, impl Fn(&HomeRow, &mut RowUi<'_>)> {
+fn nav_list_with_row<R>(row: R) -> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey, R>
+where
+    R: Fn(&HomeRow, &mut RowUi<'_>),
+{
     NavList::new(ROWS)
         .cursor_style(CursorStyle::Fill)
         .scrollable(true)
@@ -627,7 +642,11 @@ fn nav_list()
         .patch_part(HEADER_PARTS)
         .header_text_patch(&HEADER_TEXT)
         .key(row_key)
-        .row(paint_action)
+        .row(row)
+}
+fn nav_list()
+-> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey, impl Fn(&HomeRow, &mut RowUi<'_>)> {
+    nav_list_with_row(paint_action)
 }
 fn row_key(row: &HomeRow) -> ItemKey {
     ItemKey::text(&row.action.id)
@@ -725,6 +744,18 @@ fn paint_empty_home_rows(ui: &mut Ui<'_>, area: Rect, query: &str, scope: Option
 }
 
 fn paint_action(row: &HomeRow, cells: &mut RowUi<'_>) {
+    paint_action_with_peek(row, cells, None);
+}
+
+fn paint_action_with_peek(
+    row: &HomeRow,
+    cells: &mut RowUi<'_>,
+    peek: Option<&RefCell<Option<String>>>,
+) {
+    let candidate_eligible = peek.is_some()
+        && cells.flags().contains(StateFlags::FOCUSED)
+        && !cells.flags().contains(StateFlags::DISABLED)
+        && !cells.area().is_empty();
     let action = &row.action;
     let kind = action_kind_label(action.kind);
     let scope = scope_text(action);
@@ -757,49 +788,81 @@ fn paint_action(row: &HomeRow, cells: &mut RowUi<'_>) {
     let tracks = (0..resolved.len())
         .map(|index| Track::Fixed(resolved.width(index).unwrap_or_default()))
         .collect::<Vec<_>>();
-    let mut columns = cells.columns_with_gap(&tracks, 2);
-    columns
-        .cell_part(0, Part::LABEL)
-        .text_matched(&action.title, &[]);
-    if !kind.is_empty() {
-        columns
-            .cell_part(1, Part::META)
-            .tone(Role::Fg(FgStep::Muted))
-            .text_matched(kind, &[]);
-    }
-    if !scope.is_empty() {
-        let scope_tone = if action.scope == Scope::Here {
-            Role::Fg(FgStep::Muted)
-        } else {
-            Role::Fg(FgStep::Secondary)
+    let (title_cut, reason_cut) = {
+        let mut columns = cells.columns_with_gap(&tracks, 2);
+        let title_cut = {
+            let mut title = columns.cell_part(0, Part::LABEL);
+            let cut = termrock::width(&action.title) > title.available_width();
+            title.text_matched(&action.title, &[]);
+            cut
         };
-        columns
-            .cell_part(2, Part::META)
-            .tone(scope_tone)
-            .text_matched(&scope, &[]);
-    }
-    if !action.reason.is_empty() {
-        columns
-            .cell_part(3, Part::META)
-            .patch(&TAG_GREY)
-            .text_matched(&action.reason, &[]);
-    }
-    if !risk.is_empty() {
-        let mut risk_cell = columns.cell_part(4, Part::META);
-        if !matches!(action.availability, Availability::Ready) {
-            risk_cell
-                .patch(
-                    &StylePatch::new()
-                        .set_fg(Role::Warning)
-                        .add(termrock::Modifier::BOLD),
-                )
-                .text_matched(&risk, &[]);
+        if !kind.is_empty() {
+            columns
+                .cell_part(1, Part::META)
+                .tone(Role::Fg(FgStep::Muted))
+                .text_matched(kind, &[]);
+        }
+        if !scope.is_empty() {
+            let scope_tone = if action.scope == Scope::Here {
+                Role::Fg(FgStep::Muted)
+            } else {
+                Role::Fg(FgStep::Secondary)
+            };
+            columns
+                .cell_part(2, Part::META)
+                .tone(scope_tone)
+                .text_matched(&scope, &[]);
+        }
+        let reason_cut = if !action.reason.is_empty() {
+            let mut reason = columns.cell_part(3, Part::META);
+            let cut = termrock::width(&action.reason) > reason.available_width();
+            reason.patch(&TAG_GREY).text_matched(&action.reason, &[]);
+            cut
         } else {
-            risk_cell
-                .tone(Role::Fg(FgStep::Secondary))
-                .text_matched(&risk, &[]);
+            false
+        };
+        if !risk.is_empty() {
+            let mut risk_cell = columns.cell_part(4, Part::META);
+            if !matches!(action.availability, Availability::Ready) {
+                risk_cell
+                    .patch(
+                        &StylePatch::new()
+                            .set_fg(Role::Warning)
+                            .add(termrock::Modifier::BOLD),
+                    )
+                    .text_matched(&risk, &[]);
+            } else {
+                risk_cell
+                    .tone(Role::Fg(FgStep::Secondary))
+                    .text_matched(&risk, &[]);
+            }
+        }
+        (title_cut, reason_cut)
+    };
+    if candidate_eligible
+        && (title_cut || reason_cut)
+        && let Some(peek) = peek
+    {
+        let mut current = peek.borrow_mut();
+        if current.is_none() {
+            let title = one_line(&action.title);
+            let reason = one_line(&action.reason);
+            *current = Some(if reason.is_empty() {
+                title
+            } else if title.is_empty() {
+                reason
+            } else {
+                format!("{title} — {reason}")
+            });
         }
     }
+}
+
+fn one_line(text: &str) -> String {
+    text.split(['\n', '\r', '\t'])
+        .filter(|piece| !piece.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn action_kind_label(kind: crate::domain::action::ActionKind) -> &'static str {
@@ -2077,6 +2140,8 @@ fn flatten_preview(
     reason = "Named fixtures provide known rows and failed fixture assumptions must fail tests"
 )]
 mod tests {
+    use std::cell::Cell;
+
     use super::*;
     use crate::{domain::fixtures, scenario::Scenario};
     use termrock::{App, KeyCode, Theme};
@@ -2086,6 +2151,8 @@ mod tests {
         home: HomeState,
         world: World,
         invoked: Option<Action>,
+        peek: RefCell<Option<String>>,
+        clip_home_to_query: Cell<bool>,
     }
     impl App for HomeFixture {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -2099,7 +2166,15 @@ mod tests {
             response
         }
         fn draw(&self, ui: &mut Ui<'_>) {
-            self.home.draw(&self.world, ui, ui.full());
+            let area = ui.full();
+            if self.clip_home_to_query.get() {
+                let query_clip = Rect::new(area.x, area.y, area.width, 1);
+                ui.with_area(query_clip, |ui| {
+                    *self.peek.borrow_mut() = self.home.draw(&self.world, ui, area);
+                });
+            } else {
+                *self.peek.borrow_mut() = self.home.draw(&self.world, ui, area);
+            }
         }
     }
     fn fixture(scenario: Scenario) -> HomeFixture {
@@ -2109,6 +2184,8 @@ mod tests {
             home: HomeState::default(),
             world,
             invoked: None,
+            peek: RefCell::new(None),
+            clip_home_to_query: Cell::new(false),
         }
     }
 
@@ -2135,6 +2212,155 @@ mod tests {
                 scenario.name()
             );
         }
+    }
+
+    #[test]
+    fn ordinary_home_peek_tracks_physical_row_focus_not_retained_selection() {
+        let mut harness = Harness::new(fixture(Scenario::RustDirty), Theme::junie(), 80, 24);
+        let task = harness
+            .app_mut()
+            .world
+            .mise
+            .as_mut()
+            .expect("RustDirty includes project tasks")
+            .tasks
+            .first_mut()
+            .expect("RustDirty includes a task");
+        task.defined_in = format!(
+            "~/work/pave/{}",
+            "footer-peek-producer-long-reason-".repeat(6)
+        );
+        harness.draw();
+        assert!(harness.app().peek.borrow().is_none());
+
+        assert!(harness.tab_to(QUERY));
+        let _ = harness.type_str("footer-peek-producer-long-reason");
+        assert!(harness.tab_to(ROWS));
+        harness.draw();
+        let selected = harness
+            .app()
+            .home
+            .selected(&harness.app().world)
+            .expect("the settled ordinary Home query has a focused task row");
+        assert!(matches!(
+            selected.title.as_str(),
+            "Run test" | "Run build" | "Run lint"
+        ));
+        assert!(selected.reason.contains("footer-peek-producer-long-reason"));
+        let reason = one_line(&selected.reason);
+        let expected = if reason.is_empty() {
+            one_line(&selected.title)
+        } else {
+            format!("{} — {reason}", one_line(&selected.title))
+        };
+        assert_eq!(
+            harness.app().peek.borrow().as_deref(),
+            Some(expected.as_str())
+        );
+
+        assert!(harness.tab_to(QUERY));
+        harness.draw();
+        assert!(
+            harness.app().peek.borrow().is_none(),
+            "a retained row selection does not reveal while QUERY owns focus"
+        );
+    }
+
+    #[test]
+    fn ordinary_home_peek_rejects_a_focused_row_outside_the_ui_clip() {
+        let mut harness = Harness::new(fixture(Scenario::RustDirty), Theme::junie(), 80, 24);
+        let task = harness
+            .app_mut()
+            .world
+            .mise
+            .as_mut()
+            .expect("RustDirty includes project tasks")
+            .tasks
+            .first_mut()
+            .expect("RustDirty includes a task");
+        task.defined_in = format!(
+            "~/work/pave/{}",
+            "footer-peek-producer-long-reason-".repeat(6)
+        );
+        assert!(harness.tab_to(QUERY));
+        let _ = harness.type_str("footer-peek-producer-long-reason");
+        assert!(harness.tab_to(ROWS));
+        assert_eq!(harness.focus(), Some(ROWS));
+        assert!(harness.app().peek.borrow().is_some());
+
+        harness.app().clip_home_to_query.set(true);
+        harness.draw();
+        assert!(
+            harness.app().peek.borrow().is_none(),
+            "the focused logical row is wholly outside the query-only clip"
+        );
+
+        harness.app().clip_home_to_query.set(false);
+        assert!(harness.tab_to(ROWS));
+        harness.draw();
+        assert!(harness.app().peek.borrow().is_some());
+    }
+
+    #[test]
+    fn reserved_trailing_label_glyph_is_counted_as_a_title_cut() {
+        let mut baseline = Harness::new(fixture(Scenario::RustDirty), Theme::junie(), 120, 40);
+        let task = baseline
+            .app_mut()
+            .world
+            .mise
+            .as_mut()
+            .expect("RustDirty includes project tasks")
+            .tasks
+            .first_mut()
+            .expect("RustDirty includes a task");
+        task.id = "reserved-glyph".into();
+        task.defined_in = "~/work/pave/x".into();
+        assert!(baseline.tab_to(QUERY));
+        let _ = baseline.type_str("reserved-glyph");
+        assert!(baseline.tab_to(ROWS));
+        baseline.draw();
+        assert!(baseline.app().peek.borrow().is_none());
+
+        let theme = Theme::junie().define_family(Family::LIST, |edit| {
+            edit.part(Part::LABEL)
+                .base(StylePatch::new().set_glyph(termrock::GlyphRole::Ellipsis));
+        });
+        let mut harness = Harness::new(fixture(Scenario::RustDirty), theme, 120, 40);
+        let task = harness
+            .app_mut()
+            .world
+            .mise
+            .as_mut()
+            .expect("RustDirty includes project tasks")
+            .tasks
+            .first_mut()
+            .expect("RustDirty includes a task");
+        task.id = "reserved-glyph".into();
+        task.defined_in = "~/work/pave/x".into();
+        assert!(harness.tab_to(QUERY));
+        let _ = harness.type_str("reserved-glyph");
+        assert!(harness.tab_to(ROWS));
+        harness.draw();
+
+        let selected = harness
+            .app()
+            .home
+            .selected(&harness.app().world)
+            .expect("the matching task has a real Home row");
+        assert_eq!(selected.title, "Run reserved-glyph");
+        assert_eq!(
+            harness.app().peek.borrow().as_deref(),
+            Some("Run reserved-glyph — defined by project task runner · x")
+        );
+    }
+
+    #[test]
+    fn footer_peek_parts_normalize_to_a_single_line() {
+        assert_eq!(
+            one_line("title\ncontinued\r\t reason"),
+            "title continued  reason"
+        );
+        assert_eq!(one_line("\n\t"), "");
     }
 
     #[test]

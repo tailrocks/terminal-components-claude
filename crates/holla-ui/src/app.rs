@@ -2054,7 +2054,7 @@ impl App {
             faint,
         );
     }
-    fn chrome(&self, ui: &mut Ui<'_>, area: Rect) {
+    fn chrome(&self, ui: &mut Ui<'_>, area: Rect, peek: Option<&str>) {
         let regions = AppShell::new()
             .header(1)
             .gap(1)
@@ -2184,7 +2184,7 @@ impl App {
             paint_disk_cleanup_status(ui, status);
         }
         let footer = regions.footer;
-        self.footer_draw(ui, footer);
+        self.footer_draw(ui, footer, peek);
     }
     fn paint_parity_status(&self, ui: &mut Ui<'_>, area: Rect) {
         if area.is_empty() {
@@ -2323,7 +2323,7 @@ impl App {
         }
     }
 
-    fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect) {
+    fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect, peek: Option<&str>) {
         if launch_failure_activity_open(&self.world, ui)
             && self.route == Route::Activity
             && self.overlay.is_none()
@@ -2500,6 +2500,7 @@ impl App {
         bar.status_text(self.status.as_deref())
             .badge(editing.then_some("EDIT"))
             .centered(true)
+            .peek(peek)
             .draw(ui, footer);
     }
 }
@@ -2836,25 +2837,45 @@ impl termrock::App for App {
             return;
         }
         let (body, home_area) = shell_areas(area);
-        match self.route {
+        let peek = match self.route {
             Route::Home => self.home.draw(&self.world, ui, home_area),
             Route::Plan => {
                 if let Some(plan) = &self.plan {
                     plan.draw(ui, body);
                 }
+                None
             }
             Route::Activity => {
                 self.activities.draw(&self.world, ui, body);
+                None
             }
             Route::Disk => {
                 disk::draw(&self.world, ui, body);
+                None
             }
-            Route::Files => files::draw(&self.files, ui, body),
-            Route::Cleanup => cleanup::draw(&self.world, ui, body),
-            Route::Review => review::draw(&self.world, ui, body),
-            Route::Snapshot => snapshot::draw(&self.world, ui, body),
-        }
-        self.chrome(ui, area);
+            Route::Files => {
+                files::draw(&self.files, ui, body);
+                None
+            }
+            Route::Cleanup => {
+                cleanup::draw(&self.world, ui, body);
+                None
+            }
+            Route::Review => {
+                review::draw(&self.world, ui, body);
+                None
+            }
+            Route::Snapshot => {
+                snapshot::draw(&self.world, ui, body);
+                None
+            }
+        };
+        let peek = if self.route == Route::Home && self.overlay.is_none() && !self.menu.is_open() {
+            peek
+        } else {
+            None
+        };
+        self.chrome(ui, area, peek.as_deref());
         if let Some(overlay) = &self.overlay {
             match overlay {
                 Overlay::Dialog(dialog) => dialog.draw(ui),
@@ -6171,6 +6192,118 @@ mod tests {
         assert!(h.text().lines().last().unwrap().contains("Type Filter"));
         assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
+    #[test]
+    fn ordinary_home_cut_reason_reaches_footer_without_dropping_hints() {
+        let mut h = harness(
+            App::for_scenario_without_history(Scenario::RustDirty, Motion::Paused, 4_000),
+            Theme::junie(),
+            160,
+            40,
+        );
+        let task = h
+            .app_mut()
+            .world
+            .mise
+            .as_mut()
+            .expect("RustDirty includes project tasks")
+            .tasks
+            .first_mut()
+            .expect("RustDirty includes a task");
+        task.defined_in = format!(
+            "~/work/pave/{}",
+            "footer-peek-producer-long-reason-".repeat(6)
+        );
+
+        assert!(h.tab_to(home::QUERY));
+        let _ = h.type_str("footer-peek-producer-long-reason");
+        assert!(h.tab_to(home::ROWS));
+        let action = h
+            .app()
+            .home
+            .selected(&h.app().world)
+            .expect("the filtered task remains an ordinary Home row");
+        assert!(action.reason.contains("footer-peek-producer-long-reason"));
+        let title = action.title.clone();
+        let action_id = action.id.clone();
+        let footer = h.text().lines().last().unwrap().to_owned();
+        assert!(footer.contains(&title), "{footer}");
+        assert!(footer.contains("footer-peek-producer"), "{footer}");
+        assert!(
+            footer.contains("Run") && footer.contains("Preview"),
+            "{footer}"
+        );
+        assert!(
+            footer.contains("Actions") && footer.contains("Query"),
+            "{footer}"
+        );
+        assert!(footer.contains("Clear"), "{footer}");
+
+        let _ = h.resize(400, 40);
+        let fitted_footer = h.text().lines().last().unwrap().to_owned();
+        assert!(!fitted_footer.contains(&title), "{fitted_footer}");
+        let _ = h.resize(120, 40);
+        assert!(h.tab_to(home::QUERY));
+        let query_footer = h.text().lines().last().unwrap().to_owned();
+        assert!(!query_footer.contains(&title), "{query_footer}");
+
+        let row_part = PartRef::item(Part::ROW, ItemKey::text(&action_id));
+        let row = h
+            .area_of_part(home::ROWS, row_part)
+            .expect("the filtered task has a native row hit part");
+        let x = row.x.saturating_add(row.width / 2);
+        let y = row.y;
+        let _ = h.mouse(termrock::MouseKind::Down, x, y);
+        assert_eq!(h.focus(), Some(home::ROWS));
+        let pressed_footer = h.text().lines().last().unwrap().to_owned();
+        assert!(pressed_footer.contains(&title), "{pressed_footer}");
+        let _ = h.mouse(termrock::MouseKind::Up, 0, 0);
+        assert_eq!(h.focus(), Some(home::ROWS));
+        let pointer_footer = h.text().lines().last().unwrap().to_owned();
+        assert!(pointer_footer.contains(&title), "{pointer_footer}");
+
+        let _ = h.click_part(home::ROWS, row_part);
+        let clicked_footer = h.text().lines().last().unwrap().to_owned();
+        assert!(
+            h.app()
+                .status
+                .as_deref()
+                .is_some_and(|status| status.starts_with("Would run: mise run ")),
+            "the real Home click keeps its normal simulated action status: {:?}",
+            h.app().status
+        );
+        assert!(clicked_footer.contains("Would run:"), "{clicked_footer}");
+        assert!(!clicked_footer.contains(&title), "{clicked_footer}");
+        assert!(h.app().overlay.is_none());
+
+        h.app_mut().status = None;
+        h.draw();
+        assert_eq!(h.focus(), Some(home::ROWS));
+        let restored_footer = h.text().lines().last().unwrap().to_owned();
+        assert!(restored_footer.contains(&title), "{restored_footer}");
+
+        let _ = h.key(KeyCode::F(10));
+        assert!(h.app().menu.is_open());
+        let menu_footer = h.text().lines().last().unwrap().to_owned();
+        assert!(!menu_footer.contains(&title), "{menu_footer}");
+        let _ = h.key(KeyCode::Esc);
+        assert!(!h.app().menu.is_open());
+        assert!(h.tab_to(home::ROWS));
+        let _ = h.key(KeyCode::F(1));
+        assert!(h.app().overlay.is_some());
+        let help_footer = h.text().lines().last().unwrap().to_owned();
+        assert!(!help_footer.contains(&title), "{help_footer}");
+        let _ = h.key(KeyCode::Esc);
+        assert!(h.app().overlay.is_none());
+        assert!(h.tab_to(home::ROWS));
+
+        h.app_mut().status = Some("Saved".to_owned());
+        h.draw();
+        let status_footer = h.text().lines().last().unwrap().to_owned();
+        assert!(status_footer.contains("Saved"), "{status_footer}");
+        assert!(!status_footer.contains(&title), "{status_footer}");
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+
     #[test]
     fn home_scope_stays_off_the_menu_row_and_clears_with_escape() {
         let mut harness = app(Scenario::HardCases);
