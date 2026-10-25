@@ -1,3 +1,4 @@
+#![cfg(test)]
 use std::cell::{Cell, RefCell};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};

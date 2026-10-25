@@ -1,3 +1,4 @@
+#![cfg(test)]
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
