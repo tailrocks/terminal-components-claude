@@ -373,6 +373,7 @@ struct ParsedSource {
     includes: Vec<IncludeDecl>,
     test_ranges: Vec<LineRange>,
     certified_inline_test_ranges: Vec<LineRange>,
+    certified_direct_test_function_ranges: Vec<LineRange>,
     range_uncertainty: RangeUncertainty,
     complete: bool,
 }
@@ -499,11 +500,14 @@ pub fn cfg_test_ranges(source: &str) -> Vec<LineRange> {
             collect_ranges: true,
             collect_body_routes: false,
             expression_fragment: false,
+            certify_direct_test_functions: true,
         },
     ) {
         Some(parsed) if parsed.complete => {
             let ranges = if parsed.range_uncertainty.bounded_function_body_item_macro {
-                parsed.certified_inline_test_ranges
+                let mut certified = parsed.certified_inline_test_ranges;
+                certified.extend(parsed.certified_direct_test_function_ranges);
+                certified
             } else {
                 parsed.test_ranges
             };
@@ -1015,6 +1019,7 @@ fn parse_source(
             collect_ranges: true,
             collect_body_routes: true,
             expression_fragment: false,
+            certify_direct_test_functions: false,
         },
     )
 }
@@ -1033,6 +1038,7 @@ fn parse_expression_fragment(
         includes: Vec::new(),
         test_ranges: Vec::new(),
         certified_inline_test_ranges: Vec::new(),
+        certified_direct_test_function_ranges: Vec::new(),
         range_uncertainty: RangeUncertainty::default(),
         complete: true,
     };
@@ -1077,6 +1083,7 @@ struct ParseScopeMode {
     collect_ranges: bool,
     collect_body_routes: bool,
     expression_fragment: bool,
+    certify_direct_test_functions: bool,
 }
 
 fn parse_scope(
@@ -1091,6 +1098,7 @@ fn parse_scope(
         collect_ranges,
         collect_body_routes,
         expression_fragment,
+        certify_direct_test_functions,
     } = mode;
     let range_only = collect_ranges && !collect_body_routes && !expression_fragment;
     let mut parsed = ParsedSource {
@@ -1098,6 +1106,7 @@ fn parse_scope(
         includes: Vec::new(),
         test_ranges: Vec::new(),
         certified_inline_test_ranges: Vec::new(),
+        certified_direct_test_function_ranges: Vec::new(),
         range_uncertainty: RangeUncertainty::default(),
         complete: true,
     };
@@ -1117,6 +1126,7 @@ fn parse_scope(
         }
         let item_start = index;
         let mut attributes = Attributes::default();
+        let mut direct_test_attribute_count = 0usize;
         while is_punct(tokens, index, '#') {
             let Some((next, inner, attr)) = parse_attribute(tokens, index, end) else {
                 parsed.complete = false;
@@ -1133,6 +1143,9 @@ fn parse_scope(
                 }
                 scope_predicate = scope_predicate.and(attr.predicate);
                 continue;
+            }
+            if certify_direct_test_functions && attr.test_attributes.contains("test") {
+                direct_test_attribute_count = direct_test_attribute_count.saturating_add(1);
             }
             derived_names.extend(attr.derives.iter().cloned());
             test_attributes.extend(attr.test_attributes.iter().cloned());
@@ -1229,6 +1242,7 @@ fn parse_scope(
                         collect_ranges,
                         collect_body_routes,
                         expression_fragment: false,
+                        certify_direct_test_functions: false,
                     },
                 )?;
                 parsed.complete &= nested.complete;
@@ -1280,6 +1294,25 @@ fn parse_scope(
                 &mut imported_derive_glob,
             );
             record_test_attribute_imports(tokens, index, item_end, &mut imported_test_attributes);
+            if certify_direct_test_functions
+                && start == 0
+                && end == tokens.values.len()
+                && direct_test_attribute_count == 1
+                && attributes.complete
+                && attributes.path.is_none()
+                && attributes.derives.is_empty()
+                && attributes.test_attributes.len() == 1
+                && attributes.test_attributes.contains("test")
+                && item_head(tokens, index, item_end) == Some("fn")
+                && ordinary_function_body(tokens, index, item_end).is_some()
+            {
+                push_range(
+                    tokens,
+                    item_start,
+                    item_end,
+                    &mut parsed.certified_direct_test_function_ranges,
+                );
+            }
             push_range(tokens, item_start, item_end, &mut parsed.test_ranges);
             skipped_items.push((index, item_end, effective));
             if let Some(path) = include {
@@ -1430,6 +1463,7 @@ fn collect_body_routes_in_item(
         includes: Vec::new(),
         test_ranges: Vec::new(),
         certified_inline_test_ranges: Vec::new(),
+        certified_direct_test_function_ranges: Vec::new(),
         range_uncertainty: RangeUncertainty::default(),
         complete: true,
     };
@@ -1487,6 +1521,7 @@ fn collect_scope_body_routes(
             collect_ranges: false,
             collect_body_routes: false,
             expression_fragment: context.expression_fragment,
+            certify_direct_test_functions: false,
         },
     ) else {
         routes.complete = false;
