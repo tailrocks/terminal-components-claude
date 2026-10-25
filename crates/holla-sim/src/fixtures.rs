@@ -9,6 +9,7 @@ use crate::domain::mise::{MiseState, MiseTask, MiseTool, ToolState, Trust};
 use crate::domain::pg::PgSession;
 use crate::domain::ranking::{Alias, Memory, Pin, Usage};
 use crate::domain::ssh::{HostKeyPolicy, SshHost};
+use crate::listeners::{ListenerModel, ListenerModelError, ListenerRecord, PortConflict};
 use crate::scenario::Scenario;
 use crate::world::{Discovery, Domain, World};
 
@@ -233,6 +234,59 @@ pub fn nextest_args_world() -> World {
         }
     }
     world
+}
+
+/// Dedicated synthetic case for a typed frontend port-conflict failure.
+///
+/// This case is not a CLI scenario and does not change any existing World fixture.
+pub struct PortConflictCase {
+    /// The isolated fixture World containing the synthetic failed Activity.
+    pub world: World,
+    /// Optional simulator-owned listener data for the same host context.
+    pub listeners: Option<ListenerModel>,
+    /// Typed EADDRINUSE event bound to the unchanged failed Activity.
+    pub conflict: PortConflict,
+}
+
+/// Builds one failed frontend-dev Activity with a separate simulated listener inventory.
+///
+/// # Errors
+/// Returns an error if the authored listener rows do not form a valid inventory.
+pub fn port_conflict_case() -> Result<PortConflictCase, ListenerModelError> {
+    let mut world = world_for(Scenario::MonorepoChild);
+    let mut activity = Activity::new(
+        1_000_001,
+        "frontend dev",
+        &world.cwd,
+        ActivityState::Failed,
+        world.now_ms(),
+    );
+    activity.lines = vec![
+        "npm run dev".to_owned(),
+        "Error: listen EADDRINUSE: address already in use 127.0.0.1:5173".to_owned(),
+        "exit code 1".to_owned(),
+    ];
+    let conflict = PortConflict::capture(&world, 5173, &activity);
+    world.activities.push(activity);
+
+    let listeners = ListenerModel::new(
+        &world,
+        vec![ListenerRecord::new(
+            5120,
+            1,
+            5173,
+            "node (stale vite)",
+            "sleeping",
+            0,
+            310,
+        )?],
+    )?;
+
+    Ok(PortConflictCase {
+        world,
+        listeners: Some(listeners),
+        conflict,
+    })
 }
 
 fn tool(name: &str, version: &str, state: ToolState) -> MiseTool {
