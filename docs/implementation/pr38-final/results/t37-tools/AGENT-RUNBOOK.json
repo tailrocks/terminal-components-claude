@@ -298,6 +298,12 @@
       "sha256": "804f042caa56c4c98037cd77d279dabf2588ff732136f67005e96d29861cbb0e",
       "records": 402,
       "note": "Each record binds source prose to c817 path, line, and source hash."
+    },
+    "rust_source_cleanup_delta": {
+      "path": "docs/implementation/pr38-final/results/t37-tools/rust-source-cleanup-delta.json",
+      "sha256": "cd45841ad0660b03a028d1f1abf3aab5d5c0828b0b3b714a4f2dc10d84627c30",
+      "details": "Lists 127 removed Rust import statements with fixed-input paths, hashes, and lines; all 287 cfg(test) scopes, 132 test modules, and 1,374 test-function rows; the 460 E2E/visibility function rows; all deleted functions from matched changed files; eight test-only struct field groups; and four cfg(test) fields removed from two retained ReqwestTransport structs.",
+      "source_row_validation": "PASS; 550 source-bound checks. The one-off audit code was not retained."
     }
   },
   "preserved_help_directives_and_legal": {
@@ -501,5 +507,9 @@
       "command": "cargo test / cargo nextest run",
       "reason": "Prohibited for this T37 cleanup preflight; no legacy tests ran and no replacement tests were added."
     }
+  ],
+  "evidence_followup_paths": [
+    "docs/implementation/pr38-final/results/t37-tools/AGENT-RUNBOOK.json",
+    "docs/implementation/pr38-final/results/t37-tools/rust-source-cleanup-delta.json"
   ]
 }
