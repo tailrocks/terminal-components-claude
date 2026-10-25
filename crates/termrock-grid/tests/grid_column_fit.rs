@@ -47,9 +47,14 @@ struct Page {
     state: GridState,
     columns: [Column<'static>; 3],
     area: Rect,
+    fit: GridColumnFit,
 }
 impl Page {
     fn new() -> Self {
+        Self::with_fit(GridColumnFit::CompleteWithPreview { min_width: 6 })
+    }
+
+    fn with_fit(fit: GridColumnFit) -> Self {
         let mut columns = [
             Column::new(ColumnKey::num(0), "alpha"),
             Column::new(ColumnKey::num(1), "bravo"),
@@ -66,6 +71,7 @@ impl Page {
             state: GridState::default(),
             columns,
             area: Rect::new(0, 0, 32, 5),
+            fit,
         }
     }
 }
@@ -73,7 +79,7 @@ impl App for Page {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Grid::new(ID, &self.columns)
             .column_gap(2)
-            .column_fit(GridColumnFit::CompleteWithPreview { min_width: 6 })
+            .column_fit(self.fit)
             .update_editable(cx, &mut self.state, &mut self.model);
         if let Some(action) = response.take_action() {
             self.actions.push(action);
@@ -83,7 +89,7 @@ impl App for Page {
     fn draw(&self, ui: &mut Ui<'_>) {
         Grid::new(ID, &self.columns)
             .column_gap(2)
-            .column_fit(GridColumnFit::CompleteWithPreview { min_width: 6 })
+            .column_fit(self.fit)
             .draw(ui, self.area, &self.state, &self.model);
     }
 }
@@ -193,26 +199,42 @@ fn inline_editor_uses_cell_origin_and_shared_cursor_for_live_data() {
 }
 
 #[test]
-fn resize_expands_column_window_left_when_every_remaining_column_fits() {
+fn resize_alone_expands_column_window_left_when_every_remaining_column_fits() {
     let mut h = Harness::new(Page::new(), Theme::junie(), 32, 5);
     let _ = h.key(KeyCode::Right);
     let _ = h.key(KeyCode::Right);
+    h.draw();
     assert_eq!(h.app().state.col_offset(), 1);
+    let cursor = h.app().state.cursor();
+    assert_eq!(cursor, Some((ItemKey::num(0), ColumnKey::num(2))));
 
     h.app_mut().area.width = 44;
     let _ = h.resize(44, 5);
     h.draw();
-    let _ = h.key(KeyCode::Left);
-    let _ = h.key(KeyCode::Right);
 
     assert_eq!(h.app().state.col_offset(), 0);
     assert_eq!(h.cell(2, 1).symbol(), "a");
     assert_eq!(h.cell(12, 1).symbol(), "b");
     assert_eq!(h.cell(26, 1).symbol(), "c");
-    assert_eq!(
-        h.app().state.cursor(),
-        Some((ItemKey::num(0), ColumnKey::num(2)))
-    );
+    assert_eq!(h.app().state.cursor(), cursor);
+}
+
+#[test]
+fn whole_fit_preserves_reference_offset_on_resize() {
+    let mut h = Harness::new(Page::with_fit(GridColumnFit::Whole), Theme::junie(), 32, 5);
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Right);
+    let offset = h.app().state.col_offset();
+    assert_eq!(offset, 2);
+    let cursor = h.app().state.cursor();
+
+    h.app_mut().area.width = 44;
+    let _ = h.resize(44, 5);
+    h.draw();
+
+    assert_eq!(h.app().state.col_offset(), offset);
+    assert_eq!(h.cell(2, 1).symbol(), "c");
+    assert_eq!(h.app().state.cursor(), cursor);
 }
 
 #[test]

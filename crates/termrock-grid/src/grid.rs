@@ -1493,38 +1493,34 @@ impl<'a> Grid<'a> {
                     .flatten()
             })
             .and_then(|key| self.col_index(key));
-        let Some(target) = target else {
-            return g;
-        };
-        if self.columns.get(target).is_some_and(|c| c.sticky) {
-            return g;
-        }
-        let ordinal = self
-            .columns
-            .iter()
-            .take(target)
-            .filter(|c| !c.sticky)
-            .count();
-        let count = self
-            .columns
-            .iter()
-            .enumerate()
-            .take(g.n)
-            .filter(|(i, c)| !c.sticky && g.complete.get(*i).copied().unwrap_or(false))
-            .count();
-        if count == 0 {
-            return g;
-        }
-
-        let offset = if ordinal < g.offset {
-            ordinal
-        } else if ordinal >= g.offset.saturating_add(count) {
-            ordinal.saturating_add(1).saturating_sub(count)
-        } else {
-            g.offset
-        };
-        if offset != g.offset {
-            g = self.place_columns(body, widths, offset, gutter_width, number_width);
+        if let Some(target) = target
+            && !self.columns.get(target).is_some_and(|c| c.sticky)
+        {
+            let ordinal = self
+                .columns
+                .iter()
+                .take(target)
+                .filter(|c| !c.sticky)
+                .count();
+            let count = self
+                .columns
+                .iter()
+                .enumerate()
+                .take(g.n)
+                .filter(|(i, c)| !c.sticky && g.complete.get(*i).copied().unwrap_or(false))
+                .count();
+            if count > 0 {
+                let offset = if ordinal < g.offset {
+                    ordinal
+                } else if ordinal >= g.offset.saturating_add(count) {
+                    ordinal.saturating_add(1).saturating_sub(count)
+                } else {
+                    g.offset
+                };
+                if offset != g.offset {
+                    g = self.place_columns(body, widths, offset, gutter_width, number_width);
+                }
+            }
         }
 
         // Match the grid's reveal contract: once the cursor is visible, move the
