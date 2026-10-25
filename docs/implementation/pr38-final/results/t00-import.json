@@ -132,7 +132,7 @@
       "Does not verify product behavior."
     ]
   },
-  "checkpoint_commit": "e2fa510c9fe993dce39e1f3bf56d62a2a9d9f1a0",
+  "checkpoint_commit": "00505137a3894f3abec7f1ec0f1a9efc16bafcd7",
   "upstream_refresh": {
     "previous_input_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
     "approved_next_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
@@ -140,12 +140,47 @@
       "decision": "APPROVED",
       "model": "gpt-6.1-sol",
       "effort": "high",
-      "reviewer_id": null,
-      "reviewer_id_note": "Coordinator reported approval; reviewer ID not supplied in that message."
+      "reviewer_id": "/root/t00_independent_review"
+    },
+    "merge_status": "COMPLETED_NORMAL_MERGE",
+    "merge_owner": "/root",
+    "source_capture_status": "REFRESH_REQUIRED_FOR_MERGED_INPUT",
+    "preservation": "Existing source-capture files for the old input remain untouched.",
+    "reviewer_id": "/root/t00_independent_review",
+    "merge_commit": "8f39250e63ebde011a542d398076b50d2bbd5614",
+    "changed_paths": [
+      "exceptions/v1.json"
+    ],
+    "merge_delta": "14 deleted lines; no conflict.",
+    "current_pr_head_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "later_drift_policy": "Freeze T00 at 1d6ee92 after its normal merge. Record later drift for scoped review; do not recapture indefinitely."
+  },
+  "current_integration_head": "8f39250e63ebde011a542d398076b50d2bbd5614",
+  "next_upstream_refresh": {
+    "from_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+    "to_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "review": {
+      "decision": "APPROVED_SAFE_REFRESH",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high"
     },
     "merge_status": "PENDING_NORMAL_MERGE",
     "merge_owner": "/root",
-    "source_capture_status": "REFRESH_REQUIRED_AFTER_MERGE",
-    "preservation": "Existing source-capture files for the old input remain untouched."
+    "source_delta": {
+      "changed_path_count": 2,
+      "changed_paths": null,
+      "classification": "legacy-test files only",
+      "expectation_change": "unaccepted",
+      "behavior_proof": "none",
+      "path_names_status": "pending source delta ledger",
+      "changed_paths_status": "pending source delta ledger; do not infer file names"
+    },
+    "preservation": "Keep existing 31f856f43d20920ea99aa81b8f40adeeb5bff358 evidence unchanged."
+  },
+  "t00_frozen_input": {
+    "sha_after_merge": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "status": "PENDING_NORMAL_MERGE",
+    "policy": "Freeze T00 at this source input after merge. Record later source drift for scoped review; do not recapture indefinitely."
   }
 }

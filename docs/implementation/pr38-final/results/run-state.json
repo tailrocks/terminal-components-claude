@@ -20,7 +20,7 @@
     "target": {
       "pull_request": 38,
       "branch": "parity/termrock-visual-baseline",
-      "head": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "head": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
       "base": "a97e351df736b576904bc450619ca347ea64d65b",
       "status": "draft-open"
     },
@@ -36,7 +36,45 @@
     "historical_review_reference": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
     "source_capture_evidence": "results/t00-source/source-record.json (pending refresh for approved upstream input)",
     "initial_t00_input_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-    "approved_upstream_refresh_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+    "approved_upstream_refresh_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+    "current_source_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+    "upstream_refresh": {
+      "review_status": "APPROVED",
+      "reviewer_id": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "merge_status": "COMPLETED_NORMAL_MERGE",
+      "merge_commit": "8f39250e63ebde011a542d398076b50d2bbd5614",
+      "merge_owner": "/root",
+      "changed_paths": [
+        "exceptions/v1.json"
+      ],
+      "change_summary": "14 deleted lines; no conflict.",
+      "source_refresh_status": "PENDING"
+    },
+    "next_approved_source_input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "next_upstream_refresh": {
+      "from_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "to_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "review_status": "APPROVED_SAFE_REFRESH",
+      "reviewer_id": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "merge_status": "PENDING_NORMAL_MERGE",
+      "merge_owner": "/root",
+      "changed_path_count": 2,
+      "changed_paths": null,
+      "delta_classification": "legacy-test files only",
+      "expectation_change": "unaccepted",
+      "behavior_proof": "none",
+      "path_names_status": "pending source delta ledger"
+    },
+    "t00_frozen_input_policy": {
+      "sha_after_merge": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "status": "PENDING_NORMAL_MERGE",
+      "policy": "Freeze T00 at this source input after merge. Record later source drift for scoped review; do not recapture indefinitely."
+    }
   },
   "worktrees": {
     "plan_root": "/Users/donbeave/Downloads/termrock-pr38-plan",
@@ -44,11 +82,14 @@
       "path": "/Users/donbeave/Downloads/terminal-components-claude",
       "branch": "parity/termrock-visual-baseline",
       "starting_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "current_sha": "e2fa510c9fe993dce39e1f3bf56d62a2a9d9f1a0",
+      "current_sha": "8f39250e63ebde011a542d398076b50d2bbd5614",
       "pending_upstream_refresh": {
-        "from_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-        "to_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
-        "review_status": "APPROVED_BY_SOL_HIGH_AS_REPORTED_BY_COORDINATOR",
+        "from_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+        "to_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "review_status": "APPROVED_SAFE_REFRESH",
+        "reviewer_id": "/root/t00_independent_review",
+        "reviewer_model": "gpt-6.1-sol",
+        "reviewer_effort": "high",
         "merge_status": "PENDING_NORMAL_MERGE",
         "merge_owner": "/root"
       }
@@ -111,9 +152,10 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "ACTIVE_PENDING_SOURCE_REFRESH",
-      "current_input_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "next_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+      "status": "ACTIVE_PENDING_FINAL_INPUT",
+      "current_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "next_input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "previous_input_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3"
     },
     {
       "id": "/root/t00_import_rules",
@@ -203,62 +245,103 @@
     "source_capture": "results/t00-source/source-record.json (pending)",
     "independent_review": "results/t00-review/ (pending)",
     "root_instructions": "AGENTS.md",
-    "import_record_sha256": "fe11ec1364f5e443b98ae7011a3a043924990b1890c6c573f4ef33e2750f839c",
+    "import_record_sha256": "d80d73637e9c0e3a9b52ed8cf65c4cdd5469cfefabd70486d204f6da41bee3fe",
     "review_decision": "results/run-state.json:review",
     "source_capture_script": {
       "path": "results/t00-source/capture_source.py",
       "owner": "/root/t00_source_capture",
-      "status": "present; source worker owns; refresh run pending after merge",
-      "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "status": "present; source worker owns; refresh for merged input pending",
+      "source_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
       "refresh_for_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
     },
     "tracked_tree_inventory": {
       "path": "results/t00-source/tracked-tree.jsonl.gz",
       "owner": "/root/t00_source_capture",
-      "status": "present; old-input evidence preserved; refresh required after merge",
+      "status": "present; prior input preserved; final frozen-input refresh pending",
       "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "refresh_for_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+      "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "preservation_status": "Preserve the existing artifact. Do not overwrite."
     },
     "legacy_test_file_inventory": {
       "path": "results/t00-source/test-files.jsonl.gz",
       "owner": "/root/t00_source_capture",
-      "status": "present; old-input evidence preserved; refresh required after merge",
+      "status": "present; prior input preserved; final frozen-input refresh pending",
       "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "refresh_for_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+      "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "preservation_status": "Preserve the existing artifact. Do not overwrite."
     },
     "current_ci_capture": {
       "path": "results/t00-source/ci-current.json",
       "owner": "/root/t00_source_capture",
-      "status": "present; old-input evidence preserved; refresh required after merge",
+      "status": "present; prior input preserved; final frozen-input refresh pending",
       "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "refresh_for_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+      "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "preservation_status": "Preserve the existing artifact. Do not overwrite."
     },
     "current_ci_job_inventory": {
       "path": "results/t00-source/ci-job-inventory.json",
       "owner": "/root/t00_source_capture",
-      "status": "present; old-input evidence preserved; refresh required after merge",
+      "status": "present; prior input preserved; final frozen-input refresh pending",
       "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "refresh_for_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+      "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "preservation_status": "Preserve the existing artifact. Do not overwrite."
     },
     "current_ci_job_excerpts": {
       "path": "results/t00-source/ci-job-excerpts.json",
       "owner": "/root/t00_source_capture",
-      "status": "present; old-input evidence preserved; refresh required after merge",
+      "status": "present; prior input preserved; final frozen-input refresh pending",
       "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "refresh_for_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+      "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "preservation_status": "Preserve the existing artifact. Do not overwrite."
     },
-    "upstream_refresh_review": "Coordinator-reported Sol high approval for 31f856f43d20920ea99aa81b8f40adeeb5bff358; exact review record pending.",
+    "upstream_refresh_review": "Reviewer /root/t00_independent_review; gpt-6.1-sol high; refresh input 31f856f43d20920ea99aa81b8f40adeeb5bff358; merged as 8f39250e63ebde011a542d398076b50d2bbd5614.",
     "ci_inventory_31f": {
       "path": "results/t00-source/ci-head-31f-job-inventory.json",
       "owner": "/root/t00_source_capture",
       "source_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
-      "status": "present; content and hash validation pending"
+      "status": "present; interim-input evidence; content validation pending",
+      "preservation_status": "Preserve as evidence for input 31f856f43d20920ea99aa81b8f40adeeb5bff358; do not overwrite.",
+      "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
     },
     "ci_required_job_excerpt": {
       "path": "results/t00-source/ci-required-job-excerpt.json",
       "owner": "/root/t00_source_capture",
       "source_sha": null,
       "status": "present; source attribution and validation pending"
+    },
+    "source_declaration_scan": {
+      "path": "results/t00-source/scan_source_declarations.py",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "status": "present; execution and declaration ledger pending"
+    },
+    "source_inventory_summary": {
+      "path": "results/t00-source/inventory-summary.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "status": "present; interim-input evidence; content validation pending",
+      "preservation_status": "Preserve as evidence for input 31f856f43d20920ea99aa81b8f40adeeb5bff358; do not overwrite.",
+      "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    },
+    "test_inventory": {
+      "path": "results/t00-source/test-inventory.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "status": "present; interim-input evidence; content validation pending",
+      "preservation_status": "Preserve as evidence for input 31f856f43d20920ea99aa81b8f40adeeb5bff358; do not overwrite.",
+      "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    },
+    "source_scan_pycache": {
+      "path": "results/t00-source/__pycache__/scan_source_declarations.cpython-315.pyc",
+      "owner": "/root/t00_source_capture",
+      "status": "generated transient; do not commit; cleanup confirmation pending"
+    },
+    "next_upstream_refresh_review": "/root/t00_independent_review; gpt-6.1-sol high; approved 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd refresh from 31f856f43d20920ea99aa81b8f40adeeb5bff358; normal merge pending.",
+    "upstream_delta_ledger": {
+      "path": null,
+      "owner": "/root/t00_source_capture",
+      "expected_output": "Source delta ledger for the two legacy-test files.",
+      "status": "pending; path and file names not yet supplied"
     }
   },
   "review": {
@@ -292,8 +375,10 @@
     "T37 remains NOT_STARTED until overall T00 acceptance and coordinator approval of the ownership split.",
     "Classify tc-proof and visibility publisher/capture ownership before any related removal.",
     "T37 must inventory all argparse descriptions derived from Python __doc__ and preserve identical help text before docstring removal.",
-    "PR 38 source refresh to 31f856f43d20920ea99aa81b8f40adeeb5bff358 is approved but awaits coordinator normal merge.",
-    "Current T00 source artifacts are tied to 3a2c977c881cd1745de16425c982791ee3ef2cc3 and cannot establish the refreshed source inventory."
+    "Current T00 source artifacts are tied to 3a2c977c881cd1745de16425c982791ee3ef2cc3 and cannot establish the refreshed source inventory.",
+    "T00 final source input 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd awaits coordinator normal merge.",
+    "Preserve source evidence from 31f856f43d20920ea99aa81b8f40adeeb5bff358; capture the two-file delta and any required final evidence at the frozen input.",
+    "Do not accept the unaccepted expectation change as product behavior or oracle evidence."
   ],
   "root_instruction_patch": {
     "patch_path": "AGENTS.patch",
@@ -304,12 +389,13 @@
     "result": "Applied additively; original instructions remain."
   },
   "output_commits": {
-    "T00-import": "d51945d0592eee33a563efc717b07bf8847cbebd"
+    "T00-import": "d51945d0592eee33a563efc717b07bf8847cbebd",
+    "upstream-refresh-integration": "8f39250e63ebde011a542d398076b50d2bbd5614"
   },
   "task_units": {
-    "T00_overall": "ACTIVE_PENDING_SOURCE_REFRESH",
+    "T00_overall": "ACTIVE_PENDING_FINAL_INPUT",
     "T00_import": "ACCEPTED",
-    "T00_source_capture": "ACTIVE_PENDING_SOURCE_REFRESH",
+    "T00_source_capture": "ACTIVE_PENDING_FINAL_INPUT",
     "T00_independent_review": "ACCEPT"
   },
   "tool_limits": [
@@ -384,12 +470,52 @@
     }
   ],
   "source_capture_refresh": {
-    "status": "PENDING_NORMAL_MERGE",
+    "status": "PENDING_SECOND_NORMAL_MERGE",
     "captured_input_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-    "required_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+    "interim_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+    "required_frozen_input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "current_integration_sha": "8f39250e63ebde011a542d398076b50d2bbd5614",
     "merge_owner": "/root",
-    "exact_merge_status": "PENDING",
-    "old_capture_preserved": true,
-    "source_capture_files_modified_by_checkpoint_owner": false
-  }
+    "merge_status": "PENDING_NORMAL_MERGE",
+    "preserve_prior_evidence": true,
+    "later_drift_policy": "Record later source drift for scoped review; do not recapture indefinitely."
+  },
+  "review_decisions": [
+    {
+      "scope": "Safe upstream refresh from the initial source input to current PR 38 input.",
+      "decision": "APPROVED",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "reviewed_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "merge_commit": "8f39250e63ebde011a542d398076b50d2bbd5614",
+      "evidence": [
+        "Normal merge completed by coordinator.",
+        "Only exceptions/v1.json changed.",
+        "14 deleted lines.",
+        "No conflict."
+      ],
+      "limits": [
+        "T00 source inventory refresh remains pending."
+      ]
+    },
+    {
+      "scope": "Safe source refresh from PR 38 input 31f to 1d6.",
+      "decision": "APPROVED_SAFE_REFRESH",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "reviewed_input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "merge_status": "PENDING_NORMAL_MERGE",
+      "changed_path_count": 2,
+      "changed_paths": null,
+      "delta_classification": "legacy-test files only",
+      "expectation_change": "unaccepted",
+      "behavior_proof": "none",
+      "limits": [
+        "File paths remain pending source delta ledger.",
+        "T00 final source inventory remains pending."
+      ]
+    }
+  ]
 }
