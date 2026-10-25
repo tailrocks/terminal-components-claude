@@ -2,6 +2,20 @@
 
 `termrock` is the workspace facade package and the Rust crate name. Its API is still under development. Start with [architecture](../architecture.md), the [product reference](../product.md), and the [component authoring contract](../contracts/authoring.md). See [development](../development.md) for workspace workflows and guidance about interactive applications.
 
+## Choose terminal colors
+
+[termrock::run](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-session/src/session.rs#L537-L539) accepts a starting theme and detects terminal capability during session startup ([the startup helper applies Theme::for_terminal() before creating Runtime](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-session/src/session.rs#L638)). The usual call needs no manual detection:
+
+    termrock::run(app, termrock::Theme::junie())
+
+To set an upper bound, pass [Theme::for_level(...)](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-theme/src/downgrade.rs#L404-L407):
+
+    termrock::run(app, termrock::Theme::junie().for_level(termrock::ColorLevel::Ansi16))
+
+The session may narrow that theme further to the detected level; for_level() does not force that level or bypass detection. A caller that constructs [Runtime directly](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-runtime/src/runtime.rs#L714-L727) keeps the supplied theme. That path can opt into detection with [Theme::for_terminal()](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-theme/src/downgrade.rs#L410-L412); applying it before termrock::run() is redundant.
+
+[ColorLevel::detect()](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-theme/src/tokens.rs#L435-L480) reads CLICOLOR_FORCE, NO_COLOR, TERM, COLORTERM, and whether stdout is a terminal. TERM=dumb selects Mono first. Otherwise, a nonempty CLICOLOR_FORCE value other than 0 skips the NO_COLOR and non-TTY Mono checks, but does not select TrueColor by itself. Without that force, nonempty NO_COLOR or non-TTY stdout selects Mono. Then COLORTERM=truecolor or 24bit selects TrueColor; TERM containing 256color, ghostty, or kitty selects Ansi256; remaining terminals select Ansi16. See the [theme and visual customization contract](../contracts/theming.md) for capability profiles and evidence limits.
+
 ## An app updates, then draws
 
 Keep application data and stable component IDs in your `App`. In `update`, pass `Cx` to the controls, handle their typed responses, and return the combined response. In `draw`, use the same IDs and current state to draw through `Ui`; drawing also registers the geometry used by later input.
