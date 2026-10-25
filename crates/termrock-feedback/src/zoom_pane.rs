@@ -1,6 +1,6 @@
-//! Zoomed session pane: menu, tabs, bordered transcript, status, and hints.
-//!
-//! Positions follow the labels and the screen edges.
+
+
+
 
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
@@ -394,7 +394,7 @@ fn paint_status(ui: &mut Ui<'_>, area: Rect, page: &ZoomedPane<'_>, ink: &Ink) {
             ZoomTone::Muted => ink.muted,
             ZoomTone::Danger => DANGER,
             ZoomTone::Ok => OK,
-            // Unfilled meter segments use the rule grey, not faint text.
+
             ZoomTone::Faint => RULE,
         };
         let mut style = if span.bold {

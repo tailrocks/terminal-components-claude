@@ -1,4 +1,4 @@
-//! Reusable layout blocks built from public Termrock components.
+
 
 mod line;
 mod master_detail;
