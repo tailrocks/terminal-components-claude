@@ -6,7 +6,8 @@ use crate::sim::{
 };
 use termrock::{
     Button, Cx, EmptyState, FgStep, FrameRead, Id, ItemKey, Rect, Response, Role, StylePatch,
-    TextViewport, Tree, TreeAction, TreeNode, TreeState, Ui, ViewportLine, ViewportState,
+    TextSection, TextViewport, Tree, TreeAction, TreeNode, TreeState, Ui, ViewportLine,
+    ViewportState,
 };
 
 pub(crate) const TREE: Id = Id::root("holla.disk-scan.tree");
@@ -1266,7 +1267,10 @@ pub(crate) fn draw(state: &State, ui: &mut Ui<'_>, body: Rect) {
             .add(termrock::Modifier::BOLD),
     );
     let muted = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
-    ui.paint_str(areas.title, "Modeled disk scan", title_style);
+    TextSection::new("Modeled disk scan")
+        .inset(0)
+        .title_style(title_style)
+        .render(ui, areas.title);
     let status = format!(
         "{} · {} · {} paths revealed",
         state.status_label(),
@@ -1277,7 +1281,10 @@ pub(crate) fn draw(state: &State, ui: &mut Ui<'_>, body: Rect) {
         },
         state.revealed_count
     );
-    ui.paint_str(areas.status, &status, muted);
+    TextSection::new(&status)
+        .inset(0)
+        .title_style(muted)
+        .render(ui, areas.status);
 
     Button::new(owners.rescan, "Rescan")
         .disabled(state.stale || state.binding.is_none())
