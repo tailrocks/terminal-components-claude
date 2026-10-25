@@ -299,8 +299,16 @@ impl Theme {
         })
     }
 
+    /// Build the Paper theme and declare its shared-Manager presentation policy.
+    ///
+    /// The policy affects the shared Manager only at TrueColor; other capability
+    /// levels retain the standard component presentation.
     pub fn paper() -> Theme {
-        builtin::paper::theme()
+        let mut theme = builtin::paper::theme();
+        theme
+            .recipes
+            .set_manager_presentation_profile(ManagerPresentationProfile::Paper);
+        theme
     }
 
     pub fn from_tokens(c: ColorTokens) -> Theme {
@@ -1365,34 +1373,53 @@ mod manager_presentation_profile_tests {
     #[test]
     fn profile_is_explicit_inherited_and_identity_bearing() {
         let junie = Theme::junie();
+        let paper = Theme::paper();
         assert_eq!(
             junie.manager_presentation_profile(),
             ManagerPresentationProfile::Junie
         );
         assert_eq!(
-            Theme::paper().manager_presentation_profile(),
-            ManagerPresentationProfile::Standard
+            paper.manager_presentation_profile(),
+            ManagerPresentationProfile::Paper
         );
 
-        let tokens = junie.color;
-        let from_tokens = Theme::from_tokens(tokens);
+        let junie_tokens = junie.color;
+        let from_junie_tokens = Theme::from_tokens(junie_tokens);
         assert_eq!(
-            from_tokens.manager_presentation_profile(),
+            from_junie_tokens.manager_presentation_profile(),
             ManagerPresentationProfile::Standard
         );
-        let custom_palette = from_tokens
+        let junie_custom_palette = from_junie_tokens
             .builder()
-            .capability_palettes(CapabilityPalettes::new(tokens))
+            .capability_palettes(CapabilityPalettes::new(junie_tokens))
             .build();
         assert_eq!(
-            custom_palette.manager_presentation_profile(),
+            junie_custom_palette.manager_presentation_profile(),
             ManagerPresentationProfile::Standard,
             "Some capability palettes do not imply Junie provenance"
         );
 
-        let inherited = junie.clone().builder().build();
+        let paper_tokens = paper.color;
+        let from_paper_tokens = Theme::from_tokens(paper_tokens);
         assert_eq!(
-            inherited.manager_presentation_profile(),
+            from_paper_tokens.manager_presentation_profile(),
+            ManagerPresentationProfile::Standard,
+            "matching Paper colors do not imply Paper provenance"
+        );
+        let paper_custom_palette = from_paper_tokens
+            .clone()
+            .builder()
+            .capability_palettes(CapabilityPalettes::new(paper_tokens))
+            .build();
+        assert_eq!(
+            paper_custom_palette.manager_presentation_profile(),
+            ManagerPresentationProfile::Standard,
+            "custom palettes retain the standard presentation policy"
+        );
+
+        let inherited_junie = junie.clone().builder().build();
+        assert_eq!(
+            inherited_junie.manager_presentation_profile(),
             ManagerPresentationProfile::Junie
         );
         assert_eq!(
@@ -1401,22 +1428,56 @@ mod manager_presentation_profile_tests {
                 .manager_presentation_profile(),
             ManagerPresentationProfile::Junie
         );
+        let inherited_paper = paper.clone().builder().build();
+        assert_eq!(
+            inherited_paper.manager_presentation_profile(),
+            ManagerPresentationProfile::Paper
+        );
+        assert_eq!(
+            paper
+                .downgrade(ColorLevel::Mono)
+                .manager_presentation_profile(),
+            ManagerPresentationProfile::Paper,
+            "downgrade keeps declared provenance while the component gates by level"
+        );
 
-        let standard = junie
+        let standard_junie = junie
+            .clone()
+            .builder()
+            .manager_presentation_profile(ManagerPresentationProfile::Standard)
+            .build();
+        let standard_paper = paper
             .clone()
             .builder()
             .manager_presentation_profile(ManagerPresentationProfile::Standard)
             .build();
         assert_eq!(
-            standard.manager_presentation_profile(),
+            standard_junie.manager_presentation_profile(),
             ManagerPresentationProfile::Standard
         );
-        assert_ne!(junie, standard, "declared profile participates in equality");
+        assert_eq!(
+            standard_paper.manager_presentation_profile(),
+            ManagerPresentationProfile::Standard
+        );
+        assert_ne!(
+            junie, standard_junie,
+            "declared profile participates in equality"
+        );
+        assert_ne!(
+            paper, standard_paper,
+            "declared profile participates in equality"
+        );
         assert_ne!(
             junie.fingerprint(),
-            standard.fingerprint(),
-            "declared profile participates in Theme Debug fingerprint"
+            standard_junie.fingerprint(),
+            "declared Junie profile participates in Theme Debug fingerprint"
         );
-        assert_eq!(standard.clone(), standard);
+        assert_ne!(
+            paper.fingerprint(),
+            standard_paper.fingerprint(),
+            "declared Paper profile participates in Theme Debug fingerprint"
+        );
+        assert_eq!(standard_junie.clone(), standard_junie);
+        assert_eq!(standard_paper.clone(), standard_paper);
     }
 }

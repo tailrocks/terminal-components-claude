@@ -1410,6 +1410,7 @@ impl StyleCache {
         let manager_profile = match theme.manager_presentation_profile() {
             super::ManagerPresentationProfile::Standard => 0,
             super::ManagerPresentationProfile::Junie => 1,
+            super::ManagerPresentationProfile::Paper => 2,
         };
         fnv1a(h, &[manager_profile])
     }
@@ -2085,6 +2086,12 @@ mod manager_profile_cache_tests {
             .builder()
             .manager_presentation_profile(ManagerPresentationProfile::Standard)
             .build();
+        let paper = Theme::paper();
+        let standard_paper = paper
+            .clone()
+            .builder()
+            .manager_presentation_profile(ManagerPresentationProfile::Standard)
+            .build();
         let args = (
             Family::custom("manager-cache-probe"),
             Variant::DEFAULT,
@@ -2109,6 +2116,26 @@ mod manager_profile_cache_tests {
             Surface::Canvas,
         );
         assert_ne!(junie_key, standard_key);
+        let paper_key = StyleCache::key(
+            &paper,
+            args.0,
+            args.1,
+            args.2,
+            StateFlags::empty(),
+            0,
+            Surface::Canvas,
+        );
+        let standard_paper_key = StyleCache::key(
+            &standard_paper,
+            args.0,
+            args.1,
+            args.2,
+            StateFlags::empty(),
+            0,
+            Surface::Canvas,
+        );
+        assert_ne!(paper_key, standard_paper_key);
+        assert_ne!(junie_key, paper_key);
 
         let mut cache = StyleCache::new();
         let _ = cache.accumulate(&junie, args.0, args.1, args.2, StateFlags::empty(), &[], 0);
@@ -2121,6 +2148,16 @@ mod manager_profile_cache_tests {
             &[],
             0,
         );
-        assert_eq!(cache.stats(), (0, 2));
+        let _ = cache.accumulate(&paper, args.0, args.1, args.2, StateFlags::empty(), &[], 0);
+        let _ = cache.accumulate(
+            &standard_paper,
+            args.0,
+            args.1,
+            args.2,
+            StateFlags::empty(),
+            &[],
+            0,
+        );
+        assert_eq!(cache.stats(), (0, 4));
     }
 }

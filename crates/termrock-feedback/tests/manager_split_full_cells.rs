@@ -121,6 +121,10 @@ fn foreground(scene: &Scene, x: u16, y: u16) -> Option<Color> {
     scene.buffer().cell((x, y)).map(|cell| cell.fg)
 }
 
+fn background(scene: &Scene, x: u16, y: u16) -> Option<Color> {
+    scene.buffer().cell((x, y)).map(|cell| cell.bg)
+}
+
 #[test]
 fn declared_junie_mono_shared_manager_matches_historical_full_cells() {
     let theme = Theme::junie();
@@ -138,7 +142,7 @@ fn declared_junie_mono_shared_manager_matches_historical_full_cells() {
 }
 
 #[test]
-fn standard_junie_mono_and_paper_use_standard_profile_route() {
+fn standard_junie_mono_keeps_historical_full_cells() {
     let standard = Theme::junie()
         .builder()
         .manager_presentation_profile(ManagerPresentationProfile::Standard)
@@ -146,15 +150,19 @@ fn standard_junie_mono_and_paper_use_standard_profile_route() {
     assert_eq!(
         full_cell_digest(&render(standard, ColorLevel::Mono)),
         0x6632_c1da_d11d_5c67,
-        "default policy preserves current Junie Mono output"
+        "the standard-profile Junie Mono scene remains the existing control"
     );
+}
+
+#[test]
+fn paper_profile_changes_only_truecolor_and_standard_is_an_explicit_fallback() {
     let paper = Theme::paper();
     assert_eq!(
         paper.manager_presentation_profile(),
-        ManagerPresentationProfile::Standard
+        ManagerPresentationProfile::Paper
     );
-    for level in [ColorLevel::Mono, ColorLevel::TrueColor] {
-        let default_paper = render(paper.clone(), level);
+    for level in [ColorLevel::Mono, ColorLevel::Ansi16, ColorLevel::Ansi256] {
+        let declared_paper = render(paper.clone(), level);
         let explicit_standard = render(
             paper
                 .clone()
@@ -164,11 +172,154 @@ fn standard_junie_mono_and_paper_use_standard_profile_route() {
             level,
         );
         assert_eq!(
-            default_paper.buffer().content,
+            declared_paper.buffer().content,
             explicit_standard.buffer().content,
-            "default Paper declaration follows the Standard profile route at {level:?}"
+            "Paper retains the standard component route at {level:?}"
         );
     }
+
+    let paper_truecolor = render(paper.clone(), ColorLevel::TrueColor);
+    let standard_truecolor = render(
+        paper
+            .clone()
+            .builder()
+            .manager_presentation_profile(ManagerPresentationProfile::Standard)
+            .build(),
+        ColorLevel::TrueColor,
+    );
+    assert_ne!(
+        paper_truecolor.buffer().content,
+        standard_truecolor.buffer().content,
+        "only the explicit Paper TrueColor policy selects the restored component presentation"
+    );
+    assert_eq!(symbol(&standard_truecolor, 73, 0), Some("W"));
+    assert_eq!(symbol(&standard_truecolor, 107, 0), Some("●"));
+
+    let from_tokens = Theme::from_tokens(paper.color);
+    assert_eq!(
+        from_tokens.manager_presentation_profile(),
+        ManagerPresentationProfile::Standard
+    );
+    let from_tokens_scene = render(from_tokens, ColorLevel::TrueColor);
+    assert_eq!(symbol(&from_tokens_scene, 73, 0), Some("W"));
+    assert_eq!(symbol(&from_tokens_scene, 107, 0), Some("●"));
+    assert_eq!(
+        background(&from_tokens_scene, 3, 3),
+        Some(Color::Rgb(0x17, 0x3f, 0x1c)),
+        "matching tokens do not replace the Standard component's current literal selection"
+    );
+    let custom_palette = Theme::paper()
+        .builder()
+        .capability_palettes(CapabilityPalettes::new(Theme::paper().color))
+        .build();
+    assert_eq!(
+        custom_palette.manager_presentation_profile(),
+        ManagerPresentationProfile::Paper,
+        "adding palettes preserves explicit Theme::paper provenance"
+    );
+    let custom_palette_scene = render(custom_palette, ColorLevel::TrueColor);
+    assert_eq!(symbol(&custom_palette_scene, 76, 0), Some("W"));
+    assert_eq!(
+        background(&custom_palette_scene, 3, 3),
+        Some(Theme::paper().color.accent_tint)
+    );
+
+    let custom_tokens = Theme::from_tokens(Theme::paper().color)
+        .builder()
+        .capability_palettes(CapabilityPalettes::new(Theme::paper().color))
+        .build();
+    assert_eq!(
+        custom_tokens.manager_presentation_profile(),
+        ManagerPresentationProfile::Standard,
+        "custom palettes do not infer Paper provenance"
+    );
+    let custom_tokens_scene = render(custom_tokens, ColorLevel::TrueColor);
+    assert_eq!(symbol(&custom_tokens_scene, 73, 0), Some("W"));
+    assert_eq!(symbol(&custom_tokens_scene, 107, 0), Some("●"));
+}
+
+#[test]
+fn paper_truecolor_saved_presentation_uses_component_semantic_roles() {
+    let paper = Theme::paper();
+    let scene = render(paper.clone(), ColorLevel::TrueColor);
+
+    assert_eq!(symbol(&scene, 76, 0), Some("W"));
+    assert_eq!(symbol(&scene, 107, 0), Some("t"));
+    assert_eq!(symbol(&scene, 110, 0), Some("2"));
+    assert_eq!(symbol(&scene, 3, 4), Some("▎"));
+    assert_eq!(symbol(&scene, 41, 36), Some("▎"));
+    assert_eq!(symbol(&scene, 14, 39), Some("E"));
+    assert_eq!(background(&scene, 3, 3), Some(paper.color.accent_tint));
+    assert_eq!(foreground(&scene, 110, 0), Some(paper.color.fg[2]));
+    assert_eq!(foreground(&scene, 26, 2), Some(paper.color.border_strong));
+    assert_eq!(foreground(&scene, 102, 2), Some(paper.color.border_strong));
+    assert_eq!(foreground(&scene, 39, 2), Some(paper.color.border_subtle));
+    assert_eq!(foreground(&scene, 39, 20), Some(paper.color.border_subtle));
+    assert_eq!(foreground(&scene, 42, 14), Some(paper.color.fg[0]));
+    assert_eq!(foreground(&scene, 80, 14), Some(paper.color.fg[0]));
+    assert_eq!(foreground(&scene, 42, 15), Some(paper.color.fg[1]));
+    assert_eq!(symbol(&scene, 42, 3), Some(" "));
+}
+
+#[test]
+fn paper_truecolor_roles_remain_semantic_in_other_manager_states() {
+    let paper = Theme::paper();
+
+    let mut empty = frame();
+    empty.mode = SplitMode::Empty;
+    let empty_scene = render_frame(paper.clone(), ColorLevel::TrueColor, &empty, false);
+    assert_eq!(symbol(&empty_scene, 72, 0), Some("W"));
+    assert_eq!(symbol(&empty_scene, 42, 3), Some("─"));
+    assert_eq!(
+        background(&empty_scene, 3, 3),
+        Some(paper.color.accent_tint)
+    );
+
+    let mut expanded = frame();
+    expanded.mode = SplitMode::Expanded;
+    let expanded_scene = render_frame(paper.clone(), ColorLevel::TrueColor, &expanded, false);
+    assert_eq!(symbol(&expanded_scene, 53, 0), Some("W"));
+    assert_eq!(symbol(&expanded_scene, 107, 0), Some("●"));
+    assert_eq!(symbol(&expanded_scene, 7, 4), Some("p"));
+    assert_eq!(
+        background(&expanded_scene, 7, 4),
+        Some(Color::Rgb(0x30, 0x30, 0x36))
+    );
+    assert_eq!(foreground(&expanded_scene, 7, 5), Some(paper.color.fg[0]));
+    assert_eq!(foreground(&expanded_scene, 7, 6), Some(paper.color.fg[1]));
+
+    let mut degraded = frame();
+    degraded.alert = Some(SplitAlert {
+        index_error: Some("index unavailable"),
+        daemon_stale: true,
+    });
+    let degraded_scene = render_frame(paper.clone(), ColorLevel::TrueColor, &degraded, false);
+    assert_eq!(symbol(&degraded_scene, 41, 0), Some("W"));
+    assert_eq!(symbol(&degraded_scene, 42, 3), Some("─"));
+
+    let drawer = frame();
+    let drawer_scene = render_frame(paper.clone(), ColorLevel::TrueColor, &drawer, true);
+    assert_eq!(symbol(&drawer_scene, 73, 0), Some("W"));
+    assert_eq!(symbol(&drawer_scene, 107, 0), Some("●"));
+    assert_eq!(symbol(&drawer_scene, 41, 2), Some("▎"));
+    assert_eq!(
+        background(&drawer_scene, 3, 3),
+        Some(paper.color.accent_tint)
+    );
+}
+
+#[test]
+fn paper_truecolor_saved_presentation_keeps_frame_data_dynamic() {
+    let mut changed = frame();
+    changed.running = 7;
+    changed.workspace_name = "payments-platform-next";
+    changed.workdir = "/workspace/payments-platform-next";
+
+    let scene = render_frame(Theme::paper(), ColorLevel::TrueColor, &changed, false);
+
+    assert_eq!(symbol(&scene, 110, 0), Some("7"));
+    assert_eq!(symbol(&scene, 79, 2), Some("-"));
+    assert_eq!(symbol(&scene, 84, 4), Some("-"));
 }
 
 #[test]

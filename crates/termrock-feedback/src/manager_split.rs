@@ -33,6 +33,7 @@ const MUTED_PART: Part = Part::custom("termrock.manager.muted");
 const ACCENT_PART: Part = Part::custom("termrock.manager.accent");
 const BORDER_PART: Part = Part::custom("termrock.manager.border");
 const SEAM_PART: Part = Part::custom("termrock.manager.seam");
+const SURFACE_PART: Part = Part::custom("termrock.manager.surface_fill");
 const DANGER_PART: Part = Part::custom("termrock.manager.danger");
 const WARNING_PART: Part = Part::custom("termrock.manager.warning");
 
@@ -148,16 +149,21 @@ struct SemanticForeground {
     overlay: PaintStyle,
     accent_tint: PaintStyle,
     expanded: PaintStyle,
+    preserve_background_role: bool,
 }
 
 impl SemanticForeground {
-    const fn on(self, background: InkBackground) -> PaintStyle {
-        match background {
+    const fn on(self, background: InkBackground) -> ForegroundStyle {
+        let style = match background {
             InkBackground::Canvas => self.canvas,
             InkBackground::Card => self.card,
             InkBackground::Overlay => self.overlay,
             InkBackground::AccentTint => self.accent_tint,
             InkBackground::Expanded => self.expanded,
+        };
+        ForegroundStyle::Semantic {
+            style,
+            preserve_background_role: self.preserve_background_role,
         }
     }
 }
@@ -165,7 +171,10 @@ impl SemanticForeground {
 #[derive(Clone, Copy)]
 enum ForegroundStyle {
     Literal(Color),
-    Semantic(PaintStyle),
+    Semantic {
+        style: PaintStyle,
+        preserve_background_role: bool,
+    },
 }
 
 impl From<Color> for ForegroundStyle {
@@ -176,15 +185,32 @@ impl From<Color> for ForegroundStyle {
 
 impl From<PaintStyle> for ForegroundStyle {
     fn from(style: PaintStyle) -> Self {
-        Self::Semantic(style)
+        Self::Semantic {
+            style,
+            preserve_background_role: false,
+        }
     }
 }
 
 impl ForegroundStyle {
-    fn into_paint_style(self) -> PaintStyle {
+    fn into_paint_style(self, background: Color) -> PaintStyle {
+        match self {
+            Self::Literal(color) => PaintStyle::new().fg(color).bg(background),
+            Self::Semantic {
+                style,
+                preserve_background_role: true,
+            } => style,
+            Self::Semantic {
+                style,
+                preserve_background_role: false,
+            } => PaintStyle::new().with_fg_from(style).bg(background),
+        }
+    }
+
+    fn paint_style(self) -> PaintStyle {
         match self {
             Self::Literal(color) => PaintStyle::new().fg(color),
-            Self::Semantic(style) => PaintStyle::new().with_fg_from(style),
+            Self::Semantic { style, .. } => style,
         }
     }
 }
@@ -192,10 +218,14 @@ impl ForegroundStyle {
 struct Ink {
     canvas: Color,
     card: Color,
+    canvas_surface_fill: PaintStyle,
+    overlay_surface_fill: PaintStyle,
     primary: SemanticForeground,
     secondary: SemanticForeground,
     muted: SemanticForeground,
     accent: SemanticForeground,
+    live: SemanticForeground,
+    idle: SemanticForeground,
     border: SemanticForeground,
     button: Color,
     select_bg: Color,
@@ -205,7 +235,8 @@ struct Ink {
     danger_button: SemanticForeground,
     index_error: SemanticForeground,
     stale: SemanticForeground,
-    restore_junie_saved_layout: bool,
+    paper_truecolor: bool,
+    restore_saved_layout: bool,
 }
 
 pub fn paint_manager_split(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>) {
@@ -221,11 +252,11 @@ fn paint_manager_split_inner(
     if area.width < 80 || area.height < 20 {
         return;
     }
-    let restore_junie_saved_layout = manager_semantic_mono(ui)
+    let restore_saved_layout = (manager_semantic_mono(ui) || manager_semantic_paper_truecolor(ui))
         && frame.mode == SplitMode::Saved
         && frame.alert.is_none()
         && !detail_drawer;
-    let ink = ink_from(ui, restore_junie_saved_layout);
+    let ink = ink_from(ui, restore_saved_layout);
     ui.fill(
         area,
         plain(ink.primary.on(InkBackground::Canvas), ink.canvas),
@@ -248,6 +279,18 @@ fn paint_manager_split_inner(
     paint_detail(ui, area, frame, &ink);
     paint_buttons(ui, area, frame, &ink);
     paint_hints(ui, area, frame, &ink);
+}
+
+fn leading_selection_style(ink: &Ink) -> PaintStyle {
+    if ink.paper_truecolor {
+        let selected = ink.primary.on(InkBackground::AccentTint).paint_style();
+        PaintStyle::new()
+            .with_fg_from_bg(selected)
+            .with_bg_from(selected)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        bold(ink.select_bg, ink.select_bg)
+    }
 }
 
 /// Detail-drawer presentation over the saved split: focus moves to the
@@ -319,7 +362,8 @@ pub fn paint_manager_detail_drawer(ui: &mut Ui<'_>, area: Rect, frame: &ManagerS
     );
     // The list selection keeps its fill without the focus bar; the single
     // focus indicator is the title gutter above.
-    put(ui, area, 3, 3, " ", bold(ink.select_bg, ink.select_bg));
+    let leading_selection = leading_selection_style(&ink);
+    put(ui, area, 3, 3, " ", leading_selection);
     put(
         ui,
         area,
@@ -350,9 +394,16 @@ fn manager_semantic_mono(ui: &Ui<'_>) -> bool {
         && theme.manager_presentation_profile() == ManagerPresentationProfile::Junie
 }
 
-fn ink_from(ui: &mut Ui<'_>, restore_junie_saved_layout: bool) -> Ink {
+fn manager_semantic_paper_truecolor(ui: &Ui<'_>) -> bool {
+    let theme = ui.theme_ref();
+    theme.capability.color == crate::theme::ColorLevel::TrueColor
+        && theme.manager_presentation_profile() == ManagerPresentationProfile::Paper
+}
+
+fn ink_from(ui: &mut Ui<'_>, restore_saved_layout: bool) -> Ink {
     let (
         semantic_mono,
+        semantic_paper,
         canvas,
         card,
         button,
@@ -361,7 +412,7 @@ fn ink_from(ui: &mut Ui<'_>, restore_junie_saved_layout: bool) -> Ink {
         muted_fallback,
         accent_fallback,
         border_fallback,
-        select_bg,
+        select_bg_fallback,
         expanded_bg,
         rule_fallback,
         badge_fallback,
@@ -371,10 +422,12 @@ fn ink_from(ui: &mut Ui<'_>, restore_junie_saved_layout: bool) -> Ink {
     ) = {
         let theme = ui.theme_ref();
         let level = theme.capability.color;
+        let profile = theme.manager_presentation_profile();
         let downgrade = |color: Color| crate::theme::downgrade_color(color, level);
         (
-            level == crate::theme::ColorLevel::Mono
-                && theme.manager_presentation_profile() == ManagerPresentationProfile::Junie,
+            level == crate::theme::ColorLevel::Mono && profile == ManagerPresentationProfile::Junie,
+            level == crate::theme::ColorLevel::TrueColor
+                && profile == ManagerPresentationProfile::Paper,
             theme.bg(Surface::Canvas),
             theme.bg(Surface::Surface),
             theme.bg(Surface::Overlay),
@@ -392,64 +445,130 @@ fn ink_from(ui: &mut Ui<'_>, restore_junie_saved_layout: bool) -> Ink {
             downgrade(STALE),
         )
     };
-    Ink {
-        canvas,
-        card,
-        primary: semantic_foreground(
+    let canvas_surface_fill = semantic_surface_fill(ui, semantic_paper, Surface::Canvas, canvas);
+    let overlay_surface_fill = semantic_surface_fill(ui, semantic_paper, Surface::Overlay, button);
+    let primary = semantic_foreground(
+        ui,
+        semantic_mono,
+        semantic_paper,
+        PRIMARY_PART,
+        Role::Fg(FgStep::Primary),
+        primary_fallback,
+    );
+    let secondary = semantic_foreground(
+        ui,
+        semantic_mono,
+        semantic_paper,
+        SECONDARY_PART,
+        Role::Fg(FgStep::Secondary),
+        secondary_fallback,
+    );
+    let muted = semantic_foreground(
+        ui,
+        semantic_mono,
+        semantic_paper,
+        MUTED_PART,
+        Role::Fg(FgStep::Muted),
+        muted_fallback,
+    );
+    let accent = semantic_foreground(
+        ui,
+        semantic_mono,
+        semantic_paper,
+        ACCENT_PART,
+        Role::Accent,
+        accent_fallback,
+    );
+    let live = if semantic_paper {
+        semantic_foreground(
             ui,
             semantic_mono,
+            semantic_paper,
             PRIMARY_PART,
             Role::Fg(FgStep::Primary),
-            primary_fallback,
-        ),
-        secondary: semantic_foreground(
+            accent_fallback,
+        )
+    } else {
+        accent
+    };
+    let idle = if semantic_paper {
+        semantic_foreground(
             ui,
             semantic_mono,
+            semantic_paper,
             SECONDARY_PART,
             Role::Fg(FgStep::Secondary),
-            secondary_fallback,
-        ),
-        muted: semantic_foreground(
-            ui,
-            semantic_mono,
-            MUTED_PART,
-            Role::Fg(FgStep::Muted),
             muted_fallback,
-        ),
-        accent: semantic_foreground(
+        )
+    } else {
+        muted
+    };
+    let border = semantic_foreground(
+        ui,
+        semantic_mono,
+        semantic_paper,
+        BORDER_PART,
+        Role::BorderStrong,
+        border_fallback,
+    );
+    let badge = if semantic_paper {
+        semantic_foreground(
             ui,
             semantic_mono,
-            ACCENT_PART,
-            Role::Accent,
-            accent_fallback,
-        ),
-        border: semantic_foreground(
-            ui,
-            semantic_mono,
+            semantic_paper,
             BORDER_PART,
             Role::BorderStrong,
-            border_fallback,
-        ),
-        button,
-        select_bg,
-        expanded_bg,
-        rule: semantic_foreground(
+            badge_fallback,
+        )
+    } else {
+        semantic_foreground(
             ui,
             semantic_mono,
-            SEAM_PART,
-            Role::BorderSubtle,
-            rule_fallback,
-        ),
-        badge: semantic_foreground(
-            ui,
-            semantic_mono,
+            semantic_paper,
             MUTED_PART,
             Role::Fg(FgStep::Muted),
             badge_fallback,
-        ),
+        )
+    };
+    let rule = semantic_foreground(
+        ui,
+        semantic_mono,
+        semantic_paper,
+        SEAM_PART,
+        Role::BorderSubtle,
+        rule_fallback,
+    );
+    let select_bg = if semantic_paper {
+        primary
+            .on(InkBackground::AccentTint)
+            .paint_style()
+            .as_style()
+            .bg
+            .unwrap_or(select_bg_fallback)
+    } else {
+        select_bg_fallback
+    };
+    Ink {
+        canvas,
+        card,
+        canvas_surface_fill,
+        overlay_surface_fill,
+        primary,
+        secondary,
+        muted,
+        accent,
+        live,
+        idle,
+        border,
+        button,
+        select_bg,
+        expanded_bg,
+        rule,
+        badge,
         danger_button: semantic_foreground(
             ui,
             semantic_mono,
+            semantic_paper,
             DANGER_PART,
             Role::Danger,
             danger_button_fallback,
@@ -457,6 +576,7 @@ fn ink_from(ui: &mut Ui<'_>, restore_junie_saved_layout: bool) -> Ink {
         index_error: semantic_foreground(
             ui,
             semantic_mono,
+            semantic_paper,
             DANGER_PART,
             Role::Danger,
             index_error_fallback,
@@ -464,23 +584,50 @@ fn ink_from(ui: &mut Ui<'_>, restore_junie_saved_layout: bool) -> Ink {
         stale: semantic_foreground(
             ui,
             semantic_mono,
+            semantic_paper,
             WARNING_PART,
             Role::Warning,
             stale_fallback,
         ),
-        restore_junie_saved_layout,
+        paper_truecolor: semantic_paper,
+        restore_saved_layout,
     }
+}
+
+fn semantic_surface_fill(
+    ui: &mut Ui<'_>,
+    paper_truecolor: bool,
+    surface: Surface,
+    fallback: Color,
+) -> PaintStyle {
+    if !paper_truecolor {
+        return PaintStyle::new().fg(fallback).bg(fallback);
+    }
+    let role = Role::Surface(surface);
+    ui.with_surface(surface, |ui| {
+        ui.style_defaults(
+            MANAGER_FAMILY,
+            Variant::DEFAULT,
+            SURFACE_PART,
+            StateFlags::empty(),
+            StyleDefaults::new(StylePatch::new().set_fg(role).set_bg(role)),
+            None,
+        )
+        .style
+    })
 }
 
 fn semantic_foreground(
     ui: &mut Ui<'_>,
     semantic_mono: bool,
+    semantic_paper: bool,
     part: Part,
     role: Role,
     fallback: Color,
 ) -> SemanticForeground {
+    let semantic = semantic_mono || semantic_paper;
     let mut resolve = |background: InkBackground| {
-        if !semantic_mono {
+        if !semantic {
             return PaintStyle::new().fg(fallback);
         }
         let (surface, background_role) = match background {
@@ -509,6 +656,7 @@ fn semantic_foreground(
         overlay: resolve(InkBackground::Overlay),
         accent_tint: resolve(InkBackground::AccentTint),
         expanded: resolve(InkBackground::Expanded),
+        preserve_background_role: semantic_paper,
     }
 }
 
@@ -523,8 +671,7 @@ fn step(theme: &crate::theme::Theme, which: FgStep) -> Color {
 
 fn plain(fg: impl Into<ForegroundStyle>, bg: Color) -> PaintStyle {
     fg.into()
-        .into_paint_style()
-        .bg(bg)
+        .into_paint_style(bg)
         .remove_modifier(Modifier::BOLD | Modifier::ITALIC | Modifier::UNDERLINED | Modifier::DIM)
 }
 
@@ -560,7 +707,7 @@ fn paint_identity(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &I
     let y = area.y;
     let (crumb, crumb_x, inside_x, running_x, running) = match frame.mode {
         SplitMode::Empty => ("Workspaces", 72, 84, 106, "no instances".to_owned()),
-        SplitMode::Saved if ink.restore_junie_saved_layout => (
+        SplitMode::Saved if ink.restore_saved_layout => (
             "Workspaces",
             76,
             88,
@@ -608,7 +755,7 @@ fn paint_identity(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &I
         "inside the Construct",
         plain(ink.secondary.on(InkBackground::Canvas), ink.canvas),
     );
-    if frame.mode != SplitMode::Empty && !ink.restore_junie_saved_layout {
+    if frame.mode != SplitMode::Empty && !ink.restore_saved_layout {
         put(
             ui,
             area,
@@ -618,7 +765,7 @@ fn paint_identity(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &I
             plain(ink.accent.on(InkBackground::Canvas), ink.canvas),
         );
     }
-    let running_style = if frame.mode == SplitMode::Empty {
+    let running_style = if frame.mode == SplitMode::Empty || ink.paper_truecolor {
         plain(ink.muted.on(InkBackground::Canvas), ink.canvas)
     } else {
         plain(ink.secondary.on(InkBackground::Canvas), ink.canvas)
@@ -680,6 +827,11 @@ fn paint_box(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink) {
     };
     let (line, badge_x) = box_top(&summary);
     let border = plain(ink.border.on(InkBackground::Canvas), ink.canvas);
+    let seam = if ink.paper_truecolor {
+        plain(ink.rule.on(InkBackground::Canvas), ink.canvas)
+    } else {
+        border
+    };
     put(ui, area, 1, 2, &line, border);
     put(
         ui,
@@ -700,7 +852,7 @@ fn paint_box(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink) {
     for y in 3..37 {
         put(ui, area, 1, y, "│", border);
         put(ui, area, 37, y, "│", border);
-        put(ui, area, 39, y, "│", border);
+        put(ui, area, 39, y, "│", seam);
     }
     put(
         ui,
@@ -710,8 +862,8 @@ fn paint_box(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink) {
         "╰───────────────────────────────────╯",
         border,
     );
-    put(ui, area, 39, 2, "│", border);
-    put(ui, area, 39, 37, "│", border);
+    put(ui, area, 39, 2, "│", seam);
+    put(ui, area, 39, 37, "│", seam);
 }
 
 fn paint_rows(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink) {
@@ -720,7 +872,7 @@ fn paint_rows(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink) 
         SplitMode::Empty => {
             paint_current(ui, area, y, true, ink);
             y = y.saturating_add(1);
-            put(ui, area, 3, y, " ", plain(ink.canvas, ink.canvas));
+            put(ui, area, 3, y, " ", ink.canvas_surface_fill);
             let mut action = "+ New workspace".to_owned();
             while action.chars().count() < 28 {
                 action.push(' ');
@@ -737,13 +889,9 @@ fn paint_rows(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink) 
         SplitMode::Saved => {
             paint_current(ui, area, y, true, ink);
             y = y.saturating_add(1);
-            let gutter = if ink.restore_junie_saved_layout {
-                "▎"
-            } else {
-                " "
-            };
+            let gutter = if ink.restore_saved_layout { "▎" } else { " " };
             for workspace in frame.workspaces {
-                put(ui, area, 3, y, gutter, plain(ink.canvas, ink.canvas));
+                put(ui, area, 3, y, gutter, ink.canvas_surface_fill);
                 let mark = if workspace.expandable { "▸" } else { " " };
                 put(
                     ui,
@@ -764,7 +912,7 @@ fn paint_rows(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink) 
                 );
                 y = y.saturating_add(1);
             }
-            put(ui, area, 3, y, gutter, plain(ink.canvas, ink.canvas));
+            put(ui, area, 3, y, gutter, ink.canvas_surface_fill);
             let mut action = "+ New workspace".to_owned();
             while action.chars().count() < 28 {
                 action.push(' ');
@@ -792,7 +940,7 @@ fn paint_rows(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink) 
                 .iter()
                 .filter(|workspace| workspace.name != frame.workspace_name)
             {
-                put(ui, area, 3, y, " ", plain(ink.canvas, ink.canvas));
+                put(ui, area, 3, y, " ", ink.canvas_surface_fill);
                 put(
                     ui,
                     area,
@@ -811,7 +959,7 @@ fn paint_rows(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink) 
                 );
                 y = y.saturating_add(1);
             }
-            put(ui, area, 3, y, " ", plain(ink.canvas, ink.canvas));
+            put(ui, area, 3, y, " ", ink.canvas_surface_fill);
             let mut action = "+ New workspace".to_owned();
             while action.chars().count() < 28 {
                 action.push(' ');
@@ -855,7 +1003,7 @@ fn paint_current(ui: &mut Ui<'_>, area: Rect, y: u16, selected: bool, ink: &Ink)
             bold(ink.accent.on(InkBackground::AccentTint), ink.select_bg),
         );
     } else {
-        put(ui, area, 3, y, " ", plain(ink.canvas, ink.canvas));
+        put(ui, area, 3, y, " ", ink.canvas_surface_fill);
         put(
             ui,
             area,
@@ -919,12 +1067,12 @@ fn paint_child(ui: &mut Ui<'_>, area: Rect, y: u16, instance: &SplitInstance<'_>
     } else {
         format!("{prefix}{rest}")
     };
-    put(ui, area, 3, y, " ", plain(ink.canvas, ink.canvas));
+    put(ui, area, 3, y, " ", ink.canvas_surface_fill);
     let mark = if instance.live { "◉" } else { "◌" };
     let mark_style = if instance.live {
-        plain(ink.accent.on(InkBackground::Canvas), ink.canvas)
+        plain(ink.live.on(InkBackground::Canvas), ink.canvas)
     } else {
-        plain(ink.muted.on(InkBackground::Canvas), ink.canvas)
+        plain(ink.idle.on(InkBackground::Canvas), ink.canvas)
     };
     put(ui, area, 7, y, mark, mark_style);
     put(
@@ -976,7 +1124,7 @@ fn paint_detail(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink
         SplitMode::Empty => {
             put(ui, area, 42, 2, "Current directory", secondary);
             put(ui, area, 108, 2, "not saved", badge);
-            if !ink.restore_junie_saved_layout {
+            if !ink.restore_saved_layout {
                 put(
                     ui,
                     area,
@@ -1030,7 +1178,7 @@ fn paint_detail(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink
             };
             put(ui, area, 42, 2, &title, secondary);
             put(ui, area, badge_x, 2, &badge_text, badge);
-            if !ink.restore_junie_saved_layout {
+            if !ink.restore_saved_layout {
                 put(
                     ui,
                     area,
@@ -1095,9 +1243,9 @@ fn paint_detail(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink
             for instance in frame.instances {
                 let mark = if instance.live { "◉ " } else { "◌ " };
                 let mark_style = if instance.live {
-                    plain(ink.accent.on(InkBackground::Card), ink.card)
+                    plain(ink.live.on(InkBackground::Card), ink.card)
                 } else {
-                    muted
+                    plain(ink.idle.on(InkBackground::Card), ink.card)
                 };
                 put(ui, area, 42, y, mark, mark_style);
                 let body = format!("{}  {} · {} · ", instance.id, instance.role, instance.agent);
@@ -1110,7 +1258,7 @@ fn paint_detail(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink
                         status_x,
                         y,
                         instance.status,
-                        plain(ink.accent.on(InkBackground::Card), ink.card),
+                        plain(ink.live.on(InkBackground::Card), ink.card),
                     );
                 } else {
                     put(
@@ -1129,12 +1277,8 @@ fn paint_detail(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink
 }
 
 fn paint_buttons(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink) {
-    let cap = plain(ink.button, ink.button);
-    let cap_glyph = if ink.restore_junie_saved_layout {
-        "▎"
-    } else {
-        " "
-    };
+    let cap = ink.overlay_surface_fill;
+    let cap_glyph = if ink.restore_saved_layout { "▎" } else { " " };
     let label = plain(ink.primary.on(InkBackground::Overlay), ink.button);
     match frame.mode {
         SplitMode::Empty => {
@@ -1164,7 +1308,7 @@ fn paint_buttons(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &In
                     71,
                     36,
                     "Delete… ",
-                    label.with_fg_from(ink.danger_button.on(InkBackground::Overlay)),
+                    label.with_fg_from(ink.danger_button.on(InkBackground::Overlay).paint_style()),
                 );
             }
         }
@@ -1222,7 +1366,7 @@ fn paint_hints(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink)
             ("?", "Help"),
         ],
     };
-    let starts: &[u16] = if ink.restore_junie_saved_layout {
+    let starts: &[u16] = if ink.restore_saved_layout {
         &[14, 28, 35, 43, 56, 68, 77, 89, 97]
     } else {
         match mode {
@@ -1315,7 +1459,7 @@ mod manager_semantic_role_tests {
     use termrock_test_support::Scene;
 
     #[test]
-    fn semantic_ink_keeps_foreground_roles_and_target_contexts() {
+    fn junie_mono_preserves_its_existing_role_channels_and_contexts() {
         let mut scene = Scene::new(
             "manager-semantic-role-contexts",
             Theme::junie(),
@@ -1328,28 +1472,34 @@ mod manager_semantic_role_tests {
             let primary = Role::Fg(FgStep::Primary);
 
             assert_eq!(
-                ink.primary.on(InkBackground::Canvas).fg_role,
+                ink.primary.on(InkBackground::Canvas).paint_style().fg_role,
                 Some((primary, Surface::Canvas))
             );
             assert_eq!(
-                ink.primary.on(InkBackground::Card).fg_role,
+                ink.primary.on(InkBackground::Card).paint_style().fg_role,
                 Some((primary, Surface::Surface))
             );
             assert_eq!(
-                ink.primary.on(InkBackground::Overlay).fg_role,
+                ink.primary.on(InkBackground::Overlay).paint_style().fg_role,
                 Some((primary, Surface::Overlay))
             );
             let accent_tint = ink.primary.on(InkBackground::AccentTint);
-            assert_eq!(accent_tint.fg_role, Some((primary, Surface::Canvas)));
             assert_eq!(
-                accent_tint.bg_role,
+                accent_tint.paint_style().fg_role,
+                Some((primary, Surface::Canvas))
+            );
+            assert_eq!(
+                accent_tint.paint_style().bg_role,
                 Some((Role::AccentTint, Surface::Canvas))
             );
 
             let expanded = ink.primary.on(InkBackground::Expanded);
-            assert_eq!(expanded.fg_role, Some((primary, Surface::Canvas)));
             assert_eq!(
-                expanded.bg_role,
+                expanded.paint_style().fg_role,
+                Some((primary, Surface::Canvas))
+            );
+            assert_eq!(
+                expanded.paint_style().bg_role,
                 Some((Role::Custom(EXPANDED_BG), Surface::Canvas)),
                 "Expanded uses its authored literal role in Canvas context"
             );
@@ -1358,12 +1508,15 @@ mod manager_semantic_role_tests {
             assert_eq!(expanded_primary.bg, Some(ink.expanded_bg));
             assert_eq!(expanded_primary.bg_role, None);
             let expanded_accent = ink.accent.on(InkBackground::Expanded);
-            assert_eq!(expanded_accent.fg_role, Some((primary, Surface::Canvas)));
+            assert_eq!(
+                expanded_accent.paint_style().fg_role,
+                Some((primary, Surface::Canvas))
+            );
             let expanded_accent = plain(expanded_accent, ink.expanded_bg);
             assert_eq!(expanded_accent.fg_role, Some((primary, Surface::Canvas)));
             assert_eq!(expanded_accent.bg, Some(ink.expanded_bg));
             assert_eq!(
-                ink.secondary.on(InkBackground::Card).fg_role,
+                ink.secondary.on(InkBackground::Card).paint_style().fg_role,
                 Some((primary, Surface::Surface)),
                 "the shared Mono rule keeps secondary ink owned by primary"
             );
@@ -1373,12 +1526,143 @@ mod manager_semantic_role_tests {
             assert_eq!(selected.bg, Some(ink.select_bg));
             assert_eq!(
                 selected.bg_role, None,
-                "the authored literal fill is preserved"
+                "Junie Mono keeps its existing literal background composition"
             );
             let card = plain(ink.primary.on(InkBackground::Card), ink.card);
             assert_eq!(card.fg_role, Some((primary, Surface::Surface)));
             let button = plain(ink.primary.on(InkBackground::Overlay), ink.button);
             assert_eq!(button.fg_role, Some((primary, Surface::Overlay)));
+        });
+    }
+
+    #[test]
+    fn paper_truecolor_keeps_semantic_foreground_and_background_roles() {
+        let mut scene = Scene::new(
+            "manager-paper-role-contexts",
+            Theme::paper(),
+            ColorLevel::TrueColor,
+            120,
+            40,
+        );
+        scene.draw(|ui, _area| {
+            let ink = ink_from(ui, false);
+            let primary = Role::Fg(FgStep::Primary);
+            let secondary = Role::Fg(FgStep::Secondary);
+            let muted = Role::Fg(FgStep::Muted);
+
+            let selected = ink.primary.on(InkBackground::AccentTint);
+            assert_eq!(
+                selected.paint_style().fg_role,
+                Some((primary, Surface::Canvas))
+            );
+            assert_eq!(
+                selected.paint_style().bg_role,
+                Some((Role::AccentTint, Surface::Canvas))
+            );
+            let selected = plain(selected, ink.select_bg);
+            assert_eq!(selected.fg_role, Some((primary, Surface::Canvas)));
+            assert_eq!(
+                selected.bg_role,
+                Some((Role::AccentTint, Surface::Canvas)),
+                "the final selected-row style retains its resolved background role"
+            );
+            assert_eq!(selected.as_style().bg, Some(ink.select_bg));
+
+            let drawer_leading = leading_selection_style(&ink);
+            assert_eq!(
+                drawer_leading.fg_role,
+                Some((Role::AccentTint, Surface::Canvas))
+            );
+            assert_eq!(
+                drawer_leading.bg_role,
+                Some((Role::AccentTint, Surface::Canvas))
+            );
+            assert_eq!(drawer_leading.as_style().fg, Some(ink.select_bg));
+            assert_eq!(drawer_leading.as_style().bg, Some(ink.select_bg));
+
+            let card = plain(ink.primary.on(InkBackground::Card), ink.card);
+            assert_eq!(card.fg_role, Some((primary, Surface::Surface)));
+            assert_eq!(
+                card.bg_role,
+                Some((Role::Surface(Surface::Surface), Surface::Surface))
+            );
+            let button = plain(ink.primary.on(InkBackground::Overlay), ink.button);
+            assert_eq!(button.fg_role, Some((primary, Surface::Overlay)));
+            assert_eq!(
+                button.bg_role,
+                Some((Role::Surface(Surface::Overlay), Surface::Overlay))
+            );
+            let expanded = plain(ink.primary.on(InkBackground::Expanded), ink.expanded_bg);
+            assert_eq!(expanded.fg_role, Some((primary, Surface::Canvas)));
+            assert_eq!(
+                expanded.bg_role,
+                Some((Role::Custom(EXPANDED_BG), Surface::Canvas))
+            );
+
+            assert!(ink.paper_truecolor);
+            assert_eq!(
+                ink.canvas_surface_fill.fg_role,
+                Some((Role::Surface(Surface::Canvas), Surface::Canvas))
+            );
+            assert_eq!(
+                ink.canvas_surface_fill.bg_role,
+                Some((Role::Surface(Surface::Canvas), Surface::Canvas))
+            );
+            assert_eq!(ink.canvas_surface_fill.as_style().fg, Some(ink.canvas));
+            assert_eq!(ink.canvas_surface_fill.as_style().bg, Some(ink.canvas));
+            assert_eq!(
+                ink.overlay_surface_fill.fg_role,
+                Some((Role::Surface(Surface::Overlay), Surface::Overlay))
+            );
+            assert_eq!(
+                ink.overlay_surface_fill.bg_role,
+                Some((Role::Surface(Surface::Overlay), Surface::Overlay))
+            );
+            assert_eq!(ink.overlay_surface_fill.as_style().fg, Some(ink.button));
+            assert_eq!(ink.overlay_surface_fill.as_style().bg, Some(ink.button));
+
+            let badge_canvas = plain(ink.badge.on(InkBackground::Canvas), ink.canvas);
+            assert_eq!(
+                badge_canvas.fg_role,
+                Some((Role::BorderStrong, Surface::Canvas))
+            );
+            assert_eq!(
+                badge_canvas.bg_role,
+                Some((Role::Surface(Surface::Canvas), Surface::Canvas))
+            );
+            let badge_card = plain(ink.badge.on(InkBackground::Card), ink.card);
+            assert_eq!(
+                badge_card.fg_role,
+                Some((Role::BorderStrong, Surface::Surface))
+            );
+            assert_eq!(
+                badge_card.bg_role,
+                Some((Role::Surface(Surface::Surface), Surface::Surface))
+            );
+            let seam = plain(ink.rule.on(InkBackground::Canvas), ink.canvas);
+            assert_eq!(seam.fg_role, Some((Role::BorderSubtle, Surface::Canvas)));
+            assert_eq!(
+                seam.bg_role,
+                Some((Role::Surface(Surface::Canvas), Surface::Canvas))
+            );
+            let live = plain(ink.live.on(InkBackground::Card), ink.card);
+            assert_eq!(live.fg_role, Some((primary, Surface::Surface)));
+            assert_eq!(
+                live.bg_role,
+                Some((Role::Surface(Surface::Surface), Surface::Surface))
+            );
+            let idle = plain(ink.idle.on(InkBackground::Card), ink.card);
+            assert_eq!(idle.fg_role, Some((secondary, Surface::Surface)));
+            assert_eq!(
+                idle.bg_role,
+                Some((Role::Surface(Surface::Surface), Surface::Surface))
+            );
+            let count = plain(ink.muted.on(InkBackground::Canvas), ink.canvas);
+            assert_eq!(count.fg_role, Some((muted, Surface::Canvas)));
+            assert_eq!(
+                count.bg_role,
+                Some((Role::Surface(Surface::Canvas), Surface::Canvas))
+            );
         });
     }
 }
