@@ -2809,6 +2809,23 @@ impl App {
         }
     }
 
+    /// Any transient overlay chrome above the page.
+    pub(super) fn overlay_open(&self) -> bool {
+        self.status.is_some()
+            || self.help_open
+            || self.quit_open
+            || self.cancel_open
+            || self.about_open
+            || self.manager_file_menu
+            || self.manager_inspect
+            || self.launch.is_some()
+            || self.picker_mode.is_some()
+            || self.launch_picker_open
+            || !self.agent_options.is_empty()
+            || self.active_instance.is_some()
+            || self.manager.detail_open()
+    }
+
     /// True when a filter query narrows the accounts tree.
     ///
     /// The query stays after it is committed, so the tree keeps the filter
