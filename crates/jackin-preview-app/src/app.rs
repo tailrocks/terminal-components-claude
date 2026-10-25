@@ -7478,8 +7478,7 @@ impl App {
         );
     }
 
-    fn draw_editor(&self, ui: &mut Ui<'_>, area: Rect) {
-        let shared_editor_view = self.editor_view_active(ui.full(), ui.theme_ref());
+    fn draw_editor(&self, ui: &mut Ui<'_>, area: Rect, shared_editor_view: bool) {
         let workspace = self
             .world
             .workspaces
@@ -10950,14 +10949,20 @@ impl App {
             .draw(ui, area);
     }
 
-    fn draw_content(&self, ui: &mut Ui<'_>, area: Rect, frame_owns_list: bool) {
+    fn draw_content(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        frame_owns_list: bool,
+        shared_editor_view: bool,
+    ) {
         Panel::new(APP.sub("content"))
             .title(self.route.title())
             .draw(ui, area, |ui, inner| match self.route {
                 Route::Intro => self.draw_intro(ui, inner),
                 Route::Manager => self.draw_manager(ui, inner, frame_owns_list),
                 Route::Prelude => self.draw_prelude(ui, inner),
-                Route::Editor => self.draw_editor(ui, inner),
+                Route::Editor => self.draw_editor(ui, inner, shared_editor_view),
                 Route::Accounts => self.draw_accounts(ui, inner),
                 Route::Usage => self.draw_usage(ui, inner),
                 Route::Settings => self.draw_settings(ui, inner),
@@ -12081,6 +12086,7 @@ impl TuiApp for App {
             }
             return;
         }
+        let shared_editor_view = self.editor_view_active(full, ui.theme_ref());
         let hints: &HintLayer = if self.help_open {
             &self.hint_layers.help
         } else if self.manager_inspect {
@@ -12103,7 +12109,7 @@ impl TuiApp for App {
             manager_frame_view::register(self, ui, presentation);
             ui.with_surface(panel_surface, |ui| {
                 ui.with_area(inner, |ui| {
-                    self.draw_content(ui, content, true);
+                    self.draw_content(ui, content, true, shared_editor_view);
                     let style = ui.surface_style();
                     if let Some(status) = &self.status {
                         ui.paint_str(
@@ -12126,7 +12132,7 @@ impl TuiApp for App {
                     self.draw_intro(ui, content);
                 } else {
                     self.draw_header(ui, header);
-                    self.draw_content(ui, content, false);
+                    self.draw_content(ui, content, false, shared_editor_view);
                 }
                 let style = ui.surface_style();
                 if let Some(status) = &self.status {
@@ -12232,7 +12238,7 @@ impl TuiApp for App {
         {
             prelude_view::paint(self, ui, full);
         }
-        if self.editor_view_active(full, ui.theme_ref()) {
+        if shared_editor_view {
             editor_view::paint(self, ui, full);
             if self.editor.tab == EditorTab::Roles && !self.editor.preview_open {
                 Self::editor_role_button().draw(ui, Rect::new(96, 5, 20, 1));
