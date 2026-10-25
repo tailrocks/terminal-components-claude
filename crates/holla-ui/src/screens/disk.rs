@@ -45,7 +45,8 @@ use crate::sim::{
 use std::fmt;
 use termrock::{
     Action, ActionKey, Cx, Dialog, DialogAction, DialogState, EmptyState, FgStep, FrameRead, Id,
-    Intent, ItemKey, List, ListState, Rect, Response, Role, SelectMode, StylePatch, Ui,
+    Intent, ItemKey, List, ListState, Rect, Response, Role, SelectMode, StylePatch, TextSection,
+    Ui,
 };
 
 pub(crate) const SELECTION_DIALOG: Id = Id::root("holla.disk.selection");
@@ -367,7 +368,10 @@ impl SelectionChooser {
                 let summary_area = Rect::new(body.x, body.y, body.width, 1);
                 let summary_style =
                     ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)));
-                ui.paint_str(summary_area, &self.summary, summary_style);
+                TextSection::new(&self.summary)
+                    .inset(0)
+                    .title_style(summary_style)
+                    .render(ui, summary_area);
                 let list_area = Rect::new(
                     body.x,
                     body.y.saturating_add(1),
