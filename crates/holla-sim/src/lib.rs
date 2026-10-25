@@ -9,6 +9,7 @@ pub mod plans;
 pub mod port_args;
 pub mod scenario;
 pub mod task_args;
+pub mod task_run;
 pub mod world;
 
 pub use disk_scan::{
