@@ -31,7 +31,7 @@ use crate::keymap::{
     Binding, BindingDescriptor, BindingExtensionError, BindingRegistry, DynamicBindingRegistry,
     FocusedHintKey, FocusedHints, HintLayer, KeyMap, ScopedBubbleBinding,
 };
-use crate::layer::{LayerId, LayerKind};
+use crate::layer::{LayerId, LayerKind, LayerOpening};
 use crate::response::StateFlags;
 use crate::theme::resolve::StyleCache;
 use crate::theme::{DesignTokens, Family, Overlay, Resolved, Role, Surface, Theme, Variant};
@@ -67,6 +67,7 @@ pub struct FrameState {
     pub registry: Registry,
     pub(crate) ring: FocusRing,
     pub(crate) layers: LayerPool,
+    pub(crate) layer_openings: Vec<LayerOpening>,
     pub(crate) cursors: Vec<CursorRequest>,
     pub(crate) retained_cursor_request: Option<RetainedCursorRequest>,
     pub(crate) typing: Vec<crate::runtime::typing::TypingDeclaration>,
@@ -187,6 +188,7 @@ impl FrameState {
         self.registry.reset(generation);
         self.ring.reset();
         self.layers.begin();
+        self.layer_openings.clear();
         self.cursors.clear();
         self.retained_cursor_request = None;
         self.typing.clear();
@@ -1443,6 +1445,31 @@ impl<'f> Ui<'f> {
         });
     }
 
+    /// Draws a layer only when this exact opening was admitted to the current frame.
+    ///
+    /// The opening is checked before delegating to layer, so stale same-ID renderers
+    /// cannot claim the current opening's draw slot.
+    pub fn layer_for<R>(
+        &mut self,
+        opening: LayerOpening,
+        f: impl FnOnce(&mut Ui<'_>, Rect) -> R,
+    ) -> Option<R> {
+        if self.reference.is_some() {
+            return None;
+        }
+        let index = self.frame.layers.find(opening.id())?;
+        let layer_matches = self
+            .frame
+            .layers
+            .active()
+            .get(index)
+            .is_some_and(|draw| draw.layer == opening.layer_id());
+        if !layer_matches || !self.frame.layer_openings.contains(&opening) {
+            return None;
+        }
+        self.layer(opening.id(), f)
+    }
+
     pub fn layer<R>(&mut self, id: Id, f: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> Option<R> {
         if self.reference.is_some() {
             return None;
@@ -1890,12 +1917,13 @@ mod tests {
         ReferenceTarget, RetainedCursorRequest, Ui, UiCore,
     };
     use crate::action::ActionKey;
+    use crate::diagnostics::Diagnostic;
     use crate::event::{Chord, KeyCode};
     use crate::focus::Focusability;
     use crate::hit::{Axes, Headroom, RegionKind};
     use crate::id::{Id, ItemKey, Part, PartRef};
     use crate::keymap::Binding;
-    use crate::layer::{LayerId, LayerSpec};
+    use crate::layer::{DismissReason, LayerEvent, LayerId, LayerOpening, LayerSpec, LayerStack};
     use crate::response::StateFlags;
     use crate::rowui::RowUi;
     use crate::theme::{
@@ -1966,6 +1994,224 @@ mod tests {
             f(&mut ui)
         };
         (out, page)
+    }
+
+    const GUARDED_LAYER: Id = Id::root("ui.layer.guarded");
+    const GUARDED_PARENT: Id = Id::root("ui.layer.guarded.parent");
+    const GUARDED_OTHER_OWNER: Id = Id::root("ui.layer.guarded.other-owner");
+
+    fn opening_for_test(id: Id, spec: LayerSpec, runtime: u64) -> LayerOpening {
+        LayerStack::default()
+            .open_with_runtime(id, spec, None, runtime)
+            .expect("test layer opens")
+    }
+
+    fn frame_for_opening(opening: LayerOpening, spec: LayerSpec) -> FrameState {
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        frame
+            .layers
+            .push(opening.id(), opening.layer_id(), spec, SCREEN, SCREEN);
+        frame.layer_openings.push(opening);
+        frame
+    }
+
+    fn assert_layer_for_rejects(active: LayerOpening, attempted: LayerOpening, spec: LayerSpec) {
+        let mut frame = frame_for_opening(active, spec);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let theme = Theme::junie();
+        let mut callback_ran = false;
+        let result = {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            ui.layer_for(attempted, |_, _| callback_ran = true)
+        };
+        assert_eq!(result, None);
+        assert!(!callback_ran);
+        assert!(!frame.layers.active()[0].drawn);
+        assert!(frame.diagnostics.items().is_empty());
+    }
+
+    #[test]
+    fn layer_for_rejects_stale_same_id_before_native_draw_claims_the_slot() {
+        let spec = LayerSpec::modal(OWNER);
+        let mut stack = LayerStack::default();
+        let stale = stack
+            .open_with_runtime(GUARDED_LAYER, spec, None, 19)
+            .expect("first opening");
+        let _ = stack.close(
+            GUARDED_LAYER,
+            LayerEvent::Dismissed(DismissReason::Programmatic),
+        );
+        let current = stack
+            .open_with_runtime(GUARDED_LAYER, spec, None, 19)
+            .expect("same-ID replacement");
+        assert_eq!(stale.id(), current.id());
+        assert_eq!(stale.runtime(), current.runtime());
+        assert_eq!(stale.owner(), current.owner());
+        assert_eq!(stale.parent(), current.parent());
+        assert_ne!(stale, current);
+
+        let mut frame = frame_for_opening(current, spec);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let theme = Theme::junie();
+        let mut stale_callback_ran = false;
+        let mut native_callback_ran = false;
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            assert_eq!(ui.layer_for(stale, |_, _| stale_callback_ran = true), None);
+            assert_eq!(
+                ui.layer(current.id(), |_, area| {
+                    assert_eq!(area, SCREEN);
+                    native_callback_ran = true;
+                }),
+                Some(())
+            );
+        }
+        assert!(!stale_callback_ran);
+        assert!(native_callback_ran);
+        assert!(frame.layers.active()[0].drawn);
+        assert!(frame.diagnostics.items().is_empty());
+    }
+
+    #[test]
+    fn layer_for_valid_draw_preserves_the_existing_duplicate_draw_diagnostic() {
+        let spec = LayerSpec::modal(OWNER);
+        let opening = opening_for_test(GUARDED_LAYER, spec, 20);
+        let mut frame = frame_for_opening(opening, spec);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let theme = Theme::junie();
+        let mut callback_count = 0;
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            assert_eq!(ui.layer_for(opening, |_, _| callback_count += 1), Some(()));
+            assert_eq!(ui.layer_for(opening, |_, _| callback_count += 1), None);
+        }
+        assert_eq!(callback_count, 1);
+        assert_eq!(
+            frame.diagnostics.items(),
+            &[Diagnostic::DuplicateLayerDraw { id: GUARDED_LAYER }]
+        );
+    }
+
+    #[test]
+    fn layer_for_rejects_foreign_runtime_owner_and_parent_openings() {
+        let spec = LayerSpec::modal(OWNER);
+        let active = opening_for_test(GUARDED_LAYER, spec, 21);
+        let foreign_runtime = opening_for_test(GUARDED_LAYER, spec, 22);
+        assert_eq!(active.id(), foreign_runtime.id());
+        assert_eq!(active.layer_id(), foreign_runtime.layer_id());
+        assert_eq!(active.owner(), foreign_runtime.owner());
+        assert_eq!(active.generation(), foreign_runtime.generation());
+        assert_eq!(active.parent(), foreign_runtime.parent());
+        assert_ne!(active, foreign_runtime);
+        assert_layer_for_rejects(active, foreign_runtime, spec);
+
+        let owner_spec = LayerSpec::modal(GUARDED_OTHER_OWNER);
+        let foreign_owner = opening_for_test(GUARDED_LAYER, owner_spec, 21);
+        assert_eq!(active.layer_id(), foreign_owner.layer_id());
+        assert_eq!(active.runtime(), foreign_owner.runtime());
+        assert_eq!(active.generation(), foreign_owner.generation());
+        assert_eq!(active.parent(), foreign_owner.parent());
+        assert_ne!(active.owner(), foreign_owner.owner());
+        assert_layer_for_rejects(active, foreign_owner, spec);
+
+        let mut without_parent = LayerStack::default();
+        let _closed_parent = without_parent
+            .open_with_runtime(GUARDED_PARENT, LayerSpec::modal(GUARDED_PARENT), None, 23)
+            .expect("temporary parent opens");
+        let _ = without_parent.close(
+            GUARDED_PARENT,
+            LayerEvent::Dismissed(DismissReason::Programmatic),
+        );
+        let parentless = without_parent
+            .open_with_runtime(GUARDED_LAYER, spec, None, 23)
+            .expect("parentless layer opens after close");
+
+        let mut with_parent = LayerStack::default();
+        let parent = with_parent
+            .open_with_runtime(GUARDED_PARENT, LayerSpec::modal(GUARDED_PARENT), None, 23)
+            .expect("parent opens");
+        let parented = with_parent
+            .open_with_runtime(GUARDED_LAYER, spec, None, 23)
+            .expect("child layer opens");
+        assert_eq!(parentless.id(), parented.id());
+        assert_eq!(parentless.layer_id(), parented.layer_id());
+        assert_eq!(parentless.runtime(), parented.runtime());
+        assert_eq!(parentless.generation(), parented.generation());
+        assert_eq!(parentless.owner(), parented.owner());
+        assert_eq!(parentless.parent(), None);
+        assert_eq!(parented.parent(), Some(parent.into()));
+        assert_layer_for_rejects(parentless, parented, spec);
+    }
+
+    #[test]
+    fn layer_for_rejects_missing_identity_and_reference_mode_without_claiming() {
+        let spec = LayerSpec::modal(OWNER);
+        let opening = opening_for_test(GUARDED_LAYER, spec, 24);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let theme = Theme::junie();
+
+        let mut missing_frame = FrameState::default();
+        missing_frame.reset(1, SCREEN);
+        let mut missing_callback_ran = false;
+        {
+            let mut ui = Ui::new(&mut missing_frame, &mut page, &mut core, &theme, &last);
+            assert_eq!(
+                ui.layer_for(opening, |_, _| missing_callback_ran = true),
+                None
+            );
+        }
+        assert!(!missing_callback_ran);
+        assert!(missing_frame.diagnostics.items().is_empty());
+
+        let mut unlisted_frame = frame_for_opening(opening, spec);
+        unlisted_frame.layer_openings.clear();
+        let mut unlisted_callback_ran = false;
+        {
+            let mut ui = Ui::new(&mut unlisted_frame, &mut page, &mut core, &theme, &last);
+            assert_eq!(
+                ui.layer_for(opening, |_, _| unlisted_callback_ran = true),
+                None
+            );
+        }
+        assert!(!unlisted_callback_ran);
+        assert!(!unlisted_frame.layers.active()[0].drawn);
+        assert!(unlisted_frame.diagnostics.items().is_empty());
+
+        let mut reference_frame = frame_for_opening(opening, spec);
+        let mut reference_callback_ran = false;
+        {
+            let mut ui = Ui::new(&mut reference_frame, &mut page, &mut core, &theme, &last);
+            assert_eq!(
+                ui.reference(None, |ui| {
+                    ui.layer_for(opening, |_, _| reference_callback_ran = true)
+                }),
+                None
+            );
+        }
+        assert!(!reference_callback_ran);
+        assert!(!reference_frame.layers.active()[0].drawn);
+        assert!(reference_frame.diagnostics.items().is_empty());
+    }
+
+    #[test]
+    fn frame_reset_clears_exact_layer_opening_admission_tokens() {
+        let spec = LayerSpec::modal(OWNER);
+        let opening = opening_for_test(GUARDED_LAYER, spec, 25);
+        let mut frame = frame_for_opening(opening, spec);
+        assert_eq!(frame.layer_openings, vec![opening]);
+
+        frame.reset(2, SCREEN);
+
+        assert!(frame.layer_openings.is_empty());
     }
 
     #[test]

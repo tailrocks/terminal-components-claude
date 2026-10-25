@@ -2515,6 +2515,7 @@ impl<A: App> Runtime<A> {
             |value| value.layers.as_slice(),
         );
         for l in layers {
+            self.frame.layer_openings.push(l.opening);
             let rect = resolve_layer_area(area, l.spec);
             self.frame.layers.push(l.id, l.layer, l.spec, rect, area);
         }
@@ -3564,7 +3565,9 @@ mod tests {
     use crate::focus::{ScopeId, ScopeMode};
     use crate::hit::{Axes, Headroom};
     use crate::intent::{Intent, LayerIntentClaim};
-    use crate::layer::{Anchor, LayerSize, LayerSpec, LayerStack, ScreenAlign};
+    use crate::layer::{
+        Anchor, DismissReason, LayerEvent, LayerSize, LayerSpec, LayerStack, ScreenAlign,
+    };
     use crate::ui::FrameRead;
     use ratatui::Terminal;
     use ratatui::backend::TestBackend;
@@ -3576,6 +3579,57 @@ mod tests {
     const RETIRED_FOCUS_CONTROL: Id = Id::root("retired-focus-control");
     const RETIRED_FOCUS_NEXT: Id = Id::root("retired-focus-next");
     const SELECTIVE_LAYER: Id = Id::root("selective-layer");
+
+    const PRECLAIM_FRAME_LAYER: Id = Id::root("runtime.preclaim-frame-layer");
+
+    #[test]
+    fn draw_frame_admits_openings_from_the_selected_live_or_snapshot_layers() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let runtime_id = rt.services.runtime_id;
+        let spec = LayerSpec::modal(PRECLAIM_FRAME_LAYER);
+        let live_opening = rt
+            .services
+            .layers
+            .open_with_runtime(PRECLAIM_FRAME_LAYER, spec, None, runtime_id)
+            .expect("live layer opens");
+        let mut buffer = Buffer::empty(SCREEN);
+        rt.draw_with_buffer(SCREEN, &mut buffer, None, |_, ui| {
+            assert_eq!(ui.layer_for(live_opening, |_, _| ()), Some(()));
+        });
+
+        let snapshot_layers = rt.services.layers.layers().to_vec();
+        let snapshot_top = rt.services.layers.top();
+        let snapshot_inert_floor = rt.services.layers.inert_floor();
+        assert_eq!(snapshot_layers[0].opening, live_opening);
+
+        let _closed = rt.services.layers.close(
+            PRECLAIM_FRAME_LAYER,
+            LayerEvent::Dismissed(DismissReason::Programmatic),
+        );
+        let live_replacement = rt
+            .services
+            .layers
+            .open_with_runtime(PRECLAIM_FRAME_LAYER, spec, None, runtime_id)
+            .expect("live replacement opens");
+        assert_ne!(live_replacement, live_opening);
+
+        let snapshot = RenderSnapshot {
+            layers: snapshot_layers,
+            inert_floor: snapshot_inert_floor,
+            top: snapshot_top,
+            ..RenderSnapshot::default()
+        };
+        let mut stale_callback_ran = false;
+        rt.draw_with_buffer(SCREEN, &mut buffer, Some(&snapshot), |_, ui| {
+            assert_eq!(
+                ui.layer_for(live_replacement, |_, _| stale_callback_ran = true),
+                None,
+                "live replacement must not be admitted while drawing an older snapshot"
+            );
+            assert_eq!(ui.layer_for(live_opening, |_, _| ()), Some(()));
+        });
+        assert!(!stale_callback_ran);
+    }
 
     #[test]
     fn app_keyboard_policy_default_uses_optional_override_and_off_fallback() {
