@@ -9980,11 +9980,14 @@ impl App {
                 height: inner.height.saturating_sub(u16::from(reserve_row)),
                 ..inner
             };
-            let state = self
+            let mut state = self
                 .capsule_viewports
                 .get(&pane_id)
                 .cloned()
                 .unwrap_or_default();
+            if self.capsule_zoom_frame(ui.theme_ref(), ui.full()) {
+                state.set_caret(None);
+            }
             let viewport = Self::capsule_viewport(pane_id);
             viewport.draw_projected(ui, viewport_area, &state, projected);
             // The menu, palette, and agent-picker frames reserve the last
@@ -13857,9 +13860,76 @@ mod paint_contract_tests {
         assert_eq!(usage.bg, Color::Rgb(0x18, 0x18, 0x1b));
         assert!(usage.modifier.contains(Modifier::ITALIC));
         assert!(!usage.modifier.contains(Modifier::BOLD));
-        // The zoom frame draws no input row, so no field owns the caret:
-        // the deleted forced cursor stays deleted, and the gate asserts None.
+        // The zoom frame draws no input row. Keep the real pane focus and
+        // caret, but do not publish that underlay caret over the approved body.
+        let pane_id = zoom.app().capsule.selected_pane;
+        let pane_owner = App::capsule_viewport_id(pane_id);
+        let live_caret = zoom
+            .app()
+            .capsule_viewports
+            .get(&pane_id)
+            .and_then(ViewportState::caret);
+        let pane_area = zoom.area_of(pane_owner);
+        assert!(
+            zoom.app()
+                .capsule_zoom_frame(zoom.runtime().theme(), Rect::new(0, 0, 120, 40))
+        );
+        assert_eq!(zoom.focus(), Some(pane_owner));
+        assert!(pane_area.is_some_and(|area| !area.is_empty()));
+        assert!(
+            live_caret.is_some(),
+            "the focused pane retains its real caret"
+        );
         assert_eq!(zoom.cursor(), None);
+        assert!(zoom.runtime().capture_owner().is_none());
+        assert!(zoom.diagnostics().is_empty());
+        let zoomed_frame = zoom.snapshot().digest();
+        zoom.draw();
+        assert_eq!(zoom.snapshot().digest(), zoomed_frame);
+        assert_eq!(zoom.focus(), Some(pane_owner));
+        assert_eq!(zoom.area_of(pane_owner), pane_area);
+        assert_eq!(
+            zoom.app()
+                .capsule_viewports
+                .get(&pane_id)
+                .and_then(ViewportState::caret),
+            live_caret
+        );
+        assert_eq!(zoom.cursor(), None);
+        assert!(zoom.runtime().capture_owner().is_none());
+        assert!(zoom.diagnostics().is_empty());
+
+        let _ = zoom.ctrl('b');
+        let _ = zoom.key(KeyCode::Char('z'));
+        assert!(!zoom.app().capsule.zoomed);
+        assert!(
+            !zoom
+                .app()
+                .capsule_zoom_frame(zoom.runtime().theme(), Rect::new(0, 0, 120, 40))
+        );
+        assert_eq!(zoom.focus(), Some(CAPSULE_MENU_BAR));
+        assert!(
+            zoom.tab_to(pane_owner),
+            "native Tab traversal returns to the pane owner"
+        );
+        assert_eq!(zoom.focus(), Some(pane_owner));
+        assert!(
+            zoom.area_of(pane_owner)
+                .is_some_and(|area| !area.is_empty())
+        );
+        assert_eq!(
+            zoom.app()
+                .capsule_viewports
+                .get(&pane_id)
+                .and_then(ViewportState::caret),
+            live_caret
+        );
+        assert!(
+            zoom.cursor().is_some(),
+            "ordinary pane focus publishes its retained caret"
+        );
+        assert!(zoom.runtime().capture_owner().is_none());
+        assert!(zoom.diagnostics().is_empty());
 
         let bare = Harness::new(
             App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
@@ -13873,6 +13943,18 @@ mod paint_contract_tests {
             bare.text()
         );
         assert_ne!(bare.cell(111, 4).symbol(), "z");
+        let bare_owner = App::capsule_viewport_id(bare.app().capsule.selected_pane);
+        assert!(
+            !bare
+                .app()
+                .capsule_zoom_frame(bare.runtime().theme(), Rect::new(0, 0, 120, 40))
+        );
+        assert_eq!(bare.focus(), Some(bare_owner));
+        assert!(
+            bare.area_of(bare_owner)
+                .is_some_and(|area| !area.is_empty())
+        );
+        assert!(bare.cursor().is_some());
 
         let mut paper = Harness::new(
             App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
@@ -13886,6 +13968,19 @@ mod paint_contract_tests {
             !paper.text().contains("Zoomed · z restores the layout"),
             "paper must keep the live zoom"
         );
+        let paper_owner = App::capsule_viewport_id(paper.app().capsule.selected_pane);
+        assert!(
+            !paper
+                .app()
+                .capsule_zoom_frame(paper.runtime().theme(), Rect::new(0, 0, 120, 40))
+        );
+        assert_eq!(paper.focus(), Some(paper_owner));
+        assert!(
+            paper
+                .area_of(paper_owner)
+                .is_some_and(|area| !area.is_empty())
+        );
+        assert!(paper.cursor().is_some());
 
         let mut narrow = Harness::new(
             App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
@@ -13902,6 +13997,19 @@ mod paint_contract_tests {
             narrow.text()
         );
         assert!(narrow.text().contains("zoomed"), "{}", narrow.text());
+        let narrow_owner = App::capsule_viewport_id(narrow.app().capsule.selected_pane);
+        assert!(
+            !narrow
+                .app()
+                .capsule_zoom_frame(narrow.runtime().theme(), Rect::new(0, 0, 80, 24))
+        );
+        assert_eq!(narrow.focus(), Some(narrow_owner));
+        assert!(
+            narrow
+                .area_of(narrow_owner)
+                .is_some_and(|area| !area.is_empty())
+        );
+        assert!(narrow.cursor().is_some());
     }
 
     #[test]
