@@ -1285,6 +1285,13 @@
     "other_testing_gated_source_matches": 0,
     "build_script_CARGO_FEATURE_TESTING_matches": 0,
     "global_testing_configuration_changed": false,
-    "classification": "pending high review; do not remove global Velnor testing configuration until resolved"
+    "classification": "confirmed blocker pending T37-SELECTION-BINDING-01",
+    "high_review": {
+      "reviewer": "/root/t00_independent_review",
+      "finding": "TextViewport::selection_binding_chords is a real retained testing branch and blocks the current all-testing-branches-retired condition.",
+      "callers": "Four callers are in conformance tests scheduled for retirement; no production consumer is established.",
+      "requested_decision": "T37-SELECTION-BINDING-01: retire only the test-inspection method and cfg while preserving SELECTION_BINDINGS and selection/input behavior.",
+      "configuration_action": "keep the global Velnor testing configuration unchanged pending the decision and final combined-source search"
+    }
   }
 }
