@@ -122,7 +122,7 @@ first-use 160 50 paper truecolor f7986a8b4993800d
 first-use 80 24 junie 16 5413de25b6f4970d
 first-use 80 24 junie 256 0bf245ab7f5d35a5
 first-use 80 24 junie mono a00b9cdb39279d7d
-first-use 80 24 junie truecolor d737412561a7e6fa
+first-use 80 24 junie truecolor 6ac23f2ee872d133
 first-use 80 24 paper 16 d26a3aae6c3da11d
 first-use 80 24 paper 256 cf2a6d0c048cdf16
 first-use 80 24 paper mono fbb216b8d8586815
