@@ -827,6 +827,7 @@ struct TabsOpenMenu {
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 struct TabsMenuFrame {
     eligible: bool,
+    planned_whole_rows: bool,
     owner: Option<Id>,
     area: Rect,
     visible_area: Rect,
@@ -858,6 +859,9 @@ enum TabsWheelFrameKind {
 struct TabsWheelFrame {
     kind: TabsWheelFrameKind,
     eligible: bool,
+    planned_whole_rows: bool,
+    active: Option<ItemKey>,
+    manual_window_active: Option<Option<ItemKey>>,
     content_len: usize,
     viewport_len: usize,
     rows: u16,
@@ -869,6 +873,7 @@ struct TabsWheelFrame {
     terminal_first_index: Option<usize>,
     area: Rect,
     visible_area: Rect,
+    visible_row_area: Rect,
 }
 
 impl Default for TabsWheelFrame {
@@ -876,6 +881,9 @@ impl Default for TabsWheelFrame {
         Self {
             kind: TabsWheelFrameKind::Unknown,
             eligible: false,
+            planned_whole_rows: false,
+            active: None,
+            manual_window_active: None,
             content_len: 0,
             viewport_len: 0,
             rows: 0,
@@ -887,6 +895,7 @@ impl Default for TabsWheelFrame {
             terminal_first_index: None,
             area: Rect::new(0, 0, 0, 0),
             visible_area: Rect::new(0, 0, 0, 0),
+            visible_row_area: Rect::new(0, 0, 0, 0),
         }
     }
 }
@@ -1084,7 +1093,46 @@ struct OwnedTabMeasurement {
     mark: Option<TabItemMark>,
     close_enabled: bool,
     label_segments: Vec<String>,
+    natural_label_extent: Option<u64>,
     affixes: Option<OwnedTabAffixes>,
+}
+
+impl OwnedTabMeasurement {
+    #[cfg(test)]
+    fn new(
+        key: ItemKey,
+        mark: Option<TabItemMark>,
+        close_enabled: bool,
+        label_segments: Vec<String>,
+        affixes: Option<OwnedTabAffixes>,
+    ) -> Self {
+        Self::new_with_natural_extent(key, mark, close_enabled, label_segments, affixes, true)
+    }
+
+    fn new_with_natural_extent(
+        key: ItemKey,
+        mark: Option<TabItemMark>,
+        close_enabled: bool,
+        label_segments: Vec<String>,
+        affixes: Option<OwnedTabAffixes>,
+        measure_natural_extent: bool,
+    ) -> Self {
+        let natural_label_extent =
+            measure_natural_extent.then(|| natural_semantic_label_extent(&label_segments));
+        Self {
+            key,
+            mark,
+            close_enabled,
+            label_segments,
+            natural_label_extent,
+            affixes,
+        }
+    }
+
+    fn natural_label_extent(&self) -> u64 {
+        self.natural_label_extent
+            .unwrap_or_else(|| natural_semantic_label_extent(&self.label_segments))
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -1230,8 +1278,12 @@ pub struct TabLayout {
     // callback-free empty-area plan. Excluded from historical public Eq/Debug.
     owned_items: Option<Vec<OwnedTabMeasurement>>,
     // Private bound: the earliest suffix whose final allocated tab is visible.
+    // Whole-row mode may instead use the source index of an intrinsically
+    // oversized final item as a finite endpoint, without claiming a tab.
     terminal_first_index: Option<usize>,
     geometry_follow: Option<TabsGeometryFollow>,
+    planned_whole_rows: bool,
+    manual_window_active: Option<Option<ItemKey>>,
     first_index: usize,
     active: Option<ItemKey>,
     cursor: Option<ItemKey>,
@@ -1278,6 +1330,7 @@ impl PartialEq for TabLayout {
             && self.used_area == other.used_area
             && self.rule_area == other.rule_area
             && self.rows == other.rows
+            && self.planned_whole_rows == other.planned_whole_rows
             && self.first_index == other.first_index
             && self.active == other.active
             && self.cursor == other.cursor
@@ -1664,6 +1717,7 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     new_key_bindings: Option<&'static [Binding<TabsCmd>]>,
     digit_jump: bool,
     wrap: bool,
+    planned_whole_rows: bool,
     closable: bool,
     closable_keys: Option<&'a [ItemKey]>,
     close_key_bindings: Option<&'static [Binding<TabsCmd>]>,
@@ -1720,6 +1774,7 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             new_key_bindings: None,
             digit_jump: true,
             wrap: false,
+            planned_whole_rows: false,
             closable: false,
             closable_keys: None,
             close_key_bindings: None,
@@ -1791,6 +1846,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             new_key_bindings: self.new_key_bindings,
             digit_jump: self.digit_jump,
             wrap: self.wrap,
+            planned_whole_rows: self.planned_whole_rows,
             closable: self.closable,
             closable_keys: self.closable_keys,
             close_key_bindings: self.close_key_bindings,
@@ -1821,6 +1877,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             new_key_bindings: self.new_key_bindings,
             digit_jump: self.digit_jump,
             wrap: self.wrap,
+            planned_whole_rows: self.planned_whole_rows,
             closable: self.closable,
             closable_keys: self.closable_keys,
             close_key_bindings: self.close_key_bindings,
@@ -2323,8 +2380,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         if self.passive
             || frame.kind != TabsWheelFrameKind::Planned
             || !frame.eligible
+            || frame.planned_whole_rows != self.planned_whole_rows
             || frame.content_len != items.len()
-            || frame.viewport_len == 0
+            || (frame.viewport_len == 0 && !self.planned_whole_rows)
             || frame.visible_area.is_empty()
             || frame.area.is_empty()
             || items.is_empty()
@@ -2336,6 +2394,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             || facts.viewport_len != frame.viewport_len
             || facts.rows != frame.rows
             || facts.cols != frame.cols
+        {
+            return None;
+        }
+        if self.planned_whole_rows
+            && (frame.active != st.active
+                || frame.manual_window_active != st.manual_window_active
+                || frame.visible_row_area.is_empty())
         {
             return None;
         }
@@ -2367,6 +2432,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
     ) -> bool {
         if st.manual_window_active != Some(st.active)
             || frame.kind != TabsWheelFrameKind::Planned
+            || frame.planned_whole_rows != self.planned_whole_rows
             || frame.content_len != items.len()
             || frame.area.is_empty()
             || items.is_empty()
@@ -2412,6 +2478,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             return false;
         };
         if frame.kind != TabsWheelFrameKind::Planned
+            || frame.planned_whole_rows != self.planned_whole_rows
             || manual_window_owns_follow(frame.kind, st.manual_window_active, st.active)
             || frame.content_len != items.len()
             || frame.area.is_empty()
@@ -2530,6 +2597,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
 
     fn menu_frame_matches(&self, cx: &Cx<'_>, frame: &TabsMenuFrame, items: &[T]) -> bool {
         if !frame.eligible
+            || frame.planned_whole_rows != self.planned_whole_rows
             || frame.owner != Some(self.id)
             || !self.overflow_menu
             || self.passive
@@ -2978,6 +3046,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                                 } else {
                                     acc.consumed();
                                 }
+                            } else if (self.planned_whole_rows
+                                && frame.kind != TabsWheelFrameKind::Legacy)
+                                || (frame.kind == TabsWheelFrameKind::Planned
+                                    && frame.planned_whole_rows)
+                            {
+                                acc.consumed();
                             } else {
                                 let i = st.first_index.saturating_sub(1);
                                 st.first_index = i;
@@ -2999,6 +3073,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                                 } else {
                                     acc.consumed();
                                 }
+                            } else if (self.planned_whole_rows
+                                && frame.kind != TabsWheelFrameKind::Legacy)
+                                || (frame.kind == TabsWheelFrameKind::Planned
+                                    && frame.planned_whole_rows)
+                            {
+                                acc.consumed();
                             } else {
                                 let i = st.first_index.saturating_add(1).min(len.saturating_sub(1));
                                 st.first_index = i;
@@ -3243,6 +3323,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             }
             TabsRenderSource::Planned(layout) => {
                 wheel_frame.kind = TabsWheelFrameKind::Planned;
+                wheel_frame.planned_whole_rows = layout.planned_whole_rows;
+                wheel_frame.active = layout.active;
+                wheel_frame.manual_window_active = layout.manual_window_active;
                 wheel_frame.content_len = layout.content_len;
                 wheel_frame.viewport_len = layout.viewport_len;
                 wheel_frame.rows = layout.used_area.height;
@@ -3258,16 +3341,19 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 wheel_frame.terminal_first_index = layout.terminal_first_index;
                 wheel_frame.area = layout.area;
                 wheel_frame.visible_area = layout.visible_area;
+                wheel_frame.visible_row_area = layout.row_area.intersection(layout.clip);
                 wheel_frame.eligible = !ui.is_inert()
                     && !self.passive
                     && !layout.passive
                     && !layout.visible_area.is_empty()
-                    && layout.viewport_len > 0
+                    && (!layout.planned_whole_rows || !wheel_frame.visible_row_area.is_empty())
+                    && (layout.viewport_len > 0 || layout.planned_whole_rows)
                     && layout
                         .terminal_first_index
                         .is_some_and(|terminal| terminal > 0 && terminal < layout.content_len);
                 let hidden = layout.hidden_menu_items();
                 if let Some(more_area) = layout.more_area {
+                    menu_frame.planned_whole_rows = layout.planned_whole_rows;
                     menu_frame.owner = Some(self.id);
                     menu_frame.area = layout.area;
                     menu_frame.visible_area = layout.visible_area;
@@ -4134,6 +4220,19 @@ fn item_mark_glyph_area(area: Rect, glyph_width: u16) -> Rect {
 }
 
 impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
+    /// Require a complete natural row allocation for planned default-row layouts.
+    ///
+    /// The default is `false`, preserving partial-row allocation. When enabled,
+    /// the planner omits the next row unless its full captured label, affixes,
+    /// marks, close allocation, and requested trailing padding fit the resolved
+    /// content budget. The setting applies only to planned `DefaultRow` layouts;
+    /// the legacy callback renderer is unchanged.
+    #[must_use]
+    pub fn planned_whole_rows(mut self, enabled: bool) -> Self {
+        self.planned_whole_rows = enabled;
+        self
+    }
+
     /// Map each item to optional prefix and suffix text for fresh planned
     /// default-row layouts.
     ///
@@ -4168,6 +4267,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             owned_items: None,
             terminal_first_index: None,
             geometry_follow: None,
+            planned_whole_rows: self.planned_whole_rows,
+            manual_window_active: state.manual_window_active,
             first_index,
             active: state.active,
             cursor: state.core.cursor(),
@@ -4258,13 +4359,14 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                     .item_affixes
                     .map_or_else(TabAffixes::default, |mapper| mapper(item));
                 let (label_segments, affixes) = capture_label_affixes(writer.0, affixes);
-                OwnedTabMeasurement {
+                OwnedTabMeasurement::new_with_natural_extent(
                     key,
                     mark,
                     close_enabled,
                     label_segments,
                     affixes,
-                }
+                    self.planned_whole_rows,
+                )
             })
             .collect();
         let len = owned_items.len();
@@ -4441,7 +4543,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         let reserve_more = self.overflow_menu && self.more_lane_fits(area, clip, 1, previous);
         let positive_header = self.default_row_header_with_more(area, 1, previous, reserve_more);
         let max_rows = max_rows_for_width_budget(positive_header.available_width());
-        positive_terminal_candidate_range(len, max_rows).find(|&candidate_first| {
+        let terminal = positive_terminal_candidate_range(len, max_rows).find(|&candidate_first| {
             let walk = self.walk_default_resolved(
                 area,
                 clip,
@@ -4452,7 +4554,44 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 |_| {},
             );
             reaches_final(walk)
-        })
+        });
+        if terminal.is_some() || !self.planned_whole_rows || len <= 1 {
+            return terminal;
+        }
+
+        // A final item that is intrinsically too wide has no visible-terminal
+        // suffix. Keep one finite source endpoint so manual browsing can still
+        // pass earlier fitting rows and return from the final blank window.
+        let final_index = len - 1;
+        let final_walk = self.walk_default_resolved(
+            area,
+            clip,
+            items,
+            final_index,
+            previous,
+            extent_scratch,
+            |_| {},
+        );
+        let final_item = items.get(final_index)?;
+        let available = final_walk
+            .right_limit
+            .saturating_sub(final_walk.first_tab_x);
+        let minimum = whole_row_minimum_width(final_item);
+        let minimum_width = u16::try_from(minimum).ok()?;
+        let minimum_row = Rect {
+            x: final_walk.first_tab_x,
+            y: final_walk.row_area.y,
+            width: minimum_width,
+            height: 1,
+        };
+        if final_walk.row_area.intersection(clip).is_empty()
+            || minimum > u64::from(available)
+            || minimum_row.intersection(clip).is_empty()
+            || whole_row_required_width(final_item) <= u64::from(available)
+        {
+            return None;
+        }
+        Some(final_index)
     }
 
     fn default_row_header(
@@ -4639,18 +4778,21 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             let close_enabled = item.close_enabled;
             let close_w: u16 = if close_enabled { 2 } else { 0 };
             let avail = right_limit.saturating_sub(x);
-            if avail < 3 {
-                break;
-            }
-            if mark.is_some() && avail < 1 + 1 + mark_width + 1 + close_w {
-                break;
-            }
             let requested_padding = item
                 .affixes
                 .as_ref()
                 .map_or(0, |affixes| affixes.trailing_padding);
             let minimum_tab_width = 3_u16.saturating_add(mark_width).saturating_add(close_w);
             let reserved_padding = requested_padding.min(avail.saturating_sub(minimum_tab_width));
+            if self.planned_whole_rows && whole_row_required_width(item) > u64::from(avail) {
+                break;
+            }
+            if avail < 3 {
+                break;
+            }
+            if mark.is_some() && avail < 1 + 1 + mark_width + 1 + close_w {
+                break;
+            }
             let content = Rect {
                 x: x.saturating_add(1),
                 y: row_area.y,
@@ -4666,7 +4808,9 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                     .saturating_sub(reserved_padding),
                 height: 1,
             };
-            let label_extent = if item
+            let label_extent = if self.planned_whole_rows {
+                u16::try_from(item.natural_label_extent().max(1)).unwrap_or(u16::MAX)
+            } else if item
                 .affixes
                 .as_ref()
                 .is_some_and(OwnedTabAffixes::has_text_affixes)
@@ -4686,7 +4830,11 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 .saturating_add(mark_width)
                 .saturating_add(1)
                 .saturating_add(close_w);
-            let trailing_padding = reserved_padding.min(avail.saturating_sub(semantic_tab_width));
+            let trailing_padding = if self.planned_whole_rows {
+                requested_padding
+            } else {
+                reserved_padding.min(avail.saturating_sub(semantic_tab_width))
+            };
             let tab_w = 1u16
                 .saturating_add(label_extent)
                 .saturating_add(mark_width)
@@ -4847,6 +4995,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 owned_items: None,
                 terminal_first_index: None,
                 geometry_follow: None,
+                planned_whole_rows: self.planned_whole_rows,
+                manual_window_active: state.manual_window_active,
                 first_index,
                 active: state.active,
                 cursor: state.core.cursor(),
@@ -4908,6 +5058,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             owned_items: None,
             terminal_first_index: None,
             geometry_follow: None,
+            planned_whole_rows: self.planned_whole_rows,
+            manual_window_active: state.manual_window_active,
             first_index,
             active: state.active,
             cursor: state.core.cursor(),
@@ -4957,6 +5109,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
     ) -> Result<Rect, TabLayoutMismatch> {
         if !layout.owned_snapshot_is_consistent()
             || layout.id != self.id
+            || layout.planned_whole_rows != self.planned_whole_rows
             || layout.overflow_menu != self.overflow_menu
             || layout.allow_new != self.allow_new
             || layout.new_key_bindings != self.new_key_bindings
@@ -5061,6 +5214,48 @@ fn paint_logical_segments(
         }
         x = x.saturating_add(width);
     }
+}
+
+fn natural_semantic_label_extent(segments: &[String]) -> u64 {
+    let mut x = 0_u64;
+    let mut last_nonblank_end = 0_u64;
+    for segment in segments {
+        for (_, grapheme) in termrock_text::measure::graphemes(segment) {
+            if grapheme.contains(char::is_control) {
+                continue;
+            }
+            let width = u64::from(grapheme.cell_width());
+            if width == 0 {
+                continue;
+            }
+            x = x.saturating_add(width);
+            if grapheme != " " {
+                last_nonblank_end = x;
+            }
+        }
+    }
+    last_nonblank_end
+}
+
+fn whole_row_required_width(item: &OwnedTabMeasurement) -> u64 {
+    let label = item.natural_label_extent().max(1);
+    let mark = if item.mark.is_some() { 2_u64 } else { 0 };
+    let close = if item.close_enabled { 2_u64 } else { 0 };
+    let padding = item
+        .affixes
+        .as_ref()
+        .map_or(0_u64, |affixes| u64::from(affixes.trailing_padding));
+    2_u64
+        .saturating_add(label)
+        .saturating_add(mark)
+        .saturating_add(close)
+        .saturating_add(padding)
+}
+
+fn whole_row_minimum_width(item: &OwnedTabMeasurement) -> u64 {
+    let mark = if item.mark.is_some() { 2_u64 } else { 0 };
+    let close = if item.close_enabled { 2_u64 } else { 0 };
+    3_u64.saturating_add(mark).saturating_add(close)
 }
 
 fn logical_label_extent(segments: &[String], content: Rect) -> u16 {
@@ -6152,6 +6347,33 @@ mod tests {
     }
 
     #[test]
+    fn planned_whole_draw_consumes_owned_text_without_reformatting() {
+        let area = Rect::new(0, 0, 20, 2);
+        let formats = Cell::new(0);
+        let items = [CountingDisplay(&formats)];
+        let state = TabsState::default();
+        let tabs = Tabs::new(TABS).closable(true).planned_whole_rows(true);
+        let layout = tabs.layout_default(area, area, &state, &items, None);
+        assert_eq!(formats.get(), 1, "whole-width planning formats once");
+        assert_eq!(
+            layout
+                .part_bounds(PartRef::item(Part::TAB, ItemKey::index(0)))
+                .map(|(logical, visible)| (logical.width, visible.width)),
+            Some((11, 11))
+        );
+
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, _| {
+                tabs.draw_layout(ui, &layout)
+                    .expect("same whole-row configuration draws the plan");
+            })
+            .commit_presented();
+        assert_eq!(formats.get(), 1, "whole-row drawing uses owned text");
+    }
+
+    #[test]
     fn planned_public_eq_and_debug_keep_preimage_fields_only() {
         let items = vec![
             MutableOwnedItem {
@@ -6715,6 +6937,88 @@ mod tests {
     }
 
     #[test]
+    fn planned_draw_rejects_changed_whole_row_policy_before_paint_or_registration() {
+        let area = Rect::new(0, 0, 24, 2);
+        let items = ["alpha", "beta"];
+        let state = TabsState::default();
+        let planned = Tabs::new(TABS).planned_whole_rows(true);
+        let layout = planned.layout_default(area, area, &state, &items, None);
+        let renderer = Tabs::<&str>::new(TABS);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        let unpainted = buffer.clone();
+        let result = Cell::new(None);
+
+        runtime
+            .draw_scene(area, &mut buffer, |ui, _| {
+                result.set(Some(renderer.draw_layout(ui, &layout)));
+            })
+            .commit_presented();
+
+        assert_eq!(result.get(), Some(Err(TabLayoutMismatch)));
+        assert_eq!(buffer, unpainted);
+        assert_eq!(runtime.registry().regions(), &[]);
+    }
+
+    fn whole_width_test_affixes(_: &&str) -> TabAffixes {
+        TabAffixes::default()
+            .prefix("pre")
+            .suffix("tail")
+            .trailing_padding(2)
+    }
+
+    fn whole_width_test_mark(_: &&str) -> TabMarks {
+        TabMarks::default().dirty(true)
+    }
+
+    #[test]
+    fn planned_whole_rows_include_affixes_marks_close_padding_and_reserved_lanes() {
+        let state = TabsState::default();
+        let items = ["abc"];
+        let close_keys = [ItemKey::index(0)];
+        let tabs = Tabs::<&str>::new(TABS)
+            .planned_whole_rows(true)
+            .item_affixes(whole_width_test_affixes as fn(&&str) -> TabAffixes)
+            .item_marks(whole_width_test_mark as fn(&&str) -> TabMarks)
+            .closable_keys(&close_keys)
+            .allow_new(true)
+            .status(Status::Error)
+            .overflow_menu(false);
+        let exact = tabs.layout_default(
+            Rect::new(0, 0, 26, 2),
+            Rect::new(0, 0, 26, 2),
+            &state,
+            &items,
+            None,
+        );
+        assert_eq!(exact.viewport_len, 1);
+        let row = exact.rows().first().expect("exact natural plate fits");
+        assert_eq!(row.label_extent, 12, "prefix, separators, label and suffix");
+        assert_eq!(row.logical_tab.width, 20, "all semantic lanes plus padding");
+        assert!(row.logical_mark.is_some());
+        assert!(row.logical_close.is_some());
+        let new_area = exact.new_area.expect("New keeps its reserved lane");
+        let status_area = exact.status_area.expect("status keeps its reserved lane");
+        assert_eq!(new_area, Rect::new(20, 0, 4, 1));
+        assert_eq!(status_area, Rect::new(24, 0, 1, 1));
+        assert_eq!(row.logical_tab.right(), new_area.x);
+        assert!(row.logical_tab.intersection(new_area).is_empty());
+        assert!(new_area.intersection(status_area).is_empty());
+
+        let short = tabs.layout_default(
+            Rect::new(0, 0, 25, 2),
+            Rect::new(0, 0, 25, 2),
+            &state,
+            &items,
+            None,
+        );
+        assert_eq!(short.viewport_len, 0, "one missing cell omits the full row");
+        assert_eq!(short.hidden_right(), 1);
+        assert!(short.rows().is_empty());
+        assert!(short.visible_area.width > 0);
+    }
+
+    #[test]
     fn planned_close_bounds_are_potential_geometry_and_reveal_mismatch_is_preflighted() {
         let area = Rect::new(0, 0, 36, 2);
         let items = ["active", "idle"];
@@ -6857,47 +7161,47 @@ mod tests {
     #[test]
     fn planned_shared_row_walker_matches_preimage_geometry_and_reuses_extent_scratch() {
         let items = [
-            OwnedTabMeasurement {
-                key: ItemKey::num(1),
-                mark: Some(TabItemMark::Dirty),
-                close_enabled: true,
-                label_segments: ["e", "\u{301}", "界", " "]
+            OwnedTabMeasurement::new(
+                ItemKey::num(1),
+                Some(TabItemMark::Dirty),
+                true,
+                ["e", "\u{301}", "界", " "]
                     .into_iter()
                     .map(str::to_owned)
                     .collect(),
-                affixes: None,
-            },
-            OwnedTabMeasurement {
-                key: ItemKey::num(2),
-                mark: None,
-                close_enabled: false,
-                label_segments: ["wide label", " "].into_iter().map(str::to_owned).collect(),
-                affixes: None,
-            },
-            OwnedTabMeasurement {
-                key: ItemKey::num(3),
-                mark: Some(TabItemMark::Error),
-                close_enabled: true,
-                label_segments: ["\t", "👩‍👩‍👧‍👦", "tail "]
+                None,
+            ),
+            OwnedTabMeasurement::new(
+                ItemKey::num(2),
+                None,
+                false,
+                ["wide label", " "].into_iter().map(str::to_owned).collect(),
+                None,
+            ),
+            OwnedTabMeasurement::new(
+                ItemKey::num(3),
+                Some(TabItemMark::Error),
+                true,
+                ["\t", "👩‍👩‍👧‍👦", "tail "]
                     .into_iter()
                     .map(str::to_owned)
                     .collect(),
-                affixes: None,
-            },
-            OwnedTabMeasurement {
-                key: ItemKey::num(4),
-                mark: None,
-                close_enabled: true,
-                label_segments: ["", "  "].into_iter().map(str::to_owned).collect(),
-                affixes: None,
-            },
-            OwnedTabMeasurement {
-                key: ItemKey::num(5),
-                mark: Some(TabItemMark::Done),
-                close_enabled: false,
-                label_segments: ["last", "界", " "].into_iter().map(str::to_owned).collect(),
-                affixes: None,
-            },
+                None,
+            ),
+            OwnedTabMeasurement::new(
+                ItemKey::num(4),
+                None,
+                true,
+                ["", "  "].into_iter().map(str::to_owned).collect(),
+                None,
+            ),
+            OwnedTabMeasurement::new(
+                ItemKey::num(5),
+                Some(TabItemMark::Done),
+                false,
+                ["last", "界", " "].into_iter().map(str::to_owned).collect(),
+                None,
+            ),
         ];
         let tabs = Tabs::<&str>::new(TABS)
             .allow_new(true)
@@ -7004,20 +7308,22 @@ mod tests {
             &["abcdefghijklmnop"],
         ];
         (0..count)
-            .map(|index| OwnedTabMeasurement {
-                key: ItemKey::index(index),
-                mark: match index % 4 {
-                    0 => Some(TabItemMark::Dirty),
-                    1 => Some(TabItemMark::Busy),
-                    2 => Some(TabItemMark::Error),
-                    _ => None,
-                },
-                close_enabled: index % 3 == 0,
-                label_segments: SEGMENTS[index % SEGMENTS.len()]
-                    .iter()
-                    .map(|segment| (*segment).to_owned())
-                    .collect(),
-                affixes: None,
+            .map(|index| {
+                OwnedTabMeasurement::new(
+                    ItemKey::index(index),
+                    match index % 4 {
+                        0 => Some(TabItemMark::Dirty),
+                        1 => Some(TabItemMark::Busy),
+                        2 => Some(TabItemMark::Error),
+                        _ => None,
+                    },
+                    index % 3 == 0,
+                    SEGMENTS[index % SEGMENTS.len()]
+                        .iter()
+                        .map(|segment| (*segment).to_owned())
+                        .collect(),
+                    None,
+                )
             })
             .collect()
     }
@@ -7472,12 +7778,14 @@ mod tests {
 
         for count in [8, 128, 4096] {
             measurements.clear();
-            measurements.extend((0..count).map(|index| OwnedTabMeasurement {
-                key: ItemKey::index(index),
-                mark: None,
-                close_enabled: false,
-                label_segments: vec!["x".to_owned()],
-                affixes: None,
+            measurements.extend((0..count).map(|index| {
+                OwnedTabMeasurement::new(
+                    ItemKey::index(index),
+                    None,
+                    false,
+                    vec!["x".to_owned()],
+                    None,
+                )
             }));
 
             let positive_budget = tabs.default_row_header(area, 1, None).available_width();
@@ -7550,12 +7858,14 @@ mod tests {
 
         for count in [8, 128, 4096] {
             measurements.clear();
-            measurements.extend((0..count).map(|index| OwnedTabMeasurement {
-                key: ItemKey::index(index),
-                mark: None,
-                close_enabled: false,
-                label_segments: vec!["x".to_owned()],
-                affixes: None,
+            measurements.extend((0..count).map(|index| {
+                OwnedTabMeasurement::new(
+                    ItemKey::index(index),
+                    None,
+                    false,
+                    vec!["x".to_owned()],
+                    None,
+                )
             }));
 
             let reserve_more = tabs.more_lane_fits(area, clip, 1, None);
@@ -7687,6 +7997,9 @@ mod tests {
         let frame = TabsWheelFrame {
             kind: TabsWheelFrameKind::Unknown,
             eligible: true,
+            planned_whole_rows: false,
+            active: Some(ItemKey::index(0)),
+            manual_window_active: Some(Some(ItemKey::index(0))),
             content_len: items.len(),
             viewport_len: 2,
             rows: 2,
@@ -7698,6 +8011,7 @@ mod tests {
             terminal_first_index: Some(2),
             area: Rect::new(0, 0, 12, 2),
             visible_area: Rect::new(0, 0, 12, 2),
+            visible_row_area: Rect::new(0, 0, 12, 1),
         };
         let old_layout = Some(LayoutFacts::new(2, items.len(), 2, 12));
 
@@ -7887,12 +8201,14 @@ mod tests {
         let owned = items
             .iter()
             .enumerate()
-            .map(|(index, label)| OwnedTabMeasurement {
-                key: ItemKey::index(index),
-                mark: None,
-                close_enabled: false,
-                label_segments: vec![label.clone()],
-                affixes: None,
+            .map(|(index, label)| {
+                OwnedTabMeasurement::new(
+                    ItemKey::index(index),
+                    None,
+                    false,
+                    vec![label.clone()],
+                    None,
+                )
             })
             .collect::<Vec<_>>();
         let mut scratch = Vec::new();
