@@ -1,0 +1,75 @@
+{
+  "fixed_input": "d402f893d159ac26da5db4d18c13510afdbce12f",
+  "commands": [
+    {
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "workdir": ".",
+      "exit_status": 0,
+      "result": "root manifest graph parsed; output saved outside repository as /tmp/t37-metadata-final-before-tools.json"
+    },
+    {
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "workdir": "crates/termrock-e2e",
+      "exit_status": 0,
+      "result": "standalone manifest graph parsed"
+    },
+    {
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "workdir": "crates/termrock-visibility-tests",
+      "exit_status": 0,
+      "result": "standalone manifest graph parsed; fixture source remains in fixed source input pending tools closure"
+    },
+    {
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "workdir": "external-consumer-demo",
+      "exit_status": 0,
+      "result": "standalone manifest graph parsed"
+    },
+    {
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "workdir": "tools/termrock-visibility-publisher",
+      "exit_status": 0,
+      "result": "standalone manifest graph parsed"
+    },
+    {
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --locked --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "workdir": ".",
+      "exit_status": 125,
+      "result": "guard denied the unsupported --locked metadata form before Cargo ran"
+    },
+    {
+      "command": "git diff --check",
+      "workdir": ".",
+      "exit_status": 0,
+      "result": "clean"
+    }
+  ],
+  "lock_hash_around_denied_probe": {
+    "before": "722145d6e1d713be9096727af7e83b5775c99b62095100c4fa8cc9a2b41bf36c",
+    "after": "722145d6e1d713be9096727af7e83b5775c99b62095100c4fa8cc9a2b41bf36c",
+    "unchanged": true
+  },
+  "structural_audit": {
+    "workspace_package_count_before": 49,
+    "workspace_package_count_after": 47,
+    "surviving_targets_before": 68,
+    "surviving_targets_after": 68,
+    "identity_and_doc_flags_stable": true,
+    "surviving_target_kinds": {
+      "lib": 42,
+      "bin": 14,
+      "example": 12
+    },
+    "separate_test_or_bench_targets_removed": 18,
+    "target_flag_violations": 0,
+    "root_manifest_orphan_workspace_dependency_keys": 0,
+    "retained_manifest_feature_tables_changed": 0
+  },
+  "not_run_pending_final_combined_source": [
+    "guarded cargo check --locked --workspace --all-targets --all-features",
+    "mise exec -- velnor-actions generate",
+    "guarded cargo update --workspace --offline for root and four active standalone lockfiles",
+    "tests (T37 does not run legacy tests)"
+  ],
+  "status": "structural manifest pass only; no lock/build/generator or product behavior claim"
+}

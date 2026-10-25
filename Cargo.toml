@@ -44,8 +44,6 @@ members = [
     "crates/tablepro-ui",
     "crates/tablepro",
     "crates/termrock-consumer-example",
-    "crates/termrock-test-support",
-    "crates/termrock-conformance",
     "crates/termrock-xtask",
     "crates/termrock-visibility-publisher",
     "crates/visual-harness",
@@ -57,7 +55,6 @@ default-members = [
     "crates/jackin-preview",
     "crates/holla",
     "crates/tablepro",
-    "crates/termrock-conformance",
 ]
 
 [workspace.package]
@@ -92,7 +89,6 @@ termrock = { path = "crates/termrock" }
 showcase-data = { path = "crates/showcase-data" }
 showcase-demos = { path = "crates/showcase-demos" }
 showcase-ui = { path = "crates/showcase-ui" }
-showcase = { path = "crates/showcase" }
 
 jackin-preview-domain = { path = "crates/jackin-preview-domain" }
 jackin-preview-sim = { path = "crates/jackin-preview-sim" }
@@ -100,41 +96,28 @@ jackin-preview-presentation = { path = "crates/jackin-preview-presentation" }
 jackin-preview-host-ui = { path = "crates/jackin-preview-host-ui" }
 jackin-preview-capsule-ui = { path = "crates/jackin-preview-capsule-ui" }
 jackin-preview-app = { path = "crates/jackin-preview-app" }
-jackin-preview = { path = "crates/jackin-preview" }
 
 holla-domain = { path = "crates/holla-domain" }
 holla-catalog = { path = "crates/holla-catalog" }
 holla-plan = { path = "crates/holla-plan" }
 holla-sim = { path = "crates/holla-sim" }
 holla-ui = { path = "crates/holla-ui" }
-holla = { path = "crates/holla" }
 
 tablepro-domain = { path = "crates/tablepro-domain" }
 tablepro-sql = { path = "crates/tablepro-sql" }
 tablepro-demo = { path = "crates/tablepro-demo" }
 tablepro-ui = { path = "crates/tablepro-ui" }
-tablepro = { path = "crates/tablepro" }
-
-termrock-test-support = { path = "crates/termrock-test-support" }
-termrock-conformance = { path = "crates/termrock-conformance" }
-termrock-xtask = { path = "crates/termrock-xtask" }
 
 clap = { version = "4.6", features = ["derive"] }
 ratatui = { version = "0.30", features = ["crossterm_0_29"] }
 unicode-width = "0.2"
 unicode-segmentation = "1"
-tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "a1ea27f757d75d07b05499276cd932e9f8e067ad", features = ["pty"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tempfile = "3"
-image = "0.25"
 sha2 = "0.11"
-rayon = "1.10"
-pulldown-cmark = { version = "=0.13.5", default-features = false }
 ratatui-core = { version = "0.1.2", default-features = false, features = ["std", "underline-color"] }
 ratatui-crossterm = { version = "0.1.2" }
 bitflags = "2.13"
-trybuild = "1.0"
 
 [workspace.lints.rust]
 unsafe_code = "deny"                          # crates/tui raises to forbid at the crate root

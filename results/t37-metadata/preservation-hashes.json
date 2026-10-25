@@ -1,0 +1,41 @@
+{
+  "fixed_input": "d402f893d159ac26da5db4d18c13510afdbce12f",
+  "files": [
+    {
+      "path": "tools/test-inventory/historical.json",
+      "input_sha256": "cd9c5c4908caf3150cd962e289f7310908c3a5b2285cd26cae624d520068af65",
+      "current_sha256": "cd9c5c4908caf3150cd962e289f7310908c3a5b2285cd26cae624d520068af65",
+      "byte_identical": true
+    },
+    {
+      "path": "tools/test-inventory/required.json",
+      "input_sha256": "1ab6cd9cd95a0ace872085d763547707cb5c5948b727d8f90c2636fc4e8838b2",
+      "current_sha256": "1ab6cd9cd95a0ace872085d763547707cb5c5948b727d8f90c2636fc4e8838b2",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-test-support/tests/perf_baseline.txt",
+      "input_sha256": "e701660042110270f94ea21c78fb9114084afcd1cc57d60320f8e97dfc11d5c4",
+      "current_sha256": "e701660042110270f94ea21c78fb9114084afcd1cc57d60320f8e97dfc11d5c4",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-conformance/tests/baselines/components.txt",
+      "input_sha256": "010e34d2fec2cae84128911faa1bb19a30b44fd1cce8e0e4c7b1521a33383d70",
+      "current_sha256": "010e34d2fec2cae84128911faa1bb19a30b44fd1cce8e0e4c7b1521a33383d70",
+      "byte_identical": true
+    },
+    {
+      "path": "tools/acceptance_policy.json",
+      "input_sha256": "7a0133ab3724d93de580377ab0e7cfe26a73773bb5e3129557046a55163e1287",
+      "current_sha256": "7a0133ab3724d93de580377ab0e7cfe26a73773bb5e3129557046a55163e1287",
+      "byte_identical": true
+    },
+    {
+      "path": "component-ownership.json",
+      "input_sha256": "4265116e1ee48092fec6f2a108893ac747bc1c636ca4b279dd9f64e8492822a4",
+      "current_sha256": "4265116e1ee48092fec6f2a108893ac747bc1c636ca4b279dd9f64e8492822a4",
+      "byte_identical": true
+    }
+  ]
+}
