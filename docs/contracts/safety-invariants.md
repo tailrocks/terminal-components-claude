@@ -21,7 +21,7 @@ A lone Escape remains held until another byte arrives, so the bridge does not sp
 | Contract source | Required behavior |
 |---|---|
 | `esc_bridge.rs:1–8` | The module description explains the double-Escape case. Keep the first Escape on the side PTY and hold the suffix until Session receives standalone Escape. |
-| `esc_bridge.rs:21–21` | The stored index identifies the second Escape in the first double-Escape pair. |
+| `esc_bridge.rs:21–21` | Historical test-only helper: the stored index identifies the second Escape in the first double-Escape pair. This helper is removed with the legacy tests. |
 | `esc_bridge.rs:252–252` | The saved termios value is the real terminal state captured before the bridge switches it to raw mode. |
 | `esc_bridge.rs:293–299` | A query error is inconclusive; decline protocol enablement. The bridge uses a private two-second deadline and never falls back to the unbridged detector. |
 | `esc_bridge.rs:796–800` | Install before Crossterm poll/read. Those calls bind the process-wide reader to stdin; a later swap leaves it on the wrong descriptor. |
@@ -71,9 +71,11 @@ Each row identifies the original `SAFETY` comment lines and the next unsafe oper
 - Keep `[workspace.lints.rust] unsafe_code = "deny"` and the existing `undocumented_unsafe_blocks` policy. Do not add or widen a lint allowance.
 - Sol high decision `T37-SAFETY-01` found no active `undocumented_unsafe_blocks` conflict in the foundation manifests. Keep the current lint policy. Stop and request a new scoped Sol high decision if another active lint conflict appears.
 - Keep the source mapping and rationale when the corresponding operation remains. Update the source commit, file hash, and line map when the operation moves or changes.
-- The source API inventory is broader than this page. This first transfer maps the ten `esc_bridge.rs` API groups that define the bridge contract; each other owner must classify API prose before removing it.
+- The source API inventory is broader than this page. This first transfer maps nine production `esc_bridge.rs` API groups that define the bridge contract and one historical test-only helper group. Each other owner must classify API prose before removing it.
 - T37 runs no replacement tests. Product behavior remains `NOT VERIFIED` until an approved later task proves it through real production paths.
 
 ## Evidence limits
 
 The inventory records source comments and source hashes. It does not prove that the current implementation is safe or that the described behavior passed a test. T37 must preserve the operations and contracts. A later safety review must inspect the exact implementation at its reviewed source revision.
+
+Finding F17 and task T20 remain open. The source record does not establish one exclusive owner for the session lifetime. Cleanup after a session ends can still run from the panic hook. Restore consumes saved state before `dup2` succeeds. Keep these as open source risks and recheck them in T20. This contract does not certify them as resolved.

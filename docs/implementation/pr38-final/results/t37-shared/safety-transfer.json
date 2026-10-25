@@ -28,13 +28,47 @@
     "maintained_contract": "docs/contracts/safety-invariants.md",
     "root_index": "SAFETY.md",
     "lint_policy": "Preserve unsafe_code deny and existing undocumented_unsafe_blocks policy; no allowance added.",
-    "sol_high_decision": "T37-SAFETY-01: no active undocumented_unsafe_blocks conflict in foundation manifests."
+    "sol_high_decision": "T37-SAFETY-01: no active undocumented_unsafe_blocks conflict in foundation manifests.",
+    "esc_bridge_api_prose_disposition": {
+      "production_groups": 9,
+      "historical_test_only_groups": 1,
+      "historical_helper_source": "crates/termrock-session/src/esc_bridge.rs:21\u201321"
+    },
+    "open_source_risks": [
+      {
+        "finding": "F17",
+        "task": "T20",
+        "risk": "One exclusive owner for the session lifetime is not established."
+      },
+      {
+        "finding": "F17",
+        "task": "T20",
+        "risk": "Cleanup after a session ends can still run from the panic hook."
+      },
+      {
+        "finding": "F17",
+        "task": "T20",
+        "risk": "Restore consumes saved state before dup2 succeeds."
+      }
+    ]
   },
   "limits": [
     "No source file changed.",
     "No test or build ran.",
     "This is a documentation transfer, not a new unsafe-code audit or product behavior proof."
   ],
-  "maintained_contract_sha256": "44b635155f4b527524cbc0efcd802443b419a34a5c443eb07b6ebe57ab6873cb",
-  "root_safety_sha256": "c7050f7391717e6ac6257aa411fa19cab99e8ad5889001aec026d4dc41a38034"
+  "maintained_contract_sha256": "49e75678ffc711ff133cffc5689a55c43c2df56b621b11d11a5dfc618c870c1a",
+  "root_safety_sha256": "c7050f7391717e6ac6257aa411fa19cab99e8ad5889001aec026d4dc41a38034",
+  "review_status": "PENDING_EXACT_OUTPUT_REVIEW",
+  "review_correction": {
+    "reviewer": "/root/t00_independent_review",
+    "reviewer_model": "gpt-6.1-sol",
+    "reviewer_effort": "high",
+    "items": [
+      "Label source line 21 as a historical cfg(test) helper.",
+      "Report nine production API-prose groups and one historical test-only helper.",
+      "Name F17/T20 open risks: session lifetime owner, panic-hook cleanup after session end, and state consumed before dup2 succeeds."
+    ],
+    "prior_reviewed_commit": "2f8b1b7e77ab0606082489cc491844ed67b53d3a"
+  }
 }
