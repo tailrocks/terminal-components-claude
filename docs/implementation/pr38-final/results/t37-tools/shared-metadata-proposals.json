@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "fixed_input_revision": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "product_source_baseline": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "owner": "T37 shared metadata/config owner",
+  "status": "proposal from T37-tools source ownership; no manifest, lock, config, or generated workflow edited in this fragment",
+  "retire_packages": [
+    {
+      "package": "termrock-test-support",
+      "manifest": "crates/termrock-test-support/Cargo.toml",
+      "source_evidence": "T00 package role is test-only; all source/test helpers retired. Only remaining source token was TOOLING_MEMBERS, now removed.",
+      "manifest_edges": [
+        "workspace member and root [workspace.dependencies] key",
+        "dev-dependency edges in holla-ui, jackin-preview-app, showcase-demos, showcase-ui, tablepro-ui, termrock-controls, termrock-feedback, termrock-fields, termrock-grid, termrock-navigation, termrock-overlays, termrock-runtime, termrock-shell, termrock-text, termrock-theme, termrock-viewport",
+        "normal dependency edge in retained termrock-xtask; no retained source import/call",
+        "normal dependency edge in termrock-conformance; package is retired"
+      ],
+      "preserve_paths": [
+        "crates/termrock-test-support/tests/perf_baseline.txt"
+      ]
+    },
+    {
+      "package": "termrock-conformance",
+      "manifest": "crates/termrock-conformance/Cargo.toml",
+      "source_evidence": "All package source/tests were T00 legacy conformance suite; source lib was a one-byte newline; `visual_baseline` target retired.",
+      "manifest_edges": [
+        "workspace member",
+        "default member",
+        "root [workspace.dependencies] key",
+        "all package dependencies and target declarations"
+      ],
+      "preserve_paths": [
+        "crates/termrock-conformance/tests/baselines/components.txt"
+      ]
+    },
+    {
+      "package": "frozen-cli-frame-support",
+      "manifest": "tools/frozen-cli-frame-support/Cargo.toml",
+      "source_evidence": "T37-FROZEN-01 Sol high decision retires exclusive legacy harness closure; helper source, extension data, patch, and CLI retired.",
+      "manifest_edges": [
+        "standalone package manifest and lockfile",
+        "remove now-unneeded .velnor discovery exclusion if applicable"
+      ],
+      "preserve_paths": [
+        "visual-baseline unsigned annotated tag, oracle, snapshots, immutable receipts/reports/provenance/hashes"
+      ]
+    },
+    {
+      "package": "qualified-capture harness",
+      "manifest": "tools/qualified-capture/harness/Cargo.toml",
+      "source_evidence": "T37-QUALIFIED-01 Sol high decision retires exact source lane.",
+      "manifest_edges": [
+        "orphan harness manifest and Cargo.lock"
+      ],
+      "preserve_paths": [
+        "tools/qualified-capture/pins.json",
+        "tools/qualified-capture/licenses/tui-snap-LICENSE",
+        "tools/qualified-capture/licenses/tui-test-LICENSE",
+        "tools/qualified-capture/licenses/vt100-LICENSE",
+        "tools/qualified-capture/proof/** immutable outputs, receipts, hashes, and repair provenance"
+      ],
+      "scope_note": "No README is tracked below tools/qualified-capture in fixed c817; preservation of a nonexistent path is not claimed."
+    }
+  ],
+  "retain_packages_and_prune_test_edges": [
+    {
+      "package": "visual-harness",
+      "manifest": "crates/visual-harness/Cargo.toml",
+      "retain": [
+        "four explicit test=false application bins and all normal app dependencies; package is selected in .velnor and has a Rust / visual-harness production-build CI job"
+      ],
+      "remove": [
+        "[[test]] visual_baseline target",
+        "dev-dependencies libtest-mimic, sha2, termrock-core, tuiscotti after confirming only the deleted test suite used them"
+      ],
+      "preserve_paths": [
+        "crates/visual-harness/baselines/oracle/ORACLE.toml"
+      ]
+    },
+    {
+      "package": "termrock-e2e",
+      "manifest": "crates/termrock-e2e/Cargo.toml",
+      "retain": [
+        "admit_expected_generation bin",
+        "normal tuiscotti dependency for retained visual/admission APIs"
+      ],
+      "remove": [
+        "all old test targets",
+        "dev-dependency jsonschema",
+        "Unix dev-dependencies nix and termpane"
+      ],
+      "lockfile": "crates/termrock-e2e/Cargo.lock"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "manifest": "crates/termrock-visibility-tests/Cargo.toml",
+      "retain": [
+        "capture-command diagnostic bin",
+        "nextest-result-reader diagnostic bin",
+        "dependencies flate2, libc, serde_json, sha2, tar"
+      ],
+      "remove": [
+        "fixture bin target",
+        "tempfile dependency (currently under [dependencies]; no retained source use)"
+      ],
+      "lockfile": "crates/termrock-visibility-tests/Cargo.lock"
+    },
+    {
+      "package": "termrock-xtask",
+      "manifest": "crates/termrock-xtask/Cargo.toml",
+      "retain": [
+        "operational xtask package and production deps other than test-support"
+      ],
+      "remove": [
+        "termrock-test-support normal dependency",
+        "pulldown-cmark normal dependency (retired doc_inventory helper was its only source consumer; verify all targets)",
+        "tempfile dev dependency"
+      ],
+      "source_changes": [
+        "remove crates/termrock-xtask/src/doc_inventory.rs and sole pub mod export under T37-DOC-INVENTORY-01",
+        "retain ownership library module and check-ownership CLI"
+      ]
+    },
+    {
+      "package": "termrock-visibility-publisher",
+      "manifests": [
+        "crates/termrock-visibility-publisher/Cargo.toml",
+        "tools/termrock-visibility-publisher/Cargo.toml"
+      ],
+      "retain": [
+        "both operational publisher packages, APIs, and binaries"
+      ],
+      "remove": [
+        "rcgen dev dependency in each package"
+      ]
+    },
+    {
+      "package": "external-consumer-demo",
+      "manifest": "external-consumer-demo/Cargo.toml",
+      "retain": [
+        "standalone consumer demo and termrock public-facade dependency"
+      ],
+      "remove": [
+        "ratatui dev dependency; no retained source use"
+      ]
+    },
+    {
+      "package": "refactor-proof",
+      "manifest": "tools/refactor-proof/Cargo.toml",
+      "retain": [
+        "tc-proof and tc-proof-host binaries, observer/host proof paths, tuisnap production dependency"
+      ],
+      "remove": [
+        "tempfile from normal and dev dependency tables (no retained source use)",
+        "libc dev dependency (no retained source use)"
+      ]
+    }
+  ],
+  "shared_metadata_files_to_update": [
+    "root Cargo.toml workspace members/default-members/workspace dependency keys and consumer edges",
+    "root Cargo.lock and relevant standalone locks above",
+    ".velnor/config.toml only for retired package/exclusion or test lanes; retain visual-harness production package selection",
+    "generated .github/workflows/ci.yml after Velnor input edits: remove testing jobs and retired package tasks; retain rust-visual-harness production build job",
+    "active manifest comments that refer to removed tests/doc-inventory test, as listed in shared owner message"
+  ],
+  "config_candidates": [
+    "crates/termrock-visibility-tests/.config/nextest.toml looks specific to the deleted test execution lane; remove only if no retained operational consumer requires it. The nextest-result-reader binary and result protocol remain."
+  ],
+  "preservation_constraints": [
+    "Preserve root testing feature edge for selection_binding_chords; source ownership did not change it.",
+    "Do not repin qualified-capture or update historical approval digests.",
+    "Do not remove immutable baseline/receipt/proof data.",
+    "Regenerate Velnor-managed workflow bytes only through `mise exec -- velnor-actions generate`.",
+    "No replacement test/harness/fixture/doctest/snapshot/gate is authorized before T38."
+  ],
+  "review_evidence": "Sol high decisions T37-E2E-01, T37-FROZEN-01, T37-QUALIFIED-01, T37-E2E-SCHEMA-01, T37-CAPTURE-01; file-level source mapping is file-deletion-map.json.; T37-INVENTORY-01; T37-DOC-INVENTORY-01; T37-E2E-SCHEMA-02"
+}

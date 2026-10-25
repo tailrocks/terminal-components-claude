@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed free-space guard for Cargo commands."""
+
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def _exists(path: Path) -> bool:
 
 
 def _effective_env(env: Mapping[str, str], cwd: Path, mise_command: str = "mise") -> dict[str, str]:
-    """Resolve mise's project environment without exposing its values."""
+
     mise = mise_command if os.path.isabs(mise_command) else shutil.which(mise_command, path=env.get("PATH"))
     if not mise:
         raise GuardError("mise is unavailable; refusing to run Cargo")
@@ -82,7 +82,7 @@ def _expand_path(value: str, env: Mapping[str, str], cwd: Path) -> Path:
 
 
 def _mbx_locations(env: Mapping[str, str], cwd: Path, home: Path) -> tuple[Path, Path]:
-    """Return MBX cache and managed target roots using documented precedence."""
+
     system = sys.platform
     if system == "darwin":
         cache_default = home / "Library" / "Caches" / "mbx"
@@ -168,7 +168,7 @@ def _cargo_workspace_root(cwd: Path) -> Path:
 
 
 def _cargo_config_documents(env: Mapping[str, str], cwd: Path, home: Path) -> list[tuple[Path, dict]]:
-    """Load applicable Cargo configs and reject indirect path-changing policy."""
+
     configs: list[Path] = []
     for directory in (cwd, *cwd.parents):
         for name in (".cargo/config.toml", ".cargo/config"):
@@ -193,7 +193,7 @@ def _cargo_config_documents(env: Mapping[str, str], cwd: Path, home: Path) -> li
 
 
 def _cargo_config_output_paths(env: Mapping[str, str], cwd: Path, home: Path) -> list[Path]:
-    """Include configured Cargo output roots; inspect every applicable config."""
+
     paths: list[Path] = []
     for config_path, config in _cargo_config_documents(env, cwd, home):
         build = config.get("build", {})

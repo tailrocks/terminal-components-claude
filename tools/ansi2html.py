@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Convert `tmux capture-pane -e -p` output (SGR truecolor) into a standalone HTML page.
 
-Usage: ansi2html.py <in.ansi> <out.html> [cols] [rows]
-"""
 import html
 import re
 import sys
@@ -127,7 +124,7 @@ def apply(state: State, params: str):
 def convert(text: str, cols: int, rows: int, default_fg="#d0d0d0", default_bg="#000000") -> str:
     lines = text.split("\n")
     out = []
-    # tmux emits SGR deltas that carry across line boundaries
+
     state = State()
     for line in lines[:rows]:
         buf = []

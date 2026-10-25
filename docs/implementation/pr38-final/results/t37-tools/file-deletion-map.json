@@ -1,0 +1,3599 @@
+{
+  "schema_version": 1,
+  "fixed_input_revision": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "scope": "Exclusive T37-tools-owned source/test/script trees; result evidence is excluded. Line ranges use original c817 line numbers from zero-context unified diff. Full-file D rows use the complete original file line span.",
+  "changed_paths": [
+    {
+      "path": "crates/termrock-conformance/src/lib.rs",
+      "change": "D",
+      "input_sha256_c817": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/button_busy_frames.rs",
+      "change": "D",
+      "input_sha256_c817": "3d02918138110c541d61e58bca2c97f54dbd9a46c3b2907cd07a88a5d5800efc",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          124
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/conformance.rs",
+      "change": "D",
+      "input_sha256_c817": "b8c59af9b49bcb09ed03967bd837fd9baf229671d7a61067841d99435c6216bb",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          5255
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/control_states.rs",
+      "change": "D",
+      "input_sha256_c817": "bfad0f8056256498bf12085a984fa072173038c5224abd98447d36682ded2305",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          7265
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/cursor_provenance.rs",
+      "change": "D",
+      "input_sha256_c817": "8be91548c6e2450823018fc0e11fd95049db1050de840f65bc54c88ec655ad7e",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          268
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/fixtures/text.rs",
+      "change": "D",
+      "input_sha256_c817": "7a4bbe0ca73cf507f966fb3123ed501cd133b63845b27581385f32592f20fd95",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          63
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/parity_burndown.rs",
+      "change": "D",
+      "input_sha256_c817": "f50650bd96af4f4b1a3a35bee0bbbce3fd600bc7932d3e003c6994a765fdebcf",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          107
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/render.rs",
+      "change": "D",
+      "input_sha256_c817": "07161b5d859d36bc1318ff7a5aa2ecd0429b08ea4b6db109dc562b588e0396e3",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          538
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/render_components.rs",
+      "change": "D",
+      "input_sha256_c817": "e4c79f2ad23eb3788dfae190ee5327a5cc4a687a5aab239d5724c01352f6b5c4",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1939
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/tuiscotti_qualification.rs",
+      "change": "D",
+      "input_sha256_c817": "c9de612bf47f12f205507ffdc69e74925d50f425159415c5b90cda1b4811a84e",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          236
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/audit.rs",
+      "change": "D",
+      "input_sha256_c817": "c03f5b634c3d159392d91af79cad945d817d44f79ca72c2a33f10f668dfc7bf5",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          190
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/button_busy_live.rs",
+      "change": "D",
+      "input_sha256_c817": "a054b19a113610d94ac33acc3c1c41534542cc664576a7099aed186dd709a964",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          639
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/holla.rs",
+      "change": "D",
+      "input_sha256_c817": "00c826a36d03e9fb3acd624c546745ce1ac1e033f6514d472434c6e515941b31",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          533
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/holla_journeys.rs",
+      "change": "D",
+      "input_sha256_c817": "d29b978309a77084313e7faef76383c2551f6de5c1d950e301e8d4743bdca678",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          225
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/holla_pending_h1.rs",
+      "change": "D",
+      "input_sha256_c817": "3b2fd2cc87971dd37536e6ef0f80897d9b740195aaa82c2821acb1c1318d3673",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          2040
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/holla_pending_h2.rs",
+      "change": "D",
+      "input_sha256_c817": "3bd04f08140716c21b649dc67cac199ef102c13dfb8d9ee6b0e60cd122290659",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1387
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/holla_pending_h3.rs",
+      "change": "D",
+      "input_sha256_c817": "a4307202501a53f3e8cc9bdb928ff5918cb63f45a27b05fe9368123adfa90521",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1517
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/holla_pending_h4.rs",
+      "change": "D",
+      "input_sha256_c817": "f88d1977c1b677252352d99a1af98c508c5fc422bb7fbb52c73ca5012bbfa4c5",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1498
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/holla_pending_h5.rs",
+      "change": "D",
+      "input_sha256_c817": "34b819cb353056e3f43f5055178be29f8ff4d09b2a0d84d8800b0924982ae687",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1427
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/holla_pending_h6.rs",
+      "change": "D",
+      "input_sha256_c817": "c9f5b2952d5cf56b378d5a0ed31c307385a820599a32145091238b1ae0895a3d",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          527
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/holla_pending_h7.rs",
+      "change": "D",
+      "input_sha256_c817": "f1fc89dc89135baf1853d5b72a29aa06b057069416005d99a3bb06792f99d270",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          515
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/jackin.rs",
+      "change": "D",
+      "input_sha256_c817": "1162c6462535dc0d1922264e90ff8d253901ab05736c2ab9f66c41d43e1d709f",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          162
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/jackin_journeys.rs",
+      "change": "D",
+      "input_sha256_c817": "f1ee4bd2ce69c4450f70f1bb05a26d2bcec1c40b88610d5cc94e82bb511dd363",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          293
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/jackin_pending_j1.rs",
+      "change": "D",
+      "input_sha256_c817": "512dac1caca8fe09270e917c04a9c9e5a6fe4bb3daf19f0fe14fc87d10f0191d",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          2007
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/jackin_pending_j2.rs",
+      "change": "D",
+      "input_sha256_c817": "a24b41bbc4b602ee529168efb415ec0e1f929e090e042597ce01850da8fe16d7",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          3148
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/main.rs",
+      "change": "D",
+      "input_sha256_c817": "8fb932781aa84a689fafccf0ad323e45c122b3e09b2c080648202b8f71c17fb1",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1056
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/negative_controls_phase6a.rs",
+      "change": "D",
+      "input_sha256_c817": "3a8f073eedc7fb11417b172de26aaab7f120bac2726e1727347b5dcac05c0b5b",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          386
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/negative_controls_phase8ap.rs",
+      "change": "D",
+      "input_sha256_c817": "53c8c6d98bde48fe6f660b17f37731db2f6da4d417c9f30e881e7871bb7faf19",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          559
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/pointer.rs",
+      "change": "D",
+      "input_sha256_c817": "80253db54be625ff3316bcf0c8209b4d3f6bb40de9d2c32917abb113de439772",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          635
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/showcase.rs",
+      "change": "D",
+      "input_sha256_c817": "17e24505ba008247b33e98cf8dc7cefd86061f8d933535ab5754fb4837e0702f",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          130
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/showcase_journeys.rs",
+      "change": "D",
+      "input_sha256_c817": "6d2b6c5634cf0e4ffc2b992b29688ace84019770e87203f8d9efa1b86e1033a6",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          202
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/showcase_pending_s1.rs",
+      "change": "D",
+      "input_sha256_c817": "cb42a22bf11559d38355e7bc7a18c075d24dcd387b2f125157e48db2f76cd799",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          2065
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/showcase_pending_s2.rs",
+      "change": "D",
+      "input_sha256_c817": "300dfd6c0f5cec8ffdc7f489e1c35a3490ef26226534a58df5475988741acbd2",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          4243
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/showcase_pending_s3.rs",
+      "change": "D",
+      "input_sha256_c817": "37e273b0bb98de1992ace9bfd9aea977ed0638e61dc2e450c4648a5700b9098c",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          6511
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/showcase_pending_s4.rs",
+      "change": "D",
+      "input_sha256_c817": "dfa62a56c6048d9542f46a17f1e3fe240c879e40fdfda4664eb4d44dba6e4a8e",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          5067
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/showcase_pending_s5.rs",
+      "change": "D",
+      "input_sha256_c817": "65d85ea70fa87a30464a3cabb2452330c799fd45a34c083e0ef774bee7bd4241",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          4313
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/support.rs",
+      "change": "D",
+      "input_sha256_c817": "564364ce40bb25580336b54c7c46f58c71f0d89347c6b1b3c27bd119ab04596f",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          3088
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/support/scoped_targets.rs",
+      "change": "D",
+      "input_sha256_c817": "3a3c1ecbd7711d165c5a9cf361f7dcea052721fb938556b5dba2574f7daf8bcb",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          268
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/support/state_waits.rs",
+      "change": "D",
+      "input_sha256_c817": "bdd7fbca66fe702376d051a81e65b119cf364f28ab8bba1b42062697d3457af1",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          123
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/support/typed_input.rs",
+      "change": "D",
+      "input_sha256_c817": "4c83c8f9998a28bb555cb53d32f7e0e062bd6fabc61c44897256b4269fbc5ff3",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          390
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/tablepro.rs",
+      "change": "D",
+      "input_sha256_c817": "36842392808f268e73f8c1a9a5c0a2ebcb910d270f1984b69f1fe0c8decaf05e",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          73
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/tablepro_journeys.rs",
+      "change": "D",
+      "input_sha256_c817": "c448840dd6df1b1cd93e3c91e34376a44a06b30327f6a1d7f9772fca217341b0",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          232
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/tablepro_pending_t1.rs",
+      "change": "D",
+      "input_sha256_c817": "fa83e9d8aef11a6f7c273d162526d5ddb324b7d23a387c3e9a42bebb509f850f",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1681
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/visual_baseline/tablepro_pending_t2.rs",
+      "change": "D",
+      "input_sha256_c817": "0d42c2159e3a7250893fd2a6df2ac65539ea877f7a4e59ca89e6d78489e208d8",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          3352
+        ]
+      ],
+      "deletion_classification": "retired-conformance-suite",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy test targets and package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-e2e/cases/deferred-obligations.json",
+      "change": "D",
+      "input_sha256_c817": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          33
+        ]
+      ],
+      "deletion_classification": "retired-e2e-tests-or-inputs",
+      "authority_and_reason": "T37-E2E-01 / T00 fixed inventory; preserve admission CLI/API and all twelve versioned schemas"
+    },
+    {
+      "path": "crates/termrock-e2e/src/admission.rs",
+      "change": "M",
+      "input_sha256_c817": "ceedd85370e1bced6312affb65bb23da888a9ccdcc5b3b453af610f77d711dc5",
+      "output_sha256": "23057fc57dea158b559d8e07328de1a673bfcefdc0c9a4c41a33b067c03b1fd3",
+      "removed_input_line_ranges": [
+        [
+          414,
+          532
+        ]
+      ],
+      "deletion_classification": "e2e-retirement-closure",
+      "authority_and_reason": "T37-E2E-01 Sol high decision: retain admission API, remove PTY/tag/deferred runner and exclusive trust/write-policy closure"
+    },
+    {
+      "path": "crates/termrock-e2e/src/lib.rs",
+      "change": "M",
+      "input_sha256_c817": "501bdc0adf0d51aba4854ae3024f4270888ee9a08b77a51663e47bcc2e2abc60",
+      "output_sha256": "d0a78eff4729aae1a3dcb538c0b48b60592c83f45f0d95607cf121a84547b721",
+      "removed_input_line_ranges": [
+        [
+          7,
+          7
+        ],
+        [
+          19,
+          19
+        ],
+        [
+          20,
+          20
+        ],
+        [
+          25,
+          25
+        ],
+        [
+          31,
+          38
+        ],
+        [
+          43,
+          44
+        ],
+        [
+          50,
+          50
+        ],
+        [
+          439,
+          484
+        ],
+        [
+          492,
+          523
+        ],
+        [
+          704,
+          722
+        ],
+        [
+          768,
+          796
+        ],
+        [
+          853,
+          891
+        ],
+        [
+          1083,
+          1090
+        ],
+        [
+          1173,
+          1187
+        ],
+        [
+          1264,
+          1287
+        ],
+        [
+          1593,
+          1597
+        ],
+        [
+          1756,
+          1785
+        ],
+        [
+          2519,
+          2534
+        ],
+        [
+          2536,
+          2541
+        ],
+        [
+          2544,
+          2569
+        ],
+        [
+          2573,
+          2581
+        ],
+        [
+          2584,
+          2591
+        ],
+        [
+          2593,
+          2593
+        ],
+        [
+          2595,
+          2601
+        ],
+        [
+          2605,
+          2631
+        ],
+        [
+          2633,
+          2650
+        ],
+        [
+          2652,
+          2994
+        ],
+        [
+          2997,
+          3036
+        ],
+        [
+          3039,
+          3041
+        ],
+        [
+          3044,
+          3082
+        ],
+        [
+          3084,
+          3084
+        ],
+        [
+          3088,
+          3094
+        ],
+        [
+          3096,
+          3101
+        ],
+        [
+          3103,
+          3105
+        ],
+        [
+          3107,
+          3107
+        ],
+        [
+          3112,
+          3115
+        ],
+        [
+          3119,
+          3167
+        ],
+        [
+          3169,
+          3170
+        ],
+        [
+          3173,
+          3179
+        ],
+        [
+          3185,
+          3583
+        ],
+        [
+          3646,
+          3647
+        ],
+        [
+          3660,
+          3660
+        ],
+        [
+          3678,
+          3681
+        ],
+        [
+          3851,
+          3853
+        ],
+        [
+          3856,
+          3856
+        ],
+        [
+          3879,
+          3879
+        ],
+        [
+          3882,
+          3882
+        ],
+        [
+          3897,
+          3898
+        ],
+        [
+          3900,
+          4106
+        ],
+        [
+          4225,
+          4225
+        ],
+        [
+          4422,
+          4423
+        ],
+        [
+          4667,
+          4793
+        ],
+        [
+          4854,
+          4856
+        ],
+        [
+          4922,
+          4951
+        ],
+        [
+          4991,
+          5290
+        ],
+        [
+          5762,
+          5770
+        ],
+        [
+          6004,
+          6004
+        ],
+        [
+          6380,
+          6400
+        ],
+        [
+          6402,
+          6408
+        ],
+        [
+          6410,
+          6425
+        ],
+        [
+          6428,
+          6428
+        ],
+        [
+          6431,
+          6539
+        ],
+        [
+          6541,
+          6542
+        ],
+        [
+          6544,
+          6544
+        ],
+        [
+          6546,
+          6546
+        ],
+        [
+          6548,
+          6555
+        ],
+        [
+          6557,
+          6742
+        ],
+        [
+          6746,
+          6765
+        ],
+        [
+          6767,
+          6768
+        ],
+        [
+          6770,
+          6771
+        ],
+        [
+          6774,
+          7158
+        ],
+        [
+          7160,
+          7172
+        ],
+        [
+          7175,
+          7193
+        ],
+        [
+          7197,
+          7267
+        ],
+        [
+          7269,
+          7328
+        ],
+        [
+          7330,
+          7425
+        ],
+        [
+          7428,
+          7489
+        ],
+        [
+          7491,
+          7491
+        ],
+        [
+          7494,
+          7494
+        ],
+        [
+          7496,
+          7496
+        ],
+        [
+          7499,
+          7536
+        ],
+        [
+          7542,
+          7631
+        ],
+        [
+          7633,
+          7633
+        ],
+        [
+          7636,
+          7646
+        ],
+        [
+          7648,
+          7648
+        ],
+        [
+          7651,
+          7652
+        ],
+        [
+          7654,
+          7654
+        ],
+        [
+          7660,
+          7715
+        ],
+        [
+          7718,
+          7726
+        ],
+        [
+          7729,
+          7738
+        ],
+        [
+          7740,
+          7740
+        ],
+        [
+          7744,
+          7751
+        ],
+        [
+          7753,
+          7753
+        ],
+        [
+          7758,
+          7774
+        ],
+        [
+          7776,
+          7777
+        ],
+        [
+          7780,
+          7798
+        ],
+        [
+          7801,
+          7815
+        ],
+        [
+          7817,
+          11073
+        ],
+        [
+          11075,
+          11901
+        ],
+        [
+          11904,
+          12487
+        ],
+        [
+          12489,
+          12764
+        ],
+        [
+          12766,
+          12828
+        ],
+        [
+          12830,
+          12922
+        ]
+      ],
+      "deletion_classification": "e2e-retirement-closure",
+      "authority_and_reason": "T37-E2E-01 Sol high decision: retain admission API, remove PTY/tag/deferred runner and exclusive trust/write-policy closure; remove orphan RECEIPT_SCHEMA_V2 (no retained admission/status consumer), while retaining RECEIPT_SCHEMA v3 for status.py:708."
+    },
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "change": "M",
+      "input_sha256_c817": "a918e73a811f6d2f22b82bf3fce5ac9f800d68131991831d5ce399a4493e4a52",
+      "output_sha256": "b4e80409139112c7116d33831c44d07e545edb710eb3804cd728207c31b57180",
+      "removed_input_line_ranges": [
+        [
+          534,
+          534
+        ],
+        [
+          540,
+          542
+        ],
+        [
+          561,
+          561
+        ],
+        [
+          995,
+          1807
+        ]
+      ],
+      "deletion_classification": "e2e-retirement-closure",
+      "authority_and_reason": "T37-E2E-01 Sol high decision: retain admission API, remove PTY/tag/deferred runner and exclusive trust/write-policy closure"
+    },
+    {
+      "path": "crates/termrock-e2e/tests/command_lane.rs",
+      "change": "D",
+      "input_sha256_c817": "7a1a13b3a5c760b53f58d1e67615b97f1009fff0e3c26cef34ffa58697461cee",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          3687
+        ]
+      ],
+      "deletion_classification": "retired-e2e-tests-or-inputs",
+      "authority_and_reason": "T37-E2E-01 / T00 fixed inventory; preserve admission CLI/API and all twelve versioned schemas"
+    },
+    {
+      "path": "crates/termrock-e2e/tests/contract.rs",
+      "change": "D",
+      "input_sha256_c817": "2738a7a0fbc5b2cee405672f07351a49e57ec4f7175d12c97922ad54b21c4e1c",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1520
+        ]
+      ],
+      "deletion_classification": "retired-e2e-tests-or-inputs",
+      "authority_and_reason": "T37-E2E-01 / T00 fixed inventory; preserve admission CLI/API and all twelve versioned schemas"
+    },
+    {
+      "path": "crates/termrock-e2e/tests/holla_help_overlay.rs",
+      "change": "D",
+      "input_sha256_c817": "6583a6ef5825e630d135fbda0b7c468c51a184d8a4b427dc89a9f5f6df24fc64",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          87
+        ]
+      ],
+      "deletion_classification": "retired-e2e-tests-or-inputs",
+      "authority_and_reason": "T37-E2E-01 / T00 fixed inventory; preserve admission CLI/API and all twelve versioned schemas"
+    },
+    {
+      "path": "crates/termrock-e2e/tests/holla_tag_capture.rs",
+      "change": "D",
+      "input_sha256_c817": "4dea047a216069d9f47bd34a31002e7433fc1850898e8aaf8f023f2c0028c489",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          52
+        ]
+      ],
+      "deletion_classification": "retired-e2e-tests-or-inputs",
+      "authority_and_reason": "T37-E2E-01 / T00 fixed inventory; preserve admission CLI/API and all twelve versioned schemas"
+    },
+    {
+      "path": "crates/termrock-e2e/tests/shared_journeys.rs",
+      "change": "D",
+      "input_sha256_c817": "9243d25741e24744f9b0ef6dd7dba277e4a344cdc5f67b1df5d0d21c549b6639",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          47
+        ]
+      ],
+      "deletion_classification": "retired-e2e-tests-or-inputs",
+      "authority_and_reason": "T37-E2E-01 / T00 fixed inventory; preserve admission CLI/API and all twelve versioned schemas"
+    },
+    {
+      "path": "crates/termrock-test-support/src/conformance/driver.rs",
+      "change": "D",
+      "input_sha256_c817": "0fb914ba220e03367fc3d848acd2cdcf78305a02a74c492219361544c21cd0b7",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1621
+        ]
+      ],
+      "deletion_classification": "retired-test-support-package",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy tests/helpers and dependent package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-test-support/src/conformance/mod.rs",
+      "change": "D",
+      "input_sha256_c817": "ef65fc269482f6147f303513438e0ea0bdb3b2796b8f5ab951317275ebf0c348",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          463
+        ]
+      ],
+      "deletion_classification": "retired-test-support-package",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy tests/helpers and dependent package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-test-support/src/digest.rs",
+      "change": "D",
+      "input_sha256_c817": "d28f6d68866c3ae02d71d06a313c42da600da7a699cd5c7c94bf59990f8a9610",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          706
+        ]
+      ],
+      "deletion_classification": "retired-test-support-package",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy tests/helpers and dependent package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-test-support/src/harness.rs",
+      "change": "D",
+      "input_sha256_c817": "0e44798486d7ca5daf604a79b10ad944f8c2ca1fd8d8e6d8f27f5186c2561fd8",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          551
+        ]
+      ],
+      "deletion_classification": "retired-test-support-package",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy tests/helpers and dependent package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-test-support/src/harness_scoped_targets.rs",
+      "change": "D",
+      "input_sha256_c817": "16daffff6237560f682c355b0a7a3b5038c66bc23c62ed285c35bc6598041fd9",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          248
+        ]
+      ],
+      "deletion_classification": "retired-test-support-package",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy tests/helpers and dependent package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-test-support/src/harness_state_waits.rs",
+      "change": "D",
+      "input_sha256_c817": "8258c77f5cefcd099096c2dff9453f6e1de523ad661071c3e165aad6ec91ac1a",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          146
+        ]
+      ],
+      "deletion_classification": "retired-test-support-package",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy tests/helpers and dependent package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-test-support/src/harness_typed_input.rs",
+      "change": "D",
+      "input_sha256_c817": "4f4c0366407f943366bb8eb8e0805574243b0ede638998ce2aafdc3359e3de56",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          113
+        ]
+      ],
+      "deletion_classification": "retired-test-support-package",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy tests/helpers and dependent package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-test-support/src/lib.rs",
+      "change": "D",
+      "input_sha256_c817": "a9dd9d12ab98af3c1c45a6cf66aa9276bf71890d5239af696a68ad2df4d31202",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          61
+        ]
+      ],
+      "deletion_classification": "retired-test-support-package",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy tests/helpers and dependent package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-test-support/src/perf.rs",
+      "change": "D",
+      "input_sha256_c817": "50b3bc5402db3d5962567d8c50473a5f3e11b1a9cb7a92ad76b4115967993931",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          494
+        ]
+      ],
+      "deletion_classification": "retired-test-support-package",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy tests/helpers and dependent package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-test-support/tests/perf.rs",
+      "change": "D",
+      "input_sha256_c817": "cb860cfecd7662c70a1307317f8a588c08850c84b59e739d1c52735db5073103",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1594
+        ]
+      ],
+      "deletion_classification": "retired-test-support-package",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy tests/helpers and dependent package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-test-support/tests/perf_collections.rs",
+      "change": "D",
+      "input_sha256_c817": "ab07170a19b0058501e881a6304e79b6cd15f8724e50278455c4fcf4b3d9a165",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          799
+        ]
+      ],
+      "deletion_classification": "retired-test-support-package",
+      "authority_and_reason": "T00 test-only package inventory; retire legacy tests/helpers and dependent package through shared manifest owner"
+    },
+    {
+      "path": "crates/termrock-visibility-publisher/src/lib.rs",
+      "change": "M",
+      "input_sha256_c817": "67766c91232c9b0db9854b279b1e74f7c617d4592fd17f7407108e808eb71bcb",
+      "output_sha256": "aa3e158870c75029759483372f9429065ad004161abe1ead6ada9892b723791d",
+      "removed_input_line_ranges": [
+        [
+          31,
+          133
+        ],
+        [
+          137,
+          140
+        ],
+        [
+          147,
+          150
+        ],
+        [
+          154,
+          194
+        ],
+        [
+          224,
+          228
+        ],
+        [
+          237,
+          241
+        ],
+        [
+          263,
+          278
+        ],
+        [
+          410,
+          1425
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "crates/termrock-visibility-publisher/tests/impl_observer_ingest.rs",
+      "change": "D",
+      "input_sha256_c817": "fdf6d435808a03c9b8feb646142f56ff01627d6c632854ecbc7ef6fc169bec06",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1109
+        ]
+      ],
+      "deletion_classification": "retired-publisher-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve publisher operational API"
+    },
+    {
+      "path": "crates/termrock-visibility-publisher/tests/impl_status_publish.rs",
+      "change": "D",
+      "input_sha256_c817": "7b9b945bfb47974d67b56a6ec17274028d84386054a30ad3c2f31f091794546d",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1146
+        ]
+      ],
+      "deletion_classification": "retired-publisher-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve publisher operational API"
+    },
+    {
+      "path": "crates/termrock-visibility-publisher/tests/observer_ingest_cli.rs",
+      "change": "D",
+      "input_sha256_c817": "fcc85c9a95ad836d04afb52e101c8e28478f7699d1ff0defb91317dc515afd81",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          608
+        ]
+      ],
+      "deletion_classification": "retired-publisher-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve publisher operational API"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/src/bin/capture-command.rs",
+      "change": "M",
+      "input_sha256_c817": "6cd9c64d85dcda7392ba234f06f54af816f3859b0147759e0420df94c9de0867",
+      "output_sha256": "022377790b1f4e36474ce7f228cb9146f42fa56dcd830af4fee7b73b4f2ac238",
+      "removed_input_line_ranges": [
+        [
+          253,
+          260
+        ],
+        [
+          477,
+          478
+        ],
+        [
+          483,
+          483
+        ],
+        [
+          484,
+          486
+        ],
+        [
+          496,
+          497
+        ],
+        [
+          501,
+          752
+        ]
+      ],
+      "deletion_classification": "visibility-runner-closure-or-retained-diagnostic",
+      "authority_and_reason": "Retire queue/fixture-only closure; retain process-capture diagnostics and their inline safety rationale"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/src/bin/fixture.rs",
+      "change": "D",
+      "input_sha256_c817": "9b0f3d4ebcfe90b8f3cd0f0d92a341dd7eb9b84dd73a23b02c8a75b167995c6f",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          598
+        ]
+      ],
+      "deletion_classification": "retired-visibility-tests-or-fixture",
+      "authority_and_reason": "T00 fixed inventory and T37-E2E-01; retain command-capture diagnostics and nextest result reader"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/src/lib.rs",
+      "change": "M",
+      "input_sha256_c817": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "output_sha256": "bbd6272a85cf8c54d44b390b6847e943ed9642ed0ba407542dc362662c1bf78d",
+      "removed_input_line_ranges": [
+        [
+          1,
+          1
+        ],
+        [
+          4,
+          8
+        ],
+        [
+          10,
+          10
+        ],
+        [
+          17,
+          17
+        ],
+        [
+          26,
+          27
+        ],
+        [
+          31,
+          31
+        ],
+        [
+          33,
+          33
+        ],
+        [
+          38,
+          38
+        ],
+        [
+          45,
+          202
+        ],
+        [
+          214,
+          219
+        ],
+        [
+          227,
+          270
+        ],
+        [
+          278,
+          288
+        ],
+        [
+          428,
+          428
+        ],
+        [
+          461,
+          463
+        ],
+        [
+          469,
+          470
+        ],
+        [
+          487,
+          488
+        ],
+        [
+          591,
+          591
+        ],
+        [
+          592,
+          593
+        ],
+        [
+          599,
+          600
+        ],
+        [
+          652,
+          652
+        ],
+        [
+          653,
+          655
+        ],
+        [
+          665,
+          665
+        ],
+        [
+          666,
+          667
+        ],
+        [
+          702,
+          786
+        ],
+        [
+          797,
+          940
+        ],
+        [
+          946,
+          1479
+        ]
+      ],
+      "deletion_classification": "visibility-runner-closure-or-retained-diagnostic",
+      "authority_and_reason": "Retire queue/fixture-only closure; retain process-capture diagnostics and their inline safety rationale"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/src/nextest_result.rs",
+      "change": "M",
+      "input_sha256_c817": "d4490398cfabacfa3a49a703c1169a32f66c9b1bad23862e1dfc9b18ea0fc33f",
+      "output_sha256": "328c2bf0859e3107abc53d873ff70718ca5dd1fdda0384a2376b82b250f2ebd8",
+      "removed_input_line_ranges": [
+        [
+          1,
+          1
+        ],
+        [
+          2051,
+          2053
+        ],
+        [
+          2075,
+          2077
+        ],
+        [
+          2359,
+          3968
+        ]
+      ],
+      "deletion_classification": "visibility-runner-closure-or-retained-diagnostic",
+      "authority_and_reason": "Retire queue/fixture-only closure; retain process-capture diagnostics and their inline safety rationale"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/tests/cache_source_audit.rs",
+      "change": "D",
+      "input_sha256_c817": "5a8b39d7ef11239e7eaa14a790082ee19d377fefb6d61313c33205622b4b1bee",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          2100
+        ]
+      ],
+      "deletion_classification": "retired-visibility-tests-or-fixture",
+      "authority_and_reason": "T00 fixed inventory and T37-E2E-01; retain command-capture diagnostics and nextest result reader"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/tests/deferred.rs",
+      "change": "D",
+      "input_sha256_c817": "c1e2210f71a851d9540202206e5767e36180d023d0b96ee4aedb4e1dba6cbc19",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1824
+        ]
+      ],
+      "deletion_classification": "retired-visibility-tests-or-fixture",
+      "authority_and_reason": "T00 fixed inventory and T37-E2E-01; retain command-capture diagnostics and nextest result reader"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/tests/queue_v2.rs",
+      "change": "D",
+      "input_sha256_c817": "1427182d45eb880eee35306bd9f4733fbbef263547f9a5798c898b0784319be0",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          6000
+        ]
+      ],
+      "deletion_classification": "retired-visibility-tests-or-fixture",
+      "authority_and_reason": "T00 fixed inventory and T37-E2E-01; retain command-capture diagnostics and nextest result reader"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/tests/status.rs",
+      "change": "D",
+      "input_sha256_c817": "360c28b34d2f9b847d883eb71424808c5d41d1d0a998abc8f25c1893d0457e5a",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          5630
+        ]
+      ],
+      "deletion_classification": "retired-visibility-tests-or-fixture",
+      "authority_and_reason": "T00 fixed inventory and T37-E2E-01; retain command-capture diagnostics and nextest result reader"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/tests/subjects.rs",
+      "change": "D",
+      "input_sha256_c817": "7c7aa53ce16b2497a3cdfae9cc7710c895445d2766b2a896c6330ca0572df3d3",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          5473
+        ]
+      ],
+      "deletion_classification": "retired-visibility-tests-or-fixture",
+      "authority_and_reason": "T00 fixed inventory and T37-E2E-01; retain command-capture diagnostics and nextest result reader"
+    },
+    {
+      "path": "crates/termrock-xtask/src/doc_inventory.rs",
+      "change": "D",
+      "input_sha256_c817": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          2288
+        ]
+      ],
+      "deletion_classification": "retired-doc-inventory-helper",
+      "authority_and_reason": "T37-DOC-INVENTORY-01 Sol high decision: legacy documentation-example/test inventory helper with no retained caller; remove its sole public module export. Preserve termrock-xtask ownership CLI/API/help unchanged."
+    },
+    {
+      "path": "crates/termrock-xtask/src/lib.rs",
+      "change": "M",
+      "input_sha256_c817": "7e6ffe193372791f3e84d77734d0d9c1ff1556d189363685303ee24c2bf46c1d",
+      "output_sha256": "d508f335c69cd871a71277ec5a5e39a4968461319f7d622e7ea3df4f35f22c1f",
+      "removed_input_line_ranges": [
+        [
+          1,
+          1
+        ]
+      ],
+      "deletion_classification": "retired-doc-inventory-api-export",
+      "authority_and_reason": "T37-DOC-INVENTORY-01 Sol high decision: remove the sole public export of the retired doc_inventory helper; keep `pub mod ownership` unchanged."
+    },
+    {
+      "path": "crates/termrock-xtask/src/main.rs",
+      "change": "M",
+      "input_sha256_c817": "f1da33323e22c333e59d0da598863eba4b9f94bac1a0b9f588027c65b6a0ffc1",
+      "output_sha256": "6a6a82d3121d9336091f392c9054ac8698783e05c24a52df167d8f0f7d2dfd1d",
+      "removed_input_line_ranges": [
+        [
+          136,
+          141
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/exceptions.rs",
+      "change": "M",
+      "input_sha256_c817": "6a7e188368ac78dd06c00ce49e2e583506fa4f4493db700a145bfede0dffe7c8",
+      "output_sha256": "573c889178a3df0c90a0500d577199844ae965d55b0354a8d50caf7e6346cb15",
+      "removed_input_line_ranges": [
+        [
+          140,
+          209
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/mod.rs",
+      "change": "M",
+      "input_sha256_c817": "6d49b1fed7fd626c4256da0faee7cfc1e1f0b3328558e34992c25c889512f3a6",
+      "output_sha256": "46c83a76aff229ac5e3294202dd391e7e382188e280e582ee53f6c421992f9ea",
+      "removed_input_line_ranges": [
+        [
+          19,
+          19
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "change": "M",
+      "input_sha256_c817": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "output_sha256": "d5c4d204294a0604e047b66802f0f8c2dd9c75c5a3de212b40671007512eca39",
+      "removed_input_line_ranges": [
+        [
+          1,
+          6
+        ],
+        [
+          18,
+          19
+        ],
+        [
+          21,
+          21
+        ],
+        [
+          23,
+          23
+        ],
+        [
+          74,
+          74
+        ],
+        [
+          124,
+          124
+        ],
+        [
+          126,
+          126
+        ],
+        [
+          232,
+          234
+        ],
+        [
+          386,
+          388
+        ],
+        [
+          441,
+          443
+        ],
+        [
+          478,
+          481
+        ],
+        [
+          904,
+          905
+        ],
+        [
+          1413,
+          1415
+        ],
+        [
+          1440,
+          1441
+        ],
+        [
+          1739,
+          1741
+        ],
+        [
+          1989,
+          1990
+        ],
+        [
+          2028,
+          2031
+        ],
+        [
+          2173,
+          2173
+        ],
+        [
+          2343,
+          2345
+        ],
+        [
+          2427,
+          2427
+        ],
+        [
+          2514,
+          2516
+        ],
+        [
+          2610,
+          2612
+        ],
+        [
+          2649,
+          2651
+        ],
+        [
+          2963,
+          3329
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/rules.rs",
+      "change": "M",
+      "input_sha256_c817": "3c22881a344ce1852e1acc0b83dfcd345e146108bd854eba8cde5a9acf2a0ef3",
+      "output_sha256": "bf50f8cc0e90597085ee12a31f89f0c26adb44051a22d4edbbfa1d756142cf0e",
+      "removed_input_line_ranges": [
+        [
+          142,
+          142
+        ],
+        [
+          453,
+          453
+        ],
+        [
+          1043,
+          1352
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics Named stale package-classification entry removed; all other retained source tokens are compared separately.",
+      "non_comment_token_change": {
+        "input_line": 142,
+        "removed_literal": "termrock-test-support",
+        "current_member_set": "termrock-xtask",
+        "reason": "The T00 test-only package is removed from the workspace; this was the only retained code reference and it feeds TOOLING_MEMBERS/is_tooling_member in the active xtask ownership scanner."
+      }
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/scan.rs",
+      "change": "M",
+      "input_sha256_c817": "847f1aa176f765132af0a3392ab762df3b7ef332b7bb9dd0e67fdacdc41287c1",
+      "output_sha256": "bbc9672a063ddaedb8954540cfe3772a094fe073cd0f4df071c5cb15bd05143a",
+      "removed_input_line_ranges": [
+        [
+          667,
+          799
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "crates/termrock-xtask/tests/doc_inventory.rs",
+      "change": "D",
+      "input_sha256_c817": "65d508037d988c7c88649d546e34e5592f723cd8ff6849a0333cd571b8cc4c59",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          583
+        ]
+      ],
+      "deletion_classification": "retired-xtask-tests",
+      "authority_and_reason": "T00 fixed test inventory"
+    },
+    {
+      "path": "crates/termrock-xtask/tests/ownership.rs",
+      "change": "D",
+      "input_sha256_c817": "e99a5f7c93f0be2f7e95a5adfc89ce3fc6c9ab171b2582c2d6b0c68526637570",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          3483
+        ]
+      ],
+      "deletion_classification": "retired-xtask-tests",
+      "authority_and_reason": "T00 fixed test inventory"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/determinism.rs",
+      "change": "D",
+      "input_sha256_c817": "249b3ded303ffc57aec3f62051d799d812d876772ddd41f1b3e5d8c789eb16bc",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          667
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/isolation.rs",
+      "change": "D",
+      "input_sha256_c817": "d825b6826026c713358a603f0f67f172fdea5d429db7ade3d504efdbda8878a0",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          168
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/main.rs",
+      "change": "D",
+      "input_sha256_c817": "f07cb164341920894a02f98e2ca73de7cec088b816e300f363880ea9ce121857",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          330
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/modes.rs",
+      "change": "D",
+      "input_sha256_c817": "0a2d3a4bc629da8d31104636487b7d53c8f06f80ea11ce4aad666a5bfca96c3a",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          74
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/oracle.rs",
+      "change": "D",
+      "input_sha256_c817": "3172823369e37b6852c2effaa795b917d30b128416b7630746c6060e435181b0",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          448
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/overlay_sites.rs",
+      "change": "D",
+      "input_sha256_c817": "f217f2aa1f064f8e999462a11098a45077ed95cd0cb9974a07d1cc314a6d39e5",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1491
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/rust_source.rs",
+      "change": "D",
+      "input_sha256_c817": "73e13ea4f364bd5b0524d2b0f8c88764404fb79960427a1982f99703debdd7dd",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          510
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/scenarios/holla.rs",
+      "change": "D",
+      "input_sha256_c817": "d94ee4fcbc488574613c761334f9ec069b9a8c25836fb89476191614f7f1ffba",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          557
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/scenarios/interact.rs",
+      "change": "D",
+      "input_sha256_c817": "08eee568c1adac4fe4bed9516e140ee1cc070e6bba04a4395bfbf8143d7b3932",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          242
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/scenarios/jackin.rs",
+      "change": "D",
+      "input_sha256_c817": "e15c3ff08c6e2e6170eaf5560d49199bdaf4c7a97021feeba7a989f108daaa4d",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          299
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/scenarios/mod.rs",
+      "change": "D",
+      "input_sha256_c817": "eff9881743c904116e5c7e15899b117ff0ef30114a725b35f1c608a22aaa4d37",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          787
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/scenarios/showcase.rs",
+      "change": "D",
+      "input_sha256_c817": "303830db81d84044ffff803d190219b2911c0552885f00b769f3794173ced2e1",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          668
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/scenarios/tablepro.rs",
+      "change": "D",
+      "input_sha256_c817": "9cb06d701e3ea955ab291e9eb1027471d9b0b3eacaba8ccc77d689f7a6ab0f7c",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          148
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/shared_dialog_action_id.rs",
+      "change": "D",
+      "input_sha256_c817": "98670a417dab10c3f2d824fdeee5c563010955ddf571fe642988b8a34a07f111",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1014
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/startup_input.rs",
+      "change": "D",
+      "input_sha256_c817": "c49d4ac7618cd1f8bb1340f9b1c68fc04a9387bb289fd3d1a4d03078569b1cc4",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          44
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/startup_resize.rs",
+      "change": "D",
+      "input_sha256_c817": "1ca6d0bcbca5c3e591f44ac5365bad9470ef17344286c8371fc1808a1b63e372",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          107
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/support.rs",
+      "change": "D",
+      "input_sha256_c817": "a2ff1ef4c54b55c9d818087669a38f6e1f52da7f11a119e4f3d1f8a8f700e3ba",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          773
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "crates/visual-harness/tests/visual_baseline/tool.rs",
+      "change": "D",
+      "input_sha256_c817": "766c1e2fb27e4a850ca5fbbe1af891a5f8231550e99582900b6c4eef162d6b9a",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          153
+        ]
+      ],
+      "deletion_classification": "retired-visual-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve immutable oracle data byte-identically"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "change": "M",
+      "input_sha256_c817": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "output_sha256": "d35e74ebf99dd1ebfd0483edb02e85f02f8ee8161c0ed245afed104d6be7bf3e",
+      "removed_input_line_ranges": [
+        [
+          1,
+          20
+        ],
+        [
+          34,
+          34
+        ],
+        [
+          36,
+          36
+        ],
+        [
+          38,
+          38
+        ],
+        [
+          40,
+          40
+        ],
+        [
+          42,
+          42
+        ],
+        [
+          44,
+          44
+        ],
+        [
+          46,
+          46
+        ],
+        [
+          48,
+          48
+        ],
+        [
+          51,
+          51
+        ],
+        [
+          53,
+          53
+        ],
+        [
+          56,
+          56
+        ],
+        [
+          59,
+          59
+        ],
+        [
+          61,
+          61
+        ],
+        [
+          63,
+          63
+        ],
+        [
+          65,
+          65
+        ],
+        [
+          70,
+          70
+        ],
+        [
+          81,
+          84
+        ],
+        [
+          87,
+          87
+        ],
+        [
+          89,
+          89
+        ],
+        [
+          91,
+          91
+        ],
+        [
+          93,
+          93
+        ],
+        [
+          95,
+          95
+        ],
+        [
+          97,
+          97
+        ],
+        [
+          99,
+          99
+        ],
+        [
+          101,
+          101
+        ],
+        [
+          130,
+          130
+        ],
+        [
+          163,
+          163
+        ],
+        [
+          168,
+          168
+        ],
+        [
+          173,
+          173
+        ],
+        [
+          178,
+          178
+        ],
+        [
+          183,
+          183
+        ],
+        [
+          188,
+          188
+        ],
+        [
+          193,
+          193
+        ],
+        [
+          295,
+          295
+        ],
+        [
+          300,
+          300
+        ],
+        [
+          344,
+          344
+        ],
+        [
+          441,
+          441
+        ],
+        [
+          459,
+          459
+        ],
+        [
+          487,
+          487
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "external-consumer-demo/src/lib.rs",
+      "change": "M",
+      "input_sha256_c817": "38c0cf32d0636ce3412da27524eb97bdf4737242b2d613897cdc211c775265b4",
+      "output_sha256": "8a587fad2efd13ccd8b8dca44e28f55eae76e8f473ee880063e0312248ec88ce",
+      "removed_input_line_ranges": [
+        [
+          1,
+          12
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "external-consumer-demo/src/main.rs",
+      "change": "M",
+      "input_sha256_c817": "b2c21d4a6e6eed10ead11ac447d3aeedf6f7af3d5a8842fa3513cfe18ea97610",
+      "output_sha256": "105c3c8389a29444830db84d99cdfb632f814f2335f293b1842244ccc1100f20",
+      "removed_input_line_ranges": [
+        [
+          1,
+          6
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "change": "M",
+      "input_sha256_c817": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "output_sha256": "f98003548cca6aa58eccb43482e438e26b73d7095504ba3049dbaf4ce6b0b20b",
+      "removed_input_line_ranges": [
+        [
+          1,
+          7
+        ],
+        [
+          10,
+          10
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          15,
+          15
+        ],
+        [
+          17,
+          17
+        ],
+        [
+          21,
+          21
+        ],
+        [
+          24,
+          24
+        ],
+        [
+          26,
+          26
+        ],
+        [
+          28,
+          28
+        ],
+        [
+          30,
+          30
+        ],
+        [
+          35,
+          35
+        ],
+        [
+          41,
+          41
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "external-consumer-demo/tests/consumer.rs",
+      "change": "D",
+      "input_sha256_c817": "05b1990c1e485f96275b3b4323fd7d321f6c867963a209ea3702a09623979f8e",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          403
+        ]
+      ],
+      "deletion_classification": "retired-consumer-demo-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve public API demo source"
+    },
+    {
+      "path": "external-consumer-demo/tests/public_api_only.rs",
+      "change": "D",
+      "input_sha256_c817": "1d1303ef78b4c3598f8e52de4a7d2df2267130fead0be55cae10787bf4d29186",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          94
+        ]
+      ],
+      "deletion_classification": "retired-consumer-demo-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve public API demo source"
+    },
+    {
+      "path": "scripts/test-scope-check.sh",
+      "change": "D",
+      "input_sha256_c817": "b874fed55baf713d37e95b874923a80dda9dda7ac0da75180b8d8a028edb31fc",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1249
+        ]
+      ],
+      "deletion_classification": "retired-legacy-test",
+      "authority_and_reason": "T00 fixed inventory and T37 cleanup directive"
+    },
+    {
+      "path": "tests/conformance/cursor_provenance.json",
+      "change": "D",
+      "input_sha256_c817": "92e4113a6a1cd8e3cef555f6cfc958b5a9532faa00aae991e0ddbd4c6a893e7c",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          15287
+        ]
+      ],
+      "deletion_classification": "retired-legacy-test-input",
+      "authority_and_reason": "T00 fixed inventory; no replacement test input is authorized before T38"
+    },
+    {
+      "path": "tests/conformance/required_cases.json",
+      "change": "D",
+      "input_sha256_c817": "04ebb893bdf4f9003e3f0957ff753eda95d1a0c68c4583b336d29af842acb99a",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          30188
+        ]
+      ],
+      "deletion_classification": "retired-legacy-test-input",
+      "authority_and_reason": "T00 fixed inventory; no replacement test input is authorized before T38"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "change": "M",
+      "input_sha256_c817": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "output_sha256": "34fa17ff58b20d26801f946a10d982a3533aa033e3995a279b6cba49ca3074fb",
+      "removed_input_line_ranges": [
+        [
+          2,
+          2
+        ],
+        [
+          62,
+          62
+        ],
+        [
+          88,
+          88
+        ],
+        [
+          123,
+          123
+        ],
+        [
+          194,
+          194
+        ],
+        [
+          269,
+          269
+        ],
+        [
+          359,
+          359
+        ],
+        [
+          437,
+          438
+        ],
+        [
+          443,
+          443
+        ],
+        [
+          445,
+          449
+        ],
+        [
+          576,
+          577
+        ],
+        [
+          719,
+          721
+        ],
+        [
+          818,
+          818
+        ],
+        [
+          834,
+          835
+        ],
+        [
+          841,
+          841
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/ansi2html.py",
+      "change": "M",
+      "input_sha256_c817": "b8defedcf1703a410be28dc3761377f55bab258239cc5e6fa6b2cddca27a04b5",
+      "output_sha256": "3fd413297c5c2ed127daa6e6f556cecced7abe3f418a18a62526cbc766f970e2",
+      "removed_input_line_ranges": [
+        [
+          2,
+          2
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          130,
+          130
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/ansi2png.py",
+      "change": "M",
+      "input_sha256_c817": "f29d92633e44337e2aba6fe0a960053014234ef5811ba18ee4527f336bb9eef2",
+      "output_sha256": "416533a5db8f4e8686465937903ea9a4f759815f2ae8a4312275424f9b1450f6",
+      "removed_input_line_ranges": [
+        [
+          2,
+          2
+        ],
+        [
+          20,
+          20
+        ],
+        [
+          52,
+          52
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "change": "D",
+      "input_sha256_c817": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          673
+        ]
+      ],
+      "deletion_classification": "retired-capture-parity-lane",
+      "authority_and_reason": "T37-CAPTURE-01 Sol high decision; preserve immutable baseline/parity data and receipts byte-identically"
+    },
+    {
+      "path": "tools/capture.sh",
+      "change": "D",
+      "input_sha256_c817": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1043
+        ]
+      ],
+      "deletion_classification": "retired-capture-parity-lane",
+      "authority_and_reason": "T37-CAPTURE-01 Sol high decision; preserve immutable baseline/parity data and receipts byte-identically"
+    },
+    {
+      "path": "tools/capture_exec.sh",
+      "change": "D",
+      "input_sha256_c817": "4ac33d52557b01c6942e980b401099d1ef85389a9d3a109ece794bf5a7ffaa0d",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          47
+        ]
+      ],
+      "deletion_classification": "retired-capture-parity-lane",
+      "authority_and_reason": "T37-CAPTURE-01 Sol high decision; preserve immutable baseline/parity data and receipts byte-identically"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "change": "D",
+      "input_sha256_c817": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1142
+        ]
+      ],
+      "deletion_classification": "retired-capture-parity-lane",
+      "authority_and_reason": "T37-CAPTURE-01 Sol high decision; preserve immutable baseline/parity data and receipts byte-identically"
+    },
+    {
+      "path": "tools/env.sh",
+      "change": "M",
+      "input_sha256_c817": "ebadb31631ed9297b1d6d9104e1703a4f34f0b47ff39dcde06d3a2bcd035ef27",
+      "output_sha256": "4c667d9982b2df80a0b8c3c486a554d8900f5061399f485f1fe3d0617dc80070",
+      "removed_input_line_ranges": [
+        [
+          1,
+          2
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/frozen-cli-frame-support/src/lib.rs",
+      "change": "D",
+      "input_sha256_c817": "d656a3aea96f17ed6e31b237fabdc138d4732a209d3cc4944b08cfcb4681571c",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          2455
+        ]
+      ],
+      "deletion_classification": "retired-frozen-nextest-runner",
+      "authority_and_reason": "T37-FROZEN-01 Sol high decision; preserve unsigned annotated tag, oracle, snapshots and immutable receipts"
+    },
+    {
+      "path": "tools/frozen_baseline.py",
+      "change": "D",
+      "input_sha256_c817": "fab5c2bbd40858d3fd13eb421411e7af065406edf46d8276d8d88918270f365e",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          6530
+        ]
+      ],
+      "deletion_classification": "retired-frozen-nextest-runner",
+      "authority_and_reason": "T37-FROZEN-01 Sol high decision; preserve unsigned annotated tag, oracle, snapshots and immutable receipts"
+    },
+    {
+      "path": "tools/frozen_cli_extensions.json",
+      "change": "D",
+      "input_sha256_c817": "b995c00f0dc14d4e0a81d1d56140e1c10ba7936a043e0135196f8fe8421cabb8",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          2488
+        ]
+      ],
+      "deletion_classification": "retired-frozen-nextest-runner",
+      "authority_and_reason": "T37-FROZEN-01 Sol high decision; preserve unsigned annotated tag, oracle, snapshots and immutable receipts"
+    },
+    {
+      "path": "tools/frozen_cli_extensions.rs",
+      "change": "D",
+      "input_sha256_c817": "332bd4eac4dc65be1a1478f97177cc658113a063900d8b9c6a0ba2ddc6dc67d9",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          370
+        ]
+      ],
+      "deletion_classification": "retired-frozen-nextest-runner",
+      "authority_and_reason": "T37-FROZEN-01 Sol high decision; preserve unsigned annotated tag, oracle, snapshots and immutable receipts"
+    },
+    {
+      "path": "tools/frozen_cli_pair.patch",
+      "change": "D",
+      "input_sha256_c817": "17de30ad69fea9c7f514cd6530727283637d090958020ebe13a311aad4506ff4",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          286
+        ]
+      ],
+      "deletion_classification": "retired-frozen-nextest-runner",
+      "authority_and_reason": "T37-FROZEN-01 Sol high decision; preserve unsigned annotated tag, oracle, snapshots and immutable receipts"
+    },
+    {
+      "path": "tools/historical-render/regenerate.py",
+      "change": "M",
+      "input_sha256_c817": "f1928d0f8e37d2f7ffea9d7432499f4b809adeb3bce1e9ebc8828757105567ab",
+      "output_sha256": "f23efd526ab98cc14c19a86755d42bf4b66d3af8b99d64357f5da9568cc9e1ea",
+      "removed_input_line_ranges": [
+        [
+          2,
+          2
+        ],
+        [
+          70,
+          70
+        ],
+        [
+          123,
+          123
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/historical-render/test_failures.py",
+      "change": "D",
+      "input_sha256_c817": "609f79ed826467a47351cea3593de8cd0065037a315d00b63d9d0b12628f3934",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          55
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/parity_approve.py",
+      "change": "D",
+      "input_sha256_c817": "afae7c3fc37e01d21fec6c7c58d3283590a4992aefb9b809086e7d8ce3bed216",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          529
+        ]
+      ],
+      "deletion_classification": "retired-capture-parity-lane",
+      "authority_and_reason": "T37-CAPTURE-01 Sol high decision; preserve immutable baseline/parity data and receipts byte-identically"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "change": "D",
+      "input_sha256_c817": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          641
+        ]
+      ],
+      "deletion_classification": "retired-capture-parity-lane",
+      "authority_and_reason": "T37-CAPTURE-01 Sol high decision; preserve immutable baseline/parity data and receipts byte-identically"
+    },
+    {
+      "path": "tools/qualified-capture/acquire.py",
+      "change": "D",
+      "input_sha256_c817": "161acbb9e99808ffefcd9030e449c06499fb0661699357e7d0d9fd67383f8130",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          206
+        ]
+      ],
+      "deletion_classification": "retired-qualification-lane",
+      "authority_and_reason": "T37-QUALIFIED-01 Sol high decision; preserve pins, licenses, README, proof receipts/output/hashes and repair provenance"
+    },
+    {
+      "path": "tools/qualified-capture/expected-cells.json",
+      "change": "D",
+      "input_sha256_c817": "c3a07e85392d78f4d661292d8fbf860a33371ecfe1b7af6408afec907fec9ea8",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          6530
+        ]
+      ],
+      "deletion_classification": "retired-qualification-lane",
+      "authority_and_reason": "T37-QUALIFIED-01 Sol high decision; preserve pins, licenses, README, proof receipts/output/hashes and repair provenance"
+    },
+    {
+      "path": "tools/qualified-capture/fixture.py",
+      "change": "D",
+      "input_sha256_c817": "7d8c4da061f79c78b77ef380045c476cc89ecb1c0539a44a5fed4d8cb62b2935",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          40
+        ]
+      ],
+      "deletion_classification": "retired-qualification-lane",
+      "authority_and_reason": "T37-QUALIFIED-01 Sol high decision; preserve pins, licenses, README, proof receipts/output/hashes and repair provenance"
+    },
+    {
+      "path": "tools/qualified-capture/harness/main.rs",
+      "change": "D",
+      "input_sha256_c817": "a68c2340069549f5439998d6cb6e75606135d2b92a749dd2ca9a3f1f8040613a",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          17
+        ]
+      ],
+      "deletion_classification": "retired-qualification-lane",
+      "authority_and_reason": "T37-QUALIFIED-01 Sol high decision; preserve pins, licenses, README, proof receipts/output/hashes and repair provenance"
+    },
+    {
+      "path": "tools/qualified-capture/oracle.py",
+      "change": "D",
+      "input_sha256_c817": "ab41d25c5ac603ab656f92fcffba430c36ed815a72dd3e234cb167df31afb300",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          101
+        ]
+      ],
+      "deletion_classification": "retired-qualification-lane",
+      "authority_and_reason": "T37-QUALIFIED-01 Sol high decision; preserve pins, licenses, README, proof receipts/output/hashes and repair provenance"
+    },
+    {
+      "path": "tools/qualified-capture/proof/run_final_gates.py",
+      "change": "D",
+      "input_sha256_c817": "816b5b6037a659333f1b798a04c870a6479b2baf0a09fef54d4fe876f8b7a68f",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          19
+        ]
+      ],
+      "deletion_classification": "retired-qualification-lane",
+      "authority_and_reason": "T37-QUALIFIED-01 Sol high decision; preserve pins, licenses, README, proof receipts/output/hashes and repair provenance"
+    },
+    {
+      "path": "tools/qualified-capture/proof/run_repaired.py",
+      "change": "D",
+      "input_sha256_c817": "9138faac95b5157794bf092cb3ae11ddaa89a2065752963a76fd8b08b01b6d4e",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          30
+        ]
+      ],
+      "deletion_classification": "retired-qualification-lane",
+      "authority_and_reason": "T37-QUALIFIED-01 Sol high decision; preserve pins, licenses, README, proof receipts/output/hashes and repair provenance"
+    },
+    {
+      "path": "tools/qualified-capture/tests/test_integrity.py",
+      "change": "D",
+      "input_sha256_c817": "e69696f2ca3599ed377b64369471dfb54e83990d4d0a4df3b056224ba309b96d",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          81
+        ]
+      ],
+      "deletion_classification": "retired-qualification-lane",
+      "authority_and_reason": "T37-QUALIFIED-01 Sol high decision; preserve pins, licenses, README, proof receipts/output/hashes and repair provenance"
+    },
+    {
+      "path": "tools/qualified-capture/tuitest_smoke.py",
+      "change": "D",
+      "input_sha256_c817": "151815c99e7373e8a8cffb771a8cbc6e44a76dc17f1ac8a9b7ed3ff7ae163e5d",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          39
+        ]
+      ],
+      "deletion_classification": "retired-qualification-lane",
+      "authority_and_reason": "T37-QUALIFIED-01 Sol high decision; preserve pins, licenses, README, proof receipts/output/hashes and repair provenance"
+    },
+    {
+      "path": "tools/refactor-proof/scripts/sync-binaries.sh",
+      "change": "M",
+      "input_sha256_c817": "034c3f68d1ad4ae70cb5cd72fabbb99e848232a8f7b6cd43069b464423f7167c",
+      "output_sha256": "f339a64a402d67218e851be39abbf957794253d13a85b744a8bfde142905664c",
+      "removed_input_line_ranges": [
+        [
+          2,
+          5
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/refactor-proof/scripts/test_freeze_vectors.py",
+      "change": "D",
+      "input_sha256_c817": "44c73be04a04be53a41d570d5cd2f2927d0b49c470bcd1341f046f4e2c817c94",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          230
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/refactor-proof/scripts/test_integrate_seal_vectors.py",
+      "change": "D",
+      "input_sha256_c817": "a3772b91c6893f4c09be0d86232c726ae0bdad2bde516caf207e4355900797a0",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          264
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/refactor-proof/src/compare.rs",
+      "change": "M",
+      "input_sha256_c817": "a24e34dee1e38b636ac0abd6a12fff9b7e84a086556b678611866480b543886e",
+      "output_sha256": "f1d4f366da7e7e47f0cc2aac0f136e138bf2cce4a010ee2e2ec4a7eae480e03d",
+      "removed_input_line_ranges": [
+        [
+          801,
+          953
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/refactor-proof/src/host/context_check.rs",
+      "change": "M",
+      "input_sha256_c817": "62151751995bcbfd4e3ef216b79130661fdbc5e38428f89747005cd774292233",
+      "output_sha256": "ed057c9b2e59822251a903da912c52054055a87a24ec6fd5632c0f9f39ee2699",
+      "removed_input_line_ranges": [
+        [
+          102,
+          186
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/refactor-proof/src/host/git.rs",
+      "change": "M",
+      "input_sha256_c817": "f53f96874d1337d327aa51c33de2f59ffa21f920eb8f31c870e420c4b3064213",
+      "output_sha256": "73a4443fa455a3b8adc045f63a50bd325a7b7692dd8faae7d33f8d9a34682576",
+      "removed_input_line_ranges": [
+        [
+          296,
+          333
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/refactor-proof/src/host/install.rs",
+      "change": "M",
+      "input_sha256_c817": "e22adf92761b229848c21858d33fc4d5b97bb54d7bd84698159b24a1e83e5885",
+      "output_sha256": "0c8e56afe4bdb0b70ab09e7c8844eee861b097605898c07df471cbf5a4f09890",
+      "removed_input_line_ranges": [
+        [
+          110,
+          141
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/refactor-proof/src/host/integrate.rs",
+      "change": "M",
+      "input_sha256_c817": "d79fd8e23006b43de410e2b49da0f78e26706d43b54b2007b3a27edafbfef85d",
+      "output_sha256": "5db82cc12ec6a95202d3da2adb891d57fcaac0f5c6828323f3cdb19a8a7e85df",
+      "removed_input_line_ranges": [
+        [
+          149,
+          387
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/refactor-proof/src/host/scope.rs",
+      "change": "M",
+      "input_sha256_c817": "180fc5aa4322951a869f08cbc1d577b7532d1729b570bfa6ba85cd9b2ff3d2ee",
+      "output_sha256": "363ecc4aa52dfaf42ca49dfd897d5bb8b9bc67f78a7de4e03186e47b7854cce5",
+      "removed_input_line_ranges": [
+        [
+          190,
+          205
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/refactor-proof/src/host/seal.rs",
+      "change": "M",
+      "input_sha256_c817": "3a2a390166039eddf1cedb844128622b883f109917f9786a56163213ae7d94a5",
+      "output_sha256": "8ee46878e21c9c97c58310585a9c9207cbaebd2a2cc3c1f77c3a8acdc8855053",
+      "removed_input_line_ranges": [
+        [
+          48,
+          94
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/refactor-proof/src/host/verify.rs",
+      "change": "M",
+      "input_sha256_c817": "73f10fc9c4f4f5a03f265d470c966f09132392fa45d9d71785e26874fcb7474e",
+      "output_sha256": "ef27466a113e84e5bde15488a2ab6c3a0184e9b052b2f57ace332a50261cddc2",
+      "removed_input_line_ranges": [
+        [
+          354,
+          420
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/refactor-proof/src/observer/client.rs",
+      "change": "M",
+      "input_sha256_c817": "903ecfadb486a388239726e07e450c00a66f1b1fda650deb0b6b89184d1db7c7",
+      "output_sha256": "cd44986aab5122bad99044f3cc76524ea2e1ffa9f290d15aa38917b14f65c2e6",
+      "removed_input_line_ranges": [
+        [
+          98,
+          106
+        ],
+        [
+          175,
+          262
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/rust_build_guard.py",
+      "change": "M",
+      "input_sha256_c817": "48b606262b4e8a5b485770532fef9175a1318118e9f789dc5bf8a12b34f9dd9b",
+      "output_sha256": "d0b13d400a225fa2c50582391b20fed18b90a6a086416fd517f9187f44936674",
+      "removed_input_line_ranges": [
+        [
+          2,
+          2
+        ],
+        [
+          37,
+          37
+        ],
+        [
+          85,
+          85
+        ],
+        [
+          171,
+          171
+        ],
+        [
+          196,
+          196
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/termrock-visibility-publisher/src/api.rs",
+      "change": "M",
+      "input_sha256_c817": "4b92633dc03171df6db8f4a4b64c0a222a8119b746a598cc350ebb4108f2a8f0",
+      "output_sha256": "a8dd2bee0aba2d36da54668c79da5e001f6aa89a5ce704aac34f3e8e32c318a1",
+      "removed_input_line_ranges": [
+        [
+          1,
+          1
+        ],
+        [
+          681,
+          682
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/termrock-visibility-publisher/src/lib.rs",
+      "change": "M",
+      "input_sha256_c817": "01a020a41ce4a879d7d37e55abe23f94b8a003b7c1b4a53a1e0dd7f6f858a564",
+      "output_sha256": "b6ce118851cc1e345f3145e317e67d0a71fc0d50b26d5ffbeb8355a5286eecea",
+      "removed_input_line_ranges": [
+        [
+          1,
+          1
+        ],
+        [
+          32,
+          130
+        ],
+        [
+          134,
+          137
+        ],
+        [
+          144,
+          147
+        ],
+        [
+          151,
+          191
+        ],
+        [
+          221,
+          230
+        ],
+        [
+          239,
+          243
+        ],
+        [
+          265,
+          280
+        ],
+        [
+          412,
+          1428
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/termrock-visibility-publisher/src/observer.rs",
+      "change": "M",
+      "input_sha256_c817": "cffcde89551aeef6e1847cffe90900c041e4208ec0c6c1e52b4423bdfcb67b6f",
+      "output_sha256": "b8111bc691d9416804280dec038913907d1074deeb0b777601357c9166f4ccea",
+      "removed_input_line_ranges": [
+        [
+          1,
+          1
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/termrock-visibility-publisher/tests/impl_observer_ingest.rs",
+      "change": "D",
+      "input_sha256_c817": "93a0ecaa0964f75cabbbeb47440e8833e6f4f43dd83c62c35580d3accad60571",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1105
+        ]
+      ],
+      "deletion_classification": "retired-publisher-tests",
+      "authority_and_reason": "T00 fixed test inventory; preserve publisher operational API"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "change": "D",
+      "input_sha256_c817": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          390
+        ]
+      ],
+      "deletion_classification": "retired-test-inventory-runner",
+      "authority_and_reason": "T37-INVENTORY-01 Sol high decision: runner captures/verifies old Cargo/libtest profile matrices and has no product/CI consumer; preserve historical.json and pending required.json byte-identically, retire exclusive profiles.json through shared metadata owner."
+    },
+    {
+      "path": "tools/test-inventory/test_inventory.py",
+      "change": "D",
+      "input_sha256_c817": "8756f66419a2ce958f7f322e439c9896e6a2973705a051c9fb231088b70121b5",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          264
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/test_acceptance_architecture.py",
+      "change": "D",
+      "input_sha256_c817": "96cdfaf9e02aad1e15a68c7c8c2ebbe5ccff73b0c39f738f11e4308dd9fe4711",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          455
+        ]
+      ],
+      "deletion_classification": "retired-legacy-test",
+      "authority_and_reason": "T00 fixed inventory and T37 cleanup directive"
+    },
+    {
+      "path": "tools/test_frozen_baseline.py",
+      "change": "D",
+      "input_sha256_c817": "24540f8584af6590241464bd08f206fc5b3f107ef417f55a60df398cf7a3c03c",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          5590
+        ]
+      ],
+      "deletion_classification": "retired-legacy-test",
+      "authority_and_reason": "T00 fixed inventory and T37 cleanup directive"
+    },
+    {
+      "path": "tools/test_perf_workflow.py",
+      "change": "D",
+      "input_sha256_c817": "da138ca0bf1c6eb456387e25bb771d4b873ff244cdb98f73372c655d662edae8",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          84
+        ]
+      ],
+      "deletion_classification": "retired-legacy-test",
+      "authority_and_reason": "T00 fixed inventory and T37 cleanup directive"
+    },
+    {
+      "path": "tools/test_rust_build_guard.py",
+      "change": "D",
+      "input_sha256_c817": "d68530cb91b44671e067cd5bbb73626982982ee0c1e0bce120d973822695f139",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          259
+        ]
+      ],
+      "deletion_classification": "retired-legacy-test",
+      "authority_and_reason": "T00 fixed inventory and T37 cleanup directive"
+    },
+    {
+      "path": "tools/visibility/README.md",
+      "change": "M",
+      "input_sha256_c817": "b3929ad02409d9928411c8ce27c78b07fb077e0f951ca940b92e095088371151",
+      "output_sha256": "cecdbb474b6e8a1e818ccefda3e6a259b23e0e45fd39b211ff8f2cb16d00c85b",
+      "removed_input_line_ranges": [
+        [
+          36,
+          37
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/visibility/deferred.py",
+      "change": "D",
+      "input_sha256_c817": "beafbbbaa492d43c6115627820767562552722d35490bb6dac7f1288ff75f5e7",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          1262
+        ]
+      ],
+      "deletion_classification": "retired-deferred-nextest-executor",
+      "authority_and_reason": "T37-E2E-01 Sol high decision; no supported non-test caller"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "change": "M",
+      "input_sha256_c817": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "output_sha256": "8b7738094aae3462d9f9e09e84ec850854c19e185c4d6b25183b6c498b4afb96",
+      "removed_input_line_ranges": [
+        [
+          2,
+          2
+        ],
+        [
+          4,
+          10
+        ],
+        [
+          122,
+          122
+        ],
+        [
+          181,
+          181
+        ],
+        [
+          212,
+          212
+        ],
+        [
+          589,
+          589
+        ],
+        [
+          594,
+          594
+        ],
+        [
+          798,
+          798
+        ],
+        [
+          1098,
+          1098
+        ],
+        [
+          1173,
+          1173
+        ],
+        [
+          1292,
+          1292
+        ],
+        [
+          1358,
+          1358
+        ],
+        [
+          1360,
+          1362
+        ],
+        [
+          1400,
+          1400
+        ],
+        [
+          1587,
+          1587
+        ],
+        [
+          1781,
+          1781
+        ],
+        [
+          1965,
+          1965
+        ],
+        [
+          1987,
+          1987
+        ],
+        [
+          2466,
+          2466
+        ],
+        [
+          2558,
+          2558
+        ],
+        [
+          2569,
+          2569
+        ],
+        [
+          2787,
+          2788
+        ],
+        [
+          2815,
+          2815
+        ],
+        [
+          2859,
+          2859
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/visibility/status.py",
+      "change": "M",
+      "input_sha256_c817": "e9d9ab8a75d85a172499265144602e0d8fb6313250e3c4efc037120b0e4fb739",
+      "output_sha256": "36ab13cbc8e67dd47b8ec8c0bdd9b19a3b6ea401535795c81b9755f5481bd314",
+      "removed_input_line_ranges": [
+        [
+          2,
+          2
+        ],
+        [
+          1784,
+          1786
+        ],
+        [
+          4008,
+          4009
+        ],
+        [
+          4474,
+          4474
+        ],
+        [
+          4482,
+          4482
+        ],
+        [
+          4499,
+          4501
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "change": "M",
+      "input_sha256_c817": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "output_sha256": "fe7f1d78c4caeab15e350c2a6d11966618a2808c1f7ca514aed9ded5f7197cb3",
+      "removed_input_line_ranges": [
+        [
+          2,
+          2
+        ],
+        [
+          49,
+          49
+        ],
+        [
+          53,
+          53
+        ],
+        [
+          201,
+          201
+        ],
+        [
+          283,
+          283
+        ],
+        [
+          322,
+          322
+        ],
+        [
+          349,
+          349
+        ],
+        [
+          365,
+          365
+        ],
+        [
+          536,
+          536
+        ],
+        [
+          560,
+          560
+        ],
+        [
+          609,
+          609
+        ],
+        [
+          638,
+          638
+        ],
+        [
+          650,
+          650
+        ],
+        [
+          666,
+          666
+        ],
+        [
+          1043,
+          1043
+        ],
+        [
+          1440,
+          1440
+        ],
+        [
+          1593,
+          1593
+        ],
+        [
+          1599,
+          1599
+        ],
+        [
+          1722,
+          1722
+        ],
+        [
+          2131,
+          2131
+        ],
+        [
+          2158,
+          2159
+        ],
+        [
+          2477,
+          2477
+        ],
+        [
+          2755,
+          2755
+        ],
+        [
+          2969,
+          2969
+        ]
+      ],
+      "deletion_classification": "retained-source-comment-or-test-scope-cleanup",
+      "authority_and_reason": "Remove nonfunctional comments/docstrings and cfg(test) code while retaining production behavior and supported diagnostics"
+    },
+    {
+      "path": "tools/visibility/tests/test_queue.py",
+      "change": "D",
+      "input_sha256_c817": "7236068f03406ee4fc1e4a2e1da521844b547abd1e79245f28a1322e9ce10e75",
+      "output_sha256": null,
+      "removed_input_line_ranges": [
+        [
+          1,
+          728
+        ]
+      ],
+      "deletion_classification": "retired-legacy-test",
+      "authority_and_reason": "T00 fixed inventory and T37 cleanup directive"
+    }
+  ]
+}

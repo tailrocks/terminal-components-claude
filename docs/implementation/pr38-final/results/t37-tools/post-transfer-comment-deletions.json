@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "task": "T37-TOOLS-SAFETY-01 post-transfer source-comment deletion ledger",
+  "fixed_source_revision": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "safety_rationale_path": "docs/implementation/pr38-final/results/t37-tools/safety-rationale.json",
+  "safety_rationale_sha256": "4dd097c5697b9b6757f855aa48bd2b9a2fdeb201a536a8a14e650712d4bcfebf",
+  "maintained_contract_path": "docs/contracts/safety-invariants.md",
+  "maintained_contract_transfer_commit": "c645c0b611370bd0974ebe46e8730d85560dbd79",
+  "coordinator_integration_commit": "b2016ce9190c7875796565faf68855da10a61933",
+  "independent_decision": "Sol high ACCEPT at c645c0b611370bd0974ebe46e8730d85560dbd79; coordinator confirmed exact transfer integrated at b2016ce9190c7875796565faf68855da10a61933.",
+  "removed_groups": [
+    {
+      "id": "capture_fcntl_getfl",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "c817_source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "c817_source_lines": [
+        592,
+        593
+      ],
+      "comment_text_sha256": "88e3cea465d17fc66a5308ddc5cf594e72d9ad7504c7316dbaa8a30b5a2b3ce4",
+      "comment_text": "    // SAFETY: Each caller retains the pipe File while this helper borrows its\n    // descriptor; F_GETFL only reads flags and does not transfer ownership.\n",
+      "unsafe_operation": "libc::fcntl(fd, F_GETFL), at line 594",
+      "classification": "retained production diagnostic",
+      "disposition": "Removed after the matching maintained safety contract was accepted and integrated."
+    },
+    {
+      "id": "capture_fcntl_setfl",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "c817_source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "c817_source_lines": [
+        599,
+        600
+      ],
+      "comment_text_sha256": "34d1d8f62943e06967e076e8985412ea4bad2a796530ea97afc47696895a59d4",
+      "comment_text": "    // SAFETY: The same pipe File remains live; `flags` came from F_GETFL, and\n    // F_SETFL receives that value with O_NONBLOCK added without transferring ownership.\n",
+      "unsafe_operation": "libc::fcntl(fd, F_SETFL, ...), at line 601",
+      "classification": "retained production diagnostic",
+      "disposition": "Removed after the matching maintained safety contract was accepted and integrated."
+    },
+    {
+      "id": "capture_waitid",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "c817_source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "c817_source_lines": [
+        653,
+        655
+      ],
+      "comment_text_sha256": "67b49c87fa125f9b6d06e8c708a013448122dc7f661c374075a8ff26f3987b18",
+      "comment_text": "        // SAFETY: This runner has not waited on the owned Child. `info` is live,\n        // initialized writable storage, and WNOWAIT leaves a reported child waitable.\n        // This does not exclude an unrelated external reaper.\n",
+      "unsafe_operation": "libc::waitid(... WNOWAIT ...), at lines 656-663",
+      "classification": "retained production diagnostic",
+      "disposition": "Removed after the matching maintained safety contract was accepted and integrated."
+    },
+    {
+      "id": "capture_si_pid",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "c817_source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "c817_source_lines": [
+        666,
+        667
+      ],
+      "comment_text_sha256": "ad2076879fc76460aa7b70473ec2b8ae008b6f3c135b2a4ba11f1c1e46a8f2a2",
+      "comment_text": "            // SAFETY: waitid succeeded, so `si_pid` is initialized. Zero is handled\n            // as no event; this reads no raw padding bytes.\n",
+      "unsafe_operation": "info.si_pid(), at line 668",
+      "classification": "retained production diagnostic",
+      "disposition": "Removed after the matching maintained safety contract was accepted and integrated."
+    },
+    {
+      "id": "capture_sigemptyset",
+      "source_path": "crates/termrock-visibility-tests/src/bin/capture-command.rs",
+      "c817_source_sha256": "6cd9c64d85dcda7392ba234f06f54af816f3859b0147759e0420df94c9de0867",
+      "c817_source_lines": [
+        477,
+        478
+      ],
+      "comment_text_sha256": "13b7e876b993f47e64d8c19b77d6cd3f2ee23ca159b29267261c61135ef800d6",
+      "comment_text": "    // SAFETY: `action.sa_mask` is writable, aligned storage in the live local action.\n    // `sigemptyset` initializes it before use, and the result is checked.\n",
+      "unsafe_operation": "libc::sigemptyset(...), at line 479",
+      "classification": "retained production diagnostic",
+      "disposition": "Removed after the matching maintained safety contract was accepted and integrated."
+    },
+    {
+      "id": "capture_sigaction",
+      "source_path": "crates/termrock-visibility-tests/src/bin/capture-command.rs",
+      "c817_source_sha256": "6cd9c64d85dcda7392ba234f06f54af816f3859b0147759e0420df94c9de0867",
+      "c817_source_lines": [
+        484,
+        486
+      ],
+      "comment_text_sha256": "05e993e12d5443c722bb640908e9dd685bdf8996df5d7db0715067dcc1d8a64e",
+      "comment_text": "        // SAFETY: The handler is a static extern \"C\" function that only updates\n        // `AtomicI32`; the mask was initialized successfully, and `action` stays live\n        // while `sigaction` reads it.\n",
+      "unsafe_operation": "libc::sigaction(...), at line 487",
+      "classification": "retained production diagnostic",
+      "disposition": "Removed after the matching maintained safety contract was accepted and integrated."
+    }
+  ],
+  "post_transfer_source_files": [
+    {
+      "path": "crates/termrock-visibility-tests/src/lib.rs",
+      "output_sha256": "bbd6272a85cf8c54d44b390b6847e943ed9642ed0ba407542dc362662c1bf78d"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/src/bin/capture-command.rs",
+      "output_sha256": "022377790b1f4e36474ce7f228cb9146f42fa56dcd830af4fee7b73b4f2ac238"
+    }
+  ],
+  "change_boundary": {
+    "removed_comments": 6,
+    "removed_comment_lines": 14,
+    "unsafe_operation_tokens_changed": false,
+    "other_non_comment_tokens_changed": false,
+    "lint_directives_or_allowances_changed": false,
+    "behavior": "NOT VERIFIED"
+  },
+  "open_obligation": "T20-OBS-FD-01 remains open: externally supplied observer fds are assumed valid/open/distinct/exclusively transferred; source does not validate these properties. No failing or exploit case ran."
+}

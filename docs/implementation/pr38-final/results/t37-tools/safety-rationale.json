@@ -1,0 +1,452 @@
+{
+  "schema_version": 1,
+  "task": "T37 tools safety rationale transfer record",
+  "fixed_source_revision": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "scope": "Exact comment text hashes bind the UTF-8 comment-only lines (including LF) to their full-file SHA256 at c817. Retired records preserve safety reasoning as history and do not assert current production invariants.",
+  "records": [
+    {
+      "id": "perf_alloc",
+      "source_path": "crates/termrock-test-support/src/perf.rs",
+      "source_sha256": "50b3bc5402db3d5962567d8c50473a5f3e11b1a9cb7a92ad76b4115967993931",
+      "source_lines": [
+        34,
+        35
+      ],
+      "text_sha256": "d51e1a95a47361cafb99ba8ef604b5fdb2313126ceea408666d83275d5897d32",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "        // SAFETY: The caller must supply a valid nonzero layout; it is forwarded\n        // unchanged to the system allocator.\n",
+      "unsafe_operation": "System.alloc(l), at line 36",
+      "classification": "retired test-only",
+      "disposition": "Remove with retired test-support performance allocator; preserve rationale as historical evidence only."
+    },
+    {
+      "id": "perf_dealloc",
+      "source_path": "crates/termrock-test-support/src/perf.rs",
+      "source_sha256": "50b3bc5402db3d5962567d8c50473a5f3e11b1a9cb7a92ad76b4115967993931",
+      "source_lines": [
+        40,
+        41
+      ],
+      "text_sha256": "f036e828981720b73599ea5bbd8d8fbdb074fc1a35d31c261c3407994a92e3d8",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "        // SAFETY: The caller must supply a live allocation from this allocator and\n        // its matching layout. The pointer and layout are forwarded unchanged.\n",
+      "unsafe_operation": "System.dealloc(p, l), at line 42",
+      "classification": "retired test-only",
+      "disposition": "Remove with retired test-support performance allocator; preserve rationale as historical evidence only."
+    },
+    {
+      "id": "perf_alloc_zeroed",
+      "source_path": "crates/termrock-test-support/src/perf.rs",
+      "source_sha256": "50b3bc5402db3d5962567d8c50473a5f3e11b1a9cb7a92ad76b4115967993931",
+      "source_lines": [
+        48,
+        49
+      ],
+      "text_sha256": "d51e1a95a47361cafb99ba8ef604b5fdb2313126ceea408666d83275d5897d32",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "        // SAFETY: The caller must supply a valid nonzero layout; it is forwarded\n        // unchanged to the system allocator.\n",
+      "unsafe_operation": "System.alloc_zeroed(l), at line 50",
+      "classification": "retired test-only",
+      "disposition": "Remove with retired test-support performance allocator; preserve rationale as historical evidence only."
+    },
+    {
+      "id": "perf_realloc",
+      "source_path": "crates/termrock-test-support/src/perf.rs",
+      "source_sha256": "50b3bc5402db3d5962567d8c50473a5f3e11b1a9cb7a92ad76b4115967993931",
+      "source_lines": [
+        56,
+        58
+      ],
+      "text_sha256": "f61154d29faa436a55e55b37537e4e98cd0450e3e85a13daaef62b80214c4b05",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "        // SAFETY: The caller must supply a live allocation from this allocator, its\n        // matching layout, and a valid new size. All inputs are forwarded unchanged;\n        // the allocation may come from `alloc_zeroed` or an earlier `realloc`.\n",
+      "unsafe_operation": "System.realloc(p, l, new_size), at line 59",
+      "classification": "retired test-only",
+      "disposition": "Remove with retired test-support performance allocator; preserve rationale as historical evidence only."
+    },
+    {
+      "id": "fixture_getpid",
+      "source_path": "crates/termrock-visibility-tests/src/bin/fixture.rs",
+      "source_sha256": "9b0f3d4ebcfe90b8f3cd0f0d92a341dd7eb9b84dd73a23b02c8a75b167995c6f",
+      "source_lines": [
+        561,
+        561
+      ],
+      "text_sha256": "265651d7da1d52b403c3eda9ddfd4a815c98cd4a01e6a655cf5788ead8b1fb74",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "        // SAFETY: `getpid` has no preconditions and returns this process ID.\n",
+      "unsafe_operation": "libc::getpid(), at line 562",
+      "classification": "retired test-only",
+      "disposition": "Remove with retired Nextest fixture termination helper under T37-E2E-01."
+    },
+    {
+      "id": "fixture_kill",
+      "source_path": "crates/termrock-visibility-tests/src/bin/fixture.rs",
+      "source_sha256": "9b0f3d4ebcfe90b8f3cd0f0d92a341dd7eb9b84dd73a23b02c8a75b167995c6f",
+      "source_lines": [
+        564,
+        565
+      ],
+      "text_sha256": "d5d8593229860b76a470c0304319ce991372f2f3e5d4938ec091ea2c41703858",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "        // SAFETY: `pid` is this process. The sole production caller supplies SIGKILL\n        // from `parse_nextest_signal`; that caller restriction is not in this parameter's type.\n",
+      "unsafe_operation": "libc::kill(pid, signal), at line 566",
+      "classification": "retired test-only",
+      "disposition": "Remove with retired Nextest fixture termination helper under T37-E2E-01."
+    },
+    {
+      "id": "queue_geteuid",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        950,
+        950
+      ],
+      "text_sha256": "02ca3cef1e5edf1a536cd48f2fecc43ea84dba62f018047c71d971b7fc24dfc8",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "    // SAFETY: `geteuid` has no preconditions and returns the current effective UID.\n",
+      "unsafe_operation": "libc::geteuid(), at line 951",
+      "classification": "retired test-only",
+      "disposition": "Remove with queue lock helper closure under T37-E2E-01."
+    },
+    {
+      "id": "queue_flock",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        959,
+        960
+      ],
+      "text_sha256": "34bf1340ede3782611ce7dfef5c58b024daf819ffe9359e3cd98fbd4d4f010c0",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "    // SAFETY: The borrowed File keeps its descriptor open for this call; callers\n    // pass LOCK_EX or LOCK_UN without transferring descriptor ownership.\n",
+      "unsafe_operation": "libc::flock(...), at line 961",
+      "classification": "retired test-only",
+      "disposition": "Remove with queue lock helper closure under T37-E2E-01."
+    },
+    {
+      "id": "queue_open_root",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        1001,
+        1002
+      ],
+      "text_sha256": "c4dd2fa4ea29a51f75eaa9bcf32434cff540a20a0986d83175b3f5dd13d9c901",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "    // SAFETY: `root_name` is a live NUL-terminated CString for \"/\"; these flags\n    // request a directory descriptor without following a symlink.\n",
+      "unsafe_operation": "libc::open(...), at line 1003",
+      "classification": "retired test-only",
+      "disposition": "Remove with queue lock helper closure under T37-E2E-01."
+    },
+    {
+      "id": "queue_from_root_fd",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        1008,
+        1009
+      ],
+      "text_sha256": "2505e4ba2b08f9f35ee9bc24e621741884dacab5c3e08e1142ac5f501c1f0b3b",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "    // SAFETY: The negative open result was rejected above. This fresh root\n    // descriptor has no Rust owner and is transferred to File exactly once.\n",
+      "unsafe_operation": "File::from_raw_fd(root_fd), at line 1010",
+      "classification": "retired test-only",
+      "disposition": "Remove with queue lock helper closure under T37-E2E-01."
+    },
+    {
+      "id": "queue_openat_component",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        1027,
+        1029
+      ],
+      "text_sha256": "4a65a3158781d84012c463cc87f1c6a73d2a14d7038f669572703cb6abaf75bf",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "        // SAFETY: `directory` remains live as the parent File, and `name` is a live\n        // CString made from one normal path component. O_NOFOLLOW and O_DIRECTORY\n        // apply at each step; the parent is dropped only after the child opens.\n",
+      "unsafe_operation": "libc::openat(...), at line 1030",
+      "classification": "retired test-only",
+      "disposition": "Remove with queue lock helper closure under T37-E2E-01."
+    },
+    {
+      "id": "queue_from_child_fd",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        1035,
+        1036
+      ],
+      "text_sha256": "8b728cf44d09222a251c68e5e0b73ea99e8123be4612003d8d61761523d7b3fe",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "        // SAFETY: The negative openat result was rejected above. This fresh child\n        // descriptor is transferred to File once before replacing the parent owner.\n",
+      "unsafe_operation": "File::from_raw_fd(child_fd), at line 1037",
+      "classification": "retired test-only",
+      "disposition": "Remove with queue lock helper closure under T37-E2E-01."
+    },
+    {
+      "id": "queue_mkdirat",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        1051,
+        1053
+      ],
+      "text_sha256": "ec90b0d286b1ec31db1eed515f65a1bde23d2f760a9e58027416561470e14c48",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "    // SAFETY: `parent` remains a live directory descriptor and `name` is a CString.\n    // The private caller supplies one UID-based component; CString rejects NUL.\n    // Ownership and permissions are checked later on the opened directory.\n",
+      "unsafe_operation": "libc::mkdirat(...), at line 1054",
+      "classification": "retired test-only",
+      "disposition": "Remove with queue lock helper closure under T37-E2E-01."
+    },
+    {
+      "id": "queue_open_private_dir",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        1062,
+        1064
+      ],
+      "text_sha256": "52522a9dbc9be7e3ab204b7764a55b1e0fa510c930af13fb53f636db9fb6bf1e",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "    // SAFETY: The parent File and the private caller's generated single-component CString\n    // remain live; directory/no-follow flags reject a final symlink or non-directory.\n    // Metadata for the opened directory is checked afterwards.\n",
+      "unsafe_operation": "libc::openat(...), at line 1065",
+      "classification": "retired test-only",
+      "disposition": "Remove with queue lock helper closure under T37-E2E-01."
+    },
+    {
+      "id": "queue_from_dir_fd",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        1070,
+        1071
+      ],
+      "text_sha256": "9c54b1b67d4b18125a8bc478a3278e87696351a3afda2886d683d595398c3199",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "    // SAFETY: The negative openat result was rejected above; File takes this fresh\n    // descriptor once and closes it if a later metadata check fails.\n",
+      "unsafe_operation": "File::from_raw_fd(directory_fd), at line 1072",
+      "classification": "retired test-only",
+      "disposition": "Remove with queue lock helper closure under T37-E2E-01."
+    },
+    {
+      "id": "queue_open_private_file",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        1096,
+        1098
+      ],
+      "text_sha256": "bb3af331137c64c46cf982918d5d227f2bb1223f47391033b81a7f9298bb9b3d",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "    // SAFETY: The checked parent File and private caller-generated hexadecimal\n    // `.lock` name are valid openat inputs. O_CREAT uses mode 0600 and O_NOFOLLOW\n    // prevents following a final symlink; this makes no hard-link or wider race claim.\n",
+      "unsafe_operation": "libc::openat(...), at line 1099",
+      "classification": "retired test-only",
+      "disposition": "Remove with queue lock helper closure under T37-E2E-01."
+    },
+    {
+      "id": "queue_from_file_fd",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        1104,
+        1105
+      ],
+      "text_sha256": "80fe44d47ea7677edcace6e7d7608c7d2a444b791837f6de06674813364c34bb",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "    // SAFETY: The negative openat result was rejected above; File takes this fresh\n    // lock-file descriptor once and closes it on a later metadata failure.\n",
+      "unsafe_operation": "File::from_raw_fd(file_fd), at line 1106",
+      "classification": "retired test-only",
+      "disposition": "Remove with queue lock helper closure under T37-E2E-01."
+    },
+    {
+      "id": "capture_fcntl_getfl",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        592,
+        593
+      ],
+      "text_sha256": "88e3cea465d17fc66a5308ddc5cf594e72d9ad7504c7316dbaa8a30b5a2b3ce4",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "    // SAFETY: Each caller retains the pipe File while this helper borrows its\n    // descriptor; F_GETFL only reads flags and does not transfer ownership.\n",
+      "unsafe_operation": "libc::fcntl(fd, F_GETFL), at line 594",
+      "classification": "retained production diagnostic",
+      "disposition": "Keep this inline SAFETY rationale until the shared SAFETY.md contract contains the exact operation preconditions. Then remove the comment only after the shared docs owner confirms the maintained transfer."
+    },
+    {
+      "id": "capture_fcntl_setfl",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        599,
+        600
+      ],
+      "text_sha256": "34d1d8f62943e06967e076e8985412ea4bad2a796530ea97afc47696895a59d4",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "    // SAFETY: The same pipe File remains live; `flags` came from F_GETFL, and\n    // F_SETFL receives that value with O_NONBLOCK added without transferring ownership.\n",
+      "unsafe_operation": "libc::fcntl(fd, F_SETFL, ...), at line 601",
+      "classification": "retained production diagnostic",
+      "disposition": "Keep this inline SAFETY rationale until the shared SAFETY.md contract contains the exact operation preconditions. Then remove the comment only after the shared docs owner confirms the maintained transfer."
+    },
+    {
+      "id": "capture_waitid",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        653,
+        655
+      ],
+      "text_sha256": "67b49c87fa125f9b6d06e8c708a013448122dc7f661c374075a8ff26f3987b18",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "        // SAFETY: This runner has not waited on the owned Child. `info` is live,\n        // initialized writable storage, and WNOWAIT leaves a reported child waitable.\n        // This does not exclude an unrelated external reaper.\n",
+      "unsafe_operation": "libc::waitid(... WNOWAIT ...), at lines 656-663",
+      "classification": "retained production diagnostic",
+      "disposition": "Keep this inline SAFETY rationale until the shared SAFETY.md contract contains the exact operation preconditions. Then remove the comment only after the shared docs owner confirms the maintained transfer."
+    },
+    {
+      "id": "capture_si_pid",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        666,
+        667
+      ],
+      "text_sha256": "ad2076879fc76460aa7b70473ec2b8ae008b6f3c135b2a4ba11f1c1e46a8f2a2",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "            // SAFETY: waitid succeeded, so `si_pid` is initialized. Zero is handled\n            // as no event; this reads no raw padding bytes.\n",
+      "unsafe_operation": "info.si_pid(), at line 668",
+      "classification": "retained production diagnostic",
+      "disposition": "Keep this inline SAFETY rationale until the shared SAFETY.md contract contains the exact operation preconditions. Then remove the comment only after the shared docs owner confirms the maintained transfer."
+    },
+    {
+      "id": "capture_sigemptyset",
+      "source_path": "crates/termrock-visibility-tests/src/bin/capture-command.rs",
+      "source_sha256": "6cd9c64d85dcda7392ba234f06f54af816f3859b0147759e0420df94c9de0867",
+      "source_lines": [
+        477,
+        478
+      ],
+      "text_sha256": "13b7e876b993f47e64d8c19b77d6cd3f2ee23ca159b29267261c61135ef800d6",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "    // SAFETY: `action.sa_mask` is writable, aligned storage in the live local action.\n    // `sigemptyset` initializes it before use, and the result is checked.\n",
+      "unsafe_operation": "libc::sigemptyset(...), at line 479",
+      "classification": "retained production diagnostic",
+      "disposition": "Keep this inline SAFETY rationale until the shared SAFETY.md contract contains the exact operation preconditions. Then remove the comment only after the shared docs owner confirms the maintained transfer."
+    },
+    {
+      "id": "capture_sigaction",
+      "source_path": "crates/termrock-visibility-tests/src/bin/capture-command.rs",
+      "source_sha256": "6cd9c64d85dcda7392ba234f06f54af816f3859b0147759e0420df94c9de0867",
+      "source_lines": [
+        484,
+        486
+      ],
+      "text_sha256": "05e993e12d5443c722bb640908e9dd685bdf8996df5d7db0715067dcc1d8a64e",
+      "text_includes": "exact UTF-8 bytes of the listed comment lines, including their terminating LF",
+      "text": "        // SAFETY: The handler is a static extern \"C\" function that only updates\n        // `AtomicI32`; the mask was initialized successfully, and `action` stays live\n        // while `sigaction` reads it.\n",
+      "unsafe_operation": "libc::sigaction(...), at line 487",
+      "classification": "retained production diagnostic",
+      "disposition": "Keep this inline SAFETY rationale until the shared SAFETY.md contract contains the exact operation preconditions. Then remove the comment only after the shared docs owner confirms the maintained transfer."
+    }
+  ],
+  "retained_uncommented_operation": {
+    "id": "observer_inherited_fd",
+    "source_path": "tools/refactor-proof/src/observer/client.rs",
+    "source_sha256": "903ecfadb486a388239726e07e450c00a66f1b1fda650deb0b6b89184d1db7c7",
+    "source_lines": [
+      164,
+      169
+    ],
+    "unsafe_operation": "OwnedFd::from_raw_fd(fd), c817 line 167",
+    "classification": "retained production proof/observer client",
+    "disposition": "Retain. Existing SAFETY.md text is insufficient for current ObserverClient use. The shared docs owner must state the external ownership preconditions before this rationale is considered maintained; no source or lint redesign is authorized.",
+    "existing_maintained_rationale": {
+      "source_path": "SAFETY.md",
+      "source_sha256": "9e36aacde5e01616aa64927ee4aac04312e094acd1508e9c83577cfc4a3de4c5",
+      "source_lines": [
+        248,
+        254
+      ],
+      "text_lines": [
+        253,
+        253
+      ],
+      "text_sha256": "b23f97516aed011b4acca0675253211d50794b0ae249b4164e77067d3ce461b5",
+      "text": "SAFETY: inherited anonymous pipe ends are owned by this host process for the fixture lifetime.\n",
+      "gap": "This fixture-only lifetime sentence does not state the retained ObserverClient::from_env / OwnedFd transfer preconditions or the lack of fd open/distinct/exclusive-transfer validation."
+    },
+    "ownership_preconditions_required": "The host supplies two valid, open, distinct file descriptors that are exclusively transferred to ObserverClient and are not concurrently closed or independently owned in this process. The request and response descriptors must have the expected pipe roles.",
+    "current_validation_gap": "ObserverClient::from_env parses descriptor integers and nonce but does not validate that descriptors are open, distinct, or exclusively transferred. Record this as an external ownership assumption and open risk; do not state that source validation enforces it.",
+    "required_contract_update": "Add the valid/open/distinct/exclusive-transfer ownership assumptions and the external-validation gap for request/response fds. Preserve the existing exact SAFETY.md source hash and line binding as the pre-transfer evidence.",
+    "consumer_source": {
+      "path": "tools/refactor-proof/src/host/verify.rs",
+      "source_sha256": "73f10fc9c4f4f5a03f265d470c966f09132392fa45d9d71785e26874fcb7474e",
+      "line": 88,
+      "line_sha256": "1bbc5c4c6582dd831eeb361b30548f583fa646d2178423a89c1fcd7cc7758631",
+      "text": "    let mut observer = match ObserverClient::from_env() {"
+    },
+    "later_owner_obligation": "T20-OBS-FD-01: bounded transport-ownership extension. T01 must inventory it; T38 must plan any case before code or test changes; T36 must close or disposition it. T37 records the source-observed ownership assumptions only.",
+    "maintained_transport_reference": "tools/refactor-proof/observer-transport.md already records unresolved producer, ownership, and repeated-construction questions. Preserve that document and carry this open obligation forward.",
+    "verification_limit": "No failing or exploit case has run. The ownership gap is source-observed only; T37 does not claim runtime validation."
+  },
+  "lint": "No lint settings or allowances changed. The existing tools/refactor-proof/src/lib.rs clippy::undocumented_unsafe_blocks allowance is unchanged.",
+  "transfer_summary": {
+    "retired_test_only": "The performance allocator, fixture termination operations, and queue-lock filesystem operations are deleted with their approved test-only closures; retain only this immutable historical rationale record.",
+    "retained_inline": "Six comment groups remain inline: fcntl F_GETFL/F_SETFL, waitid, si_pid, sigemptyset, and sigaction. Remove them only after the shared SAFETY.md contract records their exact preconditions and the docs owner confirms transfer.",
+    "maintained_contract": "ObserverClient::from_env retains OwnedFd::from_raw_fd at c817 observer/client.rs:167. Existing SAFETY.md wording is fixture-specific and insufficient. Transfer the external valid/open/distinct/exclusively-transferred fd assumptions and disclose that source does not validate them. Three retained unsafe operations without adjacent comments (zeroed siginfo_t, process-group kill, zeroed sigaction) also require maintained rationale before cleanup is complete."
+  },
+  "retained_uncommented_operations": [
+    {
+      "id": "capture_zeroed_siginfo",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "line": 650,
+      "unsafe_operation": "std::mem::zeroed::<libc::siginfo_t>() before waitid",
+      "rationale_needed": "The zero-initialized siginfo_t is live, writable storage passed to waitid. The contract must state the valid initialization assumption for this libc type and the WNOWAIT observation contract; do not claim an unrelated reaper is excluded.",
+      "classification": "retained production diagnostic",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        650,
+        650
+      ],
+      "operation_line_sha256": "4a98f3baa99443eaef59d54423b831978706677d8f4711803f19f2de452bd0bb",
+      "operation_line_text": "        let mut info: libc::siginfo_t = unsafe { std::mem::zeroed() };",
+      "text_includes": "exact UTF-8 source line bytes including terminating LF",
+      "disposition": "Transfer this rationale to maintained SAFETY.md before any source comment is removed; current implementation remains unchanged pending shared docs owner."
+    },
+    {
+      "id": "capture_kill_process_group",
+      "source_path": "crates/termrock-visibility-tests/src/lib.rs",
+      "line": 699,
+      "unsafe_operation": "libc::kill(process_group, libc::SIGKILL), with process_group derived as -(child_id as libc::pid_t)",
+      "rationale_needed": "The cancellation path uses a negative pid to signal the child process group with SIGKILL, then calls Child::kill and Child::wait. The contract must bind group creation/ownership and the intended process-group target to this production diagnostic path without claiming a broader process-tree guarantee.",
+      "classification": "retained production diagnostic",
+      "source_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "source_lines": [
+        699,
+        699
+      ],
+      "operation_line_sha256": "c92bfcce5acca82e666b4795b1c65e09ff123db7fab915128ec6b084ab950ced",
+      "operation_line_text": "    let _ = unsafe { libc::kill(process_group, libc::SIGKILL) };",
+      "text_includes": "exact UTF-8 source line bytes including terminating LF",
+      "disposition": "Transfer this rationale to maintained SAFETY.md before any source comment is removed; current implementation remains unchanged pending shared docs owner."
+    },
+    {
+      "id": "capture_zeroed_sigaction",
+      "source_path": "crates/termrock-visibility-tests/src/bin/capture-command.rs",
+      "line": 473,
+      "unsafe_operation": "std::mem::zeroed::<libc::sigaction>() before assigning handler/flags and initializing sa_mask",
+      "rationale_needed": "The zeroed sigaction is initialized before use: handler and flags are assigned, sigemptyset initializes the mask, and sigaction reads the live structure. The contract must preserve the platform-valid zero initialization assumption for the libc structure.",
+      "classification": "retained production diagnostic",
+      "source_sha256": "6cd9c64d85dcda7392ba234f06f54af816f3859b0147759e0420df94c9de0867",
+      "source_lines": [
+        473,
+        473
+      ],
+      "operation_line_sha256": "61290140fa034dd494162dbb1f2ae8e0dfa26fa38b54bc64ae8a55acee93fd9b",
+      "operation_line_text": "    let mut action: libc::sigaction = unsafe { std::mem::zeroed() };",
+      "text_includes": "exact UTF-8 source line bytes including terminating LF",
+      "disposition": "Transfer this rationale to maintained SAFETY.md before any source comment is removed; current implementation remains unchanged pending shared docs owner."
+    }
+  ]
+}
