@@ -1291,8 +1291,10 @@
       "finding": "TextViewport::selection_binding_chords is a real retained testing branch and blocks the current all-testing-branches-retired condition.",
       "callers": "Four callers are in conformance tests scheduled for retirement; no production consumer is established.",
       "requested_decision": "T37-SELECTION-BINDING-01 approved: retire only TextViewport::selection_binding_chords and its cfg; preserve SELECTION_BINDINGS, actions, chords, registration, and selection/input behavior.",
-      "configuration_action": "keep the global Velnor testing configuration unchanged until the approved source change is integrated and the final combined-source scan finds no retained non-test testing branch or build-script environment use",
-      "decision_status": "approved by root after Sol high review; source implementation and combined-input scan are pending"
+      "configuration_action": "keep the global Velnor testing configuration unchanged until the reviewed source commit is integrated and the final combined-source scan finds no retained non-test testing branch or build-script environment use",
+      "decision_status": "approved and implemented in the reviewed source commit; not yet integrated into this metadata worktree or the final combined input",
+      "source_commit": "4627a1c6f5c65a5f7527922051131080f65288cb",
+      "source_review_status": "accepted by independent Sol high review"
     }
   }
 }
