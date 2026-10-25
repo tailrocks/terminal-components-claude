@@ -5,7 +5,7 @@
 
 use std::fmt;
 
-use ratatui_core::layout::Rect;
+use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier};
 
 use crate::text::measure::{grapheme_width, graphemes};
@@ -286,6 +286,78 @@ impl<'a> EditorEnvironmentBody<'a> {
             workspace_rows,
             overrides_right,
             roles,
+        }
+    }
+}
+
+/// Tone for metadata in one live workspace Editor role row.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum EditorRolesMetaTone {
+    /// A role could not be loaded.
+    Error,
+    /// A role is not in the registry.
+    Warning,
+    /// Registry and trust details.
+    Muted,
+}
+
+/// One borrowed row in the live workspace Editor Roles body.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct EditorRolesRow<'a> {
+    name: &'a str,
+    allowed: bool,
+    is_default: bool,
+    metadata: &'a str,
+    metadata_tone: EditorRolesMetaTone,
+}
+
+impl<'a> EditorRolesRow<'a> {
+    /// Create a role row from its display name, projected state, and metadata.
+    pub const fn new(
+        name: &'a str,
+        allowed: bool,
+        is_default: bool,
+        metadata: &'a str,
+        metadata_tone: EditorRolesMetaTone,
+    ) -> Self {
+        Self {
+            name,
+            allowed,
+            is_default,
+            metadata,
+            metadata_tone,
+        }
+    }
+}
+
+/// Borrowed content for the fixed live workspace Editor Roles body.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct EditorRolesBody<'a> {
+    allowed_count: usize,
+    total_roles: usize,
+    default_role: &'a str,
+    rows: &'a [EditorRolesRow<'a>],
+}
+
+impl<'a> EditorRolesBody<'a> {
+    /// Create the headings and visible role rows shown by the live Editor.
+    ///
+    /// `rows` contains at most the 29 visible roles. `total_roles` preserves
+    /// the source-list size used by the overflow treatment.
+    pub const fn new(
+        allowed_count: usize,
+        total_roles: usize,
+        default_role: &'a str,
+        rows: &'a [EditorRolesRow<'a>],
+    ) -> Self {
+        Self {
+            allowed_count,
+            total_roles,
+            default_role,
+            rows,
         }
     }
 }
@@ -707,6 +779,50 @@ impl fmt::Display for EditorEnvironmentPaintError {
 
 impl std::error::Error for EditorEnvironmentPaintError {}
 
+/// Failure to paint the fixed live Editor Roles body.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum EditorRolesPaintError {
+    /// The fixed role columns need at least 120 columns.
+    AreaTooNarrow { minimum: u16, actual: u16 },
+    /// The current Editor frame and its footer need at least 40 rows.
+    AreaTooShort { minimum: u16, actual: u16 },
+    /// The body supports at most 29 visible role rows.
+    TooManyRows { maximum: usize, actual: usize },
+    /// The source list cannot be shorter than its visible rows.
+    TotalRolesBelowVisible { visible: usize, total: usize },
+    /// A display string does not fit the proven single-cell columns.
+    UnsupportedContent,
+}
+
+impl fmt::Display for EditorRolesPaintError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::AreaTooNarrow { minimum, actual } => {
+                write!(f, "Editor Roles needs {minimum} columns, received {actual}")
+            }
+            Self::AreaTooShort { minimum, actual } => {
+                write!(f, "Editor Roles needs {minimum} rows, received {actual}")
+            }
+            Self::TooManyRows { maximum, actual } => {
+                write!(
+                    f,
+                    "Editor Roles allows {maximum} visible rows, received {actual}"
+                )
+            }
+            Self::TotalRolesBelowVisible { visible, total } => write!(
+                f,
+                "Editor Roles has {visible} visible rows for a {total}-role source list"
+            ),
+            Self::UnsupportedContent => {
+                f.write_str("Editor Roles content exceeds the proven single-cell columns")
+            }
+        }
+    }
+}
+
+impl std::error::Error for EditorRolesPaintError {}
+
 const SETTINGS_ENV_MIN_WIDTH: u16 = 16;
 const SETTINGS_ENV_MIN_HEIGHT: u16 = 8;
 const SETTINGS_ENV_BODY_TOP: u16 = 6;
@@ -716,6 +832,14 @@ const EDITOR_ENV_MIN_HEIGHT: u16 = 40;
 const EDITOR_ENV_BODY_TOP: u16 = 6;
 const EDITOR_ENV_FOOTER_ROW: u16 = 37;
 const EDITOR_ENV_RIGHT_EDGE: u16 = 117;
+const EDITOR_ROLES_MIN_WIDTH: u16 = 120;
+const EDITOR_ROLES_MIN_HEIGHT: u16 = 40;
+const EDITOR_ROLES_BODY_TOP: u16 = 6;
+const EDITOR_ROLES_MAX_ROWS: usize = 29;
+const EDITOR_ROLES_VISIBLE_ROWS: u16 = 29;
+const EDITOR_ROLES_SELECTED_BAR_ROWS: usize = 17;
+const EDITOR_ROLES_META_WIDTH: u16 = 92;
+const EDITOR_ROLES_DEFAULT_LABEL_WIDTH: u16 = 17;
 const SETTINGS_BODY_MIN_WIDTH: u16 = 40;
 const SETTINGS_AGENT_MAX_ROWS: usize = 6;
 const SETTINGS_TRUST_MAX_ROWS: usize = 4;
@@ -866,6 +990,353 @@ pub fn paint_editor_environment_body(
     paint_editor_environment(ui, body_area, body);
     Ok(())
 }
+
+/// Paint only the fixed role list used by the live workspace Editor.
+///
+/// `area` is the full screen allocation. The headings start at row six and
+/// the visible rows end before the fixed row-37 footer. This entry does not
+/// paint Editor chrome, footer labels, or input controls. It supports at most
+/// 29 visible rows and validates all borrowed content before painting. The
+/// fixed columns accept printable single-cell text so callers can retain the
+/// legacy painter for content outside this proven layout.
+///
+/// # Errors
+///
+/// Returns an error when the allocation is too small, the visible row count
+/// is invalid, or any display string exceeds the fixed columns.
+pub fn paint_editor_roles_body(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    body: &EditorRolesBody<'_>,
+) -> Result<(), EditorRolesPaintError> {
+    if area.width < EDITOR_ROLES_MIN_WIDTH {
+        return Err(EditorRolesPaintError::AreaTooNarrow {
+            minimum: EDITOR_ROLES_MIN_WIDTH,
+            actual: area.width,
+        });
+    }
+    if area.height < EDITOR_ROLES_MIN_HEIGHT {
+        return Err(EditorRolesPaintError::AreaTooShort {
+            minimum: EDITOR_ROLES_MIN_HEIGHT,
+            actual: area.height,
+        });
+    }
+    if body.rows.len() > EDITOR_ROLES_MAX_ROWS {
+        return Err(EditorRolesPaintError::TooManyRows {
+            maximum: EDITOR_ROLES_MAX_ROWS,
+            actual: body.rows.len(),
+        });
+    }
+    if body.total_roles < body.rows.len() {
+        return Err(EditorRolesPaintError::TotalRolesBelowVisible {
+            visible: body.rows.len(),
+            total: body.total_roles,
+        });
+    }
+    if !editor_roles_content_supported(body) {
+        return Err(EditorRolesPaintError::UnsupportedContent);
+    }
+
+    let fixed_area = Rect::new(
+        area.x,
+        area.y,
+        EDITOR_ROLES_MIN_WIDTH,
+        EDITOR_ROLES_MIN_HEIGHT,
+    );
+    paint_editor_roles(ui, fixed_area, body);
+    Ok(())
+}
+
+fn editor_roles_content_supported(body: &EditorRolesBody<'_>) -> bool {
+    editor_roles_text_supported(body.default_role, EDITOR_ROLES_DEFAULT_LABEL_WIDTH)
+        && body.rows.iter().enumerate().all(|(index, row)| {
+            let name_width = if row.allowed && index == 0 {
+                if row.is_default { 15 } else { 17 }
+            } else {
+                14
+            };
+            !row.name.is_empty()
+                && editor_roles_text_supported(row.name, name_width)
+                && !row.metadata.is_empty()
+                && editor_roles_text_supported(row.metadata, EDITOR_ROLES_META_WIDTH)
+        })
+}
+
+fn editor_roles_text_supported(text: &str, maximum: u16) -> bool {
+    let Ok(character_width) = u16::try_from(text.chars().count()) else {
+        return false;
+    };
+    text.chars().all(|character| {
+        (character.is_ascii() && !character.is_ascii_control()) || character == '·'
+    }) && character_width <= maximum
+        && width(text) == character_width
+}
+
+fn paint_editor_roles(ui: &mut Ui<'_>, area: Rect, body: &EditorRolesBody<'_>) {
+    let heading_y = area.y.saturating_add(EDITOR_ROLES_BODY_TOP);
+    let allowed = format!(
+        "Allowed roles  {} of {}",
+        body.allowed_count, body.total_roles
+    );
+    put_editor_roles(
+        ui,
+        area,
+        area.x.saturating_add(4),
+        heading_y,
+        &allowed,
+        bold(EDITOR_ROLES_SECONDARY, EDITOR_ROLES_BLACK),
+    );
+    let default = format!("default ★ {}", body.default_role);
+    put_editor_roles(
+        ui,
+        area,
+        area.x.saturating_add(93),
+        heading_y,
+        &default,
+        plain(EDITOR_ROLES_DARK_MUTED, EDITOR_ROLES_BLACK),
+    );
+
+    for (index, row) in body.rows.iter().enumerate() {
+        let y = heading_y.saturating_add(1).saturating_add(index as u16);
+        let selected = index == 0;
+        paint_editor_roles_row(ui, area, y, row, selected);
+        let (track, color) = if index < EDITOR_ROLES_SELECTED_BAR_ROWS {
+            ("┃", Color::Rgb(0x80, 0x80, 0x80))
+        } else {
+            ("┆", Color::Rgb(0x47, 0x47, 0x47))
+        };
+        ui.paint_cell(
+            Position::new(area.x.saturating_add(117), y),
+            track,
+            plain(color, EDITOR_ROLES_BLACK),
+        );
+    }
+
+    let mut scroll = crate::ui::ScrollState::new(body.total_roles);
+    scroll.set_viewport(usize::from(EDITOR_ROLES_VISIBLE_ROWS));
+    ui.scroll_edges(
+        Rect::new(
+            area.x.saturating_add(2),
+            heading_y.saturating_add(1),
+            115,
+            EDITOR_ROLES_VISIBLE_ROWS,
+        ),
+        &scroll,
+    );
+}
+
+fn paint_editor_roles_row(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    row: &EditorRolesRow<'_>,
+    selected: bool,
+) {
+    let left = area.x.saturating_add(2);
+    let background = if selected {
+        EDITOR_ROLES_BADGE
+    } else {
+        EDITOR_ROLES_BLACK
+    };
+    let selected_style = selected;
+    if selected {
+        put_editor_roles(
+            ui,
+            area,
+            left,
+            y,
+            &" ".repeat(115),
+            bold(EDITOR_ROLES_WHITE, background),
+        );
+        let accent = ui.theme_ref().color.accent;
+        ui.paint_cell(Position::new(left, y), "▎", bold(accent, background));
+        ui.paint_cell(
+            Position::new(left.saturating_add(1), y),
+            "›",
+            bold(accent, background),
+        );
+    } else {
+        put_editor_roles(
+            ui,
+            area,
+            left,
+            y,
+            " ",
+            plain(EDITOR_ROLES_BLACK, EDITOR_ROLES_BLACK),
+        );
+        put_editor_roles(
+            ui,
+            area,
+            left.saturating_add(1),
+            y,
+            " ",
+            plain(EDITOR_ROLES_SECONDARY, EDITOR_ROLES_BLACK),
+        );
+    }
+    put_editor_roles(
+        ui,
+        area,
+        area.x.saturating_add(5),
+        y,
+        " ",
+        if selected_style {
+            bold(EDITOR_ROLES_AMBER, background)
+        } else {
+            plain(EDITOR_ROLES_AMBER, background)
+        },
+    );
+
+    if row.allowed {
+        let marker = if selected && row.is_default {
+            " ★"
+        } else {
+            ""
+        };
+        let columns = if selected { 22 } else { 19 };
+        let label = format!(" [✓] {}{marker}", row.name);
+        let label = format!("{label:<width$}", width = usize::from(columns));
+        put_editor_roles_cols(
+            ui,
+            area,
+            area.x.saturating_add(6),
+            y,
+            &label,
+            columns,
+            if selected {
+                bold(EDITOR_ROLES_WHITE, background)
+            } else {
+                plain(EDITOR_ROLES_WHITE, background)
+            },
+        );
+    } else {
+        put_editor_roles(
+            ui,
+            area,
+            area.x.saturating_add(7),
+            y,
+            "[ ]",
+            if selected {
+                bold(EDITOR_ROLES_MUTED, background)
+            } else {
+                plain(EDITOR_ROLES_MUTED, background)
+            },
+        );
+        let label = format!(" {:<14}", row.name);
+        put_editor_roles(
+            ui,
+            area,
+            area.x.saturating_add(10),
+            y,
+            &label,
+            if selected {
+                bold(EDITOR_ROLES_WHITE, background)
+            } else {
+                plain(EDITOR_ROLES_WHITE, background)
+            },
+        );
+    }
+    if !selected {
+        put_editor_roles(
+            ui,
+            area,
+            area.x.saturating_add(25),
+            y,
+            " ",
+            plain(EDITOR_ROLES_SECONDARY, background),
+        );
+    }
+    paint_editor_roles_metadata(ui, area, y, row, selected, background);
+}
+
+fn paint_editor_roles_metadata(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    row: &EditorRolesRow<'_>,
+    selected: bool,
+    background: Color,
+) {
+    let start = area.x.saturating_add(28);
+    if !selected {
+        let foreground = match row.metadata_tone {
+            EditorRolesMetaTone::Error => EDITOR_ROLES_ERROR,
+            EditorRolesMetaTone::Warning => EDITOR_ROLES_AMBER,
+            EditorRolesMetaTone::Muted => EDITOR_ROLES_MUTED,
+        };
+        put_editor_roles(
+            ui,
+            area,
+            start,
+            y,
+            row.metadata,
+            plain(foreground, background),
+        );
+        return;
+    }
+
+    let mut column = start;
+    let mut word = String::new();
+    let flush = |ui: &mut Ui<'_>, column: &mut u16, word: &mut String| {
+        if word.is_empty() {
+            return;
+        }
+        put_editor_roles(
+            ui,
+            area,
+            *column,
+            y,
+            word,
+            bold(EDITOR_ROLES_SECONDARY, background),
+        );
+        *column = column.saturating_add(word.chars().count() as u16);
+        word.clear();
+    };
+    for character in row.metadata.chars() {
+        if character == ' ' || character == '·' {
+            flush(ui, &mut column, &mut word);
+            let text = character.to_string();
+            let foreground = if character == '·' {
+                EDITOR_ROLES_SECONDARY
+            } else {
+                EDITOR_ROLES_MUTED
+            };
+            put_editor_roles(ui, area, column, y, &text, bold(foreground, background));
+            column = column.saturating_add(1);
+        } else {
+            word.push(character);
+        }
+    }
+    flush(ui, &mut column, &mut word);
+}
+
+fn put_editor_roles(ui: &mut Ui<'_>, area: Rect, x: u16, y: u16, text: &str, style: PaintStyle) {
+    // Keep x logical so put_clipped removes a prefix before Ui applies the clip.
+    let visible_area = area.intersection(ui.full());
+    let width = area.right().saturating_sub(x);
+    put_clipped(ui, visible_area, x, y, text, width, style);
+}
+
+fn put_editor_roles_cols(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: u16,
+    y: u16,
+    text: &str,
+    columns: u16,
+    style: PaintStyle,
+) {
+    let visible_area = area.intersection(ui.full());
+    put_clipped(ui, visible_area, x, y, text, columns, style);
+}
+
+const EDITOR_ROLES_BLACK: Color = Color::Rgb(0x00, 0x00, 0x00);
+const EDITOR_ROLES_WHITE: Color = Color::Rgb(0xff, 0xff, 0xff);
+const EDITOR_ROLES_SECONDARY: Color = Color::Rgb(0xb3, 0xb3, 0xb3);
+const EDITOR_ROLES_MUTED: Color = Color::Rgb(0x8a, 0x8a, 0x8a);
+const EDITOR_ROLES_DARK_MUTED: Color = Color::Rgb(0x73, 0x73, 0x73);
+const EDITOR_ROLES_BADGE: Color = Color::Rgb(0x17, 0x3f, 0x1c);
+const EDITOR_ROLES_AMBER: Color = Color::Rgb(0xf5, 0x9e, 0x09);
+const EDITOR_ROLES_ERROR: Color = Color::Rgb(0xf0, 0x5d, 0x5d);
 
 /// Paint an Agents table with the existing Settings page chrome.
 ///
@@ -5042,5 +5513,306 @@ mod tests {
             wide.buffer().cell((117, 8)).expect("right edge").symbol(),
             " "
         );
+    }
+
+    #[test]
+    fn editor_roles_body_paints_projected_state_and_metadata() {
+        let mut rows = vec![
+            EditorRolesRow::new(
+                "extra",
+                false,
+                false,
+                "registry · trusted · service",
+                EditorRolesMetaTone::Muted,
+            );
+            18
+        ];
+        rows[0] = EditorRolesRow::new(
+            "backend",
+            true,
+            true,
+            "registry · trusted · Rust service",
+            EditorRolesMetaTone::Muted,
+        );
+        rows[1] = EditorRolesRow::new(
+            "reviewer",
+            false,
+            false,
+            "! load error · trust required",
+            EditorRolesMetaTone::Error,
+        );
+        rows[2] = EditorRolesRow::new(
+            "writer",
+            true,
+            false,
+            "~/roles/writer · not in registry",
+            EditorRolesMetaTone::Warning,
+        );
+        let body = EditorRolesBody::new(2, 46, "backend", &rows);
+        let mut scene = Scene::new(
+            "editor_roles_body_projected_state",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            120,
+            40,
+        );
+        scene.draw(|ui, area| {
+            assert_eq!(paint_editor_roles_body(ui, area, &body), Ok(()));
+        });
+
+        let text = scene.text();
+        for expected in [
+            "Allowed roles  2 of 46",
+            "default ★ backend",
+            "[✓] backend ★",
+            "[ ] reviewer",
+            "registry · trusted · Rust service",
+            "! load error · trust required",
+            "~/roles/writer · not in registry",
+        ] {
+            assert!(text.contains(expected), "missing {expected:?}: {text}");
+        }
+        assert_eq!(
+            scene
+                .buffer()
+                .cell((117, 7))
+                .expect("selected track")
+                .symbol(),
+            "┃"
+        );
+        assert_eq!(
+            scene.buffer().cell((117, 24)).expect("rest track").symbol(),
+            "┆"
+        );
+
+        let empty = EditorRolesBody::new(0, 0, "", &[]);
+        let mut empty_scene = Scene::new(
+            "editor_roles_body_empty_content",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            120,
+            40,
+        );
+        empty_scene.draw(|ui, area| {
+            assert_eq!(paint_editor_roles_body(ui, area, &empty), Ok(()));
+        });
+        assert!(empty_scene.text().contains("Allowed roles  0 of 0"));
+    }
+
+    #[test]
+    fn editor_roles_body_rejects_unproved_content_before_ink() {
+        use ratatui_core::style::Style;
+        use std::cell::RefCell;
+
+        let row = EditorRolesRow::new(
+            "backend",
+            true,
+            false,
+            "registry · trusted · Rust service",
+            EditorRolesMetaTone::Muted,
+        );
+        let rows = [row];
+        let valid = EditorRolesBody::new(1, 46, "backend", &rows);
+        let many_rows = vec![row; EDITOR_ROLES_MAX_ROWS + 1];
+        let too_many = EditorRolesBody::new(1, many_rows.len(), "backend", &many_rows);
+        let too_few_total = EditorRolesBody::new(1, 0, "backend", &rows);
+        let wide_rows = [EditorRolesRow::new(
+            "界",
+            true,
+            false,
+            "registry · trusted · service",
+            EditorRolesMetaTone::Muted,
+        )];
+        let wide = EditorRolesBody::new(1, 46, "backend", &wide_rows);
+        let missing_metadata_rows = [EditorRolesRow::new(
+            "backend",
+            true,
+            false,
+            "",
+            EditorRolesMetaTone::Muted,
+        )];
+        let missing_metadata = EditorRolesBody::new(1, 46, "backend", &missing_metadata_rows);
+        let combining_rows = [EditorRolesRow::new(
+            "backend",
+            true,
+            false,
+            "registry · cafe\u{301}",
+            EditorRolesMetaTone::Muted,
+        )];
+        let combining = EditorRolesBody::new(1, 46, "backend", &combining_rows);
+        let long_metadata = "x".repeat(usize::from(EDITOR_ROLES_META_WIDTH) + 1);
+        let long_metadata_rows = [EditorRolesRow::new(
+            "backend",
+            true,
+            false,
+            &long_metadata,
+            EditorRolesMetaTone::Muted,
+        )];
+        let long_metadata_body = EditorRolesBody::new(1, 46, "backend", &long_metadata_rows);
+        let long_default = "r".repeat(usize::from(EDITOR_ROLES_DEFAULT_LABEL_WIDTH) + 1);
+        let long_default_body = EditorRolesBody::new(1, 46, &long_default, &rows);
+
+        let mut scene = Scene::new(
+            "editor_roles_body_rejects_without_ink",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            120,
+            40,
+        );
+        let sentinel = RefCell::new(None);
+        scene.draw_over(
+            |buffer| {
+                buffer.set_style(
+                    Rect::new(0, 0, 120, 40),
+                    Style::default()
+                        .fg(Color::Rgb(0x11, 0x22, 0x33))
+                        .bg(Color::Rgb(0x44, 0x55, 0x66)),
+                );
+                *sentinel.borrow_mut() =
+                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
+            },
+            |ui, area| {
+                assert_eq!(
+                    paint_editor_roles_body(ui, Rect::new(0, 0, 119, 40), &valid),
+                    Err(EditorRolesPaintError::AreaTooNarrow {
+                        minimum: 120,
+                        actual: 119,
+                    })
+                );
+                assert_eq!(
+                    paint_editor_roles_body(ui, Rect::new(0, 0, 120, 39), &valid),
+                    Err(EditorRolesPaintError::AreaTooShort {
+                        minimum: 40,
+                        actual: 39,
+                    })
+                );
+                assert_eq!(
+                    paint_editor_roles_body(ui, area, &too_many),
+                    Err(EditorRolesPaintError::TooManyRows {
+                        maximum: EDITOR_ROLES_MAX_ROWS,
+                        actual: EDITOR_ROLES_MAX_ROWS + 1,
+                    })
+                );
+                assert_eq!(
+                    paint_editor_roles_body(ui, area, &too_few_total),
+                    Err(EditorRolesPaintError::TotalRolesBelowVisible {
+                        visible: 1,
+                        total: 0,
+                    })
+                );
+                assert_eq!(
+                    paint_editor_roles_body(ui, area, &wide),
+                    Err(EditorRolesPaintError::UnsupportedContent)
+                );
+                assert_eq!(
+                    paint_editor_roles_body(ui, area, &missing_metadata),
+                    Err(EditorRolesPaintError::UnsupportedContent)
+                );
+                assert_eq!(
+                    paint_editor_roles_body(ui, area, &combining),
+                    Err(EditorRolesPaintError::UnsupportedContent)
+                );
+                assert_eq!(
+                    paint_editor_roles_body(ui, area, &long_metadata_body),
+                    Err(EditorRolesPaintError::UnsupportedContent)
+                );
+                assert_eq!(
+                    paint_editor_roles_body(ui, area, &long_default_body),
+                    Err(EditorRolesPaintError::UnsupportedContent)
+                );
+            },
+        );
+        let sentinel = sentinel.into_inner().expect("recorded sentinel");
+        for y in 0..40 {
+            for x in 0..120 {
+                let cell = scene.buffer().cell((x, y)).expect("scene cell");
+                assert_eq!(
+                    format!("{cell:?}"),
+                    sentinel,
+                    "rejected write at ({x}, {y})"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn editor_roles_body_respects_offset_area_and_nested_clip() {
+        use ratatui_core::style::Style;
+        use std::cell::RefCell;
+
+        let rows = [
+            EditorRolesRow::new(
+                "backend",
+                true,
+                false,
+                "registry · trusted · Rust service",
+                EditorRolesMetaTone::Muted,
+            ),
+            EditorRolesRow::new(
+                "reviewer",
+                false,
+                false,
+                "! load error · trust required",
+                EditorRolesMetaTone::Error,
+            ),
+        ];
+        let body = EditorRolesBody::new(1, 46, "backend", &rows);
+        let screen = Rect::new(0, 0, 128, 42);
+        let area = Rect::new(4, 1, 120, 40);
+        let clip = Rect::new(10, 8, 20, 3);
+        let sentinel_style = Style::default()
+            .fg(Color::Rgb(0x11, 0x22, 0x33))
+            .bg(Color::Rgb(0x44, 0x55, 0x66));
+        let mut scene = Scene::new(
+            "editor_roles_body_offset_nested_clip",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            screen.width,
+            screen.height,
+        );
+        let sentinel = RefCell::new(None);
+        let mut full = Scene::new(
+            "editor_roles_body_offset_full_reference",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            screen.width,
+            screen.height,
+        );
+        full.draw_over(
+            |buffer| buffer.set_style(screen, sentinel_style),
+            |ui, _| assert_eq!(paint_editor_roles_body(ui, area, &body), Ok(())),
+        );
+        scene.draw_over(
+            |buffer| {
+                buffer.set_style(screen, sentinel_style);
+                *sentinel.borrow_mut() =
+                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
+            },
+            |ui, _| {
+                ui.with_area(clip, |ui| {
+                    assert_eq!(paint_editor_roles_body(ui, area, &body), Ok(()));
+                });
+            },
+        );
+
+        let sentinel = sentinel.into_inner().expect("recorded sentinel");
+        let mut changed_inside = false;
+        for y in 0..screen.height {
+            for x in 0..screen.width {
+                let cell = scene.buffer().cell((x, y)).expect("scene cell");
+                if clip.contains(Position::new(x, y)) {
+                    let expected = full.buffer().cell((x, y)).expect("full cell");
+                    assert_eq!(
+                        format!("{cell:?}"),
+                        format!("{expected:?}"),
+                        "clip differs from full logical render at ({x}, {y})"
+                    );
+                    changed_inside |= format!("{cell:?}") != sentinel;
+                } else {
+                    assert_eq!(format!("{cell:?}"), sentinel, "outside clip at ({x}, {y})");
+                }
+            }
+        }
+        assert!(changed_inside, "the nested clip contained no role body ink");
     }
 }

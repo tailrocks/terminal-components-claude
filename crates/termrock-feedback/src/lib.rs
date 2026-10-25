@@ -71,7 +71,8 @@ pub use section::TextSection;
 pub use session_chrome::{SessionChrome, SessionHint, SessionMenu, paint_session_chrome};
 pub use settings_page::{
     EditorEnvironmentBody, EditorEnvironmentPaintError, EditorEnvironmentRole,
-    EditorEnvironmentRow, EditorEnvironmentValue, paint_editor_environment_body,
+    EditorEnvironmentRow, EditorEnvironmentValue, EditorRolesBody, EditorRolesMetaTone,
+    EditorRolesPaintError, EditorRolesRow, paint_editor_environment_body, paint_editor_roles_body,
 };
 pub use settings_page::{
     SettingsAgentRow, SettingsAgents, SettingsBodyPaintError, SettingsCheck, SettingsCluster,

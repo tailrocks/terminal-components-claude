@@ -4,7 +4,8 @@
 use termrock::author::PaintStyle;
 use termrock::feedback::{
     EditorEnvironmentBody, EditorEnvironmentRole, EditorEnvironmentRow, EditorEnvironmentValue,
-    paint_editor_environment_body,
+    EditorRolesBody, EditorRolesMetaTone, EditorRolesRow, paint_editor_environment_body,
+    paint_editor_roles_body,
 };
 use termrock::{Color, Modifier, Position, Rect, Style, Ui, width};
 
@@ -32,15 +33,21 @@ const TABS: &[(&str, u16, u16)] = &[
 ];
 
 pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    paint_with_environment_mode(app, ui, full, false);
+    paint_with_modes(app, ui, full, false, false);
 }
 
 #[cfg(test)]
 fn paint_preimage(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    paint_with_environment_mode(app, ui, full, true);
+    paint_with_modes(app, ui, full, true, true);
 }
 
-fn paint_with_environment_mode(app: &App, ui: &mut Ui<'_>, full: Rect, legacy_environment: bool) {
+fn paint_with_modes(
+    app: &App,
+    ui: &mut Ui<'_>,
+    full: Rect,
+    legacy_environment: bool,
+    legacy_roles: bool,
+) {
     if full.is_empty() {
         return;
     }
@@ -246,7 +253,13 @@ fn paint_with_environment_mode(app: &App, ui: &mut Ui<'_>, full: Rect, legacy_en
     match app.editor.tab {
         EditorTab::General => paint_general_body(app, ui),
         EditorTab::Mounts => paint_mounts_body(app, ui),
-        EditorTab::Roles => paint_roles_body(app, ui),
+        EditorTab::Roles => {
+            if legacy_roles {
+                paint_roles_body_legacy(app, ui);
+            } else {
+                paint_roles_body(app, ui, full);
+            }
+        }
         EditorTab::Environments => {
             if legacy_environment {
                 paint_env_body_legacy(app, ui);
@@ -515,7 +528,88 @@ fn isolation_word(isolation: crate::domain::workspace::Isolation) -> &'static st
     }
 }
 
-fn paint_roles_body(app: &App, ui: &mut Ui<'_>) {
+fn paint_roles_body(app: &App, ui: &mut Ui<'_>, full: Rect) {
+    if paint_shared_roles_body(app, ui, full) {
+        paint_roles_footer(ui);
+    } else {
+        paint_roles_body_legacy(app, ui);
+    }
+}
+
+fn paint_shared_roles_body(app: &App, ui: &mut Ui<'_>, full: Rect) -> bool {
+    // The App-level proof covers only the published 120x40 screen at origin.
+    if full.x != 0 || full.y != 0 || full.width != 120 || full.height != 40 {
+        return false;
+    }
+
+    let default_leaf = app
+        .editor
+        .pending
+        .roles
+        .default
+        .as_deref()
+        .map(role_leaf)
+        .unwrap_or("");
+    let allowed_count = match &app.editor.pending.roles.allowed {
+        crate::domain::workspace::AllowedRoles::Custom(list) => list.len(),
+        crate::domain::workspace::AllowedRoles::All => app.world.roles.len(),
+    };
+
+    let metadata = app
+        .world
+        .roles
+        .iter()
+        .take(29)
+        .map(role_meta)
+        .collect::<Vec<_>>();
+    let rows = app
+        .world
+        .roles
+        .iter()
+        .take(29)
+        .zip(&metadata)
+        .map(|(role, (metadata, _))| {
+            let allowed = app.editor.pending.roles.allows(&role.full_name())
+                || app.editor.pending.roles.allows(&role.name);
+            EditorRolesRow::new(
+                &role.name,
+                allowed,
+                role.name == default_leaf,
+                metadata,
+                role_meta_tone(role),
+            )
+        })
+        .collect::<Vec<_>>();
+    let body = EditorRolesBody::new(allowed_count, app.world.roles.len(), default_leaf, &rows);
+    paint_editor_roles_body(ui, full, &body).is_ok()
+}
+
+fn role_meta_tone(role: &crate::domain::workspace::RoleEntry) -> EditorRolesMetaTone {
+    if role.load_error.is_some() {
+        EditorRolesMetaTone::Error
+    } else if !role.in_registry {
+        EditorRolesMetaTone::Warning
+    } else {
+        EditorRolesMetaTone::Muted
+    }
+}
+
+fn paint_roles_footer(ui: &mut Ui<'_>) {
+    paint_str(ui, 97, 37, " ", BLACK, BLACK, false);
+    paint_str(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
+    paint_str(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
+    paint_str(
+        ui,
+        109,
+        37,
+        "Save… ",
+        Color::Rgb(0x4d, 0x4d, 0x4d),
+        ACTIVE_BG,
+        false,
+    );
+}
+
+fn paint_roles_body_legacy(app: &App, ui: &mut Ui<'_>) {
     let default_leaf = app
         .editor
         .pending
@@ -1578,7 +1672,7 @@ mod tests {
     use super::paint_preimage;
     use crate::domain::workspace::{AllowedRoles, EnvValue, EnvVar};
     use crate::{App, Motion, Scenario};
-    use termrock::{Color, ColorLevel, KeyCode, Rect, StateFlags, Theme};
+    use termrock::{Color, ColorLevel, KeyCode, Modifier, Rect, StateFlags, Style, Theme};
     use termrock_test_support::{Harness, Scene};
 
     const WIDTH: u16 = 120;
@@ -1721,6 +1815,357 @@ mod tests {
         app.editor.load_workspace(&workspace);
         app.editor.tab = crate::screens::editor::Tab::Environments;
         app
+    }
+
+    fn editor_roles_app() -> App {
+        let mut app = App::for_scenario_at(Scenario::Returning, Motion::Paused, 0);
+        let workspace = app
+            .world
+            .workspaces
+            .first()
+            .expect("fixture workspace")
+            .clone();
+        app.editor.load_workspace(&workspace);
+        app.editor.tab = crate::screens::editor::Tab::Roles;
+        app
+    }
+
+    fn assert_roles_body_matches_legacy(app: &App, label: &'static str) {
+        let mut shared = Scene::new(label, Theme::junie(), ColorLevel::TrueColor, WIDTH, HEIGHT);
+        shared.draw(|ui, area| {
+            ui.fill(area, super::canvas());
+            assert!(super::paint_shared_roles_body(app, ui, area));
+            super::paint_roles_footer(ui);
+        });
+
+        let mut routed = Scene::new(
+            "editor_roles_current_routed_body",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            WIDTH,
+            HEIGHT,
+        );
+        routed.draw(|ui, area| {
+            ui.fill(area, super::canvas());
+            super::paint_roles_body(app, ui, area);
+        });
+
+        let mut legacy = Scene::new(
+            "editor_roles_legacy_reference_body",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            WIDTH,
+            HEIGHT,
+        );
+        legacy.draw(|ui, area| {
+            ui.fill(area, super::canvas());
+            super::paint_roles_body_legacy(app, ui);
+        });
+
+        for y in 0..HEIGHT {
+            for x in 0..WIDTH {
+                let shared_cell = shared.buffer().cell((x, y)).expect("shared cell");
+                let routed_cell = routed.buffer().cell((x, y)).expect("routed cell");
+                let legacy_cell = legacy.buffer().cell((x, y)).expect("legacy cell");
+                assert_eq!(
+                    format!("{routed_cell:?}"),
+                    format!("{shared_cell:?}"),
+                    "shared Roles body was not used at ({x}, {y})"
+                );
+                assert_eq!(
+                    format!("{routed_cell:?}"),
+                    format!("{legacy_cell:?}"),
+                    "native Roles cell differs from legacy at ({x}, {y})"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn editor_roles_short_unselected_allowed_label_matches_legacy_cells_underlay() {
+        let app = editor_roles_app();
+        let role = &app.world.roles[1];
+        assert_eq!(role.name, "backend");
+        assert!(
+            app.editor.pending.roles.allows(&role.full_name())
+                || app.editor.pending.roles.allows(&role.name),
+            "fixture row must be allowed"
+        );
+
+        let sentinel_style = Style::default()
+            .fg(Color::Rgb(0x12, 0x34, 0x56))
+            .bg(Color::Rgb(0x65, 0x43, 0x21))
+            .add_modifier(Modifier::ITALIC);
+        let mut shared = Scene::new(
+            "editor_roles_short_allowed_full_shared_underlay",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            WIDTH,
+            HEIGHT,
+        );
+        shared.draw_over(
+            |buffer| {
+                for y in 0..HEIGHT {
+                    for x in 0..WIDTH {
+                        buffer
+                            .cell_mut(termrock::Position::new(x, y))
+                            .expect("shared sentinel cell")
+                            .set_symbol("~")
+                            .set_style(sentinel_style);
+                    }
+                }
+            },
+            |ui, area| {
+                assert!(super::paint_shared_roles_body(&app, ui, area));
+                super::paint_roles_footer(ui);
+            },
+        );
+
+        let mut legacy = Scene::new(
+            "editor_roles_short_allowed_full_legacy_underlay",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            WIDTH,
+            HEIGHT,
+        );
+        legacy.draw_over(
+            |buffer| {
+                for y in 0..HEIGHT {
+                    for x in 0..WIDTH {
+                        buffer
+                            .cell_mut(termrock::Position::new(x, y))
+                            .expect("legacy sentinel cell")
+                            .set_symbol("~")
+                            .set_style(sentinel_style);
+                    }
+                }
+            },
+            |ui, _| super::paint_roles_body_legacy(&app, ui),
+        );
+
+        let sentinel = format!("{:?}", shared.buffer().cell((0, 0)).expect("sentinel cell"));
+        for y in 0..HEIGHT {
+            for x in 0..WIDTH {
+                let shared_cell = shared.buffer().cell((x, y)).expect("shared cell");
+                let legacy_cell = legacy.buffer().cell((x, y)).expect("legacy cell");
+                assert_eq!(
+                    format!("{shared_cell:?}"),
+                    format!("{legacy_cell:?}"),
+                    "native Roles cell differs over sentinel at ({x}, {y})"
+                );
+            }
+        }
+        for x in 18..25 {
+            let shared_cell = shared.buffer().cell((x, 8)).expect("shared padded cell");
+            let legacy_cell = legacy.buffer().cell((x, 8)).expect("legacy padded cell");
+            assert_eq!(shared_cell.symbol(), " ", "legacy field padding at x={x}");
+            assert_ne!(
+                format!("{shared_cell:?}"),
+                sentinel,
+                "padding cell stayed at the underlay style at x={x}"
+            );
+            assert_eq!(
+                format!("{shared_cell:?}"),
+                format!("{legacy_cell:?}"),
+                "short allowed-label padding differs at x={x}"
+            );
+        }
+        assert_eq!(
+            shared
+                .buffer()
+                .cell((0, 0))
+                .expect("sentinel cell")
+                .symbol(),
+            "~",
+            "the underlay must use a nonblank symbol"
+        );
+    }
+
+    #[test]
+    fn editor_roles_nested_clips_match_full_render_logical_cells() {
+        let app = editor_roles_app();
+        let role = &app.world.roles[1];
+        assert_eq!(role.name, "backend");
+        assert!(
+            app.editor.pending.roles.allows(&role.full_name())
+                || app.editor.pending.roles.allows(&role.name),
+            "clip fixture row must be allowed and unselected"
+        );
+        let sentinel_style = Style::default()
+            .fg(Color::Rgb(0x12, 0x34, 0x56))
+            .bg(Color::Rgb(0x65, 0x43, 0x21))
+            .add_modifier(Modifier::ITALIC);
+        let mut full = Scene::new(
+            "editor_roles_full_render_clip_reference",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            WIDTH,
+            HEIGHT,
+        );
+        full.draw_over(
+            |buffer| {
+                for y in 0..HEIGHT {
+                    for x in 0..WIDTH {
+                        buffer
+                            .cell_mut(termrock::Position::new(x, y))
+                            .expect("full sentinel cell")
+                            .set_symbol("~")
+                            .set_style(sentinel_style);
+                    }
+                }
+            },
+            |ui, area| assert!(super::paint_shared_roles_body(&app, ui, area)),
+        );
+        let sentinel = format!("{:?}", full.buffer().cell((0, 0)).expect("sentinel cell"));
+        let clips = [
+            ("editor_roles_clip_inside_text", Rect::new(10, 8, 18, 1)),
+            (
+                "editor_roles_clip_after_short_span",
+                Rect::new(26, 8, 18, 1),
+            ),
+            ("editor_roles_clip_inside_padding", Rect::new(20, 8, 5, 1)),
+        ];
+
+        for (label, clip) in clips {
+            let mut clipped =
+                Scene::new(label, Theme::junie(), ColorLevel::TrueColor, WIDTH, HEIGHT);
+            clipped.draw_over(
+                |buffer| {
+                    for y in 0..HEIGHT {
+                        for x in 0..WIDTH {
+                            buffer
+                                .cell_mut(termrock::Position::new(x, y))
+                                .expect("clipped sentinel cell")
+                                .set_symbol("~")
+                                .set_style(sentinel_style);
+                        }
+                    }
+                },
+                |ui, area| {
+                    ui.with_area(clip, |ui| {
+                        assert!(super::paint_shared_roles_body(&app, ui, area));
+                    });
+                },
+            );
+
+            let mut changed_inside = false;
+            for y in 0..HEIGHT {
+                for x in 0..WIDTH {
+                    let actual = clipped.buffer().cell((x, y)).expect("clipped cell");
+                    if clip.contains(termrock::Position::new(x, y)) {
+                        let expected = full.buffer().cell((x, y)).expect("full cell");
+                        assert_eq!(
+                            format!("{actual:?}"),
+                            format!("{expected:?}"),
+                            "{label}: clip cell differs from full logical render at ({x}, {y})"
+                        );
+                        changed_inside |= format!("{actual:?}") != sentinel;
+                    } else {
+                        assert_eq!(
+                            format!("{actual:?}"),
+                            sentinel,
+                            "{label}: cell outside nested clip changed at ({x}, {y})"
+                        );
+                    }
+                }
+            }
+            assert!(
+                changed_inside,
+                "{label}: clip did not cover any painted cell"
+            );
+        }
+    }
+
+    fn assert_roles_fallback_matches_legacy(
+        app: &App,
+        label: &'static str,
+        width: u16,
+        height: u16,
+    ) {
+        let mut rejected = Scene::new(
+            "editor_roles_shared_rejection_probe",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            width,
+            height,
+        );
+        rejected.draw(|ui, area| {
+            ui.fill(area, super::canvas());
+            assert!(!super::paint_shared_roles_body(app, ui, area));
+        });
+
+        let mut routed = Scene::new(label, Theme::junie(), ColorLevel::TrueColor, width, height);
+        routed.draw(|ui, area| {
+            ui.fill(area, super::canvas());
+            super::paint_roles_body(app, ui, area);
+        });
+
+        let mut legacy = Scene::new(
+            "editor_roles_unproved_legacy_reference",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            width,
+            height,
+        );
+        legacy.draw(|ui, area| {
+            ui.fill(area, super::canvas());
+            super::paint_roles_body_legacy(app, ui);
+        });
+
+        for y in 0..height {
+            for x in 0..width {
+                let actual = routed.buffer().cell((x, y)).expect("routed cell");
+                let expected = legacy.buffer().cell((x, y)).expect("legacy cell");
+                assert_eq!(
+                    format!("{actual:?}"),
+                    format!("{expected:?}"),
+                    "{label}: native cell differs at ({x}, {y})"
+                );
+            }
+        }
+    }
+
+    fn assert_actual_roles_editor_gate(harness: &Harness<App>) {
+        let app = harness.app();
+        assert_eq!(app.world.scenario, Scenario::Returning);
+        assert_eq!(app.motion, Motion::Paused);
+        assert_eq!(app.route(), crate::Route::Editor);
+        assert_eq!(app.editor.tab, crate::screens::editor::Tab::Roles);
+        assert!(!app.editor.env_form_open);
+        assert!(app.role_picker_purpose.is_none());
+        assert!(!app.help_open);
+        assert!(!app.quit_open);
+        assert!(!app.cancel_open);
+        assert!(!app.editor_exit_open);
+        assert!(!app.editor.preview_open);
+        assert!(
+            app.status.is_none(),
+            "Roles App gate is closed: {:?}",
+            app.status
+        );
+        assert_eq!((WIDTH, HEIGHT), (120, 40));
+    }
+
+    fn assert_roles_matches_preimage(harness: &Harness<App>, label: &'static str) {
+        assert_actual_roles_editor_gate(harness);
+        let mut old_body = Scene::new(label, Theme::junie(), ColorLevel::TrueColor, WIDTH, HEIGHT);
+        old_body.draw(|ui, area| paint_preimage(harness.app(), ui, area));
+        for y in 6..37 {
+            for x in 0..WIDTH {
+                let actual = harness.buffer().cell((x, y)).expect("App cell");
+                let expected = old_body.buffer().cell((x, y)).expect("preimage cell");
+                assert_eq!(
+                    format!("{actual:?}"),
+                    format!("{expected:?}"),
+                    "native App/preimage Roles cell differs at ({x}, {y})"
+                );
+            }
+        }
+        assert_eq!(
+            harness.cursor(),
+            old_body.cursor_position(),
+            "Roles cursor changed"
+        );
     }
 
     fn assert_app_fallback_matches_legacy(app: &App, label: &'static str, width: u16, height: u16) {
@@ -2272,6 +2717,135 @@ mod tests {
     }
 
     #[test]
+    fn editor_roles_supported_projection_matches_legacy_full_cells() {
+        let custom_allowlist = editor_roles_app();
+        assert_roles_body_matches_legacy(&custom_allowlist, "editor_roles_custom_allowlist");
+
+        let mut all_allowed = editor_roles_app();
+        all_allowed.editor.pending.roles.allowed = AllowedRoles::All;
+        assert_roles_body_matches_legacy(&all_allowed, "editor_roles_all_allowed");
+
+        let mut nonfirst_default = editor_roles_app();
+        nonfirst_default.editor.pending.roles.default = Some("chainargos/sre".into());
+        assert_roles_body_matches_legacy(&nonfirst_default, "editor_roles_nonfirst_default");
+
+        let mut cleared_default = editor_roles_app();
+        cleared_default.editor.pending.roles.default = None;
+        assert_roles_body_matches_legacy(&cleared_default, "editor_roles_cleared_default");
+
+        let mut load_error = editor_roles_app();
+        load_error.world.roles[1].load_error = Some("fixture load failure".into());
+        assert_roles_body_matches_legacy(&load_error, "editor_roles_load_error_metadata");
+
+        let mut not_in_registry = editor_roles_app();
+        not_in_registry.world.roles[1].in_registry = false;
+        assert_roles_body_matches_legacy(&not_in_registry, "editor_roles_not_in_registry_metadata");
+
+        let mut preview = editor_roles_app();
+        preview.editor.preview_open = true;
+        assert_roles_body_matches_legacy(&preview, "editor_roles_preview_body");
+    }
+
+    #[test]
+    fn editor_roles_unproved_geometry_and_content_keep_legacy_cells() {
+        let app = editor_roles_app();
+        assert_roles_fallback_matches_legacy(
+            &app,
+            "editor_roles_narrow_fallback",
+            WIDTH - 1,
+            HEIGHT,
+        );
+        assert_roles_fallback_matches_legacy(
+            &app,
+            "editor_roles_short_fallback",
+            WIDTH,
+            HEIGHT - 1,
+        );
+        assert_roles_fallback_matches_legacy(
+            &app,
+            "editor_roles_wider_fallback",
+            WIDTH + 1,
+            HEIGHT,
+        );
+        assert_roles_fallback_matches_legacy(
+            &app,
+            "editor_roles_taller_fallback",
+            WIDTH,
+            HEIGHT + 1,
+        );
+
+        let mut long_name = editor_roles_app();
+        long_name.world.roles[0].name = "role-name-too-long".into();
+        assert_roles_fallback_matches_legacy(
+            &long_name,
+            "editor_roles_long_name_fallback",
+            WIDTH,
+            HEIGHT,
+        );
+
+        let mut wide_name = editor_roles_app();
+        wide_name.world.roles[0].name = "界".into();
+        assert_roles_fallback_matches_legacy(
+            &wide_name,
+            "editor_roles_wide_name_fallback",
+            WIDTH,
+            HEIGHT,
+        );
+
+        let mut combining_metadata = editor_roles_app();
+        combining_metadata.world.roles[0].description = "cafe\u{301}".into();
+        assert_roles_fallback_matches_legacy(
+            &combining_metadata,
+            "editor_roles_combining_metadata_fallback",
+            WIDTH,
+            HEIGHT,
+        );
+
+        let mut long_metadata = editor_roles_app();
+        long_metadata.world.roles[0].description = "x".repeat(100);
+        assert_roles_fallback_matches_legacy(
+            &long_metadata,
+            "editor_roles_long_metadata_fallback",
+            WIDTH,
+            HEIGHT,
+        );
+
+        let mut long_default = editor_roles_app();
+        long_default.editor.pending.roles.default = Some("r".repeat(18));
+        assert_roles_fallback_matches_legacy(
+            &long_default,
+            "editor_roles_long_default_fallback",
+            WIDTH,
+            HEIGHT,
+        );
+    }
+
+    #[test]
+    fn editor_roles_full_route_preserves_body_and_real_control_owners() {
+        let mut harness = editor_roles_harness();
+        harness.draw();
+        assert_roles_matches_preimage(&harness, "editor_roles_full_route_legacy_reference");
+
+        let role_edit = crate::app::EDITOR_ROLE_EDIT;
+        assert_eq!(
+            harness.area_of(role_edit),
+            Some(Rect::new(96, 5, 14, 1)),
+            "the real default-role owner keeps its published area"
+        );
+        assert_published_owner(&harness, role_edit, "Editor Default role");
+        assert_save_owners(&harness, false);
+        assert_eq!(
+            harness.area_of(crate::screens::editor::SAVE),
+            Some(Rect::new(109, 37, 7, 1)),
+            "the real Editor Save owner keeps its published area"
+        );
+        assert_eq!(harness.area_of(crate::app::EDITOR_SAVE_CONFIRM), None);
+        assert!(harness.tab_to(role_edit));
+        assert_eq!(harness.focus(), Some(role_edit));
+        assert!(!harness.state_of(role_edit).contains(StateFlags::PRESSED));
+    }
+
+    #[test]
     fn gated_roles_preview_saves_pending_default_after_the_paused_review_phase() {
         let mut harness = editor_roles_harness();
         let workspace_id = harness.app().world.workspaces[0].id;
@@ -2311,6 +2885,23 @@ mod tests {
         let _ = harness.key(KeyCode::Enter);
         assert!(harness.app().editor.preview_open);
         harness.draw();
+        let confirm = crate::app::EDITOR_SAVE_CONFIRM;
+        assert_eq!(
+            harness.area_of(crate::app::EDITOR_ROLE_EDIT),
+            None,
+            "preview keeps the Default-role owner out of the active page"
+        );
+        assert_eq!(
+            harness.area_of(crate::screens::editor::SAVE),
+            None,
+            "preview keeps the ordinary Save owner out of the active page"
+        );
+        assert_eq!(
+            harness.area_of(confirm),
+            Some(Rect::new(84, 24, 6, 1)),
+            "preview retains the real Save confirmation owner"
+        );
+        assert_published_owner(&harness, confirm, "Editor Save confirmation");
         let frame = harness.text();
         assert!(frame.contains("default ★ sre"), "{frame}");
         assert!(frame.contains("~ keep_awake true → false"), "{frame}");
@@ -2318,7 +2909,6 @@ mod tests {
             frame.contains("~ default role chainargos/the-architect → chainargos/sre"),
             "{frame}"
         );
-        let confirm = crate::app::EDITOR_SAVE_CONFIRM;
         assert!(
             harness.tab_to(confirm),
             "gated review has a real confirm owner"
