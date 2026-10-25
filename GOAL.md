@@ -214,4 +214,3 @@ Keep code identifiers and commands exact.
 Use one instruction per sentence.
 Use no more than 20 words in a procedural sentence.
 Use no more than 25 words in a descriptive sentence.
-

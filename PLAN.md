@@ -304,4 +304,3 @@ Do not claim package publication from a dry run.
 Use the exact handoff prompt in [GOAL.md](GOAL.md).
 Keep all files beside it.
 Link the API rules from root `AGENTS.md` through the supplied patch.
-

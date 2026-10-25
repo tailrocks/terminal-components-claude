@@ -251,4 +251,3 @@ They are not claims about entries in the ASD dictionary.
 
 Keep technical verbs limited to these software meanings.
 Use a simpler ordinary verb when it expresses the same instruction clearly.
-

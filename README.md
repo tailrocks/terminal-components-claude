@@ -88,4 +88,3 @@ Keep code, paths, command options, and model IDs exact.
 
 A sentence-length check supports the language review.
 It does not certify dictionary use or complete ASD-STE100 conformity.
-

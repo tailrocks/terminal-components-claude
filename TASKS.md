@@ -2249,5 +2249,3 @@ git diff --check
 ### Acceptance
 
 All independent acceptance categories pass at one final source revision. The report states any external action that remains unauthorized.
-
-

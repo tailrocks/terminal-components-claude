@@ -262,4 +262,3 @@ Use the same technical term for the same object.
 Review procedure sentences longer than 20 words.
 Review description sentences longer than 25 words.
 A length check does not replace a vocabulary review.
-
