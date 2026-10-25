@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "fixed_input_revision": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "method": "Python AST comparison removes nonfunctional module/function/class docstrings and normalizes only the ArgumentParser description transfer from __doc__ to an explicit string. It retains every other literal and AST node. Empty exception classes receive a pass statement after removing their only docstring.",
+  "files": [
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "output_sha256": "34fa17ff58b20d26801f946a10d982a3533aa033e3995a279b6cba49ca3074fb",
+      "ast_equal_after_nonfunctional_doc_removal_and_help_literal_normalization": true,
+      "module_docstring_help_exactly_preserved": true,
+      "current_argument_parser_descriptions_count": 1
+    },
+    {
+      "path": "tools/ansi2html.py",
+      "input_sha256": "b8defedcf1703a410be28dc3761377f55bab258239cc5e6fa6b2cddca27a04b5",
+      "output_sha256": "3fd413297c5c2ed127daa6e6f556cecced7abe3f418a18a62526cbc766f970e2",
+      "ast_equal_after_nonfunctional_doc_removal_and_help_literal_normalization": true,
+      "module_docstring_help_exactly_preserved": null,
+      "current_argument_parser_descriptions_count": 0
+    },
+    {
+      "path": "tools/ansi2png.py",
+      "input_sha256": "f29d92633e44337e2aba6fe0a960053014234ef5811ba18ee4527f336bb9eef2",
+      "output_sha256": "416533a5db8f4e8686465937903ea9a4f759815f2ae8a4312275424f9b1450f6",
+      "ast_equal_after_nonfunctional_doc_removal_and_help_literal_normalization": true,
+      "module_docstring_help_exactly_preserved": null,
+      "current_argument_parser_descriptions_count": 0
+    },
+    {
+      "path": "tools/historical-render/regenerate.py",
+      "input_sha256": "f1928d0f8e37d2f7ffea9d7432499f4b809adeb3bce1e9ebc8828757105567ab",
+      "output_sha256": "f23efd526ab98cc14c19a86755d42bf4b66d3af8b99d64357f5da9568cc9e1ea",
+      "ast_equal_after_nonfunctional_doc_removal_and_help_literal_normalization": true,
+      "module_docstring_help_exactly_preserved": true,
+      "current_argument_parser_descriptions_count": 1
+    },
+    {
+      "path": "tools/rust_build_guard.py",
+      "input_sha256": "48b606262b4e8a5b485770532fef9175a1318118e9f789dc5bf8a12b34f9dd9b",
+      "output_sha256": "d0b13d400a225fa2c50582391b20fed18b90a6a086416fd517f9187f44936674",
+      "ast_equal_after_nonfunctional_doc_removal_and_help_literal_normalization": true,
+      "module_docstring_help_exactly_preserved": null,
+      "current_argument_parser_descriptions_count": 0
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "output_sha256": "8b7738094aae3462d9f9e09e84ec850854c19e185c4d6b25183b6c498b4afb96",
+      "ast_equal_after_nonfunctional_doc_removal_and_help_literal_normalization": true,
+      "module_docstring_help_exactly_preserved": true,
+      "current_argument_parser_descriptions_count": 1
+    },
+    {
+      "path": "tools/visibility/status.py",
+      "input_sha256": "e9d9ab8a75d85a172499265144602e0d8fb6313250e3c4efc037120b0e4fb739",
+      "output_sha256": "36ab13cbc8e67dd47b8ec8c0bdd9b19a3b6ea401535795c81b9755f5481bd314",
+      "ast_equal_after_nonfunctional_doc_removal_and_help_literal_normalization": true,
+      "module_docstring_help_exactly_preserved": true,
+      "current_argument_parser_descriptions_count": 1
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "output_sha256": "fe7f1d78c4caeab15e350c2a6d11966618a2808c1f7ca514aed9ded5f7197cb3",
+      "ast_equal_after_nonfunctional_doc_removal_and_help_literal_normalization": true,
+      "module_docstring_help_exactly_preserved": true,
+      "current_argument_parser_descriptions_count": 3
+    }
+  ],
+  "help_literal_transfers": [
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_module_docstring": "Fail-closed, source-bound architecture checks for termrock acceptance.",
+      "current_parser_description_literal": "Fail-closed, source-bound architecture checks for termrock acceptance.",
+      "exact_text_match": true
+    },
+    {
+      "path": "tools/historical-render/regenerate.py",
+      "input_module_docstring": "Rebuild missing historical images from immutable ANSI, never candidate output.",
+      "current_parser_description_literal": "Rebuild missing historical images from immutable ANSI, never candidate output.",
+      "exact_text_match": true
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_module_docstring": "Validate and render accepted Termrock visibility work records.\n\nThe accepted task JSON is the authority. WORK_QUEUE.md is a deterministic view.\nThis module never treats a task state as evidence that product checks passed.\nInstruction discovery here only builds a static task packet; it does not prove\nthat an agent runtime loaded the listed instructions. Review receipts bind the\nrecorded external file digest and expected subject in the source record; they do\nnot authenticate reviewer identity or provide a cryptographic signature.\n",
+      "current_parser_description_literal": "Validate and render accepted Termrock visibility work records.\n\nThe accepted task JSON is the authority. WORK_QUEUE.md is a deterministic view.\nThis module never treats a task state as evidence that product checks passed.\nInstruction discovery here only builds a static task packet; it does not prove\nthat an agent runtime loaded the listed instructions. Review receipts bind the\nrecorded external file digest and expected subject in the source record; they do\nnot authenticate reviewer identity or provide a cryptographic signature.\n",
+      "exact_text_match": true
+    },
+    {
+      "path": "tools/visibility/status.py",
+      "input_module_docstring": "Render Termrock visibility facts and bounded, source-pinned observations.",
+      "current_parser_description_literal": "Render Termrock visibility facts and bounded, source-pinned observations.",
+      "exact_text_match": true
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_module_docstring": "Build pinned branch subjects or the immutable visual-baseline Holla oracle.",
+      "current_parser_description_literal": "Build pinned branch subjects or the immutable visual-baseline Holla oracle.",
+      "exact_text_match": true
+    }
+  ],
+  "non_comment_token_changes": [
+    {
+      "path": "tools/acceptance_architecture.py",
+      "change": "ArgumentParser description changed from __doc__ name to exact module-help string literal."
+    },
+    {
+      "path": "tools/historical-render/regenerate.py",
+      "change": "ArgumentParser description changed from __doc__ name to exact module-help string literal."
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "change": "ArgumentParser description changed from __doc__ name to exact module-help string literal; QueueError class docstring removed and pass inserted to retain valid class syntax."
+    },
+    {
+      "path": "tools/visibility/status.py",
+      "change": "ArgumentParser description changed from __doc__ name to exact module-help string literal."
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "change": "ArgumentParser description changed from __doc__ name to exact module-help string literal; SubjectError class docstring removed and pass inserted to retain valid class syntax."
+    }
+  ],
+  "retired_help_surface": [
+    {
+      "path": "tools/capture_provenance.py",
+      "authority": "T37-CAPTURE-01",
+      "reason": "The whole capture-provenance CLI is retired; its module docstring was not transferred as active help."
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "authority": "T37-INVENTORY-01",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "description": "Exact Cargo/libtest inventory. Capture is evidence, never approval.",
+      "reason": "The inventory capture/verify runner and its active CLI are retired. The literal is retained only as historical evidence in source-prose-map.json."
+    }
+  ],
+  "notes": [
+    "tools/ansi2html.py’s removed module docstring contained usage text but the script has no argparse/help path; the old exact text is recorded in source-prose-map.json.",
+    "No other Python executable AST changes were observed after doc removal and explicit help transfer.",
+    "tools/test-inventory/inventory.py is retired under T37-INVENTORY-01; its baseline module help is not treated as an active supported diagnostic."
+  ]
+}

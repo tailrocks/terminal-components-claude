@@ -1,4 +1,3 @@
-
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 use std::time::{Duration, Instant};
@@ -677,8 +676,6 @@ struct ApiArtifactRun {
     head_branch: String,
     head_sha: String,
 }
-
-
 
 #[derive(Deserialize)]
 struct PageEnvelope<T> {

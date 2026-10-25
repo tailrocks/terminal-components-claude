@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render Termrock visibility facts and bounded, source-pinned observations."""
+
 
 from __future__ import annotations
 
@@ -1781,9 +1781,9 @@ def validate_source_observation(observation: Any, label: str) -> Mapping[str, An
                 "{} branch last-update time must be explicitly unknown".format(label))
         for role, remote in (("candidate", candidate_remote), ("reference", reference_remote)):
             if label == "latest_source_observation":
-                # The current fixed-pair renderer reports commit dates as metadata.
-                # Require and validate them here so malformed facts fail as a
-                # schema error instead of raising KeyError during rendering.
+
+
+
                 timestamp_with_offset(
                     remote.get("commit_committer_at"),
                     "{}.{}_remote.commit_committer_at".format(label, role),
@@ -4005,8 +4005,8 @@ def render_status(
     publication_ci = validate_publication_ci_observations(
         facts.get("publication_ci_observations"), queue_module
     )
-    # Resolve and validate pinned evidence before rejecting machine-local locators.
-    # This preserves field-specific traversal and provenance errors.
+
+
     require_repository_relative_source_paths(facts)
     publication_section = render_publication_observations(publication, publication_ci)
     remote_candidate, remote_reference = latest["candidate_remote"], latest["reference_remote"]
@@ -4471,7 +4471,7 @@ def load_task_records(path: Path, queue_module: Any) -> Any:
 
 
 def recorded_status_role(text):
-    """The `Local role` recorded in a generated STATUS.md, if any."""
+
     for line in text.splitlines():
         if line.startswith("| Local role |") and line.endswith("|"):
             recorded = line[len("| Local role |"):-1].split()
@@ -4479,7 +4479,7 @@ def recorded_status_role(text):
     return None
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description='Render Termrock visibility facts and bounded, source-pinned observations.')
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--write", action="store_true", help="write generated STATUS.md")
     modes.add_argument("--check", action="store_true", help="compare STATUS.md with current inputs")
@@ -4496,9 +4496,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         queue_module = load_queue_module()
         status_path = queue_module.report_view_path(ROOT, args.output, "STATUS.md")
         task_records = load_task_records(TASKS_PATH, queue_module)
-        # `--check` without an explicit `--role` compares against the role the
-        # committed record states, so the documented check works on a fresh
-        # checkout of a reference-role STATUS.md.
+
+
+
         role = args.role
         explicit_role = "--role" in (sys.argv[1:] if argv is None else argv)
         if args.check and not explicit_role and status_path.exists():
