@@ -1,0 +1,144 @@
+{
+  "base_inventory_commit": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+  "changed_declarations": [
+    {
+      "added_declarations": [
+        {
+          "attribute_line": 298,
+          "function": "narrow_buttons_route_keeps_tree_markers_thumb_and_body",
+          "function_line": 299,
+          "status": "explicit Rust test attribute"
+        }
+      ],
+      "classification": "existing Cargo integration-test target; one source assertion added; no runtime execution",
+      "declarations": [
+        {
+          "attribute_line": 87,
+          "function": "sidebar_uses_canvas_idle_selected_and_accent_focus_roles",
+          "function_line": 88,
+          "status": "explicit Rust test attribute"
+        },
+        {
+          "attribute_line": 157,
+          "function": "collapsed_sidebar_blank_cells_use_builtin_canvas_at_every_color_level",
+          "function_line": 158,
+          "status": "explicit Rust test attribute"
+        },
+        {
+          "attribute_line": 190,
+          "function": "sidebar_canvas_and_ink_follow_custom_semantic_channels",
+          "function_line": 191,
+          "status": "explicit Rust test attribute"
+        },
+        {
+          "attribute_line": 265,
+          "function": "nav_region_matches_the_sidebar_at_every_width_threshold",
+          "function_line": 266,
+          "status": "explicit Rust test attribute"
+        },
+        {
+          "attribute_line": 298,
+          "function": "narrow_buttons_route_keeps_tree_markers_thumb_and_body",
+          "function_line": 299,
+          "status": "explicit Rust test attribute"
+        },
+        {
+          "attribute_line": 351,
+          "function": "arrows_follow_catalog_neighbors_without_routing_group_rows",
+          "function_line": 352,
+          "status": "explicit Rust test attribute"
+        },
+        {
+          "attribute_line": 390,
+          "function": "external_placeholder_route_is_revealed_and_survives_responsive_resizes",
+          "function_line": 391,
+          "status": "explicit Rust test attribute"
+        },
+        {
+          "attribute_line": 424,
+          "function": "tree_group_disclosure_keeps_the_current_page_and_expansion",
+          "function_line": 425,
+          "status": "explicit Rust test attribute"
+        },
+        {
+          "attribute_line": 440,
+          "function": "wheel_changes_the_registered_tree_viewport",
+          "function_line": 441,
+          "status": "explicit Rust test attribute"
+        },
+        {
+          "attribute_line": 464,
+          "function": "thumb_drag_updates_the_nav_view_and_releases_outside_the_sidebar",
+          "function_line": 465,
+          "status": "explicit Rust test attribute"
+        },
+        {
+          "attribute_line": 489,
+          "function": "right_edge_track_blank_rows_and_neighboring_layers_keep_ownership",
+          "function_line": 490,
+          "status": "explicit Rust test attribute"
+        },
+        {
+          "attribute_line": 568,
+          "function": "final_sidebar_column_is_scrollbar_owned_and_rows_remain_clickable",
+          "function_line": 569,
+          "status": "explicit Rust test attribute"
+        },
+        {
+          "attribute_line": 600,
+          "function": "tab_enter_escape_and_modal_focus_keep_their_owners",
+          "function_line": 601,
+          "status": "explicit Rust test attribute"
+        },
+        {
+          "attribute_line": 627,
+          "function": "row_activation_requires_a_matching_press_and_release",
+          "function_line": 628,
+          "status": "explicit Rust test attribute"
+        }
+      ],
+      "explicit_test_function_count": 14,
+      "imports_or_module_edges_changed": false,
+      "path": "crates/showcase-ui/tests/navigation_contract.rs",
+      "sha256": "eaeeaecae11b3a692091ee7e82ab180e2147e186bc1eda093c0db660dbf46ce5",
+      "test_target": "crates/showcase-ui/tests/navigation_contract.rs"
+    }
+  ],
+  "changed_fixture": [
+    {
+      "changed_row": [
+        {
+          "key": [
+            "buttons",
+            "100",
+            "30",
+            "16"
+          ],
+          "new": "buttons\t100\t30\t16\t   Overview        ┃ Buttons  Primary, secondary, subtle, danger, toggle, disabled, busy",
+          "old": "buttons\t100\t30\t16\t▎  Overview          Buttons  Primary, secondary, subtle, danger, toggle, disabled, busy"
+        }
+      ],
+      "classification": "updated expected display fixture; retain as unaccepted parity evidence",
+      "line_count": 352,
+      "path": "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+      "sha256": "b222ba034d68a509db33a684dd21c155385fdc61d2283be0ad73837d828c76e3"
+    }
+  ],
+  "incremental_base_commit": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+  "limits": [
+    "This overlay derives only the two changed file contents from exact 1d6 Git blobs.",
+    "All other declarations inherit the complete 3a inventory. The 1d6 source overlay changes only the listed paths after the one-file 31f source delta.",
+    "The fixture edit is not accepted as a green result; the latest cancelled run is recorded in ci-head-1d6-rest.json."
+  ],
+  "source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "test_execution": {
+    "approved_test_plan_id": "N/A",
+    "authorized": false,
+    "runtime_behavior": "NOT VERIFIED",
+    "selected_cases": 0
+  },
+  "test_file_path_count": 93917,
+  "test_related_ledger": "test-files-1d6.jsonl.gz",
+  "test_target_inherited_inventory": "test-inventory.json test_target_candidates plus tracked-tree-1d6 and test-files-1d6 overlays",
+  "whole_tree_ledger": "tracked-tree-1d6.jsonl.gz"
+}

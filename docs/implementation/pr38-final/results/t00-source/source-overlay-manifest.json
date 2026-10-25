@@ -1,0 +1,134 @@
+{
+  "base_commit": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+  "frozen_input_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "intermediate_commit": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+  "limits": [
+    "The base 3a ledgers remain immutable and are not overwritten.",
+    "The 1d6 tree is 3a plus the exact one-file 31f delta and exact two-file 1d6 delta.",
+    "The 1d6 delta changes existing test paths only; path classification and language remain unchanged.",
+    "The current source input is 1d6. The integration checkout may contain plan and evidence files outside that product source tree."
+  ],
+  "method": "Per-file overlay over the immutable 3a whole-tree and test-file ledgers. Only changed Git blob objects were read. No unchanged path was rehashed.",
+  "states": {
+    "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd": {
+      "test_files": {
+        "paths": 93917,
+        "tracked_bytes": 16711376143,
+        "unique_blob_oids": 68471
+      },
+      "tree": {
+        "paths": 94896,
+        "tracked_bytes": 16734723891,
+        "unique_blob_oids": 69406
+      }
+    },
+    "31f856f43d20920ea99aa81b8f40adeeb5bff358": {
+      "test_files": {
+        "paths": 93917,
+        "tracked_bytes": 16711374132,
+        "unique_blob_oids": 68470
+      },
+      "tree": {
+        "paths": 94896,
+        "tracked_bytes": 16734721880,
+        "unique_blob_oids": 69405
+      }
+    },
+    "3a2c977c881cd1745de16425c982791ee3ef2cc3": {
+      "test_files": {
+        "paths": 93917,
+        "tracked_bytes": 16711374993,
+        "unique_blob_oids": 68470
+      },
+      "tree": {
+        "paths": 94896,
+        "tracked_bytes": 16734722741,
+        "unique_blob_oids": 69405
+      }
+    }
+  },
+  "steps": [
+    {
+      "changed_files": [
+        {
+          "change": "source bytes replaced; all path and language classifications retained",
+          "new": {
+            "blob_oid": "abe33a9795137aece97e4b81087e1a3b80e2974f",
+            "evidence_path": "source-deltas/3a-to-31f/new/crates/termrock-xtask/exceptions/v1.json",
+            "sha256": "a943a901145b2a6c084346ba9bb2b6c6007228e9aeb7bb38522061db7926934e",
+            "size_bytes": 30776
+          },
+          "old": {
+            "blob_oid": "c6e3937ad7422dc336392a84d23803dc7d7a4c5d",
+            "evidence_path": "source-deltas/3a-to-31f/old/crates/termrock-xtask/exceptions/v1.json",
+            "sha256": "7789eddff384543eeb1d147c29d8a650696a415b0389dc78cac8e57ce35923d0",
+            "size_bytes": 31637
+          },
+          "path": "crates/termrock-xtask/exceptions/v1.json",
+          "test_ledger_updated": true
+        }
+      ],
+      "from": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "label": "3a-to-31f",
+      "overlay_metrics": {
+        "paths": 94896,
+        "tracked_bytes": 16734721880,
+        "unique_blob_oids": 69405
+      },
+      "paths": [
+        "crates/termrock-xtask/exceptions/v1.json"
+      ],
+      "to": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+    },
+    {
+      "changed_files": [
+        {
+          "change": "source bytes replaced; all path and language classifications retained",
+          "new": {
+            "blob_oid": "b04c26863e3dd482fdccf5124af72ca26f116795",
+            "evidence_path": "source-deltas/31f-to-1d6/new/crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+            "sha256": "b222ba034d68a509db33a684dd21c155385fdc61d2283be0ad73837d828c76e3",
+            "size_bytes": 41164
+          },
+          "old": {
+            "blob_oid": "937469be55bff7007cfac8c036dc0909f0ad8647",
+            "evidence_path": "source-deltas/31f-to-1d6/old/crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+            "sha256": "faa2a62d72736bc6ead7b99135a7d6e3f1ff1193b8bf48dc5f424241e3ccf0c9",
+            "size_bytes": 41164
+          },
+          "path": "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+          "test_ledger_updated": true
+        },
+        {
+          "change": "source bytes replaced; all path and language classifications retained",
+          "new": {
+            "blob_oid": "4edbc98786f02e6a6faf5b5205fc8641061175ba",
+            "evidence_path": "source-deltas/31f-to-1d6/new/crates/showcase-ui/tests/navigation_contract.rs",
+            "sha256": "eaeeaecae11b3a692091ee7e82ab180e2147e186bc1eda093c0db660dbf46ce5",
+            "size_bytes": 24445
+          },
+          "old": {
+            "blob_oid": "9f573cd15eefd864fb67123b50a9ef50e98096d2",
+            "evidence_path": "source-deltas/31f-to-1d6/old/crates/showcase-ui/tests/navigation_contract.rs",
+            "sha256": "5bb23aab81d2877eb8ec0341e32910409d58edec09c176ef8d9ea0b05909cd52",
+            "size_bytes": 22434
+          },
+          "path": "crates/showcase-ui/tests/navigation_contract.rs",
+          "test_ledger_updated": true
+        }
+      ],
+      "from": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "label": "31f-to-1d6",
+      "overlay_metrics": {
+        "paths": 94896,
+        "tracked_bytes": 16734723891,
+        "unique_blob_oids": 69406
+      },
+      "paths": [
+        "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+        "crates/showcase-ui/tests/navigation_contract.rs"
+      ],
+      "to": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    }
+  ]
+}

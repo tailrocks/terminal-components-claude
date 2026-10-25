@@ -1,0 +1,199 @@
+{
+  "f01": {
+    "area": "Holla baseline and remote CI",
+    "assessment": "The expected Holla baseline changed, and the latest CI run is cancelled. The full run has one failed Required aggregate and 95 cancelled jobs. The ownership scanner and exception sources also changed; the ownership jobs did not complete. The new fixture bytes and assertions are not a green runtime proof.",
+    "baseline_line_diff": [
+      "--- e08ac57d10ae54c87337eae0be08b1f5e8f4bda4:crates/holla-ui/tests/baselines/app.txt",
+      "+++ 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd:crates/holla-ui/tests/baselines/app.txt",
+      "@@ -23,7 +23,7 @@",
+      " activities-multi 160 50 paper 256 65d099e549189fcd",
+      " activities-multi 160 50 paper mono e228677cd489dd5c",
+      " activities-multi 160 50 paper truecolor bfab3bd61caacedc",
+      "-activities-multi 80 24 junie 16 1e852f351304fae1",
+      "+activities-multi 80 24 junie 16 3f0cadc5433b8f3e",
+      " activities-multi 80 24 junie 256 bc9c9c0e2773dfae",
+      " activities-multi 80 24 junie mono 23472ea3bed8d7d7",
+      " activities-multi 80 24 junie truecolor c8e338a0fc87c21e"
+    ],
+    "baseline_path": "crates/holla-ui/tests/baselines/app.txt",
+    "new": {
+      "blob_oid": "e3385108fe2fb1177f10ceaa680d853080cd31b8",
+      "evidence_path": "source-deltas/e08-to-1d6/new/crates/holla-ui/tests/baselines/app.txt",
+      "sha256": "b6a00b587e8ecae484fea1f85db57e74fd3535bb127e0032594c12b2f95bda11",
+      "size_bytes": 56237
+    },
+    "old": {
+      "blob_oid": "fdaf4f119d3f735430540162b90f1c1a65f4778e",
+      "evidence_path": "source-deltas/e08-to-1d6/old/crates/holla-ui/tests/baselines/app.txt",
+      "sha256": "c72badb7ebcc38d7017eac56852bf93b2167547223bbb6af2265bffed1b2cac6",
+      "size_bytes": 56237
+    },
+    "ownership_source_review": {
+      "assessment": "The source narrows two classification paths and removes two allowances. This is source inspection only. At frozen 1d6, both Rust / termrock-xtask jobs are cancelled. The ownership checker did not complete, so no fresh finding count or passing result is available.",
+      "changed_paths": [
+        {
+          "current_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+          "old_sha256": "68ad6e39371bc32aeda18243a3025204de6c3e1ecc9b20ff6f88428e9531a230",
+          "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+          "source_change": "Adds a narrow closed unit-enum Default derive range proof and static tests for accepted and rejected source shapes."
+        },
+        {
+          "current_sha256": "3c22881a344ce1852e1acc0b83dfcd345e146108bd854eba8cde5a9acf2a0ef3",
+          "old_sha256": "9acf13c2bd28ed164dc60aa8063a8dadf0e1de9b84b31ef9fcbb0eaee48aa080",
+          "path": "crates/termrock-xtask/src/ownership/rules.rs",
+          "source_change": "OWN-13 baseline path findings are excluded only when the complete string span is within certified test lines; source adds boundary cases."
+        },
+        {
+          "current_sha256": "a943a901145b2a6c084346ba9bb2b6c6007228e9aeb7bb38522061db7926934e",
+          "old_sha256": "7789eddff384543eeb1d147c29d8a650696a415b0389dc78cac8e57ce35923d0",
+          "path": "crates/termrock-xtask/exceptions/v1.json",
+          "source_change": "The 31f refresh removes OWN-11 terminal-page max 2 and OWN-14 shell-nav max 2; 97 exception rows become 95."
+        }
+      ]
+    }
+  },
+  "f13": {
+    "allowlist_path": "crates/showcase-ui/tests/coverage/allowlist.txt",
+    "allowlist_rows": 4511,
+    "assessment": "All seven R100 files moved from src/coverage to tests/coverage with identical bytes. The 4,511 registry rows are capability evidence, not complete behavior proof.",
+    "behavior_proof_rows": 6,
+    "disposition_categories": {
+      "SC1": 100,
+      "SC2": 1008,
+      "SC3": 247,
+      "review": 3156
+    },
+    "moved_files": [
+      {
+        "new": {
+          "blob_oid": "84ab69aad7475bbc4505268610ea2cc30a7e9397",
+          "evidence_path": "source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/allowlist.txt",
+          "sha256": "c83bfcc2c6c1f57289332d1c837683503f1c2a41d7fe13385b825eafb4540c0d",
+          "size_bytes": 929391
+        },
+        "new_path": "crates/showcase-ui/tests/coverage/allowlist.txt",
+        "old": {
+          "blob_oid": "84ab69aad7475bbc4505268610ea2cc30a7e9397",
+          "evidence_path": "source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/allowlist.txt",
+          "sha256": "c83bfcc2c6c1f57289332d1c837683503f1c2a41d7fe13385b825eafb4540c0d",
+          "size_bytes": 929391
+        },
+        "old_path": "crates/showcase-ui/src/coverage/allowlist.txt",
+        "status": "byte-identical rename"
+      },
+      {
+        "new": {
+          "blob_oid": "a1842845d4c33941f248a47efe7a0adc945ce323",
+          "evidence_path": "source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/catalog.rs",
+          "sha256": "b852413adeb6c004bb8f93c0707b7f2c0d9ed40a519e94f581e4cf5a577bfc62",
+          "size_bytes": 2569
+        },
+        "new_path": "crates/showcase-ui/tests/coverage/catalog.rs",
+        "old": {
+          "blob_oid": "a1842845d4c33941f248a47efe7a0adc945ce323",
+          "evidence_path": "source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/catalog.rs",
+          "sha256": "b852413adeb6c004bb8f93c0707b7f2c0d9ed40a519e94f581e4cf5a577bfc62",
+          "size_bytes": 2569
+        },
+        "old_path": "crates/showcase-ui/src/coverage/catalog.rs",
+        "status": "byte-identical rename"
+      },
+      {
+        "new": {
+          "blob_oid": "ce2e1121ce8219a2f69870431254b12cb433e57c",
+          "evidence_path": "source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/catalog_data.rs",
+          "sha256": "bcd2d23e2d7623f18718204dc787c5ef12aaaff5eaaf0b1bcde306bce3843846",
+          "size_bytes": 332395
+        },
+        "new_path": "crates/showcase-ui/tests/coverage/catalog_data.rs",
+        "old": {
+          "blob_oid": "ce2e1121ce8219a2f69870431254b12cb433e57c",
+          "evidence_path": "source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/catalog_data.rs",
+          "sha256": "bcd2d23e2d7623f18718204dc787c5ef12aaaff5eaaf0b1bcde306bce3843846",
+          "size_bytes": 332395
+        },
+        "old_path": "crates/showcase-ui/src/coverage/catalog_data.rs",
+        "status": "byte-identical rename"
+      },
+      {
+        "new": {
+          "blob_oid": "fae6effe8b63294aea17a4ce2ccbed4d2011d171",
+          "evidence_path": "source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/declarations.rs",
+          "sha256": "8a2ec2bed3ada0737c1c4b6d1cd8707dfa33da2f2f4b64ff0591b79449e7f69a",
+          "size_bytes": 13126
+        },
+        "new_path": "crates/showcase-ui/tests/coverage/declarations.rs",
+        "old": {
+          "blob_oid": "fae6effe8b63294aea17a4ce2ccbed4d2011d171",
+          "evidence_path": "source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/declarations.rs",
+          "sha256": "8a2ec2bed3ada0737c1c4b6d1cd8707dfa33da2f2f4b64ff0591b79449e7f69a",
+          "size_bytes": 13126
+        },
+        "old_path": "crates/showcase-ui/src/coverage/declarations.rs",
+        "status": "byte-identical rename"
+      },
+      {
+        "new": {
+          "blob_oid": "ec3a1822b9eb5221275f428a7e1c70d92b0b4e79",
+          "evidence_path": "source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/declarations_data.rs",
+          "sha256": "4310f419cc5f207e491568fe3d6d0b5b03296779eb89c7279623c6d89b88d359",
+          "size_bytes": 108750
+        },
+        "new_path": "crates/showcase-ui/tests/coverage/declarations_data.rs",
+        "old": {
+          "blob_oid": "ec3a1822b9eb5221275f428a7e1c70d92b0b4e79",
+          "evidence_path": "source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/declarations_data.rs",
+          "sha256": "4310f419cc5f207e491568fe3d6d0b5b03296779eb89c7279623c6d89b88d359",
+          "size_bytes": 108750
+        },
+        "old_path": "crates/showcase-ui/src/coverage/declarations_data.rs",
+        "status": "byte-identical rename"
+      },
+      {
+        "new": {
+          "blob_oid": "9d3af81ed9594da90e5457945d7c9b5f836a9c07",
+          "evidence_path": "source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/mod.rs",
+          "sha256": "7bfe173cb7c5b71bdd24b36aadd551dc2764ea4eb5a3f99ce691d685c277810d",
+          "size_bytes": 447
+        },
+        "new_path": "crates/showcase-ui/tests/coverage/mod.rs",
+        "old": {
+          "blob_oid": "9d3af81ed9594da90e5457945d7c9b5f836a9c07",
+          "evidence_path": "source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/mod.rs",
+          "sha256": "7bfe173cb7c5b71bdd24b36aadd551dc2764ea4eb5a3f99ce691d685c277810d",
+          "size_bytes": 447
+        },
+        "old_path": "crates/showcase-ui/src/coverage/mod.rs",
+        "status": "byte-identical rename"
+      },
+      {
+        "new": {
+          "blob_oid": "74bc42f2dc7a38deed194623cdd5d7c9a8a2fdc7",
+          "evidence_path": "source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/scan.rs",
+          "sha256": "64dedbe91bb1ae8f04c631093d10e6bf149cd0cf3cbec6c6e1183348c25e9a51",
+          "size_bytes": 30009
+        },
+        "new_path": "crates/showcase-ui/tests/coverage/scan.rs",
+        "old": {
+          "blob_oid": "74bc42f2dc7a38deed194623cdd5d7c9a8a2fdc7",
+          "evidence_path": "source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/scan.rs",
+          "sha256": "64dedbe91bb1ae8f04c631093d10e6bf149cd0cf3cbec6c6e1183348c25e9a51",
+          "size_bytes": 30009
+        },
+        "old_path": "crates/showcase-ui/src/coverage/scan.rs",
+        "status": "byte-identical rename"
+      }
+    ],
+    "proof_kinds": "All six behavior proofs concern Diff, as retained from historical F13 review."
+  },
+  "f20": {
+    "assessment": "Current product documentation paths are unchanged from the historical review input. The TablePro comparator source remains cmp_values_nulls_last; no test result is claimed."
+  },
+  "frozen_source_input": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "historical_review_target": "e08ac57d10ae54c87337eae0be08b1f5e8f4bda4",
+  "runtime_evidence": {
+    "approved_test_plan_id": "N/A",
+    "tests_run_by_T00": false,
+    "zero_case_behavior": "NOT VERIFIED"
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "schema": "t00.github-job-failure-excerpts.v1",
+  "observed_at_utc": "2026-10-25T21:22:45.573033Z",
+  "repository": "tailrocks/terminal-components-claude",
+  "jobs": [
+    {
+      "job_id": 121291609139,
+      "run_id": 40233372267,
+      "source_head": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "raw_log_characters": 458220,
+      "raw_log_lines": 4572,
+      "excerpts": [
+        {
+          "log_line": 4260,
+          "text": "2026-10-25T21:14:54.7480153Z     test holla_historical_border_subtle_replay_matches_four_held_frames ... FAILED"
+        },
+        {
+          "log_line": 4267,
+          "text": "2026-10-25T21:14:54.7660145Z     test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.03s"
+        },
+        {
+          "log_line": 4272,
+          "text": "2026-10-25T21:14:54.7809951Z     assertion `left == right` failed: unexpected difference at (78, 16)"
+        },
+        {
+          "log_line": 4273,
+          "text": "2026-10-25T21:14:54.7840681Z       left: Cell { symbol: Some(\"┆\"), fg: Indexed(238), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }"
+        },
+        {
+          "log_line": 4274,
+          "text": "2026-10-25T21:14:54.7870533Z      right: Cell { symbol: Some(\"┆\"), fg: Indexed(235), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }"
+        },
+        {
+          "log_line": 4282,
+          "text": "2026-10-25T21:14:54.9200865Z     test holla_historical_faint_replays_match_the_seventeen_reviewed_frames ... FAILED"
+        },
+        {
+          "log_line": 4289,
+          "text": "2026-10-25T21:14:54.9203154Z     test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.07s"
+        },
+        {
+          "log_line": 4294,
+          "text": "2026-10-25T21:14:54.9207228Z     digest of `activities-multi 100 30 junie 16` changed: baseline 28bef5bf245b5bc1, got f31d1ca522dcf046; classify the change against §20.10, capture it, then BLESS=1"
+        },
+        {
+          "log_line": 4348,
+          "text": "2026-10-25T21:14:57.1541030Z     test holla_visual_baseline ... FAILED"
+        },
+        {
+          "log_line": 4361,
+          "text": "2026-10-25T21:14:58.4991176Z     test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 1.45s"
+        },
+        {
+          "log_line": 4366,
+          "text": "2026-10-25T21:14:58.5139815Z     assertion `left == right` failed: unexpected difference at (78, 16)"
+        },
+        {
+          "log_line": 4367,
+          "text": "2026-10-25T21:14:58.5170403Z       left: Cell { symbol: Some(\"┆\"), fg: Indexed(238), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }"
+        },
+        {
+          "log_line": 4368,
+          "text": "2026-10-25T21:14:58.5200389Z      right: Cell { symbol: Some(\"┆\"), fg: Indexed(235), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }"
+        },
+        {
+          "log_line": 4411,
+          "text": "2026-10-25T21:16:53.9406998Z error: test run failed"
+        },
+        {
+          "log_line": 4412,
+          "text": "2026-10-25T21:16:53.9792746Z ##[error]Process completed with exit code 100."
+        }
+      ]
+    },
+    {
+      "job_id": 121291609159,
+      "run_id": 40233372267,
+      "source_head": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "raw_log_characters": 467094,
+      "raw_log_lines": 4568,
+      "excerpts": [
+        {
+          "log_line": 4337,
+          "text": "2026-10-25T21:13:43.7404391Z     test jackin_visual_baseline ... FAILED"
+        },
+        {
+          "log_line": 4344,
+          "text": "2026-10-25T21:13:43.7407039Z     test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.43s"
+        },
+        {
+          "log_line": 4349,
+          "text": "2026-10-25T21:13:43.7409809Z     digest of `accounts-mixed 100 30 junie truecolor` changed: baseline be7cc5dcb1dd422b, got 009a666153ada75e; classify the change against §20.10, capture it, then BLESS=1"
+        },
+        {
+          "log_line": 4392,
+          "text": "2026-10-25T21:13:46.7217173Z error: test run failed"
+        },
+        {
+          "log_line": 4393,
+          "text": "2026-10-25T21:13:46.7502469Z ##[error]Process completed with exit code 100."
+        }
+      ]
+    },
+    {
+      "job_id": 121291609423,
+      "run_id": 40233372267,
+      "source_head": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "raw_log_characters": 466633,
+      "raw_log_lines": 4556,
+      "excerpts": [
+        {
+          "log_line": 4345,
+          "text": "2026-10-25T21:17:38.9903043Z     test jackin_visual_baseline ... FAILED"
+        },
+        {
+          "log_line": 4352,
+          "text": "2026-10-25T21:17:38.9906878Z     test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.57s"
+        },
+        {
+          "log_line": 4357,
+          "text": "2026-10-25T21:17:38.9911789Z     digest of `accounts-mixed 100 30 junie truecolor` changed: baseline be7cc5dcb1dd422b, got 009a666153ada75e; classify the change against §20.10, capture it, then BLESS=1"
+        },
+        {
+          "log_line": 4395,
+          "text": "2026-10-25T21:17:41.8526658Z error: test run failed"
+        },
+        {
+          "log_line": 4396,
+          "text": "2026-10-25T21:17:41.8929308Z ##[error]Process completed with exit code 100."
+        }
+      ]
+    }
+  ]
+}

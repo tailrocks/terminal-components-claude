@@ -1,0 +1,174 @@
+{
+  "approved_test_plan_id": "N/A",
+  "commands": [
+    {
+      "command": "df -b /System/Volumes/Data",
+      "exit_code": 0,
+      "result": "Available 3,934,901,384 512-byte blocks (2,014,669,508,608 bytes) at final probe; the pre-build probe was above the 2 TB cleanup threshold. No build or checkout followed this probe.",
+      "selected_tests": 0
+    },
+    {
+      "command": "mise install",
+      "evidence_path": "toolchain.json",
+      "exit_code": 1,
+      "result": "failed to resolve java for macos-x64: no metadata found for version temurin-27.0.0+35 on macos-x64",
+      "selected_tests": 0
+    },
+    {
+      "command": "mise --version",
+      "evidence_path": "toolchain.json",
+      "exit_code": 0,
+      "result": "2026.10.19 macos-arm64 (2026-10-24)",
+      "selected_tests": 0
+    },
+    {
+      "command": "rustc --version",
+      "evidence_path": "toolchain.json",
+      "exit_code": 0,
+      "result": "rustc 1.99.1 (58cf8f9c3 2026-10-13) (Homebrew)",
+      "selected_tests": 0
+    },
+    {
+      "command": "mbx --version",
+      "evidence_path": "toolchain.json",
+      "exit_code": 0,
+      "result": "mbx 1.27.0",
+      "selected_tests": 0
+    },
+    {
+      "command": "cargo-nextest --version",
+      "evidence_path": "toolchain.json",
+      "exit_code": 0,
+      "result": "cargo-nextest 0.9.149 (3fe4ef319 2026-10-20); commit 3fe4ef31972f24e0c94cfe291718eab0fe678260; host aarch64-apple-darwin",
+      "selected_tests": 0
+    },
+    {
+      "command": "mise doctor",
+      "evidence_path": "toolchain.json",
+      "exit_code": 0,
+      "result": "No problems found; one PATH ordering warning.",
+      "selected_tests": 0
+    },
+    {
+      "command": "mbx doctor",
+      "evidence_path": "toolchain.json",
+      "exit_code": 0,
+      "result": "0 failures, 0 warnings.",
+      "selected_tests": 0
+    },
+    {
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo --version",
+      "exit_code": 125,
+      "result": "Guard denied unsupported Cargo command '--version'; Cargo did not run.",
+      "selected_tests": 0
+    },
+    {
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo nextest --version",
+      "exit_code": 125,
+      "result": "Guard allows only cargo nextest run/list; Cargo did not run.",
+      "selected_tests": 0
+    },
+    {
+      "command": "python3 capture_source.py",
+      "exit_code": 130,
+      "result": "The full capture process was interrupted after both compressed whole-tree and test-related ledgers were complete. The first broad in-memory text scan did not finish. The observed RSS reached about 13.8 GiB. The later bounded scan used the completed ledgers.",
+      "selected_tests": 0,
+      "working_directory": "docs/implementation/pr38-final/results/t00-source"
+    },
+    {
+      "command": "python3 docs/implementation/pr38-final/results/t00-source/scan_source_declarations.py",
+      "exit_code": 1,
+      "result": "Initial bounded scan had a Python syntax error at line 164. The owned scanner was corrected. This failed attempt is retained in the command record.",
+      "selected_tests": 0
+    },
+    {
+      "command": "python3 docs/implementation/pr38-final/results/t00-source/scan_source_declarations.py",
+      "evidence_path": "inventory-summary.json",
+      "exit_code": 0,
+      "result": "Bounded read-only inventory completed. It scanned 1,296 source/config/docs paths and 1,286 unique source blobs. It did not scan large immutable artifact contents or execute tests.",
+      "selected_tests": 0
+    },
+    {
+      "command": "python3 docs/implementation/pr38-final/results/t00-source/derive_source_overlays.py",
+      "evidence_path": "source-overlay-manifest.json",
+      "exit_code": 0,
+      "result": "Derived 31f and 1d6 ledgers from completed 3a ledgers. Only three changed Git blobs were read across the two deltas; all 94,896 path rows were reconciled.",
+      "selected_tests": 0
+    },
+    {
+      "command": "python3 docs/implementation/pr38-final/results/t00-source/analyze_latest_test_delta.py",
+      "evidence_path": "test-inventory-delta-1d6.json",
+      "exit_code": 0,
+      "result": "Captured two 1d6 source changes, one added Rust test function, and one expected fixture row change. No test ran.",
+      "selected_tests": 0
+    },
+    {
+      "command": "python3 docs/implementation/pr38-final/results/t00-source/capture_finding_deltas.py",
+      "evidence_path": "finding-deltas-e08-to-1d6.json",
+      "exit_code": 0,
+      "result": "Refreshed F01 baseline bytes and F13 coverage inventory. Seven R100 coverage files are byte-identical.",
+      "selected_tests": 0
+    },
+    {
+      "command": "python3 docs/implementation/pr38-final/results/t00-source/capture_github_jobs.py",
+      "evidence_path": "ci-head-1d6-rest.json",
+      "exit_code": 0,
+      "result": "Read-only GitHub REST capture. GET run 40235807469 details and GET /jobs?per_page=100&page=1 returned HTTP 200, total_count=100, pagination_complete=true.",
+      "selected_tests": 0
+    },
+    {
+      "command": "git diff --name-status e08ac57d10ae54c87337eae0be08b1f5e8f4bda4 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "exit_code": 0,
+      "result": "16 changed paths. Seven R100 coverage files; Holla baseline; Showcase export and test files; ownership exception file and scanner source.",
+      "selected_tests": 0
+    },
+    {
+      "command": "git rev-parse MERGE^{tree} 3a2c977c881cd1745de16425c982791ee3ef2cc3^{tree}",
+      "exit_code": 0,
+      "result": "CI merge checkout 17bf5d8fd77541d3e7eefddbacd108793938499b and source 3a have the same tree 63ee1ad48fe8ea34ffa2703c5cae05d0d81faa09.",
+      "selected_tests": 0
+    },
+    {
+      "command": "python3 docs/implementation/pr38-final/results/t00-source/build_artifact_index.py",
+      "evidence_path": "artifact-index.json",
+      "exit_code": 0,
+      "result": "Indexed 62 T00 evidence files with SHA-256; artifact-index.json excludes its own digest.",
+      "selected_tests": 0
+    },
+    {
+      "command": "python3 docs/implementation/pr38-final/results/t00-source/validate_source_records.py",
+      "evidence_path": "validate_source_records.py",
+      "exit_code": 0,
+      "result": "JSON files valid (27); six ledgers reconciled; 1d6 test paths are a subset of the full tree; CI pagination is complete at 100 jobs; F13 records seven moves and six proofs; no __pycache__.",
+      "selected_tests": 0
+    }
+  ],
+  "no_legacy_test_execution": "T00 did not run legacy test code. T00 did not run Cargo.",
+  "non_test_capture_tools": [
+    "capture_source.py",
+    "scan_source_declarations.py",
+    "derive_source_overlays.py",
+    "analyze_latest_test_delta.py",
+    "capture_finding_deltas.py",
+    "capture_github_jobs.py"
+  ],
+  "remote_CI_inventory": {
+    "cancelled_jobs": 95,
+    "failures": [
+      "Required aggregate gate only"
+    ],
+    "jobs_total": 100,
+    "observed_at_utc": "2026-10-25T21:45:18.651246+00:00",
+    "pagination_complete": true,
+    "production_build_failure_inventory": "INCOMPLETE; no explicit production-build step was reported and cancelled jobs have unknown build outcomes.",
+    "run_id": 40235807469,
+    "run_number": 2345,
+    "source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+  },
+  "schema": "t00.command-record.v1",
+  "selected_legacy_tests": 0,
+  "source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "task_id": "T00",
+  "test_execution_authorized": false,
+  "tests_run": false
+}

@@ -1,0 +1,157 @@
+{
+  "current_pr": 38,
+  "failures": [
+    {
+      "conclusion": "failure",
+      "failing_cases": [
+        {
+          "evidence": "Cell at (78, 16) differed. Actual foreground was Indexed(238); expected foreground was Indexed(235).",
+          "name": "holla_historical_border_subtle_replay_matches_four_held_frames",
+          "source_path": "crates/holla-ui/tests/visual.rs:101"
+        },
+        {
+          "evidence": "Digest for activities-multi 100 30 junie 16 changed. Baseline was 28bef5bf245b5bc1; observed was f31d1ca522dcf046.",
+          "name": "holla_historical_faint_replays_match_the_seventeen_reviewed_frames"
+        },
+        {
+          "evidence": "Cell at (78, 16) differed. Actual foreground was Indexed(238); expected foreground was Indexed(235).",
+          "name": "holla_visual_baseline",
+          "source_path": "crates/holla-ui/tests/visual.rs:101"
+        }
+      ],
+      "failing_step": "Unit and integration tests",
+      "failing_step_exit_code": 100,
+      "github_job_log": "https://github.com/tailrocks/terminal-components-claude/actions/runs/40233372267/job/121291609139",
+      "job_id": 121291609139,
+      "job_name": "Rust / holla-ui",
+      "other_relevant_steps": {
+        "Build test executables": "success",
+        "Clippy": "success",
+        "Documentation": "success",
+        "Format": "success"
+      }
+    },
+    {
+      "conclusion": "failure",
+      "failing_cases": [
+        {
+          "evidence": "Digest for accounts-mixed 100 30 junie truecolor changed. Baseline was be7cc5dcb1dd422b; observed was 009a666153ada75e.",
+          "name": "jackin_visual_baseline",
+          "source_path": "crates/termrock-test-support/src/digest.rs:284"
+        }
+      ],
+      "failing_step": "Unit and integration tests",
+      "failing_step_exit_code": 100,
+      "github_job_log": "https://github.com/tailrocks/terminal-components-claude/actions/runs/40233372267/job/121291609159",
+      "job_id": 121291609159,
+      "job_name": "Rust / jackin-preview-app",
+      "other_relevant_steps": {
+        "Build test executables": "success",
+        "Clippy": "success",
+        "Documentation": "success",
+        "Format": "success"
+      }
+    },
+    {
+      "conclusion": "failure",
+      "failing_cases": [
+        {
+          "evidence": "Digest for accounts-mixed 100 30 junie truecolor changed. Baseline was be7cc5dcb1dd422b; observed was 009a666153ada75e.",
+          "name": "jackin_visual_baseline",
+          "source_path": "crates/termrock-test-support/src/digest.rs:284"
+        }
+      ],
+      "failing_step": "Unit and integration tests",
+      "failing_step_exit_code": 100,
+      "github_job_log": "https://github.com/tailrocks/terminal-components-claude/actions/runs/40233372267/job/121291609423",
+      "job_id": 121291609423,
+      "job_name": "Rust / jackin-preview-app (testing)",
+      "other_relevant_steps": {
+        "Build test executables": "success",
+        "Clippy": "success",
+        "Documentation": "success",
+        "Format": "success"
+      }
+    },
+    {
+      "conclusion": "failure",
+      "evidence": "Required-result aggregation ran `false` and exited 1. This is an aggregate gate failure, not a product or production-build diagnostic.",
+      "failing_step": "Fail unless the verdict passed",
+      "failing_step_exit_code": 1,
+      "github_job_log": "https://github.com/tailrocks/terminal-components-claude/actions/runs/40233372267/job/121295183134",
+      "job_id": 121295183134,
+      "job_name": "Required",
+      "preserved_excerpt": "ci-required-job-excerpt.json"
+    }
+  ],
+  "historical_review": {
+    "failed_packages_reported": [
+      "jackin-preview-app",
+      "holla-ui",
+      "showcase-ui",
+      "tablepro-ui",
+      "termrock-xtask",
+      "visual-harness",
+      "required-result jobs"
+    ],
+    "failure": 14,
+    "jobs": 100,
+    "review_input_commit": "e08ac57d10ae54c87337eae0be08b1f5e8f4bda4",
+    "run_id": 40222193598,
+    "skipped": 2,
+    "source": "Plan-package REVIEW.md F01; retained as historical evidence.",
+    "success": 84
+  },
+  "job_inventory": {
+    "bytes": 260924,
+    "jobs": 100,
+    "observed_at_utc": "2026-10-25T21:26:16.279920+00:00",
+    "path": "ci-job-inventory.json",
+    "sha256": "ec9d25655ede19e8731a315213c994c4c49983e83d9d1595a4419dca39506af6"
+  },
+  "job_state_counts": {
+    "completed_cancelled": 66,
+    "completed_failure": 4,
+    "completed_skipped": 2,
+    "completed_success": 28,
+    "in_progress": 0,
+    "queued": 0
+  },
+  "limits": [
+    "This run completed with conclusion cancelled. The current failure list contains all four failed job records in the complete 100-job REST response.",
+    "The GitHub connector job wrapper returned only its first page. The REST response returned all 100 jobs for this observation.",
+    "Cancelled jobs do not provide production-build results. Do not claim that the whole workflow had no production-build failures.",
+    "This is remote CI evidence. No local Rust build, test, or legacy test code ran in this T00 capture."
+  ],
+  "observed_at_utc": "2026-10-25T21:26:16.279920+00:00",
+  "pagination": {
+    "complete_for_observation": true,
+    "connected_job_tool_first_page_count": 30,
+    "http_status": 200,
+    "pages_fetched": 1,
+    "rest_endpoint": "GET /repos/tailrocks/terminal-components-claude/actions/runs/40233372267/jobs?per_page=100&page=1",
+    "returned_count": 100,
+    "total_count": 100
+  },
+  "pending_jobs": [],
+  "production_build_failure_inventory": {
+    "basis": "For the three failed product jobs, Build test executables, Format, Clippy, and Documentation succeeded; Unit and integration tests failed. Sixty-six product/check jobs were cancelled and have no build outcome. The Required aggregation failed after the run was cancelled.",
+    "observed_in_completed_failed_product_jobs": 0,
+    "status": "INCOMPLETE_CANCELLED_JOBS"
+  },
+  "repository": "tailrocks/terminal-components-claude",
+  "source_commit": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+  "workflow": {
+    "conclusion": "cancelled",
+    "created_at": "2026-10-25T21:00:02Z",
+    "event": "pull_request",
+    "head_branch": "parity/termrock-visual-baseline",
+    "head_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+    "job_checkout_merge_sha_from_job_log": "17bf5d8fd77541d3e7eefddbacd108793938499b",
+    "name": "CI",
+    "run_id": 40233372267,
+    "run_number": 2343,
+    "status": "completed",
+    "updated_at": "2026-10-25T21:22:47Z"
+  }
+}

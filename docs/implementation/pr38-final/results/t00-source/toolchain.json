@@ -1,0 +1,143 @@
+{
+  "diagnostics": {
+    "mbx_doctor": {
+      "exit_code": 0,
+      "result": "0 failures, 0 warnings; Cargo shim active and current."
+    },
+    "mise_doctor": {
+      "exit_code": 0,
+      "result": "No problems found; one PATH ordering warning. Mise tool paths are not first in PATH."
+    }
+  },
+  "guard_limits": [
+    {
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo --version",
+      "exact_error": "rust build guard: denied: unsupported Cargo command '--version'",
+      "exit_code": 125
+    },
+    {
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo nextest --version",
+      "exact_error": "rust build guard: denied: only cargo nextest run/list are supported",
+      "exit_code": 125
+    }
+  ],
+  "install_attempt": {
+    "command": "mise install",
+    "exact_error": "failed to resolve java for macos-x64: no metadata found for version temurin-27.0.0+35 on macos-x64",
+    "exit_code": 1,
+    "status": "Pinned install attempt failed during Java metadata resolution. Mise reported all 17 declared tools already installed; this does not turn the install command into a pass."
+  },
+  "limits": [
+    "Cargo version query is blocked by guard allowlist; mbx doctor reports the Cargo version.",
+    "The Java metadata error blocks a successful mise install on this host.",
+    "No Nextest test command ran; the read-only `cargo-nextest --version` probe did run.",
+    "Official latest-release metadata is a point-in-time check."
+  ],
+  "missing_tools": [],
+  "observed_at_utc": "2026-10-25T21:50:16Z",
+  "official_release_check_date": "2026-10-26 local time",
+  "pin_hashes": {
+    "Cargo.lock": {
+      "sha256": "722145d6e1d713be9096727af7e83b5775c99b62095100c4fa8cc9a2b41bf36c",
+      "size_bytes": 114043
+    },
+    "mise.lock": {
+      "sha256": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+      "size_bytes": 16839
+    },
+    "mise.toml": {
+      "sha256": "a35637525fd0603bb1724aaf3320fc89c5b7f89b3ebf12d3f525dad4ec6ea44a",
+      "size_bytes": 668
+    },
+    "rust-toolchain.toml": {
+      "sha256": "4f6c9e5b60864d21b5e71753046337187c510379c4becdd365a9387294c1b80a",
+      "size_bytes": 154
+    }
+  },
+  "platform": "macos-arm64",
+  "policy_read_before_tool_actions": {
+    "disk_policy": "/Users/donbeave/.agents/DISK_POLICY.md",
+    "result": "Read before the mise install attempt. No Rust build or test was authorized.",
+    "runtime_trust_reference": "/Users/donbeave/.agents/skills/tailrocks-rust-toolchain/references/runtime-trust.md",
+    "rust_toolchain_skill": "/Users/donbeave/.agents/skills/tailrocks-rust-toolchain/SKILL.md"
+  },
+  "release_sources": [
+    {
+      "installed": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+      "match": true,
+      "observed_latest": "1.99.1",
+      "pinned": "1.99.1",
+      "released": "2026-10-16",
+      "tool": "Rust",
+      "url": "https://github.com/rust-lang/rust/releases/latest"
+    },
+    {
+      "installed": "2026.10.19 macos-arm64",
+      "match": true,
+      "observed_latest": "2026.10.19",
+      "project_min_version": "2026.10.17",
+      "released": "2026-10-24",
+      "tool": "mise",
+      "url": "https://github.com/jdx/mise/releases/latest"
+    },
+    {
+      "installed": "mbx 1.27.0",
+      "match": true,
+      "observed_latest": "1.27.0",
+      "pinned": "1.27.0",
+      "released": "2026-10-23",
+      "tool": "mbx",
+      "url": "https://github.com/jdx/mr-boxington/releases/latest"
+    },
+    {
+      "installed": "cargo-nextest 0.9.149 (3fe4ef31972f24e0c94cfe291718eab0fe678260)",
+      "match": true,
+      "observed_latest": "0.9.149",
+      "pinned": "0.9.149",
+      "released": "2026-10-20",
+      "tool": "cargo-nextest",
+      "url": "https://github.com/nextest-rs/nextest/releases/latest"
+    }
+  ],
+  "reported_cargo": "cargo 1.99.1 (5f94df478 2026-08-27) (Homebrew), reported by mbx doctor. The guard rejects cargo --version, so Cargo version was not queried through Cargo.",
+  "schema": "t00.toolchain-evidence.v1",
+  "source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "tool_paths": {
+    "cargo": "/Users/donbeave/Library/Application Support/mbx/bin/cargo",
+    "cargo-nextest": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.149/cargo-nextest",
+    "mbx": "/Users/donbeave/.local/share/mise/installs/mr-boxington/1.27.0/.mise-bins/mbx",
+    "mise": "/Users/donbeave/.local/bin/mise",
+    "rustc": "/opt/homebrew/bin/rustc"
+  },
+  "tracked_pin_changes": "None. T00 did not edit mise.toml, mise.lock, rust-toolchain.toml, or Cargo.lock.",
+  "version_probes": [
+    {
+      "command": "mise --version",
+      "evidence_path": "toolchain.json",
+      "exit_code": 0,
+      "result": "2026.10.19 macos-arm64 (2026-10-24)",
+      "selected_tests": 0
+    },
+    {
+      "command": "rustc --version",
+      "evidence_path": "toolchain.json",
+      "exit_code": 0,
+      "result": "rustc 1.99.1 (58cf8f9c3 2026-10-13) (Homebrew)",
+      "selected_tests": 0
+    },
+    {
+      "command": "mbx --version",
+      "evidence_path": "toolchain.json",
+      "exit_code": 0,
+      "result": "mbx 1.27.0",
+      "selected_tests": 0
+    },
+    {
+      "command": "cargo-nextest --version",
+      "evidence_path": "toolchain.json",
+      "exit_code": 0,
+      "result": "cargo-nextest 0.9.149 (3fe4ef319 2026-10-20); commit 3fe4ef31972f24e0c94cfe291718eab0fe678260; host aarch64-apple-darwin",
+      "selected_tests": 0
+    }
+  ]
+}

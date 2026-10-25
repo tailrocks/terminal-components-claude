@@ -1,0 +1,88 @@
+{
+  "base_inventory_commit": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+  "current_source_deltas": [
+    {
+      "from": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "paths": [
+        "crates/termrock-xtask/exceptions/v1.json"
+      ],
+      "to": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+    },
+    {
+      "from": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "paths": [
+        "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+        "crates/showcase-ui/tests/navigation_contract.rs"
+      ],
+      "to": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    }
+  ],
+  "hash_method": "SHA-256 over source Git blob bytes. The immutable 3a ledgers are overlaid only with exact changed blobs at 31f and 1d6. No unchanged path was rehashed.",
+  "intermediate_commit": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+  "inventory_counts": {
+    "Markdown_Rust_candidates": 18,
+    "Python_named_test_functions": 282,
+    "Rust_explicit_test_attributes_at_base": 6203,
+    "Rust_explicit_test_attributes_current": 6204,
+    "Rust_test_modules": 424,
+    "Rustdoc_fence_candidates": 5,
+    "bench_and_example_paths": 12,
+    "cargo_manifests": 58,
+    "current_delta_added_Rust_test_functions": 1,
+    "declared_targets": 70,
+    "doctest_optouts": 42,
+    "fixture_candidates": 9,
+    "implicit_cargo_target_candidates": 376,
+    "macro_invocation_groups": 49,
+    "macro_test_candidates": 13,
+    "manifest_dev_dependency_records": 78,
+    "normal_dependencies_of_test_only_packages": 32,
+    "preserved_asset_rows": 93740,
+    "production_or_mixed_diagnostic_sites": 85,
+    "production_or_test_runner_path_candidates": 130,
+    "required_comment_directives": 3023,
+    "test_target_candidates": 426,
+    "unsafe_source_sites": 93
+  },
+  "limits": [
+    "Source scan is static. It did not run Cargo or test code.",
+    "Rust module edges, macros, and implicit targets include unresolved candidates; inspect the complete inventory before a deletion decision.",
+    "Path names and cfg(test/testing) do not by themselves authorize deletion.",
+    "Large binary, HTML, ANSI, terminal, baseline, snapshot, audit, and visibility assets remain in complete hash ledgers even when the bounded text scan omits their contents.",
+    "New 1d6 assertion and changed fixture are source facts only. Runtime behavior is NOT VERIFIED."
+  ],
+  "schema": "t00.source-inventory-summary.v1",
+  "source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "source_files_text_scanned": 1296,
+  "test_related": {
+    "language_path_counts": {
+      "ansi": 15998,
+      "binary": 9936,
+      "extensionless": 561,
+      "html": 9941,
+      "javascript": 1,
+      "json": 38016,
+      "lock": 11,
+      "markdown": 61,
+      "other": 934,
+      "python": 17,
+      "rust": 724,
+      "shell": 3,
+      "text": 17655,
+      "toml": 40,
+      "tsv": 8,
+      "yaml": 11
+    },
+    "paths": 93917,
+    "tracked_blob_bytes": 16711376143,
+    "unique_blob_oids": 68471
+  },
+  "test_related_ledger": "test-files-1d6.jsonl.gz",
+  "unique_source_blobs_text_scanned": 1286,
+  "whole_tree": {
+    "tracked_blob_bytes": 16734723891,
+    "tracked_paths": 94896,
+    "unique_blob_oids": 69406
+  },
+  "whole_tree_ledger": "tracked-tree-1d6.jsonl.gz"
+}

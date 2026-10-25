@@ -1,0 +1,44 @@
+{
+  "inventory": {
+    "bounded_declaration_inventory": "test-inventory.json",
+    "complete_path_and_blob_hashes": "tracked-tree-1d6.jsonl.gz",
+    "directive_lines": 3023,
+    "unsafe_source_sites": 93
+  },
+  "lint_directives": [
+    {
+      "directive": "[workspace.lints.rust] unsafe_code = \"deny\"",
+      "disposition": "Preserve. Do not weaken.",
+      "line": 140,
+      "path": "Cargo.toml"
+    },
+    {
+      "directive": "[workspace.lints.clippy] undocumented_unsafe_blocks = \"deny\"",
+      "disposition": "Preserve. Do not widen an allowance.",
+      "line": 161,
+      "path": "Cargo.toml"
+    },
+    {
+      "directive": "clippy::undocumented_unsafe_blocks in the existing crate-level lint list",
+      "disposition": "Keep at its existing scope. Do not broaden or delete without a scoped Sol high product decision.",
+      "line": 12,
+      "path": "tools/refactor-proof/src/lib.rs"
+    },
+    {
+      "directive": "Existing expect rationale refers to SAFETY.md",
+      "disposition": "Retain the maintained contract link and rationale.",
+      "line": 29,
+      "path": "crates/termrock-test-support/src/perf.rs"
+    }
+  ],
+  "maintained_contract": {
+    "origin_commit": "d1122f69e6b9c2364aa6ede8174e7d35b8cfff39",
+    "path": "SAFETY.md",
+    "requirement": "Keep each unsafe-block rationale with the maintained safety contract. Do not drop rationales when removing test helpers or changing ownership.",
+    "sha256": "9e36aacde5e01616aa64927ee4aac04312e094acd1508e9c83577cfc4a3de4c5",
+    "size_bytes": 10642
+  },
+  "review_scope": "This record captures required safety text and lint boundaries. It is not an independent unsafe-code review.",
+  "schema": "t00.safety-contract-preservation.v1",
+  "source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+}

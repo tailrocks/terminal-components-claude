@@ -1,0 +1,55 @@
+{
+  "base_commit": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+  "changed_file_evidence": [
+    {
+      "changed_rows": [
+        {
+          "key": [
+            "buttons",
+            "100",
+            "30",
+            "16"
+          ],
+          "new": "buttons\t100\t30\t16\t   Overview        ┃ Buttons  Primary, secondary, subtle, danger, toggle, disabled, busy",
+          "old": "buttons\t100\t30\t16\t▎  Overview          Buttons  Primary, secondary, subtle, danger, toggle, disabled, busy"
+        }
+      ],
+      "classification": "test fixture with expected visual text; changed expectation is parity evidence only",
+      "new_sha256": "b222ba034d68a509db33a684dd21c155385fdc61d2283be0ad73837d828c76e3",
+      "new_size_bytes": 41164,
+      "old_sha256": "faa2a62d72736bc6ead7b99135a7d6e3f1ff1193b8bf48dc5f424241e3ccf0c9",
+      "old_size_bytes": 41164,
+      "path": "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+      "row_count_new": 352,
+      "row_count_old": 352
+    },
+    {
+      "added_test_functions": [
+        "narrow_buttons_route_keeps_tree_markers_thumb_and_body"
+      ],
+      "classification": "Rust integration test source; source inventory only, not executed",
+      "new_explicit_test_function_count": 14,
+      "new_sha256": "eaeeaecae11b3a692091ee7e82ab180e2147e186bc1eda093c0db660dbf46ce5",
+      "old_explicit_test_function_count": 13,
+      "old_sha256": "5bb23aab81d2877eb8ec0341e32910409d58edec09c176ef8d9ea0b05909cd52",
+      "path": "crates/showcase-ui/tests/navigation_contract.rs",
+      "removed_test_functions": []
+    }
+  ],
+  "changed_paths": [
+    "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+    "crates/showcase-ui/tests/navigation_contract.rs"
+  ],
+  "execution": {
+    "reason": "T00 is read-only source capture. No test plan authorizes test execution.",
+    "runtime_behavior": "NOT VERIFIED",
+    "tests_run": false
+  },
+  "finding_disposition": {
+    "F01": "The latest input run is complete with conclusion cancelled. Its full REST inventory has 100 jobs: 95 cancelled, one failed Required aggregate, two skipped, and two successful. The changed fixture expectation and added assertion are unaccepted parity evidence, not a green runtime result.",
+    "F13": "The 31f change is unrelated to coverage data. The moved coverage files remain byte-identical; six BehaviorProof rows remain historical inventory, not runtime acceptance.",
+    "F20": "The latest commit does not change current product documentation or the TablePro comparator."
+  },
+  "input_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "preservation": "Exact old and new file bytes are stored under source-deltas/31f-to-1d6/old and source-deltas/31f-to-1d6/new."
+}

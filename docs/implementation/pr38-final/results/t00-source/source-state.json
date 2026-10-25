@@ -1,0 +1,134 @@
+{
+  "candidate": "/Users/donbeave/Downloads/terminal-components-claude",
+  "frozen_input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "frozen_input_tree_sha": "f75288f7fae1f12e549c0f4fbfc5bb23734cb154",
+  "git_comparisons": [
+    {
+      "ahead_by": 6,
+      "base": "e08ac57d10ae54c87337eae0be08b1f5e8f4bda4",
+      "behind_by": 0,
+      "changed_files": 16,
+      "head": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "merge_base": "e08ac57d10ae54c87337eae0be08b1f5e8f4bda4",
+      "status": "ahead"
+    },
+    {
+      "ahead_by": 2891,
+      "base": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+      "behind_by": 1067,
+      "changed_file_list_limited": 300,
+      "head": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "merge_base": "cc14dd6beae526884aabdf897e309be837b4f504",
+      "status": "diverged"
+    },
+    {
+      "ahead_by": 1067,
+      "base": "e08ac57d10ae54c87337eae0be08b1f5e8f4bda4",
+      "behind_by": 2885,
+      "changed_file_list_limited": 300,
+      "head": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+      "merge_base": "cc14dd6beae526884aabdf897e309be837b4f504",
+      "status": "diverged"
+    }
+  ],
+  "historical_and_incremental_sources": [
+    {
+      "commit": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "ledger": "tracked-tree.jsonl.gz",
+      "preservation": "Immutable. Do not replace.",
+      "role": "initial fixed source input",
+      "test_file_ledger": "test-files.jsonl.gz",
+      "tree": "63ee1ad48fe8ea34ffa2703c5cae05d0d81faa09"
+    },
+    {
+      "commit": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "delta_from_3a": [
+        "crates/termrock-xtask/exceptions/v1.json"
+      ],
+      "ledger": "tracked-tree-31f.jsonl.gz",
+      "role": "approved intermediate PR38 source",
+      "source_delta_bytes": "14 deleted lines; two exception rows removed; no new rows",
+      "test_file_ledger": "test-files-31f.jsonl.gz",
+      "tree": "00d80b88b388e8905d22d55247e2660deb0b992b"
+    },
+    {
+      "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "delta_from_31f": [
+        "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+        "crates/showcase-ui/tests/navigation_contract.rs"
+      ],
+      "ledger": "tracked-tree-1d6.jsonl.gz",
+      "review": "Approved by the independent high reviewer. The coordinator merged this source as integration commit 381c88c2f1a26bb727ab9658e8b694bea5915aa6.",
+      "role": "frozen current PR38 source input",
+      "source_delta_bytes": "54 insertions and one deletion across two existing test paths",
+      "test_file_ledger": "test-files-1d6.jsonl.gz",
+      "tree": "f75288f7fae1f12e549c0f4fbfc5bb23734cb154"
+    }
+  ],
+  "historical_review_ids": {
+    "common_ancestor": "cc14dd6beae526884aabdf897e309be837b4f504",
+    "reference": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+    "review_document": "docs/implementation/pr38-final/REVIEW.md",
+    "target": "e08ac57d10ae54c87337eae0be08b1f5e8f4bda4"
+  },
+  "integration_head_parents": [
+    "3df32fe20b79f011bd8a9fb672be8552facf545e",
+    "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+  ],
+  "integration_head_sha": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
+  "integration_head_tree_sha": "a94a9a22754181e73d64d2cc33d68eb195f07cb8",
+  "limits": [
+    "The candidate integration commit has additional plan and evidence files. Its tree is not the same as the product source tree.",
+    "The latest PR38 head is the frozen 1d6 input. Do not recapture later remote drift for T00.",
+    "The PR26 worktree is read-only and remains a separate reference."
+  ],
+  "plan_root": "/Users/donbeave/Downloads/termrock-pr38-plan",
+  "pull_requests": {
+    "reference": {
+      "base_branch": "main",
+      "base_sha": "8ec895f9ea9cf78e5484d80f96b7189d5b716f00",
+      "branch": "design/interaction-polish",
+      "draft": true,
+      "head_sha": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+      "head_updated_at": "2026-10-25T08:12:31Z",
+      "number": 26,
+      "state": "open",
+      "url": "https://github.com/tailrocks/terminal-components-claude/pull/26",
+      "worktree": "/Users/donbeave/Downloads/termrock-pr26-reference-20261026",
+      "worktree_access": "read-only"
+    },
+    "target": {
+      "base_branch": "main",
+      "base_sha": "a97e351df736b576904bc450619ca347ea64d65b",
+      "branch": "parity/termrock-visual-baseline",
+      "draft": true,
+      "head_sha_at_final_fetch": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "head_updated_at": "2026-10-25T21:30:13Z",
+      "number": 38,
+      "state": "open",
+      "url": "https://github.com/tailrocks/terminal-components-claude/pull/38"
+    }
+  },
+  "remote_feedback": {
+    "observation": "Read-only GitHub connection query before final source freeze. This is not final-head acceptance.",
+    "pr38_review_threads": [],
+    "pr38_reviews": []
+  },
+  "repository": "tailrocks/terminal-components-claude",
+  "verified_immutable_references": {
+    "common_ancestor": "cc14dd6beae526884aabdf897e309be837b4f504",
+    "frozen_source_tree": "f75288f7fae1f12e549c0f4fbfc5bb23734cb154",
+    "pr26_worktree": {
+      "access": "read-only",
+      "clean_at_independent_check": true,
+      "observation_source": "Coordinator reported independent immutable-reference verification.",
+      "path": "/Users/donbeave/Downloads/termrock-pr26-reference-20261026"
+    },
+    "visual_baseline_tag": {
+      "name": "visual-baseline",
+      "peeled_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+      "scope": "Immutable tag object and peel recorded as source identity evidence; this tag is not the PR26 branch head.",
+      "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542"
+    }
+  }
+}

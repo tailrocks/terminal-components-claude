@@ -1,0 +1,135 @@
+{
+  "common_ancestor": "cc14dd6beae526884aabdf897e309be837b4f504",
+  "evidence_paths": [
+    "finding-deltas-e08-to-1d6.json",
+    "test-inventory-delta-1d6.json",
+    "ownership-delta-31f.json",
+    "ci-current.json",
+    "ci-job-inventory.json",
+    "ci-job-excerpts.json",
+    "ci-required-job-excerpt.json",
+    "ci-head-1d6-rest.json",
+    "ci-head-1d6-required-failure.json",
+    "ci-head-1d6-required-job-excerpt.txt"
+  ],
+  "findings": [
+    {
+      "disposition": "REFRESHED: historical 3a failures are preserved. Current 1d6 run has one failed Required aggregate and 95 cancelled jobs; no product failure or production-build conclusion is available from this cancelled run.",
+      "id": "F01",
+      "title": "Current CI fails"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F02",
+      "title": "Production crates do not inherit the declared lints"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F03",
+      "title": "The runtime gates its clock module incorrectly"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F04",
+      "title": "The facade and leaf crates do not have reliable feature isolation"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F05",
+      "title": "Feedback owns application screens"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F06",
+      "title": "Domain crates depend on the complete UI facade"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F07",
+      "title": "Composition errors can disappear through a trait"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F08",
+      "title": "Repeated helper code has different contracts"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F09",
+      "title": "Collection changes need an explicit revision contract"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F10",
+      "title": "Button lost useful reference behavior"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F11",
+      "title": "Showcase handles Ctrl+C before the selected field"
+    },
+    {
+      "disposition": "RECHECKED: the route declaration files did not change. The new navigation assertion covers one narrow Buttons path. It does not show that the 24 historical placeholder routes are implemented or that all 54 routes work. Finding remains open.",
+      "id": "F12",
+      "title": "Showcase still has 24 placeholder routes"
+    },
+    {
+      "disposition": "RECHECKED: seven R100 coverage files moved from src/coverage to tests/coverage with identical hashes. Counts remain 4,511 rows (SC1 100, SC2 1,008, SC3 247, review 3,156) and six Diff BehaviorProof rows. Registry rows do not prove all behavior.",
+      "id": "F13",
+      "title": "Coverage records exceed executable behavior proof"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F14",
+      "title": "The active visual reference is still pending"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F15",
+      "title": "Application paint code repairs theme values locally"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F16",
+      "title": "Clipboard status cannot express external transfer failure"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F17",
+      "title": "Session cleanup needs one lifetime owner"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F18",
+      "title": "Performance and test inventories contain old package assumptions"
+    },
+    {
+      "disposition": "RETAINED: no changed source path in the e08-to-1d6 comparison targets this finding. Preserve the historical review and recheck when its implementation task changes the affected source. No runtime conclusion is added.",
+      "id": "F19",
+      "title": "Registry package use is not proved"
+    },
+    {
+      "disposition": "RECHECKED: current product documentation paths are unchanged from the historical review. The TablePro comparator remains cmp_values_nulls_last. No test result is claimed.",
+      "id": "F20",
+      "title": "Product documentation contains stale findings"
+    }
+  ],
+  "frozen_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "historical_review": "docs/implementation/pr38-final/REVIEW.md",
+  "historical_target": "e08ac57d10ae54c87337eae0be08b1f5e8f4bda4",
+  "reference": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+  "runtime_evidence": {
+    "approved_test_plan_id": "N/A",
+    "tests_run": false,
+    "zero_case_behavior": "NOT VERIFIED"
+  },
+  "schema": "t00.finding-dispositions.v1",
+  "source_change_summary": [
+    "Holla baseline bytes changed.",
+    "Seven Showcase coverage files moved byte-identically into tests/coverage; the production coverage export was removed.",
+    "A narrow Showcase navigation test and expected fixture row changed.",
+    "Two ownership exception rows were removed.",
+    "Ownership scanner source changed.",
+    "No product runtime tests were run for T00."
+  ]
+}

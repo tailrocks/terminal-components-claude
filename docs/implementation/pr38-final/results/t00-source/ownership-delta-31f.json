@@ -1,0 +1,49 @@
+{
+  "current_CI_observation": {
+    "both_conclusion": "cancelled",
+    "jobs": [
+      "Rust / termrock-xtask",
+      "Rust / termrock-xtask (testing)"
+    ],
+    "ownership_check_result": "NOT AVAILABLE; the ownership job did not complete",
+    "run_id": 40235807469,
+    "source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+  },
+  "evidence": "ci-head-1d6-rest.json contains every current job and step. No legacy test or ownership checker was run locally.",
+  "exception_rows_after": 95,
+  "exception_rows_before": 97,
+  "from_commit": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+  "frozen_current_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "new_blob": {
+    "blob_oid": "abe33a9795137aece97e4b81087e1a3b80e2974f",
+    "evidence_path": "source-deltas/3a-to-31f/new/crates/termrock-xtask/exceptions/v1.json",
+    "sha256": "a943a901145b2a6c084346ba9bb2b6c6007228e9aeb7bb38522061db7926934e",
+    "size_bytes": 30776
+  },
+  "old_blob": {
+    "blob_oid": "c6e3937ad7422dc336392a84d23803dc7d7a4c5d",
+    "evidence_path": "source-deltas/3a-to-31f/old/crates/termrock-xtask/exceptions/v1.json",
+    "sha256": "7789eddff384543eeb1d147c29d8a650696a415b0389dc78cac8e57ce35923d0",
+    "size_bytes": 31637
+  },
+  "path": "crates/termrock-xtask/exceptions/v1.json",
+  "removed_rows": [
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/terminal.rs",
+      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
+      "review": "Split-merge integration baseline",
+      "rule": "OWN-11"
+    },
+    {
+      "max": 2,
+      "path": "crates/termrock-shell/src/nav.rs",
+      "reason": "Router invariant: the active tab always exists — the constructor seeds tab 0, open_tab only pushes, close_tab refuses the last tab. The expects state the invariant next to the code that maintains it (OWN-14 precedent: derived.rs derived-cache slot).",
+      "review": "Q16-style reviewed permanent allowance; coordinator 2026-10-21, independent review still owed with the shell integration review",
+      "rule": "OWN-14"
+    }
+  ],
+  "schema": "t00.ownership-exception-delta.v1",
+  "source_disposition": "The refresh removes OWN-11 terminal-page max 2 and OWN-14 shell-nav max 2. It changes no exception limit upward. These are source declarations, not a fresh scanner run.",
+  "to_commit": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+}

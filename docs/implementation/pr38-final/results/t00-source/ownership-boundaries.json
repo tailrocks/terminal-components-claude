@@ -1,0 +1,341 @@
+{
+  "capture_and_harness_files": [
+    {
+      "blob_oid": "af3126c9d8b7d9d7633ee2ef4e8f1dc3b4700e9b",
+      "path": "tools/capture.sh",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "test_related_reasons": []
+    },
+    {
+      "blob_oid": "8dcf6eb28ba53a2df6e0396f7544ed9cf55239a0",
+      "path": "tools/capture_exec.sh",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "4ac33d52557b01c6942e980b401099d1ef85389a9d3a109ece794bf5a7ffaa0d",
+      "test_related_reasons": []
+    },
+    {
+      "blob_oid": "4d902bcd7fca5e17c3d8352ca1986589d320ff70",
+      "path": "tools/baseline_capture.sh",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "test_related_reasons": [
+        "test-like-filename"
+      ]
+    },
+    {
+      "blob_oid": "08ac71ddc3ea0d3e45ec01ce4ef6775a6a83f7ad",
+      "path": "tools/capture_provenance.py",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "test_related_reasons": []
+    },
+    {
+      "blob_oid": "1c3c44057a7b40f5838493c265654ee3a4670c1f",
+      "path": "tools/frozen_baseline.py",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "fab5c2bbd40858d3fd13eb421411e7af065406edf46d8276d8d88918270f365e",
+      "test_related_reasons": [
+        "test-declaration-or-test-feature-token",
+        "test-like-filename"
+      ]
+    },
+    {
+      "blob_oid": "8fb393abe140ef5125ba98e3909055845399847a",
+      "path": "tools/qualified-capture/acquire.py",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "161acbb9e99808ffefcd9030e449c06499fb0661699357e7d0d9fd67383f8130",
+      "test_related_reasons": []
+    },
+    {
+      "blob_oid": "546a23b34e340fd4cb74afd2335e80194cb98c1e",
+      "path": "tools/qualified-capture/fixture.py",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "7d8c4da061f79c78b77ef380045c476cc89ecb1c0539a44a5fed4d8cb62b2935",
+      "test_related_reasons": [
+        "test-like-filename"
+      ]
+    },
+    {
+      "blob_oid": "dd2cc59caa712d82b0294f8483dbcac7e24d9f2e",
+      "path": "tools/qualified-capture/oracle.py",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "ab41d25c5ac603ab656f92fcffba430c36ed815a72dd3e234cb167df31afb300",
+      "test_related_reasons": [
+        "test-declaration-or-test-feature-token"
+      ]
+    },
+    {
+      "blob_oid": "5412874aa682c4add24275b68a14321bd138da9f",
+      "path": "tools/qualified-capture/harness/main.rs",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "a68c2340069549f5439998d6cb6e75606135d2b92a749dd2ca9a3f1f8040613a",
+      "test_related_reasons": [
+        "path-segment:harness"
+      ]
+    },
+    {
+      "blob_oid": "d0a471f309eb315400bf7e63222f01ae75a01ce8",
+      "path": "tools/qualified-capture/tuitest_smoke.py",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "151815c99e7373e8a8cffb771a8cbc6e44a76dc17f1ac8a9b7ed3ff7ae163e5d",
+      "test_related_reasons": []
+    },
+    {
+      "blob_oid": "85c537d18cfd268680ca8b587f1b334584ba9d78",
+      "path": "crates/visual-harness/Cargo.toml",
+      "role": "test-only harness package; binaries point to app mains and have test=false; visual_baseline target is harness=false",
+      "sha256": "2dfc4ce3f2d71ba8540f256968d8f7aefd6726097defbd0e2fd77fc161f1bc55",
+      "test_related_reasons": [
+        "manifest-autotests-false",
+        "manifest-dev-dependencies",
+        "manifest-test-bench-or-example-target"
+      ]
+    },
+    {
+      "blob_oid": "a6a5fad11d615814746812130e0a46fbb2765802",
+      "path": "crates/visual-harness/tests/visual_baseline/main.rs",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "f07cb164341920894a02f98e2ca73de7cec088b816e300f363880ea9ce121857",
+      "test_related_reasons": [
+        "path-segment:tests",
+        "test-declaration-or-test-feature-token"
+      ]
+    },
+    {
+      "blob_oid": "a9083462d3a6d89a2cdb7a32fd791c915fb70f63",
+      "path": "crates/termrock-visibility-tests/Cargo.toml",
+      "role": "test/evidence support package with utility binaries; publish=false; fixture binary has test=true",
+      "sha256": "7cecb8f4ef8d391d797cab8fc3205f5c538b1b01d85950baa2b922c608bc54ea",
+      "test_related_reasons": []
+    },
+    {
+      "blob_oid": "a1874a582860f1d0eb319abc1521113318a42c30",
+      "path": "crates/termrock-visibility-tests/src/bin/capture-command.rs",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "6cd9c64d85dcda7392ba234f06f54af816f3859b0147759e0420df94c9de0867",
+      "test_related_reasons": [
+        "test-declaration-or-test-feature-token"
+      ]
+    },
+    {
+      "blob_oid": "c231ccd93f12aa75571de5337b6abfa2ccae7177",
+      "path": "crates/termrock-visibility-tests/src/bin/fixture.rs",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "9b0f3d4ebcfe90b8f3cd0f0d92a341dd7eb9b84dd73a23b02c8a75b167995c6f",
+      "test_related_reasons": [
+        "test-declaration-or-test-feature-token",
+        "test-like-filename"
+      ]
+    },
+    {
+      "blob_oid": "d2e098a723749065554de79b492778b2b846f412",
+      "path": "crates/termrock-visibility-tests/src/bin/nextest-result-reader.rs",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "518d527af27dd880057db6c4ef029244d59fe8cdcfdf6d3822b8aad2e7b83500",
+      "test_related_reasons": []
+    },
+    {
+      "blob_oid": "cacbd43325bafd5cbf32489fc44f42db645626b1",
+      "path": "crates/termrock-visibility-publisher/Cargo.toml",
+      "role": "workspace reporting/publishing library; normal HTTP dependencies and published workspace metadata; do not classify as test-only by name",
+      "sha256": "97676a9b83dff0e6388f7b64770177dd8b95306130c39ee61cf14ff29e8ae672",
+      "test_related_reasons": [
+        "manifest-dev-dependencies"
+      ]
+    },
+    {
+      "blob_oid": "6854a490cc5d69a015f91607858b6a6008dfdb47",
+      "path": "crates/termrock-visibility-publisher/src/bin/observer-ingest.rs",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "9d574a56c19086de05ed1e0af55bfc108aa75b39913ecd988b0d1e9b871b9462",
+      "test_related_reasons": []
+    },
+    {
+      "blob_oid": "f909fc5bc57bb29376f3a7d4078752357439c2ee",
+      "path": "crates/termrock-visibility-publisher/src/bin/status-publish.rs",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "c525271dfb5498687140cfe79f4fba72da584d9bef24ed0c7853cdf4bf0515d5",
+      "test_related_reasons": []
+    },
+    {
+      "blob_oid": "02be2f0f4c11eaf0cd8661c3f6d331b1387014b4",
+      "path": "tools/termrock-visibility-publisher/Cargo.toml",
+      "role": "standalone operational reporting tool package; publish=false; not app product code and not an active test runner",
+      "sha256": "9eafce7a7eebdbe95d2e1e91863619031d812a0104b895443a44edbc8ea19baf",
+      "test_related_reasons": [
+        "manifest-dev-dependencies"
+      ]
+    },
+    {
+      "blob_oid": "6970b311a2414cc295650f945da1ac5620fe7aa9",
+      "path": "tools/refactor-proof/Cargo.toml",
+      "role": "maintained proof/host CLI tool; production tool entrypoints; not a test harness; preserve output and safety contracts",
+      "sha256": "6d91709b58d7dd3462db51112e90b2a2683172298fd6b6d2899d420d6a16247b",
+      "test_related_reasons": [
+        "manifest-dev-dependencies"
+      ]
+    },
+    {
+      "blob_oid": "7d6c5ec34c4fd9bdb7a06a619b89bc567c7d7715",
+      "path": "tools/refactor-proof/src/lib.rs",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "b97db0fd9858761a0beac69bcbd2cc0d68480194697600abef2938118f813283",
+      "test_related_reasons": []
+    },
+    {
+      "blob_oid": "4d5e0b58ddfddfeffcd0b5f6fa80c43f8cbe95ad",
+      "path": "tools/refactor-proof/src/bin/tc_proof.rs",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "1f30b674ee185abde08634cb01c69f2e35a3cf5dc6c83e1157de1bf0b8771feb",
+      "test_related_reasons": []
+    },
+    {
+      "blob_oid": "f9364125c56b4aa7dfe3af4c37793b7057cb278c",
+      "path": "tools/refactor-proof/src/bin/tc_proof_host.rs",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "fc9880aa7ae1c36c10e8d57aecb79b4e8279fdb2da7b0b00ca80aeab077c6fd1",
+      "test_related_reasons": []
+    },
+    {
+      "blob_oid": "6686fcdabb88bd1ce16b690894fe18ebd71705a5",
+      "path": "crates/termrock-conformance/Cargo.toml",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "af2ee3d685e9e284a7ac26f5b750f290bd5574ae71a6e6b5b1c1b1fb7b751b56",
+      "test_related_reasons": [
+        "manifest-dev-dependencies",
+        "manifest-test-bench-or-example-target"
+      ]
+    },
+    {
+      "blob_oid": "af2690ba7d98127904e387f02c44062484b61910",
+      "path": "crates/termrock-e2e/Cargo.toml",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "c369c92062ef1ea592f3c3b215fb82a1bd7dee470d0e96cd628970d1d0d286ed",
+      "test_related_reasons": [
+        "manifest-dev-dependencies",
+        "target-specific-dev-dependencies"
+      ]
+    },
+    {
+      "blob_oid": "4bedb8fd8378b950564cf83e1634c2f38b1c061c",
+      "path": "crates/termrock-test-support/Cargo.toml",
+      "role": "evidence capture or test harness tool; not a Termrock production component",
+      "sha256": "91a93a5738626c80bd62115dafbe0202b4dafc6c0ad0805803beef3482859f2e",
+      "test_related_reasons": [
+        "manifest-dev-dependencies"
+      ]
+    },
+    {
+      "blob_oid": "bb938a1c2c6842c6d57af3ddc3cdb3aee1952b2b",
+      "path": "crates/termrock-shell/src/reach.rs",
+      "role": "reachability test harness gated by shell testing feature; removable only through T37 migration record and reviewed plan",
+      "sha256": "1c54c65a36534a00bf80faa95d6ebbd3be044675accec3cfcfae220dfbfd9041",
+      "test_related_reasons": [
+        "test-declaration-or-test-feature-token"
+      ]
+    },
+    {
+      "blob_oid": "4df93fba122444bc933592694a7c19799bfbe248",
+      "path": "crates/termrock-runtime/src/capture.rs",
+      "role": "production runtime pointer capture and secondary-button routing; part of runtime product; the same file also has a cfg(test) module",
+      "sha256": "39f8bb3fd9eed7875e61015bd7e6ddef04b90c4a9cc74544e6db91d87f59e02c",
+      "test_related_reasons": [
+        "test-declaration-or-test-feature-token"
+      ]
+    }
+  ],
+  "complete_static_reconciliation": "test-inventory.json, test-files-1d6.jsonl.gz, tracked-tree-1d6.jsonl.gz; 7353 textual module/import/include edges, 743 cfg(test/testing) scopes, 13 macro-generated test candidates, 49 macro invocation groups.",
+  "generated_and_directive_rules": "The inventory records 3023 parser, lint, shell, legal, generator, and shebang directive lines. Current Velnor generated files name .velnor/config.toml as their source. Do not hand-edit generated output. Preserve .github generator headers.",
+  "generated_and_legal_inventory": "generated-and-legal.json",
+  "legal_files": [
+    {
+      "classification": "license or legal notice; retain exact bytes",
+      "path": "tools/qualified-capture/licenses/tui-snap-LICENSE",
+      "sha256": "b62eb1da60929bc24f7f8f1fe18c8f228fd39e4d096bf04d9102a038d1cb27ac",
+      "size_bytes": 11257
+    },
+    {
+      "classification": "license or legal notice; retain exact bytes",
+      "path": "tools/qualified-capture/licenses/tui-test-LICENSE",
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+      "size_bytes": 1141
+    },
+    {
+      "classification": "license or legal notice; retain exact bytes",
+      "path": "tools/qualified-capture/licenses/vt100-LICENSE",
+      "sha256": "53a04b0a11073f3d0183c31a4b7bdf9a3f68d453adeec136e59e5a9d9a554370",
+      "size_bytes": 1079
+    }
+  ],
+  "limitations": [
+    "Static source ownership analysis does not prove dynamic consumers.",
+    "Test-only package normal dependencies and production dependencies are recorded separately.",
+    "The source ledger retains immutable audits, visibility evidence, snapshots, baselines, and historical workflows; asset status does not imply deletion permission."
+  ],
+  "path_candidate_rule": "A test-like name, directory, cfg marker, or feature name is a review candidate. It is not deletion authorization.",
+  "required_classifications": [
+    {
+      "classification": "Production runtime pointer capture and secondary-button routing. The same file also has a cfg(test) module. Preserve production behavior.",
+      "surface": "crates/termrock-runtime/src/capture.rs"
+    },
+    {
+      "classification": "Capture/evidence harness. These are not Termrock production components. Preserve evidence outputs and confirm consumers before any retirement.",
+      "surface": "tools/capture.sh, tools/capture_exec.sh, tools/baseline_capture.sh, tools/qualified-capture/**"
+    },
+    {
+      "classification": "Visual and PTY harness package. Its target metadata includes test=false app entry points and a harness=false visual target. Inspect exact targets before T37.",
+      "surface": "crates/visual-harness/**"
+    },
+    {
+      "classification": "Evidence and test-support package with capture, fixture, and nextest-result binaries. It is outside the main workspace member list. Preserve supported capture and diagnostic contracts until migration review.",
+      "surface": "crates/termrock-visibility-tests/**"
+    },
+    {
+      "classification": "Workspace reporting/publishing library with normal HTTP dependencies. Do not classify it as test-only by its name. Preserve publisher and observer output contracts.",
+      "surface": "crates/termrock-visibility-publisher/**"
+    },
+    {
+      "classification": "Standalone operational reporting tool. It is not an active test runner.",
+      "surface": "tools/termrock-visibility-publisher/**"
+    },
+    {
+      "classification": "Maintained proof and host CLI. Preserve CLI output and scoped safety directives. It is not a test harness.",
+      "surface": "tools/refactor-proof/**"
+    },
+    {
+      "classification": "Reachability test harness behind the default-off testing feature. T37 removal needs a migration record and reviewed plan.",
+      "surface": "crates/termrock-shell/src/reach.rs"
+    },
+    {
+      "classification": "Ungated public production API. Preserve.",
+      "surface": "runtime RenderSnapshot, RenderSnapshotError, Runtime::render_snapshot"
+    },
+    {
+      "classification": "Default-off public testing/performance surfaces. Review consumers and lifecycle contracts. Feature labels do not authorize removal.",
+      "surface": "runtime RenderModel, ProjectedFrame, testing Runtime impl, viewport probes"
+    },
+    {
+      "classification": "Ungated production diagnostic used by Runtime::handle. Preserve the parser and protocol contract.",
+      "surface": "runtime clock_paste constants, parser, and environment gate"
+    },
+    {
+      "classification": "Queue methods are production API. Only the test probe is feature-gated.",
+      "surface": "core IntentQueue insertion/dispatch methods and probes"
+    }
+  ],
+  "schema": "t00.source-ownership-boundaries.v1",
+  "source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "t00_capture_scripts": {
+    "classification": "T00 evidence-only capture and inventory tooling. These files are not candidate legacy tests or replacement product harnesses. Preserve them with this source record.",
+    "paths": [
+      "capture_source.py",
+      "derive_source_overlays.py",
+      "scan_source_declarations.py",
+      "analyze_latest_test_delta.py",
+      "capture_finding_deltas.py",
+      "capture_github_jobs.py",
+      "validate_source_records.py"
+    ]
+  }
+}

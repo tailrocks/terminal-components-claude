@@ -1,0 +1,22 @@
+{
+  "schema": "t00.github-job-failure-excerpt.v1",
+  "observed_at_utc": "2026-10-25T21:26:16Z",
+  "repository": "tailrocks/terminal-components-claude",
+  "source_head": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+  "run_id": 40233372267,
+  "job_id": 121295183134,
+  "job_name": "Required",
+  "raw_log_characters": 3379,
+  "raw_log_lines": 57,
+  "excerpts": [
+    {
+      "log_line": 31,
+      "text": "2026-10-25T21:22:44.9294168Z ##[group]Run env -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_URL -u ACTIONS_RUNTIME_TOKEN -u GITHUB_TOKEN -u MISE_GITHUB_TOKEN -u GH_TOKEN -u GH_HOST -u GH_CONFIG_DIR false"
+    },
+    {
+      "log_line": 55,
+      "text": "2026-10-25T21:22:45.0576165Z ##[error]Process completed with exit code 1."
+    }
+  ],
+  "interpretation": "Required-result aggregation executed false and exited 1 after the source-head run was cancelled. It is an aggregate gate failure, not a production build diagnostic."
+}

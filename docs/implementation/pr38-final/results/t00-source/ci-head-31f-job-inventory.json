@@ -1,0 +1,4300 @@
+{
+  "http_status": 200,
+  "job_state_counts": {
+    "completed/skipped": 2,
+    "completed/success": 2,
+    "in_progress/null": 17,
+    "queued/null": 77
+  },
+  "jobs": [
+    {
+      "completed_at": "2026-10-25T21:29:06Z",
+      "conclusion": "success",
+      "id": 121295201634,
+      "name": "Plan",
+      "started_at": "2026-10-25T21:22:49Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Record optional cache budget",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Checkout",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Setup Mise",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Resolve project tool versions",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "V2 identity",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Restore Mise tools",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Verify restored Rust toolchain",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Prepare pinned tools",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Verify jactionlint",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Verify Rust channel manifest",
+          "number": 11,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Compute cache keys",
+          "number": 12,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Restore Cargo sources",
+          "number": 13,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Fetch Cargo sources",
+          "number": 14,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Fetch Cargo sources (external-consumer-demo/Cargo.toml)",
+          "number": 15,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Acquire Velnor",
+          "number": 16,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Write request",
+          "number": 17,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Check generated files",
+          "number": 18,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Plan",
+          "number": 19,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Publish plan",
+          "number": 20,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Admit optional cache save",
+          "number": 21,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Save Cargo sources",
+          "number": 22,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Report optional cache save failure",
+          "number": 23,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Admit optional cache save",
+          "number": 24,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Save Mise tools",
+          "number": 25,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Report optional cache save failure",
+          "number": 26,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post V2 identity",
+          "number": 50,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Setup Mise",
+          "number": 51,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Checkout",
+          "number": 52,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 53,
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "completed_at": "2026-10-25T21:27:29Z",
+      "conclusion": "success",
+      "id": 121295202001,
+      "name": "Jactionlint",
+      "started_at": "2026-10-25T21:22:49Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Record optional cache budget",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Checkout",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Setup Mise",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Resolve project tool versions",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "V2 identity",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Restore Mise tools",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Prepare pinned tools",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Verify jactionlint",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run jactionlint",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Admit optional cache save",
+          "number": 11,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Save Mise tools",
+          "number": 12,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Report optional cache save failure",
+          "number": 13,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post V2 identity",
+          "number": 24,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Setup Mise",
+          "number": 25,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Checkout",
+          "number": 26,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 27,
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702096,
+      "name": "Rust / holla",
+      "started_at": "2026-10-25T21:29:08Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702127,
+      "name": "Rust / external-consumer-demo (testing)",
+      "started_at": "2026-10-25T21:29:09Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources (external-consumer-demo/Cargo.toml)",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702130,
+      "name": "Rust / external-consumer-demo",
+      "started_at": "2026-10-25T21:29:08Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Record optional cache budget",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 3,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources (external-consumer-demo/Cargo.toml)",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Admit optional cache save",
+          "number": 30,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Save Mise tools",
+          "number": 31,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Report optional cache save failure",
+          "number": 32,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 33,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 66,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702188,
+      "name": "Rust / holla-domain",
+      "started_at": "2026-10-25T21:29:08Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702221,
+      "name": "Rust / holla-sim",
+      "started_at": "2026-10-25T21:29:08Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702462,
+      "name": "Rust / jackin-preview (testing)",
+      "started_at": "2026-10-25T21:29:09Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702476,
+      "name": "Rust / refactor-proof",
+      "started_at": "2026-10-25T21:29:09Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702479,
+      "name": "Rust / holla-sim (testing)",
+      "started_at": "2026-10-25T21:29:09Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702496,
+      "name": "Rust / jackin-preview",
+      "started_at": "2026-10-25T21:29:09Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702512,
+      "name": "Rust / jackin-preview-presentation (testing)",
+      "started_at": "2026-10-25T21:29:09Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702534,
+      "name": "Rust / showcase",
+      "started_at": "2026-10-25T21:29:08Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702544,
+      "name": "Rust / jackin-preview-app",
+      "started_at": "2026-10-25T21:29:08Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702559,
+      "name": "Rust / holla-domain (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702567,
+      "name": "Rust / jackin-preview-sim",
+      "started_at": "2026-10-25T21:29:08Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702584,
+      "name": "Rust / refactor-proof (testing)",
+      "started_at": "2026-10-25T21:29:08Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702595,
+      "name": "Rust / showcase-demos (testing)",
+      "started_at": "2026-10-25T21:29:08Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702600,
+      "name": "Rust / jackin-preview-capsule-ui",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702621,
+      "name": "Rust / jackin-preview-sim (testing)",
+      "started_at": "2026-10-25T21:29:09Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702636,
+      "name": "Rust / jackin-preview-host-ui (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702637,
+      "name": "Rust / jackin-preview-presentation",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702679,
+      "name": "Rust / jackin-preview-domain",
+      "started_at": "2026-10-25T21:29:08Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": null,
+          "name": "Checkout",
+          "number": 2,
+          "status": "in_progress"
+        },
+        {
+          "conclusion": null,
+          "name": "Setup Mise",
+          "number": 3,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Resolve project tool versions",
+          "number": 4,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "V2 identity",
+          "number": 5,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Mise tools",
+          "number": 6,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Acquire Velnor",
+          "number": 7,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Download plan",
+          "number": 8,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify restored Rust toolchain",
+          "number": 9,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare pinned tools",
+          "number": 10,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify jactionlint",
+          "number": 11,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Prepare Rust components",
+          "number": 12,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust channel manifest",
+          "number": 13,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore Cargo sources",
+          "number": 14,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify Rust before MBX action",
+          "number": 15,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Set up MBX",
+          "number": 16,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Verify native MBX version",
+          "number": 17,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Compute MBX bundle key",
+          "number": 18,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Restore MBX bundle",
+          "number": 19,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Import MBX bundle",
+          "number": 20,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Fetch Cargo sources",
+          "number": 21,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Build test executables",
+          "number": 22,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Format",
+          "number": 23,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clippy",
+          "number": 24,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Unit and integration tests",
+          "number": 25,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Documentation",
+          "number": 26,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Wait for parallel checks",
+          "number": 27,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Upload crate reports",
+          "number": 28,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Clean MBX workspace outputs",
+          "number": 29,
+          "status": "pending"
+        },
+        {
+          "conclusion": null,
+          "name": "Post Checkout",
+          "number": 58,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702698,
+      "name": "Rust / jackin-preview-app (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702765,
+      "name": "Rust / showcase-demos",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702769,
+      "name": "Rust / holla-ui",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702787,
+      "name": "Rust / tablepro",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702854,
+      "name": "Rust / termrock",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702858,
+      "name": "Rust / jackin-preview-host-ui",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702860,
+      "name": "Rust / jackin-preview-domain (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702878,
+      "name": "Rust / holla-ui (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702881,
+      "name": "Rust / termrock-consumer-example",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702902,
+      "name": "Rust / termrock-editors",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702921,
+      "name": "Rust / showcase-ui (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702924,
+      "name": "Rust / termrock-editors (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702939,
+      "name": "Rust / jackin-preview-capsule-ui (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702943,
+      "name": "Rust / holla (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702953,
+      "name": "Rust / tablepro-sql",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702958,
+      "name": "Rust / tablepro-ui (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702960,
+      "name": "Rust / termrock-controls",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702961,
+      "name": "Rust / tablepro-demo (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702967,
+      "name": "Rust / showcase-ui",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702972,
+      "name": "Rust / termrock-forms (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702977,
+      "name": "Rust / termrock-conformance",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702980,
+      "name": "Rust / termrock-consumer-example (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702984,
+      "name": "Rust / tablepro-demo",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702985,
+      "name": "Rust / tablepro-domain (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702987,
+      "name": "Rust / termrock-controls (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296702992,
+      "name": "Rust / termrock-core (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296703002,
+      "name": "Rust / termrock-collections (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296703003,
+      "name": "Rust / termrock-core",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296703055,
+      "name": "Rust / tablepro-ui",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296703056,
+      "name": "Rust / termrock-forms",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296703062,
+      "name": "Rust / showcase (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296703068,
+      "name": "Rust / termrock-conformance (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296703086,
+      "name": "Rust / tablepro-sql (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296703087,
+      "name": "Rust / termrock-collections",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296703091,
+      "name": "Rust / termrock-fields (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296703093,
+      "name": "Rust / tablepro (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296703131,
+      "name": "Rust / termrock-grid",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296703134,
+      "name": "Rust / termrock-feedback",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296703137,
+      "name": "Rust / termrock-feedback (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296703157,
+      "name": "Rust / tablepro-domain",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296703194,
+      "name": "Rust / termrock-fields",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": "2026-10-25T21:29:06Z",
+      "conclusion": "skipped",
+      "id": 121296703610,
+      "name": "Dependency seed / external-consumer-demo",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "completed",
+      "steps": []
+    },
+    {
+      "completed_at": "2026-10-25T21:29:06Z",
+      "conclusion": "skipped",
+      "id": 121296703783,
+      "name": "Dependency seed",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "completed",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296705892,
+      "name": "Rust / termrock-terminal",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296705895,
+      "name": "Rust / termrock-layout",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296705904,
+      "name": "Rust / termrock-render (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296705905,
+      "name": "Rust / termrock-viewport",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296705913,
+      "name": "Rust / termrock-theme (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296705934,
+      "name": "Rust / termrock-navigation (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296705979,
+      "name": "Rust / termrock-runtime (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296705982,
+      "name": "Rust / termrock-visibility-publisher (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296705993,
+      "name": "Rust / termrock-navigation",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706004,
+      "name": "Rust / termrock-runtime",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706029,
+      "name": "Rust / termrock-session",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706033,
+      "name": "Rust / termrock-test-support",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706044,
+      "name": "Rust / termrock-session (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706064,
+      "name": "Rust / termrock-visibility-publisher",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706081,
+      "name": "Rust / visual-harness (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706097,
+      "name": "Rust / termrock-layout (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706099,
+      "name": "Rust / termrock-theme",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706111,
+      "name": "Rust / termrock-overlays (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706126,
+      "name": "Rust / termrock-test-support (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706142,
+      "name": "Rust / termrock-text (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706147,
+      "name": "Rust / termrock-overlays",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706148,
+      "name": "Rust / termrock (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706158,
+      "name": "Rust / termrock-render",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706164,
+      "name": "Rust / termrock-viewport (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706167,
+      "name": "Rust / termrock-shell",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706196,
+      "name": "Rust / termrock-text",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706223,
+      "name": "Rust / termrock-shell (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706231,
+      "name": "Rust / termrock-terminal (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706237,
+      "name": "Rust / termrock-xtask",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706249,
+      "name": "Rust / termrock-xtask (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706338,
+      "name": "Rust / visual-harness",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    },
+    {
+      "completed_at": null,
+      "conclusion": null,
+      "id": 121296706360,
+      "name": "Rust / termrock-grid (testing)",
+      "started_at": "2026-10-25T21:29:07Z",
+      "status": "queued",
+      "steps": []
+    }
+  ],
+  "observed_at_utc": "2026-10-25T21:29:14.664172+00:00",
+  "pages_fetched": [
+    1
+  ],
+  "per_page": 100,
+  "repository": "tailrocks/terminal-components-claude",
+  "request": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/40235089542/jobs?per_page=100&page=1",
+  "returned_count": 98,
+  "run": {
+    "conclusion": null,
+    "created_at": "2026-10-25T21:21:12Z",
+    "event": "pull_request",
+    "head_branch": "parity/termrock-visual-baseline",
+    "head_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+    "id": 40235089542,
+    "name": "CI",
+    "run_number": 2344,
+    "status": "queued",
+    "updated_at": "2026-10-25T21:29:07Z"
+  },
+  "schema": "t00.github-actions-job-inventory.v1",
+  "total_count": 98
+}

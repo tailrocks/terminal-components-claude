@@ -1,0 +1,23 @@
+{
+  "source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "run_id": 40235807469,
+  "job_id": 121299938648,
+  "job_name": "Required",
+  "run_state": "completed/cancelled",
+  "job_state": "completed/failure",
+  "failing_step": "Fail unless the verdict passed",
+  "step_exit_code": 1,
+  "failure_classification": "aggregate gate failure only; no product or production-build diagnostic",
+  "log_capture": {
+    "source": "GitHub connected workflow-job log tool",
+    "request_identity": "GET job logs for repository tailrocks/terminal-components-claude, job 121299938648, run 40235807469",
+    "evidence_path": "ci-head-1d6-required-job-excerpt.txt",
+    "sha256": "ad13185f16021a4b92491a5fb75018ebe8fab1ddc292cdebaa50a688481d3168"
+  },
+  "complete_job_inventory": "ci-head-1d6-rest.json",
+  "limits": [
+    "All 95 non-success jobs in this run were cancelled; their build and test outcomes are unknown.",
+    "The Required job ran false after the workflow was cancelled. Its failure does not establish a product test or production build failure.",
+    "No local build or test command ran for T00."
+  ]
+}
