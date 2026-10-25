@@ -1,0 +1,18 @@
+{
+  "metadata_command": "rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+  "locked_flag": false,
+  "reason": "The build guard allows only this exact no-deps metadata query; the required --locked form was denied.",
+  "workspace_packages": 49,
+  "workspace_targets": 417,
+  "targets_test_flagged": 401,
+  "target_kinds": {
+    "bin": 14,
+    "example": 12,
+    "lib": 44,
+    "test": 347
+  },
+  "targets_test_flagged_note": "Structural metadata only; not selected or executed test counts.",
+  "lockfile_sha256_before": "722145d6e1d713be9096727af7e83b5775c99b62095100c4fa8cc9a2b41bf36c",
+  "lockfile_sha256_after": "722145d6e1d713be9096727af7e83b5775c99b62095100c4fa8cc9a2b41bf36c",
+  "lockfile_changed": false
+}
