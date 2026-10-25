@@ -1563,13 +1563,6 @@ impl<'a> TextViewport<'a> {
 
 
 
-    #[cfg(feature = "testing")]
-    pub fn selection_binding_chords() -> impl Iterator<Item = (crate::ActionKey, Chord)> {
-        SELECTION_BINDINGS
-            .iter()
-            .filter_map(|binding| binding.chord.map(|chord| (binding.action, chord)))
-    }
-
     pub const fn id(&self) -> Id {
         self.id
     }
