@@ -8,6 +8,13 @@ Retained planning requirements. Design-branch implementation claims do not estab
 
 The accepted product reference is `design/interaction-polish`; `main` supplies the split-crate structure. This index preserves links to full acceptance contracts at the inspected source revision, including task details beyond checkboxes. Current branch documents may clarify status without discarding these requirements.
 
+## Historical root design sources
+
+The linked source documents preserve historical component rationale, catalogues and adjudications at commit `d1122f69e6b9c2364aa6ede8174e7d35b8cfff39`. They describe a prior design target. They do not set current APIs, behavior, completion, or parity; use maintained contracts and inspected current source to determine current behavior.
+
+- [`COMPONENT_ARCHITECTURE.md`](https://github.com/tailrocks/terminal-components-claude/blob/d1122f69e6b9c2364aa6ede8174e7d35b8cfff39/COMPONENT_ARCHITECTURE.md): historical architecture rationale and adjudications.
+- [`DESIGN.md`](https://github.com/tailrocks/terminal-components-claude/blob/d1122f69e6b9c2364aa6ede8174e7d35b8cfff39/DESIGN.md): historical visual system, component catalogue and interaction grammar.
+
 ## Current evidence
 
 Inspected design revision: `d9e569bf6fd33d90266db597c458442c729340ad`. Each source link is immutable. Counts describe unchecked Markdown items at that revision, not a fresh implementation audit.
