@@ -32,6 +32,7 @@ mod connection_form_focus;
 mod explorer_collapsed;
 mod filter_editor;
 mod history_controls;
+mod history_detail;
 mod history_rows;
 mod query_panes;
 mod query_safety;
@@ -40,6 +41,7 @@ mod result_grid;
 use filter_editor::{FILTER_APPLY, FILTER_CANCEL, FILTER_COLUMN, FILTER_OPERATOR, FILTER_VALUE2};
 use filter_editor::{FilterEditor, FilterOutcome};
 use history_controls::{ConnectionScope, HistoryControls};
+use history_detail::{HistoryDetailController, HistoryDetailRequest};
 use history_rows::{HistoryAction, HistoryRows};
 use query_panes::{QueryContent, QueryLayout, QueryPaneMode, QueryPaneState, idle_query_top};
 use result_grid::ResultGridView;
@@ -335,6 +337,7 @@ const NEW_QUERY: ActionKey = ActionKey::application("tablepro.new-query");
 const CLOSE_TAB: ActionKey = ActionKey::application("tablepro.close-tab");
 const HISTORY: ActionKey = ActionKey::application("tablepro.history");
 const COPY_HISTORY: ActionKey = ActionKey::application("tablepro.history.copy");
+const SHOW_HISTORY_DETAIL: ActionKey = ActionKey::application("tablepro.history.show-detail");
 const STRUCTURE: ActionKey = ActionKey::application("tablepro.structure");
 const FORM: ActionKey = ActionKey::application("tablepro.form");
 const DELETE_CONNECTION: ActionKey = ActionKey::application("tablepro.connections.delete");
@@ -653,6 +656,11 @@ fn query_keymap(map: KeyMap) -> KeyMap {
     )
     .bind(
         KeyPhase::Bubble,
+        Chord::key(KeyCode::Right),
+        SHOW_HISTORY_DETAIL,
+    )
+    .bind(
+        KeyPhase::Bubble,
         Chord::with(KeyCode::Char('y'), KeyModifiers::CONTROL),
         HISTORY,
     )
@@ -772,6 +780,7 @@ pub struct TableProApp {
     quit_state: DialogState,
     commit_preview_state: ViewportState,
     query_safety: query_safety::QuerySafetyController,
+    history_detail: HistoryDetailController,
     query_panes: RefCell<QueryPaneState>,
     explain_contexts: RefCell<ExplainContextState>,
     switcher: QuickSwitcher,
@@ -837,6 +846,7 @@ impl core::fmt::Debug for TableProApp {
             .field("has_destructive_notice", &self.destructive_notice.is_some())
             .field("quit_state", &self.quit_state)
             .field("query_safety", &self.query_safety)
+            .field("history_detail", &self.history_detail)
             .field("query_panes", &self.query_panes.borrow())
             .field("switcher", &"<query and target snapshot>")
             .field("tab_list", &self.tab_list.rows.len())
@@ -985,6 +995,7 @@ impl TableProApp {
             quit_state: DialogState::default(),
             commit_preview_state: ViewportState::default(),
             query_safety: query_safety::QuerySafetyController::default(),
+            history_detail: HistoryDetailController::default(),
             query_panes: RefCell::new(QueryPaneState::default()),
             explain_contexts: RefCell::new(ExplainContextState::default()),
             switcher: QuickSwitcher::default(),
@@ -2888,6 +2899,16 @@ impl TableProApp {
         let response = controller.update(self, cx);
         self.query_safety = controller;
         response
+    }
+
+    fn update_history_detail(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        self.history_detail.update(
+            cx,
+            &self.workbench,
+            self.screen == Screen::Workbench
+                && self.surface == Surface::HistoryTab
+                && !self.form_open,
+        )
     }
 
     fn update_history_rows(&mut self, cx: &mut Cx<'_>) -> (Response<()>, bool) {
@@ -8423,6 +8444,9 @@ fn footer_hints(
     explorer_focused: bool,
     empty_query: bool,
 ) -> (Vec<Hint>, Option<&'static str>) {
+    if app.history_detail.is_interactive() {
+        return (app.history_detail.footer_hints(), None);
+    }
     if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
         return (picker_layer_footer_hints(), None);
     }
@@ -8799,12 +8823,14 @@ impl TableProApp {
 
 impl App for TableProApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let history_detail_was_open = self.history_detail.is_open();
         self.query_panes.get_mut().sync(&self.workbench);
         self.explain_contexts.get_mut().sync(&self.workbench);
         let mut response = self.roll_connection_status(cx);
         response |= self.update_history_controls(cx);
         let (history_rows_response, history_action) = self.update_history_rows(cx);
         response |= history_rows_response;
+        response |= self.update_history_detail(cx);
         // A status tick must not run the grid. Its first update steals focus
         // onto the result row, and the baseline frame keeps the editor focused.
         if cx.update_cause() == UpdateCause::Tick {
@@ -8821,7 +8847,9 @@ impl App for TableProApp {
             self.open_switcher(cx);
         }
         let switcher_was_open = cx.is_open(quick_switcher::ID);
-        let modal_was_open = self.destructive_intent.is_some() || self.query_safety.is_open();
+        let modal_was_open = self.destructive_intent.is_some()
+            || self.query_safety.is_open()
+            || history_detail_was_open;
         response |= self.update_destructive_dialog(cx);
         response |= self.update_query_safety(cx);
         response |= self.update_tab_controls(cx);
@@ -9026,6 +9054,33 @@ impl App for TableProApp {
                     {
                         cx.clipboard_copy(&sql);
                         "Copied full SQL".clone_into(&mut self.status);
+                        response |= Response::changed();
+                    }
+                }
+                c if c == SHOW_HISTORY_DETAIL => {
+                    if !history_action
+                        && matches!(
+                            cx.update_cause(),
+                            UpdateCause::Event | UpdateCause::Bootstrap
+                        )
+                        && self.screen == Screen::Workbench
+                        && self.surface == Surface::HistoryTab
+                        && !self.form_open
+                        && self.destructive_intent.is_none()
+                        && !self.query_safety.is_open()
+                        && !self.history_detail.is_open()
+                        && self.filter_editor.is_none()
+                        && cx.top_layer() == LayerId::PAGE
+                        && cx.state(HISTORY_LIST).contains(StateFlags::FOCUSED)
+                        && let Some(key) = self.workbench.active_key()
+                        && matches!(self.workbench.tab(key), Some(Tab::History(_)))
+                        && let Some(entry) = self
+                            .history_rows
+                            .selected_detail_entry(&self.workbench, &self.history_controls)
+                        && let Some(request) =
+                            HistoryDetailRequest::capture(&self.workbench, key, entry)
+                        && self.history_detail.open(cx, request)
+                    {
                         response |= Response::changed();
                     }
                 }
@@ -9502,6 +9557,13 @@ impl App for TableProApp {
             });
         }
         self.query_safety.draw(ui);
+        self.history_detail.draw(
+            ui,
+            &self.workbench,
+            self.screen == Screen::Workbench
+                && self.surface == Surface::HistoryTab
+                && !self.form_open,
+        );
     }
     fn should_quit(&self) -> bool {
         self.quit
