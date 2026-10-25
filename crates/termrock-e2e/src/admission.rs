@@ -90,13 +90,6 @@ pub(crate) struct LoadedQualificationReview {
     pub(crate) review: QualificationReview,
 }
 
-#[derive(Clone, Debug)]
-pub(crate) struct LoadedAdmissionReceipt {
-    pub(crate) path: PathBuf,
-    pub(crate) sha256: String,
-    pub(crate) receipt: GenerationAdmissionReceipt,
-}
-
 pub(crate) fn load_qualification_review(
     path: Option<&Path>,
     expected_sha256: Option<&str>,
@@ -187,87 +180,6 @@ pub(crate) fn new_admission_receipt(
             sha256: review.sha256.clone(),
         },
     })
-}
-
-pub(crate) fn load_pinned_admission_receipt(
-    path: &Path,
-    expected_sha256: &str,
-    expected_binding: &AdmissionBinding,
-) -> Result<LoadedAdmissionReceipt, String> {
-    let loaded = load_admission_envelope(path, expected_sha256)?;
-    validate_admission_receipt(&loaded.receipt, expected_binding)?;
-    let review = load_qualification_review(
-        Some(Path::new(&loaded.receipt.qualification_review.path)),
-        Some(&loaded.receipt.qualification_review.sha256),
-        expected_binding,
-    )?;
-    if review.path.display().to_string() != loaded.receipt.qualification_review.path {
-        return Err("qualification-review path is not in canonical form".to_string());
-    }
-    Ok(loaded)
-}
-
-pub(crate) fn load_admission_envelope(
-    path: &Path,
-    expected_sha256: &str,
-) -> Result<LoadedAdmissionReceipt, String> {
-    require_sha256("generation admission receipt SHA-256", expected_sha256)?;
-    if !path.is_absolute() {
-        return Err("generation admission receipt path must be absolute".to_string());
-    }
-    let path = crate::canonical_existing_regular_file_without_symlinks(
-        path,
-        "generation admission receipt",
-    )?;
-    require_external_to_suite(&path, "generation admission receipt")?;
-    let bytes = fs::read(&path).map_err(|error| {
-        format!(
-            "read generation admission receipt {}: {error}",
-            path.display()
-        )
-    })?;
-    let sha256 = crate::sha256_bytes(&bytes);
-    if sha256 != expected_sha256 {
-        return Err(format!(
-            "generation admission receipt SHA-256 mismatch: expected {expected_sha256}, got {sha256}"
-        ));
-    }
-    crate::reject_duplicate_json_keys(&bytes, "generation admission receipt")?;
-    let receipt: GenerationAdmissionReceipt = serde_json::from_slice(&bytes)
-        .map_err(|error| format!("parse generation admission receipt: {error}"))?;
-    if receipt.schema != GENERATION_ADMISSION_SCHEMA || receipt.decision != "admitted" {
-        return Err("generation admission receipt is not an admitted v1 record".to_string());
-    }
-    let canonical = serde_json::to_vec(&receipt)
-        .map_err(|error| format!("serialize generation admission receipt: {error}"))?;
-    if canonical != bytes {
-        return Err("generation admission receipt must use canonical compact JSON".to_string());
-    }
-    Ok(LoadedAdmissionReceipt {
-        path,
-        sha256,
-        receipt,
-    })
-}
-
-pub(crate) fn validate_admission_receipt(
-    receipt: &GenerationAdmissionReceipt,
-    expected_binding: &AdmissionBinding,
-) -> Result<(), String> {
-    if receipt.schema != GENERATION_ADMISSION_SCHEMA || receipt.decision != "admitted" {
-        return Err("generation admission receipt is not an admitted v1 record".to_string());
-    }
-    if receipt.binding != *expected_binding {
-        return Err("generation admission receipt does not match current suite inputs".to_string());
-    }
-    validate_binding(&receipt.binding)?;
-    if !receipt.qualification_review.path.starts_with('/') {
-        return Err("admission qualification-review path must be absolute".to_string());
-    }
-    require_sha256(
-        "admission qualification-review SHA-256",
-        &receipt.qualification_review.sha256,
-    )
 }
 
 pub(crate) fn validate_binding(binding: &AdmissionBinding) -> Result<(), String> {
