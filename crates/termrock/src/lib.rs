@@ -99,8 +99,6 @@ pub use termrock_runtime::{
     RenderSnapshotError, Runtime, SimulationMoment, TypingPolicy, UpdateCause,
 };
 pub use termrock_runtime::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
-#[cfg(feature = "testing")]
-pub use termrock_runtime::{ProjectedFrame, RenderModel, StyledQuery};
 pub use termrock_session::{
     DefaultTerminal, TerminalSession, chain_panic_hook, run, run_with_feedback_clock,
 };
