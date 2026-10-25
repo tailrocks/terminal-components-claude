@@ -22,6 +22,8 @@ Metadata commits:
 - Cleanup: `bb0ea4d7a156f2f5d48d7b0d544281876f2ef4f5`.
 - Evidence: `545b0cca194823fa73f3fbaca86ff60c6085f690`.
 - Pending-source status correction: `5ccb1a25cee50b9a6f8e60278257e57271e6d4c0`.
+- Corrected SHA references: `ef4753617fcc1e93cd43201b8d7b35f6dd80f88d`.
+- Retained feature branch scan: `572212bf7b32813eb4ab3ddd3dde6df7b01370b6`.
 
 ## Metadata changes
 
@@ -49,7 +51,7 @@ See `dependency-retirement-map.json`, `retirement-input-hashes.json`, `preservat
 - `T37-DOC-INVENTORY-01` approves retirement of the xtask documentation-inventory helper and its `pulldown-cmark` dependency. This metadata commit removes the dependency edge. The source deletion is pending the tools source closure. `serde_json`, ownership checks, and the xtask CLI remain.
 - `E2E-01` keeps the `admit_expected_generation` CLI and its production publication path. `T37-E2E-SCHEMA-02` keeps all twelve schema files and the active registry/profile data byte-identical. The preservation hashes record all twelve schemas and three related data files.
 - `T37-FROZEN-01`, `T37-QUALIFIED-01`, and `CAPTURE-01` approve retirement of their runnable helper closures. This metadata commit removes the frozen manifest and the frozen/qualified lock files. The remaining source deletions are pending the tools source closure. Qualified-capture pins, proof outputs, licenses, and repair provenance stay with the tools source owner.
-- `T37-CI-TESTING-01` is conditional. Keep the global testing configuration until final combined-source evidence proves that no meaningful non-test branch remains. Any remaining branch needs a narrower review. Do not treat an empty suite as a pass.
+- `T37-CI-TESTING-01` is conditional and currently blocked by `TextViewport::selection_binding_chords`. The coordinator requested `T37-SELECTION-BINDING-01`. Keep the global testing configuration until that decision and final combined-source proof resolve the branch. Do not treat an empty suite as a pass.
 
 ## Structural evidence
 
@@ -58,7 +60,7 @@ See `dependency-retirement-map.json`, `retirement-input-hashes.json`, `preservat
 - The structural scan found zero target-flag errors, zero orphan workspace dependency keys, and zero changes to retained package feature tables.
 - Standalone no-deps metadata passed for e2e, visibility tools, external-consumer-demo, and tools visibility publisher.
 - The fixed Velnor output has 235 default/testing task pairs. It has 211 identical pairs and 24 feature-flag differences across `termrock-core`, `termrock-runtime`, `termrock-shell`, `termrock-theme`, `termrock-viewport`, and `termrock`. Preserve the configuration until the final combined-source proof shows that all non-test feature branches are gone and the retained aliases add no production dependency or backend choice. Keep default build, Clippy, doc, and format tasks. Keep `--no-tests fail`. Keep T05/T32 and F03/T03 open.
-- A read-only fixed-input source scan found one retained testing-gated item: `TextViewport::selection_binding_chords` at `crates/termrock-viewport/src/viewport.rs:1566`. T37-PROBE-02 keeps it and its feature edge. The high review must classify this branch before it can approve removing the global testing configuration. No `CARGO_FEATURE_TESTING` build-script use was found.
+- A read-only fixed-input scan found one retained testing-gated item: `TextViewport::selection_binding_chords` at `crates/termrock-viewport/src/viewport.rs:1566`. Sol high review confirmed this is a real testing branch and blocks the current CI-config retirement condition. It found four callers in conformance tests scheduled for removal and no established production caller. Sol requested `T37-SELECTION-BINDING-01` to decide whether to retire only this inspection method and cfg while preserving `SELECTION_BINDINGS` and selection/input behavior. The global Velnor testing configuration remains unchanged. No `CARGO_FEATURE_TESTING` build-script use was found.
 
 ## Commands and lock state
 
