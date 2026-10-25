@@ -19,8 +19,8 @@ This prohibition applies to the coordinator, every worker, and all nested agents
 Use GPT-6 Luna with max effort for all implementation.
 Use a separate GPT-6.1-Sol agent at the stated effort for review.
 This model rule also applies to every child task.
-Return a required design change to the user.
-Keep the affected task blocked until the user resolves the design question.
+Use GPT-6.1-Sol high to resolve a required design change.
+Keep the affected task blocked until GPT-6.1-Sol high records the design decision.
 Do not substitute another model or effort.
 
 Start a task only after its predecessors are accepted.

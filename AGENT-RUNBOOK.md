@@ -24,7 +24,7 @@ This prohibition applies to the coordinator, every worker, and all nested agents
 | Review a runtime, API, safety, feature, or performance change | GPT-6.1-Sol | high | Use an agent other than the implementer. |
 | Review a bounded page or application change | GPT-6.1-Sol | medium | Escalate to high if shared behavior changes. |
 | Check text, links, or file names after technical acceptance | GPT-6.1-Sol | low | This check cannot replace technical review. |
-| Resolve a required architecture change | User | Not applicable | Block the affected task until the user resolves the design question. |
+| Resolve a required architecture change | GPT-6.1-Sol | high | Record the design decision before implementation. |
 | Review the final integrated result | GPT-6.1-Sol | high | Use at least two independent review scopes. |
 
 Use `gpt-6-luna` and `gpt-6.1-sol` as the model IDs when available.
@@ -220,7 +220,7 @@ Fetch the current CI result before the final report.
 ## Escalate a design problem
 
 A new abstraction needs a concrete consumer and a failed contract.
-Give the user these inputs:
+Give GPT-6.1-Sol high these inputs:
 
 1. The current approved contract.
 2. The exact source and test evidence.
@@ -228,12 +228,12 @@ Give the user these inputs:
 4. The affected public API and consumers.
 5. The migration and verification cost.
 
-Ask the user to resolve the design question.
+Ask GPT-6.1-Sol high to select and describe one design.
 Record that decision in `ARCHITECTURE.md`.
 Update the affected task and acceptance cases.
 Then assign the implementation to Luna.
 
-Until the user resolves the design question, keep the affected task blocked.
+Until GPT-6.1-Sol high resolves the design question, keep the affected task blocked.
 Continue other ready tasks.
 Do not let a lower-effort agent silently change the design.
 

@@ -67,16 +67,16 @@ Use these model IDs when the environment exposes them:
 
 - Implementer: `gpt-6-luna`, `reasoning_effort="max"`.
 - Reviewer and coordinator: `gpt-6.1-sol`.
-- Design escalation: return the specific design question to the user.
+- Design escalation: `gpt-6.1-sol`, `reasoning_effort="high"`.
 
 If the required model is unavailable, record the affected task as blocked.
 Continue independent tasks whose required models are available.
 Do not silently select another model.
 
-Do not ask Sol or Luna to invent a replacement architecture.
+Do not let implementation workers invent a replacement architecture.
 If the approved plan cannot meet a required behavior, collect source evidence.
-Return a specific design question to the user before any required plan change.
-Keep the affected task blocked until the user resolves the design question.
+Use GPT-6.1-Sol high to resolve a required architecture or plan change.
+Keep the affected task blocked until GPT-6.1-Sol high records the design decision.
 Keep unrelated work active.
 
 ## Delegation

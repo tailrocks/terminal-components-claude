@@ -2375,6 +2375,6 @@
   "model_policy": {
     "astra_prohibited": true,
     "prohibition_scope": "All Astra models and variants; every task, scenario, fallback, and agent depth. No exceptions.",
-    "design_escalation": "Ask the user. Block the affected task until the design question is resolved."
+    "design_escalation": "Use gpt-6.1-sol with reasoning_effort=\"high\". Record the design decision before implementation. Block the affected task if the required model or effort is unavailable."
   }
 }

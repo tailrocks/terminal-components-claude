@@ -159,8 +159,8 @@ The exact API shapes are in [API-RULES.md](API-RULES.md).
 The dependency ceilings and feature table are in [ARCHITECTURE.md](ARCHITECTURE.md).
 If a source constraint prevents a selected design, use the escalation process.
 Never use any Astra model for any task or scenario.
-Give the user the concrete conflict and smallest proposed correction.
-Keep the affected task blocked until the user resolves the design question.
+Give GPT-6.1-Sol high the concrete conflict and smallest proposed correction.
+Keep the affected task blocked until GPT-6.1-Sol high records the design decision.
 Do not let a worker invent another architecture.
 
 ## 6. Parallel work and file ownership
