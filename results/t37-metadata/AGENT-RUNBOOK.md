@@ -58,6 +58,7 @@ See `dependency-retirement-map.json`, `retirement-input-hashes.json`, `preservat
 - The structural scan found zero target-flag errors, zero orphan workspace dependency keys, and zero changes to retained package feature tables.
 - Standalone no-deps metadata passed for e2e, visibility tools, external-consumer-demo, and tools visibility publisher.
 - The fixed Velnor output has 235 default/testing task pairs. It has 211 identical pairs and 24 feature-flag differences across `termrock-core`, `termrock-runtime`, `termrock-shell`, `termrock-theme`, `termrock-viewport`, and `termrock`. Preserve the configuration until the final combined-source proof shows that all non-test feature branches are gone and the retained aliases add no production dependency or backend choice. Keep default build, Clippy, doc, and format tasks. Keep `--no-tests fail`. Keep T05/T32 and F03/T03 open.
+- A read-only fixed-input source scan found one retained testing-gated item: `TextViewport::selection_binding_chords` at `crates/termrock-viewport/src/viewport.rs:1566`. T37-PROBE-02 keeps it and its feature edge. The high review must classify this branch before it can approve removing the global testing configuration. No `CARGO_FEATURE_TESTING` build-script use was found.
 
 ## Commands and lock state
 
