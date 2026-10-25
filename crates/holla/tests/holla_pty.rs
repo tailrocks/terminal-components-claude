@@ -1,3 +1,4 @@
+#![cfg(test)]
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
 use std::ffi::{c_int, c_ulong, c_void};
