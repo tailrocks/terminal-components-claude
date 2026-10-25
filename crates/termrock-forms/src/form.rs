@@ -5372,6 +5372,110 @@ mod tests {
         }
     }
 
+    const SELECT_ENTER_LANE: Id = Id::root("form.tests.select-enter.lane");
+    const SELECT_ENTER_ROWS: &[FormRow] = &[FormRow::Field(MATRIX)];
+    const SELECT_ENTER_LANES: &[FormLane<'static>] =
+        &[FormLane::new(SELECT_ENTER_LANE, SELECT_ENTER_ROWS)];
+    const SELECT_ENTER_LAYOUT: FormLayout<'static> = FormLayout::new(SELECT_ENTER_LANES);
+
+    struct SelectEnterApp {
+        state: FormState,
+        data: MatrixData,
+        layout: UpwardRevealLayout,
+        last: Option<FormAction>,
+    }
+
+    impl App for SelectEnterApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let fields = [matrix_field(MatrixKind::Select)];
+            let form = Form::new(FORM, &fields)
+                .actions(ACTIONS)
+                .enter(EnterPolicy::Never);
+            let response = match self.layout {
+                UpwardRevealLayout::Linear => form.update(cx, &mut self.state, &mut self.data),
+                UpwardRevealLayout::OneLane => form
+                    .try_layout(&SELECT_ENTER_LAYOUT)
+                    .expect("valid select-submit lane layout")
+                    .update(cx, &mut self.state, &mut self.data),
+            };
+            self.last = response.action_ref().copied();
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let fields = [matrix_field(MatrixKind::Select)];
+            let form = Form::new(FORM, &fields)
+                .actions(ACTIONS)
+                .enter(EnterPolicy::Never);
+            match self.layout {
+                UpwardRevealLayout::Linear => {
+                    form.draw(ui, ui.full(), &self.state, &self.data);
+                }
+                UpwardRevealLayout::OneLane => {
+                    form.try_layout(&SELECT_ENTER_LAYOUT)
+                        .expect("valid select-submit lane layout")
+                        .draw(ui, ui.full(), &self.state, &self.data);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn never_policy_leaves_enter_to_select_in_both_form_layouts() {
+        for layout in [UpwardRevealLayout::Linear, UpwardRevealLayout::OneLane] {
+            let app = SelectEnterApp {
+                state: FormState::default(),
+                data: MatrixData::new(MatrixKind::Select),
+                layout,
+                last: None,
+            };
+            let mut runtime = Runtime::new(app, Theme::junie());
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+            assert_eq!(runtime.focus(), Some(MATRIX), "{layout:?}");
+            let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+            assert!(runtime.app().state.slots[0].select.is_open(), "{layout:?}");
+            assert!(runtime.layer_area(MATRIX).is_some(), "{layout:?}");
+            assert_eq!(runtime.app().data.choice, 0, "opening does not choose");
+            assert_eq!(
+                runtime.app().data.validations.get(),
+                0,
+                "opening does not save"
+            );
+            assert_ne!(
+                runtime.app().last,
+                Some(FormAction::Action(ActionKey::SAVE)),
+                "opening a Select does not submit the form"
+            );
+
+            let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Down));
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+            let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+            assert!(!runtime.app().state.slots[0].select.is_open(), "{layout:?}");
+            assert_eq!(
+                runtime.app().data.choice,
+                1,
+                "Enter chooses the moved cursor"
+            );
+            assert_eq!(
+                runtime.app().data.validations.get(),
+                0,
+                "choosing does not save"
+            );
+            assert_ne!(
+                runtime.app().last,
+                Some(FormAction::Action(ActionKey::SAVE)),
+                "choosing a Select does not submit the form"
+            );
+            assert!(runtime.diagnostics().is_empty(), "{layout:?}");
+        }
+    }
+
     #[test]
     fn submit_commits_the_in_flight_edit_before_validating() {
         let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Text);
