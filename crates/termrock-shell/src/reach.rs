@@ -258,10 +258,19 @@ impl<S: Scenario> Probe<S> {
     }
 
     fn handle(&mut self, input: Input) {
-        let _ = self
-            .rt
-            .handle(input)
-            .expect("a published probe must accept input");
+        // The runtime takes an input only once the app is ready. A pending
+        // input is settled and retried, so a probe that arrives too early
+        // loses the step instead of panicking the harness.
+        let mut input = input;
+        for _ in 0..16 {
+            match self.rt.handle(input) {
+                Ok(_) => break,
+                Err(pending) => {
+                    input = pending.into_input();
+                    let _ = self.rt.settle();
+                }
+            }
+        }
         self.draw();
     }
 
