@@ -1,0 +1,2562 @@
+{
+  "schema_version": 1,
+  "title": "Termrock pull request 38 completion plan with 39 tasks",
+  "planning_source": {
+    "target": "e08ac57d10ae54c87337eae0be08b1f5e8f4bda4",
+    "reference": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+    "common_ancestor": "cc14dd6beae526884aabdf897e309be837b4f504"
+  },
+  "coordinator": {
+    "model": "gpt-6.1-sol",
+    "effort": "low"
+  },
+  "tasks": [
+    {
+      "id": "T00",
+      "title": "Capture source, legacy evidence, and approved rules",
+      "deps": [],
+      "review": "high",
+      "owners": [
+        "docs/implementation/pr38-final/",
+        "AGENTS.md",
+        "T00 source and legacy-evidence records under results/",
+        "results/run-state.json in the imported package"
+      ],
+      "findings": [
+        "F20"
+      ],
+      "steps": [
+        "Read the local plan package. Follow README.md to create and verify the separate target checkout.",
+        "Treat docs/implementation/pr38-final/ as absent until this task imports the package.",
+        "Fetch both pull request heads through the GitHub connection. Record the target, reference, base, and common-ancestor commit IDs.",
+        "Compare the current heads with the review IDs. Recheck each finding whose source changed.",
+        "Read root AGENTS.md, CLAUDE.md, current product contracts, and applicable directory instructions.",
+        "Copy this package to docs/implementation/pr38-final/. Add approved root links without removing existing rules.",
+        "Record every current CI failure, test inventory, harness, fixture, doctest, and comment directive before deletion.",
+        "Record production build failures from current CI logs. Do not run legacy test code.",
+        "Hash every captured test-related file and record its source commit and path.",
+        "Record production diagnostics, CLI help attributes, legal notices, generated files, and required parser, lint, and shebang directives.",
+        "Create separate source worktrees. Keep the reference worktree read-only. Record the integration branch and starting commit.",
+        "Install the pinned tools through mise. Record rustc, cargo, nextest, toolchain, and dependency-lock versions.",
+        "Create a result record with source IDs, tool versions, model assignments, and review limits.",
+        "Create `results/run-state.json` in the imported package. Record the SHA-256 plan hash, task states, worktree paths, source and output SHAs, and file locks.",
+        "Record each agent ID, role, model, and effort. Record approved test plans, reviewer IDs, evidence paths, blockers, and ready tasks.",
+        "Update `results/run-state.json` after every task-state, readiness, path, SHA, lock, agent, review, evidence, or blocker change."
+      ],
+      "cases": [
+        "The source record uses complete commit IDs and matches the fetched branch heads.",
+        "The root AGENTS links resolve. The existing rules remain present.",
+        "The target checkout is separate from the plan-package checkout. The imported package path is created during T00.",
+        "The run-state checkpoint records the plan hash, task states, paths, SHAs, and locks.",
+        "The checkpoint records each agent ID, role, model, and effort.",
+        "The checkpoint records approved test plans, reviewer IDs, evidence, blockers, and ready tasks.",
+        "A changed target finding has a fresh source check. An unchanged finding retains its original evidence.",
+        "Current production build failures are recorded without running legacy test code.",
+        "The legacy inventory includes every language, test target, test function, harness, fixture, doctest, and test-only dependency.",
+        "The directive inventory identifies each comment that parsers, linters, shells, licenses, or generators require.",
+        "No Termrock source, test, harness, fixture, CI, or snapshot file changes in T00."
+      ],
+      "commands": [
+        "git status --short",
+        "git rev-parse HEAD",
+        "git merge-base 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948 e08ac57d10ae54c87337eae0be08b1f5e8f4bda4",
+        "mise install",
+        "rustc --version --verbose",
+        "cargo nextest --version",
+        "git ls-files | rg '(^|/)(tests?|fixtures?)(/|$)|\\.rs$|\\.py$|\\.sh$|\\.toml$'"
+      ],
+      "accept": "The source and model records are complete. The rules and run-state checkpoint are installed. Required unavailable tools have explicit blocked gates.",
+      "children": [
+        "Use one Luna worker for source and tool records.",
+        "Use a second Luna worker for the plan import and root links.",
+        "Review both records before any Rust task starts."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t00"
+    },
+    {
+      "id": "T01",
+      "title": "Create one complete requirement and API inventory after cleanup",
+      "deps": [
+        "T37"
+      ],
+      "review": "high",
+      "owners": [
+        "component-ownership.json",
+        "tools/acceptance_policy.json",
+        "docs/implementation/pr38-final/requirements.json",
+        "docs/contracts/migration.md"
+      ],
+      "findings": [
+        "F12",
+        "F13",
+        "F20"
+      ],
+      "steps": [
+        "Use the current source to list production crates, public exports, component definitions, aliases, state types, actions, and builders.",
+        "Use T00's immutable records for deleted test targets, failures, comment directives, source hashes, and workload definitions.",
+        "Do not invoke a deleted test, harness, fixture, doctest, or test-only helper.",
+        "Preserve W01 through W45. Add IDs for omitted reusable components. Record each implementation owner and each public re-export separately.",
+        "Include RadioField, Note, TextSection, SelectField, Table, CompletingCodeEditor, FormDialog, AppShell, MasterDetail, SplitBlock, Notice, DerivedHintBar, and TextReport.",
+        "Map every one of the 54 reference routes to its current factory, shared components, and required behaviors.",
+        "Read the retained architecture and application migration records. Give each required historical item a current source and task disposition.",
+        "Use KEEP, ADAPT, RETIRE, or UNRESOLVED for each item. RETIRE needs a concrete conflict or replacement and a review decision.",
+        "Reclassify the 4,511 historical coverage rows as requirements, not active tests. Separate aliases, values, behavior, removed test APIs, and product paths.",
+        "Correct stale route and NULL-sort claims. Preserve historical records instead of rewriting them as current results.",
+        "Rebuild performance workload definitions from T00. Keep missing measurements visible for T33."
+      ],
+      "cases": [
+        "No W ID is removed or reused. PropsList and ScrollRegion record their actual definition owners.",
+        "Every public component and all 54 routes have an owner, task, required cases, and evidence state.",
+        "Every required historical item has a disposition. Age alone is not a retirement reason.",
+        "An intentionally removed export causes the inventory check to fail until its migration row changes."
+      ],
+      "commands": [
+        "cargo metadata --locked --format-version 1 --no-deps",
+        "git status --short"
+      ],
+      "accept": "The inventory covers current source and retained requirements. Every unresolved requirement has a named task and blocks final completion.",
+      "children": [
+        "Split the inventory by library families, Showcase routes, and application requirements.",
+        "Give each worker a separate result fragment.",
+        "Use one Luna owner to combine the fragments and check missing IDs."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t01"
+    },
+    {
+      "id": "T02",
+      "title": "Rebuild functional gate inputs and record historical CI failures",
+      "deps": [
+        "T00",
+        "T38"
+      ],
+      "review": "high",
+      "owners": [
+        "tools/acceptance_policy.json",
+        "tools/acceptance_architecture.py",
+        "crates/termrock-xtask/src/ownership/",
+        "integration/functional/gates/",
+        "result records for historical CI failure migration"
+      ],
+      "findings": [
+        "F01",
+        "F18"
+      ],
+      "steps": [
+        "Fetch current-head CI records. Preserve the reviewed failures as historical evidence in T00's source record.",
+        "Reproduce required behavior failures through task-scoped functional cases from T38 and independent Sol medium review.",
+        "Do not copy old test names or assertions. Do not change expected bytes to hide a behavior difference.",
+        "Replace obsolete package profiles with current production consumers and approved feature configurations.",
+        "Rebuild ownership checks around production source and approved functional modules. Keep real production findings visible.",
+        "Inspect all 13 historical overlay findings. Separate test-only helpers from the two production disk functions.",
+        "Give each production overlay site its shared-layer implementation and functional case. Do not add a broad exemption.",
+        "Replace the deleted workflow assumption with checks against maintained generator inputs and generated CI plans.",
+        "Add reviewed gate cases for a missed production site, an invalid feature profile, and a hidden command failure.",
+        "Assign each remaining implementation issue to T11, T19, T27, T28, T29, or another exact owner task."
+      ],
+      "cases": [
+        "Reviewed functional probes detect a production overlay and ignore unowned external test data.",
+        "The gate rejects an unknown package, an empty required case set, and a hidden command failure.",
+        "Gate execution reaches its runtime assertions instead of failing during setup.",
+        "Historical ownership and visual findings remain visible until reviewed functional evidence closes them."
+      ],
+      "commands": [
+        "cargo metadata --locked --format-version 1 --no-deps",
+        "cargo run --locked -p termrock-xtask -- check-ownership --format json",
+        "cargo nextest run --locked --workspace --all-features"
+      ],
+      "accept": "Gate inputs describe the current workspace. Every original failure has an exact disposition. This task does not require unrelated visual fixes to finish.",
+      "children": [
+        "Split production ownership policy and functional gate scenarios into separate Luna tasks.",
+        "Give each task an approved test-plan ID before test edits.",
+        "Use an independent Sol medium reviewer for each test or harness diff."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t02"
+    },
+    {
+      "id": "T03",
+      "title": "Remove backend leakage from pure library configurations",
+      "deps": [
+        "T01",
+        "T38"
+      ],
+      "review": "high",
+      "owners": [
+        "Cargo.toml workspace dependency declarations",
+        "crates/termrock-core/Cargo.toml",
+        "crates/termrock-runtime/Cargo.toml",
+        "crates/termrock-runtime/src/runtime.rs",
+        "crates/termrock-runtime/src/runtime/time.rs",
+        "production library manifests for backend edges"
+      ],
+      "findings": [
+        "F03",
+        "F04"
+      ],
+      "steps": [
+        "Compile runtime/time.rs without the crossterm feature. Keep ClockError and Moment available in every runtime build.",
+        "Find each production use of ratatui and ratatui-crossterm. Remove unused normal dependencies.",
+        "Use ratatui-core for shared geometry, style, frame, and buffer values where it already provides the required type.",
+        "Keep TestBackend dependencies under dev-dependencies when production code does not use them.",
+        "Disable backend defaults on internal library edges. Let the session adapter request backend conversion explicitly.",
+        "Keep framework key and modifier types public. Preserve Press and Repeat conversion and Release rejection.",
+        "Create reviewed detached leaf scenarios under integration/functional/. Give each probe one direct production dependency.",
+        "Run separate no-default, default, each-feature, and all-supported-feature builds. Save each resolved dependency graph."
+      ],
+      "cases": [
+        "A no-default termrock-runtime consumer compiles and can construct Moment.",
+        "A controls-only consumer has no session, editor, grid, app, or test-support dependency.",
+        "The normal library graph has no terminal backend unless the selected feature requests it.",
+        "Backend conversion preserves key and modifier identity. Paste Debug output stays redacted.",
+        "Platform-neutral components compile for Windows without Unix session source."
+      ],
+      "commands": [
+        "cargo check --locked -p termrock-runtime --lib --no-default-features",
+        "cargo check --locked -p termrock-core --lib --no-default-features",
+        "cargo nextest run --locked --workspace --all-features",
+        "cargo check --locked --workspace --all-targets"
+      ],
+      "accept": "Every declared leaf configuration passes in an isolated consumer. Dependency graphs prove the selected backend boundary.",
+      "children": [
+        "Split pure time support, dependency pruning, and detached probe construction by file.",
+        "Fix the normal dependency graph before feature probes run.",
+        "Use a separate Sol high agent to inspect the resolved graph."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t03"
+    },
+    {
+      "id": "T04",
+      "title": "Prepare a source-bound visual reference candidate",
+      "deps": [
+        "T00",
+        "T01",
+        "T38"
+      ],
+      "review": "high",
+      "owners": [
+        "A production capture tool only if T00 proves an active production use",
+        "Approved functional capture code under integration/functional/",
+        "new reference-candidate manifests under the declared evidence root",
+        "baselines/oracle/ORACLE.toml only after the required approval"
+      ],
+      "findings": [
+        "F14"
+      ],
+      "steps": [
+        "Preserve the immutable annotated visual-baseline tag, its snapshot bytes, and the tuiscotti pin.",
+        "Keep a legacy capture runner only if T00 proves a production use. Remove its old test harness under T37.",
+        "Create a separate capture candidate from the fixed pull request 26 source. Record source, lockfile, binary, and environment hashes.",
+        "Derive the required case set from T00's archived inventory and COMPONENT-MATRIX.md. Do not execute deleted harness targets.",
+        "Include all 54 route identities and the four applications' required journeys. Specify semantic states through public application entry points.",
+        "Run the reference twice with fixed input, size, color, seed, and clock. Reject nondeterministic frames or checkpoint order.",
+        "Record each output cell, attribute, cursor field, semantic state, and case identity. Keep screenshots as review views.",
+        "Classify defects and missing reference states with a named product rule. Do not silently approve a defective historical state.",
+        "Prepare the complete candidate manifest and visual review before any required approval request.",
+        "Promote only an approved candidate through the declared oracle process. Keep old evidence immutable and preserve its identity."
+      ],
+      "cases": [
+        "An absent, duplicate, skipped, reordered, or uncaptured required checkpoint fails the candidate check.",
+        "A candidate application cannot modify the reference tree without detection.",
+        "An inspector-open case proves visible inspector controls and an active dismissal route.",
+        "Static state specimens have no live input regions or focus registrations.",
+        "The report separates current reference, historical baseline, and candidate application output."
+      ],
+      "commands": [
+        "git diff --check"
+      ],
+      "accept": "A complete reference candidate and its review exist. Required promotion must be authorized and complete. Otherwise, keep T04 BLOCKED.",
+      "children": [
+        "Split case inventory, real CLI capture, and semantic assertion preparation.",
+        "Run captures alone on the selected capture host.",
+        "Require task-scoped Sol medium review before every new harness or assertion edit."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t04"
+    },
+    {
+      "id": "T05",
+      "title": "Make the facade feature set and API paths explicit",
+      "deps": [
+        "T03"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock/Cargo.toml",
+        "crates/termrock/src/lib.rs",
+        "crates/termrock/src/composition.rs feature gates",
+        "crates/termrock/src/composition/adapters.rs feature gates",
+        "facade API compile tests",
+        "first-party Cargo.toml files for facade feature declarations only"
+      ],
+      "findings": [
+        "F04",
+        "F10"
+      ],
+      "steps": [
+        "Implement the exact feature map in ARCHITECTURE.md. Use default=[components]. Keep session behind its explicit feature.",
+        "Gate each family export and adapter with the feature that provides its type.",
+        "Keep foundations available without family features. Do not enable testing through normal defaults.",
+        "Add complete family namespaces. Include omitted public options such as ButtonFocusVisibility, CheckboxState, and PropsPresentation.",
+        "Keep advanced author functions under termrock::author. Preserve old root aliases during the recorded transition when ownership permits them.",
+        "Update first-party dependency declarations to request their actual families and session adapter.",
+        "Record this source and feature migration explicitly. If a published release requires a version change, apply the selected version policy.",
+        "Test the documented minimal, common, custom-author, and session dependency examples."
+      ],
+      "cases": [
+        "No-default facade builds. Each family feature builds alone with its required transitive families.",
+        "The default graph has all documented reusable families and no terminal session backend.",
+        "A selected controls consumer does not load grid, editors, forms, terminal view, or session.",
+        "Every documented option and state type has an import path in its owning namespace.",
+        "Old compatible import paths compile during the declared transition."
+      ],
+      "commands": [
+        "cargo check --locked -p termrock --lib --no-default-features",
+        "cargo check --locked -p termrock --lib --no-default-features --features controls",
+        "cargo check --locked -p termrock --lib",
+        "cargo nextest run --locked -p termrock --all-features"
+      ],
+      "accept": "The facade feature matrix matches the docs. All selected consumer graphs and import paths pass.",
+      "children": [
+        "Keep facade manifests and exports with one Luna owner.",
+        "Use separate Luna workers for family import probes and application feature declarations.",
+        "Integrate only after the feature names are fixed."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t05"
+    },
+    {
+      "id": "T06",
+      "title": "Enforce crate direction and the lint policy",
+      "deps": [
+        "T05"
+      ],
+      "review": "high",
+      "owners": [
+        "tools/acceptance_policy.json",
+        "tools/acceptance_architecture.py",
+        "tools/test_acceptance_architecture.py",
+        "production Cargo.toml lint sections",
+        "scoped production lint corrections"
+      ],
+      "findings": [
+        "F02",
+        "F05",
+        "F06"
+      ],
+      "steps": [
+        "Encode the allowed crate edges from ARCHITECTURE.md in the existing architecture policy.",
+        "Reject library-to-application, library-to-test-tool, lower-crate-to-facade, and cyclic edges.",
+        "Record normal, build, dev, and feature-activated edges separately.",
+        "Add workspace lint inheritance to all 20 production library crates.",
+        "Assign each newly exposed source warning to a Luna child task with bounded file ownership.",
+        "Correct the source cause. Keep only operation-specific or test-specific exceptions with a concrete reason.",
+        "Review session FFI exceptions against its safety invariants. Do not add a crate-wide allow for convenience.",
+        "Add mutation tests for a forbidden dependency, a cycle, a removed lint inheritance line, and a hidden generated input.",
+        "Keep each initial ownership failure visible until its named source task fixes it.",
+        "Record the exact failing edge or export, source commit, and owner task. Include T07, T08, and T20 where applicable."
+      ],
+      "cases": [
+        "Each forbidden mutation fails the gate with the source path and dependency kind.",
+        "Every production library inherits the declared lints.",
+        "The gate distinguishes an exported alias from the file that implements the type.",
+        "Clippy runs with the intended policy on each corrected crate.",
+        "An intentional dev dependency does not create a false normal-dependency claim."
+      ],
+      "commands": [
+        "PYTHONDONTWRITEBYTECODE=1 python3 tools/test_acceptance_architecture.py",
+        "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings",
+        "cargo run --locked -p termrock-xtask -- check-ownership --format json"
+      ],
+      "accept": "The policy catches forbidden changes. Lint inheritance is active. Record each existing ownership failure until its named source task removes it.",
+      "children": [
+        "Assign architecture policy and mutation tests to separate bounded files.",
+        "Split source lint corrections by crate.",
+        "Keep one Luna owner for shared root and feature declarations."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t06"
+    },
+    {
+      "id": "T07",
+      "title": "Move Jackin screen code out of feedback",
+      "deps": [
+        "T06",
+        "T10",
+        "T11"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-feedback/src/ product-specific modules",
+        "crates/jackin-preview-host-ui/src/",
+        "crates/jackin-preview-capsule-ui/src/",
+        "crates/jackin-preview-presentation/src/",
+        "affected facade export migration"
+      ],
+      "findings": [
+        "F05",
+        "F15"
+      ],
+      "steps": [
+        "Move account, settings, usage, manager, and inspector page models to jackin-preview-host-ui.",
+        "Move capsule menu, session chrome, and zoom page models to jackin-preview-capsule-ui.",
+        "Use jackin-preview-presentation only for projections shared by both UI owners.",
+        "Replace repeated page-specific menu, field, meter, clipping, and scrollbar code with existing shared components.",
+        "Keep application labels, account fields, mount policy, launch policy, and domain actions in Jackin.",
+        "Retain generic Notice, StatusBar, HintBar, ProgressBar, Spinner, Meter, and TextSection in feedback.",
+        "For each removed public product export, add a migration row and update all first-party consumers.",
+        "Keep only forward-only compatibility adapters that use generic primitives. Do not reverse-depend on Jackin.",
+        "Compare each moved screen with its approved reference before and after the move."
+      ],
+      "cases": [
+        "Feedback source contains no account, mount, workspace, provider-quota, or capsule page model.",
+        "The normal feedback graph has no application dependency.",
+        "Two independent consumers can use each retained generic component.",
+        "Moved screens retain actions, focus, overlays, scroll behavior, and exact approved cells.",
+        "No public path disappears without a recorded migration and consumer update."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p termrock-feedback --all-features",
+        "cargo nextest run --locked -p jackin-preview-host-ui -p jackin-preview-capsule-ui -p jackin-preview-app --all-features",
+        "cargo run --locked -p termrock-xtask -- check-ownership --format json"
+      ],
+      "accept": "Product screen ownership is in Jackin. Shared feedback contains reusable behavior and passes both consumer and visual checks.",
+      "children": [
+        "Split host UI moves, Capsule UI moves, and export migration records.",
+        "Keep shared presentation types with one owner.",
+        "Review source moves before changes to screen behavior."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t07"
+    },
+    {
+      "id": "T08",
+      "title": "Separate application domain state from UI state",
+      "deps": [
+        "T06"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/jackin-preview-domain/",
+        "crates/jackin-preview-sim/",
+        "crates/jackin-preview-presentation/",
+        "crates/tablepro-domain/",
+        "crates/tablepro-ui/src/ domain adapters",
+        "crates/showcase-data/Cargo.toml"
+      ],
+      "findings": [
+        "F06"
+      ],
+      "steps": [
+        "Replace Jackin domain's full facade dependency with the smallest owner of its required neutral text-wipe function.",
+        "Give Jackin simulation its own launch and task state. Map that state to StepState and presentation roles in the UI.",
+        "Remove geometry and widget state from pure simulation data unless a documented domain requirement needs the value.",
+        "Move CompletingCodeEditorState, GridState, form specifications, and UI adapters from TablePro domain to TablePro UI.",
+        "Keep connection data, result identity, schema, validation, and SQL ordering in domain or SQL crates.",
+        "Check Holla and Showcase data boundaries with the same rule. Correct full-facade edges that serve one neutral value.",
+        "Preserve stable IDs, deterministic simulation, secret policy, and transactional validation during each move.",
+        "Keep moves and behavior changes in separate commits."
+      ],
+      "cases": [
+        "Domain package dependency graphs contain no session, widget family, or facade dependency.",
+        "Domain tests run without terminal setup or UI state.",
+        "UI adapters preserve row IDs, draft values, and pending edits across data replacement.",
+        "Secret wiping and redaction remain effective through approved public behavior scenarios.",
+        "No live database, host cleanup, process launch, or external network effect enters a demonstration."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p jackin-preview-domain -p jackin-preview-sim -p tablepro-domain -p tablepro-sql",
+        "cargo nextest run --locked -p holla-domain -p holla-plan -p holla-sim",
+        "cargo check --locked --workspace --all-targets"
+      ],
+      "accept": "Domain state is independent of UI families. All mapped UI behavior retains its prior contract.",
+      "children": [
+        "Split Jackin domain work, TablePro domain work, and Holla/Showcase boundary checks.",
+        "Fix each domain mapping before its UI consumer migration.",
+        "Use a separate reviewer for domain semantics."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t08"
+    },
+    {
+      "id": "T09",
+      "title": "Preserve response effects and the frame lifecycle",
+      "deps": [
+        "T03",
+        "T06"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-core/src/response.rs",
+        "crates/termrock-runtime/src/runtime.rs",
+        "crates/termrock-runtime/src/runtime/time.rs",
+        "crates/termrock-runtime/src/ui/cx.rs",
+        "focused runtime tests",
+        "external-consumer-demo/ lifecycle probe only",
+        "crates/termrock-core/src/keys.rs pure KeyboardDelivery value only",
+        "Runtime, Cx, and Ui keyboard delivery snapshot accessors"
+      ],
+      "findings": [
+        "F07",
+        "F08",
+        "F11",
+        "F16"
+      ],
+      "steps": [
+        "Keep the existing Response fields and action-mapping methods.",
+        "Add merge_effects for a typed parent response only as specified in API-RULES.md.",
+        "Merge flow and invalidation with their maximum values. Preserve the parent ID, state, and action.",
+        "Use erase when a parent intentionally drops an action. Do not rebuild Response fields manually.",
+        "Keep update as the semantic mutation phase. Permit only paint, registration, diagnostics, and derived caches during draw.",
+        "Test prepare, projection, transport, and acknowledgement as separate steps.",
+        "Reject stale runtime identity, generation, area, theme, and app-state receipts before input can use their geometry.",
+        "Preserve the earliest repaint deadline through unrelated input and redraw. Reject backward time.",
+        "Keep reference rendering inert across the complete subtree.",
+        "Provide an external-host example that drives the production lifecycle without the testing feature.",
+        "Add the exact KeyboardDelivery value and runtime accessors from API-RULES section 7.",
+        "Store one delivery snapshot per Runtime. A changed snapshot invalidates prepared output, affected caches, and layout.",
+        "Keep protocol lifetime and input observations outside this snapshot."
+      ],
+      "cases": [
+        "All nine invalidation pairs and all flow pairs preserve the maximum effect.",
+        "Action erasure preserves ID, state, and effects. Effect merge keeps the parent action.",
+        "A failed or incomplete transport does not acknowledge the frame.",
+        "Resize or app mutation rejects the previous prepared token and requires preparation again.",
+        "An early input does not postpone an existing animation deadline.",
+        "A reference specimen registers no input, focus, layer, binding, or cursor side effect.",
+        "Opposite snapshots in two runtimes remain independent.",
+        "An equal setter preserves a prepared token. A changed setter rejects it and refreshes hint width."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p termrock-core --all-features",
+        "cargo nextest run --locked -p termrock-runtime --all-features",
+        "cargo nextest run --locked --manifest-path external-consumer-demo/Cargo.toml"
+      ],
+      "accept": "Response composition cannot lose Layout. Only acknowledged current geometry can route input.",
+      "children": [
+        "Split Response tests, frame lifecycle tests, and the external-host probe.",
+        "Keep each shared source file with one Luna owner.",
+        "Review effects and frame acknowledgement with separate Sol high scopes.",
+        "Assign the pure KeyboardDelivery value and runtime snapshot to one bounded Luna child task."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t09"
+    },
+    {
+      "id": "T10",
+      "title": "Complete the existing composition and author API",
+      "deps": [
+        "T05",
+        "T09"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-runtime/src/author/composition.rs",
+        "crates/termrock-runtime/src/ui/composition.rs",
+        "crates/termrock/src/composition.rs",
+        "crates/termrock/src/composition/adapters.rs",
+        "crates/termrock/src/blocks/",
+        "crates/termrock-shell/src/shell.rs",
+        "external-consumer-demo/ composition adapter use only",
+        "crates/termrock-consumer-example/src/app.rs composition adapter use only"
+      ],
+      "findings": [
+        "F07",
+        "F08"
+      ],
+      "steps": [
+        "Add the validation hook specified in API-RULES.md to the existing CompositionLeaf trait.",
+        "Make Child, Group, Panel, MasterDetail, ShellSlots, and owned slot adapters report their nested depth.",
+        "Validate the complete built-in tree before measure, paint, or registration.",
+        "Remove silent error replacement from the supported composition path. Return the exact CompositionError.",
+        "Keep direct infallible draw inert and emit a diagnostic for invalid content. Checked composition entry points must validate before infallible Measure.",
+        "Use one closure-leaf implementation. Preserve compatible facade constructors through a re-export or small adapter.",
+        "Use existing menu_bar and status_bar adapters in the public consumer. Remove its duplicate MenuLeaf and StatusLeaf.",
+        "Keep measure free of input handling and domain effects.",
+        "Keep Panel and Dialog callbacks exactly once under the declared contract. Keep SplitPane callbacks in stable logical order.",
+        "Preserve custom author access to Rect, Buffer-related values, clipping, parts, and registration."
+      ],
+      "cases": [
+        "Depth 128 succeeds and depth 129 fails through every built-in wrapper path.",
+        "Failure produces no partial paint, hit registration, focus registration, or layer state.",
+        "Direct Child-to-CompositionLeaf conversion cannot hide an invalid tree.",
+        "An invalid deep tree can be dropped safely.",
+        "Empty and collapsed slots obey the documented callback count.",
+        "A custom external leaf works through the same measure, clipping, and registration path."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p termrock-runtime --all-features",
+        "cargo nextest run --locked -p termrock --all-features",
+        "cargo nextest run --locked -p termrock-shell --all-features",
+        "cargo nextest run --locked --manifest-path external-consumer-demo/Cargo.toml"
+      ],
+      "accept": "Composition has one implementation and one visible error contract. The ordinary consumer needs no duplicate adapters.",
+      "children": [
+        "Keep nested validation and depth rules with one Luna owner.",
+        "Assign facade adapter use and external-consumer cleanup to another worker.",
+        "Use a third worker for depth and inert-failure cases after signatures are fixed."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t10"
+    },
+    {
+      "id": "T11",
+      "title": "Put all shared appearance rules in the theme owner",
+      "deps": [
+        "T06",
+        "T09"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-theme/",
+        "crates/termrock-render/src/lib.rs",
+        "crates/termrock-runtime/src/author.rs patch support",
+        "crates/showcase-demos/src/pages/mod.rs theme workarounds",
+        "affected component style tests"
+      ],
+      "findings": [
+        "F01",
+        "F08",
+        "F15"
+      ],
+      "steps": [
+        "Give pure patch merging one implementation in termrock-render. Let runtime add slot callbacks and style accounting.",
+        "Preserve the documented precedence for theme rules, local scope, instance patch, part patch, and slot override.",
+        "Keep Inherit, Set, and Clear distinct. A later scope must not change a sibling.",
+        "Add semantic roles for currently unnamed seam and selection treatments. Preserve the approved palette at each color level.",
+        "Remove exact-RGB comparisons and app-local tint repair after the shared role supplies the required value.",
+        "Remove indexed-color conversion to an RGB-like integer from shared demonstration helpers.",
+        "Keep active focus, chosen selection, covered selection, disabled, read-only, hover, and pressed treatments distinct.",
+        "Use full, reduced, and paused motion through deterministic time. Do not make style selection depend on wall-clock reads.",
+        "Keep user-defined themes and custom palettes functional. Do not hard-code Junie assumptions in generic components.",
+        "Correct each application mismatch whose cause is a shared theme rule. Record remaining mismatches under T22 or T27-T29."
+      ],
+      "cases": [
+        "Each layer in the override precedence has a direct assertion and a sibling-isolation assertion.",
+        "Slot Clear removes the inherited slot. Slot Inherit retains it. Slot Set uses the caller's slot.",
+        "TrueColor, 256, 16, and monochrome keep visible focus and selection.",
+        "Disabled controls ignore hover. Covered controls cannot display active-layer focus.",
+        "Seam and scrollbar changes affect only their reserved cells.",
+        "Custom-theme color equality does not trigger an application-specific workaround."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p termrock-theme -p termrock-render --all-features",
+        "cargo nextest run --locked -p termrock-conformance --all-features",
+        "cargo nextest run --locked -p showcase-ui -p holla-ui -p tablepro-ui -p jackin-preview-app --all-features"
+      ],
+      "accept": "Theme-owner and custom-theme cases pass. Record each remaining application mismatch under its application task. Do not claim those checks passed.",
+      "children": [
+        "Keep theme roles and patch precedence with one owner.",
+        "Split component adoption by family after the shared rules pass.",
+        "Give a separate reviewer the reference images and custom-theme cases."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t11"
+    },
+    {
+      "id": "T12",
+      "title": "Complete controls and generic feedback",
+      "deps": [
+        "T10",
+        "T11"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-controls/",
+        "crates/termrock-runtime/ borrowed tooltip request, lifecycle, and presentation support",
+        "control examples",
+        "crates/termrock-feedback/src/progress.rs",
+        "crates/termrock-feedback/src/meter.rs",
+        "crates/termrock-feedback/src/status.rs",
+        "crates/termrock-feedback/src/hintbar.rs",
+        "crates/termrock-feedback/src/keyhint.rs",
+        "crates/termrock-feedback/src/notice.rs",
+        "crates/termrock-feedback/src/section.rs",
+        "generic feedback tests; product modules and feedback/lib.rs export moves remain with T07"
+      ],
+      "findings": [
+        "F10"
+      ],
+      "steps": [
+        "Complete W01-W05, W32-W43, RadioField, control MasterDetail, Notice, TextSection, and DerivedHintBar against COMPONENT-MATRIX.md.",
+        "Restore Button mnemonic display through a named builder. Keep mnemonic display separate from activation binding.",
+        "Add borrowed tooltip configuration through a neutral runtime-owned request type.",
+        "Use the existing tooltip layer kind and layer sizing path. Keep the controls-to-runtime dependency direction.",
+        "Resolve shortcut text from the effective binding after user remapping. Do not store an unrelated shortcut string.",
+        "Implement tooltip delay, cancellation, clipping, and active-layer ownership with deterministic time.",
+        "Preserve Checkbox mixed state, caller-controlled RadioGroup values, disabled pointer absorption, and click-only focus policy.",
+        "Keep Panel, SplitPane, Props, Empty, and TooSmall behavior under their explicit owners.",
+        "Expose each real configurable part through the existing part and slot contracts.",
+        "Filter effective tooltip chords through Ui::keyboard_delivery(). Do not consult core or shell globals.",
+        "Complete ProgressBar, Spinner, and Meter frame, state, label, threshold, and clipping contracts. Keep timers with their existing providers.",
+        "Complete StatusBar, HintBar, KeyHint, and DerivedHintBar layout and action contracts. Test caller-supplied hint metadata.",
+        "Complete Notice and TextSection measurement, tone, clipping, and supported reveal contracts.",
+        "Keep product-specific feedback modules outside this task. Return shared export changes through the T07 file owner."
+      ],
+      "cases": [
+        "A Button with Tooltip::action shows and activates the same effective remapped chord.",
+        "A disabled or inactive Button has no activation or tooltip side effect.",
+        "Two Buttons with the same label have separate IDs, hover state, and tooltip ownership.",
+        "A tooltip closes on owner removal, modal cover, or the configured dismissal event.",
+        "Empty, 1\u00d71, narrow, CJK, combining-mark, and emoji labels do not panic or draw outside the clip.",
+        "Controlled checkbox/radio state changes only when the caller accepts the action.",
+        "An unfocused hovered Button with Tooltip::action shows its effective remapped chord. It does not publish or enable a command.",
+        "PropsList and control MasterDetail preserve navigation, selection, focus, and independent instance state.",
+        "ProgressBar handles zero, full, out-of-range, indeterminate, done, and status values under its existing policy.",
+        "Spinner uses the caller's frame. Empty and custom frame sets preserve Unicode clipping. Do not add component timers.",
+        "Meter tests cover threshold boundaries, Unknown, Stale, Series, Line, Block, and value/suffix/activity layout.",
+        "StatusBar preserves left, center, and right content, priority elision, width limits, and keyed StatusAction::Chose hit regions.",
+        "HintBar preserves badge, status, overflow, and metadata Inherit versus Set(None).",
+        "DerivedHintBar preserves top, mode, focus, screen, then global precedence. T19 proves final shell capability integration.",
+        "Notice preserves cut records, vertical windows, and tones. TextSection preserves row, inset, patch, and clipping measurements.",
+        "Motion policy and status expiry remain with their existing runtime or application providers."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p termrock-controls --all-features",
+        "cargo nextest run --locked -p termrock-runtime -p termrock-overlays --all-features",
+        "cargo nextest run --locked -p termrock-conformance --all-features",
+        "cargo nextest run --locked -p termrock-feedback --all-features"
+      ],
+      "accept": "Controls and generic feedback pass their matrix cases. Button restores reference behavior through shared runtime ownership.",
+      "children": [
+        "Split Button, other controls, and runtime tooltip presentation by source owner.",
+        "Fix the neutral tooltip contract before control and presenter work diverge.",
+        "Assign ProgressBar, Spinner, and Meter to one bounded Luna child task.",
+        "Assign StatusBar, HintBar, KeyHint, and DerivedHintBar to another Luna child task.",
+        "Assign Notice and TextSection to a separate Luna child task.",
+        "Keep product moves and feedback/lib.rs export changes with T07.",
+        "Assign conformance cases after each public signature is fixed."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t12"
+    },
+    {
+      "id": "T13",
+      "title": "Complete fields, validation, and clipboard outcomes",
+      "deps": [
+        "T09",
+        "T11",
+        "T12"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-fields/",
+        "crates/termrock-text/ edit and secret paths",
+        "crates/termrock-runtime/src/runtime/clipboard.rs",
+        "field and clipboard consumer tests"
+      ],
+      "findings": [
+        "F16"
+      ],
+      "steps": [
+        "Complete TextInput, TextArea, Field, Note, FieldErrorChrome, and shared editing behavior.",
+        "Preserve separate draft and committed values. Validate before committing a value or leaving a protected edit.",
+        "Keep disabled and read-only behavior distinct. Permit navigation and permitted copy in read-only fields.",
+        "Use grapheme boundaries for movement, selection, deletion, copy, and paste.",
+        "Add a result-bearing copy adapter with internal-only, external-success, unsupported, refused, too-large, and transport-error outcomes.",
+        "Keep the existing copy hook as a documented compatibility path with an unknown external result.",
+        "Apply SecretPolicy before any copy adapter call. Keep redacted Debug and wipe-on-replacement behavior.",
+        "Pass clipboard outcomes to shared status behavior. Do not display external success after an unsupported or failed transfer.",
+        "Keep validation and copy callbacks able to borrow or capture caller context through the existing lifetime model."
+      ],
+      "cases": [
+        "Invalid commit preserves the previous committed value and keeps the draft for correction.",
+        "Cancel restores the declared prior value. Failed save does not close the field or route.",
+        "Test combining marks, CJK, ZWJ emoji, regional flags, empty paste, multiline paste, and large paste.",
+        "Secret values do not enter copy transport, Debug, diagnostics, or captured output unless the explicit policy permits it.",
+        "Two runtimes have separate clipboard state.",
+        "Each copy outcome produces the correct action and status without a real system clipboard write."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p termrock-text -p termrock-fields --all-features",
+        "cargo nextest run --locked -p termrock-runtime --all-features",
+        "cargo nextest run --locked --manifest-path external-consumer-demo/Cargo.toml"
+      ],
+      "accept": "Field state transitions are explicit and atomic. Clipboard results describe the actual operation.",
+      "children": [
+        "Split text editing, field state, and clipboard transport results.",
+        "Keep shared SecretPolicy changes with one owner.",
+        "Use a separate reviewer for plaintext exposure and failed-commit cases."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t13"
+    },
+    {
+      "id": "T14",
+      "title": "Make collection revisions and navigation identity explicit",
+      "deps": [
+        "T09",
+        "T11",
+        "T13"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-collections/",
+        "crates/termrock-navigation/",
+        "collection and navigation performance tests",
+        "crates/termrock-test-support/tests/perf_collections.rs navigation cases only"
+      ],
+      "findings": [
+        "F09"
+      ],
+      "steps": [
+        "Reuse the existing termrock_core::Revision type. Do not add another revision type.",
+        "Add source_revision(Revision) -> Self to List, NavList, and ChipBar builders.",
+        "Pass that revision to one revision-aware CollectionCore reconciliation path. Keep current update signatures and explicit invalidate.",
+        "Advance the source revision for changes to ordered keys or eligibility. Compare row extent inputs separately.",
+        "Keep the existing Tree query revision and GridModel revision contracts. Do not replace them with the list builder API.",
+        "Keep cursor, chosen item, checked set, anchor, and focus as distinct state.",
+        "Complete List, FilterList, NavList, Tree, Steps, Tabs, ChipBar, and row adapters.",
+        "Keep selection by stable key through sort, filter, insertion, deletion, and reorder.",
+        "Make disabled rows unreachable for activation and Select All. Keep read-only or skipped rows inspectable where the contract permits it.",
+        "Keep Tree query projection separate from persistent expansion. Invalidate matcher-dependent caches when matcher meaning changes.",
+        "Keep Steps frontier updates bounded and deterministic. Preserve metadata, reveal, and stable action identity.",
+        "Use the existing row/part override path. Do not duplicate list or tree input logic in applications."
+      ],
+      "cases": [
+        "Reorder [a,b,c,d] to [a,c,b,d] through the supported update path and preserve selected keys.",
+        "Replace a middle item at constant length and preserve valid cursor fallback.",
+        "Change enabled state and row extent without changing endpoint keys.",
+        "Shift extension takes priority over selection-toggle modifiers.",
+        "Right-click on a selected row preserves the selected set. Right-click on another row selects that row.",
+        "The warm 1,000/100,000-item picker test retains 38 reads for 19 visible rows and zero warm allocations.",
+        "Tree and Steps work counters remain within their existing declared bounds.",
+        "A saturated Revision disables the shortcut. Switching between revision and legacy paths cannot reuse a stale cache stamp.",
+        "Test explicit invalidation, revisioned-to-legacy transitions, and saturated Revision(u64::MAX).",
+        "Assert semantic key, cached index, checked-key removal, and extent clamp after constant-endpoint changes."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p termrock-collections -p termrock-navigation --all-features",
+        "PERF_FULL=1 cargo nextest run --locked --release -p termrock-test-support --test perf_collections"
+      ],
+      "accept": "Data changes have an explicit contract. Identity and bounded work hold for every supported update path.",
+      "children": [
+        "Keep CollectionCore revision handling with one Luna owner.",
+        "Split List/NavList/ChipBar adoption and Tree/Steps checks by file.",
+        "Add performance assertions after the revision contract is fixed."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t14"
+    },
+    {
+      "id": "T15",
+      "title": "Complete overlay behavior and shared layer ownership",
+      "deps": [
+        "T10",
+        "T11",
+        "T13",
+        "T14"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-overlays/",
+        "crates/termrock-runtime/src/layer.rs for agreed layer fixes",
+        "overlay conformance and consumer tests"
+      ],
+      "findings": [
+        "F11",
+        "F14"
+      ],
+      "steps": [
+        "Complete Select, SelectField, Picker, CommandPalette, PickerChain, Completion, Dialog, Menu, ContextMenu, MenuBar, HelpOverlay, and NoticeReveal.",
+        "Use runtime-owned layer opening IDs, resolved areas, hit regions, and focus barriers.",
+        "Make outside-click dismissal produce the owner's configured cancel action.",
+        "Keep nested layer completion tied to the correct opening generation. Reject stale completion after close and reopen.",
+        "Wrap Tab and BackTab inside a modal's reachable controls. Restore focus only to a valid prior owner in its scope.",
+        "Keep active query focus separate from popup row selection. Avoid a second live focus marker.",
+        "Apply borrowed visible-row data and the shared data-revision contract to picker families.",
+        "Expose active-layer hint metadata through the agreed runtime contract. Return shell integration to T19 and route-whitelist removal to T22.",
+        "Keep callback invocation and validation failure behavior explicit for dialog bodies."
+      ],
+      "cases": [
+        "Nested modal, popup, and context menu receive input before the background.",
+        "Outside click, Esc, Enter, and owner removal produce exactly one declared result.",
+        "A stale result from the prior opening cannot close or modify a new opening.",
+        "Disabled pointer targets absorb the event without activating background content.",
+        "Resize, empty results, long labels, and narrow screens preserve reachable dismissal and action controls.",
+        "Menu hover, click, keyboard navigation, and remapped hints agree.",
+        "SelectField preserves field identity through popup commit or cancel. NoticeReveal rejects stale text and window state."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p termrock-overlays --all-features",
+        "cargo nextest run --locked -p termrock-runtime --all-features",
+        "cargo nextest run --locked -p termrock-conformance --all-features"
+      ],
+      "accept": "All floating content uses one layer path. Focus, dismissal, and completion identity pass the matrix.",
+      "children": [
+        "Split picker families, dialog lifecycle, and menu families by file.",
+        "Keep runtime layer changes with one owner.",
+        "Review modal routing and request identity independently."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t15"
+    },
+    {
+      "id": "T16",
+      "title": "Complete Grid and Table as model-driven components",
+      "deps": [
+        "T11",
+        "T13",
+        "T14",
+        "T15"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-grid/",
+        "grid external-consumer tests",
+        "grid conformance and performance tests"
+      ],
+      "findings": [
+        "F20"
+      ],
+      "steps": [
+        "Keep one column schema as the source of column count and identity.",
+        "Use borrowed cell data and stable row/column keys. Keep model ordering in the caller.",
+        "Emit keyed sort and edit requests. Do not move SQL or application validation into Grid.",
+        "Preserve cursor, selection, checked rows, anchor, and pending edit identity across sort and filter.",
+        "Treat absent cells in ragged rows as structural holes. Do not invoke editor, decoration, or action hooks for them.",
+        "Complete Table through the shared Grid and row mechanisms where their contracts match.",
+        "Preserve per-column alignment, sizing, sticky columns, horizontal scroll, overflow hints, and custom cell presentation.",
+        "Use explicit typed errors for invalid cursor, schema, or edit requests.",
+        "Keep width sampling bounded by the declared sample policy.",
+        "Complete GridViewport bar interdependence, seam geometry, and focus-reveal behavior through its existing owner."
+      ],
+      "cases": [
+        "Ragged, empty, duplicate-key, removed-row, reordered-column, and read-only data obey the documented result.",
+        "A model that panics on an invalid cell-hook call never receives that call.",
+        "Sort, filter, and projection changes preserve surviving semantic identities.",
+        "A 100,000-row grid reads only the visible or explicitly sampled range.",
+        "Horizontal and vertical scrollbars keep valid geometry after resize.",
+        "TablePro's NULLS-last behavior remains in the domain owner and has an approved functional case."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p termrock-grid --all-features",
+        "cargo nextest run --locked -p termrock-conformance --all-features",
+        "PERF_FULL=1 cargo nextest run --locked --release -p termrock-test-support --test perf_collections"
+      ],
+      "accept": "Grid and Table expose reusable model contracts without application ordering or editor-state leakage.",
+      "children": [
+        "Split schema/edit behavior, row identity, and column/viewport behavior.",
+        "Keep the Grid model trait and action types with one owner.",
+        "Use a separate worker for hostile-model and ragged-row tests."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t16"
+    },
+    {
+      "id": "T17",
+      "title": "Complete text viewports and editor extension paths",
+      "deps": [
+        "T09",
+        "T11",
+        "T13",
+        "T15"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-viewport/",
+        "crates/termrock-editors/",
+        "crates/termrock-terminal/src/terminal_view.rs",
+        "editor and viewport consumer tests",
+        "crates/termrock-runtime/src/scroll_region.rs",
+        "ScrollRegion runtime tests for W45"
+      ],
+      "findings": [
+        "F08"
+      ],
+      "steps": [
+        "Complete CodeEditor, CompletingCodeEditor, DiffView, TextViewport, TerminalView, and ScrollRegion against COMPONENT-MATRIX.md.",
+        "Keep caller-owned editor state and borrowed highlighter, segmenter, and row data where supported.",
+        "Replace manual completing-editor response selection with the shared effect-merge contract.",
+        "Bind completion data to current text and owner. Apply request identity only where an existing request adapter needs it.",
+        "Invalidate wrapped-line and projection caches on text, width, style-metric, or revision changes that affect output.",
+        "Keep append paths incremental when the existing source contract permits it.",
+        "Preserve selection, cursor, reveal, copy, undo, redo, and read-only policies across scroll and resize.",
+        "Keep TerminalView's content and input model separate from session transport and protocol negotiation.",
+        "Do not add a background executor to a synchronous component.",
+        "Complete ScrollRegion nested-wheel, partial-delta, reveal, drag, clipping, and owner-identity contracts."
+      ],
+      "cases": [
+        "Unicode cursor and selection remain valid after edit, wrap, scroll, and resize.",
+        "Where a request adapter exists, completion result A cannot replace newer result B.",
+        "Completion layout invalidation survives an editor paint-only response.",
+        "Diff selection and copy preserve source identity in every supported mode.",
+        "Viewport append and width invalidation pass the existing work-counter cases.",
+        "TerminalView respects Interactive, ReadOnly, and SelectionOnly behavior.",
+        "Monochrome selection remains visible without changing text geometry.",
+        "A nested ScrollRegion consumes only the applied wheel delta. Its parent receives the remaining delta.",
+        "Horizontal retry, thumb drag, reveal, and resize preserve valid clip and hit geometry."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p termrock-viewport -p termrock-editors -p termrock-terminal --all-features",
+        "PERF_FULL=1 cargo nextest run --locked --release -p termrock-test-support --test perf_collections"
+      ],
+      "accept": "Text, editor, diff, and terminal view APIs preserve state and permit real custom presentation without copied behavior.",
+      "children": [
+        "Split viewport/diff, editors/completion, and TerminalView by crate.",
+        "Keep shared text contracts with T13's accepted source.",
+        "Use a separate reviewer for invalidation and source ownership."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t17"
+    },
+    {
+      "id": "T18",
+      "title": "Complete Form, FormDialog, and Wizard",
+      "deps": [
+        "T10",
+        "T12",
+        "T13",
+        "T14",
+        "T15"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-forms/",
+        "form public-consumer tests",
+        "form conformance tests"
+      ],
+      "findings": [
+        "F08"
+      ],
+      "steps": [
+        "Keep application values in caller-owned FormData or the current typed adapter. Complete FormLayout lane and error-overflow behavior.",
+        "Keep FieldSpec and field-state policy separate from domain data.",
+        "Use shared field controls for input, select, radio, checkbox, and action rows.",
+        "Preserve validation callbacks that capture caller context.",
+        "Apply inherited disabled state without erasing read-only behavior.",
+        "Keep measurement and scroll reveal independent from semantic field mutation.",
+        "Use shared effect merge for composite field and dialog responses.",
+        "Make Wizard step changes validate the current step before mutation.",
+        "Keep Save, Discard, Cancel, Back, Next, and Finish results typed and explicit."
+      ],
+      "cases": [
+        "Invalid submit keeps values, focus, and the dialog open.",
+        "Cancel follows the declared rollback policy.",
+        "Fields outside the viewport can receive keyboard reveal without invalid hit regions.",
+        "Nested selector dismissal returns focus to its field.",
+        "Secret editing does not clone plaintext through a form adapter.",
+        "Conditional and disabled fields do not corrupt traversal.",
+        "Wizard back/next/finish preserves valid values and reports exactly one action."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p termrock-forms --all-features",
+        "cargo nextest run --locked -p termrock --all-features",
+        "cargo nextest run --locked --manifest-path external-consumer-demo/Cargo.toml"
+      ],
+      "accept": "Forms and dialogs use shared controls and preserve caller data through every validated transition.",
+      "children": [
+        "Split Form data/field adapters, FormDialog, and Wizard.",
+        "Keep shared validation and result types with one owner.",
+        "Use a separate worker for failed-commit and focus-return tests."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t18"
+    },
+    {
+      "id": "T19",
+      "title": "Use one shell policy for keys, hints, and protected leave",
+      "deps": [
+        "T09",
+        "T13",
+        "T15",
+        "T18"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-shell/",
+        "crates/termrock-runtime/src/keymap.rs for agreed routing fixes",
+        "shared shell consumer tests",
+        "first-party Footer::compose call sites only, resolved to exact files before dispatch"
+      ],
+      "findings": [
+        "F11",
+        "F16"
+      ],
+      "steps": [
+        "Use the existing Stakes, KeyContext, QuitKeys, and LeaveGuard concepts.",
+        "Route top-layer and focused-component input before a fallback quit action.",
+        "Give an allowed selected-text copy priority over Ctrl+C quit.",
+        "Disable character shortcuts while an edit or dirty context owns those characters.",
+        "Require Save/Discard/Cancel for unsaved edits. Require Stop/Stay for active work.",
+        "Preserve application-specific quit keys and remapping. Do not make Esc a universal quit key.",
+        "Remove shell delivery globals. Use the runtime KeyboardDelivery snapshot for typed hints and literal-label compatibility.",
+        "Build hint text from effective bindings and active capability state.",
+        "Use named shell slots for header, navigation, page, inspector, status, and hints.",
+        "Keep route data and brand in applications. Keep reusable chrome and policy in shell.",
+        "Add Footer::compose_with_delivery. Keep compose as a conservative wrapper and migrate first-party callers.",
+        "Complete TextReport, ReportContent, and ReportRows through crates/termrock-shell/src/report.rs.",
+        "Preserve report row grids, insets, heading, subheading, empty/body content, height policy, style patches, and cell clipping.",
+        "Keep TextReport noninteractive. Do not add selection or scrolling to the report painter."
+      ],
+      "cases": [
+        "Selected input plus Ctrl+C copies and does not quit.",
+        "Dirty route leave and quit exercise each result, including failed save.",
+        "A nested modal owns the first applicable key.",
+        "Two detached runtimes with opposite KeyboardDelivery snapshots display different correct hints.",
+        "Pointer and keyboard focus use the same owner policy.",
+        "A second detached consumer uses the shell without Showcase imports.",
+        "Small-screen inspector and help remain reachable and dismissible.",
+        "A report invokes lazy row access only for the declared visible content.",
+        "Report minimum-details height, empty content, custom patches, and clipped body rows obey the existing contract."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p termrock-shell -p termrock-runtime --all-features",
+        "cargo nextest run --locked --manifest-path external-consumer-demo/Cargo.toml"
+      ],
+      "accept": "Applications can use one shared shell policy without route-specific key or hint workarounds.",
+      "children": [
+        "Split key routing, protected leave, and capability-derived hints.",
+        "Keep the shell public policy types with one owner.",
+        "Review copy-versus-quit and modal priority independently.",
+        "Assign TextReport and its bounded lazy-row tests to a separate Luna child task."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t19"
+    },
+    {
+      "id": "T20",
+      "title": "Give terminal session state one safe owner",
+      "deps": [
+        "T03",
+        "T06",
+        "T09"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-session/",
+        "crates/termrock-terminal/src/keyboard.rs ownership migration",
+        "session PTY tests",
+        "session platform manifests",
+        "crates/termrock-core/src/keys.rs global protocol/delivery retirement through the T09 owner"
+      ],
+      "findings": [
+        "F17"
+      ],
+      "steps": [
+        "Add an exclusive active-session lease before any process terminal state changes.",
+        "Reject nested or concurrent entry with a typed error before terminal mutation.",
+        "Move protocol negotiation out of terminal-view ownership and into session or neutral protocol values.",
+        "Gate Unix PTY, file-descriptor, and termios code by target. Keep neutral libraries portable.",
+        "Give panic cleanup a live-session token. Deactivate it after successful leave.",
+        "Preserve a host-installed panic hook. Do not restore an obsolete hook over a newer host hook.",
+        "Make final bridge restoration fallible. Keep retryable state when a restore operation fails.",
+        "Return cleanup failure through the explicit finish path. Keep Drop as best effort.",
+        "Preserve raw mode, alternate screen, mouse, paste, cursor, keyboard stack, and stdin restoration order.",
+        "Adapt supported Unix suspend/resume behavior from the reference after the lifetime contract passes.",
+        "Keep one session-owned KeyboardNegotiation. Derive KeyboardDelivery from AltKeys, explicit probe answers, input observations, and actual protocol state.",
+        "Refresh the runtime snapshot after changed probe, observation, suspend, or resume results.",
+        "Retire the core global protocol and delivery mirrors through migration rows. Preserve refusal and ambiguous-Alt rules."
+      ],
+      "cases": [
+        "Process-isolated tests cover normal exit, entry failure at each stage, panic unwind, repeated sessions, and a late panic after leave.",
+        "Nested and concurrent entry fail without mode changes.",
+        "Injected stdin restoration failure returns an error and retains the declared recovery state.",
+        "Partial writes, Interrupted, zero-byte writes, EOF, and draw/poll/read failures do not hang.",
+        "Each acquired descriptor closes once. Stdin identity and keyboard protocol depth return to their initial state.",
+        "Suspend restores the terminal before suspension. Resume rechecks size and produces a current acknowledged frame.",
+        "Unsupported platform session features fail clearly without blocking platform-neutral components.",
+        "A process-isolated probe installs a host panic hook. That hook observes restored real stdin, termios, and screen modes.",
+        "Two detached runtimes and sequential sessions do not share delivery observations."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p termrock-session --all-features",
+        "cargo nextest run --locked -p termrock-terminal --all-features",
+        "cargo clippy --locked -p termrock-session --all-targets --all-features -- -D warnings"
+      ],
+      "accept": "The explicit exit path reports restoration failures. Completed sessions cannot change later terminal or panic behavior.",
+      "children": [
+        "Split session lifetime, bridge restoration, and process-isolated probes.",
+        "Keep process-global lease and panic-hook changes with one owner.",
+        "Use a separate Sol high reviewer for unsafe operations and cleanup order."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t20"
+    },
+    {
+      "id": "T21",
+      "title": "Adapt bounded input pumping without weakening frame rules",
+      "deps": [
+        "T09",
+        "T20"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-session/src/ input pump module",
+        "crates/termrock-session/src/session.rs event loop",
+        "session input-burst tests"
+      ],
+      "findings": [],
+      "steps": [
+        "Adapt the reference InputPump policy through the existing session event loop.",
+        "Use a bounded queue with a default limit of 64 events and a 16 ms cooperative admission budget.",
+        "Keep every key repeat, pointer event, resize, paste, and command in its original order.",
+        "Treat batching as scheduling. Do not replace several semantic events with one synthetic event.",
+        "Attempt delivery only while the runtime is ready. If it returns pending input, retain that exact input.",
+        "Settle, prepare, transport, and acknowledge whenever the runtime requires presentation or current geometry.",
+        "End the batch at a deadline, incompatible event kind, owner change, layer change, capture change, or required frame boundary.",
+        "Keep a policy that disables batching for comparison and integration tests.",
+        "Preserve the idle path. Do not add periodic redraws when no deadline or input requires work.",
+        "Measure presentation count and latency later in T33. Do not claim the reference's frame-count result for an unproved target path.",
+        "Check elapsed time between deliveries. Admit no further event once the budget expires.",
+        "Do not claim a hard 16 ms execution limit. A synchronous handler can exceed that duration."
+      ],
+      "cases": [
+        "120 Down events produce 120 semantic movements, subject only to the component's bounds.",
+        "Resize events preserve order. A following click uses the acknowledged current area.",
+        "A modal opening or focus change ends any batch that could use stale geometry.",
+        "Paste and activation actions are delivered exactly once.",
+        "An unchanged-size probe timeout does not redraw without a runtime deadline.",
+        "Batch-enabled and batch-disabled runs produce the same final state and required checkpoints.",
+        "A fake clock proves count and admission boundaries under continuous input. Record any single-event time overrun separately."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p termrock-session --all-features",
+        "cargo nextest run --locked -p termrock-runtime --all-features"
+      ],
+      "accept": "Input scheduling is bounded. It preserves all events, semantic results, and presentation requirements.",
+      "children": [
+        "Keep pump scheduling and queue ownership with one Luna owner.",
+        "Assign event-order and readiness-boundary tests to another worker.",
+        "Use a separate reviewer for frame acknowledgement and dropped input."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t21"
+    },
+    {
+      "id": "T22",
+      "title": "Connect all Showcase pages through one typed registry",
+      "deps": [
+        "T19",
+        "T23",
+        "T24",
+        "T25",
+        "T26"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/showcase-ui/src/app.rs",
+        "crates/showcase-ui/src/pages/ registry integration",
+        "crates/showcase-demos/src/pages/mod.rs module integration",
+        "crates/showcase-ui/tests/ route and CLI tests"
+      ],
+      "findings": [
+        "F11",
+        "F12",
+        "F13"
+      ],
+      "steps": [
+        "Create one PageDescriptor registry with stable PageId, label, group, aliases, factory, capabilities, and minimum-size policy.",
+        "Preserve all 54 reference identities and current accepted aliases.",
+        "Replace numeric Placeholder exceptions for ChecksRadios, EmptyError, Notices, MasterDetail, and Diff with typed routes.",
+        "Give Selection a normal stable route identity.",
+        "Integrate the page modules from T23 through T26. Remove every paint_placeholder production route.",
+        "Use shared shell slots, key policy, leave protection, hints, and inspector behavior.",
+        "Remove page-name whitelists for modal hints. Use the active layer's declared hints.",
+        "Add useful --help output and deterministic invalid-option errors. Preserve supported page, theme, color, motion, and frame options.",
+        "Keep the color argument as a capability ceiling. Preserve NO_COLOR behavior.",
+        "Update route tests and the current-state route census from the registry."
+      ],
+      "cases": [
+        "Exactly 54 required routes have unique identities and factories.",
+        "Every name and alias reaches the correct page through CLI, keyboard, pointer, and navigation search.",
+        "No required route uses placeholder paint or a numeric index exception.",
+        "Reordering navigation groups does not change route identity or page state.",
+        "Ctrl+C selection and protected leave cases pass in the real Showcase shell.",
+        "Unknown options fail with useful text and a nonzero status. Help exits without terminal-mode entry.",
+        "All existing page heading and application visual cases pass."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p showcase-ui --all-features",
+        "cargo nextest run --locked -p showcase-demos --all-features",
+        "cargo run --locked -p showcase -- --help"
+      ],
+      "accept": "All 54 pages are real, reachable consumers. Registry data is the sole route identity source.",
+      "children": [
+        "Keep the typed registry and shared module declarations with one owner.",
+        "Assign CLI tests and route census checks to separate test files.",
+        "Integrate page workers' factory records without concurrent registry edits."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t22"
+    },
+    {
+      "id": "T23",
+      "title": "Build the five missing shell demonstrations",
+      "deps": [
+        "T10",
+        "T11",
+        "T19"
+      ],
+      "review": "medium",
+      "owners": [
+        "crates/showcase-demos/src/pages/status_hints.rs",
+        "crates/showcase-demos/src/pages/breadcrumbs_rails.rs",
+        "crates/showcase-demos/src/pages/help_keys.rs",
+        "crates/showcase-demos/src/pages/quit_leave.rs",
+        "crates/showcase-demos/src/pages/focus_navigation.rs",
+        "matching bounded page tests"
+      ],
+      "findings": [
+        "F12"
+      ],
+      "steps": [
+        "Use S-A in COMPONENT-MATRIX.md and the matching five reference page files.",
+        "Create one module per listed page. Use the existing Page trait and PageUpdate contract.",
+        "Demonstrate effective status and hints, breadcrumb/rail navigation, help and remapping, protected leave, and focus traversal.",
+        "Use shared components for every demonstrated control. Keep only example data and page state in the page.",
+        "Give each example stable IDs and semantic assertions for its input sequence.",
+        "Demonstrate at least one useful customization on each page.",
+        "Split the five files into independent Luna child tasks. Give each child the full source and test contract.",
+        "Return factory names and capability records to T22. Do not edit the shared registry from a page worker."
+      ],
+      "cases": [
+        "Status hints agree with effective keys and active capabilities.",
+        "Breadcrumb and rail actions return typed navigation intent.",
+        "Help remains reachable at a small size and closes to the correct focus owner.",
+        "Quit/leave demonstrates Save, Discard, Cancel, Stop, and Stay through real policy.",
+        "Focus navigation demonstrates forward, backward, disabled, read-only, and nested-modal traversal.",
+        "Each page passes its reference size/color states and one custom-theme case."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p showcase-demos --all-features"
+      ],
+      "accept": "All five S-A pages use shared behavior and have executable page tests and reference comparisons.",
+      "children": [
+        "Create one Luna child task for each of the five page files.",
+        "Keep shared registry edits in T22.",
+        "Review shell behavior and reference appearance as separate scopes."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "medium"
+      },
+      "task_document": "TASKS.md#t23"
+    },
+    {
+      "id": "T24",
+      "title": "Build the five missing control and overlay demonstrations",
+      "deps": [
+        "T12",
+        "T14",
+        "T15"
+      ],
+      "review": "medium",
+      "owners": [
+        "crates/showcase-demos/src/pages/toolbars.rs",
+        "crates/showcase-demos/src/pages/tabs.rs",
+        "crates/showcase-demos/src/pages/menus.rs",
+        "crates/showcase-demos/src/pages/popups_tooltips.rs",
+        "crates/showcase-demos/src/pages/file_browser.rs",
+        "matching bounded page tests"
+      ],
+      "findings": [
+        "F10",
+        "F12"
+      ],
+      "steps": [
+        "Use S-B in COMPONENT-MATRIX.md and the matching reference files.",
+        "Build toolbars, tabs, menus, popups/tooltips, and a deterministic file-browser example.",
+        "Use shared action, selection, layer, and data-revision behavior.",
+        "Keep file-browser data in a deterministic fixture. Do not access the user's files.",
+        "Demonstrate tab close, disabled actions, nested menus, tooltip delay, and an empty file selection.",
+        "Show custom row/part styles and remapped actions through public API.",
+        "Use independent Luna workers for separate page modules.",
+        "Return module and factory metadata to T22. Keep shared registry edits with its owner."
+      ],
+      "cases": [
+        "Keyboard and pointer actions produce the same typed result.",
+        "Tabs preserve identity after close, reorder, and overflow.",
+        "Nested menus and tooltips respect active-layer ownership and dismissal.",
+        "File-browser filtering preserves selected identity and handles empty results.",
+        "All pages remain usable with long Unicode labels and narrow geometry.",
+        "Every displayed option changes real component behavior or output."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p showcase-demos --all-features",
+        "cargo nextest run --locked -p termrock-controls -p termrock-overlays --all-features"
+      ],
+      "accept": "All five S-B pages are live examples. No page contains a copied widget event or overlay implementation.",
+      "children": [
+        "Create one Luna child task for each of the five page files.",
+        "Keep shared registry edits in T22.",
+        "Review layer behavior and borrowed customization as separate scopes."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "medium"
+      },
+      "task_document": "TASKS.md#t24"
+    },
+    {
+      "id": "T25",
+      "title": "Build the five missing data, layout, and text demonstrations",
+      "deps": [
+        "T11",
+        "T14",
+        "T16",
+        "T17"
+      ],
+      "review": "medium",
+      "owners": [
+        "crates/showcase-demos/src/pages/columns.rs",
+        "crates/showcase-demos/src/pages/meters.rs",
+        "crates/showcase-demos/src/pages/splits_stacks.rs",
+        "crates/showcase-demos/src/pages/pane_tree.rs",
+        "crates/showcase-demos/src/pages/text_utilities.rs",
+        "matching bounded page tests"
+      ],
+      "findings": [
+        "F12",
+        "F15"
+      ],
+      "steps": [
+        "Use S-C in COMPONENT-MATRIX.md and the matching reference files.",
+        "Demonstrate typed columns, meter policies, split/stack layout, pane trees, and text utilities.",
+        "Use shared measurement, clipping, pane identity, and scrollbar mechanisms.",
+        "Keep pane topology in caller-owned state. Use one shared geometry resolver.",
+        "Demonstrate explicit meter thresholds and semantic color policies.",
+        "Show grapheme-safe width, wrap, truncation, and selection behavior with varied scripts.",
+        "Create independent Luna child tasks for the separate page modules.",
+        "Return factories and coverage records to T22."
+      ],
+      "cases": [
+        "Column reorder and sizing preserve keys and selected cells.",
+        "Meter zero, boundary, over-range, and custom-threshold states follow the declared policy.",
+        "Split drag paints only the seam and preserves pane minimum sizes.",
+        "Pane collapse, resize, and focus restore keep stable identity.",
+        "Text utility output is valid UTF-8 and respects terminal-cell width.",
+        "All pages pass the required color modes and small-screen reachability cases."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p showcase-demos --all-features",
+        "cargo nextest run --locked -p termrock-grid -p termrock-viewport -p termrock-text --all-features"
+      ],
+      "accept": "All five S-C pages expose real reusable layout and text behavior without local repair code.",
+      "children": [
+        "Create one Luna child task for each of the five page files.",
+        "Keep shared registry edits in T22.",
+        "Review geometry and data identity independently."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "medium"
+      },
+      "task_document": "TASKS.md#t25"
+    },
+    {
+      "id": "T26",
+      "title": "Build the nine missing application-pattern demonstrations",
+      "deps": [
+        "T07",
+        "T08",
+        "T16",
+        "T17",
+        "T18",
+        "T19"
+      ],
+      "review": "medium",
+      "owners": [
+        "crates/showcase-demos/src/pages/query_workbench.rs",
+        "crates/showcase-demos/src/pages/connections.rs",
+        "crates/showcase-demos/src/pages/finder.rs",
+        "crates/showcase-demos/src/pages/disk_cleanup.rs",
+        "crates/showcase-demos/src/pages/activity.rs",
+        "crates/showcase-demos/src/pages/workspaces.rs",
+        "crates/showcase-demos/src/pages/accounts_usage.rs",
+        "crates/showcase-demos/src/pages/launch_cockpit.rs",
+        "crates/showcase-demos/src/pages/readonly_report.rs",
+        "showcase-data fixtures for these pages"
+      ],
+      "findings": [
+        "F12"
+      ],
+      "steps": [
+        "Use S-D in COMPONENT-MATRIX.md and all nine matching reference files.",
+        "Assign query workbench, connections, and finder to one Luna child task.",
+        "Assign disk cleanup, activity, and workspaces to a second Luna child task.",
+        "Assign accounts/usage, launch cockpit, and read-only report to a third Luna child task.",
+        "Let each child divide further by file when worker capacity permits.",
+        "Build each page from shared grids, editors, forms, navigation, feedback, overlays, and shell slots.",
+        "Keep domain fixtures and simulation state in Showcase data or the page.",
+        "Do not copy Jackin, Holla, or TablePro product screen models into Termrock.",
+        "Demonstrate validation, empty/error states, pending edits, task progress, and cancellation where the page requires them.",
+        "Return module, factory, and capability records to T22. Keep shared registry edits with its owner.",
+        "Build the report page from facts, meters, notices, refresh/copy, and navigation actions. Preserve read-only, offline, and stale states."
+      ],
+      "cases": [
+        "Query edit/run/result and connection validation use typed shared actions.",
+        "Finder filter/selection/reveal works with empty and large data.",
+        "Disk cleanup remains a deterministic simulation with explicit confirmation.",
+        "Activity timing excludes prompt wait where the reference contract requires it.",
+        "Workspace and account changes preserve stable item identity.",
+        "Launch progress and report read-only behavior use shared state policies.",
+        "Each page has a real input journey, a small-screen case, and a reference comparison."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p showcase-data -p showcase-demos --all-features"
+      ],
+      "accept": "All nine S-D pages provide complete example journeys through reusable APIs.",
+      "children": [
+        "Create the three named child groups in the task steps.",
+        "Split each group by page file when capacity permits.",
+        "Give each child the exact reference file and its matrix row."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "medium"
+      },
+      "task_document": "TASKS.md#t26"
+    },
+    {
+      "id": "T27",
+      "title": "Finish Holla as a thin deterministic consumer",
+      "deps": [
+        "T08",
+        "T14",
+        "T15",
+        "T18",
+        "T19",
+        "T21"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/holla-domain/",
+        "crates/holla-catalog/",
+        "crates/holla-plan/",
+        "crates/holla-sim/",
+        "crates/holla-ui/",
+        "crates/holla/"
+      ],
+      "findings": [
+        "F01"
+      ],
+      "steps": [
+        "Map every retained Holla requirement to current source and an approved journey scenario.",
+        "Use shared controls, navigation, grids, forms, overlays, shell, and clipboard outcomes.",
+        "Remove app-local copies of shared selection, focus, row paint, scroll, and leave behavior.",
+        "Keep catalog ranking, plan validation, target facts, effect policy, and simulation in Holla owners.",
+        "Preserve reviewed-plan identity, target revision, and dependency success checks before simulated execution.",
+        "Keep required, optional, excluded, and policy-skipped states distinct.",
+        "Port the reference timing rule that excludes prompt-wait time from task duration.",
+        "Preserve normalized alias identity and deterministic catalog behavior.",
+        "Correct current visual failures against the accepted source reference.",
+        "Keep real host effects outside this goal. Preserve existing CLI and help behavior."
+      ],
+      "cases": [
+        "Home, search, files, cleanup, activities, plans, prompts, history, and completion journeys have current evidence.",
+        "Invalid plan or stale target fails before any simulated effect.",
+        "Wrong confirmation text does not expose the expected secret or approval phrase.",
+        "Prompt wait, pause, stop, and resume produce correct task duration.",
+        "Shared key, dirty-leave, clipboard, modal, and narrow-screen cases pass.",
+        "Historical replay and current visual scenarios pass without a blanket expected-byte change."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p holla-domain -p holla-catalog -p holla-plan -p holla-sim",
+        "cargo nextest run --locked -p holla-ui -p holla --all-features",
+        "cargo run --locked -p holla -- --help"
+      ],
+      "accept": "Holla owns domain behavior and consumes shared UI behavior. All retained required journeys pass.",
+      "children": [
+        "Split domain/simulation checks, UI adoption, and journey tests.",
+        "Keep shared application state transitions with one owner.",
+        "Use separate reviewers for simulation safety and UI behavior."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t27"
+    },
+    {
+      "id": "T28",
+      "title": "Finish Jackin Preview after the ownership moves",
+      "deps": [
+        "T07",
+        "T08",
+        "T15",
+        "T17",
+        "T18",
+        "T19",
+        "T21"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/jackin-preview-app/",
+        "crates/jackin-preview-host-ui/",
+        "crates/jackin-preview-capsule-ui/",
+        "crates/jackin-preview-presentation/",
+        "crates/jackin-preview-sim/",
+        "crates/jackin-preview/"
+      ],
+      "findings": [
+        "F01",
+        "F05",
+        "F06"
+      ],
+      "steps": [
+        "Use the new Jackin UI owners from T07. Remove duplicate page assembly from the app coordinator.",
+        "Keep routes, virtual world, run identity, product status, and launch policy in their application owners.",
+        "Use shared forms, menus, lists, meters, splits, terminal views, overlays, and shell behavior.",
+        "Preserve Bootstrap, Event, Tick, and Settle semantics. Advance product time only through its route/world cadence.",
+        "Keep the earliest repaint deadline through early input, modal changes, and animation dismissal.",
+        "Keep status as a pure projection with stable action identity and explicit tone.",
+        "Preserve RunId validation, collision avoidance, deterministic labels, secret masks, and save-key validation.",
+        "Complete host, manager, account, settings, launch, Capsule, rain/handoff, failure, and outro journeys.",
+        "Correct the accounts-mixed visual failure through shared behavior or application composition.",
+        "Keep full, reduced, and paused motion deterministic."
+      ],
+      "cases": [
+        "Repeated draw at the same time does not change product state.",
+        "Early input cannot delay a scheduled frame or advance the virtual world twice.",
+        "A closed route ignores stale results and restores valid focus.",
+        "Secret fields remain masked in view, copy, logs, and diagnostics.",
+        "Manager and Capsule pages have exact reference frames and real action assertions.",
+        "Small terminals preserve access to required actions and dismissal.",
+        "Named timing and RunId behavior has approved scenarios and passes at the final task commit."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p jackin-preview-domain -p jackin-preview-sim -p jackin-preview-presentation",
+        "cargo nextest run --locked -p jackin-preview-host-ui -p jackin-preview-capsule-ui -p jackin-preview-app --all-features",
+        "cargo run --locked -p jackin-preview -- --help"
+      ],
+      "accept": "Jackin has clear domain, presentation, UI, and app owners. Shared library crates contain no Jackin screen model.",
+      "children": [
+        "Split host screens, Capsule screens, and app timing/journey checks.",
+        "Keep shared route/world timing with one owner.",
+        "Use separate reviewers for product state and UI behavior."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t28"
+    },
+    {
+      "id": "T29",
+      "title": "Finish TablePro without moving SQL policy into Grid",
+      "deps": [
+        "T08",
+        "T13",
+        "T15",
+        "T16",
+        "T17",
+        "T18",
+        "T19",
+        "T21"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/tablepro-demo/",
+        "crates/tablepro-sql/",
+        "crates/tablepro-domain/",
+        "crates/tablepro-ui/",
+        "crates/tablepro/"
+      ],
+      "findings": [
+        "F01",
+        "F06",
+        "F20"
+      ],
+      "steps": [
+        "Complete the UI-state moves from T08 and keep result/order semantics in domain or SQL.",
+        "Keep the current cmp_values_nulls_last implementation. Do not restore the older reversed comparator.",
+        "Use shared Grid sorting requests and stable row/column keys.",
+        "Complete connection, query, filter, history, structure, plan, result, picker, and dialog journeys.",
+        "Preserve pending edits and draft validation through sort, filter, schema projection, and undo.",
+        "Use shared field, completion, overlay, clipboard, and protected-leave behavior.",
+        "Keep result grids read-only where the application contract requires it.",
+        "Correct the history-tab visual failure without changing an approved expectation.",
+        "Keep all database work simulated. Do not connect to an external database.",
+        "Update stale documentation only after fresh approved behavior cases pass."
+      ],
+      "cases": [
+        "NULL sorts last in both directions for typed comparisons.",
+        "Numeric values sort numerically, including documented floating-point boundary cases.",
+        "Sort and filter preserve surviving row, cursor, checked, anchor, and edit identity.",
+        "Filter Apply followed by edit/save affects the intended domain row.",
+        "Invalid edits preserve the prior value and display the typed error.",
+        "Masked connection secrets do not enter copied output or logs.",
+        "All required reference journeys and narrow-screen cases pass."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p tablepro-demo -p tablepro-sql -p tablepro-domain",
+        "cargo nextest run --locked -p tablepro-ui -p tablepro --all-features",
+        "cargo run --locked -p tablepro -- --help"
+      ],
+      "accept": "TablePro uses shared UI components and retains its domain semantics and visual behavior.",
+      "children": [
+        "Split domain/order checks, UI adoption, and journey tests.",
+        "Keep draft/edit transaction state with one owner.",
+        "Use separate reviewers for data identity and visual behavior."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t29"
+    },
+    {
+      "id": "T30",
+      "title": "Prove easy use and advanced customization in real consumers",
+      "deps": [
+        "T05",
+        "T10",
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T16",
+        "T17",
+        "T18",
+        "T19",
+        "T20"
+      ],
+      "review": "high",
+      "owners": [
+        "external-consumer-demo/",
+        "crates/termrock-consumer-example/",
+        "crates/termrock/examples/",
+        "docs/implementation/pr38-final/recipes/"
+      ],
+      "findings": [
+        "F04",
+        "F08",
+        "F19"
+      ],
+      "steps": [
+        "Replace handwritten MenuLeaf and StatusLeaf with the shared adapters.",
+        "Create a complete quick-start example with a real Button, TextInput, typed action, and session setup.",
+        "Create a master/detail example with caller-owned list data, stable keys, a form, a modal, and status.",
+        "Create a custom-theme example with part overrides, slot Clear, custom glyphs, and level-specific palettes.",
+        "Create a custom-row example with borrowed data and custom hit-safe paint.",
+        "Create a component-author example through termrock::author using the existing traits.",
+        "Create an external-host example that uses prepare, draw_prepared, and acknowledge_presented without a session helper or testing feature.",
+        "Keep copyable recipes as complete source files with dependency declarations and licenses from established repository material.",
+        "Compile each example through public APIs. Run at least one interaction sequence for each behavior example.",
+        "Document the smallest import and feature set beside each recipe."
+      ],
+      "cases": [
+        "Common application examples need no raw key loop, duplicate focus registry, or copied scrollbar logic.",
+        "Custom author examples can use explicit geometry without private modules.",
+        "Two copies of one recipe have independent identity, state, styles, and actions.",
+        "A scoped style override cannot change a sibling.",
+        "Every documented builder changes a named visible or semantic result.",
+        "The detached consumer builds with its own lockfile and no application dependency."
+      ],
+      "commands": [
+        "cargo check --locked -p termrock --examples --all-features",
+        "cargo nextest run --locked -p termrock-consumer-example",
+        "cargo nextest run --locked --manifest-path external-consumer-demo/Cargo.toml"
+      ],
+      "accept": "The public API supports simple use and meaningful extension through complete tested examples.",
+      "children": [
+        "Create one Luna child task per complete example.",
+        "Keep facade exports with their established owner.",
+        "Use a detached consumer reviewer who imports only the public API."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t30"
+    },
+    {
+      "id": "T31",
+      "title": "Close every required component and capability record",
+      "deps": [
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T16",
+        "T17",
+        "T18",
+        "T19",
+        "T22",
+        "T30"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-conformance/",
+        "crates/showcase-ui/src/coverage/",
+        "crates/showcase-ui/tests/coverage_gate.rs",
+        "component-ownership.json final acceptance fields"
+      ],
+      "findings": [
+        "F12",
+        "F13"
+      ],
+      "steps": [
+        "Use the T01 inventory and every row in COMPONENT-MATRIX.md.",
+        "Add executable conformance cases for each required state, option, action, and extension path.",
+        "Bind each proof to a real owner, route or consumer, input sequence, expected result, and exact test.",
+        "Remove a pending coverage row when its proof passes. Keep valid exclusions explicit and narrowly scoped.",
+        "Test aliases through their real owner and descriptor types through their consuming widgets.",
+        "Use meaningful negative controls for disconnected builders, missing state specimens, and absent update/draw paths.",
+        "Keep live interaction separate from inert reference specimens.",
+        "Verify all 54 routes and additional public components beyond W45.",
+        "Require explicit remaining obligations for a provider-owned behavior. Do not claim a provider test proves a widget's complete behavior."
+      ],
+      "cases": [
+        "No required W ID, extra component, route, or behavior remains pending.",
+        "Removing one required action path causes the related proof to fail.",
+        "Removing a required option effect causes its example or conformance case to fail.",
+        "A nonvisual type has a concrete consumer proof or a reviewed scope reason.",
+        "Every accepted proof selects and runs its named test.",
+        "Coverage counts come from source records and test results, not a manually entered total."
+      ],
+      "commands": [
+        "cargo nextest run --locked -p termrock-conformance --all-features",
+        "cargo nextest run --locked -p showcase-ui --test coverage_gate --all-features",
+        "cargo nextest run --locked -p termrock --all-features"
+      ],
+      "accept": "Every required public capability has executable evidence or an approved non-required disposition. Required omissions keep this task open.",
+      "children": [
+        "Split conformance proof work by component family.",
+        "Keep the coverage record merger with one Luna owner.",
+        "Use an independent reviewer to sample negative controls across families."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t31"
+    },
+    {
+      "id": "T32",
+      "title": "Connect the complete gate set to maintained CI",
+      "deps": [
+        "T02",
+        "T04",
+        "T06",
+        "T21",
+        "T27",
+        "T28",
+        "T29",
+        "T31",
+        "T33",
+        "T34"
+      ],
+      "review": "high",
+      "owners": [
+        ".velnor/config.toml",
+        "mise.toml and mise.lock when the approved generator pin changes",
+        "tools/ acceptance and inventory integration",
+        "generator-owned output only through regeneration"
+      ],
+      "findings": [
+        "F01",
+        "F02",
+        "F14",
+        "F18"
+      ],
+      "steps": [
+        "Add isolated features, external consumers, package checks, performance work bounds, and complete visual tiers to the generated CI plan.",
+        "Use existing inventory and architecture tools. Preserve source, archive, receipt, and binary identity checks.",
+        "Keep approved functional scenarios separate from real-CLI visual scenarios.",
+        "Reject empty filters, missing reports, missing required artifacts, stale heads, and hidden shell pipeline failures.",
+        "Run expensive visual cases in deterministic chunks with complete case and checkpoint accounting.",
+        "Make the required verdict include every applicable gate.",
+        "Change .velnor/config.toml and other declared inputs. Regenerate managed output with the pinned Velnor tool.",
+        "If the generator lacks a required capability, prepare and test an upstream correction. Follow current authorization before external submission.",
+        "Do not hand-edit generated workflows or add a local workflow shim.",
+        "Preserve immutable operational evidence when current Markdown guidance changes."
+      ],
+      "cases": [
+        "A missing required artifact or skipped required job makes the verdict fail.",
+        "A failed command before a successful pipe consumer still fails the job.",
+        "A wrong source SHA or stale report fails the result check.",
+        "Full visual results account for every required scenario and checkpoint.",
+        "Removing a feature or package probe causes an inventory failure.",
+        "Generated files exactly match the pinned generator and declared inputs."
+      ],
+      "commands": [
+        "mise exec -- velnor-actions generate",
+        "PYTHONDONTWRITEBYTECODE=1 python3 tools/test_perf_workflow.py",
+        "PYTHONDONTWRITEBYTECODE=1 python3 tools/test_acceptance_architecture.py",
+        "PYTHONDONTWRITEBYTECODE=1 python3 tools/test-inventory/test_inventory.py",
+        "cargo fmt --all -- --check"
+      ],
+      "accept": "Current-head CI runs and requires the complete declared gate set. No required failure or skip is hidden.",
+      "children": [
+        "Split gate specification, generator input changes, and verdict mutation checks.",
+        "Keep generated output with one Luna owner.",
+        "Review complete job accounting independently."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t32"
+    },
+    {
+      "id": "T33",
+      "title": "Prove bounded work and measure performance",
+      "deps": [
+        "T02",
+        "T09",
+        "T10",
+        "T14",
+        "T16",
+        "T17",
+        "T21",
+        "T22",
+        "T27",
+        "T28",
+        "T29"
+      ],
+      "review": "high",
+      "owners": [
+        "crates/termrock-test-support/src/perf.rs",
+        "crates/termrock-test-support/tests/perf*.rs",
+        "application perf tests",
+        "tools/test_perf_workflow.py performance contract after T02"
+      ],
+      "findings": [
+        "F18"
+      ],
+      "steps": [
+        "Use the initial workload records from T01 and the exact final candidate source.",
+        "Add explicit gate mode that rejects missing baselines and zero selected workloads.",
+        "Keep exploratory measurements separate from blocking acceptance.",
+        "Run deterministic allocation, requested-byte, accessor, and work-count checks in release mode with PERF_FULL=1.",
+        "Preserve the existing picker and scroll-region zero-allocation contracts for their named warm operations.",
+        "Measure controls, Unicode edits, 1,000/100,000-row collections, grid sampling, viewport append/resize, focus/hit dispatch, and overlay open/close.",
+        "Measure one real frame/input journey from each of the four applications.",
+        "Measure cold setup separately from warm update and draw.",
+        "Use repeated paired timing on one controlled idle runner. Record raw samples and a confidence interval.",
+        "Use the existing 20 percent timing threshold only after runner noise is below that threshold.",
+        "Compare batching enabled and disabled. Report actual event, frame, and latency counts.",
+        "Return a measured regression to its owner task. Do not raise a budget only to pass."
+      ],
+      "cases": [
+        "Injected allocation growth, a missing workload, and a missing baseline fail gate mode.",
+        "Warm visible-row work does not scale with hidden rows when the API promises viewport-bounded access.",
+        "A stale cache is rejected even when caching would improve a measurement.",
+        "Reference and candidate use the same compiler, flags, host, dataset, dimensions, and color mode.",
+        "Every reported speed or memory claim has a raw measurement and exact operation definition.",
+        "Thread-local allocation counters are not reported as total heap or worker-thread measurements."
+      ],
+      "commands": [
+        "PERF_FULL=1 cargo nextest run --locked --release -p termrock-test-support --test perf --test perf_collections",
+        "PERF_FULL=1 cargo nextest run --locked --release -p showcase-ui -p tablepro-ui -p holla-ui -p jackin-preview-app --test perf"
+      ],
+      "accept": "Deterministic work bounds pass. Controlled timing stays within the declared budget or has a reviewed corrective change.",
+      "children": [
+        "Split workload preparation by owner crate.",
+        "Run final measurements serially on the controlled host.",
+        "Use independent reviewers for deterministic work and statistical claims."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t33"
+    },
+    {
+      "id": "T34",
+      "title": "Verify crate packages outside the repository",
+      "deps": [
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T20",
+        "T30"
+      ],
+      "review": "high",
+      "owners": [
+        "production and internal Cargo.toml package metadata",
+        "package README files",
+        "package verification fixture under the existing consumer structure",
+        "release manifest and migration record"
+      ],
+      "findings": [
+        "F19"
+      ],
+      "steps": [
+        "Check the registry state for every proposed public crate name and version.",
+        "Declare the public package list. Mark applications, demos, test tools, and evidence tools publish=false.",
+        "Keep the existing version if this is an unpublished initial release. Use a compatible release policy if a published API must change.",
+        "Add version requirements to every internal published dependency while retaining local path development.",
+        "Add descriptions, repository metadata, feature documentation, package readme paths, and established license material.",
+        "Review each cargo package --list result. Exclude large visual corpora, local reports, and repository-only tooling from production packages.",
+        "Build the package set in dependency order.",
+        "Consume the staged packages through an isolated local registry with clean caches and no checkout-path patch.",
+        "Run one detached leaf probe per public crate and one full facade consumer.",
+        "Prepare a publication order and dry-run report. Do not publish during this task."
+      ],
+      "cases": [
+        "A package consumer cannot read or resolve a path in the source checkout.",
+        "Packaged examples use only public dependencies and included files.",
+        "No production package requires an application, conformance, or visibility package.",
+        "Minimal and full feature configurations work from staged package bytes.",
+        "Source, API migration, and package version agree.",
+        "Any destination-registry dependency availability limit is distinct from a source or manifest failure."
+      ],
+      "commands": [
+        "cargo package --list -p termrock-core",
+        "cargo package --list -p termrock",
+        "cargo publish --dry-run -p termrock-core --locked"
+      ],
+      "accept": "All public packages pass the staged registry consumer gate. Publication remains a separate authorized action.",
+      "children": [
+        "Split package metadata, staged-registry fixtures, and detached consumers.",
+        "Keep version selection and publication order with one Luna owner.",
+        "Use a separate reviewer to inspect the package bytes and dependency graph."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t34"
+    },
+    {
+      "id": "T35",
+      "title": "Rewrite current guides and publish the migration instructions",
+      "deps": [
+        "T22",
+        "T27",
+        "T28",
+        "T29",
+        "T30",
+        "T31",
+        "T34"
+      ],
+      "review": "medium",
+      "owners": [
+        "README.md",
+        "docs/README.md",
+        "docs/current-state.md",
+        "docs/architecture.md",
+        "docs/product.md",
+        "docs/plan.md",
+        "docs/development.md",
+        "docs/components-contracts.md",
+        "docs/contracts/",
+        "docs/implementation/pr38-final/ final records"
+      ],
+      "findings": [
+        "F20"
+      ],
+      "steps": [
+        "Update current documents to describe the verified architecture, API, features, and route coverage.",
+        "Keep historical evidence and source-pinned audit records unchanged.",
+        "Write a short quick start and link complete tested source examples.",
+        "Write a crate-selection guide and a customization guide.",
+        "List every changed public path, replacement, feature requirement, semantic change, and migration example.",
+        "Describe supported platforms and adapters exactly as tested.",
+        "State synchronous host ownership. Add async guidance only for a real tested adapter.",
+        "Replace stale test and package names. Label unexecuted proposed commands clearly.",
+        "Use ASD-STE100 rules for all new prose. Apply the technical word list in SOURCES.md.",
+        "Check sentences, terminology, links, and source examples.",
+        "Keep root AGENTS.md lean and linked to the maintained rules."
+      ],
+      "cases": [
+        "Each documented API example compiles from its linked source file.",
+        "Each changed public path has an explicit migration row.",
+        "Every current pass claim names an exact source revision and result.",
+        "All local Markdown links and command target names resolve.",
+        "Procedural sentences stay within 20 words. Descriptive sentences stay within 25 words.",
+        "Sol low can check final text only after medium or high technical acceptance."
+      ],
+      "commands": [
+        "cargo check --locked -p termrock --examples --all-features",
+        "cargo nextest run --locked -p termrock-xtask --all-features",
+        "git diff --check"
+      ],
+      "accept": "Current guides match verified source. The complete new prose uses the defined STE writing rules.",
+      "children": [
+        "Split maintained documents by file.",
+        "Keep public API migration records with one Luna owner.",
+        "Run technical review before the final language and link check."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "medium"
+      },
+      "task_document": "TASKS.md#t35"
+    },
+    {
+      "id": "T36",
+      "title": "Verify the final integrated commit and close the goal",
+      "deps": [
+        "T04",
+        "T32",
+        "T33",
+        "T34",
+        "T35",
+        "T37",
+        "T38"
+      ],
+      "review": "high",
+      "owners": [
+        "docs/implementation/pr38-final/results/final-acceptance.json",
+        "docs/implementation/pr38-final/FINAL-REPORT.md",
+        "final corrections through their original task owners"
+      ],
+      "findings": [
+        "F01",
+        "F14",
+        "F19"
+      ],
+      "steps": [
+        "Freeze the final candidate commit and verify the worktree state.",
+        "Run every applicable gate in VALIDATION.md on that exact source.",
+        "Run the complete accepted visual case set twice with separate output roots.",
+        "Confirm exact case, checkpoint, binary, source, and reference identities.",
+        "Use one independent Sol high agent for API and dependency review.",
+        "Use another independent Sol high agent for UI, lifecycle, visual, and evidence review.",
+        "Return every correction to a Luna max worker. Rerun affected gates after integration.",
+        "Fetch all current pull request reviews, comments, replies, and unresolved or outdated threads.",
+        "Record the disposition of each finding. Use current authorization for any external reply.",
+        "Check all tasks and all required inventory rows. Keep the goal open if any required item is failed, pending, or blocked.",
+        "Prepare the final report, migration guide, package report, and exact source references.",
+        "Merge or publish only when the user has authorized that specific action."
+      ],
+      "cases": [
+        "The final required CI verdict is successful at the final candidate SHA.",
+        "Every required task is accepted. Every required component and route has current evidence.",
+        "Visual runs contain zero unexplained cell or cursor differences and zero missing required checkpoints.",
+        "Known accepted design differences have exact source-bound approval records.",
+        "All supported leaf, facade, platform, and package checks pass.",
+        "No review finding is unaddressed. No old result is presented as a current result."
+      ],
+      "commands": [
+        "cargo fmt --all -- --check",
+        "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings",
+        "cargo nextest run --locked --workspace --all-features",
+        "cargo nextest run --locked --manifest-path external-consumer-demo/Cargo.toml",
+        "git diff --check"
+      ],
+      "accept": "All independent acceptance categories pass at one final source revision. The report states any external action that remains unauthorized.",
+      "children": [
+        "Assign the two required independent review scopes to separate Sol high agents.",
+        "Return each correction to a Luna max task with its original file owner.",
+        "Use one Luna owner for the final evidence record."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t36"
+    },
+    {
+      "id": "T37",
+      "title": "Remove legacy tests and nonfunctional source comments",
+      "deps": [
+        "T00"
+      ],
+      "review": "high",
+      "owners": [
+        "Candidate test functions, test modules, test targets, harnesses, fixtures, and doctests across all languages.",
+        "Test-only helpers, dependencies, package entries, and lockfile entries that become unused.",
+        "CI generator inputs that cite removed targets.",
+        "Generated output only through its declared generator.",
+        "Nonfunctional source and code comments identified by T00.",
+        "`docs/contracts/safety-invariants.md` and narrow active-document citations mapped by T00.",
+        "The T37 cleanup record under `results/`."
+      ],
+      "findings": [
+        "F01",
+        "F18",
+        "F20"
+      ],
+      "steps": [
+        "Use T00's complete inventory, source hashes, failure records, and directive list.",
+        "Delete every legacy test function, test module, test target, harness, fixture, and doctest from the candidate.",
+        "Remove orphaned test helpers, dependencies, package entries, and CI citations.",
+        "Remove all nonfunctional line, block, documentation comments, and docstrings across languages.",
+        "Move required safety rationale and API prose into maintained contracts or Markdown.",
+        "Remove active documentation citations to deleted test targets or label immutable source links as historical.",
+        "Preserve legal notices, SPDX identifiers, parser and linter directives, shell shebangs, and required generated directives.",
+        "Keep required CLI help in command attributes. Keep production-owned diagnostics in production code.",
+        "Preserve production generated output byte-for-byte. Regenerate managed CI output after input changes.",
+        "Preserve all production behavior, public requirements, immutable references, tags, and approved oracle evidence.",
+        "Do not add a test, harness, fixture, doctest, snapshot, or replacement gate.",
+        "If an active linter requires a deleted comment, stop that path and request a Sol high design decision.",
+        "Do not add blanket lint exceptions to pass cleanup.",
+        "Record every removed path, orphan dependency, retained directive, generated hash, and unresolved behavior obligation."
+      ],
+      "cases": [
+        "T00's inventory reconciles with every removed test and harness path.",
+        "No nonfunctional source comment or docstring remains outside the declared exceptions.",
+        "No legacy test target, test function, test module, harness, fixture, or doctest remains active.",
+        "No active generator input or CI plan cites a removed test target.",
+        "Cleanup adds no production build failure against the T00 baseline.",
+        "A pre-existing build failure stays assigned to its owner task. It does not block unrelated cleanup.",
+        "Generated production files remain byte-identical. Managed CI output matches its declared generator inputs.",
+        "Legal, SPDX, parser, linter, shebang, and generated directives remain valid.",
+        "Required CLI help and production diagnostics remain available.",
+        "Production behavior and required public APIs remain present.",
+        "An empty test selection is reported as `NOT VERIFIED`, never as a pass.",
+        "T37 adds no replacement test or harness."
+      ],
+      "commands": [
+        "git diff --check",
+        "rg -n '#\\[(test|cfg\\(test\\))\\]|doctest|test-inventory|visual-harness' --glob '!docs/implementation/pr38-final/**'",
+        "cargo metadata --locked --format-version 1 --no-deps",
+        "cargo check --locked --workspace --all-targets --all-features",
+        "mise exec -- velnor-actions generate"
+      ],
+      "accept": "Structural deletion, generator output, and build changes pass review against T00. Product behavior remains unverified until approved functional cases run.",
+      "children": [
+        "Split language-specific deletion by disjoint paths.",
+        "Keep one Luna owner for shared manifests, lockfile changes, and CI generator inputs.",
+        "Use an independent Sol high reviewer for the full deletion and build evidence.",
+        "Do not start T38 or any test-writing task before T37 is accepted."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t37"
+    },
+    {
+      "id": "T38",
+      "title": "Approve the functional test architecture",
+      "deps": [
+        "T01"
+      ],
+      "review": "medium",
+      "owners": [
+        "`results/test-architecture-design.json`",
+        "`results/test-architecture.json`",
+        "Test architecture records owned by this task"
+      ],
+      "findings": [
+        "F01",
+        "F14",
+        "F18",
+        "F20"
+      ],
+      "steps": [
+        "Ask Sol medium to derive required behavior from public contracts, production entry points, T01's inventory, and COMPONENT-MATRIX.md.",
+        "Require the architect to record case shape, oracle, fault model, environment, and limits before Luna writes the manifest.",
+        "Prefer integration/functional scenarios. Use an existing owner seam when the source requires it.",
+        "Do not create a parallel test framework without a named source constraint and Sol medium decision.",
+        "Prefer real user scenarios through production APIs and observable output.",
+        "Specify positive, negative, boundary, and recovery cases for each required behavior.",
+        "Name the production entry point, public API, observable result, independent oracle, and controlled environment for each case.",
+        "Use realistic controlled dependencies and faults at unowned external boundaries.",
+        "Never mock Termrock-owned production code. Use an external double only with a reviewed reason and fidelity record.",
+        "Define deterministic setup, inputs, clock, seed, tool versions, cleanup, and repeat rules.",
+        "Define red as a runtime assertion failure for a known defect or reviewed realistic fault.",
+        "Define green as the same assertion passing after correction or fault removal. Compiler or setup failures are not red evidence.",
+        "Record only the declared cases, source, tools, and environment as green. Do not claim absolute correctness.",
+        "Allow test-only timing or performance counters only as supplemental evidence under an approved contract.",
+        "Treat test count as inventory, not as a success metric.",
+        "Require an independent Sol medium review of every task-specific test plan before test edits.",
+        "If a scenario exposes a product gap, stop test edits. Require Sol medium testability-gap analysis first. Use Sol high only if the evidence requires a product architecture decision.",
+        "Keep T38 approval scoped to architecture. It does not approve later test changes."
+      ],
+      "cases": [
+        "Every required component, route, application journey, API contract, and gate has a proposed functional case or a named open disposition.",
+        "Each case uses a production entry point and observes public behavior.",
+        "Positive, negative, boundary, and recovery cases cover the stated behavior.",
+        "Each oracle can detect an incorrect result without reusing the implementation's internal decision.",
+        "No case mocks Termrock-owned production code.",
+        "Any external double has a reviewed reason and fidelity statement.",
+        "Environment and deterministic repeat rules make results independently reproducible.",
+        "Red and green evidence use the same runtime assertion and declared environment.",
+        "Missing, skipped, unselected, or setup-failed cases cannot report green.",
+        "The architecture record names the Sol medium architect, independent reviewer, and exact reviewed manifest hash.",
+        "Luna writes the manifest only after the Sol medium design decision exists.",
+        "T38 adds no test, harness, fixture, doctest, or production change."
+      ],
+      "commands": [
+        "git diff --check",
+        "python3 -m json.tool docs/implementation/pr38-final/results/test-architecture.json"
+      ],
+      "accept": "The Sol medium architect and independent reviewer approve the complete test architecture and manifest. Test or harness edits remain blocked until each later task receives its own review.",
+      "children": [
+        "Use a Sol medium architect to make and record the test design decision from T01's inventory.",
+        "Use one Luna max worker to record the approved decision in the case manifest.",
+        "Use a different Sol medium reviewer to accept the written record before any test edit.",
+        "Do not edit tests, harnesses, fixtures, or product source in T38."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "medium"
+      },
+      "task_document": "TASKS.md#t38"
+    }
+  ],
+  "model_policy": {
+    "astra_prohibited": true,
+    "prohibition_scope": "All Astra models and variants; every task, scenario, fallback, and agent depth. No exceptions.",
+    "design_escalation": "Use gpt-6.1-sol with reasoning_effort=\"high\" for unresolved product architecture or contract decisions. Record the decision before implementation. Block the affected task if the required model or effort is unavailable.",
+    "test_architecture": "gpt-6.1-sol with medium effort; a different independent medium reviewer approves the architecture before test or harness edits",
+    "task_test_plan_review": "gpt-6.1-sol with medium effort; approve each task-scoped test plan before test or harness edits",
+    "test_only_review": "gpt-6.1-sol with medium effort; review test-only diffs and verify declared evidence",
+    "testability_gap": "gpt-6.1-sol with medium effort; use high effort only for an unresolved product architecture decision",
+    "test_implementation": "gpt-6-luna with max effort; no Astra models or variants"
+  }
+}

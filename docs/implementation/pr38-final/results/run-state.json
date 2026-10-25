@@ -1,0 +1,213 @@
+{
+  "schema": "termrock-run-state-v1",
+  "updated_at": "2026-10-26",
+  "plan": {
+    "root": "/Users/donbeave/Downloads/terminal-components-claude/docs/implementation/pr38-final",
+    "source_root": "/Users/donbeave/Downloads/termrock-pr38-plan",
+    "sha256": "3b781f2a4421e0796afa81b6c31f580540dd85ed17437daf90ab3a481fa84df7",
+    "sha256_basis": "SHA-256 of imported SHA256SUMS.txt; listed package files verified separately",
+    "import_exclusions": [
+      ".git"
+    ],
+    "checksum_command": "shasum -a 256 -c SHA256SUMS.txt",
+    "checksum_result": "PASS",
+    "listed_file_count": 22,
+    "import_record_sha256": "7a9e4903740e0285598935eeed71735315322d66bbdea4ae422785c0c7d721a4"
+  },
+  "source": {
+    "repository": "tailrocks/terminal-components-claude",
+    "origin": "https://github.com/tailrocks/terminal-components-claude.git",
+    "target": {
+      "pull_request": 38,
+      "branch": "parity/termrock-visual-baseline",
+      "head": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "base": "a97e351df736b576904bc450619ca347ea64d65b",
+      "status": "draft-open"
+    },
+    "reference": {
+      "pull_request": 26,
+      "branch": "design/interaction-polish",
+      "head": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+      "base": "8ec895f9ea9cf78e5484d80f96b7189d5b716f00",
+      "status": "draft-open"
+    },
+    "common_ancestor": "cc14dd6beae526884aabdf897e309be837b4f504",
+    "historical_review_target": "e08ac57d10ae54c87337eae0be08b1f5e8f4bda4",
+    "historical_review_reference": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+    "source_capture_evidence": "results/t00-source/source-record.json (owned by /root/t00_source_capture; pending)"
+  },
+  "worktrees": {
+    "plan_root": "/Users/donbeave/Downloads/termrock-pr38-plan",
+    "integration": {
+      "path": "/Users/donbeave/Downloads/terminal-components-claude",
+      "branch": "parity/termrock-visual-baseline",
+      "starting_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3"
+    },
+    "reference": {
+      "path": "/Users/donbeave/Downloads/termrock-pr26-reference-20261026",
+      "sha": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+      "read_only": true
+    },
+    "bootstrap_clone": {
+      "path": "/Users/donbeave/Projects/terminal-components-claude",
+      "origin_restored": true,
+      "source_mutated": false
+    }
+  },
+  "file_locks": [
+    {
+      "path": "AGENTS.md",
+      "owner": "/root/t00_import_rules",
+      "state": "READY_FOR_REVIEW"
+    },
+    {
+      "path": "docs/implementation/pr38-final/**",
+      "owner": "/root/t00_import_rules",
+      "state": "READY_FOR_REVIEW",
+      "exceptions": [
+        "results/t00-source/**",
+        "results/t00-review/**"
+      ]
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/**",
+      "owner": "/root/t00_source_capture",
+      "state": "ACTIVE"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-review/**",
+      "owner": "/root/t00_independent_review",
+      "state": "PREPARING"
+    },
+    {
+      "path": ".git/index",
+      "owner": "/root",
+      "state": "COORDINATOR",
+      "index_lock_present_at_checkpoint": false
+    }
+  ],
+  "agents": [
+    {
+      "id": "/root",
+      "role": "coordinator",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "assignment": "explicit",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "/root/t00_source_capture",
+      "role": "T00 source and tool inventory implementer",
+      "model": "gpt-6-luna",
+      "effort": "max",
+      "assignment": "explicit",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "/root/t00_import_rules",
+      "role": "T00 package import and root links implementer",
+      "model": "gpt-6-luna",
+      "effort": "max",
+      "assignment": "explicit",
+      "status": "READY_FOR_REVIEW"
+    },
+    {
+      "id": "/root/t00_independent_review",
+      "role": "T00 independent reviewer",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "assignment": "explicit",
+      "status": "PREPARING",
+      "review_output_sha": null
+    }
+  ],
+  "model_selection_limits": [
+    "Agent records use explicit coordinator assignments; the worker runtime provides no independent model-identity attestation."
+  ],
+  "task_states": {
+    "T00": "ACTIVE",
+    "T01": "NOT_STARTED",
+    "T02": "BLOCKED",
+    "T03": "BLOCKED",
+    "T04": "BLOCKED",
+    "T05": "NOT_STARTED",
+    "T06": "NOT_STARTED",
+    "T07": "NOT_STARTED",
+    "T08": "NOT_STARTED",
+    "T09": "NOT_STARTED",
+    "T10": "NOT_STARTED",
+    "T11": "NOT_STARTED",
+    "T12": "NOT_STARTED",
+    "T13": "NOT_STARTED",
+    "T14": "NOT_STARTED",
+    "T15": "NOT_STARTED",
+    "T16": "NOT_STARTED",
+    "T17": "NOT_STARTED",
+    "T18": "NOT_STARTED",
+    "T19": "NOT_STARTED",
+    "T20": "NOT_STARTED",
+    "T21": "NOT_STARTED",
+    "T22": "NOT_STARTED",
+    "T23": "NOT_STARTED",
+    "T24": "NOT_STARTED",
+    "T25": "NOT_STARTED",
+    "T26": "NOT_STARTED",
+    "T27": "NOT_STARTED",
+    "T28": "NOT_STARTED",
+    "T29": "NOT_STARTED",
+    "T30": "NOT_STARTED",
+    "T31": "NOT_STARTED",
+    "T32": "NOT_STARTED",
+    "T33": "NOT_STARTED",
+    "T34": "NOT_STARTED",
+    "T35": "NOT_STARTED",
+    "T36": "NOT_STARTED",
+    "T37": "NOT_STARTED",
+    "T38": "NOT_STARTED"
+  },
+  "ready_tasks": [],
+  "blocked_tasks": [
+    {
+      "id": "T02",
+      "reason": "Must wait until T38 passes independent review."
+    },
+    {
+      "id": "T03",
+      "reason": "Must wait until T38 passes independent review and T01 is accepted."
+    },
+    {
+      "id": "T04",
+      "reason": "Must wait until T38 passes independent review."
+    }
+  ],
+  "approved_test_plans": [],
+  "test_plan_decision": {
+    "status": "N/A",
+    "reason": "T00 package and instruction import only; no test or harness edits authorized or made.",
+    "reviewer_id": null
+  },
+  "evidence_paths": {
+    "import_record": "results/t00-import.json",
+    "source_capture": "results/t00-source/source-record.json (pending)",
+    "independent_review": "results/t00-review/ (pending)",
+    "root_instructions": "AGENTS.md"
+  },
+  "review": {
+    "required_model": "gpt-6.1-sol",
+    "required_effort": "high",
+    "reviewer_id": "/root/t00_independent_review",
+    "status": "PENDING",
+    "reviewed_output_sha": null
+  },
+  "blockers": [
+    "T37 and all dependent Termrock source work remain pending T00 independent review."
+  ],
+  "root_instruction_patch": {
+    "patch_path": "AGENTS.patch",
+    "patch_sha256": "6ca84ba1017af12142689ad6f5f664f924717b30b2d0ba1f8dcde47f8a2eeff2",
+    "target_before_sha256": "746b738f494656e0c167d4ed279041fae51274d20b7fd3da61619e4d1ec4ef69",
+    "target_after_sha256": "95c53c363bb545a8ef824eda7acb5d20f498eb48eca89f05a9a4facf16df1da0",
+    "check": "git apply --check passed before apply",
+    "result": "Applied additively; original instructions remain."
+  }
+}
