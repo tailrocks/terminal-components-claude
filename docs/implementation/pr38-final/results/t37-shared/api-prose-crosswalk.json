@@ -13,7 +13,14 @@
     "removed_rustdoc_lines": 1800,
     "source_paths": 61,
     "record_type": "removed-rustdoc-provenance-only",
-    "limitation": "The ledger binds each removed group to a source SHA and line range. It does not classify each group as caller guidance, internal description, or redundant wording. This is a section-level maintained-document crosswalk, not a 722-row semantic-equivalence claim."
+    "limitation": "The ledger binds each removed group to a source SHA and line range. It does not classify each group as caller guidance, internal description, or redundant wording. This is a section-level maintained-document crosswalk, not a 722-row semantic-equivalence claim.",
+    "foundation_crosswalk": {
+      "path": "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
+      "sha256": "7a5a700b240c45c844f4307fb6553b7f22144e5bc932cc6f238be96c3b046ec9",
+      "source_groups": 1122,
+      "status": "PER_GROUP_DISPOSITION_PENDING_INDEPENDENT_REVIEW",
+      "note": "Each foundation group has an exact source path, line range, file SHA-256, text SHA-256, destination or specific disposition reason. This does not verify behavior."
+    }
   },
   "groups_by_crate": {
     "termrock-controls": 77,
@@ -28,6 +35,27 @@
     "termrock": 126
   },
   "maintained_documents": [
+    {
+      "path": "crates/termrock-e2e/README.md",
+      "sections": [
+        "Admission interface",
+        "Case and profile inputs",
+        "Schema status"
+      ],
+      "covered_guidance": [
+        "the nine required admission flags",
+        "suite/profile/case/renderer/generation/capture/review binding",
+        "input revalidation before publication",
+        "existing write root, new output, no replacement, and protected-path contract",
+        "five schemas consumed by admission and two more schemas consumed by retained subject and receipt validators",
+        "five historical receipt, subject, and trust schemas"
+      ],
+      "gaps": [
+        "admission does not authenticate review authors or establish independent evidence",
+        "no PTY runner, capture, qualification, visual comparison, or product behavior is verified"
+      ],
+      "status": "CURRENT ADMISSION REFERENCE AND RETAINED SCHEMA CATALOG ONLY; former runner, capture, preflight, and deferred procedures are linked as immutable history."
+    },
     {
       "path": "docs/architecture.md",
       "sections": [
@@ -52,28 +80,38 @@
         "Prepared-frame consumer sequence",
         "Evidence boundary",
         "Bounded work obligations",
-        "Event routing and committed layout"
+        "Event routing and committed layout",
+        "Runtime routing and layer receipts",
+        "Keyboard, list, layout, and text rules",
+        "Shell interaction policy",
+        "Row authoring contracts",
+        "Runtime registration and snapshots",
+        "Historical API-boundary contracts"
       ],
       "covered_guidance": [
-        "caller-owned data and borrows",
-        "callback and frame lifetimes",
-        "update/draw/response separation",
-        "stable identity and typed input",
-        "focus, hit registration, references, and clipping",
-        "optional frame geometry",
-        "measurement and prepared frames",
-        "routed viewport revision identity and exhaustion",
-        "event-local wheel route ownership and source resolution",
-        "windowed radio choice preserving original keys and full input data",
-        "List selection-binding eligibility",
-        "Tabs committed-layout receipts",
-        "Notice logical cut and reveal geometry",
-        "custom input host registration uses visible host geometry"
+        "caller-owned data, borrows, and callback lifetimes",
+        "update/draw/response separation and error versus invalid state",
+        "stable identity, typed input, focus, hit registration, and clipping",
+        "prepared-frame lifecycle, optional geometry, and read-only measurement",
+        "routed viewport and ScrollRegion source revisions, event identity, and exhaustion",
+        "wheel acknowledgement, fallback invalidation, exact intent claims, and layer-opening receipts",
+        "windowed radio choice preserves original keys and supplies the full input list",
+        "List selection-binding eligibility and Tabs committed-layout receipts",
+        "NoticeReveal stable unique ownership and revision changes with text or cut options",
+        "keyboard protocol and cursor-shape output",
+        "shell key priority, focus-scope bubbling, route identity, leave, status, and footer ownership",
+        "row geometry, measurement purity, part scope, metadata admission, labels, windows, and picker fade order",
+        "Canvas and Surface bounds, clipped publication, explicit paint channels, and layer slots",
+        "autoscroll source revisions, hover-only routing, focus, cursor retention, layer receipts, click counts, clipboard wiping, and diagnostics",
+        "runtime snapshots, clock-paste parsing, activation, and failure states",
+        "bounded-work and performance obligations remain open without replacement probes"
       ],
       "gaps": [
-        "component-specific caller APIs and edge rules for Controls, Navigation, Feedback, Viewport, Grid, Editors, Fields, Forms, and Overlays"
+        "T01 must reconcile these rules against cleaned source and classify component-specific requirements.",
+        "T35 must write complete caller guidance for Controls, Navigation, Feedback, Viewport, Grid, Editors, Fields, Forms, Overlays, and application consumers.",
+        "The 722 component Rustdoc groups remain a source-hash and line-range provenance ledger; this record does not claim per-group semantic equivalence."
       ],
-      "status": "PARTIAL; selected source-backed caller rules were transferred. The 722-group archive remains provenance only. Component edge rules remain T01/T35 work. Test links are pinned historical evidence."
+      "status": "PARTIAL; selected non-obvious caller rules are recorded in maintained sections. The separate 1,122-group foundation crosswalk maps every group to an exact destination or specific disposition and awaits independent review. The 722-group component archive remains provenance only. T01/T35 own source reconciliation and complete component guidance. Historical test links are not current targets or proof."
     },
     {
       "path": "docs/contracts/overrides.md",
@@ -101,6 +139,7 @@
         "Resolution order",
         "Slot merge law and consumer interpretation",
         "Semantic style provenance",
+        "Paint channel ownership",
         "Concern ownership",
         "Acceptance boundary"
       ],
@@ -110,12 +149,13 @@
         "theme builder behavior",
         "override resolution",
         "Slot Set/Clear/Inherit distinctions",
-        "consumer-specific fallback limits"
+        "consumer-specific fallback limits",
+        "paint-channel ownership and per-channel provenance"
       ],
       "gaps": [
         "rendered output rules for every component, theme, state, and color level"
       ],
-      "status": "PARTIAL; test and visual links are historical evidence."
+      "status": "PARTIAL; selected source rules for fallback ownership, underlay replay, fill, modal backdrop, and RGB remapping are maintained. Source and test links are historical evidence, not fresh visual proof."
     },
     {
       "path": "docs/contracts/migration.md",
@@ -174,7 +214,7 @@
         "Workspace commands",
         "CLI option discovery",
         "Backend-free dependency checks",
-        "Historical frozen CLI parity evidence",
+        "Retired capture and frozen CLI history",
         "Rust comments",
         "Safety evidence",
         "Documentation compatibility"
@@ -267,7 +307,7 @@
     {
       "decision": "T37-FROZEN-01",
       "source_obligation": "Retire the legacy PTY Nextest runner while retaining immutable tag/oracle/snapshot/receipt/reference provenance.",
-      "destination": "docs/development.md#historical-frozen-cli-parity-evidence",
+      "destination": "docs/development.md#retired-capture-and-frozen-cli-history",
       "disposition": "Recorded. Old runner commands removed; annotated unsigned tag object and peeled commit recorded; no replacement runner or current visual gate claimed."
     },
     {
@@ -286,7 +326,37 @@
       "decision": "T37-component-api-prose",
       "source_obligation": "Preserve selected caller rules recovered from accepted component-source review after removing Rustdoc and test targets.",
       "destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
-      "disposition": "Six reviewed rule groups transferred. Full 722-row semantic classification and component guides remain T01/T35 work."
+      "disposition": "Six selected caller-rule rows are backed by nine exact source groups listed in component_selected_transfers. Remaining 722-row Rustdoc ledger stays provenance; full semantic API map and component guides remain T01/T35 work."
+    },
+    {
+      "decision": "T37-API-PROSE-01",
+      "source_obligation": "Preserve all non-obvious foundation caller preconditions, lifecycle/failure semantics, identity/revision/selection rules, callback/borrow limits, and bounded-work contracts; assign each of the 1,122 Rustdoc groups an exact destination or specific non-contract reason.",
+      "destination": "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json and its named maintained Markdown sections",
+      "disposition": "All 1,122 groups are enumerated with exact path, line range, file hash, text hash, and a specific destination or disposition. 312 caller-contract and 15 contract-context groups point to maintained sections; remaining rows state specific descriptive, historical/internal, or retired-test reasons. No unmatched normative candidate remains. Independent review pending; behavior NOT VERIFIED."
+    },
+    {
+      "decision": "T37-TOOLS-SAFETY-01",
+      "source_obligation": "Move current invariants for retained unsafe diagnostics and observer descriptor ownership into maintained safety guidance before mapped inline rationale is removed.",
+      "destination": "docs/contracts/safety-invariants.md#production-unsafe-operation-rationale-map",
+      "disposition": "Accepted transfer at docs commit c645c0b611370bd0974ebe46e8730d85560dbd79. Source mapping is bound to safety-rationale.json SHA-256 4dd097c5697b9b6757f855aa48bd2b9a2fdeb201a536a8a14e650712d4bcfebf. T20-OBS-FD-01 remains open; no target validity or behavior proof is claimed."
+    },
+    {
+      "decision": "T37-DOCS-OWNERSHIP-01",
+      "source_obligation": "Replace current E2E runner guidance with retained admission API and CLI contracts, and preserve old procedures as fixed-source history.",
+      "destination": "crates/termrock-e2e/README.md#admission-interface",
+      "disposition": "Rewritten for the nine admission flags, input binding/recheck, error/result, protected write root, and no-replacement output. The old README is linked at immutable product input 1d6ee92. Behavior NOT VERIFIED."
+    },
+    {
+      "decision": "T37-CAPTURE-01",
+      "source_obligation": "Retire six legacy capture/replay/approval executables and remove active command guidance while preserving source-pinned evidence.",
+      "destination": "docs/development.md#retired-capture-and-frozen-cli-history",
+      "disposition": "Recorded as retired history. Baseline/parity evidence, receipts, manifests, recipes, reviews, and source identities remain immutable. No replacement runner or fresh approval is claimed."
+    },
+    {
+      "decision": "T37-E2E-SCHEMA-02",
+      "source_obligation": "Classify all twelve preserved E2E schemas from retained source consumers and mark retired formats historical-only; preserve schema bytes.",
+      "destination": "crates/termrock-e2e/README.md#schema-status",
+      "disposition": "Seven active consumers: expected-generation, generation-admission, oracle-capture, qualification-review, tag-validator-toolchain, subject-manifest-v2, and receipt-v3. The last two support retained subject validation and diagnostic reading of historical receipts; receipt-v3 has no current runner or producer. Five schemas are historical-only: receipt-v1/v2, subject-manifest-v1, trust-record-v1/v2. All twelve schema bytes are unchanged. This is a source-consumer classification, not behavior verification."
     }
   ],
   "future_documentation_obligations": {
@@ -532,6 +602,207 @@
       "meaning": "No matching added test invocation was found."
     },
     "tests_or_harnesses_added_or_run": 0,
+    "product_behavior": "NOT VERIFIED"
+  },
+  "component_selected_transfers": {
+    "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+    "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "inventory": {
+      "path": "docs/implementation/pr38-final/results/t37-components/removed-rustdoc.jsonl",
+      "sha256": "44540f7e878b477d87f0b8b74185398baa0c56f0218e8ac07a18d083394dae93",
+      "group_count": 722,
+      "source_paths": 61
+    },
+    "selected_contract_rows": 6,
+    "source_groups": [
+      {
+        "source_path": "crates/termrock-controls/src/choice.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "25e1184f74b20c9c45aa64c51034b3b2038cdcd37408e6f9e57dfd0aa8d4b0ff",
+        "line_range": {
+          "start": 1044,
+          "end": 1045
+        },
+        "text_sha256": "d80d0581c280703cec2a8190a11c80de044726a54bb32c0edcda588f929a5dd8",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-feedback/src/notice.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "1099a278857d8a66c3ccd7009d0de20a0837041343c4475228acaa7c271465a3",
+        "line_range": {
+          "start": 293,
+          "end": 304
+        },
+        "text_sha256": "c842943a62168d13bcec11ec785c487f4348f91ca973c68cd1a2e38727d9b218",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-fields/src/input.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "927964354d0ba25e2b4871b594790c99576b16316195b74d5ffd15f449e05f4d",
+        "line_range": {
+          "start": 1245,
+          "end": 1249
+        },
+        "text_sha256": "b16b44783de464b9bf0e1b406796b08d6f6643fca2ad560471f84cbede9b4a94",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-navigation/src/list.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "69eb10b7892b963678b4d6a30d98cd54ac1bdd4a0e0443776d8ba6e5320cd128",
+        "line_range": {
+          "start": 709,
+          "end": 715
+        },
+        "text_sha256": "12c5992e835b26c6b9856635b02e683efb32b32b65537eb78db22227da5c766e",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-navigation/src/tabs.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "7b0f438179327a670bb4e0442336746d062209d1a402f515d7eb11328f6c2d86",
+        "line_range": {
+          "start": 923,
+          "end": 927
+        },
+        "text_sha256": "27a6f2355e8621b47515029779be5bbdb4cc3953526f1798441757e4d45f8c19",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-overlays/src/notice_reveal.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "31bc339c50d5ebe6f52c1014e4a484478d81e2333b9dcc9e7bb7820825316bac",
+        "line_range": {
+          "start": 36,
+          "end": 47
+        },
+        "text_sha256": "809aeaa24f38cccc67e9f53fd4007dc5ba5d54c9e3be23ae87fce387a12f53e5",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-overlays/src/notice_reveal.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "31bc339c50d5ebe6f52c1014e4a484478d81e2333b9dcc9e7bb7820825316bac",
+        "line_range": {
+          "start": 131,
+          "end": 144
+        },
+        "text_sha256": "bcb385ced4223ac6aa202d47cc491511268ea8116cea6c21f3cae6d29e4534c8",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-viewport/src/viewport.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "59d440d67123df82e5e46d2b8ba686bcc311956a4af416084b1f463f651082bc",
+        "line_range": {
+          "start": 1971,
+          "end": 1975
+        },
+        "text_sha256": "b9fee0e926315efee8c67f4c4f43f070cf4c5c0f178545758b40ee64d001a795",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-viewport/src/viewport.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "59d440d67123df82e5e46d2b8ba686bcc311956a4af416084b1f463f651082bc",
+        "line_range": {
+          "start": 2908,
+          "end": 2912
+        },
+        "text_sha256": "6b3be22361d89e4fcd412568b9e73d1323f098cb3453ed509d9b1923136f2b33",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      }
+    ],
+    "limitation": "These nine exact groups support six selected caller-rule rows. The remaining ledger is preserved as source-hash and line-range provenance; this record does not claim a 722-row semantic classification. T01 and T35 retain the full inventory and component-guidance work."
+  },
+  "preserved_historical_files": [
+    {
+      "path": "docs/verification/paired-process-receipt-hardening-20261021.md",
+      "source_commit": "265debfb988feb8cd04d57f246262f8881ac1213",
+      "sha256": "19d0d25f5bef1672b21a5c70d10bb396a97d5f3a3345da66a80bcfea5dd24c9f",
+      "verification": "shasum of the working file equals shasum of `git show 265debfb988feb8cd04d57f246262f8881ac1213:<path>`."
+    }
+  ],
+  "e2e_schema_hashes_against_product_source": {
+    "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "comparison": "working tree SHA-256 equals `git show <product-source>:<path>` SHA-256 for every file",
+    "files": {
+      "expected-generation-v1.schema.json": "d86c066f58c6edcc92133752d9e02102ab9564c6a7c0b60777ad0f01818b23bc",
+      "generation-admission-v1.schema.json": "cfec0679de8245be6e165babf7cd4df15855fef42349a28ecc9b8d5102a069a5",
+      "oracle-capture-receipt-v1.schema.json": "448577bd07ccec30596f0a60ee38ca943271183ede8a45c7a7b2c9c167187e20",
+      "qualification-review-v1.schema.json": "f3f06b64d25d806dac6ada4b081df8532e83a50f5ec5b6f811a4231c87ba08d0",
+      "receipt-v1.schema.json": "68f9c6964d6b732a5a67fa5571b01e8001717f47b0b87db3aa1ab3764768dd61",
+      "receipt-v2.schema.json": "31135e33541dcc21fffed2c77d3a37a169ae5ceaeb482fa9dc8340394f9b6a5d",
+      "receipt-v3.schema.json": "562d95a7a104a6f3127fb9f403f7cb79c24b25f77943e1eec732ed2120f476fe",
+      "subject-manifest-v1.schema.json": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+      "subject-manifest-v2.schema.json": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+      "tag-validator-toolchain-v1.schema.json": "979fd241c4b35c8402e3e4161ccd9bad1925c7e5af7f25c0f0b55ebe9fa1b9a6",
+      "trust-record-v1.schema.json": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+      "trust-record-v2.schema.json": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b"
+    },
+    "unchanged_count": 12
+  },
+  "pending_integration_links": [
+    {
+      "source_document": "docs/contracts/authoring.md",
+      "source_link": "../../docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
+      "target_path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
+      "accepted_source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+      "status": "PENDING_INTEGRATION",
+      "reason": "The accepted foundation evidence commit is not yet present in this docs worktree. Do not report all local Markdown links resolved until that commit is integrated."
+    }
+  ],
+  "validation_record": {
+    "foundation_crosswalk_generator": {
+      "command": "python3 docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py --source-root /Users/donbeave/Downloads/termrock-t37-foundations/docs/implementation/pr38-final/results/t37-foundations --output docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
+      "exit_code": 0,
+      "result": "1122 groups; 0 unmatched normative candidates; output SHA-256 7a5a700b240c45c844f4307fb6553b7f22144e5bc932cc6f238be96c3b046ec9"
+    },
+    "schemas": {
+      "command": "Compare every E2E schema SHA-256 with git show 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd:<path>",
+      "exit_code": 0,
+      "result": "12 of 12 byte-identical"
+    },
+    "historical_receipt_report": {
+      "command": "Compare working SHA-256 with git show 265debfb988feb8cd04d57f246262f8881ac1213:<path>",
+      "exit_code": 0,
+      "result": "Exact match at 19d0d25f5bef1672b21a5c70d10bb396a97d5f3a3345da66a80bcfea5dd24c9f"
+    },
+    "json_parse": {
+      "command": "python3 -m json.tool on api-prose-crosswalk.json and safety-transfer.json",
+      "exit_code": 0
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    "local_markdown_links": {
+      "status": "PENDING_INTEGRATION",
+      "result": "All checked local paths resolve except the single pending foundation source inventory link listed above.",
+      "checked_count": 72,
+      "pending_count": 1
+    },
+    "tests_run": 0,
     "product_behavior": "NOT VERIFIED"
   }
 }
