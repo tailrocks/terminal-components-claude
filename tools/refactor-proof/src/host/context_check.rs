@@ -3,8 +3,6 @@ use std::process::Command;
 
 use super::context::ContextMember;
 
-const FIXTURE_CONTEXT_SCHEMA: &str = "tc-host-fixture-check-context/v1";
-
 const TC_PROOF_OPERATIONS: &[&str] = &[
     "preflight",
     "required",
@@ -24,18 +22,7 @@ pub(super) fn spawn_context_check(
     if !context_path.is_file() {
         return Err("integrity");
     }
-    if member.schema == FIXTURE_CONTEXT_SCHEMA {
-        return spawn_fixture_context_check_stub();
-    }
     spawn_tc_proof_context_check(member, &context_path)
-}
-
-fn spawn_fixture_context_check_stub() -> Result<(), &'static str> {
-    let status = Command::new("true").status().map_err(|_| "integrity")?;
-    if !status.success() {
-        return Err("integrity");
-    }
-    Ok(())
 }
 
 fn spawn_tc_proof_context_check(
