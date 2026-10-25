@@ -16,7 +16,10 @@ Correct poor boundaries and repeated behavior.
 Replace a design only when a named defect requires replacement.
 Do not create a second component framework.
 
-Read the complete plan at `docs/implementation/pr38-final/`.
+This workspace contains the plan package. Read its `README.md` and local plan files before target work.
+Follow `README.md` to create and verify a separate target checkout before any source task.
+The target path `docs/implementation/pr38-final/` may not exist before T00 imports this package.
+Do not run target source tasks in this plan-package checkout.
 Start with `README.md`, `REVIEW.md`, `ARCHITECTURE.md`, `API-RULES.md`, and `TESTING-RULES.md`.
 Then execute `PLAN.md` and every task in `TASKS.md`.
 Use `COMPONENT-MATRIX.md` and `VALIDATION.md` as completion requirements.
@@ -54,14 +57,15 @@ This prohibition applies to the coordinator, every worker, and all nested agents
 
 ## Mandatory models
 
-Use GPT-6.1-Sol as the coordinator.
+Use GPT-6.1-Sol with low effort as the coordinator.
 Use GPT-6 Luna with max effort for every implementation task.
 This includes Rust, tests, scripts, configuration, and documentation changes.
 
 Use GPT-6.1-Sol for independent implementation reviews.
-Use high effort for API, runtime, dependency, safety, performance, and acceptance reviews.
+Use high effort for API, runtime, dependency, safety, performance, and product acceptance reviews.
 Use medium effort for bounded component, page, and application reviews.
-Use low effort only for a final text or link check with no behavior decision.
+Use medium effort for test architecture, task test plans, test-only reviews and evidence verification, and testability-gap analysis.
+Use low effort for coordination and final text or link checks with no behavior decision.
 
 The coordinator must not replace a Luna implementation with its own code.
 Return each required correction to a Luna worker.
@@ -71,10 +75,11 @@ The worker must not approve its own work.
 Use these model IDs when the environment exposes them:
 
 - Implementer: `gpt-6-luna`, `reasoning_effort="max"`.
-- Reviewer and coordinator: `gpt-6.1-sol`.
-- Design escalation: `gpt-6.1-sol`, `reasoning_effort="high"`.
+- Coordinator: `gpt-6.1-sol`, `reasoning_effort="low"`.
+- Reviewer: `gpt-6.1-sol` at the effort assigned to the task.
+- Product design escalation: `gpt-6.1-sol`, `reasoning_effort="high"`.
 
-Use GPT-6.1-Sol high for T38 and every task-scoped test architecture review.
+Use GPT-6.1-Sol medium for T38 and every task-scoped test architecture review.
 Use GPT-6 Luna max for every test implementation and test documentation change.
 
 If the required model is unavailable, record the affected task as blocked.
@@ -83,8 +88,8 @@ Do not silently select another model.
 
 Do not let implementation workers invent a replacement architecture.
 If the approved plan cannot meet a required behavior, collect source evidence.
-Use GPT-6.1-Sol high to resolve a required architecture or plan change.
-Keep the affected task blocked until GPT-6.1-Sol high records the design decision.
+Use GPT-6.1-Sol high to resolve a required product architecture or product contract change.
+Keep the affected task blocked until GPT-6.1-Sol high records the product design decision.
 Keep unrelated work active.
 
 ## Delegation
@@ -165,7 +170,7 @@ Follow the dependency graph in `PLAN.md` and `task-index.json`.
 First run T00 and capture all source and legacy test evidence without source changes.
 Run T37 as the first Termrock source change. Remove all legacy test code and nonfunctional code comments.
 Then run T01 and T38. Start implementation only after the reviewed test architecture passes.
-Require an independent Sol high review of each task-specific test design before test edits.
+Require an independent Sol medium review of each task-specific test design before test edits.
 Then fix feature isolation and crate boundaries.
 Then complete shared contracts and component behavior.
 Then complete pages and application consumers.
@@ -202,8 +207,9 @@ Test unpacked package content through an isolated registry fixture.
 Use the checked-out toolchain and pinned tools.
 Use `cargo nextest` for approved functional scenarios.
 Prefer `integration/functional/`; use an existing owner seam when the source needs it.
-Use GPT-6 Luna max for every implementation. Use GPT-6.1-Sol high for test architecture.
-If a functional case exposes a product issue, stop test edits. Ask Sol high for gap analysis and conceptual redesign.
+Use GPT-6 Luna max for every implementation. Use GPT-6.1-Sol medium for test architecture.
+If a functional case exposes a product issue, stop test edits. Ask Sol medium to review the testability gap.
+Use Sol high only when the evidence requires a product architecture decision.
 Respect generated CI ownership.
 Change generator inputs and regenerate managed output.
 Do not patch generated workflows by hand.

@@ -1,25 +1,27 @@
 --- a/AGENTS.md
 +++ b/AGENTS.md
-@@ -13,3 +13,22 @@
+@@ -13,3 +13,24 @@
  - For accepted feedback, fix, verify, commit, push, and reply on GitHub with the fixing commit URL before resolving. For rejected feedback, reply with evidence and rationale before resolving. Address general comments in linked PR replies. Never delete feedback or resolve it without a justified disposition.
  - Re-fetch feedback at the final head SHA. Merge only with no unaddressed feedback or unresolved review threads and all required checks and approvals satisfied. Only explicit, PR-specific human authorization permits ignoring identified feedback; general merge approval is not a waiver.
  - Keep agent instructions lean. Put explanations, plans, and progress in documentation, not here.
 +
 +## PR 38 completion
 +
-+- Follow [the API rules](docs/implementation/pr38-final/API-RULES.md) and [crate boundaries](docs/implementation/pr38-final/ARCHITECTURE.md).
-+- Execute [the plan](docs/implementation/pr38-final/PLAN.md) and [exact tasks](docs/implementation/pr38-final/TASKS.md).
-+- Use [the agent work rules](docs/implementation/pr38-final/AGENT-RUNBOOK.md) for model selection, file ownership, and review.
-+- Follow [the testing rules](docs/implementation/pr38-final/TESTING-RULES.md) and [the practice review](docs/implementation/pr38-final/PRACTICE-REVIEW.md).
-+- Complete T00, T37, T01, and T38 in order. Keep T02, T03, and T04 blocked until T38 passes independent review.
-+- Have one Sol high agent design T38 and a different Sol high agent review it.
-+- Treat T37 as one-time cleanup. A zero-test result is `NOT VERIFIED` and cannot close a required gate.
-+- Require an independent Sol high plan review before every new or refactored test. Use public production paths and observable results.
-+- Do not mock owned code or use test count, coverage, or speed as a KPI.
-+- After an escape, require a separate Sol high architect subagent to analyze the testability gap before test changes.
-+- Require realistic red-green evidence, deterministic scenarios, and independent verification for every kept test.
-+- Keep nonfunctional source comments out. Preserve required tool text and generator-verified bytes.
-+- Never use Astra. Use Luna max for implementation and independent Sol high for shared test and architecture review.
-+- Fix the structure that allowed a verified defect when evidence supports that change. Record any deferred root cause.
-+- Commit verified changes in small units. Push or send public replies only with current user authorization.
-+- Re-fetch pull request feedback at the exact candidate head. Disposition every current finding with evidence.
++- Read the complete [goal](docs/implementation/pr38-final/GOAL.md) and [package](docs/implementation/pr38-final/README.md).
++- Follow [API rules](docs/implementation/pr38-final/API-RULES.md), [architecture](docs/implementation/pr38-final/ARCHITECTURE.md), and [acceptance](docs/implementation/pr38-final/VALIDATION.md).
++- Execute [the plan](docs/implementation/pr38-final/PLAN.md), [tasks](docs/implementation/pr38-final/TASKS.md), and [agent runbook](docs/implementation/pr38-final/AGENT-RUNBOOK.md).
++- Follow [testing rules](docs/implementation/pr38-final/TESTING-RULES.md) and [practice review](docs/implementation/pr38-final/PRACTICE-REVIEW.md) for test and comment conflicts.
++- Complete T00, T37, T01, and T38 in order. Block T02, T03, and T04 until T38 passes independent review.
++- T37 is one-time cleanup. Preserve unrelated APIs, production diagnostics, safety contracts, and immutable reference evidence.
++- Have one Sol medium agent design T38. Have a different Sol medium agent review it.
++- Require independent Sol medium plan review before each later test edit. Verify every retained test independently through public production paths.
++- Never mock owned code. Require deterministic observable results and runtime red-green evidence. Zero-case behavior lanes are `NOT VERIFIED`.
++- Preflight tasks can pass scoped document, structural, and build gates. They cannot prove product behavior.
++- Preserve required directives, legal text, explicit Clap help, and generator-verified bytes. Keep safety rationale in maintained contracts.
++- Never weaken unsafe-code lints. Require a scoped Sol high product decision for a conflict.
++- Never use Astra. Use Luna max for implementation, Sol high for product architecture, and Sol medium for tests-related work.
++- Set agent model and effort explicitly. Block unavailable assignments. Use disjoint ownership and independent reviews.
++- Follow the runbook for product review effort, exact task context, selected agent IDs, evidence, and integration.
++- Finish all 39 tasks and every component, route, and application gate at the final source revision. A build alone cannot finish the goal.
++- Commit verified units. Push, send public replies, merge, or release only with current explicit user authorization.
++- Re-fetch feedback at the exact candidate head. Disposition every current finding with evidence.

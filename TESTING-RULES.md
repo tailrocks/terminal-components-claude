@@ -42,14 +42,14 @@ Do not close final acceptance while a required suite remains empty.
 ## Architecture review before tests
 
 T38 must define the test architecture before any test code returns.
-One `gpt-6.1-sol` agent with high effort must design T38.
-A different `gpt-6.1-sol` agent with high effort must review and approve T38.
+One `gpt-6.1-sol` agent with medium effort must design T38.
+A different `gpt-6.1-sol` agent with medium effort must review and approve T38.
 Luna records the approved design in the maintained plan documents.
 The plan must identify requirements, public behavior, test seams, external dependencies, and proof limits.
 It must separate production acceptance from optional algorithm tests.
 
 Before each later task writes or refactors a test, prepare a task-level test plan.
-An independent `gpt-6.1-sol` reviewer with high effort must approve the plan before the first test write.
+An independent `gpt-6.1-sol` reviewer with medium effort must approve the plan before the first test write.
 Do not write a test while its plan or required architecture decision is pending.
 
 Every plan must include:
@@ -66,8 +66,9 @@ Every plan must include:
 
 Plan before adding or refactoring a regression test for an escaped issue.
 First explain why current tests missed the issue.
-Then ask a separate `gpt-6.1-sol` high architect agent to review the testability gap.
-Record the design before you write the replacement test.
+Then ask a separate `gpt-6.1-sol` medium architect agent to review the testability gap.
+Record the testability finding before you write the replacement test.
+Use high effort only if the finding requires a product architecture decision.
 Do not append a test without this analysis.
 
 ## What tests must prove

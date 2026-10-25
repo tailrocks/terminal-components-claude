@@ -1,39 +1,40 @@
-# Termrock agent rules
+@/Users/donbeave/.codex-chainargos2/RTK.md
+@/Users/donbeave/.codex-chainargos2/CODEX_POLICY.md
 
-## Work order
+# Termrock launch rules
 
-- Never use Astra in any task, review, fallback, or planning step.
-- Use `gpt-6-luna` with max effort for implementation.
-- Use independent `gpt-6.1-sol` reviewers. Use high effort for architecture and test design.
-- Read [the goal](GOAL.md), [the runbook](AGENT-RUNBOOK.md), [the tasks](TASKS.md), and [the API rules](API-RULES.md).
-- Complete T00, T37, T01, and T38 in order. Keep T02, T03, and T04 blocked until T38 passes review.
-- Have one Sol high agent design T38. Have a different Sol high agent review it.
-- Treat T37 as one-time test cleanup. Tests may return after T38 and each test plan pass review.
-- Treat every zero-test result as `NOT VERIFIED`. It cannot pass a required gate.
+## Start and scope
 
-## Test and code rules
+- `PLAN_ROOT` is this launch directory. It contains plans, not the Termrock Rust workspace.
+- Read all package documents before dispatch. Start with [README.md](README.md) and the complete [GOAL.md](GOAL.md).
+- Follow [PLAN.md](PLAN.md), [TASKS.md](TASKS.md), [task-index.json](task-index.json), and [AGENT-RUNBOOK.md](AGENT-RUNBOOK.md).
+- Preserve [API-RULES.md](API-RULES.md), [ARCHITECTURE.md](ARCHITECTURE.md), [COMPONENT-MATRIX.md](COMPONENT-MATRIX.md), and [VALIDATION.md](VALIDATION.md).
+- Follow the separate checkout and instruction import steps in README before T00.
+- Never run Cargo or T37 cleanup in `PLAN_ROOT`. Limit source, test, and comment changes to the candidate checkout.
+- Preserve user changes, target instructions, immutable references, production diagnostics, safety contracts, and unrelated APIs.
 
-- Follow [the testing rules](TESTING-RULES.md) and [the practice review](PRACTICE-REVIEW.md).
-- These rules govern test and comment conflicts in older plan files. Keep unrelated contracts in force.
-- Before every new or refactored test, require an independent Sol high review of its plan.
-- Test required behavior through a real production path and public API. Assert observable results.
-- Do not mock, fake, or stub code owned by this repository.
-- Do not use test count, coverage, or speed as a quality KPI.
-- Keep scenarios deterministic. Verify each test independently before you keep it.
-- After an issue escapes, require a Sol high architect subagent to analyze the testability gap before test changes.
-- Inspect source to establish actual behavior. Use approved contracts to establish required behavior.
-- Fix the structure that enabled a verified defect when evidence supports that change.
-- Keep T37 limited to test cleanup. Preserve unrelated APIs, safety rules, and production diagnostics.
-- Leave no active test-only file, fixture, filter, inventory row, or citation after T37.
-- Keep source free of nonfunctional comments. Preserve required tool text and generator-verified bytes.
-- Use explicit Clap help attributes. Put essential safety rationale in maintained contracts.
-- Do not weaken unsafe-code lints. Stop for a scoped Sol high decision if a required lint conflicts.
+## Models and delegation
 
-## Delegation and review
+- Never use Astra, including fallbacks. Coordinate with `gpt-6.1-sol`, low effort.
+- Use `gpt-6-luna`, max effort, for every implementation, including tests, configuration, scripts, and documentation.
+- Use independent `gpt-6.1-sol`, high effort, for product architecture and API, runtime, safety, dependency, performance, and acceptance reviews.
+- Use independent `gpt-6.1-sol`, medium effort, for all test architecture, test-plan, test-diff, and escaped-test-gap work.
+- Set model and effort in agent tools. Use `fork_turns="none"` when required. Record agent IDs and selection limits.
+- Block a task if its required model or effort is unavailable. Never silently substitute a role, model, or effort.
+- Use bounded parallel tasks with exclusive file ownership. Reserve review capacity. Do not spawn nested agents by default.
+- Give each worker complete task context, fixed input SHA, owned files, contracts, approved cases, and output requirements.
 
-- Use subagents for parallel research, implementation, review, and independent verification.
-- Give each implementation agent exclusive file ownership.
-- Commit verified changes in small units. Push only with current user authorization.
-- Re-fetch feedback at the exact candidate head. Disposition every current finding with evidence.
-- Do not send public replies, merge, or release without current explicit authorization.
-- Keep instructions short. Put plans, findings, and evidence in linked documents.
+## Gates and evidence
+
+- Complete T00, T37, T01, and T38 in order. Block T02, T03, and T04 until T38 passes independent review.
+- Have one Sol medium agent design T38. Have a different Sol medium agent review it.
+- Follow [TESTING-RULES.md](TESTING-RULES.md) and [PRACTICE-REVIEW.md](PRACTICE-REVIEW.md). Approve each later test plan before test edits.
+- T37 is one-time cleanup. Reintroduce tests only through reviewed plans. Zero-case behavior lanes are `NOT VERIFIED`.
+- Preflight tasks can pass their scoped document, structural, and build gates. They cannot prove product behavior.
+- Use real public production paths, observable outcomes, deterministic cases, and independent red-green proof. Never mock owned code.
+- Preserve required directives, legal text, explicit Clap help, and generator-verified bytes. Keep safety rationale in maintained contracts.
+- Do not weaken unsafe-code lints. Require a scoped Sol high product decision for a conflict.
+- Follow the Rust toolchain skill and `/Users/donbeave/.agents/DISK_POLICY.md` before target Rust builds.
+- Complete all 39 tasks. Verify final acceptance gates at one source revision, including all 54 routes, W01–W45, additional public components, and four applications.
+- A build alone cannot finish the goal. Record actual commands, cases, source SHAs, limits, and independent decisions.
+- Commit verified units. Re-fetch feedback at the exact candidate head. Follow current user authorization for every external action.

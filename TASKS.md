@@ -15,7 +15,7 @@ T00 captures the complete legacy evidence before deletion.
 T37 is the first Termrock source change. It removes all legacy tests and nonfunctional code comments.
 T01 inventories the cleaned source. T38 defines a reviewed test architecture before implementation work.
 Task test cases describe required outcomes. They do not authorize edits to test code by themselves.
-Every test or harness edit needs an approved task plan ID and a different Sol high reviewer.
+Every test or harness edit needs an approved task plan ID and a different Sol medium reviewer.
 All existing test paths and commands are proposed replacement targets after review.
 They are not instructions to retain or execute deleted legacy targets.
 
@@ -28,8 +28,8 @@ This prohibition applies to the coordinator, every worker, and all nested agents
 Use GPT-6 Luna with max effort for all implementation.
 Use a separate GPT-6.1-Sol agent at the stated effort for review.
 This model rule also applies to every child task.
-Use GPT-6.1-Sol high to resolve a required design change.
-Keep the affected task blocked until GPT-6.1-Sol high records the design decision.
+Use GPT-6.1-Sol high to resolve a required product architecture or product contract change.
+Keep the affected task blocked until GPT-6.1-Sol high records the product design decision.
 Do not substitute another model or effort.
 
 Start a task only after its predecessors are accepted.
@@ -63,7 +63,11 @@ T32 and T36 require the complete final gates to pass.
 
 A green result applies only to declared cases and its recorded environment.
 An empty suite after T37 is unverified. It never proves product behavior.
-Page workers need an approved functional scenario through the real route and public component API.
+Before T22, page workers need an approved scenario through the production `Page` or factory API and public component API.
+The fixture must use real owned page and component code, then observe public output.
+This proves page behavior; it does not prove route registration.
+T22 requires live CLI proof of registry routing.
+T31 and final acceptance require live CLI evidence for every route and application journey.
 Do not add a fixture or harness until its task-scoped design passes independent review.
 Keep production registry edits with T22. Do not mark a page accepted from source inspection alone.
 
@@ -122,7 +126,7 @@ Only accepted integration evidence can close the task.
 | [T35](#t35) | Rewrite current guides and publish the migration instructions | T22, T27, T28, T29, T30, T31, T34 | medium |
 | [T36](#t36) | Verify the final integrated commit and close the goal | T04, T32, T33, T34, T35, T37, T38 | high |
 | [T37](#t37) | Remove legacy tests and nonfunctional source comments | T00 | high |
-| [T38](#t38) | Approve the functional test architecture | T01 | high |
+| [T38](#t38) | Approve the functional test architecture | T01 | medium |
 
 <a id="t00"></a>
 
@@ -138,6 +142,7 @@ Only accepted integration evidence can close the task.
 - docs/implementation/pr38-final/
 - AGENTS.md
 - T00 source and legacy-evidence records under results/
+- `results/run-state.json` in the imported package
 
 Do not edit Termrock source, tests, harnesses, fixtures, doctests, CI inputs, or snapshots.
 
@@ -149,22 +154,31 @@ Do not edit Termrock source, tests, harnesses, fixtures, doctests, CI inputs, or
 
 ### Required changes
 
-1. Fetch both pull request heads through the GitHub connection. Record the target, reference, base, and common-ancestor commit IDs.
-2. Compare the current heads with the review IDs. Recheck each finding whose source changed.
-3. Read root AGENTS.md, CLAUDE.md, current product contracts, and applicable directory instructions.
-4. Copy this package to docs/implementation/pr38-final/. Add approved root links without removing existing rules.
-5. Record every current CI failure, test inventory, harness, fixture, doctest, and comment directive before deletion.
-6. Record production build failures from current CI logs. Do not run legacy test code.
-7. Hash every captured test-related file and record its source commit and path.
-8. Record production diagnostics, CLI help attributes, legal notices, generated files, and required parser, lint, and shebang directives.
-9. Create separate source worktrees. Keep the reference worktree read-only. Record the integration branch and starting commit.
-10. Install the pinned tools through mise. Record rustc, cargo, nextest, toolchain, and dependency-lock versions.
-11. Create a result record with source IDs, tool versions, model assignments, and review limits.
+1. Read the local plan package. Follow README.md to create and verify the separate target checkout.
+2. Treat docs/implementation/pr38-final/ as absent until this task imports the package.
+3. Fetch both pull request heads through the GitHub connection. Record the target, reference, base, and common-ancestor commit IDs.
+4. Compare the current heads with the review IDs. Recheck each finding whose source changed.
+5. Read root AGENTS.md, CLAUDE.md, current product contracts, and applicable directory instructions.
+6. Copy this package to docs/implementation/pr38-final/. Add approved root links without removing existing rules.
+7. Record every current CI failure, test inventory, harness, fixture, doctest, and comment directive before deletion.
+8. Record production build failures from current CI logs. Do not run legacy test code.
+9. Hash every captured test-related file and record its source commit and path.
+10. Record production diagnostics, CLI help attributes, legal notices, generated files, and required parser, lint, and shebang directives.
+11. Create separate source worktrees. Keep the reference worktree read-only. Record the integration branch and starting commit.
+12. Install the pinned tools through mise. Record rustc, cargo, nextest, toolchain, and dependency-lock versions.
+13. Create a result record with source IDs, tool versions, model assignments, and review limits.
+14. Create `results/run-state.json` in the imported package. Record the SHA-256 plan hash, task states, worktree paths, source and output SHAs, and file locks.
+15. Record each agent ID, role, model, and effort. Record approved test plans, reviewer IDs, evidence paths, blockers, and ready tasks.
+16. Update `results/run-state.json` after every task-state, readiness, path, SHA, lock, agent, review, evidence, or blocker change.
 
 ### Required cases
 
 - The source record uses complete commit IDs and matches the fetched branch heads.
 - The root AGENTS links resolve. The existing rules remain present.
+- The target checkout is separate from the plan-package checkout. The imported package path is created during T00.
+- The run-state checkpoint records the plan hash, task states, paths, SHAs, and locks.
+- The checkpoint records each agent ID, role, model, and effort.
+- The checkpoint records approved test plans, reviewer IDs, evidence, blockers, and ready tasks.
 - A changed target finding has a fresh source check. An unchanged finding retains its original evidence.
 - Current production build failures are recorded without running legacy test code.
 - The legacy inventory includes every language, test target, test function, harness, fixture, doctest, and test-only dependency.
@@ -185,7 +199,7 @@ git ls-files | rg '(^|/)(tests?|fixtures?)(/|$)|\.rs$|\.py$|\.sh$|\.toml$'
 
 ### Acceptance
 
-The source and model records are complete. The rules are installed. Required unavailable tools have explicit blocked gates.
+The source and model records are complete. The rules and run-state checkpoint are installed. Required unavailable tools have explicit blocked gates.
 
 <a id="t01"></a>
 
@@ -262,12 +276,12 @@ The inventory covers current source and retained requirements. Every unresolved 
 
 - Split production ownership policy and functional gate scenarios into separate Luna tasks.
 - Give each task an approved test-plan ID before test edits.
-- Use an independent Sol high reviewer for each test or harness diff.
+- Use an independent Sol medium reviewer for each test or harness diff.
 
 ### Required changes
 
 1. Fetch current-head CI records. Preserve the reviewed failures as historical evidence in T00's source record.
-2. Reproduce required behavior failures through task-scoped functional cases from T38 and independent Sol high review.
+2. Reproduce required behavior failures through task-scoped functional cases from T38 and independent Sol medium review.
 3. Do not copy old test names or assertions. Do not change expected bytes to hide a behavior difference.
 4. Replace obsolete package profiles with current production consumers and approved feature configurations.
 5. Rebuild ownership checks around production source and approved functional modules. Keep real production findings visible.
@@ -372,7 +386,7 @@ Every declared leaf configuration passes in an isolated consumer. Dependency gra
 
 - Split case inventory, real CLI capture, and semantic assertion preparation.
 - Run captures alone on the selected capture host.
-- Require task-scoped Sol high review before every new harness or assertion edit.
+- Require task-scoped Sol medium review before every new harness or assertion edit.
 
 ### Required changes
 
@@ -399,6 +413,10 @@ Every declared leaf configuration passes in an isolated consumer. Dependency gra
 
 Use the exact production CLI invocations recorded by T00.
 Do not run a legacy capture tool or test harness.
+
+~~~sh
+git diff --check
+~~~
 
 ### Acceptance
 
@@ -2355,7 +2373,7 @@ Structural deletion, generator output, and build changes pass review against T00
 ## T38: Approve the functional test architecture
 
 **Implementer:** GPT-6 Luna, max effort.
-**Independent reviewer:** GPT-6.1-Sol, high effort.
+**Independent reviewer:** GPT-6.1-Sol, medium effort.
 **Predecessors:** T01.
 **Source findings:** [F01](REVIEW.md#f01), [F14](REVIEW.md#f14), [F18](REVIEW.md#f18), [F20](REVIEW.md#f20).
 
@@ -2367,17 +2385,17 @@ Structural deletion, generator output, and build changes pass review against T00
 
 ### Child work
 
-- Use a Sol high architect to make and record the test design decision from T01's inventory.
+- Use a Sol medium architect to make and record the test design decision from T01's inventory.
 - Use one Luna max worker to record the approved decision in the case manifest.
-- Use a different Sol high reviewer to accept the written record before any test edit.
+- Use a different Sol medium reviewer to accept the written record before any test edit.
 - Do not edit tests, harnesses, fixtures, or product source in T38.
 
 ### Required changes
 
-1. Ask Sol high to derive required behavior from public contracts, production entry points, T01's inventory, and COMPONENT-MATRIX.md.
+1. Ask Sol medium to derive required behavior from public contracts, production entry points, T01's inventory, and COMPONENT-MATRIX.md.
 2. Require the architect to record case shape, oracle, fault model, environment, and limits before Luna writes the manifest.
 3. Prefer integration/functional scenarios. Use an existing owner seam when the source requires it.
-4. Do not create a parallel test framework without a named source constraint and Sol high decision.
+4. Do not create a parallel test framework without a named source constraint and Sol medium decision.
 5. Prefer real user scenarios through production APIs and observable output.
 6. Specify positive, negative, boundary, and recovery cases for each required behavior.
 7. Name the production entry point, public API, observable result, independent oracle, and controlled environment for each case.
@@ -2389,8 +2407,8 @@ Structural deletion, generator output, and build changes pass review against T00
 13. Record only the declared cases, source, tools, and environment as green. Do not claim absolute correctness.
 14. Allow test-only timing or performance counters only as supplemental evidence under an approved contract.
 15. Treat test count as inventory, not as a success metric.
-16. Require an independent Sol high review of every task-specific test plan before test edits.
-17. If a scenario exposes a product gap, stop test edits. Require Sol high gap analysis and conceptual redesign first.
+16. Require an independent Sol medium review of every task-specific test plan before test edits.
+17. If a scenario exposes a product gap, stop test edits. Require Sol medium testability-gap analysis first. Use Sol high only if the evidence requires a product architecture decision.
 18. Keep T38 approval scoped to architecture. It does not approve later test changes.
 
 ### Required cases
@@ -2404,8 +2422,8 @@ Structural deletion, generator output, and build changes pass review against T00
 - Environment and deterministic repeat rules make results independently reproducible.
 - Red and green evidence use the same runtime assertion and declared environment.
 - Missing, skipped, unselected, or setup-failed cases cannot report green.
-- The architecture record names the Sol high architect, independent reviewer, and exact reviewed manifest hash.
-- Luna writes the manifest only after the Sol high design decision exists.
+- The architecture record names the Sol medium architect, independent reviewer, and exact reviewed manifest hash.
+- Luna writes the manifest only after the Sol medium design decision exists.
 - T38 adds no test, harness, fixture, doctest, or production change.
 
 ### Commands
@@ -2417,4 +2435,4 @@ python3 -m json.tool docs/implementation/pr38-final/results/test-architecture.js
 
 ### Acceptance
 
-The Sol high reviewers approve the complete architecture and manifest. Test or harness edits remain blocked until each later task receives its own review.
+The Sol medium architect and independent reviewer approve the complete test architecture and manifest. Test or harness edits remain blocked until each later task receives its own review.

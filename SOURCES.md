@@ -17,7 +17,7 @@ A Python test did run and failed before it selected any test.
 See [VALIDATION.md](VALIDATION.md) for the exact evidence.
 
 Never use any Astra model under any circumstances or in any scenario.
-Their scopes were crate/API design, UI/reference parity, and performance/validation.
+The source-review scopes were crate and API design, UI and reference parity, and performance and validation.
 
 The model names in [AGENT-RUNBOOK.md](AGENT-RUNBOOK.md) apply to future implementation.
 They are instructions, not evidence that those future tasks ran.

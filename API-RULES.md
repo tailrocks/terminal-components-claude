@@ -348,7 +348,12 @@ Every API task must name the owner, caller, source behavior, target behavior, an
 
 Keep working behavior unless the task explicitly changes it. Do not replace a known interaction policy with a simpler one merely to reduce code.
 
-Implementation uses GPT-6 Luna at max effort. GPT-6.1-Sol coordinates and reviews. Use Sol high for API, feature, runtime, identity, focus, lifetime, error, and performance changes. Use Sol medium for bounded application work. Use Sol low for text, links, and file-name checks after technical acceptance. Follow the full assignment table in AGENT-RUNBOOK.md.
+Implementation uses GPT-6 Luna at max effort. GPT-6.1-Sol coordinates and reviews.
+Use Sol high for product API, feature, runtime, identity, focus, lifetime, error, and performance changes.
+Use Sol medium for test-only plans, diffs, runtime or performance test design, and evidence verification.
+Use Sol high if a test review finds a required product architecture or contract change.
+Use Sol medium for bounded application work. Use Sol low for text, links, and file-name checks after technical acceptance.
+Follow the full assignment table in AGENT-RUNBOOK.md.
 
 No implementation task is complete from compilation alone. It needs approved behavior evidence and the required integration evidence. Final acceptance must name the final commit and exact case scope.
 

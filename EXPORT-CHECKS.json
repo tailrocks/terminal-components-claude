@@ -28,12 +28,58 @@
     "S-C": 5,
     "S-D": 9
   },
-  "plan_policy": "T00 -> T37 cleanup -> T01 inventory -> T38 Sol high design and separate Sol high review -> task-scoped Sol high reviewed test plans. No owned-code mocks or coverage, count, or speed KPIs. An escape requires a separate Sol high architect subagent before test changes. Astra is prohibited in every scenario.",
+  "plan_policy": "T00 -> T37 cleanup -> T01 inventory -> T38 Sol medium design and separate Sol medium review -> task-scoped Sol medium reviewed test plans. No owned-code mocks or coverage, count, or speed KPIs. An escape requires a separate Sol medium architect subagent before test changes. Astra is prohibited in every scenario.",
   "checks": {
     "task_ids_unique": "PASS: 39 tasks",
     "dependency_graph_acyclic": "PASS: 39 tasks",
     "final_task_closure_complete": "PASS: T36 closes all 39 tasks",
     "required_model_assignments_present": "PASS: all implementers use Luna max; all reviewers use Sol",
+    "launch_config_and_roles": {
+      "status": "PASS",
+      "scope": "Local configuration and startup verification for .codex/config.toml and all four custom role definitions",
+      "settings": "Coordinator gpt-6.1-sol low; implementation gpt-6-luna max; test architecture, task plans, test diffs, evidence, and escaped-test-gap work gpt-6.1-sol medium; product architecture and high reviews gpt-6.1-sol high",
+      "startup": "Codex CLI 0.164.0 strict startup succeeded. App-server config/read confirmed effective root coordinator gpt-6.1-sol low, default gpt-6-luna max, agents enabled, and no disabled layers.",
+      "role_exposure": "Debug prompt input exposed all four custom roles.",
+      "trust_scope": "Only the exact project trust entry for /Users/donbeave/Downloads/termrock-pr38-plan was added to local host configuration; no sandbox or approval settings changed.",
+      "limits": "Verifies local configuration and startup behavior only; it does not infer model identity or prove product behavior."
+    },
+    "independent_launch_reviews": {
+      "status": "PASS",
+      "reviews": [
+        {
+          "stage": "Initial whole-package review",
+          "reviewer_count": 2,
+          "model": "gpt-6.1-sol",
+          "reasoning_effort": "high",
+          "result": "PASS"
+        },
+        {
+          "stage": "Launch setup and test-policy review",
+          "reviewers": [
+            {
+              "scope": "Launch setup",
+              "model": "gpt-6.1-sol",
+              "reasoning_effort": "high",
+              "result": "PASS"
+            },
+            {
+              "scope": "Test policy",
+              "model": "gpt-6.1-sol",
+              "reasoning_effort": "medium",
+              "result": "PASS"
+            }
+          ]
+        },
+        {
+          "stage": "Final launch-contract review",
+          "model": "gpt-6.1-sol",
+          "reasoning_effort": "high",
+          "result": "ACCEPT",
+          "note": "Accepted after refreshing the manifest to include all five .codex configuration and role files."
+        }
+      ],
+      "limits": "These reviews cover the planning package and launch contract; they do not establish product-behavior verification."
+    },
     "task_markdown_matches_index": "PASS: titles, deps, steps, cases, owners, children, commands, and acceptance fields",
     "local_markdown_links_resolve": "PASS",
     "root_patch_apply_check": {
@@ -69,6 +115,10 @@
   "model_policy": {
     "astra_prohibited": true,
     "prohibition_scope": "All Astra models and variants; every task, scenario, fallback, and agent depth. No exceptions.",
-    "design_escalation": "Use gpt-6.1-sol with reasoning_effort=high. Record the design decision before implementation. Block the affected task if the required model or effort is unavailable."
+    "coordinator": "gpt-6.1-sol with reasoning_effort=low",
+    "implementation": "gpt-6-luna with reasoning_effort=max",
+    "test_architecture_and_reviews": "gpt-6.1-sol with reasoning_effort=medium",
+    "product_architecture_and_high_reviews": "gpt-6.1-sol with reasoning_effort=high",
+    "design_escalation": "Use gpt-6.1-sol with reasoning_effort=high for product architecture and API, runtime, safety, dependency, performance, and acceptance decisions. Record the design decision before implementation. Block the affected task if the required model or effort is unavailable."
   }
 }

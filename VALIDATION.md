@@ -18,7 +18,7 @@ Use these labels in every report:
 | Proposed | The condition or command is part of future implementation. |
 | Not run | No execution result exists in this review. |
 
-There is no local `cargo` or `rustc` in this environment. Local Rust compilation, Nextest, Clippy, packaging, PTY probes, and performance measurements did not run. Do not turn a proposed command into a claimed pass.
+The historical review environment had no local `cargo` or `rustc`. Rust compilation, Nextest, Clippy, packaging, PTY probes, and performance measurements did not run in that environment. The current bootstrap must discover available tools. Do not report a proposed command as a pass.
 
 Complete T00, T37, T01, and T38 in that order. T00 records the old tests, harnesses, fixtures, doctests, and source comments as historical evidence. T37 removes their code and nonfunctional comments. T01 inventories the cleaned production source. T38 approves the functional test architecture. A zero-case test command is `NOT VERIFIED` and cannot satisfy acceptance. Follow [TESTING-RULES.md](TESTING-RULES.md) before any test or harness edit.
 
@@ -117,7 +117,7 @@ All production packages must inherit the selected workspace lint policy. The [ro
 
 ## 5. Behavior and external consumer checks
 
-Plan enough scenarios to prove each selected change. Prefer integration scenarios through a real production path and public API. Add an owner-level scenario only when it gives necessary evidence. One scenario may observe both owner and consumer behavior. Do not require a fixed number of tests. Use [COMPONENT-MATRIX.md](COMPONENT-MATRIX.md) and [API-RULES.md](API-RULES.md) to select behavior, not to set a test-count target. Each plan needs independent Sol high review before any test write.
+Plan enough scenarios to prove each selected change. Prefer integration scenarios through a real production path and public API. Add an owner-level scenario only when it gives necessary evidence. One scenario may observe both owner and consumer behavior. Do not require a fixed number of tests. Use [COMPONENT-MATRIX.md](COMPONENT-MATRIX.md) and [API-RULES.md](API-RULES.md) to select behavior, not to set a test-count target. Each plan needs independent Sol medium review before any test write.
 
 | Contract | Required observable behavior |
 |---|---|

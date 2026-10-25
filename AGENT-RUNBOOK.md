@@ -20,18 +20,23 @@ This prohibition applies to the coordinator, every worker, and all nested agents
 
 | Work | Model | Effort | Required independence |
 | --- | --- | --- | --- |
-| Coordinate tasks and integrate reviewed commits | GPT-6.1-Sol | high | The coordinator does not write implementation code. |
+| Coordinate tasks and integrate reviewed commits | GPT-6.1-Sol | low | The coordinator does not write implementation code. |
 | Change Rust, tests, scripts, manifests, or documents | GPT-6 Luna | max | Use a worker with explicit file ownership. |
-| Design test architecture and each task test plan | GPT-6.1-Sol | high | Review the exact scenarios before any test or harness edit. |
-| Review a changed test or harness diff | GPT-6.1-Sol | high | Use a reviewer other than the Luna implementer. |
+| Design test architecture and each task test plan | GPT-6.1-Sol | medium | Review the exact scenarios before any test or harness edit. |
+| Review a test-only diff and verify its declared evidence | GPT-6.1-Sol | medium | Use a reviewer other than the Luna implementer. |
+| Review a testability gap after an escaped issue | GPT-6.1-Sol | medium | Keep product architecture decisions at high effort. |
 | Review a runtime, API, safety, feature, or performance change | GPT-6.1-Sol | high | Use an agent other than the implementer. |
 | Review a bounded page or application change | GPT-6.1-Sol | medium | Escalate to high if shared behavior changes. |
 | Check text, links, or file names after technical acceptance | GPT-6.1-Sol | low | This check cannot replace technical review. |
-| Resolve a required architecture change | GPT-6.1-Sol | high | Record the design decision before implementation. |
+| Resolve a required product architecture change | GPT-6.1-Sol | high | Record the design decision before implementation. |
 | Review the final integrated result | GPT-6.1-Sol | high | Use at least two independent review scopes. |
 
 Use `gpt-6-luna` and `gpt-6.1-sol` as the model IDs when available.
-Use `fork_turns="none"` when the agent API requires it for a model override.
+Set the model and effort fields on every agent call.
+Use a dedicated test profile only when it selects GPT-6.1-Sol with medium effort.
+Otherwise use `agent_type="default"`, `fork_turns="none"`, and explicit model and effort fields.
+Set `model="gpt-6.1-sol"` and `reasoning_effort="medium"` for test assignments.
+Do not use a fixed-effort Rust role as a substitute for these settings.
 Send complete task context with that call.
 Do not rely on inherited conversation context.
 
@@ -107,6 +112,17 @@ T37 does not prove product behavior. Its empty test suite remains unverified.
 Every other behavior change needs its approved functional case.
 A reviewed commit becomes unreviewed if later edits change its affected contract.
 
+## Resume checkpoint
+
+Use `results/run-state.json` in the imported package as the canonical run checkpoint.
+T00 creates the checkpoint after it imports the package into the target checkout.
+Record the SHA-256 plan hash, task states, worktree paths, source and output SHAs, and file locks.
+Record each agent ID, role, model, and effort.
+Record approved test plans, reviewer IDs, evidence paths, blockers, and ready tasks.
+Update the checkpoint after every state, readiness, path, SHA, lock, agent, review, evidence, or blocker change.
+Merge each update into the current record.
+Never reset accepted work to `NOT_STARTED` from the task template.
+
 ## Start a worker
 
 Use this complete instruction template.
@@ -116,14 +132,17 @@ Replace each bracketed field with a real value before the call.
 Model: GPT-6 Luna.
 Effort: max.
 Task: [task ID and complete task text].
+Plan package: [absolute path].
+Target checkout: [absolute path].
+Run-state checkpoint: [absolute path].
 Input commit: [full commit ID].
-Worktree: [absolute path].
+Worker worktree: [absolute path].
 Owned files: [exact paths or bounded directories].
 Required documents: [absolute paths].
 Required findings: [review finding IDs].
 Required tests: [exact cases and commands].
-Approved test-plan ID: [task-scoped record ID, or N/A with Sol high reason].
-Test-plan reviewer: [independent GPT-6.1-Sol high reviewer, or N/A].
+Approved test-plan ID: [task-scoped record ID, or N/A with Sol medium reason].
+Test-plan reviewer: [independent GPT-6.1-Sol medium reviewer, or N/A].
 Required result: [output contract].
 Do not edit files outside the owned set.
 Do not change a shared contract without a recorded design decision.
@@ -162,7 +181,7 @@ Use these fields:
     }
   ],
   "approved_test_plan_id": "task-scoped plan ID or null",
-  "test_plan_reviewer": "independent Sol high agent ID or null",
+  "test_plan_reviewer": "independent Sol medium agent ID or null",
   "test_edit_scope": [],
   "red_evidence": "runtime assertion failure for a known defect or reviewed fault, or null with reason",
   "green_evidence": "same assertion passes after correction or fault removal, or null with reason",
@@ -198,8 +217,8 @@ Do not add secrets or temporary credentials to a record.
 12. Check feature and dependency effects for manifest changes.
 13. Record the decision for that exact output commit.
 
-Use high effort when the change affects an API or shared contract.
-A medium review must not approve an unplanned architecture change.
+Use high effort when a product change affects an API or shared contract.
+A medium test-only review must not approve a product architecture change.
 Return that change for a high-effort review.
 
 Do not accept a weaker assertion as a fix for a failing test.
@@ -244,8 +263,10 @@ Fetch the current CI result before the final report.
 
 A functional scenario exposes a possible product issue.
 Stop test edits. Collect source evidence.
-Use GPT-6.1-Sol high for gap analysis and conceptual redesign before writing or refactoring tests.
-Give the architect these inputs:
+Use GPT-6.1-Sol medium for testability-gap analysis before writing or refactoring tests.
+If only the test plan must change, revise it and request medium review.
+If product architecture must change, use GPT-6.1-Sol high before test edits resume.
+Give the product architect these inputs:
 
 1. The current approved contract.
 2. The exact source and test evidence.
@@ -253,14 +274,14 @@ Give the architect these inputs:
 4. The affected public API and consumers.
 5. The migration and verification cost.
 
-Ask GPT-6.1-Sol high to select and describe one design.
+Ask GPT-6.1-Sol high to select and describe one product design.
 Record that decision in `ARCHITECTURE.md`.
 Update the affected task and acceptance cases.
 Then assign the implementation to Luna.
 
-Until GPT-6.1-Sol high resolves the design question, keep the affected task blocked.
+Keep the task blocked only while a required product architecture decision remains unresolved.
 Continue other ready tasks.
-Do not let a lower-effort agent silently change the design.
+Do not let a lower-effort agent change product architecture.
 
 ## Communication and external actions
 

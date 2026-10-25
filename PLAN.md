@@ -83,7 +83,7 @@ Start a ready task as soon as its files and review capacity are available.
 | Stream | Tasks | Order and exit condition |
 | --- | --- | --- |
 | Cleanup and test architecture | T00, T37, T01, T38 | Capture old evidence. Remove old test code. Inventory cleaned source. Approve test architecture. |
-| Gate and reference preparation | T02, T03, T04 | Start after T38. Require task-scoped Sol high review before every test or harness edit. |
+| Gate and reference preparation | T02, T03, T04 | Start after T38. Require task-scoped Sol medium review before every test or harness edit. |
 | Dependency structure | T03, T05, T06 | Fix pure builds, then facade features, then enforce edges and lint inheritance. |
 | Application ownership | T07, T08 | T08 can follow T06. T07 also needs composition and theme contracts. |
 | Shared runtime and API | T09, T10, T11 | Fix response and frame rules. Then work on composition and theme in parallel. |
@@ -168,19 +168,20 @@ A worker must not select a conflicting design.
 The exact API shapes are in [API-RULES.md](API-RULES.md).
 The dependency ceilings and feature table are in [ARCHITECTURE.md](ARCHITECTURE.md).
 The functional proof rules are in [TESTING-RULES.md](TESTING-RULES.md).
-If a source constraint prevents a selected design, use the escalation process.
+If a source constraint prevents a selected product design, use product design escalation.
+Test architecture and test-only decisions follow [TESTING-RULES.md](TESTING-RULES.md).
 Never use any Astra model for any task or scenario.
 Give GPT-6.1-Sol high the concrete conflict and smallest proposed correction.
-Keep the affected task blocked until GPT-6.1-Sol high records the design decision.
+Keep the affected task blocked until GPT-6.1-Sol high records the product design decision.
 Do not let a worker invent another architecture.
 
 ## 6. Parallel work and file ownership
 
-Use GPT-6.1-Sol high as the coordinator.
+Use GPT-6.1-Sol low as the coordinator.
 Use GPT-6 Luna max for every implementation and correction.
 Use independent GPT-6.1-Sol reviewers at each task's stated effort.
-Use an independent Sol high reviewer before each test or harness edit.
-Use a separate reviewer for the completed test or harness diff.
+Use an independent Sol medium reviewer before each test or harness edit.
+Use a separate Sol medium reviewer for the completed test or harness diff.
 Use Sol low only for text and link checks after technical acceptance.
 
 The coordinator must dispatch complete child tasks.
