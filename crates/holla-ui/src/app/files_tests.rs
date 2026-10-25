@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use super::*;
 use crate::sim::{FileEntry, FilesError, FilesSnapshot};
 use termrock::{Axis, Dialog, ItemKey, KeyCode, PartRef, Theme};
