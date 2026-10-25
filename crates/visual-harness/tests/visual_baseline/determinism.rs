@@ -59,6 +59,9 @@ type ScanResult = (Vec<String>, ReviewedPatternLocations, usize);
 #[path = "rust_source.rs"]
 mod rust_source;
 
+#[path = "shared_dialog_action_id.rs"]
+mod shared_dialog_action_id;
+
 use rust_source::matching_patterns_checked;
 
 pub(super) fn non_test(text: &str) -> Result<String, String> {
@@ -75,7 +78,7 @@ pub(super) fn code_only(text: &str) -> String {
 pub(super) fn shared_dialog_action_id_projection_ranges(
     source: &str,
 ) -> Result<Vec<std::ops::Range<usize>>, String> {
-    rust_source::shared_dialog_action_id_projection_ranges(source)
+    shared_dialog_action_id::shared_dialog_action_id_projection_ranges(source)
 }
 
 fn matching_pattern_offsets(code: &str, pattern: &str) -> Vec<usize> {
