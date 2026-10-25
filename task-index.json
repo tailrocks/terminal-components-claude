@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "title": "Termrock pull request 38 implementation tasks",
+  "title": "Termrock pull request 38 completion plan with 39 tasks",
   "planning_source": {
     "target": "e08ac57d10ae54c87337eae0be08b1f5e8f4bda4",
     "reference": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
@@ -13,12 +13,13 @@
   "tasks": [
     {
       "id": "T00",
-      "title": "Fix the source inputs and install the rules",
+      "title": "Capture source, legacy evidence, and approved rules",
       "deps": [],
       "review": "high",
       "owners": [
         "docs/implementation/pr38-final/",
-        "AGENTS.md"
+        "AGENTS.md",
+        "T00 source and legacy-evidence records under results/"
       ],
       "findings": [
         "F20"
@@ -27,16 +28,23 @@
         "Fetch both pull request heads through the GitHub connection. Record the target, reference, base, and common-ancestor commit IDs.",
         "Compare the current heads with the review IDs. Recheck each finding whose source changed.",
         "Read root AGENTS.md, CLAUDE.md, current product contracts, and applicable directory instructions.",
-        "Copy this package to docs/implementation/pr38-final/. Add the root links from AGENTS.patch without removing existing rules.",
+        "Copy this package to docs/implementation/pr38-final/. Add approved root links without removing existing rules.",
+        "Record every current CI failure, test inventory, harness, fixture, doctest, and comment directive before deletion.",
+        "Record production build failures from current CI logs. Do not run legacy test code.",
+        "Hash every captured test-related file and record its source commit and path.",
+        "Record production diagnostics, CLI help attributes, legal notices, generated files, and required parser, lint, and shebang directives.",
         "Create separate source worktrees. Keep the reference worktree read-only. Record the integration branch and starting commit.",
         "Install the pinned tools through mise. Record rustc, cargo, nextest, toolchain, and dependency-lock versions.",
-        "Create a result record with the source IDs, tool versions, model assignments, and review limits."
+        "Create a result record with source IDs, tool versions, model assignments, and review limits."
       ],
       "cases": [
         "The source record uses complete commit IDs and matches the fetched branch heads.",
         "The root AGENTS links resolve. The existing rules remain present.",
         "A changed target finding has a fresh source check. An unchanged finding retains its original evidence.",
-        "No source or snapshot change occurs during reference preparation."
+        "Current production build failures are recorded without running legacy test code.",
+        "The legacy inventory includes every language, test target, test function, harness, fixture, doctest, and test-only dependency.",
+        "The directive inventory identifies each comment that parsers, linters, shells, licenses, or generators require.",
+        "No Termrock source, test, harness, fixture, CI, or snapshot file changes in T00."
       ],
       "commands": [
         "git status --short",
@@ -44,7 +52,8 @@
         "git merge-base 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948 e08ac57d10ae54c87337eae0be08b1f5e8f4bda4",
         "mise install",
         "rustc --version --verbose",
-        "cargo nextest --version"
+        "cargo nextest --version",
+        "git ls-files | rg '(^|/)(tests?|fixtures?)(/|$)|\\.rs$|\\.py$|\\.sh$|\\.toml$'"
       ],
       "accept": "The source and model records are complete. The rules are installed. Required unavailable tools have explicit blocked gates.",
       "children": [
@@ -52,7 +61,7 @@
         "Use a second Luna worker for the plan import and root links.",
         "Review both records before any Rust task starts."
       ],
-      "status": "READY",
+      "status": "NOT_STARTED",
       "implementer": {
         "model": "gpt-6-luna",
         "effort": "max"
@@ -65,9 +74,9 @@
     },
     {
       "id": "T01",
-      "title": "Create one complete requirement and API inventory",
+      "title": "Create one complete requirement and API inventory after cleanup",
       "deps": [
-        "T00"
+        "T37"
       ],
       "review": "high",
       "owners": [
@@ -83,14 +92,16 @@
       ],
       "steps": [
         "Use the current source to list production crates, public exports, component definitions, aliases, state types, actions, and builders.",
+        "Use T00's immutable records for deleted test targets, failures, comment directives, source hashes, and workload definitions.",
+        "Do not invoke a deleted test, harness, fixture, doctest, or test-only helper.",
         "Preserve W01 through W45. Add IDs for omitted reusable components. Record each implementation owner and each public re-export separately.",
         "Include RadioField, Note, TextSection, SelectField, Table, CompletingCodeEditor, FormDialog, AppShell, MasterDetail, SplitBlock, Notice, DerivedHintBar, and TextReport.",
         "Map every one of the 54 reference routes to its current factory, shared components, and required behaviors.",
         "Read the retained architecture and application migration records. Give each required historical item a current source and task disposition.",
         "Use KEEP, ADAPT, RETIRE, or UNRESOLVED for each item. RETIRE needs a concrete conflict or replacement and a review decision.",
-        "Classify the 4,511 coverage rows. Separate alias, nonvisual value, executable behavior, test-only API, and product-specific public paths.",
-        "Correct stale route and NULL-sort claims. Preserve historical evidence records instead of rewriting them as current results.",
-        "Record current release performance workloads before implementation. Keep failures and missing baselines visible for T33."
+        "Reclassify the 4,511 historical coverage rows as requirements, not active tests. Separate aliases, values, behavior, removed test APIs, and product paths.",
+        "Correct stale route and NULL-sort claims. Preserve historical records instead of rewriting them as current results.",
+        "Rebuild performance workload definitions from T00. Keep missing measurements visible for T33."
       ],
       "cases": [
         "No W ID is removed or reused. PropsList and ScrollRegion record their actual definition owners.",
@@ -99,8 +110,8 @@
         "An intentionally removed export causes the inventory check to fail until its migration row changes."
       ],
       "commands": [
-        "python3 tools/acceptance_architecture.py --help",
-        "cargo run --locked -p termrock-xtask -- check-ownership --format json"
+        "cargo metadata --locked --format-version 1 --no-deps",
+        "git status --short"
       ],
       "accept": "The inventory covers current source and retained requirements. Every unresolved requirement has a named task and blocks final completion.",
       "children": [
@@ -121,50 +132,51 @@
     },
     {
       "id": "T02",
-      "title": "Repair stale gate inputs and record every current CI failure",
+      "title": "Rebuild functional gate inputs and record historical CI failures",
       "deps": [
-        "T00"
+        "T00",
+        "T38"
       ],
       "review": "high",
       "owners": [
-        "tools/test-inventory/",
-        "tools/test_perf_workflow.py",
+        "tools/acceptance_policy.json",
+        "tools/acceptance_architecture.py",
         "crates/termrock-xtask/src/ownership/",
-        "crates/termrock-xtask/tests/",
-        "crates/visual-harness/tests/visual_baseline/overlay_sites.rs"
+        "integration/functional/gates/",
+        "result records for historical CI failure migration"
       ],
       "findings": [
         "F01",
         "F18"
       ],
       "steps": [
-        "Fetch every job page for the current-head CI run. Reproduce the six package failure groups from REVIEW.md.",
-        "Record visual failures as unchanged baseline failures until their implementation task corrects them. Do not change expected bytes.",
-        "Replace obsolete junie-tui and xtask package profiles with current packages and explicit feature profiles.",
-        "Repair the ownership scanner for extracted test modules and generated source classification. Preserve real production findings.",
-        "Inspect all 13 overlay findings from the reviewed run. Classify test-only helpers and the two production disk functions separately.",
-        "Give each real overlay site its shared-layer implementation and exact inventory entry. Do not add a broad exemption.",
-        "Replace the deleted perf.yml assumption with checks against the maintained generator inputs and generated CI plan.",
-        "Add negative controls for a missed production site, a test-only helper, an obsolete package profile, and a hidden command failure.",
-        "Assign each remaining implementation failure to T11, T19, T27, T28, T29, or another exact owner task."
+        "Fetch current-head CI records. Preserve the reviewed failures as historical evidence in T00's source record.",
+        "Reproduce required behavior failures through task-scoped functional cases from T38 and independent Sol high review.",
+        "Do not copy old test names or assertions. Do not change expected bytes to hide a behavior difference.",
+        "Replace obsolete package profiles with current production consumers and approved feature configurations.",
+        "Rebuild ownership checks around production source and approved functional modules. Keep real production findings visible.",
+        "Inspect all 13 historical overlay findings. Separate test-only helpers from the two production disk functions.",
+        "Give each production overlay site its shared-layer implementation and functional case. Do not add a broad exemption.",
+        "Replace the deleted workflow assumption with checks against maintained generator inputs and generated CI plans.",
+        "Add reviewed gate cases for a missed production site, an invalid feature profile, and a hidden command failure.",
+        "Assign each remaining implementation issue to T11, T19, T27, T28, T29, or another exact owner task."
       ],
       "cases": [
-        "The scanner ignores an isolated test helper but detects the same operation in production code.",
-        "The inventory rejects an unknown package and a zero-test profile.",
-        "The performance workflow test executes its assertions instead of failing during setup.",
-        "Genuine ownership and visual defects remain failed until their owner task corrects them."
+        "Reviewed functional probes detect a production overlay and ignore unowned external test data.",
+        "The gate rejects an unknown package, an empty required case set, and a hidden command failure.",
+        "Gate execution reaches its runtime assertions instead of failing during setup.",
+        "Historical ownership and visual findings remain visible until reviewed functional evidence closes them."
       ],
       "commands": [
-        "PYTHONDONTWRITEBYTECODE=1 python3 tools/test_perf_workflow.py",
-        "PYTHONDONTWRITEBYTECODE=1 python3 tools/test-inventory/test_inventory.py",
-        "cargo nextest run --locked -p termrock-xtask --all-features",
-        "cargo nextest run --locked -p visual-harness -E 'test(overlay_sites)'"
+        "cargo metadata --locked --format-version 1 --no-deps",
+        "cargo run --locked -p termrock-xtask -- check-ownership --format json",
+        "cargo nextest run --locked --workspace --all-features"
       ],
       "accept": "Gate inputs describe the current workspace. Every original failure has an exact disposition. This task does not require unrelated visual fixes to finish.",
       "children": [
-        "Split stale Python inputs, ownership scanning, and overlay inventory into separate Luna tasks.",
-        "Give each worker its own source and test files.",
-        "Use a Sol high reviewer to check that genuine failures remain visible."
+        "Split production ownership policy and functional gate scenarios into separate Luna tasks.",
+        "Give each task an approved test-plan ID before test edits.",
+        "Use an independent Sol high reviewer for each test or harness diff."
       ],
       "status": "NOT_STARTED",
       "implementer": {
@@ -181,7 +193,8 @@
       "id": "T03",
       "title": "Remove backend leakage from pure library configurations",
       "deps": [
-        "T01"
+        "T01",
+        "T38"
       ],
       "review": "high",
       "owners": [
@@ -203,7 +216,7 @@
         "Keep TestBackend dependencies under dev-dependencies when production code does not use them.",
         "Disable backend defaults on internal library edges. Let the session adapter request backend conversion explicitly.",
         "Keep framework key and modifier types public. Preserve Press and Repeat conversion and Release rejection.",
-        "Create detached leaf probes under the existing consumer test structure. Give each probe one direct production dependency.",
+        "Create reviewed detached leaf scenarios under integration/functional/. Give each probe one direct production dependency.",
         "Run separate no-default, default, each-feature, and all-supported-feature builds. Save each resolved dependency graph."
       ],
       "cases": [
@@ -216,7 +229,7 @@
       "commands": [
         "cargo check --locked -p termrock-runtime --lib --no-default-features",
         "cargo check --locked -p termrock-core --lib --no-default-features",
-        "cargo nextest run --locked -p termrock-core --all-features",
+        "cargo nextest run --locked --workspace --all-features",
         "cargo check --locked --workspace --all-targets"
       ],
       "accept": "Every declared leaf configuration passes in an isolated consumer. Dependency graphs prove the selected backend boundary.",
@@ -241,11 +254,13 @@
       "title": "Prepare a source-bound visual reference candidate",
       "deps": [
         "T00",
-        "T01"
+        "T01",
+        "T38"
       ],
       "review": "high",
       "owners": [
-        "tools/frozen_baseline.py and its tests when a shared runner extension is required",
+        "A production capture tool only if T00 proves an active production use",
+        "Approved functional capture code under integration/functional/",
         "new reference-candidate manifests under the declared evidence root",
         "baselines/oracle/ORACLE.toml only after the required approval"
       ],
@@ -254,9 +269,10 @@
       ],
       "steps": [
         "Preserve the immutable annotated visual-baseline tag, its snapshot bytes, and the tuiscotti pin.",
-        "Create a separate capture candidate from the fixed pull request 26 source. Record source, lockfile, harness, binary, and environment hashes.",
-        "Derive the required case set from the current reference harness and COMPONENT-MATRIX.md. Retain every registered required scenario.",
-        "Include all 54 route identities and the four applications' required journeys. Add semantic assertions for named modal, inspector, selection, and dirty states.",
+        "Keep a legacy capture runner only if T00 proves a production use. Remove its old test harness under T37.",
+        "Create a separate capture candidate from the fixed pull request 26 source. Record source, lockfile, binary, and environment hashes.",
+        "Derive the required case set from T00's archived inventory and COMPONENT-MATRIX.md. Do not execute deleted harness targets.",
+        "Include all 54 route identities and the four applications' required journeys. Specify semantic states through public application entry points.",
         "Run the reference twice with fixed input, size, color, seed, and clock. Reject nondeterministic frames or checkpoint order.",
         "Record each output cell, attribute, cursor field, semantic state, and case identity. Keep screenshots as review views.",
         "Classify defects and missing reference states with a named product rule. Do not silently approve a defective historical state.",
@@ -271,14 +287,14 @@
         "The report separates current reference, historical baseline, and candidate application output."
       ],
       "commands": [
-        "python3 tools/frozen_baseline.py --help",
-        "python3 tools/test_frozen_baseline.py"
+        "Use the exact production CLI invocations recorded by T00.",
+        "Do not run a legacy capture tool or test harness."
       ],
       "accept": "A complete reference candidate and its review exist. Required promotion must be authorized and complete. Otherwise, keep T04 BLOCKED.",
       "children": [
-        "Split case inventory, capture execution, and semantic assertion preparation.",
+        "Split case inventory, real CLI capture, and semantic assertion preparation.",
         "Run captures alone on the selected capture host.",
-        "Give the independent reviewer the complete manifest and sample set."
+        "Require task-scoped Sol high review before every new harness or assertion edit."
       ],
       "status": "NOT_STARTED",
       "implementer": {
@@ -502,7 +518,7 @@
         "Domain package dependency graphs contain no session, widget family, or facade dependency.",
         "Domain tests run without terminal setup or UI state.",
         "UI adapters preserve row IDs, draft values, and pending edits across data replacement.",
-        "Secret wipe and redaction tests remain effective.",
+        "Secret wiping and redaction remain effective through approved public behavior scenarios.",
         "No live database, host cleanup, process launch, or external network effect enters a demonstration."
       ],
       "commands": [
@@ -1032,7 +1048,7 @@
         "Sort, filter, and projection changes preserve surviving semantic identities.",
         "A 100,000-row grid reads only the visible or explicitly sampled range.",
         "Horizontal and vertical scrollbars keep valid geometry after resize.",
-        "TablePro's existing NULLS-last behavior remains in its domain tests."
+        "TablePro's NULLS-last behavior remains in the domain owner and has an approved functional case."
       ],
       "commands": [
         "cargo nextest run --locked -p termrock-grid --all-features",
@@ -1713,7 +1729,7 @@
         "F01"
       ],
       "steps": [
-        "Map every retained Holla requirement to current source and a journey test.",
+        "Map every retained Holla requirement to current source and an approved journey scenario.",
         "Use shared controls, navigation, grids, forms, overlays, shell, and clipboard outcomes.",
         "Remove app-local copies of shared selection, focus, row paint, scroll, and leave behavior.",
         "Keep catalog ranking, plan validation, target facts, effect policy, and simulation in Holla owners.",
@@ -1730,7 +1746,7 @@
         "Wrong confirmation text does not expose the expected secret or approval phrase.",
         "Prompt wait, pause, stop, and resume produce correct task duration.",
         "Shared key, dirty-leave, clipboard, modal, and narrow-screen cases pass.",
-        "Historical replay and current visual tests pass without a blanket expected-byte change."
+        "Historical replay and current visual scenarios pass without a blanket expected-byte change."
       ],
       "commands": [
         "cargo nextest run --locked -p holla-domain -p holla-catalog -p holla-plan -p holla-sim",
@@ -1799,7 +1815,7 @@
         "Secret fields remain masked in view, copy, logs, and diagnostics.",
         "Manager and Capsule pages have exact reference frames and real action assertions.",
         "Small terminals preserve access to required actions and dismissal.",
-        "All existing named timing and RunId tests pass at the final task commit."
+        "Named timing and RunId behavior has approved scenarios and passes at the final task commit."
       ],
       "commands": [
         "cargo nextest run --locked -p jackin-preview-domain -p jackin-preview-sim -p jackin-preview-presentation",
@@ -1859,7 +1875,7 @@
         "Keep result grids read-only where the application contract requires it.",
         "Correct the history-tab visual failure without changing an approved expectation.",
         "Keep all database work simulated. Do not connect to an external database.",
-        "Update stale documentation only after fresh named tests pass."
+        "Update stale documentation only after fresh approved behavior cases pass."
       ],
       "cases": [
         "NULL sorts last in both directions for typed comparisons.",
@@ -1875,7 +1891,7 @@
         "cargo nextest run --locked -p tablepro-ui -p tablepro --all-features",
         "cargo run --locked -p tablepro -- --help"
       ],
-      "accept": "TablePro uses shared UI components and retains its tested domain semantics and visual behavior.",
+      "accept": "TablePro uses shared UI components and retains its domain semantics and visual behavior.",
       "children": [
         "Split domain/order checks, UI adoption, and journey tests.",
         "Keep draft/edit transaction state with one owner.",
@@ -2060,7 +2076,7 @@
       "steps": [
         "Add isolated features, external consumers, package checks, performance work bounds, and complete visual tiers to the generated CI plan.",
         "Use existing inventory and architecture tools. Preserve source, archive, receipt, and binary identity checks.",
-        "Keep ordinary tests separate from ignored real-CLI visual scenarios.",
+        "Keep approved functional scenarios separate from real-CLI visual scenarios.",
         "Reject empty filters, missing reports, missing required artifacts, stale heads, and hidden shell pipeline failures.",
         "Run expensive visual cases in deterministic chunks with complete case and checkpoint accounting.",
         "Make the required verdict include every applicable gate.",
@@ -2312,7 +2328,9 @@
         "T32",
         "T33",
         "T34",
-        "T35"
+        "T35",
+        "T37",
+        "T38"
       ],
       "review": "high",
       "owners": [
@@ -2370,11 +2388,163 @@
         "effort": "high"
       },
       "task_document": "TASKS.md#t36"
+    },
+    {
+      "id": "T37",
+      "title": "Remove legacy tests and nonfunctional source comments",
+      "deps": [
+        "T00"
+      ],
+      "review": "high",
+      "owners": [
+        "Candidate test functions, test modules, test targets, harnesses, fixtures, and doctests across all languages.",
+        "Test-only helpers, dependencies, package entries, and lockfile entries that become unused.",
+        "CI generator inputs that cite removed targets.",
+        "Generated output only through its declared generator.",
+        "Nonfunctional source and code comments identified by T00.",
+        "`docs/contracts/safety-invariants.md` and narrow active-document citations mapped by T00.",
+        "The T37 cleanup record under `results/`."
+      ],
+      "findings": [
+        "F01",
+        "F18",
+        "F20"
+      ],
+      "steps": [
+        "Use T00's complete inventory, source hashes, failure records, and directive list.",
+        "Delete every legacy test function, test module, test target, harness, fixture, and doctest from the candidate.",
+        "Remove orphaned test helpers, dependencies, package entries, and CI citations.",
+        "Remove all nonfunctional line, block, documentation comments, and docstrings across languages.",
+        "Move required safety rationale and API prose into maintained contracts or Markdown.",
+        "Remove active documentation citations to deleted test targets or label immutable source links as historical.",
+        "Preserve legal notices, SPDX identifiers, parser and linter directives, shell shebangs, and required generated directives.",
+        "Keep required CLI help in command attributes. Keep production-owned diagnostics in production code.",
+        "Preserve production generated output byte-for-byte. Regenerate managed CI output after input changes.",
+        "Preserve all production behavior, public requirements, immutable references, tags, and approved oracle evidence.",
+        "Do not add a test, harness, fixture, doctest, snapshot, or replacement gate.",
+        "If an active linter requires a deleted comment, stop that path and request a Sol high design decision.",
+        "Do not add blanket lint exceptions to pass cleanup.",
+        "Record every removed path, orphan dependency, retained directive, generated hash, and unresolved behavior obligation."
+      ],
+      "cases": [
+        "T00's inventory reconciles with every removed test and harness path.",
+        "No nonfunctional source comment or docstring remains outside the declared exceptions.",
+        "No legacy test target, test function, test module, harness, fixture, or doctest remains active.",
+        "No active generator input or CI plan cites a removed test target.",
+        "Cleanup adds no production build failure against the T00 baseline.",
+        "A pre-existing build failure stays assigned to its owner task. It does not block unrelated cleanup.",
+        "Generated production files remain byte-identical. Managed CI output matches its declared generator inputs.",
+        "Legal, SPDX, parser, linter, shebang, and generated directives remain valid.",
+        "Required CLI help and production diagnostics remain available.",
+        "Production behavior and required public APIs remain present.",
+        "An empty test selection is reported as `NOT VERIFIED`, never as a pass.",
+        "T37 adds no replacement test or harness."
+      ],
+      "commands": [
+        "git diff --check",
+        "rg -n '#\\[(test|cfg\\(test\\))\\]|doctest|test-inventory|visual-harness' --glob '!docs/implementation/pr38-final/**'",
+        "cargo metadata --locked --format-version 1 --no-deps",
+        "cargo check --locked --workspace --all-targets --all-features",
+        "mise exec -- velnor-actions generate"
+      ],
+      "accept": "Structural deletion, generator output, and build changes pass review against T00. Product behavior remains unverified until approved functional cases run.",
+      "children": [
+        "Split language-specific deletion by disjoint paths.",
+        "Keep one Luna owner for shared manifests, lockfile changes, and CI generator inputs.",
+        "Use an independent Sol high reviewer for the full deletion and build evidence.",
+        "Do not start T38 or any test-writing task before T37 is accepted."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t37"
+    },
+    {
+      "id": "T38",
+      "title": "Approve the functional test architecture",
+      "deps": [
+        "T01"
+      ],
+      "review": "high",
+      "owners": [
+        "`results/test-architecture-design.json`",
+        "`results/test-architecture.json`",
+        "Test architecture records owned by this task"
+      ],
+      "findings": [
+        "F01",
+        "F14",
+        "F18",
+        "F20"
+      ],
+      "steps": [
+        "Ask Sol high to derive required behavior from public contracts, production entry points, T01's inventory, and COMPONENT-MATRIX.md.",
+        "Require the architect to record case shape, oracle, fault model, environment, and limits before Luna writes the manifest.",
+        "Prefer integration/functional scenarios. Use an existing owner seam when the source requires it.",
+        "Do not create a parallel test framework without a named source constraint and Sol high decision.",
+        "Prefer real user scenarios through production APIs and observable output.",
+        "Specify positive, negative, boundary, and recovery cases for each required behavior.",
+        "Name the production entry point, public API, observable result, independent oracle, and controlled environment for each case.",
+        "Use realistic controlled dependencies and faults at unowned external boundaries.",
+        "Never mock Termrock-owned production code. Use an external double only with a reviewed reason and fidelity record.",
+        "Define deterministic setup, inputs, clock, seed, tool versions, cleanup, and repeat rules.",
+        "Define red as a runtime assertion failure for a known defect or reviewed realistic fault.",
+        "Define green as the same assertion passing after correction or fault removal. Compiler or setup failures are not red evidence.",
+        "Record only the declared cases, source, tools, and environment as green. Do not claim absolute correctness.",
+        "Allow test-only timing or performance counters only as supplemental evidence under an approved contract.",
+        "Treat test count as inventory, not as a success metric.",
+        "Require an independent Sol high review of every task-specific test plan before test edits.",
+        "If a scenario exposes a product gap, stop test edits. Require Sol high gap analysis and conceptual redesign first.",
+        "Keep T38 approval scoped to architecture. It does not approve later test changes."
+      ],
+      "cases": [
+        "Every required component, route, application journey, API contract, and gate has a proposed functional case or a named open disposition.",
+        "Each case uses a production entry point and observes public behavior.",
+        "Positive, negative, boundary, and recovery cases cover the stated behavior.",
+        "Each oracle can detect an incorrect result without reusing the implementation's internal decision.",
+        "No case mocks Termrock-owned production code.",
+        "Any external double has a reviewed reason and fidelity statement.",
+        "Environment and deterministic repeat rules make results independently reproducible.",
+        "Red and green evidence use the same runtime assertion and declared environment.",
+        "Missing, skipped, unselected, or setup-failed cases cannot report green.",
+        "The architecture record names the Sol high architect, independent reviewer, and exact reviewed manifest hash.",
+        "Luna writes the manifest only after the Sol high design decision exists.",
+        "T38 adds no test, harness, fixture, doctest, or production change."
+      ],
+      "commands": [
+        "git diff --check",
+        "python3 -m json.tool docs/implementation/pr38-final/results/test-architecture.json"
+      ],
+      "accept": "The Sol high reviewers approve the complete architecture and manifest. Test or harness edits remain blocked until each later task receives its own review.",
+      "children": [
+        "Use a Sol high architect to make and record the test design decision from T01's inventory.",
+        "Use one Luna max worker to record the approved decision in the case manifest.",
+        "Use a different Sol high reviewer to accept the written record before any test edit.",
+        "Do not edit tests, harnesses, fixtures, or product source in T38."
+      ],
+      "status": "NOT_STARTED",
+      "implementer": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "reviewer": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "task_document": "TASKS.md#t38"
     }
   ],
   "model_policy": {
     "astra_prohibited": true,
     "prohibition_scope": "All Astra models and variants; every task, scenario, fallback, and agent depth. No exceptions.",
-    "design_escalation": "Use gpt-6.1-sol with reasoning_effort=\"high\". Record the design decision before implementation. Block the affected task if the required model or effort is unavailable."
+    "design_escalation": "Use gpt-6.1-sol with reasoning_effort=\"high\". Record the design decision before implementation. Block the affected task if the required model or effort is unavailable.",
+    "test_architecture": "gpt-6.1-sol with high effort; an independent design review precedes each task-scoped test or harness edit",
+    "test_implementation": "gpt-6-luna with max effort; no Astra models or variants"
   }
 }

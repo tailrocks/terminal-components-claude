@@ -9,7 +9,7 @@ Use pull request 26, branch `design/interaction-polish`, for appearance and inte
 Build a library of reusable components, widgets, blocks, and support functions.
 Give each crate one clear responsibility.
 Give users useful defaults and direct ways to change behavior and appearance.
-Keep advanced capabilities that have a valid consumer and a test.
+Keep advanced capabilities that have a valid consumer and approved functional evidence.
 
 Use the existing runtime and component contracts as the starting point.
 Correct poor boundaries and repeated behavior.
@@ -17,7 +17,7 @@ Replace a design only when a named defect requires replacement.
 Do not create a second component framework.
 
 Read the complete plan at `docs/implementation/pr38-final/`.
-Start with `README.md`, `REVIEW.md`, `ARCHITECTURE.md`, and `API-RULES.md`.
+Start with `README.md`, `REVIEW.md`, `ARCHITECTURE.md`, `API-RULES.md`, and `TESTING-RULES.md`.
 Then execute `PLAN.md` and every task in `TASKS.md`.
 Use `COMPONENT-MATRIX.md` and `VALIDATION.md` as completion requirements.
 
@@ -29,7 +29,9 @@ The planning review used these commits:
 - Pull request 26: `5b3dbd7ae799f325efbb4f4cc11b2f5518dec948`.
 - Common ancestor: `cc14dd6beae526884aabdf897e309be837b4f504`.
 
-Execute T00 before code changes.
+Execute T00 as a read-only source capture, except for importing the approved instruction rules.
+Execute T37 as the first Termrock source change.
+Complete T01 after T37. Complete T38 after T01 and before implementation work.
 Fetch both current pull request heads.
 Record the new IDs and their differences from these IDs.
 Recheck every affected finding.
@@ -39,7 +41,10 @@ Do not overwrite current user work.
 Use one integration branch for pull request 38.
 Use separate worker worktrees when tasks can run at the same time.
 Do not merge pull request 26 as a whole.
-Port selected behavior with tests and a source record.
+Port selected behavior with approved functional probes and a source record.
+Remove the legacy test suites, harnesses, fixtures, doctests, and nonfunctional code comments before implementation.
+Do not write replacement tests or harnesses before T38 and task-scoped independent design review.
+Preserve historical source, tags, immutable references, and approved oracle evidence outside the active suite.
 
 ## Prohibited model
 
@@ -69,6 +74,9 @@ Use these model IDs when the environment exposes them:
 - Reviewer and coordinator: `gpt-6.1-sol`.
 - Design escalation: `gpt-6.1-sol`, `reasoning_effort="high"`.
 
+Use GPT-6.1-Sol high for T38 and every task-scoped test architecture review.
+Use GPT-6 Luna max for every test implementation and test documentation change.
+
 If the required model is unavailable, record the affected task as blocked.
 Continue independent tasks whose required models are available.
 Do not silently select another model.
@@ -95,6 +103,9 @@ Give each worker these items:
 5. The exact test cases and completion gates.
 6. The required model and effort.
 7. The output record format.
+
+Record the approved test-plan ID and independent reviewer in each test-writing task prompt and result.
+T38 approves the test architecture only. It does not approve every later test change.
 
 Require a small commit for each verified change.
 Review that exact commit.
@@ -140,7 +151,7 @@ Keep existing approved files unchanged until the required approval exists.
 Compare the reference and candidate under the same inputs.
 Use real CLI processes for application visual acceptance.
 Compare every cell, attribute, cursor field, and named checkpoint.
-Also test behavior through semantic assertions.
+Also prove behavior through approved semantic assertions.
 A matching image does not prove keyboard, pointer, copy, or validation behavior.
 
 Preserve all 54 Showcase routes.
@@ -151,7 +162,10 @@ Keep domain safety and simulation limits.
 ## Work order
 
 Follow the dependency graph in `PLAN.md` and `task-index.json`.
-First repair the gates and establish source ownership.
+First run T00 and capture all source and legacy test evidence without source changes.
+Run T37 as the first Termrock source change. Remove all legacy test code and nonfunctional code comments.
+Then run T01 and T38. Start implementation only after the reviewed test architecture passes.
+Require an independent Sol high review of each task-specific test design before test edits.
 Then fix feature isolation and crate boundaries.
 Then complete shared contracts and component behavior.
 Then complete pages and application consumers.
@@ -169,6 +183,14 @@ Record changed paths, commands, selected test count, result, and reviewer decisi
 Keep a failed test visible until its cause has a verified correction.
 A successful command with zero selected tests is not a pass.
 A test name or source comment is not a test result.
+Treat tests as evidence. Do not use test count as a success measure.
+Use integration-first scenarios through production entry points and public APIs.
+Do not mock Termrock-owned code. Use an external double only with reviewed reason and fidelity.
+Red means a deterministic runtime assertion fails on the baseline.
+Green means the same assertion passes after the correction.
+A compiler or setup failure is not red evidence.
+Report green only for declared cases, source, tools, and environment.
+Do not claim absolute correctness from a finite test set.
 
 Check the final resolved dependency graph.
 Build production libraries without any application source.
@@ -178,14 +200,17 @@ Test selected leaf crates directly.
 Test unpacked package content through an isolated registry fixture.
 
 Use the checked-out toolchain and pinned tools.
-Use `cargo nextest` for the repository's test targets.
+Use `cargo nextest` for approved functional scenarios.
+Prefer `integration/functional/`; use an existing owner seam when the source needs it.
+Use GPT-6 Luna max for every implementation. Use GPT-6.1-Sol high for test architecture.
+If a functional case exposes a product issue, stop test edits. Ask Sol high for gap analysis and conceptual redesign.
 Respect generated CI ownership.
 Change generator inputs and regenerate managed output.
 Do not patch generated workflows by hand.
 
 ## Required result
 
-Finish all required tasks in `TASKS.md`.
+Finish all 39 required tasks in `TASKS.md`.
 Link the API rules from root `AGENTS.md`.
 Update current project documents to match the verified result.
 Provide migration instructions and complete executable examples.
@@ -203,6 +228,8 @@ The report must cover these independent results:
 - Required CI and review status.
 
 Keep the goal open while a required result is blocked or failed.
+An empty test suite is an unverified migration state, never a passing result.
+Green results apply only to declared cases and environments.
 Do not claim completion from a build alone.
 Do not publish a package, merge a pull request, or send a message without current user authorization.
 

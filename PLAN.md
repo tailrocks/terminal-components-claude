@@ -13,22 +13,29 @@ Do not remove advanced behavior only to shorten the implementation.
 Keep one implementation owner for each shared behavior.
 
 The review has 20 findings in [REVIEW.md](REVIEW.md).
-The work has 37 tasks in [TASKS.md](TASKS.md).
+The work has 39 tasks in [TASKS.md](TASKS.md).
 The exact dependency graph is in [task-index.json](task-index.json).
 All tasks start without acceptance evidence.
+
+Read [TESTING-RULES.md](TESTING-RULES.md) before test or harness design.
+T00 captures legacy evidence without changing Termrock source.
+T37 removes legacy tests, harnesses, fixtures, doctests, and nonfunctional code comments.
+T01 inventories the cleaned source. T38 approves the functional test architecture.
+Only then may a task add a reviewed functional test or harness.
+The empty suite after T37 is unverified. It is never a passing result.
 
 ## 2. Required outcomes
 
 | ID | Required outcome | Main tasks | Completion evidence |
 | --- | --- | --- | --- |
 | R01 | Every public crate has a clear owner and allowed dependency set. | T01, T03, T05–T08 | Resolved graphs, isolated consumers, and ownership checks. |
-| R02 | Common components need little setup and have useful defaults. | T10, T12–T19, T30 | Complete public examples and real input tests. |
-| R03 | Advanced customization uses the same state and runtime contracts. | T09–T19, T30, T31 | Custom rows, parts, slots, themes, components, and external-host tests. |
+| R02 | Common components need little setup and have useful defaults. | T10, T12–T19, T30 | Complete public examples and real input scenarios. |
+| R03 | Advanced customization uses the same state and runtime contracts. | T09–T19, T30, T31 | Custom rows, parts, slots, themes, components, and external-host scenarios. |
 | R04 | All required reference behavior and appearance remain available. | T04, T11–T19, T22–T29, T31 | Complete route, component, application, and visual records. |
-| R05 | Terminal ownership and input scheduling have explicit failure behavior. | T09, T20, T21 | Process-isolated lifecycle and event-order tests. |
+| R05 | Terminal ownership and input scheduling have explicit failure behavior. | T09, T20, T21 | Process-isolated lifecycle and event-order scenarios. |
 | R06 | Warm draw and update keep their declared work bounds. | T14, T16, T17, T21, T33 | Allocation, accessor, work-count, and controlled timing results. |
 | R07 | Public packages work outside the repository. | T05, T30, T34 | Staged package bytes and detached registry consumers. |
-| R08 | Agents and users can follow one verified set of instructions. | T00–T02, T31, T32, T35, T36 | Root links, compiled examples, current CI, and the final report. |
+| R08 | Agents and users can follow one verified set of instructions. | T00–T02, T31, T32, T35, T36, T37, T38 | Root links, approved examples, current CI, and the final report. |
 
 The shadcn/ui comparison defines a usability goal.
 Use clear source ownership, small composition steps, useful defaults, and direct customization.
@@ -75,8 +82,8 @@ Start a ready task as soon as its files and review capacity are available.
 
 | Stream | Tasks | Order and exit condition |
 | --- | --- | --- |
-| Source and inventory | T00, T01, T02 | Fix source IDs first. Then run inventory and gate repair in parallel. |
-| Reference preparation | T04 | Start after T01. Prepare the complete candidate before any required approval request. |
+| Cleanup and test architecture | T00, T37, T01, T38 | Capture old evidence. Remove old test code. Inventory cleaned source. Approve test architecture. |
+| Gate and reference preparation | T02, T03, T04 | Start after T38. Require task-scoped Sol high review before every test or harness edit. |
 | Dependency structure | T03, T05, T06 | Fix pure builds, then facade features, then enforce edges and lint inheritance. |
 | Application ownership | T07, T08 | T08 can follow T06. T07 also needs composition and theme contracts. |
 | Shared runtime and API | T09, T10, T11 | Fix response and frame rules. Then work on composition and theme in parallel. |
@@ -99,7 +106,7 @@ Do not start a dependent task from an unreviewed predecessor commit.
 A worker may inspect a future task before it is ready.
 It must not implement against an unstable shared contract.
 
-The graph has no cycle.
+The graph has 39 task IDs and no cycle.
 T22 depends on T23, T24, T25, and T26.
 Those page tasks do not depend on T22.
 They use separate compilation fixtures until registry integration.
@@ -111,19 +118,22 @@ They do not depend on T32's final CI integration.
 T32 then makes those checks mandatory in CI.
 
 T35 can run beside T32 after its own inputs pass.
-T36 starts only after T04, T32, T33, T34, and T35 pass.
+T36 closes all 39 tasks and starts after T04, T32, T33, T34, T35, T37, and T38 pass.
 
 ### Initial gate failures
 
 The reviewed head has existing failed gates.
-T02 repairs incorrect inventory and scanner inputs.
+T00 captures their logs, source hashes, test inventory, and comment directives before cleanup.
+T37 removes their legacy test implementations from the active candidate.
+T02 rebuilds required gate evidence through approved functional scenarios.
 T06 adds policy enforcement and active lint inheritance.
 Neither task may hide a real source defect.
 
 Use one migration record for the remaining initial failures.
-For each failure, record its exact command, test, source, owner task, and expected correction.
-T02 or T06 may finish their bounded work with that record.
-Their report must still mark the affected full gate as failed.
+For each failure, record its old command, case, source hash, owner task, and expected correction.
+Do not use an old test as a current result after T37.
+T02 or T06 may finish bounded work with that record.
+Mark every gate without approved replacement evidence as unverified.
 T32 and T36 require every applicable final gate to pass.
 
 T11 follows the same rule for known application mismatches.
@@ -152,11 +162,12 @@ A worker must not select a conflicting design.
 | Shell | Use shared focus, copy, quit, leave, hint, and capability rules. | Per-page key and hint whitelists. |
 | Session safety | Use one active owner, a live cleanup token, and a fallible finish path. | An ended session that can later restore stdin or emit cleanup output. |
 | Input bursts | Keep every event and each required frame barrier. Use a bounded admission policy. | Merging semantic events or fabricating presentation acknowledgement. |
-| Examples | Compile complete public source files and test real actions. | An unregistered Rust code block used as API proof. |
+| Examples | Compile complete public source files and prove real actions through approved scenarios. | An unregistered Rust code block used as API proof. |
 | Packages | Verify registry consumers from staged package bytes. | Treating a checkout path consumer as publication proof. |
 
 The exact API shapes are in [API-RULES.md](API-RULES.md).
 The dependency ceilings and feature table are in [ARCHITECTURE.md](ARCHITECTURE.md).
+The functional proof rules are in [TESTING-RULES.md](TESTING-RULES.md).
 If a source constraint prevents a selected design, use the escalation process.
 Never use any Astra model for any task or scenario.
 Give GPT-6.1-Sol high the concrete conflict and smallest proposed correction.
@@ -168,6 +179,8 @@ Do not let a worker invent another architecture.
 Use GPT-6.1-Sol high as the coordinator.
 Use GPT-6 Luna max for every implementation and correction.
 Use independent GPT-6.1-Sol reviewers at each task's stated effort.
+Use an independent Sol high reviewer before each test or harness edit.
+Use a separate reviewer for the completed test or harness diff.
 Use Sol low only for text and link checks after technical acceptance.
 
 The coordinator must dispatch complete child tasks.
@@ -252,22 +265,23 @@ A pass in one gate cannot replace another gate.
 
 | Gate | Required result | Main evidence owners |
 | --- | --- | --- |
-| G01: Source and inventory | Exact source IDs; complete public, route, test, and requirement inventories. | T00, T01, T02 |
-| G02: Crates and features | Allowed graph; active lints; isolated leaf/facade builds; clean domain boundaries. | T03, T05–T08 |
-| G03: Public API | Stable state contracts; real normal and custom consumers; complete migration records. | T09–T19, T30 |
-| G04: Behavior | Required component cases, all 54 routes, and all application journeys pass. | T22–T31 |
-| G05: Visual proof | Complete accepted case set; exact cells and cursor; semantic checkpoint proof. | T04, T11, T22–T29, T36 |
-| G06: Runtime and platform | Correct frame acknowledgement, terminal cleanup, input order, and declared platform support. | T09, T20, T21 |
-| G07: Performance | Required work counts and allocation limits pass. Controlled timing meets the declared budget. | T33 |
-| G08: Packages | Every public package works from staged registry content without the checkout. | T34 |
-| G09: Final integration | Required CI, current guides, review dispositions, and exact-source final report pass. | T32, T35, T36 |
+| G01: Source and inventory | Exact source IDs; complete legacy capture; public, route, and requirement inventories. | T00, T01, T02, T37 |
+| G02: Test architecture | Reviewed real-scenario design, independent oracle, failure model, and deterministic environment. | T38 |
+| G03: Crates and features | Allowed graph; active lints; isolated leaf/facade builds; clean domain boundaries. | T03, T05–T08 |
+| G04: Public API | Stable state contracts; real normal and custom consumers; complete migration records. | T09–T19, T30 |
+| G05: Behavior | Required component scenarios, all 54 routes, and all application journeys pass. | T22–T31 |
+| G06: Visual proof | Complete accepted case set; exact cells and cursor; semantic checkpoint proof. | T04, T11, T22–T29, T36 |
+| G07: Runtime and platform | Correct frame acknowledgement, terminal cleanup, input order, and declared platform support. | T09, T20, T21 |
+| G08: Performance | Required work counts and allocation limits pass. Controlled timing meets the declared budget. | T33 |
+| G09: Packages | Every public package works from staged registry content without the checkout. | T34 |
+| G10: Final integration | Required CI, current guides, review dispositions, and exact-source final report pass. | T32, T35, T36 |
 
 Use [VALIDATION.md](VALIDATION.md) for commands and evidence formats.
 Use [COMPONENT-MATRIX.md](COMPONENT-MATRIX.md) for required UI cases.
 Record all failed, skipped, absent, and blocked required results.
-A zero-test run cannot pass.
+A zero-case run cannot pass. The empty suite after T37 remains unverified.
 
-Keep ordinary tests and ignored real-CLI visual cases distinct.
+Keep approved functional cases and real-CLI visual cases distinct.
 Run the complete required visual matrix before final acceptance.
 Run the accepted reference comparison twice with separate outputs.
 Require a stable case and checkpoint inventory.

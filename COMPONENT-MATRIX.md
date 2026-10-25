@@ -1,6 +1,6 @@
 # Component, route, and application matrix
 
-Use this matrix with [API-RULES.md](API-RULES.md), [VALIDATION.md](VALIDATION.md), [TASKS.md](TASKS.md), and [SOURCES.md](SOURCES.md).
+Use this matrix with [API-RULES.md](API-RULES.md), [VALIDATION.md](VALIDATION.md), [TASKS.md](TASKS.md), [SOURCES.md](SOURCES.md), and [TESTING-RULES.md](TESTING-RULES.md). The testing rules govern conflicts about tests and source comments. Keep the component, route, and journey requirements in this matrix.
 
 ## Evidence status
 
@@ -12,17 +12,17 @@ The [product contract](https://github.com/tailrocks/terminal-components-claude/b
 
 ## Common acceptance for each component
 
-Every row requires these checks where applicable. Record a reason for each non-applicable check. Preserve source-backed capabilities. Do not add a new feature solely because a generic test category names it.
+Every row requires the applicable behavior evidence below. Record a reason for each non-applicable requirement. Preserve source-backed capabilities. Do not add a feature only because a generic test category names it. T38 defines the functional test architecture. Each later task needs its own reviewed plan before it writes or changes a test. These scenarios describe required outcomes, not a required test count.
 
-- Use the public API from an external consumer. Show default use and one meaningful policy override. Compile the example. Exercise behavior through input and output.
-- Test stable owner, item, part, and layer identity. Use two instances in one application. Replace, sort, filter, and remove data where the component permits these actions.
-- Test keyboard-only operation. Preserve unhandled input. Test Press, Repeat, and Release at the adapter. Test remapping and terminal deliverability.
-- Test hover, press, click, right click, drag, wheel, and capture cancellation where supported. Use registered hit regions. Do not substitute direct state mutation for the event path.
-- Test rest, focus, selected, hover, pressed, disabled, read-only, error, empty, loading, and covered states where supported. A disabled control must not activate or react to hover.
-- Test Unicode graphemes, terminal-cell width, clipping, and long labels. Test zero and tiny component areas. Test resize in the same runtime.
-- Test TrueColor, 256, 16, `none`, and `NO_COLOR`. Preserve semantic roles and deliberate glyph/modifier changes. Test dark and light theme overrides.
-- Test accessible operation through keys, visible focus, text state labels, and clear error messages. Keep required distinctions readable without color. Test reduced and paused motion through the existing motion provider.
-- Test failure before commit. A rejected edit or action keeps valid prior state. Test secret redaction and copy policy where the component can contain sensitive text.
+- Use the public API from an external consumer. Show default use and one meaningful policy override. Compile the example. Observe behavior through input and output.
+- Cover stable owner, item, part, and layer identity. Use two instances in one application. Replace, sort, filter, and remove data where supported.
+- Cover keyboard-only operation and unhandled input. Cover Press, Repeat, and Release at the adapter, plus remapping and terminal deliverability.
+- Cover hover, press, click, right click, drag, wheel, and capture cancellation where supported. Use registered hit regions and the event path.
+- Cover rest, focus, selected, hover, pressed, disabled, read-only, error, empty, loading, and covered states where supported. A disabled control must not activate or react to hover.
+- Cover Unicode graphemes, terminal-cell width, clipping, long labels, zero and tiny areas, and resize in the same runtime.
+- Cover TrueColor, 256, 16, `none`, and `NO_COLOR`. Preserve semantic roles and deliberate glyph or modifier changes. Cover dark and light theme overrides.
+- Cover operation through keys, visible focus, text state labels, and clear error messages. Keep required distinctions readable without color. Cover reduced and paused motion through the existing motion provider.
+- Cover failure before commit. A rejected edit or action keeps valid prior state. Cover secret redaction and copy policy where sensitive text is present.
 - Link one real Showcase use and one relevant application journey. Add an independent second consumer when shared ownership is in doubt.
 - Produce three forms of evidence for each visible behavior change: semantic state, interaction result, and rendered output. Preserve exact pinned reference output for accepted states.
 
@@ -32,7 +32,7 @@ Record terminal and assistive-tool limits separately. A screenshot or semantic t
 
 ## W01–W45 ownership and acceptance
 
-The IDs and declared owners below come from [component-ownership.json](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/component-ownership.json). Its schema is `proposal-v1`. Treat ownership as a proposal until the implementation boundary is verified. The [conformance test](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/termrock-conformance/tests/control_states.rs#L95-L242) checks the exact ID set and facade type identity. A re-export can pass that check. It does not establish physical ownership or behavior completeness.
+The IDs and declared owners below come from [component-ownership.json](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/component-ownership.json). Its schema is `proposal-v1`. Treat ownership as a proposal until the implementation boundary is verified. T00 records the old conformance check as historical evidence. Do not retain or run its test code after T37. A re-export alone does not establish physical ownership or behavior completeness.
 
 | ID | Component | Declared owner | Specific required acceptance |
 | --- | --- | --- | --- |
@@ -100,7 +100,7 @@ The 45 IDs are not the complete current public surface. Add the following to the
 | `Notice`, `TextSection`, `DerivedHintBar` | `termrock-feedback` | Test semantic tones, cut records, clipping, section measurement, and patches. Test top/mode/focus/screen/global hint precedence with explicit metadata overrides. |
 | `AccountsDetail`, `AccountsDrawer`, `AccountsFilter`, `UsageOverview` | `termrock-feedback` | Move account and usage page models to Jackin UI owners under T07. Keep generic primitives shared. Preserve stable projections and row windows. |
 | `ManagerFrame`, `ManagerSplit`, `CapsuleMenu`, `SessionChrome`, `ZoomedPane` | `termrock-feedback` | Move product page assembly to the Jackin owners in ARCHITECTURE.md. Keep reusable layout primitives shared. Preserve menu, split, and layer behavior. |
-| `SettingsPage`, `SettingsAgents`, `SettingsEnv`, `SettingsTrust`, `EditorEnvironmentBody`, `EditorRolesBody`, inspector paint APIs | `termrock-feedback` | Move product models and page assembly under T07. Preserve field actions, projected rows, clipping, and natural size. Test retained generic primitives in two consumers. |
+| `SettingsPage`, `SettingsAgents`, `SettingsEnv`, `SettingsTrust`, `EditorEnvironmentBody`, `EditorRolesBody`, inspector paint APIs | `termrock-feedback` | Move product models and page assembly under T07. Preserve field actions, projected rows, clipping, and natural size. Cover retained generic primitives through independent consumers. |
 | `TextReport`, `ReportContent`, `ReportRows` | `termrock-shell` | Test row grids, insets, heading/detail/body patches, empty content, height policy, and cell clipping. Count lazy row access. Keep this painter noninteractive. |
 | `AppShell`, page/router/leave policy, keyboard capability filter | `termrock-shell` | One shared route/quit guard; one active hint owner; runtime/session-local key capabilities; second consumer. |
 | `ReferenceState`, `ReferenceTarget`, composition slots, scrollbar, focus, layers, clipboard, typed bindings | `termrock-runtime` | No semantic mutation in measure/draw; generation validity; paint override preserves behavior; one owner per event; result-bearing clipboard integration. |
@@ -111,7 +111,7 @@ Sources: [controls exports](https://github.com/tailrocks/terminal-components-cla
 
 The target has 54 navigation entries. It has 24 `NavTarget::Live` entries, one `Selection` entry, and 29 `Placeholder` entries. Five Placeholder entries already draw live pages. These are Checks & radios at index 12, Empty & error at 31, Notices at 33, Master-detail at 37, and Diff at 40. Thus 30 entries have a content path and 24 still draw placeholder content. This is a route census. It is not a behavior pass.
 
-Sources: [PageId and targets](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/showcase-ui/src/app.rs#L91-L267), [live special cases](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/showcase-ui/src/app.rs#L1697-L1729), [placeholder draw](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/showcase-ui/src/app.rs#L2844-L2867), [census assertions](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/showcase-ui/src/app.rs#L3439-L3461).
+Sources: [PageId and targets](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/showcase-ui/src/app.rs#L91-L267), [live special cases](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/showcase-ui/src/app.rs#L1697-L1729), and [placeholder draw](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/showcase-ui/src/app.rs#L2844-L2867). T00 records old census assertions and visual scenario registries as historical inputs. They do not identify test code to preserve or execute after T37.
 
 Replace the parallel route tables and numeric special cases with one typed registry. Give all 54 routes stable identity, aliases, factory, group, capabilities, and minimum-size policy. Migrate Selection and the five live Placeholder routes into that registry. Preserve their current behavior during the migration.
 
@@ -128,15 +128,15 @@ The table below covers every remaining placeholder. S-A maps to T23. S-B maps to
 | S-B | 23 | Tabs | `tabs.rs` | Navigation: tab choice, focus, key policy, covered state, overflow. |
 | S-B | 24 | Menus | `menus.rs` | Overlays: menu bar, submenus, context menu, hover-switch policy. |
 | S-B | 28 | Popups & tooltips | `popups_tooltips.rs` | Overlays: placement, owner, light dismiss, delayed/reduced motion, reveal. |
-| S-B | 29 | File browser | `file_browser.rs` | Collections/overlays: deterministic fixture tree, filter, selection, cancel. |
+| S-B | 29 | File browser | `file_browser.rs` | Collections/overlays: deterministic demo tree, filter, selection, cancel. |
 | S-C | 19 | Columns | `columns.rs` | Grid: width policy, column identity, resize, hide/reveal, metadata. |
 | S-C | 32 | Meters | `meters.rs` | Feedback: thresholds, unknown/stale, semantic tones and labels. |
 | S-C | 36 | Splits & stacks | `splits_stacks.rs` | Layout/controls: measured composition, seam resize, minimums, reset. |
 | S-C | 38 | Pane tree | `pane_tree.rs` | Layout/viewport: nested resize, stable leaf focus, close/remove fallback. |
 | S-C | 42 | Text utilities | `text_utilities.rs` | Text/editors: grapheme and cell widths, wrap, truncate, selection and reveal. |
 | S-D | 45 | Query workbench | `query_workbench.rs` | Compose editor/grid/shell with deterministic demo queries and results. |
-| S-D | 46 | Connections | `connections.rs` | Compose shared lists/forms/dialogs with fixture connection data. |
-| S-D | 47 | Finder | `finder.rs` | Compose tree/list/viewport with fixture search and selection. |
+| S-D | 46 | Connections | `connections.rs` | Compose shared lists/forms/dialogs with deterministic demo connection data. |
+| S-D | 47 | Finder | `finder.rs` | Compose tree/list/viewport with deterministic demo search data and selection. |
 | S-D | 48 | Disk cleanup | `disk_cleanup.rs` | Compose selection/meter/confirmation with simulated effects only. |
 | S-D | 49 | Activity | `activity.rs` | Compose progress/viewport/time policy with deterministic jobs. |
 | S-D | 50 | Workspaces | `workspaces.rs` | Compose navigation/list/overlay with stable workspace identity. |
@@ -146,13 +146,13 @@ The table below covers every remaining placeholder. S-A maps to T23. S-B maps to
 
 The [reference page factory](https://github.com/tailrocks/terminal-components-claude/blob/5b3dbd7ae799f325efbb4f4cc11b2f5518dec948/src/bin/showcase/app.rs#L680-L733) lists these page implementations. Port the required experience through shared APIs. Do not copy app-local drawing and routing merely to match a frame.
 
-Each restored route must show a default interactive use, relevant state specimens, and meaningful configuration. Its test must enter by the actual route, operate the shared control, and observe the result. A title match or public-symbol mention does not prove behavior.
+Each restored route must show a default interactive use, relevant state specimens, and meaningful configuration. An approved functional scenario must enter through the actual route, operate the shared control, and observe the result. A title match or public-symbol mention does not prove behavior.
 
-The current capability inventory has 4,511 explicit dispositions and six `BehaviorProof` records, all related to Diff. Keep this honest distinction. It does not mean there are only six repository tests. See [allowlist](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/showcase-ui/src/coverage/allowlist.txt) and [proof records](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/showcase-ui/src/coverage/declarations_data.rs#L4708-L4757).
+T00 records the target's capability inventory and Diff proof records as historical inputs. They are not the post-T37 active inventory. T01 creates the production requirement inventory after cleanup. Do not interpret a source count as a quality measure.
 
 ## Application journeys
 
-Use the actual application entry points and shared components. Keep all domain effects simulated. A shared-component test does not close the full app journey.
+Use the actual application entry points and shared components. Keep all domain effects simulated. A shared-component case does not close the full app journey.
 
 | App | Required journeys | Required results |
 | --- | --- | --- |
@@ -161,7 +161,7 @@ Use the actual application entry points and shared components. Keep all domain e
 | Holla | Catalog search; alias and ranking; command review; dependency plan; required/optional/excluded steps; simulated run/pause/stop; help and quit | Current action re-resolved; review bound to target; deterministic progress; correct stop/stay policy; secret-safe output; reference layout. |
 | Jackin Preview | Host/capsule navigation; settings; accounts/usage; manager split; overlay menu; selection/copy; launch transition; stop/leave | Shared behavior stays shared; brand transitions stay app-owned; focus restored across host/capsule layers; deterministic transition frames. |
 
-Start from the [visual scenario registry](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/visual-harness/tests/visual_baseline/scenarios/mod.rs), [Showcase cases](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/visual-harness/tests/visual_baseline/scenarios/showcase.rs), [TablePro cases](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/visual-harness/tests/visual_baseline/scenarios/tablepro.rs), [Holla cases](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/visual-harness/tests/visual_baseline/scenarios/holla.rs), and [Jackin cases](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/visual-harness/tests/visual_baseline/scenarios/jackin.rs). Verify the case reaches its named state. Do not assume registry membership proves it does.
+T00 records the old visual scenario registries as historical inputs for the route and journey census. Do not retain or run their test code after T37. T38 and later reviewed task plans define replacement scenarios. Each replacement must reach its named state through the production path; registry membership alone does not prove behavior.
 
 ## Visual and behavior matrix
 
@@ -178,7 +178,7 @@ Start from the [visual scenario registry](https://github.com/tailrocks/terminal-
 | Motion | Full, Reduced, Paused | Deterministic progress and frame; no time drift from drawing. |
 | Override | theme, slot, key map, app/profile policy, per-widget policy | Documented precedence; no hidden behavior loss; another consumer can use it. |
 
-The target currently requires a 72x20 Showcase minimum. Its [draw path](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/showcase-ui/src/app.rs#L2801-L2809) renders TooSmall below that size. Do not require full page controls at 40x12 unless a deliberate product change lowers the minimum. Require a correct fallback and state recovery. Component-level tiny-area tests remain required.
+The target currently requires a 72x20 Showcase minimum. Its [draw path](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/showcase-ui/src/app.rs#L2801-L2809) renders TooSmall below that size. Do not require full page controls at 40x12 unless a deliberate product change lowers the minimum. Require a correct fallback and state recovery. Component-level tiny-area behavior remains required.
 
 ## Reference output and baseline approval
 
@@ -190,12 +190,12 @@ The target currently requires a 72x20 Showcase minimum. Its [draw path](https://
 6. Seal only the reviewed candidate. Keep the frozen historical tag unchanged. Obtain any required approval for the concrete candidate after generation and review work is complete.
 7. Make missing, skipped, stale, and pending required cases fail the claimed parity tier. Report counts separately. Do not turn a pending return into a successful capture.
 
-The [root oracle manifest](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/baselines/oracle/ORACLE.toml) is pending at the target SHA. The harness [falls back to snapshots](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/visual-harness/tests/visual_baseline/support.rs#L341-L360). Its [capture guard](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/visual-harness/tests/visual_baseline/support.rs#L705-L711) can skip pending cases without `VISUAL_FULL=1`. Do not describe this state as an approved PR #26 oracle.
+The [root oracle manifest](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/baselines/oracle/ORACLE.toml) is pending at the target SHA. T00 records the old harness fallback and capture guard as historical evidence. T37 removes old test-only harness code. Preserve approved immutable artifacts separately. Do not describe the current manifest or old harness as an approved PR #26 oracle.
 
 Four retrieved PNG pairs from the two heads were byte-identical. The samples cover Inputs audit, Dialogs open, and Inputs selected at 120x40/truecolor. The fourth sample covers Inspector open at 72x20/nocolor. They show older navigation than the current source. The narrow Inspector sample has an “on” label without visible inspector controls. These are historical assets. They are not current-head pass evidence.
 
 ## Closure record
 
-For each component, route, and app journey, record status as Not reviewed, Failing, In progress, Verified, or Approved exception. Attach the exact source SHA, test names, commands, pass count, capture IDs, semantic assertions, reviewed deltas, and reviewer. Separate API/architecture, behavior, visual, and accessibility results. Do not collapse them into one green status.
+For each component, route, and app journey, record status as Not reviewed, Failing, In progress, Verified, or Approved exception. Attach the exact source SHA, approved case IDs and commands, result artifacts, capture IDs, semantic assertions, reviewed deltas, and reviewer. Report results separately from any count. Separate API/architecture, behavior, visual, and accessibility evidence. Do not collapse them into one green status.
 
 A component is complete only when its required public API, real consumers, behavior cases, and visual states pass at the same final head. A route is complete only when it exercises the shared implementation. An application is complete only when its required journeys pass. An approved exception must name the unresolved contract and the human decision that permits it.

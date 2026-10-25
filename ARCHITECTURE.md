@@ -10,7 +10,7 @@ This file specifies the target for PR #38. It does not report completed implemen
 - The product reference supplies behavior, interaction, and visual requirements.
 - The source review did not execute Rust tests. Rust and Cargo were absent.
 
-Read [REVIEW.md](REVIEW.md) for defects. Use [PLAN.md](PLAN.md) for sequence and [TASKS.md](TASKS.md) for assignments. Use [API-RULES.md](API-RULES.md) for API contracts. Use [VALIDATION.md](VALIDATION.md) for acceptance. Track component scope in [COMPONENT-MATRIX.md](COMPONENT-MATRIX.md). Follow [AGENT-RUNBOOK.md](AGENT-RUNBOOK.md). Keep exact provenance in [SOURCES.md](SOURCES.md).
+Read [REVIEW.md](REVIEW.md) for defects. Use [PLAN.md](PLAN.md) for sequence and [TASKS.md](TASKS.md) for assignments. Use [API-RULES.md](API-RULES.md) for API contracts. Use [VALIDATION.md](VALIDATION.md) for acceptance. Track component scope in [COMPONENT-MATRIX.md](COMPONENT-MATRIX.md). Follow [AGENT-RUNBOOK.md](AGENT-RUNBOOK.md), [SOURCES.md](SOURCES.md), and [TESTING-RULES.md](TESTING-RULES.md). The testing rules govern conflicting test and source-comment instructions. Keep the other architecture contracts in this file.
 
 ## Decisions
 
@@ -55,7 +55,7 @@ No production library crate may depend on an application, Showcase, test-support
 | forms | FormData adapters, Form, FormDialog, Wizard | core, layout, theme, text, render, collections, runtime, controls, fields, feedback, navigation, overlays | Caller owns values. Forms own field traversal and validation flow. |
 | terminal | TerminalView, selection, input tokens, terminal-content adaptation | core, layout, theme, text, render, collections, runtime, viewport | Move transport negotiation to session or core protocol values. Keep terminal content separate from terminal transport. |
 | session | Terminal entry/exit, transport, backend input conversion, protocol negotiation, presentation acknowledgement | core, runtime, theme | Remove the terminal-widget dependency after the negotiation move. |
-| shell | Page routing, leave guards, shell chrome, named slots, status/footer orchestration | core, layout, theme, runtime | Keep one AppShell implementation. Keep reach tools under testing. |
+| shell | Page routing, leave guards, shell chrome, named slots, status/footer orchestration | core, layout, theme, runtime | Keep one AppShell implementation. Add reach tools only when T38 and a task plan approve them. |
 | termrock | Family namespaces; convenience exports; typed composition adapters; generic blocks | All production library crates above | Add the feature scheme below. Keep application-specific models out. |
 
 The graph is acyclic. Enforce exact edges from Cargo metadata. Do not accept source-import scanning as a substitute for dependency resolution. An app crate may use the facade. A pure domain or simulation crate may not use it.
@@ -143,7 +143,7 @@ Build separate temporary Cargo projects outside the workspace for:
 
 Inspect each resolved normal dependency graph. Backend-free variants must exclude crossterm, ratatui-crossterm, termrock-session, and platform transport dependencies. Do not impose a blanket ban on a library named `libc` without checking the resolved reason. Use an explicit forbidden backend graph, then explain any unrelated transitive package.
 
-Test unsupported symbol access in a feature-disabled consumer. It must fail at the intended feature boundary. A workspace-only test is insufficient because feature unification can hide missing gates.
+An approved isolated-consumer case must show that unsupported symbols fail at the intended feature boundary. A workspace-only result is insufficient because feature unification can hide missing gates. Plan any test or harness code under [TESTING-RULES.md](TESTING-RULES.md).
 
 ## State and frame protocol
 
@@ -195,7 +195,7 @@ Retain generic meter, row, panel, menu, field, clipping, and disclosure behavior
 
 Keep product fields in application models. These include DCO signoff, default agent, saved workspace target, provider quota, and capsule instance. A generic feedback API must not require them.
 
-Remove the full facade from `jackin-preview-domain`. Replace secret wiping through the facade with the narrow existing owner. Remove UI StepState and presentation roles from simulation data. Map domain states into component states in presentation or UI code. Preserve the simulated behavior and secret-handling tests.
+Remove the full facade from `jackin-preview-domain`. Replace secret wiping through the facade with the narrow existing owner. Remove UI StepState and presentation roles from simulation data. Map domain states into component states in presentation or UI code. Preserve simulated behavior and secret-handling contracts. T00 records old tests as historical inputs. Do not retain or run their code after T37. Use reviewed functional proof after T38.
 
 ### TablePro
 
@@ -226,7 +226,7 @@ A distinct product workflow can remain distinct. Shared ownership does not requi
 | Session root exports | Gate with explicit session feature. Update all application manifests and examples. |
 | Global keyboard capability accessors | Retire through T19/T20 migration rows. Use per-runtime KeyboardDelivery and session-owned observation state. |
 | Footer::compose | Keep a conservative-default wrapper. Migrate normal callers to compose_with_delivery with their runtime snapshot. |
-| Test-only surfaces | Gate under testing. Never use them in the production consumer proof. |
+| Test-only surfaces | Add only when T38 and a task plan approve them. Gate them under testing. Never use them in production consumer proof. |
 
 Do not remove documented compatibility because a symbol scan finds no in-repository caller. The migration record must identify scope and intended source break. Do not keep an architecture violation forever merely to preserve an accidental export.
 
@@ -240,12 +240,12 @@ The architecture is complete only when all of these conditions hold:
 - Every public component and block has an implementation owner.
 - All aliases and retired paths have a recorded disposition.
 - Current examples use the public facade and supported family paths.
-- Semantic state and presentation protocol tests pass.
-- Borrowed callback and custom-part tests pass.
-- Identity and bounded-work tests pass after migration.
+- Approved cases verify semantic state and the presentation protocol.
+- Approved cases verify borrowed callbacks and custom parts.
+- Approved cases verify identity and bounded-work contracts after migration.
 - The product acceptance matrix still satisfies the reference behavior.
 
-Record fresh evidence at the final reviewed source commit. Historical tests, captures, and counts remain provenance. They do not establish these conditions for a new commit.
+Plan every test or harness edit under [TESTING-RULES.md](TESTING-RULES.md). Record fresh evidence at the final reviewed source commit. Historical tests, captures, and counts remain provenance. They do not establish these conditions for a new commit.
 
 ## Source basis
 

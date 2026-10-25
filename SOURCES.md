@@ -22,6 +22,9 @@ Their scopes were crate/API design, UI/reference parity, and performance/validat
 The model names in [AGENT-RUNBOOK.md](AGENT-RUNBOOK.md) apply to future implementation.
 They are instructions, not evidence that those future tasks ran.
 
+The adopted testing and comment policy is in [TESTING-RULES.md](TESTING-RULES.md).
+Its source review and limits are in [PRACTICE-REVIEW.md](PRACTICE-REVIEW.md).
+
 ## 2. Fixed source records
 
 | Record | Exact value or link |
@@ -251,3 +254,25 @@ They are not claims about entries in the ASD dictionary.
 
 Keep technical verbs limited to these software meanings.
 Use a simpler ordinary verb when it expresses the same instruction clearly.
+
+## 9. Testing and comment policy sources
+
+The following pinned commits provide the adopted project rules.
+The review did not audit every changed file or every review thread.
+
+| Source | Use in this plan |
+| --- | --- |
+| [Velnor PR #391 at `29d56212bdd8dfecfc84b1ecf3c8cd565f757c4e`](https://github.com/tailrocks/velnor-new/commit/29d56212bdd8dfecfc84b1ecf3c8cd565f757c4e) | This commit records plan-first tests, observable behavior, red-green evidence, deterministic runs, and functional comment exceptions. |
+| [Jackin PR #1231 at `7302c4c0d67a97c59d1439213f34a9c8ff3d22f6`](https://github.com/jackin-project/jackin/commit/7302c4c0d67a97c59d1439213f34a9c8ff3d22f6) | Its shared rules require an architect review after an escape and integration-first test plans. |
+| [Google Inquiry Method](https://testing.googleblog.com/2016/06/the-inquiry-method-for-test-planning.html) | It asks teams to consider testability during design and select plan questions by risk. |
+| [Google Change-Detector Tests](https://testing.googleblog.com/2015/01/testing-on-toilet-change-detector-tests.html) | It explains why a test that repeats implementation details may not prove correct behavior. |
+| [Google Test Fidelity](https://testing.googleblog.com/2024/02/increase-test-fidelity-by-avoiding-mocks.html) | It recommends real dependencies when practical and explains fidelity limits of fakes and mocks. |
+| [Google Coverage Best Practices](https://testing.googleblog.com/2020/08/code-coverage-best-practices.html) | It treats coverage as an indirect measure and rejects a universal quality target. |
+| [Playwright Best Practices](https://playwright.dev/docs/best-practices) | It recommends user-visible behavior and isolated test state. |
+| [Playwright API mocking](https://playwright.dev/docs/mock) | It documents controlled network routes for tests that need external API responses. |
+| [Anthropic agent evaluations](https://www.anthropic.com/research/demystifying-evals-for-ai-agents) | It defines evaluation tasks, success criteria, graders, and outcomes. |
+| [SWE-bench harness](https://www.swebench.com/SWE-bench/api/harness/) | It records fail-to-pass and pass-to-pass results as separate measures. |
+
+These sources support selected practices.
+They do not establish a universal post-AI testing consensus.
+The no-owned-mocks rule, T37 cleanup, and independent review gates are Termrock policy.

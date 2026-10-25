@@ -1,6 +1,6 @@
 # Validation and release gates
 
-Use this file with [REVIEW.md](REVIEW.md), [PLAN.md](PLAN.md), [TASKS.md](TASKS.md), [API-RULES.md](API-RULES.md), [COMPONENT-MATRIX.md](COMPONENT-MATRIX.md), and [SOURCES.md](SOURCES.md).
+Use this file with [REVIEW.md](REVIEW.md), [PLAN.md](PLAN.md), [TASKS.md](TASKS.md), [API-RULES.md](API-RULES.md), [COMPONENT-MATRIX.md](COMPONENT-MATRIX.md), [SOURCES.md](SOURCES.md), and [TESTING-RULES.md](TESTING-RULES.md). The testing rules govern conflicts about tests and source comments. Keep the other acceptance contracts in this file.
 
 ## 1. Decision rule
 
@@ -20,7 +20,11 @@ Use these labels in every report:
 
 There is no local `cargo` or `rustc` in this environment. Local Rust compilation, Nextest, Clippy, packaging, PTY probes, and performance measurements did not run. Do not turn a proposed command into a claimed pass.
 
+Complete T00, T37, T01, and T38 in that order. T00 records the old tests, harnesses, fixtures, doctests, and source comments as historical evidence. T37 removes their code and nonfunctional comments. T01 inventories the cleaned production source. T38 approves the functional test architecture. A zero-case test command is `NOT VERIFIED` and cannot satisfy acceptance. Follow [TESTING-RULES.md](TESTING-RULES.md) before any test or harness edit.
+
 ## 2. Current evidence
+
+This section records evidence for the reviewed target SHA only. Test paths, assertions, and counts identify historical source inputs for T00. They are not commands or targets to retain or execute after T37.
 
 ### 2.1 Exact-head CI
 
@@ -31,11 +35,11 @@ Six package jobs fail in both default and testing configurations. `Required verd
 | Package and reviewed job | Failure | Immediate acceptance task |
 |---|---|---|
 | [jackin-preview-app testing, 121257622585](https://github.com/tailrocks/terminal-components-claude/actions/runs/40222193598/job/121257622585) | `jackin_visual_baseline`; `accounts-mixed 100 30 junie truecolor`; 347/348 tests pass | Explain the changed frame against the frozen target. Repair the source or obtain the specific visual-change decision. |
-| [holla-ui default, 121257622374](https://github.com/tailrocks/terminal-components-claude/actions/runs/40222193598/job/121257622374) | Three visual failures. The scrollbar foreground at `(78,16)` is `Indexed(238)` instead of `Indexed(235)`. `activities-multi 80 24 junie 16` also differs. 272/275 tests pass. | Repair the color/scroll contract. Re-run the historical border, faint replay, and complete Holla visual tests. |
+| [holla-ui default, 121257622374](https://github.com/tailrocks/terminal-components-claude/actions/runs/40222193598/job/121257622374) | Three visual failures. The scrollbar foreground at `(78,16)` is `Indexed(238)` instead of `Indexed(235)`. `activities-multi 80 24 junie 16` also differs. 272/275 tests pass. | T00 records the failures and named cases. Repair the color/scroll contract. Prove replacements only after T38 review. |
 | [showcase-ui testing, 121257622521](https://github.com/tailrocks/terminal-components-claude/actions/runs/40222193598/job/121257622521) | Page heading reference fails for buttons, `100x30`, 16 colors, row 2. The candidate includes a scrollbar and lacks the reference marker. Overview baseline also differs. 217/219 tests pass. | Reconcile viewport, marker, and page heading behavior through the shared owners. |
 | [tablepro-ui default, 121257622702](https://github.com/tailrocks/terminal-components-claude/actions/runs/40222193598/job/121257622702) | `tablepro_visual_baseline`; `history-tab 120 40 junie truecolor`; 381/382 tests pass | Check shared list/detail composition, then capture and compare the changed frame. |
 | [termrock-xtask default, 121257625735](https://github.com/tailrocks/terminal-components-claude/actions/runs/40222193598/job/121257625735) | `ownership_check_passes_on_workspace`; 500 files scanned; 3,401 findings; 268 wrappers; 199 checker problems; 164/165 tests pass | Classify scanner errors, incomplete migrations, and real ownership growth. These are not 199 independently confirmed product bugs. |
-| [visual-harness default, 121257625816](https://github.com/tailrocks/terminal-components-claude/actions/runs/40222193598/job/121257625816) | `overlay_sites`; 13 unlisted sites; 33/34 executed tests pass; 29,073 skipped | Classify eleven sites in extracted test files and two production sites in `screens/disk.rs`. Prove the scanner distinguishes production reachability from test-only code. |
+| [visual-harness default, 121257625816](https://github.com/tailrocks/terminal-components-claude/actions/runs/40222193598/job/121257625816) | `overlay_sites`; 13 unlisted sites; 33/34 executed tests pass; 29,073 skipped | T00 records the old scanner result. Classify the production sites from source. Design any replacement gate proof after T38. |
 
 The failing assertions are [shared digest, line 284](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/termrock-test-support/src/digest.rs#L284), [Holla visual, line 101](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/holla-ui/tests/visual.rs#L101), [Showcase headings, line 38](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/showcase-ui/tests/page_headings.rs#L38), [ownership, lines 15–31](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/termrock-xtask/tests/ownership.rs#L15-L31), and [overlay inventory, lines 487–540](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/visual-harness/tests/visual_baseline/overlay_sites.rs#L487-L540).
 
@@ -50,7 +54,7 @@ The failing assertions are [shared digest, line 284](https://github.com/tailrock
 | Python `tomllib` inspection of the workspace and production policy | 49 workspace members. All 20 declared production libraries lack `[lints] workspace = true`. Thirteen workspace members inherit lints. |
 | `git status --short` after this review | Empty. The source checkout was not changed. |
 
-The performance workflow test still expects the deleted workflow and old package names. See [tools/test_perf_workflow.py, lines 11–69](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/tools/test_perf_workflow.py#L11-L69). The test inventory also still names `junie-tui`, `junie-tui-testing`, and `xtask`. See [profiles.json](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/tools/test-inventory/profiles.json#L1-L67). Migrate the existing tools. Do not add a second source of truth.
+The target-SHA performance workflow test expected a deleted workflow and old package names. T00 records its source and the old inventory as historical inputs. T37 removes test-only tools and inventory. Rebuild required production gates through their owned tasks and approved plans. Do not add a second source of truth.
 
 ## 3. Evidence record and gate integrity
 
@@ -63,11 +67,11 @@ Every required run must record:
 5. Exit status, passed/failed/skipped counts, complete logs, and artifact hashes.
 6. Independent reviewer and disposition of each material finding.
 
-Use stable case IDs. Reject empty selection, duplicate IDs, unknown results, missing results, and an expected test reported as skipped. A new test must enter the inventory before it can count toward coverage. A removed test needs an explicit replacement or retirement reason.
+After T38, each approved plan defines stable case IDs. Reject empty selections, duplicate IDs, unknown or missing results, and an expected case reported as skipped. Add cases to the active inventory only under an approved plan. T00 records removed tests and their disposition as historical migration evidence. Do not use test counts as a quality KPI.
 
-Add mutation checks for the gate itself. Remove one required case. Change one result to skipped. Remove a package. Remove lint inheritance. Add an illegal production dependency. Add an unlisted overlay. Change one approved frame. Each mutation must make the relevant gate fail. These checks prove a failure mode that can defeat acceptance; do not add tests that only repeat trivial implementation details.
+Preserve these gate failure requirements: removing a required case, marking a required case skipped, removing a package or lint inheritance, adding an illegal production dependency or unlisted overlay, or changing an approved frame must fail the relevant gate. T00 records existing mutation checks as historical evidence. Do not retain or run their old test code after T37. Recreate needed gate checks only under a T38-approved architecture and an independently reviewed task plan. Prove consequential failure modes; do not use test counts as a quality measure.
 
-Preserve [AGENTS.md](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/AGENTS.md#L1-L20), the safety rationale, and meaningful local safety comments. Do not add blanket `allow(unsafe_code)`, `allow(clippy::all)`, or a broad exception increase to pass a gate. Use an operation-level exception with a specific invariant when the implementation requires it.
+Preserve [AGENTS.md](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/AGENTS.md#L1-L20) and every safety contract. Keep essential safety rationale in maintained Markdown and design records. Follow [TESTING-RULES.md](TESTING-RULES.md) for source comments and required tool text. Do not add blanket `allow(unsafe_code)`, `allow(clippy::all)`, or a broad exception increase to pass a gate. Use an operation-level exception with a specific invariant when the implementation requires it.
 
 ## 4. Crate and feature checks
 
@@ -113,9 +117,9 @@ All production packages must inherit the selected workspace lint policy. The [ro
 
 ## 5. Behavior and external consumer checks
 
-For each selected component change, require one focused owner test and one production consumer test. Use the contracts in [COMPONENT-MATRIX.md](COMPONENT-MATRIX.md) and [API-RULES.md](API-RULES.md). Cover the behavior that can change, rather than repeating the full suite after every local edit.
+Plan enough scenarios to prove each selected change. Prefer integration scenarios through a real production path and public API. Add an owner-level scenario only when it gives necessary evidence. One scenario may observe both owner and consumer behavior. Do not require a fixed number of tests. Use [COMPONENT-MATRIX.md](COMPONENT-MATRIX.md) and [API-RULES.md](API-RULES.md) to select behavior, not to set a test-count target. Each plan needs independent Sol high review before any test write.
 
-| Contract | Required regression |
+| Contract | Required observable behavior |
 |---|---|
 | Stable identity | Sort, filter, reorder, insert, delete, and replace data. Preserve the live selected/focused identity or apply the documented fallback. |
 | Text editing | Grapheme-safe movement, selection, backspace, delete, paste, and truncation. Include combining marks, wide characters, and joined emoji. |
@@ -125,15 +129,15 @@ For each selected component change, require one focused owner test and one produ
 | Mutations | Validation failure leaves prior state intact. Stale actions and old request generations cannot act on a new owner. |
 | Composition | Custom theme, custom row/cell content, controlled state, nested overlay, and independent state instances work through public APIs. |
 
-Keep the existing detached [external consumer](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/external-consumer-demo/Cargo.toml#L11-L29). Its reviewed default and testing CI jobs pass. Add minimal leaf consumers and package-based consumers. The path consumer is useful but does not prove publication.
+Retain the detached [external consumer source](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/external-consumer-demo/Cargo.toml#L11-L29) if T00 confirms that it is a maintained consumer example rather than a test-only target. Its target-SHA CI jobs are historical evidence. Do not retain their old test code or job selections after T37. Use it for a reviewed consumer scenario after T38. Add leaf and package consumers only through their owned tasks. The path consumer alone does not prove publication.
 
-Documentation examples must compile through registered consumer targets. The library manifests set `doctest = false`; do not claim that ordinary Nextest runs execute Rustdoc examples. Keep [the documentation inventory test](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/termrock-xtask/tests/doc_inventory.rs#L172-L180). Add or update its registered compile target whenever an example changes.
+Documentation examples must compile through registered consumer targets. The library manifests set `doctest = false`; do not claim that ordinary Nextest runs execute Rustdoc examples. T00 records the old documentation inventory test as historical evidence. T37 removes it. After T38, register or update a consumer compile target through an approved task plan whenever an example changes.
 
 ## 6. Terminal, runtime, and async checks
 
 ### 6.1 Terminal ownership
 
-Test terminal lifecycle in isolated processes with a PTY or the native platform equivalent. The current test configuration requires Nextest process isolation for PTY captures. See [.config/nextest.toml, lines 1–26](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/.config/nextest.toml#L1-L26).
+Prove terminal lifecycle in isolated processes with a PTY or the native platform equivalent. T00 records the old Nextest process-isolation configuration as historical evidence. An approved replacement case must define its process isolation and capture method.
 
 Test normal quit and each partial-entry failure. Test read, poll, draw, protocol-write, and interrupted-syscall failures. Test terminal EOF, unwind panic, repeated sessions, denied nested/concurrent sessions, and panic after a session ends.
 
@@ -149,7 +153,7 @@ Do not promise restoration after an uncatchable kill or abort. State supported f
 
 ### 6.2 Event bursts and reference behavior
 
-PR #26 has bounded batching and semantic tests. See [InputPump, lines 892–950](https://github.com/tailrocks/terminal-components-claude/blob/5b3dbd7ae799f325efbb4f4cc11b2f5518dec948/src/runtime.rs#L892-L950) and [held-key test, lines 1589–1600](https://github.com/tailrocks/terminal-components-claude/blob/5b3dbd7ae799f325efbb4f4cc11b2f5518dec948/src/runtime.rs#L1589-L1600). Adapt the behavior only after the candidate frame lifecycle is stable.
+PR #26 supplies historical bounded-batching behavior and semantic-test evidence. T00 records it as a source input. Do not copy its test code. Adapt the required behavior only after the candidate frame lifecycle is stable and T38 approves the replacement architecture.
 
 Require every input event to be handled in order. Use a default cap of 64 events and a 16 ms batch admission budget. Check elapsed time between deliveries. Admit no further event after the budget expires. A synchronous handler can exceed the budget; do not promise a hard real-time deadline. Test cap and deadline boundaries with a fake clock.
 
@@ -167,7 +171,7 @@ If a selected real consumer needs an async adapter, require a bounded queue, req
 
 ### 7.1 Preserve existing deterministic bounds
 
-These are existing source assertions. They were not measured locally in this review.
+These values are historical source assertions recorded by T00. T37 removes their old test code. They were not measured locally in this review. Keep the performance contracts. After T38, prove them with reviewed cases and the selected release workload.
 
 | Workload | Existing invariant | Source |
 |---|---|---|
@@ -190,21 +194,21 @@ Count allocations, requested allocation bytes, source accessor calls, indexed li
 
 ### 7.3 Relative timing budget
 
-The following is a proposed budget, not a reported result. Use a controlled runner and paired reference/candidate runs. Preserve the existing 20% time-regression boundary for stable workloads after the noise floor is established. Keep the existing 1.5 ratio for the 100,000-versus-1,000 warm collection comparison where that source test already defines it. Record raw samples and confidence intervals. A noisy run needs repeat evidence; it does not justify automatic baseline approval.
+The following is a proposed budget, not a reported result. Use a controlled runner and paired reference/candidate runs. Preserve the historical 20% time-regression boundary for stable workloads after the noise floor is established. Keep the historical 1.5 ratio for the 100,000-versus-1,000 warm collection comparison where T00 confirms its contract. Record raw samples and confidence intervals. A noisy run needs repeat evidence; it does not justify automatic baseline approval.
 
 Require zero increase for existing zero-allocation contracts. For nonzero allocation baselines, require no increase unless a reviewed API change explains the new cost. Keep cold construction, steady draw, mutation, and first-frame latency separate. Do not claim a frame rate, CPU saving, memory saving, or speedup from this static review.
 
 ## 8. Visual and semantic proof
 
-Use immutable reference source, snapshots, and binaries. Record their hashes. The existing paired runner is described in [docs/development.md](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/docs/development.md#L17-L52). Confirm its current CLI and manifests before execution.
+Use immutable reference source, approved visual artifacts, and binaries. Record their hashes. T00 records the current paired runner, CLI, and manifests as historical evidence. T37 removes old test-only harness code. Keep a current runner only if T00 proves that it serves a supported production or diagnostic path. T38 and an approved task plan must define any replacement harness before its first code edit.
 
 The comparison must use the same selected cases, dimensions, color modes, event sequence, clock steps, and ordered frame checkpoints. Compare cell symbols, foreground/background, attributes, cursor position/shape/visibility, and logical stage identity. A screenshot alone cannot establish interaction or cursor correctness.
 
-Run frozen capture, frozen replay, and candidate comparison in separate evidence directories. The candidate must not write to expectations. A missing, duplicated, reordered, extra, skipped, or failed checkpoint leaves coverage incomplete. Hash reference artifacts before and after the run. Keep original failed expectations and actual/diff artifacts.
+Run approved reference capture, replay, and candidate comparison in separate evidence directories. The candidate must not write to expectations. A missing, duplicated, reordered, extra, skipped, or failed checkpoint leaves coverage incomplete. Hash reference artifacts before and after the run. Keep original failed expectations and actual/diff artifacts.
 
 A permitted reference exception must name the exact case, checkpoint, expected hash, actual hash, source/binary hashes, reason, and human decision. Do not generalize one stale snapshot exception to nearby cases. Do not bless all changed frames after a refactor. If product behavior changes deliberately, record that contract separately from historical parity.
 
-Use a changed-component matrix for fast iteration. Before final acceptance, run the complete required registered matrix and the ordinary non-ignored checks. The current default visual-harness run skips 29,073 tests; it does not provide complete CLI parity evidence.
+Use a changed-component matrix for fast iteration. Before final acceptance, run the complete approved scenario matrix and ordinary required checks. The target-SHA visual-harness run skipped 29,073 cases. That historical run does not provide complete CLI parity evidence and its old test target is not an instruction to execute after T37.
 
 ## 9. Platforms, MSRV, and CI generation
 
@@ -235,31 +239,17 @@ Complete these gates in order:
 
 Release publishing must remain disabled until the selected package set passes. Publication order, retries, and partial-publication recovery must be explicit. Re-running a release job must not overwrite an existing version or tag with different source.
 
-## 11. Existing commands and future helper specifications
+## 11. Commands and future helper specifications
 
-### 11.1 Existing commands verified from source
+### 11.1 Build and test command selection
 
-The commands below refer to current packages and current test targets. They are proposed future executions. They did not run locally in this review.
+The old command list named packages, tests, and harnesses at the target SHA. T00 records it as historical evidence. Do not execute a test or harness target removed by T37. T01 records the cleaned production inventory. T38 approves the test architecture. Only then may an independently reviewed task plan select replacement test commands and case IDs.
 
-```sh
-cargo check --locked --workspace --all-targets
-cargo check --locked -p termrock-core --lib --no-default-features
-cargo check --locked -p termrock-runtime --lib --no-default-features
-cargo nextest run --locked --workspace
-cargo nextest run --locked -p termrock-session
-cargo nextest run --locked -p termrock-xtask -E 'test(ownership_check_passes_on_workspace)'
-cargo nextest run --locked -p termrock-xtask --test doc_inventory
-cargo nextest run --locked -p visual-harness -E 'test(overlay_sites)'
-cargo nextest run --locked --manifest-path external-consumer-demo/Cargo.toml
-cargo nextest run --locked --release -p termrock-test-support --test perf --test perf_collections
-cargo nextest run --locked --release -p showcase-ui -p tablepro-ui -p holla-ui -p jackin-preview-app --test perf
-cargo fmt --all -- --check
-cargo clippy --locked --workspace --all-targets -- -D warnings
-```
+Use the current package and feature inventory when selecting build checks. A zero-case test command is `NOT VERIFIED`. Do not treat a successful empty command as evidence. Use `cargo nextest` for approved Rust test targets. Record exact case IDs, source SHA, command, environment, logs, artifacts, and independent result. Do not use test count, coverage, or speed as a quality KPI.
 
-Add `testing` only to configurations that declare it and tests that require it. The workspace default command does not prove the testing configuration. Obtain the exact test inventory before running feature-specific suites. Use `PERF_FULL=1` for release performance commands. Use `PERF_STRICT=1` only for controlled timing. Do not enable blessing variables in validation.
+Use `PERF_FULL=1` only for the approved release performance run. Use `PERF_STRICT=1` only on a controlled timing runner. Do not enable blessing variables during validation.
 
-The frozen runner already exists. Its `prepare`, `build`, `build-candidate`, `compare`, and `live-compare` commands are documented. Use its actual `--help` and current inventory. Do not substitute a newly written screenshot comparator for the paired semantic proof.
+T00 records the old frozen runner's CLI and inventory as historical evidence. Preserve approved immutable visual artifacts separately. Do not retain or execute old test-only runner code after T37. Record the CLI and inventory of a replacement only after its architecture and task plan pass review. Do not substitute a screenshot-only comparison for approved semantic proof.
 
 ### 11.2 Future scripts: required behavior, not existing commands
 
@@ -268,13 +258,15 @@ The following helpers are proposed. Their filenames and CLI are not current repo
 | Proposed helper | Inputs | Required output and failure behavior |
 |---|---|---|
 | Isolated-consumer check | Production policy, Cargo metadata, feature contract, target/MSRV matrix | One detached probe per crate/configuration; dependency graph; compiler output; inventory totals. Fail on missing probes, accidental facade/test features, or compilation errors. Extend `tools/acceptance_architecture.py` or a tightly scoped companion. |
-| Test inventory migration | Current package/target/feature metadata and existing `tools/test-inventory` data | Current named profiles and results. Fail on old missing packages, duplicate profiles, empty selections, skipped required tests, or unknown results. Keep the existing mutation-test design. |
-| Performance gate mode | Workload inventory, reviewed baselines, profile/environment manifest | All required workloads, raw samples, allocation/work counters, comparison result. Fail on missing baseline, missing workload, count regression, or controlled timing violation. Repair the existing perf workflow test. |
+| Approved functional-case inventory | T01 production requirements, T38 architecture, reviewed task plans | Current approved case IDs and results. Fail on missing, duplicate, unknown, empty, or skipped required selections. Rebuild gate proof under a reviewed plan; do not retain old inventory or mutation-test code. |
+| Performance gate mode | Reviewed workload inventory, baselines, profile/environment manifest | All required workloads, raw samples, allocation/work counters, comparison result. Fail on a missing baseline, workload, or required bound. Rebuild proof under an approved task plan. Extend `tools/acceptance_architecture.py` or a tightly scoped companion only when its production ownership is confirmed. |
 | Package-consumer check | Published-package allowlist, version graph, staged `.crate` files | Reviewed package inventories and clean local-registry consumer runs. Fail if a source checkout path is needed or a package is missing. |
 | Final evidence check | Candidate SHA, required job/test/case inventories, package hashes, review dispositions | One machine-readable verdict with incomplete reasons. Fail if a result is stale, missing, failed, or bound to a different source. Do not make this a second maintained status document. |
 
 ## 12. Completion record
 
 Acceptance requires all selected contracts in [TASKS.md](TASKS.md) and [COMPONENT-MATRIX.md](COMPONENT-MATRIX.md). Complete all mandatory checks above. Resolve review feedback. Record remaining work explicitly. A missing test does not prove completion. A broad scanner that no longer finds source text does not prove completion.
+
+Every required test lane needs selected approved cases. Record a zero-case lane as `NOT VERIFIED`; it cannot pass final acceptance.
 
 The final report must separate product parity, architecture/reuse, runtime/platform support, performance, and release readiness. State each result at the final commit. If a required environment is unavailable, state the exact missing proof and keep that acceptance gate open.

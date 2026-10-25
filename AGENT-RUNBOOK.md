@@ -5,6 +5,7 @@
 Use this file for the implementation run.
 Read [GOAL.md](GOAL.md) for the complete objective.
 Read [TASKS.md](TASKS.md) for the task instructions.
+Read [TESTING-RULES.md](TESTING-RULES.md) before test or harness work.
 
 This file assigns work and review.
 It does not change the technical contracts in [API-RULES.md](API-RULES.md).
@@ -21,6 +22,8 @@ This prohibition applies to the coordinator, every worker, and all nested agents
 | --- | --- | --- | --- |
 | Coordinate tasks and integrate reviewed commits | GPT-6.1-Sol | high | The coordinator does not write implementation code. |
 | Change Rust, tests, scripts, manifests, or documents | GPT-6 Luna | max | Use a worker with explicit file ownership. |
+| Design test architecture and each task test plan | GPT-6.1-Sol | high | Review the exact scenarios before any test or harness edit. |
+| Review a changed test or harness diff | GPT-6.1-Sol | high | Use a reviewer other than the Luna implementer. |
 | Review a runtime, API, safety, feature, or performance change | GPT-6.1-Sol | high | Use an agent other than the implementer. |
 | Review a bounded page or application change | GPT-6.1-Sol | medium | Escalate to high if shared behavior changes. |
 | Check text, links, or file names after technical acceptance | GPT-6.1-Sol | low | This check cannot replace technical review. |
@@ -70,7 +73,8 @@ If capacity is limited, finish and review one task before you start another.
 
 Run separate component families at the same time after their shared contracts are fixed.
 Run separate application consumers at the same time after their required components pass.
-Run source review, behavior tests, and document checks at the same time when they do not share mutable files.
+Run source review and document checks in parallel when files do not overlap.
+Run behavior tests only after T38 and the task-scoped design review pass.
 
 Do not run concurrent writers in the integration checkout.
 Do not run two heavy performance measurements on the same host at the same time.
@@ -96,7 +100,11 @@ Use these states:
 | BLOCKED | A required input, model, tool, or approval is absent. |
 
 A blocked task is not accepted.
-A source change without a test result is not accepted.
+A behavior change needs approved functional evidence.
+T00, T01, T37, and T38 use document, inventory, structural, or build checks only.
+These four tasks do not accept product behavior.
+T37 does not prove product behavior. Its empty test suite remains unverified.
+Every other behavior change needs its approved functional case.
 A reviewed commit becomes unreviewed if later edits change its affected contract.
 
 ## Start a worker
@@ -114,6 +122,8 @@ Owned files: [exact paths or bounded directories].
 Required documents: [absolute paths].
 Required findings: [review finding IDs].
 Required tests: [exact cases and commands].
+Approved test-plan ID: [task-scoped record ID, or N/A with Sol high reason].
+Test-plan reviewer: [independent GPT-6.1-Sol high reviewer, or N/A].
 Required result: [output contract].
 Do not edit files outside the owned set.
 Do not change a shared contract without a recorded design decision.
@@ -151,6 +161,12 @@ Use these fields:
       "evidence_path": "relative result path"
     }
   ],
+  "approved_test_plan_id": "task-scoped plan ID or null",
+  "test_plan_reviewer": "independent Sol high agent ID or null",
+  "test_edit_scope": [],
+  "red_evidence": "runtime assertion failure for a known defect or reviewed fault, or null with reason",
+  "green_evidence": "same assertion passes after correction or fault removal, or null with reason",
+  "environment": {},
   "limits": [],
   "review_state": "REVIEW"
 }
@@ -172,12 +188,15 @@ Do not add secrets or temporary credentials to a record.
 2. Read the complete diff.
 3. Read the affected source before and after the change.
 4. Check the task requirements and API rules.
-5. Run the focused tests independently.
-6. Check that each test selected at least one case.
-7. Inspect at least one meaningful negative case.
-8. Check public consumers for API changes.
-9. Check feature and dependency effects for manifest changes.
-10. Record the decision for that exact output commit.
+5. Check that the worker used the approved task test plan, when the task changes tests or behavior.
+6. Run approved functional cases for behavior tasks.
+7. Run document, inventory, structural, or build checks for T00, T01, T37, and T38.
+8. Check that each required case ran in its declared environment.
+9. Inspect positive, negative, boundary, and recovery cases for behavior tasks.
+10. Check that red evidence is a runtime assertion, not a compiler or setup error.
+11. Check public consumers for API changes.
+12. Check feature and dependency effects for manifest changes.
+13. Record the decision for that exact output commit.
 
 Use high effort when the change affects an API or shared contract.
 A medium review must not approve an unplanned architecture change.
@@ -210,17 +229,23 @@ Check changes made to shared dependencies since the worker's input commit.
 If a dependency changed its contract, rerun the worker's consumer tests.
 
 Integrate the reviewed commit.
-Run affected package tests and the applicable integration gates.
+Run approved functional cases and applicable integration gates.
 Record the new integration commit.
 Mark the task accepted only after these checks pass.
+
+For T37, accept structural cleanup and production build evidence only.
+For T00, T01, and T38, accept their scoped document and inventory evidence only.
+Never describe these four preflight tasks as product behavior verification.
 
 Never use a previous green CI result for a different commit.
 Fetch the current CI result before the final report.
 
 ## Escalate a design problem
 
-A new abstraction needs a concrete consumer and a failed contract.
-Give GPT-6.1-Sol high these inputs:
+A functional scenario exposes a possible product issue.
+Stop test edits. Collect source evidence.
+Use GPT-6.1-Sol high for gap analysis and conceptual redesign before writing or refactoring tests.
+Give the architect these inputs:
 
 1. The current approved contract.
 2. The exact source and test evidence.

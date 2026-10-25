@@ -1,6 +1,6 @@
 --- a/AGENTS.md
 +++ b/AGENTS.md
-@@ -13,3 +13,9 @@
+@@ -13,3 +13,22 @@
  - For accepted feedback, fix, verify, commit, push, and reply on GitHub with the fixing commit URL before resolving. For rejected feedback, reply with evidence and rationale before resolving. Address general comments in linked PR replies. Never delete feedback or resolve it without a justified disposition.
  - Re-fetch feedback at the final head SHA. Merge only with no unaddressed feedback or unresolved review threads and all required checks and approvals satisfied. Only explicit, PR-specific human authorization permits ignoring identified feedback; general merge approval is not a waiver.
  - Keep agent instructions lean. Put explanations, plans, and progress in documentation, not here.
@@ -10,3 +10,16 @@
 +- Follow [the API rules](docs/implementation/pr38-final/API-RULES.md) and [crate boundaries](docs/implementation/pr38-final/ARCHITECTURE.md).
 +- Execute [the plan](docs/implementation/pr38-final/PLAN.md) and [exact tasks](docs/implementation/pr38-final/TASKS.md).
 +- Use [the agent work rules](docs/implementation/pr38-final/AGENT-RUNBOOK.md) for model selection, file ownership, and review.
++- Follow [the testing rules](docs/implementation/pr38-final/TESTING-RULES.md) and [the practice review](docs/implementation/pr38-final/PRACTICE-REVIEW.md).
++- Complete T00, T37, T01, and T38 in order. Keep T02, T03, and T04 blocked until T38 passes independent review.
++- Have one Sol high agent design T38 and a different Sol high agent review it.
++- Treat T37 as one-time cleanup. A zero-test result is `NOT VERIFIED` and cannot close a required gate.
++- Require an independent Sol high plan review before every new or refactored test. Use public production paths and observable results.
++- Do not mock owned code or use test count, coverage, or speed as a KPI.
++- After an escape, require a separate Sol high architect subagent to analyze the testability gap before test changes.
++- Require realistic red-green evidence, deterministic scenarios, and independent verification for every kept test.
++- Keep nonfunctional source comments out. Preserve required tool text and generator-verified bytes.
++- Never use Astra. Use Luna max for implementation and independent Sol high for shared test and architecture review.
++- Fix the structure that allowed a verified defect when evidence supports that change. Record any deferred root cause.
++- Commit verified changes in small units. Push or send public replies only with current user authorization.
++- Re-fetch pull request feedback at the exact candidate head. Disposition every current finding with evidence.

@@ -7,7 +7,7 @@ These rules specify the PR #38 target. They are not a claim that current code sa
 Target source: `e08ac57d10ae54c87337eae0be08b1f5e8f4bda4`.
 Product reference: `5b3dbd7ae799f325efbb4f4cc11b2f5518dec948`.
 
-Use [ARCHITECTURE.md](ARCHITECTURE.md) for owners and feature rules. Use [REVIEW.md](REVIEW.md) for findings and [PLAN.md](PLAN.md) for sequence. Implement the units in [TASKS.md](TASKS.md). Prove them through [VALIDATION.md](VALIDATION.md). Keep the public inventory in [COMPONENT-MATRIX.md](COMPONENT-MATRIX.md). Follow [AGENT-RUNBOOK.md](AGENT-RUNBOOK.md) and [SOURCES.md](SOURCES.md).
+Use [ARCHITECTURE.md](ARCHITECTURE.md) for owners and feature rules. Use [REVIEW.md](REVIEW.md) for findings and [PLAN.md](PLAN.md) for sequence. Implement the units in [TASKS.md](TASKS.md). Prove them through [VALIDATION.md](VALIDATION.md). Keep the public inventory in [COMPONENT-MATRIX.md](COMPONENT-MATRIX.md). Follow [AGENT-RUNBOOK.md](AGENT-RUNBOOK.md), [SOURCES.md](SOURCES.md), and [TESTING-RULES.md](TESTING-RULES.md). The testing rules govern conflicts about tests and source comments. Keep the other API contracts in this file.
 
 ## 1. Keep one normal path and one advanced path
 
@@ -166,7 +166,7 @@ An adapter supplies placement only. It calls the component's existing measure an
 
 Keep Group row, column, and wrap APIs. Keep Panel, SplitPane, MasterDetail, and AppShell composition. Do not introduce a second declarative tree language.
 
-Use existing `composition::menu_bar` and `composition::status_bar` in the public consumer. Remove its handwritten MenuLeaf and StatusLeaf adapters after equivalent tests pass.
+Use existing `composition::menu_bar` and `composition::status_bar` in the public consumer. Remove its handwritten MenuLeaf and StatusLeaf adapters after equivalent reviewed functional proof passes.
 
 ### Nested validation
 
@@ -218,7 +218,7 @@ Keep Tree's existing source lineage and query revisions. Keep GridModel::revisio
 
 Do not claim that an unchanged endpoint stamp proves unchanged data. Do not replace the warm shortcut with an unconditional full scan. With an unchanged valid revision, preserve the current bounded key-access contract.
 
-Test internal reorder and replacement with unchanged length and endpoints. Test removal of a checked key, a changed enabled item, and a changed row extent. Assert both semantic key and cached index. Assert scroll extent and fallback. Test invalidation, revision-mode transitions, and saturated revisions. Retain the existing warm-path counter tests.
+Preserve these observable outcomes: internal reorder and replacement with unchanged length and endpoints; removal of a checked key; changed eligibility and row extent; semantic key and cached index; scroll extent and fallback; invalidation; revision-mode transitions; and saturated revisions. T00 records existing warm-path counter tests as historical source evidence. Do not retain or run those tests after T37. After T38, use reviewed functional scenarios to prove the unchanged-revision bounded key-access contract and these state changes.
 
 ## 10. Preserve bounded work
 
@@ -226,11 +226,11 @@ Keep Tree's runtime-derived index separate from TreeState. Preserve clone lineag
 
 Keep GridModel's borrowed cell and row-key API. Keep structural holes as None. Do not call decoration, action, or edit hooks for a missing cell. Keep sort requests distinct from domain ordering.
 
-Use deterministic counters for accessor calls, visited rows, callbacks, and allocations. Preserve warm-cache tests. State which operation pays initial O(n) preparation. State which changes invalidate that preparation.
+Keep deterministic access, visit, callback, and allocation bounds as observable performance contracts. T00 records existing warm-cache tests as historical source evidence. Do not retain or run those tests after T37. After T38, prove the required bounds with reviewed scenarios. State which operation pays initial O(n) preparation and which changes invalidate it.
 
 A visible draw must not scan the full collection without an explicit justified contract. A content revision may require a rebuild. A paint-only change must not force that rebuild.
 
-Use wall-clock performance tests only for the remaining measured risk. Keep unrelated performance subjects in separate test binaries as required by the repository contracts.
+Use wall-clock performance checks only for the remaining measured risk. Keep unrelated performance subjects separate when the reviewed test architecture requires separate targets.
 
 ## 11. Keep customization composable
 
@@ -325,36 +325,36 @@ Record these fields for each item:
 - Data revision or invalidation rule.
 - Focus, pointer, keyboard, and layer behavior.
 - Measurement and empty/tiny behavior.
-- Consumer example and exact tests.
+- Consumer example and approved functional case IDs.
 - Keep, replace, deprecate, or retire disposition.
 
 PropsList is implemented by controls and re-exported by navigation. ScrollRegion is implemented by runtime and re-exported by viewport. Record both facts. Do not move code merely to satisfy a stale owner name.
 
-## 14. Make examples real acceptance tests
+## 14. Keep examples executable and source comments functional
 
-Keep maintained API prose in Markdown. The repository does not permit broad new Rust documentation prose. Preserve comments only where its safety and non-obvious-constraint policy permits them.
+Keep API prose in maintained Markdown. Follow [TESTING-RULES.md](TESTING-RULES.md) for source comments. Put essential safety and invariant rationale in maintained contracts and design records. Keep only tool-required comments and text allowed by those rules. Use explicit Clap help attributes.
 
-Create real `.rs` examples. Compile and test them through supported public paths. Link them from the Markdown guide. Do not copy an example into a second untested code block and let it drift.
+Keep real `.rs` consumer examples. Link them from the Markdown guide. Compile and exercise them through supported public paths after T38 and an approved task-level plan. Do not copy an example into a second code block and let it drift.
 
 The beginner consumer must use only the facade as a normal dependency. It must compose a shell, list, detail view, action buttons, menu, and status. It must support keyboard and pointer input plus a narrow layout.
 
 That consumer must not require custom Rect math, raw event matching, or custom leaf types for existing stock components. Advanced examples may use the author path and must say why.
 
-Keep feature examples outside workspace feature unification when they prove minimal dependency claims. Use production APIs. A testing feature can support behavior tests but cannot establish production API availability.
+Keep feature examples outside workspace feature unification when they prove minimal dependency claims. Use production APIs. A testing feature may support approved behavior cases, but it cannot establish production API availability.
 
 ## 15. Review each API change as a contract change
 
-Every API task must name the owner, caller, source behavior, target behavior, and migration effect. It must identify a real consumer and a failing or missing test.
+Every API task must name the owner, caller, source behavior, target behavior, and migration effect. It must identify a real consumer and a missing or failing functional proof. Plan each test before writing it, as required by [TESTING-RULES.md](TESTING-RULES.md).
 
 Keep working behavior unless the task explicitly changes it. Do not replace a known interaction policy with a simpler one merely to reduce code.
 
 Implementation uses GPT-6 Luna at max effort. GPT-6.1-Sol coordinates and reviews. Use Sol high for API, feature, runtime, identity, focus, lifetime, error, and performance changes. Use Sol medium for bounded application work. Use Sol low for text, links, and file-name checks after technical acceptance. Follow the full assignment table in AGENT-RUNBOOK.md.
 
-No implementation task is complete from compilation alone. It needs its focused behavior evidence and the required integration evidence. Final acceptance must name the final commit and the exact tested scope.
+No implementation task is complete from compilation alone. It needs approved behavior evidence and the required integration evidence. Final acceptance must name the final commit and exact case scope.
 
 ## Source basis
 
-These sources were inspected. Their test bodies were not executed in this review.
+These sources were inspected. Any tests associated with them are historical evidence for T00. They are not active targets after T37 and were not executed in this review.
 
 - [App and runtime contract](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/termrock-runtime/src/runtime.rs#L95-L160).
 - [Response methods and aggregation](https://github.com/tailrocks/terminal-components-claude/blob/e08ac57d10ae54c87337eae0be08b1f5e8f4bda4/crates/termrock-core/src/response.rs#L188-L260).
