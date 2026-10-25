@@ -13,3 +13,5 @@
 - Required viewport work bounds remain in API-RULES §10 and VALIDATION §7.1 for T17/T33. These contracts do not establish behavior on this T37 revision.
 - Tests selected: 0. Runtime behavior is `NOT VERIFIED`. No Cargo tests or builds were run by this worker.
 - Maintained API guidance: raw prose is not treated as a contract transfer. Details not represented in current contracts remain open for T01/T35 and the shared docs owner.
+
+- Second follow-up from accepted `96fe6a2a`: after independent Sol high confirmation of T37-FOUNDATION-TESTING-01/02, the facade testing re-export for `ProjectedFrame`, `RenderModel`, and `StyledQuery` was removed with its now-empty cfg attribute. Runtime declarations are foundation-owned. The exact 21-token delta and hashes are in `approved-testing-frame-facade-retirement.json`.

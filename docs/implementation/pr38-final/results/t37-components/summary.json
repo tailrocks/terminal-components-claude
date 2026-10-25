@@ -4749,6 +4749,14 @@
     {
       "command": "cargo metadata --locked --format-version 1 --no-deps; cargo check --locked --workspace --all-targets --all-features; cargo test",
       "status": "NOT RUN by this worker. Cargo tests are prohibited; shared metadata/build owner handles guarded metadata/check. Selected tests: 0; behavior NOT VERIFIED."
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS, exit 0 for this follow-up"
+    },
+    {
+      "command": "rg -n \"ProjectedFrame|RenderModel|StyledQuery\" crates/termrock/src",
+      "status": "PASS, exit 1; no remaining facade references"
     }
   ],
   "inventory_reconciliation": {
@@ -4775,12 +4783,43 @@
       "item": "remove orphan manifest dependencies/test target declarations; retain termrock-viewport/testing while selection_binding_chords remains; reconcile active deleted-test citations; maintain T01/T35 Rustdoc contract transfer"
     },
     {
-      "owner": "/root/t37_apps",
-      "item": "remove stale probe capability entries from crates/showcase-ui/tests/coverage/catalog_data.rs:4487-4490 following T37-PROBE-02"
-    },
-    {
       "owner": "shared integration coordinator",
       "item": "record final output source commit SHA after worker commit; run guarded shared metadata/build and generator integration checks"
+    },
+    {
+      "owner": "/root/t37_foundations",
+      "item": "runtime ProjectedFrame/RenderModel/StyledQuery declarations and testing-only recording retirement; this fragment removes the approved facade re-export only"
+    },
+    {
+      "owner": "/root/t37_apps",
+      "item": "showcase catalog file at crates/showcase-ui/tests/coverage/catalog_data.rs is in the legacy test tree being deleted, so it leaves no active probe API references"
     }
-  ]
+  ],
+  "follow_up_retirements": [
+    {
+      "decision_ids": [
+        "T37-FOUNDATION-TESTING-01",
+        "T37-FOUNDATION-TESTING-02"
+      ],
+      "reviewer": "/root/t00_independent_review",
+      "review_model": "gpt-6.1-sol",
+      "review_effort": "high",
+      "input_source_commit": "96fe6a2a1430967831777da2da6402206c4716ff",
+      "path": "crates/termrock/src/lib.rs",
+      "removed_facade_items": [
+        "ProjectedFrame",
+        "RenderModel",
+        "StyledQuery"
+      ],
+      "removed_cfg_wrapper": true,
+      "removed_token_count": 21,
+      "added_or_replaced_tokens": 0,
+      "evidence": "approved-testing-frame-facade-retirement.json",
+      "runtime_declarations": "foundation-owned; facade re-export only",
+      "runtime_behavior": "NOT VERIFIED",
+      "tests_run": false,
+      "selected_tests": 0
+    }
+  ],
+  "additional_follow_up_evidence": "approved-testing-frame-facade-retirement.json"
 }
