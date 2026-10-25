@@ -34,10 +34,10 @@
     "common_ancestor": "cc14dd6beae526884aabdf897e309be837b4f504",
     "historical_review_target": "e08ac57d10ae54c87337eae0be08b1f5e8f4bda4",
     "historical_review_reference": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
-    "source_capture_evidence": "results/t00-source/source-record.json (pending refresh for approved upstream input)",
+    "source_capture_evidence": "results/t00-source/source-state.json (source identity), results/t00-source/worker-result.json, and results/t00-source/source-report.md; frozen input 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd.",
     "initial_t00_input_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
     "approved_upstream_refresh_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
-    "current_source_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+    "current_source_input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
     "upstream_refresh": {
       "review_status": "APPROVED",
       "reviewer_id": "/root/t00_independent_review",
@@ -48,32 +48,69 @@
       "merge_commit": "8f39250e63ebde011a542d398076b50d2bbd5614",
       "merge_owner": "/root",
       "changed_paths": [
-        "exceptions/v1.json"
+        "crates/termrock-xtask/exceptions/v1.json"
       ],
       "change_summary": "14 deleted lines; no conflict.",
-      "source_refresh_status": "PENDING"
+      "source_refresh_status": "COMPLETED_FROZEN_INPUT_CAPTURE"
     },
-    "next_approved_source_input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-    "next_upstream_refresh": {
-      "from_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
-      "to_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "review_status": "APPROVED_SAFE_REFRESH",
-      "reviewer_id": "/root/t00_independent_review",
-      "reviewer_model": "gpt-6.1-sol",
-      "reviewer_effort": "high",
-      "merge_status": "PENDING_NORMAL_MERGE",
-      "merge_owner": "/root",
-      "changed_path_count": 2,
-      "changed_paths": null,
-      "delta_classification": "legacy-test files only",
-      "expectation_change": "unaccepted",
-      "behavior_proof": "none",
-      "path_names_status": "pending source delta ledger"
-    },
+    "next_approved_source_input_sha": null,
     "t00_frozen_input_policy": {
       "sha_after_merge": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "status": "PENDING_NORMAL_MERGE",
-      "policy": "Freeze T00 at this source input after merge. Record later source drift for scoped review; do not recapture indefinitely."
+      "status": "FROZEN",
+      "policy": "Record later source drift for scoped review; do not recapture indefinitely.",
+      "merge_commit": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
+      "frozen_at_integration_commit": "381c88c2f1a26bb727ab9658e8b694bea5915aa6"
+    },
+    "source_capture_output_commit": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
+    "source_capture_hashes": {
+      "artifact-index.json": "c859cd09b3ee1a21fe72d4caf3d623a8b675031d0684903d90a1b07ff26180de",
+      "worker-result.json": "68592355d5db726b824a691ff684ca54fdc2727ec839549f8ca4c08d422d6834",
+      "source-state.json": "e82d575937f4d40951be3ddebf4d552344d88908fe62441610e6eccfdfb821fd",
+      "source-summary-1d6.json": "8af5ec64185926c1d2b079be3e15bdd70910615a0862c390992f8de00cf73e35",
+      "source-report.md": "18338746ac53a6a8d9a9bac3acfa8192ce522fda3bc3fd7625a1f2da08246beb",
+      "toolchain.json": "f354c57b3d10341f4dcc7de99ff4dd3bb1873d3cccbefe0bab0cafe8a352895e"
+    },
+    "immutable_base_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+    "completed_upstream_refreshes": [
+      {
+        "from_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+        "to_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+        "reviewer_id": "/root/t00_independent_review",
+        "review_model": "gpt-6.1-sol",
+        "review_effort": "high",
+        "merge_status": "COMPLETED_NORMAL_MERGE",
+        "merge_commit": "8f39250e63ebde011a542d398076b50d2bbd5614",
+        "changed_paths": [
+          "crates/termrock-xtask/exceptions/v1.json"
+        ],
+        "delta": "14 deleted lines; no conflict."
+      },
+      {
+        "from_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+        "to_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "reviewer_id": "/root/t00_independent_review",
+        "review_model": "gpt-6.1-sol",
+        "review_effort": "high",
+        "merge_status": "COMPLETED_NORMAL_MERGE",
+        "merge_commit": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
+        "changed_paths": [
+          "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+          "crates/showcase-ui/tests/navigation_contract.rs"
+        ],
+        "delta": "54 insertions, 1 deletion; no conflicts.",
+        "expectation_change": "unaccepted",
+        "behavior_proof": "none"
+      }
+    ],
+    "source_capture_method": {
+      "immutable_base_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "exact_overlay_shas": [
+        "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+        "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+      ],
+      "frozen_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "method": "Preserve base ledgers and apply exact changed-blob overlays. Do not rehash unchanged paths.",
+      "later_drift_policy": "Record later source drift for scoped review; do not recapture indefinitely."
     }
   },
   "worktrees": {
@@ -82,17 +119,40 @@
       "path": "/Users/donbeave/Downloads/terminal-components-claude",
       "branch": "parity/termrock-visual-baseline",
       "starting_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "current_sha": "8f39250e63ebde011a542d398076b50d2bbd5614",
-      "pending_upstream_refresh": {
-        "from_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
-        "to_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "review_status": "APPROVED_SAFE_REFRESH",
-        "reviewer_id": "/root/t00_independent_review",
-        "reviewer_model": "gpt-6.1-sol",
-        "reviewer_effort": "high",
-        "merge_status": "PENDING_NORMAL_MERGE",
-        "merge_owner": "/root"
-      }
+      "current_sha": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
+      "pending_upstream_refresh": null,
+      "code_input_sha": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
+      "completed_upstream_refreshes": [
+        {
+          "from_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+          "to_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+          "reviewer_id": "/root/t00_independent_review",
+          "review_model": "gpt-6.1-sol",
+          "review_effort": "high",
+          "merge_status": "COMPLETED_NORMAL_MERGE",
+          "merge_commit": "8f39250e63ebde011a542d398076b50d2bbd5614",
+          "changed_paths": [
+            "crates/termrock-xtask/exceptions/v1.json"
+          ],
+          "delta": "14 deleted lines; no conflict."
+        },
+        {
+          "from_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+          "to_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+          "reviewer_id": "/root/t00_independent_review",
+          "review_model": "gpt-6.1-sol",
+          "review_effort": "high",
+          "merge_status": "COMPLETED_NORMAL_MERGE",
+          "merge_commit": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
+          "changed_paths": [
+            "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+            "crates/showcase-ui/tests/navigation_contract.rs"
+          ],
+          "delta": "54 insertions, 1 deletion; no conflicts.",
+          "expectation_change": "unaccepted",
+          "behavior_proof": "none"
+        }
+      ]
     },
     "reference": {
       "path": "/Users/donbeave/Downloads/termrock-pr26-reference-20261026",
@@ -152,10 +212,14 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "ACTIVE_PENDING_FINAL_INPUT",
-      "current_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "status": "ACCEPTED",
+      "current_input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
       "next_input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "previous_input_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3"
+      "previous_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "frozen_input": true,
+      "output_commit": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
+      "correction_target_commit": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
+      "previous_output_commit": "5847dfd26c7064dac491e540bc69b0ac22e2fc18"
     },
     {
       "id": "/root/t00_import_rules",
@@ -172,14 +236,16 @@
       "effort": "high",
       "assignment": "explicit",
       "status": "COMPLETED_ACCEPT",
-      "review_output_sha": null
+      "review_output_sha": null,
+      "review_target_sha": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
+      "previous_reviewed_sha": "5847dfd26c7064dac491e540bc69b0ac22e2fc18"
     }
   ],
   "model_selection_limits": [
     "Agent records use explicit coordinator assignments; the worker runtime provides no independent model-identity attestation."
   ],
   "task_states": {
-    "T00": "ACTIVE",
+    "T00": "REVIEW",
     "T01": "NOT_STARTED",
     "T02": "BLOCKED",
     "T03": "BLOCKED",
@@ -242,115 +308,347 @@
   },
   "evidence_paths": {
     "import_record": "results/t00-import.json",
-    "source_capture": "results/t00-source/source-record.json (pending)",
+    "source_capture": {
+      "path": "results/t00-source/source-state.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "sha256": "e82d575937f4d40951be3ddebf4d552344d88908fe62441610e6eccfdfb821fd",
+      "status": "actual source identity record; independently accepted"
+    },
     "independent_review": "results/t00-review/ (pending)",
     "root_instructions": "AGENTS.md",
-    "import_record_sha256": "d80d73637e9c0e3a9b52ed8cf65c4cdd5469cfefabd70486d204f6da41bee3fe",
+    "import_record_sha256": "8e4553691466250fd9a97d896a97c8856d440d70a91da72b3f2cd4afdca0c457",
     "review_decision": "results/run-state.json:review",
     "source_capture_script": {
       "path": "results/t00-source/capture_source.py",
       "owner": "/root/t00_source_capture",
-      "status": "present; source worker owns; refresh for merged input pending",
-      "source_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
-      "refresh_for_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+      "status": "Capture starts from immutable 3a ledgers; exact overlays produce frozen 1d6 evidence; independently accepted.",
+      "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "overlay_shas": [
+        "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+        "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+      ],
+      "frozen_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
     },
     "tracked_tree_inventory": {
       "path": "results/t00-source/tracked-tree.jsonl.gz",
       "owner": "/root/t00_source_capture",
-      "status": "present; prior input preserved; final frozen-input refresh pending",
+      "status": "immutable base ledger at 3a; preserved and independently accepted",
       "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
       "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "preservation_status": "Preserve the existing artifact. Do not overwrite."
+      "preservation_status": "Preserve as prior-input evidence; do not overwrite."
     },
     "legacy_test_file_inventory": {
       "path": "results/t00-source/test-files.jsonl.gz",
       "owner": "/root/t00_source_capture",
-      "status": "present; prior input preserved; final frozen-input refresh pending",
+      "status": "immutable base ledger at 3a; preserved and independently accepted",
       "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
       "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "preservation_status": "Preserve the existing artifact. Do not overwrite."
+      "preservation_status": "Preserve as prior-input evidence; do not overwrite."
     },
     "current_ci_capture": {
       "path": "results/t00-source/ci-current.json",
       "owner": "/root/t00_source_capture",
-      "status": "present; prior input preserved; final frozen-input refresh pending",
+      "status": "Historical CI evidence for source 3a; preserved; the frozen 1d6 CI snapshot is recorded separately.",
       "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "preservation_status": "Preserve the existing artifact. Do not overwrite."
+      "preservation_status": "Preserve as prior-input evidence; do not overwrite."
     },
     "current_ci_job_inventory": {
       "path": "results/t00-source/ci-job-inventory.json",
       "owner": "/root/t00_source_capture",
-      "status": "present; prior input preserved; final frozen-input refresh pending",
+      "status": "Historical CI evidence for source 3a; preserved; the frozen 1d6 CI snapshot is recorded separately.",
       "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "preservation_status": "Preserve the existing artifact. Do not overwrite."
+      "preservation_status": "Preserve as prior-input evidence; do not overwrite."
     },
     "current_ci_job_excerpts": {
       "path": "results/t00-source/ci-job-excerpts.json",
       "owner": "/root/t00_source_capture",
-      "status": "present; prior input preserved; final frozen-input refresh pending",
+      "status": "Historical CI evidence for source 3a; preserved; the frozen 1d6 CI snapshot is recorded separately.",
       "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "preservation_status": "Preserve the existing artifact. Do not overwrite."
+      "preservation_status": "Preserve as prior-input evidence; do not overwrite."
     },
-    "upstream_refresh_review": "Reviewer /root/t00_independent_review; gpt-6.1-sol high; refresh input 31f856f43d20920ea99aa81b8f40adeeb5bff358; merged as 8f39250e63ebde011a542d398076b50d2bbd5614.",
+    "upstream_refresh_review": "/root/t00_independent_review; gpt-6.1-sol high; approved 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd; merged as 381c88c2f1a26bb727ab9658e8b694bea5915aa6.",
     "ci_inventory_31f": {
       "path": "results/t00-source/ci-head-31f-job-inventory.json",
       "owner": "/root/t00_source_capture",
       "source_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
-      "status": "present; interim-input evidence; content validation pending",
+      "status": "intermediate 31f overlay/evidence; preserved and independently accepted",
       "preservation_status": "Preserve as evidence for input 31f856f43d20920ea99aa81b8f40adeeb5bff358; do not overwrite.",
       "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
     },
     "ci_required_job_excerpt": {
       "path": "results/t00-source/ci-required-job-excerpt.json",
       "owner": "/root/t00_source_capture",
-      "source_sha": null,
-      "status": "present; source attribution and validation pending"
+      "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "status": "Historical required-job excerpt for source 3a; preserved."
     },
     "source_declaration_scan": {
       "path": "results/t00-source/scan_source_declarations.py",
       "owner": "/root/t00_source_capture",
-      "source_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
-      "status": "present; execution and declaration ledger pending"
+      "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "status": "Base inventory is 3a; final frozen inventory applies exact 31f and 1d6 overlays; independently accepted.",
+      "overlay_shas": [
+        "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+        "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+      ],
+      "frozen_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
     },
     "source_inventory_summary": {
       "path": "results/t00-source/inventory-summary.json",
       "owner": "/root/t00_source_capture",
-      "source_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
-      "status": "present; interim-input evidence; content validation pending",
-      "preservation_status": "Preserve as evidence for input 31f856f43d20920ea99aa81b8f40adeeb5bff358; do not overwrite.",
-      "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+      "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "status": "Base inventory is 3a; final frozen inventory applies exact 31f and 1d6 overlays; independently accepted.",
+      "preservation_status": "Preserve the immutable 3a base inventory; exact 31f and 1d6 overlays are recorded separately.",
+      "overlay_shas": [
+        "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+        "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+      ],
+      "frozen_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
     },
     "test_inventory": {
       "path": "results/t00-source/test-inventory.json",
       "owner": "/root/t00_source_capture",
-      "source_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
-      "status": "present; interim-input evidence; content validation pending",
-      "preservation_status": "Preserve as evidence for input 31f856f43d20920ea99aa81b8f40adeeb5bff358; do not overwrite.",
-      "refresh_for_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+      "source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "status": "Base inventory is 3a; final frozen inventory applies exact 31f and 1d6 overlays; independently accepted.",
+      "preservation_status": "Preserve the immutable 3a base inventory; exact 31f and 1d6 overlays are recorded separately.",
+      "overlay_shas": [
+        "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+        "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+      ],
+      "frozen_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
     },
     "source_scan_pycache": {
-      "path": "results/t00-source/__pycache__/scan_source_declarations.cpython-315.pyc",
-      "owner": "/root/t00_source_capture",
-      "status": "generated transient; do not commit; cleanup confirmation pending"
-    },
-    "next_upstream_refresh_review": "/root/t00_independent_review; gpt-6.1-sol high; approved 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd refresh from 31f856f43d20920ea99aa81b8f40adeeb5bff358; normal merge pending.",
-    "upstream_delta_ledger": {
       "path": null,
       "owner": "/root/t00_source_capture",
-      "expected_output": "Source delta ledger for the two legacy-test files.",
-      "status": "pending; path and file names not yet supplied"
-    }
+      "status": "No bytecode cache is present in the accepted output; validator confirmed bytecode_cache_present=false."
+    },
+    "upstream_delta_ledger": {
+      "path": "results/t00-source/source-overlay-manifest.json",
+      "owner": "/root/t00_source_capture",
+      "candidate_delta_artifact": "results/t00-source/test-inventory-delta-1d6.json",
+      "status": "Complete source deltas are recorded from immutable 3a through 31f to frozen 1d6; independently accepted."
+    },
+    "final_source_capture": {
+      "path": "results/t00-source/source-state.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "sha256": "e82d575937f4d40951be3ddebf4d552344d88908fe62441610e6eccfdfb821fd",
+      "status": "frozen 1d6 input evidence; independently accepted"
+    },
+    "source_delta_analysis_script": {
+      "path": "results/t00-source/analyze_latest_test_delta.py",
+      "owner": "/root/t00_source_capture",
+      "status": "Validated and independently accepted at e4354e82ed7801acc69a9e3512300b634a38f7ae."
+    },
+    "github_jobs_capture_script": {
+      "path": "results/t00-source/capture_github_jobs.py",
+      "owner": "/root/t00_source_capture",
+      "status": "Validated and independently accepted at e4354e82ed7801acc69a9e3512300b634a38f7ae.",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    },
+    "source_overlay_derivation_script": {
+      "path": "results/t00-source/derive_source_overlays.py",
+      "owner": "/root/t00_source_capture",
+      "status": "Validated and independently accepted at e4354e82ed7801acc69a9e3512300b634a38f7ae.",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    },
+    "ci_required_failure_1d6": {
+      "path": "results/t00-source/ci-head-1d6-required-failure.json",
+      "owner": "/root/t00_source_capture",
+      "status": "frozen 1d6 input evidence; independently accepted",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    },
+    "ci_required_excerpt_1d6": {
+      "path": "results/t00-source/ci-head-1d6-required-job-excerpt.txt",
+      "owner": "/root/t00_source_capture",
+      "status": "frozen 1d6 input evidence; independently accepted",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    },
+    "ci_rest_1d6": {
+      "path": "results/t00-source/ci-head-1d6-rest.json",
+      "owner": "/root/t00_source_capture",
+      "status": "frozen 1d6 input evidence; independently accepted",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    },
+    "ci_snapshot_1d6": {
+      "path": "results/t00-source/ci-head-1d6-snapshot.json",
+      "owner": "/root/t00_source_capture",
+      "status": "frozen 1d6 input evidence; independently accepted",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    },
+    "declaration_overlay_1d6": {
+      "path": "results/t00-source/declaration-overlay-1d6.json",
+      "owner": "/root/t00_source_capture",
+      "status": "frozen 1d6 input evidence; independently accepted",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    },
+    "source_overlay_manifest_1d6": {
+      "path": "results/t00-source/source-overlay-manifest.json",
+      "owner": "/root/t00_source_capture",
+      "status": "frozen 1d6 input evidence; independently accepted",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    },
+    "test_files_inventory_1d6": {
+      "path": "results/t00-source/test-files-1d6.jsonl.gz",
+      "owner": "/root/t00_source_capture",
+      "status": "frozen 1d6 input evidence; independently accepted",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    },
+    "test_files_inventory_31f": {
+      "path": "results/t00-source/test-files-31f.jsonl.gz",
+      "owner": "/root/t00_source_capture",
+      "status": "intermediate 31f overlay/evidence; preserved and independently accepted",
+      "source_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+    },
+    "test_inventory_delta_1d6": {
+      "path": "results/t00-source/test-inventory-delta-1d6.json",
+      "owner": "/root/t00_source_capture",
+      "status": "frozen 1d6 input evidence; independently accepted",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    },
+    "tracked_tree_inventory_1d6": {
+      "path": "results/t00-source/tracked-tree-1d6.jsonl.gz",
+      "owner": "/root/t00_source_capture",
+      "status": "frozen 1d6 input evidence; independently accepted",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    },
+    "tracked_tree_inventory_31f": {
+      "path": "results/t00-source/tracked-tree-31f.jsonl.gz",
+      "owner": "/root/t00_source_capture",
+      "status": "intermediate 31f overlay/evidence; preserved and independently accepted",
+      "source_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
+    },
+    "finding_delta_capture_script": {
+      "path": "results/t00-source/capture_finding_deltas.py",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "status": "Validated and independently accepted at e4354e82ed7801acc69a9e3512300b634a38f7ae."
+    },
+    "finding_deltas_e08_to_1d6": {
+      "path": "results/t00-source/finding-deltas-e08-to-1d6.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "status": "frozen 1d6 input evidence; independently accepted"
+    },
+    "source_state_capture": {
+      "path": "results/t00-source/source-state.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "status": "frozen 1d6 input evidence; independently accepted",
+      "sha256": "e82d575937f4d40951be3ddebf4d552344d88908fe62441610e6eccfdfb821fd"
+    },
+    "artifact_index": {
+      "path": "results/t00-source/artifact-index.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "sha256": "c859cd09b3ee1a21fe72d4caf3d623a8b675031d0684903d90a1b07ff26180de",
+      "status": "frozen 1d6 input evidence; independently accepted"
+    },
+    "command_inventory": {
+      "path": "results/t00-source/commands.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "status": "Validated and independently accepted at e4354e82ed7801acc69a9e3512300b634a38f7ae."
+    },
+    "finding_dispositions": {
+      "path": "results/t00-source/finding-dispositions.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "status": "Validated and independently accepted at e4354e82ed7801acc69a9e3512300b634a38f7ae."
+    },
+    "generated_and_legal_inventory": {
+      "path": "results/t00-source/generated-and-legal.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "status": "Validated and independently accepted at e4354e82ed7801acc69a9e3512300b634a38f7ae."
+    },
+    "ownership_boundaries": {
+      "path": "results/t00-source/ownership-boundaries.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "status": "Validated and independently accepted at e4354e82ed7801acc69a9e3512300b634a38f7ae."
+    },
+    "ownership_delta_31f": {
+      "path": "results/t00-source/ownership-delta-31f.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "status": "intermediate 31f overlay/evidence; preserved and independently accepted"
+    },
+    "safety_contract_inventory": {
+      "path": "results/t00-source/safety-contracts.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "status": "Validated and independently accepted at e4354e82ed7801acc69a9e3512300b634a38f7ae."
+    },
+    "source_report": {
+      "path": "results/t00-source/source-report.md",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "status": "frozen 1d6 input evidence; independently accepted",
+      "sha256": "18338746ac53a6a8d9a9bac3acfa8192ce522fda3bc3fd7625a1f2da08246beb"
+    },
+    "source_summary_1d6": {
+      "path": "results/t00-source/source-summary-1d6.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "status": "frozen 1d6 input evidence; independently accepted",
+      "sha256": "8af5ec64185926c1d2b079be3e15bdd70910615a0862c390992f8de00cf73e35"
+    },
+    "toolchain_record": {
+      "path": "results/t00-source/toolchain.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "status": "frozen 1d6 input evidence; independently accepted",
+      "sha256": "f354c57b3d10341f4dcc7de99ff4dd3bb1873d3cccbefe0bab0cafe8a352895e"
+    },
+    "source_validator": {
+      "path": "results/t00-source/validate_source_records.py",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "status": "Validated and independently accepted at e4354e82ed7801acc69a9e3512300b634a38f7ae."
+    },
+    "source_worker_result": {
+      "path": "results/t00-source/worker-result.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "sha256": "68592355d5db726b824a691ff684ca54fdc2727ec839549f8ca4c08d422d6834",
+      "status": "frozen 1d6 input evidence; independently accepted"
+    },
+    "source_worker_result_sha256": "68592355d5db726b824a691ff684ca54fdc2727ec839549f8ca4c08d422d6834",
+    "artifact_index_sha256": "c859cd09b3ee1a21fe72d4caf3d623a8b675031d0684903d90a1b07ff26180de",
+    "source_summary_sha256": "8af5ec64185926c1d2b079be3e15bdd70910615a0862c390992f8de00cf73e35",
+    "source_report_sha256": "18338746ac53a6a8d9a9bac3acfa8192ce522fda3bc3fd7625a1f2da08246beb",
+    "toolchain_sha256": "f354c57b3d10341f4dcc7de99ff4dd3bb1873d3cccbefe0bab0cafe8a352895e",
+    "source_review_decision": {
+      "path": "results/run-state.json:source_capture_review",
+      "status": "ACCEPT at e4354e82ed7801acc69a9e3512300b634a38f7ae; closes CORRECTION at 5847dfd26c7064dac491e540bc69b0ac22e2fc18."
+    },
+    "script_directives_inventory": {
+      "path": "results/t00-source/script-directives.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "status": "Validated and independently accepted at e4354e82ed7801acc69a9e3512300b634a38f7ae."
+    },
+    "source_identity_record": {
+      "path": "results/t00-source/source-state.json",
+      "owner": "/root/t00_source_capture",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "sha256": "e82d575937f4d40951be3ddebf4d552344d88908fe62441610e6eccfdfb821fd",
+      "status": "frozen 1d6 input evidence; independently accepted"
+    },
+    "source_capture_review": {
+      "path": "results/run-state.json:source_capture_review",
+      "status": "ACCEPT at e4354e82ed7801acc69a9e3512300b634a38f7ae"
+    },
+    "completed_upstream_refresh_review": "/root/t00_independent_review; gpt-6.1-sol high; both approved refreshes merged normally, final source input 1d6ee92."
   },
   "review": {
     "required_model": "gpt-6.1-sol",
     "required_effort": "high",
     "reviewer_id": "/root/t00_independent_review",
-    "status": "ACCEPT_SCOPED",
-    "reviewed_output_sha": "e2fa510c9fe993dce39e1f3bf56d62a2a9d9f1a0",
-    "accepted_scope": "Package import, additive root links, and checkpoint record.",
+    "status": "ACCEPT_SCOPED_IMPORT_AND_SOURCE_PENDING_FINAL_CHECKPOINT_REVIEW",
+    "reviewed_output_sha": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
+    "accepted_scope": "Package import and additive root links at e2fa510c; source/tool evidence at e4354e82.",
     "evidence": [
       "22 committed package hashes",
       "plan hash",
@@ -363,22 +661,16 @@
       "git diff --check passes"
     ],
     "limits": [
-      "T00 source inventory remains pending.",
-      "No product behavior was verified."
+      "Overall T00 acceptance awaits exact final checkpoint review.",
+      "Product behavior remains NOT VERIFIED."
     ]
   },
   "blockers": [
-    "T00 source capture and tool inventory remain active.",
-    "T37 and all dependent Termrock source work await overall T00 acceptance.",
-    "mise metadata failure blocks pinned-tool installation evidence.",
-    "The tool guard does not support its requested version query.",
-    "T37 remains NOT_STARTED until overall T00 acceptance and coordinator approval of the ownership split.",
+    "T00 final checkpoint commit awaits independent review.",
+    "T37 and dependent Termrock source work await overall T00 acceptance.",
+    "The unaccepted fixture expectation change remains source history; it is not product behavior proof.",
     "Classify tc-proof and visibility publisher/capture ownership before any related removal.",
-    "T37 must inventory all argparse descriptions derived from Python __doc__ and preserve identical help text before docstring removal.",
-    "Current T00 source artifacts are tied to 3a2c977c881cd1745de16425c982791ee3ef2cc3 and cannot establish the refreshed source inventory.",
-    "T00 final source input 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd awaits coordinator normal merge.",
-    "Preserve source evidence from 31f856f43d20920ea99aa81b8f40adeeb5bff358; capture the two-file delta and any required final evidence at the frozen input.",
-    "Do not accept the unaccepted expectation change as product behavior or oracle evidence."
+    "T37 must inventory all argparse descriptions derived from Python __doc__ and preserve identical help text before docstring removal."
   ],
   "root_instruction_patch": {
     "patch_path": "AGENTS.patch",
@@ -390,29 +682,46 @@
   },
   "output_commits": {
     "T00-import": "d51945d0592eee33a563efc717b07bf8847cbebd",
-    "upstream-refresh-integration": "8f39250e63ebde011a542d398076b50d2bbd5614"
+    "upstream-refresh-integration": "8f39250e63ebde011a542d398076b50d2bbd5614",
+    "upstream-refresh-final": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
+    "T00-source-capture": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
+    "T00-source-capture-initial": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
+    "T00-source-capture-corrected": "e4354e82ed7801acc69a9e3512300b634a38f7ae"
   },
   "task_units": {
-    "T00_overall": "ACTIVE_PENDING_FINAL_INPUT",
+    "T00_overall": "REVIEW_PENDING_CHECKPOINT_REVIEW",
     "T00_import": "ACCEPTED",
-    "T00_source_capture": "ACTIVE_PENDING_FINAL_INPUT",
+    "T00_source_capture": "ACCEPTED",
     "T00_independent_review": "ACCEPT"
   },
   "tool_limits": [
     {
       "tool": "mise install",
-      "status": "BLOCKED",
-      "reason": "Metadata failure reported by the source-capture worker; exact diagnostics remain pending in its source record."
+      "status": "FAILED",
+      "exit_code": 1,
+      "error": "failed to resolve java for macos-x64: no metadata found for version temurin-27.0.0+35 on macos-x64",
+      "note": "Mise reports all 17 declared tools already installed. Available versions were captured."
     },
     {
-      "tool": "guard version query",
+      "tool": "Cargo version query through rust-build-guard",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo --version",
       "status": "UNSUPPORTED",
-      "reason": "The tool guard does not support the requested version query; exact command details remain pending in the source record."
+      "exit_code": 125,
+      "error": "rust build guard: denied: unsupported Cargo command '--version'",
+      "note": "Cargo did not run; mbx doctor reports cargo 1.99.1."
+    },
+    {
+      "tool": "Cargo Nextest version query through rust-build-guard",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo nextest --version",
+      "status": "UNSUPPORTED",
+      "exit_code": 125,
+      "error": "rust build guard: denied: only cargo nextest run/list are supported",
+      "note": "Cargo did not run; direct cargo-nextest --version probe succeeded."
     }
   ],
   "product_behavior": {
     "status": "NOT VERIFIED",
-    "reason": "T00 source and instruction capture only; no product tests or behavior probes were run."
+    "reason": "T00 source and instruction capture only. No approved product behavior probes or tests ran."
   },
   "t37_planning_recommendations": [
     {
@@ -470,14 +779,17 @@
     }
   ],
   "source_capture_refresh": {
-    "status": "PENDING_SECOND_NORMAL_MERGE",
-    "captured_input_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-    "interim_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+    "status": "ACCEPTED_SCOPED_PENDING_FINAL_CHECKPOINT_REVIEW",
+    "immutable_base_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+    "overlay_shas": [
+      "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    ],
     "required_frozen_input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-    "current_integration_sha": "8f39250e63ebde011a542d398076b50d2bbd5614",
-    "merge_owner": "/root",
-    "merge_status": "PENDING_NORMAL_MERGE",
-    "preserve_prior_evidence": true,
+    "frozen_input_integration_commit": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
+    "evidence_commit": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
+    "old_capture_preserved": true,
+    "no_overwrite": true,
     "later_drift_policy": "Record later source drift for scoped review; do not recapture indefinitely."
   },
   "review_decisions": [
@@ -490,13 +802,15 @@
       "reviewed_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
       "merge_commit": "8f39250e63ebde011a542d398076b50d2bbd5614",
       "evidence": [
-        "Normal merge completed by coordinator.",
-        "Only exceptions/v1.json changed.",
-        "14 deleted lines.",
-        "No conflict."
+        "Normal merge completed by coordinator as 8f39250e63ebde011a542d398076b50d2bbd5614.",
+        "Only crates/termrock-xtask/exceptions/v1.json changed.",
+        "14 deleted lines; no conflict."
       ],
       "limits": [
-        "T00 source inventory refresh remains pending."
+        "This refresh is source-history evidence, not product behavior proof."
+      ],
+      "changed_paths": [
+        "crates/termrock-xtask/exceptions/v1.json"
       ]
     },
     {
@@ -506,16 +820,251 @@
       "model": "gpt-6.1-sol",
       "effort": "high",
       "reviewed_input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "merge_status": "PENDING_NORMAL_MERGE",
+      "merge_status": "COMPLETED_NORMAL_MERGE",
       "changed_path_count": 2,
-      "changed_paths": null,
+      "changed_paths": [
+        "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+        "crates/showcase-ui/tests/navigation_contract.rs"
+      ],
       "delta_classification": "legacy-test files only",
       "expectation_change": "unaccepted",
       "behavior_proof": "none",
       "limits": [
-        "File paths remain pending source delta ledger.",
-        "T00 final source inventory remains pending."
+        "Fixture expectation change remains unaccepted; no behavior proof."
+      ],
+      "merge_commit": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
+      "merge_diff": "Two legacy-test paths only; 54 insertions, 1 deletion; no conflicts."
+    },
+    {
+      "scope": "T00 source and tool evidence record.",
+      "decision": "CORRECTION",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "reviewed_output_sha": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
+      "corrections": [
+        {
+          "id": "R1",
+          "requirement": "Detect executable files with extensionless names and shebangs."
+        },
+        {
+          "id": "R2",
+          "requirement": "Record exact mise probe commands and full merge SHAs; remove MERGE placeholders."
+        },
+        {
+          "id": "R3",
+          "requirement": "Correctly record commit-binding provenance."
+        },
+        {
+          "id": "R4",
+          "requirement": "Reconcile CI counts: 95 cancelled unknown outcomes versus 98 total non-success."
+        }
+      ],
+      "correction_owner": "/root/t00_source_capture"
+    },
+    {
+      "scope": "Corrected T00 source/tool evidence record.",
+      "decision": "ACCEPT",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "reviewed_output_sha": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
+      "previous_correction_commit": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
+      "closed_corrections": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "evidence": [
+        "All 63 indexed hashes and source validator checks pass.",
+        "Both extensionless executable shebangs are recorded.",
+        "Exact mise commands and full merge SHAs are present.",
+        "CI reports 95 cancelled outcomes and 98 total non-success jobs."
+      ],
+      "limits": [
+        "Product behavior remains NOT VERIFIED."
       ]
     }
-  ]
+  ],
+  "source_capture_validation": {
+    "status": "ACCEPTED_SCOPED_PENDING_FINAL_CHECKPOINT_REVIEW",
+    "input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "previous_reviewed_commit": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
+    "output_commit": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
+    "identity_record": "results/t00-source/source-state.json",
+    "worker_result": "results/t00-source/worker-result.json",
+    "artifact_index": "results/t00-source/artifact-index.json",
+    "validator": "results/t00-source/validate_source_records.py",
+    "artifact_index_builder": "results/t00-source/build_artifact_index.py",
+    "results": {
+      "artifact_index_files": 63,
+      "all_indexed_hashes_verified": true,
+      "valid_json_files": 28,
+      "reconciled_ledgers": 6,
+      "test_ledger_subset_of_full_tree": true,
+      "paginated_ci_jobs": "100/100",
+      "f13_moves": 7,
+      "f13_proofs": 6,
+      "extensionless_executable_shebangs": 2,
+      "bytecode_cache_present": false
+    },
+    "file_hashes": {
+      "artifact-index.json": "c859cd09b3ee1a21fe72d4caf3d623a8b675031d0684903d90a1b07ff26180de",
+      "worker-result.json": "68592355d5db726b824a691ff684ca54fdc2727ec839549f8ca4c08d422d6834",
+      "source-state.json": "e82d575937f4d40951be3ddebf4d552344d88908fe62441610e6eccfdfb821fd",
+      "source-summary-1d6.json": "8af5ec64185926c1d2b079be3e15bdd70910615a0862c390992f8de00cf73e35",
+      "source-report.md": "18338746ac53a6a8d9a9bac3acfa8192ce522fda3bc3fd7625a1f2da08246beb",
+      "toolchain.json": "f354c57b3d10341f4dcc7de99ff4dd3bb1873d3cccbefe0bab0cafe8a352895e"
+    },
+    "commands": [
+      {
+        "command": "python3 docs/implementation/pr38-final/results/t00-source/build_artifact_index.py",
+        "exit_code": 0,
+        "files_indexed": 63,
+        "evidence_path": "results/t00-source/artifact-index.json"
+      },
+      {
+        "command": "python3 docs/implementation/pr38-final/results/t00-source/validate_source_records.py",
+        "exit_code": 0,
+        "valid_json_files": 28,
+        "reconciled_ledgers": 6,
+        "test_ledger_subset_of_full_tree": true,
+        "ci_jobs_paginated": "100/100",
+        "f13_moves": 7,
+        "f13_proofs": 6,
+        "extensionless_executable_shebangs": 2,
+        "bytecode_cache_present": false,
+        "evidence_path": "results/t00-source/worker-result.json"
+      },
+      {
+        "command": "mise install",
+        "exit_code": 1,
+        "error": "failed to resolve java for macos-x64: no metadata found for version temurin-27.0.0+35 on macos-x64",
+        "note": "Mise reports all 17 declared tools already installed; command failure remains recorded.",
+        "evidence_path": "results/t00-source/toolchain.json"
+      },
+      {
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo --version",
+        "exit_code": 125,
+        "error": "rust build guard: denied: unsupported Cargo command '--version'",
+        "note": "Cargo did not run. `mbx doctor` reports cargo 1.99.1.",
+        "evidence_path": "results/t00-source/toolchain.json"
+      },
+      {
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo nextest --version",
+        "exit_code": 125,
+        "error": "rust build guard: denied: only cargo nextest run/list are supported",
+        "note": "Cargo did not run. Direct cargo-nextest --version probe succeeded.",
+        "evidence_path": "results/t00-source/toolchain.json"
+      }
+    ],
+    "no_cargo_build_or_test_command_ran": true,
+    "base_input_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+    "overlay_shas": [
+      "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    ],
+    "source_change_paths": [
+      "crates/termrock-xtask/exceptions/v1.json",
+      "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+      "crates/showcase-ui/tests/navigation_contract.rs"
+    ],
+    "ci_outcomes": {
+      "jobs_total": 100,
+      "cancelled_jobs": 95,
+      "skipped_jobs": 2,
+      "failed_jobs": 1,
+      "non_success_jobs": 98,
+      "cancelled_outcomes": "unknown"
+    },
+    "no_authored_product_source_ci_or_snapshot_differences": true
+  },
+  "source_capture_review": {
+    "status": "ACCEPT",
+    "reviewer_id": "/root/t00_independent_review",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "previous_reviewed_commit": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
+    "target_commit": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
+    "decision": "ACCEPT",
+    "closed_corrections": [
+      "R1",
+      "R2",
+      "R3",
+      "R4"
+    ],
+    "evidence": [
+      "All 63 indexed hashes validated.",
+      "Source validator and two extensionless executable shebang checks pass.",
+      "Complete source identity uses immutable 3a base and explicit 31f/1d6 overlays.",
+      "CI outcome totals distinguish 95 cancelled jobs from 98 non-success jobs."
+    ],
+    "limits": [
+      "Product behavior remains NOT VERIFIED."
+    ]
+  },
+  "overall_task_review": {
+    "task_id": "T00",
+    "status": "REVIEW_PENDING_CHECKPOINT_REVIEW",
+    "target_commit": null,
+    "target_commit_note": "Coordinator assigns exact final checkpoint SHA after this checkpoint commit.",
+    "reviewer_id": null,
+    "decision": null,
+    "scoped_decisions": {
+      "import": "ACCEPT at e2fa510c9fe993dce39e1f3bf56d62a2a9d9f1a0",
+      "source_capture": "ACCEPT at e4354e82ed7801acc69a9e3512300b634a38f7ae"
+    },
+    "limits": [
+      "T00 is not accepted until the final checkpoint commit passes its review."
+    ]
+  },
+  "source_correction_work": {
+    "reviewed_commit": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
+    "correction_commit": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
+    "owner": "/root/t00_source_capture",
+    "status": "ACCEPTED_SCOPED",
+    "required_corrections": [
+      {
+        "id": "R1",
+        "requirement": "Detect executable files with extensionless names and shebangs."
+      },
+      {
+        "id": "R2",
+        "requirement": "Record exact mise probe commands and full merge SHAs; remove MERGE placeholders."
+      },
+      {
+        "id": "R3",
+        "requirement": "Correctly record commit-binding provenance."
+      },
+      {
+        "id": "R4",
+        "requirement": "Reconcile CI counts: 95 cancelled unknown outcomes versus 98 total non-success."
+      }
+    ],
+    "validation_exit_code": 0,
+    "accepted_commit": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
+    "independent_review": "/root/t00_independent_review; gpt-6.1-sol high; ACCEPT; R1-R4 closed."
+  },
+  "toolchain_versions": {
+    "mise": "2026.10.19 macos-arm64 (2026-10-24)",
+    "rustc": "1.99.1 (58cf8f9c3 2026-10-13), Homebrew",
+    "rustc_verbose": "1.99.1; commit 58cf8f9c35b355199727627d07ae34a4e2846d67; host aarch64-apple-darwin; LLVM 23.1.1",
+    "cargo": "1.99.1 (5f94df478 2026-08-27), reported by mbx doctor; guard rejected cargo --version",
+    "cargo_nextest": "0.9.149; commit 3fe4ef31972f24e0c94cfe291718eab0fe678260; direct cargo-nextest --version probe succeeded",
+    "mbx": "1.27.0"
+  },
+  "source_capture_evidence": "results/t00-source/source-state.json (source identity), results/t00-source/worker-result.json, and results/t00-source/source-report.md; frozen input 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd.",
+  "source_authored_changes": {
+    "T00_product_source_changes": false,
+    "T00_CI_input_or_generated_workflow_changes": false,
+    "T00_snapshot_or_oracle_changes": false,
+    "T00_changed_paths": [
+      "AGENTS.md",
+      "docs/implementation/pr38-final/**"
+    ],
+    "source_evidence_commit_paths": [
+      "docs/implementation/pr38-final/results/t00-source/**"
+    ]
+  }
 }

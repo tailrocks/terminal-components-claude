@@ -112,13 +112,14 @@
     "root_AGENTS_patch_sha256": "6ca84ba1017af12142689ad6f5f664f924717b30b2d0ba1f8dcde47f8a2eeff2"
   },
   "limits": [
-    "Import unit committed as d51945d0592eee33a563efc717b07bf8847cbebd; coordinator owns later integration commits.",
-    "T00 source capture, tool inventory, current build-failure records, and fresh source-finding checks remain with /root/t00_source_capture.",
-    "Independent Sol high review is pending.",
-    "No Cargo command or test command run; no tests authorized for this import-only work.",
-    "The worker runtime has no independent model-identity attestation; assignment settings were explicit."
+    "T00 source/tool evidence is accepted only for frozen input 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd.",
+    "No Cargo build, check, doc, or test command ran. No product behavior was verified.",
+    "The unaccepted fixture expectation change is source history only; it proves no behavior.",
+    "The mise install attempt failed, although all 17 declared tools were already installed and available tool versions were recorded.",
+    "The Cargo guard rejects cargo --version and cargo nextest --version. The cargo-nextest binary version probe succeeded directly.",
+    "Final checkpoint review remains pending."
   ],
-  "review_state": "ACCEPT_SCOPED",
+  "review_state": "ACCEPT_SCOPED_IMPORT_AND_SOURCE_PENDING_CHECKPOINT_REVIEW",
   "commit_message": "docs(plan): import reviewed PR 38 package",
   "review_decision": {
     "decision": "ACCEPT",
@@ -135,7 +136,6 @@
   "checkpoint_commit": "00505137a3894f3abec7f1ec0f1a9efc16bafcd7",
   "upstream_refresh": {
     "previous_input_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-    "approved_next_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
     "review": {
       "decision": "APPROVED",
       "model": "gpt-6.1-sol",
@@ -144,43 +144,226 @@
     },
     "merge_status": "COMPLETED_NORMAL_MERGE",
     "merge_owner": "/root",
-    "source_capture_status": "REFRESH_REQUIRED_FOR_MERGED_INPUT",
+    "source_capture_status": "FINAL_T00_CAPTURE_USES_FROZEN_1D6_OVERLAY",
     "preservation": "Existing source-capture files for the old input remain untouched.",
     "reviewer_id": "/root/t00_independent_review",
     "merge_commit": "8f39250e63ebde011a542d398076b50d2bbd5614",
     "changed_paths": [
-      "exceptions/v1.json"
+      "crates/termrock-xtask/exceptions/v1.json"
     ],
     "merge_delta": "14 deleted lines; no conflict.",
     "current_pr_head_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-    "later_drift_policy": "Freeze T00 at 1d6ee92 after its normal merge. Record later drift for scoped review; do not recapture indefinitely."
+    "later_drift_policy": "Freeze T00 at 1d6ee92 after its normal merge. Record later drift for scoped review; do not recapture indefinitely.",
+    "approved_input_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358"
   },
-  "current_integration_head": "8f39250e63ebde011a542d398076b50d2bbd5614",
-  "next_upstream_refresh": {
-    "from_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
-    "to_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-    "review": {
-      "decision": "APPROVED_SAFE_REFRESH",
-      "reviewer_id": "/root/t00_independent_review",
-      "model": "gpt-6.1-sol",
-      "effort": "high"
-    },
-    "merge_status": "PENDING_NORMAL_MERGE",
-    "merge_owner": "/root",
-    "source_delta": {
-      "changed_path_count": 2,
-      "changed_paths": null,
-      "classification": "legacy-test files only",
-      "expectation_change": "unaccepted",
-      "behavior_proof": "none",
-      "path_names_status": "pending source delta ledger",
-      "changed_paths_status": "pending source delta ledger; do not infer file names"
-    },
-    "preservation": "Keep existing 31f856f43d20920ea99aa81b8f40adeeb5bff358 evidence unchanged."
-  },
+  "current_integration_head": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
   "t00_frozen_input": {
     "sha_after_merge": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-    "status": "PENDING_NORMAL_MERGE",
-    "policy": "Freeze T00 at this source input after merge. Record later source drift for scoped review; do not recapture indefinitely."
-  }
+    "status": "FROZEN",
+    "policy": "Freeze T00 at this source input after merge. Record later source drift for scoped review; do not recapture indefinitely.",
+    "merge_commit": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
+    "frozen_at_integration_commit": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
+    "later_drift_policy": "Record later source drift for scoped review; do not recapture indefinitely."
+  },
+  "source_capture_unit": {
+    "input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "status": "ACCEPTED_SCOPED_PENDING_FINAL_CHECKPOINT_REVIEW",
+    "evidence_directory": "results/t00-source/",
+    "worker_result": "results/t00-source/worker-result.json",
+    "source_report": "results/t00-source/source-report.md",
+    "validation": {
+      "commands": [
+        {
+          "command": "python3 docs/implementation/pr38-final/results/t00-source/build_artifact_index.py",
+          "exit_code": 0,
+          "files_indexed": 63,
+          "evidence_path": "results/t00-source/artifact-index.json"
+        },
+        {
+          "command": "python3 docs/implementation/pr38-final/results/t00-source/validate_source_records.py",
+          "exit_code": 0,
+          "valid_json_files": 28,
+          "reconciled_ledgers": 6,
+          "test_ledger_subset_of_full_tree": true,
+          "ci_jobs_paginated": "100/100",
+          "f13_moves": 7,
+          "f13_proofs": 6,
+          "extensionless_executable_shebangs": 2,
+          "bytecode_cache_present": false,
+          "evidence_path": "results/t00-source/worker-result.json"
+        },
+        {
+          "command": "mise install",
+          "exit_code": 1,
+          "error": "failed to resolve java for macos-x64: no metadata found for version temurin-27.0.0+35 on macos-x64",
+          "note": "Mise reports all 17 declared tools already installed; command failure remains recorded.",
+          "evidence_path": "results/t00-source/toolchain.json"
+        },
+        {
+          "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo --version",
+          "exit_code": 125,
+          "error": "rust build guard: denied: unsupported Cargo command '--version'",
+          "note": "Cargo did not run. `mbx doctor` reports cargo 1.99.1.",
+          "evidence_path": "results/t00-source/toolchain.json"
+        },
+        {
+          "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo nextest --version",
+          "exit_code": 125,
+          "error": "rust build guard: denied: only cargo nextest run/list are supported",
+          "note": "Cargo did not run. Direct cargo-nextest --version probe succeeded.",
+          "evidence_path": "results/t00-source/toolchain.json"
+        }
+      ],
+      "no_cargo_build_or_test_command_ran": true,
+      "artifact_index_all_63_hashes_verified": true,
+      "ci_outcomes": {
+        "jobs_total": 100,
+        "cancelled_jobs": 95,
+        "skipped_jobs": 2,
+        "failed_jobs": 1,
+        "non_success_jobs": 98,
+        "cancelled_outcomes": "unknown"
+      },
+      "source_change_paths": [
+        "crates/termrock-xtask/exceptions/v1.json",
+        "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+        "crates/showcase-ui/tests/navigation_contract.rs"
+      ],
+      "toolchain_versions": {
+        "mise": "2026.10.19 macos-arm64",
+        "rustc": "1.99.1 (58cf8f9c3 2026-10-13)",
+        "cargo": "1.99.1 (5f94df478 2026-08-27), reported by mbx doctor",
+        "cargo_nextest": "0.9.149; direct binary probe succeeded",
+        "mbx": "1.27.0"
+      }
+    },
+    "content_summary": [
+      "Three immutable ledgers/overlays.",
+      "Full 100-job REST CI record.",
+      "Inventories.",
+      "Toolchain and guard limits.",
+      "Safety and finding dispositions."
+    ],
+    "independent_review": {
+      "status": "ACCEPT",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "reviewed_commit": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
+      "previous_decision": "CORRECTION at 5847dfd26c7064dac491e540bc69b0ac22e2fc18",
+      "closed_corrections": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    },
+    "output_commit": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
+    "artifact_index_path": "results/t00-source/artifact-index.json",
+    "artifact_index_sha256": "c859cd09b3ee1a21fe72d4caf3d623a8b675031d0684903d90a1b07ff26180de",
+    "worker_result_path": "results/t00-source/worker-result.json",
+    "worker_result_sha256": "68592355d5db726b824a691ff684ca54fdc2727ec839549f8ca4c08d422d6834",
+    "source_summary_sha256": "8af5ec64185926c1d2b079be3e15bdd70910615a0862c390992f8de00cf73e35",
+    "source_report_sha256": "18338746ac53a6a8d9a9bac3acfa8192ce522fda3bc3fd7625a1f2da08246beb",
+    "toolchain_record_sha256": "f354c57b3d10341f4dcc7de99ff4dd3bb1873d3cccbefe0bab0cafe8a352895e",
+    "tool_limits": [
+      {
+        "tool": "mise install",
+        "status": "FAILED",
+        "exit_code": 1,
+        "error": "failed to resolve java for macos-x64: no metadata found for version temurin-27.0.0+35 on macos-x64"
+      },
+      {
+        "tool": "rust-build-guard Cargo version query",
+        "status": "UNSUPPORTED",
+        "exit_code": 125,
+        "error": "rust build guard: denied: unsupported Cargo command '--version'"
+      },
+      {
+        "tool": "rust-build-guard cargo nextest version query",
+        "status": "UNSUPPORTED",
+        "exit_code": 125,
+        "error": "rust build guard: denied: only cargo nextest run/list are supported"
+      }
+    ],
+    "previous_output_commit": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
+    "corrected_after_review_commit": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
+    "source_identity_record": "results/t00-source/source-state.json",
+    "source_state_sha256": "e82d575937f4d40951be3ddebf4d552344d88908fe62441610e6eccfdfb821fd",
+    "toolchain_versions": {
+      "mise": "2026.10.19 macos-arm64",
+      "rustc": "1.99.1 (58cf8f9c3 2026-10-13)",
+      "cargo": "1.99.1 (5f94df478 2026-08-27), reported by mbx doctor",
+      "cargo_nextest": "0.9.149 (3fe4ef31972f24e0c94cfe291718eab0fe678260)",
+      "mbx": "1.27.0"
+    },
+    "ci_result": {
+      "jobs_total": 100,
+      "cancelled_jobs": 95,
+      "skipped_jobs": 2,
+      "failed_jobs": 1,
+      "non_success_jobs": 98,
+      "cancelled_job_outcomes": "unknown",
+      "required_failure": "aggregate gate only; no product or production-build diagnostic"
+    },
+    "correction_status": "ACCEPTED by independent Sol high review; all four corrections closed.",
+    "base_input_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+    "overlay_shas": [
+      "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    ],
+    "hashes": {
+      "artifact-index.json": "c859cd09b3ee1a21fe72d4caf3d623a8b675031d0684903d90a1b07ff26180de",
+      "worker-result.json": "68592355d5db726b824a691ff684ca54fdc2727ec839549f8ca4c08d422d6834",
+      "source-state.json": "e82d575937f4d40951be3ddebf4d552344d88908fe62441610e6eccfdfb821fd",
+      "source-summary-1d6.json": "8af5ec64185926c1d2b079be3e15bdd70910615a0862c390992f8de00cf73e35",
+      "source-report.md": "18338746ac53a6a8d9a9bac3acfa8192ce522fda3bc3fd7625a1f2da08246beb",
+      "toolchain.json": "f354c57b3d10341f4dcc7de99ff4dd3bb1873d3cccbefe0bab0cafe8a352895e"
+    },
+    "frozen_input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "no_authored_product_source_ci_or_snapshot_differences": true
+  },
+  "product_behavior": "NOT VERIFIED",
+  "upstream_refreshes": [
+    {
+      "from_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+      "to_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "reviewer_id": "/root/t00_independent_review",
+      "review_model": "gpt-6.1-sol",
+      "review_effort": "high",
+      "merge_status": "COMPLETED_NORMAL_MERGE",
+      "merge_commit": "8f39250e63ebde011a542d398076b50d2bbd5614",
+      "changed_paths": [
+        "crates/termrock-xtask/exceptions/v1.json"
+      ],
+      "delta": "14 deleted lines; no conflict."
+    },
+    {
+      "from_sha": "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "to_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "reviewer_id": "/root/t00_independent_review",
+      "review_model": "gpt-6.1-sol",
+      "review_effort": "high",
+      "merge_status": "COMPLETED_NORMAL_MERGE",
+      "merge_commit": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
+      "changed_paths": [
+        "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+        "crates/showcase-ui/tests/navigation_contract.rs"
+      ],
+      "delta": "54 insertions, 1 deletion; no conflicts.",
+      "expectation_change": "unaccepted",
+      "behavior_proof": "none"
+    }
+  ],
+  "source_capture_method": {
+    "immutable_base_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+    "exact_overlay_shas": [
+      "31f856f43d20920ea99aa81b8f40adeeb5bff358",
+      "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    ],
+    "frozen_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "method": "Preserve base ledgers and apply exact changed-blob overlays. Do not rehash unchanged paths.",
+    "later_drift_policy": "Record later source drift for scoped review; do not recapture indefinitely."
+  },
+  "final_checkpoint_review": "PENDING"
 }
