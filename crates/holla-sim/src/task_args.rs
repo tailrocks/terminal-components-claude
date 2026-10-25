@@ -461,6 +461,20 @@ pub struct Invocation {
 }
 
 impl Invocation {
+    /// Constructs a crate-internal structured read-only invocation.
+    ///
+    /// Producer modules must bind canonical policy before supplying fixed program/operand data.
+    /// The risk is intentionally fixed here rather than accepted from producer input.
+    pub(crate) fn read_only(program: &str, argv: Vec<String>, workdir: &str, target: &str) -> Self {
+        Self {
+            program: program.to_owned(),
+            argv,
+            workdir: workdir.to_owned(),
+            target: target.to_owned(),
+            risk: Risk::ReadOnly,
+        }
+    }
+
     /// Returns the executable name.
     pub fn program(&self) -> &str {
         &self.program
@@ -471,7 +485,7 @@ impl Invocation {
         &self.argv
     }
 
-    /// Returns the task's working directory.
+    /// Returns the invocation's working directory.
     pub fn workdir(&self) -> &str {
         &self.workdir
     }
@@ -481,7 +495,7 @@ impl Invocation {
         &self.target
     }
 
-    /// Returns the action risk bound by the current catalogue row.
+    /// Returns the risk bound by the current canonical action.
     pub fn risk(&self) -> Risk {
         self.risk
     }

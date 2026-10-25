@@ -7,6 +7,10 @@ use crate::scenario::Scenario;
 use crate::sim::{
     catalogue::{self, IntentError},
     plans::{self, ReviewedPlan},
+    port_args::{
+        PortArgsProducer, PortArgsSession, PortInvocationPlan, PortReviewFacts,
+        port_args_producer_for, port_review_facts, simulate_port_invocation,
+    },
     task_args::{
         InvocationPlan, SafeReviewFacts, TaskArgsProducer, TaskArgsSession, nextest_review_facts,
         simulate_nextest_invocation, task_args_producer_for,
@@ -22,6 +26,12 @@ pub(crate) enum Destination {
         file: String,
         args: Option<Box<TaskArgsStart>>,
     },
+    PortArgs(Box<PortArgsStart>),
+    PortArgsReview {
+        producer: PortArgsProducer,
+        plan: Box<PortInvocationPlan>,
+        facts: PortReviewFacts,
+    },
     TaskArgs(Box<TaskArgsStart>),
     TaskArgsReview {
         producer: TaskArgsProducer,
@@ -35,6 +45,12 @@ pub(crate) enum Destination {
     Activity(u32, String),
 }
 
+pub(crate) struct PortArgsStart {
+    pub(crate) action: Action,
+    pub(crate) producer: PortArgsProducer,
+    pub(crate) session: PortArgsSession,
+}
+
 pub(crate) struct TaskArgsStart {
     pub(crate) action: Action,
     pub(crate) producer: TaskArgsProducer,
@@ -42,7 +58,12 @@ pub(crate) struct TaskArgsStart {
 }
 
 pub(crate) fn preview(world: &mut World, row: &Action) -> Destination {
-    // Keep declared producers off the legacy fixed-command preview route.
+    // Every reserved typed producer stays off the legacy fixed-command preview route.
+    match port_args_producer_for(row) {
+        Ok(Some(producer)) => return start_port_args(world, row, producer),
+        Err(error) => return Destination::Notice(error.to_string()),
+        Ok(None) => {}
+    }
     match task_args_producer_for(row) {
         Ok(Some(producer)) => start_task_args(world, row, producer),
         Ok(None) => match &row.availability {
@@ -58,6 +79,11 @@ pub(crate) fn preview(world: &mut World, row: &Action) -> Destination {
 }
 
 pub(crate) fn invoke(world: &mut World, row: &Action) -> Destination {
+    match port_args_producer_for(row) {
+        Ok(Some(producer)) => return start_port_args(world, row, producer),
+        Err(error) => return Destination::Notice(error.to_string()),
+        Ok(None) => {}
+    }
     let producer = match task_args_producer_for(row) {
         Ok(producer) => producer,
         Err(error) => return Destination::Notice(error.to_string()),
@@ -102,6 +128,23 @@ pub(crate) fn invoke(world: &mut World, row: &Action) -> Destination {
     }
 }
 
+fn start_port_args(world: &World, row: &Action, producer: PortArgsProducer) -> Destination {
+    let session = match PortArgsSession::begin(world, row, &producer) {
+        Ok(session) => session,
+        Err(error) => return Destination::Notice(error.to_string()),
+    };
+    match &row.availability {
+        Availability::Ready => Destination::PortArgs(Box::new(PortArgsStart {
+            action: row.clone(),
+            producer,
+            session,
+        })),
+        Availability::NeedsTrust(_) | Availability::Blocked(_) => {
+            Destination::Notice("port action is not a ready read-only host action".into())
+        }
+    }
+}
+
 fn start_task_args(world: &World, row: &Action, producer: TaskArgsProducer) -> Destination {
     let session = match TaskArgsSession::begin(world, row, &producer) {
         Ok(session) => session,
@@ -123,6 +166,35 @@ fn start_task_args(world: &World, row: &Action, producer: TaskArgsProducer) -> D
             session,
         })),
         Availability::Blocked(reason) => Destination::Notice(reason.clone()),
+    }
+}
+
+pub(crate) fn review_port_args(
+    world: &World,
+    producer: PortArgsProducer,
+    plan: PortInvocationPlan,
+) -> Destination {
+    match port_review_facts(world, &producer, &plan) {
+        Ok(facts) => Destination::PortArgsReview {
+            producer,
+            plan: Box::new(plan),
+            facts,
+        },
+        Err(error) => Destination::Notice(error.to_string()),
+    }
+}
+
+pub(crate) fn confirm_port_args(
+    world: &World,
+    producer: &PortArgsProducer,
+    plan: PortInvocationPlan,
+) -> Destination {
+    match simulate_port_invocation(world, producer, &plan) {
+        Ok(report) => Destination::Notice(format!(
+            "Simulation confirmed · nothing executed · {}",
+            crate::screens::args::format_invocation(&report.invocation)
+        )),
+        Err(error) => Destination::Notice(error.to_string()),
     }
 }
 
@@ -156,7 +228,12 @@ pub(crate) fn confirm_task_args(
 }
 
 pub(crate) fn confirm_preview(world: &mut World, row: &Action) -> Destination {
-    // A direct generic confirmation must not bypass typed input acceptance.
+    // Direct generic confirmation must not bypass either typed input producer.
+    match port_args_producer_for(row) {
+        Ok(Some(producer)) => return start_port_args(world, row, producer),
+        Err(error) => return Destination::Notice(error.to_string()),
+        Ok(None) => {}
+    }
     match task_args_producer_for(row) {
         Ok(Some(producer)) => return start_task_args(world, row, producer),
         Err(error) => return Destination::Notice(error.to_string()),
