@@ -8,13 +8,16 @@
 //! 3. historical page/title leads remain live navigation hints and are never
 //!    treated as behavior proof.
 
+#[path = "coverage/mod.rs"]
+mod coverage;
+
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use showcase_ui::coverage::catalog::{CAPABILITIES, CapKind, Capability};
-use showcase_ui::coverage::declarations::{
+use crate::coverage::catalog::{CAPABILITIES, CapKind, Capability};
+use crate::coverage::declarations::{
     self, ALLOWLIST, Allow, BehaviorProof, PAGE_LEADS, PROOFS, PageLead, ProofKind,
 };
-use showcase_ui::coverage::scan::{self, Item};
+use crate::coverage::scan::{self, Item};
 use showcase_ui::{App, NAV_ENTRIES, PageId};
 use termrock::{Id, KeyCode, Theme};
 use termrock_test_support::Harness;
@@ -387,6 +390,11 @@ fn registry_matches_library_source() {
         "the scan found too little: {}",
         scanned.len()
     );
+    for item in &scanned {
+        let catalogue_item = crate::coverage::catalog::find(&item.id)
+            .unwrap_or_else(|| panic!("catalogue lookup missed scanned item {}", item.id));
+        assert_eq!(catalogue_item.kind, item.kind, "kind drift at {}", item.at);
+    }
     fail_on(
         "the catalogue drifted from the library source",
         &registry_problems(CAPABILITIES, &scanned),

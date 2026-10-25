@@ -4,11 +4,14 @@
 //! It preserves the hand-reviewed proof rows and never rewrites dispositions.
 //! Stale or missing disposition rows are printed for explicit review.
 
+#[path = "coverage/mod.rs"]
+mod coverage;
+
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write as _;
 
+use crate::coverage::{declarations, scan};
 use showcase_ui::PageId;
-use showcase_ui::coverage::{declarations, scan};
 
 #[test]
 fn regenerate_inventory_and_page_lead_proposals() {
@@ -44,23 +47,15 @@ fn regenerate_inventory_and_page_lead_proposals() {
         );
     }
     catalog.push_str("];\n");
-    write_file(
-        &root,
-        "crates/showcase-ui/src/coverage/catalog_data.rs",
-        &catalog,
-    );
+    let [catalog_path, declarations_path] = generated_data_paths(&root);
+    write_file(&catalog_path, &catalog);
 
-    let current =
-        std::fs::read_to_string(root.join("crates/showcase-ui/src/coverage/declarations_data.rs"))
-            .unwrap_or_else(|error| panic!("read proof rows: {error}"));
+    let current = std::fs::read_to_string(&declarations_path)
+        .unwrap_or_else(|error| panic!("read proof rows: {error}"));
     let Some(data) = declarations_data_source(&leads, &current) else {
         panic!("missing hand-authored proof marker");
     };
-    write_file(
-        &root,
-        "crates/showcase-ui/src/coverage/declarations_data.rs",
-        &data,
-    );
+    write_file(&declarations_path, &data);
 
     let (allow, parse_problems) = declarations::parse_allowlist(declarations::ALLOWLIST);
     assert!(
@@ -126,7 +121,58 @@ fn generated_declarations_keep_preserved_proof_names_in_scope() {
     );
 }
 
-fn write_file(root: &std::path::Path, relative: &str, text: &str) {
-    let path = root.join(relative);
-    std::fs::write(&path, text).unwrap_or_else(|error| panic!("write {}: {error}", path.display()));
+#[test]
+fn retained_page_leads_resolve_and_proof_suffix_survives_generation() {
+    let current = include_str!("coverage/declarations_data.rs");
+    let leads: Vec<(&str, &str, &str)> = declarations::PAGE_LEADS
+        .iter()
+        .map(|(id, lead)| (*id, lead.page, lead.title_hint))
+        .collect();
+    for (id, _, _) in &leads {
+        assert!(
+            coverage::catalog::find(id).is_some(),
+            "page lead has no inventory item: {id}"
+        );
+    }
+
+    let proof_start = current
+        .find(PROOF_MARKER)
+        .expect("the retained proof suffix marker must exist");
+    let proof_suffix = &current[proof_start..];
+    let generated = declarations_data_source(&leads, current)
+        .expect("the actual declaration source must be regenerable");
+
+    assert_eq!(generated.matches("PageLead {").count(), leads.len());
+    assert!(
+        generated.ends_with(proof_suffix),
+        "generation must retain the complete hand-authored proof suffix"
+    );
+}
+
+fn generated_data_paths(root: &std::path::Path) -> [std::path::PathBuf; 2] {
+    [
+        root.join("crates/showcase-ui/tests/coverage/catalog_data.rs"),
+        root.join("crates/showcase-ui/tests/coverage/declarations_data.rs"),
+    ]
+}
+
+#[test]
+fn generated_data_paths_stay_in_test_support() {
+    let root = std::path::Path::new("/workspace");
+    let [catalog, declarations] = generated_data_paths(root);
+
+    assert_eq!(
+        catalog,
+        root.join("crates/showcase-ui/tests/coverage/catalog_data.rs")
+    );
+    assert_eq!(
+        declarations,
+        root.join("crates/showcase-ui/tests/coverage/declarations_data.rs")
+    );
+    assert!(!catalog.starts_with(root.join("crates/showcase-ui/src/coverage")));
+    assert!(!declarations.starts_with(root.join("crates/showcase-ui/src/coverage")));
+}
+
+fn write_file(path: &std::path::Path, text: &str) {
+    std::fs::write(path, text).unwrap_or_else(|error| panic!("write {}: {error}", path.display()));
 }
