@@ -15,3 +15,5 @@
 - Maintained API guidance: raw prose is not treated as a contract transfer. Details not represented in current contracts remain open for T01/T35 and the shared docs owner.
 
 - Second follow-up from accepted `96fe6a2a`: after independent Sol high confirmation of T37-FOUNDATION-TESTING-01/02, the facade testing re-export for `ProjectedFrame`, `RenderModel`, and `StyledQuery` was removed with its now-empty cfg attribute. Runtime declarations are foundation-owned. The exact 21-token delta and hashes are in `approved-testing-frame-facade-retirement.json`.
+
+- Third follow-up after accepted `f03e22c14`: independent Sol high decision T37-SELECTION-BINDING-01 retires only `TextViewport::selection_binding_chords` and its testing cfg. The 59-token deletion, f03/d402 input blob identity, and preserved registration/action definitions are recorded in `approved-selection-binding-retirement.json`.
