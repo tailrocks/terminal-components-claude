@@ -21,11 +21,7 @@ pub const PROFILE_JSON: &str = include_str!("../profile.json");
 const ORACLE_TAG_REF: &str = "refs/tags/visual-baseline";
 const ORACLE_TAG_OBJECT: &str = "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5";
 const ORACLE_TAG_COMMIT: &str = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
-const REFERENCE_BRANCH_REF: &str = "refs/remotes/origin/visual-baseline";
-const REFERENCE_BRANCH_MEMBERSHIP: &str = "verified-reachable";
 
-const TAG_SOURCE_VALIDATOR_PATH_ENV: &str = "TERMROCK_VIS06_SUBJECTS_PY";
-const TAG_SOURCE_REPOSITORY_ENV: &str = "TERMROCK_VIS06_GIT_REPOSITORY";
 const TAG_VALIDATOR_TOOLCHAIN_PATH_ENV: &str = "TERMROCK_VIS06_VALIDATOR_TOOLCHAIN";
 const TAG_VALIDATOR_TOOLCHAIN_SHA_ENV: &str = "TERMROCK_VIS06_VALIDATOR_TOOLCHAIN_SHA256";
 
@@ -1265,19 +1261,6 @@ pub fn builder_receipt_digest(receipt: &BuilderReceipt) -> Result<String, String
     Ok(sha256_bytes(&bytes))
 }
 
-fn canonical_existing_directory(path: &Path, name: &str) -> Result<PathBuf, String> {
-    validate_absolute_normal_path(path, name)?;
-    let canonical = fs::canonicalize(path)
-        .map_err(|error| format!("canonicalize {name} {}: {error}", path.display()))?;
-    if !canonical.is_dir() {
-        return Err(format!(
-            "{name} is not a directory: {}",
-            canonical.display()
-        ));
-    }
-    Ok(canonical)
-}
-
 fn canonical_new_file_path(path: &Path, name: &str) -> Result<PathBuf, String> {
     validate_absolute_normal_path(path, name)?;
     let file_name = path
@@ -1323,25 +1306,6 @@ fn suite_checkout_root(package_root: &Path) -> Result<PathBuf, String> {
             "canonicalize suite checkout root {}: {error}",
             checkout_root.display()
         )
-    })
-}
-
-fn protected_root(
-    kind: &str,
-    role: Option<String>,
-    path: PathBuf,
-) -> Result<ProtectedRoot, String> {
-    Ok(ProtectedRoot {
-        kind: kind.to_string(),
-        role,
-        path: fs::canonicalize(&path)
-            .or_else(|_| canonical_output_root(&path))
-            .map_err(|error| {
-                format!(
-                    "canonicalize protected {kind} root {}: {error}",
-                    path.display()
-                )
-            })?,
     })
 }
 
