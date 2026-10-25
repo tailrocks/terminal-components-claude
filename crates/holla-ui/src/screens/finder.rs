@@ -1,4 +1,4 @@
-use termrock::{FgStep, Rect, Role, StylePatch, Ui};
+use termrock::{FgStep, Rect, Role, StylePatch, TextSection, Ui};
 
 pub(crate) const RECENT: &str = "Recent here";
 pub(crate) const RECENT_EMPTY: &str = "nothing used here yet";
@@ -13,18 +13,20 @@ pub(crate) fn paint_recent_lead(ui: &mut Ui<'_>, area: Rect) -> u16 {
             .set_fg(Role::Fg(FgStep::Primary))
             .add(termrock::Modifier::BOLD),
     );
-    let muted = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
-    ui.paint_str(line(area, 0), RECENT, title);
-    ui.paint_str(line(area, 1), RECENT_EMPTY, muted);
-    ui.paint_str(line(area, 2), EXPLORE, muted);
-    3
-}
-
-fn line(area: Rect, row: u16) -> Rect {
-    Rect::new(
+    let muted = StylePatch::new().set_fg(Role::Fg(FgStep::Muted));
+    let content_area = Rect::new(
         area.x.saturating_add(2),
-        area.y.saturating_add(row),
+        area.y,
         area.width.saturating_sub(2),
-        1,
-    )
+        3,
+    );
+    TextSection::new(RECENT)
+        .subtitle(RECENT_EMPTY)
+        .body(EXPLORE)
+        .body_row(2)
+        .inset(0)
+        .title_style(title)
+        .text_patch(muted)
+        .render(ui, content_area);
+    3
 }
