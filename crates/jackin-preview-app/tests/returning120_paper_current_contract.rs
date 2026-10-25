@@ -131,10 +131,11 @@ fn assert_current_saved_frame(
     );
     assert_eq!(harness.buffer().area, Rect::new(0, 0, WIDTH, HEIGHT));
 
-    // The Paper TrueColor policy restores the retained nonlegacy saved chrome.
-    // Mono keeps the current shared presentation; the assertions remain exact
-    // for both capabilities and do not alter the World/action checks below.
-    if level == ColorLevel::TrueColor {
+    // The Paper Mono and TrueColor policy restores the retained nonlegacy saved
+    // chrome; the assertions remain exact for both capabilities and do not alter
+    // the World/action checks below.
+    let restored_paper = matches!(level, ColorLevel::Mono | ColorLevel::TrueColor);
+    if restored_paper {
         assert_text_at(harness, 76, 0, "Workspaces")?;
         assert_text_at(harness, 88, 0, "inside the Construct")?;
         assert_text_at(harness, 107, 0, "t")?;
@@ -160,11 +161,11 @@ fn assert_current_saved_frame(
     assert_text_at(harness, 56, 4, "/workspace/payments-platform")?;
     assert_text_at(harness, 42, 36, "Launch")?;
     assert_text_at(harness, 52, 36, "Edit")?;
-    if level != ColorLevel::TrueColor {
+    if !restored_paper {
         assert_text_at(harness, 51, 36, " ")?;
     }
 
-    let hints = if level == ColorLevel::TrueColor {
+    let hints = if restored_paper {
         [
             ("Enter", "Launch", 14),
             ("n", "New", 28),
