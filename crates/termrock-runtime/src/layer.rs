@@ -6,6 +6,7 @@ pub use termrock_core::layer_types::{DismissReason, LayerEvent, LayerId};
 use crate::action::ActionKey;
 use crate::focus::ScopeId;
 use crate::id::Id;
+use crate::intent::LayerIntentToken;
 
 /// Identifies one application update callback within a runtime.
 ///
@@ -50,6 +51,35 @@ pub(crate) struct PendingLayerEvent {
     pub(crate) opening: LayerOpening,
     pub(crate) event: LayerEvent,
     pub(crate) update: Option<UpdateToken>,
+}
+
+/// Runtime-only envelope preserving the exact intent identity paired with a receipt.
+#[derive(Debug)]
+pub(crate) struct RoutedLayerEvent {
+    receipt: LayerEventReceipt,
+    token: LayerIntentToken,
+}
+
+impl RoutedLayerEvent {
+    pub(crate) fn new(receipt: LayerEventReceipt, token: LayerIntentToken) -> Self {
+        Self { receipt, token }
+    }
+
+    pub(crate) const fn receipt(&self) -> LayerEventReceipt {
+        self.receipt
+    }
+
+    pub(crate) const fn opening(&self) -> LayerOpening {
+        self.receipt.opening
+    }
+
+    pub(crate) const fn event(&self) -> LayerEvent {
+        self.receipt.event
+    }
+
+    pub(crate) fn token(&self) -> &LayerIntentToken {
+        &self.token
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
