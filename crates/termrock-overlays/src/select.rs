@@ -515,6 +515,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         items: &[T],
     ) -> Response<SelectAction> {
         let len = items.len();
+        let was_open = st.open;
         self.reconcile_and_seed(st, items);
         let open = st.open && cx.is_open(self.id);
         if open {
@@ -535,8 +536,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         for it in cx.intents(self.id) {
             match it {
                 Intent::Layer(LayerEvent::Dismissed(_)) => {
-                    self.close_restoring(st, items);
-                    acc.action(SelectAction::Closed);
+                    if was_open {
+                        self.close_restoring(st, items);
+                        acc.action(SelectAction::Closed);
+                    }
                 }
                 Intent::Layer(_) => acc.repaint(),
                 Intent::Binding(action) if can => {
@@ -1030,6 +1033,61 @@ mod tests {
             rt.diagnostics().is_empty(),
             "no diagnostic on the dismissal pass: {:?}",
             rt.diagnostics()
+        );
+    }
+
+    #[test]
+    fn self_closed_popup_reports_once_and_leaves_the_next_key_available() {
+        let mut runtime = Runtime::new(
+            SelectPage {
+                st: SelectState::default(),
+                items: vec!["a", "b", "c"],
+                closed: 0,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert!(runtime.is_open(SEL));
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Esc));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert!(!runtime.is_open(SEL));
+        assert_eq!(runtime.app().closed, 1, "Escape reports one close");
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Down));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert!(!runtime.is_open(SEL));
+        assert_eq!(runtime.app().st.value(), Some(ItemKey::index(1)));
+        assert_eq!(
+            runtime.app().closed,
+            1,
+            "choosing emits Chose without reporting its own close again"
+        );
+
+        let next = crate::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Char('s'),
+                mods: KeyModifiers::CONTROL,
+            }),
+        );
+        assert!(
+            !next.is_consumed(),
+            "the Select does not consume the next key"
+        );
+        assert_eq!(runtime.app().closed, 1);
+        assert!(
+            runtime.diagnostics().is_empty(),
+            "no diagnostic after self-close: {:?}",
+            runtime.diagnostics()
         );
     }
 
