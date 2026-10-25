@@ -24,6 +24,34 @@ const SCREEN: Rect = Rect::new(0, 0, 96, 24);
 
 type Consumer = Runtime<RecipeBox>;
 
+// Keep the Quickstart launch calls compiled without entering an interactive
+// terminal session from nextest.
+fn quickstart_run_with_detected_theme(app: RecipeBox) -> std::io::Result<()> {
+    termrock::run(app, Theme::junie())
+}
+
+fn quickstart_run_with_ansi16_upper_bound(app: RecipeBox) -> std::io::Result<()> {
+    termrock::run(app, Theme::junie().for_level(termrock::ColorLevel::Ansi16))
+}
+
+#[test]
+fn quickstart_theme_examples_compile_and_preserve_level_cap() {
+    let _: fn(RecipeBox) -> std::io::Result<()> = quickstart_run_with_detected_theme;
+    let _: fn(RecipeBox) -> std::io::Result<()> = quickstart_run_with_ansi16_upper_bound;
+
+    assert_eq!(
+        Theme::junie().capability.color,
+        termrock::ColorLevel::TrueColor
+    );
+    assert_eq!(
+        Theme::junie()
+            .for_level(termrock::ColorLevel::Ansi16)
+            .capability
+            .color,
+        termrock::ColorLevel::Ansi16
+    );
+}
+
 fn consumer() -> (Consumer, Terminal<TestBackend>) {
     consumer_with(SCREEN)
 }

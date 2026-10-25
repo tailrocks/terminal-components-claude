@@ -4,13 +4,9 @@
 
 ## Choose terminal colors
 
-[termrock::run](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-session/src/session.rs#L537-L539) accepts a starting theme and detects terminal capability during session startup ([the startup helper applies Theme::for_terminal() before creating Runtime](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-session/src/session.rs#L638)). The usual call needs no manual detection:
+[termrock::run](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-session/src/session.rs#L537-L539) accepts a starting theme and detects terminal capability during session startup ([the startup helper applies Theme::for_terminal() before creating Runtime](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-session/src/session.rs#L638)). The usual call needs no manual detection: `termrock::run(app, termrock::Theme::junie())`. The [consumer binary](../../crates/termrock-consumer-example/src/main.rs) uses this form. The [consumer nextest test](../../crates/termrock-consumer-example/tests/consumer.rs#L27-L56) compiles both call forms and checks their starting theme levels without entering an interactive terminal session.
 
-    termrock::run(app, termrock::Theme::junie())
-
-To set an upper bound, pass [Theme::for_level(...)](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-theme/src/downgrade.rs#L404-L407):
-
-    termrock::run(app, termrock::Theme::junie().for_level(termrock::ColorLevel::Ansi16))
+To set an upper bound, pass [Theme::for_level(...)](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-theme/src/downgrade.rs#L404-L407): `termrock::run(app, termrock::Theme::junie().for_level(termrock::ColorLevel::Ansi16))`.
 
 The session may narrow that theme further to the detected level; for_level() does not force that level or bypass detection. A caller that constructs [Runtime directly](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-runtime/src/runtime.rs#L714-L727) keeps the supplied theme. That path can opt into detection with [Theme::for_terminal()](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-theme/src/downgrade.rs#L410-L412); applying it before termrock::run() is redundant.
 
