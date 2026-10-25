@@ -1191,8 +1191,37 @@
       "output_sha256": "fd5cb25dcb739d0c056253d8c3ee6a2b82501dbbb6f8f4233e6fc65cd1059039",
       "input_functions_after_cfg_test_removal": 5,
       "current_functions": 4,
-      "exact_retained_function_token_matches": 4,
-      "retained_functions_with_token_deltas": [],
+      "exact_retained_function_token_matches": 3,
+      "retained_functions_with_token_deltas": [
+        {
+          "name": "spawn_context_check",
+          "input_line": 19,
+          "output_line": 17,
+          "edits": [
+            {
+              "operation": "delete",
+              "old_tokens": [
+                "if",
+                "member",
+                ".",
+                "schema",
+                "==",
+                "FIXTURE_CONTEXT_SCHEMA",
+                "{",
+                "return",
+                "spawn_fixture_context_check_stub",
+                "(",
+                ")",
+                ";",
+                "}"
+              ],
+              "current_tokens": []
+            }
+          ],
+          "changed_tokens_include_literals": false,
+          "authority": "T37-PROOF-FIXTURE-01"
+        }
+      ],
       "functions_not_in_current": [
         {
           "name": "spawn_fixture_context_check_stub",
@@ -1228,7 +1257,22 @@
             29
           ]
         }
-      ]
+      ],
+      "approved_closure_control_flow_deltas": [
+        {
+          "name": "fixture context dispatch",
+          "input_line_range_c817": [
+            27,
+            29
+          ],
+          "input_slice_sha256": "8622bb798caf554d5369e7845201bc4be056df2212dcd2ed089bdae1e3bd6bb8",
+          "surviving_function": "spawn_context_check",
+          "input_function_line_c817": 19,
+          "output_function_line": 17,
+          "reason": "The Sol-high approved fixture stub/dispatch closure is removed; the context existence guard and normal tc-proof dispatch remain."
+        }
+      ],
+      "token_match_accounting": "4 current functions = 3 exact retained token matches + 1 function with the named approved fixture dispatch deletion."
     },
     {
       "path": "tools/refactor-proof/src/host/git.rs",
@@ -1386,7 +1430,7 @@
     }
   ],
   "non_comment_token_delta_summary": {
-    "only_deltas_in_surviving_rust_functions": "All function-level deltas are punctuation only; no retained function string/raw-string/byte-string literal token changed. Retained named const/type items match except the approved TOOLING_MEMBERS package-classification literal. Explicitly retired items/files are listed separately. Six retained SAFETY comment groups were removed after the accepted and integrated maintained contract; see post-transfer-comment-deletions.json.",
+    "only_deltas_in_surviving_rust_functions": "Surviving-function deltas are punctuation normalization except for the approved fixture-context branch deletion in tools/refactor-proof/src/host/context_check.rs::spawn_context_check; no retained string/raw-string/byte-string literal token changed. Retained named const/type items match except the approved TOOLING_MEMBERS package-classification literal. Explicitly retired items/files are listed separately. Six retained SAFETY comment groups were removed after the accepted and integrated maintained contract; see post-transfer-comment-deletions.json.",
     "specific_deltas": [
       {
         "path": "crates/termrock-e2e/src/lib.rs",
@@ -1554,9 +1598,34 @@
           "}"
         ],
         "current_tokens": []
+      },
+      {
+        "path": "tools/refactor-proof/src/host/context_check.rs",
+        "function": "spawn_context_check",
+        "input_line": 19,
+        "output_line": 17,
+        "operation": "delete",
+        "old_tokens": [
+          "if",
+          "member",
+          ".",
+          "schema",
+          "==",
+          "FIXTURE_CONTEXT_SCHEMA",
+          "{",
+          "return",
+          "spawn_fixture_context_check_stub",
+          "(",
+          ")",
+          ";",
+          "}"
+        ],
+        "current_tokens": [],
+        "changed_tokens_include_literals": false,
+        "authority": "T37-PROOF-FIXTURE-01"
       }
     ],
-    "meaning": "These deltas are rustfmt punctuation normalization after the approved test/helper removals. They are included explicitly; acceptance behavior remains NOT VERIFIED.",
+    "meaning": "These deltas include rustfmt punctuation normalization and the separately approved fixture dispatch deletion from spawn_context_check. No retained string/raw-string/byte-string literal changed; behavior remains NOT VERIFIED.",
     "specific_named_item_change": {
       "path": "crates/termrock-xtask/src/ownership/rules.rs",
       "input_line": 142,
@@ -1634,5 +1703,5 @@
   ],
   "final_output_source_commit": "7fee71b6bd5091ce670d36644273ed1ffda1481d",
   "correction_delta_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json",
-  "post_correction_summary": "Final be7/7fee closure evidence removes the uncalled PTY subject loader, actual-observation executor, ordinary admission-receipt reader and fixture stub. Data-only public format exports remain under T37-E2E-FORMAT-01. No surviving function body or literal changed in the closure correction; one unused ArtifactReceipt import was removed."
+  "post_correction_summary": "Final source hashes and approved closures are reconciled in source-correction-delta.json. The surviving spawn_context_check loses one approved fixture dispatch branch; other surviving-function deltas are punctuation only. No retained string/raw-string/byte-string literal changed."
 }

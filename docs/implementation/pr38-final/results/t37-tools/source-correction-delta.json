@@ -1562,10 +1562,24 @@
   },
   "source_comparison": {
     "comparison_base": "prior_source_output_commit",
-    "surviving_function_bodies_changed": false,
+    "surviving_function_bodies_changed": true,
     "surviving_string_raw_string_or_byte_string_literals_changed": false,
-    "retained_body_changes": "No surviving function body changed in the correction. The only non-comment tokens outside removed items are reduction of the unused ArtifactReceipt import and deletion of the approved fixture dispatch branch.",
-    "line_and_hash_method": "Each changed file binds the full c817 SHA-256 and exact deleted c817 line ranges. Each named declaration binds its c817 declaration-line SHA-256. Ranges come from unified=0 Git hunks."
+    "retained_body_changes": "One approved control-flow branch is deleted from the surviving spawn_context_check function. The context existence guard and normal tc-proof dispatch remain. No other surviving function body or retained string/raw-string/byte-string literal changed; the unused ArtifactReceipt import was also removed.",
+    "line_and_hash_method": "Each changed file binds the full c817 SHA-256 and exact deleted c817 line ranges. Each named declaration binds its c817 declaration-line SHA-256. Ranges come from unified=0 Git hunks.",
+    "surviving_function_body_delta_count": 1,
+    "surviving_function_body_deltas": [
+      {
+        "path": "tools/refactor-proof/src/host/context_check.rs",
+        "function": "spawn_context_check",
+        "input_line_c817": 19,
+        "output_line": 17,
+        "deleted_input_line_range_c817": [
+          27,
+          29
+        ],
+        "authority": "T37-PROOF-FIXTURE-01"
+      }
+    ]
   },
   "retained_exports_with_no_current_source_caller": [
     {
@@ -1878,7 +1892,7 @@
   "reproducibility_limits": {
     "retained_source_token_checker": "The first retained-source-token-comparison.json was produced by a one-off lexical checker that was not committed. It did not leave a reproducible command or script path.",
     "independent_review": "The Sol-high reviewer used an independent field/statement-aware check with raw-string fixture exclusion. This worker did not reconstruct or claim a reusable checker.",
-    "this_delta_method": "This correction delta binds exact Git input/output file hashes, unified=0 deleted line ranges, declaration-line hashes, and byte hashes for retained public format items. These records support audit of this correction but are not a replacement test or general parser.",
+    "this_delta_method": "This correction delta binds exact Git input/output file hashes, unified=0 deleted line ranges, declaration-line hashes, and byte hashes for retained public format items. It separately names the approved control-flow deletion in spawn_context_check. These records support audit of this correction but are not a replacement test or general parser.",
     "limits": "Token and hash comparison do not prove runtime behavior. No Cargo build, test, or admission/capture behavior ran."
   }
 }
