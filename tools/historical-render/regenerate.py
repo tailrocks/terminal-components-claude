@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rebuild missing historical images from immutable ANSI, never candidate output."""
+
 import argparse
 import csv
 import hashlib
@@ -67,7 +67,7 @@ def regenerate(repo, output, archive_path):
         sys.path.insert(0, str(source))
         html = importlib.import_module('ansi2html')
         png = importlib.import_module('ansi2png')
-        # Environment adapter only: identical font bytes, unchanged renderer logic.
+
         png.FONTS = {kind: str(font_dir / value['name'])
                      for kind, value in pins['fonts'].items()}
         recipes_data = blob(repo, pins['capture_archive_revision'], 'parity/recipes.tsv')
@@ -120,7 +120,7 @@ def regenerate(repo, output, archive_path):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description='Rebuild missing historical images from immutable ANSI, never candidate output.')
     parser.add_argument('--repo', type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--font-archive', type=Path, help='optional offline, hash-verified archive')

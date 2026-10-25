@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build pinned branch subjects or the immutable visual-baseline Holla oracle."""
+
 
 from __future__ import annotations
 
@@ -46,11 +46,11 @@ SOURCE_FACTS_LIMIT_BYTES = 4 * 1024 * 1024
 
 
 class SubjectError(ValueError):
-    """A pinned subject could not be resolved or built without ambiguity."""
+    pass
 
 
 class TagBuildError(SubjectError):
-    """A frozen-tag build failed or was blocked, with its recorded outcome."""
+
 
     def __init__(self, message: str, build_result: str) -> None:
         super().__init__(message)
@@ -198,7 +198,7 @@ def _read_source_facts(path: Path, expected_sha256: str) -> SourceFactsPins:
 
 
 def canonical_receipt_sha256(receipt_payload: Mapping[str, Any]) -> str:
-    """Match serde_json's compact, sorted-key receipt digest contract."""
+
     require("sha256" not in receipt_payload, "receipt payload must omit sha256")
     encoded = json.dumps(
         receipt_payload,
@@ -280,7 +280,7 @@ def _recorded_command(
 
 
 def _command_env() -> Dict[str, str]:
-    """Remove ambient compiler routing and wrapper paths from child commands."""
+
     env = dict(os.environ)
     path_entries = []
     for entry in env.get("PATH", "").split(os.pathsep):
@@ -319,7 +319,7 @@ def _command_env() -> Dict[str, str]:
 
 
 def _git_command_env() -> Dict[str, str]:
-    """Start from the sanitized environment and disable replacement/lazy fetch."""
+
     env = _command_env()
     env["GIT_NO_REPLACE_OBJECTS"] = "1"
     env["GIT_NO_LAZY_FETCH"] = "1"
@@ -346,7 +346,7 @@ def _inside(path: Path, root: Path) -> bool:
 
 
 def _assert_no_ancestor_cargo_config(snapshot_root: Path) -> None:
-    """Reject ambient config Cargo could load above an expected snapshot root."""
+
     snapshot_root = snapshot_root.resolve()
     ancestor = snapshot_root.parent
     while True:
@@ -362,7 +362,7 @@ def _assert_no_ancestor_cargo_config(snapshot_root: Path) -> None:
 
 
 def _cargo_config_facts(snapshot_root: Path) -> Dict[str, str]:
-    """Reject ambient ancestor Cargo config; report the commit-bound local config."""
+
     snapshot_root = snapshot_root.resolve()
     _assert_no_ancestor_cargo_config(snapshot_root)
 
@@ -533,7 +533,7 @@ def _validate_git_oid(value: Any, name: str) -> str:
 
 
 def _portable_archive_path(raw_path: str, *, directory: bool = False) -> PurePosixPath:
-    """Reject archive paths that become absolute or ambiguous on Windows."""
+
     require(bool(raw_path) and "\0" not in raw_path,
             "source archive contains an unsafe path")
     require("\\" not in raw_path and not raw_path.startswith("/"),
@@ -557,7 +557,7 @@ def _portable_archive_path(raw_path: str, *, directory: bool = False) -> PurePos
 
 
 def _validate_symlink_target(member_path: PurePosixPath, target: str) -> None:
-    """Check a relative symlink target under both POSIX and Windows rules."""
+
     require(bool(target) and "\0" not in target,
             "source archive has an unsafe symlink target")
     require("\\" not in target and not target.startswith("/"),
@@ -606,7 +606,7 @@ def _safe_tar_members(
 
 
 def _expected_archive_member_paths(blob_ids: Mapping[str, str]) -> set:
-    """Return included blob paths plus every tracked parent directory."""
+
     paths = set(blob_ids)
     for path in blob_ids:
         parts = PurePosixPath(path).parts
@@ -635,7 +635,7 @@ def _tracked_blob_ids(stdout: bytes) -> Dict[str, str]:
 
 
 def _partition_tracked_blob_ids(paths: Mapping[str, str]) -> Tuple[Dict[str, str], Dict[str, str]]:
-    """Separate the two declared oracle trees from all other tracked blobs."""
+
     included: Dict[str, str] = {}
     excluded: Dict[str, str] = {}
     for path, object_id in paths.items():
@@ -647,7 +647,7 @@ def _partition_tracked_blob_ids(paths: Mapping[str, str]) -> Tuple[Dict[str, str
 
 
 def _path_blob_map_sha256(paths: Mapping[str, str]) -> str:
-    """Hash sorted raw Git paths and blob IDs with unambiguous delimiters."""
+
     digest = hashlib.sha256()
     for path in sorted(paths, key=lambda item: item.encode("utf-8", "surrogateescape")):
         digest.update(path.encode("utf-8", "surrogateescape"))
@@ -663,7 +663,7 @@ def _git_blob_id(data: bytes) -> str:
 
 
 def _open_absolute_nofollow(path: Path, *, directory: bool = False) -> int:
-    """Open an absolute path one component at a time without following links."""
+
     require(hasattr(os, "O_NOFOLLOW") and hasattr(os, "O_DIRECTORY"),
             "platform must support descriptor-relative no-follow validation")
     require(path.is_absolute(), "pinned path must be absolute")
@@ -1040,7 +1040,7 @@ def _snapshot_path_map(root: Path, git_entries: Mapping[str, Tuple[str, str, str
 def validate_frozen_tag_holla_bundle(
     *, repository: Path, receipt_path: Path, expected_receipt_sha256: str
 ) -> Dict[str, Any]:
-    """Validate tag receipt consistency and immutable source closure; never authenticates build execution."""
+
     _validate_digest(expected_receipt_sha256, "expected tag receipt SHA-256")
     require(repository.is_absolute(), "tag validation repository path must be absolute")
     repository_fd = _open_absolute_nofollow(repository, directory=True)
@@ -1437,7 +1437,7 @@ def validate_frozen_tag_holla_bundle(
     require(manifest_path == source_manifest and _is_strict_child(source_path, source_root),
             "tag metadata paths escape or disagree with the pinned source snapshot")
 
-    # Verify recorded metadata and Cargo artifact messages against the immutable source and build facts.
+
     metadata_dir = run_root / "metadata" / "oracle"
     metadata_argv = _parse_json_value(_read_absolute_nofollow(metadata_dir / "metadata.argv.json", maximum=1024 * 1024),
                                      "metadata argv")
@@ -1590,13 +1590,13 @@ def materialize_readonly_snapshot(
     evidence_dir: Path,
     runner: Runner = _default_runner,
 ) -> Dict[str, Any]:
-    """Extract the pinned build inputs, excluding only declared oracle trees."""
+
     require(not destination.exists(), "source snapshot path already exists: {}".format(destination))
     destination.parent.mkdir(parents=True, exist_ok=True)
     scratch = evidence_dir / "archive.tmp.tar"
     evidence_dir.mkdir(parents=True, exist_ok=True)
 
-    # Stream the archive to disk so large binary assets do not sit in memory.
+
     archive_argv = [
         "git",
         "--no-replace-objects",
@@ -1719,7 +1719,7 @@ def _verify_oracle_tag_identity(
     run_root: Path,
     runner: Runner,
 ) -> Dict[str, str]:
-    """Verify only the immutable oracle tag; branch refs are irrelevant here."""
+
     evidence = run_root / "git" / "oracle-tag"
     env = _git_command_env()
     require(env.get("GIT_NO_REPLACE_OBJECTS") == "1" and env.get("GIT_NO_LAZY_FETCH") == "1",
@@ -2128,7 +2128,7 @@ def _cargo_metadata(
 def _single_build_environment(
     run_root: Path, rustup_home: Path, role: str
 ) -> Tuple[Dict[str, str], Dict[str, Any]]:
-    """Create one clean subject environment with no ambient Cargo config."""
+
     inherited = _command_env()
     default_cargo_home = Path.home() / ".cargo"
     cache_home = Path(inherited.get("CARGO_HOME", str(default_cargo_home))).expanduser().resolve()
@@ -2155,8 +2155,8 @@ def _single_build_environment(
         require(not cargo_config.exists() and not cargo_config.is_symlink(),
                 "isolated Cargo home unexpectedly contains {}".format(config_name))
 
-    # Keep only platform discovery inputs. In particular, do not pass through
-    # user compiler flags, wrappers, Cargo config selectors, or user HOME.
+
+
     env = {"PATH": inherited.get("PATH", "")}
     for key in ("DEVELOPER_DIR", "SDKROOT", "SYSTEMROOT", "COMSPEC", "PATHEXT"):
         if key in inherited:
@@ -2474,7 +2474,7 @@ def build_subject_manifest(
     candidate_output_root: Path,
     runner: Runner = _default_runner,
 ) -> Path:
-    """Build and record one app's pinned source pair. Never invokes an app."""
+
     _validate_run_id(run_id)
     _validate_commit(reference_commit, "reference_commit")
     _validate_commit(candidate_commit, "candidate_commit")
@@ -2752,7 +2752,7 @@ def build_frozen_tag_holla(
     target_triple: str,
     runner: Runner = _default_runner,
 ) -> Path:
-    """Build Holla from the immutable oracle tag without creating a pair manifest."""
+
     _validate_run_id(run_id)
     require(isinstance(target_triple, str) and target_triple.strip(),
             "target_triple is required")
@@ -2966,7 +2966,7 @@ def build_frozen_tag_holla(
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description='Build pinned branch subjects or the immutable visual-baseline Holla oracle.')
     parser.add_argument("--repository", type=Path, default=ROOT,
                         help="Git repository containing the pinned commits (default: this checkout)")
     parser.add_argument("--candidate-commit", required=True,

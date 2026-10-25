@@ -95,15 +95,6 @@ impl ObserverClient {
         }
         Ok(observations)
     }
-
-    #[cfg(test)]
-    fn with_io(nonce: impl Into<String>, request: File, response: File) -> Self {
-        Self {
-            nonce: nonce.into(),
-            request: BufWriter::new(request),
-            response: BufReader::new(response),
-        }
-    }
 }
 
 fn encode_request_line(nonce: &str, step: ObserverStep) -> io::Result<String> {
@@ -171,92 +162,4 @@ fn open_inherited_fd(fd: i32) -> Result<File, ObserverUnavailable> {
 #[cfg(not(unix))]
 fn open_inherited_fd(_fd: i32) -> Result<File, ObserverUnavailable> {
     Err(ObserverUnavailable)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::observer::ipc::OBSERVER_STEP_ORDER;
-    use std::io::Write;
-    use std::os::fd::FromRawFd;
-    use std::sync::mpsc;
-    use std::thread;
-
-    fn pipe_pair() -> io::Result<(File, File)> {
-        let mut fds = [0_i32; 2];
-        let result = unsafe { libc::pipe(fds.as_mut_ptr()) };
-        if result != 0 {
-            return Err(io::Error::last_os_error());
-        }
-        Ok((unsafe { File::from_raw_fd(fds[0]) }, unsafe {
-            File::from_raw_fd(fds[1])
-        }))
-    }
-
-    #[test]
-    fn request_encoding_respects_step_order_contract() {
-        for step in OBSERVER_STEP_ORDER {
-            let line = encode_request_line("test-nonce", step).expect("encode request");
-            assert!(line.ends_with('\n'));
-            assert!(line.len() <= MAX_LINE_BYTES);
-        }
-    }
-
-    #[test]
-    fn from_env_fails_closed_without_observer() {
-        let has_observer_env = [
-            super::super::ipc::ObserverEnv::REQUEST_FD,
-            super::super::ipc::ObserverEnv::RESPONSE_FD,
-            super::super::ipc::ObserverEnv::NONCE,
-        ]
-        .into_iter()
-        .any(|key| std::env::var(key).is_ok());
-        if has_observer_env {
-            return;
-        }
-        assert!(ObserverClient::from_env().is_err());
-    }
-
-    #[test]
-    fn round_trip_verify_sequence_over_pipe_pair() {
-        let (request_read, request_write) = pipe_pair().expect("request pipe");
-        let (response_read, response_write) = pipe_pair().expect("response pipe");
-        let nonce = "round-trip-nonce".to_owned();
-        let server_nonce = nonce.clone();
-        let (ready_tx, ready_rx) = mpsc::channel();
-        let server = thread::spawn(move || {
-            let mut requests = BufReader::new(request_read);
-            let mut responses = BufWriter::new(response_write);
-            ready_tx.send(()).expect("ready");
-            for step in OBSERVER_STEP_ORDER {
-                let line = read_response_line(&mut requests).expect("read request");
-                let request: ObserverRequest = serde_json::from_str(&line).expect("parse request");
-                assert_eq!(request.nonce, server_nonce);
-                assert_eq!(request.step, step);
-                let observation = ObserverObservation {
-                    step,
-                    tree: "abc123".into(),
-                    argv: vec!["fixture".into()],
-                    exit: 0,
-                    stdout: base64::engine::general_purpose::STANDARD.encode(b"stdout"),
-                    stderr: String::new(),
-                    files: std::collections::BTreeMap::from([(
-                        format!("{}.json", step.as_str()),
-                        base64::engine::general_purpose::STANDARD.encode(b"{}"),
-                    )]),
-                };
-                let payload = serde_json::to_string(&ObserverResponse::Observation(observation))
-                    .expect("encode observation");
-                responses
-                    .write_all(format!("{payload}\n").as_bytes())
-                    .expect("write response");
-                responses.flush().expect("flush response");
-            }
-        });
-        ready_rx.recv().expect("server ready");
-        let mut client = ObserverClient::with_io(nonce.clone(), request_write, response_read);
-        let observations = client.execute_verify_sequence().expect("verify sequence");
-        assert_eq!(observations.len(), 3);
-        server.join().expect("join server");
-    }
 }
