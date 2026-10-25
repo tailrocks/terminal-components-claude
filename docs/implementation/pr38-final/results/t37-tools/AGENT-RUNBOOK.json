@@ -1,0 +1,505 @@
+{
+  "schema_version": 1,
+  "task_id": "T37-tools",
+  "input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "product_source_baseline": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "input_parent_review": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
+  "output_commit": "697a0353e5c84485b5dc36aa8058a4c71a1c236e",
+  "output_tree": "549f7242cf4eb2c07c5e724e9076c71c2bb39c4c",
+  "source_worktree": "/Users/donbeave/Downloads/termrock-t37-tools",
+  "branch": "pr38/T37-tools",
+  "model": "gpt-6-luna",
+  "effort": "max",
+  "agent_id": "/root/t37_tools",
+  "review_state": "REVIEW",
+  "changed_paths": [
+    "crates/termrock-conformance/src/lib.rs",
+    "crates/termrock-conformance/tests/button_busy_frames.rs",
+    "crates/termrock-conformance/tests/conformance.rs",
+    "crates/termrock-conformance/tests/control_states.rs",
+    "crates/termrock-conformance/tests/cursor_provenance.rs",
+    "crates/termrock-conformance/tests/fixtures/text.rs",
+    "crates/termrock-conformance/tests/parity_burndown.rs",
+    "crates/termrock-conformance/tests/render.rs",
+    "crates/termrock-conformance/tests/render_components.rs",
+    "crates/termrock-conformance/tests/tuiscotti_qualification.rs",
+    "crates/termrock-conformance/tests/visual_baseline/audit.rs",
+    "crates/termrock-conformance/tests/visual_baseline/button_busy_live.rs",
+    "crates/termrock-conformance/tests/visual_baseline/holla.rs",
+    "crates/termrock-conformance/tests/visual_baseline/holla_journeys.rs",
+    "crates/termrock-conformance/tests/visual_baseline/holla_pending_h1.rs",
+    "crates/termrock-conformance/tests/visual_baseline/holla_pending_h2.rs",
+    "crates/termrock-conformance/tests/visual_baseline/holla_pending_h3.rs",
+    "crates/termrock-conformance/tests/visual_baseline/holla_pending_h4.rs",
+    "crates/termrock-conformance/tests/visual_baseline/holla_pending_h5.rs",
+    "crates/termrock-conformance/tests/visual_baseline/holla_pending_h6.rs",
+    "crates/termrock-conformance/tests/visual_baseline/holla_pending_h7.rs",
+    "crates/termrock-conformance/tests/visual_baseline/jackin.rs",
+    "crates/termrock-conformance/tests/visual_baseline/jackin_journeys.rs",
+    "crates/termrock-conformance/tests/visual_baseline/jackin_pending_j1.rs",
+    "crates/termrock-conformance/tests/visual_baseline/jackin_pending_j2.rs",
+    "crates/termrock-conformance/tests/visual_baseline/main.rs",
+    "crates/termrock-conformance/tests/visual_baseline/negative_controls_phase6a.rs",
+    "crates/termrock-conformance/tests/visual_baseline/negative_controls_phase8ap.rs",
+    "crates/termrock-conformance/tests/visual_baseline/pointer.rs",
+    "crates/termrock-conformance/tests/visual_baseline/showcase.rs",
+    "crates/termrock-conformance/tests/visual_baseline/showcase_journeys.rs",
+    "crates/termrock-conformance/tests/visual_baseline/showcase_pending_s1.rs",
+    "crates/termrock-conformance/tests/visual_baseline/showcase_pending_s2.rs",
+    "crates/termrock-conformance/tests/visual_baseline/showcase_pending_s3.rs",
+    "crates/termrock-conformance/tests/visual_baseline/showcase_pending_s4.rs",
+    "crates/termrock-conformance/tests/visual_baseline/showcase_pending_s5.rs",
+    "crates/termrock-conformance/tests/visual_baseline/support.rs",
+    "crates/termrock-conformance/tests/visual_baseline/support/scoped_targets.rs",
+    "crates/termrock-conformance/tests/visual_baseline/support/state_waits.rs",
+    "crates/termrock-conformance/tests/visual_baseline/support/typed_input.rs",
+    "crates/termrock-conformance/tests/visual_baseline/tablepro.rs",
+    "crates/termrock-conformance/tests/visual_baseline/tablepro_journeys.rs",
+    "crates/termrock-conformance/tests/visual_baseline/tablepro_pending_t1.rs",
+    "crates/termrock-conformance/tests/visual_baseline/tablepro_pending_t2.rs",
+    "crates/termrock-e2e/cases/deferred-obligations.json",
+    "crates/termrock-e2e/src/admission.rs",
+    "crates/termrock-e2e/src/lib.rs",
+    "crates/termrock-e2e/src/visual.rs",
+    "crates/termrock-e2e/tests/command_lane.rs",
+    "crates/termrock-e2e/tests/contract.rs",
+    "crates/termrock-e2e/tests/holla_help_overlay.rs",
+    "crates/termrock-e2e/tests/holla_tag_capture.rs",
+    "crates/termrock-e2e/tests/shared_journeys.rs",
+    "crates/termrock-test-support/src/conformance/driver.rs",
+    "crates/termrock-test-support/src/conformance/mod.rs",
+    "crates/termrock-test-support/src/digest.rs",
+    "crates/termrock-test-support/src/harness.rs",
+    "crates/termrock-test-support/src/harness_scoped_targets.rs",
+    "crates/termrock-test-support/src/harness_state_waits.rs",
+    "crates/termrock-test-support/src/harness_typed_input.rs",
+    "crates/termrock-test-support/src/lib.rs",
+    "crates/termrock-test-support/src/perf.rs",
+    "crates/termrock-test-support/tests/perf.rs",
+    "crates/termrock-test-support/tests/perf_collections.rs",
+    "crates/termrock-visibility-publisher/src/lib.rs",
+    "crates/termrock-visibility-publisher/tests/impl_observer_ingest.rs",
+    "crates/termrock-visibility-publisher/tests/impl_status_publish.rs",
+    "crates/termrock-visibility-publisher/tests/observer_ingest_cli.rs",
+    "crates/termrock-visibility-tests/src/bin/capture-command.rs",
+    "crates/termrock-visibility-tests/src/bin/fixture.rs",
+    "crates/termrock-visibility-tests/src/lib.rs",
+    "crates/termrock-visibility-tests/src/nextest_result.rs",
+    "crates/termrock-visibility-tests/tests/cache_source_audit.rs",
+    "crates/termrock-visibility-tests/tests/deferred.rs",
+    "crates/termrock-visibility-tests/tests/queue_v2.rs",
+    "crates/termrock-visibility-tests/tests/status.rs",
+    "crates/termrock-visibility-tests/tests/subjects.rs",
+    "crates/termrock-xtask/src/doc_inventory.rs",
+    "crates/termrock-xtask/src/lib.rs",
+    "crates/termrock-xtask/src/main.rs",
+    "crates/termrock-xtask/src/ownership/exceptions.rs",
+    "crates/termrock-xtask/src/ownership/mod.rs",
+    "crates/termrock-xtask/src/ownership/module_graph.rs",
+    "crates/termrock-xtask/src/ownership/rules.rs",
+    "crates/termrock-xtask/src/ownership/scan.rs",
+    "crates/termrock-xtask/tests/doc_inventory.rs",
+    "crates/termrock-xtask/tests/ownership.rs",
+    "crates/visual-harness/tests/visual_baseline/determinism.rs",
+    "crates/visual-harness/tests/visual_baseline/isolation.rs",
+    "crates/visual-harness/tests/visual_baseline/main.rs",
+    "crates/visual-harness/tests/visual_baseline/modes.rs",
+    "crates/visual-harness/tests/visual_baseline/oracle.rs",
+    "crates/visual-harness/tests/visual_baseline/overlay_sites.rs",
+    "crates/visual-harness/tests/visual_baseline/rust_source.rs",
+    "crates/visual-harness/tests/visual_baseline/scenarios/holla.rs",
+    "crates/visual-harness/tests/visual_baseline/scenarios/interact.rs",
+    "crates/visual-harness/tests/visual_baseline/scenarios/jackin.rs",
+    "crates/visual-harness/tests/visual_baseline/scenarios/mod.rs",
+    "crates/visual-harness/tests/visual_baseline/scenarios/showcase.rs",
+    "crates/visual-harness/tests/visual_baseline/scenarios/tablepro.rs",
+    "crates/visual-harness/tests/visual_baseline/shared_dialog_action_id.rs",
+    "crates/visual-harness/tests/visual_baseline/startup_input.rs",
+    "crates/visual-harness/tests/visual_baseline/startup_resize.rs",
+    "crates/visual-harness/tests/visual_baseline/support.rs",
+    "crates/visual-harness/tests/visual_baseline/tool.rs",
+    "docs/implementation/pr38-final/results/t37-tools/file-deletion-map.json",
+    "docs/implementation/pr38-final/results/t37-tools/inventory-reconciliation.json",
+    "docs/implementation/pr38-final/results/t37-tools/post-transfer-comment-deletions.json",
+    "docs/implementation/pr38-final/results/t37-tools/python-source-token-check.json",
+    "docs/implementation/pr38-final/results/t37-tools/retained-source-token-comparison.json",
+    "docs/implementation/pr38-final/results/t37-tools/safety-rationale.json",
+    "docs/implementation/pr38-final/results/t37-tools/shared-metadata-proposals.json",
+    "docs/implementation/pr38-final/results/t37-tools/source-prose-map.json",
+    "external-consumer-demo/src/app.rs",
+    "external-consumer-demo/src/lib.rs",
+    "external-consumer-demo/src/main.rs",
+    "external-consumer-demo/src/recipes.rs",
+    "external-consumer-demo/tests/consumer.rs",
+    "external-consumer-demo/tests/public_api_only.rs",
+    "scripts/test-scope-check.sh",
+    "tests/conformance/cursor_provenance.json",
+    "tests/conformance/required_cases.json",
+    "tools/acceptance_architecture.py",
+    "tools/ansi2html.py",
+    "tools/ansi2png.py",
+    "tools/baseline_capture.sh",
+    "tools/capture.sh",
+    "tools/capture_exec.sh",
+    "tools/capture_provenance.py",
+    "tools/env.sh",
+    "tools/frozen-cli-frame-support/src/lib.rs",
+    "tools/frozen_baseline.py",
+    "tools/frozen_cli_extensions.json",
+    "tools/frozen_cli_extensions.rs",
+    "tools/frozen_cli_pair.patch",
+    "tools/historical-render/regenerate.py",
+    "tools/historical-render/test_failures.py",
+    "tools/parity_approve.py",
+    "tools/parity_replay.py",
+    "tools/qualified-capture/acquire.py",
+    "tools/qualified-capture/expected-cells.json",
+    "tools/qualified-capture/fixture.py",
+    "tools/qualified-capture/harness/main.rs",
+    "tools/qualified-capture/oracle.py",
+    "tools/qualified-capture/proof/run_final_gates.py",
+    "tools/qualified-capture/proof/run_repaired.py",
+    "tools/qualified-capture/tests/test_integrity.py",
+    "tools/qualified-capture/tuitest_smoke.py",
+    "tools/refactor-proof/scripts/sync-binaries.sh",
+    "tools/refactor-proof/scripts/test_freeze_vectors.py",
+    "tools/refactor-proof/scripts/test_integrate_seal_vectors.py",
+    "tools/refactor-proof/src/compare.rs",
+    "tools/refactor-proof/src/host/context_check.rs",
+    "tools/refactor-proof/src/host/git.rs",
+    "tools/refactor-proof/src/host/install.rs",
+    "tools/refactor-proof/src/host/integrate.rs",
+    "tools/refactor-proof/src/host/scope.rs",
+    "tools/refactor-proof/src/host/seal.rs",
+    "tools/refactor-proof/src/host/verify.rs",
+    "tools/refactor-proof/src/observer/client.rs",
+    "tools/rust_build_guard.py",
+    "tools/termrock-visibility-publisher/src/api.rs",
+    "tools/termrock-visibility-publisher/src/lib.rs",
+    "tools/termrock-visibility-publisher/src/observer.rs",
+    "tools/termrock-visibility-publisher/tests/impl_observer_ingest.rs",
+    "tools/test-inventory/inventory.py",
+    "tools/test-inventory/test_inventory.py",
+    "tools/test_acceptance_architecture.py",
+    "tools/test_frozen_baseline.py",
+    "tools/test_perf_workflow.py",
+    "tools/test_rust_build_guard.py",
+    "tools/visibility/README.md",
+    "tools/visibility/deferred.py",
+    "tools/visibility/queue.py",
+    "tools/visibility/status.py",
+    "tools/visibility/subjects.py",
+    "tools/visibility/tests/test_queue.py"
+  ],
+  "record_path": "docs/implementation/pr38-final/results/t37-tools/AGENT-RUNBOOK.json",
+  "change_counts": {
+    "source_paths": {
+      "deleted": 128,
+      "modified": 41,
+      "added": 0,
+      "total": 169
+    },
+    "evidence_paths_added_in_source_commit": 8,
+    "source_commit_paths_total": 177
+  },
+  "requirements": [
+    {
+      "requirement": "Remove the T00-classified legacy test functions, modules, targets, harnesses, fixtures, doctests, runners, and exclusive helpers in the owned source trees.",
+      "status": "COMPLETED",
+      "evidence": "file-deletion-map.json and inventory-reconciliation.json"
+    },
+    {
+      "requirement": "Reconcile every T00 inventory row with the fixed c817 source and record a per-file deletion map and hashes.",
+      "status": "COMPLETED",
+      "evidence": "inventory-reconciliation.json; file-deletion-map.json"
+    },
+    {
+      "requirement": "Preserve non-test production tools, supported APIs, CLI behavior, diagnostics, help text, directives, legal files, and immutable data.",
+      "status": "COMPLETED_WITH_STRUCTURAL_SCOPE_ONLY",
+      "evidence": "retained-source-token-comparison.json; python-source-token-check.json; source-prose-map.json; inventory-reconciliation.json"
+    },
+    {
+      "requirement": "Move retained safety rationale into the maintained contract before removing exactly the approved inline comment groups; keep unsafe operations and lint scopes unchanged.",
+      "status": "COMPLETED",
+      "evidence": "safety-rationale.json; post-transfer-comment-deletions.json; integrated contract docs/contracts/safety-invariants.md"
+    },
+    {
+      "requirement": "Add no replacement tests, harnesses, fixtures, doctests, snapshots, or gates.",
+      "status": "COMPLETED",
+      "evidence": "inventory-reconciliation.json; changed paths contain no new source paths"
+    },
+    {
+      "requirement": "Use only structural and source-preservation checks for this T37 preflight; keep behavior NOT VERIFIED.",
+      "status": "COMPLETED",
+      "evidence": "commands; test-plan record; limits"
+    }
+  ],
+  "deletion_classifications": {
+    "source_map": "docs/implementation/pr38-final/results/t37-tools/file-deletion-map.json",
+    "source_map_sha256": "28109f17e587ea22ca8f95e7d9a0289e46718c9a2dffc67f4aace51101645057",
+    "inventory_reconciliation": "docs/implementation/pr38-final/results/t37-tools/inventory-reconciliation.json",
+    "inventory_reconciliation_sha256": "421e96e641f71a7d5d26ef9cddf4f1ec005c1d46d8642cd31405cd7007690b12",
+    "inventory_rows": {
+      "rust_test_functions": {
+        "deleted": 1148,
+        "modified": 226,
+        "total": 1374,
+        "paths": 90
+      },
+      "python_test_declarations": {
+        "deleted": 282,
+        "modified": 0,
+        "total": 282,
+        "paths": 8
+      },
+      "test_modules": {
+        "deleted": 103,
+        "modified": 29,
+        "total": 132,
+        "paths": 38
+      },
+      "test_cfg_scopes": {
+        "deleted": 156,
+        "modified": 131,
+        "total": 287,
+        "paths": 40
+      },
+      "implicit_test_sources": {
+        "deleted": 81,
+        "total": 81
+      },
+      "fixtures": {
+        "deleted": 1,
+        "total": 1
+      },
+      "doctest_optouts": {
+        "deleted": 0,
+        "total": 0
+      }
+    },
+    "retirement_groups": [
+      "Legacy Rust/Python suites, support helpers, test fixtures, and source modules classified in the T00 inventory.",
+      "T37-E2E-01: retire PTY, tag-capture, deferred runner/test closure; keep admission CLI/API and semantic validators.",
+      "T37-FROZEN-01: retire tools/frozen_baseline.py and exclusive legacy harness closure; preserve immutable unsigned visual-baseline tag, oracle, snapshots, receipts, reports, provenance, and hashes.",
+      "T37-QUALIFIED-01: retire tools/qualified-capture/acquire.py, fixture.py, tuitest_smoke.py, oracle.py, harness/main.rs, proof/run_final_gates.py, proof/run_repaired.py, expected-cells.json, and tests/test_integrity.py; preserve pins, licenses, proof outputs, receipts, hashes, and repair provenance byte-identically.",
+      "T37-CAPTURE-01: retire capture.sh, capture_exec.sh, baseline_capture.sh, capture_provenance.py, parity_replay.py, and parity_approve.py; preserve immutable baseline/parity data and receipts.",
+      "T37-INVENTORY-01: retire tools/test-inventory/inventory.py and exclusive profiles.json; retain historical.json and required.json byte-identically.",
+      "T37-DOC-INVENTORY-01: retire crates/termrock-xtask/src/doc_inventory.rs and its sole module export; retain ownership module, CLI, help, and diagnostics.",
+      "T37-E2E-SCHEMA-01/02: retain all 12 schema files byte-identically; classify seven active retained contracts/formats and five historical-only formats."
+    ],
+    "retained_source_token_evidence": {
+      "path": "docs/implementation/pr38-final/results/t37-tools/retained-source-token-comparison.json",
+      "sha256": "f62df5e6b1476007f15d1d18c722d882a115673a33cb35fb63390476e71a1035",
+      "summary": "No retained function string/raw-string/byte-string literal changed. Retained function-level token deltas are punctuation normalization only. Named non-comment item changes are the approved TOOLING_MEMBERS entry removal, sole doc_inventory module export removal, and unconsumed RECEIPT_SCHEMA_V2 constant removal; see the record for paths, lines, hashes, and authorities."
+    },
+    "source_prose_evidence": {
+      "path": "docs/implementation/pr38-final/results/t37-tools/source-prose-map.json",
+      "sha256": "804f042caa56c4c98037cd77d279dabf2588ff732136f67005e96d29861cbb0e",
+      "records": 402,
+      "note": "Each record binds source prose to c817 path, line, and source hash."
+    }
+  },
+  "preserved_help_directives_and_legal": {
+    "help_transfers": {
+      "path": "docs/implementation/pr38-final/results/t37-tools/python-source-token-check.json",
+      "sha256": "5eed793be7c8c4eabe0ec5fb34902ea638e4a33c9d3e14904aa921c80dd72d1f",
+      "count": 5,
+      "sites": [
+        "tools/acceptance_architecture.py",
+        "tools/historical-render/regenerate.py",
+        "tools/visibility/queue.py",
+        "tools/visibility/status.py",
+        "tools/visibility/subjects.py"
+      ],
+      "preservation": "The explicit argparse description literals match the original __doc__ help text exactly."
+    },
+    "retired_help_sites": [
+      "tools/frozen_baseline.py",
+      "tools/visibility/deferred.py"
+    ],
+    "directives": [
+      "Preserved # noqa: E402 in tools/ansi2png.py.",
+      "Preserved executable mode and #!/usr/bin/env bash shebang for tools/refactor-proof/bin/tc-proof and tc-proof-host.",
+      "Preserved existing refactor-proof Clippy and unsafe lint attributes, including narrow allowances and expectations.",
+      "Preserved legal/SPDX and *-LICENSE bytes; no legal file was edited."
+    ],
+    "production_contracts_kept": [
+      "E2E admission CLI flags, validation order, error prefix/status, compact JSON output, schema, validators, containment checks, revalidation, and no-replace publication.",
+      "Visibility capture-command and nextest-result diagnostic paths.",
+      "termrock-visibility-publisher production binaries and APIs.",
+      "refactor-proof tc-proof and tc-proof-host supported proof paths."
+    ]
+  },
+  "safety_transfer": {
+    "safety_rationale_path": "docs/implementation/pr38-final/results/t37-tools/safety-rationale.json",
+    "safety_rationale_sha256": "4dd097c5697b9b6757f855aa48bd2b9a2fdeb201a536a8a14e650712d4bcfebf",
+    "maintained_contract": "docs/contracts/safety-invariants.md",
+    "accepted_contract_commit": "c645c0b611370bd0974ebe46e8730d85560dbd79",
+    "integrated_contract_commit": "b2016ce9190c7875796565faf68855da10a61933",
+    "post_transfer_delta_path": "docs/implementation/pr38-final/results/t37-tools/post-transfer-comment-deletions.json",
+    "post_transfer_delta_sha256": "7ad3e7a9edd4ba8df266da25552205014a87b27009116004f86c245a643a49cc",
+    "removed_comment_groups": 6,
+    "removed_comment_lines": 14,
+    "unsafe_tokens_changed": false,
+    "lint_scopes_changed": false,
+    "open_obligation": "T20-OBS-FD-01: externally supplied observer file descriptors are assumed open, distinct, and exclusively transferred; source does not validate these properties. No failing or exploit case was run."
+  },
+  "commands": [
+    {
+      "command": "git diff c817b99e9e43abbbf3519d56b2f5ee86924243d8 697a0353e5c84485b5dc36aa8058a4c71a1c236e --check",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/AGENT-RUNBOOK.json"
+    },
+    {
+      "command": "rg -n --glob '*.rs' '#\\[[[:space:]]*(test([[:space:]]*\\])|[[:alnum:]_]+::test([[:space:]]*\\])|rstest|test_case)|#\\[[[:space:]]*cfg\\([^]]*test|^[[:space:]]*(pub[[:space:]]+)?mod[[:space:]]+tests\\b' crates/termrock-test-support crates/termrock-conformance crates/termrock-xtask crates/termrock-visibility-publisher crates/termrock-visibility-tests crates/visual-harness crates/termrock-e2e tools scripts tests external-consumer-demo parity",
+      "exit_code": 1,
+      "result": "PASS: no test annotations, cfg(test), or test modules matched in the owned Rust trees.",
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/file-deletion-map.json"
+    },
+    {
+      "command": "for f in docs/implementation/pr38-final/results/t37-tools/*.json; do python3 -m json.tool \"$f\" >/dev/null || exit; done",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/AGENT-RUNBOOK.json"
+    },
+    {
+      "command": "git diff --name-only --diff-filter=ACMRT c817b99e9e43abbbf3519d56b2f5ee86924243d8 697a0353e5c84485b5dc36aa8058a4c71a1c236e -- '*.rs' | xargs mise exec -- rustfmt --edition 2024 --check",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/retained-source-token-comparison.json"
+    },
+    {
+      "command": "git diff --name-only --diff-filter=ACMRT c817b99e9e43abbbf3519d56b2f5ee86924243d8 697a0353e5c84485b5dc36aa8058a4c71a1c236e -- '*.sh' | xargs -n 1 bash -n",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/source-prose-map.json"
+    },
+    {
+      "command": "git diff --name-only --diff-filter=ACMRT c817b99e9e43abbbf3519d56b2f5ee86924243d8 697a0353e5c84485b5dc36aa8058a4c71a1c236e -- '*.py' | xargs -n 1 python3 -m ast >/dev/null",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/python-source-token-check.json"
+    },
+    {
+      "command": "python3 -m json.tool docs/implementation/pr38-final/results/t37-tools/AGENT-RUNBOOK.json >/dev/null",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-tools/AGENT-RUNBOOK.json"
+    }
+  ],
+  "approved_test_plan_id": null,
+  "test_plan_reviewer": null,
+  "test_edit_scope": [],
+  "red_evidence": {
+    "value": null,
+    "reason": "T37 is a source cleanup preflight. No replacement or legacy test execution was authorized."
+  },
+  "green_evidence": {
+    "value": null,
+    "reason": "No product behavior case ran. Structural checks do not prove runtime behavior."
+  },
+  "test_and_behavior": {
+    "selected_tests": [],
+    "legacy_tests_executed": false,
+    "replacement_tests_or_harnesses_added": false,
+    "behavior": "NOT VERIFIED"
+  },
+  "environment": {
+    "workspace": "/Users/donbeave/Downloads/termrock-t37-tools",
+    "fixed_input": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+    "worktree_clean_after_source_commit": true,
+    "toolchain_policy": "Rust commands use mise; Cargo commands must go through rust-build-guard. This worker did not invoke Cargo.",
+    "source_commit_parent": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+    "disk_policy": "Applied. No guard bypass was attempted."
+  },
+  "shared_changes_needed": {
+    "proposal_path": "docs/implementation/pr38-final/results/t37-tools/shared-metadata-proposals.json",
+    "proposal_sha256": "c4f5ce52766a1d82782bbd6670e49297271307af9a292a2a2408debc1038bc13",
+    "metadata_owner": "/root/t37_metadata",
+    "actions": [
+      "Remove only approved orphan packages, test targets, dependencies, standalone locks, nextest config, inventory profiles, and testing CI inputs.",
+      "Regenerate managed .github/workflows/ci.yml only through mise exec -- velnor-actions generate.",
+      "Preserve the visual-harness production package/build job, visibility publisher binaries, E2E admission binary, refactor-proof bins, and root selection_binding_chords feature edge.",
+      "Preserve test-inventory historical.json and required.json byte-identically; remove profiles.json per T37-INVENTORY-01."
+    ],
+    "docs_owner": "/root/t00_import_rules",
+    "documentation_actions": [
+      "Reconcile active deleted-test citations in crates/termrock-e2e/README.md and crates/termrock-xtask/RULES.md.",
+      "Keep root REFACTORING_GOAL.md historical and byte-identical."
+    ],
+    "integration_actions": [
+      "Run guarded Cargo metadata and workspace/all-targets/all-features check after shared metadata integration.",
+      "Complete Velnor generation and exact independent Sol-high source review.",
+      "Preserve T20-OBS-FD-01 as an open follow-up; no T37 behavior claim."
+    ]
+  },
+  "approved_ownership_decisions": [
+    "T37-E2E-01",
+    "T37-E2E-SCHEMA-01",
+    "T37-E2E-SCHEMA-02",
+    "T37-FROZEN-01",
+    "T37-QUALIFIED-01",
+    "T37-CAPTURE-01",
+    "T37-INVENTORY-01",
+    "T37-DOC-INVENTORY-01",
+    "T37-TOOLS-SAFETY-01"
+  ],
+  "safety_review": {
+    "reviewer_id": "/root/t00_independent_review",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "decision": "ACCEPT",
+    "reviewed_transfer_commit": "c645c0b611370bd0974ebe46e8730d85560dbd79",
+    "integrated_at": "b2016ce9190c7875796565faf68855da10a61933",
+    "scope": "Only the six comment groups mapped in post-transfer-comment-deletions.json; unsafe code and lint scopes stay unchanged."
+  },
+  "exact_source_review": {
+    "reviewer_id": "/root/t00_independent_review",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "status": "PENDING",
+    "reviewed_commit": "697a0353e5c84485b5dc36aa8058a4c71a1c236e"
+  },
+  "limits": [
+    "T37 structural cleanup does not verify product behavior; behavior is NOT VERIFIED.",
+    "No legacy tests ran and no new test, harness, fixture, doctest, snapshot, or gate was added.",
+    "Cargo metadata, workspace build, and Velnor generation remain shared-owner integration checks.",
+    "F01, F18, and F20 dispositions are recorded in inventory-reconciliation.json; no behavior claim follows.",
+    "Observer fd ownership assumptions remain open under T20-OBS-FD-01."
+  ],
+  "not_run": [
+    {
+      "command": "rust-build-guard -- mise exec -- cargo metadata --locked --format-version 1 --no-deps",
+      "reason": "Shared metadata owner handles the final integrated workspace check."
+    },
+    {
+      "command": "rust-build-guard -- mise exec -- cargo check --locked --workspace --all-targets --all-features",
+      "reason": "Shared metadata owner handles the final integrated workspace check; no Cargo command ran in this source fragment."
+    },
+    {
+      "command": "mise exec -- velnor-actions generate",
+      "reason": "Shared metadata owner owns generator inputs and generated workflow."
+    },
+    {
+      "command": "cargo test / cargo nextest run",
+      "reason": "Prohibited for this T37 cleanup preflight; no legacy tests ran and no replacement tests were added."
+    }
+  ]
+}
