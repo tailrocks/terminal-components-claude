@@ -296,6 +296,59 @@ fn nav_region_matches_the_sidebar_at_every_width_threshold() {
 }
 
 #[test]
+fn narrow_buttons_route_keeps_tree_markers_thumb_and_body() {
+    let mut h = Harness::new(App::with_page(PageId::Buttons), Theme::junie(), 100, 30)
+        .with_color(ColorLevel::Ansi16);
+    let resolved = Theme::junie().downgrade(ColorLevel::Ansi16);
+
+    assert_eq!(h.app().page(), PageId::Buttons);
+    assert_eq!(h.focus(), Some(NAV));
+    let nav = h.area_of(NAV).expect("Tree registers the full sidebar region");
+    assert_eq!(nav, Rect::new(0, 2, 20, 26));
+
+    let (_, overview_y) = require_nav_row(&h, "Overview", 20);
+    assert_eq!(h.cell(0, overview_y).symbol(), " ");
+    let (buttons_x, buttons_y) = require_nav_row(&h, "Buttons", 20);
+    assert_eq!(
+        h.cell(0, buttons_y).symbol(),
+        resolved.design.glyphs.get(GlyphRole::FocusBar)
+    );
+    assert_eq!(
+        h.cell(buttons_x.saturating_sub(2), buttons_y).symbol(),
+        resolved.design.glyphs.get(GlyphRole::Chosen)
+    );
+
+    let track = h
+        .area_of_part(NAV, PartRef::of(Part::TRACK))
+        .expect("overflow track owns the final sidebar column");
+    let thumb = h
+        .area_of_part(NAV, PartRef::of(Part::THUMB))
+        .expect("overflowing viewport has a thumb");
+    assert_eq!(track.x, nav.right().saturating_sub(1));
+    assert_eq!(thumb.x, track.x);
+    assert!(thumb.y >= track.y && thumb.bottom() <= track.bottom());
+    assert_eq!(thumb.y, overview_y);
+    assert_eq!(
+        h.cell(thumb.x, thumb.y).symbol(),
+        resolved.design.glyphs.get(GlyphRole::ScrollThumb)
+    );
+
+    let body = h.text();
+    assert!(body.contains("Primary"));
+    assert!(body.contains("Secondary"));
+    let nav_state = nav_key_state(h.app());
+    let _ = h.key(KeyCode::Tab);
+    assert_eq!(h.app().page(), PageId::Buttons);
+    assert_ne!(h.focus(), Some(NAV));
+    let _ = h.key(KeyCode::Esc);
+    assert_eq!(h.focus(), Some(NAV));
+    assert_eq!(h.app().page(), PageId::Buttons);
+    assert_eq!(nav_key_state(h.app()), nav_state);
+    assert_eq!(h.text(), body);
+    assert_no_diagnostics(&h);
+}
+
+#[test]
 fn arrows_follow_catalog_neighbors_without_routing_group_rows() {
     let mut cells = Harness::new(App::for_page_name("Cell editors"), Theme::junie(), 120, 40);
     let _ = cells.key(KeyCode::Down);
