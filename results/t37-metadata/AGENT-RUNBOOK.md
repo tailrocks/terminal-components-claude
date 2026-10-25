@@ -14,10 +14,14 @@ This work has a structural manifest pass only. The final source fragment from th
 - Foundation source fragments: `7368d4fc5a71e46cae5ee92963bcf3a6943953e9` and `2fee2c277d1213fc5fad5d81eb77479600182b69`.
 - Component source fragments: `96fe6a2a1430967831777da2da6402206c4716ff` and `f03e22c14a5817272cd5643094e974f9c25f1b6a`.
 - Application source fragments: `4f502be854a4d4c7a7585344bd9915b2a26fae79` and `fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a`.
-- The tools source worktree is still active. Its reviewed deletion proposal is at `b61d0374d87c1a17cd639f796562b614b8b19fe0d78d605ef49fb7f570032772`, with later inventory/schema evidence at `c4f5ce52766a1d82782bbd6670e49297271307af9a292a2a2408debc1038bc13`. These are proposal inputs, not a combined-source build result.
+- The tools source worktree is still active. Its deletion proposal SHA-256 is `b61d0374d87c1a17cd639f796562b614b8b19fe0d78d605ef49fb7f570032772`. Later inventory/schema proposal evidence SHA-256 is `c4f5ce52766a1d82782bbd6670e49297271307af9a292a2a2408debc1038bc13`. These are proposal inputs, not commit IDs or a combined-source build result.
 - Do not self-approve this result.
 
-Metadata commit: `bb0ea4d7a156f2f5d48d7b0d544281876f2ef4f5`.
+Metadata commits:
+
+- Cleanup: `bb0ea4d7a156f2f5d48d7b0d544281876f2ef4f5`.
+- Evidence: `545b0cca194823fa73f3fbaca86ff60c6085f690`.
+- Pending-source status correction: `5ccb1a25cee50b9a6f8e60278257e57271e6d4c0`.
 
 ## Metadata changes
 
