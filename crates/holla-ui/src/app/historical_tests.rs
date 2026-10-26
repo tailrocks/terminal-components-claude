@@ -1621,6 +1621,886 @@ fn git_sync_run_per_child_results_and_honest_effect() {
     assert_eq!(Some(billing), billing_before.as_ref());
 }
 
+mod tracked_port_owner {
+    use super::*;
+    use crate::domain::action::{Action, ActionKind, Availability, Risk};
+    use crate::sim::world::World;
+    use ratatui::layout::Rect;
+    use std::collections::BTreeSet;
+
+    const EXPECTED_KEYS: [&str; 11] = [
+        "monorepo-root 80 24 junie mono",
+        "monorepo-root 80 24 paper truecolor",
+        "monorepo-root 80 24 paper 256",
+        "monorepo-root 80 24 paper 16",
+        "monorepo-root 80 24 paper mono",
+        "activities-multi 80 24 junie truecolor",
+        "activities-multi 80 24 junie mono",
+        "activities-multi 80 24 paper truecolor",
+        "activities-multi 80 24 paper 256",
+        "activities-multi 80 24 paper 16",
+        "activities-multi 80 24 paper mono",
+    ];
+
+    const EXISTING_OWNERS: [&str; 6] = [
+        "rust-dirty 80 24 junie 256",
+        "monorepo-root 80 24 junie 256",
+        "monorepo-child 80 24 junie 256",
+        "activities-multi 80 24 junie 256",
+        "monorepo-root 80 24 junie truecolor",
+        "monorepo-root 80 24 junie 16",
+    ];
+
+    #[derive(Debug, Clone, Copy)]
+    enum SourceTheme {
+        Junie,
+        Paper,
+    }
+
+    impl SourceTheme {
+        fn build(self) -> Theme {
+            match self {
+                Self::Junie => Theme::junie(),
+                Self::Paper => Theme::paper(),
+            }
+        }
+
+        const fn label(self) -> &'static str {
+            match self {
+                Self::Junie => "junie",
+                Self::Paper => "paper",
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    struct Case {
+        scenario: Scenario,
+        theme: SourceTheme,
+        color: ColorLevel,
+    }
+
+    const CASES: [Case; 11] = [
+        Case {
+            scenario: Scenario::MonorepoRoot,
+            theme: SourceTheme::Junie,
+            color: ColorLevel::Mono,
+        },
+        Case {
+            scenario: Scenario::MonorepoRoot,
+            theme: SourceTheme::Paper,
+            color: ColorLevel::TrueColor,
+        },
+        Case {
+            scenario: Scenario::MonorepoRoot,
+            theme: SourceTheme::Paper,
+            color: ColorLevel::Ansi256,
+        },
+        Case {
+            scenario: Scenario::MonorepoRoot,
+            theme: SourceTheme::Paper,
+            color: ColorLevel::Ansi16,
+        },
+        Case {
+            scenario: Scenario::MonorepoRoot,
+            theme: SourceTheme::Paper,
+            color: ColorLevel::Mono,
+        },
+        Case {
+            scenario: Scenario::ActivitiesMulti,
+            theme: SourceTheme::Junie,
+            color: ColorLevel::TrueColor,
+        },
+        Case {
+            scenario: Scenario::ActivitiesMulti,
+            theme: SourceTheme::Junie,
+            color: ColorLevel::Mono,
+        },
+        Case {
+            scenario: Scenario::ActivitiesMulti,
+            theme: SourceTheme::Paper,
+            color: ColorLevel::TrueColor,
+        },
+        Case {
+            scenario: Scenario::ActivitiesMulti,
+            theme: SourceTheme::Paper,
+            color: ColorLevel::Ansi256,
+        },
+        Case {
+            scenario: Scenario::ActivitiesMulti,
+            theme: SourceTheme::Paper,
+            color: ColorLevel::Ansi16,
+        },
+        Case {
+            scenario: Scenario::ActivitiesMulti,
+            theme: SourceTheme::Paper,
+            color: ColorLevel::Mono,
+        },
+    ];
+
+    impl Case {
+        fn key(self) -> String {
+            let color = match self.color {
+                ColorLevel::TrueColor => "truecolor",
+                ColorLevel::Ansi256 => "256",
+                ColorLevel::Ansi16 => "16",
+                ColorLevel::Mono => "mono",
+                _ => "other",
+            };
+            format!(
+                "{} 80 24 {} {color}",
+                self.scenario.name(),
+                self.theme.label()
+            )
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum VisualToken {
+        Header(String),
+        Gap,
+        Action(String),
+    }
+
+    struct ModelPair {
+        harness_a: Harness<App>,
+        harness_b: Harness<App>,
+        expected_raw: Vec<Action>,
+        expected_cwd: String,
+        memory_a: crate::domain::ranking::Memory,
+        memory_b: crate::domain::ranking::Memory,
+        rows_a: Vec<(String, String)>,
+        rows_b: Vec<(String, String)>,
+        tokens_a: Vec<VisualToken>,
+        tokens_b: Vec<VisualToken>,
+        port_visual_index: usize,
+        extent_a: usize,
+        extent_b: usize,
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    struct NativeGeometry {
+        rows: Rect,
+        track: Rect,
+        thumb: Rect,
+    }
+
+    fn action_kind_label(kind: ActionKind) -> &'static str {
+        match kind {
+            ActionKind::Task => "task",
+            ActionKind::Git => "git",
+            ActionKind::Plan => "plan",
+            ActionKind::Connect => "connect",
+            ActionKind::Flow => "flow",
+            ActionKind::Clone => "clone",
+            ActionKind::System => "system",
+        }
+    }
+
+    fn action_scope_text(action: &Action) -> String {
+        if action.scope_label.is_empty() {
+            action.scope.label().to_owned()
+        } else {
+            format!("{} {}", action.scope.label(), action.scope_label)
+        }
+    }
+
+    fn action_risk_label(risk: Risk) -> &'static str {
+        match risk {
+            Risk::ReadOnly => "read only",
+            Risk::Bounded => "bounded",
+            Risk::Broad => "broad",
+        }
+    }
+
+    fn action_risk_text(action: &Action) -> String {
+        match &action.availability {
+            Availability::Ready => action_risk_label(action.risk).to_owned(),
+            Availability::NeedsTrust(_) => {
+                format!("▲ untrusted config · {}", action_risk_label(action.risk))
+            }
+            Availability::Blocked(_) => {
+                format!("▲ blocked · {}", action_risk_label(action.risk))
+            }
+        }
+    }
+
+    fn visible_actions(world: &World) -> Vec<Action> {
+        crate::sim::catalogue::sections(world)
+            .into_iter()
+            .flat_map(|section| {
+                crate::sim::catalogue::visible(
+                    &section.actions,
+                    None,
+                    "",
+                    &world.memory,
+                    &world.cwd,
+                )
+            })
+            .collect()
+    }
+
+    // Keep this oracle aligned with HomeState::ActionColumns::apply: Port is
+    // safe to hide offscreen only when it does not move any surviving column.
+    fn action_column_maxima(world: &World) -> [u16; 4] {
+        let actions = visible_actions(world);
+        [
+            actions
+                .iter()
+                .map(|action| termrock::width(&action.title))
+                .max()
+                .unwrap_or(14),
+            actions
+                .iter()
+                .map(|action| termrock::width(action_kind_label(action.kind)))
+                .max()
+                .unwrap_or(4),
+            actions
+                .iter()
+                .map(|action| termrock::width(&action_scope_text(action)))
+                .max()
+                .unwrap_or(4),
+            actions
+                .iter()
+                .map(|action| termrock::width(&action_risk_text(action)))
+                .max()
+                .unwrap_or(0),
+        ]
+    }
+
+    fn visual_tokens(rows: &[(String, String)]) -> Vec<VisualToken> {
+        let mut tokens = Vec::new();
+        let mut previous_section = None;
+        for (section, action_id) in rows {
+            if previous_section != Some(section.as_str()) {
+                if previous_section.is_some() {
+                    tokens.push(VisualToken::Gap);
+                }
+                tokens.push(VisualToken::Header(section.clone()));
+                previous_section = Some(section.as_str());
+            }
+            tokens.push(VisualToken::Action(action_id.clone()));
+        }
+        tokens
+    }
+
+    fn model_pair(case: Case) -> Option<ModelPair> {
+        let mut world_a = crate::sim::fixtures::world_for(case.scenario);
+        let mut world_b = crate::sim::fixtures::world_for(case.scenario);
+        world_a.seek(4_000);
+        world_b.seek(4_000);
+
+        let raw_a = crate::sim::catalogue::catalogue(&world_a);
+        let raw_b = crate::sim::catalogue::catalogue(&world_b);
+        let expected_raw = raw_a.clone();
+        let expected_cwd = world_a.cwd.clone();
+        assert_eq!(raw_a, raw_b, "{} raw catalogue before hide", case.key());
+        assert_eq!(world_a.cwd, world_b.cwd, "{} fixture cwd", case.key());
+        assert_eq!(
+            world_a.memory,
+            world_b.memory,
+            "{} initial Memory",
+            case.key()
+        );
+        assert_eq!(
+            world_a.scenario,
+            world_b.scenario,
+            "{} scenario",
+            case.key()
+        );
+        assert_eq!(world_a.clock, world_b.clock, "{} initial clock", case.key());
+        assert_eq!(world_a.clock.now_ms, 4_000, "{} fixture time", case.key());
+
+        let port_actions: Vec<_> = raw_a
+            .iter()
+            .filter(|action| action.id == "system.port")
+            .collect();
+        assert_eq!(port_actions.len(), 1, "{} actual Port action", case.key());
+        let port_action = port_actions.first();
+        assert!(port_action.is_some(), "{} unique Port action", case.key());
+        let port_action = port_action?;
+        let port_pin = Pin {
+            path: world_b.cwd.clone(),
+            command: port_action.command.clone(),
+        };
+        assert!(
+            !world_a
+                .memory
+                .hides
+                .iter()
+                .any(|existing| existing == &port_pin),
+            "{} A does not already hide the actual Port command",
+            case.key()
+        );
+
+        let memory_a = world_a.memory.clone();
+        let mut expected_memory_b = memory_a.clone();
+        expected_memory_b.hides.push(port_pin.clone());
+        world_b.memory.hides.push(port_pin.clone());
+        assert_eq!(
+            world_a.memory,
+            memory_a,
+            "{} A Memory unchanged",
+            case.key()
+        );
+        assert_eq!(
+            world_b.memory,
+            expected_memory_b,
+            "{} B adds only the actual cwd-local Port Pin",
+            case.key()
+        );
+        assert_eq!(port_pin.path, world_b.cwd, "{} Port Pin cwd", case.key());
+        assert_eq!(
+            port_pin.command,
+            port_action.command,
+            "{} Port Pin actual command",
+            case.key()
+        );
+
+        let raw_b = crate::sim::catalogue::catalogue(&world_b);
+        assert_eq!(raw_b, raw_a, "{} raw catalogue/order remains", case.key());
+        assert_eq!(
+            raw_b
+                .iter()
+                .filter(|action| action.id == "system.port")
+                .count(),
+            1,
+            "{} Port remains in B raw catalogue",
+            case.key()
+        );
+
+        let rows_a = home_display_rows(&world_a);
+        let rows_b = home_display_rows(&world_b);
+        assert!(
+            rows_a
+                .iter()
+                .any(|(_, action_id)| action_id == "system.port"),
+            "{} A displays Port",
+            case.key()
+        );
+        let expected_rows_b: Vec<_> = rows_a
+            .iter()
+            .filter(|(_, action_id)| action_id != "system.port")
+            .cloned()
+            .collect();
+        assert_eq!(rows_b, expected_rows_b, "{} B hides only Port", case.key());
+        let tokens_a = visual_tokens(&rows_a);
+        let tokens_b = visual_tokens(&rows_b);
+        let expected_tokens_b: Vec<_> = tokens_a
+            .iter()
+            .cloned()
+            .filter(|token| !matches!(token, VisualToken::Action(id) if id == "system.port"))
+            .collect();
+        assert_eq!(
+            tokens_b,
+            expected_tokens_b,
+            "{} B retains all section headers, gaps and surviving order",
+            case.key()
+        );
+        let port_visual_index = tokens_a
+            .iter()
+            .position(|token| matches!(token, VisualToken::Action(id) if id == "system.port"));
+        assert!(
+            port_visual_index.is_some(),
+            "{} Port visual token",
+            case.key()
+        );
+        let port_visual_index = port_visual_index?;
+        assert!(
+            port_visual_index >= 15,
+            "{} Port is below the initial 15-row viewport",
+            case.key()
+        );
+
+        let extent_a = home_visual_extent(&rows_a);
+        let extent_b = home_visual_extent(&rows_b);
+        assert_eq!(tokens_a.len(), extent_a, "{} A token extent", case.key());
+        assert_eq!(tokens_b.len(), extent_b, "{} B token extent", case.key());
+        assert!(
+            extent_a > 15 && extent_b > 15,
+            "{} both arms overflow",
+            case.key()
+        );
+        assert_eq!(
+            extent_a,
+            extent_b + 1,
+            "{} B removes one visual row",
+            case.key()
+        );
+        assert_eq!(
+            action_column_maxima(&world_a),
+            action_column_maxima(&world_b),
+            "{} ActionColumns maxima stay fixed after hiding Port",
+            case.key()
+        );
+
+        let memory_b = world_b.memory.clone();
+        Some(ModelPair {
+            harness_a: harness(world_a, case),
+            harness_b: harness(world_b, case),
+            expected_raw,
+            expected_cwd,
+            memory_a,
+            memory_b,
+            rows_a,
+            rows_b,
+            tokens_a,
+            tokens_b,
+            port_visual_index,
+            extent_a,
+            extent_b,
+        })
+    }
+
+    fn harness(world: World, case: Case) -> Harness<App> {
+        let source_theme = case.theme.build();
+        let mut app = App::from_fixture_world(world, Motion::Paused, 4_000);
+        app.home.history = false;
+        let app = app.with_source_theme(source_theme.clone());
+        Harness::new_with_feedback_clock(
+            app,
+            source_theme,
+            80,
+            24,
+            FeedbackClock::Simulation {
+                initial: SimulationMoment::from_millis(4_000),
+            },
+        )
+        .with_color(case.color)
+    }
+
+    fn native_geometry(
+        harness: &Harness<App>,
+        rows: &[(String, String)],
+        extent: usize,
+        case: Case,
+        arm: &str,
+    ) -> Option<NativeGeometry> {
+        let rows_area = harness.area_of(crate::screens::home::ROWS);
+        let track = harness.area_of_part(crate::screens::home::ROWS, PartRef::of(Part::TRACK));
+        let thumb = harness.area_of_part(crate::screens::home::ROWS, PartRef::of(Part::THUMB));
+        assert!(rows_area.is_some(), "{} {} Home rows", arm, case.key());
+        assert!(track.is_some(), "{} {} native track", arm, case.key());
+        assert!(thumb.is_some(), "{} {} native thumb", arm, case.key());
+        let rows_area = rows_area?;
+        let track = track?;
+        let thumb = thumb?;
+        assert_eq!(
+            *harness.buffer().area(),
+            Rect::new(0, 0, 80, 24),
+            "{} {} complete frame dimensions",
+            arm,
+            case.key()
+        );
+        assert_eq!(
+            (rows_area.x, rows_area.y, rows_area.width, rows_area.height),
+            (1, 6, 78, 15),
+            "{} {} native Home rows",
+            arm,
+            case.key()
+        );
+        assert_eq!(
+            (track.x, track.y, track.width, track.height),
+            (78, 6, 1, 15),
+            "{} {} native track geometry",
+            arm,
+            case.key()
+        );
+        assert_eq!(thumb.x, track.x, "{} {} thumb column", arm, case.key());
+        assert_eq!(thumb.y, track.y, "{} {} initial offset", arm, case.key());
+        assert_eq!(
+            thumb.width,
+            track.width,
+            "{} {} thumb width",
+            arm,
+            case.key()
+        );
+
+        assert!(
+            !rows.is_empty(),
+            "{} {} nonempty Home rows",
+            arm,
+            case.key()
+        );
+        let Some((_, first_action_id)) = rows.first() else {
+            return None;
+        };
+        let first_action = harness.area_of_part(
+            crate::screens::home::ROWS,
+            PartRef::item(Part::ROW, termrock::ItemKey::text(first_action_id)),
+        );
+        assert!(
+            first_action.is_some(),
+            "{} {} first native row",
+            arm,
+            case.key()
+        );
+        let first_action = first_action?;
+        assert_eq!(
+            first_action.x,
+            rows_area.x,
+            "{} {} first row x",
+            arm,
+            case.key()
+        );
+        assert_eq!(
+            first_action.height,
+            1,
+            "{} {} first row height",
+            arm,
+            case.key()
+        );
+        assert_eq!(
+            first_action.y,
+            rows_area.y + 1,
+            "{} {} header is first row; projected offset is zero",
+            arm,
+            case.key()
+        );
+
+        let viewport = usize::from(rows_area.height);
+        let track_len = usize::from(track.height);
+        let expected_thumb_height = (viewport.saturating_mul(track_len) / extent)
+            .max(1)
+            .min(track_len);
+        assert_eq!(
+            usize::from(thumb.height),
+            expected_thumb_height,
+            "{} {} model-derived thumb height",
+            arm,
+            case.key()
+        );
+        Some(NativeGeometry {
+            rows: rows_area,
+            track,
+            thumb,
+        })
+    }
+
+    fn assert_arm_fixture(
+        harness: &Harness<App>,
+        case: Case,
+        expected_raw: &[Action],
+        expected_cwd: &str,
+        expected_memory: &crate::domain::ranking::Memory,
+        expected_rows: &[(String, String)],
+        arm: &str,
+    ) {
+        let source_theme = case.theme.build();
+        assert_eq!(
+            harness.runtime().theme(),
+            &source_theme.for_level(case.color)
+        );
+        assert_eq!(
+            harness
+                .app()
+                .source_theme
+                .as_ref()
+                .map(|theme| &theme.theme),
+            Some(&source_theme),
+            "{} {} source theme",
+            arm,
+            case.key()
+        );
+        assert!(
+            harness.app().route == Route::Home,
+            "{} {} route",
+            arm,
+            case.key()
+        );
+        let actual_raw = crate::sim::catalogue::catalogue(&harness.app().world);
+        assert_eq!(
+            actual_raw.as_slice(),
+            expected_raw,
+            "{} {} raw catalogue/order",
+            arm,
+            case.key()
+        );
+        assert_eq!(
+            harness.app().world.cwd,
+            expected_cwd,
+            "{} {} cwd",
+            arm,
+            case.key()
+        );
+        assert_eq!(
+            &harness.app().world.memory,
+            expected_memory,
+            "{} {} Memory",
+            arm,
+            case.key()
+        );
+        assert_eq!(
+            harness.app().world.scenario,
+            case.scenario,
+            "{} {} scenario",
+            arm,
+            case.key()
+        );
+        assert_eq!(
+            harness.app().world.clock.now_ms,
+            4_000,
+            "{} {} time",
+            arm,
+            case.key()
+        );
+        assert!(
+            !harness.app().world.clock.running,
+            "{} {} paused",
+            arm,
+            case.key()
+        );
+        assert_eq!(
+            harness.app().fixture_time_ms(),
+            4_000,
+            "{} {} fixture time",
+            arm,
+            case.key()
+        );
+        assert_eq!(
+            harness.app().motion,
+            Motion::Paused,
+            "{} {} motion",
+            arm,
+            case.key()
+        );
+        assert!(
+            !harness.app().home.history,
+            "{} {} history disabled",
+            arm,
+            case.key()
+        );
+        assert!(
+            harness.app().overlay.is_none(),
+            "{} {} overlay closed",
+            arm,
+            case.key()
+        );
+        assert!(
+            !harness.app().menu.is_open(),
+            "{} {} menu closed",
+            arm,
+            case.key()
+        );
+        assert!(
+            harness.app().home.query().is_empty(),
+            "{} {} query blank",
+            arm,
+            case.key()
+        );
+        assert_eq!(
+            harness.app().home.scope,
+            None,
+            "{} {} scope unchanged",
+            arm,
+            case.key()
+        );
+        assert_eq!(
+            harness.focus(),
+            Some(crate::screens::home::QUERY),
+            "{} {} query focus",
+            arm,
+            case.key()
+        );
+        assert_eq!(
+            home_display_rows(&harness.app().world),
+            expected_rows,
+            "{} {} rows",
+            arm,
+            case.key()
+        );
+        assert_eq!(
+            harness.cursor(),
+            Some(Position { x: 3, y: 4 }),
+            "{} {} cursor",
+            arm,
+            case.key()
+        );
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{} {} diagnostics",
+            arm,
+            case.key()
+        );
+    }
+
+    fn assert_visible_prefix_geometry(
+        harness_a: &Harness<App>,
+        harness_b: &Harness<App>,
+        tokens_a: &[VisualToken],
+        tokens_b: &[VisualToken],
+        port_visual_index: usize,
+        case: Case,
+    ) {
+        for (visual_index, token) in tokens_a.iter().take(15).enumerate() {
+            let VisualToken::Action(action_id) = token else {
+                continue;
+            };
+            let row_a = harness_a.area_of_part(
+                crate::screens::home::ROWS,
+                PartRef::item(Part::ROW, termrock::ItemKey::text(action_id)),
+            );
+            let row_b = harness_b.area_of_part(
+                crate::screens::home::ROWS,
+                PartRef::item(Part::ROW, termrock::ItemKey::text(action_id)),
+            );
+            assert!(row_a.is_some(), "A {} visible row {action_id}", case.key());
+            assert!(row_b.is_some(), "B {} visible row {action_id}", case.key());
+            assert_eq!(
+                row_a,
+                row_b,
+                "{} surviving prefix row {action_id}",
+                case.key()
+            );
+            let Some(row_area) = row_a else { return };
+            let visual_row = u16::try_from(visual_index);
+            assert!(visual_row.is_ok(), "{} visible row index fits", case.key());
+            let visual_row = visual_row.unwrap_or_default();
+            assert_eq!(
+                row_area.y,
+                6 + visual_row,
+                "{} row follows the unchanged model prefix",
+                case.key()
+            );
+        }
+        assert_eq!(
+            tokens_a[..port_visual_index],
+            tokens_b[..port_visual_index],
+            "{} complete visual prefix before offscreen Port",
+            case.key()
+        );
+    }
+
+    #[test]
+    fn tracked_port_hide_preserves_held_frames_for_exact_keys() {
+        let actual_keys: Vec<_> = CASES.iter().map(|case| case.key()).collect();
+        let expected_keys: Vec<_> = EXPECTED_KEYS.iter().map(|key| (*key).to_owned()).collect();
+        assert_eq!(
+            actual_keys, expected_keys,
+            "exact tracked owner manifest order"
+        );
+        let keys: BTreeSet<_> = actual_keys.iter().map(String::as_str).collect();
+        assert_eq!(keys.len(), CASES.len(), "tracked keys are unique");
+        let existing: BTreeSet<_> = EXISTING_OWNERS.into_iter().collect();
+        assert!(
+            keys.is_disjoint(&existing),
+            "new tracked keys have distinct owners"
+        );
+
+        for case in CASES {
+            let model = model_pair(case);
+            assert!(model.is_some(), "{} source-derived model pair", case.key());
+            let Some(model) = model else { return };
+            let ModelPair {
+                harness_a,
+                harness_b,
+                expected_raw,
+                expected_cwd,
+                memory_a,
+                memory_b,
+                rows_a,
+                rows_b,
+                tokens_a,
+                tokens_b,
+                port_visual_index,
+                extent_a,
+                extent_b,
+            } = model;
+            assert_arm_fixture(
+                &harness_a,
+                case,
+                &expected_raw,
+                &expected_cwd,
+                &memory_a,
+                &rows_a,
+                "A",
+            );
+            assert_arm_fixture(
+                &harness_b,
+                case,
+                &expected_raw,
+                &expected_cwd,
+                &memory_b,
+                &rows_b,
+                "B",
+            );
+
+            let geometry_a = native_geometry(&harness_a, &rows_a, extent_a, case, "A");
+            let geometry_b = native_geometry(&harness_b, &rows_b, extent_b, case, "B");
+            assert!(
+                geometry_a.is_some(),
+                "{} A model-derived geometry",
+                case.key()
+            );
+            assert!(
+                geometry_b.is_some(),
+                "{} B model-derived geometry",
+                case.key()
+            );
+            let (Some(geometry_a), Some(geometry_b)) = (geometry_a, geometry_b) else {
+                return;
+            };
+            assert_eq!(
+                geometry_a.rows,
+                geometry_b.rows,
+                "{} same rows area",
+                case.key()
+            );
+            assert_eq!(
+                geometry_a.track,
+                geometry_b.track,
+                "{} same track",
+                case.key()
+            );
+            assert_visible_prefix_geometry(
+                &harness_a,
+                &harness_b,
+                &tokens_a,
+                &tokens_b,
+                port_visual_index,
+                case,
+            );
+
+            assert_model_thumb_locality(
+                harness_a.buffer(),
+                harness_b.buffer(),
+                geometry_a.track,
+                geometry_a.thumb,
+                geometry_b.thumb,
+            );
+            assert_eq!(
+                harness_a.cursor(),
+                Some(Position { x: 3, y: 4 }),
+                "{} A cursor",
+                case.key()
+            );
+            assert_eq!(
+                harness_b.cursor(),
+                Some(Position { x: 3, y: 4 }),
+                "{} B cursor",
+                case.key()
+            );
+            let selected_a = harness_a.app().home.selected(&harness_a.app().world);
+            let selected_b = harness_b.app().home.selected(&harness_b.app().world);
+            assert_eq!(
+                selected_a.as_ref().map(|action| action.id.as_str()),
+                selected_b.as_ref().map(|action| action.id.as_str()),
+                "{} selected key remains identical",
+                case.key()
+            );
+            assert!(
+                selected_a.is_some(),
+                "{} selected action exists",
+                case.key()
+            );
+            harness_b
+                .snapshot()
+                .named(case.scenario.name())
+                .assert_against(&BORDER_BASELINE);
+        }
+    }
+}
+
 fn assert_hidden_port_fixture_retains_border_frame(scenario: Scenario) {
     let mut world = crate::sim::fixtures::world_for(scenario);
     world.seek(4_000);
