@@ -8,9 +8,6 @@ description = "External public consumer of the Termrock component library"
 repository = "https://github.com/tailrocks/terminal-components-claude"
 publish = false
 
-# This crate is the external-consumer proof: it depends on the public Termrock
-# facade only. No application crate (showcase, holla, tablepro, jackin-preview)
-# and no test-only crate is reachable from it.
 autotests = false
 autobenches = false
 [dependencies]
