@@ -10,7 +10,7 @@ This work has a structural manifest pass only. The final source fragment from th
 - Original fixed source: `c817b99e9e43abbbf3519d56b2f5ee86924243d8`.
 - Product source baseline: `1d6ee92adf6ccca38eeee64b1371cba1497e8fcd`.
 - Accepted documentation baseline: `5bcc79b971ae30ee244b8fef841c6fbafdb918d0`.
-- This worktree owns Cargo manifests and locks, `.velnor`, `.config`, generator inputs, CI output generation, inventory JSON, acceptance policy JSON, component ownership JSON, and `results/t37-metadata/**`.
+- This worktree owns Cargo manifests and locks, `.velnor`, `.config`, generator inputs, CI output generation, inventory JSON, acceptance policy JSON, component ownership JSON, and `docs/implementation/pr38-final/results/t37-metadata/**`.
 - Foundation source fragments: `7368d4fc5a71e46cae5ee92963bcf3a6943953e9` and `2fee2c277d1213fc5fad5d81eb77479600182b69`.
 - Component source fragments: `96fe6a2a1430967831777da2da6402206c4716ff` and `f03e22c14a5817272cd5643094e974f9c25f1b6a`.
 - Application source fragments: `4f502be854a4d4c7a7585344bd9915b2a26fae79` and `fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a`.
