@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier};
 
@@ -12,11 +5,9 @@ use crate::text::width;
 use crate::theme::{PaintStyle, Surface};
 use crate::ui::Ui;
 
-
 const GUTTER: u16 = 2;
 
 pub struct FieldErrorChrome<'a> {
-
     pub label: &'a str,
 
     pub field: Rect,

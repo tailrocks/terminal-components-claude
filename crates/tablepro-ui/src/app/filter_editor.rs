@@ -338,8 +338,6 @@ impl FilterEditor {
                 super::TableProApp::column_specs(&result.columns, model.is_editable());
             let visible_columns = specs.get(..count).unwrap_or(&[]);
 
-
-
             let _ = termrock::Grid::new(id, visible_columns).move_cursor_to(
                 &mut state,
                 &model,

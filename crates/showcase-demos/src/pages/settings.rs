@@ -1089,7 +1089,6 @@ impl Page for SettingsPage {
 
         let mut result = Response::ignored();
 
-
         result |= member_back_button().update(cx).erase();
         let tabs = Tabs::new(TAB).update(cx, &mut self.tabs, TABS);
         if let Some(TabsAction::Activated(key)) = tabs.action_ref() {

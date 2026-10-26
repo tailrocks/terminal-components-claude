@@ -1,7 +1,3 @@
-
-
-
-
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt;
@@ -11,43 +7,33 @@ const DEV_PROMPT_AT_MS: u64 = 100;
 const DEV_SERVING_AT_MS: u64 = 200;
 const DEV_STOP_AFTER_MS: u64 = 100;
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TaskRunId(u64);
 
 impl TaskRunId {
-
     pub const fn get(self) -> u64 {
         self.0
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PromptId(u64);
 
 impl PromptId {
-
     pub const fn get(self) -> u64 {
         self.0
     }
 }
 
-
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TaskScriptId {
-
     DevServerDemo,
 }
-
 
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TaskRunState {
-
     Running,
 
     Waiting,
@@ -56,16 +42,12 @@ pub enum TaskRunState {
 
     Cancelled,
 
-
-
     TimeExhausted,
 }
-
 
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TaskRunError {
-
     RunIdExhausted,
 
     PromptIdExhausted,
@@ -97,7 +79,6 @@ impl fmt::Display for TaskRunError {
 
 impl Error for TaskRunError {}
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TaskRunOutput {
     runtime_ms: u64,
@@ -105,17 +86,14 @@ pub struct TaskRunOutput {
 }
 
 impl TaskRunOutput {
-
     pub const fn runtime_ms(self) -> u64 {
         self.runtime_ms
     }
-
 
     pub const fn text(self) -> &'static str {
         self.text
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TaskPrompt {
@@ -127,49 +105,36 @@ pub struct TaskPrompt {
 }
 
 impl TaskPrompt {
-
     pub const fn id(self) -> PromptId {
         self.id
     }
-
 
     pub const fn text(self) -> &'static str {
         self.text
     }
 
-
     pub const fn since_ms(self) -> i64 {
         self.since_ms
     }
-
 
     pub const fn is_secret(self) -> bool {
         self.secret
     }
 }
 
-
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TaskRunEvent {
-
     Output(TaskRunOutput),
 
     PromptOpened(TaskPrompt),
 
-    Completed {
+    Completed { duration_ms: u64 },
 
-        duration_ms: u64,
-    },
-
-    Cancelled {
-
-        duration_ms: u64,
-    },
+    Cancelled { duration_ms: u64 },
 
     TimeExhausted,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TaskRunUpdate {
@@ -178,17 +143,14 @@ pub struct TaskRunUpdate {
 }
 
 impl TaskRunUpdate {
-
     pub const fn run_id(&self) -> TaskRunId {
         self.run_id
     }
-
 
     pub fn events(&self) -> &[TaskRunEvent] {
         &self.events
     }
 }
-
 
 #[derive(Debug)]
 pub struct TaskRunStore {
@@ -208,13 +170,6 @@ impl Default for TaskRunStore {
 }
 
 impl TaskRunStore {
-
-
-
-
-
-
-
     pub fn start(
         &mut self,
         script_id: TaskScriptId,
@@ -243,10 +198,6 @@ impl TaskRunStore {
         Ok(run_id)
     }
 
-
-
-
-
     pub fn advance_to(&mut self, now_ms: i64) -> Vec<TaskRunUpdate> {
         let mut updates = Vec::new();
         for run in self.runs.values_mut() {
@@ -261,12 +212,6 @@ impl TaskRunStore {
         updates
     }
 
-
-
-
-
-
-
     pub fn answer_prompt(
         &mut self,
         run_id: TaskRunId,
@@ -279,12 +224,6 @@ impl TaskRunStore {
         Ok(TaskRunUpdate { run_id, events })
     }
 
-
-
-
-
-
-
     pub fn cancel(
         &mut self,
         run_id: TaskRunId,
@@ -295,32 +234,24 @@ impl TaskRunStore {
         Ok(TaskRunUpdate { run_id, events })
     }
 
-
     pub fn get(&self, run_id: TaskRunId) -> Option<&TaskRun> {
         self.runs.get(&run_id)
     }
 
-
     pub fn len(&self) -> usize {
         self.runs.len()
     }
-
 
     pub fn is_empty(&self) -> bool {
         self.runs.is_empty()
     }
 }
 
-
 #[derive(Debug)]
 struct PromptIdReservation {
     ids: Vec<PromptId>,
     next: Option<u64>,
 }
-
-
-
-
 
 fn reserve_prompt_ids(first: Option<u64>, count: usize) -> Option<PromptIdReservation> {
     if count == 0 {
@@ -342,7 +273,6 @@ fn reserve_prompt_ids(first: Option<u64>, count: usize) -> Option<PromptIdReserv
         next: last.checked_add(1),
     })
 }
-
 
 #[derive(Debug)]
 pub struct TaskRun {
@@ -389,41 +319,33 @@ impl TaskRun {
         }
     }
 
-
     pub const fn id(&self) -> TaskRunId {
         self.id
     }
-
 
     pub const fn script_id(&self) -> TaskScriptId {
         self.script_id
     }
 
-
     pub const fn state(&self) -> TaskRunState {
         self.state
     }
-
 
     pub const fn started_at_ms(&self) -> i64 {
         self.started_at_ms
     }
 
-
     pub const fn duration_ms(&self) -> u64 {
         self.runtime_ms
     }
-
 
     pub const fn closed_wait_ms(&self) -> u64 {
         self.closed_wait_ms
     }
 
-
     pub const fn active_prompt(&self) -> Option<TaskPrompt> {
         self.active_prompt
     }
-
 
     pub fn output(&self) -> &[TaskRunOutput] {
         &self.output

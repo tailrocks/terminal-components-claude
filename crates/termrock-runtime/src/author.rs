@@ -131,7 +131,6 @@ impl<'a> PartStyle<'a> {
         part: Part,
         resolved: Resolved,
     ) {
-
         let _ = (ui, owner, family, variant, part, resolved);
     }
 }

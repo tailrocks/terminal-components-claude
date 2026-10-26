@@ -46,7 +46,6 @@ bitflags! {
 }
 
 impl StateFlags {
-
     pub const fn is_inactive_layer(self) -> bool {
         self.contains(Self::INACTIVE_LAYER)
     }

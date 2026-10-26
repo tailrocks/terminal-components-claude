@@ -324,19 +324,11 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         self
     }
 
-
-
-
-
     #[must_use]
     pub const fn numbered(mut self, yes: bool) -> Self {
         self.numbered = yes;
         self
     }
-
-
-
-
 
     pub fn metadata<F>(mut self, f: &'a F) -> Self
     where
@@ -345,12 +337,6 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         self.metadata = Some(f);
         self
     }
-
-
-
-
-
-
 
     pub fn measure_label_width<F>(mut self, f: &'a F) -> Self
     where
@@ -906,12 +892,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         .fit(c)
     }
 
-
-
-
-
-
-
     pub fn measure_with_items(&self, _ui: &Ui<'_>, c: Constraints, items: &[T]) -> Size {
         let number_lane = if self.numbered {
             items
@@ -935,8 +915,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
             let metadata_width = if self.metadata.is_some() {
                 metadata.map_or(0, crate::text::width)
             } else if self.numbered || self.step.is_some() {
-
-
                 crate::text::width("skipped").max(crate::text::width("blocked"))
             } else {
                 crate::text::width(StepState::Queued.label())

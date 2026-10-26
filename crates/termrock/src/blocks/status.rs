@@ -1,22 +1,11 @@
-
-
-
-
-
-
-
-
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Style;
 use termrock_runtime::Ui;
 use termrock_text::width;
 use termrock_theme::{FgStep, Theme};
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum StatusTone {
-
     #[default]
     Normal,
 
@@ -27,9 +16,7 @@ pub enum StatusTone {
     Danger,
 }
 
-
 pub struct StatusSeg<'a> {
-
     pub text: &'a str,
 
     pub tone: StatusTone,
@@ -64,15 +51,6 @@ fn fitting_right_suffix(right: &[StatusSeg<'_>], available: usize) -> (usize, us
     }
     (first, total)
 }
-
-
-
-
-
-
-
-
-
 
 pub fn paint_status(
     ui: &mut Ui<'_>,

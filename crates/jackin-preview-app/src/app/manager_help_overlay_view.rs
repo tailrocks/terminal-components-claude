@@ -1,6 +1,3 @@
-
-
-
 use termrock::author::PaintStyle;
 use termrock::{
     Chord, ColorLevel, HelpOverlayState, Hint, HintBar, HintKey, HintLayer, KeyCode, Part, Rect,
@@ -11,8 +8,6 @@ use crate::scenario::{Motion, Scenario};
 
 use super::manager_help;
 use super::{APP, App, Route};
-
-
 
 fn approved(app: &App, ui: &Ui<'_>, screen: Rect) -> bool {
     let theme = ui.theme_ref();
@@ -46,10 +41,7 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>, screen: Rect) {
         return;
     }
 
-
-
     app.paint_pinned_split(ui, screen, termrock::feedback::SplitMode::Saved, false);
-
 
     ui.paint_str(
         Rect::new(3, 2, 12, 1),
@@ -57,7 +49,6 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>, screen: Rect) {
         PaintStyle::new().fg(termrock::Color::Rgb(0xb3, 0xb3, 0xb3)),
     );
     manager_help::draw(ui, screen, &HelpOverlayState::default());
-
 
     let select = termrock::Color::Rgb(0x17, 0x3f, 0x1c);
     ui.paint_str(

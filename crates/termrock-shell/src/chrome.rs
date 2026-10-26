@@ -2,7 +2,6 @@ use ratatui_core::layout::Rect;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Regions {
-
     pub header: Rect,
 
     pub body: Rect,
@@ -12,7 +11,6 @@ pub struct Regions {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Chrome {
-
     pub header: u16,
 
     pub gap: u16,
@@ -29,7 +27,6 @@ impl Default for Chrome {
 }
 
 impl Chrome {
-
     pub const fn new() -> Self {
         Self {
             header: 1,

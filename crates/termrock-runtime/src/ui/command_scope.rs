@@ -6,7 +6,6 @@ use crate::response::StateFlags;
 use super::Ui;
 
 impl Ui<'_> {
-
     pub fn command_scope<C: Copy + 'static, R>(
         &mut self,
         owner: Id,

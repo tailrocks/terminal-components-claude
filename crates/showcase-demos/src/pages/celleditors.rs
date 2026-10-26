@@ -1,6 +1,3 @@
-
-
-
 use termrock::{Button, Cx, Id, Rect, Response, Select, SelectState, Ui};
 
 use super::{Page, PageUpdate, frame};

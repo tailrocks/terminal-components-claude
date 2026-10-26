@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use core::fmt;
 
 use crate::blocks::{MasterDetail, MasterDetailError, MasterDetailState};
@@ -25,18 +19,12 @@ use termrock_runtime::{CompositionSlots, ContentSlot, MAX_COMPOSITION_DEPTH, Mea
 pub mod adapters;
 pub use adapters::*;
 
-
-
-
-
-
 pub struct Leaf<M, D> {
     measure: M,
     draw: D,
 }
 
 impl<M, D> Leaf<M, D> {
-
     pub const fn new(measure: M, draw: D) -> Self {
         Self { measure, draw }
     }
@@ -60,11 +48,6 @@ where
         (self.draw)(ui, logical);
     }
 }
-
-
-
-
-
 
 pub struct Child<'a> {
     content: ChildContent<'a>,
@@ -115,13 +98,11 @@ impl fmt::Debug for Child<'_> {
 }
 
 impl Child<'_> {
-
     #[must_use]
     pub const fn min(mut self, width: u16, height: u16) -> Self {
         self.policy = self.policy.min(width, height);
         self
     }
-
 
     #[must_use]
     pub const fn max(mut self, width: Option<u16>, height: Option<u16>) -> Self {
@@ -129,14 +110,11 @@ impl Child<'_> {
         self
     }
 
-
     #[must_use]
     pub const fn flex(mut self, weight: u16) -> Self {
         self.policy = self.policy.flex(weight);
         self
     }
-
-
 
     pub fn try_measure(
         &self,
@@ -146,8 +124,6 @@ impl Child<'_> {
         self.validate_depth()?;
         Ok(self.measure_validated(ui, constraints))
     }
-
-
 
     pub fn try_draw(
         &self,
@@ -172,7 +148,6 @@ impl Child<'_> {
     }
 }
 
-
 pub fn button<'a, 'config>(component: &'a Button<'config>) -> Child<'a>
 where
     'config: 'a,
@@ -182,10 +157,6 @@ where
         policy: ChildPolicy::default(),
     }
 }
-
-
-
-
 
 pub fn panel<'a, 'config>(component: &'a Panel<'config>, body: Child<'a>) -> Child<'a>
 where
@@ -203,9 +174,6 @@ struct PanelLeaf<'a> {
     component: &'a Panel<'a>,
     body: Child<'a>,
 }
-
-
-
 
 pub fn master_detail<'a, 'config>(
     component: &'a MasterDetail<'config>,
@@ -285,7 +253,6 @@ impl CompositionLeaf for ButtonLeaf<'_, '_> {
     }
 }
 
-
 pub fn code_editor<'a, 'config>(
     component: &'a CodeEditor<'config>,
     state: &'a CodeEditorState,
@@ -316,7 +283,6 @@ impl CompositionLeaf for CodeEditorLeaf<'_, '_> {
     }
 }
 
-
 pub fn completing_code_editor<'a, 'config>(
     component: &'a CompletingCodeEditor<'config>,
     state: &'a CompletingCodeEditorState,
@@ -329,8 +295,6 @@ where
         policy: ChildPolicy::default(),
     }
 }
-
-
 
 pub fn props_list<'a, 'config>(
     component: &'a PropsList<'config>,
@@ -385,7 +349,6 @@ impl CompositionLeaf for CompletingCodeEditorLeaf<'_, '_> {
     }
 }
 
-
 pub fn tabs<'a, 'config, T, K, R>(
     component: &'a Tabs<'config, T, K, R>,
     state: &'a TabsState,
@@ -406,9 +369,6 @@ where
         policy: ChildPolicy::default(),
     }
 }
-
-
-
 
 pub fn select<'a, 'config, T, K, R>(
     component: &'a Select<'config, T, K, R>,
@@ -467,7 +427,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> CompositionLeaf for TabsLeaf<'_, '_, T, K, R> 
     }
 }
 
-
 pub fn steps<'a, 'config, T, K, R>(
     component: &'a Steps<'config, T, K, R>,
     state: &'a StepsState,
@@ -508,10 +467,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> CompositionLeaf for StepsLeaf<'_, '_, T, K, R>
     }
 }
 
-
-
-
-
 pub fn nav_list<'a, 'config, T, K, R>(
     component: &'a NavList<'config, T, K, R>,
     state: &'a NavListState,
@@ -532,9 +487,6 @@ where
         policy: ChildPolicy::default(),
     }
 }
-
-
-
 
 pub fn tree<'a, 'config, T, K, R>(
     component: &'a Tree<'config, T, K, R>,
@@ -600,7 +552,6 @@ enum Direction {
     Wrap,
 }
 
-
 #[derive(Debug)]
 pub struct Group<'a> {
     direction: Direction,
@@ -610,21 +561,17 @@ pub struct Group<'a> {
 }
 
 impl<'a> Group<'a> {
-
     pub fn row(children: impl IntoIterator<Item = Child<'a>>) -> Self {
         Self::new(Direction::Row, children)
     }
-
 
     pub fn column(children: impl IntoIterator<Item = Child<'a>>) -> Self {
         Self::new(Direction::Column, children)
     }
 
-
     pub fn wrap(children: impl IntoIterator<Item = Child<'a>>) -> Self {
         Self::new(Direction::Wrap, children)
     }
-
 
     #[must_use]
     pub fn into_child(self) -> Child<'a> {
@@ -634,13 +581,11 @@ impl<'a> Group<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn spec(mut self, spec: LayoutComposition) -> Self {
         self.spec = spec;
         self
     }
-
 
     pub fn show(&self, ui: &mut Ui<'_>) -> Result<(), CompositionError> {
         self.validate_depth()?;
@@ -652,8 +597,6 @@ impl<'a> Group<'a> {
             .draw_at(ui, logical)
             .expect("facade composition validates nested depth before drawing");
     }
-
-
 
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Result<Size, CompositionError> {
         self.validate_depth()?;
@@ -696,9 +639,6 @@ impl<'a> Group<'a> {
         let depth =
             1usize.saturating_add(children.iter().map(Child::nested_depth).max().unwrap_or(0));
         let children = if depth > MAX_COMPOSITION_DEPTH {
-
-
-
             drop(children);
             Vec::new()
         } else {

@@ -23,7 +23,6 @@ pub enum CrossAlign {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum OverflowPolicy {
-
     #[default]
     Clip,
 
@@ -751,7 +750,6 @@ fn gap_positions(
     extent: u16,
     align: MainAlign,
 ) -> Vec<u16> {
-
     let gaps = count.saturating_sub(1);
     if gaps == 0 || align != MainAlign::SpaceBetween {
         return vec![0; count];

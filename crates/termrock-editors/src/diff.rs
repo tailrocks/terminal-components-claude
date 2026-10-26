@@ -174,7 +174,6 @@ struct DiffLayout {
 }
 
 impl DiffLayout {
-
     fn ensure_with_policy(
         &mut self,
         source: Option<&dyn DiffSource>,
@@ -311,18 +310,11 @@ impl<'a> DiffView<'a> {
         self.id
     }
 
-
-
     #[must_use]
     pub const fn horizontal_pan(mut self, enabled: bool) -> Self {
         self.horizontal_pan = enabled;
         self
     }
-
-
-
-
-
 
     #[must_use]
     pub const fn responsive_review(mut self, enabled: bool) -> Self {
@@ -385,8 +377,6 @@ impl<'a> DiffView<'a> {
                 state.viewport.invalidate();
                 let _ = state.viewport.clear_selection();
             }
-
-
 
             layout.reset_pending = false;
         }
@@ -685,9 +675,6 @@ fn review_fits(source: &dyn DiffSource, width: u16) -> bool {
 }
 
 fn responsive_review_content_width(outer_width: u16) -> u16 {
-
-
-
     outer_width.saturating_sub(2)
 }
 

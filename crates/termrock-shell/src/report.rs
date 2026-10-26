@@ -4,7 +4,6 @@ use termrock_theme::{FgStep, Modifier, Role, StylePatch};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ReportRows {
-
     pub heading: u16,
 
     pub subheading: u16,
@@ -15,7 +14,6 @@ pub struct ReportRows {
 }
 
 impl Default for ReportRows {
-
     fn default() -> Self {
         Self {
             heading: 0,
@@ -28,7 +26,6 @@ impl Default for ReportRows {
 
 #[derive(Debug, Clone, Copy)]
 pub struct ReportContent<'a> {
-
     pub heading: &'a str,
 
     pub subheading: Option<&'a str>,
@@ -39,7 +36,6 @@ pub struct ReportContent<'a> {
 }
 
 impl<'a> ReportContent<'a> {
-
     pub const fn heading(heading: &'a str) -> Self {
         Self {
             heading,
@@ -85,7 +81,6 @@ impl Default for TextReport {
 }
 
 impl TextReport {
-
     pub const fn new() -> Self {
         Self {
             rows: ReportRows {

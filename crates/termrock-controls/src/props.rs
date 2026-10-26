@@ -257,11 +257,6 @@ pub struct PropsState {
     core: termrock_collections::collection::CollectionCore,
 }
 
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum PropsPresentation {
     #[default]
@@ -349,8 +344,6 @@ impl<'a> PropsList<'a> {
             ov: PartStyle::new(),
         }
     }
-
-
 
     #[must_use]
     pub const fn sheet(mut self) -> Self {
@@ -457,10 +450,6 @@ impl<'a> PropsList<'a> {
     }
 
     fn sheet_geometry(rows: &[PropsRow<'_>], width: u16) -> PropsGeometry {
-
-
-
-
         let label_area = width.saturating_sub(2);
         let full_label_column = Self::label_width(rows).saturating_add(2);
         let label_column = if rows.is_empty() {
@@ -657,18 +646,12 @@ impl<'a> PropsList<'a> {
             |_| true,
         );
 
-
-
-
         if let Some(key) = cursor_before
             && let Some(index) = rows.iter().position(|row| row.key == key)
             && index != index_before
         {
             st.core.set_cursor(index, key);
         } else if cursor_before.is_some_and(|key| !rows.iter().any(|row| row.key == key)) {
-
-
-
             st.core.invalidate();
             let _ = st.core.reconcile_with(
                 rows.len(),
@@ -1057,9 +1040,6 @@ impl<'a> PropsList<'a> {
         }
         .fit(c)
     }
-
-
-
 
     pub fn measure_rows(
         &self,

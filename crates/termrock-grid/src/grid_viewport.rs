@@ -1,46 +1,25 @@
-
-
-
-
-
-
-
-
-
 use ratatui_core::layout::Rect;
 
 use termrock_runtime::ui::Ui;
 use termrock_theme::{ColorLevel, Modifier, StylePatch};
 
-
-
-
-
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct GridViewportPolicy {
-
     pub header_rows: u16,
 
-
     pub filter_rows: u16,
-
-
 
     pub pending_rows: u16,
 
     pub status_rows: u16,
-
 
     pub status_inset: u16,
 
     pub right_reserve: u16,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct GridViewport {
-
     pub header: Rect,
 
     pub filter: Rect,
@@ -55,30 +34,18 @@ pub struct GridViewport {
 
     pub status: Rect,
 
-
     pub status_text: Rect,
 }
 
 impl GridViewport {
-
-
-
-
     pub fn has_grid_body(&self) -> bool {
         !self.grid.is_empty()
     }
-
 
     pub fn status_text_fits(&self, text_width: u16) -> bool {
         text_width <= self.status_text.width
     }
 }
-
-
-
-
-
-
 
 pub fn solve_grid_viewport(area: Rect, policy: &GridViewportPolicy) -> GridViewport {
     let header_rows = policy.header_rows;
@@ -170,14 +137,8 @@ pub fn solve_grid_viewport(area: Rect, policy: &GridViewportPolicy) -> GridViewp
     }
 }
 
-
-
-
-
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct GridContentChrome {
-
     pub gutter: u16,
 
     pub content_width: u16,
@@ -189,10 +150,8 @@ pub struct GridContentChrome {
     pub hidden_left: usize,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct GridBarPolicy {
-
     pub track: termrock_theme::Role,
 
     pub thumb: termrock_theme::Role,
@@ -201,30 +160,21 @@ pub struct GridBarPolicy {
 
     pub thumb_glyph: &'static str,
 
-
     pub cover_far: termrock_theme::Role,
-
 
     pub cover_near: termrock_theme::Role,
 
     pub cover_far_dim: bool,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct GridFocusPolicy {
-
     pub role: termrock_theme::Role,
 
     pub bold: bool,
 
     pub glyph: &'static str,
 }
-
-
-
-
-
 
 pub fn paint_grid_vertical_bar(
     ui: &mut Ui<'_>,
@@ -261,7 +211,6 @@ pub fn paint_grid_vertical_bar(
         return;
     }
 
-
     let x = area
         .x
         .saturating_add(chrome.gutter)
@@ -276,7 +225,6 @@ pub fn paint_grid_vertical_bar(
         let y = area.y.saturating_add(1).saturating_add(offset as u16);
         let from_end = track_len.saturating_sub(offset).saturating_sub(1);
         let from_start = origin > 0 && (offset == 0 || offset == 1);
-
 
         let depth = if track_len >= 12 {
             2
@@ -302,8 +250,6 @@ pub fn paint_grid_vertical_bar(
         } else if near {
             plain.patch(ui.paint_patch(&StylePatch::new().set_fg(policy.cover_near)))
         } else {
-
-
             if focused == Some(offset) {
                 plain.add_modifier(Modifier::BOLD)
             } else {
@@ -339,10 +285,6 @@ pub fn paint_grid_vertical_bar(
         );
     }
 }
-
-
-
-
 
 pub fn paint_grid_horizontal_bar(
     ui: &mut Ui<'_>,
@@ -403,11 +345,6 @@ pub fn paint_grid_horizontal_bar(
         thumb_style,
     );
 }
-
-
-
-
-
 
 pub fn paint_grid_focus_bar(
     ui: &mut Ui<'_>,

@@ -133,7 +133,6 @@ type HistorySeedRow = (
     HistorySource,
 );
 
-
 const HISTORY_SEED_ROWS: [HistorySeedRow; 15] = [
     (
         "SELECT plan, count(*) FROM\nsubscriptions GROUP BY plan",

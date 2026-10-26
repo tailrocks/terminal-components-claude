@@ -1,5 +1,3 @@
-
-
 mod line;
 mod master_detail;
 mod section;

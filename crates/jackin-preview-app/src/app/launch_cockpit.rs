@@ -1,6 +1,3 @@
-
-
-
 #![allow(clippy::indexing_slicing)]
 
 use termrock::author::{PaintStyle, PaintSurface};
@@ -20,8 +17,6 @@ const CREDENTIALS: &str = "credentials  5 accounts · Claude · Work (1Password)
 const CREDENTIAL_VALUE: &str = "quota readable · session choice";
 const SPINNER: &str = "⠋";
 
-
-
 pub(super) fn stage_rail_left(screen: Rect) -> Option<Rect> {
     let body = body_rect(screen);
     let rail_h = 11u16.min(body.height.saturating_sub(9));
@@ -33,8 +28,6 @@ pub(super) fn stage_rail_left(screen: Rect) -> Option<Rect> {
     let y = body.y.saturating_add(6);
     Some(Rect::new(rail_x, y, 1, rail_h))
 }
-
-
 
 pub(super) fn paint_open_footer(ui: &mut Ui<'_>, cancel: bool) {
     let screen = ui.full();
@@ -449,8 +442,6 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>) {
     };
     paint_footer(&mut buf, screen, hints);
     if app.cockpit_info_open || app.cancel_open {
-
-
         emphasize_footer(&mut buf, screen, app.cancel_open);
     }
     blit(ui, &buf, screen);
@@ -514,7 +505,6 @@ fn paint_rain(buf: &mut Buffer, body: Rect) {
         ),
         Rect::new(body.x, body.bottom().saturating_sub(3), body.width, 3),
     ];
-
 
     let theme = termrock::Theme::junie();
     crate::rain::paint_atmosphere(buf, body, &exclude, 40, true, false, &theme);
@@ -748,9 +738,6 @@ fn paint_rail(buf: &mut Buffer, rail: Rect, launch: &LaunchRun, failed: bool) {
         }
     }
 }
-
-
-
 
 fn fade_band(screen: Rect) -> Option<(u16, u16, u16)> {
     let body = body_rect(screen);

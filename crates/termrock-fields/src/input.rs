@@ -79,13 +79,8 @@ pub enum BlurPolicy {
     Keep,
 }
 
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum FocusSelect {
-
     CaretStart,
 
     #[default]
@@ -398,8 +393,6 @@ impl EditorDraft {
         }
     }
 
-
-
     pub(crate) fn pointer_point(&mut self, line: usize, col: usize) -> bool {
         let offset = self.offset_at(line, col);
         if self
@@ -665,7 +658,6 @@ impl TextInputState {
         matches!(self.phase, EditPhase::Editing)
     }
 
-
     pub fn take_edit_menu_request(&mut self) -> Option<EditMenuRequest> {
         self.edit_menu_request.take()
     }
@@ -786,7 +778,6 @@ impl TextInputState {
         self.phase = EditPhase::Editing;
     }
 
-
     pub fn place_cursor(&mut self, col: usize, visible_width: u16) -> bool {
         if !self.is_editing() {
             return false;
@@ -797,7 +788,6 @@ impl TextInputState {
         self.draft.scroll_into_view(visible_width);
         before != self.draft.cursor_offset()
     }
-
 
     pub fn select_pointer_range(
         &mut self,
@@ -815,11 +805,9 @@ impl TextInputState {
         Some(cursor)
     }
 
-
     pub fn backspace(&mut self) -> bool {
         self.is_editing() && self.apply(EditAction::Backspace).changed()
     }
-
 
     pub fn ensure_cursor_visible(&mut self, visible_width: u16) {
         if self.is_editing() {
@@ -1052,7 +1040,6 @@ impl<'a> TextInput<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn focus_select(mut self, policy: FocusSelect) -> Self {
         self.focus_select = policy;
@@ -1064,10 +1051,6 @@ impl<'a> TextInput<'a> {
         self.typing_policy = policy;
         self
     }
-
-
-
-
 
     #[must_use]
     pub const fn exclude_commands(mut self, commands: &'a [TextCmd]) -> Self {
@@ -1121,21 +1104,12 @@ impl<'a> TextInput<'a> {
         self
     }
 
-
-
-
     #[doc(hidden)]
     #[must_use]
     pub const fn style_target(mut self, family: Family, variant: Variant, part: Part) -> Self {
         self.style_target = Some((family, variant, part));
         self
     }
-
-
-
-
-
-
 
     #[doc(hidden)]
     #[must_use]
@@ -1144,18 +1118,11 @@ impl<'a> TextInput<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn auxiliary_style_target(mut self, family: Family, variant: Variant) -> Self {
         self.auxiliary_style_target = Some((family, variant));
         self
     }
-
-
-
-
-
 
     #[must_use]
     pub const fn embedded_cell(mut self) -> Self {
@@ -1182,11 +1149,6 @@ impl<'a> TextInput<'a> {
             Focusability::Focusable
         }
     }
-
-
-
-
-
 
     pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
         if !ui.is_inert() {
@@ -1241,11 +1203,6 @@ impl<'a> TextInput<'a> {
             leading,
         }
     }
-
-
-
-
-
 
     pub fn register_editor(&self, ui: &mut Ui<'_>, area: Rect, st: &TextInputState) {
         self.register_editor_area(ui, area, st);
@@ -1365,9 +1322,6 @@ impl<'a> TextInput<'a> {
                                 }
                                 FocusSelect::CaretEnd => {}
                                 FocusSelect::SelectAll => {
-
-
-
                                     st.select_all();
                                 }
                             }
@@ -1551,7 +1505,6 @@ impl<'a> TextInput<'a> {
         acc.finish(self.id)
     }
 
-
     pub fn edit_capabilities<T: TextTarget + ?Sized>(
         &self,
         st: &TextInputState,
@@ -1567,7 +1520,6 @@ impl<'a> TextInput<'a> {
             value.is_sensitive(),
         )
     }
-
 
     pub fn execute_edit_command<T: TextTarget + ?Sized>(
         &self,
@@ -1736,10 +1688,6 @@ impl<'a> TextInput<'a> {
                 );
                 return resolved;
             };
-
-
-
-
 
             let local_patch = ov.part_patch(part);
             let mut resolved = match local_patch {

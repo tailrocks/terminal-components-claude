@@ -929,7 +929,6 @@ fn paint_collections(ui: &mut Ui<'_>, card: Rect) {
     paint_grid(ui, grid);
 }
 
-
 const FULL_MIN_W: u16 = 60;
 const COLS_80_MIN_W: u16 = 59;
 

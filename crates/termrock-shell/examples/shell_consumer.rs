@@ -114,7 +114,6 @@ impl KeyHost for Workbench {
     }
 
     fn request_quit(&mut self) -> Response<()> {
-
         self.quit = true;
         Response::changed()
     }

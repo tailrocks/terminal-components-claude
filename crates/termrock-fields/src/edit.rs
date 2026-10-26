@@ -7,7 +7,6 @@ use crate::text::EditAction;
 use crate::ui::Cx;
 use termrock_runtime::layer::{FocusContinuationOutcome, LayerOpening};
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TextEditCommand {
     Cut,
@@ -16,17 +15,14 @@ pub enum TextEditCommand {
     SelectAll,
 }
 
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct EditCapabilities {
-
     pub editable: bool,
     pub can_cut: bool,
     pub can_copy: bool,
     pub can_paste: bool,
     pub can_select_all: bool,
 }
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct EditMenuRequest {
@@ -111,9 +107,6 @@ pub(crate) fn execute(
         _ => false,
     }
 }
-
-
-
 
 pub(crate) fn retain_focus_continuation(
     cx: &mut Cx<'_>,

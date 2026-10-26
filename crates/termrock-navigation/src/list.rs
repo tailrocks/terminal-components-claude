@@ -49,12 +49,9 @@ pub enum ListCmd {
     ToggleAll,
 }
 
-
-
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ListSelectionCmd {
-
     SelectAll,
 }
 
@@ -229,8 +226,6 @@ const fn selection_binding(
         visible,
     }
 }
-
-
 
 const DEFAULT_SELECTION: [Binding<ListSelectionCmd>; 2] = [
     selection_binding(
@@ -422,13 +417,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self.id
     }
 
-
-
-
-
-
-
-
     pub fn update_focus_out(&self, cx: &mut Cx<'_>, state: &mut ListState) -> Option<Response<()>> {
         if cx.update_cause() != UpdateCause::Settle {
             return None;
@@ -480,14 +468,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self.whole_rows = enabled;
         self
     }
-
-
-
-
-
-
-
-
 
     #[must_use]
     pub const fn fade_edges(mut self, enabled: bool) -> Self {
@@ -613,13 +593,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
-
-
-
-
-
-
-
     #[must_use]
     pub const fn selection_bindings(
         mut self,
@@ -705,13 +678,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             SelectMode::None => &NONE,
         }
     }
-
-
-
-
-
-
-
 
     pub const fn selection_table(&self) -> &'static [Binding<ListSelectionCmd>] {
         match self.select_mode {
@@ -820,8 +786,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             acc.consumed();
             return;
         }
-
-
 
         let checked = st.core.checked_mut();
         checked.all();

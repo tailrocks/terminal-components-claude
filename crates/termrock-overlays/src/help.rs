@@ -38,7 +38,6 @@ impl<'a> HelpSection<'a> {
         }
     }
 
-
     pub const fn plain(title: &'a str, rows: &'a [(&'a str, &'a str)]) -> Self {
         HelpSection {
             title,
@@ -269,7 +268,6 @@ impl<'a> HelpOverlay<'a> {
     }
 
     pub fn measured_size(&self, cx: &Cx<'_>) -> LayerSize {
-
         let view = cx.viewport();
         let w = view
             .width

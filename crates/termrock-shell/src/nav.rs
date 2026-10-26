@@ -6,7 +6,6 @@ use termrock_core::id::{Id, ItemKey};
 pub struct PageKey(pub u64);
 
 impl PageKey {
-
     pub const ROOT: Self = Self(0);
 
     pub fn of(value: impl hash::Hash) -> Self {
@@ -18,7 +17,6 @@ impl PageKey {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Nav<R> {
-
     Push(R),
 
     Replace(R),
@@ -46,7 +44,6 @@ pub struct Router<P> {
 }
 
 impl<P> Router<P> {
-
     pub fn new(root: P) -> Self {
         Self::with_tabs(vec![root])
     }
@@ -268,14 +265,12 @@ impl<P> Router<P> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Crumb {
-
     pub id: Id,
 
     pub segments: Vec<String>,
 }
 
 impl Crumb {
-
     pub fn new(id: Id, segments: Vec<String>) -> Self {
         Self { id, segments }
     }

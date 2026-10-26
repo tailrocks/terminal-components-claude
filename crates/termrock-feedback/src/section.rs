@@ -5,10 +5,6 @@ use crate::text::width;
 use crate::theme::{FgStep, PaintStyle, Role, StylePatch};
 use crate::ui::Ui;
 
-
-
-
-
 #[derive(Clone, Copy, Debug)]
 pub struct TextSection<'a> {
     title: &'a str,
@@ -79,10 +75,6 @@ impl<'a> TextSection<'a> {
         self.title_style = Some(style);
         self
     }
-
-
-
-
 
     pub fn measure(&self, _ui: &Ui<'_>, constraints: Constraints) -> Size {
         let text_width = width(self.title)

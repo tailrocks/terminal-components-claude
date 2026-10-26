@@ -1,13 +1,11 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClientPlatform {
-
     MacOs,
 
     Other,
 }
 
 impl ClientPlatform {
-
     pub const OVERRIDE_ENV: &'static str = "TERMROCK_CLIENT_PLATFORM";
 
     pub const MACOS_TERM_PROGRAMS: [&'static str; 2] = ["Apple_Terminal", "iTerm.app"];

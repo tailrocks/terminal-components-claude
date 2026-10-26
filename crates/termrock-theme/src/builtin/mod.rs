@@ -460,14 +460,12 @@ fn scrollbar(m: &mut PartMap<PartRecipe>) {
     part(
         m,
         Part::TRACK,
-
         p().set_fg(Role::Custom(Color::from_u32(0x0047_4747)))
             .set_glyph(GlyphRole::ScrollTrack),
     );
     part(
         m,
         Part::THUMB,
-
         p().set_fg(Role::Custom(Color::from_u32(0x0080_8080)))
             .set_glyph(GlyphRole::ScrollThumb),
     )

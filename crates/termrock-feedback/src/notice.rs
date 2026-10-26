@@ -18,10 +18,6 @@ enum NoticeKindValue {
     Success,
 }
 
-
-
-
-
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 pub struct NoticeKind(NoticeKindValue);
@@ -35,7 +31,6 @@ impl PartialEq for NoticeKind {
 impl Eq for NoticeKind {}
 
 impl NoticeKind {
-
     pub const ERROR: Self = Self(NoticeKindValue::Error);
 
     pub const WARNING: Self = Self(NoticeKindValue::Warning);
@@ -51,21 +46,15 @@ impl Default for NoticeKind {
     }
 }
 
-
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NoticeSource {
-
     Message,
 
     Detail,
 
     Hint,
 }
-
-
-
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct NoticeCut<'a> {
@@ -90,21 +79,17 @@ impl<'a> NoticeCut<'a> {
         }
     }
 
-
     pub const fn source(&self) -> NoticeSource {
         self.source
     }
-
 
     pub const fn logical_row(&self) -> u16 {
         self.logical_row
     }
 
-
     pub const fn inset(&self) -> u16 {
         self.inset
     }
-
 
     pub const fn original_text(&self) -> &'a str {
         self.original_text
@@ -131,11 +116,6 @@ struct WrappedLine {
     cut: bool,
 }
 
-
-
-
-
-
 #[derive(Clone, Copy, Debug)]
 pub struct Notice<'a> {
     kind: NoticeKind,
@@ -154,7 +134,6 @@ pub struct Notice<'a> {
 }
 
 impl<'a> Notice<'a> {
-
     #[must_use]
     pub const fn new(message: &'a str) -> Self {
         Self {
@@ -174,30 +153,25 @@ impl<'a> Notice<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn error(message: &'a str) -> Self {
         Self::new(message)
     }
-
 
     #[must_use]
     pub const fn warning(message: &'a str) -> Self {
         Self::new(message).kind(NoticeKind::WARNING)
     }
 
-
     #[must_use]
     pub const fn info(message: &'a str) -> Self {
         Self::new(message).kind(NoticeKind::INFO)
     }
 
-
     #[must_use]
     pub const fn success(message: &'a str) -> Self {
         Self::new(message).kind(NoticeKind::SUCCESS)
     }
-
 
     #[must_use]
     pub const fn kind(mut self, kind: NoticeKind) -> Self {
@@ -205,13 +179,11 @@ impl<'a> Notice<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn detail(mut self, detail: &'a str) -> Self {
         self.detail = Some(detail);
         self
     }
-
 
     #[must_use]
     pub const fn hint(mut self, hint: &'a str) -> Self {
@@ -219,13 +191,11 @@ impl<'a> Notice<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn message_lines(mut self, lines: usize) -> Self {
         self.message_lines = if lines == 0 { 1 } else { lines };
         self
     }
-
 
     #[must_use]
     pub const fn max_lines(mut self, lines: usize) -> Self {
@@ -233,13 +203,11 @@ impl<'a> Notice<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn detail_tone(mut self, tone: FgStep) -> Self {
         self.detail_tone = tone;
         self
     }
-
 
     #[must_use]
     pub const fn mark_cut(mut self, mark: bool) -> Self {
@@ -247,13 +215,11 @@ impl<'a> Notice<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn marker(mut self, marker: &'a str) -> Self {
         self.marker = Some(marker);
         self
     }
-
 
     #[must_use]
     pub const fn marker_patch(mut self, patch: StylePatch) -> Self {
@@ -261,13 +227,11 @@ impl<'a> Notice<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn message_patch(mut self, patch: StylePatch) -> Self {
         self.message_patch = patch;
         self
     }
-
 
     #[must_use]
     pub const fn detail_patch(mut self, patch: StylePatch) -> Self {
@@ -275,32 +239,15 @@ impl<'a> Notice<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn hint_patch(mut self, patch: StylePatch) -> Self {
         self.hint_patch = patch;
         self
     }
 
-
-
-
-
     pub fn height_for_width(&self, ui: &Ui<'_>, width: u16) -> u16 {
         self.walk_rows(width, self.marker_inset(ui), |_| {})
     }
-
-
-
-
-
-
-
-
-
-
-
-
 
     pub fn visit_cuts(
         &self,
@@ -326,7 +273,6 @@ impl<'a> Notice<'a> {
         );
     }
 
-
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
         let natural_width = self.natural_width(ui).min(constraints.max.0);
         let measured_width = if constraints.tight_w {
@@ -337,7 +283,6 @@ impl<'a> Notice<'a> {
         let measured_height = self.height_for_width(ui, measured_width);
         Size::exact(natural_width, measured_height).fit(constraints)
     }
-
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         if area.is_empty() {
@@ -369,12 +314,6 @@ impl<'a> Notice<'a> {
             |index, row| self.paint_row(ui, area, index, row, marker, styles),
         );
     }
-
-
-
-
-
-
 
     pub fn draw_window(&self, ui: &mut Ui<'_>, window: VerticalWindow) {
         let area = window.visible_body();
@@ -483,9 +422,6 @@ impl<'a> Notice<'a> {
     ) -> u16 {
         self.walk_rows_with_capture(available_width, message_inset, true, emit)
     }
-
-
-
 
     fn walk_visible_rows(
         &self,

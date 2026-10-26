@@ -1,31 +1,14 @@
-
-
-
-
-
-
-
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Modifier, Style};
 use termrock_runtime::Ui;
 use termrock_text::width;
 use termrock_theme::{FgStep, Theme};
 
-
 pub struct Tab<'a> {
-
     pub label: &'a str,
 
     pub active: bool,
 }
-
-
-
-
-
-
-
 
 pub fn paint_tabs(ui: &mut Ui<'_>, area: Rect, tabs: &[Tab<'_>], theme: &Theme) -> u16 {
     if area.is_empty() {

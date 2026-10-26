@@ -154,8 +154,6 @@ impl Owners {
         ]
     }
 
-
-
     fn focus_pairs(self, next: Self) -> [(Id, Id); 6] {
         [
             (self.tree, next.tree),
@@ -179,7 +177,6 @@ struct Areas {
     tree: Rect,
     details: Rect,
 }
-
 
 pub(crate) struct State {
     controller: DiskScanController,
@@ -331,7 +328,6 @@ impl State {
         self.refresh_projection_at(simulation_tick(now_ms))
     }
 
-
     pub(crate) fn leave(&mut self, world: &World) {
         if self.projection == EXHAUSTED_PROJECTION {
             if let Some(binding) = self.binding.as_ref()
@@ -373,7 +369,6 @@ impl State {
         let _ = self.advance_projection();
         self.tree.invalidate();
     }
-
 
     pub(crate) fn cancel_after_route_change(&mut self, world: &World) {
         if self.projection == EXHAUSTED_PROJECTION {
@@ -662,8 +657,6 @@ impl State {
                     settle_owner(cx, owner);
                 }
 
-
-
                 owners
                     .all()
                     .into_iter()
@@ -717,8 +710,6 @@ impl State {
     pub(crate) fn tree_owner(&self) -> Option<Id> {
         self.owners().map(|owners| owners.tree)
     }
-
-
 
     fn refresh_projection_at(&mut self, tick: u64) -> Result<(), String> {
         self.refresh_projection_with_sort(tick, self.sort)
@@ -890,32 +881,6 @@ impl State {
             None => "Not started",
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
 
 pub(crate) fn map_cwd(cwd: &str) -> Result<String, String> {
@@ -1152,9 +1117,6 @@ fn areas(body: Rect, sort: SortBy) -> Areas {
         details,
     }
 }
-
-
-
 
 fn draw_witness(cx: &Cx<'_>, owners: Owners, expected: Areas) -> bool {
     [

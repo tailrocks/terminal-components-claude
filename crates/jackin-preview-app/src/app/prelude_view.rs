@@ -1,5 +1,3 @@
-
-
 use termrock::author::PaintStyle;
 use termrock::{Color, Modifier, Position, Rect, Style, Ui};
 

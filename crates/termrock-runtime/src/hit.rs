@@ -33,7 +33,6 @@ pub enum RegionKind {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Bar {
-
     pub id: Id,
 
     pub owner: Id,
@@ -45,7 +44,6 @@ pub struct Bar {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ReleaseFrom {
-
     Press(Id),
 
     Secondary,
@@ -62,7 +60,6 @@ pub struct Hit {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Region {
-
     pub id: Id,
     pub owner: Id,
     pub part: PartRef,

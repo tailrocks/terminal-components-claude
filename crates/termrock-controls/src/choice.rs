@@ -31,24 +31,17 @@ pub enum RadioGroupAction {
     Chose(ItemKey),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum RadioNavigation {
-
     #[default]
     Immediate,
 
     Deferred,
 }
 
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[non_exhaustive]
 pub enum RadioKeyPolicy {
-
     #[default]
     Default,
 
@@ -59,11 +52,9 @@ pub enum RadioKeyPolicy {
     NoHomeEnd,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[non_exhaustive]
 pub enum CheckboxState {
-
     #[default]
     Unchecked,
 
@@ -148,8 +139,6 @@ const RADIO: &[Binding<ChoiceCmd>] = &[
 ];
 
 const fn action_without_default_chord(cmd: ChoiceCmd, label: &'static str) -> Binding<ChoiceCmd> {
-
-
     Binding {
         action: ActionKey::custom(label),
         chord: None,
@@ -404,7 +393,6 @@ impl<'a> Checkbox<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn state(mut self, state: CheckboxState) -> Self {
         match state {
@@ -468,10 +456,6 @@ impl<'a> Checkbox<'a> {
         }
     }
 
-
-
-
-
     pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
         if !ui.is_inert() {
             ui.register_focus_only(self.id, self.form_focusability(inherited_disabled));
@@ -515,12 +499,9 @@ impl<'a> Checkbox<'a> {
         acc.finish(self.id)
     }
 
-
     pub fn update(&self, cx: &mut Cx<'_>, value: &mut bool) -> Response<Activated> {
         self.update_with(cx, || *value = !*value)
     }
-
-
 
     pub fn update_state(&self, cx: &mut Cx<'_>, value: &mut CheckboxState) -> Response<Activated> {
         self.update_with(cx, || *value = (*value).after_activation())
@@ -535,7 +516,6 @@ impl<'a> Checkbox<'a> {
         self.with_inherited_disabled(inherited_disabled)
             .update(cx, value)
     }
-
 
     pub fn update_state_in_form(
         &self,
@@ -621,7 +601,6 @@ impl<'a> Checkbox<'a> {
             .checked(value)
             .draw(ui, area)
     }
-
 
     pub fn draw_state_in_form(
         &self,
@@ -756,10 +735,6 @@ impl<'a> Toggle<'a> {
             Focusability::Focusable
         }
     }
-
-
-
-
 
     pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
         if !ui.is_inert() {
@@ -1041,8 +1016,6 @@ impl<'a> RadioGroup<'a, &'a str, ByIndex, DefaultRow> {
             .draw(ui, area, st, items)
     }
 
-
-
     #[allow(clippy::too_many_arguments)]
     pub fn draw_in_form_window(
         &self,
@@ -1057,10 +1030,6 @@ impl<'a> RadioGroup<'a, &'a str, ByIndex, DefaultRow> {
         self.with_form_value(value, inherited.disabled)
             .draw_window(ui, area, st, items, first_row)
     }
-
-
-
-
 
     pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
         if !ui.is_inert() {
@@ -1119,7 +1088,6 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
         self.navigation = policy;
         self
     }
-
 
     #[must_use]
     pub const fn key_policy(mut self, policy: RadioKeyPolicy) -> Self {
@@ -1457,8 +1425,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &RadioGroupState, items: &[T]) -> Rect {
         self.draw_window(ui, area, st, items, 0)
     }
-
-
 
     pub fn draw_window(
         &self,

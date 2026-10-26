@@ -112,8 +112,6 @@ impl fmt::Debug for HistoryDetailController {
 }
 
 impl HistoryDetailController {
-
-
     pub(super) fn is_open(&self) -> bool {
         self.request.is_some() && self.opening.is_some()
     }

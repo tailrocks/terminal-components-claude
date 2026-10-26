@@ -192,7 +192,6 @@ fn copy_area(inner: Rect, list_y: u16) -> Option<Rect> {
     let preferred_y = list_y.saturating_add(11);
     let compact_y = list_y.saturating_add(5);
 
-
     let y = if preferred_y >= inner.y && preferred_y < inner.bottom() {
         preferred_y
     } else if compact_y >= inner.y && compact_y < inner.bottom() {
@@ -778,8 +777,6 @@ fn displayed_entry(displayed: &[HistoryEntry], key: ItemKey) -> Option<&HistoryE
     }
     found
 }
-
-
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum LifecycleBucket {

@@ -95,7 +95,6 @@ pub(crate) const fn tokens() -> ColorTokens {
         tag_ink: TEXT_MUTED,
 
         syntax: SyntaxTokens {
-
             keyword: BLUE_INFO,
             ident: WHITE,
             string: SYNTAX_STRING,

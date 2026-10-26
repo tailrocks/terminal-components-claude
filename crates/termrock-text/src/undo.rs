@@ -8,7 +8,6 @@ struct Snap {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EditKind {
-
     #[default]
     Typing,
 
@@ -25,7 +24,6 @@ pub struct UndoStack {
 }
 
 impl UndoStack {
-
     pub const LIMIT: usize = 200;
 
     pub fn new() -> Self {

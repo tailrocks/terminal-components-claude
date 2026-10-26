@@ -255,8 +255,6 @@ pub struct App {
     quit: bool,
 }
 
-
-
 #[derive(Clone)]
 struct ActivityThemeSource {
     theme: termrock::Theme,
@@ -266,9 +264,6 @@ struct ActivityThemeSource {
 }
 
 impl ActivityThemeSource {
-
-
-
     fn projection(&self, requested: termrock::ColorLevel) -> Option<&termrock::Theme> {
         self.projections
             .iter()
@@ -324,8 +319,6 @@ fn brand() -> Brand<'static> {
     Brand::new(BRAND, "holla❯").clickable(true)
 }
 
-
-
 fn rest_tag_menu(world: &crate::sim::World) -> bool {
     use crate::sim::catalogue::{
         parity_browser_tag_frame, parity_cargo_tag_frame, parity_files_tag_frame,
@@ -338,8 +331,6 @@ fn rest_tag_menu(world: &crate::sim::World) -> bool {
         || parity_browser_tag_frame(world)
         || parity_history_tag_frame(world)
 }
-
-
 
 fn paint_rest_menu_titles(ui: &mut Ui<'_>, menu_x: u16, y: u16) {
     let plain = ui.paint_patch(
@@ -365,10 +356,8 @@ fn paint_rest_menu_titles(ui: &mut Ui<'_>, menu_x: u16, y: u16) {
     }
 }
 
-
 const MENU_CHROME_EDGE: u16 = 2;
 const MENU_SEGMENT_GAP: u16 = 2;
-
 
 const STATUS_EDGE: u16 = 1;
 const STATUS_GAP: u16 = 3;
@@ -408,8 +397,6 @@ const PARITY_HINT_PARTS: &[(Part, StylePatch)] = &[
             .set_bg(Role::Custom(PARITY_HINT_BG)),
     ),
 ];
-
-
 
 const ACTIVITIES_HINT_PARTS: [(Part, StylePatch); 5] = [
     (
@@ -495,17 +482,13 @@ fn paint_size_label(ui: &mut Ui<'_>, area: Rect) -> u16 {
     size_x
 }
 
-
 fn parity_history_tag_plate(world: &World, width: u16, _height: u16) -> bool {
     crate::sim::catalogue::parity_history_tag_frame(world) && (80..160).contains(&width)
 }
 
-
 fn parity_files_tag_plate(world: &World, width: u16, _height: u16) -> bool {
     crate::sim::catalogue::parity_files_tag_frame(world) && (80..160).contains(&width)
 }
-
-
 
 fn parity_browser_tag_plate(world: &World, width: u16, _height: u16) -> bool {
     crate::sim::catalogue::parity_browser_tag_frame(world) && (80..160).contains(&width)
@@ -524,12 +507,9 @@ fn parity_git_batch_tag_plate(world: &World, width: u16, _height: u16) -> bool {
 }
 
 fn parity_task_sources_tag_plate(world: &World, width: u16, _height: u16) -> bool {
-
-
     crate::sim::catalogue::parity_task_sources_tag_frame(world)
         && layout::Band::of(width).is_narrow()
 }
-
 
 fn draw_parity_browser_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -557,7 +537,6 @@ fn draw_parity_browser_status(ui: &mut Ui<'_>, area: Rect) {
         .draw(ui, area);
 }
 
-
 fn draw_parity_files_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -584,10 +563,6 @@ fn draw_parity_files_status(ui: &mut Ui<'_>, area: Rect) {
         .draw(ui, area);
 }
 
-
-
-
-
 fn paint_parity_git_current_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -605,7 +580,6 @@ fn paint_parity_git_current_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = x;
     let _ = paint_size_label(ui, area);
 }
-
 
 fn paint_parity_cargo_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -631,7 +605,6 @@ fn paint_parity_cargo_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-
 fn paint_parity_task_sources_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -648,7 +621,6 @@ fn paint_parity_task_sources_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-
 fn paint_parity_git_batch_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -664,10 +636,6 @@ fn paint_parity_git_batch_status(ui: &mut Ui<'_>, area: Rect) {
     );
     let _ = paint_size_label(ui, area);
 }
-
-
-
-
 
 fn paint_parity_history_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -692,7 +660,6 @@ fn paint_parity_history_status(ui: &mut Ui<'_>, area: Rect) {
     );
     let _ = paint_size_label(ui, area);
 }
-
 
 fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -723,7 +690,6 @@ fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_status_text(ui, area, x, mark, STATUS_AMBER, false);
 }
 
-
 fn paint_remote_host_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -738,9 +704,6 @@ fn paint_remote_host_status(ui: &mut Ui<'_>, area: Rect) {
     }
     let _ = paint_size_label(ui, area);
 }
-
-
-
 
 fn paint_hard_cases_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -792,7 +755,6 @@ fn paint_hard_cases_status(ui: &mut Ui<'_>, area: Rect) {
     paint_status_text(ui, area, mark_x, "…", STATUS_GREY, false);
 }
 
-
 fn paint_docker_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -808,7 +770,6 @@ fn paint_docker_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
     );
     let _ = paint_size_label(ui, area);
 }
-
 
 fn paint_disk_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -847,10 +808,6 @@ fn paint_disk_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
     x = paint_status_text(ui, area, x, "─", Color::Rgb(0x3a, 0x3a, 0x3a), false).saturating_add(1);
     let _ = paint_status_text(ui, area, x, mark, STATUS_AMBER, false);
 }
-
-
-
-
 
 fn paint_disk_cleanup_footer(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -930,7 +887,6 @@ fn paint_disk_cleanup_footer(ui: &mut Ui<'_>, area: Rect) {
     }
 }
 
-
 fn disk_hint_cost(hints: &[(&str, &str)], keep: usize) -> u32 {
     let mut cost = 0u32;
     for (key, label) in hints.iter().take(keep) {
@@ -947,7 +903,6 @@ fn disk_hint_cost(hints: &[(&str, &str)], keep: usize) -> u32 {
     cost
 }
 
-
 fn paint_monorepo_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -963,7 +918,6 @@ fn paint_monorepo_status(ui: &mut Ui<'_>, area: Rect) {
     }
     let _ = paint_size_label(ui, area);
 }
-
 
 fn paint_activities_multi_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -1002,7 +956,6 @@ fn launch_failure_activity_open(world: &World, ui: &Ui<'_>) -> bool {
     crate::sim::catalogue::launch_failure_activity_frame(world, full.width)
 }
 
-
 fn paint_launch_failure_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1036,7 +989,6 @@ fn paint_launch_failure_status(ui: &mut Ui<'_>, area: Rect) {
         paint_status_text(ui, area, cx, center, STATUS_DANGER, false);
     }
 }
-
 
 fn paint_launch_failure_footer(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -1096,7 +1048,6 @@ fn paint_launch_failure_footer(ui: &mut Ui<'_>, area: Rect) {
         danger,
     );
 }
-
 
 fn paint_monorepo_child_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -1159,8 +1110,6 @@ fn docker_cleanup_hints() -> HintLayer {
     }
 }
 
-
-
 fn docker_cleanup_100x30_hints() -> HintLayer {
     HintLayer {
         hints: vec![
@@ -1175,8 +1124,6 @@ fn docker_cleanup_100x30_hints() -> HintLayer {
         ..HintLayer::empty()
     }
 }
-
-
 
 fn docker_cleanup_80x24_hints() -> HintLayer {
     HintLayer {
@@ -1217,8 +1164,6 @@ fn tag_hints(confirm: &'static str, status: Option<&'static str>) -> HintLayer {
 }
 
 fn menu_project(world: &World) -> String {
-
-
     match world.scenario {
         Scenario::ParityDiscovery => "probe · Rust project".to_owned(),
         Scenario::ParityHistory => "holla · Rust project".to_owned(),
@@ -1304,17 +1249,6 @@ fn gate_dialog() -> Dialog<'static> {
 }
 
 impl App {
-
-
-
-
-
-
-
-
-
-
-
     #[must_use]
     pub fn with_source_theme(mut self, source_theme: termrock::Theme) -> Self {
         let projections = [
@@ -1362,9 +1296,6 @@ impl App {
         self
     }
 
-
-
-
     #[must_use]
     pub fn with_files_snapshot(mut self, snapshot: crate::sim::FilesSnapshot) -> Self {
         self.files = files::State::new(snapshot, &self.world.cwd);
@@ -1379,10 +1310,6 @@ impl App {
         self.world.now_ms()
     }
 
-
-
-
-
     pub fn for_scenario_without_history(scenario: Scenario, motion: Motion, frame: u64) -> Self {
         let mut app = Self::for_scenario(scenario, motion, frame);
         app.home.history = false;
@@ -1392,8 +1319,6 @@ impl App {
     pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64) -> Self {
         Self::from_fixture_world(fixtures::world_for(scenario), motion, frame)
     }
-
-
 
     pub fn for_nextest_args_fixture(motion: Motion, frame: u64) -> Self {
         let mut world = crate::sim::fixtures::nextest_args_world();
@@ -2136,11 +2061,7 @@ impl App {
                 (current && (focus == activity::output_id(activity_id) || focus == MENU))
                     .then_some(focus)
             }
-            Route::Files => {
-
-                Some(files::LIST)
-            }
-
+            Route::Files => Some(files::LIST),
 
             Route::Disk | Route::Cleanup | Route::Review | Route::Snapshot => {
                 location.focus.filter(|focus| *focus == MENU)
@@ -2748,7 +2669,6 @@ impl App {
         }
         let source = &provenance.theme;
 
-
         if source.capability_palettes.is_some() {
             return None;
         }
@@ -2766,10 +2686,6 @@ impl App {
         if projected_faint != projected_bg {
             return None;
         }
-
-
-
-
 
         [
             current.color.on_surface_inverse,
@@ -2805,8 +2721,6 @@ impl App {
         if source_owns_foreground {
             let mut parts = ACTIVITIES_HINT_PARTS;
             if let Some((_, overflow_patch)) = parts.last_mut() {
-
-
                 *overflow_patch = StylePatch::new().set_bg(Role::Custom(PARITY_HINT_BG));
             }
             HintBar::new(FOOTER, layer)
@@ -2848,7 +2762,6 @@ impl App {
             let narrow = layout::Band::of(ui.full().width).is_narrow();
             let mid = layout::Band::of(ui.full().width).is_mid();
             if self.home.history {
-
                 Some((
                     "Trust…",
                     if narrow || mid {
@@ -2858,7 +2771,6 @@ impl App {
                     },
                 ))
             } else if narrow || mid {
-
                 Some(("Open", None))
             } else {
                 Some(("Open", Some("Inspect 1…")))
@@ -2897,7 +2809,6 @@ impl App {
         } else if parity_cargo_tag_plate(&self.world, ui.full().width, ui.full().height) {
             Some(("Run", None))
         } else if parity_git_batch_tag_plate(&self.world, ui.full().width, ui.full().height) {
-
             let wide = (120..160).contains(&ui.full().width);
             Some(("Open", wide.then_some("Status ac…")))
         } else if parity_task_sources_tag_plate(&self.world, ui.full().width, ui.full().height) {
@@ -2916,9 +2827,6 @@ impl App {
                 "Open"
             };
             let mut layer = tag_hints(confirm, Some("api tests finished · exit 0"));
-
-
-
 
             if self.home.history
                 && let Some(scope) = layer.hints.iter_mut().find(|hint| hint.label == "Scope")
@@ -2965,7 +2873,6 @@ impl App {
             && !self.menu.is_open()
         {
             let layer = tag_hints(confirm, status);
-
 
             let band = layout::Band::of(ui.full().width);
             if band.is_narrow() || band.is_mid() {
@@ -3111,7 +3018,6 @@ impl App {
         self.status = Some(message);
         self.status_until_ms = Some(self.world.now_ms().saturating_add(5_000));
     }
-
 
     fn advance_world(&mut self, interval_ms: i64) {
         let _ = self.world.tick(interval_ms);
@@ -3595,7 +3501,6 @@ fn shell_areas(area: Rect) -> (Rect, Rect) {
     (body, home_body(body))
 }
 
-
 fn home_body(body: Rect) -> Rect {
     Rect::new(
         body.x,
@@ -3604,7 +3509,6 @@ fn home_body(body: Rect) -> Rect {
         body.height.saturating_sub(3),
     )
 }
-
 
 fn paint_here_band(ui: &mut Ui<'_>, area: Rect) {
     let width = area.width.saturating_sub(2);
@@ -3645,8 +3549,6 @@ fn paint_here_band(ui: &mut Ui<'_>, area: Rect) {
         );
     }
 }
-
-
 
 fn paint_activities_multi_80x24_band(ui: &mut Ui<'_>, area: Rect) {
     let width = area.width.saturating_sub(2);
@@ -3710,7 +3612,6 @@ fn paint_activities_multi_80x24_band(ui: &mut Ui<'_>, area: Rect) {
     ui.paint_str(Rect::new(marker, y, 4, 1), "  2›", label);
     ui.paint_str(Rect::new(marker.saturating_add(5), y, 2, 1), "+2", label);
 }
-
 
 fn paint_activities_multi_chips(ui: &mut Ui<'_>, area: Rect) {
     let width = area.width.saturating_sub(2);

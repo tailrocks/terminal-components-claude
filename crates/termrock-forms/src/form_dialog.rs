@@ -1,5 +1,3 @@
-
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -18,26 +16,21 @@ use crate::theme::DesignTokens;
 use termrock_runtime::FrameRead;
 use termrock_runtime::author::LayerSlotAuthor;
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum FormDialogSubmitPolicy {
-
     #[default]
     CloseOnSubmit,
 
     KeepOpen,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum FormDialogLayoutPolicy {
-
     #[default]
     Intrinsic,
 
     FixedBodyRows(u16),
 }
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FormDialogAction {
@@ -48,10 +41,6 @@ pub enum FormDialogAction {
     Invalid(Id),
     Cancelled,
 }
-
-
-
-
 
 #[derive(Default)]
 pub struct FormDialogState {
@@ -98,9 +87,6 @@ impl FormDialogState {
         &self.dialog
     }
 }
-
-
-
 
 pub struct FormDialog<'a> {
     id: Id,
@@ -203,10 +189,6 @@ impl<'a> FormDialog<'a> {
         self
     }
 
-
-
-
-
     #[must_use]
     pub const fn enter_policy(mut self, policy: EnterPolicy) -> Self {
         self.enter_policy = policy;
@@ -269,7 +251,6 @@ impl<'a> FormDialog<'a> {
         match self.layout {
             FormDialogLayoutPolicy::FixedBodyRows(rows) => rows,
             FormDialogLayoutPolicy::Intrinsic => {
-
                 let body_width = self.requested_width(design, viewport).saturating_sub(6);
                 self.form()
                     .measure_with_data_design(
@@ -300,7 +281,6 @@ impl<'a> FormDialog<'a> {
             })
     }
 
-
     pub fn layer<D: FormData + ?Sized>(&self, cx: &Cx<'_>, data: &D) -> LayerSpec {
         let rows = self.body_rows(cx.design(), cx.viewport(), data);
         let mut spec = self.dialog(rows).layer(cx).dismiss(self.dismiss);
@@ -309,8 +289,6 @@ impl<'a> FormDialog<'a> {
         }
         spec
     }
-
-
 
     pub fn update<D: FormData + ?Sized>(
         &self,
@@ -321,9 +299,7 @@ impl<'a> FormDialog<'a> {
         let rows = self.body_rows(cx.design(), cx.viewport(), data);
         let dialog = self.dialog(rows);
 
-
         let form_response = self.form().update(cx, &mut state.form, data);
-
 
         let dialog_response = if matches!(form_response.action_ref(), Some(FormAction::Chose(_))) {
             Response::ignored()
@@ -376,12 +352,6 @@ impl<'a> FormDialog<'a> {
         combine_responses(self.id, action, form_response, dialog_response)
     }
 
-
-
-
-
-
-
     pub fn submit_current<D: FormData + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
@@ -411,7 +381,6 @@ impl<'a> FormDialog<'a> {
 
         combine_responses(self.id, action, form_response, Response::ignored())
     }
-
 
     pub fn draw<D: FormData + ?Sized>(
         &self,

@@ -39,9 +39,6 @@ pub trait Page: Send {
     fn seek_paused(&mut self, _frame: usize) {}
 }
 
-
-
-
 pub fn accent_tint_bg(theme: &termrock::Theme) -> u32 {
     let drifted = termrock::Color::from_u32(0x000f_2e13);
     if theme.color.accent_tint == drifted {
@@ -50,8 +47,6 @@ pub fn accent_tint_bg(theme: &termrock::Theme) -> u32 {
         color_u32(theme.color.accent_tint)
     }
 }
-
-
 
 pub fn color_u32(color: termrock::Color) -> u32 {
     match color {
@@ -125,10 +120,6 @@ fn paint_clipped_meta(
     }
 }
 
-
-
-
-
 pub(super) fn paint_boundary_meta(ui: &mut Ui<'_>, area: Rect, title: &str, meta: &str) {
     let title_width = width(title);
     if area.is_empty() || meta.is_empty() || area.width != title_width.saturating_add(4) {
@@ -144,15 +135,7 @@ pub(super) fn paint_boundary_meta(ui: &mut Ui<'_>, area: Rect, title: &str, meta
     paint_clipped_meta(ui, meta_area, meta, style);
 }
 
-
-
-
-
-
-
 const SEAM: u32 = 0x003a_3a3a;
-
-
 
 const CARD_TITLE: [(Part, StylePatch); 2] = [
     (
@@ -166,8 +149,6 @@ const CARD_TITLE: [(Part, StylePatch); 2] = [
         StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
     ),
 ];
-
-
 
 pub fn section_strip(ui: &mut Ui<'_>, area: Rect) {
     const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
@@ -242,11 +223,6 @@ pub fn section_strip(ui: &mut Ui<'_>, area: Rect) {
     );
 }
 
-
-
-
-
-
 pub fn card_panel(
     ui: &mut Ui<'_>,
     id: Id,
@@ -267,7 +243,6 @@ pub fn card_panel(
         return;
     }
 
-
     let plane = ui.theme().bg(ui.theme().raise(ui.surface()));
     let seam = ui
         .surface_style()
@@ -284,11 +259,6 @@ pub fn card_panel(
         seam,
     );
 }
-
-
-
-
-
 
 pub fn card_panel_window(
     ui: &mut Ui<'_>,

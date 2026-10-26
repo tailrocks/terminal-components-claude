@@ -520,10 +520,8 @@ struct FindState {
     typing: bool,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CodeFindInfo<'a> {
-
     pub query: &'a str,
 
     pub current: Option<usize>,
@@ -602,7 +600,6 @@ impl CodeEditorState {
         self.editing
     }
 
-
     pub fn is_find_typing(&self) -> bool {
         self.find.as_ref().is_some_and(|find| find.typing)
     }
@@ -615,11 +612,9 @@ impl CodeEditorState {
         self.editor.cursor_offset()
     }
 
-
     pub fn cursor_pos(&self) -> CursorPos {
         self.editor.cursor_pos()
     }
-
 
     pub fn find_info(&self) -> Option<CodeFindInfo<'_>> {
         self.find.as_ref().map(|find| CodeFindInfo {
@@ -633,10 +628,6 @@ impl CodeEditorState {
     pub fn selected_text(&self) -> Option<&str> {
         self.editor.selected_text()
     }
-
-
-
-
 
     pub fn splice_completion(&mut self, replace_len: usize, insertion: &str) -> bool {
         let end = self.editor.cursor_offset();
@@ -758,8 +749,6 @@ struct HighlightCache {
     spans: Vec<(Range<usize>, SyntaxRole)>,
     line_starts: Vec<usize>,
 
-
-
     blocks: Vec<Range<usize>>,
     blocks_generation: u64,
     blocks_valid: bool,
@@ -790,8 +779,6 @@ impl HighlightCache {
         self.valid = true;
     }
 }
-
-
 
 fn current_block_in(blocks: &[Range<usize>], cursor: usize) -> Option<Range<usize>> {
     blocks
@@ -873,19 +860,11 @@ impl<'a> CodeEditor<'a> {
         }
     }
 
-
-
-
-
     #[must_use]
     pub const fn fill_height(mut self, fill: bool) -> Self {
         self.fill_height = fill;
         self
     }
-
-
-
-
 
     #[must_use]
     pub const fn idle_scroll_position(mut self, enabled: bool) -> Self {
@@ -952,17 +931,11 @@ impl<'a> CodeEditor<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn edit_entry(mut self, entry: EditEntry) -> Self {
         self.edit_entry = Some(entry);
         self
     }
-
-
-
-
-
 
     #[must_use]
     pub const fn commit_on_blur(mut self, commit: bool) -> Self {
@@ -1061,7 +1034,6 @@ impl<'a> CodeEditor<'a> {
             });
         }
 
-
         if text_area.width > 0
             && y < usize::from(text_area.height)
             && cursor.col >= hscroll
@@ -1078,9 +1050,6 @@ impl<'a> CodeEditor<'a> {
         }
         None
     }
-
-
-
 
     pub fn open_find(&self, cx: &mut Cx<'_>, st: &mut CodeEditorState) -> Response<CodeAction> {
         if self.disabled {
@@ -1220,13 +1189,9 @@ impl<'a> CodeEditor<'a> {
             st.scroll.set_content(st.editor.line_count());
             st.scroll.ensure_visible(cursor.line);
             if let Some(area) = cx.area(self.id) {
-
-
                 let gutter = Self::gutter_width(lines);
                 let text_width = area.width.saturating_sub(gutter);
                 st.editor.scroll_into_view(text_width);
-
-
 
                 let widest = st.text().split('\n').map(width).max().unwrap_or(0);
                 st.editor.clamp_hscroll(widest.saturating_sub(text_width));
@@ -1574,8 +1539,6 @@ impl<'a> CodeEditor<'a> {
         let marker_style = style(ui, Part::MARKER, live).style;
         let gutter_style = style(ui, Part::GUTTER, live).style;
 
-
-
         let block = if st.editor.selection().is_none() {
             if cache.blocks_valid {
                 current_block_in(&cache.blocks, st.cursor_offset())
@@ -1647,8 +1610,6 @@ impl<'a> CodeEditor<'a> {
                             },
                         }
                     } else {
-
-
                         ui.paint_str(
                             cell_at(row, row.x),
                             " ",
@@ -1794,7 +1755,6 @@ impl<'a> CodeEditor<'a> {
                         column = column.saturating_add(cells);
                         continue;
                     }
-
 
                     if hs > 0 && column == hs {
                         column = column.saturating_add(cells);
@@ -2030,7 +1990,6 @@ impl<'a> CodeEditor<'a> {
                 );
             }
         }
-
 
         let show_caret = live.contains(StateFlags::FOCUSED) && (st.editing || self.read_only);
         if show_caret

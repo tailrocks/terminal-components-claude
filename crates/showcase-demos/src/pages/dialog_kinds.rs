@@ -67,9 +67,6 @@ const FIELDS: &[FieldSpec<'static>] = &[
         "SSH key",
         FieldKind::Chooser(Button::new(KEY, "Choose…")),
     ),
-
-
-
     FieldSpec::new(
         PREVIEW,
         "Preview",

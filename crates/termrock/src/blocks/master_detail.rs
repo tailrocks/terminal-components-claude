@@ -1,5 +1,3 @@
-
-
 use ratatui_core::layout::Rect;
 pub use termrock_controls::MasterDetailState;
 use termrock_controls::{
@@ -47,7 +45,6 @@ fn discard_action<A, B>(response: Response<A>) -> Response<B> {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct MasterDetailPolicy {
     sizing: MasterDetailSizing,
@@ -84,7 +81,6 @@ impl Default for MasterDetailPolicy {
 }
 
 impl MasterDetailPolicy {
-
     #[must_use]
     pub const fn detail_share(mut self, percent: u8, min: u16, max: u16) -> Self {
         self.sizing = MasterDetailSizing::FixedDetail;
@@ -93,11 +89,6 @@ impl MasterDetailPolicy {
         self.detail_max = if min > max { min } else { max };
         self
     }
-
-
-
-
-
 
     #[must_use]
     pub const fn resizable_master(
@@ -136,10 +127,6 @@ impl MasterDetailPolicy {
         self
     }
 
-
-
-
-
     pub const fn detail_share_percent(self) -> u8 {
         self.detail_share
     }
@@ -160,13 +147,11 @@ impl MasterDetailPolicy {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MasterDetailAction {
     DrawerOpened,
     DrawerClosed,
 }
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MasterDetailError {
@@ -180,8 +165,6 @@ impl From<CompositionError> for MasterDetailError {
         Self::Composition(error)
     }
 }
-
-
 
 pub struct MasterDetail<'a> {
     id: crate::Id,
@@ -240,7 +223,6 @@ impl<'a> MasterDetail<'a> {
         self
     }
 
-
     #[must_use]
     pub fn detail_owns(mut self, ids: &[crate::Id]) -> Self {
         self.detail_owners = ids.to_vec();
@@ -273,7 +255,6 @@ impl<'a> MasterDetail<'a> {
         1 + master.max(detail).max(summary)
     }
 
-
     pub fn open_detail(
         &self,
         cx: &mut Cx<'_>,
@@ -286,7 +267,6 @@ impl<'a> MasterDetail<'a> {
         Response::action(MasterDetailAction::DrawerOpened).for_id(self.id)
     }
 
-
     pub fn close_detail(
         &self,
         cx: &mut Cx<'_>,
@@ -298,8 +278,6 @@ impl<'a> MasterDetail<'a> {
         self.responsive_engine().close_drawer(state, cx);
         Response::action(MasterDetailAction::DrawerClosed).for_id(self.id)
     }
-
-
 
     pub fn update(
         &self,
@@ -317,8 +295,6 @@ impl<'a> MasterDetail<'a> {
                 })
                 .for_id(self.id);
             }
-
-
 
             return discard_action(response);
         }
@@ -347,7 +323,6 @@ impl<'a> MasterDetail<'a> {
             Response::ignored()
         }
     }
-
 
     pub fn measure(
         &self,
@@ -391,7 +366,6 @@ impl<'a> MasterDetail<'a> {
                 .map_err(Into::into)
         }
     }
-
 
     pub fn show(
         &self,
