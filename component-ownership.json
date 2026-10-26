@@ -3,6 +3,12 @@
   "inventory_task": "T01",
   "fixed_input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
   "product_behavior": "NOT VERIFIED",
+  "historical_proposal_source": {
+    "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "path": "component-ownership.json",
+    "sha256": "4265116e1ee48092fec6f2a108893ac747bc1c636ca4b279dd9f64e8492822a4",
+    "row_count": 45
+  },
   "components": [
     {
       "id": "W01",
@@ -57,9 +63,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
         "manifest_path": "crates/termrock-controls/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/0",
         "row_id": "W01",
         "proposal_owner": "termrock-controls"
       }
@@ -117,9 +125,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
         "manifest_path": "crates/termrock-controls/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/1",
         "row_id": "W02",
         "proposal_owner": "termrock-controls"
       }
@@ -177,9 +187,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
         "manifest_path": "crates/termrock-controls/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/2",
         "row_id": "W03",
         "proposal_owner": "termrock-controls"
       }
@@ -237,9 +249,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
         "manifest_path": "crates/termrock-controls/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/3",
         "row_id": "W04",
         "proposal_owner": "termrock-controls"
       }
@@ -297,9 +311,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
         "manifest_path": "crates/termrock-controls/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/4",
         "row_id": "W05",
         "proposal_owner": "termrock-controls"
       }
@@ -357,9 +373,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation#0.1.0",
         "manifest_path": "crates/termrock-navigation/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/5",
         "row_id": "W06",
         "proposal_owner": "termrock-navigation"
       }
@@ -417,9 +435,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-fields#0.1.0",
         "manifest_path": "crates/termrock-fields/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/6",
         "row_id": "W07",
         "proposal_owner": "termrock-fields"
       }
@@ -477,9 +497,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-fields#0.1.0",
         "manifest_path": "crates/termrock-fields/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/7",
         "row_id": "W08",
         "proposal_owner": "termrock-fields"
       }
@@ -537,9 +559,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-fields#0.1.0",
         "manifest_path": "crates/termrock-fields/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/8",
         "row_id": "W09",
         "proposal_owner": "termrock-fields"
       }
@@ -597,9 +621,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
         "manifest_path": "crates/termrock-overlays/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/9",
         "row_id": "W10",
         "proposal_owner": "termrock-overlays"
       }
@@ -657,9 +683,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-forms#0.1.0",
         "manifest_path": "crates/termrock-forms/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/10",
         "row_id": "W11",
         "proposal_owner": "termrock-forms"
       }
@@ -717,9 +745,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation#0.1.0",
         "manifest_path": "crates/termrock-navigation/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/11",
         "row_id": "W12",
         "proposal_owner": "termrock-navigation"
       }
@@ -777,9 +807,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation#0.1.0",
         "manifest_path": "crates/termrock-navigation/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/12",
         "row_id": "W13",
         "proposal_owner": "termrock-navigation"
       }
@@ -837,9 +869,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation#0.1.0",
         "manifest_path": "crates/termrock-navigation/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/13",
         "row_id": "W14",
         "proposal_owner": "termrock-navigation"
       }
@@ -897,9 +931,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation#0.1.0",
         "manifest_path": "crates/termrock-navigation/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/14",
         "row_id": "W15",
         "proposal_owner": "termrock-navigation"
       }
@@ -957,9 +993,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation#0.1.0",
         "manifest_path": "crates/termrock-navigation/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/15",
         "row_id": "W16",
         "proposal_owner": "termrock-navigation"
       }
@@ -1017,9 +1055,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation#0.1.0",
         "manifest_path": "crates/termrock-navigation/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/16",
         "row_id": "W17",
         "proposal_owner": "termrock-navigation"
       }
@@ -1077,9 +1117,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
         "manifest_path": "crates/termrock-overlays/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/17",
         "row_id": "W18",
         "proposal_owner": "termrock-overlays"
       }
@@ -1137,9 +1179,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
         "manifest_path": "crates/termrock-overlays/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/18",
         "row_id": "W19",
         "proposal_owner": "termrock-overlays"
       }
@@ -1197,9 +1241,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
         "manifest_path": "crates/termrock-overlays/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/19",
         "row_id": "W20",
         "proposal_owner": "termrock-overlays"
       }
@@ -1257,9 +1303,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
         "manifest_path": "crates/termrock-overlays/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/20",
         "row_id": "W21",
         "proposal_owner": "termrock-overlays"
       }
@@ -1317,9 +1365,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
         "manifest_path": "crates/termrock-overlays/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/21",
         "row_id": "W22",
         "proposal_owner": "termrock-overlays"
       }
@@ -1377,9 +1427,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
         "manifest_path": "crates/termrock-overlays/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/22",
         "row_id": "W23",
         "proposal_owner": "termrock-overlays"
       }
@@ -1437,9 +1489,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
         "manifest_path": "crates/termrock-overlays/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/23",
         "row_id": "W24",
         "proposal_owner": "termrock-overlays"
       }
@@ -1497,9 +1551,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
         "manifest_path": "crates/termrock-overlays/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/24",
         "row_id": "W25",
         "proposal_owner": "termrock-overlays"
       }
@@ -1557,9 +1613,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
         "manifest_path": "crates/termrock-overlays/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/25",
         "row_id": "W26",
         "proposal_owner": "termrock-overlays"
       }
@@ -1617,9 +1675,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-forms#0.1.0",
         "manifest_path": "crates/termrock-forms/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/26",
         "row_id": "W27",
         "proposal_owner": "termrock-forms"
       }
@@ -1677,9 +1737,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-grid#0.1.0",
         "manifest_path": "crates/termrock-grid/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/27",
         "row_id": "W28",
         "proposal_owner": "termrock-grid"
       }
@@ -1737,9 +1799,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-editors#0.1.0",
         "manifest_path": "crates/termrock-editors/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/28",
         "row_id": "W29",
         "proposal_owner": "termrock-editors"
       }
@@ -1797,9 +1861,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-editors#0.1.0",
         "manifest_path": "crates/termrock-editors/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/29",
         "row_id": "W30",
         "proposal_owner": "termrock-editors"
       }
@@ -1857,9 +1923,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-viewport#0.1.0",
         "manifest_path": "crates/termrock-viewport/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/30",
         "row_id": "W31",
         "proposal_owner": "termrock-viewport"
       }
@@ -1917,9 +1985,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
         "manifest_path": "crates/termrock-controls/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/31",
         "row_id": "W32",
         "proposal_owner": "termrock-controls"
       }
@@ -1977,9 +2047,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
         "manifest_path": "crates/termrock-controls/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/32",
         "row_id": "W33",
         "proposal_owner": "termrock-controls"
       }
@@ -2037,9 +2109,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
         "manifest_path": "crates/termrock-controls/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/33",
         "row_id": "W34",
         "proposal_owner": "termrock-controls"
       }
@@ -2111,9 +2185,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
         "manifest_path": "crates/termrock-controls/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/34",
         "row_id": "W35",
         "proposal_owner": "termrock-navigation"
       }
@@ -2171,9 +2247,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
         "manifest_path": "crates/termrock-controls/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/35",
         "row_id": "W36",
         "proposal_owner": "termrock-controls"
       }
@@ -2231,9 +2309,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
         "manifest_path": "crates/termrock-feedback/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/36",
         "row_id": "W37",
         "proposal_owner": "termrock-feedback"
       }
@@ -2291,9 +2371,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
         "manifest_path": "crates/termrock-feedback/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/37",
         "row_id": "W38",
         "proposal_owner": "termrock-feedback"
       }
@@ -2351,9 +2433,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
         "manifest_path": "crates/termrock-feedback/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/38",
         "row_id": "W39",
         "proposal_owner": "termrock-feedback"
       }
@@ -2411,9 +2495,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
         "manifest_path": "crates/termrock-feedback/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/39",
         "row_id": "W40",
         "proposal_owner": "termrock-feedback"
       }
@@ -2471,9 +2557,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
         "manifest_path": "crates/termrock-feedback/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/40",
         "row_id": "W41",
         "proposal_owner": "termrock-feedback"
       }
@@ -2531,9 +2619,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
         "manifest_path": "crates/termrock-feedback/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/41",
         "row_id": "W42",
         "proposal_owner": "termrock-feedback"
       }
@@ -2591,9 +2681,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
         "manifest_path": "crates/termrock-controls/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/42",
         "row_id": "W43",
         "proposal_owner": "termrock-controls"
       }
@@ -2651,9 +2743,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-terminal#0.1.0",
         "manifest_path": "crates/termrock-terminal/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/43",
         "row_id": "W44",
         "proposal_owner": "termrock-terminal"
       }
@@ -2823,9 +2917,11 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
         "manifest_path": "crates/termrock-runtime/Cargo.toml"
       },
+      "proposal_source_status": "MATCHED_HISTORICAL_PROPOSAL_ROW",
       "proposal_source_pointer": {
         "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
         "path": "component-ownership.json",
+        "record_pointer": "/components/44",
         "row_id": "W45",
         "proposal_owner": "termrock-viewport"
       }
@@ -2876,12 +2972,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
         "manifest_path": "crates/termrock-controls/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W46",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W47",
@@ -2936,12 +3028,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
         "manifest_path": "crates/termrock-controls/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W47",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W48",
@@ -2982,12 +3070,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock#0.1.0",
         "manifest_path": "crates/termrock/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W48",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W49",
@@ -3028,12 +3112,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock#0.1.0",
         "manifest_path": "crates/termrock/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W49",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W50",
@@ -3088,12 +3168,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-grid#0.1.0",
         "manifest_path": "crates/termrock-grid/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W50",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W51",
@@ -3141,12 +3217,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-grid#0.1.0",
         "manifest_path": "crates/termrock-grid/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W51",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W52",
@@ -3201,12 +3273,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-forms#0.1.0",
         "manifest_path": "crates/termrock-forms/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W52",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W53",
@@ -3254,12 +3322,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-forms#0.1.0",
         "manifest_path": "crates/termrock-forms/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W53",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W54",
@@ -3314,12 +3378,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
         "manifest_path": "crates/termrock-overlays/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W54",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W55",
@@ -3367,12 +3427,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
         "manifest_path": "crates/termrock-overlays/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W55",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W56",
@@ -3427,12 +3483,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-editors#0.1.0",
         "manifest_path": "crates/termrock-editors/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W56",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W57",
@@ -3487,12 +3539,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-fields#0.1.0",
         "manifest_path": "crates/termrock-fields/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W57",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W58",
@@ -3540,12 +3588,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
         "manifest_path": "crates/termrock-feedback/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W58",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W59",
@@ -3600,12 +3644,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
         "manifest_path": "crates/termrock-feedback/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W59",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W60",
@@ -3660,12 +3700,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
         "manifest_path": "crates/termrock-feedback/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W60",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W61",
@@ -3713,12 +3749,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-shell#0.1.0",
         "manifest_path": "crates/termrock-shell/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W61",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W62",
@@ -3780,12 +3812,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-shell#0.1.0",
         "manifest_path": "crates/termrock-shell/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W62",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     },
     {
       "id": "W63",
@@ -3833,12 +3861,8 @@
         "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-fields#0.1.0",
         "manifest_path": "crates/termrock-fields/Cargo.toml"
       },
-      "proposal_source_pointer": {
-        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "path": "component-ownership.json",
-        "row_id": "W63",
-        "proposal_owner": null
-      }
+      "proposal_source_status": "NO_HISTORICAL_PROPOSAL_ROW",
+      "proposal_source_pointer": null
     }
   ]
 }
