@@ -483,7 +483,7 @@ def normalize_rust_path(path, crate_name, module_path, package_id=None):
     if path == "self":
         return "::".join(module_path)
     if path.startswith("super::"):
-        parent = module_path[:-1]
+        parent = list(module_path)
         rest = path
         while rest.startswith("super::"):
             if len(parent) > 1:
@@ -1294,6 +1294,80 @@ for package_name, manifest_path, package_dir, crate_name, meta, scope, owner_tas
                     "source_sha256": file_row["sha256"],
                     "cfg_attributes": cfg,
                 })
+
+runtime_package_id = next(row[7] for row in package_manifest_rows if row[0] == "termrock-runtime")
+
+
+def check_relative_import_source(kind, source_path, line, module_path, source_line, expected_imports):
+    actual_line = source_text(source_path).splitlines()[line - 1].strip()
+    if actual_line != source_line:
+        raise RuntimeError("relative import source line differs: " + source_path)
+    evidence = []
+    for alias, imported_path in expected_imports.items():
+        rows = [
+            row for row in module_imports.get((runtime_package_id, module_path, alias), [])
+            if row["source_path"] == source_path and row["line"] == line
+        ]
+        if len(rows) != 1 or rows[0]["imported_path"] != imported_path:
+            raise RuntimeError("relative import source binding differs: " + source_path + ":" + str(line))
+        row = rows[0]
+        evidence.append({
+            "alias": alias,
+            "imported_path": row["imported_path"],
+            "visibility": row["visibility"],
+            "source": {"path": source_path, "line": line, "sha256": row["source_sha256"]},
+        })
+    return {"kind": kind, "module_path": module_path, "source_line": source_line, "imports": evidence}
+
+
+relative_import_provenance_audit = {
+    "direct_imports": [
+        check_relative_import_source(
+            "direct", "crates/termrock-runtime/src/ui/slot.rs", 5,
+            "termrock_runtime::ui::slot", "use super::Ui;",
+            {"Ui": "termrock_runtime::ui::Ui"},
+        ),
+        check_relative_import_source(
+            "direct", "crates/termrock-runtime/src/ui/command_scope.rs", 6,
+            "termrock_runtime::ui::command_scope", "use super::Ui;",
+            {"Ui": "termrock_runtime::ui::Ui"},
+        ),
+    ],
+    "grouped_imports": [
+        check_relative_import_source(
+            "grouped", "crates/termrock-runtime/src/ui/paint.rs", 5,
+            "termrock_runtime::ui::paint", "use super::{Target, Ui};",
+            {"Target": "termrock_runtime::ui::Target", "Ui": "termrock_runtime::ui::Ui"},
+        ),
+    ],
+}
+repeated_relative_import_sources = {}
+for rows in module_imports.values():
+    for row in rows:
+        source_key = (row["source_path"], row["line"])
+        source_line = source_text(row["source_path"]).splitlines()[row["line"] - 1].strip()
+        if "use " in source_line and "super::super::" in source_line:
+            repeated_relative_import_sources[source_key] = {
+                "source": {"path": row["source_path"], "line": row["line"], "sha256": row["source_sha256"]},
+                "source_line": source_line,
+            }
+repeated_relative_rule = normalize_rust_path(
+    "super::super::Ui", "termrock_runtime",
+    ["termrock_runtime", "ui", "slot", "nested"], runtime_package_id,
+)
+if repeated_relative_rule != "termrock_runtime::ui::Ui":
+    raise RuntimeError("repeated super path did not remove one module parent per token")
+relative_import_provenance_audit["repeated_relative_imports"] = {
+    "source_imports": [repeated_relative_import_sources[key] for key in sorted(repeated_relative_import_sources)],
+    "source_import_count": len(repeated_relative_import_sources),
+    "normalizer_case": {
+        "module_path": "termrock_runtime::ui::slot::nested",
+        "raw_path": "super::super::Ui",
+        "normalized_path": repeated_relative_rule,
+        "source_bound": False,
+    },
+}
+relative_import_provenance_audit["result"] = "PASS"
 
 for package_name, manifest_path, package_dir, crate_name, meta, scope, owner_task, package_id, version in package_manifest_rows:
     rust_files = sorted((package_dir / "src").rglob("*.rs")) if (package_dir / "src").exists() else []
@@ -3505,6 +3579,10 @@ structural_audit = {
         "associated_constant_items": sum(1 for item in items if item.get("kind") == "associated_const"),
         "associated_constant_wildcard_exports": len(associated_const_wildcard_exports),
         "associated_constant_path_mismatches": len(associated_const_path_mismatches),
+        "relative_import_provenance_result": relative_import_provenance_audit["result"],
+        "relative_import_direct_sources": len(relative_import_provenance_audit["direct_imports"]),
+        "relative_import_grouped_sources": len(relative_import_provenance_audit["grouped_imports"]),
+        "repeated_relative_import_sources": relative_import_provenance_audit["repeated_relative_imports"]["source_import_count"],
         "third_party_exports_with_unowned_definition_package": sum(1 for row in exports if row.get("definition_resolution") == "external_dependency"),
     },
 }
@@ -3554,6 +3632,7 @@ result = {
     "requirements": requirements,
     "historical_api_dispositions": historical_api_dispositions,
     "unresolved_trait_impls": unresolved_trait_impls,
+    "relative_import_provenance_audit": relative_import_provenance_audit,
     "performance_workloads": performance_workloads,
     "duplicate_relationships": duplicate_relationships,
     "open_requirements": open_requirements,

@@ -632186,7 +632186,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::command_scope",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -650644,7 +650644,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -650744,7 +650744,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -650844,7 +650844,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -650944,7 +650944,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -651044,7 +651044,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -651144,7 +651144,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -651247,7 +651247,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -651347,7 +651347,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -651447,7 +651447,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -651547,7 +651547,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -651647,7 +651647,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -651750,7 +651750,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -651850,7 +651850,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -651950,7 +651950,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -652050,7 +652050,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -652150,7 +652150,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -652250,7 +652250,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -652352,7 +652352,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -652454,7 +652454,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::paint",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -652648,7 +652648,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::slot",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -772745,7 +772745,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::slot",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -772852,7 +772852,7 @@
         {
           "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
           "module_path": "termrock_runtime::ui::slot",
-          "imported_path": "termrock_runtime::Ui",
+          "imported_path": "termrock_runtime::ui::Ui",
           "alias": "Ui",
           "import_kind": "reexport",
           "visibility": "private",
@@ -1020380,6 +1020380,84 @@
       "evidence_state": "NOT VERIFIED"
     }
   ],
+  "relative_import_provenance_audit": {
+    "direct_imports": [
+      {
+        "kind": "direct",
+        "module_path": "termrock_runtime::ui::slot",
+        "source_line": "use super::Ui;",
+        "imports": [
+          {
+            "alias": "Ui",
+            "imported_path": "termrock_runtime::ui::Ui",
+            "visibility": "private",
+            "source": {
+              "path": "crates/termrock-runtime/src/ui/slot.rs",
+              "line": 5,
+              "sha256": "856edb2c8745ebb5db99750b416d6304136aa324f1e3cb9b7ca8af504bb5f332"
+            }
+          }
+        ]
+      },
+      {
+        "kind": "direct",
+        "module_path": "termrock_runtime::ui::command_scope",
+        "source_line": "use super::Ui;",
+        "imports": [
+          {
+            "alias": "Ui",
+            "imported_path": "termrock_runtime::ui::Ui",
+            "visibility": "private",
+            "source": {
+              "path": "crates/termrock-runtime/src/ui/command_scope.rs",
+              "line": 6,
+              "sha256": "32aa331d6a9ea70627e94e23d0e3543e59e25df5493da75edf5f5a8f5330ccaa"
+            }
+          }
+        ]
+      }
+    ],
+    "grouped_imports": [
+      {
+        "kind": "grouped",
+        "module_path": "termrock_runtime::ui::paint",
+        "source_line": "use super::{Target, Ui};",
+        "imports": [
+          {
+            "alias": "Target",
+            "imported_path": "termrock_runtime::ui::Target",
+            "visibility": "private",
+            "source": {
+              "path": "crates/termrock-runtime/src/ui/paint.rs",
+              "line": 5,
+              "sha256": "ce57fe0dd9f8620e76ce65e1ce58cfff4c0eb442a7f3bb35fef5add845f7703c"
+            }
+          },
+          {
+            "alias": "Ui",
+            "imported_path": "termrock_runtime::ui::Ui",
+            "visibility": "private",
+            "source": {
+              "path": "crates/termrock-runtime/src/ui/paint.rs",
+              "line": 5,
+              "sha256": "ce57fe0dd9f8620e76ce65e1ce58cfff4c0eb442a7f3bb35fef5add845f7703c"
+            }
+          }
+        ]
+      }
+    ],
+    "repeated_relative_imports": {
+      "source_imports": [],
+      "source_import_count": 0,
+      "normalizer_case": {
+        "module_path": "termrock_runtime::ui::slot::nested",
+        "raw_path": "super::super::Ui",
+        "normalized_path": "termrock_runtime::ui::Ui",
+        "source_bound": false
+      }
+    },
+    "result": "PASS"
+  },
   "performance_workloads": [
     {
       "source": {
@@ -1021990,6 +1022068,10 @@
       "associated_constant_items": 136,
       "associated_constant_wildcard_exports": 0,
       "associated_constant_path_mismatches": 0,
+      "relative_import_provenance_result": "PASS",
+      "relative_import_direct_sources": 2,
+      "relative_import_grouped_sources": 1,
+      "repeated_relative_import_sources": 0,
       "third_party_exports_with_unowned_definition_package": 20
     }
   },
@@ -1022003,7 +1022085,7 @@
       "cwd": "/Users/donbeave/Downloads/termrock-t01-foundation",
       "exit_code": 0,
       "source_path": "docs/implementation/pr38-final/results/t01-foundation-api/build_fragment.py",
-      "source_sha256": "e2f16ad5414efa82ca5330f24884e73cba13fc92f16039d84ad7966d0ec40e99",
+      "source_sha256": "9761f25d3e118a888e397dda56edaf66bee3ead00986f1a1cce201b35ce73ec5",
       "output_path": "docs/implementation/pr38-final/results/t01-foundation-api/foundation-api.fragment.json",
       "purpose": "Read current source, consume accepted metadata, and write the static API fragment."
     },
@@ -1022016,7 +1022098,7 @@
       ],
       "cwd": "/Users/donbeave/Downloads/termrock-t01-foundation",
       "exit_code": 0,
-      "stdout": "35089472a77cbccb6fa40f5dcd08edb7eca910f9",
+      "stdout": "77a6e34f9f874e06832782a22e2e8a72e3ca6c54",
       "purpose": "Confirm fixed inventory input commit."
     },
     {

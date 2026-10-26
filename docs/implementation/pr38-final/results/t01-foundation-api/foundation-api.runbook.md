@@ -11,8 +11,10 @@ The historical product source is commit `1d6ee92adf6ccca38eeee64b1371cba1497e8fc
 The current inventory input is commit `542349e2f70ec9883d743594f906ac6c4e96ba5a`, tree `66507c4aae0555d65904b268d6c95e7f3e3d17d1`.
 Current production definitions match accepted T37 integration commit `43b5a322e0da46ab7282b5b820831eb70c91f4ed`.
 Historical workload definitions use source commit `1d6ee92adf6ccca38eeee64b1371cba1497e8fcd`.
-This correction starts at commit `35089472a77cbccb6fa40f5dcd08edb7eca910f9`.
+The prior correction starts at commit `35089472a77cbccb6fa40f5dcd08edb7eca910f9`.
 Its input fragment hash is `6e7d16140040ce17b7b90002242157dd62d6e2b7347f42e7adc3f4111efa4b09`.
+This correction starts at commit `77a6e34f9f874e06832782a22e2e8a72e3ca6c54`.
+Its input fragment hash is `252eff0e2a82253e2c789faf038523fa2bac7f68bdfd323c4687272ec0414153`.
 
 The five metadata records were generated from checkout commit `516198caac5e5b5fa0883fa1f209928c2e86c8ba`, tree `a10cd30dfafec83f7668f529bb03e27f1e5b8b4d`.
 Their exact artifact bytes are stored at commit `542349e2f70ec9883d743594f906ac6c4e96ba5a`.
@@ -50,6 +52,13 @@ All 57 module import evidence rows match their source path, line, and hash.
 The audit exited `0`.
 An earlier inline audit exited `1` because it compared a file SHA with a commit ID.
 The corrected source audit exited `0`.
+
+The relative import audit passed for two direct imports and one grouped import.
+It binds `slot.rs:5`, `command_scope.rs:6`, and `paint.rs:5` to their source hashes.
+The imports resolve `Ui` and `Target` under `termrock_runtime::ui`.
+The source scan found zero repeated `super` imports.
+A source-unbound case confirms that `super::super::Ui` removes two module parents.
+The fragment keeps each lexical `Ui` implementation target beside its canonical owner.
 
 The fragment records `functional_cases_selected: 0` and `behavior_evidence: NOT VERIFIED`.
 No runtime behavior is claimed.
@@ -140,7 +149,7 @@ The fragment keeps each source hash and evidence record.
 It does not infer a source commit or line commit.
 T33 performance measurements remain `NOT RECORDED`.
 
-The fragment hash is `252eff0e2a82253e2c789faf038523fa2bac7f68bdfd323c4687272ec0414153`.
-The generator hash is `e2f16ad5414efa82ca5330f24884e73cba13fc92f16039d84ad7966d0ec40e99`.
+The fragment hash is `79c634ea8e20c6cb62a0c5463f6bfe05442ce15c9e4bb55d59cc6dc612485d73`.
+The generator hash is `9761f25d3e118a888e397dda56edaf66bee3ead00986f1a1cce201b35ce73ec5`.
 The independent Sol-high correction review remains `PENDING`.
 This fragment is not self-accepted.
