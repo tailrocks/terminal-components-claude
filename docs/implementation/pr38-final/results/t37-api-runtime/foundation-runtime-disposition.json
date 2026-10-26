@@ -67,7 +67,7 @@
     },
     {
       "id": "T37-BUILD-COMPAT-01",
-      "reviewer": "/root",
+      "reviewer": "/root/t00_independent_review",
       "model": "gpt-6.1-sol",
       "effort": "high",
       "requirement": "Restore only the original feature-testing Runtime::draw_scene signature/body because retained forms development uses it; do not classify it as a new harness or retire it."
@@ -81,6 +81,14 @@
       "source_path": "crates/termrock-runtime/src/author/canvas.rs",
       "source_sha256": "6d28221d2d3dab0a384896594f62ded979ac148bc2b240b7144af404feace20a",
       "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8"
+    },
+    {
+      "id": "T37-API-PROSE-REVIEW-R1-R7",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "input_commit": "6d35f2b1e53fc076dd1c2f392b1c686dba6a6a42",
+      "status": "R1-R7 corrections applied; independent exact-output approval pending."
     }
   ],
   "open_requirements": [
@@ -90,7 +98,8 @@
       "status": "OPEN",
       "source_groups": [
         435,
-        436
+        436,
+        437
       ],
       "contract": "Resolve exact overflow and multiline policy; implement content-derived cell width and adjacent-run placement only under a reviewed plan.",
       "required_cases": [
@@ -156,22 +165,25 @@
   "semantic_review": {
     "group_count": 304,
     "basis": "Each assigned group was read in full and checked against frozen source context and the accepted cleanup attachment. The identity crosswalk supplied record identities and hashes only; it did not supply these semantic dispositions.",
-    "noncontract_reason_records": 28
+    "noncontract_reason_records": 28,
+    "followup_input_commit": "6d35f2b1e53fc076dd1c2f392b1c686dba6a6a42",
+    "followup_status": "All reported R1-R7 corrections are recorded; independent exact-output approval is pending."
   },
   "cohort": {
     "runtime_groups": 276,
     "session_groups": 28,
     "total_groups": 304,
-    "source_map_indices_are_zero_based": true
+    "source_map_indices_are_zero_based": true,
+    "groups": 304
   },
   "disposition_counts": {
-    "maintained_required_contract": 235,
-    "maintained_contract_context": 29,
-    "open_contract_followup": 4,
-    "descriptive_api_reference": 25,
+    "descriptive_api_reference": 24,
     "historical_or_internal_context": 3,
-    "nonoperative_api_context": 2,
     "internal_implementation_invariant": 1,
+    "maintained_contract_context": 29,
+    "maintained_required_contract": 235,
+    "nonoperative_api_context": 2,
+    "open_contract_followup": 5,
     "retired_test_only_provenance": 5
   },
   "selected_test_cases": 0,
@@ -249,11 +261,11 @@
       },
       "semantic_disposition": "maintained_contract_context",
       "required_clauses": [
-        "Ordinary callers use `Ui::layer_slot`; `LayerSlotAuthor` is a low-level clipped adapter."
+        "Ordinary callers obtain slots from Ui::layer_slot; NestedLayerSlotAuthor is the low-level adapter for clipped nested slots."
       ],
-      "destination": "docs/contracts/authoring.md#row-authoring-contracts",
-      "supporting_excerpt": "Ordinary consumers use `Ui::layer_slot`; `LayerSlotAuthor` is a low-level adapter for a nested component slot clipped to its parent.",
-      "coverage_rationale": "The excerpt distinguishes the caller API from its internal adapter.",
+      "destination": "docs/contracts/foundation-runtime.md#binding-publication-and-focus-scope",
+      "supporting_excerpt": "`NestedLayerSlotAuthor` is the low-level adapter for a clipped nested slot; ordinary callers obtain slots from `Ui::layer_slot`.",
+      "coverage_rationale": "The excerpt names the attached nested-slot trait and distinguishes it from the separate LayerSlotAuthor trait.",
       "specific_reason": null
     },
     {
@@ -268,10 +280,18 @@
       "text_sha256": "e1051668e1107f230b105d421fc7cbb0816ec028beb15edf8a78681c2b359833",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "NestedLayerSlotAuthor::extend_bindings",
+        "symbol": "extend_bindings",
         "declaration_line": "pub fn extend_bindings<C: Copy + 'static>(",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `pub fn extend_bindings<C: Copy + 'static>(` for `NestedLayerSlotAuthor::extend_bindings` is present at the accepted cleanup source commit."
+        "evidence": "Free function `extend_bindings` is declared at module scope in `termrock_runtime::author` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_runtime::author",
+          "path": "crates/termrock-runtime/src/author.rs",
+          "declaration_line": "pub fn extend_bindings<C: Copy + 'static>(",
+          "line_number": 202,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
@@ -296,10 +316,18 @@
       "text_sha256": "6268f60a101c5a6ccac6e2c9e91b30b3242053c25d8e61f9ed05ddf7ffe4a820",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "NestedLayerSlotAuthor::publish_bindings_filtered",
+        "symbol": "publish_bindings_filtered",
         "declaration_line": "pub fn publish_bindings_filtered<C: Copy + 'static>(",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `pub fn publish_bindings_filtered<C: Copy + 'static>(` for `NestedLayerSlotAuthor::publish_bindings_filtered` is present at the accepted cleanup source commit."
+        "evidence": "Free function `publish_bindings_filtered` is declared at module scope in `termrock_runtime::author` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_runtime::author",
+          "path": "crates/termrock-runtime/src/author.rs",
+          "declaration_line": "pub fn publish_bindings_filtered<C: Copy + 'static>(",
+          "line_number": 212,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
@@ -322,10 +350,31 @@
       "text_sha256": "4c1f072a3ec88fd669c02d7d40f3753339d42f16287fe7f3144339fe73f2dc7c",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "canvas",
-        "declaration_line": "use ratatui_core::layout::{Position, Rect};",
+        "symbol": "termrock_runtime::author::canvas",
+        "declaration_line": "mod canvas;",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `use ratatui_core::layout::{Position, Rect};` for `canvas` is present at the accepted cleanup source commit."
+        "evidence": "Inner documentation in the source file attaches to module `termrock_runtime::author::canvas`; the recorded module declaration chain is present at the accepted cleanup commit.",
+        "attachment_path": "crates/termrock-runtime/src/author.rs",
+        "scope_evidence": {
+          "kind": "module_documentation",
+          "module": "termrock_runtime::author::canvas",
+          "module_declarations": [
+            {
+              "path": "crates/termrock-runtime/src/lib.rs",
+              "declaration_line": "pub mod author;",
+              "line_number": 17,
+              "module": "termrock_runtime::author",
+              "scope": "module"
+            },
+            {
+              "path": "crates/termrock-runtime/src/author.rs",
+              "declaration_line": "mod canvas;",
+              "line_number": 3,
+              "module": "termrock_runtime::author::canvas",
+              "scope": "module"
+            }
+          ]
+        }
       },
       "semantic_disposition": "open_contract_followup",
       "required_clauses": [
@@ -333,8 +382,8 @@
         "The observed helper and painter mechanics are recorded without replacing that intended contract."
       ],
       "destination": "docs/contracts/foundation-runtime.md#composition-windows-and-row-cells",
-      "supporting_excerpt": "`Canvas::text_width` counts Rust scalar values and casts the count to `u16`; counts above 65,535 truncate. It does not measure grapheme or terminal-cell widths. `Canvas::put_text` passes that count as a one-row area to `Ui::paint_str`, then returns the painter's actual horizontal advance. `Ui::paint_str` clips to the UI clip and writes grapheme clusters that fit; controls, zero-cell clusters, and clusters wider than remaining cells are skipped. The helper does not guarantee exact cell width or following-run placement for arbitrary Unicode. The intended content-derived cell-width and adjacent-run contract remains open as `T10-CANVAS-WIDTH-01`.",
-      "coverage_rationale": "The Sol high decision preserves current source facts and defers the intended width contract to T10.",
+      "supporting_excerpt": "`Canvas::text_width` counts Rust scalar values and casts the count to `u16`; counts above 65,535 truncate. It does not measure grapheme or terminal-cell widths. `Canvas::put_text` passes that count as a one-row area to `Ui::paint_str`, then returns the painter's actual horizontal advance. `Ui::paint_str` clips to the UI clip. It skips controls and zero-cell clusters; the first cluster wider than remaining cells stops the run. These helpers do not establish exact cell width or following-run placement for arbitrary Unicode. The intended content-derived cell-width and adjacent-run contract remains open as `T10-CANVAS-WIDTH-01`.",
+      "coverage_rationale": "The maintained text records observed scalar and painter mechanics while leaving the intended content-derived cell-width contract open under T10-CANVAS-WIDTH-01.",
       "decision_ids": [
         "T37-CANVAS-WIDTH-01",
         "T10-CANVAS-WIDTH-01"
@@ -364,8 +413,8 @@
         "`put_text` supplies that width to the painter, whose actual advance follows clipped grapheme writes."
       ],
       "destination": "docs/contracts/foundation-runtime.md#composition-windows-and-row-cells",
-      "supporting_excerpt": "`Canvas::text_width` counts Rust scalar values and casts the count to `u16`; counts above 65,535 truncate. It does not measure grapheme or terminal-cell widths. `Canvas::put_text` passes that count as a one-row area to `Ui::paint_str`, then returns the painter's actual horizontal advance. `Ui::paint_str` clips to the UI clip and writes grapheme clusters that fit; controls, zero-cell clusters, and clusters wider than remaining cells are skipped. The helper does not guarantee exact cell width or following-run placement for arbitrary Unicode. The intended content-derived cell-width and adjacent-run contract remains open as `T10-CANVAS-WIDTH-01`.",
-      "coverage_rationale": "The maintained excerpt states observed width mechanics and leaves the intended adjacent-run guarantee open.",
+      "supporting_excerpt": "`Canvas::text_width` counts Rust scalar values and casts the count to `u16`; counts above 65,535 truncate. It does not measure grapheme or terminal-cell widths. `Canvas::put_text` passes that count as a one-row area to `Ui::paint_str`, then returns the painter's actual horizontal advance. `Ui::paint_str` clips to the UI clip. It skips controls and zero-cell clusters; the first cluster wider than remaining cells stops the run. These helpers do not establish exact cell width or following-run placement for arbitrary Unicode. The intended content-derived cell-width and adjacent-run contract remains open as `T10-CANVAS-WIDTH-01`.",
+      "coverage_rationale": "The maintained text records observed scalar and painter mechanics while leaving the intended content-derived cell-width contract open under T10-CANVAS-WIDTH-01.",
       "decision_ids": [
         "T37-CANVAS-WIDTH-01",
         "T10-CANVAS-WIDTH-01"
@@ -389,13 +438,14 @@
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
         "evidence": "Attached declaration `pub fn put_text(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: impl Into<PaintStyle>) -> u16 {` for `put_text` is present at the accepted cleanup source commit."
       },
-      "semantic_disposition": "maintained_required_contract",
+      "semantic_disposition": "open_contract_followup",
       "required_clauses": [
-        "The painted run width equals the text display width."
+        "The source promises a painted run exactly as wide as its text, but current scalar-count and painter mechanics do not establish that promise for arbitrary Unicode.",
+        "The intended content-derived cell-width and adjacent-run requirement remains open under T10-CANVAS-WIDTH-01."
       ],
-      "destination": "docs/contracts/authoring.md#row-authoring-contracts",
-      "supporting_excerpt": "A painted line uses the text's exact display width.",
-      "coverage_rationale": "The excerpt states the exact run width.",
+      "destination": "docs/contracts/foundation-runtime.md#composition-windows-and-row-cells",
+      "supporting_excerpt": "`Canvas::text_width` counts Rust scalar values and casts the count to `u16`; counts above 65,535 truncate. It does not measure grapheme or terminal-cell widths. `Canvas::put_text` passes that count as a one-row area to `Ui::paint_str`, then returns the painter's actual horizontal advance. `Ui::paint_str` clips to the UI clip. It skips controls and zero-cell clusters; the first cluster wider than remaining cells stops the run. These helpers do not establish exact cell width or following-run placement for arbitrary Unicode. The intended content-derived cell-width and adjacent-run contract remains open as `T10-CANVAS-WIDTH-01`.",
+      "coverage_rationale": "The maintained text records current mechanics and explicitly keeps the content-derived width promise open under T10-CANVAS-WIDTH-01.",
       "specific_reason": null
     },
     {
@@ -641,7 +691,7 @@
         "evidence": "Attached declaration `pub struct ClosureLeaf<M, D> {` for `ClosureLeaf` is present at the accepted cleanup source commit."
       },
       "semantic_disposition": "descriptive_api_reference",
-      "specific_reason": "`ComponentLeaf::custom` names a closure-backed leaf constructor. Measurement effects and draw bounds are mapped separately.",
+      "specific_reason": "This span labels `ClosureLeaf`; callback purity and measurement behavior are mapped separately.",
       "required_clauses": [],
       "destination": null,
       "supporting_excerpt": null,
@@ -659,10 +709,18 @@
       "text_sha256": "7d0750a11ce1caae81e5d0298a93006ff0fe1331e170c349436cebf58bdca7ac",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "CompositionLeaf::composition_leaf",
+        "symbol": "composition_leaf",
         "declaration_line": "pub const fn composition_leaf<M, D>(measure: M, draw: D) -> ClosureLeaf<M, D> {",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `pub const fn composition_leaf<M, D>(measure: M, draw: D) -> ClosureLeaf<M, D> {` for `CompositionLeaf::composition_leaf` is present at the accepted cleanup source commit."
+        "evidence": "Free function `composition_leaf` is declared at module scope in `termrock_runtime::author::composition` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_runtime::author::composition",
+          "path": "crates/termrock-runtime/src/author/composition.rs",
+          "declaration_line": "pub const fn composition_leaf<M, D>(measure: M, draw: D) -> ClosureLeaf<M, D> {",
+          "line_number": 13,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
@@ -685,10 +743,31 @@
       "text_sha256": "c09f26e850f13fa23851e5f9799c4fda30cfe39aeb2417ca0595f9bcdfaea86d",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "surface",
-        "declaration_line": "use ratatui_core::buffer::Buffer;",
+        "symbol": "termrock_runtime::author::surface",
+        "declaration_line": "mod surface;",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `use ratatui_core::buffer::Buffer;` for `surface` is present at the accepted cleanup source commit."
+        "evidence": "Inner documentation in the source file attaches to module `termrock_runtime::author::surface`; the recorded module declaration chain is present at the accepted cleanup commit.",
+        "attachment_path": "crates/termrock-runtime/src/author.rs",
+        "scope_evidence": {
+          "kind": "module_documentation",
+          "module": "termrock_runtime::author::surface",
+          "module_declarations": [
+            {
+              "path": "crates/termrock-runtime/src/lib.rs",
+              "declaration_line": "pub mod author;",
+              "line_number": 17,
+              "module": "termrock_runtime::author",
+              "scope": "module"
+            },
+            {
+              "path": "crates/termrock-runtime/src/author.rs",
+              "declaration_line": "mod surface;",
+              "line_number": 9,
+              "module": "termrock_runtime::author::surface",
+              "scope": "module"
+            }
+          ]
+        }
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
@@ -1552,8 +1631,8 @@
         "A secondary press without a hit returns Nothing."
       ],
       "destination": "docs/contracts/foundation-runtime.md#hit-ownership-and-releases",
-      "supporting_excerpt": "For a secondary backdrop press, `Reopen` returns `Outside` with an optional lower target; `Close` returns `Outside` without that target; `Ignore` returns `Swallowed` without dismissing. The caller decides layer mutation and input delivery; the tracker itself does not deliver a click to the lower component.",
-      "coverage_rationale": "The guide distinguishes the public route outcomes without claiming delivery to a lower component.",
+      "supporting_excerpt": "For secondary presses, `Nothing` means no hit; `Target(hit)` means the press landed on that hit.",
+      "coverage_rationale": "The excerpt defines the no-hit route variant directly.",
       "specific_reason": null
     },
     {
@@ -1575,11 +1654,11 @@
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
-        "A secondary press on an ordinary hit returns Target."
+        "A secondary press on an ordinary hit returns Target with that hit."
       ],
       "destination": "docs/contracts/foundation-runtime.md#hit-ownership-and-releases",
-      "supporting_excerpt": "For a secondary backdrop press, `Reopen` returns `Outside` with an optional lower target; `Close` returns `Outside` without that target; `Ignore` returns `Swallowed` without dismissing. The caller decides layer mutation and input delivery; the tracker itself does not deliver a click to the lower component.",
-      "coverage_rationale": "The guide distinguishes the public route outcomes without claiming delivery to a lower component.",
+      "supporting_excerpt": "For secondary presses, `Nothing` means no hit; `Target(hit)` means the press landed on that hit.",
+      "coverage_rationale": "The excerpt defines the hit-bearing route variant directly.",
       "specific_reason": null
     },
     {
@@ -1803,10 +1882,18 @@
       "text_sha256": "dc74d12bd8617ff4c76e868d6efc0292d7ac338b0cd01b9e77ffd1467ab6cb8c",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "SecondaryTracker::backdrop_at",
+        "symbol": "backdrop_at",
         "declaration_line": "pub(crate) fn backdrop_at(hits: &Registry, pos: Position) -> Option<(Id, Option<Hit>)> {",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `pub(crate) fn backdrop_at(hits: &Registry, pos: Position) -> Option<(Id, Option<Hit>)> {` for `SecondaryTracker::backdrop_at` is present at the accepted cleanup source commit."
+        "evidence": "Free function `backdrop_at` is declared at module scope in `termrock_runtime::capture` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_runtime::capture",
+          "path": "crates/termrock-runtime/src/capture.rs",
+          "declaration_line": "pub(crate) fn backdrop_at(hits: &Registry, pos: Position) -> Option<(Id, Option<Hit>)> {",
+          "line_number": 185,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "maintained_contract_context",
       "required_clauses": [
@@ -1958,10 +2045,18 @@
       "text_sha256": "5af0c861d17a2a8a0db10fceea90be08d361c3bc57614a8889aec321ba0c95f5",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "SecondaryTracker::bar_input_for",
+        "symbol": "bar_input_for",
         "declaration_line": "pub const fn bar_input_for(phase: termrock_core::intent::Phase) -> BarInput {",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `pub const fn bar_input_for(phase: termrock_core::intent::Phase) -> BarInput {` for `SecondaryTracker::bar_input_for` is present at the accepted cleanup source commit."
+        "evidence": "Free function `bar_input_for` is declared at module scope in `termrock_runtime::capture` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_runtime::capture",
+          "path": "crates/termrock-runtime/src/capture.rs",
+          "declaration_line": "pub const fn bar_input_for(phase: termrock_core::intent::Phase) -> BarInput {",
+          "line_number": 225,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
@@ -1984,10 +2079,24 @@
       "text_sha256": "c9ec57ab8255d68a09d93a9071beb03daf67efea7fe37ea0125d929ebf12c624",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "TEST_CLOCK_ENV",
-        "declaration_line": "pub const TEST_CLOCK_ENV: &str = \"JUNIE_TUI_TEST_CLOCK\";",
+        "symbol": "termrock_runtime::clock_paste",
+        "declaration_line": "pub mod clock_paste;",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `pub const TEST_CLOCK_ENV: &str = \"JUNIE_TUI_TEST_CLOCK\";` for `TEST_CLOCK_ENV` is present at the accepted cleanup source commit."
+        "evidence": "Inner documentation in the source file attaches to module `termrock_runtime::clock_paste`; the recorded module declaration chain is present at the accepted cleanup commit.",
+        "attachment_path": "crates/termrock-runtime/src/lib.rs",
+        "scope_evidence": {
+          "kind": "module_documentation",
+          "module": "termrock_runtime::clock_paste",
+          "module_declarations": [
+            {
+              "path": "crates/termrock-runtime/src/lib.rs",
+              "declaration_line": "pub mod clock_paste;",
+              "line_number": 19,
+              "module": "termrock_runtime::clock_paste",
+              "scope": "module"
+            }
+          ]
+        }
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
@@ -3561,11 +3670,12 @@
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
-        "Component-author patches and slots are limited to the widget-owned part set."
+        "Component-author patches and slots are limited to widget-owned parts.",
+        "Caller-owned metadata and arbitrary-cell parts retain their existing RowUi configuration."
       ],
-      "destination": "docs/contracts/authoring.md#row-authoring-contracts",
-      "supporting_excerpt": "Shared widgets may use the component-author row API. Its part set limits widget-owned patches and slots.",
-      "coverage_rationale": "The existing row-authoring rule states the ownership boundary.",
+      "destination": "docs/contracts/foundation-runtime.md#composition-windows-and-row-cells",
+      "supporting_excerpt": "`RowUi::with_author_parts` limits component-author patches and slots to widget-owned parts; caller-owned metadata and arbitrary-cell parts keep their existing `RowUi` configuration.",
+      "coverage_rationale": "The excerpt states both widget-owned limits and the caller-owned part boundary.",
       "specific_reason": null
     },
     {
@@ -3720,11 +3830,11 @@
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
         "Right reservations accumulate with saturating arithmetic.",
-        "They affect logical budget only and do not paint or consume the left edge."
+        "They increase the right-side reservation, paint nothing, and consume no left-side space."
       ],
       "destination": "docs/contracts/foundation-runtime.md#composition-windows-and-row-cells",
-      "supporting_excerpt": "`reserve_right` adds to the logical content budget with saturating arithmetic. It paints nothing and does not reduce space from the left.",
-      "coverage_rationale": "The excerpt preserves reservation arithmetic and geometry.",
+      "supporting_excerpt": "`trailing_part` draws and reserves its part before row content. `reserve_right` increases the right-side reservation with saturating arithmetic. It paints nothing and consumes no left-side space. `begin_content` starts caller content while preserving its row-area contract.",
+      "coverage_rationale": "The excerpt describes the reservation field, arithmetic, painting, and left-side geometry.",
       "specific_reason": null
     },
     {
@@ -3879,11 +3989,12 @@
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
-        "The result is a sticky outcome indicator, not a paint rectangle."
+        "The padded-tail result is sticky after later calls.",
+        "It is an outcome indicator, not a paint rectangle or instruction to erase the physical row edge."
       ],
       "destination": "docs/contracts/foundation-runtime.md#composition-windows-and-row-cells",
-      "supporting_excerpt": "The padded-tail result remains true after later calls.",
-      "coverage_rationale": "The excerpt preserves outcome lifetime and interpretation.",
+      "supporting_excerpt": "`keep_row_tail` is sticky and does not repaint an earlier cell. The padded-tail result remains true after later calls; it is not a paint rectangle or an instruction to erase the row edge.",
+      "coverage_rationale": "The excerpt preserves stickiness and distinguishes the result from paint or erasure instructions.",
       "specific_reason": null
     },
     {
@@ -3931,11 +4042,12 @@
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
-        "Component defaults are applied before authored family/variant styles and remain lower precedence."
+        "Component defaults are applied before authored family/variant styles, state rules, theme overrides, overlays, and instance patches.",
+        "Authored style values remain authoritative independently for each channel, including when they repeat a component default."
       ],
-      "destination": "docs/contracts/theming.md#resolution-order",
-      "supporting_excerpt": "For `bind_defaults`, the current resolver starts with caller defaults, applies the family base and resolved variant base, then merges matching family/variant state rules.",
-      "coverage_rationale": "The resolver-order excerpt supports the lower-precedence component default rule.",
+      "destination": "docs/contracts/foundation-runtime.md#composition-windows-and-row-cells",
+      "supporting_excerpt": "A component row default is a fallback below authored recipes, state rules, global and scoped overrides, overlays, and the local instance patch. Authored style values remain authoritative per channel even when they repeat the component default.",
+      "coverage_rationale": "The excerpt preserves lower precedence and the same-value per-channel authority rule.",
       "specific_reason": null
     },
     {
@@ -3983,12 +4095,14 @@
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
         "evidence": "Attached declaration `pub fn available_width(&self) -> u16 {` for `CellUi::available_width` is present at the accepted cleanup source commit."
       },
-      "semantic_disposition": "descriptive_api_reference",
+      "semantic_disposition": "maintained_required_contract",
       "specific_reason": "This span describes the remaining-width query. T35 can document the result alongside RowUi’s other sizing methods.",
-      "required_clauses": [],
-      "destination": null,
-      "supporting_excerpt": null,
-      "coverage_rationale": null
+      "required_clauses": [
+        "CellUi::available_width excludes the resolved trailing-glyph reservation."
+      ],
+      "destination": "docs/contracts/foundation-runtime.md#composition-windows-and-row-cells",
+      "supporting_excerpt": "`CellUi::available_width` excludes any resolved trailing-glyph reservation.",
+      "coverage_rationale": "The excerpt preserves this sizing boundary for callers."
     },
     {
       "id": "1bf45fc7466d000f0b7f3844ef05b6efcbf8a5995578ef0f2d1fe7bbc2096293",
@@ -4692,11 +4806,11 @@
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
-        "Snapshot value describes last presented bar state; session owns shape output."
+        "Runtime::cursor_bar reports whether the last presentation retained a steady bar; Session emits the cursor shape."
       ],
       "destination": "docs/contracts/foundation-runtime.md#retained-runtime-boundaries",
-      "supporting_excerpt": "`RenderSnapshot::cursor_bar` reports the last presented steady-bar value; the session emits the cursor shape.",
-      "coverage_rationale": "The excerpt preserves snapshot/output ownership.",
+      "supporting_excerpt": "`Runtime::cursor_bar` reports whether the last presentation kept a steady bar; the session emits the cursor shape.",
+      "coverage_rationale": "The excerpt names the actual Runtime method and separates its value from session output.",
       "specific_reason": null
     },
     {
@@ -4953,12 +5067,13 @@
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
-        "The label is read-only and does not apply pending layout or mutate reveal/grab state.",
-        "It uses one-based inclusive visible rows and is empty for fit/zero-height cases."
+        "The label reads current visible logical rows without applying pending layout or changing reveal/grab state.",
+        "It displays a one-based start and inclusive end; 13 rows at offset 11 produce 12–24 of 120.",
+        "It is empty when content fits or the viewport has no rows."
       ],
-      "destination": "docs/contracts/authoring.md#keyboard-list-layout-and-text-rules",
-      "supporting_excerpt": "The position label reads the current visible logical range; it does not apply pending layout, reveal rows, or change a drag grab. It is empty when content fits or the viewport has no rows.",
-      "coverage_rationale": "The excerpt preserves read-only behavior and empty cases.",
+      "destination": "docs/contracts/foundation-runtime.md#retained-runtime-boundaries",
+      "supporting_excerpt": "`position_label` reads the current visible logical range without applying pending layout or changing reveal or grab state. It uses one-based rows and an inclusive end; 13 visible rows at offset 11 display as `12–24 of 120`. It returns an empty string when content fits or the viewport has no rows.",
+      "coverage_rationale": "The excerpt states read-only behavior, inclusive one-based formatting, the concrete range, and empty cases.",
       "specific_reason": null
     },
     {
@@ -5349,12 +5464,13 @@
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
-        "Command-scope bindings require real controls and follow focused-descendant decline.",
-        "The helper does not create focus or change global key routing."
+        "Command-scope bindings follow focused-descendant decline.",
+        "The helper creates no focus target or global key behavior.",
+        "Pass an empty binding table when the configuration has no fallback commands."
       ],
-      "destination": "docs/contracts/authoring.md#shell-interaction-policy",
-      "supporting_excerpt": "Draw the scope's actual controls. Its bubbling bindings are fallback commands after a focused descendant declines. The helper does not create a focus target or change global key handling.",
-      "coverage_rationale": "The excerpt preserves scope ownership and bubbling behavior.",
+      "destination": "docs/contracts/foundation-runtime.md#binding-publication-and-focus-scope",
+      "supporting_excerpt": "`Ui::command_scope` composes real controls; it creates no focus target or global key behavior, and accepts an empty table when no fallback exists.",
+      "coverage_rationale": "The excerpt covers the helper boundary and empty fallback configuration; the preceding scope rule preserves bubbling order.",
       "specific_reason": null
     },
     {
@@ -5369,10 +5485,31 @@
       "text_sha256": "cf4375d620d9f045026150cff2b634c88e7747fa68dd288d08b9460512cae3ec",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "composition",
-        "declaration_line": "use core::fmt;",
+        "symbol": "termrock_runtime::ui::composition",
+        "declaration_line": "pub mod composition;",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `use core::fmt;` for `composition` is present at the accepted cleanup source commit."
+        "evidence": "Inner documentation in the source file attaches to module `termrock_runtime::ui::composition`; the recorded module declaration chain is present at the accepted cleanup commit.",
+        "attachment_path": "crates/termrock-runtime/src/ui/mod.rs",
+        "scope_evidence": {
+          "kind": "module_documentation",
+          "module": "termrock_runtime::ui::composition",
+          "module_declarations": [
+            {
+              "path": "crates/termrock-runtime/src/lib.rs",
+              "declaration_line": "pub mod ui;",
+              "line_number": 33,
+              "module": "termrock_runtime::ui",
+              "scope": "module"
+            },
+            {
+              "path": "crates/termrock-runtime/src/ui/mod.rs",
+              "declaration_line": "pub mod composition;",
+              "line_number": 2,
+              "module": "termrock_runtime::ui::composition",
+              "scope": "module"
+            }
+          ]
+        }
       },
       "semantic_disposition": "maintained_contract_context",
       "required_clauses": [
@@ -5704,8 +5841,8 @@
         "Composition resolves from framework root and draws each visible leaf once."
       ],
       "destination": "docs/contracts/foundation-runtime.md#composition-windows-and-row-cells",
-      "supporting_excerpt": "Draw each visible composition leaf once; its measurement callback remains read-only.",
-      "coverage_rationale": "The excerpt states leaf draw cardinality.",
+      "supporting_excerpt": "Each draw call draws each visible composition leaf once.",
+      "coverage_rationale": "The excerpt states the per-draw leaf cardinality.",
       "specific_reason": null
     },
     {
@@ -5753,11 +5890,12 @@
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
-        "Measure matches draw tree/width resolution and does not draw leaves or dispatch input."
+        "Each draw call draws each visible composition leaf once.",
+        "Width changes may rerun measurement callbacks; measure shares draw remeasurement and is read-only."
       ],
-      "destination": "docs/contracts/authoring.md#keyboard-list-layout-and-text-rules",
-      "supporting_excerpt": "`measure` uses the same tree and resolved widths as `draw`; it is read-only.",
-      "coverage_rationale": "The excerpt preserves measurement parity and purity.",
+      "destination": "docs/contracts/foundation-runtime.md#composition-windows-and-row-cells",
+      "supporting_excerpt": "Each draw call draws each visible composition leaf once. Width changes can trigger another measurement callback. `CompositionSlots::measure` shares draw's resolved-width remeasurement and is read-only; it does not draw leaves or dispatch input.",
+      "coverage_rationale": "The excerpt permits width-dependent callback remeasurement while retaining measure/draw parity and read-only behavior.",
       "specific_reason": null
     },
     {
@@ -5850,18 +5988,26 @@
       "text_sha256": "474f5a61ed693417126682c6a5d62550e717d1faff677a0c98737d51314ea34b",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "Cx::next_callback_serial",
+        "symbol": "next_callback_serial",
         "declaration_line": "fn next_callback_serial(serial: &mut u64) -> Option<u64> {",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `fn next_callback_serial(serial: &mut u64) -> Option<u64> {` for `Cx::next_callback_serial` is present at the accepted cleanup source commit."
+        "evidence": "Free function `next_callback_serial` is declared at module scope in `termrock_runtime::ui::cx` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_runtime::ui::cx",
+          "path": "crates/termrock-runtime/src/ui/cx.rs",
+          "declaration_line": "fn next_callback_serial(serial: &mut u64) -> Option<u64> {",
+          "line_number": 241,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "internal_implementation_invariant",
       "required_clauses": [
-        "The private update serial fails closed on exhaustion without changing its value."
+        "The private next_callback_serial uses checked_add; exhaustion returns None without changing the serial."
       ],
-      "destination": "docs/contracts/foundation-runtime.md#layer-opening-and-focus-receipts",
-      "supporting_excerpt": "Pending focus transitions retain their originating layer identity after that layer closes and leaves the new focus ring.",
-      "coverage_rationale": "The helper is private; its exhaustion guard is an internal allocation invariant.",
+      "destination": "docs/contracts/foundation-runtime.md#retained-runtime-boundaries",
+      "supporting_excerpt": "The private `next_callback_serial` uses `checked_add`; exhaustion returns `None` without changing the serial.",
+      "coverage_rationale": "The excerpt preserves the private serial helper's checked exhaustion and no-mutation invariant.",
       "specific_reason": null
     },
     {
@@ -6407,12 +6553,13 @@
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
         "Exact receipt claims require matching runtime and opening identity.",
-        "Matching closed openings remain valid.",
-        "Payload mismatch leaves the receipt and queue unchanged."
+        "A matching closed opening remains valid for its dismissal receipt.",
+        "AlreadyClaimed and NotPending retire only the exact opening's owned receipt and do not claim or recreate another intent.",
+        "A payload Mismatch leaves the receipt and queue unchanged."
       ],
-      "destination": "docs/contracts/authoring.md#runtime-routing-and-layer-receipts",
-      "supporting_excerpt": "Claim by the exact `LayerOpening`, including its runtime identity. A matching closed opening can be valid because its dismissal arrives after closure. A mismatch does not claim or recreate an intent and leaves the receipt and queue unchanged.",
-      "coverage_rationale": "The excerpt preserves identity, closed-receipt timing, and mismatch failure semantics.",
+      "destination": "docs/contracts/foundation-runtime.md#layer-opening-and-focus-receipts",
+      "supporting_excerpt": "Use the exact-opening receipt API when runtime and opening identity must match. A matching closed opening remains valid for its dismissal receipt. `AlreadyClaimed` and `NotPending` retire only this opening's owned receipt; neither claims or recreates another intent. A payload `Mismatch` leaves its receipt and queue unchanged.",
+      "coverage_rationale": "The excerpt preserves opening identity, closed-opening timing, owned-receipt retirement, and mismatch no-change semantics.",
       "specific_reason": null
     },
     {
@@ -6751,13 +6898,13 @@
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
-        "Registration is clipped and requires enabled same-owner/part input registration.",
-        "Vertical is required; horizontal requires Axes::H.",
-        "Headroom and source revision track edge and mapping changes."
+        "The clipped body requires an enabled Part registration for the same owner and part.",
+        "Vertical is required; horizontal uses Axes::H.",
+        "Headroom stops at content edges and source_revision changes when mapping changes even if visible geometry is fixed."
       ],
-      "destination": "docs/contracts/authoring.md#runtime-registration-and-snapshots",
-      "supporting_excerpt": "Register a visible text body only when the same owner and part have an enabled registration in the frame. Vertical autoscroll is required. Horizontal autoscroll requires the horizontal axis. Use `headroom` to stop at content edges. Change `source_revision` when the source mapping changes, even if visible geometry stays fixed.",
-      "coverage_rationale": "The excerpt preserves registration, axis, and revision constraints.",
+      "destination": "docs/contracts/foundation-runtime.md#retained-runtime-boundaries",
+      "supporting_excerpt": "`Ui::register_text_drag_autoscroll` clips the body and requires an enabled `Part` registration for the same owner and part; vertical is required, and horizontal uses `Axes::H`. `headroom` stops at content edges; change `source_revision` when mapping changes, even if visible geometry stays fixed.",
+      "coverage_rationale": "The excerpt preserves clipped registration eligibility, axes, headroom, and source mapping revision.",
       "specific_reason": null
     },
     {
@@ -7401,10 +7548,24 @@
       "text_sha256": "f342fd7d0a111c4201a5b339190b506053dba34ef329811e869c8bb771cfd522",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "esc_bridge",
-        "declaration_line": "use std::io::{self, ErrorKind};",
+        "symbol": "termrock_session::esc_bridge",
+        "declaration_line": "mod esc_bridge;",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `use std::io::{self, ErrorKind};` for `esc_bridge` is present at the accepted cleanup source commit."
+        "evidence": "Inner documentation in the source file attaches to module `termrock_session::esc_bridge`; the recorded module declaration chain is present at the accepted cleanup commit.",
+        "attachment_path": "crates/termrock-session/src/lib.rs",
+        "scope_evidence": {
+          "kind": "module_documentation",
+          "module": "termrock_session::esc_bridge",
+          "module_declarations": [
+            {
+              "path": "crates/termrock-session/src/lib.rs",
+              "declaration_line": "mod esc_bridge;",
+              "line_number": 1,
+              "module": "termrock_session::esc_bridge",
+              "scope": "module"
+            }
+          ]
+        }
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
@@ -7480,10 +7641,18 @@
       "text_sha256": "b86cc964df4cc709301d34e1b1ae51915aace5d4c6c1b99db4aa8fb1d5a0768e",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "RestoreOnFailure::probe_keyboard_enhancement",
+        "symbol": "probe_keyboard_enhancement",
         "declaration_line": "pub(crate) fn probe_keyboard_enhancement() -> io::Result<bool> {",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `pub(crate) fn probe_keyboard_enhancement() -> io::Result<bool> {` for `RestoreOnFailure::probe_keyboard_enhancement` is present at the accepted cleanup source commit."
+        "evidence": "Free function `probe_keyboard_enhancement` is declared at module scope in `termrock_session::esc_bridge` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_session::esc_bridge",
+          "path": "crates/termrock-session/src/esc_bridge.rs",
+          "declaration_line": "pub(crate) fn probe_keyboard_enhancement() -> io::Result<bool> {",
+          "line_number": 265,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
@@ -7507,10 +7676,18 @@
       "text_sha256": "d223637837a1b02974824097386e98e81fef1731bb8dd2a75a3e976147e368ff",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "KeyboardReplyScanner::install",
+        "symbol": "install",
         "declaration_line": "pub(crate) fn install() -> io::Result<()> {",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `pub(crate) fn install() -> io::Result<()> {` for `KeyboardReplyScanner::install` is present at the accepted cleanup source commit."
+        "evidence": "Free function `install` is declared at module scope in `termrock_session::esc_bridge` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_session::esc_bridge",
+          "path": "crates/termrock-session/src/esc_bridge.rs",
+          "declaration_line": "pub(crate) fn install() -> io::Result<()> {",
+          "line_number": 750,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
@@ -7533,10 +7710,18 @@
       "text_sha256": "19447d5a71cb6cb028b653e3a8acb268c2d44607d55d77ed8534aaa6acd1818f",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "KeyboardReplyScanner::drain_real",
+        "symbol": "drain_real",
         "declaration_line": "pub(crate) fn drain_real() -> io::Result<usize> {",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `pub(crate) fn drain_real() -> io::Result<usize> {` for `KeyboardReplyScanner::drain_real` is present at the accepted cleanup source commit."
+        "evidence": "Free function `drain_real` is declared at module scope in `termrock_session::esc_bridge` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_session::esc_bridge",
+          "path": "crates/termrock-session/src/esc_bridge.rs",
+          "declaration_line": "pub(crate) fn drain_real() -> io::Result<usize> {",
+          "line_number": 799,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
@@ -7559,10 +7744,18 @@
       "text_sha256": "7c752a4127e4fb6f623b364230af8407c1a4898c98e57b66a33701b8f5756066",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "KeyboardReplyScanner::restore_stdin",
+        "symbol": "restore_stdin",
         "declaration_line": "pub(crate) fn restore_stdin() {",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `pub(crate) fn restore_stdin() {` for `KeyboardReplyScanner::restore_stdin` is present at the accepted cleanup source commit."
+        "evidence": "Free function `restore_stdin` is declared at module scope in `termrock_session::esc_bridge` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_session::esc_bridge",
+          "path": "crates/termrock-session/src/esc_bridge.rs",
+          "declaration_line": "pub(crate) fn restore_stdin() {",
+          "line_number": 812,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
@@ -7585,10 +7778,18 @@
       "text_sha256": "86abab2f2b90693ba46ba73988991ab94bf59c878f9587582915344e4f257943",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "KeyboardReplyScanner::wait_for_event",
+        "symbol": "wait_for_event",
         "declaration_line": "pub(crate) fn wait_for_event(timeout: Option<Duration>) -> io::Result<bool> {",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `pub(crate) fn wait_for_event(timeout: Option<Duration>) -> io::Result<bool> {` for `KeyboardReplyScanner::wait_for_event` is present at the accepted cleanup source commit."
+        "evidence": "Free function `wait_for_event` is declared at module scope in `termrock_session::esc_bridge` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_session::esc_bridge",
+          "path": "crates/termrock-session/src/esc_bridge.rs",
+          "declaration_line": "pub(crate) fn wait_for_event(timeout: Option<Duration>) -> io::Result<bool> {",
+          "line_number": 822,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
@@ -7612,10 +7813,18 @@
       "text_sha256": "bca6f76105462e2afc2aadd0fc693255899413d3d394c5bc87ee518d579e3755",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "KeyboardReplyScanner::take_ready_stash",
+        "symbol": "take_ready_stash",
         "declaration_line": "fn take_ready_stash() -> Option<Vec<u8>> {",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `fn take_ready_stash() -> Option<Vec<u8>> {` for `KeyboardReplyScanner::take_ready_stash` is present at the accepted cleanup source commit."
+        "evidence": "Free function `take_ready_stash` is declared at module scope in `termrock_session::esc_bridge` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_session::esc_bridge",
+          "path": "crates/termrock-session/src/esc_bridge.rs",
+          "declaration_line": "fn take_ready_stash() -> Option<Vec<u8>> {",
+          "line_number": 870,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
@@ -7638,10 +7847,18 @@
       "text_sha256": "c145d01f11b41cfabbd8c8d9c095cfcd8d5986dafbf6b3090c729dc5ef34d7b5",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "KeyboardReplyScanner::acknowledge_split_prefix_consumed",
+        "symbol": "acknowledge_split_prefix_consumed",
         "declaration_line": "pub(crate) fn acknowledge_split_prefix_consumed(event: &Event) {",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `pub(crate) fn acknowledge_split_prefix_consumed(event: &Event) {` for `KeyboardReplyScanner::acknowledge_split_prefix_consumed` is present at the accepted cleanup source commit."
+        "evidence": "Free function `acknowledge_split_prefix_consumed` is declared at module scope in `termrock_session::esc_bridge` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_session::esc_bridge",
+          "path": "crates/termrock-session/src/esc_bridge.rs",
+          "declaration_line": "pub(crate) fn acknowledge_split_prefix_consumed(event: &Event) {",
+          "line_number": 904,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "maintained_required_contract",
       "required_clauses": [
@@ -8033,10 +8250,18 @@
       "text_sha256": "2c839d1f7dd29d60487566319f723b71cef01ea778c69660d945ffb394d7e14b",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "TerminalSession::run_with_startup",
+        "symbol": "run_with_startup",
         "declaration_line": "pub fn run_with_startup<A: App>(app: A, theme: Theme, startup: StartupInput) -> io::Result<()> {",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `pub fn run_with_startup<A: App>(app: A, theme: Theme, startup: StartupInput) -> io::Result<()> {` for `TerminalSession::run_with_startup` is present at the accepted cleanup source commit."
+        "evidence": "Free function `run_with_startup` is declared at module scope in `termrock_session::session` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_session::session",
+          "path": "crates/termrock-session/src/session.rs",
+          "declaration_line": "pub fn run_with_startup<A: App>(app: A, theme: Theme, startup: StartupInput) -> io::Result<()> {",
+          "line_number": 527,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "descriptive_api_reference",
       "specific_reason": "This span labels the startup-input application runner. The startup delay and queued-input rules are mapped under groups 727–730.",
@@ -8057,10 +8282,18 @@
       "text_sha256": "89b3d232459ef280a7d67dd6d7194663e86392d64641cbc7ce54d0276907180c",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "TerminalSession::run_with_feedback_clock_and_startup",
+        "symbol": "run_with_feedback_clock_and_startup",
         "declaration_line": "pub fn run_with_feedback_clock_and_startup<A: App>(",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `pub fn run_with_feedback_clock_and_startup<A: App>(` for `TerminalSession::run_with_feedback_clock_and_startup` is present at the accepted cleanup source commit."
+        "evidence": "Free function `run_with_feedback_clock_and_startup` is declared at module scope in `termrock_session::session` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_session::session",
+          "path": "crates/termrock-session/src/session.rs",
+          "declaration_line": "pub fn run_with_feedback_clock_and_startup<A: App>(",
+          "line_number": 531,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "descriptive_api_reference",
       "specific_reason": "This span labels the runner that accepts feedback-clock and startup options. Their caller rules are mapped separately; T35 owns full method reference.",
@@ -8081,18 +8314,26 @@
       "text_sha256": "6759e6d968c3c28bb18d8cc5585d2a159cb3c430db1cc7b723d356554c02e842",
       "cleanup_attachment": {
         "status": "retained_production_item",
-        "symbol": "TerminalSession::run_with_cursor_shape",
+        "symbol": "run_with_cursor_shape",
         "declaration_line": "pub fn run_with_cursor_shape<A: App>(",
         "source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
-        "evidence": "Attached declaration `pub fn run_with_cursor_shape<A: App>(` for `TerminalSession::run_with_cursor_shape` is present at the accepted cleanup source commit."
+        "evidence": "Free function `run_with_cursor_shape` is declared at module scope in `termrock_session::session` at the accepted cleanup commit.",
+        "scope_evidence": {
+          "kind": "module_level_function",
+          "module": "termrock_session::session",
+          "path": "crates/termrock-session/src/session.rs",
+          "declaration_line": "pub fn run_with_cursor_shape<A: App>(",
+          "line_number": 540,
+          "lexical_parent": "module"
+        }
       },
       "semantic_disposition": "maintained_contract_context",
       "required_clauses": [
-        "run_with_cursor_shape applies the explicit startup shape option."
+        "run_with_cursor_shape applies its explicit initial terminal cursor shape."
       ],
       "destination": "docs/contracts/foundation-runtime.md#session-input-and-cursor-policy",
-      "supporting_excerpt": "Explicit `Terminal`, `Block`, `Underline`, and `Bar` choices select their startup command regardless of detected support.",
-      "coverage_rationale": "The excerpt supports explicit startup shape selection.",
+      "supporting_excerpt": "`run_with_cursor_shape` applies the explicit initial terminal cursor shape.",
+      "coverage_rationale": "The excerpt states the startup runner’s explicit shape selection.",
       "specific_reason": null
     },
     {
