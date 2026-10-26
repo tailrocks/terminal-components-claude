@@ -2431,6 +2431,7 @@ mod tests {
         request_open: bool,
         state: MenuState,
         anchor: Option<Anchor>,
+        selection: Option<usize>,
     }
 
     impl App for AnchorProbeApp {
@@ -2449,7 +2450,9 @@ mod tests {
                     cx.open_layer(ANCHOR_MENU, layer);
                 }
             }
-            menu.update(cx, &mut self.state).erase()
+            let (response, selection) = menu.update_with_selection(cx, &mut self.state);
+            self.selection = selection;
+            response.erase()
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
@@ -2474,6 +2477,7 @@ mod tests {
                 request_open: false,
                 state: MenuState::default(),
                 anchor: None,
+                selection: None,
             },
             Theme::junie(),
         );
@@ -2530,6 +2534,7 @@ mod tests {
             })
         );
 
+        runtime.app_mut().selection = Some(0);
         runtime.app_mut().render_owner = false;
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('z'))));
@@ -2541,6 +2546,11 @@ mod tests {
         assert!(
             !runtime.is_open(ANCHOR_MENU),
             "missing owner closes the anchored layer"
+        );
+        assert_eq!(
+            runtime.app().selection,
+            None,
+            "missing anchor clears receipt"
         );
     }
 
@@ -2876,8 +2886,21 @@ mod tests {
     }
 
     const RECEIPT_MENU: Id = Id::root("menu.selection-receipt.runtime");
+    const RECEIPT_BACKGROUND: Id = Id::root("menu.selection-receipt.background");
+    const RECEIPT_EMPTY_ITEMS: [MenuItem<'static>; 0] = [];
     const RECEIPT_DUPLICATE_ITEMS: [MenuItem<'static>; 2] =
         [MenuItem::new(OPEN, "First"), MenuItem::new(OPEN, "Second")];
+    const RECEIPT_DISABLED_ITEMS: [MenuItem<'static>; 2] = [
+        MenuItem::new(OPEN, "Unavailable").disabled(true),
+        MenuItem::new(CLOSE, "Also unavailable").disabled(true),
+    ];
+    const RECEIPT_COMMAND_COLLISION_ITEMS: [MenuItem<'static>; 2] = [
+        MenuItem::new(
+            ActionKey::custom("menu.context.next.down"),
+            "Command collision",
+        ),
+        MenuItem::new(CLOSE, "Next row"),
+    ];
     const RECEIPT_DIRECT_ITEMS: [MenuItem<'static>; 2] =
         [MenuItem::new(OPEN, "First"), MenuItem::new(CLOSE, "Second")];
     const RECEIPT_DIRECT_DUPLICATES: [MenuItem<'static>; 3] = [
@@ -2895,6 +2918,7 @@ mod tests {
     struct ReceiptMenuApp {
         items: &'static [MenuItem<'static>],
         item_bindings: bool,
+        skip_disabled: bool,
         capture_receipt: bool,
         layered: bool,
         opened_once: bool,
@@ -2911,6 +2935,7 @@ mod tests {
         fn menu(&self) -> ContextMenu<'static> {
             ContextMenu::at(RECEIPT_MENU, self.items, Position::new(0, 0))
                 .item_bindings(self.item_bindings)
+                .skip_disabled(self.skip_disabled)
         }
     }
 
@@ -2945,6 +2970,7 @@ mod tests {
         fn draw(&self, ui: &mut Ui<'_>) {
             let menu = self.menu();
             if self.layered {
+                ui.register_focus_only(RECEIPT_BACKGROUND, Focusability::Focusable);
                 let _ = ui.layer(RECEIPT_MENU, |ui, area| {
                     menu.draw(ui, area, &self.state);
                 });
@@ -2966,12 +2992,33 @@ mod tests {
         state: MenuState,
         keymap: KeyMap,
     ) -> (Runtime<ReceiptMenuApp>, Buffer) {
+        receipt_runtime_with_skip_disabled(
+            items,
+            item_bindings,
+            true,
+            capture_receipt,
+            layered,
+            state,
+            keymap,
+        )
+    }
+
+    fn receipt_runtime_with_skip_disabled(
+        items: &'static [MenuItem<'static>],
+        item_bindings: bool,
+        skip_disabled: bool,
+        capture_receipt: bool,
+        layered: bool,
+        state: MenuState,
+        keymap: KeyMap,
+    ) -> (Runtime<ReceiptMenuApp>, Buffer) {
         let area = Rect::new(0, 0, 40, 8);
         let mut buffer = Buffer::empty(area);
         let mut runtime = Runtime::new(
             ReceiptMenuApp {
                 items,
                 item_bindings,
+                skip_disabled,
                 capture_receipt,
                 layered,
                 opened_once: layered,
@@ -2989,6 +3036,8 @@ mod tests {
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         if layered {
+            runtime.set_focus(Some(RECEIPT_BACKGROUND));
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
             runtime.app_mut().opened_once = false;
             let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
         }
@@ -3070,6 +3119,96 @@ mod tests {
     }
 
     #[test]
+    fn space_activation_and_unselectable_rows_return_expected_receipts() {
+        let (mut space, _) = receipt_runtime(
+            &RECEIPT_DUPLICATE_ITEMS,
+            false,
+            true,
+            false,
+            MenuState::default(),
+            KeyMap::new(),
+        );
+        let _ = crate::runtime::stub::deliver(&mut space, Input::Key(key(KeyCode::Char(' '))));
+        assert_eq!(space.app().action, Some(MenuAction::Chosen(OPEN)));
+        assert_eq!(space.app().selection, Some(0));
+
+        for items in [&RECEIPT_EMPTY_ITEMS[..], &RECEIPT_DISABLED_ITEMS[..]] {
+            let (mut runtime, _) = receipt_runtime(
+                items,
+                false,
+                true,
+                false,
+                MenuState::default(),
+                KeyMap::new(),
+            );
+            let _ =
+                crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char(' '))));
+            assert_eq!(runtime.app().action, None);
+            assert_eq!(runtime.app().selection, None);
+        }
+
+        let (mut out_of_range, _) = receipt_runtime_with_skip_disabled(
+            &RECEIPT_DUPLICATE_ITEMS,
+            false,
+            false,
+            true,
+            false,
+            MenuState {
+                cursor: usize::MAX,
+                initialized: true,
+                ..MenuState::default()
+            },
+            KeyMap::new(),
+        );
+        let _ =
+            crate::runtime::stub::deliver(&mut out_of_range, Input::Key(key(KeyCode::Char(' '))));
+        assert_eq!(out_of_range.app().state.cursor(), usize::MAX);
+        assert_eq!(out_of_range.app().action, None);
+        assert_eq!(out_of_range.app().selection, None);
+    }
+
+    #[test]
+    fn layered_pointer_choice_returns_row_closes_and_restores_focus() {
+        let (mut runtime, _) = receipt_runtime(
+            &RECEIPT_DUPLICATE_ITEMS,
+            false,
+            true,
+            true,
+            MenuState::default(),
+            KeyMap::new(),
+        );
+        assert!(runtime.is_open(RECEIPT_MENU));
+        assert_eq!(runtime.focus(), Some(RECEIPT_MENU));
+
+        let row = runtime
+            .area_of_part(RECEIPT_MENU, PartRef::item(Part::ROW, ItemKey::index(1)))
+            .expect("the layered menu registered its second row");
+        let target = Position::new(row.x + row.width / 2, row.y + row.height / 2);
+        runtime.app_mut().observations.clear();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            receipt_mouse(MouseKind::Down, target.x, target.y),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            receipt_mouse(MouseKind::Up, target.x, target.y),
+        );
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+
+        let observations = &runtime.app().observations;
+        let actions = observations
+            .iter()
+            .copied()
+            .filter(|(action, _)| action.is_some())
+            .collect::<Vec<_>>();
+        assert_eq!(actions, vec![(Some(MenuAction::Chosen(OPEN)), Some(1))]);
+        assert_eq!(runtime.app().action, None);
+        assert_eq!(runtime.app().selection, None);
+        assert!(!runtime.is_open(RECEIPT_MENU));
+        assert_eq!(runtime.focus(), Some(RECEIPT_BACKGROUND));
+    }
+
+    #[test]
     fn existing_update_preserves_the_receipt_updates_full_response() {
         let (mut existing, _) = receipt_runtime(
             &RECEIPT_DUPLICATE_ITEMS,
@@ -3142,6 +3281,24 @@ mod tests {
         assert_eq!(runtime.app().action, Some(MenuAction::Chosen(OPEN)));
         assert_eq!(runtime.app().selection, Some(0));
         assert_eq!(runtime.app().state.cursor(), 1);
+
+        let (mut command_precedence, _) = receipt_runtime(
+            &RECEIPT_COMMAND_COLLISION_ITEMS,
+            true,
+            true,
+            false,
+            MenuState::default(),
+            KeyMap::new().bind_component(
+                RECEIPT_MENU,
+                ActionKey::custom("menu.context.next.down"),
+                Chord::key(KeyCode::Down),
+            ),
+        );
+        let _ =
+            crate::runtime::stub::deliver(&mut command_precedence, Input::Key(key(KeyCode::Down)));
+        assert_eq!(command_precedence.app().state.cursor(), 1);
+        assert_eq!(command_precedence.app().action, None);
+        assert_eq!(command_precedence.app().selection, None);
     }
 
     #[test]
@@ -3235,6 +3392,18 @@ mod tests {
             selection, None,
             "dismissal replaces and clears the old receipt"
         );
+
+        for later_action in [
+            MenuAction::Submenu(ItemKey::index(1)),
+            MenuAction::Opened(2),
+        ] {
+            let mut acc = Acc::new();
+            acc.action((MenuAction::Chosen(OPEN), Some(1)));
+            acc.action((later_action, None));
+            let (response, selection) = finish_with_selection(acc, RECEIPT_MENU);
+            assert_eq!(response.action_ref(), Some(&later_action));
+            assert_eq!(selection, None, "non-choice action clears the old receipt");
+        }
     }
 
     #[test]
