@@ -39,7 +39,7 @@
   ],
   "design_decisions": [
     "Input listeners.rs is byte-identical to the accepted formatted file at 865073462331552897822d65ede8d673f9c870d7; both have SHA-256 1fea0aa51376f547444a62ab7150e741de1f008fb95d429e9c8b51e6856b7372.",
-    "The only historical call was in PortConflictCase::port_conflict_case, removed by T37 app cleanup commit 4f502be854a4d4c7a7585344bd9915b2a26fae79. The fixed input has no caller.",
+    "The only historical call was in the free function `crates/holla-sim/src/fixtures.rs::port_conflict_case` at source 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd (definition at line 255; PortConflict::capture call at line 269). T37 app cleanup commit 4f502be854a4d4c7a7585344bd9915b2a26fae79 removed that function. The fixed input has no caller.",
     "The public PortConflict type and validator remain, with no current production constructor. T01 must record this. T27 must prove a supported producer/consumer path or use a separately approved API migration.",
     "No behavior fix, public API change, diagnostic change, or test edit was made."
   ],
@@ -121,7 +121,7 @@
   ],
   "caller_audit": {
     "fixed_input_search": "No PortConflict::capture call, PortConflictCase, or port_conflict_case occurs under crates/holla-sim/src at input 0904de5143cfa57a0e87e9b415e9fe972e6783cb.",
-    "historical_call": "T00 source 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd had one call in PortConflictCase::port_conflict_case. T37 app cleanup 4f502be854a4d4c7a7585344bd9915b2a26fae79 removed that helper.",
+    "historical_call": "T00 source 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd had one call in the free function `crates/holla-sim/src/fixtures.rs::port_conflict_case` (definition at line 255; capture call at line 269). T37 app cleanup 4f502be854a4d4c7a7585344bd9915b2a26fae79 removed the function.",
     "current_constructor": "No current construction expression remains under crates. PortConflict fields are private.",
     "follow_up": "T01 records the public type and validator without a production constructor. T27 must prove a supported producer/consumer path or use a separately approved API migration."
   }

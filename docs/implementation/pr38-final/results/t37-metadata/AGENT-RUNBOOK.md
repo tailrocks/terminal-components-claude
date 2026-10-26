@@ -1,5 +1,17 @@
 # T37 metadata result
 
+## Final follow-up on source `560f3dca487247b1068c45a0d2b469c8eabe3165`
+
+This section supersedes the earlier pending-source statements below. On this accepted combined source, all five guarded locked build checks passed: the root workspace and the e2e, visibility, external-consumer, and publisher standalone workspaces. Root and three standalone format checks passed. The e2e standalone format check exited 1 on a one-line formatting difference in `crates/termrock-e2e/build.rs:23`; the file SHA-256 (`d0c867ee75175e6464cd260fd658544c97926fb2c0dc0e69d82af3a4c4ceaa57`) matches product baseline `1d6ee92adf6ccca38eeee64b1371cba1497e8fcd`, so the drift predates T37. A formatting-only fix and e2e rerun are assigned to the source owner and remain pending. No Rust source was changed by this metadata owner.
+
+The permitted guarded no-deps metadata command passed in the root and all four standalone workspaces. It reports 47 root packages and 68 retained targets (42 libraries, 14 binaries, 12 examples), with no enabled test, bench, or doctest targets. The five lock hashes remained unchanged during metadata inspection. The exact 62-path metadata graph still matches SHA-256 `9a39580c733b65fe02ac28a691188838daef4957235bd658fc305d1d5bdaf2a5`. Eight scoped active-reference checks are clear; the 24-file preservation hash set matches.
+
+Pinned Velnor 0.1.48 generation ran twice successfully and was byte-identical. The final manifest has 360 tasks (90 each build, Clippy, doc, and fmt), zero Nextest run tasks, and 45 discovered packages. Testing config remains `cargo_nextest`, `run_ignored = "default"`, with default/testing configurations and `--no-tests fail` retained for eligible future tasks. The Nextest lane is **ABSENT / NOT VERIFIED**, not passing. Both `rust-visual-harness` jobs remain generated. Generated output hashes and exact command logs are in `final-verification-560f/final-verification.json`.
+
+The scoped metadata/evidence commit `0d47da019d0ace072558bdce9916824eb67c9180` received Sol-high scoped ACCEPT with no findings from `/root/t37_apps_review`; that review did not rerun Cargo or Velnor. The follow-up checks above independently bind the current source. The two corrected caller-classification strings in `t37-port-conflict-orphan/runbook.json` are authorized by `/root/t00_independent_review` Sol-high under T37-ORPHAN-CAPTURE-01: the historical caller was the free function `crates/holla-sim/src/fixtures.rs::port_conflict_case`.
+
+No tests, doctests, benches, or Nextest cases ran. Selected behavior cases remain zero and product behavior is **NOT VERIFIED**. T37 remains subject to integrated independent acceptance.
+
 ## Status
 
 Metadata, lockfile, generated-workflow, and guarded build checks were completed on accepted combined source `55c75d292f5288b07f4a779575a42431259e21c4`. This is structural and build evidence only; zero-case behavior is **NOT VERIFIED**. No tests or Nextest runs were executed.

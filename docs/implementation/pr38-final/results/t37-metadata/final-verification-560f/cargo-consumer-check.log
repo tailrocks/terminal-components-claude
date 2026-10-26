@@ -1,0 +1,39 @@
+rust build guard: allowed; checked 1 filesystem(s)
+    Checking termrock-core v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-core)
+    Checking termrock-theme v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-theme)
+    Checking termrock-layout v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-layout)
+    Checking termrock-text v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-text)
+    Checking termrock-render v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-render)
+    Checking termrock-collections v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-collections)
+    Checking termrock-runtime v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime)
+    Checking termrock-controls v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls)
+    Checking termrock-shell v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-shell)
+    Checking termrock-viewport v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-viewport)
+    Checking termrock-fields v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-fields)
+    Checking termrock-feedback v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback)
+warning: unnecessary braces around block return value
+   --> /Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback/src/hintbar.rs:193:9
+    |
+193 |         { self.status.flags() }
+    |         ^^                   ^^
+    |
+    = note: `#[warn(unused_braces)]` (part of `#[warn(unused)]`) on by default
+help: remove these braces
+    |
+193 -         { self.status.flags() }
+193 +         self.status.flags()
+    |
+
+    Checking termrock-terminal v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-terminal)
+    Checking termrock-session v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-session)
+warning: `termrock-feedback` (lib) generated 1 warning (run `cargo fix --lib -p termrock-feedback` to apply 1 suggestion)
+    Checking termrock-navigation v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation)
+    Checking termrock-overlays v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays)
+    Checking termrock-grid v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-grid)
+    Checking termrock-forms v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-forms)
+    Checking termrock-editors v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-editors)
+    Checking termrock v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock)
+    Checking external-consumer-demo v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/external-consumer-demo)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.85s
+mbx[cache]: 0 hits, 22 misses; 0 B downloaded, 0 B uploaded, 9.0 MiB stored locally
+mbx[savings]: 21.3 TiB logical of old build output has been shown the door.
