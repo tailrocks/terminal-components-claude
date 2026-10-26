@@ -74,6 +74,14 @@ required-features = ["testing"]
 name = "manager_composition_consumer"
 required-features = ["testing"]
 
+[[test]]
+name = "toolbar"
+required-features = ["testing"]
+
+[[test]]
+name = "toolbar_composition_consumer"
+required-features = ["testing"]
+
 [[example]]
 name = "master_detail_composition_consumer"
 
