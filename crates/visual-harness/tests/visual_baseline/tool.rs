@@ -1,3 +1,4 @@
+#![cfg(test)]
 use crate::scenarios;
 use crate::support;
 use termrock_core::platform::ClientPlatform;

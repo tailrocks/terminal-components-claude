@@ -1,3 +1,4 @@
+#![cfg(test)]
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};

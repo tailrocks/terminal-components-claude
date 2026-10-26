@@ -1,3 +1,4 @@
+#![cfg(test)]
 //! Small, dependency-free lexical helpers shared by test-only source guards.
 //!
 //! This is intentionally not a Rust parser: it masks comments and literals, recognizes only
