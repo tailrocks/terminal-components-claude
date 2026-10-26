@@ -500,9 +500,20 @@ def source_member_location(path, after_line, member, kind, parent_symbol):
 
 def current_map(symbol, kind, index, components):
     normalized = symbol.replace("-", "_")
+    if normalized == "termrock_core::keymap::NavKeys" or normalized.startswith("termrock_core::keymap::NavKeys::"):
+        member = normalized.split("::NavKeys", 1)[1]
+        if member.startswith("::"):
+            public_paths = ["termrock_core::NavKeys" + member, "termrock_core::keymap::NavKeys" + member]
+            source_line = source_member_location("crates/termrock-core/src/keymap.rs", 17, member[2:], kind, "NavKeys")
+            if source_line:
+                source = {**source_line, "commit": INPUT}
+                canonical = "termrock_core::keymap::NavKeys" + member
+                return {"method": "exact_impl_owner_member", "qualified_symbol": canonical, "canonical_definition_symbol": canonical, "definition_owner": "termrock_core::keymap::NavKeys", "public_paths": public_paths, "source": source, "product_source": None, "owner_task": "T09", "component_wid": None, "retirement": None, "source_binding_verified": True}
+        public_paths = ["termrock_core::NavKeys", "termrock_core::keymap::NavKeys"]
+        return {"method": "exact_type_owner", "qualified_symbol": "termrock_core::keymap::NavKeys", "canonical_definition_symbol": "termrock_core::keymap::NavKeys", "definition_owner": "termrock_core::keymap::NavKeys", "public_paths": public_paths, "source": {"path": "crates/termrock-core/src/keymap.rs", "line": 17, "sha256": source_sha("crates/termrock-core/src/keymap.rs"), "commit": INPUT}, "product_source": None, "owner_task": "T09", "component_wid": None, "retirement": None, "source_binding_verified": True}
     if normalized.startswith("termrock_shell::reach::"):
         retirement = shell_reach_retirement(symbol, kind)
-        return {"method": "reviewed_test_api_retirement", "qualified_symbol": None, "definition_owner": "termrock_shell::reach", "public_paths": [normalized], "source": {"path": T01_REACH_DECISION_PATH, "commit": T01_REACH_DECISION_COMMIT, "sha256": retirement["decision_artifact"]["sha256"], "decision_id": retirement["decision_id"]}, "product_source": {"path": retirement["input_source"]["path"], "line": retirement["input_source"]["line_start"], "sha256": retirement["input_source"]["file_sha256"], "symbol": normalized}, "owner_task": "T19/T22/T27/T28/T29", "owner_task_ids": ["T19", "T22", "T27", "T28", "T29"], "component_wid": None, "retirement": {"record_path": T01_REACH_DECISION_PATH, "record_commit": T01_REACH_DECISION_COMMIT, "record_sha256": retirement["decision_artifact"]["sha256"], "source_record_id": retirement["scope_record_id"], "group": None, **retirement}, "source_binding_verified": retirement["source_binding_verified"]}
+        return {"method": "reviewed_test_api_retirement", "qualified_symbol": None, "historical_public_path": normalized, "definition_owner": "termrock_shell::reach", "public_paths": [], "source": {"path": T01_REACH_DECISION_PATH, "commit": T01_REACH_DECISION_COMMIT, "sha256": retirement["decision_artifact"]["sha256"], "decision_id": retirement["decision_id"]}, "product_source": {"path": retirement["input_source"]["path"], "line": retirement["input_source"]["line_start"], "sha256": retirement["input_source"]["file_sha256"], "symbol": normalized}, "owner_task": "T19/T22/T27/T28/T29", "owner_task_ids": ["T19", "T22", "T27", "T28", "T29"], "component_wid": None, "retirement": {"record_path": T01_REACH_DECISION_PATH, "record_commit": T01_REACH_DECISION_COMMIT, "record_sha256": retirement["decision_artifact"]["sha256"], "source_record_id": retirement["scope_record_id"], "group": None, **retirement}, "source_binding_verified": retirement["source_binding_verified"]}
     retired = retired_record(symbol)
     if retired:
         parent = normalized
@@ -544,11 +555,11 @@ def current_map(symbol, kind, index, components):
                     wid = components.get(p["owner"], {}).get("wid")
                     if wid not in {"W%02d" % i for i in range(1, 46)}:
                         wid = None
-                    return {"method": "current_parent_plus_source_member", "qualified_symbol": candidate, "definition_owner": p["owner"], "public_paths": [candidate], "source": {**location, "commit": INPUT}, "product_source": None, "owner_task": p["task"] or task_for_symbol(candidate), "component_wid": wid, "retirement": None, "source_binding_verified": True}
+                    return {"method": "current_parent_plus_source_member", "qualified_symbol": candidate, "definition_owner": p["owner"], "public_paths": [candidate], "public_path_binding_status": "Candidate joined to source parent and public member declaration; export visibility remains NOT VERIFIED.", "source": {**location, "commit": INPUT}, "product_source": None, "owner_task": p["task"] or task_for_symbol(candidate), "component_wid": wid, "retirement": None, "source_binding_verified": True}
                 wid = components.get(p["owner"], {}).get("wid")
                 if wid not in {"W%02d" % i for i in range(1, 46)}:
                     wid = None
-                return {"method": "parent_type_member_not_located", "qualified_symbol": candidate, "definition_owner": p["owner"], "public_paths": p["paths"], "source": {"path": p["path"], "line": p["line"], "sha256": p["sha256"], "commit": INPUT}, "product_source": None, "owner_task": p["task"] or task_for_symbol(candidate), "component_wid": wid, "retirement": None, "source_binding_verified": False}
+                return {"method": "parent_type_member_not_located", "qualified_symbol": candidate, "definition_owner": p["owner"], "public_paths": [], "source": {"path": p["path"], "line": p["line"], "sha256": p["sha256"], "commit": INPUT}, "product_source": None, "owner_task": p["task"] or task_for_symbol(candidate), "component_wid": wid, "retirement": None, "source_binding_verified": False}
         return {"method": "no_current_symbol_or_reviewed_retirement", "qualified_symbol": None, "definition_owner": None, "public_paths": [], "source": None, "product_source": None, "owner_task": task_for_symbol(candidate), "component_wid": None, "retirement": None, "source_binding_verified": False}
     p = api_fields(index[candidate][0])
     comp = components.get(p["owner"])
@@ -557,7 +568,7 @@ def current_map(symbol, kind, index, components):
         wid = None
     if candidate != p["symbol"]:
         method = "current_reexport_path"
-    return {"method": method, "qualified_symbol": candidate, "canonical_definition_symbol": p["symbol"], "definition_owner": p["owner"], "public_paths": sorted(set(p["paths"])), "source": {"path": p["path"], "line": p["line"], "sha256": p["sha256"], "commit": INPUT}, "product_source": None, "owner_task": p["task"] or (comp.get("named_owner_task") if comp else None) or task_for_symbol(candidate), "component_wid": wid, "retirement": None, "source_binding_verified": True}
+    return {"method": method, "qualified_symbol": candidate, "canonical_definition_symbol": p["symbol"], "definition_owner": p["owner"], "public_paths": [candidate], "public_path_binding_status": "Candidate joined to supplemental source API index; export visibility remains NOT VERIFIED.", "source": {"path": p["path"], "line": p["line"], "sha256": p["sha256"], "commit": INPUT}, "product_source": None, "owner_task": p["task"] or (comp.get("named_owner_task") if comp else None) or task_for_symbol(candidate), "component_wid": wid, "retirement": None, "source_binding_verified": True}
 
 
 def build_coverage(component, foundation, routes):
@@ -672,53 +683,122 @@ def build_coverage(component, foundation, routes):
     return rows, lane_ids, lane_counts, old_bytes, catalog_bytes
 
 
-def task_sources(component, foundation):
-    all_items, by_task = [], collections.defaultdict(list)
-    comps = {x.get("actual_definition_owner"): x for x in component.get("components", [])}
-    for x in component.get("items", []):
-        sym = x.get("qualified_symbol")
-        if not sym: continue
-        owner = x.get("definition_symbol") or sym
-        comp = comps.get(owner)
-        task = comp.get("named_owner_task") if comp else task_for_symbol(sym)
-        row = {"path": x.get("source"), "line": x.get("line_start"), "sha256": x.get("sha256"), "symbol": sym, "owner_task": task}
-        all_items.append(row)
-        by_task[task].append(row)
-    for x in foundation.get("items", []):
-        sym = x.get("current_qualified_symbol")
-        if not sym: continue
-        task = x.get("architecture_owner_task") or task_for_symbol(sym)
-        row = {"path": x.get("source_path"), "line": x.get("line"), "sha256": x.get("source_sha256"), "symbol": sym, "owner_task": task}
-        all_items.append(row)
-        by_task[task].append(row)
-    return all_items, by_task
+MIGRATION_SOURCE_BINDINGS = {
+    "MIG:docs/contracts/migration.md:11": ("T09", ["crates/termrock-core/src/response.rs"], "The row cites the current typed response definition and its consumer-visible action/flow boundary."),
+    "MIG:docs/contracts/migration.md:12": ("T09", ["crates/termrock-core/src/intent.rs", "crates/termrock-runtime/src/hit.rs"], "The row names typed intent phases and runtime hit routing."),
+    "MIG:docs/contracts/migration.md:13": ("T09/T14", ["crates/termrock-core/src/id.rs", "crates/termrock-collections/src/collection/key.rs"], "The row names Id and ItemKey as separate identity types."),
+    "MIG:docs/contracts/migration.md:14": ("T11/T09", ["crates/termrock-theme/src/lib.rs", "crates/termrock-runtime/src/ui/mod.rs"], "The row names theme-owned semantic surfaces and draw-scoped Ui context."),
+    "MIG:docs/contracts/migration.md:15": ("T09", ["crates/termrock-runtime/src/ui/mod.rs", "crates/termrock-runtime/src/hit.rs"], "The row names Ui::reference and runtime registration suppression."),
+    "MIG:docs/contracts/migration.md:16": ("T10/T15/T18", ["crates/termrock/src/slots.rs", "crates/termrock-forms/src/form_dialog.rs", "crates/termrock-overlays/src/dialog.rs"], "The row names DialogSlotExt, FormDialog, and Dialog ownership."),
+    "MIG:docs/contracts/migration.md:17": ("T13/T18", ["crates/termrock-forms/src/form.rs", "crates/termrock-fields/src/field.rs", "crates/termrock-runtime/src/author.rs"], "The row names FormData and borrowed painter/style extension points."),
+    "MIG:docs/contracts/migration.md:18": ("T09", ["crates/termrock-runtime/src/ui/cx.rs"], "The row names Cx, FrameRead, and LayoutFacts."),
+    "MIG:docs/contracts/migration.md:19": ("T09", ["crates/termrock-runtime/src/runtime.rs", "crates/termrock-runtime/src/ui/mod.rs"], "The row names the App update/draw split and draw-time runtime registration."),
+    "MIG:docs/contracts/migration.md:20": ("T09/T19", ["crates/termrock-runtime/src/keymap.rs", "crates/termrock-runtime/src/author.rs", "crates/termrock-shell/src/footer.rs"], "The row names runtime bindings and shell hint publication."),
+    "MIG:docs/contracts/migration.md:21": ("T13/T16/T18", ["crates/termrock-forms/src/form.rs", "crates/termrock-grid/src/grid.rs", "crates/termrock-runtime/src/rowui.rs"], "The row names FormData, GridModel/CellRef, DiffSource, and RowFn borrowed data."),
+    "MIG:docs/contracts/migration.md:22": ("T31", ["docs/architecture.md", "docs/requirements.md", "docs/plan.md"], "The row is an ownership and boundary inventory in current retained architecture documents."),
+    "MIG:docs/contracts/migration.md:23": ("T09/T20", ["crates/termrock-core/src/lib.rs", "crates/termrock-runtime/src/lib.rs", "crates/termrock-session/src/lib.rs"], "The row names foundation crate ownership and public module roots."),
+    "MIG:docs/contracts/migration.md:24": ("T12/T18", ["crates/termrock-controls/src/lib.rs", "crates/termrock-fields/src/lib.rs", "crates/termrock-navigation/src/lib.rs", "crates/termrock-overlays/src/lib.rs", "crates/termrock-grid/src/lib.rs", "crates/termrock-editors/src/lib.rs", "crates/termrock-viewport/src/lib.rs"], "The row names shared widget families and their current module roots."),
+    "MIG:docs/contracts/migration.md:25": ("T09/T22/T27/T28/T29", ["crates/termrock-runtime/src/runtime.rs", "crates/showcase-ui/src/app.rs", "crates/jackin-preview-app/src/app.rs", "crates/holla-ui/src/app.rs", "crates/tablepro-ui/src/app.rs"], "The row separates runtime mechanics from four current application boundaries."),
+    "MIG:docs/contracts/migration.md:26": ("T31/T35", ["docs/architecture.md", "docs/implementation/pr38-final/ARCHITECTURE.md", "docs/implementation/pr38-final/TASKS.md"], "The historical sequence is retained as semantic prerequisites; current gates and task ordering live in the named current plan records."),
+    "MIG:docs/contracts/migration.md:39": ("T13/T16/T18", ["crates/termrock-forms/src/form.rs", "crates/termrock-grid/src/grid.rs", "crates/termrock-fields/src/field.rs", "crates/termrock-theme/src/tokens.rs"], "The locator names Form, Grid, FieldKind, border glyphs, and dependency decisions."),
+    "MIG:docs/contracts/migration.md:40": ("T09/T11/T13/T33", ["crates/termrock-core/src/id.rs", "crates/termrock-core/src/intent.rs", "crates/termrock-theme/src/resolve.rs", "crates/termrock-text/src/clusters.rs", "crates/termrock-text/src/measure.rs"], "The locator groups identity, intent probes, color downgrade, grapheme work, and style-resolution workloads."),
+    "MIG:docs/contracts/migration.md:41": ("T09/T10/T15/T33", ["crates/termrock-runtime/src/layer.rs", "crates/termrock-runtime/src/ui/measure.rs", "crates/termrock-overlays/src/dialog.rs", "crates/termrock-theme/src/resolve.rs"], "The locator groups runtime layer sizing, Measure, cache budgets, exact-reference state, and overlay behavior."),
+    "MIG:docs/contracts/migration.md:42": ("T11/T12/T14/T17", ["crates/termrock-navigation/src/chip.rs", "crates/termrock-theme/src/resolve.rs", "crates/termrock-runtime/src/scroll_region.rs", "crates/termrock-viewport/src/viewport.rs"], "The locator names ChipBar markers, theme fallbacks, part overrides, capability resolution, and scrolling."),
+    "MIG:docs/contracts/migration.md:43": ("T02/T04/T06/T22/T32/T33", ["docs/implementation/pr38-final/VALIDATION.md", "docs/implementation/pr38-final/TESTING-RULES.md", "docs/implementation/pr38-final/TASKS.md"], "The locator is a historical gate audit; current gate scope and owner tasks are the named retained plan records."),
+    "MIG:docs/contracts/migration.md:44": ("T31/T32/T35", ["docs/implementation/pr38-final/TESTING-RULES.md", "docs/implementation/pr38-final/PRACTICE-REVIEW.md", "docs/implementation/pr38-final/VALIDATION.md"], "The locator is a historical registration and API-boundary audit; current test policy is recorded in these documents."),
+    "MIG:docs/contracts/migration.md:45": ("T05/T22/T34", ["Cargo.toml", "docs/implementation/pr38-final/TASKS.md", "docs/architecture/termrock-migration-matrix.md"], "The locator names package moves, app readiness, and migration artefacts; current workspace/task records provide the active owners."),
+    "MIG:docs/contracts/migration.md:46": ("T11/T32", ["crates/termrock-runtime/src/author.rs", "crates/termrock-runtime/src/decor.rs", "crates/termrock-controls/src/props.rs", "crates/termrock-theme/src/resolve.rs"], "The locator names shared Props, component overrides, and theme-order behavior."),
+    "MIG:docs/contracts/migration.md:47": ("T05/T32", ["Cargo.toml", "docs/implementation/pr38-final/API-RULES.md", "docs/implementation/pr38-final/VALIDATION.md"], "The locator is a package-rename adjudication and migration-guard requirement."),
+    "MIG:docs/contracts/migration.md:48": ("T02/T32", ["docs/implementation/pr38-final/results/t00-source/test-inventory.json", "docs/implementation/pr38-final/results/t00-source/artifact-index.json", "docs/implementation/pr38-final/results/t37-tools/AGENT-RUNBOOK.json"], "The locator requires exact wanted, present, and deferred accounting; current immutable inventory records are the reconciliation inputs."),
+    "MIG:docs/contracts/migration.md:49": ("T04/T36", ["crates/termrock-e2e/src/visual.rs", "docs/implementation/pr38-final/VALIDATION.md"], "The locator names digest comparison and refusal semantics; current visual evidence interfaces and gate policy are the mapped sources."),
+    "MIG:docs/contracts/migration.md:50": ("T12/T14", ["crates/termrock-controls/src/choice.rs", "crates/termrock-collections/src/collection/key.rs", "crates/termrock-collections/src/collection/reconcile.rs"], "The locator names semantic checked state, stable keys, controlled radio values, and collection reconciliation."),
+    "MIG:docs/contracts/migration.md:51": ("T12/T19", ["crates/termrock-feedback/src/status.rs", "crates/termrock-runtime/src/hit.rs", "crates/termrock-runtime/src/focus.rs"], "The locator names keyed StatusBar hover, pointer routing, keyboard suppression, and focus ownership."),
+    "MIG:docs/contracts/migration.md:52": ("T16", ["crates/termrock-grid/src/grid.rs", "crates/tablepro-domain/src/domain.rs"], "The locator names Grid requests and state plus application-owned model ordering."),
+    "MIG:docs/contracts/migration.md:53": ("T14/T33", ["crates/termrock-navigation/src/tree.rs"], "The locator names the keyed Tree index, query projection, and bounded-access workload."),
+    "MIG:docs/contracts/migration.md:54": ("T09/T19/T21/T28", ["crates/jackin-preview-app/src/app.rs", "crates/termrock-runtime/src/runtime/time.rs", "crates/termrock-feedback/src/status.rs"], "The locator names Jackin status projection, time, tick delivery, and app-owned updates."),
+    "MIG:docs/contracts/migration.md:55": ("T09/T10/T15/T18/T28", ["crates/termrock-runtime/src/ui/cx.rs", "crates/termrock-forms/src/form_dialog.rs", "crates/termrock-overlays/src/dialog.rs", "crates/jackin-preview-app/src/app.rs"], "The locator names update-cause reads, shell/app lifecycle, and modal closure ownership."),
+    "MIG:docs/contracts/migration.md:56": ("T12/T14/T15", ["crates/termrock-controls/src/panel.rs", "crates/termrock-controls/src/split.rs", "crates/termrock-overlays/src/dialog.rs"], "The locator names closure-bearing Panel, Dialog, and SplitPane containers."),
+    "MIG:docs/contracts/migration.md:57": ("T14/T19", ["crates/termrock-navigation/src/nav_list.rs", "crates/termrock-shell/src/router.rs"], "The locator separates NavList choice from shell content-entry focus transfer."),
+    "MIG:docs/contracts/migration.md:58": ("T14", ["crates/termrock-navigation/src/steps.rs", "crates/termrock-collections/src/collection/key.rs"], "The locator names Steps semantic state, stable identity, and derived frontier behavior."),
+    "MIG:docs/contracts/migration.md:59": ("T14", ["crates/termrock-navigation/src/tree.rs", "crates/termrock-runtime/src/rowui.rs"], "The locator names Tree chosen identity and marker-slot painting."),
+    "MIG:docs/contracts/migration.md:60": ("T11/T16", ["crates/termrock-grid/src/grid.rs", "crates/termrock-theme/src/resolve.rs", "crates/termrock-core/src/geometry.rs"], "The locator names Grid schema/ragged rows, semantic theme resolution, and clipped geometry."),
+    "MIG:docs/contracts/migration.md:61": ("T11/T17", ["crates/termrock-viewport/src/viewport.rs", "crates/termrock-theme/src/resolve.rs"], "The locator concerns TextViewport Mono selection and theme-role contrast. TextViewport is defined in viewport.rs and owned by T17; Checkbox and Radio are not its owner."),
+    "MIG:docs/contracts/migration.md:62": ("T11/T12", ["crates/termrock-controls/src/too_small.rs", "crates/termrock-theme/src/resolve.rs"], "The locator names the distinct TooSmall control and its theme override contract. It is not a Panel hierarchy requirement."),
+    "MIG:docs/contracts/migration.md:63": ("T13/T14/T16/T18/T31/T32/T33", ["crates/termrock-grid/src/grid.rs", "crates/termrock-core/src/selection.rs", "docs/implementation/pr38-final/TESTING-RULES.md"], "The locator groups conformance identity, gestures, Grid geometry, Form bridges, and isolated performance ownership."),
+    "MIG:docs/contracts/migration.md:64": ("T11/T12/T13/T14/T15/T19", ["crates/termrock-collections/src/collection/key.rs", "crates/termrock-runtime/src/hit.rs", "crates/termrock-forms/src/form.rs", "crates/termrock-text/src/secret.rs", "crates/termrock-shell/src/router.rs"], "The locator names stable data keys, pointer phases, Form controls, secret editing, and shell navigation."),
+    "MIG:docs/contracts/migration.md:65": ("T09/T10/T11/T12/T14/T15/T17/T19", ["crates/termrock-runtime/src/keymap.rs", "crates/termrock-runtime/src/author.rs", "crates/termrock-navigation/src/tree.rs", "crates/termrock-overlays/src/picker.rs", "crates/termrock-theme/src/resolve.rs", "crates/termrock-overlays/src/select.rs"], "The locator names binding identity, hint routing, reveal ownership, borrowed picker behavior, Mono resolution, and Select glyphs."),
+    "MIG:docs/contracts/migration.md:66": ("T09", ["crates/termrock-runtime/src/ui/mod.rs", "crates/termrock-runtime/src/hit.rs", "crates/termrock-runtime/src/focus.rs"], "The locator names exact-target reference scope and inert registration effects."),
+    "MIG:docs/contracts/migration.md:67": ("T09/T12", ["crates/termrock-runtime/src/hit.rs", "crates/termrock-controls/src/props.rs"], "The locator names disabled-pointer hit ownership, shared Props, and inert registration."),
+    "MIG:docs/contracts/migration.md:68": ("T04/T22/T27/T28/T29/T36", ["docs/implementation/pr38-final/VALIDATION.md", "docs/implementation/pr38-final/SOURCES.md", "docs/architecture/termrock-migration-matrix.md"], "The locator is a visual capture and baseline policy requirement; current validation and application records name the owners."),
+    "MIG:docs/contracts/migration.md:69": ("T11/T32/T36", ["docs/implementation/pr38-final/results/t00-source/finding-deltas-e08-to-1d6.json", "docs/implementation/pr38-final/results/t37-final-integration/t00-immutable-index-reconciliation.json"], "The locator is a narrowly approved historical rendering recovery; immutable decision records carry its evidence and limits."),
+    "MIG:docs/contracts/migration.md:70": ("T11/T12", ["crates/termrock-feedback/src/meter.rs", "crates/termrock-theme/src/resolve.rs"], "The Meter amendment maps to the current Meter definition and theme resolution. ActionKey and CodeFindInfo are not Meter owners."),
+    "MIG:docs/contracts/migration.md:71": ("T09/T17", ["crates/termrock-runtime/src/scroll_region.rs", "crates/termrock-viewport/src/viewport.rs", "crates/termrock-runtime/src/hit.rs"], "The ScrollRegion amendment maps to its runtime definition, viewport consumer, and hit ownership."),
+    "ARCH:GAP:G1": ("T10/T12/T13/T14/T15/T16/T17/T18", ["crates/termrock/src/composition.rs", "crates/termrock-controls/src/lib.rs", "crates/termrock-fields/src/lib.rs", "crates/termrock-navigation/src/lib.rs", "crates/termrock-overlays/src/lib.rs", "crates/termrock-grid/src/lib.rs", "crates/termrock-editors/src/lib.rs", "crates/termrock-viewport/src/lib.rs"], "G1 names missing reusable composition adapters across these current family roots."),
+    "ARCH:GAP:G2": ("T10/T19", ["crates/termrock-shell/src/shell.rs", "crates/termrock/src/blocks/shell.rs"], "G2 names AppShell regions and facade shell composition."),
+    "ARCH:GAP:G3": ("T09/T17", ["crates/termrock-runtime/src/scroll_region.rs", "crates/termrock-viewport/src/viewport.rs"], "G3 names library-owned scrolling and the current runtime/viewport implementation boundary."),
+    "ARCH:GAP:G4": ("T12", ["crates/termrock-controls/src/panel.rs"], "G4 names Panel body/title geometry and chrome."),
+    "ARCH:GAP:G5": ("T14/T16", ["crates/termrock-navigation/src/tree.rs", "crates/termrock-navigation/src/list.rs", "crates/termrock-navigation/src/nav_list.rs", "crates/termrock-grid/src/table.rs"], "G5 names content-rect queries for these current list and grid families."),
+    "ARCH:GAP:G6": ("T19/T22", ["crates/termrock-shell/src/shell.rs", "crates/termrock-shell/src/footer.rs", "crates/termrock-shell/src/router.rs", "crates/termrock-shell/src/chrome.rs", "crates/showcase-ui/src/app.rs"], "G6 names shell, footer, routing, and application composition."),
+    "ARCH:GAP:G7": ("T16/T29", ["crates/termrock-grid/src/grid.rs", "crates/tablepro-ui/src/app.rs", "crates/tablepro-domain/src/domain.rs"], "G7 names resolved Grid placement and TablePro's current column adapter."),
+    "ARCH:GAP:G8": ("T11/T22/T27/T28/T29", ["crates/termrock-theme/src/tokens.rs", "crates/termrock-theme/src/resolve.rs", "crates/showcase-ui/src/app.rs", "crates/jackin-preview-app/src/app.rs", "crates/holla-ui/src/app.rs", "crates/tablepro-ui/src/app.rs"], "G8 names semantic theme tokens and the four current app chrome sources."),
+    "ARCH:GAP:G9": ("T09/T11", ["crates/termrock-runtime/src/ui/paint.rs", "crates/termrock-theme/src/resolve.rs"], "G9 names runtime predicate recoloring and theme color resolution."),
+    "ARCH:GAP:G10": ("T32", ["Cargo.toml", "tools/acceptance_policy.json", "docs/implementation/pr38-final/VALIDATION.md"], "G10 names workspace lint policy and the acceptance-policy inventory."),
+    "ARCH:GAP:G11": ("T20", ["crates/termrock-session/src/session.rs", "crates/termrock-session/src/lib.rs", "crates/jackin-preview-app/src/app.rs", "crates/tablepro-ui/src/app.rs"], "G11 names session-owned cursor shape and its app call sites."),
+    "ARCH:GAP:G12": ("T09/T11", ["crates/termrock-core/src/variant.rs", "crates/termrock-runtime/src/focus.rs", "crates/termrock-theme/src/resolve.rs"], "G12 names current semantic flags, runtime focus ownership, and chosen theme ink."),
+    "ARCH:SCORECARD:207": ("T15", ["crates/termrock-overlays/src/picker.rs"], "The scorecard names Picker construction, filtering, update, and Chosen action."),
+    "ARCH:SCORECARD:208": ("T09/T10", ["crates/termrock-runtime/src/runtime.rs", "crates/termrock-runtime/src/ui/measure.rs", "crates/termrock/src/composition.rs"], "The scorecard names composition measure/update/draw boundaries."),
+    "ARCH:SCORECARD:209": ("T09/T10/T22", ["crates/termrock-layout/src/layout.rs", "crates/termrock-runtime/src/hit.rs", "crates/showcase-ui/src/app.rs"], "The scorecard names shared layout resolution, hit regions, and app composition."),
+    "ARCH:SCORECARD:210": ("T11/T12/T16", ["crates/termrock-theme/src/resolve.rs", "crates/termrock-controls/src/props.rs", "crates/termrock-grid/src/grid.rs"], "The scorecard names slots, style variants, theme tokens, and state ownership."),
+    "ARCH:SCORECARD:211": ("T09/T12/T14/T17", ["crates/termrock-runtime/src/focus.rs", "crates/termrock-controls/src/choice.rs", "crates/termrock-navigation/src/list.rs", "crates/termrock-viewport/src/viewport.rs"], "The scorecard names interaction states across runtime and shared component owners."),
+    "ARCH:SCORECARD:212": ("T13/T15/T20/T32", ["crates/termrock-overlays/src/dialog.rs", "crates/termrock-fields/src/input.rs", "crates/termrock-text/src/clusters.rs", "crates/termrock-session/src/session.rs"], "The scorecard names overlay input/focus, text safety, and session handling."),
+    "ARCH:SCORECARD:213": ("T09/T12/T16", ["crates/termrock-controls/src/panel.rs", "crates/termrock-grid/src/grid.rs", "crates/termrock-runtime/src/ui/mod.rs"], "The scorecard names component-owned geometry and runtime registration."),
+    "ARCH:DEPENDENCY-DIRECTION": ("T02/T04/T32", ["Cargo.toml", "docs/implementation/pr38-final/ARCHITECTURE.md", "docs/implementation/pr38-final/VALIDATION.md"], "The historical dependency claim is reconciled against current manifests and the retained dependency policy."),
+    "ARCH:POLICY-LIBRARY-COVERAGE": ("T02/T32", ["tools/acceptance_policy.json", "Cargo.toml", "docs/implementation/pr38-final/VALIDATION.md"], "The historical library-policy claim is reconciled against the current acceptance policy and workspace manifest."),
+    "ARCH:MATRIX-OVERSTATEMENT:231": ("T10/T12", ["crates/termrock-controls/src/master_detail.rs", "crates/termrock/src/blocks/master_detail.rs"], "The two distinct MasterDetail definitions are mapped separately; the old claim does not establish the frozen policy."),
+    "ARCH:MATRIX-OVERSTATEMENT:237": ("T19/T14", ["crates/termrock-shell/src/router.rs", "crates/termrock-navigation/src/nav_list.rs"], "The historical breadcrumb claim is compared with current shell routing and navigation ownership."),
+    "ARCH:MATRIX-OVERSTATEMENT:240": ("T19/T12", ["crates/termrock-shell/src/footer.rs", "crates/termrock-shell/src/chrome.rs"], "The historical footer claim is mapped to current shell footer and chrome sources."),
+    "ARCH:MATRIX-OVERSTATEMENT:242": ("T22/T12/T13/T14/T15/T16/T17/T18", ["crates/showcase-ui/src/app.rs", "crates/termrock-navigation/src/lib.rs", "crates/termrock-overlays/src/lib.rs", "crates/termrock-grid/src/lib.rs", "crates/termrock-editors/src/lib.rs", "crates/termrock-viewport/src/lib.rs"], "The historical catalog-page claim is mapped to current Showcase route source and public family roots."),
+    "ARCH:MATRIX-OVERSTATEMENT:247": ("T15/T19", ["crates/termrock-overlays/src/menu.rs", "crates/termrock-shell/src/chrome.rs"], "The historical menu-command and dialog-inset claims map to current menu and chrome sources."),
+    "ARCH:DECISION:D-007": ("T32/T36", ["docs/implementation/pr38-final/API-RULES.md", "docs/implementation/pr38-final/VALIDATION.md", "docs/implementation/pr38-final/results/t37-foundations/source-removal.json"], "The decision concerns bypass removal and exact source-removal records, not the unrelated publisher symbols selected by name overlap."),
+    "ARCH:DECISION:D-008": ("T32/T36", ["docs/implementation/pr38-final/VALIDATION.md", "docs/implementation/pr38-final/results/t00-source/finding-dispositions.json"], "The decision concerns digest change control and refusal reasons."),
+    "ARCH:DECISION:D-009": ("T32/T36", ["docs/implementation/pr38-final/SOURCES.md", "docs/implementation/pr38-final/results/t00-source/artifact-index.json"], "The decision concerns frozen oracle inputs and approved frame provenance."),
+    "ARCH:DECISION:D-010": ("T32/T36", ["docs/implementation/pr38-final/results/t00-source/finding-deltas-e08-to-1d6.json", "docs/implementation/pr38-final/results/t00-source/finding-dispositions.json"], "The decision concerns restored expectations and their source history."),
+    "ARCH:DECISION:D-001": ("T32/T36", ["docs/implementation/pr38-final/GOAL.md", "docs/implementation/pr38-final/TASKS.md"], "The delivery decision is a current goal and task-order constraint."),
+    "ARCH:DECISION:D-002": ("T04/T22/T27/T28/T29/T32/T36", ["docs/implementation/pr38-final/VALIDATION.md", "docs/implementation/pr38-final/TESTING-RULES.md", "crates/showcase-ui/src/app.rs", "crates/holla-ui/src/app.rs", "crates/jackin-preview-app/src/app.rs", "crates/tablepro-ui/src/app.rs"], "The decision removes false parity claims and assigns current app paths; no app behavior is verified."),
+    "ARCH:DECISION:D-003": ("T04/T22/T27/T28/T29/T32/T36", ["docs/implementation/pr38-final/SOURCES.md", "docs/implementation/pr38-final/results/t00-source/artifact-index.json", "docs/implementation/pr38-final/results/t37-final-integration/t00-immutable-index-reconciliation.json"], "The decision classifies frozen artefacts as evidence inputs and preserves their provenance."),
+    "ARCH:DECISION:D-004": ("T04/T22/T27/T28/T29/T32/T36", ["crates/showcase-ui/src/app.rs", "docs/implementation/pr38-final/REVIEW.md"], "The decision concerns page selection by route identity; the current route inventory remains source-level evidence."),
+    "ARCH:DECISION:D-005": ("T04/T22/T27/T28/T29/T32/T36", ["docs/implementation/pr38-final/REVIEW.md", "docs/implementation/pr38-final/results/t00-source/finding-dispositions.json", "crates/showcase-ui/src/app.rs"], "The decision requires reference defects to remain recorded with exact current route evidence."),
+    "ARCH:DECISION:D-006": ("T04/T22/T27/T28/T29/T32/T36", ["docs/implementation/pr38-final/COMPONENT-MATRIX.md", "crates/termrock-controls/src/lib.rs", "crates/termrock-navigation/src/lib.rs", "crates/termrock-overlays/src/lib.rs", "crates/termrock-grid/src/lib.rs"], "The decision requires missing capabilities to remain mapped to shared API owners rather than app forks."),
+    "ARCH:DECISION:D-011": ("T17/T22/T27/T28/T29/T32/T36", ["docs/implementation/pr38-final/COMPONENT-MATRIX.md", "docs/implementation/pr38-final/results/t00-source/finding-deltas-e08-to-1d6.json", "crates/termrock-viewport/src/viewport.rs"], "The decision restores historical component expectations as open requirements; it does not assert current viewport behavior."),
+    "ARCH:DECISION:D-012": ("T17/T22/T27/T28/T29/T32/T36", ["docs/implementation/pr38-final/results/t00-source/artifact-index.json", "docs/implementation/pr38-final/results/t37-final-integration/t00-immutable-index-reconciliation.json", "docs/implementation/pr38-final/VALIDATION.md"], "The decision records consolidation evidence and unresolved holds."),
+}
+
+MIGRATION_MEMBER_BINDINGS = {
+    "MIG:docs/contracts/migration.md:61": [
+        {"path": "crates/termrock-viewport/src/viewport.rs", "line": 1438, "symbol": "termrock_viewport::viewport::TextViewport", "definition_owner": "termrock_viewport::viewport::TextViewport", "owner_task_ids": ["T17"]},
+    ],
+    "MIG:docs/contracts/migration.md:62": [
+        {"path": "crates/termrock-controls/src/too_small.rs", "line": 47, "symbol": "termrock_controls::too_small::TooSmall", "definition_owner": "termrock_controls::too_small::TooSmall", "owner_task_ids": ["T12"]},
+    ],
+    "MIG:docs/contracts/migration.md:70": [
+        {"path": "crates/termrock-feedback/src/meter.rs", "line": 65, "symbol": "termrock_feedback::meter::Meter", "definition_owner": "termrock_feedback::meter::Meter", "owner_task_ids": ["T12"]},
+    ],
+    "MIG:docs/contracts/migration.md:71": [
+        {"path": "crates/termrock-runtime/src/scroll_region.rs", "line": 44, "symbol": "termrock_runtime::scroll_region::ScrollRegion", "definition_owner": "termrock_runtime::scroll_region::ScrollRegion", "owner_task_ids": ["T17"]},
+    ],
+}
 
 
-def choose_sources(text, tasks, all_items, by_task, cap=6):
-    task_set = set(re.findall(r"T\d\d", tasks))
-    words = set(re.findall(r"[A-Za-z][A-Za-z0-9_]*", text))
-    ranked = []
-    for item in all_items:
-        symbol = item.get("symbol") or ""
-        overlap = words.intersection(re.findall(r"[A-Za-z][A-Za-z0-9_]*", symbol))
-        score = len(overlap) * 5 + (5 if item.get("owner_task") in task_set else 0) + (15 if symbol in text else 0)
-        if score:
-            ranked.append((score, item))
-    ranked.sort(key=lambda item: (-item[0], item[1].get("path") or "", item[1].get("line") or 0))
-    found, seen = [], set()
-    for _, item in ranked:
-        key = (item.get("path"), item.get("line"), item.get("symbol"))
-        if key not in seen:
-            found.append(item)
-            seen.add(key)
-        if len(found) >= cap:
-            break
-    if found:
-        return found
-    for task in task_set:
-        if by_task.get(task):
-            return by_task[task][:3]
-    return []
+def explicit_migration_sources(item_id):
+    binding = MIGRATION_SOURCE_BINDINGS.get(item_id)
+    if binding is None:
+        raise ValueError("missing explicit historical source binding: " + item_id)
+    task, paths, basis = binding
+    sources = []
+    for path in paths:
+        source = current_source_binding(path)
+        sources.append({**source, "owner_task": task, "owner_task_ids": re.findall(r"T\d\d", task), "requirement_owner_task": task, "requirement_owner_task_ids": re.findall(r"T\d\d", task), "binding_basis": basis, "evidence": "NOT VERIFIED"})
+    return binding, sources
 
 
 def doc_sha(path):
@@ -726,12 +806,18 @@ def doc_sha(path):
 
 
 def mig(item_id, path, start, end, text, tasks, current, disposition, reason, case, extra=None, source_commit=INPUT, source_sha=None):
+    task_ids = re.findall(r"T\d\d", tasks)
     for source in current:
         if str(source.get("path", "")).startswith("/"):
             source.setdefault("status", "SUPPLEMENTAL_NOT_ACCEPTED")
             source.setdefault("hash_role", "Observed draft artifact hash; it is not a current source binding.")
             source.setdefault("evidence", "NOT VERIFIED")
-    task_ids = re.findall(r"T\d\d", tasks)
+        elif source.get("path"):
+            source.setdefault("requirement_owner_task", tasks)
+            source.setdefault("requirement_owner_task_ids", task_ids)
+            source.setdefault("owner_task", tasks)
+            source.setdefault("owner_task_ids", task_ids)
+            source.setdefault("evidence", "NOT VERIFIED")
     source_bytes = git_bytes(source_commit, path) if source_commit else b""
     source_lines = source_bytes.splitlines(keepends=True)
     if start and end and end <= len(source_lines):
@@ -776,7 +862,6 @@ def reference_route_spans(commit, path, page_id):
 
 
 def migration_items(component, foundation, routes):
-    all_items, by_task = task_sources(component, foundation)
     out = []
     contract = "docs/contracts/migration.md"
     c_lines = lines_at(INPUT, contract)
@@ -817,7 +902,7 @@ def migration_items(component, foundation, routes):
         task = owners[ix] if ln < 27 else architecture_owners[ln - 39]
         case = cases[ix] if ln < 27 else [x.strip() for x in text.strip("|").split("|")][1].replace("**KEEP / REVIEW:**", "").strip()
         case_source = {"kind": "historical_requirement_excerpt", "commit": INPUT, "path": contract, "line": ln, "file_sha256": doc_sha(contract), "evidence": "NOT VERIFIED"} if ln >= 39 else None
-        out.append(mig("MIG:docs/contracts/migration.md:" + str(ln), contract, ln, ln, text, task, choose_sources(text, task, all_items, by_task), "ADAPT", "Retain the historical requirement and map it to current source; behavior remains open.", case, {"record_kind": "retained_migration_contract_row", "semantic_status": "KEEP_REVIEW", "required_case_source": case_source}))
+        out.append(mig("MIG:docs/contracts/migration.md:" + str(ln), contract, ln, ln, text, task, [], "ADAPT", "Retain the historical requirement and map it to current source; behavior remains open.", case, {"record_kind": "retained_migration_contract_row", "semantic_status": "KEEP_REVIEW", "required_case_source": case_source}))
     record = "docs/architecture/termrock-migration-record.md"
     rec = lines_at(INPUT, record)
     gap_tasks = ["T10/T12/T13/T14/T15/T16/T17/T18", "T10/T19", "T09/T17", "T12", "T14/T16", "T19/T22", "T16", "T11/T22/T27/T28/T29", "T09/T11", "T32", "T20", "T09/T11"]
@@ -826,24 +911,24 @@ def migration_items(component, foundation, routes):
         cells = [z.strip() for z in text.strip("|").split("|")]
         gap = cells[0] if cells else "G?"
         task = gap_tasks[ln - 190]
-        out.append(mig("ARCH:GAP:" + gap, record, ln, ln, text, task, choose_sources(text, task, all_items, by_task), "ADAPT", "The dated gap is a task lead; current inventory does not prove it closed.", "Trace the named app bypass to its shared owner and preserve the required app behavior.", {"record_kind": "architecture_library_gap"}))
+        out.append(mig("ARCH:GAP:" + gap, record, ln, ln, text, task, [], "ADAPT", "The dated gap is a task lead; current inventory does not prove it closed.", "Trace the named app bypass to its shared owner and preserve the required app behavior.", {"record_kind": "architecture_library_gap"}))
     score_tasks = ["T15", "T09/T10", "T09/T10/T22", "T11/T12/T16", "T09/T12/T14/T17", "T13/T15/T20/T32", "T09/T12/T16"]
     for ln in range(207, 214):
         text, task = rec[ln - 1], score_tasks[ln - 207]
-        out.append(mig("ARCH:SCORECARD:" + str(ln), record, ln, ln, text, task, choose_sources(text, task, all_items, by_task), "ADAPT", "The old scorecard is historical context; current source mapping does not adopt its test claim.", "Exercise the stated contract through its production owner after T38 approval.", {"record_kind": "architecture_api_contract_scorecard"}))
+        out.append(mig("ARCH:SCORECARD:" + str(ln), record, ln, ln, text, task, [], "ADAPT", "The old scorecard is historical context; current source mapping does not adopt its test claim.", "Exercise the stated contract through its production owner after T38 approval.", {"record_kind": "architecture_api_contract_scorecard"}))
     for start, end, ident, task, case in [
         (217, 224, "ARCH:DEPENDENCY-DIRECTION", "T02/T04/T32", "Inspect production dependency edges and keep domain ownership separate from UI types."),
         (226, 227, "ARCH:POLICY-LIBRARY-COVERAGE", "T02/T32", "Reconcile policy coverage with current workspace crates and manifests."),
     ]:
         text = "\n".join(rec[start - 1:end])
-        out.append(mig(ident, record, start, end, text, task, choose_sources(text, task, all_items, by_task), "ADAPT", "Keep the architecture claim open until current manifests and policy facts are reconciled.", case, {"record_kind": "architecture_dependency_or_policy_claim"}))
+        out.append(mig(ident, record, start, end, text, task, [], "ADAPT", "Keep the architecture claim open until current manifests and policy facts are reconciled.", case, {"record_kind": "architecture_dependency_or_policy_claim"}))
     over_tasks = ["T10/T12", "T19/T14", "T19/T12", "T22/T12/T13/T14/T15/T16/T17/T18", "T15/T19"]
     over_cases = ["Check MasterDetail width, bounds, gap, and consumer behavior against the frozen requirement.", "Check for a responsive clickable breadcrumb widget and owner.", "Check footer status and reveal ownership through a current app flow.", "Reconcile page claims against all current route factories, owners, dispatch, and draw paths.", "Inspect Menu command mapping and dialog inset ownership."]
     oi = 0
     for ln in range(231, 251):
         if not rec[ln - 1].startswith("- "): continue
         text, task = rec[ln - 1], over_tasks[oi]
-        out.append(mig("ARCH:MATRIX-OVERSTATEMENT:" + str(ln), record, ln, min(ln + (1 if ln in (231, 237, 240, 242, 247) else 0), 251), text, task, choose_sources(text, task, all_items, by_task), "ADAPT", "Preserve the dated claim and inspect current implementation before adopting it.", over_cases[oi], {"record_kind": "historical_matrix_overstatement"}))
+        out.append(mig("ARCH:MATRIX-OVERSTATEMENT:" + str(ln), record, ln, min(ln + (1 if ln in (231, 237, 240, 242, 247) else 0), 251), text, task, [], "ADAPT", "Preserve the dated claim and inspect current implementation before adopting it.", over_cases[oi], {"record_kind": "historical_matrix_overstatement"}))
         oi += 1
     decision_heads = []
     for i, text in enumerate(rec, 1):
@@ -857,7 +942,7 @@ def migration_items(component, foundation, routes):
         if decision in ("D-002", "D-003", "D-004", "D-005", "D-006"): task = "T04/T22/T27/T28/T29/T32/T36"
         if decision in ("D-011", "D-012"): task = "T17/T22/T27/T28/T29/T32/T36"
         disp = "KEEP" if decision in ("D-001", "D-002", "D-003", "D-004", "D-006", "D-009") else "ADAPT"
-        out.append(mig("ARCH:DECISION:" + decision, record, start, end, text, task, choose_sources(text, task, all_items, by_task), disp, "Preserve the independent historical decision; re-check its boundary against current source and keep old results historical.", "Check the decision with its current owner and linked production path; keep conflicts open.", {"record_kind": "architecture_decision", "decision_id": decision}))
+        out.append(mig("ARCH:DECISION:" + decision, record, start, end, text, task, [], disp, "Preserve the independent historical decision; re-check its boundary against current source and keep old results historical.", "Check the decision with its current owner and linked production path; keep conflicts open.", {"record_kind": "architecture_decision", "decision_id": decision}))
     matrix = "docs/architecture/termrock-migration-matrix.md"
     ml = lines_at(INPUT, matrix)
     for ln in range(731, 736):
@@ -934,6 +1019,42 @@ def migration_items(component, foundation, routes):
     f20_lines = git_bytes(INPUT, "docs/implementation/pr38-final/REVIEW.md").splitlines(keepends=True)
     f20_span = b"".join(f20_lines[463:477])
     out.append(mig("CURRENT:TABLEPRO-NULL-LAST", "docs/plan.md", 15, 15, null_plan_lines[14], "T29/T33", [{"path": "crates/tablepro-sql/src/sql.rs", "line_start": 1001, "line_end": 1017, "sha256": "3eb8903c45d00eeedd4102a54082fd98cc1531c7b6ae4125c1403de94c1a30c7", "commit": INPUT}, {"path": "crates/tablepro-domain/src/domain.rs", "line": 930, "sha256": "3177a180c0ae6b08f99ec5d8388f96eaf887ff495fc89ac953c37da84c020687", "commit": INPUT}], "ADAPT", "The referenced old comparator claim is stale. Current source keeps NULL precedence outside direction reversal; this source inventory is not behavior proof.", "Sort typed values ascending and descending through the domain path and verify NULL stays last in both.", {"record_kind": "current_correction", "correction": "stale_null_sort_claim", "current_comparator": "cmp_values_nulls_last", "related_historical_records": [{"commit": INPUT, "path": "docs/implementation/pr38-final/REVIEW.md", "line_start": 464, "line_end": 477, "file_sha256": sha(git_bytes(INPUT, "docs/implementation/pr38-final/REVIEW.md")), "span_sha256": sha(f20_span), "raw_text": f20_span.decode("utf-8").rstrip("\r\n")}], "evidence": "NOT VERIFIED"}))
+    for item in out:
+        binding = MIGRATION_SOURCE_BINDINGS.get(item["item_id"])
+        if binding is None:
+            if item.get("record_kind") in {"current_showcase_route_crosswalk", "current_correction", "historical_application_migration_row"}:
+                continue
+            if item.get("record_kind") in {"additional_named_component", "definition_owner_reexport_contract", "component_identifier_nonreuse_contract", "removed_export_migration_guard"}:
+                continue
+            raise ValueError("missing explicit historical source binding: " + item["item_id"])
+        binding, sources = explicit_migration_sources(item["item_id"])
+        tasks, _, basis = binding
+        owner_task_ids = re.findall(r"T\d\d", tasks)
+        item["current_sources"] = sources
+        item["owner_task"] = tasks
+        item["owner_task_ids"] = owner_task_ids
+        item["disposition"] = "ADAPT"
+        item["disposition_reason"] = "Retain the historical requirement and map only the exact current source families named for this locator; evidence remains NOT VERIFIED. " + basis
+        item["required_case"]["owner_task_ids"] = owner_task_ids
+        item["required_case"]["description"] = item["required_case"].get("description") or item["required_case"].get("case_id")
+        item["required_case"]["evidence"] = "NOT VERIFIED"
+        item["current_binding_status"] = "EXPLICIT_SOURCE_PATHS_NOT_BEHAVIOR_PROOF"
+        item["source_binding_basis"] = basis
+        member_bindings = MIGRATION_MEMBER_BINDINGS.get(item["item_id"], [])
+        if member_bindings:
+            item["member_source_bindings"] = []
+            for member in member_bindings:
+                source = next((x for x in sources if x.get("path") == member["path"]), None)
+                if source is None:
+                    raise ValueError("member source is outside its explicit migration binding: " + item["item_id"])
+                if not 1 <= member["line"] <= source["line_count"]:
+                    raise ValueError("member source line is outside the current source: " + item["item_id"])
+                member_record = {**member, "commit": INPUT, "source_sha256": source["sha256"], "evidence": "NOT VERIFIED"}
+                source["owner_task"] = "/".join(member["owner_task_ids"])
+                source["owner_task_ids"] = member["owner_task_ids"]
+                source["symbol"] = member["symbol"]
+                source["member_bindings"] = source.get("member_bindings", []) + [member_record]
+                item["member_source_bindings"].append(member_record)
     return out
 
 
@@ -969,24 +1090,100 @@ def perf_specs():
     ]
 
 
-def perf_current_paths(name, historical_path):
-    n = name.lower()
-    if "crates/holla-ui/tests/perf.rs" in historical_path: return ["crates/holla-ui/src/app.rs", "crates/holla-sim/src/scenario.rs"]
-    if "crates/jackin-preview-app/tests/perf.rs" in historical_path: return ["crates/jackin-preview-app/src/app.rs", "crates/jackin-preview-presentation/src"]
-    if "crates/showcase-ui/tests/perf.rs" in historical_path: return ["crates/showcase-ui/src/app.rs"]
-    if "crates/tablepro-ui/tests/perf.rs" in historical_path: return ["crates/tablepro-ui/src", "crates/tablepro-domain/src/domain.rs", "crates/tablepro-sql/src/sql.rs"]
-    if "holla" in n or "scenario" in n: return ["crates/holla-ui/src/app.rs", "crates/holla-sim/src/scenario.rs"]
-    if "jackin" in n or "manager" in n or "capsule" in n: return ["crates/jackin-preview-app/src/app.rs", "crates/jackin-preview-presentation/src"]
-    if "showcase" in n: return ["crates/showcase-ui/src/app.rs"]
-    if "tablepro" in n or "grid_" in n or "local_sort" in n or "query_editor" in n or "connection_form" in n: return ["crates/tablepro-ui/src", "crates/tablepro-domain/src/domain.rs", "crates/tablepro-sql/src/sql.rs"]
-    if "viewport" in n or "textbuffer" in n: return ["crates/termrock-viewport/src/viewport.rs", "crates/termrock-text/src"]
-    if any(x in n for x in ("list", "picker", "tree", "steps", "collection")): return ["crates/termrock-navigation/src", "crates/termrock-collections/src"]
-    if any(x in n for x in ("style", "theme", "backdrop")): return ["crates/termrock-theme/src/resolve.rs", "crates/termrock-runtime/src/ui"]
-    if "diff" in n or "editor" in n: return ["crates/termrock-editors/src"]
-    if "form" in n: return ["crates/termrock-forms/src"]
-    if "props" in n: return ["crates/termrock-controls/src/props.rs"]
-    if any(x in n for x in ("width", "truncate", "fit_", "wrap", "fuzzy", "measure")): return ["crates/termrock-text/src"]
-    return ["crates/termrock-runtime/src", "crates/termrock-render/src"]
+PERF_CURRENT_BINDINGS = {
+    "crates/termrock-test-support/tests/perf.rs": {
+        "frame_testbackend_empty_120x40": ([], [], "External ratatui Terminal<TestBackend> draw; the entry point does not call Termrock production code.", "external_dependency_workload"),
+        "mouse_move_over_1000_regions": (["crates/termrock-runtime/src/hit.rs"], ["T09"], "Registers 1,000 plain and layered regions, then probes pointer positions through Registry." , "runtime_microbenchmark"),
+        "focus_tab_traversal_ring_200": (["crates/termrock-runtime/src/focus.rs"], ["T09"], "Builds a 200-entry focus ring and traverses it repeatedly." , "runtime_microbenchmark"),
+        "style_resolve_10k_parts": (["crates/termrock-theme/src/resolve.rs", "crates/termrock-runtime/src/ui/paint.rs"], ["T09", "T11"], "Resolves ten thousand styled parts through the Theme and Ui paint path." , "theme_runtime_microbenchmark"),
+        "style_resolve_per_frame": (["crates/termrock-theme/src/resolve.rs", "crates/termrock-runtime/src/ui/paint.rs"], ["T09", "T11"], "Compares per-row style resolution with hoisted resolved PaintStyle values." , "theme_runtime_microbenchmark"),
+        "style_resolve_10k_parts_with_two_overlays": (["crates/termrock-theme/src/resolve.rs", "crates/termrock-runtime/src/ui/paint.rs"], ["T09", "T11"], "Measures base and two-overlay resolution over the same ten-thousand-part scene." , "theme_runtime_microbenchmark"),
+        "style_backdrop_full_screen_120x40": (["crates/termrock-theme/src/resolve.rs", "crates/termrock-runtime/src/ui/paint.rs"], ["T09", "T11"], "Paints a 120 by 39 backdrop rectangle in a 120 by 40 scene." , "theme_runtime_microbenchmark"),
+        "style_downgrade_theme_all_levels": (["crates/termrock-theme/src/resolve.rs", "crates/termrock-theme/src/palettes.rs"], ["T11"], "Resolves palette styles over the declared color-capability levels." , "theme_microbenchmark"),
+        "width_10k_grapheme_line": (["crates/termrock-text/src/measure.rs", "crates/termrock-text/src/clusters.rs"], ["T13"], "Measures display width for a generated ten-thousand-grapheme line." , "text_microbenchmark"),
+        "truncate_10k_grapheme_line_to_80": (["crates/termrock-text/src/measure.rs", "crates/termrock-text/src/clusters.rs"], ["T13"], "Truncates a ten-thousand-grapheme line to an eighty-cell budget." , "text_microbenchmark"),
+        "fit_10k_grapheme_line_to_80": (["crates/termrock-runtime/src/rowui.rs", "crates/termrock-text/src/measure.rs"], ["T09", "T13"], "Fits a ten-thousand-grapheme line into an eighty-cell RowUi area." , "text_layout_microbenchmark"),
+        "fit_10k_grapheme_line_to_80_wide": (["crates/termrock-runtime/src/rowui.rs", "crates/termrock-text/src/measure.rs"], ["T09", "T13"], "Compares short and wide text in an eighty-cell RowUi area." , "text_layout_microbenchmark"),
+        "paint_spans_500_rows_is_allocation_free": (["crates/termrock-runtime/src/rowui.rs", "crates/termrock-runtime/src/ui/paint.rs"], ["T09", "T13"], "Paints three styled spans across five hundred generated rows." , "render_microbenchmark"),
+        "measure_is_allocation_free": (["crates/termrock-runtime/src/ui/measure.rs", "crates/termrock-runtime/src/author/composition.rs"], ["T09", "T10"], "Runs one hundred measure queries in a 120 by 40 scene." , "layout_microbenchmark"),
+        "truncate_middle_10k_to_40": (["crates/termrock-text/src/measure.rs", "crates/termrock-text/src/clusters.rs"], ["T13"], "Middle-truncates a ten-thousand-grapheme string to forty cells." , "text_microbenchmark"),
+        "wrap_10k_graphemes_to_80": (["crates/termrock-text/src/measure.rs", "crates/termrock-text/src/clusters.rs"], ["T13"], "Wraps a ten-thousand-grapheme input to eighty cells." , "text_microbenchmark"),
+        "fuzzy_10k_grapheme_label": (["crates/termrock-text/src/fuzzy.rs", "crates/termrock-text/src/clusters.rs"], ["T13"], "Runs fuzzy matching over a ten-thousand-grapheme label." , "text_microbenchmark"),
+        "textbuffer_pos_of_10k_line": (["crates/termrock-text/src/buffer.rs"], ["T13"], "Queries a TextBuffer position in a ten-thousand-line document." , "textbuffer_microbenchmark"),
+        "textbuffer_offset_at_10k_line": (["crates/termrock-text/src/buffer.rs"], ["T13"], "Queries a TextBuffer offset in a ten-thousand-line document." , "textbuffer_microbenchmark"),
+        "intents_drain_is_o_1_when_the_queue_is_empty": (["crates/termrock-core/src/intent.rs", "crates/termrock-runtime/src/runtime.rs"], ["T09"], "Compares empty and populated IntentQueue draining at 20 and 500 queued entries." , "intent_queue_microbenchmark"),
+        "render_twice_allocates_the_same": (["crates/termrock-runtime/src/runtime.rs", "crates/termrock-render/src/lib.rs"], ["T09", "T11"], "Compares allocation and byte deltas across two repeated scene draws." , "render_repeat_microbenchmark"),
+        "hit_registry_size_is_bounded": (["crates/termrock-runtime/src/hit.rs"], ["T09"], "Measures registration and checks hit-region count for an 80-row scene." , "runtime_microbenchmark"),
+        "list_100k_rows_construct": (["crates/termrock-navigation/src/list.rs", "crates/termrock-collections/src/lib.rs"], ["T14"], "Constructs a List over one hundred thousand row values." , "collection_microbenchmark"),
+        "list_1k_rows_render": (["crates/termrock-navigation/src/list.rs", "crates/termrock-runtime/src/rowui.rs"], ["T09", "T14"], "Draws one thousand list rows through a viewport-limited List render." , "component_render_microbenchmark"),
+        "list_100k_rows_render": (["crates/termrock-navigation/src/list.rs", "crates/termrock-runtime/src/rowui.rs"], ["T09", "T14"], "Draws one hundred thousand list rows and compares visible row and region work." , "component_render_microbenchmark"),
+        "no_full_collection_clone_per_frame": (["crates/termrock-viewport/src/viewport.rs", "crates/termrock-text/src/buffer.rs"], ["T13", "T17"], "Draws a TextViewport over one hundred thousand lines with borrowed collection state." , "viewport_render_microbenchmark"),
+        "list_100k_select_all": (["crates/termrock-navigation/src/list.rs", "crates/termrock-collections/src/collection/key.rs", "crates/termrock-runtime/src/runtime.rs"], ["T09", "T14"], "Dispatches select-all over one hundred thousand keyed list rows." , "input_dispatch_microbenchmark"),
+        "event_dispatch_is_not_o_n": (["crates/termrock-runtime/src/runtime.rs", "crates/termrock-runtime/src/hit.rs", "crates/termrock-runtime/src/keymap.rs"], ["T09"], "Compares full update/input/draw dispatch with 100 and 100,000 rows." , "runtime_dispatch_microbenchmark"),
+        "frame_showcase_buttons_120x40": (["crates/showcase-ui/src/app.rs", "crates/termrock-controls/src/button.rs"], ["T12", "T22"], "Draws the Showcase button application at 120 by 40." , "application_frame_microbenchmark"),
+        "frame_tablepro_query_editor_2k_lines": (["crates/tablepro-ui/src/app.rs", "crates/termrock-editors/src/code.rs", "crates/termrock-text/src/buffer.rs"], ["T13", "T17", "T29"], "Draws a TablePro query editor initialized with two thousand SQL lines." , "application_frame_microbenchmark"),
+        "diff_2k_cached_projection_has_zero_warm_allocations": (["crates/termrock-editors/src/diff.rs"], ["T17"], "Draws a DiffView over two thousand rows after warming its projection." , "editor_frame_microbenchmark"),
+        "frame_hintbar_derived": (["crates/termrock-feedback/src/hintbar.rs", "crates/termrock-runtime/src/keymap.rs"], ["T12", "T19"], "Measures a derived-hint frame and a separate input-routing path." , "application_frame_microbenchmark"),
+        "frame_form_update_draw": (["crates/termrock-forms/src/form.rs"], ["T18"], "Measures warmed Form update and draw in an 80 by 24 runtime." , "component_frame_microbenchmark"),
+    },
+    "crates/termrock-test-support/tests/perf_collections.rs": {
+        "picker_100k_borrowed_domain_render": (["crates/termrock-overlays/src/picker.rs", "crates/termrock-collections/src/lib.rs"], ["T14", "T15"], "Draws a Picker over a borrowed one-hundred-thousand-item domain." , "component_render_microbenchmark"),
+        "viewport_100k_lines_push": (["crates/termrock-viewport/src/viewport.rs", "crates/termrock-text/src/buffer.rs"], ["T13", "T17"], "Appends to a one-hundred-thousand-line viewport and compares indexed-prefix work." , "viewport_mutation_microbenchmark"),
+        "viewport_100k_lines_render": (["crates/termrock-viewport/src/viewport.rs", "crates/termrock-text/src/buffer.rs"], ["T13", "T17"], "Draws a warmed viewport over one hundred thousand lines." , "viewport_render_microbenchmark"),
+        "viewport_100k_lines_reindex": (["crates/termrock-viewport/src/viewport.rs", "crates/termrock-text/src/buffer.rs"], ["T13", "T17"], "Measures cold indexing, width-change indexing, and explicit invalidation of one hundred thousand lines." , "viewport_index_microbenchmark"),
+        "viewport_layout_10k_grapheme_line": (["crates/termrock-viewport/src/viewport.rs", "crates/termrock-text/src/measure.rs"], ["T13", "T17"], "Measures viewport layout for a ten-thousand-grapheme line in a 100 by 3 area." , "viewport_layout_microbenchmark"),
+        "tree_100k_nodes_flatten": (["crates/termrock-navigation/src/tree.rs"], ["T14"], "Flattens a tree with one hundred thousand nodes." , "tree_collection_microbenchmark"),
+        "tree_100k_nodes_render": (["crates/termrock-navigation/src/tree.rs", "crates/termrock-runtime/src/rowui.rs"], ["T09", "T14"], "Draws a warmed viewport of a one-hundred-thousand-node tree." , "tree_render_microbenchmark"),
+        "key_tree_toggle_10k": (["crates/termrock-navigation/src/tree.rs"], ["T14"], "Dispatches a keyed toggle through a ten-thousand-node tree." , "tree_input_microbenchmark"),
+        "steps_100k_rows_render": (["crates/termrock-navigation/src/steps.rs", "crates/termrock-runtime/src/rowui.rs"], ["T09", "T14"], "Draws a Steps view over one hundred thousand rows." , "component_render_microbenchmark"),
+        "grid_500x12_render": (["crates/termrock-grid/src/grid.rs"], ["T16"], "Draws a 500 by 12 Grid and checks viewport-bounded row and region work." , "grid_render_microbenchmark"),
+        "grid_500x12_load": (["crates/termrock-grid/src/grid.rs"], ["T16"], "Loads a 500 by 12 grid model and checks its six thousand cells." , "grid_load_microbenchmark"),
+    },
+    "crates/holla-ui/tests/perf.rs": {
+        "production_workload_measurements": (["crates/holla-sim/src/scenario.rs", "crates/holla-ui/src/app.rs"], ["T27"], "Measures the historical Scenario::ALL set; the test also fixes Motion and time and drives named query/navigation sequences." , "application_scenario_workload"),
+        "source_theme_projection_allocations_are_paid_during_configuration": (["crates/termrock-theme/src/resolve.rs", "crates/holla-ui/src/app.rs"], ["T11", "T27"], "Compares source-configured and unconfigured theme projection costs for paper and junie themes." , "theme_configuration_workload"),
+        "perf_holla_baseline": (["crates/holla-ui/src/app.rs", "crates/holla-sim/src/scenario.rs"], ["T27"], "Measures warmed Holla scenario harness draws and writes the historical baseline row." , "application_frame_microbenchmark"),
+    },
+    "crates/jackin-preview-app/tests/perf.rs": {
+        "jackin_perf_baseline_has_required_rows_and_no_deleted_clone": ([], [], "Checks baseline row names and confirms a deleted clone workload is absent; this entry point measures no product path." , "baseline_inventory_assertion"),
+        "frame_jackin_manager_100rows_120x40": (["crates/jackin-preview-app/src/app.rs", "crates/jackin-preview-presentation/src/lib.rs"], ["T28"], "Draws the Jackin manager view with one hundred rows at 120 by 40." , "application_frame_microbenchmark"),
+        "frame_jackin_capsule_4panes_120x40": (["crates/jackin-preview-app/src/app.rs", "crates/jackin-preview-presentation/src/lib.rs"], ["T28"], "Draws the four-pane Jackin capsule view at 120 by 40." , "application_frame_microbenchmark"),
+        "key_jackin_manager_move": (["crates/jackin-preview-app/src/app.rs", "crates/jackin-preview-presentation/src/lib.rs"], ["T28"], "Measures repeated Down-key input in the Jackin manager harness." , "application_input_microbenchmark"),
+    },
+    "crates/showcase-ui/tests/perf.rs": {
+        "frame_showcase_lists_120x40": (["crates/showcase-ui/src/app.rs", "crates/termrock-navigation/src/list.rs"], ["T14", "T22"], "Draws the Showcase list route at 120 by 40 and checks stable row counts." , "application_frame_microbenchmark"),
+        "frame_showcase_lists_80x24": (["crates/showcase-ui/src/app.rs", "crates/termrock-navigation/src/list.rs"], ["T14", "T22"], "Draws the compact Showcase list route at 80 by 24 and checks frame determinism." , "application_frame_microbenchmark"),
+        "frame_showcase_dialog_open": (["crates/showcase-ui/src/app.rs", "crates/termrock-overlays/src/dialog.rs"], ["T15", "T22"], "Opens the keyboard help dialog, warms the route, and compares repeated frames." , "application_frame_microbenchmark"),
+        "key_showcase_down_lists": (["crates/showcase-ui/src/app.rs", "crates/termrock-navigation/src/list.rs"], ["T14", "T22"], "Dispatches Tab then one thousand Down inputs on the Showcase list route." , "application_input_workload"),
+        "mouse_move_showcase_frame": (["crates/showcase-ui/src/app.rs", "crates/termrock-runtime/src/hit.rs"], ["T09", "T22"], "Sweeps pointer motion over even x coordinates across a 120 by 40 Showcase frame." , "application_pointer_workload"),
+        "wheel_showcase_lists": (["crates/showcase-ui/src/app.rs", "crates/termrock-navigation/src/list.rs", "crates/termrock-runtime/src/scroll_region.rs"], ["T09", "T14", "T22"], "Dispatches one thousand wheel events on the list route and checks viewport position." , "application_scroll_workload"),
+        "render_twice_allocates_the_same": (["crates/showcase-ui/src/app.rs", "crates/termrock-runtime/src/runtime.rs"], ["T09", "T22"], "Checks that repeated Showcase draws keep the same scene output." , "determinism_check_not_measurement"),
+        "perf_showcase_baseline": (["crates/showcase-ui/src/app.rs"], ["T22"], "Measures warmed Showcase harness draws and reports the historical baseline row." , "application_frame_microbenchmark"),
+    },
+    "crates/tablepro-ui/tests/perf.rs": {
+        "frame_tablepro_grid_500x14_120x40": (["crates/tablepro-ui/src/app.rs", "crates/tablepro-domain/src/domain.rs", "crates/termrock-grid/src/grid.rs"], ["T16", "T29"], "Draws a 500-row, 14-column TablePro grid at 120 by 40 and checks visible header/body geometry." , "application_frame_microbenchmark"),
+        "key_tablepro_grid_cursor": (["crates/tablepro-ui/src/app.rs", "crates/tablepro-domain/src/domain.rs", "crates/termrock-grid/src/grid.rs"], ["T16", "T29"], "Dispatches Down and Right input through the TablePro grid." , "application_input_workload"),
+        "key_tablepro_grid_sort_local": (["crates/tablepro-ui/src/app.rs", "crates/tablepro-domain/src/domain.rs", "crates/tablepro-sql/src/sql.rs"], ["T29"], "Dispatches the local sort key in TablePro and keeps the 500-row result." , "application_sort_workload"),
+        "grid_100k_local_sort": (["crates/tablepro-domain/src/domain.rs", "crates/termrock-grid/src/grid.rs"], ["T16", "T29"], "Sorts a locally constructed 100,000-row grid and checks stable first-row identity." , "domain_sort_microbenchmark"),
+        "mouse_click_grid_cell": (["crates/tablepro-ui/src/app.rs", "crates/tablepro-domain/src/domain.rs", "crates/termrock-grid/src/grid.rs"], ["T16", "T29"], "Clicks a TablePro grid cell and checks the production harness diagnostics." , "application_pointer_workload"),
+        "wheel_tablepro_grid": (["crates/tablepro-ui/src/app.rs", "crates/tablepro-domain/src/domain.rs", "crates/termrock-grid/src/grid.rs", "crates/termrock-runtime/src/scroll_region.rs"], ["T16", "T29"], "Dispatches wheel input through a TablePro grid with 500 rows." , "application_scroll_workload"),
+        "grid_500x12_load": (["crates/tablepro-ui/src/app.rs", "crates/tablepro-domain/src/domain.rs", "crates/termrock-grid/src/grid.rs"], ["T16", "T29"], "Loads 500 rows by 12 columns and measures initial grid construction." , "grid_load_microbenchmark"),
+        "debug_and_release_alloc_counts_match": ([], [], "Compares historical allocator counts across build profiles; it does not exercise a distinct production operation." , "allocator_instrumentation_check"),
+        "frame_tablepro_connection_form_120x40": (["crates/tablepro-ui/src/app.rs", "crates/termrock-forms/src/form.rs", "crates/termrock-fields/src/field.rs"], ["T13", "T18", "T29"], "Draws the TablePro connection form at 120 by 40." , "application_frame_microbenchmark"),
+        "frame_tablepro_query_editor_2k_lines": (["crates/tablepro-ui/src/app.rs", "crates/termrock-editors/src/code.rs", "crates/termrock-text/src/buffer.rs"], ["T13", "T17", "T29"], "Draws a TablePro query editor initialized from two thousand repeated SQL lines." , "application_frame_microbenchmark"),
+        "perf_tablepro_baseline": (["crates/tablepro-ui/src/app.rs", "crates/tablepro-domain/src/domain.rs"], ["T29"], "Measures warmed TablePro result app draws and reports the historical baseline row." , "application_frame_microbenchmark"),
+    },
+    "crates/termrock-controls/tests/props_rich_perf.rs": {
+        "wrapped_and_toned_rows_allocate_nothing_after_warmup": (["crates/termrock-controls/src/props.rs", "crates/termrock-runtime/src/rowui.rs"], ["T09", "T12"], "Warms four draws, then measures two hundred draws of 24 wrapped and toned Props rows." , "component_render_microbenchmark"),
+    },
+}
+
+
+def perf_binding(path, name):
+    binding = PERF_CURRENT_BINDINGS.get(path, {}).get(name)
+    if binding is None:
+        raise ValueError("missing explicit workload binding: " + path + "::" + name)
+    return binding
 
 
 CURRENT_SOURCE_BINDINGS = {}
@@ -1038,95 +1235,345 @@ def performance_measurement_model():
     }
 
 
+WORKLOAD_FILE_INDEXES = {}
+WORKLOAD_METHOD_INDEXES = {}
+
+
+def workload_file_index(commit, path):
+    key = (commit, path)
+    if key in WORKLOAD_FILE_INDEXES:
+        return WORKLOAD_FILE_INDEXES[key]
+    raw = git_bytes(commit, path)
+    lines = raw.decode("utf-8").splitlines()
+    impls = []
+    for start, line in enumerate(lines):
+        if not re.match(r"\s*(?:pub\s+)?impl\b", line):
+            continue
+        header = line
+        end_header = start
+        while "{" not in header and end_header + 1 < len(lines):
+            end_header += 1
+            header += " " + lines[end_header]
+        if " for " in header:
+            owner = header.split(" for ", 1)[1].split("{", 1)[0].strip()
+        else:
+            owner = re.sub(r"^\s*(?:pub\s+)?impl\s*(?:<.*?>\s*)?", "", header).split("{", 1)[0].strip()
+        owner = re.sub(r"<.*$", "", owner).split("::")[-1].strip()
+        impls.append((start, brace_end(lines, start), owner))
+    methods = collections.defaultdict(list)
+    free = collections.defaultdict(list)
+    for start, line in enumerate(lines):
+        definition = re.match(r"\s*(?:pub(?:\([^)]*\))?\s+)?(?:const\s+)?fn\s+([A-Za-z_]\w*)\s*\(", line)
+        if not definition:
+            continue
+        name = definition.group(1)
+        end = brace_end(lines, start)
+        owners = [owner for impl_start, impl_end, owner in impls if impl_start < start < impl_end]
+        record = {"name": name, "path": path, "commit": commit, "line_start": start + 1, "line_end": end + 1, "source_sha256": sha(raw), "span_sha256": sha(b"".join(raw.splitlines(keepends=True)[start:end + 1])), "code": "\n".join(lines[start:end + 1]), "signature": lines[start]}
+        if owners:
+            record["owner_type"] = owners[-1]
+            methods[(owners[-1], name)].append(record)
+        else:
+            free[name].append(record)
+    imports = {}
+    joined = "\n".join(lines[:min(len(lines), 90)])
+    for match in re.finditer(r"use\s+([A-Za-z_]\w*(?:::\w+)*)\s*::\s*\{([^}]*)\}\s*;", joined, re.DOTALL):
+        prefix = match.group(1)
+        for raw_name in match.group(2).split(","):
+            item = raw_name.strip()
+            if not item or item == "self":
+                continue
+            pieces = re.split(r"\s+as\s+", item)
+            name = pieces[-1].strip()
+            source = pieces[0].strip()
+            imports[name] = prefix + "::" + source
+    for match in re.finditer(r"use\s+([A-Za-z_]\w*(?:::\w+)*)\s*;", joined):
+        source = match.group(1)
+        name = source.split("::")[-1]
+        imports[name] = source
+    types = set(re.findall(r"\b(?:struct|enum|trait|type)\s+([A-Z_]\w*)", joined))
+    result = {"raw": raw, "lines": lines, "free": free, "methods": methods, "imports": imports, "types": types, "impls": impls}
+    WORKLOAD_FILE_INDEXES[key] = result
+    return result
+
+
+def workload_type_path(raw_type, imports, local_types, path):
+    if not raw_type:
+        return None
+    source = raw_type.strip()
+    source = re.sub(r"\b(?:mut|const)\b", "", source)
+    source = source.lstrip("& ").strip()
+    source = re.sub(r"^'[A-Za-z_]\w*\s+", "", source)
+    source = re.sub(r"<.*$", "", source).strip()
+    source = source.rstrip("? ")
+    if not source:
+        return None
+    if "::" in source:
+        return source
+    if source in imports:
+        return imports[source]
+    if source in local_types:
+        return "local::" + source
+    if source in {"Vec", "String", "Option", "Result", "Box", "Rc", "Arc", "HashMap", "HashSet", "BTreeMap", "BTreeSet", "Path", "PathBuf", "Iterator", "Range", "RangeInclusive"}:
+        return "std::" + source
+    if source in {"Self", "self"}:
+        return None
+    return source
+
+
+def workload_receiver_types(index, code, owner_type=None):
+    types = {}
+    if owner_type:
+        types["self"] = "local::" + owner_type
+    for parameter in re.finditer(r"([A-Za-z_]\w*)\s*:\s*([^,)=]+)", code.split("{", 1)[0]):
+        name, annotation = parameter.group(1), parameter.group(2)
+        if name not in ("self", "where"):
+            resolved = workload_type_path(annotation, index["imports"], index["types"], "")
+            if resolved:
+                types[name] = resolved
+    statements = re.finditer(r"\blet\s+(?:mut\s+)?([A-Za-z_]\w*)\s*(?::\s*([^=;\n]+))?\s*=\s*(.*?);", code, re.DOTALL)
+    for statement in statements:
+        name, annotation, expression = statement.group(1), statement.group(2), statement.group(3)
+        raw_type = annotation
+        if not raw_type:
+            constructor = re.search(r"([A-Za-z_]\w*(?:::\w+)*)\s*::\s*(?:new|default|empty|from|with_[A-Za-z_]\w*)\s*\(", expression)
+            if constructor:
+                raw_type = constructor.group(1)
+            else:
+                block_constructor = re.search(r"([A-Za-z_]\w*(?:::\w+)*)\s*\{", expression)
+                if block_constructor:
+                    raw_type = block_constructor.group(1)
+                else:
+                    call = re.match(r"\s*([A-Za-z_]\w*)\s*\(", expression)
+                    if call:
+                        candidates = index["free"].get(call.group(1), [])
+                        if len(candidates) == 1:
+                            signature = candidates[0]["signature"]
+                            if "->" in signature:
+                                raw_type = signature.split("->", 1)[1].split("{", 1)[0].strip()
+        resolved = workload_type_path(raw_type, index["imports"], index["types"], "")
+        if resolved:
+            types[name] = resolved
+    return types
+
+
+def workload_method_location(type_path, method, preferred_path, commit):
+    key = (commit, type_path, method, preferred_path)
+    if key in WORKLOAD_METHOD_INDEXES:
+        return WORKLOAD_METHOD_INDEXES[key]
+    if not type_path:
+        WORKLOAD_METHOD_INDEXES[key] = []
+        return []
+    if type_path.startswith("local::"):
+        roots = [preferred_path]
+        owner = type_path.split("::")[-1]
+    else:
+        crate = type_path.split("::", 1)[0]
+        if not crate.startswith(("termrock_", "holla_", "jackin_", "showcase_", "tablepro_", "termrock")):
+            WORKLOAD_METHOD_INDEXES[key] = []
+            return []
+        crate_path = "crates/" + crate.replace("_", "-") + "/src"
+        roots = source_file_list(commit, crate_path)
+        owner = type_path.split("::")[-1]
+    matches = []
+    for source_path in roots:
+        if not source_path.endswith(".rs"):
+            continue
+        index = workload_file_index(commit, source_path)
+        matches.extend(index["methods"].get((owner, method), []))
+    WORKLOAD_METHOD_INDEXES[key] = matches
+    return matches
+
+
+def workload_binding_record(record, callsite_path, callsite_line, call_kind):
+    return {key: record[key] for key in ("name", "path", "commit", "line_start", "line_end", "source_sha256", "span_sha256")} | {"callsite_path": callsite_path, "callsite_line": callsite_line, "call_kind": call_kind, "owner_type": record.get("owner_type")}
+
+
+def trace_workload_helpers(path, lines, start, end, workload_id):
+    root_index = workload_file_index(OLD, path)
+    queue = [(path, start, end, None, 0)]
+    visited = set()
+    helpers, edges, external, unresolved = [], [], [], []
+    seen_helpers = set()
+    perf_names = {"bench", "bench_sampled", "measure_once", "check_ratio", "report_to", "samples", "iters"}
+    perf_path = "crates/termrock-test-support/src/perf.rs"
+    perf_index = workload_file_index(OLD, perf_path)
+    while queue:
+        scope_path, scope_start, scope_end, scope_owner, depth = queue.pop(0)
+        if depth > 20:
+            unresolved.append({"callsite_path": scope_path, "callsite_line": scope_start + 1, "call": "call graph depth", "reason": "Static helper traversal reached its explicit depth bound.", "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
+            continue
+        visit = (scope_path, scope_start, scope_end)
+        if visit in visited:
+            continue
+        visited.add(visit)
+        scope_index = workload_file_index(OLD, scope_path)
+        code_lines = scope_index["lines"][scope_start:scope_end]
+        code = "\n".join(code_lines)
+        receiver_types = workload_receiver_types(scope_index, code, scope_owner)
+        for offset, source_line in enumerate(code_lines, scope_start + 1):
+            stripped = source_line.strip()
+            continuation = re.match(r"\.\s*([A-Za-z_]\w*)\s*\(", stripped)
+            if continuation:
+                unresolved.append({"callsite_path": scope_path, "callsite_line": offset, "call": "continuation_method." + continuation.group(1), "receiver_type": None, "reason": "The method call continues an earlier expression; its receiver and implementation owner are not bound by this source scan.", "candidate_bindings": [], "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
+            if re.match(r"(?:pub(?:\([^)]*\))?\s+)?(?:const\s+)?fn\s+", stripped):
+                continue
+            for call in re.finditer(r"(?<![.\w:])([A-Za-z_]\w*)\s*\(", source_line):
+                name = call.group(1)
+                if name in {"if", "while", "for", "match", "assert", "assert_eq", "assert_ne", "debug_assert", "debug_assert_eq", "vec", "format", "concat", "include_str", "include_bytes"}:
+                    continue
+                if name == "self":
+                    continue
+                candidates = scope_index["free"].get(name, [])
+                if len(candidates) == 1 and candidates[0]["line_start"] != scope_start + 1:
+                    record = candidates[0]
+                    key = (record["path"], record["line_start"], record["line_end"])
+                    if key not in seen_helpers:
+                        seen_helpers.add(key)
+                        helpers.append(workload_binding_record(record, scope_path, offset, "same_file_free_function"))
+                        queue.append((record["path"], record["line_start"] - 1, record["line_end"], None, depth + 1))
+                    edges.append({"caller_path": scope_path, "callsite_line": offset, "call": name, "callee_path": record["path"], "callee_line": record["line_start"], "resolution": "UNIQUE_SAME_FILE_FREE_FUNCTION", "evidence": "NOT VERIFIED"})
+                elif len(candidates) > 1:
+                    unresolved.append({"callsite_path": scope_path, "callsite_line": offset, "call": name, "reason": "Multiple same-file free functions share this name; no function was selected.", "candidate_bindings": [{"path": candidate["path"], "line_start": candidate["line_start"], "line_end": candidate["line_end"], "span_sha256": candidate["span_sha256"]} for candidate in candidates], "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
+                elif name in perf_names:
+                    candidates = perf_index["free"].get(name, [])
+                    if len(candidates) == 1:
+                        record = candidates[0]
+                        helpers.append(workload_binding_record(record, scope_path, offset, "shared_measurement_helper"))
+                        edges.append({"caller_path": scope_path, "callsite_line": offset, "call": name, "callee_path": perf_path, "callee_line": record["line_start"], "resolution": "EXACT_HISTORICAL_MEASUREMENT_HELPER", "evidence": "NOT VERIFIED"})
+                    else:
+                        unresolved.append({"callsite_path": scope_path, "callsite_line": offset, "call": name, "reason": "The shared measurement helper definition was not unique in the immutable source file.", "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
+            for call in re.finditer(r"\b([A-Za-z_]\w*)\s*\.\s*([A-Za-z_]\w*)\s*\(", source_line):
+                receiver, method = call.group(1), call.group(2)
+                if receiver in {"self", "Self"} and scope_owner:
+                    receiver_type = "local::" + scope_owner
+                else:
+                    receiver_type = receiver_types.get(receiver)
+                if receiver_type and receiver_type.split("::", 1)[0] in {"ratatui", "ratatui_core", "std", "core", "alloc"}:
+                    external.append({"callsite_path": scope_path, "callsite_line": offset, "receiver": receiver, "receiver_type": receiver_type, "method": method, "boundary": "external_or_standard_library", "evidence": "NOT VERIFIED"})
+                    continue
+                method_candidates = workload_method_location(receiver_type, method, scope_path, OLD) if receiver_type else []
+                if len(method_candidates) == 1:
+                    record = method_candidates[0]
+                    key = (record["path"], record["line_start"], record["line_end"])
+                    if key not in seen_helpers:
+                        seen_helpers.add(key)
+                        helpers.append(workload_binding_record(record, scope_path, offset, "receiver_resolved_method"))
+                        if record["path"] == path or (record["path"].startswith("crates/termrock-test-support/src/") and record["path"] != perf_path):
+                            queue.append((record["path"], record["line_start"] - 1, record["line_end"], record.get("owner_type"), depth + 1))
+                    resolution = "EXACT_RECEIVER_AND_IMPL_OWNER_HELPER" if record["path"] == path or (record["path"].startswith("crates/termrock-test-support/src/") and record["path"] != perf_path) else "EXACT_RECEIVER_AND_IMPL_OWNER_PRODUCTION_BOUNDARY"
+                    edges.append({"caller_path": scope_path, "callsite_line": offset, "receiver": receiver, "receiver_type": receiver_type, "call": method, "callee_path": record["path"], "callee_line": record["line_start"], "resolution": resolution, "evidence": "NOT VERIFIED"})
+                else:
+                    reason = "Receiver type is unresolved at this source scope." if not receiver_type else ("No unique method with this name was found under the resolved receiver type." if not method_candidates else "Multiple methods share this name for the resolved receiver type.")
+                    unresolved.append({"callsite_path": scope_path, "callsite_line": offset, "call": receiver + "." + method, "receiver_type": receiver_type, "reason": reason, "candidate_bindings": [{"path": candidate["path"], "line_start": candidate["line_start"], "line_end": candidate["line_end"], "span_sha256": candidate["span_sha256"]} for candidate in method_candidates], "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
+    return helpers, edges, external, unresolved
+
+
 def workloads():
     result, sources = [], []
     interesting = re.compile(r"bench|measure_once|samples|assert|check_ratio|PERF_|report_to|baseline|KeyCode::|MouseKind::|Input::|Intent::|Motion::|Scenario::|Rect::|Terminal::|TestBackend::|\.key\(|\.mouse\(|\.draw\(|\.input\(")
-    for path, tasks in perf_specs():
+    for path, _ in perf_specs():
         raw = git_bytes(OLD, path)
-        lines = raw.decode().splitlines()
-        source_lines_raw = raw.splitlines(keepends=True)
-        function_defs = {}
-        for function_start, function_line in enumerate(lines):
-            definition = re.match(r"\s*(?:pub\s+)?(?:const\s+)?fn\s+([A-Za-z_]\w*)\s*\(", function_line)
-            if not definition:
-                continue
-            function_end = brace_end(lines, function_start)
-            function_defs[definition.group(1)] = (function_start, function_end, "\n".join(lines[function_start:function_end + 1]))
+        lines = raw.decode("utf-8").splitlines()
+        raw_lines = raw.splitlines(keepends=True)
+        file_index = workload_file_index(OLD, path)
         sources.append({"path": path, "commit": OLD, "sha256": sha(raw), "lines": len(lines), "status": "historical workload source; not executed"})
         for attr, line in enumerate(lines):
-            if line.strip() != "#[test]": continue
+            if line.strip() != "#[test]":
+                continue
             start = next((j for j in range(attr + 1, min(attr + 8, len(lines))) if re.match(r"\s*fn\s+[A-Za-z_]\w*\s*\(", lines[j])), None)
-            if start is None: continue
+            if start is None:
+                continue
             name = re.search(r"\bfn\s+([A-Za-z_]\w*)", lines[start]).group(1)
             end = brace_end(lines, start)
             body = lines[start:end + 1]
             code = "\n".join(body)
-            span_raw = b"".join(source_lines_raw[start:end + 1])
-            pending = [called_name for called_name in re.findall(r"\b([A-Za-z_]\w*)\s*\(", code) if called_name in function_defs and called_name != name]
-            helper_names = set()
-            search_code = code
-            while pending:
-                helper_name = pending.pop()
-                if helper_name in helper_names or helper_name not in function_defs:
-                    continue
-                helper_names.add(helper_name)
-                helper_code = function_defs[helper_name][2]
-                search_code += "\n" + helper_code
-                pending.extend(name for name in re.findall(r"\b([A-Za-z_]\w*)\s*\(", helper_code) if name in function_defs and name not in helper_names)
-            helper_bindings = []
-            for helper_name in sorted(helper_names, key=lambda x: function_defs[x][0]):
-                helper_start, helper_end, _ = function_defs[helper_name]
-                helper_span = b"".join(source_lines_raw[helper_start:helper_end + 1])
-                helper_bindings.append({"function": helper_name, "path": path, "commit": OLD, "source_sha256": sha(raw), "line_start": helper_start + 1, "line_end": helper_end + 1, "span_sha256": sha(helper_span)})
-            facts = [{"line": start + i + 1, "text": x.strip()[:300]} for i, x in enumerate(body) if interesting.search(x)]
-            helper_claims = [{"function": helper_name, "line": i + 1, "text": x.strip()[:300]} for helper_name in helper_names for i, x in enumerate(lines[function_defs[helper_name][0]:function_defs[helper_name][1] + 1], function_defs[helper_name][0]) if interesting.search(x)]
+            span_raw = b"".join(raw_lines[start:end + 1])
+            workload_id = OLD + ":" + path + ":" + str(start + 1) + ":" + name
+            helper_bindings, call_edges, external_calls, unresolved_edges = trace_workload_helpers(path, lines, start, end + 1, workload_id)
+            helper_code = []
+            for binding in helper_bindings:
+                helper_raw = git_bytes(binding["commit"], binding["path"])
+                helper_lines = helper_raw.decode("utf-8").splitlines()
+                helper_code.append("\n".join(helper_lines[binding["line_start"] - 1:binding["line_end"]]))
+            search_code = code + "\n" + "\n".join(helper_code)
+            helper_calls = sorted(set(helper for helper in ("bench", "bench_sampled", "measure_once", "check_ratio", "report_to", "samples", "iters") if re.search(r"\b" + helper + r"\s*\(", search_code)))
+            traced_paths = sorted(set([path] + [x["path"] for x in helper_bindings]))
             used_constants = set(re.findall(r"\b(?:WIDTH|HEIGHT|WARMUPS|SAMPLES|ITERATIONS|QUERY|STEPS|PERF_[A-Z_]+)\b", search_code))
-            configuration_constants = [{"line": i + 1, "text": x.strip()} for i, x in enumerate(lines) if re.match(r"\s*(?:pub\s+)?const\s+[A-Z_][A-Z0-9_]*", x) and any(re.search(r"\b" + re.escape(constant) + r"\b", x) for constant in used_constants)]
+            configuration_constants = []
+            const_values = {}
+            for source_path in traced_paths:
+                source_lines = workload_file_index(OLD, source_path)["lines"]
+                source_hash = sha(git_bytes(OLD, source_path))
+                for line_number, source_line in enumerate(source_lines, 1):
+                    declaration = re.match(r"\s*(?:pub\s+)?const\s+([A-Z_][A-Z0-9_]*)\s*:[^=]*=\s*(.*)", source_line)
+                    if declaration and declaration.group(1) in used_constants:
+                        value = declaration.group(2).rstrip(";")
+                        configuration_constants.append({"path": source_path, "commit": OLD, "source_sha256": source_hash, "line": line_number, "text": source_line.strip()})
+                        const_values[declaration.group(1)] = value.strip()
+            facts = [{"path": path, "commit": OLD, "source_sha256": sha(raw), "line": start + i + 1, "text": value.strip()[:300]} for i, value in enumerate(body) if interesting.search(value)]
+            def helper_facts(pattern):
+                found = []
+                for binding in helper_bindings:
+                    source_lines = workload_file_index(binding["commit"], binding["path"])["lines"]
+                    for line_number in range(binding["line_start"], binding["line_end"] + 1):
+                        source_line = source_lines[line_number - 1]
+                        if pattern.search(source_line):
+                            found.append({"function": binding["name"], "path": binding["path"], "commit": binding["commit"], "source_sha256": binding["source_sha256"], "line": line_number, "text": source_line.strip()[:300]})
+                return found
+            helper_claims = helper_facts(interesting)
+            facts_pattern = re.compile(r"KeyCode::|MouseKind::|Input::|Intent::|Motion::|Scenario::|\.key\(|\.mouse\(")
+            events = [{"path": path, "commit": OLD, "source_sha256": sha(raw), "line": start + i + 1, "text": value.strip()[:240]} for i, value in enumerate(body) if facts_pattern.search(value)]
+            helper_events = helper_facts(facts_pattern)
+            clock_pattern = re.compile(r"clock|seed|random|Instant::|SystemTime|Motion::|\.tick\(|time\s*=|set_time", re.IGNORECASE)
+            clock_seed_lines = [{"path": path, "commit": OLD, "source_sha256": sha(raw), "line": start + i + 1, "text": value.strip()[:300]} for i, value in enumerate(body) if clock_pattern.search(value)]
+            helper_clock_seed_lines = helper_facts(clock_pattern)
+            size_pattern = re.compile(r"for\s+\w+\s+in|0\.\.|vec!|with_capacity|repeat\(|\b(?:items|rows|cols|width|height|count|size)\b")
+            collection_size_lines = [{"path": path, "commit": OLD, "source_sha256": sha(raw), "line": start + i + 1, "text": value.strip()[:300]} for i, value in enumerate(body) if size_pattern.search(value)]
+            helper_collection_size_lines = helper_facts(size_pattern)
+            option_pattern = re.compile(r"PERF_|iters\(|big\(|ColorLevel::|Theme::|Motion::|with_[a-z_]+|Options|mode\s*=")
+            option_lines = [{"path": path, "commit": OLD, "source_sha256": sha(raw), "line": start + i + 1, "text": value.strip()[:300]} for i, value in enumerate(body) if option_pattern.search(value)]
+            helper_option_lines = helper_facts(option_pattern)
+            assertion_pattern = re.compile(r"assert|check_ratio|PERF_|report_to|baseline")
+            assertion_lines = [{"path": path, "commit": OLD, "source_sha256": sha(raw), "line": start + i + 1, "text": value.strip()[:300]} for i, value in enumerate(body) if assertion_pattern.search(value)]
+            helper_assertion_lines = helper_facts(assertion_pattern)
             nums = []
-            for m in re.finditer(r"\b\d[\d_]*(?:x\d[\d_]*)?\b", name + "\n" + code):
-                if m.group(0) not in nums: nums.append(m.group(0))
-            dims = sorted(set(re.findall(r"\b\d{1,4}\s*[x×]\s*\d{1,4}\b", name + "\n" + code)))
-            events = [x.strip()[:240] for x in body if re.search(r"KeyCode::|MouseKind::|Input::|Intent::|Motion::|Scenario::|\.key\(|\.mouse\(", x)]
-            helper_events = [{"function": helper_name, "line": i + 1, "text": x.strip()[:240]} for helper_name in helper_names for i, x in enumerate(lines[function_defs[helper_name][0]:function_defs[helper_name][1] + 1], function_defs[helper_name][0]) if re.search(r"KeyCode::|MouseKind::|Input::|Intent::|Motion::|Scenario::|\.key\(|\.mouse\(", x)]
-            clock_seed_lines = [{"line": start + i + 1, "text": x.strip()[:300]} for i, x in enumerate(body) if re.search(r"clock|seed|random|Instant::|SystemTime|Motion::|\.tick\(|time\s*=|set_time", x, re.IGNORECASE)]
-            helper_clock_seed_lines = [{"function": helper_name, "line": i + 1, "text": x.strip()[:300]} for helper_name in helper_names for i, x in enumerate(lines[function_defs[helper_name][0]:function_defs[helper_name][1] + 1], function_defs[helper_name][0]) if re.search(r"clock|seed|random|Instant::|SystemTime|Motion::|\.tick\(|time\s*=|set_time", x, re.IGNORECASE)]
-            collection_size_lines = [{"line": start + i + 1, "text": x.strip()[:300]} for i, x in enumerate(body) if re.search(r"for\s+\w+\s+in|0\.\.|vec!|with_capacity|repeat\(|\b(?:items|rows|cols|width|height|count|size)\b", x)]
-            helper_collection_size_lines = [{"function": helper_name, "line": i + 1, "text": x.strip()[:300]} for helper_name in helper_names for i, x in enumerate(lines[function_defs[helper_name][0]:function_defs[helper_name][1] + 1], function_defs[helper_name][0]) if re.search(r"for\s+\w+\s+in|0\.\.|vec!|with_capacity|repeat\(|\b(?:items|rows|cols|width|height|count|size)\b", x)]
-            option_lines = [{"line": start + i + 1, "text": x.strip()[:300]} for i, x in enumerate(body) if re.search(r"PERF_|iters\(|big\(|ColorLevel::|Theme::|Motion::|with_[a-z_]+|Options|mode\s*=", x)]
-            helper_option_lines = [{"function": helper_name, "line": i + 1, "text": x.strip()[:300]} for helper_name in helper_names for i, x in enumerate(lines[function_defs[helper_name][0]:function_defs[helper_name][1] + 1], function_defs[helper_name][0]) if re.search(r"PERF_|iters\(|big\(|ColorLevel::|Theme::|Motion::|with_[a-z_]+|Options|mode\s*=", x)]
-            assertion_lines = [{"line": start + i + 1, "text": x.strip()[:300]} for i, x in enumerate(body) if re.search(r"assert|check_ratio|PERF_|report_to|baseline", x)]
-            helper_calls = [name for name in ("bench", "bench_sampled", "measure_once", "check_ratio", "report_to", "samples") if re.search(r"\b" + name + r"\s*\(", search_code)]
-            helper_assertion_lines = [{"function": helper_name, "line": i + 1, "text": x.strip()[:300]} for helper_name in helper_names for i, x in enumerate(lines[function_defs[helper_name][0]:function_defs[helper_name][1] + 1], function_defs[helper_name][0]) if re.search(r"assert|check_ratio|PERF_|report_to|baseline", x)]
+            for match in re.finditer(r"\b\d[\d_]*(?:x\d[\d_]*)?\b", name + "\n" + search_code):
+                if match.group(0) not in nums:
+                    nums.append(match.group(0))
+            dims = sorted(set(re.findall(r"\b\d{1,4}\s*[x×]\s*\d{1,4}\b", name + "\n" + search_code)))
             scenario_source = None
             if "Scenario::ALL" in search_code:
                 scenario_path = "crates/holla-sim/src/scenario.rs"
                 scenario_raw = git_bytes(OLD, scenario_path)
-                scenario_lines = scenario_raw.decode().splitlines(keepends=True)
-                scenario_start = next(i for i, x in enumerate(scenario_lines) if re.search(r"pub const ALL:\s*\[Scenario;", x))
+                scenario_lines = scenario_raw.decode("utf-8").splitlines(keepends=True)
+                scenario_start = next(i for i, value in enumerate(scenario_lines) if re.search(r"pub const ALL:\s*\[Scenario;", value))
                 scenario_end = next(i for i in range(scenario_start, len(scenario_lines)) if "];" in scenario_lines[i])
-                scenario_span = "".join(scenario_lines[scenario_start:scenario_end + 1]).encode()
-                scenario_source = {"path": scenario_path, "commit": OLD, "sha256": sha(scenario_raw), "line_start": scenario_start + 1, "line_end": scenario_end + 1, "span_sha256": sha(scenario_span), "scenario_count": 34}
-            if "samples" in helper_calls:
-                const_values = {}
-                for constant in configuration_constants:
-                    match = re.search(r"const\s+([A-Z_]+):[^=]*=\s*(\d+)", constant["text"])
-                    if match: const_values[match.group(1)] = match.group(2)
-                measurement_scope = "Local samples helper warms " + const_values.get("WARMUPS", "unresolved") + " times, records " + const_values.get("SAMPLES", "unresolved") + " samples, and repeats " + const_values.get("ITERATIONS", "unresolved") + " operations per sample using measure_once; reports retain raw totals."
-            elif "bench_sampled" in helper_calls or "bench" in helper_calls:
-                measurement_scope = "Entry point calls the named repeat helper; warmup, iteration normalization, repetition count, and median follow the bound historical helper source."
+                scenario_span = "".join(scenario_lines[scenario_start:scenario_end + 1]).encode("utf-8")
+                scenario_source = {"path": scenario_path, "commit": OLD, "sha256": sha(scenario_raw), "line_start": scenario_start + 1, "line_end": scenario_end + 1, "span_sha256": sha(scenario_span), "scenario_count": 34, "evidence": "NOT VERIFIED"}
+            if "samples" in helper_calls and any(x["name"] == "samples" and x["path"] == path for x in helper_bindings):
+                measurement_scope = "The source-local samples helper warms " + const_values.get("WARMUPS", "unresolved") + ", records " + const_values.get("SAMPLES", "unresolved") + " samples, and runs " + const_values.get("ITERATIONS", "unresolved") + " work operations per sample through the exact measure_once helper; values remain historical and NOT VERIFIED."
+            elif "bench" in helper_calls or "bench_sampled" in helper_calls:
+                measurement_scope = "The entry point calls a source-bound bench helper; warmups, profile repetitions, iteration normalization, and median behavior follow the exact historical helper source above."
             elif "measure_once" in helper_calls:
-                measurement_scope = "Entry point calls one measurement helper; it does not establish a repeated median."
+                measurement_scope = "The source-bound measure_once helper records one interval and allocation delta; this entry point does not establish a repeated median."
             elif "check_ratio" in helper_calls:
-                measurement_scope = "Entry point compares the recorded values with its explicit ratio and strictness arguments."
+                measurement_scope = "The entry point calls the source-bound ratio helper with explicit ratio and strictness arguments."
             else:
-                measurement_scope = "No named repeat helper was found in this entry point; inspect the bound body lines before adopting a replacement workload."
-            current_paths = perf_current_paths(name, path)
+                measurement_scope = "No repeat-measurement helper is source-bound for this entry point; classify its historical assertions from the exact entry-point span."
+            current_paths, owner_task_ids, equivalence_summary, workload_kind = perf_binding(path, name)
+            current_bindings = [current_source_binding(source_path) for source_path in current_paths]
+            current_equivalence_status = "SOURCE_MAPPED_NOT_MEASURED" if current_paths else "NO_CURRENT_PRODUCT_PATH"
+            for current in current_bindings:
+                current["owner_task_ids"] = owner_task_ids
+                current["evidence"] = "NOT VERIFIED"
             baseline = None
             if "holla-ui/tests/perf.rs" in path: baseline = "crates/holla-ui/tests/baselines/app.txt"
             elif "jackin-preview-app/tests/perf.rs" in path: baseline = "crates/jackin-preview-app/tests/perf_baseline.txt"
             elif "showcase-ui/tests/perf.rs" in path: baseline = "crates/showcase-ui/tests/perf_baseline.txt"
             elif "tablepro-ui/tests/perf.rs" in path: baseline = "crates/tablepro-ui/tests/perf_baseline.txt"
             elif path.endswith("termrock-test-support/tests/perf.rs"): baseline = "crates/termrock-test-support/tests/perf_baseline.txt"
+            elif path.endswith("termrock-test-support/tests/perf_collections.rs"): baseline = "crates/termrock-test-support/tests/perf_baseline.txt"
             uses_baseline = "report_to" in helper_calls or "baseline" in name.lower() or "perf_baseline" in search_code
             bref, baseline_candidate = None, None
             if baseline and uses_baseline:
@@ -1135,15 +1582,21 @@ def workloads():
             elif baseline:
                 try: baseline_candidate = {"path": baseline, "commit": OLD, "sha256": sha(git_bytes(OLD, baseline)), "status": "path candidate only; this entry point does not inspect or report to it"}
                 except Exception: baseline_candidate = {"path": baseline, "commit": OLD, "sha256": None, "status": "not found at historical path"}
-            typ = "harness_integrity_only" if name == "jackin_perf_baseline_has_required_rows_and_no_deleted_clone" else "baseline_measurement_entrypoint" if "baseline" in name or name == "debug_and_release_alloc_counts_match" else "measured_product_workload"
+            unresolved_requirements = [{"id": "PERF-TRACE:" + workload_id + ":" + str(i + 1), "block_final": True, "owner_task_ids": ["T33"], "callsite_path": edge["callsite_path"], "callsite_line": edge["callsite_line"], "call": edge["call"], "reason": edge["reason"], "evidence": "NOT VERIFIED"} for i, edge in enumerate(unresolved_edges)]
             result.append({
-                "workload_id": OLD + ":" + path + ":" + str(start + 1) + ":" + name,
+                "workload_id": workload_id,
                 "historical_test_surface": {"path": path, "commit": OLD, "sha256": sha(raw), "test_attribute_line": attr + 1, "line_start": start + 1, "line_end": end + 1, "span_sha256": sha(span_raw), "entrypoint": name},
-                "historical_workload_kind": typ,
+                "historical_workload_kind": workload_kind,
+                "workload_definition_summary": equivalence_summary,
                 "dimension_tokens": dims,
                 "numeric_and_size_literals": nums,
                 "event_or_scenario_lines": events,
                 "helper_event_or_scenario_lines": helper_events,
+                "external_method_calls": external_calls,
+                "helper_call_edges": call_edges,
+                "unresolved_helper_edges": unresolved_edges,
+                "unresolved_requirement_ids": [x["id"] for x in unresolved_requirements],
+                "helper_trace_status": "OPEN_UNRESOLVED_HELPERS" if unresolved_edges else "SOURCE_BOUND_EDGES_WITH_EXTERNAL_BOUNDARIES",
                 "clock_and_seed_lines": clock_seed_lines,
                 "helper_clock_and_seed_lines": helper_clock_seed_lines,
                 "collection_size_lines": collection_size_lines,
@@ -1159,20 +1612,21 @@ def workloads():
                 "external_scenario_source_binding": scenario_source,
                 "measurement_helper_calls": helper_calls,
                 "measurement_scope": measurement_scope,
-                "seed_and_clock_assessment": "Source lines are listed above; absence means this entry point declares no explicit deterministic clock or seed.",
+                "seed_and_clock_assessment": "Listed source lines record explicit clocks and seeds; any missing helper or receiver edge is separately open.",
                 "baseline": bref,
                 "baseline_candidate": baseline_candidate,
                 "historical_entrypoint_summary": name.replace("_", " "),
-                "dimensions": {"dimension_tokens": dims, "numeric_and_size_literals": nums, "entrypoint_source_lines": facts, "helper_source_lines": helper_claims, "status": "source inventory; no workload ran"},
+                "dimensions": {"dimension_tokens": dims, "numeric_and_size_literals": nums, "workload_definition_summary": equivalence_summary, "entrypoint_source_lines": facts, "helper_source_lines": helper_claims, "status": "source inventory; no workload ran"},
                 "collection_sizes": {"entrypoint_source_lines": collection_size_lines, "helper_source_lines": helper_collection_size_lines, "configuration_constants": configuration_constants, "status": "source inventory; values remain source text"},
                 "options": {"entrypoint_source_lines": option_lines, "helper_source_lines": helper_option_lines, "configuration_constants": configuration_constants},
-                "event_sequence": {"entrypoint_lines": events, "helper_lines": helper_events, "external_scenario_source": scenario_source},
-                "clock_and_seed": {"entrypoint_lines": clock_seed_lines, "helper_lines": helper_clock_seed_lines, "assessment": "The source excerpt shows explicit values; an empty list means no explicit clock or seed declaration was found in the traced bodies."},
+                "event_sequence": {"entrypoint_lines": events, "helper_lines": helper_events, "external_method_calls": external_calls, "external_scenario_source": scenario_source},
+                "clock_and_seed": {"entrypoint_lines": clock_seed_lines, "helper_lines": helper_clock_seed_lines, "assessment": "The source-derived list contains explicit clock or seed statements; unresolved helper paths stay open."},
                 "repeat_and_measurement_scope": {"helper_calls": helper_calls, "measurement_scope": measurement_scope, "helper_bindings": helper_bindings, "status": "NOT VERIFIED"},
                 "old_thresholds_and_claims": {"entrypoint_lines": assertion_lines, "helper_lines": helper_assertion_lines, "baseline": bref, "baseline_candidate": baseline_candidate, "shared_measurement_model": "performance_measurement_model", "status": "NOT VERIFIED"},
-                "current_production_equivalent": {"paths": current_paths, "source_bindings": [current_source_binding(x) for x in current_paths], "owner_tasks": tasks[1:] or tasks, "owner_task_ids": tasks[1:] or tasks, "performance_owner_task": "T33", "performance_owner_task_ids": ["T33"], "status": "source inventory only; no current measurement"},
+                "current_production_equivalent": {"paths": current_paths, "source_bindings": current_bindings, "owner_tasks": owner_task_ids, "owner_task_ids": owner_task_ids, "performance_owner_task": "T33", "performance_owner_task_ids": ["T33"], "equivalence_summary": equivalence_summary, "status": current_equivalence_status, "evidence": "NOT VERIFIED"},
+                "unresolved_requirements": unresolved_requirements,
                 "source_disposition": "ADAPT",
-                "source_disposition_reason": "T37 retired the old test surface. Preserve its workload as a T33 requirement; old measurements are not current evidence.",
+                "source_disposition_reason": "The historical workload definition stays as a T33 requirement; method edges use receiver-qualified evidence or remain open. No old measurement is current evidence.",
                 "old_measurement_status": "NOT VERIFIED",
                 "current_measurement_status": "NOT VERIFIED",
                 "proposed_case_status": "PROPOSED_NOT_APPROVED_T38",
@@ -1243,14 +1697,23 @@ def main():
     shell_decision = json.loads(git_bytes(T01_REACH_DECISION_COMMIT, T01_REACH_DECISION_PATH))
     open_requirements = [
         {"id": "HIST-COVERAGE-ALL", "block_final": True, "owner_task": "T01 and row owners", "reason": "All 4,511 entries are mapped inventory; behavior requires approved T38 cases and later execution.", "row_count": len(rows), "evidence": "NOT VERIFIED"},
+        {"id": "HIST-CURRENT-EXPORT-JOIN", "block_final": True, "owner_task_ids": ["T01", "T31", "T35"], "reason": "History rows retain only the matched qualified path and definition source. Full public reexports remain in supplemental API indexes until the exact accepted fragments join.", "evidence": "NOT VERIFIED"},
         {"id": "T33-PERFORMANCE-MEASUREMENTS", "block_final": True, "owner_task": "T33", "reason": "No historical or current workload result is verified here.", "workload_count": len(perf), "evidence": "NOT VERIFIED"},
         {"id": "MIGRATION-CASES", "block_final": True, "owner_task": "per item", "reason": "Migration rows and current source maps have proposed cases only.", "item_count": len(migrations), "evidence": "NOT VERIFIED"},
         {"id": "FOUR-APPLICATION-MIGRATION", "block_final": True, "owner_task": "T22/T27/T28/T29", "reason": "Each application source is mapped; route and behavior cases remain proposed.", "application_count": len(applications), "evidence": "NOT VERIFIED"},
     ]
     if unresolved:
         open_requirements.append({"id": "HIST-COVERAGE-UNRESOLVED", "block_final": True, "owner_task": "each row owner_task", "reason": "Current source members not located need an explicit owner decision.", "row_count": len(unresolved), "row_ids": unresolved, "evidence": "NOT VERIFIED"})
+    for workload in perf:
+        open_requirements.extend(workload.get("unresolved_requirements", []))
+        equivalent = workload["current_production_equivalent"]
+        if equivalent["status"] == "NO_CURRENT_PRODUCT_PATH":
+            open_requirements.append({"id": "PERF-EQUIVALENT:" + workload["workload_id"], "block_final": True, "owner_task_ids": ["T33"], "historical_kind": workload["historical_workload_kind"], "reason": equivalent["equivalence_summary"], "status": "NO_CURRENT_PRODUCT_PATH", "evidence": "NOT VERIFIED"})
     for obligation in shell_decision["future_obligations"]:
         open_requirements.append({"id": obligation["requirement_id"], "block_final": True, "owner_task_ids": obligation["owner_task_ids"], "source": {"path": T01_REACH_DECISION_PATH, "commit": T01_REACH_DECISION_COMMIT, "sha256": T01_REACH_DECISION_SHA256}, "reason": obligation["obligation"], "status": "PROPOSED_NOT_APPROVED_T38", "case_status": "PROPOSED_NOT_APPROVED_T38", "evidence": "NOT VERIFIED"})
+    workload_unresolved_call_count = sum(len(w.get("unresolved_helper_edges", [])) for w in perf)
+    empty_frame_workload = next(w for w in perf if w["historical_test_surface"]["entrypoint"] == "frame_testbackend_empty_120x40")
+    exact_migration_member_bindings = {x["item_id"]: x.get("member_source_bindings", []) for x in migrations if x.get("member_source_bindings")}
     fragment = {
         "schema": "termrock.pr38.t01.fragment.v1",
         "task_id": "T01",
@@ -1264,7 +1727,27 @@ def main():
         "current_applications": applications,
         "workloads": perf,
         "performance_measurement_model": {**performance_measurement_model(), "case_status": "PROPOSED_NOT_APPROVED_T38"},
-        "requirements": {"all_rows_have_disposition_source_task_and_case": all(x.get("disposition") and x.get("current_mapping") and x.get("owner_task") and x.get("owner_task_ids") and x.get("proposed_case") and x["proposed_case"].get("owner_task_ids") for x in rows), "all_rows_have_source_binding_or_approved_retirement": all(x["current_mapping"].get("source_binding_verified") and x["current_mapping"].get("source") and (x["current_mapping"].get("source").get("sha256") or x["current_mapping"].get("source").get("decision_id")) for x in rows), "all_retirements_have_decision_conflict_replacement_source": all(not x["current_mapping"].get("retirement") or all(x["current_mapping"]["retirement"].get(k) for k in ("decision_id", "conflict", "replacement", "record_sha256")) for x in rows), "all_cases_proposed": all(x["case_status"] == "PROPOSED_NOT_APPROVED_T38" for x in rows), "all_evidence_not_verified": all(x["evidence"] == "NOT VERIFIED" for x in rows), "all_workloads_owner_T33": all(x["current_production_equivalent"]["performance_owner_task"] == "T33" and x["current_production_equivalent"]["performance_owner_task_ids"] == ["T33"] for x in perf), "all_migrations_have_owner_and_case_task_ids": all(x.get("owner_task_ids") and x.get("required_case", {}).get("owner_task_ids") for x in migrations), "no_new_wid_allocations": True, "current_route_artifact": {"path": str(ROUTE_PATH), "sha256": path_sha(ROUTE_PATH), "route_count": len(routes.get("routes", [])), "join": "reference_identity + reference_index"}, "current_route_correction": "Current input has 54 routes: 24 Live, one Selection, 29 Placeholder; five Placeholder entries retain page objects and 24 paint placeholder labels.", "current_null_sort_correction": "cmp_values_nulls_last keeps NULL greater than non-NULL in both directions; only non-NULL ordering reverses. Source inventory is not behavior proof.", "alias_rows": sum(x["category"] == "alias" for x in rows), "alias_classification": "A row is alias only when its current public declaration is a source-bound public type alias; aliases remain distinct by row_id."},
+        "requirements": {
+            "all_rows_have_disposition_source_task_and_case": all(x.get("disposition") and x.get("current_mapping") and x.get("owner_task") and x.get("owner_task_ids") and x.get("proposed_case") and x["proposed_case"].get("owner_task_ids") for x in rows),
+            "all_rows_have_source_binding_or_approved_retirement": all(x["current_mapping"].get("source_binding_verified") and x["current_mapping"].get("source") and (x["current_mapping"].get("source").get("sha256") or x["current_mapping"].get("source").get("decision_id")) for x in rows),
+            "all_retirements_have_decision_conflict_replacement_source": all(not x["current_mapping"].get("retirement") or all(x["current_mapping"]["retirement"].get(k) for k in ("decision_id", "conflict", "replacement", "record_sha256")) for x in rows),
+            "all_cases_proposed": all(x["case_status"] == "PROPOSED_NOT_APPROVED_T38" for x in rows),
+            "all_evidence_not_verified": all(x["evidence"] == "NOT VERIFIED" for x in rows),
+            "all_workloads_owner_T33": all(x["current_production_equivalent"]["performance_owner_task"] == "T33" and x["current_production_equivalent"]["performance_owner_task_ids"] == ["T33"] for x in perf),
+            "all_migrations_have_owner_and_case_task_ids": all(x.get("owner_task_ids") and x.get("required_case", {}).get("owner_task_ids") for x in migrations),
+            "all_migration_sources_are_explicit": all(x.get("current_sources") and all(s.get("path") and s.get("sha256") and s.get("owner_task") and s.get("owner_task_ids") for s in x["current_sources"] if not s.get("status")) for x in migrations),
+            "exact_migration_member_bindings": exact_migration_member_bindings,
+            "all_workload_calls_are_bound_or_open": all(all(e.get("caller_path") and e.get("callsite_line") and e.get("resolution") for e in w.get("helper_call_edges", [])) and all(e.get("callsite_path") and e.get("callsite_line") and e.get("reason") and e.get("owner_task_ids") == ["T33"] for e in w.get("unresolved_helper_edges", [])) for w in perf),
+            "workload_unresolved_call_count": workload_unresolved_call_count,
+            "workload_trace_policy": "Method edges use receiver and implementation owner. Ambiguous local or method edges remain open under T33.",
+            "frame_testbackend_empty_is_external": empty_frame_workload["external_method_calls"],
+            "no_new_wid_allocations": True,
+            "current_route_artifact": {"path": str(ROUTE_PATH), "sha256": path_sha(ROUTE_PATH), "route_count": len(routes.get("routes", [])), "join": "reference_identity + reference_index"},
+            "current_route_correction": "Current input has 54 routes: 24 Live, one Selection, 29 Placeholder; five Placeholder entries retain page objects and 24 paint placeholder labels.",
+            "current_null_sort_correction": "cmp_values_nulls_last keeps NULL greater than non-NULL in both directions; only non-NULL ordering reverses. Source inventory is not behavior proof.",
+            "alias_rows": sum(x["category"] == "alias" for x in rows),
+            "alias_classification": "A row is alias only when its current public declaration is a source-bound public type alias; aliases remain distinct by row_id.",
+        },
         "open_requirements": open_requirements,
         "commands": [
             {"argv": ["python3", "--version"], "cwd": str(ROOT), "tool": "Python 3.15.1", "exit_code": 0, "result": "Interpreter version recorded."},
@@ -1290,14 +1773,20 @@ def main():
         "Disposition counts: " + ", ".join(k + " " + str(v) for k, v in sorted(collections.Counter(x["disposition"] for x in rows).items())) + ".",
         "Unresolved row count: " + str(len(unresolved)) + ".",
         "Rows and migration items carry current source pointers and named tasks.",
+        "Migration rows 61, 62, 70, and 71 bind exact current definitions and owners.",
+        "Current export visibility awaits accepted API-index joins.",
         "Source bindings do not prove behavior, compiler visibility, or test results.", "",
         "The fragment maps " + str(len(migrations)) + " migration items, 54 routes, and four application owners.",
         "The performance inventory retains 71 historical entrypoints for T33.",
+        "Workload edges bind source owners or stay open with T33.",
+        "Static tracing leaves " + str(workload_unresolved_call_count) + " helper edges open for T33.",
+        "The empty-frame workload calls external ratatui Terminal::draw.",
+        "No Termrock production path is mapped for that workload.",
         "Historical and current measurements remain NOT VERIFIED.",
         "The current route census records 24 Live, one Selection, and 29 Placeholder entries.",
         "Five Placeholder entries retain pages; 24 paint labels. Route behavior remains NOT VERIFIED.",
         "Current SQL source keeps NULL last in both sort directions; behavior remains NOT VERIFIED.",
-        "The shell reach decision retires 11 helper rows; four route behavior obligations remain proposed.",
+        "The shell reach decision retires 11 helper rows; four behavior obligations remain proposed.",
         "Historical route and NULL-sort text remains unchanged.",
         "The three sibling artifacts are supplemental and are not accepted here.", "",
         "Run the structural inventory producer:",

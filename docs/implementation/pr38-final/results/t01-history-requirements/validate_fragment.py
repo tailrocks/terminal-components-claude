@@ -76,6 +76,8 @@ for row in rows:
     check(any(item["line_start"] == inventory["line_start"] and item["line_end"] == inventory["line_end"] and item["span_sha256"] == inventory["source_span_sha256"] and item["kind"] == inventory["catalog_kind"] for item in catalog_index[row["historical_claim"]["symbol"]]), "historical catalogue row mismatch")
     mapping = row["current_mapping"]
     check(row["component_wid"] is None or row["component_wid"] in {"W%02d" % i for i in range(1, 46)}, "historical crosswalk uses new WID")
+    if mapping.get("method") in {"exact_current_symbol", "current_reexport_path", "current_module_reorganization", "current_parent_plus_source_member"}:
+        check(mapping.get("public_paths") == [mapping.get("qualified_symbol")] and mapping.get("public_path_binding_status", "").endswith("export visibility remains NOT VERIFIED."), "history row copies a sibling's unreviewed expanded export paths")
     if mapping.get("retirement"):
         retirement = mapping["retirement"]
         check(all(retirement.get(key) for key in ("decision_id", "conflict", "replacement", "record_sha256", "record_path")), "retirement decision evidence missing")
@@ -135,6 +137,30 @@ for item in fragment["historical_migration_items"]:
         else:
             commit = current.get("commit", INPUT)
             check(digest(git_bytes(commit, path)) == source_hash, "migration current source hash mismatch")
+member_bindings = {
+    "MIG:docs/contracts/migration.md:61": ("crates/termrock-viewport/src/viewport.rs", 1438, "termrock_viewport::viewport::TextViewport", ["T17"]),
+    "MIG:docs/contracts/migration.md:62": ("crates/termrock-controls/src/too_small.rs", 47, "termrock_controls::too_small::TooSmall", ["T12"]),
+    "MIG:docs/contracts/migration.md:70": ("crates/termrock-feedback/src/meter.rs", 65, "termrock_feedback::meter::Meter", ["T12"]),
+    "MIG:docs/contracts/migration.md:71": ("crates/termrock-runtime/src/scroll_region.rs", 44, "termrock_runtime::scroll_region::ScrollRegion", ["T17"]),
+}
+migration_index = {item["item_id"]: item for item in fragment["historical_migration_items"]}
+check(set(member_bindings).issubset(migration_index), "exact migration member binding missing")
+for item_id, (path, line, symbol, owner_tasks) in member_bindings.items():
+    item = migration_index[item_id]
+    member = next((x for x in item.get("member_source_bindings", []) if x.get("path") == path), None)
+    check(member and member.get("line") == line and member.get("symbol") == symbol and member.get("definition_owner") == symbol, "migration member owner binding mismatch: " + item_id)
+    source_row = next(s for s in item["current_sources"] if s.get("path") == path)
+    check(member.get("owner_task_ids") == owner_tasks and member.get("commit") == INPUT and member.get("source_sha256") == digest(git_bytes(INPUT, path)), "migration member task or source hash mismatch: " + item_id)
+    check(source_row.get("owner_task_ids") == owner_tasks and source_row.get("symbol") == symbol, "migration source owner row mismatch: " + item_id)
+    lines = git_bytes(INPUT, path).decode().splitlines()
+    check(line <= len(lines) and symbol.rsplit("::", 1)[-1] in lines[line - 1], "migration member line does not name its definition: " + item_id)
+navkeys_rows = [row for row in rows if row["historical_claim"]["symbol"].startswith("termrock-core::keymap::NavKeys")]
+check(navkeys_rows and all(row["owner_task"] == "T09" and row["current_mapping"]["source"]["path"] == "crates/termrock-core/src/keymap.rs" for row in navkeys_rows), "NavKeys type/member source owner mismatch")
+for row in navkeys_rows:
+    mapping = row["current_mapping"]
+    check(not any(path in {"termrock_core::DEFAULT", "termrock_core::DESKTOP", "termrock_core::NO_VIM", "termrock_core::VIM"} for path in mapping["public_paths"]), "NavKeys impl constant was lifted to a nonexistent crate-root export")
+check(next(row for row in navkeys_rows if row["historical_source"]["line"] == 1722)["current_mapping"]["public_paths"] == ["termrock_core::NavKeys", "termrock_core::keymap::NavKeys"], "NavKeys type public path mismatch")
+check(all(not row["current_mapping"].get("public_paths") and row["current_mapping"].get("historical_public_path") for row in rows if row["current_mapping"].get("method") == "reviewed_test_api_retirement" and row["historical_claim"]["symbol"].startswith("termrock_shell::reach::")), "retired shell reach path is listed as a current export")
 for source in fragment["sources"]:
     if pathlib.Path(source["path"]).is_absolute():
         check(source.get("status") == "SUPPLEMENTAL_NOT_ACCEPTED", "absolute source is not marked supplemental")
@@ -162,6 +188,9 @@ for app in fragment["current_applications"]:
     current = app["current_sources"][0]
     check(digest(git_bytes(INPUT, current["path"])) == current["sha256"], "application source hash mismatch")
 check(len(fragment["workloads"]) == 71, "historical workload count mismatch")
+all_open_requirement_ids = {item["id"] for item in fragment["open_requirements"]}
+workload_unresolved_count = 0
+workload_helper_count = 0
 for workload in fragment["workloads"]:
     check(all(workload.get(key) is not None for key in ("dimensions", "collection_sizes", "options", "event_sequence", "clock_and_seed", "repeat_and_measurement_scope", "old_thresholds_and_claims", "current_production_equivalent")), "normalized workload definition is incomplete")
     history = workload["historical_test_surface"]
@@ -172,12 +201,87 @@ for workload in fragment["workloads"]:
     check(workload["current_production_equivalent"]["performance_owner_task"] == "T33", "workload owner mismatch")
     check(workload["old_measurement_status"] == "NOT VERIFIED" and workload["current_measurement_status"] == "NOT VERIFIED" and workload["selected_cases"] == 0, "workload evidence status mismatch")
     check(workload["repeat_and_measurement_scope"]["status"] == "NOT VERIFIED" and workload["old_thresholds_and_claims"]["status"] == "NOT VERIFIED", "workload measurement status mismatch")
+    check(workload["helper_trace_status"] in {"OPEN_UNRESOLVED_HELPERS", "SOURCE_BOUND_EDGES_WITH_EXTERNAL_BOUNDARIES"}, "workload helper trace lacks an explicit state")
+    check(workload["current_production_equivalent"]["status"] in {"SOURCE_MAPPED_NOT_MEASURED", "NO_CURRENT_PRODUCT_PATH"}, "workload current production mapping lacks an explicit state")
+    if workload["current_production_equivalent"]["status"] == "SOURCE_MAPPED_NOT_MEASURED":
+        check(workload["current_production_equivalent"]["owner_task_ids"], "mapped workload lacks a product owner task")
+    workload_unresolved_count += len(workload.get("unresolved_helper_edges", []))
+    workload_helper_count += len(workload.get("local_helper_source_bindings", []))
+    source_cache = {}
+    for helper in workload.get("local_helper_source_bindings", []):
+        helper_raw = git_bytes(helper["commit"], helper["path"])
+        helper_lines = helper_raw.splitlines(keepends=True)
+        check(helper["commit"] == OLD and digest(helper_raw) == helper["source_sha256"], "historical helper source hash mismatch")
+        helper_span = b"".join(helper_lines[helper["line_start"] - 1:helper["line_end"]])
+        check(digest(helper_span) == helper["span_sha256"], "historical helper source span mismatch")
+        check(helper.get("callsite_path") and helper.get("callsite_line") and helper.get("call_kind") and helper.get("name"), "historical helper edge lacks source identity")
+    for edge in workload.get("helper_call_edges", []):
+        check(edge.get("caller_path") and edge.get("callsite_line") and edge.get("resolution") and edge.get("callee_path") and edge.get("callee_line"), "resolved helper edge lacks its callsite or source owner")
+        callsite_raw = git_bytes(OLD, edge["caller_path"])
+        callee_raw = git_bytes(OLD, edge["callee_path"])
+        callsite_lines = callsite_raw.decode().splitlines()
+        callee_lines = callee_raw.decode().splitlines()
+        check(1 <= edge["callsite_line"] <= len(callsite_lines) and 1 <= edge["callee_line"] <= len(callee_lines), "resolved helper source line is out of bounds")
+        check(any(helper["path"] == edge["callee_path"] and helper["line_start"] == edge["callee_line"] for helper in workload.get("local_helper_source_bindings", [])), "resolved helper edge has no exact source binding")
+    unresolved = workload.get("unresolved_helper_edges", [])
+    unresolved_ids = set(workload.get("unresolved_requirement_ids", []))
+    check(len(unresolved) == len(workload.get("unresolved_requirements", [])) == len(unresolved_ids), "unresolved workload edge requirement count mismatch")
+    for index, edge in enumerate(unresolved, 1):
+        req_id = workload["unresolved_requirement_ids"][index - 1]
+        requirement = workload["unresolved_requirements"][index - 1]
+        check(req_id in all_open_requirement_ids and req_id == requirement["id"], "unresolved workload edge is not an open T33 requirement")
+        check(all(edge.get(key) for key in ("callsite_path", "callsite_line", "call", "reason")) and edge.get("owner_task_ids") == ["T33"] and edge.get("evidence") == "NOT VERIFIED", "unresolved workload edge lacks an exact callsite, reason, or T33 owner")
+        check(requirement.get("callsite_path") == edge["callsite_path"] and requirement.get("callsite_line") == edge["callsite_line"] and requirement.get("call") == edge["call"], "open T33 requirement does not match unresolved call edge")
+        callsite_lines = git_bytes(OLD, edge["callsite_path"]).decode().splitlines()
+        check(1 <= edge["callsite_line"] <= len(callsite_lines), "unresolved workload callsite is out of bounds")
+        if edge["call"].startswith("continuation_method."):
+            check(edge["call"].split(".", 1)[1] in callsite_lines[edge["callsite_line"] - 1], "continuation method callsite text mismatch")
+    for edge in workload.get("external_method_calls", []):
+        check(edge.get("boundary") == "external_or_standard_library" and edge.get("receiver_type", "").split("::", 1)[0] in {"ratatui", "ratatui_core", "std", "core", "alloc"}, "external method boundary lacks a standard or external owner")
+        callsite_lines = git_bytes(OLD, edge["callsite_path"]).decode().splitlines()
+        check(1 <= edge["callsite_line"] <= len(callsite_lines), "external workload callsite is out of bounds")
+    def check_fact_lines(value):
+        if isinstance(value, dict):
+            if all(key in value for key in ("path", "commit", "source_sha256", "line", "text")):
+                fact_raw = git_bytes(value["commit"], value["path"])
+                fact_lines = fact_raw.decode().splitlines()
+                check(value["commit"] == OLD and digest(fact_raw) == value["source_sha256"], "workload fact source identity mismatch")
+                check(1 <= value["line"] <= len(fact_lines) and value["text"] == fact_lines[value["line"] - 1].strip()[:len(value["text"])], "workload fact line does not match historical source")
+            else:
+                for child in value.values():
+                    check_fact_lines(child)
+        elif isinstance(value, list):
+            for child in value:
+                check_fact_lines(child)
+    for key in ("dimensions", "collection_sizes", "options", "event_sequence", "clock_and_seed", "old_thresholds_and_claims"):
+        check_fact_lines(workload[key])
+    history_scope = workload["historical_test_surface"]
+    trace_scopes = [(history_scope["path"], history_scope["line_start"], history_scope["line_end"])]
+    for helper in workload.get("local_helper_source_bindings", []):
+        helper_path = helper["path"]
+        helper_kind = helper.get("call_kind")
+        if helper_kind == "same_file_free_function" or (helper_kind == "receiver_resolved_method" and (helper_path == history_scope["path"] or helper_path.startswith("crates/termrock-test-support/src/"))):
+            trace_scopes.append((helper_path, helper["line_start"], helper["line_end"]))
+    chain_edges = {(edge["callsite_path"], edge["callsite_line"], edge["call"]) for edge in unresolved if edge["call"].startswith("continuation_method.")}
+    for scope_path, scope_start, scope_end in set(trace_scopes):
+        scope_lines = git_bytes(OLD, scope_path).decode().splitlines()
+        for line_number in range(scope_start, scope_end + 1):
+            match = re.match(r"\s*\.\s*([A-Za-z_]\w*)\s*\(", scope_lines[line_number - 1])
+            if match:
+                check((scope_path, line_number, "continuation_method." + match.group(1)) in chain_edges, "continued workload method was omitted from its trace")
     for binding in workload["current_production_equivalent"]["source_bindings"]:
         if binding["kind"] == "source_file":
             check(digest(git_bytes(INPUT, binding["path"])) == binding["sha256"], "current workload source hash mismatch")
         else:
             check(git_object(INPUT, binding["path"]) == binding["git_tree_object"], "current workload tree mismatch")
+empty_frame_workload = next(w for w in fragment["workloads"] if w["historical_test_surface"]["entrypoint"] == "frame_testbackend_empty_120x40")
+check(any(x.get("method") == "draw" and x.get("receiver_type") == "ratatui_core::terminal::Terminal" and x.get("callsite_path") == "crates/termrock-test-support/tests/perf.rs" and x.get("callsite_line") == 62 for x in empty_frame_workload["external_method_calls"]), "empty-frame external Terminal::draw boundary mismatch")
+check(not any(x.get("name") == "draw" and x.get("path") == "crates/termrock-test-support/tests/perf.rs" for x in empty_frame_workload["local_helper_source_bindings"]), "empty-frame workload is bound to an unrelated local draw method")
+check(fragment["requirements"]["workload_unresolved_call_count"] == workload_unresolved_count and fragment["requirements"]["all_workload_calls_are_bound_or_open"], "workload trace gate mismatch")
 check(fragment["requirements"]["all_rows_have_source_binding_or_approved_retirement"], "current row mapping incomplete")
+check(fragment["requirements"]["all_migration_sources_are_explicit"], "one or more migration sources lack an explicit source, hash, or owner")
+export_join = next((x for x in fragment["open_requirements"] if x["id"] == "HIST-CURRENT-EXPORT-JOIN"), None)
+check(export_join and export_join["block_final"] and export_join["owner_task_ids"] == ["T01", "T31", "T35"] and export_join["evidence"] == "NOT VERIFIED", "supplemental public export join is not left open")
 check(fragment["requirements"]["all_retirements_have_decision_conflict_replacement_source"], "retirement evidence incomplete")
 check(fragment["counts"]["unresolved_rows"] == 0, "unresolved historical source binding remains")
 check(fragment["counts"]["categories"]["alias"] == 0 and set(fragment["counts"]["categories"]) == {"alias", "value", "behavior", "removed_test_api", "product_path"}, "historical category census mismatch")
@@ -187,7 +291,8 @@ check({x["id"] for x in shell_obligations} == {"SHELL-REACH-RESIZE-RECOVERY", "S
 check(all(x["block_final"] and x["status"] == "PROPOSED_NOT_APPROVED_T38" and x["evidence"] == "NOT VERIFIED" and x["owner_task_ids"] for x in shell_obligations), "shell reach future obligation status mismatch")
 check(fragment["scope"]["selected_cases"] == 0 and fragment["scope"]["product_behavior"] == "NOT VERIFIED", "verification scope mismatch")
 print("rows=4511 unique=4511 lanes=4511 row_source_joins=ok preserved_identity=byte_identical")
-print("migration_items=" + str(len(fragment["historical_migration_items"])) + " routes=54 applications=4 workloads=71 unresolved=" + str(fragment["counts"]["unresolved_rows"]))
+print("migration_items=" + str(len(fragment["historical_migration_items"])) + " routes=54 applications=4 workloads=71 unresolved_historical_rows=" + str(fragment["counts"]["unresolved_rows"]))
+print("workload_open_helper_edges=" + str(workload_unresolved_count) + " owner=T33")
 print("selected_cases=0 behavior=NOT_VERIFIED structural_source_checks=ok")
 print("jsonl_sha256=" + digest(jsonl_bytes))
 print("fragment_sha256=" + digest(fragment_bytes))
