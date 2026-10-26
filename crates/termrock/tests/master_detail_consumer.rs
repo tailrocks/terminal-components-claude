@@ -5,10 +5,14 @@ use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
+use std::cell::Cell;
 use termrock::blocks::MasterDetailPolicy;
 use termrock::blocks::{MasterDetail, MasterDetailState};
 use termrock::composition::{self, Group};
-use termrock::controls::Button;
+use termrock::controls::{
+    Button, MasterDetail as ResponsiveMasterDetail, ResetPolicy, SplitPane, SplitPaneState,
+};
+use termrock::layout::{Constraints, Size};
 use termrock::{App, Cx, Id, LayerSpec, Part, PartRef, Response, Ui};
 use termrock::{Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind, Runtime, Theme};
 
@@ -282,6 +286,251 @@ fn facade_measure_and_draw_do_not_initialize_consumer_split_state() {
     );
     present(&mut runtime, Rect::new(0, 0, 120, 10));
     assert_eq!(runtime.app().state.split(), None);
+}
+
+const PREFERRED_BLOCK: Id = Id::root("public.master-detail.preferred");
+const PREFERRED_MASTER: Id = Id::root("public.master-detail.preferred.master");
+const PREFERRED_MASTER_FIRST: Id = Id::root("public.master-detail.preferred.master.first");
+const PREFERRED_MASTER_SECOND: Id = Id::root("public.master-detail.preferred.master.second");
+const PREFERRED_DETAIL: Id = Id::root("public.master-detail.preferred.detail");
+const PREFERRED_DETAIL_CHILD: Id = Id::root("public.master-detail.preferred.detail.child");
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct PreferredObservation {
+    master: Size,
+    detail: Size,
+    live_generous: Size,
+    initial_generous: Size,
+    live_allocated: Size,
+    initial_allocated: Size,
+    live_state_before: Option<SplitPaneState>,
+    live_state_after: Option<SplitPaneState>,
+    initial_state_before: Option<SplitPaneState>,
+    initial_state_after: Option<SplitPaneState>,
+}
+
+#[derive(Default)]
+struct PreferredCatalogue {
+    state: MasterDetailState,
+    observed: Cell<Option<PreferredObservation>>,
+}
+
+impl App for PreferredCatalogue {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        MasterDetail::new(PREFERRED_BLOCK, PREFERRED_MASTER, PREFERRED_DETAIL)
+            .policy(preferred_master_detail_policy())
+            .update(cx, &mut self.state)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let first_button = Button::new(PREFERRED_MASTER_FIRST, "A");
+        let second_button = Button::new(PREFERRED_MASTER_SECOND, "B");
+        let master = Group::wrap([
+            composition::button(&first_button).min(30, 1),
+            composition::button(&second_button).min(30, 1),
+        ]);
+        let detail_button = Button::new(PREFERRED_DETAIL_CHILD, "D");
+        let detail = Group::row([composition::button(&detail_button).min(40, 1)]);
+        let block = MasterDetail::new(PREFERRED_BLOCK, PREFERRED_MASTER, PREFERRED_DETAIL)
+            .policy(preferred_master_detail_policy())
+            .master(&master)
+            .detail(&detail);
+
+        let generous = Constraints::loose(512, 8);
+        let area = ui.full();
+        let allocated = Constraints::loose(area.width, area.height);
+        let master_size = master
+            .measure(ui, generous)
+            .expect("measure the asymmetric master group");
+        let detail_size = detail
+            .measure(ui, generous)
+            .expect("measure the detail group");
+        let initial_state = MasterDetailState::default();
+        let live_state_before = self.state.split();
+        let initial_state_before = initial_state.split();
+        let live_generous = block
+            .measure(ui, &self.state, generous)
+            .expect("measure against the persistent split state");
+        let initial_generous = block
+            .measure(ui, &initial_state, generous)
+            .expect("measure the independent configured-initial state");
+        let live_allocated = block
+            .measure(ui, &self.state, allocated)
+            .expect("measure wrapped content at the allocated pane width");
+        let initial_allocated = block
+            .measure(ui, &initial_state, allocated)
+            .expect("measure initial wrapped content at the allocated pane width");
+        let live_state_after = self.state.split();
+        let initial_state_after = initial_state.split();
+        assert_eq!(live_state_before, live_state_after);
+        assert_eq!(initial_state_before, initial_state_after);
+        self.observed.set(Some(PreferredObservation {
+            master: master_size,
+            detail: detail_size,
+            live_generous,
+            initial_generous,
+            live_allocated,
+            initial_allocated,
+            live_state_before,
+            live_state_after,
+            initial_state_before,
+            initial_state_after,
+        }));
+        block
+            .show(ui, &self.state)
+            .expect("draw the consumer block with persistent state");
+    }
+}
+
+fn preferred_master_detail_policy() -> MasterDetailPolicy {
+    MasterDetailPolicy::default()
+        .resizable_master(34, 30, 40)
+        .gap(2)
+        .collapse_below(100)
+}
+
+fn preferred_master_detail_pane() -> SplitPane<'static> {
+    ResponsiveMasterDetail::new(PREFERRED_BLOCK, PREFERRED_MASTER, PREFERRED_DETAIL)
+        .master_share(34)
+        .min_master(30)
+        .min_detail(40)
+        .gap(2)
+        .collapse_below(100)
+        .summary_rows(0)
+        .reset_policy(ResetPolicy::Initial)
+        .split_pane()
+}
+
+#[test]
+fn master_detail_preferred_measure_tracks_live_ratio_and_allocated_wrap_width() {
+    let area = Rect::new(0, 0, 160, 8);
+    let mut runtime = Runtime::new(PreferredCatalogue::default(), Theme::junie());
+    present(&mut runtime, area);
+
+    let before = runtime
+        .app()
+        .observed
+        .get()
+        .expect("draw captures consumer measurements");
+    let initial_split = runtime
+        .app()
+        .state
+        .split()
+        .expect("the consumer update owns persistent split state");
+    assert_eq!(initial_split.basis_points(), 3_400);
+    assert_eq!(before.master.min, (60, 1));
+    assert_eq!(before.detail.min, (40, 1));
+    assert_eq!(before.master.preferred, (60, 1));
+    assert_eq!(before.detail.preferred, (40, 1));
+    assert_eq!(before.live_state_before, before.live_state_after);
+    assert_eq!(before.initial_state_before, None);
+    assert_eq!(before.initial_state_after, None);
+
+    let pane = preferred_master_detail_pane();
+    let initial_required = pane.required_extent(&SplitPaneState::new(34), 60, 40);
+    assert_eq!(initial_required, 179);
+    assert!(
+        initial_required < 512,
+        "the generous query does not clip the preferred width"
+    );
+    assert_eq!(before.live_generous.min.0, 179);
+    assert_eq!(before.initial_generous.min.0, 179);
+    assert_eq!(before.live_generous.preferred.0, initial_required);
+    assert_eq!(before.initial_generous.preferred.0, initial_required);
+    let initial_fit = pane.pane_constraints(
+        &SplitPaneState::new(34),
+        Constraints::loose(initial_required, 8),
+    );
+    assert_eq!(initial_fit.0.max.0, 60);
+    assert_eq!(initial_fit.1.max.0, 117);
+    let initial_too_narrow = pane.pane_constraints(
+        &SplitPaneState::new(34),
+        Constraints::loose(initial_required - 1, 8),
+    );
+    assert!(initial_too_narrow.0.max.0 < before.master.preferred.0);
+    assert_eq!(before.live_allocated.preferred.1, 2);
+    assert_eq!(before.initial_allocated.preferred.1, 2);
+
+    let seam_before = runtime
+        .area_of_part(PREFERRED_BLOCK, PartRef::of(Part::SEAM))
+        .expect("resizable master/detail exposes the native seam");
+    let _ = runtime
+        .handle(Input::Mouse(Mouse {
+            kind: MouseKind::Down,
+            pos: Position::new(seam_before.x, seam_before.y),
+            mods: KeyModifiers::NONE,
+        }))
+        .expect("press the presented seam");
+    present(&mut runtime, area);
+    let target = Position::new(70, seam_before.y);
+    let dragged = runtime
+        .handle(Input::Mouse(Mouse {
+            kind: MouseKind::Drag,
+            pos: target,
+            mods: KeyModifiers::NONE,
+        }))
+        .expect("drag the captured seam");
+    assert!(dragged.is_consumed() && dragged.is_changed());
+    assert_eq!(dragged.id(), Some(PREFERRED_BLOCK));
+    present(&mut runtime, area);
+
+    let seam_after = runtime
+        .area_of_part(PREFERRED_BLOCK, PartRef::of(Part::SEAM))
+        .expect("the dragged seam remains visible");
+    assert!(seam_after.x > seam_before.x);
+    let dragged_state = runtime
+        .app()
+        .state
+        .split()
+        .expect("native drag retains the live split ratio");
+    assert_eq!(dragged_state.percent(), 44);
+    assert_eq!(dragged_state.basis_points(), 4_431);
+
+    let after_drag = runtime
+        .app()
+        .observed
+        .get()
+        .expect("redraw captures post-drag measurements");
+    let dragged_required = pane.required_extent(&dragged_state, 60, 40);
+    assert_eq!(dragged_required, 138);
+    assert!(
+        dragged_required < 512,
+        "the generous query does not clip the dragged width"
+    );
+    assert_eq!(after_drag.live_generous.min.0, 138);
+    assert_eq!(after_drag.live_generous.preferred.0, dragged_required);
+    assert_eq!(after_drag.initial_generous, before.initial_generous);
+    assert_eq!(after_drag.live_state_before, after_drag.live_state_after);
+    assert_eq!(after_drag.initial_state_before, None);
+    assert_eq!(after_drag.initial_state_after, None);
+    assert_eq!(after_drag.live_allocated.preferred.1, 1);
+    assert_eq!(after_drag.initial_allocated.preferred.1, 2);
+
+    let dragged_fit =
+        pane.pane_constraints(&dragged_state, Constraints::loose(dragged_required, 8));
+    assert_eq!(dragged_fit.0.max.0, 60);
+    assert_eq!(dragged_fit.1.max.0, 76);
+    let dragged_too_narrow =
+        pane.pane_constraints(&dragged_state, Constraints::loose(dragged_required - 1, 8));
+    assert!(dragged_too_narrow.0.max.0 < after_drag.master.preferred.0);
+
+    let _ = runtime
+        .handle(Input::Mouse(Mouse {
+            kind: MouseKind::Up,
+            pos: target,
+            mods: KeyModifiers::NONE,
+        }))
+        .expect("release the captured seam");
+    present(&mut runtime, area);
+    assert_eq!(
+        runtime
+            .app()
+            .state
+            .split()
+            .map(|state| state.basis_points()),
+        Some(4_431)
+    );
 }
 
 const ALT_FIRST: Id = Id::root("independent-catalogue.document.first");
