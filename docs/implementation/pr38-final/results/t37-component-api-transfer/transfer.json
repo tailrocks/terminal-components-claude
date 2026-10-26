@@ -5453,11 +5453,16 @@
     }
   ],
   "independent_output_review": {
-    "status": "PENDING_NEW_EXACT_OUTPUT_COMMIT_REVIEW",
+    "status": "ACCEPTED_AT_EXACT_OUTPUT_COMMIT",
+    "decision_id": "T37-COMPONENT-PROSE-01-R4",
+    "reviewer_agent": "/root/t37_components_review",
     "required_model": "gpt-6.1-sol",
     "required_effort": "high",
-    "scope": "Review corrected maintained guide and complete 129-group provenance ledger at the next exact output commit.",
-    "self_approval": false
+    "reviewed_output_commit": "11bc4137c5897e29174bc29cadde717375590b2c",
+    "scope": "Full 129-group caller-contract transfer after all correction rounds.",
+    "self_approval": false,
+    "selected_behavior_cases": 0,
+    "behavior": "NOT VERIFIED"
   },
   "prior_correction": {
     "reviewer_agent": "/root/t37_components_review",
@@ -5488,7 +5493,7 @@
     "reviewer_effort": "high",
     "reviewed_output_commit": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
     "immutable_review_status": "COMPLETE; 129 exact selected groups and final correction list received",
-    "implementation_status": "R2 and narrow follow-up findings applied; awaiting independent review of next exact output commit.",
+    "implementation_status": "Accepted by independent Sol high review R4 at the recorded exact output commit; behavior remains NOT VERIFIED.",
     "source_changes": false,
     "tests_or_builds_run": false,
     "code_evidence_groups": [
@@ -5536,5 +5541,31 @@
     "finding_applied": "C24 separately states the per-character one-cell rule and the full display string column-width bound.",
     "full_129_group_review": "PASS; source identities, excerpts, target hashes, current locators, and links remain verified.",
     "next_exact_output_review": "PENDING"
+  },
+  "final_output_review": {
+    "decision_id": "T37-COMPONENT-PROSE-01-R4",
+    "reviewer_agent": "/root/t37_components_review",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "result": "ACCEPT",
+    "reviewed_output_commit": "11bc4137c5897e29174bc29cadde717375590b2c",
+    "reviewed_output_hashes": [
+      {
+        "path": "docs/contracts/component-caller-contracts.md",
+        "sha256": "60676737b67278eba932adbd980b47cfc2367ea9fd66aa0144113cc613879839"
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t37-component-api-transfer/README.md",
+        "sha256": "cdf63f6ec4f36833fb3d310eb0f5b0d531d302824c6efc02ac1603ae48b31f6f"
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t37-component-api-transfer/transfer.json",
+        "sha256": "9c23f46efd78bd17f02537bd413f518101cdbbd4aa48fd2de6038c0a0ccdfc27"
+      }
+    ],
+    "scope": "Full 129-group caller-contract transfer after all correction rounds.",
+    "decision": "C24 per-character terminal-cell and full-string column bounds are precise. C14, Form slug, C37, source identities, excerpts, hashes, anchors, and sentence limits pass.",
+    "selected_behavior_cases": 0,
+    "behavior": "NOT VERIFIED"
   }
 }
