@@ -2,6 +2,8 @@
 
 This page is a source-backed contract and acceptance index for component customization. Its implementation notes are pinned to [PR38 source revision `03574346691d2367cd9ba1d6caa394025e5a2a94`](https://github.com/tailrocks/terminal-components-claude/tree/03574346691d2367cd9ba1d6caa394025e5a2a94). A source fact or existing test is evidence for the cited behavior and scope; it does not close the remaining acceptance listed in that row. The cited test bodies were inspected for this documentation change, not freshly run.
 
+T37 retires the test targets cited below. These commit-pinned test links are historical records only. They are not current targets or proof of current behavior. Product behavior remains `NOT VERIFIED`; T01 will rebuild the inventory and T35 will update user guidance after T38 approves the functional test architecture.
+
 The current architecture, product, and requirements remain the shared authority: [architecture](../architecture.md), [product](../product.md), and [requirements](../requirements.md). Product appearance is governed by the retained `design/interaction-polish` reference; this page does not report a visual audit. See [theme and visual customization](theming.md) for the shared resolver and Slot contracts.
 
 The [historical customization guide](https://github.com/tailrocks/terminal-components-claude/blob/d1122f69e6b9c2364aa6ede8174e7d35b8cfff39/docs/guides/overrides.md) is preserved for provenance. Its `junie_tui` imports and examples are not current instructions.

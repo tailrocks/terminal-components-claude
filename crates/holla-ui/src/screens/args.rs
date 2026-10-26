@@ -101,7 +101,6 @@ pub(crate) enum Event {
     },
 }
 
-/// Native, ephemeral editor for one producer-backed task request.
 pub(crate) struct TaskArgsEditor {
     action: Action,
     producer: TaskArgsProducer,
@@ -290,7 +289,6 @@ fn props() -> FormDialog<'static> {
         .submit_policy(FormDialogSubmitPolicy::KeepOpen)
 }
 
-/// Quotes each structured argument and escapes terminal controls for safe review text.
 pub(crate) fn quote_value(value: &str) -> String {
     quote(value)
 }
@@ -330,47 +328,4 @@ fn quote(value: &str) -> String {
     }
     escaped.push('\'');
     escaped
-}
-
-#[cfg(test)]
-mod tests {
-    use super::format_invocation;
-    use crate::sim::{catalogue, fixtures::nextest_args_world, task_args};
-
-    #[test]
-    fn display_keeps_operands_grouped_and_escapes_terminal_controls() {
-        let world = nextest_args_world();
-        let producer = task_args::nextest_task_producer();
-        assert!(producer.is_ok());
-        let Some(producer) = producer.ok() else {
-            return;
-        };
-        let rows = catalogue::catalogue(&world);
-        let row = rows.iter().find(|action| action.id == "task:test-nextest");
-        assert!(row.is_some());
-        let Some(row) = row else { return };
-        let filter = "::: -leading value;$(safe)\u{1b}[31m";
-        let accepted = producer.accept(&[("filter", filter), ("profile", "ci")]);
-        assert!(accepted.is_ok());
-        let Some(accepted) = accepted.ok() else {
-            return;
-        };
-        let plan = task_args::prepare_nextest_invocation(&world, row, &producer, &accepted);
-        assert!(plan.is_ok());
-        let Some(plan) = plan.ok() else { return };
-        let invocation = plan.invocation();
-        let expected = format!("--filterset={filter}");
-        assert!(invocation.argv().contains(&expected));
-        assert_eq!(
-            invocation
-                .argv()
-                .iter()
-                .filter(|arg| **arg == expected)
-                .count(),
-            1
-        );
-        let shown = format_invocation(invocation);
-        assert!(!shown.contains('\u{1b}'));
-        assert!(shown.contains("'--filterset=::: -leading value;$(safe)\\u{1b}[31m'"));
-    }
 }

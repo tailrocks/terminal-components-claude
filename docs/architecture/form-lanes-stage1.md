@@ -1,12 +1,15 @@
 # Form lanes, stage 1
 
+This is a historical implementation report for the frozen product source input `1d6ee92adf6ccca38eeee64b1371cba1497e8fcd`. T37 retires the test target cited below. Its path and results are historical evidence only; they are not current instructions or proof of current behavior. T01 and T35 must review the caller guidance after cleanup. Product behavior remains `NOT VERIFIED`.
+
 This increment adds borrowed field-lane composition to `termrock-forms`. The
 consumer provides stable field and lane IDs plus one shared split policy;
 `Form` retains the field state, controls, scroll behavior, and real action
 buttons. The existing linear form layout remains the default.
 
-The public notification-preferences consumer in
-`crates/termrock-forms/tests/form_lanes_consumer.rs` exercises two lanes,
+The historical public notification-preferences consumer at the pinned source
+revision
+([`form_lanes_consumer.rs`](https://github.com/tailrocks/terminal-components-claude/blob/1d6ee92adf6ccca38eeee64b1371cba1497e8fcd/crates/termrock-forms/tests/form_lanes_consumer.rs)) exercises two lanes,
 70/30 paired fields, live radio option counts, conditional visibility,
 field-backed fill, narrow/zero-width bounds, and malformed-layout rejection.
 The runnable consumer example is `crates/termrock-forms/examples/form_lanes.rs`.

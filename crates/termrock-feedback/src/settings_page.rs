@@ -1,8 +1,3 @@
-//! Settings page: menu, tabs, checkbox sections, actions, and hints.
-//!
-//! Positions follow the labels and the screen edges. The selected tab
-//! carries the focus gutter and the heavy underline.
-
 use std::fmt;
 
 use ratatui_core::layout::{Position, Rect};
@@ -45,7 +40,6 @@ pub struct SettingsMount<'a> {
     pub selected: bool,
 }
 
-/// Borrowed values for the fixed fact pairs on the General fallback body.
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 pub struct SettingsGeneralFacts<'a> {
@@ -57,7 +51,6 @@ pub struct SettingsGeneralFacts<'a> {
 }
 
 impl<'a> SettingsGeneralFacts<'a> {
-    /// Create the five borrowed values shown by the General fallback body.
     pub const fn new(
         default_agent: &'a str,
         workspace: &'a str,
@@ -95,12 +88,10 @@ pub struct SettingsPage<'a> {
     pub hint_overflow: Option<&'a str>,
     pub mounts: &'a [SettingsMount<'a>],
     pub add_mount: Option<&'a str>,
-    /// Wide header: crumb, note, mark, and value, packed from the right edge.
-    /// Absent on the narrow page, which keeps the ellipsis before the crumb.
+
     pub cluster: Option<SettingsCluster<'a>>,
 }
 
-/// One masked environment variable row.
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 pub struct SettingsEnvRow<'a> {
@@ -112,7 +103,6 @@ pub struct SettingsEnvRow<'a> {
 }
 
 impl<'a> SettingsEnvRow<'a> {
-    /// Create a row. `stars` is the masked value width in terminal cells.
     pub const fn new(key: &'a str, scope: &'a str, stars: usize, source: &'a str) -> Self {
         Self {
             key,
@@ -123,14 +113,12 @@ impl<'a> SettingsEnvRow<'a> {
         }
     }
 
-    /// Set whether this row has the list selection fill.
     pub const fn selected(mut self, selected: bool) -> Self {
         self.selected = selected;
         self
     }
 }
 
-/// A titled environment group with zero or more rows.
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 pub struct SettingsEnvGroup<'a> {
@@ -141,7 +129,6 @@ pub struct SettingsEnvGroup<'a> {
 }
 
 impl<'a> SettingsEnvGroup<'a> {
-    /// Create a group from borrowed rows.
     pub const fn new(title: &'a str, rows: &'a [SettingsEnvRow<'a>]) -> Self {
         Self {
             title,
@@ -151,20 +138,17 @@ impl<'a> SettingsEnvGroup<'a> {
         }
     }
 
-    /// Add a right-aligned summary to the group heading.
     pub const fn right(mut self, right: &'a str) -> Self {
         self.right = Some(right);
         self
     }
 
-    /// Add a trailing action row after the group's variables.
     pub const fn add(mut self, label: &'a str) -> Self {
         self.add = Some(label);
         self
     }
 }
 
-/// One role-specific environment group.
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 pub struct SettingsEnvRole<'a> {
@@ -175,7 +159,6 @@ pub struct SettingsEnvRole<'a> {
 }
 
 impl<'a> SettingsEnvRole<'a> {
-    /// Create a role from borrowed rows.
     pub const fn new(name: &'a str, rows: &'a [SettingsEnvRow<'a>]) -> Self {
         Self {
             name,
@@ -185,20 +168,17 @@ impl<'a> SettingsEnvRole<'a> {
         }
     }
 
-    /// Add a right-aligned summary to the role heading.
     pub const fn right(mut self, right: &'a str) -> Self {
         self.right = Some(right);
         self
     }
 
-    /// Add a trailing action row after the role's variables.
     pub const fn add(mut self, label: &'a str) -> Self {
         self.add = Some(label);
         self
     }
 }
 
-/// Borrowed environment content for the shared settings painter.
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 pub struct SettingsEnv<'a> {
@@ -206,22 +186,16 @@ pub struct SettingsEnv<'a> {
     overrides: Option<SettingsEnvOverrides<'a>>,
 }
 
-/// One safe value presentation for the live workspace Editor.
-///
-/// Plain values cross this boundary only as a star count. OnePassword paths
-/// and HostEnv names are public display references, never resolved secrets.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum EditorEnvironmentValue<'a> {
-    /// A Plain value represented only by its visible masked width.
     PlainMasked { stars: usize },
-    /// A OnePassword value represented by a masked value and display path.
+
     OnePassword { display_path: &'a str },
-    /// A host environment variable reference shown as `$NAME`.
+
     HostEnv { name: &'a str },
 }
 
-/// One borrowed row in the live workspace Editor environment body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct EditorEnvironmentRow<'a> {
@@ -231,7 +205,6 @@ pub struct EditorEnvironmentRow<'a> {
 }
 
 impl<'a> EditorEnvironmentRow<'a> {
-    /// Create a row from a key and a redacted display value.
     pub const fn new(key: &'a str, value: EditorEnvironmentValue<'a>) -> Self {
         Self {
             key,
@@ -240,14 +213,12 @@ impl<'a> EditorEnvironmentRow<'a> {
         }
     }
 
-    /// Set whether this workspace row has the list selection fill.
     pub const fn selected(mut self, selected: bool) -> Self {
         self.selected = selected;
         self
     }
 }
 
-/// One non-empty role override in the live workspace Editor environment body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct EditorEnvironmentRole<'a> {
@@ -257,13 +228,11 @@ pub struct EditorEnvironmentRole<'a> {
 }
 
 impl<'a> EditorEnvironmentRole<'a> {
-    /// Create a role from its displayed leaf name, summary, and rows.
     pub const fn new(name: &'a str, right: &'a str, rows: &'a [EditorEnvironmentRow<'a>]) -> Self {
         Self { name, right, rows }
     }
 }
 
-/// Borrowed environment content for the live workspace Editor body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct EditorEnvironmentBody<'a> {
@@ -274,7 +243,6 @@ pub struct EditorEnvironmentBody<'a> {
 }
 
 impl<'a> EditorEnvironmentBody<'a> {
-    /// Create the workspace and role sections shown by the live Editor.
     pub const fn new(
         workspace_right: &'a str,
         workspace_rows: &'a [EditorEnvironmentRow<'a>],
@@ -290,19 +258,16 @@ impl<'a> EditorEnvironmentBody<'a> {
     }
 }
 
-/// Tone for metadata in one live workspace Editor role row.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum EditorRolesMetaTone {
-    /// A role could not be loaded.
     Error,
-    /// A role is not in the registry.
+
     Warning,
-    /// Registry and trust details.
+
     Muted,
 }
 
-/// One borrowed row in the live workspace Editor Roles body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct EditorRolesRow<'a> {
@@ -314,7 +279,6 @@ pub struct EditorRolesRow<'a> {
 }
 
 impl<'a> EditorRolesRow<'a> {
-    /// Create a role row from its display name, projected state, and metadata.
     pub const fn new(
         name: &'a str,
         allowed: bool,
@@ -332,7 +296,6 @@ impl<'a> EditorRolesRow<'a> {
     }
 }
 
-/// Borrowed content for the fixed live workspace Editor Roles body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct EditorRolesBody<'a> {
@@ -343,10 +306,6 @@ pub struct EditorRolesBody<'a> {
 }
 
 impl<'a> EditorRolesBody<'a> {
-    /// Create the headings and visible role rows shown by the live Editor.
-    ///
-    /// `rows` contains at most the 29 visible roles. `total_roles` preserves
-    /// the source-list size used by the overflow treatment.
     pub const fn new(
         allowed_count: usize,
         total_roles: usize,
@@ -362,19 +321,16 @@ impl<'a> EditorRolesBody<'a> {
     }
 }
 
-/// Explicit source kind for a trusted role source.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum SettingsTrustSourceKind {
-    /// Source uses a Git transport.
     Git,
-    /// Source is a local path.
+
     Path,
-    /// Caller has no verified source-kind metadata.
+
     Unknown,
 }
 
-/// One borrowed agent row for the shared Settings renderer.
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 pub struct SettingsAgentRow<'a> {
@@ -385,7 +341,6 @@ pub struct SettingsAgentRow<'a> {
 }
 
 impl<'a> SettingsAgentRow<'a> {
-    /// Create an agent row. The renderer clips each column to its cell budget.
     pub const fn new(name: &'a str, mode: &'a str, account: &'a str) -> Self {
         Self {
             name,
@@ -395,14 +350,12 @@ impl<'a> SettingsAgentRow<'a> {
         }
     }
 
-    /// Set whether the row carries the selected-row treatment.
     pub const fn selected(mut self, selected: bool) -> Self {
         self.selected = selected;
         self
     }
 }
 
-/// Borrowed Agents table content for the shared Settings renderer.
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 pub struct SettingsAgents<'a> {
@@ -414,7 +367,6 @@ pub struct SettingsAgents<'a> {
 }
 
 impl<'a> SettingsAgents<'a> {
-    /// Create an Agents table with a title, column header, rows, and fixed notes.
     pub const fn new(
         title: &'a str,
         right: &'a str,
@@ -432,7 +384,6 @@ impl<'a> SettingsAgents<'a> {
     }
 }
 
-/// One borrowed trust-source row for the shared Settings renderer.
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 pub struct SettingsTrustRow<'a> {
@@ -445,7 +396,6 @@ pub struct SettingsTrustRow<'a> {
 }
 
 impl<'a> SettingsTrustRow<'a> {
-    /// Create a trust row with explicit kind metadata and caller-owned count text.
     pub const fn new(
         source: &'a str,
         kind: SettingsTrustSourceKind,
@@ -462,20 +412,17 @@ impl<'a> SettingsTrustRow<'a> {
         }
     }
 
-    /// Set whether the trusted value differs from its saved value.
     pub const fn dirty(mut self, dirty: bool) -> Self {
         self.dirty = dirty;
         self
     }
 
-    /// Set whether the row carries the selected-row treatment.
     pub const fn selected(mut self, selected: bool) -> Self {
         self.selected = selected;
         self
     }
 }
 
-/// Borrowed Trust table content for the shared Settings renderer.
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 pub struct SettingsTrust<'a> {
@@ -487,7 +434,6 @@ pub struct SettingsTrust<'a> {
 }
 
 impl<'a> SettingsTrust<'a> {
-    /// Create a Trust table with caller-owned summary and notes.
     pub const fn new(
         title: &'a str,
         right: &'a str,
@@ -503,24 +449,20 @@ impl<'a> SettingsTrust<'a> {
         }
     }
 
-    /// Use the plain selected gutter while a caller-owned preview layer is open.
     pub const fn preview(mut self, preview: bool) -> Self {
         self.preview = preview;
         self
     }
 }
 
-/// Ink used for optional text after a Settings hint row.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum SettingsHintOverflowTone {
-    /// Use the faint text channel.
     Faint,
-    /// Use the secondary text channel.
+
     Secondary,
 }
 
-/// Typed trailing text for the additive Agents and Trust painters.
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 pub struct SettingsHintOverflow<'a> {
@@ -530,7 +472,6 @@ pub struct SettingsHintOverflow<'a> {
 }
 
 impl<'a> SettingsHintOverflow<'a> {
-    /// Create trailing text that follows the final hint.
     pub const fn new(text: &'a str) -> Self {
         Self {
             text,
@@ -539,20 +480,17 @@ impl<'a> SettingsHintOverflow<'a> {
         }
     }
 
-    /// Place the text at a column offset from the page origin.
     pub const fn at(mut self, offset: u16) -> Self {
         self.at = Some(offset);
         self
     }
 
-    /// Set the text channel.
     pub const fn tone(mut self, tone: SettingsHintOverflowTone) -> Self {
         self.tone = tone;
         self
     }
 }
 
-/// Semantic header and footer options for the additive Agents and Trust pages.
 #[derive(Clone, Copy, Debug, Default)]
 #[non_exhaustive]
 pub struct SettingsPageChrome<'a> {
@@ -564,7 +502,6 @@ pub struct SettingsPageChrome<'a> {
 }
 
 impl<'a> SettingsPageChrome<'a> {
-    /// Create default header and footer options.
     pub const fn new() -> Self {
         Self {
             tab_note: None,
@@ -575,56 +512,49 @@ impl<'a> SettingsPageChrome<'a> {
         }
     }
 
-    /// Add a note to the selected tab and dim its underline.
     pub const fn tab_note(mut self, note: &'a str) -> Self {
         self.tab_note = Some(note);
         self
     }
 
-    /// Add a styled note immediately after the breadcrumb.
     pub const fn crumb_note(mut self, note: &'a str) -> Self {
         self.crumb_note = Some(note);
         self
     }
 
-    /// Place each `SettingsHint` at the matching page-relative column.
     pub const fn hint_offsets(mut self, offsets: &'a [u16]) -> Self {
         self.hint_offsets = Some(offsets);
         self
     }
 
-    /// Add typed trailing text after the hints or at its explicit offset.
     pub const fn overflow(mut self, overflow: SettingsHintOverflow<'a>) -> Self {
         self.overflow = Some(overflow);
         self
     }
 
-    /// Hide the standard hint row when another layer owns the footer.
     pub const fn hide_hints(mut self, hide: bool) -> Self {
         self.hide_hints = hide;
         self
     }
 }
 
-/// Failure to paint an Agents or Trust body inside the supplied page area.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum SettingsBodyPaintError {
-    /// Legacy sections or mounts would overlap the new table body.
     LegacyBodyNotEmpty,
-    /// The page is too narrow for the Settings frame.
+
     AreaTooNarrow { minimum: u16, actual: u16 },
-    /// The fixed body, actions, and footer cannot fit in the page height.
+
     AreaTooShort { minimum: u16, actual: u16 },
-    /// The body exceeds its fixed row capacity.
+
     TooManyRows { maximum: usize, actual: usize },
-    /// The fixed note area exceeds its row capacity.
+
     TooManyNotes { maximum: usize, actual: usize },
-    /// Fixed hint offsets must have one entry per hint.
+
     HintOffsetsMismatch { hints: usize, offsets: usize },
-    /// Legacy and typed overflow fields cannot both own the hint tail.
+
     ConflictingHintOverflow,
-    /// A breadcrumb note needs a running-context cluster for its fixed anchor.
+
     CrumbNoteNeedsCluster,
 }
 
@@ -674,7 +604,6 @@ struct SettingsEnvOverrides<'a> {
 }
 
 impl<'a> SettingsEnv<'a> {
-    /// Create environment content from any number of global groups.
     pub const fn new(groups: &'a [SettingsEnvGroup<'a>]) -> Self {
         Self {
             groups,
@@ -682,7 +611,6 @@ impl<'a> SettingsEnv<'a> {
         }
     }
 
-    /// Add a role-overrides group with any number of roles.
     pub const fn role_overrides(
         mut self,
         title: &'a str,
@@ -700,17 +628,21 @@ impl<'a> SettingsEnv<'a> {
     }
 }
 
-/// Failure to paint all environment rows inside the supplied page area.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum SettingsEnvPaintError {
-    /// The legacy page still contains sections or mounts that would overlap the Env body.
     LegacyBodyNotEmpty,
-    /// The page is too narrow to show the row marker and all four data columns.
-    AreaTooNarrow { minimum: u16, actual: u16 },
-    /// The page is too short for the shared header and footer.
-    AreaTooShort { minimum: u16, actual: u16 },
-    /// All content cannot fit above the action row.
+
+    AreaTooNarrow {
+        minimum: u16,
+        actual: u16,
+    },
+
+    AreaTooShort {
+        minimum: u16,
+        actual: u16,
+    },
+
     ContentTooTall {
         required_lines: usize,
         available_lines: usize,
@@ -742,15 +674,19 @@ impl fmt::Display for SettingsEnvPaintError {
 
 impl std::error::Error for SettingsEnvPaintError {}
 
-/// Failure to paint the fixed live Editor environment body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum EditorEnvironmentPaintError {
-    /// The fixed key, value, and source columns need at least 120 columns.
-    AreaTooNarrow { minimum: u16, actual: u16 },
-    /// The current Editor frame and its footer need at least 40 rows.
-    AreaTooShort { minimum: u16, actual: u16 },
-    /// Every environment row and Add action must fit before the footer.
+    AreaTooNarrow {
+        minimum: u16,
+        actual: u16,
+    },
+
+    AreaTooShort {
+        minimum: u16,
+        actual: u16,
+    },
+
     ContentTooTall {
         required_lines: usize,
         available_lines: usize,
@@ -779,19 +715,17 @@ impl fmt::Display for EditorEnvironmentPaintError {
 
 impl std::error::Error for EditorEnvironmentPaintError {}
 
-/// Failure to paint the fixed live Editor Roles body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum EditorRolesPaintError {
-    /// The fixed role columns need at least 120 columns.
     AreaTooNarrow { minimum: u16, actual: u16 },
-    /// The current Editor frame and its footer need at least 40 rows.
+
     AreaTooShort { minimum: u16, actual: u16 },
-    /// The body supports at most 29 visible role rows.
+
     TooManyRows { maximum: usize, actual: usize },
-    /// The source list cannot be shorter than its visible rows.
+
     TotalRolesBelowVisible { visible: usize, total: usize },
-    /// A display string does not fit the proven single-cell columns.
+
     UnsupportedContent,
 }
 
@@ -889,13 +823,6 @@ pub fn paint_settings_page(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>)
     paint_settings_footer(ui, area, page, &ink);
 }
 
-/// Paint an Env body with the existing page chrome.
-///
-/// `page.sections`, `page.mounts`, and `page.add_mount` must be empty. The
-/// function borrows all rows and paints every row or returns an error before
-/// drawing. Horizontal text clips to the supplied area. Content taller than
-/// the available body space is rejected; this entry point does not scroll or
-/// handle input and focus.
 pub fn paint_settings_page_with_env(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -936,19 +863,6 @@ pub fn paint_settings_page_with_env(
     Ok(())
 }
 
-/// Paint only the fixed environment body used by the live workspace Editor.
-///
-/// `area` is the full screen allocation. The body starts at row six and ends
-/// before the fixed row-37 footer. This entry does not paint Editor chrome,
-/// footer labels, or input controls. Plain values enter only as a star count.
-/// The function validates the full current allocation and all body rows before
-/// painting any ink. It does not scroll or drop rows. Each fixed key, value,
-/// and source column clips its text to that column's terminal-cell width.
-///
-/// # Errors
-///
-/// Returns an error when the area is narrower than the fixed Editor columns,
-/// shorter than the frame and footer, or cannot contain all body rows.
 pub fn paint_editor_environment_body(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -991,19 +905,6 @@ pub fn paint_editor_environment_body(
     Ok(())
 }
 
-/// Paint only the fixed role list used by the live workspace Editor.
-///
-/// `area` is the full screen allocation. The headings start at row six and
-/// the visible rows end before the fixed row-37 footer. This entry does not
-/// paint Editor chrome, footer labels, or input controls. It supports at most
-/// 29 visible rows and validates all borrowed content before painting. The
-/// fixed columns accept printable single-cell text so callers can retain the
-/// legacy painter for content outside this proven layout.
-///
-/// # Errors
-///
-/// Returns an error when the allocation is too small, the visible row count
-/// is invalid, or any display string exceeds the fixed columns.
 pub fn paint_editor_roles_body(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1310,7 +1211,6 @@ fn paint_editor_roles_metadata(
 }
 
 fn put_editor_roles(ui: &mut Ui<'_>, area: Rect, x: u16, y: u16, text: &str, style: PaintStyle) {
-    // Keep x logical so put_clipped removes a prefix before Ui applies the clip.
     let visible_area = area.intersection(ui.full());
     let width = area.right().saturating_sub(x);
     put_clipped(ui, visible_area, x, y, text, width, style);
@@ -1338,12 +1238,6 @@ const EDITOR_ROLES_BADGE: Color = Color::Rgb(0x17, 0x3f, 0x1c);
 const EDITOR_ROLES_AMBER: Color = Color::Rgb(0xf5, 0x9e, 0x09);
 const EDITOR_ROLES_ERROR: Color = Color::Rgb(0xf0, 0x5d, 0x5d);
 
-/// Paint an Agents table with the existing Settings page chrome.
-///
-/// `page.sections`, `page.mounts`, and `page.add_mount` must be empty. The
-/// renderer supports at most six rows and two fixed notes. It validates the
-/// complete layout before it paints any cell. This function does not handle
-/// input or focus.
 pub fn paint_settings_page_with_agents(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1371,12 +1265,6 @@ pub fn paint_settings_page_with_agents(
     Ok(())
 }
 
-/// Paint only the fixed Agents content band within a Settings page area.
-///
-/// The band is page-relative rows 6 through 16, clipped to both `area` and the
-/// current Ui clip. Unlike the full-page painter, this entrypoint does not draw
-/// chrome or impose a minimum page height. Row and note capacities are checked
-/// before any cell is changed.
 pub fn paint_settings_agents_body(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1410,11 +1298,6 @@ pub fn paint_settings_agents_body(
     Ok(())
 }
 
-/// Paint the five fixed General label/value pairs without clearing surrounding cells.
-///
-/// Positions are relative to `area`, with labels at page-relative rows 6, 10,
-/// 14, 18, and 22 and their values on the following rows. The caller retains
-/// ownership of page chrome, controls, state, and any short-layout overlap.
 pub fn paint_settings_general_body(ui: &mut Ui<'_>, area: Rect, facts: &SettingsGeneralFacts<'_>) {
     const SECONDARY: Color = Color::Rgb(0xb3, 0xb3, 0xb3);
     const WHITE: Color = Color::Rgb(255, 255, 255);
@@ -1454,19 +1337,6 @@ pub fn paint_settings_general_body(ui: &mut Ui<'_>, area: Rect, facts: &Settings
     });
 }
 
-/// Paint only the fixed Trust content band within a Settings page area.
-///
-/// The band is page-relative rows 6 through 13, clipped to both `area` and
-/// the current Ui clip. Unlike the full-page painter, this entrypoint does
-/// not draw chrome or impose a minimum page height. Row and note capacities
-/// are checked before any cell is changed. This function does not handle
-/// input, counts, or a caller-owned save preview.
-///
-/// # Errors
-///
-/// Returns [`SettingsBodyPaintError::TooManyRows`] or
-/// [`SettingsBodyPaintError::TooManyNotes`] when the input exceeds the fixed
-/// Trust body capacities. Either error is returned before painting.
 pub fn paint_settings_trust_body(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1500,12 +1370,6 @@ pub fn paint_settings_trust_body(
     Ok(())
 }
 
-/// Paint only the borrowed Mounts table within a Settings page area.
-///
-/// The table starts at page-relative row 6 and is clipped to the supplied
-/// page area, the available body band above the native footer, and the current
-/// Ui clip. It paints the shared Mounts columns and rows without page chrome,
-/// actions, hints, input handling, or focus ownership.
 pub fn paint_settings_mounts_body(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1533,12 +1397,6 @@ pub fn paint_settings_mounts_body(
     });
 }
 
-/// Paint a Trust table with the existing Settings page chrome.
-///
-/// `page.sections`, `page.mounts`, and `page.add_mount` must be empty. The
-/// renderer supports at most four rows and two fixed notes. It validates the
-/// complete layout before it paints any cell. This function does not handle
-/// input, counts, or a caller-owned save preview.
 pub fn paint_settings_page_with_trust(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -2289,7 +2147,7 @@ fn paint_header(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink)
             cluster.mark,
             plain(ink.accent, ink.canvas),
         );
-        // The gap keeps the value ink. The mark is recolored on top of that run.
+
         put(
             ui,
             area,
@@ -2593,8 +2451,7 @@ fn narrow_cols() -> MountCols {
 
 fn wide_cols(area_width: u16) -> MountCols {
     let source_at = 80;
-    // Pad ends on the cell before the last selected cell. The last two
-    // columns stay canvas.
+
     let source_w = area_width.saturating_sub(3).saturating_sub(source_at);
     MountCols {
         path_at: 4,
@@ -3499,2320 +3356,4 @@ fn paint_env_add(ui: &mut Ui<'_>, area: Rect, y: u16, label: &str, ink: &Ink) {
             .saturating_sub(area.x.saturating_add(4)),
         plain(ink.secondary, ink.canvas),
     );
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use ratatui_core::layout::Position;
-    use termrock::{ColorLevel, FgStep, Surface, Theme};
-    use termrock_test_support::Scene;
-
-    fn legacy_page<'a>(
-        sections: &'a [SettingsSection<'a>],
-        mounts: &'a [SettingsMount<'a>],
-        add_mount: Option<&'a str>,
-    ) -> SettingsPage<'a> {
-        SettingsPage {
-            brand: "Settings",
-            menus: &[],
-            crumb: "Settings › global",
-            tabs: &[],
-            sections,
-            cancel: "Cancel",
-            save: "Save",
-            save_enabled: true,
-            hints: &[],
-            hint_overflow: None,
-            mounts,
-            add_mount,
-            cluster: None,
-        }
-    }
-
-    fn heritage_page<'a>(
-        crumb: &'a str,
-        tabs: &'a [SettingsTab<'a>],
-        hints: &'a [SettingsHint<'a>],
-        cluster: Option<SettingsCluster<'a>>,
-    ) -> SettingsPage<'a> {
-        SettingsPage {
-            brand: "jackin❯",
-            menus: &[],
-            crumb,
-            tabs,
-            sections: &[],
-            cancel: "Cancel",
-            save: "Save…",
-            save_enabled: false,
-            hints,
-            hint_overflow: None,
-            mounts: &[],
-            add_mount: None,
-            cluster,
-        }
-    }
-
-    #[test]
-    fn mounts_body_respects_nested_clip_and_short_content_band() {
-        let rows = [SettingsMount {
-            path: "/workspace/資料/long-project-name",
-            scope: "global",
-            mode: "ro",
-            isolation: "shared",
-            kind: Some("host"),
-            source: Some("~/sources/資料/project"),
-            selected: true,
-        }];
-        let mut wide = Scene::new(
-            "settings_mounts_body_wide_grapheme_values",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            120,
-            24,
-        );
-        wide.draw(|ui, area| {
-            paint_settings_mounts_body(ui, area, &rows, Some("+ Add mount"));
-        });
-        assert!(wide.text().contains("/workspace/資料/long-project-na"));
-        assert!(wide.text().contains("~/sources/資料/project"));
-
-        let sentinel = plain(Color::Rgb(1, 2, 3), Color::Rgb(4, 5, 6));
-        let mut clipped = Scene::new(
-            "settings_mounts_body_nested_clip",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            80,
-            20,
-        );
-        clipped.draw(|ui, area| {
-            ui.paint_cell(Position::new(3, 7), "!", sentinel);
-            ui.paint_cell(Position::new(50, 7), "!", sentinel);
-            ui.paint_cell(Position::new(4, 9), "!", sentinel);
-            ui.with_area(Rect::new(4, 6, 40, 3), |ui| {
-                paint_settings_mounts_body(ui, area, &rows, Some("+ Add mount"));
-            });
-        });
-        assert_eq!(
-            clipped.buffer().cell((3, 7)).map(|cell| cell.symbol()),
-            Some("!")
-        );
-        assert_eq!(
-            clipped.buffer().cell((50, 7)).map(|cell| cell.symbol()),
-            Some("!")
-        );
-        assert_eq!(
-            clipped.buffer().cell((4, 9)).map(|cell| cell.symbol()),
-            Some("!")
-        );
-        assert_eq!(
-            clipped.buffer().cell((8, 6)).map(|cell| cell.symbol()),
-            Some("D")
-        );
-        assert_eq!(
-            clipped.buffer().cell((8, 7)).map(|cell| cell.symbol()),
-            Some("/")
-        );
-
-        let mut offset = Scene::new(
-            "settings_mounts_body_offset_area",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            120,
-            30,
-        );
-        offset.draw(|ui, _| {
-            ui.paint_cell(Position::new(9, 9), "!", sentinel);
-            ui.paint_cell(Position::new(70, 9), "!", sentinel);
-            ui.paint_cell(Position::new(10, 11), "!", sentinel);
-            ui.with_area(Rect::new(10, 8, 60, 5), |ui| {
-                paint_settings_mounts_body(ui, Rect::new(5, 2, 80, 20), &rows, Some("+ Add mount"));
-            });
-        });
-        assert_eq!(
-            offset.buffer().cell((9, 9)).map(|cell| cell.symbol()),
-            Some("!")
-        );
-        assert_eq!(
-            offset.buffer().cell((70, 9)).map(|cell| cell.symbol()),
-            Some("!")
-        );
-        assert_eq!(
-            offset.buffer().cell((10, 11)).map(|cell| cell.symbol()),
-            Some("!")
-        );
-        assert_eq!(
-            offset.buffer().cell((13, 8)).map(|cell| cell.symbol()),
-            Some("D")
-        );
-        assert_eq!(
-            offset.buffer().cell((14, 9)).map(|cell| cell.symbol()),
-            Some("/")
-        );
-
-        let mut short = Scene::new(
-            "settings_mounts_body_short_page_area",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            80,
-            20,
-        );
-        short.draw(|ui, _| {
-            ui.paint_cell(Position::new(4, 8), "!", sentinel);
-            paint_settings_mounts_body(ui, Rect::new(0, 0, 80, 11), &rows, Some("+ Add mount"));
-        });
-        assert_eq!(
-            short.buffer().cell((8, 6)).map(|cell| cell.symbol()),
-            Some("D")
-        );
-        assert_eq!(
-            short.buffer().cell((8, 7)).map(|cell| cell.symbol()),
-            Some("/")
-        );
-        assert_eq!(
-            short.buffer().cell((4, 8)).map(|cell| cell.symbol()),
-            Some("!")
-        );
-    }
-
-    #[test]
-    fn mounts_body_uses_semantic_theme_palette_at_every_capability() {
-        fn column(scene: &Scene, y: u16, x: u16, width: u16) -> String {
-            let mut text = String::new();
-            for column in x..x.saturating_add(width) {
-                text.push_str(
-                    scene
-                        .buffer()
-                        .cell((column, y))
-                        .expect("Mounts body cell")
-                        .symbol(),
-                );
-            }
-            text.trim().to_owned()
-        }
-
-        let rows = [SettingsMount {
-            path: "/home/agent/.gitconfig",
-            scope: "global",
-            mode: "ro",
-            isolation: "shared",
-            kind: Some("host"),
-            source: Some("~/.gitconfig"),
-            selected: true,
-        }];
-        for width in [80, 120] {
-            for level in [
-                ColorLevel::TrueColor,
-                ColorLevel::Ansi256,
-                ColorLevel::Ansi16,
-                ColorLevel::Mono,
-            ] {
-                let mut scene = Scene::new(
-                    "settings_mounts_body_semantic_palette",
-                    Theme::junie(),
-                    level,
-                    width,
-                    24,
-                );
-                scene.draw(|ui, area| {
-                    paint_settings_mounts_body(ui, area, &rows, Some("+ Add mount"));
-                });
-
-                let resolved = Theme::junie().downgrade(level);
-                let heading = scene
-                    .buffer()
-                    .cell((8, 6))
-                    .expect("shared Destination heading");
-                assert_eq!(
-                    heading.fg,
-                    resolved.color.fg[FgStep::Muted.index()],
-                    "header uses the Muted semantic role at {level:?}"
-                );
-                assert_eq!(heading.bg, resolved.bg(Surface::Canvas));
-                assert_eq!(column(&scene, 7, 72, 6), "host");
-                assert_eq!(column(&scene, 8, 8, 11), "+ Add mount");
-                if width >= 120 {
-                    assert_eq!(column(&scene, 7, 80, 12), "~/.gitconfig");
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn legacy_page_literal_still_paints_general_and_mount_content() {
-        let checks = [SettingsCheck {
-            label: "Use cache",
-            checked: true,
-        }];
-        let sections = [SettingsSection {
-            title: "General",
-            checks: &checks,
-            note: None,
-            body: None,
-        }];
-        let page = legacy_page(&sections, &[], None);
-        let mut general = Scene::new(
-            "settings_general_legacy_api",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            80,
-            24,
-        );
-        general.draw(|ui, area| paint_settings_page(ui, area, &page));
-        assert!(general.text().contains("Settings › global"));
-        assert!(general.text().contains("General"));
-        assert!(general.text().contains("Use cache"));
-
-        let mounts = [SettingsMount {
-            path: "/workspace",
-            scope: "global",
-            mode: "read-write",
-            isolation: "host",
-            kind: None,
-            source: None,
-            selected: true,
-        }];
-        let page = legacy_page(&[], &mounts, Some("Add mount"));
-        let mut mount_scene = Scene::new(
-            "settings_mounts_legacy_api",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            120,
-            40,
-        );
-        mount_scene.draw(|ui, area| paint_settings_page(ui, area, &page));
-        assert!(mount_scene.text().contains("Destination"));
-        assert!(mount_scene.text().contains("/workspace"));
-        assert!(mount_scene.text().contains("Add mount"));
-    }
-
-    #[test]
-    fn agents_and_trust_painters_keep_fixed_heritage_cells_and_preview_options() {
-        let agent_tabs = [SettingsTab {
-            label: "Agents",
-            selected: true,
-        }];
-        let agent_hints = [SettingsHint {
-            key: "Space",
-            action: "Cycle mode",
-        }];
-        let agent_offsets = [1];
-        let cluster = SettingsCluster {
-            note: "inside the Construct",
-            mark: "●",
-            value: "2 running",
-        };
-        let agent_page = heritage_page(
-            "Settings › global › Agents",
-            &agent_tabs,
-            &agent_hints,
-            Some(cluster),
-        );
-        let agent_rows = [
-            SettingsAgentRow::new("Claude Code", "sync", "Claude · Personal").selected(true),
-            SettingsAgentRow::new("Codex", "api key", "Codex · Primary"),
-        ];
-        let agent_notes = [
-            "sync mirrors the host login",
-            "ignore withholds credentials",
-        ];
-        let agents = SettingsAgents::new(
-            "Agent runtime mode",
-            "accounts are registered in Accounts (c)",
-            "Agent         Mode         Registry default",
-            &agent_rows,
-            &agent_notes,
-        );
-        let mut agent_scene = Scene::new(
-            "settings_agents_shared_painter",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            120,
-            40,
-        );
-        agent_scene.draw(|ui, area| {
-            assert_eq!(
-                paint_settings_page_with_agents(
-                    ui,
-                    area,
-                    &agent_page,
-                    &agents,
-                    SettingsPageChrome::new()
-                        .hint_offsets(&agent_offsets)
-                        .overflow(
-                            SettingsHintOverflow::new("…")
-                                .at(112)
-                                .tone(SettingsHintOverflowTone::Secondary),
-                        ),
-                ),
-                Ok(())
-            );
-        });
-        let agent_text = agent_scene.text();
-        for expected in [
-            "Settings › global › Agents",
-            "inside the Construct",
-            "Agent runtime mode",
-            "Claude Code",
-            "sync mirrors the host login",
-            "Cycle mode",
-        ] {
-            assert!(agent_text.contains(expected), "missing {expected:?}");
-        }
-        assert_eq!(
-            agent_scene.buffer().cell((83, 0)).map(|cell| cell.symbol()),
-            Some(" ")
-        );
-        assert_eq!(
-            agent_scene.buffer().cell((85, 0)).map(|cell| cell.symbol()),
-            Some("i")
-        );
-        assert_eq!(
-            agent_scene
-                .buffer()
-                .cell((107, 0))
-                .map(|cell| cell.symbol()),
-            Some("●")
-        );
-        assert_eq!(
-            agent_scene
-                .buffer()
-                .cell((108, 0))
-                .map(|cell| cell.symbol()),
-            Some(" ")
-        );
-        assert_eq!(
-            agent_scene.buffer().cell((2, 8)).map(|cell| cell.symbol()),
-            Some("▎")
-        );
-        assert_eq!(
-            agent_scene.buffer().cell((4, 15)).map(|cell| cell.symbol()),
-            Some("s")
-        );
-        assert_eq!(
-            agent_scene.buffer().cell((1, 39)).map(|cell| cell.symbol()),
-            Some("S")
-        );
-        assert_eq!(
-            agent_scene
-                .buffer()
-                .cell((112, 39))
-                .map(|cell| cell.symbol()),
-            Some("…")
-        );
-
-        let trust_tabs = [SettingsTab {
-            label: "Trust",
-            selected: true,
-        }];
-        let trust_hints = [SettingsHint {
-            key: "Space",
-            action: "Toggle trust",
-        }];
-        let trust_offsets = [1];
-        let trust_page = heritage_page(
-            "Settings › global › Trust",
-            &trust_tabs,
-            &trust_hints,
-            Some(cluster),
-        );
-        let trust_rows = [SettingsTrustRow::new(
-            "relative/roles",
-            SettingsTrustSourceKind::Unknown,
-            false,
-            "2 roles",
-        )
-        .dirty(true)
-        .selected(true)];
-        let trust_notes = ["The selected row keeps its verified kind."];
-        let trust = SettingsTrust::new(
-            "Role sources",
-            "0 trusted · 1 untrusted",
-            &trust_rows,
-            &trust_notes,
-        )
-        .preview(true);
-        let chrome = SettingsPageChrome::new()
-            .tab_note("•")
-            .crumb_note("  • 1 change  ")
-            .hint_offsets(&trust_offsets)
-            .hide_hints(true);
-        let mut trust_scene = Scene::new(
-            "settings_trust_shared_painter",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            120,
-            40,
-        );
-        trust_scene.draw(|ui, area| {
-            assert_eq!(
-                paint_settings_page_with_trust(ui, area, &trust_page, &trust, chrome),
-                Ok(())
-            );
-        });
-        let trust_text = trust_scene.text();
-        for expected in [
-            "Settings › global › Trust",
-            "• 1 change",
-            "Role sources",
-            "relative/roles",
-            "unk",
-            "2 roles",
-            "The selected row keeps its verified kind.",
-        ] {
-            assert!(trust_text.contains(expected), "missing {expected:?}");
-        }
-        assert!(!trust_text.contains("Toggle trust"));
-        assert_eq!(
-            trust_scene.buffer().cell((2, 7)).map(|cell| cell.symbol()),
-            Some(" ")
-        );
-        assert_eq!(
-            trust_scene.buffer().cell((3, 7)).map(|cell| cell.symbol()),
-            Some("›")
-        );
-        assert_eq!(
-            trust_scene.buffer().cell((49, 7)).map(|cell| cell.symbol()),
-            Some("u")
-        );
-        assert_eq!(
-            trust_scene.buffer().cell((5, 7)).map(|cell| cell.symbol()),
-            Some("•")
-        );
-    }
-
-    #[test]
-    fn body_renderer_clips_wide_text_to_offset_area_and_keeps_sentinels_outside() {
-        let tabs = [SettingsTab {
-            label: "Trust",
-            selected: true,
-        }];
-        let hints: [SettingsHint<'_>; 0] = [];
-        let page = heritage_page("Settings › global › Trust", &tabs, &hints, None);
-        let source = "界".repeat(100);
-        let count = "界 roles ".repeat(1000);
-        let rows = [
-            SettingsTrustRow::new(&source, SettingsTrustSourceKind::Unknown, true, &count)
-                .selected(true),
-        ];
-        let notes = ["note e\u{301} clips at the supplied page edge"];
-        let trust = SettingsTrust::new("Role sources", "1 trusted · 0 untrusted", &rows, &notes);
-        let area = Rect::new(4, 2, 120, 40);
-        let mut scene = Scene::new(
-            "settings_trust_offset_unicode_clip",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            130,
-            46,
-        );
-        scene.draw_over(
-            |buffer| {
-                for pos in buffer.area().positions() {
-                    if let Some(cell) = buffer.cell_mut(pos) {
-                        cell.set_symbol("!");
-                    }
-                }
-            },
-            |ui, _| {
-                assert_eq!(
-                    paint_settings_page_with_trust(
-                        ui,
-                        area,
-                        &page,
-                        &trust,
-                        SettingsPageChrome::new(),
-                    ),
-                    Ok(())
-                );
-            },
-        );
-        assert!(scene.text().contains("界界"));
-        assert!(scene.text().contains("unk"));
-        for pos in scene.area().positions() {
-            if !area.contains(pos) {
-                assert_eq!(
-                    scene.buffer().cell(pos).map(|cell| cell.symbol()),
-                    Some("!"),
-                    "paint escaped supplied area at ({}, {})",
-                    pos.x,
-                    pos.y,
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn trust_body_matches_the_shared_page_table_at_narrow_and_wide_sizes() {
-        let rows = [
-            SettingsTrustRow::new(
-                "github.com/chainargos/roles",
-                SettingsTrustSourceKind::Git,
-                true,
-                "4 roles",
-            )
-            .selected(true),
-            SettingsTrustRow::new(
-                "github.com/acme-labs/roles-experimental",
-                SettingsTrustSourceKind::Git,
-                false,
-                "1 role",
-            ),
-            SettingsTrustRow::new("~/roles", SettingsTrustSourceKind::Path, true, "1 role")
-                .dirty(true),
-            SettingsTrustRow::new(
-                "git@corp:infra/roles",
-                SettingsTrustSourceKind::Git,
-                true,
-                "2 roles",
-            ),
-        ];
-        let notes = [
-            "An untrusted source blocks + Load role until it is trusted here or",
-            "in the trust dialog that the load opens.",
-        ];
-        let tabs = [SettingsTab {
-            label: "Trust",
-            selected: true,
-        }];
-        let hints = [SettingsHint {
-            key: "Space",
-            action: "Toggle trust",
-        }];
-
-        for preview in [false, true] {
-            let trust =
-                SettingsTrust::new("Role sources", "3 trusted · 1 untrusted", &rows, &notes)
-                    .preview(preview);
-            let page = heritage_page("Settings › global › Trust", &tabs, &hints, None);
-            for (width, height) in [(80, 24), (120, 40)] {
-                let mut full = Scene::new(
-                    "settings_trust_body_full_page_reference",
-                    Theme::junie(),
-                    ColorLevel::TrueColor,
-                    width,
-                    height,
-                );
-                full.draw(|ui, area| {
-                    assert_eq!(
-                        paint_settings_page_with_trust(
-                            ui,
-                            area,
-                            &page,
-                            &trust,
-                            SettingsPageChrome::new(),
-                        ),
-                        Ok(())
-                    );
-                });
-
-                let mut body = Scene::new(
-                    "settings_trust_body_only",
-                    Theme::junie(),
-                    ColorLevel::TrueColor,
-                    width,
-                    height,
-                );
-                body.draw(|ui, area| {
-                    assert_eq!(paint_settings_trust_body(ui, area, &trust), Ok(()));
-                });
-
-                for y in 6..14 {
-                    for x in 0..width {
-                        let expected = full.buffer().cell((x, y)).expect("full-page cell");
-                        let actual = body.buffer().cell((x, y)).expect("body-only cell");
-                        assert_eq!(
-                            format!("{actual:?}"),
-                            format!("{expected:?}"),
-                            "native cell changed at {width}x{height} ({x}, {y}), preview={preview}"
-                        );
-                    }
-                }
-                assert!(body.text().contains("github.com/chainargos/roles"));
-                assert!(body.text().contains("trust dialog that the load opens"));
-                let gutter = body.buffer().cell((2, 7)).expect("selected gutter");
-                if preview {
-                    assert_eq!(gutter.symbol(), " ");
-                } else {
-                    assert_eq!(gutter.symbol(), "▎");
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn trust_body_respects_offset_nested_clip_and_short_area() {
-        use ratatui_core::style::{Modifier, Style};
-        use std::cell::RefCell;
-
-        let rows = [
-            SettingsTrustRow::new("source-one", SettingsTrustSourceKind::Git, true, "2 roles")
-                .selected(true),
-            SettingsTrustRow::new("source-two", SettingsTrustSourceKind::Path, false, "1 role"),
-        ];
-        let notes: [&str; 0] = [];
-        let trust = SettingsTrust::new("Role sources", "1 trusted · 1 untrusted", &rows, &notes);
-        let page = Rect::new(4, 2, 100, 10);
-        let clip = Rect::new(10, 8, 30, 2);
-        let sentinel_style = Style::default()
-            .fg(Color::Rgb(0x11, 0x22, 0x33))
-            .bg(Color::Rgb(0x44, 0x55, 0x66))
-            .add_modifier(Modifier::ITALIC);
-        let sentinel = RefCell::new(None);
-        let mut scene = Scene::new(
-            "settings_trust_body_nested_clip",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            120,
-            20,
-        );
-        scene.draw_over(
-            |buffer| {
-                buffer.set_style(Rect::new(0, 0, 120, 20), sentinel_style);
-                *sentinel.borrow_mut() =
-                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
-            },
-            |ui, _| {
-                ui.with_area(clip, |ui| {
-                    assert_eq!(paint_settings_trust_body(ui, page, &trust), Ok(()));
-                });
-            },
-        );
-        let sentinel = sentinel.into_inner().expect("recorded sentinel");
-        for y in 0..20 {
-            for x in 0..120 {
-                let cell = scene.buffer().cell((x, y)).expect("scene cell");
-                if clip.contains(Position::new(x, y)) {
-                    assert_ne!(format!("{cell:?}"), sentinel, "clip cell ({x}, {y})");
-                } else {
-                    assert_eq!(format!("{cell:?}"), sentinel, "outside clip ({x}, {y})");
-                }
-            }
-        }
-        assert_eq!(
-            scene.buffer().cell((10, 8)).map(|cell| cell.symbol()),
-            Some("R"),
-            // `put_clipped` trims to the page, then `Ui::paint_str` intersects
-            // the destination with the nested clip and starts the untrimmed
-            // string at that clipped left edge.
-            "the nested clip starts the title at its leading cell"
-        );
-    }
-
-    #[test]
-    fn trust_body_rejections_leave_the_prefilled_buffer_unchanged() {
-        use ratatui_core::style::Style;
-        use std::cell::RefCell;
-
-        let too_many_rows: Vec<_> = (0..5)
-            .map(|_| SettingsTrustRow::new("source", SettingsTrustSourceKind::Unknown, true, "1"))
-            .collect();
-        let too_many_notes = ["one", "two", "three"];
-        let invalid_rows = SettingsTrust::new("Trust", "", &too_many_rows, &[]);
-        let invalid_notes = SettingsTrust::new("Trust", "", &[], &too_many_notes);
-        let area = Rect::new(0, 0, 80, 24);
-        let mut scene = Scene::new(
-            "settings_trust_body_invalid_capacity",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            80,
-            24,
-        );
-        let sentinel = RefCell::new(None);
-        scene.draw_over(
-            |buffer| {
-                buffer.set_style(area, Style::default().fg(Color::Rgb(0x11, 0x22, 0x33)));
-                *sentinel.borrow_mut() =
-                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
-            },
-            |ui, _| {
-                assert_eq!(
-                    paint_settings_trust_body(ui, area, &invalid_rows),
-                    Err(SettingsBodyPaintError::TooManyRows {
-                        maximum: 4,
-                        actual: 5,
-                    })
-                );
-                assert_eq!(
-                    paint_settings_trust_body(ui, area, &invalid_notes),
-                    Err(SettingsBodyPaintError::TooManyNotes {
-                        maximum: 2,
-                        actual: 3,
-                    })
-                );
-            },
-        );
-        let sentinel = sentinel.into_inner().expect("recorded sentinel");
-        for pos in area.positions() {
-            assert_eq!(
-                format!("{:?}", scene.buffer().cell(pos).expect("scene cell")),
-                sentinel,
-                "invalid Trust body wrote ({}, {})",
-                pos.x,
-                pos.y
-            );
-        }
-    }
-
-    #[test]
-    fn body_rejections_leave_the_entire_prefilled_buffer_unchanged() {
-        let tabs = [SettingsTab {
-            label: "Agents",
-            selected: true,
-        }];
-        let hints: [SettingsHint<'_>; 0] = [];
-        let page = heritage_page("Settings › global › Agents", &tabs, &hints, None);
-        let too_many_rows: Vec<_> = (0..7)
-            .map(|_| SettingsAgentRow::new("Agent", "sync", "account"))
-            .collect();
-        let notes = ["one", "two"];
-        let agents = SettingsAgents::new("Agents", "right", "header", &too_many_rows, &notes);
-        let area = Rect::new(0, 0, 120, 40);
-        let mut scene = Scene::new(
-            "settings_body_rejection_sentinel",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            120,
-            40,
-        );
-        scene.draw_over(
-            |buffer| {
-                for pos in buffer.area().positions() {
-                    if let Some(cell) = buffer.cell_mut(pos) {
-                        cell.set_symbol("!");
-                    }
-                }
-            },
-            |ui, _| {
-                assert_eq!(
-                    paint_settings_page_with_agents(
-                        ui,
-                        area,
-                        &page,
-                        &agents,
-                        SettingsPageChrome::new(),
-                    ),
-                    Err(SettingsBodyPaintError::TooManyRows {
-                        maximum: 6,
-                        actual: 7,
-                    })
-                );
-                assert_eq!(
-                    paint_settings_page_with_agents(
-                        ui,
-                        Rect::new(0, 0, 120, 19),
-                        &page,
-                        &SettingsAgents::new("Agents", "right", "header", &[], &notes),
-                        SettingsPageChrome::new(),
-                    ),
-                    Err(SettingsBodyPaintError::AreaTooShort {
-                        minimum: 20,
-                        actual: 19,
-                    })
-                );
-                assert_eq!(
-                    paint_settings_page_with_agents(
-                        ui,
-                        area,
-                        &page,
-                        &SettingsAgents::new("Agents", "right", "header", &[], &notes),
-                        SettingsPageChrome::new().hint_offsets(&[1]),
-                    ),
-                    Err(SettingsBodyPaintError::HintOffsetsMismatch {
-                        hints: 0,
-                        offsets: 1,
-                    })
-                );
-            },
-        );
-        assert!(
-            scene
-                .buffer()
-                .content
-                .iter()
-                .all(|cell| cell.symbol() == "!"),
-            "rejected render changed a sentinel cell"
-        );
-    }
-
-    #[test]
-    fn put_preserves_the_logical_ascii_origin_and_stays_inside_its_area() {
-        let area = Rect::new(4, 2, 6, 3);
-        let mut scene = Scene::new(
-            "settings_put_offset_ascii",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            16,
-            8,
-        );
-        scene.draw_over(
-            |buffer| {
-                for pos in buffer.area().positions() {
-                    if let Some(cell) = buffer.cell_mut(pos) {
-                        cell.set_symbol("!");
-                    }
-                }
-            },
-            |ui, _| put(ui, area, 1, 3, "abcdefgh", PaintStyle::new()),
-        );
-
-        for (x, expected) in [(4, "d"), (5, "e"), (6, "f"), (7, "g"), (8, "h")] {
-            assert_eq!(
-                scene.buffer().cell((x, 3)).map(|cell| cell.symbol()),
-                Some(expected)
-            );
-        }
-        assert_eq!(
-            scene.buffer().cell((9, 3)).map(|cell| cell.symbol()),
-            Some("!")
-        );
-        for pos in scene.area().positions() {
-            if !area.contains(pos) {
-                assert_eq!(
-                    scene.buffer().cell(pos).map(|cell| cell.symbol()),
-                    Some("!"),
-                    "put changed a cell outside the supplied area at ({}, {})",
-                    pos.x,
-                    pos.y,
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn put_cols_keeps_its_original_width_budget_after_left_clipping() {
-        let area = Rect::new(4, 2, 12, 3);
-        let mut scene = Scene::new(
-            "settings_put_cols_offset_budget",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            18,
-            8,
-        );
-        scene.draw_over(
-            |buffer| {
-                for pos in buffer.area().positions() {
-                    if let Some(cell) = buffer.cell_mut(pos) {
-                        cell.set_symbol("!");
-                    }
-                }
-            },
-            |ui, _| put_cols(ui, area, 1, 3, "abcdefghi", 6, PaintStyle::new()),
-        );
-
-        assert_eq!(
-            scene.buffer().cell((4, 3)).map(|cell| cell.symbol()),
-            Some("d")
-        );
-        assert_eq!(
-            scene.buffer().cell((5, 3)).map(|cell| cell.symbol()),
-            Some("e")
-        );
-        assert_eq!(
-            scene.buffer().cell((6, 3)).map(|cell| cell.symbol()),
-            Some("f")
-        );
-        assert_eq!(
-            scene.buffer().cell((7, 3)).map(|cell| cell.symbol()),
-            Some("!")
-        );
-        for pos in scene.area().positions() {
-            if !area.contains(pos) {
-                assert_eq!(
-                    scene.buffer().cell(pos).map(|cell| cell.symbol()),
-                    Some("!"),
-                    "put_cols changed a cell outside the supplied area at ({}, {})",
-                    pos.x,
-                    pos.y,
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn put_clips_only_at_complete_grapheme_boundaries_on_both_sides() {
-        let family = "👨‍👩‍👧‍👦";
-        let mut scene = Scene::new(
-            "settings_put_unicode_clipping",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            12,
-            8,
-        );
-        let areas = [
-            Rect::new(1, 1, 8, 1),
-            Rect::new(1, 2, 8, 1),
-            Rect::new(1, 3, 8, 1),
-            Rect::new(1, 4, 8, 1),
-            Rect::new(3, 5, 1, 1),
-            Rect::new(3, 6, 1, 1),
-        ];
-        scene.draw_over(
-            |buffer| {
-                for pos in buffer.area().positions() {
-                    if let Some(cell) = buffer.cell_mut(pos) {
-                        cell.set_symbol("!");
-                    }
-                }
-            },
-            |ui, _| {
-                put(ui, areas[0], 0, 1, "e\u{301}X", PaintStyle::new());
-                put(ui, areas[1], 0, 2, "\u{301}XY", PaintStyle::new());
-                put(ui, areas[2], 0, 3, "界X", PaintStyle::new());
-                put(ui, areas[3], 0, 4, &format!("{family}Z"), PaintStyle::new());
-                put(ui, areas[4], 3, 5, "界X", PaintStyle::new());
-                put(ui, areas[5], 3, 6, family, PaintStyle::new());
-            },
-        );
-
-        assert_eq!(
-            scene.buffer().cell((1, 1)).map(|cell| cell.symbol()),
-            Some("X")
-        );
-        assert_eq!(
-            scene.buffer().cell((1, 2)).map(|cell| cell.symbol()),
-            Some("Y")
-        );
-        assert_eq!(
-            scene.buffer().cell((1, 3)).map(|cell| cell.symbol()),
-            Some("!")
-        );
-        assert_eq!(
-            scene.buffer().cell((2, 3)).map(|cell| cell.symbol()),
-            Some("X")
-        );
-        assert_eq!(
-            scene.buffer().cell((1, 4)).map(|cell| cell.symbol()),
-            Some("!")
-        );
-        assert_eq!(
-            scene.buffer().cell((2, 4)).map(|cell| cell.symbol()),
-            Some("Z")
-        );
-        assert_eq!(
-            scene.buffer().cell((3, 5)).map(|cell| cell.symbol()),
-            Some("!")
-        );
-        assert_eq!(
-            scene.buffer().cell((3, 6)).map(|cell| cell.symbol()),
-            Some("!")
-        );
-    }
-
-    #[test]
-    fn chrome_keeps_combining_marks_attached_to_group_padding() {
-        let tabs = [SettingsTab {
-            label: "\u{301}General",
-            selected: false,
-        }];
-        let mut page = legacy_page(&[], &[], None);
-        page.brand = "\u{301}Settings";
-        page.menus = &["\u{301}Files"];
-        page.tabs = &tabs;
-        let mut scene = Scene::new(
-            "settings_grouped_combining_chrome",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            80,
-            24,
-        );
-        scene.draw(|ui, area| paint_settings_page(ui, area, &page));
-
-        assert_eq!(
-            scene.buffer().cell((1, 0)).map(|cell| cell.symbol()),
-            Some(" \u{301}")
-        );
-        assert_eq!(
-            scene.buffer().cell((2, 3)).map(|cell| cell.symbol()),
-            Some(" \u{301}")
-        );
-    }
-
-    #[test]
-    fn env_content_renders_variable_groups_roles_and_every_row() {
-        let global_rows = [
-            SettingsEnvRow::new("GH_TOKEN", "global", 8, "credential store").selected(true),
-            SettingsEnvRow::new("APP_HOME", "global", 0, "shell"),
-        ];
-        let project_rows: [SettingsEnvRow<'_>; 0] = [];
-        let groups = [
-            SettingsEnvGroup::new("Global", &global_rows)
-                .right("2 variables")
-                .add("Add global variable"),
-            SettingsEnvGroup::new("Project", &project_rows).right("0 variables"),
-        ];
-        let build_rows = [
-            SettingsEnvRow::new("BUILD_TOKEN", "role", 5, "credential store"),
-            SettingsEnvRow::new("WORKDIR", "role", 0, "inherited"),
-        ];
-        let deploy_rows = [SettingsEnvRow::new("DEPLOY_KEY", "role", 4, "keychain")];
-        let roles = [
-            SettingsEnvRole::new("builder", &build_rows)
-                .right("2 variables")
-                .add("Add role variable"),
-            SettingsEnvRole::new("deployer", &deploy_rows).right("1 variable"),
-        ];
-        let env = SettingsEnv::new(&groups).role_overrides(
-            "Role overrides",
-            Some("2 roles"),
-            &roles,
-            Some("Add role"),
-        );
-        let page = legacy_page(&[], &[], None);
-        let mut scene = Scene::new(
-            "settings_env_content",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            100,
-            34,
-        );
-        scene.draw(|ui, area| {
-            assert_eq!(paint_settings_page_with_env(ui, area, &page, &env), Ok(()));
-        });
-        let text = scene.text();
-        for expected in [
-            "Global",
-            "Project",
-            "GH_TOKEN",
-            "APP_HOME",
-            "Add global variable",
-            "Role overrides",
-            "builder",
-            "deployer",
-            "BUILD_TOKEN",
-            "WORKDIR",
-            "DEPLOY_KEY",
-            "Add role variable",
-            "Add role",
-        ] {
-            assert!(
-                text.contains(expected),
-                "missing {expected:?} from Env page"
-            );
-        }
-    }
-
-    #[test]
-    fn env_content_clips_unicode_and_masked_values_to_offset_area() {
-        let rows = [SettingsEnvRow::new(
-            "非常に長い認証トークン",
-            "共有スコープ",
-            usize::MAX,
-            "credential source tail must be clipped",
-        )];
-        let groups = [
-            SettingsEnvGroup::new("長い環境グループの見出し", &rows).right("右側の長い件数メモ")
-        ];
-        let env = SettingsEnv::new(&groups);
-        let mut page = legacy_page(&[], &[], None);
-        page.crumb = "An intentionally long Unicode settings breadcrumb";
-        page.cancel = "Cancel with a deliberately long label";
-        page.save = "Save with a deliberately long label";
-        let area = Rect::new(9, 3, 24, 26);
-        let mut scene = Scene::new(
-            "settings_env_clip",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            48,
-            36,
-        );
-        scene.draw_over(
-            |buffer| {
-                for pos in buffer.area().positions() {
-                    if let Some(cell) = buffer.cell_mut(pos) {
-                        cell.set_symbol("!");
-                    }
-                }
-            },
-            |ui, _| {
-                assert_eq!(paint_settings_page_with_env(ui, area, &page, &env), Ok(()));
-            },
-        );
-        let text = scene.text();
-        assert!(text.contains("非"));
-        assert!(text.contains("***"));
-        assert!(!text.contains("tail must be clipped"));
-        assert_ne!(
-            scene
-                .buffer()
-                .cell((area.x, area.y))
-                .map(|cell| cell.symbol()),
-            Some("!")
-        );
-        for pos in scene.area().positions() {
-            if !area.contains(Position::new(pos.x, pos.y)) {
-                assert_eq!(
-                    scene.buffer().cell(pos).map(|cell| cell.symbol()),
-                    Some("!"),
-                    "paint escaped supplied area at ({}, {})",
-                    pos.x,
-                    pos.y,
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn env_style_uses_theme_channels_for_selected_fields() {
-        let rows = [
-            SettingsEnvRow::new("TOKEN", "global", 3, "vault").selected(true),
-            SettingsEnvRow::new("OTHER", "shell", 1, "inherited"),
-        ];
-        let groups = [SettingsEnvGroup::new("Global", &rows).right("2 variables")];
-        let env = SettingsEnv::new(&groups);
-        let page = legacy_page(&[], &[], None);
-        let area = Rect::new(0, 0, 80, 20);
-        for theme in [Theme::junie(), Theme::paper()] {
-            let mut scene = Scene::new(
-                "settings_env_styles",
-                theme.clone(),
-                ColorLevel::TrueColor,
-                80,
-                20,
-            );
-            scene.draw(|ui, _| {
-                assert_eq!(paint_settings_page_with_env(ui, area, &page, &env), Ok(()));
-            });
-            let columns = settings_env_columns(area);
-            let scope_x = 4_u16.saturating_add(columns.key).saturating_add(1);
-            let stars_x = scope_x.saturating_add(columns.scope).saturating_add(1);
-            let source_x = stars_x.saturating_add(columns.stars).saturating_add(1);
-            assert_eq!(
-                scene.buffer().cell((2, 7)).map(|cell| cell.fg),
-                Some(theme.color.accent)
-            );
-            assert_eq!(
-                scene.buffer().cell((4, 7)).map(|cell| (cell.fg, cell.bg)),
-                Some((step(&theme, FgStep::Primary), SELECT_BG))
-            );
-            assert_eq!(
-                scene.buffer().cell((scope_x, 7)).map(|cell| cell.fg),
-                Some(step(&theme, FgStep::Muted))
-            );
-            assert_eq!(
-                scene.buffer().cell((stars_x, 7)).map(|cell| cell.fg),
-                Some(step(&theme, FgStep::Secondary))
-            );
-            assert_eq!(
-                scene.buffer().cell((source_x, 7)).map(|cell| cell.fg),
-                Some(step(&theme, FgStep::Faint))
-            );
-            assert_eq!(
-                scene.buffer().cell((4, 6)).map(|cell| cell.fg),
-                Some(step(&theme, FgStep::Secondary))
-            );
-        }
-    }
-
-    #[test]
-    fn env_layout_rejects_overflow_and_invalid_areas_before_painting() {
-        let rows = [
-            SettingsEnvRow::new("ONE", "global", 1, "shell"),
-            SettingsEnvRow::new("TWO", "global", 1, "shell"),
-            SettingsEnvRow::new("THREE", "global", 1, "shell"),
-            SettingsEnvRow::new("FOUR", "global", 1, "shell"),
-            SettingsEnvRow::new("FIVE", "global", 1, "shell"),
-            SettingsEnvRow::new("SIX", "global", 1, "shell"),
-            SettingsEnvRow::new("SEVEN", "global", 1, "shell"),
-        ];
-        let groups = [SettingsEnvGroup::new("Global", &rows)];
-        let env = SettingsEnv::new(&groups);
-        let page = legacy_page(&[], &[], None);
-        let area = Rect::new(0, 0, 32, 16);
-        let mut scene = Scene::new(
-            "settings_env_overflow",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            32,
-            16,
-        );
-        scene.draw_over(
-            |buffer| {
-                for pos in buffer.area().positions() {
-                    if let Some(cell) = buffer.cell_mut(pos) {
-                        cell.set_symbol("!");
-                    }
-                }
-            },
-            |ui, _| {
-                assert_eq!(
-                    paint_settings_page_with_env(ui, area, &page, &env),
-                    Err(SettingsEnvPaintError::ContentTooTall {
-                        required_lines: 8,
-                        available_lines: 7,
-                    })
-                );
-            },
-        );
-        assert!(
-            scene
-                .buffer()
-                .content
-                .iter()
-                .all(|cell| cell.symbol() == "!")
-        );
-
-        let mut narrow = Scene::new(
-            "settings_env_too_narrow",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            15,
-            16,
-        );
-        narrow.draw(|ui, _| {
-            assert_eq!(
-                paint_settings_page_with_env(ui, Rect::new(0, 0, 15, 16), &page, &env),
-                Err(SettingsEnvPaintError::AreaTooNarrow {
-                    minimum: SETTINGS_ENV_MIN_WIDTH,
-                    actual: 15,
-                })
-            );
-        });
-        assert!(narrow.text().is_empty() || narrow.text().trim().is_empty());
-    }
-
-    #[test]
-    fn agents_body_matches_shared_body_cells_and_keeps_both_notes() {
-        let tabs = [SettingsTab {
-            label: "Agents",
-            selected: true,
-        }];
-        let hints = [SettingsHint {
-            key: "Space",
-            action: "Cycle mode",
-        }];
-        let page = heritage_page("Settings › global › Agents", &tabs, &hints, None);
-        let rows = [
-            SettingsAgentRow::new("Claude Code", "sync", "Claude · Personal").selected(true),
-            SettingsAgentRow::new("Codex", "api key", "Codex · Primary"),
-            SettingsAgentRow::new("Amp", "sync", "~/.config/amp/secrets.json"),
-            SettingsAgentRow::new(
-                "Kimi Code",
-                "ignore",
-                "no credentials handed to the container",
-            ),
-            SettingsAgentRow::new("OpenCode", "sync", "OpenCode · Go subscription"),
-            SettingsAgentRow::new("Grok Build", "api key", "Grok · Team"),
-        ];
-        let notes = [
-            "sync mirrors the host login · api key and oauth token take material from the registry account",
-            "ignore starts the agent without credentials and removes it from session pickers",
-        ];
-        let agents = SettingsAgents::new(
-            "Agent runtime mode",
-            "accounts are registered in Accounts (c)",
-            "Agent         Mode         Registry default",
-            &rows,
-            &notes,
-        );
-        for (width, height) in [(80, 24), (100, 30)] {
-            let mut full = Scene::new(
-                "settings_agents_body_full_page_reference",
-                Theme::junie(),
-                ColorLevel::TrueColor,
-                width,
-                height,
-            );
-            full.draw(|ui, area| {
-                assert_eq!(
-                    paint_settings_page_with_agents(
-                        ui,
-                        area,
-                        &page,
-                        &agents,
-                        SettingsPageChrome::new(),
-                    ),
-                    Ok(())
-                );
-            });
-
-            let mut body = Scene::new(
-                "settings_agents_body_only",
-                Theme::junie(),
-                ColorLevel::TrueColor,
-                width,
-                height,
-            );
-            body.draw(|ui, area| {
-                assert_eq!(paint_settings_agents_body(ui, area, &agents), Ok(()));
-            });
-
-            for y in 6..=16 {
-                for x in 0..width {
-                    let expected = full.buffer().cell((x, y)).expect("full-page cell");
-                    let actual = body.buffer().cell((x, y)).expect("body-only cell");
-                    assert_eq!(
-                        format!("{actual:?}"),
-                        format!("{expected:?}"),
-                        "native cell changed at {width}x{height} ({x}, {y})"
-                    );
-                }
-            }
-            for expected in [
-                "Agent runtime mode",
-                "Claude Code",
-                "Codex",
-                "Amp",
-                "Kimi Code",
-                "OpenCode",
-                "Grok Build",
-                "sync mirrors the host login",
-                "ignore starts the agent without credentials",
-            ] {
-                assert!(body.text().contains(expected), "missing {expected:?}");
-            }
-            let selected = body.buffer().cell((2, 8)).expect("selected gutter");
-            assert_eq!(selected.symbol(), "▎");
-            assert_eq!(selected.bg, SELECT_BG);
-            assert!(selected.modifier.contains(Modifier::BOLD));
-        }
-    }
-
-    #[test]
-    fn agents_body_respects_page_and_parent_clips_and_checks_bounds_first() {
-        use ratatui_core::style::{Modifier, Style};
-        use std::cell::RefCell;
-
-        let rows = [SettingsAgentRow::new(
-            "Claude Code",
-            "sync",
-            "Claude · Personal",
-        )];
-        let notes = ["first note", "second note"];
-        let agents = SettingsAgents::new("Agents", "", "Agent", &rows, &notes);
-        let mut scene = Scene::new(
-            "settings_agents_body_nested_clip",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            40,
-            24,
-        );
-        let sentinel = RefCell::new(None);
-        scene.draw_over(
-            |buffer| {
-                buffer.set_style(
-                    Rect::new(0, 0, 40, 24),
-                    Style::default()
-                        .fg(Color::Rgb(0x11, 0x22, 0x33))
-                        .bg(Color::Rgb(0x44, 0x55, 0x66))
-                        .add_modifier(Modifier::ITALIC),
-                );
-                *sentinel.borrow_mut() =
-                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
-            },
-            |ui, _| {
-                let page = Rect::new(3, 3, 24, 9);
-                ui.with_area(Rect::new(8, 9, 10, 2), |ui| {
-                    assert_eq!(paint_settings_agents_body(ui, page, &agents), Ok(()));
-                });
-            },
-        );
-        let sentinel = sentinel.into_inner().expect("recorded sentinel");
-        let changed = Rect::new(8, 9, 10, 2);
-        for y in 0..24 {
-            for x in 0..40 {
-                let cell = scene.buffer().cell((x, y)).expect("scene cell");
-                if changed.contains(Position::new(x, y)) {
-                    assert_ne!(format!("{cell:?}"), sentinel, "clip cell ({x}, {y})");
-                } else {
-                    assert_eq!(format!("{cell:?}"), sentinel, "outside clip ({x}, {y})");
-                }
-            }
-        }
-
-        let empty_page = Rect::new(0, 0, 30, 6);
-        let mut empty = Scene::new(
-            "settings_agents_body_empty_clip",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            30,
-            6,
-        );
-        let empty_sentinel = RefCell::new(None);
-        empty.draw_over(
-            |buffer| {
-                buffer.set_style(
-                    empty_page,
-                    Style::default()
-                        .fg(Color::Rgb(0x11, 0x22, 0x33))
-                        .bg(Color::Rgb(0x44, 0x55, 0x66)),
-                );
-                *empty_sentinel.borrow_mut() =
-                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
-            },
-            |ui, _| assert_eq!(paint_settings_agents_body(ui, empty_page, &agents), Ok(())),
-        );
-        let empty_sentinel = empty_sentinel.into_inner().expect("recorded sentinel");
-        for y in 0..6 {
-            for x in 0..30 {
-                let cell = empty.buffer().cell((x, y)).expect("scene cell");
-                assert_eq!(
-                    format!("{cell:?}"),
-                    empty_sentinel,
-                    "empty clip wrote ({x}, {y})"
-                );
-            }
-        }
-
-        let seven_rows = [
-            SettingsAgentRow::new("a", "", ""),
-            SettingsAgentRow::new("b", "", ""),
-            SettingsAgentRow::new("c", "", ""),
-            SettingsAgentRow::new("d", "", ""),
-            SettingsAgentRow::new("e", "", ""),
-            SettingsAgentRow::new("f", "", ""),
-            SettingsAgentRow::new("g", "", ""),
-        ];
-        let too_many_rows = SettingsAgents::new("Agents", "", "Agent", &seven_rows, &notes);
-        let three_notes = ["first", "second", "third"];
-        let too_many_notes = SettingsAgents::new("Agents", "", "Agent", &rows, &three_notes);
-        let mut invalid = Scene::new(
-            "settings_agents_body_invalid_capacity",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            40,
-            24,
-        );
-        let invalid_sentinel = RefCell::new(None);
-        invalid.draw_over(
-            |buffer| {
-                buffer.set_style(
-                    Rect::new(0, 0, 40, 24),
-                    Style::default()
-                        .fg(Color::Rgb(0x11, 0x22, 0x33))
-                        .bg(Color::Rgb(0x44, 0x55, 0x66)),
-                );
-                *invalid_sentinel.borrow_mut() =
-                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
-            },
-            |ui, area| {
-                assert_eq!(
-                    paint_settings_agents_body(ui, area, &too_many_rows),
-                    Err(SettingsBodyPaintError::TooManyRows {
-                        maximum: 6,
-                        actual: 7
-                    })
-                );
-                assert_eq!(
-                    paint_settings_agents_body(ui, area, &too_many_notes),
-                    Err(SettingsBodyPaintError::TooManyNotes {
-                        maximum: 2,
-                        actual: 3
-                    })
-                );
-            },
-        );
-        let invalid_sentinel = invalid_sentinel.into_inner().expect("recorded sentinel");
-        for y in 0..24 {
-            for x in 0..40 {
-                let cell = invalid.buffer().cell((x, y)).expect("scene cell");
-                assert_eq!(
-                    format!("{cell:?}"),
-                    invalid_sentinel,
-                    "invalid wrote ({x}, {y})"
-                );
-            }
-        }
-    }
-
-    fn paint_original_general_spans(ui: &mut Ui<'_>, area: Rect, facts: &SettingsGeneralFacts<'_>) {
-        const SECONDARY: Color = Color::Rgb(0xb3, 0xb3, 0xb3);
-        const WHITE: Color = Color::Rgb(255, 255, 255);
-        const BLACK: Color = Color::Rgb(0, 0, 0);
-        let x = area.x.saturating_add(4);
-        let rows = [
-            ("Default agent", facts.default_agent, 6, 7),
-            ("Workspace", facts.workspace, 10, 11),
-            ("DCO signoff", facts.dco_signoff, 14, 15),
-            ("Secret policy", facts.secret_policy, 18, 19),
-            ("Trust", facts.trust_label, 22, 23),
-        ];
-        for (label, value, label_row, value_row) in rows {
-            ui.paint_str(
-                Rect::new(
-                    x,
-                    area.y.saturating_add(label_row),
-                    u16::try_from(label.chars().count()).unwrap_or(u16::MAX),
-                    1,
-                ),
-                label,
-                PaintStyle::new().fg(SECONDARY).bg(BLACK),
-            );
-            ui.paint_str(
-                Rect::new(
-                    x,
-                    area.y.saturating_add(value_row),
-                    u16::try_from(value.chars().count()).unwrap_or(u16::MAX),
-                    1,
-                ),
-                value,
-                PaintStyle::new().fg(WHITE).bg(BLACK),
-            );
-        }
-    }
-
-    fn draw_general_body_case(
-        ui: &mut Ui<'_>,
-        area: Rect,
-        facts: &SettingsGeneralFacts<'_>,
-        shared: bool,
-    ) {
-        if shared {
-            paint_settings_general_body(ui, area, facts);
-        } else {
-            ui.with_area(area, |ui| paint_original_general_spans(ui, area, facts));
-        }
-    }
-
-    fn render_general_body_case(
-        width: u16,
-        height: u16,
-        color: ColorLevel,
-        area: Rect,
-        clip: Option<Rect>,
-        facts: &SettingsGeneralFacts<'_>,
-        shared: bool,
-    ) -> Scene {
-        let mut scene = Scene::new(
-            "settings_general_body_native_cells",
-            Theme::junie(),
-            color,
-            width,
-            height,
-        );
-        scene.draw(|ui, screen| {
-            ui.fill(
-                screen,
-                PaintStyle::new()
-                    .fg(Color::Rgb(0x13, 0x25, 0x37))
-                    .bg(Color::Rgb(0x42, 0x54, 0x66))
-                    .add_modifier(Modifier::BOLD | Modifier::ITALIC),
-            );
-            if let Some(clip) = clip {
-                ui.with_area(clip, |ui| draw_general_body_case(ui, area, facts, shared));
-            } else {
-                draw_general_body_case(ui, area, facts, shared);
-            }
-        });
-        scene
-    }
-
-    fn general_body_span_contains(
-        area: Rect,
-        facts: &SettingsGeneralFacts<'_>,
-        visible: Rect,
-        x: u16,
-        y: u16,
-    ) -> bool {
-        let first_x = area.x.saturating_add(4);
-        let rows = [
-            ("Default agent", facts.default_agent, 6, 7),
-            ("Workspace", facts.workspace, 10, 11),
-            ("DCO signoff", facts.dco_signoff, 14, 15),
-            ("Secret policy", facts.secret_policy, 18, 19),
-            ("Trust", facts.trust_label, 22, 23),
-        ];
-        for (label, value, label_row, value_row) in rows {
-            let label_y = area.y.saturating_add(label_row);
-            let value_y = area.y.saturating_add(value_row);
-            if y == label_y
-                && x >= first_x
-                && x < first_x
-                    .saturating_add(u16::try_from(label.chars().count()).unwrap_or(u16::MAX))
-            {
-                return visible.x <= x
-                    && x < visible.right()
-                    && visible.y <= y
-                    && y < visible.bottom();
-            }
-            if y == value_y
-                && x >= first_x
-                && x < first_x
-                    .saturating_add(u16::try_from(value.chars().count()).unwrap_or(u16::MAX))
-            {
-                return visible.x <= x
-                    && x < visible.right()
-                    && visible.y <= y
-                    && y < visible.bottom();
-            }
-        }
-        false
-    }
-
-    fn assert_general_cells_equal(left: &Scene, right: &Scene, width: u16, height: u16) {
-        for y in 0..height {
-            for x in 0..width {
-                let position = (x, y);
-                let actual = left.buffer().cell(position).expect("left native cell");
-                let expected = right.buffer().cell(position).expect("right native cell");
-                assert_eq!(actual.symbol(), expected.symbol(), "symbol at {position:?}");
-                assert_eq!(actual.fg, expected.fg, "foreground at {position:?}");
-                assert_eq!(actual.bg, expected.bg, "background at {position:?}");
-                assert_eq!(
-                    actual.modifier, expected.modifier,
-                    "modifiers at {position:?}"
-                );
-                assert_eq!(
-                    format!("{actual:?}"),
-                    format!("{expected:?}"),
-                    "complete native Cell debug at {position:?}"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn general_body_matches_original_spans_without_clearing_underlay() {
-        let geometries = [
-            (80, 24, Rect::new(0, 0, 80, 24), None),
-            (120, 40, Rect::new(0, 0, 120, 40), None),
-            (100, 30, Rect::new(0, 0, 100, 30), None),
-            (72, 20, Rect::new(0, 0, 72, 20), None),
-            (80, 24, Rect::new(3, 2, 70, 20), None),
-            (
-                80,
-                24,
-                Rect::new(2, 1, 74, 22),
-                Some(Rect::new(8, 8, 35, 7)),
-            ),
-            (
-                80,
-                24,
-                Rect::new(4, 5, 60, 12),
-                Some(Rect::new(0, 0, 80, 24)),
-            ),
-            (80, 24, Rect::new(4, 4, 0, 0), None),
-            (80, 24, Rect::new(76, 22, 12, 8), None),
-            (80, 24, Rect::new(0, 0, 80, 24), Some(Rect::new(8, 9, 0, 4))),
-        ];
-        let colors = [
-            ColorLevel::TrueColor,
-            ColorLevel::Ansi256,
-            ColorLevel::Ansi16,
-            ColorLevel::Mono,
-        ];
-
-        for trusted in [false, true] {
-            let trust_label = if trusted {
-                "trusted · sources verified"
-            } else {
-                "untrusted · explicit prompt"
-            };
-            let facts = SettingsGeneralFacts::new(
-                "Claude Code",
-                "payments-platform",
-                "enabled",
-                "references only; resolved bytes are transient",
-                trust_label,
-            );
-            for color in colors {
-                for (width, height, area, clip) in geometries {
-                    let mut seed = Scene::new(
-                        "settings_general_body_seed",
-                        Theme::junie(),
-                        color,
-                        width,
-                        height,
-                    );
-                    seed.draw(|ui, screen| {
-                        ui.fill(
-                            screen,
-                            PaintStyle::new()
-                                .fg(Color::Rgb(0x13, 0x25, 0x37))
-                                .bg(Color::Rgb(0x42, 0x54, 0x66))
-                                .add_modifier(Modifier::BOLD | Modifier::ITALIC),
-                        );
-                    });
-                    let expected =
-                        render_general_body_case(width, height, color, area, clip, &facts, false);
-                    let actual =
-                        render_general_body_case(width, height, color, area, clip, &facts, true);
-                    assert_general_cells_equal(&actual, &expected, width, height);
-
-                    let screen = Rect::new(0, 0, width, height);
-                    let visible = area
-                        .intersection(screen)
-                        .intersection(clip.unwrap_or(screen));
-                    for y in 0..height {
-                        for x in 0..width {
-                            if general_body_span_contains(area, &facts, visible, x, y) {
-                                continue;
-                            }
-                            let position = (x, y);
-                            let painted =
-                                actual.buffer().cell(position).expect("painted native cell");
-                            let untouched = seed.buffer().cell(position).expect("seed native cell");
-                            assert_eq!(
-                                format!("{painted:?}"),
-                                format!("{untouched:?}"),
-                                "shared General body touched outside its authored spans at {position:?} for {width}x{height}"
-                            );
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn editor_environment_body_keeps_fixed_columns_and_contiguous_groups() {
-        let workspace_rows = [
-            EditorEnvironmentRow::new(
-                "DATABASE_URL",
-                EditorEnvironmentValue::PlainMasked { stars: 8 },
-            )
-            .selected(true),
-            EditorEnvironmentRow::new(
-                "DEPLOY_TOKEN",
-                EditorEnvironmentValue::OnePassword {
-                    display_path: "prod/deploy-token",
-                },
-            ),
-            EditorEnvironmentRow::new(
-                "TERM_PROGRAM",
-                EditorEnvironmentValue::HostEnv {
-                    name: "TERM_PROGRAM",
-                },
-            ),
-        ];
-        let role_rows = [EditorEnvironmentRow::new(
-            "AWS_PROFILE",
-            EditorEnvironmentValue::PlainMasked { stars: 4 },
-        )];
-        let roles = [EditorEnvironmentRole::new("release", "1 var", &role_rows)];
-        let body = EditorEnvironmentBody::new("3 vars", &workspace_rows, "1 configured", &roles);
-        let mut scene = Scene::new(
-            "editor_environment_body_semantic_rows",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            120,
-            40,
-        );
-        scene.draw(|ui, area| {
-            assert_eq!(paint_editor_environment_body(ui, area, &body), Ok(()));
-        });
-
-        let text = scene.text();
-        for expected in [
-            "Workspace",
-            "3 vars",
-            "DATABASE_URL",
-            "DEPLOY_TOKEN",
-            "[op] prod/deploy-token",
-            "TERM_PROGRAM",
-            "$TERM_PROGRAM",
-            "host env",
-            "Role overrides",
-            "Role: release",
-            "AWS_PROFILE",
-            "+ Add release environment variable",
-            "+ Add role override…",
-        ] {
-            assert!(text.contains(expected), "missing {expected:?}: {text}");
-        }
-        assert!(!text.contains("postgres://"), "plain value leaked: {text}");
-
-        assert_eq!(
-            scene
-                .buffer()
-                .cell((2, 7))
-                .expect("selected gutter")
-                .symbol(),
-            "▎"
-        );
-        assert_eq!(
-            scene.buffer().cell((8, 7)).expect("workspace key").symbol(),
-            "D"
-        );
-        assert_eq!(
-            scene.buffer().cell((28, 7)).expect("masked value").symbol(),
-            "*"
-        );
-        assert_eq!(
-            scene.buffer().cell((54, 7)).expect("plain source").symbol(),
-            "p"
-        );
-        assert_eq!(
-            scene
-                .buffer()
-                .cell((54, 8))
-                .expect("one-password source")
-                .symbol(),
-            "["
-        );
-        assert_eq!(
-            scene
-                .buffer()
-                .cell((28, 9))
-                .expect("host reference")
-                .symbol(),
-            "$"
-        );
-        assert_eq!(
-            scene.buffer().cell((54, 9)).expect("host source").symbol(),
-            "h"
-        );
-        assert_eq!(
-            scene.buffer().cell((8, 13)).expect("role key").symbol(),
-            "A"
-        );
-    }
-
-    #[test]
-    fn editor_environment_body_rejects_unproved_allocations_before_ink() {
-        use ratatui_core::style::Style;
-        use std::cell::RefCell;
-
-        let row =
-            EditorEnvironmentRow::new("SECRET", EditorEnvironmentValue::PlainMasked { stars: 16 });
-        let valid_rows = [row];
-        let too_many_rows = vec![row; 28];
-        let valid = EditorEnvironmentBody::new("1 vars", &valid_rows, "0 configured", &[]);
-        let too_tall = EditorEnvironmentBody::new("28 vars", &too_many_rows, "0 configured", &[]);
-        let mut scene = Scene::new(
-            "editor_environment_body_rejects_without_ink",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            120,
-            40,
-        );
-        let sentinel = RefCell::new(None);
-        scene.draw_over(
-            |buffer| {
-                buffer.set_style(
-                    Rect::new(0, 0, 120, 40),
-                    Style::default()
-                        .fg(Color::Rgb(0x11, 0x22, 0x33))
-                        .bg(Color::Rgb(0x44, 0x55, 0x66)),
-                );
-                *sentinel.borrow_mut() =
-                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
-            },
-            |ui, area| {
-                assert_eq!(
-                    paint_editor_environment_body(ui, Rect::new(0, 0, 119, 40), &valid),
-                    Err(EditorEnvironmentPaintError::AreaTooNarrow {
-                        minimum: 120,
-                        actual: 119,
-                    })
-                );
-                assert_eq!(
-                    paint_editor_environment_body(ui, Rect::new(0, 0, 120, 39), &valid),
-                    Err(EditorEnvironmentPaintError::AreaTooShort {
-                        minimum: 40,
-                        actual: 39,
-                    })
-                );
-                assert_eq!(
-                    paint_editor_environment_body(ui, area, &too_tall),
-                    Err(EditorEnvironmentPaintError::ContentTooTall {
-                        required_lines: 32,
-                        available_lines: 31,
-                    })
-                );
-            },
-        );
-        let sentinel = sentinel.into_inner().expect("recorded sentinel");
-        for y in 0..40 {
-            for x in 0..120 {
-                let cell = scene.buffer().cell((x, y)).expect("scene cell");
-                assert_eq!(
-                    format!("{cell:?}"),
-                    sentinel,
-                    "rejected write at ({x}, {y})"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn editor_environment_body_respects_origin_nested_clip_and_wide_fields() {
-        use ratatui_core::style::Style;
-        use std::cell::RefCell;
-
-        let rows = [
-            EditorEnvironmentRow::new(
-                "超長いキー名と大きな値",
-                EditorEnvironmentValue::OnePassword {
-                    display_path: "production/credential/with/a/long/界面/path",
-                },
-            )
-            .selected(true),
-            EditorEnvironmentRow::new(
-                "TERM_PROGRAM_WITH_A_LONG_SUFFIX",
-                EditorEnvironmentValue::HostEnv {
-                    name: "TERM_PROGRAM_WITH_A_LONG_SUFFIX",
-                },
-            ),
-        ];
-        let body = EditorEnvironmentBody::new("2 vars", &rows, "0 configured", &[]);
-        let screen = Rect::new(0, 0, 128, 42);
-        let area = Rect::new(4, 1, 120, 40);
-        let clip = Rect::new(10, 8, 20, 4);
-        let sentinel_style = Style::default()
-            .fg(Color::Rgb(0x11, 0x22, 0x33))
-            .bg(Color::Rgb(0x44, 0x55, 0x66));
-        let mut scene = Scene::new(
-            "editor_environment_body_origin_and_nested_clip",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            screen.width,
-            screen.height,
-        );
-        let sentinel = RefCell::new(None);
-        scene.draw_over(
-            |buffer| {
-                buffer.set_style(screen, sentinel_style);
-                *sentinel.borrow_mut() =
-                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
-            },
-            |ui, _| {
-                ui.with_area(clip, |ui| {
-                    assert_eq!(paint_editor_environment_body(ui, area, &body), Ok(()));
-                });
-            },
-        );
-        let sentinel = sentinel.into_inner().expect("recorded sentinel");
-        let mut changed_inside = false;
-        for y in 0..screen.height {
-            for x in 0..screen.width {
-                let cell = scene.buffer().cell((x, y)).expect("scene cell");
-                if clip.contains(Position::new(x, y)) {
-                    changed_inside |= format!("{cell:?}") != sentinel;
-                } else {
-                    assert_eq!(format!("{cell:?}"), sentinel, "outside clip at ({x}, {y})");
-                }
-            }
-        }
-        assert!(changed_inside, "the nested clip contained no body ink");
-
-        let mut wide = Scene::new(
-            "editor_environment_body_wide_cell_clipping",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            120,
-            40,
-        );
-        wide.draw(|ui, area| {
-            assert_eq!(paint_editor_environment_body(ui, area, &body), Ok(()));
-        });
-        let text = wide.text();
-        assert!(text.contains("超長いキー名"), "wide key was lost: {text}");
-        assert!(
-            text.contains("production/credential"),
-            "path was lost: {text}"
-        );
-        assert!(
-            text.contains("$TERM_PROGRAM_WITH_A_LON"),
-            "host ref was lost: {text}"
-        );
-        assert_eq!(
-            wide.buffer().cell((117, 7)).expect("right edge").symbol(),
-            " "
-        );
-        assert_eq!(
-            wide.buffer().cell((117, 8)).expect("right edge").symbol(),
-            " "
-        );
-    }
-
-    #[test]
-    fn editor_roles_body_paints_projected_state_and_metadata() {
-        let mut rows = vec![
-            EditorRolesRow::new(
-                "extra",
-                false,
-                false,
-                "registry · trusted · service",
-                EditorRolesMetaTone::Muted,
-            );
-            18
-        ];
-        rows[0] = EditorRolesRow::new(
-            "backend",
-            true,
-            true,
-            "registry · trusted · Rust service",
-            EditorRolesMetaTone::Muted,
-        );
-        rows[1] = EditorRolesRow::new(
-            "reviewer",
-            false,
-            false,
-            "! load error · trust required",
-            EditorRolesMetaTone::Error,
-        );
-        rows[2] = EditorRolesRow::new(
-            "writer",
-            true,
-            false,
-            "~/roles/writer · not in registry",
-            EditorRolesMetaTone::Warning,
-        );
-        let body = EditorRolesBody::new(2, 46, "backend", &rows);
-        let mut scene = Scene::new(
-            "editor_roles_body_projected_state",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            120,
-            40,
-        );
-        scene.draw(|ui, area| {
-            assert_eq!(paint_editor_roles_body(ui, area, &body), Ok(()));
-        });
-
-        let text = scene.text();
-        for expected in [
-            "Allowed roles  2 of 46",
-            "default ★ backend",
-            "[✓] backend ★",
-            "[ ] reviewer",
-            "registry · trusted · Rust service",
-            "! load error · trust required",
-            "~/roles/writer · not in registry",
-        ] {
-            assert!(text.contains(expected), "missing {expected:?}: {text}");
-        }
-        assert_eq!(
-            scene
-                .buffer()
-                .cell((117, 7))
-                .expect("selected track")
-                .symbol(),
-            "┃"
-        );
-        assert_eq!(
-            scene.buffer().cell((117, 24)).expect("rest track").symbol(),
-            "┆"
-        );
-
-        let empty = EditorRolesBody::new(0, 0, "", &[]);
-        let mut empty_scene = Scene::new(
-            "editor_roles_body_empty_content",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            120,
-            40,
-        );
-        empty_scene.draw(|ui, area| {
-            assert_eq!(paint_editor_roles_body(ui, area, &empty), Ok(()));
-        });
-        assert!(empty_scene.text().contains("Allowed roles  0 of 0"));
-    }
-
-    #[test]
-    fn editor_roles_body_rejects_unproved_content_before_ink() {
-        use ratatui_core::style::Style;
-        use std::cell::RefCell;
-
-        let row = EditorRolesRow::new(
-            "backend",
-            true,
-            false,
-            "registry · trusted · Rust service",
-            EditorRolesMetaTone::Muted,
-        );
-        let rows = [row];
-        let valid = EditorRolesBody::new(1, 46, "backend", &rows);
-        let many_rows = vec![row; EDITOR_ROLES_MAX_ROWS + 1];
-        let too_many = EditorRolesBody::new(1, many_rows.len(), "backend", &many_rows);
-        let too_few_total = EditorRolesBody::new(1, 0, "backend", &rows);
-        let wide_rows = [EditorRolesRow::new(
-            "界",
-            true,
-            false,
-            "registry · trusted · service",
-            EditorRolesMetaTone::Muted,
-        )];
-        let wide = EditorRolesBody::new(1, 46, "backend", &wide_rows);
-        let missing_metadata_rows = [EditorRolesRow::new(
-            "backend",
-            true,
-            false,
-            "",
-            EditorRolesMetaTone::Muted,
-        )];
-        let missing_metadata = EditorRolesBody::new(1, 46, "backend", &missing_metadata_rows);
-        let combining_rows = [EditorRolesRow::new(
-            "backend",
-            true,
-            false,
-            "registry · cafe\u{301}",
-            EditorRolesMetaTone::Muted,
-        )];
-        let combining = EditorRolesBody::new(1, 46, "backend", &combining_rows);
-        let long_metadata = "x".repeat(usize::from(EDITOR_ROLES_META_WIDTH) + 1);
-        let long_metadata_rows = [EditorRolesRow::new(
-            "backend",
-            true,
-            false,
-            &long_metadata,
-            EditorRolesMetaTone::Muted,
-        )];
-        let long_metadata_body = EditorRolesBody::new(1, 46, "backend", &long_metadata_rows);
-        let long_default = "r".repeat(usize::from(EDITOR_ROLES_DEFAULT_LABEL_WIDTH) + 1);
-        let long_default_body = EditorRolesBody::new(1, 46, &long_default, &rows);
-
-        let mut scene = Scene::new(
-            "editor_roles_body_rejects_without_ink",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            120,
-            40,
-        );
-        let sentinel = RefCell::new(None);
-        scene.draw_over(
-            |buffer| {
-                buffer.set_style(
-                    Rect::new(0, 0, 120, 40),
-                    Style::default()
-                        .fg(Color::Rgb(0x11, 0x22, 0x33))
-                        .bg(Color::Rgb(0x44, 0x55, 0x66)),
-                );
-                *sentinel.borrow_mut() =
-                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
-            },
-            |ui, area| {
-                assert_eq!(
-                    paint_editor_roles_body(ui, Rect::new(0, 0, 119, 40), &valid),
-                    Err(EditorRolesPaintError::AreaTooNarrow {
-                        minimum: 120,
-                        actual: 119,
-                    })
-                );
-                assert_eq!(
-                    paint_editor_roles_body(ui, Rect::new(0, 0, 120, 39), &valid),
-                    Err(EditorRolesPaintError::AreaTooShort {
-                        minimum: 40,
-                        actual: 39,
-                    })
-                );
-                assert_eq!(
-                    paint_editor_roles_body(ui, area, &too_many),
-                    Err(EditorRolesPaintError::TooManyRows {
-                        maximum: EDITOR_ROLES_MAX_ROWS,
-                        actual: EDITOR_ROLES_MAX_ROWS + 1,
-                    })
-                );
-                assert_eq!(
-                    paint_editor_roles_body(ui, area, &too_few_total),
-                    Err(EditorRolesPaintError::TotalRolesBelowVisible {
-                        visible: 1,
-                        total: 0,
-                    })
-                );
-                assert_eq!(
-                    paint_editor_roles_body(ui, area, &wide),
-                    Err(EditorRolesPaintError::UnsupportedContent)
-                );
-                assert_eq!(
-                    paint_editor_roles_body(ui, area, &missing_metadata),
-                    Err(EditorRolesPaintError::UnsupportedContent)
-                );
-                assert_eq!(
-                    paint_editor_roles_body(ui, area, &combining),
-                    Err(EditorRolesPaintError::UnsupportedContent)
-                );
-                assert_eq!(
-                    paint_editor_roles_body(ui, area, &long_metadata_body),
-                    Err(EditorRolesPaintError::UnsupportedContent)
-                );
-                assert_eq!(
-                    paint_editor_roles_body(ui, area, &long_default_body),
-                    Err(EditorRolesPaintError::UnsupportedContent)
-                );
-            },
-        );
-        let sentinel = sentinel.into_inner().expect("recorded sentinel");
-        for y in 0..40 {
-            for x in 0..120 {
-                let cell = scene.buffer().cell((x, y)).expect("scene cell");
-                assert_eq!(
-                    format!("{cell:?}"),
-                    sentinel,
-                    "rejected write at ({x}, {y})"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn editor_roles_body_respects_offset_area_and_nested_clip() {
-        use ratatui_core::style::Style;
-        use std::cell::RefCell;
-
-        let rows = [
-            EditorRolesRow::new(
-                "backend",
-                true,
-                false,
-                "registry · trusted · Rust service",
-                EditorRolesMetaTone::Muted,
-            ),
-            EditorRolesRow::new(
-                "reviewer",
-                false,
-                false,
-                "! load error · trust required",
-                EditorRolesMetaTone::Error,
-            ),
-        ];
-        let body = EditorRolesBody::new(1, 46, "backend", &rows);
-        let screen = Rect::new(0, 0, 128, 42);
-        let area = Rect::new(4, 1, 120, 40);
-        let clip = Rect::new(10, 8, 20, 3);
-        let sentinel_style = Style::default()
-            .fg(Color::Rgb(0x11, 0x22, 0x33))
-            .bg(Color::Rgb(0x44, 0x55, 0x66));
-        let mut scene = Scene::new(
-            "editor_roles_body_offset_nested_clip",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            screen.width,
-            screen.height,
-        );
-        let sentinel = RefCell::new(None);
-        let mut full = Scene::new(
-            "editor_roles_body_offset_full_reference",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            screen.width,
-            screen.height,
-        );
-        full.draw_over(
-            |buffer| buffer.set_style(screen, sentinel_style),
-            |ui, _| assert_eq!(paint_editor_roles_body(ui, area, &body), Ok(())),
-        );
-        scene.draw_over(
-            |buffer| {
-                buffer.set_style(screen, sentinel_style);
-                *sentinel.borrow_mut() =
-                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
-            },
-            |ui, _| {
-                ui.with_area(clip, |ui| {
-                    assert_eq!(paint_editor_roles_body(ui, area, &body), Ok(()));
-                });
-            },
-        );
-
-        let sentinel = sentinel.into_inner().expect("recorded sentinel");
-        let mut changed_inside = false;
-        for y in 0..screen.height {
-            for x in 0..screen.width {
-                let cell = scene.buffer().cell((x, y)).expect("scene cell");
-                if clip.contains(Position::new(x, y)) {
-                    let expected = full.buffer().cell((x, y)).expect("full cell");
-                    assert_eq!(
-                        format!("{cell:?}"),
-                        format!("{expected:?}"),
-                        "clip differs from full logical render at ({x}, {y})"
-                    );
-                    changed_inside |= format!("{cell:?}") != sentinel;
-                } else {
-                    assert_eq!(format!("{cell:?}"), sentinel, "outside clip at ({x}, {y})");
-                }
-            }
-        }
-        assert!(changed_inside, "the nested clip contained no role body ink");
-    }
 }

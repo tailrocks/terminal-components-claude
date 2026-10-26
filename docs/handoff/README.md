@@ -1,5 +1,11 @@
 # 2026-10-22: dim wave-3 per-source-ink landed on the parity branch
 
+This file is a historical handoff archive. Test paths, counts, and results
+refer to the source revisions in each entry. T37 retires the legacy targets
+and harnesses listed here. Do not treat these entries as current commands or
+proof. Product behavior remains `NOT VERIFIED` until a later approved gate
+establishes it.
+
 `wip/dim3-per-source-ink-20261022` (bf56fbe5cb + 127874f13c + d39b09e607) landed on
 `origin/parity/termrock-visual-baseline` as `07e1199157` (tip after the landing
 amendment). Landing amendment `07e1199157` registers the frozen junie_256 ghost

@@ -1,8 +1,3 @@
-//! Info dialog whose title sits in the border, matching the baseline frame.
-//!
-//! Empty rows keep the dimmed page ink. Fact rows and the Close button paint
-//! over that fill.
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 
@@ -22,18 +17,11 @@ const CLOSE_INK: u32 = 0x00b3_b3b3;
 const FOCUS: u32 = 0x0048_e054;
 const BUTTON: u32 = 0x0027_272a;
 
-/// One label and value inside the info card.
 pub struct Fact<'a> {
     pub label: &'a str,
     pub value: &'a str,
 }
 
-/// Paint fact rows in a dialog body: a focus gutter column, the muted label,
-/// and the bright value that runs to the right edge.
-///
-/// Row `focus` carries the accent gutter mark and bold value ink; the other
-/// rows keep the card fill. The two cells before the right border stay as the
-/// chrome fill left them.
 pub fn paint_facts(ui: &mut Ui<'_>, body: Rect, facts: &[Fact<'_>], focus: usize) {
     let gutter_pad = ui.paint_patch(
         &StylePatch::new()
@@ -102,8 +90,7 @@ pub fn paint_facts(ui: &mut Ui<'_>, body: Rect, facts: &[Fact<'_>], focus: usize
         let gap = LABEL_W.saturating_sub(cols);
         let value_start = label_x.saturating_add(cols);
         let value_x = value_start.saturating_add(gap);
-        // The value span runs to the body edge and keeps the value ink on its
-        // padding cells, so the fill first, then the text over it.
+
         let span = body.right().saturating_sub(value_start);
         let row_style = if focused { value_focus } else { value };
         ui.fill(Rect::new(value_start, y, span, 1), row_style);
@@ -115,9 +102,6 @@ pub fn paint_facts(ui: &mut Ui<'_>, body: Rect, facts: &[Fact<'_>], focus: usize
     }
 }
 
-/// Paint the info card on the current page.
-///
-/// The card is 66×11 and centred. The last screen row is left for the footer.
 pub fn paint(ui: &mut Ui<'_>, facts: &[Fact<'_>]) {
     let screen = ui.full();
     if screen.height < HEIGHT || screen.width < WIDTH {
@@ -218,7 +202,7 @@ fn paint_fact(
     );
     let label_cols = u16::try_from(fact.label.chars().count()).unwrap_or(0);
     let start = LABEL_X.saturating_add(label_cols);
-    // The two cells before the right border stay dimmed page ink.
+
     let end = WIDTH.saturating_sub(3);
     let span = end.saturating_sub(start);
     let gap = LABEL_W.saturating_sub(label_cols);

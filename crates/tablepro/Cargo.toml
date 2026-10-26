@@ -6,10 +6,14 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
+autotests = false
+autobenches = false
 
 [[bin]]
 name = "tablepro"
 path = "src/main.rs"
+test = false
+bench = false
 
 [dependencies]
 tablepro-ui.workspace = true

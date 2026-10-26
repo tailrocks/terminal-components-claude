@@ -1,5 +1,3 @@
-//! Form composition through the shared modal dialog and form components.
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -18,27 +16,22 @@ use crate::theme::DesignTokens;
 use termrock_runtime::FrameRead;
 use termrock_runtime::author::LayerSlotAuthor;
 
-/// Controls whether a successfully validated submit closes the dialog.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum FormDialogSubmitPolicy {
-    /// Close after the form emits its configured submit action.
     #[default]
     CloseOnSubmit,
-    /// Leave the dialog open so the caller can accept or reject the result.
+
     KeepOpen,
 }
 
-/// Controls how many form rows the dialog body requests.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum FormDialogLayoutPolicy {
-    /// Measure the visible form from its live view data.
     #[default]
     Intrinsic,
-    /// Request a fixed number of body rows; Form still clips and scrolls data.
+
     FixedBodyRows(u16),
 }
 
-/// Typed result of a form dialog update.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FormDialogAction {
     Changed(Id),
@@ -49,10 +42,6 @@ pub enum FormDialogAction {
     Cancelled,
 }
 
-/// Persistent state for one form dialog.
-///
-/// Field values remain owned by the caller's [`FormData`]. This state only
-/// contains the existing form editing/scroll state and dialog lifecycle state.
 #[derive(Default)]
 pub struct FormDialogState {
     form: FormState,
@@ -99,9 +88,6 @@ impl FormDialogState {
     }
 }
 
-/// Reusable modal form. Field behavior and the action row are delegated to
-/// [`Form`]; title, chrome, layer scope, and dismissal are delegated to
-/// [`Dialog`].
 pub struct FormDialog<'a> {
     id: Id,
     title: &'a str,
@@ -203,10 +189,6 @@ impl<'a> FormDialog<'a> {
         self
     }
 
-    /// Sets how Enter behaves when a form field is not editing.
-    ///
-    /// The default submits, matching [`Form`]. Use [`EnterPolicy::Never`] when
-    /// the caller handles submission through a separate scoped command.
     #[must_use]
     pub const fn enter_policy(mut self, policy: EnterPolicy) -> Self {
         self.enter_policy = policy;
@@ -269,7 +251,6 @@ impl<'a> FormDialog<'a> {
         match self.layout {
             FormDialogLayoutPolicy::FixedBodyRows(rows) => rows,
             FormDialogLayoutPolicy::Intrinsic => {
-                // Dialog content is inset by three cells on both sides.
                 let body_width = self.requested_width(design, viewport).saturating_sub(6);
                 self.form()
                     .measure_with_data_design(
@@ -300,7 +281,6 @@ impl<'a> FormDialog<'a> {
             })
     }
 
-    /// Returns the modal layer specification with live intrinsic body sizing.
     pub fn layer<D: FormData + ?Sized>(&self, cx: &Cx<'_>, data: &D) -> LayerSpec {
         let rows = self.body_rows(cx.design(), cx.viewport(), data);
         let mut spec = self.dialog(rows).layer(cx).dismiss(self.dismiss);
@@ -310,8 +290,6 @@ impl<'a> FormDialog<'a> {
         spec
     }
 
-    /// Updates dialog dismissal and form controls from one resolved runtime
-    /// input frame. Measurement reads only design and view data.
     pub fn update<D: FormData + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
@@ -320,11 +298,9 @@ impl<'a> FormDialog<'a> {
     ) -> Response<FormDialogAction> {
         let rows = self.body_rows(cx.design(), cx.viewport(), data);
         let dialog = self.dialog(rows);
-        // The form gets first refusal on field-scoped Escape (for example an
-        // editor or an open select). The layer then handles remaining dismissals.
+
         let form_response = self.form().update(cx, &mut state.form, data);
-        // A chooser is a child control, so its Enter/Space activation must reach
-        // the caller before the surrounding dialog can interpret Enter as Save.
+
         let dialog_response = if matches!(form_response.action_ref(), Some(FormAction::Chose(_))) {
             Response::ignored()
         } else {
@@ -376,12 +352,6 @@ impl<'a> FormDialog<'a> {
         combine_responses(self.id, action, form_response, dialog_response)
     }
 
-    /// Submits the current native form values after a scoped command bubbles
-    /// past the focused child control.
-    ///
-    /// The caller should run [`Self::update`] first so native controls can
-    /// consume the same input frame. Submission then commits any active draft,
-    /// validates through [`Form`], and applies this dialog's submit policy.
     pub fn submit_current<D: FormData + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
@@ -412,7 +382,6 @@ impl<'a> FormDialog<'a> {
         combine_responses(self.id, action, form_response, Response::ignored())
     }
 
-    /// Draws the dialog chrome and delegates its resolved body slot to Form.
     pub fn draw<D: FormData + ?Sized>(
         &self,
         ui: &mut Ui<'_>,
@@ -452,653 +421,4 @@ fn combine_responses(
         Invalidate::Layout => response.relayout(),
     };
     response.for_id(id)
-}
-
-#[cfg(test)]
-mod tests {
-    use ratatui_core::buffer::Buffer;
-    use ratatui_core::layout::Rect;
-    use termrock_controls::button::Button;
-    use termrock_core::action::{Action, ActionKey};
-    use termrock_core::event::{Input, Key, KeyCode, KeyModifiers, MouseKind};
-    use termrock_core::id::Id;
-    use termrock_core::response::Response;
-    use termrock_core::response::StateFlags;
-    use termrock_fields::input::TextInput;
-    use termrock_runtime::layer::{Dismiss, LayerSpec};
-    use termrock_runtime::{App, Cx, Runtime, Ui};
-    use termrock_theme::Theme;
-
-    use super::*;
-    use crate::form::{FieldMut, FieldRef};
-
-    const DIALOG: Id = Id::root("form-dialog.tests");
-    const SUBMIT_SCOPE: Id = DIALOG.sub("submit-commands");
-    const NAME: Id = Id::root("form-dialog.tests.name");
-    const NOTE: Id = Id::root("form-dialog.tests.note");
-    const CHOOSER: Id = Id::root("form-dialog.tests.chooser");
-    const SELECT: Id = Id::root("form-dialog.tests.select-policy");
-    const SAVE: ActionKey = ActionKey::custom("form-dialog.tests.save");
-    const CANCEL: ActionKey = ActionKey::custom("form-dialog.tests.cancel");
-    const ACTIONS: &[Action<'static>] =
-        &[Action::quiet(CANCEL, "Cancel"), Action::new(SAVE, "Save")];
-    const SUBMIT_BINDINGS: &[termrock_runtime::Binding<ActionKey>] = &[termrock_runtime::Binding {
-        action: SAVE,
-        chord: Some(termrock_core::Chord::with(
-            KeyCode::Char('s'),
-            KeyModifiers::CONTROL,
-        )),
-        cmd: SAVE,
-        label: "Save",
-        priority: 1,
-        visible: false,
-    }];
-    const FIELDS: &[FieldSpec<'static>] = &[
-        FieldSpec::new(NAME, "Name", FieldKind::Text(TextInput::new(NAME))),
-        FieldSpec::new(NOTE, "Details", FieldKind::Note),
-        FieldSpec::new(
-            CHOOSER,
-            "Key",
-            FieldKind::Chooser(Button::new(CHOOSER, "Choose")),
-        ),
-    ];
-    const SELECT_OPTIONS: &[&str] = &["first", "second"];
-    const SELECT_FIELDS: &[FieldSpec<'static>] = &[FieldSpec::new(
-        SELECT,
-        "Profile",
-        FieldKind::Select(termrock_overlays::select::LabelSelect::new(SELECT)),
-    )];
-    const SCREEN: Rect = Rect::new(0, 0, 64, 24);
-
-    #[derive(Default)]
-    struct Data {
-        name: String,
-        required: bool,
-        notes: Vec<(&'static str, termrock_theme::Role)>,
-    }
-
-    impl FormData for Data {
-        fn value(&self, id: Id) -> FieldRef<'_> {
-            if id == NAME {
-                FieldRef::Text(&self.name)
-            } else if id == NOTE {
-                FieldRef::Note(&self.notes)
-            } else if id == CHOOSER {
-                FieldRef::Display {
-                    value: "~/.ssh/id_ed25519",
-                    detail: None,
-                }
-            } else {
-                FieldRef::Text("")
-            }
-        }
-
-        fn value_mut(&mut self, id: Id) -> FieldMut<'_> {
-            if id == NAME {
-                FieldMut::Text(&mut self.name)
-            } else {
-                FieldMut::ReadOnly
-            }
-        }
-
-        fn validate(&self, id: Id, value: FieldRef<'_>) -> Result<(), termrock_core::FieldError> {
-            if self.required && id == NAME && matches!(value, FieldRef::Text("")) {
-                Err(termrock_core::FieldError::new("Name is required"))
-            } else {
-                Ok(())
-            }
-        }
-    }
-
-    #[derive(Default)]
-    struct TestApp {
-        state: FormDialogState,
-        data: Data,
-        opened: bool,
-        layer: Option<LayerSpec>,
-        actions: Vec<FormDialogAction>,
-    }
-
-    impl TestApp {
-        fn dialog(&self) -> FormDialog<'static> {
-            FormDialog::new(DIALOG, "Edit record", FIELDS)
-                .actions(ACTIONS)
-                .submit(SAVE)
-                .cancel_action(CANCEL)
-                .field_sizing(FieldSizingPolicy::Intrinsic)
-                .width(42)
-        }
-    }
-
-    impl App for TestApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            if !self.opened {
-                self.opened = true;
-                let dialog = self.dialog();
-                let layer = dialog.layer(cx, &self.data);
-                self.layer = Some(layer);
-                cx.open_layer(DIALOG, layer);
-            }
-            let dialog = self.dialog();
-            let response = dialog.update(cx, &mut self.state, &mut self.data);
-            if let Some(action) = response.action_ref() {
-                self.actions.push(*action);
-            }
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            let dialog = self.dialog();
-            ui.layer(DIALOG, |ui, area| {
-                dialog.draw(ui, area, &self.state, &self.data)
-            });
-        }
-    }
-
-    #[derive(Default)]
-    struct ScopedSubmitApp {
-        state: FormDialogState,
-        data: Data,
-        opened: bool,
-        actions: Vec<FormDialogAction>,
-        scoped_saves: usize,
-        submit_policy: FormDialogSubmitPolicy,
-    }
-
-    impl ScopedSubmitApp {
-        fn dialog(&self) -> FormDialog<'static> {
-            FormDialog::new(DIALOG, "Edit record", FIELDS)
-                .actions(ACTIONS)
-                .submit(SAVE)
-                .cancel_action(CANCEL)
-                .submit_policy(self.submit_policy)
-                .field_sizing(FieldSizingPolicy::Intrinsic)
-                .width(42)
-        }
-    }
-
-    impl App for ScopedSubmitApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            if !self.opened {
-                self.opened = true;
-                let layer = self.dialog().layer(cx, &self.data);
-                cx.open_layer(DIALOG, layer);
-            }
-
-            let dialog = self.dialog();
-            let response = dialog.update(cx, &mut self.state, &mut self.data);
-            let scoped_save = cx.intents(SUBMIT_SCOPE).any(|intent| {
-                matches!(intent, termrock_core::Intent::Binding(action)
-                    if termrock_runtime::Binding::command(SUBMIT_BINDINGS, action) == Some(SAVE))
-            });
-            if scoped_save && response.action_ref().is_none() {
-                self.scoped_saves += 1;
-                let submitted = dialog.submit_current(cx, &mut self.state, &mut self.data);
-                if let Some(action) = submitted.action_ref() {
-                    self.actions.push(*action);
-                }
-                return response.erase() | submitted.erase();
-            }
-            if let Some(action) = response.action_ref() {
-                self.actions.push(*action);
-            }
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            let dialog = self.dialog();
-            ui.layer(DIALOG, |ui, area| {
-                ui.command_scope(SUBMIT_SCOPE, SUBMIT_BINDINGS, |ui| {
-                    dialog.draw(ui, area, &self.state, &self.data);
-                });
-            });
-        }
-    }
-
-    #[derive(Default)]
-    struct SelectPolicyData {
-        choice: usize,
-    }
-
-    impl FormData for SelectPolicyData {
-        fn value(&self, id: Id) -> FieldRef<'_> {
-            if id == SELECT {
-                FieldRef::Choice(self.choice)
-            } else {
-                FieldRef::Text("")
-            }
-        }
-
-        fn value_mut(&mut self, id: Id) -> FieldMut<'_> {
-            if id == SELECT {
-                FieldMut::Choice(&mut self.choice)
-            } else {
-                FieldMut::ReadOnly
-            }
-        }
-
-        fn options(&self, id: Id) -> &[&str] {
-            if id == SELECT { SELECT_OPTIONS } else { &[] }
-        }
-
-        fn value_and_options(&mut self, id: Id) -> (FieldMut<'_>, &[&str]) {
-            if id == SELECT {
-                (FieldMut::Choice(&mut self.choice), SELECT_OPTIONS)
-            } else {
-                (FieldMut::ReadOnly, &[])
-            }
-        }
-    }
-
-    #[derive(Default)]
-    struct SelectPolicyApp {
-        state: FormDialogState,
-        data: SelectPolicyData,
-        opened: bool,
-        actions: Vec<FormDialogAction>,
-        enter_policy: Option<EnterPolicy>,
-    }
-
-    impl SelectPolicyApp {
-        fn dialog(&self) -> FormDialog<'static> {
-            let dialog = FormDialog::new(DIALOG, "Select profile", SELECT_FIELDS)
-                .actions(ACTIONS)
-                .submit(SAVE)
-                .cancel_action(CANCEL)
-                .width(42);
-            match self.enter_policy {
-                Some(policy) => dialog.enter_policy(policy),
-                None => dialog,
-            }
-        }
-    }
-
-    impl App for SelectPolicyApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            if !self.opened {
-                self.opened = true;
-                let layer = self.dialog().layer(cx, &self.data);
-                cx.open_layer(DIALOG, layer);
-            }
-            let response = self.dialog().update(cx, &mut self.state, &mut self.data);
-            if let Some(action) = response.action_ref() {
-                self.actions.push(*action);
-            }
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            let dialog = self.dialog();
-            ui.layer(DIALOG, |ui, area| {
-                dialog.draw(ui, area, &self.state, &self.data)
-            });
-        }
-    }
-
-    fn press(code: KeyCode) -> Input {
-        Input::Key(Key {
-            code,
-            mods: KeyModifiers::NONE,
-        })
-    }
-
-    fn press_ctrl(code: KeyCode) -> Input {
-        Input::Key(Key {
-            code,
-            mods: KeyModifiers::CONTROL,
-        })
-    }
-
-    #[test]
-    fn dialog_open_focuses_first_field_and_submit_validates_before_acceptance() {
-        let mut app = TestApp::default();
-        app.data.required = true;
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(runtime.is_open(DIALOG));
-        assert!(runtime.render_snapshot().is_ok());
-
-        let save_id = DIALOG.part(Part::BODY).part(Part::ACTIONS).index(1);
-        let save = runtime
-            .area_of(save_id)
-            .expect("visible Save button hit area");
-        let point = save.x.saturating_add(save.width / 2);
-        let row = save.y.saturating_add(save.height / 2);
-        let _ = termrock_runtime::stub::deliver(
-            &mut runtime,
-            termrock_runtime::stub::mouse(MouseKind::Down, point, row),
-        );
-        let _ = termrock_runtime::stub::deliver(
-            &mut runtime,
-            termrock_runtime::stub::mouse(MouseKind::Up, point, row),
-        );
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(
-            runtime.app().actions.last(),
-            Some(&FormDialogAction::Invalid(NAME))
-        );
-        assert!(runtime.render_snapshot().is_ok());
-        assert!(runtime.is_open(DIALOG));
-    }
-
-    #[test]
-    fn scoped_submit_commits_pending_draft_and_runs_required_validation() {
-        let mut buffer = Buffer::empty(SCREEN);
-
-        let invalid = ScopedSubmitApp {
-            data: Data {
-                required: true,
-                ..Data::default()
-            },
-            submit_policy: FormDialogSubmitPolicy::KeepOpen,
-            ..ScopedSubmitApp::default()
-        };
-        let mut runtime = Runtime::new(invalid, Theme::junie());
-        let _ = runtime.initialize();
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.focus(), Some(NAME));
-        let _ = termrock_runtime::stub::deliver(&mut runtime, press_ctrl(KeyCode::Char('s')));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(
-            runtime.app().actions.last(),
-            Some(&FormDialogAction::Invalid(NAME))
-        );
-        assert!(runtime.is_open(DIALOG));
-        assert_eq!(runtime.focus(), Some(NAME));
-        assert_eq!(runtime.app().scoped_saves, 1);
-
-        let _ = termrock_runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(runtime.state_of(NAME).contains(StateFlags::EDITING));
-        for code in [KeyCode::Char('A'), KeyCode::Char('d'), KeyCode::Char('a')] {
-            let _ = termrock_runtime::stub::deliver(&mut runtime, press(code));
-            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        }
-        assert!(
-            runtime.app().data.name.is_empty(),
-            "draft stays uncommitted"
-        );
-        let _ = termrock_runtime::stub::deliver(&mut runtime, press_ctrl(KeyCode::Char('s')));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().scoped_saves, 2);
-        assert_eq!(runtime.app().data.name, "Ada");
-        assert_eq!(
-            runtime.app().actions.last(),
-            Some(&FormDialogAction::Action(SAVE))
-        );
-        assert!(
-            runtime.is_open(DIALOG),
-            "KeepOpen applies to scoped submits"
-        );
-        assert!(runtime.render_snapshot().is_ok());
-
-        let close_on_submit = ScopedSubmitApp {
-            data: Data {
-                required: true,
-                ..Data::default()
-            },
-            ..ScopedSubmitApp::default()
-        };
-        let mut runtime = Runtime::new(close_on_submit, Theme::junie());
-        let _ = runtime.initialize();
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        for code in [KeyCode::Char('B'), KeyCode::Char('o')] {
-            let _ = termrock_runtime::stub::deliver(&mut runtime, press(code));
-            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        }
-        let _ = termrock_runtime::stub::deliver(&mut runtime, press_ctrl(KeyCode::Char('s')));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().data.name, "Bo");
-        assert_eq!(
-            runtime.app().actions.last(),
-            Some(&FormDialogAction::Action(SAVE))
-        );
-        assert!(!runtime.is_open(DIALOG), "CloseOnSubmit closes the layer");
-    }
-
-    #[test]
-    fn focused_editor_handles_escape_before_dialog_dismissal() {
-        let mut runtime = Runtime::new(TestApp::default(), Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(runtime.render_snapshot().is_ok());
-        let _ = termrock_runtime::stub::deliver(
-            &mut runtime,
-            termrock_runtime::stub::mouse(MouseKind::Down, 0, 0),
-        );
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(runtime.is_open(DIALOG));
-        let _ = termrock_runtime::stub::deliver(&mut runtime, press(KeyCode::Esc));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(runtime.is_open(DIALOG));
-        let _ = termrock_runtime::stub::deliver(&mut runtime, press(KeyCode::Esc));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(!runtime.is_open(DIALOG));
-        assert_eq!(
-            runtime.app().actions.last(),
-            Some(&FormDialogAction::Cancelled)
-        );
-    }
-
-    #[test]
-    fn chooser_enter_and_space_are_returned_before_dialog_submit() {
-        for code in [Some(KeyCode::Enter), Some(KeyCode::Char(' ')), None] {
-            let mut runtime = Runtime::new(TestApp::default(), Theme::junie());
-            let _ = runtime.initialize();
-            let mut buffer = Buffer::empty(SCREEN);
-            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-            if let Some(code) = code {
-                runtime.set_focus(Some(CHOOSER));
-                let _ = termrock_runtime::stub::deliver(&mut runtime, press(code));
-            } else {
-                let area = runtime.area_of(CHOOSER).expect("chooser button area");
-                let x = area.x.saturating_add(area.width / 2);
-                let y = area.y.saturating_add(area.height / 2);
-                let _ = termrock_runtime::stub::deliver(
-                    &mut runtime,
-                    termrock_runtime::stub::mouse(MouseKind::Down, x, y),
-                );
-                let _ = termrock_runtime::stub::deliver(
-                    &mut runtime,
-                    termrock_runtime::stub::mouse(MouseKind::Up, x, y),
-                );
-            }
-            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-            assert!(runtime.is_open(DIALOG), "{code:?} submitted the dialog");
-            assert_eq!(
-                runtime.app().actions.last(),
-                Some(&FormDialogAction::Chose(CHOOSER)),
-                "{code:?} was not returned as the chooser action"
-            );
-        }
-    }
-
-    #[test]
-    fn select_enter_policy_preserves_default_submit_and_allows_native_popup_opt_in() {
-        let mut buffer = Buffer::empty(SCREEN);
-
-        let mut runtime = Runtime::new(SelectPolicyApp::default(), Theme::junie());
-        let _ = runtime.initialize();
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.focus(), Some(SELECT));
-        let _ = termrock_runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(!runtime.is_open(DIALOG), "default Enter still submits");
-        assert!(
-            runtime.layer_area(SELECT).is_none(),
-            "default Enter does not open Select"
-        );
-        assert_eq!(
-            runtime.app().actions.last(),
-            Some(&FormDialogAction::Action(SAVE))
-        );
-
-        let opt_in = SelectPolicyApp {
-            enter_policy: Some(EnterPolicy::Never),
-            ..SelectPolicyApp::default()
-        };
-        let mut runtime = Runtime::new(opt_in, Theme::junie());
-        let _ = runtime.initialize();
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.focus(), Some(SELECT));
-        let _ = termrock_runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(
-            runtime.is_open(DIALOG),
-            "Never leaves the parent dialog open"
-        );
-        assert!(
-            runtime.layer_area(SELECT).is_some(),
-            "Enter opens native Select"
-        );
-        assert_eq!(runtime.app().data.choice, 0, "opening does not choose");
-        assert_ne!(
-            runtime.app().actions.last(),
-            Some(&FormDialogAction::Action(SAVE))
-        );
-
-        let _ = termrock_runtime::stub::deliver(&mut runtime, press(KeyCode::Down));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = termrock_runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(runtime.is_open(DIALOG), "choosing does not submit");
-        assert!(runtime.layer_area(SELECT).is_none(), "choice closes Select");
-        assert_eq!(runtime.app().data.choice, 1);
-        assert_eq!(
-            runtime.app().actions.last(),
-            Some(&FormDialogAction::Committed(SELECT))
-        );
-        assert!(runtime.diagnostics().is_empty());
-    }
-
-    #[test]
-    fn pointer_close_is_hoverable_pressable_and_cancels_once() {
-        let mut runtime = Runtime::new(TestApp::default(), Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let close = runtime
-            .area_of(DIALOG.part(Part::CLOSE))
-            .expect("visible close button hit area");
-        assert_eq!(close.width, 3);
-        assert_eq!(runtime.focus(), Some(NAME));
-        let point = close.x.saturating_add(1);
-        let row = close.y;
-
-        let rest = buffer.clone();
-        let _ = termrock_runtime::stub::deliver(
-            &mut runtime,
-            termrock_runtime::stub::mouse(MouseKind::Move, point, row),
-        );
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_ne!(buffer[(point, row)], rest[(point, row)]);
-        assert_eq!(runtime.focus(), Some(NAME), "close control is pointer-only");
-
-        let hovered = buffer[(point, row)].clone();
-        let _ = termrock_runtime::stub::deliver(
-            &mut runtime,
-            termrock_runtime::stub::mouse(MouseKind::Down, point, row),
-        );
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_ne!(buffer[(point, row)], hovered);
-        assert!(runtime.is_open(DIALOG));
-
-        let _ = termrock_runtime::stub::deliver(
-            &mut runtime,
-            termrock_runtime::stub::mouse(MouseKind::Up, point, row),
-        );
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(!runtime.is_open(DIALOG));
-        assert_eq!(
-            runtime.app().actions,
-            [FormDialogAction::Cancelled],
-            "pointer close maps to one cancel result"
-        );
-        assert_ne!(runtime.focus(), Some(DIALOG.part(Part::CLOSE)));
-
-        let _ = termrock_runtime::stub::deliver(
-            &mut runtime,
-            termrock_runtime::stub::mouse(MouseKind::Up, point, row),
-        );
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().actions.len(), 1);
-    }
-
-    #[test]
-    fn pointer_close_is_hidden_below_frozen_frame_width_threshold() {
-        let mut runtime = Runtime::new(TestApp::default(), Theme::junie());
-        let _ = runtime.initialize();
-        let wide = Rect::new(0, 0, 64, 24);
-        let mut buffer = Buffer::empty(wide);
-        runtime.draw_buffer(wide, &mut buffer).commit_presented();
-        assert!(runtime.area_of(DIALOG.part(Part::CLOSE)).is_some());
-
-        let narrow = Rect::new(0, 0, 15, 24);
-        let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Resize(15, 24));
-        let mut narrow_buffer = Buffer::empty(narrow);
-        runtime
-            .draw_buffer(narrow, &mut narrow_buffer)
-            .commit_presented();
-        assert!(runtime.area_of(DIALOG.part(Part::CLOSE)).is_none());
-        assert!(runtime.is_open(DIALOG));
-    }
-
-    #[test]
-    fn dialog_and_form_measurement_use_live_intrinsic_content() {
-        let app = TestApp::default();
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let first = runtime.layer_area(DIALOG).expect("dialog layer");
-        runtime.app_mut().data.name = "Δelta 🧪".to_owned();
-        runtime.app_mut().data.notes = vec![
-            (
-                "First live row",
-                termrock_theme::Role::Fg(termrock_theme::FgStep::Primary),
-            ),
-            (
-                "Second live row",
-                termrock_theme::Role::Fg(termrock_theme::FgStep::Primary),
-            ),
-            (
-                "Third live row",
-                termrock_theme::Role::Fg(termrock_theme::FgStep::Primary),
-            ),
-        ];
-        let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let second = runtime
-            .layer_area(DIALOG)
-            .expect("dialog layer after update");
-        assert!(second.height > first.height);
-        assert!(second.x >= buffer.area.x);
-        assert!(second.y >= buffer.area.y);
-        assert!(second.right() <= buffer.area.right());
-        assert!(second.bottom() <= buffer.area.bottom());
-
-        let narrow = Rect::new(0, 0, 18, 8);
-        let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Resize(18, 8));
-        let mut narrow_buffer = Buffer::empty(narrow);
-        runtime
-            .draw_buffer(narrow, &mut narrow_buffer)
-            .commit_presented();
-        let clipped = runtime.layer_area(DIALOG).expect("dialog survives resize");
-        assert!(clipped.width <= narrow.width);
-        assert!(clipped.height <= narrow.height);
-        assert!(clipped.right() <= narrow.right());
-        assert!(clipped.bottom() <= narrow.bottom());
-    }
-
-    #[test]
-    fn layer_spec_keeps_escape_only_dismissal_and_focuses_first_field() {
-        let mut runtime = Runtime::new(TestApp::default(), Theme::junie());
-        let _ = runtime.initialize();
-        let spec = runtime.app().layer.expect("layer spec recorded by app");
-        assert_eq!(spec.dismiss, Dismiss::ESC);
-        assert_eq!(spec.initial_focus, Some(NAME));
-    }
 }

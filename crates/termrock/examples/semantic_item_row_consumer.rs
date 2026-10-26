@@ -1,5 +1,3 @@
-//! Default-feature downstream use of semantic rows with application-owned data.
-
 use termrock::blocks::AppShell;
 use termrock::composition::{self, Group};
 use termrock::navigation::{AsItem, Item, SemanticItemRow, Tree, TreeNode, TreeState};
@@ -45,8 +43,6 @@ fn draw_documents(ui: &mut Ui<'_>, documents: &[Document], state: &TreeState) {
         .expect("document composition resolves");
 }
 
-// Keep the pre-adapter closure API compiling without type annotations. In
-// particular, callers can infer the domain type through `key` and `node`.
 #[allow(dead_code)]
 fn draw_legacy_rows(ui: &mut Ui<'_>, documents: &[Document], state: &TreeState) {
     let tree = Tree::new(FILES)

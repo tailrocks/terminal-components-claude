@@ -68,8 +68,6 @@ struct OwnerPoll {
     has_intents: bool,
 }
 
-/// Inspect an owner without claiming layer receipts. A later native Dialog/List
-/// update gets the same unclaimed lifecycle intents when the whole owner set is safe.
 fn inspect_retirement_owner(cx: &Cx<'_>, owner: Id, allow_layer: bool) -> OwnerPoll {
     let mut safe = true;
     let mut has_intents = false;
@@ -287,8 +285,6 @@ impl SelectionChooser {
         (response, event, closed)
     }
 
-    /// Service only safe lifecycle buckets while hidden or in a too-small frame.
-    /// Dialog.update remains the owner of its Layer receipts and dismissal state.
     fn service_lifecycle(&mut self, cx: &mut Cx<'_>) -> (Response<()>, bool) {
         let list = inspect_retirement_owner(cx, SELECTION_LIST, false);
         let actions = selection_action_owners();
@@ -313,9 +309,6 @@ impl SelectionChooser {
             let _ = dialog_response.take_action();
             response |= dialog_response.erase();
         } else {
-            // The broad Dialog update reads all of these owners. If one bucket
-            // contains input, leave the entire Dialog state untouched and report
-            // both unsupported input and any safe lifecycle buckets it cannot service.
             if !root.safe || root.has_intents {
                 cx.diagnostic(termrock::Diagnostic::UndeliveredIntent {
                     owner: SELECTION_DIALOG,
@@ -331,13 +324,10 @@ impl SelectionChooser {
         (response, list.safe && dialog_safe)
     }
 
-    /// TooSmall keeps the active chooser; safe focus/layer lifecycle still advances.
     pub(crate) fn poll(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.service_lifecycle(cx).0
     }
 
-    /// A retired chooser may be released only after its actual owners and layer
-    /// disappear from the published frame, focus ring, and pointer capture.
     pub(crate) fn poll_retired(&mut self, cx: &mut Cx<'_>) -> (Response<()>, bool) {
         let (response, owners_safe) = self.service_lifecycle(cx);
         let actions = selection_action_owners();
@@ -355,11 +345,6 @@ impl SelectionChooser {
             cx.request_repaint();
         }
         (response, ready)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn selected_paths_for_test(&self) -> Vec<String> {
-        self.selected_paths()
     }
 
     pub(crate) fn draw(&self, ui: &mut Ui<'_>) {

@@ -11,8 +11,7 @@ const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
 const SECTION_CAPTION: &str = "the live widget";
 const SECTION_WIDE: u16 = 76;
 const BLURB: &str = "Determinate, indeterminate, an aggregate tally, capacity meters";
-// Breakpoints, not exact sizes: narrow shells show the compact strip, and the
-// wide meter rows need the 160×50 shell width.
+
 const FULL_MIN_W: u16 = 60;
 const WIDE_MIN_W: u16 = 134;
 const NARROW_CONTENT_W: u16 = 94;
@@ -1315,7 +1314,6 @@ impl Page for ProgressPage {
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         frame(ui, area, self.title(), BLURB, |ui, body| {
-            // Shells up to 80×24 show the compact strip.
             if compact_page(area) {
                 paint_narrow(ui, body, self.build, self.paused, self.frame);
                 return;
@@ -1376,7 +1374,7 @@ impl Page for ProgressPage {
                 cards,
                 Rect::new(cards.x, meters_y, cards.width, METERS_H),
             );
-            // The wide meter rows need the 160×50 shell width.
+
             if wide_page(area) {
                 paint_wide_meters(
                     ui,
@@ -1391,204 +1389,5 @@ impl Page for ProgressPage {
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         &[("Enter", "Activate")]
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use termrock::{App, Theme};
-
-    struct Host;
-
-    impl App for Host {
-        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
-            Response::ignored()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            ProgressPage::new().draw(ui, ui.full());
-        }
-    }
-
-    #[test]
-    fn paused_seek_is_deterministic_and_caps_completed_progress() {
-        let mut page = ProgressPage::new();
-        page.seek_paused(80);
-        assert_eq!(page.frame, 80);
-        assert!((page.build - 0.48).abs() < f64::EPSILON);
-        page.seek_paused(usize::MAX);
-        assert!((page.build - 1.0).abs() < f64::EPSILON);
-    }
-
-    #[test]
-    fn playground_at_120_matches_the_progress_copy() {
-        let h = termrock_test_support::Harness::new(Host, Theme::junie(), 94, 36);
-        let text = h.text();
-        for needle in [
-            BLURB,
-            "Playground",
-            "the live widget",
-            "ticks at 80 ms",
-            "Waiting for the test runner",
-            "Deploy checkout-service",
-            "one BarLayout",
-            "2 of 7 done",
-            "1 failed",
-            "Build image",
-            "Warm caches",
-            "capacity, not completion",
-            "Stale keeps its level, dashed.",
-            "38% used · block",
-        ] {
-            assert!(text.contains(needle), "missing {needle}\n{text}");
-        }
-        assert!(!text.contains("3 of 12 files"), "{text}");
-        assert!(!text.contains("Queued"), "{text}");
-
-        let track = h.cell(20, 7);
-        assert_eq!(track.symbol(), "─");
-        assert_eq!(track.fg, rgb(RULE));
-        assert_eq!(track.bg, rgb(SURFACE));
-
-        let done = h.cell(20, 21);
-        assert_eq!(done.symbol(), "━");
-        assert_eq!(done.fg, rgb(SUCCESS));
-
-        let low = h.cell(13, 35);
-        assert_eq!(low.symbol(), "━");
-        assert_eq!(low.fg, rgb(INFO));
-        assert_eq!(low.bg, rgb(SURFACE));
-
-        let block = h.cell(53, 35);
-        assert_eq!(block.symbol(), "3");
-        assert_eq!(block.fg, rgb(CANVAS));
-        assert_eq!(block.bg, rgb(INFO));
-        assert!(block.modifier.contains(Modifier::BOLD));
-
-        let thumb = h.cell(93, 5);
-        assert_eq!(thumb.symbol(), "┃");
-        assert_eq!(thumb.fg, rgb(THUMB));
-        let track_bar = h.cell(93, 29);
-        assert_eq!(track_bar.symbol(), "┆");
-        assert_eq!(track_bar.fg, rgb(TRACK));
-
-        let gutter = h.cell(2, 13);
-        assert_eq!(gutter.symbol(), " ");
-        assert_eq!(gutter.fg, rgb(BUTTON_BG));
-        assert_eq!(gutter.bg, rgb(BUTTON_BG));
-    }
-
-    #[test]
-    fn narrow_page_matches_the_80x24_progress_strip() {
-        let h = termrock_test_support::Harness::new(Host, Theme::junie(), 59, 20);
-        let text = h.text();
-        assert!(
-            text.contains("Determinate, indeterminate, an aggregate tally,…"),
-            "{text}"
-        );
-        assert!(!text.contains("ticks at 80 ms"), "{text}");
-        assert!(!text.contains("one BarLayout"), "{text}");
-        assert!(!text.contains("38% used"), "{text}");
-        let track = h.cell(20, 7);
-        assert_eq!(track.symbol(), "─");
-        assert_eq!(track.fg, rgb(RULE));
-        assert_eq!(track.bg, rgb(SURFACE));
-        assert!(!track.modifier.contains(Modifier::BOLD));
-        let thumb = h.cell(58, 5);
-        assert_eq!(thumb.symbol(), "┃");
-        assert_eq!(thumb.fg, rgb(THUMB));
-        assert_eq!(thumb.bg, rgb(CANVAS));
-        let track_bar = h.cell(58, 9);
-        assert_eq!(track_bar.symbol(), "┆");
-        assert_eq!(track_bar.fg, rgb(TRACK));
-        assert_eq!(track_bar.bg, rgb(CANVAS));
-        let hbar = h.cell(0, 19);
-        assert_eq!(hbar.symbol(), "━");
-        assert_eq!(hbar.fg, rgb(THUMB));
-        assert_eq!(hbar.bg, rgb(CANVAS));
-        let htrack = h.cell(35, 19);
-        assert_eq!(htrack.symbol(), "┄");
-        assert_eq!(htrack.fg, rgb(TRACK));
-        let corner = h.cell(58, 19);
-        assert_eq!(corner.symbol(), " ");
-        assert_eq!(corner.bg, rgb(CANVAS));
-    }
-
-    #[test]
-    fn compact_page_matches_the_72x20_progress_strip() {
-        let h = termrock_test_support::Harness::new(Host, Theme::junie(), 51, 16);
-        let text = h.text();
-        assert!(text.contains("an aggregat…"), "{text}");
-        assert!(!text.contains("ticks at 80 ms"), "{text}");
-        assert!(!text.contains("0%"), "{text}");
-        let ellipsis = h.cell(49, 0);
-        assert_eq!(ellipsis.symbol(), "…");
-        assert_eq!(ellipsis.fg, rgb(MUTED));
-        assert_eq!(ellipsis.bg, rgb(CANVAS));
-        assert!(!ellipsis.modifier.contains(Modifier::BOLD));
-        let rule = h.cell(48, 6);
-        assert_eq!(rule.symbol(), "─");
-        assert_eq!(rule.fg, rgb(RULE));
-        assert_eq!(rule.bg, rgb(SURFACE));
-        let track = h.cell(48, 7);
-        assert_eq!(track.symbol(), "─");
-        assert_eq!(track.fg, rgb(RULE));
-        assert_eq!(track.bg, rgb(SURFACE));
-        assert!(!track.modifier.contains(Modifier::BOLD));
-        let thumb = h.cell(50, 5);
-        assert_eq!(thumb.symbol(), "┃");
-        assert_eq!(thumb.fg, rgb(THUMB));
-        assert_eq!(thumb.bg, rgb(CANVAS));
-        let track_bar = h.cell(50, 7);
-        assert_eq!(track_bar.symbol(), "┆");
-        assert_eq!(track_bar.fg, rgb(TRACK));
-        assert_eq!(track_bar.bg, rgb(CANVAS));
-        let hbar = h.cell(0, 15);
-        assert_eq!(hbar.symbol(), "━");
-        assert_eq!(hbar.fg, rgb(THUMB));
-        assert_eq!(hbar.bg, rgb(CANVAS));
-        let htrack = h.cell(26, 15);
-        assert_eq!(htrack.symbol(), "┄");
-        assert_eq!(htrack.fg, rgb(TRACK));
-        assert_eq!(htrack.bg, rgb(CANVAS));
-        let corner = h.cell(50, 15);
-        assert_eq!(corner.symbol(), " ");
-        assert_eq!(corner.bg, rgb(CANVAS));
-    }
-
-    #[test]
-    fn wide_page_matches_the_160x50_meter_rows() {
-        let h = termrock_test_support::Harness::new(Host, Theme::junie(), 134, 46);
-        let text = h.text();
-        for needle in [
-            "72% used ▲",
-            "72% disk, warns at 80",
-            "88% disk, critical at 95 ▲",
-            "30% · fixed high !",
-            "82% · stale warning",
-            "76% · faint stale style",
-            "⠋ refreshing",
-            "quota read failed !",
-        ] {
-            assert!(text.contains(needle), "missing {needle}\n{text}");
-        }
-        let medium = h.cell(13, 36);
-        assert_eq!(medium.symbol(), "━");
-        assert_eq!(medium.fg, rgb(WARNING));
-        assert_eq!(medium.bg, rgb(SURFACE));
-        let stale = h.cell(37, 40);
-        assert_eq!(stale.symbol(), "7");
-        assert_eq!(stale.fg, rgb(MUTED));
-        assert!(stale.modifier.contains(Modifier::ITALIC));
-        assert!(!stale.modifier.contains(Modifier::BOLD));
-        let bang = h.cell(46, 39);
-        assert_eq!(bang.symbol(), "!");
-        assert_eq!(bang.fg, rgb(ERROR));
-        assert!(bang.modifier.contains(Modifier::BOLD));
-        let unknown = h.cell(13, 43);
-        assert_eq!(unknown.symbol(), "—");
-        assert_eq!(unknown.fg, rgb(FAINT));
-        assert_eq!(unknown.bg, rgb(SURFACE));
     }
 }

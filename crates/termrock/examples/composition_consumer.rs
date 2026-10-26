@@ -1,6 +1,3 @@
-//! Executable consumer showing borrowed component composition through the
-//! public Termrock facade.
-
 use core::fmt;
 
 use ratatui::Terminal;

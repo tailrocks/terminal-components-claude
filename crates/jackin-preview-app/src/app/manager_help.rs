@@ -1,5 +1,3 @@
-//! Manager keyboard-shortcuts card. Sections are the jackin keymap.
-//! `HelpOverlay` owns the card, columns, scrollbar, and Done control.
 use termrock::{HelpOverlay, HelpOverlayState, HelpSection, Id, Rect, Ui};
 
 pub(super) const ID: Id = Id::root("jackin.manager.help");
@@ -71,8 +69,6 @@ pub(super) fn draw(ui: &mut Ui<'_>, screen: Rect, state: &HelpOverlayState) {
     HelpOverlay::new(ID, "Manager", &sections).draw(ui, card_area(screen), state);
 }
 
-/// Dim the manager around the card. The card itself stays undimmed so its
-/// padding still samples the page ink once.
 pub(super) fn dim_underlay(ui: &mut Ui<'_>, screen: Rect) {
     let card = card_area(screen);
     let footer_y = screen.bottom().saturating_sub(1);
@@ -109,7 +105,6 @@ pub(super) fn dim_underlay(ui: &mut Ui<'_>, screen: Rect) {
     }
 }
 
-/// Same 80% inset `HelpOverlay::measured_size` uses for a modal layer.
 fn card_area(screen: Rect) -> Rect {
     let width = screen
         .width

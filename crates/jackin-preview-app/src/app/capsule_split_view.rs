@@ -1,8 +1,3 @@
-//! Approved 120×40 vertical-split agent picker over the live capsule.
-//!
-//! `ctrl-b` then `"` opens this picker. The card keeps dimmed underlay ink
-//! on empty cells and paints the frozen rows on top.
-
 use termrock::author::PaintStyle;
 use termrock::{Color, Modifier, Position, Rect, Ui};
 
@@ -73,8 +68,6 @@ fn paint_120(ui: &mut Ui<'_>, title: &str) {
     paint_footer(ui, full.height.saturating_sub(1));
 }
 
-/// Some 120 repairs are one step brighter at 256 than their truecolor role.
-/// Rules and menu gaps stay on the truecolor role.
 fn lift_256(ui: &Ui<'_>, color: Color) -> Color {
     if ui.theme_ref().capability.color != termrock::ColorLevel::Ansi256 {
         return color;
@@ -89,8 +82,6 @@ fn lift_256(ui: &Ui<'_>, color: Color) -> Color {
 }
 
 fn repair_underlay(ui: &mut Ui<'_>) {
-    // Menu gaps and pane padding dim as faint. The live primary ink dims
-    // to muted, so put the frozen faint back on those cells.
     for x in [12, 17, 19, 24, 26, 31, 33, 41, 43, 48] {
         paint_cell(ui, x, 0, " ", FAINT, BLACK, false);
     }
@@ -178,7 +169,7 @@ fn repair_card_pad(ui: &mut Ui<'_>) {
 
 fn paint_fitted(ui: &mut Ui<'_>, title: &str) {
     let full = ui.full();
-    // Hint row stays bright. The backdrop dims every row above it.
+
     let underlay = Rect {
         height: full.height.saturating_sub(1),
         ..full
@@ -260,8 +251,6 @@ fn paint_fitted(ui: &mut Ui<'_>, title: &str) {
 fn repair_fitted_footer(ui: &mut Ui<'_>, full: Rect) {
     let y = full.bottom().saturating_sub(1);
     if full.width == 72 {
-        // The cut marker keeps a three-cell gap, so the status loses its
-        // last column to the ellipsis.
         paint_cell(ui, 16, y, " ", WHITE, BLACK, false);
         let status = ellipsize(
             "Attached to payments-platform · tabs and panes restored",
@@ -269,8 +258,6 @@ fn repair_fitted_footer(ui: &mut Ui<'_>, full: Rect) {
         );
         paint_str(ui, 17, y, &status, SECONDARY, BLACK, false);
     } else if full.width == 100 {
-        // Overflow keeps the key's trailing space and the label's first
-        // letter bold. The wide row does not.
         paint_cell(ui, 5, y, " ", WHITE, BLACK, true);
         paint_cell(ui, 6, y, "F", MUTED, BLACK, true);
         paint_cell(ui, 26, y, " ", WHITE, BLACK, true);
@@ -400,15 +387,12 @@ fn paint_fitted_option(
 }
 
 fn repair_fitted_underlay(ui: &mut Ui<'_>, width: u16) {
-    // Menu gaps dim to muted. The frozen row keeps them faint.
     for x in [12, 17, 19, 24, 26, 31, 33, 41, 43, 48] {
         if x < width {
             paint_cell(ui, x, 0, " ", FAINT, BLACK, false);
         }
     }
-    // The first tab rule run is ghost in truecolor. At 256 the same run is
-    // the strong border index, because that ink still clears the contrast
-    // floor and the backdrop lifts it.
+
     let rule = 14.min(width.saturating_sub(1));
     if rule > 0 {
         let ink = if ui.theme_ref().capability.color == termrock::ColorLevel::Ansi256 {
@@ -568,12 +552,6 @@ fn paint_footer(ui: &mut Ui<'_>, y: u16) {
     paint_str(ui, 119, y, " ", WHITE, BLACK, false);
 }
 
-/// Baseline `apply_256` text and border ladder.
-///
-/// The shared 256 palette uses darker faint and ghost indexes. Backdrop
-/// contrast then lifts faint text to muted and leaves strong borders on
-/// ghost. This frame paints with the baseline indexes so the lift matches
-/// the frozen picker.
 pub(super) fn apply_baseline_ladder(theme: &mut termrock::Theme) {
     if let Some(slot) = theme.color.fg.get_mut(2) {
         *slot = Color::Indexed(245);
@@ -589,9 +567,6 @@ pub(super) fn apply_baseline_ladder(theme: &mut termrock::Theme) {
     theme.color.backdrop_fg = Color::Indexed(238);
 }
 
-/// 16-color and mono picker. The card is painted in truecolor RGB.
-/// The frozen frames use the ANSI ladder, dim the underlay, and reverse
-/// the mono selection.
 pub(super) fn finish_reduced(ui: &mut Ui<'_>) {
     let ansi16 = ui.theme_ref().capability.color == termrock::ColorLevel::Ansi16;
     let full = ui.full();
@@ -623,9 +598,6 @@ pub(super) fn finish_reduced(ui: &mut Ui<'_>) {
         (reduced_ink(fg, ansi16), reduced_ink(bg, ansi16))
     });
     if !ansi16 {
-        // Mono turns the seam gray into black. The frozen rules stay gray.
-        // A direct fg write is overwritten by the cell's paint role, so
-        // paint the same glyph again.
         let mut rules = Vec::new();
         {
             let gutter_x = card.x.saturating_add(2);
@@ -652,7 +624,7 @@ pub(super) fn finish_reduced(ui: &mut Ui<'_>) {
         }
     }
     ui.add_dim(underlay);
-    // Footer repairs paint truecolor RGB on the undimmed hint row.
+
     let hint = Rect {
         y: full.bottom().saturating_sub(1),
         height: 1,

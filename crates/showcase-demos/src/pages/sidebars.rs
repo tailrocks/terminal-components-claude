@@ -576,7 +576,6 @@ fn content_height(content_w: u16, last: &str) -> u16 {
     };
     let fitted = body.saturating_add(2);
     if fitted > CARD_H {
-        // One resting row under the last wrapped line. The thumb uses it.
         fitted.saturating_add(1)
     } else {
         CARD_H
@@ -812,91 +811,5 @@ impl Page for SidebarsPage {
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         &[("↑↓", "Move"), ("Enter", "Open"), ("Ctrl+B", "Sidebar")]
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{Page, SidebarsPage};
-    use termrock::{App, Color, Cx, Modifier, Response, Theme, Ui};
-
-    struct Host;
-
-    impl App for Host {
-        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
-            Response::ignored()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            SidebarsPage::new().draw(ui, ui.full());
-        }
-    }
-
-    #[test]
-    fn playground_matches_the_120_column_body() {
-        let h = termrock_test_support::Harness::new(Host, Theme::junie(), 94, 36);
-        let text = h.text();
-        assert!(text.contains("Playground"), "{text}");
-        assert!(text.contains("the live widget"), "{text}");
-        assert!(text.contains("Last: none yet"), "{text}");
-        assert!(
-            text.contains("One focus stop. ↑↓ (or j k) move the cursor, Enter opens."),
-            "{text}"
-        );
-
-        let (x, y) = h.find("Playground").expect("tab");
-        let tab = h.cell(x, y);
-        assert_eq!(tab.bg, Color::Rgb(0x27, 0x27, 0x2a));
-        assert!(tab.modifier.contains(Modifier::BOLD));
-        assert_eq!(h.cell(x.saturating_sub(1), y + 1).symbol(), "━");
-
-        let (mx, my) = h.find("Sections").expect("blurb");
-        assert_eq!(h.cell(mx, my).fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-
-        let (wx, wy) = h.find("Workspace").expect("section");
-        assert_eq!(h.cell(wx, wy).fg, Color::Rgb(0x73, 0x73, 0x73));
-        assert_eq!((wx, wy), (3, 6), "{text}");
-        assert_eq!(h.cell(24, 5).symbol(), "\u{2039}");
-        assert_eq!(h.cell(27, wy).symbol(), "│");
-        assert_eq!(h.cell(1, 7).symbol(), "\u{203a}");
-        assert_eq!(h.cell(5, 7).symbol(), "T");
-        assert_eq!(h.cell(5, 7).bg, Color::Rgb(0x17, 0x3f, 0x1c));
-        assert!(h.cell(5, 7).modifier.contains(Modifier::BOLD));
-        assert_eq!(h.cell(25, 7).symbol(), "3");
-        assert_eq!(h.cell(25, 7).fg, Color::Rgb(0x48, 0xe0, 0x54));
-        assert_eq!(h.cell(32, 5).symbol(), "T");
-        assert_eq!(h.cell(32, 5).fg, Color::Rgb(0xb3, 0xb3, 0xb3));
-
-        let (bx, by) = h.find("Billing").expect("disabled");
-        assert_eq!((bx, by), (5, 14), "{text}");
-        assert_eq!(h.cell(bx, by).fg, Color::Rgb(0x4d, 0x4d, 0x4d));
-        assert_eq!(h.cell(0, by).fg, Color::Rgb(0x11, 0x11, 0x11));
-
-        assert_eq!(h.cell(2, 23).symbol(), "C");
-        assert_eq!(h.cell(2, 23).bg, Color::Rgb(0x27, 0x27, 0x2a));
-        assert_eq!(h.cell(1, 23).fg, Color::Rgb(0x27, 0x27, 0x2a));
-        assert_eq!(h.cell(32, 9).symbol(), "\u{203a}");
-        assert_eq!(h.cell(32, 9).fg, Color::Rgb(0x48, 0xe0, 0x54));
-        assert_eq!(h.cell(32, 6).symbol(), "─");
-    }
-
-    #[test]
-    fn narrow_playground_scrolls_and_ends_the_blurb_on_ellipsis() {
-        let h = termrock_test_support::Harness::new(Host, Theme::junie(), 51, 16);
-        assert_eq!(h.cell(48, 0).symbol(), "h");
-        assert_eq!(h.cell(49, 0).symbol(), "…");
-        assert_eq!(h.cell(49, 0).fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-        assert_eq!(h.cell(49, 0).bg, Color::Rgb(0, 0, 0));
-        assert_eq!(h.cell(48, 7).symbol(), "↑");
-        assert_eq!(h.cell(32, 8).symbol(), "(");
-        assert_eq!(h.cell(50, 5).symbol(), "┃");
-        assert_eq!(h.cell(50, 5).fg, Color::Rgb(0x80, 0x80, 0x80));
-        assert_eq!(h.cell(50, 8).symbol(), "┆");
-        assert_eq!(h.cell(50, 8).fg, Color::Rgb(0x47, 0x47, 0x47));
-        assert_eq!(h.cell(0, 15).symbol(), "━");
-        assert_eq!(h.cell(44, 15).symbol(), "━");
-        assert_eq!(h.cell(45, 15).symbol(), "┄");
-        assert_eq!(h.cell(49, 15).symbol(), "┄");
-        assert_eq!(h.cell(50, 15).symbol(), " ");
     }
 }

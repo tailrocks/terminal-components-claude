@@ -1,4 +1,3 @@
-
 use std::io::{Cursor, Read};
 
 use flate2::read::DeflateDecoder;

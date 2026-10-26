@@ -38,7 +38,6 @@ impl<'a> HelpSection<'a> {
         }
     }
 
-    /// Fixed key rows. Same action text the baseline help section shows.
     pub const fn plain(title: &'a str, rows: &'a [(&'a str, &'a str)]) -> Self {
         HelpSection {
             title,
@@ -269,7 +268,6 @@ impl<'a> HelpOverlay<'a> {
     }
 
     pub fn measured_size(&self, cx: &Cx<'_>) -> LayerSize {
-        // Baseline HelpOverlay::max_percent is 80, with a 4-col and 3-row inset.
         let view = cx.viewport();
         let w = view
             .width
@@ -546,7 +544,7 @@ impl<'a> HelpOverlay<'a> {
         let end = offset.saturating_add(viewport).min(total);
         let label = format!(" {}–{} of {} ", offset.saturating_add(1), end, total);
         let pw = width(&label);
-        // Close cluster plus the corner rule sit in the last five cells.
+
         let x = area.right().saturating_sub(pw.saturating_add(6));
         ui.paint_str(
             Rect {
@@ -825,64 +823,5 @@ fn moved(changed: bool) -> Response<HelpAction> {
         Response::changed()
     } else {
         Response::consumed()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::event::KeyCode;
-
-    #[derive(Clone, Copy)]
-    enum TestCmd {
-        Run,
-    }
-
-    const TEST_BINDINGS: &[Binding<TestCmd>] = &[
-        Binding {
-            action: crate::ActionKey::custom("help.test.run"),
-            chord: Some(Chord::key(KeyCode::Char('r'))),
-            cmd: TestCmd::Run,
-            label: "Run",
-            priority: 50,
-            visible: true,
-        },
-        Binding {
-            action: crate::ActionKey::custom("help.test.hidden"),
-            chord: Some(Chord::key(KeyCode::Char('x'))),
-            cmd: TestCmd::Run,
-            label: "Hidden",
-            priority: 10,
-            visible: false,
-        },
-    ];
-
-    #[test]
-    fn sections_consume_the_same_visible_binding_metadata_as_hintbar() {
-        let layer = HintLayer::from_bindings(TEST_BINDINGS);
-        let section = HelpSection::new("Actions", &layer);
-        assert_eq!(section.layer().hints.len(), 1);
-        assert_eq!(section.layer().hints[0].label, "Run");
-    }
-
-    #[test]
-    fn sections_are_distributed_round_robin_without_splitting() {
-        let layer = HintLayer::from_bindings(TEST_BINDINGS);
-        let sections = [
-            HelpSection::new("A", &layer),
-            HelpSection::new("B", &layer),
-            HelpSection::new("C", &layer),
-            HelpSection::new("D", &layer),
-        ];
-        let overlay = HelpOverlay::new(Id::root("help.tests"), "scope", &sections);
-        assert_eq!(overlay.column_rows(2), 6);
-        assert_eq!(overlay.column_rows(3), 6);
-    }
-
-    #[test]
-    fn column_count_is_bounded_from_one_to_three() {
-        assert_eq!(columns_for(0), 1);
-        assert_eq!(columns_for(72), 2);
-        assert_eq!(columns_for(u16::MAX), 3);
     }
 }

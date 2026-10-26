@@ -37,10 +37,8 @@ pub enum CompletionCmd {
     Dismiss,
 }
 
-/// Baseline completion menus sit four cells left of the replaced token.
 const COMPLETION_TEXT_INSET: u16 = 4;
 
-/// Opens the opt-in full-detail view for the currently selected completion.
 pub const COMPLETION_DETAILS_CHORD: Chord = Chord::with(
     KeyCode::Char('d'),
     KeyModifiers::from_bits_retain(KeyModifiers::CONTROL.bits() | KeyModifiers::SHIFT.bits()),
@@ -170,8 +168,6 @@ fn paint_completion_row(
     }
 }
 
-/// Baseline menus size to the longest label plus the longest detail.
-/// Those two strings may sit on different rows.
 fn popup_width<T: AsItem>(cx: &Cx<'_>, items: &[T]) -> u16 {
     let mut label_w = 0u16;
     let mut detail_w = 0u16;
@@ -312,7 +308,6 @@ impl CompletionState {
         self.details_open
     }
 
-    /// Whether the completion view consumed the current editor binding.
     pub const fn details_input_consumed(&self) -> bool {
         self.details_input_consumed
     }
@@ -372,9 +367,6 @@ impl CompletionController {
                 cx.reanchor_layer(self.popup_id, anchor);
                 cx.resize_layer(self.popup_id, size);
             } else {
-                // Completion is non-modal and leaves focus on its editor
-                // owner. Restoring the opener on close would undo a real
-                // focus move made while the popup was open.
                 let _ = cx.open_layer_with_token(
                     self.popup_id,
                     LayerSpec::popover(self.popup_id, anchor)
@@ -425,11 +417,6 @@ impl CompletionController {
         })
     }
 
-    /// Accept an item through a caller-owned editor splice operation.
-    ///
-    /// The completion controller still owns dismissal; the adapter owns how the
-    /// editor applies the byte range and insertion. This keeps editor state and
-    /// selection lifecycle in the editor crate without adding a dependency here.
     pub fn accept_with(
         &self,
         cx: &mut Cx<'_>,
@@ -545,8 +532,6 @@ impl<'a, T, R> Completion<'a, T, R> {
         self
     }
 
-    /// Supply the selected item's full semantic detail for the opt-in Details view.
-    /// The current list or Details mode remains owned by [`CompletionState`].
     #[must_use]
     pub const fn selected_detail(mut self, detail: Option<&'a str>) -> Self {
         self.selected_detail = detail;
@@ -936,7 +921,7 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                 paint_completion_row(ui, row, semantic, chosen, pressed);
                 ui.register_part(self.id, row_part, row);
             }
-            // Baseline option lists fade the last visible row when more items sit below.
+
             let mut faded = *state.core.scroll();
             faded.apply_layout(usize::from(content.height), items.len());
             ui.scroll_edges(content, &faded);
@@ -949,98 +934,5 @@ impl<T, R> Bindings for Completion<'_, T, R> {
     type Cmd = CompletionCmd;
     fn bindings(&self, _state: BindingState) -> &'static [Binding<Self::Cmd>] {
         BINDINGS
-    }
-}
-
-#[cfg(test)]
-mod width_tests {
-    use ratatui_core::buffer::Buffer;
-    use ratatui_core::layout::Rect;
-    use termrock_runtime::event::Input;
-    use termrock_runtime::response::Response;
-    use termrock_runtime::runtime::stub;
-    use termrock_runtime::runtime::{App, Runtime};
-    use termrock_theme::Theme;
-
-    use super::Completion;
-    use crate::id::{Id, ItemKey};
-    use crate::layer::LayerSize;
-    use crate::picker::Item;
-    use crate::ui::{Cx, Ui};
-
-    const SPLIT: [Item<'static>; 2] = [
-        Item::new(ItemKey::num(1), "shipped_at").detail("timestamptz · null"),
-        Item::new(ItemKey::num(2), "shipping_address").detail("json"),
-    ];
-
-    #[test]
-    fn width_adds_the_longest_label_to_the_longest_detail() {
-        assert_eq!(measure(&SPLIT), LayerSize::Fixed(42, 4));
-    }
-
-    fn measure(items: &'static [Item<'static>]) -> LayerSize {
-        struct MeasureApp {
-            items: &'static [Item<'static>],
-            measured: Option<LayerSize>,
-        }
-        impl App for MeasureApp {
-            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-                self.measured = Some(
-                    Completion::<Item<'static>>::new(Id::root("completion.width"))
-                        .measured_size(cx, self.items),
-                );
-                Response::ignored()
-            }
-
-            fn draw(&self, _ui: &mut Ui<'_>) {}
-        }
-        let area = Rect::new(0, 0, 100, 30);
-        let mut runtime = Runtime::new(
-            MeasureApp {
-                items,
-                measured: None,
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        let _ = stub::deliver(&mut runtime, Input::Tick);
-        runtime.app().measured.unwrap_or(LayerSize::Fixed(0, 0))
-    }
-}
-
-#[cfg(test)]
-mod detail_selection_tests {
-    use super::CompletionState;
-    use crate::id::ItemKey;
-
-    fn details_for(key: ItemKey) -> CompletionState {
-        CompletionState {
-            open: true,
-            details_open: true,
-            details_key: Some(key),
-            ..CompletionState::default()
-        }
-    }
-
-    #[test]
-    fn details_follow_the_same_stable_key_and_close_when_it_changes_or_disappears() {
-        let selected = ItemKey::num(2);
-        let replacement = ItemKey::num(1);
-        let mut state = details_for(selected);
-
-        state.reconcile_detail_selection(Some(selected), true);
-        assert!(state.details_open);
-        assert_eq!(state.details_key, Some(selected));
-
-        state.reconcile_detail_selection(Some(replacement), true);
-        assert!(!state.details_open);
-        assert_eq!(state.details_key, None);
-
-        let mut removed = details_for(selected);
-        removed.reconcile_detail_selection(Some(selected), false);
-        assert!(!removed.details_open);
-        assert_eq!(removed.details_key, None);
     }
 }

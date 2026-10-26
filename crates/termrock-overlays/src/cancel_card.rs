@@ -1,7 +1,3 @@
-//! Cancel-launch dialog. Title and body sit inside the border.
-//!
-//! Empty rows keep the dimmed page ink. The card is 54×11, one row below centre.
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 
@@ -22,9 +18,6 @@ const FOCUS: u32 = 0x0048_e054;
 const BUTTON: u32 = 0x0027_272a;
 const DANGER: u32 = 0x00ff_6b6b;
 
-/// Paint the cancel card on the current page.
-///
-/// `body` is wrapped to the baseline line width. The keep button takes focus.
 pub fn paint(ui: &mut Ui<'_>, title: &str, body: &str, keep: &str, cancel: &str) {
     let screen = ui.full();
     if screen.height < HEIGHT || screen.width < WIDTH {

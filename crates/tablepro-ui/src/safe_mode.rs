@@ -49,7 +49,6 @@ impl SafeModePicker {
 }
 
 pub(crate) fn picker(visible: usize) -> Picker<'static, SafeRow> {
-    // Baseline non-searchable card: borders + title + rows + gap + hint.
     let rows = u16::try_from(visible.clamp(1, 12)).unwrap_or(12);
     Picker::new(ID)
         .title("Safe Mode · this connection")

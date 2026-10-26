@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.99"
 publish = false
+autotests = false
+autobenches = false
 
 [workspace]
 resolver = "3"
@@ -11,6 +13,8 @@ resolver = "3"
 [[bin]]
 name = "admit_expected_generation"
 path = "src/bin/admit_expected_generation.rs"
+test = false
+bench = false
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -21,9 +25,7 @@ tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "a1ea27f757d
 [build-dependencies]
 sha2 = "0.11"
 
-[dev-dependencies]
-jsonschema = { version = "=0.59.0", default-features = false }
-
-[target.'cfg(unix)'.dev-dependencies]
-nix = { version = "=0.31.3", default-features = false, features = ["process", "signal"] }
-termpane = { version = "=0.1.0", features = ["pty"] }
+[lib]
+test = false
+bench = false
+doctest = false

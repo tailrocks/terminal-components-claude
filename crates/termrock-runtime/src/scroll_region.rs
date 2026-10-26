@@ -17,24 +17,14 @@ use crate::scroll::ScrollState;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
-/// Controls whether a visible scrollbar reserves its column only while it is
-/// needed or for the entire lifetime of the scroll region.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ScrollbarGutter {
-    /// Reserve the scrollbar column only while content overflows.
     #[default]
     Auto,
-    /// Keep one column reserved even when all content fits.
+
     Stable,
 }
 
-/// Format the currently visible logical row range of an overflowing scroll state.
-///
-/// The range is one-based for display and uses an inclusive end, so a viewport
-/// of 13 rows at offset 11 is shown as `12–24 of 120`. This helper only reads
-/// the model; it does not apply pending layout, reveal rows, or alter a grab.
-///
-/// Returns an empty string when the content fits or the viewport has no rows.
 pub fn position_label(scroll: &ScrollState) -> String {
     if !scroll.overflows() {
         return String::new();
@@ -61,11 +51,6 @@ pub struct ScrollRegion<'a> {
     window_slot: Option<(Part, WindowSlotFn<'a>)>,
 }
 
-/// Source interval supplied to a window-aware ScrollRegion part painter.
-///
-/// `part_rows` is the original logical row interval of the part. `visible_rows`
-/// is its intersection with `window`; the callback's Rect is the physical
-/// rectangle corresponding exactly to that intersection.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ScrollRegionSlotWindow {
     window: VerticalWindow,
@@ -87,8 +72,6 @@ impl ScrollRegionSlotWindow {
     }
 }
 
-/// Painter for a clipped ScrollRegion part, given its visible physical area
-/// and original logical source interval.
 pub type WindowSlotFn<'a> = &'a dyn Fn(&mut Ui<'_>, Rect, &ScrollRegionSlotWindow);
 
 #[derive(Clone, Copy)]
@@ -148,7 +131,6 @@ impl<'a> ScrollRegion<'a> {
         self
     }
 
-    /// Leave cells the caller already painted. The picker card samples backdrop ink first.
     #[must_use]
     pub const fn preserve_underlay(mut self, preserve: bool) -> Self {
         self.preserve_underlay = preserve;
@@ -183,10 +165,6 @@ impl<'a> ScrollRegion<'a> {
         self
     }
 
-    /// Paint one scrollbar part with source-row information when its track is
-    /// clipped by an ancestor window. This slot takes precedence over the
-    /// legacy slot for the same part; legacy slots remain unchanged when the
-    /// entire part is visible.
     #[must_use]
     pub const fn window_slot(mut self, part: Part, f: WindowSlotFn<'a>) -> Self {
         self.window_slot = Some((part, f));
@@ -208,10 +186,6 @@ impl<'a> ScrollRegion<'a> {
         r.for_id(self.id)
     }
 
-    /// Update this region with an explicit source revision for nested wheel
-    /// routing. Ordinary events retain [`ScrollRegion::update`] behavior. If
-    /// this region is the addressed vertical wheel target, the revision is
-    /// checked before layout preparation or scroll-state mutation.
     pub fn update_routed(
         &self,
         cx: &mut Cx<'_>,
@@ -227,9 +201,6 @@ impl<'a> ScrollRegion<'a> {
         self.service_routed_wheel_attempt(cx, st, content_len, source_revision, attempt)
     }
 
-    /// Service only the active vertical wheel fallback addressed to this
-    /// region. A missing or stale attempt is left unacknowledged and does not
-    /// prepare or mutate the scroll state.
     pub fn service_routed_wheel(
         &self,
         cx: &mut Cx<'_>,
@@ -438,11 +409,6 @@ impl<'a> ScrollRegion<'a> {
         self.draw_window(ui, VerticalWindow::full(area), st, content_len)
     }
 
-    /// Paint this region without registering its broad wheel target.
-    ///
-    /// Layout facts, decoration, scrollbar painting, and track/thumb pointer
-    /// registrations are unchanged. Use this only when the caller registers
-    /// its own disjoint wheel targets for the same painted region.
     pub fn draw_without_wheel_registration(
         &self,
         ui: &mut Ui<'_>,
@@ -463,15 +429,6 @@ impl<'a> ScrollRegion<'a> {
         .0
     }
 
-    /// Draw this region as an opt-in vertical wheel target.
-    ///
-    /// The returned key is valid only for the current draw frame. The caller
-    /// supplies a revision that distinguishes source replacement, reorder,
-    /// and other source changes that affect scrolling or layout. Do not derive
-    /// it from content length or state generation. The caller must not reuse a
-    /// revision while an older registration can still be serviced; exhaustion
-    /// must fail closed rather than wrap and reuse one.
-    /// The caller links nested regions with [`Ui::link_scroll_parent`].
     pub fn draw_routed(
         &self,
         ui: &mut Ui<'_>,
@@ -492,8 +449,6 @@ impl<'a> ScrollRegion<'a> {
         )
     }
 
-    /// Draw a ScrollRegion whose physical body is a visible window into the
-    /// original logical viewport. The state and thumb retain logical sizing.
     pub fn draw_window(
         &self,
         ui: &mut Ui<'_>,
@@ -505,14 +460,6 @@ impl<'a> ScrollRegion<'a> {
             .0
     }
 
-    /// Draw a visible logical window as an opt-in vertical wheel target.
-    ///
-    /// The returned key is frame-local and carries the caller's source
-    /// revision. Empty or clipped-away regions return no key. The caller must
-    /// keep revisions unique across any source changes that affect scrolling
-    /// or layout while an older registration can still be serviced. Do not
-    /// derive revisions from content length or state generation; on exhaustion,
-    /// fail closed rather than wrapping and reusing one.
     pub fn draw_window_routed(
         &self,
         ui: &mut Ui<'_>,
@@ -841,8 +788,6 @@ fn without_inherited_bold(
     style: crate::theme::PaintStyle,
     explicit: StylePatch,
 ) -> crate::theme::PaintStyle {
-    // Ratatui's set_style unions modifiers with the underlay. Clear underlay
-    // bold unless a theme, overlay, or instance style explicitly supplies it.
     if explicit.add.contains(Modifier::BOLD)
         || style.as_style().add_modifier.contains(Modifier::BOLD)
     {
@@ -862,609 +807,4 @@ const fn moved(yes: bool) -> Response<()> {
 
 fn thumb_drag_position(pos_y: u16, track_y: u16, grab: u16, thumb_len: usize) -> usize {
     usize::from(pos_y.saturating_sub(track_y).saturating_sub(grab)).saturating_add(thumb_len / 2)
-}
-
-#[cfg(test)]
-mod tests {
-    use core::cell::RefCell;
-
-    use ratatui_core::buffer::Buffer;
-
-    use super::*;
-    use crate::event::MouseKind;
-    use crate::runtime::stub::{SCREEN, Stub};
-    use crate::runtime::stub::{deliver, mouse};
-    use crate::runtime::{App, Runtime};
-    use crate::theme::Theme;
-    use crate::{ReferenceState, ReferenceTarget};
-
-    const ID: Id = Id::root("scroll-region.tests");
-
-    #[test]
-    fn stable_gutter_reserves_one_column_without_overflow_and_once_with_it() {
-        let area = Rect::new(0, 0, 10, 3);
-        for (gutter, content_len, expected_width, expected_bar) in [
-            (ScrollbarGutter::Auto, 2, 10, false),
-            (ScrollbarGutter::Stable, 2, 9, false),
-            (ScrollbarGutter::Auto, 4, 9, true),
-            (ScrollbarGutter::Stable, 4, 9, true),
-        ] {
-            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(SCREEN);
-            let state = ScrollState::new(content_len);
-            let mut content = None;
-            runtime
-                .draw_scene(SCREEN, &mut buffer, |ui, _| {
-                    content = Some(ScrollRegion::new(ID).scrollbar_gutter(gutter).draw(
-                        ui,
-                        area,
-                        &state,
-                        content_len,
-                    ));
-                })
-                .commit_presented();
-            assert_eq!(
-                content.unwrap().width,
-                expected_width,
-                "{gutter:?}, {content_len}"
-            );
-            assert_eq!(
-                runtime.area_of_part(ID, PartRef::of(Part::TRACK)),
-                expected_bar.then_some(Rect::new(9, 0, 1, 3)),
-                "{gutter:?}, {content_len}"
-            );
-        }
-    }
-
-    fn clipped_window() -> VerticalWindow {
-        VerticalWindow::new(Rect::new(0, 4, 10, 5), 12, 3).unwrap()
-    }
-
-    #[test]
-    fn draw_window_clips_track_and_thumb_without_creating_caps() {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let mut st = ScrollState::new(24);
-        st.set_viewport(12);
-        let window = clipped_window();
-        let mut content = None;
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            content = Some(ScrollRegion::new(ID).draw_window(ui, window, &st, 24));
-        })
-        .commit_presented();
-        assert_eq!(content, Some(Rect::new(0, 4, 9, 5)));
-        assert_eq!(
-            rt.area_of_part(ID, PartRef::of(Part::TRACK)),
-            Some(Rect::new(9, 4, 1, 5))
-        );
-        assert_eq!(
-            rt.area_of_part(ID, PartRef::of(Part::THUMB)),
-            Some(Rect::new(9, 4, 1, 3))
-        );
-        // The visible track rows begin at source row 3 and stop before the
-        // logical end, so neither endpoint cap belongs in this window.
-        // The thumb overlays the first three physical rows; inspect the
-        // exposed track row to verify it remains the ordinary track glyph.
-        assert_eq!(
-            buf.cell(Position::new(9, 8)).map(|cell| cell.symbol()),
-            Some(Theme::junie().design.glyphs.get(GlyphRole::ScrollTrack))
-        );
-        assert!(rt.diagnostics().is_empty());
-    }
-
-    #[test]
-    fn window_slot_receives_original_and_visible_source_intervals() {
-        let seen = RefCell::new(None);
-        let paint = |ui: &mut Ui<'_>, area: Rect, context: &ScrollRegionSlotWindow| {
-            *seen.borrow_mut() = Some(context.clone());
-            for row in area.rows() {
-                let source = context.visible_rows().start + usize::from(row.y - area.y);
-                let marker = char::from(b'a' + u8::try_from(source).unwrap_or(0));
-                ui.paint_str(row, &marker.to_string(), ui.surface_style());
-            }
-        };
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let mut st = ScrollState::new(24);
-        st.set_viewport(12);
-        let window = clipped_window();
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            ScrollRegion::new(ID)
-                .window_slot(Part::TRACK, &paint)
-                .draw_window(ui, window, &st, 24);
-        })
-        .commit_presented();
-
-        let seen = seen.into_inner().expect("window-aware slot must run");
-        assert_eq!(seen.window(), window);
-        assert_eq!(seen.part_rows(), &(0..12));
-        assert_eq!(seen.visible_rows(), &(3..8));
-        assert_eq!(
-            rt.area_of_part(ID, PartRef::of(Part::TRACK)),
-            Some(Rect::new(9, 4, 1, 5))
-        );
-        // The thumb covers source rows 3..6; the remaining track rows keep
-        // the source pattern supplied by the caller.
-        for (row, marker) in (7..9).zip(['g', 'h']) {
-            assert_eq!(
-                buf.cell(Position::new(9, row))
-                    .and_then(|cell| cell.symbol().chars().next()),
-                Some(marker)
-            );
-        }
-    }
-
-    #[test]
-    fn clipped_legacy_slot_reports_and_registers_no_phantom_part() {
-        let paint = |ui: &mut Ui<'_>, area: Rect| {
-            ui.paint_str(area, "legacy", ui.surface_style());
-        };
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let mut st = ScrollState::new(24);
-        st.set_viewport(12);
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            ScrollRegion::new(ID).slot(Part::TRACK, &paint).draw_window(
-                ui,
-                clipped_window(),
-                &st,
-                24,
-            );
-        })
-        .commit_presented();
-
-        assert!(
-            rt.area_of(ID).is_some(),
-            "the visible scroll container remains real"
-        );
-        assert!(rt.area_of_part(ID, PartRef::of(Part::TRACK)).is_none());
-        assert!(rt.diagnostics().iter().any(|diagnostic| matches!(
-            diagnostic,
-            Diagnostic::UnsupportedClippedComponentSlot { owner, part: Part::TRACK }
-                if *owner == ID
-        )));
-        for row in 4..9 {
-            assert_ne!(
-                buf.cell(Position::new(9, row))
-                    .and_then(|cell| cell.symbol().chars().next()),
-                Some('l')
-            );
-        }
-    }
-
-    #[test]
-    fn full_window_slot_render_matches_existing_draw() {
-        let paint = |ui: &mut Ui<'_>, area: Rect| {
-            ui.paint_str(area, "x", ui.surface_style());
-        };
-        let area = Rect::new(2, 1, 8, 7);
-        let mut st = ScrollState::new(60);
-        st.set_viewport(7);
-        st.scroll_to(20);
-        let render = |windowed: bool| {
-            let mut rt = Runtime::new(Stub::default(), Theme::junie());
-            let mut buf = Buffer::empty(SCREEN);
-            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                let region = ScrollRegion::new(ID).slot(Part::TRACK, &paint);
-                if windowed {
-                    region.draw_window(ui, VerticalWindow::full(area), &st, 60);
-                } else {
-                    region.draw(ui, area, &st, 60);
-                }
-            })
-            .commit_presented();
-            (
-                buf,
-                rt.area_of_part(ID, PartRef::of(Part::TRACK)),
-                rt.diagnostics().to_vec(),
-            )
-        };
-        assert_eq!(render(false), render(true));
-    }
-
-    #[test]
-    fn wheel_suppression_keeps_scroll_region_paint_and_pointer_parts() {
-        let area = Rect::new(2, 1, 8, 7);
-        let mut state = ScrollState::new(60);
-        state.set_viewport(7);
-        state.scroll_to(20);
-        let render = |suppress_wheel: bool| {
-            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(SCREEN);
-            let mut content = None;
-            runtime
-                .draw_scene(SCREEN, &mut buffer, |ui, _| {
-                    let region = ScrollRegion::new(ID);
-                    content = Some(if suppress_wheel {
-                        region.draw_without_wheel_registration(ui, area, &state, 60)
-                    } else {
-                        region.draw(ui, area, &state, 60)
-                    });
-                })
-                .commit_presented();
-            let parts = [Part::CONTAINER, Part::TRACK, Part::THUMB]
-                .map(|part| runtime.area_of_part(ID, PartRef::of(part)));
-            let regions = runtime
-                .registry()
-                .regions()
-                .iter()
-                .map(|region| (region.owner, region.part, region.kind, region.area))
-                .collect::<Vec<_>>();
-            (
-                buffer,
-                content,
-                parts,
-                runtime.diagnostics().to_vec(),
-                regions,
-            )
-        };
-
-        let ordinary = render(false);
-        let suppressed = render(true);
-        assert_eq!(
-            suppressed.0, ordinary.0,
-            "painting must stay byte-identical"
-        );
-        assert_eq!(suppressed.1, ordinary.1, "content geometry must stay equal");
-        assert_eq!(
-            suppressed.2, ordinary.2,
-            "container and pointer parts stay equal"
-        );
-        assert_eq!(suppressed.3, ordinary.3, "diagnostics must stay equal");
-        assert_eq!(
-            ordinary
-                .4
-                .iter()
-                .filter(|(_, _, kind, _)| *kind == crate::hit::RegionKind::Scroll)
-                .count(),
-            1
-        );
-        assert_eq!(
-            suppressed
-                .4
-                .iter()
-                .filter(|(_, _, kind, _)| *kind == crate::hit::RegionKind::Scroll)
-                .count(),
-            0,
-            "only the broad wheel target is suppressed"
-        );
-        for part in [Part::TRACK, Part::THUMB] {
-            assert!(suppressed.4.iter().any(|(_, registered, kind, area)| {
-                *registered == PartRef::of(part)
-                    && *kind == crate::hit::RegionKind::Part
-                    && *area
-                        == suppressed.2[usize::from(part == Part::THUMB) + 1].unwrap_or_default()
-            }));
-        }
-    }
-
-    struct ScrollHarness {
-        state: ScrollState,
-        source_top: usize,
-    }
-
-    struct LargeWindowHarness {
-        state: ScrollState,
-    }
-
-    impl App for LargeWindowHarness {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            ScrollRegion::new(ID).update(cx, &mut self.state, 1_000_000)
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            if let Ok(window) = VerticalWindow::new(Rect::new(0, 4, 10, 10), 100_000, 45_000) {
-                ScrollRegion::new(ID).draw_window(ui, window, &self.state, 1_000_000);
-            }
-        }
-    }
-
-    #[test]
-    fn window_track_length_uses_usize_logical_rows_above_u16() {
-        for rows in [
-            usize::from(u16::MAX),
-            usize::from(u16::MAX) + 1,
-            100_000,
-            usize::MAX,
-        ] {
-            let first = rows.saturating_sub(1);
-            let window = VerticalWindow::new(Rect::new(0, 4, 1, 1), rows, first).unwrap();
-            assert_eq!(logical_track_len(13, Some(window)), rows);
-            assert_eq!(logical_track_row_for_drag(window, 4), Some(first));
-            assert_eq!(
-                logical_track_row_for_drag(window, 3),
-                Some(first.saturating_sub(1).min(rows.saturating_sub(1)))
-            );
-        }
-        assert_eq!(logical_track_len(13, None), 13);
-    }
-
-    #[test]
-    fn large_logical_window_keeps_thumb_grab_offset_when_pressed() {
-        let mut state = ScrollState::new(1_000_000);
-        state.set_viewport(100_000);
-        state.scroll_to(450_000);
-        let mut rt = Runtime::new(LargeWindowHarness { state }, Theme::junie());
-        let _ = rt.initialize();
-        let _ = deliver(&mut rt, mouse(MouseKind::Move, 0, 0));
-        let _ = deliver(&mut rt, mouse(MouseKind::Down, 9, 4));
-        assert_eq!(
-            rt.app().state.offset(),
-            450_000,
-            "the clipped visible row is inside the thumb computed over 100,000 logical rows"
-        );
-    }
-
-    impl App for ScrollHarness {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            ScrollRegion::new(ID).update(cx, &mut self.state, 24)
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            let screen = ui.full();
-            let height = screen.height.saturating_sub(4).min(5);
-            if let Ok(window) =
-                VerticalWindow::new(Rect::new(0, 4, 10, height), 12, self.source_top)
-            {
-                ScrollRegion::new(ID).draw_window(ui, window, &self.state, 24);
-            }
-        }
-    }
-
-    #[test]
-    fn track_click_and_captured_thumb_drag_use_logical_source_rows() {
-        let mut rt = Runtime::new(
-            ScrollHarness {
-                state: ScrollState::new(24),
-                source_top: 3,
-            },
-            Theme::junie(),
-        );
-        let _ = rt.initialize();
-        let _ = deliver(&mut rt, mouse(MouseKind::Move, 0, 0));
-        let _ = deliver(&mut rt, mouse(MouseKind::Down, 9, 8));
-        assert_eq!(
-            rt.app().state.offset(),
-            8,
-            "physical source row 7 maps to logical track row 7"
-        );
-        let _ = deliver(&mut rt, mouse(MouseKind::Up, 9, 8));
-        rt.app_mut().state.scroll_to(0);
-        let _ = deliver(&mut rt, mouse(MouseKind::Down, 9, 5));
-        let _ = deliver(&mut rt, mouse(MouseKind::Drag, 9, 6));
-        assert_eq!(
-            rt.app().state.offset(),
-            2,
-            "drag preserves source-row grab offset"
-        );
-        let _ = deliver(&mut rt, mouse(MouseKind::Up, 9, 6));
-        let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
-    }
-
-    #[test]
-    fn resized_source_window_reuses_the_prepared_mapping_for_input() {
-        let mut rt = Runtime::new(
-            ScrollHarness {
-                state: ScrollState::new(24),
-                source_top: 3,
-            },
-            Theme::junie(),
-        );
-        let _ = rt.initialize();
-        let _ = deliver(&mut rt, mouse(MouseKind::Move, 0, 0));
-        rt.app_mut().source_top = 4;
-        let _ = deliver(&mut rt, crate::event::Input::Resize(40, 12));
-        let _ = deliver(&mut rt, mouse(MouseKind::Down, 9, 7));
-        assert_eq!(
-            rt.app().state.offset(),
-            8,
-            "after resize, visible y=7 maps through source window row 7"
-        );
-    }
-
-    #[test]
-    fn thumb_drag_preserves_the_grab_offset() {
-        assert_eq!(thumb_drag_position(18, 10, 2, 4), 8);
-        assert_eq!(thumb_drag_position(9, 10, 2, 4), 2);
-    }
-
-    #[test]
-    fn scrollbar_paints_typed_caps_outside_the_thumb() {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let area = Rect::new(0, 0, 5, 6);
-        let mut st = ScrollState::new(100);
-        st.set_viewport(6);
-        st.scroll_to(47);
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            ScrollRegion::new(ID).draw(ui, area, &st, 100);
-        })
-        .commit_presented();
-        let set = Theme::junie().design.glyphs.scrollbar();
-        assert_eq!(
-            buf.cell(Position::new(4, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some(set.begin)
-        );
-        assert_eq!(
-            buf.cell(Position::new(4, 5))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some(set.end)
-        );
-    }
-
-    #[test]
-    fn a_reference_scroll_region_registers_nothing() {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let st = ScrollState::new(100);
-        rt.draw_scene(SCREEN, &mut buf, |ui, area| {
-            ui.reference(None, |ui| {
-                ScrollRegion::new(ID).draw(ui, area, &st, 100);
-            });
-        })
-        .commit_presented();
-        assert!(rt.area_of(ID).is_none());
-    }
-
-    #[test]
-    fn owner_state_never_leaks_into_the_scrollbar() {
-        let render = |target: Option<ReferenceTarget>| {
-            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(SCREEN);
-            let state = ScrollState::new(100);
-            runtime
-                .draw_scene(SCREEN, &mut buffer, |ui, _area| {
-                    ui.reference(target, |ui| {
-                        ScrollRegion::new(ID).draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
-                    });
-                })
-                .commit_presented();
-            buffer
-        };
-        let plain = render(None);
-        let focused = render(Some(ReferenceTarget::new(ID, ReferenceState::FOCUSED)));
-        let pressed = render(Some(ReferenceTarget::new(ID, ReferenceState::PRESSED)));
-        assert_eq!(focused, plain, "owner focus styled its scrollbar");
-        assert_eq!(pressed, plain, "owner press styled its scrollbar");
-    }
-
-    #[test]
-    fn direct_reference_press_targets_only_the_thumb() {
-        let render = |part: Option<PartRef>| {
-            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(SCREEN);
-            let state = ScrollState::new(100);
-            runtime
-                .draw_scene(SCREEN, &mut buffer, |ui, _| {
-                    let target = part
-                        .map(|part| ReferenceTarget::new(ID, ReferenceState::PRESSED).part(part));
-                    ui.reference(target, |ui| {
-                        ScrollRegion::new(ID).draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
-                    });
-                })
-                .commit_presented();
-            buffer
-        };
-        let plain = render(None);
-        let track = render(Some(PartRef::of(Part::TRACK)));
-        let thumb = render(Some(PartRef::of(Part::THUMB)));
-        assert_eq!(track, plain, "a track target styled the thumb");
-        assert_ne!(thumb, plain, "an exact thumb target did not paint PRESSED");
-    }
-
-    #[test]
-    fn container_patch_paints_even_without_overflow() {
-        let patch = StylePatch::new()
-            .set_fg(crate::theme::Role::Warning)
-            .set_bg(crate::theme::Role::Danger);
-        let render = |patched: bool| {
-            let mut rt = Runtime::new(Stub::default(), Theme::junie());
-            let mut buf = Buffer::empty(SCREEN);
-            let st = ScrollState::new(1);
-            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                let parts = [(Part::CONTAINER, patch)];
-                let mut region = ScrollRegion::new(ID);
-                if patched {
-                    region = region.patch_part(&parts);
-                }
-                region.draw(ui, Rect::new(0, 0, 5, 3), &st, 1);
-            })
-            .commit_presented();
-            buf
-        };
-        assert_ne!(render(false), render(true));
-    }
-
-    #[test]
-    fn slot_addressable_parts_are_exactly_track_and_thumb() {
-        let marker = |ui: &mut Ui<'_>, area: Rect| {
-            let style = ui.surface_style();
-            ui.paint_str(area, "ZZZZZZZZ", style);
-        };
-        let render = |slot: Option<Part>| {
-            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(SCREEN);
-            let state = ScrollState::new(100);
-            runtime
-                .draw_scene(SCREEN, &mut buffer, |ui, _| {
-                    let mut region = ScrollRegion::new(ID);
-                    if let Some(part) = slot {
-                        region = region.slot(part, &marker);
-                    }
-                    region.draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
-                })
-                .commit_presented();
-            buffer
-        };
-        let plain = render(None);
-        for part in Part::ALL {
-            let changed = render(Some(*part)) != plain;
-            assert_eq!(
-                changed,
-                matches!(*part, Part::TRACK | Part::THUMB),
-                "unexpected slot behavior for {part:?}"
-            );
-        }
-    }
-
-    #[test]
-    fn scrollbar_drops_bold_inherited_from_the_cell_under_it() {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let area = Rect::new(0, 0, 5, 6);
-        let under =
-            ratatui_core::style::Style::new().add_modifier(Modifier::BOLD | Modifier::ITALIC);
-        for y in area.y..area.bottom() {
-            if let Some(cell) = buf.cell_mut(Position::new(area.right() - 1, y)) {
-                cell.set_symbol("X").set_style(under);
-            }
-        }
-        let mut st = ScrollState::new(100);
-        st.set_viewport(6);
-        st.scroll_to(47);
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            ScrollRegion::new(ID).draw(ui, area, &st, 100);
-        })
-        .commit_presented();
-        for y in area.y..area.bottom() {
-            let Some(cell) = buf.cell(Position::new(area.right() - 1, y)) else {
-                panic!("bar cell missing at y={y}");
-            };
-            assert_ne!(cell.symbol(), "X", "bar did not paint over y={y}");
-            assert!(
-                !cell.modifier.contains(Modifier::BOLD),
-                "bar kept bold at y={y}"
-            );
-            assert!(
-                cell.modifier.contains(Modifier::ITALIC),
-                "bar wiped italic at y={y}"
-            );
-        }
-    }
-
-    #[test]
-    fn scrollbar_preserves_resolved_theme_bold() {
-        let theme = Theme::junie().override_family(Family::SCROLLBAR, |recipe| {
-            recipe
-                .part(Part::TRACK)
-                .base(StylePatch::new().add(Modifier::BOLD));
-        });
-        let mut rt = Runtime::new(Stub::default(), theme);
-        let mut buf = Buffer::empty(SCREEN);
-        let area = Rect::new(0, 0, 5, 6);
-        let mut st = ScrollState::new(100);
-        st.set_viewport(6);
-        st.scroll_to(47);
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            ScrollRegion::new(ID).draw(ui, area, &st, 100);
-        })
-        .commit_presented();
-        assert!(
-            buf.cell(Position::new(area.right() - 1, area.y))
-                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD)),
-            "theme-level track bold is part of the resolved scrollbar style"
-        );
-    }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed, source-bound architecture checks for termrock acceptance."""
+
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ def skip_rust_trivia(text: str, index: int) -> int | None:
 
 
 def rust_char_literal_end(text: str, index: int) -> int | None:
-    """Return the end of a char/byte-char literal, leaving lifetimes untouched."""
+
     quote = index + 1 if text.startswith("b'", index) else index
     if quote >= len(text) or text[quote] != "'" or quote + 1 >= len(text):
         return None
@@ -85,7 +85,7 @@ def rust_char_literal_end(text: str, index: int) -> int | None:
 
 
 def rust_literal_end(text: str, index: int) -> tuple[int | None, bool]:
-    """Skip Rust string literals; flag malformed forms instead of hiding suffixes."""
+
     char_end = rust_char_literal_end(text, index)
     if char_end is not None:
         return char_end, False
@@ -120,7 +120,7 @@ def rust_literal_end(text: str, index: int) -> tuple[int | None, bool]:
 
 
 def include_invocations(text: str) -> list[tuple[str, int, str | None]]:
-    """Extract simple literal include calls; report unsupported calls to caller."""
+
     found: list[tuple[str, int, str | None]] = []
     index = 0
     pairs = {"(": ")", "{": "}", "[": "]"}
@@ -191,7 +191,7 @@ def include_invocations(text: str) -> list[tuple[str, int, str | None]]:
 
 
 def path_attributes(text: str) -> list[tuple[str, int, str | None]]:
-    """Find `path` meta items, including nested cfg_attr forms."""
+
     found: list[tuple[str, int, str | None]] = []
     index = 0
     while index < len(text):
@@ -266,7 +266,7 @@ def rust_group_end(text: str, opening: int) -> int | None:
 
 
 def simple_path_literal(text: str, index: int) -> tuple[str | None, int]:
-    """Read a plain or raw Rust string path; unsupported escape forms stay unresolved."""
+
     if index < len(text) and text[index] == '"':
         end = index + 1
         escaped = False
@@ -356,7 +356,7 @@ def load_metadata(root: Path) -> tuple[dict[str, Any] | None, str | None]:
 
 
 def package_name(dep: dict[str, Any]) -> str:
-    # `name` is the resolved package name; `rename` is only the local alias.
+
     return str(dep.get("package") or dep.get("name") or "")
 
 
@@ -434,19 +434,13 @@ def read_source(root: Path, rel: str) -> bytes:
     path = root / rel
     resolved = path.resolve(strict=False)
     resolved.relative_to(root)
-    # The live filesystem is the Cargo input. Git's index may contain stale
-    # bytes after a generated or included source file has been removed.
+
+
     return path.read_bytes()
 
 
 def target_directory_module_aliases(source_roots: list[Path], target_directory: Path) -> set[str]:
-    """Find source-tree symlink names that point into Cargo build output.
 
-    Do not follow directory symlinks while walking: target directories can be
-    large. Matching module names anywhere beneath package or actual Cargo
-    target roots is deliberately conservative because lexical scanning does
-    not model nested inline-module scopes.
-    """
     aliases: set[str] = set()
     target_directory = target_directory.resolve(strict=False)
     seen_roots: set[Path] = set()
@@ -573,8 +567,8 @@ def check(root: Path) -> dict[str, Any]:
         and pkg not in application_pkgs
     ]
 
-    # Traverse every non-dev workspace edge from each public library role.
-    # Cargo's package dependency inventory includes target-specific edges.
+
+
     workspace_by_name = {str(pkg.get("name", "")): pkg for pkg in packages}
     dependency_graph: dict[str, list[str]] = {}
     direct_forbidden: dict[str, list[dict[str, Any]]] = {}
@@ -716,9 +710,9 @@ def check(root: Path) -> dict[str, Any]:
         references = include_invocations(text)
         references.extend(path_attributes(text))
         module_aliases = target_module_aliases_by_package.get(str(pkg.get("id", pkg.get("name", ""))), set())
-        # Ordinary `mod name;` declarations also select production inputs.
-        # Do not traverse Cargo's potentially huge build directory through a
-        # source symlink; report this selected input as unresolved instead.
+
+
+
         module_base = (root / rel).parent
         if Path(rel).name not in {"lib.rs", "main.rs", "mod.rs"}:
             module_base /= Path(rel).stem
@@ -815,7 +809,7 @@ def check(root: Path) -> dict[str, Any]:
         except OSError as exc:
             report["errors"].append(f"unreadable workspace input {rel}: {exc}")
 
-    # Stable unique inventory: duplicate includes still retain their owning edge.
+
     source_records.sort(key=lambda row: (row["path"], row.get("included_by", ""), row["package"]))
     report["source_inputs"] = source_records
     manifest_payload = json.dumps(source_records, sort_keys=True, separators=(",", ":")).encode()
@@ -831,14 +825,14 @@ def check(root: Path) -> dict[str, Any]:
         report["application_shared_closure_missing"], report["dependency_violations"], report["findings"],
         report["unaccounted_inputs"],
     ))
-    # This bounded checker cannot attest semantic architecture, workflow coverage,
-    # exact paired application behavior, or independent review.
+
+
     report["acceptance_complete"] = False
     return report
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description='Fail-closed, source-bound architecture checks for termrock acceptance.')
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--output", type=Path, help="write JSON report here; stdout otherwise")
     args = parser.parse_args()
