@@ -97,6 +97,26 @@ const TOGGLING: [Binding<ChipBarCmd>; 8] = [
     ),
 ];
 
+const CLOSE_BACKSPACE: Binding<ChipBarCmd> = Binding {
+    action: ActionKey::custom("chip.close.backspace"),
+    ..b(
+        Chord::key(KeyCode::Backspace),
+        ChipBarCmd::Close,
+        "Remove",
+        false,
+    )
+};
+
+const CLOSE_X: Binding<ChipBarCmd> = Binding {
+    action: ActionKey::custom("chip.close.x"),
+    ..b(
+        Chord::key(KeyCode::Char('x')),
+        ChipBarCmd::Close,
+        "Remove",
+        false,
+    )
+};
+
 const CLOSABLE: [Binding<ChipBarCmd>; 10] = [
     MOVE[0],
     MOVE[1],
@@ -111,18 +131,8 @@ const CLOSABLE: [Binding<ChipBarCmd>; 10] = [
         "Remove",
         true,
     ),
-    b(
-        Chord::key(KeyCode::Backspace),
-        ChipBarCmd::Close,
-        "Remove",
-        false,
-    ),
-    b(
-        Chord::key(KeyCode::Char('x')),
-        ChipBarCmd::Close,
-        "Remove",
-        false,
-    ),
+    CLOSE_BACKSPACE,
+    CLOSE_X,
 ];
 
 const TOGGLING_CLOSABLE: [Binding<ChipBarCmd>; 11] = [
@@ -1059,6 +1069,71 @@ mod tests {
         }
     }
 
+    const KEY_ITEMS: [&str; 2] = ["Alpha", "Beta"];
+
+    struct KeyApp {
+        state: ChipBarState,
+        actions: Vec<ChipBarAction>,
+        mode: SelectMode,
+        disabled: bool,
+        read_only: bool,
+    }
+
+    impl KeyApp {
+        fn new(mode: SelectMode, disabled: bool, read_only: bool) -> Self {
+            let mut state = ChipBarState::default();
+            state.checked_mut().insert(ItemKey::index(0));
+            state.checked_mut().insert(ItemKey::index(1));
+            Self {
+                state,
+                actions: Vec::new(),
+                mode,
+                disabled,
+                read_only,
+            }
+        }
+
+        fn bar(&self) -> ChipBar<'static, &'static str> {
+            ChipBar::new(BAR)
+                .closable(true)
+                .select_mode(self.mode)
+                .disabled(self.disabled)
+                .read_only(self.read_only)
+        }
+    }
+
+    impl App for KeyApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let response = self.bar().update(cx, &mut self.state, &KEY_ITEMS);
+            if let Some(action) = response.action_ref() {
+                self.actions.push(*action);
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            self.bar().draw(ui, POINTER_AREA, &self.state, &KEY_ITEMS);
+        }
+    }
+
+    fn key_app(mode: SelectMode, disabled: bool, read_only: bool) -> Runtime<KeyApp> {
+        let mut runtime = Runtime::new(KeyApp::new(mode, disabled, read_only), Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(POINTER_AREA);
+        for _ in 0..16 {
+            if runtime.needs_settle() {
+                let _ = runtime.settle();
+            }
+            runtime
+                .draw_buffer(POINTER_AREA, &mut buffer)
+                .commit_presented();
+            if !runtime.needs_settle() && !runtime.needs_present() {
+                break;
+            }
+        }
+        runtime
+    }
+
     fn pointer_app(mode: SelectMode, disabled: bool, read_only: bool) -> Runtime<PointerApp> {
         let mut runtime = Runtime::new(PointerApp::new(mode, disabled, read_only), Theme::junie());
         let _ = runtime.initialize();
@@ -1116,6 +1191,148 @@ mod tests {
                 runtime.app().actions,
                 [ChipBarAction::Closed(ItemKey::index(1)), label_action]
             );
+        }
+    }
+
+    #[test]
+    fn binding_tables_keep_close_aliases_distinct_and_metadata_intact() {
+        let tables = [
+            ChipBar::<&str>::new(BAR)
+                .select_mode(SelectMode::Single)
+                .bindings(BindingState::default()),
+            ChipBar::<&str>::new(BAR)
+                .select_mode(SelectMode::Multi)
+                .bindings(BindingState::default()),
+            ChipBar::<&str>::new(BAR)
+                .select_mode(SelectMode::Single)
+                .closable(true)
+                .bindings(BindingState::default()),
+            ChipBar::<&str>::new(BAR)
+                .select_mode(SelectMode::Multi)
+                .closable(true)
+                .bindings(BindingState::default()),
+        ];
+
+        for table in tables {
+            for (index, binding) in table.iter().enumerate() {
+                assert!(
+                    table[..index]
+                        .iter()
+                        .all(|earlier| earlier.action != binding.action),
+                    "duplicate action {:?} in {table:?}",
+                    binding.action
+                );
+            }
+        }
+
+        let close = &tables[2][7..];
+        let delete = close
+            .iter()
+            .find(|binding| binding.chord == Some(Chord::key(KeyCode::Delete)))
+            .expect("Delete remains the canonical close binding");
+        let backspace = close
+            .iter()
+            .find(|binding| binding.chord == Some(Chord::key(KeyCode::Backspace)))
+            .expect("Backspace close alias remains available");
+        let x = close
+            .iter()
+            .find(|binding| binding.chord == Some(Chord::key(KeyCode::Char('x'))))
+            .expect("x close alias remains available");
+
+        assert_eq!(delete.action, ActionKey::custom("Remove"));
+        assert_ne!(delete.action, backspace.action);
+        assert_ne!(delete.action, x.action);
+        assert_ne!(backspace.action, x.action);
+        for binding in [delete, backspace, x] {
+            assert_eq!(binding.cmd, ChipBarCmd::Close);
+            assert_eq!(binding.label, "Remove");
+        }
+        assert!(delete.visible);
+        assert_eq!(delete.priority, 60);
+        for binding in [backspace, x] {
+            assert!(!binding.visible);
+            assert_eq!(binding.priority, 10);
+            assert_eq!(
+                Binding::command(tables[2], binding.action),
+                Some(ChipBarCmd::Close)
+            );
+        }
+
+        for table in [tables[0], tables[1]] {
+            assert!(table.iter().all(|binding| binding.cmd != ChipBarCmd::Close));
+        }
+        for chord in [
+            Chord::key(KeyCode::Char('h')),
+            Chord::key(KeyCode::Char('l')),
+            Chord::key(KeyCode::Home),
+            Chord::key(KeyCode::End),
+        ] {
+            assert!(tables[2].iter().any(|binding| binding.chord == Some(chord)));
+            assert!(tables[3].iter().any(|binding| binding.chord == Some(chord)));
+        }
+
+        let without_close = ChipBar::<&str>::new(BAR)
+            .select_mode(SelectMode::Multi)
+            .bindings(BindingState::default());
+        assert!(
+            without_close
+                .iter()
+                .all(|binding| binding.cmd != ChipBarCmd::Close)
+        );
+    }
+
+    #[test]
+    fn native_close_chords_dispatch_in_single_multi_and_range_modes() {
+        for mode in [SelectMode::Single, SelectMode::Multi, SelectMode::Range] {
+            for code in [KeyCode::Delete, KeyCode::Backspace, KeyCode::Char('x')] {
+                let mut runtime = key_app(mode, false, false);
+                assert_eq!(runtime.focus(), Some(BAR));
+                assert!(runtime.diagnostics().is_empty());
+
+                let _ = crate::runtime::stub::deliver(&mut runtime, key(code));
+
+                assert_eq!(
+                    runtime.app().actions,
+                    [ChipBarAction::Closed(ItemKey::index(0))]
+                );
+                assert!(runtime.app().state.checked().contains(ItemKey::index(0)));
+                assert!(runtime.app().state.checked().contains(ItemKey::index(1)));
+                assert!(runtime.diagnostics().is_empty());
+            }
+        }
+    }
+
+    #[test]
+    fn native_navigation_activation_toggle_and_inert_close_behavior_remain() {
+        let mut single = key_app(SelectMode::Single, false, false);
+        let _ = crate::runtime::stub::deliver(&mut single, key(KeyCode::Right));
+        assert_eq!(single.app().state.cursor(), Some(ItemKey::index(1)));
+        let _ = crate::runtime::stub::deliver(&mut single, key(KeyCode::Enter));
+        assert_eq!(
+            single.app().actions,
+            [ChipBarAction::Activated(ItemKey::index(1))]
+        );
+        assert!(single.diagnostics().is_empty());
+
+        let mut multi = key_app(SelectMode::Multi, false, false);
+        let _ = crate::runtime::stub::deliver(&mut multi, key(KeyCode::Char(' ')));
+        assert_eq!(
+            multi.app().actions,
+            [ChipBarAction::Toggled(ItemKey::index(0))]
+        );
+        assert!(!multi.app().state.checked().contains(ItemKey::index(0)));
+        assert!(multi.app().state.checked().contains(ItemKey::index(1)));
+        assert!(multi.diagnostics().is_empty());
+
+        for (disabled, read_only) in [(true, false), (false, true)] {
+            let mut runtime = key_app(SelectMode::Multi, disabled, read_only);
+            for code in [KeyCode::Delete, KeyCode::Backspace, KeyCode::Char('x')] {
+                let _ = crate::runtime::stub::deliver(&mut runtime, key(code));
+            }
+            assert!(runtime.app().actions.is_empty());
+            assert!(runtime.app().state.checked().contains(ItemKey::index(0)));
+            assert!(runtime.app().state.checked().contains(ItemKey::index(1)));
+            assert!(runtime.diagnostics().is_empty());
         }
     }
 
