@@ -28,6 +28,96 @@ def normalize(text: str) -> str:
     return re.sub(r'\s+', ' ', text).strip()
 
 
+def mask_rust_noncode(source: str) -> str:
+    chars = list(source)
+    i = 0
+
+    def blank(start: int, end: int) -> None:
+        for pos in range(start, end):
+            if chars[pos] not in '\r\n':
+                chars[pos] = ' '
+
+    while i < len(source):
+        if source.startswith('//', i):
+            end = source.find('\n', i)
+            if end < 0:
+                end = len(source)
+            blank(i, end)
+            i = end
+            continue
+        if source.startswith('/*', i):
+            start = i
+            i += 2
+            depth = 1
+            while i < len(source) and depth:
+                if source.startswith('/*', i):
+                    depth += 1
+                    i += 2
+                elif source.startswith('*/', i):
+                    depth -= 1
+                    i += 2
+                else:
+                    i += 1
+            blank(start, i)
+            continue
+        raw = re.match(r'(?:br|r)(#+)?"', source[i:])
+        if raw:
+            start = i
+            hashes = raw.group(1) or ''
+            i += raw.end()
+            closing = '"' + hashes
+            end = source.find(closing, i)
+            i = len(source) if end < 0 else end + len(closing)
+            blank(start, i)
+            continue
+        if source[i] in 'b' and i + 1 < len(source) and source[i + 1] == '"':
+            quote = i + 1
+        elif source[i] == '"':
+            quote = i
+        else:
+            quote = -1
+        if quote >= 0:
+            start = i
+            i = quote + 1
+            while i < len(source):
+                if source[i] == '\\':
+                    i += 2
+                elif source[i] == '"':
+                    i += 1
+                    break
+                else:
+                    i += 1
+            blank(start, i)
+            continue
+        if source[i] == "'":
+            end = i + 1
+            escaped = False
+            while end < len(source) and source[end] not in '\r\n' and end - i <= 13:
+                if source[end] == "'" and not escaped:
+                    end += 1
+                    blank(i, end)
+                    i = end
+                    break
+                if source[end] == '\\' and not escaped:
+                    escaped = True
+                else:
+                    escaped = False
+                end += 1
+            else:
+                i += 1
+            continue
+        i += 1
+    return ''.join(chars)
+
+
+def line_depth(source: str, line_number: int) -> int:
+    depth = 0
+    lines = mask_rust_noncode(source).splitlines()
+    for line in lines[:line_number - 1]:
+        depth += line.count('{') - line.count('}')
+    return depth
+
+
 def slug(title: str) -> str:
     title = title.lower()
     title = re.sub(r'[^a-z0-9 -]', '', title)
@@ -36,6 +126,64 @@ def slug(title: str) -> str:
 
 def fail(message: str) -> None:
     raise SystemExit(message)
+
+
+def verify_scope_attachment(attachment: dict, path: str, source_path: str, cleanup_sources: dict) -> None:
+    scope = attachment.get('scope_evidence')
+    if not scope:
+        return
+    if scope['kind'] == 'module_level_function':
+        evidence_path = scope['path']
+        if evidence_path != path:
+            fail(f'function scope path mismatch for {attachment["symbol"]}')
+        if evidence_path not in cleanup_sources:
+            cleanup_sources[evidence_path] = git_blob(CLEANUP_COMMIT, evidence_path).decode()
+        source = cleanup_sources[evidence_path]
+        line_number = scope['line_number']
+        lines = source.splitlines()
+        if sum(line.strip() == attachment['declaration_line'] for line in lines) != 1:
+            fail(f'function declaration is not unique for {attachment["symbol"]}')
+        if line_number < 1 or line_number > len(lines) or lines[line_number - 1].strip() != attachment['declaration_line']:
+            fail(f'function declaration line mismatch for {attachment["symbol"]}')
+        if line_depth(source, line_number) != 0 or scope['lexical_parent'] != 'module':
+            fail(f'function is not attached at module scope: {attachment["symbol"]}')
+        if not re.search(r'\bfn\s+' + re.escape(attachment['symbol']) + r'\b', lines[line_number - 1]):
+            fail(f'function symbol mismatch for {attachment["symbol"]}')
+        module_leaf = scope['module'].split('::')[-1]
+        source_leaf = Path(source_path).stem if Path(source_path).name != 'mod.rs' else Path(source_path).parent.name
+        if module_leaf != source_leaf:
+            fail(f'function module does not match source path for {attachment["symbol"]}')
+        return
+    if scope['kind'] == 'module_documentation':
+        module = scope['module']
+        source_leaf = Path(source_path).stem if Path(source_path).name != 'mod.rs' else Path(source_path).parent.name
+        if module.split('::')[-1] != source_leaf or attachment['symbol'] != module:
+            fail(f'module documentation identity mismatch for {module}')
+        prior_parts = None
+        for declaration in scope['module_declarations']:
+            evidence_path = declaration['path']
+            if evidence_path not in cleanup_sources:
+                cleanup_sources[evidence_path] = git_blob(CLEANUP_COMMIT, evidence_path).decode()
+            source = cleanup_sources[evidence_path]
+            lines = source.splitlines()
+            line_number = declaration['line_number']
+            if sum(line.strip() == declaration['declaration_line'] for line in lines) != 1:
+                fail(f'module declaration is not unique for {declaration["module"]}')
+            if line_number < 1 or line_number > len(lines) or lines[line_number - 1].strip() != declaration['declaration_line']:
+                fail(f'module declaration line mismatch for {declaration["module"]}')
+            if line_depth(source, line_number) != 0 or declaration['scope'] != 'module':
+                fail(f'module declaration is not at module scope: {declaration["module"]}')
+            match = re.search(r'\bmod\s+([A-Za-z_][A-Za-z0-9_]*)\s*;', declaration['declaration_line'])
+            parts = declaration['module'].split('::')
+            if not match or match.group(1) != parts[-1]:
+                fail(f'module declaration name mismatch for {declaration["module"]}')
+            if prior_parts is not None and parts[:-1] != prior_parts:
+                fail(f'module declaration chain is discontinuous for {declaration["module"]}')
+            prior_parts = parts
+        if not scope['module_declarations'] or prior_parts != module.split('::'):
+            fail(f'module declaration chain does not reach {module}')
+        return
+    fail(f'unknown lexical scope evidence kind: {scope["kind"]}')
 
 
 def main() -> None:
@@ -110,10 +258,20 @@ def main() -> None:
         if attachment['source_commit'] != CLEANUP_COMMIT:
             fail(f'wrong cleanup commit for source_map_record {source_row["source_map_record"]}')
         if attachment['status'] == 'retained_production_item':
-            if path not in cleanup_sources:
-                cleanup_sources[path] = git_blob(CLEANUP_COMMIT, path).decode()
-            if attachment['declaration_line'] not in [line.strip() for line in cleanup_sources[path].splitlines()]:
+            scope = attachment.get('scope_evidence')
+            evidence_path = scope['path'] if scope and scope['kind'] == 'module_level_function' else path
+            if evidence_path not in cleanup_sources:
+                cleanup_sources[evidence_path] = git_blob(CLEANUP_COMMIT, evidence_path).decode()
+            if scope and scope['kind'] == 'module_documentation':
+                evidence_path = scope['module_declarations'][-1]['path']
+                if evidence_path not in cleanup_sources:
+                    cleanup_sources[evidence_path] = git_blob(CLEANUP_COMMIT, evidence_path).decode()
+                declaration = scope['module_declarations'][-1]['declaration_line']
+                if declaration not in [line.strip() for line in cleanup_sources[evidence_path].splitlines()]:
+                    fail(f'module attachment declaration missing after cleanup: {scope["module"]}')
+            elif attachment['declaration_line'] not in [line.strip() for line in cleanup_sources[evidence_path].splitlines()]:
                 fail(f'attachment declaration missing after cleanup: {path}:{attachment["symbol"]}')
+            verify_scope_attachment(attachment, path, path, cleanup_sources)
         elif attachment['status'] == 'removed_test_target':
             if path not in removed_targets:
                 fail(f'missing removed-target map for {path}')
@@ -159,6 +317,7 @@ def main() -> None:
 
     print('PASS: 304 source identities and hashes match the crosswalk.')
     print('PASS: imported candidate API-RULES path and frozen cleanup attachments match recorded commits.')
+    print('PASS: corrected free-function and module-comment attachments match their lexical scopes and declaration chains.')
     print('PASS: mapped rows resolve to exact Markdown anchors and excerpts; other rows have reasons.')
     print('PASS: selected behavior cases=0; runtime behavior=NOT VERIFIED.')
     print('NOTE: semantic coverage requires the independent Sol high review; this verifier checks structure only.')
