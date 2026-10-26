@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "task_id": "T37-E2E-BUILD-FORMAT-01",
+  "scope": "Apply pinned rustfmt layout to crates/termrock-e2e/build.rs only.",
+  "fixed_input": {
+    "source_commit": "1ba17e6fd7f31f85ef4069dc388fd0afa2d26a5b",
+    "combined_source_commit": "560f3dca487247b1068c45a0d2b469c8eabe3165",
+    "product_baseline": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "source_path": "crates/termrock-e2e/build.rs",
+    "git_blob": "10cf8e055489fdf6c0aef66c247875b053658ccd",
+    "sha256": "d0c867ee75175e6464cd260fd658544c97926fb2c0dc0e69d82af3a4c4ceaa57",
+    "same_blob_at_combined_source_and_baseline": true
+  },
+  "source_output": {
+    "commit": "673938a9e56a88ee07a9b0dc390408bc19addf3e",
+    "parent": "1ba17e6fd7f31f85ef4069dc388fd0afa2d26a5b",
+    "tree": "33dd604f59ea0d8a6f61f614da349460c5becba7",
+    "source_path": "crates/termrock-e2e/build.rs",
+    "git_blob": "8123c691d483aa633400c22e01d8affa7e0e0e41",
+    "sha256": "2d1904d678ed04d67f71448de332916e7f2226066b2a57f963882eb2108949bc",
+    "changed_paths": [
+      "crates/termrock-e2e/build.rs"
+    ],
+    "diff_sha256": "70fef7c14b53a4fd95bddedea0f2b457e5d208a58135a17ba5e61a78f5dfcaea",
+    "diff_counts": {
+      "added_lines": 1,
+      "removed_lines": 4,
+      "changed_tokens": 0,
+      "changed_literals": 0,
+      "other_source_changes": 0
+    }
+  },
+  "format_change": {
+    "location": "crates/termrock-e2e/build.rs:23",
+    "before": "The digest_hex iterator chain spans four lines.",
+    "after": "Pinned rustfmt places the same iterator chain on one line.",
+    "build_dependencies_changed": false,
+    "generated_byte_behavior_changed": false,
+    "comments_attributes_directives_or_literals_changed": false
+  },
+  "preexisting_format_failure": {
+    "classification": "Pre-existing formatter drift. The input file blob matches both the combined source and product baseline.",
+    "failure_log_reference": "docs/implementation/pr38-final/results/t37-metadata/final-verification-560f/fmt-e2e.log",
+    "local_pre_fix_command": "mise exec -- rustfmt --edition 2024 --check crates/termrock-e2e/build.rs",
+    "local_pre_fix_exit_code": 1,
+    "diagnostic": "rustfmt requests the digest_hex iterator chain on one line at build.rs:23."
+  },
+  "checks": [
+    {
+      "command": "Verify current, combined-source, and baseline build.rs Git blob IDs.",
+      "exit_code": 0,
+      "result": "PASS; all three are 10cf8e055489fdf6c0aef66c247875b053658ccd before formatting."
+    },
+    {
+      "command": "mise exec -- rustfmt --edition 2024 crates/termrock-e2e/build.rs",
+      "exit_code": 0,
+      "result": "PASS; formatter changed only the digest_hex iterator-chain layout."
+    },
+    {
+      "command": "mise exec -- rustfmt --edition 2024 --check crates/termrock-e2e/build.rs",
+      "exit_code": 0,
+      "result": "PASS after formatting."
+    },
+    {
+      "command": "git diff --check 1ba17e6fd7f31f85ef4069dc388fd0afa2d26a5b -- crates/termrock-e2e/build.rs",
+      "exit_code": 0,
+      "result": "PASS."
+    },
+    {
+      "command": "One-off Python token comparison of the digest expression, followed by exact whole-file comparison with that expression replaced by one placeholder.",
+      "exit_code": 0,
+      "result": "PASS; all 27 expression tokens, including the string literal, match; every other source byte is identical."
+    }
+  ],
+  "not_run": [
+    {
+      "command": "rust-build-guard -- mise exec -- cargo check --locked -p termrock-e2e",
+      "reason": "The metadata owner runs the final guarded E2E check after integration."
+    },
+    {
+      "command": "cargo test or cargo nextest run",
+      "reason": "This formatting task does not authorize test execution."
+    }
+  ],
+  "test_and_behavior": {
+    "selected_tests": 0,
+    "selected_cases": 0,
+    "replacement_tests_or_harnesses_added": false,
+    "behavior": "NOT VERIFIED"
+  },
+  "review": {
+    "independent_sol_high_review": "PENDING",
+    "review_scope": "Confirm the formatter-only source diff, token and literal equality, and recorded input/output identities."
+  },
+  "limits": [
+    "No Cargo build or tests ran in this fragment.",
+    "The metadata owner remains responsible for the combined guarded E2E check."
+  ]
+}
