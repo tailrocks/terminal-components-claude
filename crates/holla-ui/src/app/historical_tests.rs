@@ -1,3 +1,4 @@
+#![cfg(test)]
 use super::{App, Motion, Route, Scenario, dialogs};
 use crate::domain::mise::Trust;
 use termrock::{Dialog, FeedbackClock, KeyCode, SimulationMoment, Theme};
