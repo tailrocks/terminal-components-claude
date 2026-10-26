@@ -142,6 +142,7 @@
       "expected_count": 54,
       "required_values": [
         "reference_identity",
+        "reference_source",
         "reference_factory",
         "current_entry",
         "current_factory",
@@ -157,25 +158,24 @@
         "evidence",
         "source_refs",
         "live_page_object_exists",
-        "planned_content_owner",
-        "reference_source_commit",
-        "reference_source_path",
-        "reference_source_line_or_range",
-        "reference_source_sha256"
+        "planned_content_owner"
       ],
-      "preservation": "Keep target tag, live Page object, dispatch path, factory, definition owner, and planned content owner separate. Bind the exact full key set to PR26 commit 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948 with source paths, lines, and hashes; 54 rows alone do not establish route coverage.",
+      "preservation": "Keep target tag, live Page object, dispatch path, factory, definition owner, and planned content owner separate. Each route carries a nested reference_source object bound to PR26 commit 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948, with source path, registry line, hash, and optional factory line. Compare the full key set; 54 rows alone do not establish route coverage.",
       "owner_task_binding": "Join route.requirement_id to the app-routes requirements array by id; preserve current route owner and planned content owner as separate fields.",
       "reference_keyset": {
         "commit": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
         "comparison": "The final 54 reference_identity values must equal the complete key set extracted from the named PR26 source records at this exact commit; a count-only check is insufficient.",
         "required_provenance": [
           "reference_identity",
-          "reference_source_commit",
-          "reference_source_path",
-          "reference_source_line_or_range",
-          "reference_source_sha256"
+          "reference_source.commit",
+          "reference_source.path",
+          "reference_source.registry_line",
+          "reference_source.sha256"
         ],
-        "check": "Compute sorted keys from the fixed PR26 source bindings and the route index, reject missing, additional, or duplicate keys, and verify every source path/hash against the pinned Git commit."
+        "check": "Compute sorted keys from the fixed PR26 source bindings and the route index, reject missing, additional, or duplicate keys, and verify every nested reference_source path/hash/line against the pinned Git commit.",
+        "optional_provenance": [
+          "reference_source.factory_line"
+        ]
       }
     },
     "public_exports": {
