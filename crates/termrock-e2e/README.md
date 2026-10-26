@@ -71,11 +71,14 @@ the source-pinned history.
 
 All twelve schema files remain byte-identical in [`schemas/`](schemas/). Seven
 records marked **Active** have retained consumers: the admission path uses
-five, while the retained subject validator and diagnostic receipt reader use
-two. “Active” records a current consumer. It does not mean that a runner still
-produces that record. Consumers may hash or embed a schema file, validate a
-typed record, or check a version string. The other five schemas are
-**Historical-only** formats for retired PTY-runner inputs.
+five, and the retained Python subject builder/validator and diagnostic receipt
+reader use two. `tools/visibility/subjects.py` builds and validates subject
+manifests. `tools/visibility/status.py` reads receipt-v3 records for
+diagnostics. The Rust PTY subject-loader lane is retired. “Active” records a
+current consumer; it does not mean that a runner still produces that record.
+Consumers may hash or embed a schema file, validate a typed record, or check a
+version string. The other five schemas are **Historical-only** formats for
+retired PTY-runner inputs.
 
 | Status | Schema | Use |
 |---|---|---|
@@ -84,8 +87,8 @@ typed record, or check a version string. The other five schemas are
 | Active | [`oracle-capture-receipt-v1.schema.json`](schemas/oracle-capture-receipt-v1.schema.json) | Pinned capture input |
 | Active | [`qualification-review-v1.schema.json`](schemas/qualification-review-v1.schema.json) | Independent approval input |
 | Active | [`tag-validator-toolchain-v1.schema.json`](schemas/tag-validator-toolchain-v1.schema.json) | Validator identity bound by the capture |
-| Active | [`receipt-v3.schema.json`](schemas/receipt-v3.schema.json) | Retained diagnostic reader for historical receipts; no current runner or producer |
-| Active | [`subject-manifest-v2.schema.json`](schemas/subject-manifest-v2.schema.json) | Retained subject validator; schema bytes are pinned and its fields are validated |
+| Active | [`receipt-v3.schema.json`](schemas/receipt-v3.schema.json) | Python diagnostic reader for historical receipts; no current runner or producer |
+| Active | [`subject-manifest-v2.schema.json`](schemas/subject-manifest-v2.schema.json) | Python subject builder and validator pin the schema bytes and validate its fields |
 | Historical-only | [`receipt-v1.schema.json`](schemas/receipt-v1.schema.json) | Retired PTY-run receipt format |
 | Historical-only | [`receipt-v2.schema.json`](schemas/receipt-v2.schema.json) | Retired PTY-run receipt format |
 | Historical-only | [`subject-manifest-v1.schema.json`](schemas/subject-manifest-v1.schema.json) | Retired subject-manifest format |
