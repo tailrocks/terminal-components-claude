@@ -2,7 +2,7 @@
 
 This unit composes three explicit cohorts into one 1,122-record crosswalk. Each output row preserves its source record and unchanged cohort record.
 
-The producer validates source identity against accepted Git blob `2fee2c277d1213fc5fad5d81eb77479600182b69`. That inventory is absent from this checkout. The output marks its integration `PENDING_INTEGRATION` and records the verified blob hash.
+The producer validates source identity against accepted Git blob `2fee2c277d1213fc5fad5d81eb77479600182b69`. The output's `source_inventory.integration_status` reports whether a local copy is integrated and hash-verified. Without a local copy, the producer uses the immutable blob and reports `PENDING_INTEGRATION`.
 
 Run from the candidate checkout:
 
@@ -10,11 +10,13 @@ Run from the candidate checkout:
 PYTHONDONTWRITEBYTECODE=1 python3 docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py
 ```
 
-Inputs use repository-relative paths. No plan root, temporary export, or other worktree is required. After the foundation inventory is integrated, the producer checks its bytes against the same immutable Git blob.
+Inputs use repository-relative paths. No plan root, temporary export, or other worktree is required. Any local source copy must match the same immutable Git blob byte-for-byte.
 
 The producer validates all 1,122 zero-based source indices, stable IDs, source paths, line ranges, file hashes, and text hashes. It checks that indices and IDs are unique and cover the full inventory. Destinations must resolve inside this checkout.
 
 The producer copies each cohort row without changing its attachment, disposition, required clauses, excerpt, reason, destination, or decision identifiers. Cohort-specific field names remain intact. The producer does not infer dispositions from keywords, source survival, or matching signatures.
+
+Coordinator review bindings live in `coordinator-review-decisions.json`. Each accepted decision binds a reviewer and decision ID to an exact source commit, artifact path, and SHA-256. The producer verifies that Git blob against the current artifact. Worker review fields remain quoted source metadata and never set acceptance.
 
 | Cohort | Records | Source commit | Imported source | Independent decision |
 | --- | ---: | --- | --- | --- |

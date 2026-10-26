@@ -1,10 +1,10 @@
 {
-  "schema": "t37.foundation-api-prose-crosswalk.v2",
+  "schema": "t37.foundation-api-prose-crosswalk.v3",
   "task_id": "T37",
   "status": "REVIEW/PENDING",
   "review_state": "PENDING_INDEPENDENT_SOL_HIGH_REVIEW",
   "work_input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
-  "composition_input_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+  "composition_input_commit": "59118234047f19adaa62621badd8c33bde355040",
   "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
   "cleanup_source_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
   "accepted_foundation_source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
@@ -17,6 +17,12 @@
     "integration_status": "PENDING_INTEGRATION",
     "input_mode": "immutable_git_blob; local integration pending"
   },
+  "coordinator_review_decisions": {
+    "path": "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/coordinator-review-decisions.json",
+    "sha256": "0f4c4b7a871b16664d696c2f54385cb516f2af859123a0a146f9ccbf44fb23b8",
+    "schema": "t37.api-prose-coordinator-review-bindings.v1",
+    "recorded_by": "/root"
+  },
   "cohorts": [
     {
       "cohort_id": "T37-API-PROSE-COHORT-A",
@@ -24,7 +30,7 @@
       "input_artifact": {
         "path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
         "integration_commit": "9463cb8c36f0bc6e53af241334efb19bb8a2e5f1",
-        "independently_reviewed_source_commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+        "reviewed_source_commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
         "sha256": "6c5c9147f0d0339b5fbba9adfe1fc8703c773c078fb7806e9ec67ee07e958cf4",
         "record_count": 322
       },
@@ -38,12 +44,88 @@
       },
       "independent_review": {
         "status": "ACCEPTED",
+        "requested_status": "ACCEPTED",
         "reviewer": "/root/t37_components_review",
         "model": "gpt-6.1-sol",
         "effort": "high",
         "decision_id": "T37-API-PROSE-01",
-        "reviewed_source_commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
-        "evidence_source": "Coordinator decision record for independent acceptance of this reviewed source commit."
+        "reviewed_artifact": {
+          "commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+          "path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
+          "sha256": "6c5c9147f0d0339b5fbba9adfe1fc8703c773c078fb7806e9ec67ee07e958cf4"
+        },
+        "binding_status": "EXACT_GIT_BLOB_MATCH",
+        "binding_validation": {
+          "path_matches_input": true,
+          "sha256_matches_input": true,
+          "reviewed_git_blob_matches_input": true,
+          "reviewed_commit_matches_required_source": true,
+          "imported_commit_matches_record": true,
+          "reviewer_and_decision_match_assignment": true
+        },
+        "pending_work": null,
+        "coordinator_decision_record": {
+          "cohort_id": "T37-API-PROSE-COHORT-A",
+          "status": "ACCEPTED",
+          "reviewer_id": "/root/t37_components_review",
+          "reviewer_model": "gpt-6.1-sol",
+          "reviewer_effort": "high",
+          "decision_id": "T37-API-PROSE-01",
+          "reviewed_artifact": {
+            "commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+            "path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
+            "sha256": "6c5c9147f0d0339b5fbba9adfe1fc8703c773c078fb7806e9ec67ee07e958cf4"
+          },
+          "imported_commit": "9463cb8c36f0bc6e53af241334efb19bb8a2e5f1"
+        },
+        "decision_record": {
+          "path": "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/coordinator-review-decisions.json",
+          "sha256": "0f4c4b7a871b16664d696c2f54385cb516f2af859123a0a146f9ccbf44fb23b8",
+          "schema": "t37.api-prose-coordinator-review-bindings.v1",
+          "recorded_by": "/root"
+        },
+        "source_recorded_review_metadata": {
+          "review_state": "PENDING_INDEPENDENT_HIGH_REVIEW",
+          "correction_review": {
+            "reviewer": "/root/t37_components_review",
+            "model": "gpt-6.1-sol",
+            "effort": "high",
+            "input_commit": "6d68ea25233c43be524061e84371dc6dcb59acb1",
+            "result": "CORRECTION",
+            "scope": "All 322 cohort records and maintained API prose.",
+            "findings": [
+              {
+                "finding_number": 1,
+                "record": 127,
+                "resolution": "Record KeyStep::of TypeAhead precedence as a source wording conflict; preserve T01 and T14 follow-up."
+              },
+              {
+                "finding_number": 2,
+                "records": [
+                  82,
+                  90
+                ],
+                "resolution": "Record ALT 1/2 overrides and active-flags-or-ALT-3 delivery; use starts-with pointer suffix semantics."
+              },
+              {
+                "finding_number": 3,
+                "records": "all 322",
+                "resolution": "Reconstruct every attachment with token-aware module and owner scopes; verify full name and exact signature in source and cleanup."
+              },
+              {
+                "finding_number": 4,
+                "records": "planned retirements",
+                "resolution": "Use the candidate canonical API-RULES path in this checkout."
+              },
+              {
+                "finding_number": 5,
+                "records": "builder and validator",
+                "resolution": "Remove explanatory comments and docstrings from helper scripts."
+              }
+            ],
+            "corrected_output_review": "PENDING_INDEPENDENT_HIGH_REVIEW"
+          }
+        }
       },
       "historical_identity_reference": {
         "status": "HISTORICAL_PRECOMPOSITION_IDENTITY_REFERENCE",
@@ -206,7 +288,7 @@
       "input_artifact": {
         "path": "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
         "integration_commit": "6e38a1d3be4b0dcfd47f793e7975299254e38d14",
-        "independently_reviewed_source_commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+        "reviewed_source_commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
         "sha256": "100b55db7b05031451bca35c2142dbda6b3905d69d7ca404308ed4819a2b03a4",
         "record_count": 304
       },
@@ -220,12 +302,55 @@
       },
       "independent_review": {
         "status": "ACCEPTED",
+        "requested_status": "ACCEPTED",
         "reviewer": "/root/t00_independent_review",
         "model": "gpt-6.1-sol",
         "effort": "high",
         "decision_id": "T37-API-PROSE-01",
-        "reviewed_source_commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
-        "evidence_source": "Coordinator decision record for independent acceptance of this reviewed source commit."
+        "reviewed_artifact": {
+          "commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+          "path": "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
+          "sha256": "100b55db7b05031451bca35c2142dbda6b3905d69d7ca404308ed4819a2b03a4"
+        },
+        "binding_status": "EXACT_GIT_BLOB_MATCH",
+        "binding_validation": {
+          "path_matches_input": true,
+          "sha256_matches_input": true,
+          "reviewed_git_blob_matches_input": true,
+          "reviewed_commit_matches_required_source": true,
+          "imported_commit_matches_record": true,
+          "reviewer_and_decision_match_assignment": true
+        },
+        "pending_work": null,
+        "coordinator_decision_record": {
+          "cohort_id": "T37-API-PROSE-COHORT-B",
+          "status": "ACCEPTED",
+          "reviewer_id": "/root/t00_independent_review",
+          "reviewer_model": "gpt-6.1-sol",
+          "reviewer_effort": "high",
+          "decision_id": "T37-API-PROSE-01",
+          "reviewed_artifact": {
+            "commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+            "path": "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
+            "sha256": "100b55db7b05031451bca35c2142dbda6b3905d69d7ca404308ed4819a2b03a4"
+          },
+          "imported_commit": "6e38a1d3be4b0dcfd47f793e7975299254e38d14"
+        },
+        "decision_record": {
+          "path": "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/coordinator-review-decisions.json",
+          "sha256": "0f4c4b7a871b16664d696c2f54385cb516f2af859123a0a146f9ccbf44fb23b8",
+          "schema": "t37.api-prose-coordinator-review-bindings.v1",
+          "recorded_by": "/root"
+        },
+        "source_recorded_review_metadata": {
+          "semantic_review": {
+            "group_count": 304,
+            "basis": "Each assigned group was read in full and checked against frozen source context and the accepted cleanup attachment. The identity crosswalk supplied record identities and hashes only; it did not supply these semantic dispositions.",
+            "noncontract_reason_records": 28,
+            "followup_input_commit": "6d35f2b1e53fc076dd1c2f392b1c686dba6a6a42",
+            "followup_status": "All reported R1-R7 corrections are recorded; independent exact-output approval is pending."
+          }
+        }
       },
       "historical_identity_reference": {
         "status": "HISTORICAL_PRECOMPOSITION_IDENTITY_REFERENCE",
@@ -450,7 +575,7 @@
       "input_artifact": {
         "path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
         "integration_commit": "fe032a24154819a579c591e1cf87230558d286ee",
-        "independently_reviewed_source_commit": null,
+        "reviewed_source_commit": "fe032a24154819a579c591e1cf87230558d286ee",
         "sha256": "379c33052a244411fef78fcaa79864013c53cdf3ed27c02d929568f316a37136",
         "record_count": 496
       },
@@ -464,12 +589,49 @@
       },
       "independent_review": {
         "status": "REVIEW/PENDING",
+        "requested_status": "REVIEW/PENDING",
         "reviewer": "/root/t00_independent_review",
         "model": "gpt-6.1-sol",
         "effort": "high",
         "decision_id": "T37-API-PROSE-01",
-        "pending_work": "Confirmed maintained-guide corrections await independent review.",
-        "source_record_status": "PENDING_INDEPENDENT_REVIEW"
+        "reviewed_artifact": {
+          "commit": "fe032a24154819a579c591e1cf87230558d286ee",
+          "path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+          "sha256": "379c33052a244411fef78fcaa79864013c53cdf3ed27c02d929568f316a37136"
+        },
+        "binding_status": "EXACT_GIT_BLOB_MATCH",
+        "binding_validation": {
+          "path_matches_input": true,
+          "sha256_matches_input": true,
+          "reviewed_git_blob_matches_input": true,
+          "reviewed_commit_matches_required_source": true,
+          "imported_commit_matches_record": true,
+          "reviewer_and_decision_match_assignment": true
+        },
+        "pending_work": "Confirmed maintained-guide corrections remain under independent review.",
+        "coordinator_decision_record": {
+          "cohort_id": "T37-API-PROSE-COHORT-C",
+          "status": "REVIEW/PENDING",
+          "reviewer_id": "/root/t00_independent_review",
+          "reviewer_model": "gpt-6.1-sol",
+          "reviewer_effort": "high",
+          "decision_id": "T37-API-PROSE-01",
+          "reviewed_artifact": {
+            "commit": "fe032a24154819a579c591e1cf87230558d286ee",
+            "path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+            "sha256": "379c33052a244411fef78fcaa79864013c53cdf3ed27c02d929568f316a37136"
+          },
+          "pending_work": "Confirmed maintained-guide corrections remain under independent review."
+        },
+        "decision_record": {
+          "path": "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/coordinator-review-decisions.json",
+          "sha256": "0f4c4b7a871b16664d696c2f54385cb516f2af859123a0a146f9ccbf44fb23b8",
+          "schema": "t37.api-prose-coordinator-review-bindings.v1",
+          "recorded_by": "/root"
+        },
+        "source_recorded_review_metadata": {
+          "status": "PENDING_INDEPENDENT_REVIEW"
+        }
       },
       "historical_identity_reference": null,
       "recorded_cohort_metadata": {
@@ -752,7 +914,9 @@
   "limits": [
     "The producer composes the three explicit cohort records. It does not infer disposition from keywords, source survival, or matching signatures.",
     "Each cohort record is embedded unchanged. Its attachment, disposition, clauses, excerpt, reason, destination, and decision identifiers retain their cohort-specific field names.",
-    "Every source identity is checked against the accepted immutable Git blob. The local foundation source inventory is not integrated yet.",
+    "Every source identity is checked against the accepted immutable Git blob.",
+    "Local integration state is recorded at source_inventory.integration_status.",
+    "Local foundation inventory state: PENDING_INTEGRATION.",
     "Hashes inside embedded cohort records remain source-commit evidence and are not represented as current candidate target hashes.",
     "The current result remains REVIEW/PENDING while cohort C and independent global review remain open.",
     "No behavior tests, harnesses, fixtures, doctests, source changes, or Cargo commands are part of this unit."

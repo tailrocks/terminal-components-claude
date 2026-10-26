@@ -17,6 +17,7 @@ FOUNDATION_SOURCE_PATH = "docs/implementation/pr38-final/results/t37-foundations
 FOUNDATION_SOURCE_SHA256 = "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619"
 FOUNDATION_RECORD_COUNT = 1122
 OUTPUT_PATH = "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json"
+COORDINATOR_REVIEW_PATH = "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/coordinator-review-decisions.json"
 
 COHORTS: tuple[dict[str, Any], ...] = (
     {
@@ -26,21 +27,18 @@ COHORTS: tuple[dict[str, Any], ...] = (
         "path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
         "runbook_path": "docs/implementation/pr38-final/results/t37-api-values/agent-runbook.json",
         "integration_commit": "9463cb8c36f0bc6e53af241334efb19bb8a2e5f1",
+        "imported_commit": "9463cb8c36f0bc6e53af241334efb19bb8a2e5f1",
         "reviewed_source_commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
         "artifact_sha256": "6c5c9147f0d0339b5fbba9adfe1fc8703c773c078fb7806e9ec67ee07e958cf4",
         "runbook_sha256": "acafc73498889bf6b4ecb4dae80659d1b6ec170316a2d37b880a4683989d4f1a",
         "record_count": 322,
         "disposition_key": "disposition",
         "identity_reference_key": "identity_source",
-        "review": {
-            "status": "ACCEPTED",
-            "reviewer": "/root/t37_components_review",
-            "model": "gpt-6.1-sol",
-            "effort": "high",
-            "decision_id": "T37-API-PROSE-01",
-            "reviewed_source_commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
-            "evidence_source": "Coordinator decision record for independent acceptance of this reviewed source commit.",
-        },
+        "reviewer_id": "/root/t37_components_review",
+        "reviewer_model": "gpt-6.1-sol",
+        "reviewer_effort": "high",
+        "decision_id": "T37-API-PROSE-01",
+        "required_review_status": "ACCEPTED",
     },
     {
         "key": "runtime",
@@ -49,21 +47,18 @@ COHORTS: tuple[dict[str, Any], ...] = (
         "path": "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
         "runbook_path": "docs/implementation/pr38-final/results/t37-api-runtime/agent-runbook.json",
         "integration_commit": "6e38a1d3be4b0dcfd47f793e7975299254e38d14",
+        "imported_commit": "6e38a1d3be4b0dcfd47f793e7975299254e38d14",
         "reviewed_source_commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
         "artifact_sha256": "100b55db7b05031451bca35c2142dbda6b3905d69d7ca404308ed4819a2b03a4",
         "runbook_sha256": "f1b9a3095146a1c4a57ebea448b9aa900d2e44cbc0dd6a0a809307441175f166",
         "record_count": 304,
         "disposition_key": "semantic_disposition",
         "identity_reference_key": "identity_crosswalk",
-        "review": {
-            "status": "ACCEPTED",
-            "reviewer": "/root/t00_independent_review",
-            "model": "gpt-6.1-sol",
-            "effort": "high",
-            "decision_id": "T37-API-PROSE-01",
-            "reviewed_source_commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
-            "evidence_source": "Coordinator decision record for independent acceptance of this reviewed source commit.",
-        },
+        "reviewer_id": "/root/t00_independent_review",
+        "reviewer_model": "gpt-6.1-sol",
+        "reviewer_effort": "high",
+        "decision_id": "T37-API-PROSE-01",
+        "required_review_status": "ACCEPTED",
     },
     {
         "key": "support",
@@ -78,14 +73,11 @@ COHORTS: tuple[dict[str, Any], ...] = (
         "record_count": 496,
         "disposition_key": "semantic_disposition",
         "identity_reference_key": None,
-        "review": {
-            "status": "REVIEW/PENDING",
-            "reviewer": "/root/t00_independent_review",
-            "model": "gpt-6.1-sol",
-            "effort": "high",
-            "decision_id": "T37-API-PROSE-01",
-            "pending_work": "Confirmed maintained-guide corrections await independent review.",
-        },
+        "reviewer_id": "/root/t00_independent_review",
+        "reviewer_model": "gpt-6.1-sol",
+        "reviewer_effort": "high",
+        "decision_id": "T37-API-PROSE-01",
+        "required_review_status": None,
     },
 )
 
@@ -133,6 +125,115 @@ def read_json(data: bytes, label: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         fail(f"{label} must contain a JSON object")
     return value
+
+
+def load_coordinator_decisions(root: Path) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    path = root / COORDINATOR_REVIEW_PATH
+    if not path.is_file():
+        fail(f"coordinator review decisions missing: {COORDINATOR_REVIEW_PATH}")
+    data = path.read_bytes()
+    record = read_json(data, COORDINATOR_REVIEW_PATH)
+    if record.get("schema") != "t37.api-prose-coordinator-review-bindings.v1":
+        fail("unexpected coordinator review decision schema")
+    if record.get("recorded_by") != "/root":
+        fail("coordinator review decisions lack the expected coordinator attribution")
+    decisions = record.get("decisions")
+    if not isinstance(decisions, list):
+        fail("coordinator review decisions must be a list")
+    known_ids = {cohort["cohort_id"] for cohort in COHORTS}
+    by_cohort: dict[str, dict[str, Any]] = {}
+    for decision in decisions:
+        if not isinstance(decision, dict):
+            fail("coordinator decision must be an object")
+        cohort_id = decision.get("cohort_id")
+        if cohort_id not in known_ids or cohort_id in by_cohort:
+            fail(f"unknown or duplicate coordinator decision: {cohort_id}")
+        by_cohort[cohort_id] = decision
+    required = {cohort["cohort_id"] for cohort in COHORTS if cohort["required_review_status"] == "ACCEPTED"}
+    if not required.issubset(by_cohort):
+        fail("accepted cohort coordinator decisions are missing")
+    return by_cohort, {
+        "path": COORDINATOR_REVIEW_PATH,
+        "sha256": sha256(data),
+        "schema": record["schema"],
+        "recorded_by": record.get("recorded_by"),
+    }
+
+
+def coordinator_review(
+    root: Path,
+    spec: dict[str, Any],
+    artifact_bytes: bytes,
+    decision: dict[str, Any] | None,
+    decision_record: dict[str, Any],
+    source_review_metadata: dict[str, Any],
+) -> dict[str, Any]:
+    if decision is None:
+        if spec["required_review_status"] == "ACCEPTED":
+            fail(f"accepted coordinator decision missing for {spec['cohort_id']}")
+        return {
+            "status": "REVIEW/PENDING",
+            "reviewer": spec["reviewer_id"],
+            "model": spec["reviewer_model"],
+            "effort": spec["reviewer_effort"],
+            "decision_id": spec["decision_id"],
+            "binding_status": "NO_COORDINATOR_DECISION",
+            "decision_record": decision_record,
+            "source_recorded_review_metadata": source_review_metadata,
+        }
+    reviewed = decision.get("reviewed_artifact")
+    if not isinstance(reviewed, dict):
+        reviewed = {}
+    reviewed_commit = reviewed.get("commit")
+    reviewed_path = reviewed.get("path")
+    reviewed_sha256 = reviewed.get("sha256")
+    artifact_sha256 = sha256(artifact_bytes)
+    commit_shape_valid = isinstance(reviewed_commit, str) and len(reviewed_commit) == 40 and all(char in "0123456789abcdef" for char in reviewed_commit)
+    path_matches = reviewed_path == spec["path"]
+    hash_matches = reviewed_sha256 == artifact_sha256
+    source_matches = False
+    if commit_shape_valid and path_matches:
+        try:
+            reviewed_bytes = git_bytes(root, f"{reviewed_commit}:{reviewed_path}")
+            source_matches = reviewed_bytes == artifact_bytes and sha256(reviewed_bytes) == reviewed_sha256
+        except subprocess.CalledProcessError:
+            source_matches = False
+    source_commit_matches = spec["reviewed_source_commit"] is None or reviewed_commit == spec["reviewed_source_commit"]
+    imported_commit_matches = spec.get("imported_commit") is None or decision.get("imported_commit") == spec["imported_commit"]
+    reviewer_matches = (
+        decision.get("reviewer_id") == spec["reviewer_id"]
+        and decision.get("reviewer_model") == spec["reviewer_model"]
+        and decision.get("reviewer_effort") == spec["reviewer_effort"]
+        and decision.get("decision_id") == spec["decision_id"]
+    )
+    binding_matches = path_matches and hash_matches and source_matches and source_commit_matches and imported_commit_matches and reviewer_matches
+    requested_status = decision.get("status")
+    effective_status = "ACCEPTED" if requested_status == "ACCEPTED" and binding_matches else "REVIEW/PENDING"
+    if spec["required_review_status"] == "ACCEPTED" and (effective_status != "ACCEPTED" or not binding_matches):
+        fail(f"accepted cohort review binding mismatch for {spec['cohort_id']}")
+    binding_status = "EXACT_GIT_BLOB_MATCH" if binding_matches else "UNBOUND_OR_STALE_PENDING"
+    return {
+        "status": effective_status,
+        "requested_status": requested_status,
+        "reviewer": decision.get("reviewer_id"),
+        "model": decision.get("reviewer_model"),
+        "effort": decision.get("reviewer_effort"),
+        "decision_id": decision.get("decision_id"),
+        "reviewed_artifact": reviewed,
+        "binding_status": binding_status,
+        "binding_validation": {
+            "path_matches_input": path_matches,
+            "sha256_matches_input": hash_matches,
+            "reviewed_git_blob_matches_input": source_matches,
+            "reviewed_commit_matches_required_source": source_commit_matches,
+            "imported_commit_matches_record": imported_commit_matches,
+            "reviewer_and_decision_match_assignment": reviewer_matches,
+        },
+        "pending_work": decision.get("pending_work") if effective_status != "ACCEPTED" else None,
+        "coordinator_decision_record": decision,
+        "decision_record": decision_record,
+        "source_recorded_review_metadata": source_review_metadata,
+    }
 
 
 def resolve_root(script: Path, requested: Path | None) -> Path:
@@ -259,7 +360,13 @@ def validate_identity(
     }
 
 
-def load_cohort(root: Path, head: str, spec: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]]]:
+def load_cohort(
+    root: Path,
+    head: str,
+    spec: dict[str, Any],
+    coordinator_decision: dict[str, Any] | None,
+    coordinator_record: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]]]:
     cohort_path = spec["path"]
     artifact_path = root / cohort_path
     if not artifact_path.is_file():
@@ -305,6 +412,19 @@ def load_cohort(root: Path, head: str, spec: dict[str, Any]) -> tuple[dict[str, 
     if git_bytes(root, f"{runbook_commit}:{runbook_path}") != runbook_bytes:
         fail(f"working runbook differs from its source commit: {runbook_path}")
     runbook = read_json(runbook_bytes, runbook_path)
+    source_review_metadata = {
+        key: input_record[key]
+        for key in ("status", "review_state", "correction_review", "semantic_review", "review_feedback")
+        if key in input_record
+    }
+    review = coordinator_review(
+        root,
+        spec,
+        artifact_bytes,
+        coordinator_decision,
+        coordinator_record,
+        source_review_metadata,
+    )
     cohort_metadata = {key: value for key, value in input_record.items() if key != "records"}
     historical_identity_reference = cohort_metadata.pop(spec["identity_reference_key"], None) if spec["identity_reference_key"] else None
     if historical_identity_reference is not None:
@@ -313,36 +433,13 @@ def load_cohort(root: Path, head: str, spec: dict[str, Any]) -> tuple[dict[str, 
             "replaced_by": OUTPUT_PATH,
             "source_value": historical_identity_reference,
         }
-    review = dict(spec["review"])
-    if spec["key"] == "support":
-        source_status = input_record.get("status") or input_record.get("review_state")
-        review["source_record_status"] = source_status
-        explicit_review = input_record.get("independent_review") or input_record.get("review_feedback") or runbook.get("review_feedback")
-        if isinstance(explicit_review, dict):
-            review["source_review_record"] = explicit_review
-            if explicit_review.get("reviewer"):
-                review["reviewer"] = explicit_review["reviewer"]
-            if explicit_review.get("model"):
-                review["model"] = explicit_review["model"]
-            if explicit_review.get("effort"):
-                review["effort"] = explicit_review["effort"]
-            if explicit_review.get("id"):
-                review["decision_id"] = explicit_review["id"]
-            if explicit_review.get("result") in ("ACCEPT", "ACCEPTED"):
-                review["status"] = "ACCEPTED"
-                review.pop("pending_work", None)
-            elif explicit_review.get("result") in ("CORRECTION", "REVIEW"):
-                review["status"] = "REVIEW/PENDING"
-        elif source_status in ("ACCEPT", "ACCEPTED", "ACCEPTED_SCOPED"):
-            review["status"] = "ACCEPTED"
-            review.pop("pending_work", None)
     cohort_info = {
         "cohort_id": spec["cohort_id"],
         "label": spec["label"],
         "input_artifact": {
             "path": cohort_path,
             "integration_commit": integration_commit,
-            "independently_reviewed_source_commit": spec["reviewed_source_commit"],
+            "reviewed_source_commit": (review.get("reviewed_artifact") or {}).get("commit"),
             "sha256": artifact_sha,
             "record_count": len(raw_records),
         },
@@ -364,13 +461,20 @@ def load_cohort(root: Path, head: str, spec: dict[str, Any]) -> tuple[dict[str, 
 def build(root: Path) -> dict[str, Any]:
     head = git_text(root, "rev-parse", "HEAD")
     source, source_metadata = load_foundation_source(root)
+    coordinator_decisions, coordinator_record = load_coordinator_decisions(root)
     seen_indices: set[int] = set()
     seen_ids: set[str] = set()
     rows: list[dict[str, Any]] = []
     cohorts: list[dict[str, Any]] = []
     disposition_counts: dict[str, dict[str, int]] = {}
     for spec in COHORTS:
-        cohort_record, cohort_info, raw_records = load_cohort(root, head, spec)
+        cohort_record, cohort_info, raw_records = load_cohort(
+            root,
+            head,
+            spec,
+            coordinator_decisions.get(spec["cohort_id"]),
+            coordinator_record,
+        )
         counts: Counter[str] = Counter()
         for raw_record in raw_records:
             row = validate_identity(root, source, spec, raw_record, seen_indices, seen_ids)
@@ -391,7 +495,7 @@ def build(root: Path) -> dict[str, Any]:
         fail("global one-to-one coverage count mismatch")
     rows.sort(key=lambda row: row["source_map_record"])
     return {
-        "schema": "t37.foundation-api-prose-crosswalk.v2",
+        "schema": "t37.foundation-api-prose-crosswalk.v3",
         "task_id": "T37",
         "status": "REVIEW/PENDING",
         "review_state": "PENDING_INDEPENDENT_SOL_HIGH_REVIEW",
@@ -401,6 +505,7 @@ def build(root: Path) -> dict[str, Any]:
         "cleanup_source_commit": CLEANUP_COMMIT,
         "accepted_foundation_source_commit": FOUNDATION_COMMIT,
         "source_inventory": source_metadata,
+        "coordinator_review_decisions": coordinator_record,
         "cohorts": cohorts,
         "provenance_scope": {
             "embedded_cohort_hashes": "Verbatim input-record evidence tied to each cohort source commit; not current candidate target hashes.",
@@ -429,7 +534,9 @@ def build(root: Path) -> dict[str, Any]:
         "limits": [
             "The producer composes the three explicit cohort records. It does not infer disposition from keywords, source survival, or matching signatures.",
             "Each cohort record is embedded unchanged. Its attachment, disposition, clauses, excerpt, reason, destination, and decision identifiers retain their cohort-specific field names.",
-            "Every source identity is checked against the accepted immutable Git blob. The local foundation source inventory is not integrated yet.",
+            "Every source identity is checked against the accepted immutable Git blob.",
+            "Local integration state is recorded at source_inventory.integration_status.",
+            f"Local foundation inventory state: {source_metadata['integration_status']}.",
             "Hashes inside embedded cohort records remain source-commit evidence and are not represented as current candidate target hashes.",
             "The current result remains REVIEW/PENDING while cohort C and independent global review remain open.",
             "No behavior tests, harnesses, fixtures, doctests, source changes, or Cargo commands are part of this unit.",
