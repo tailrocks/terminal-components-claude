@@ -1,0 +1,1370 @@
+{
+  "fixed_input": "d402f893d159ac26da5db4d18c13510afdbce12f",
+  "source": "guarded cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml before metadata cleanup",
+  "structural_counts": {
+    "before_package_count": 49,
+    "before_target_kinds": {
+      "bin": 14,
+      "example": 12,
+      "lib": 44,
+      "test": 18
+    },
+    "removed_workspace_packages": [
+      "termrock-conformance",
+      "termrock-test-support"
+    ],
+    "removed_explicit_test_or_bench_targets": [
+      {
+        "package": "holla",
+        "name": "holla_pty",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/holla/tests/holla_pty.rs"
+      },
+      {
+        "package": "termrock-conformance",
+        "name": "button_busy_frames",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-conformance/tests/button_busy_frames.rs"
+      },
+      {
+        "package": "termrock-conformance",
+        "name": "conformance",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-conformance/tests/conformance.rs"
+      },
+      {
+        "package": "termrock-conformance",
+        "name": "control_states",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-conformance/tests/control_states.rs"
+      },
+      {
+        "package": "termrock-conformance",
+        "name": "cursor_provenance",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-conformance/tests/cursor_provenance.rs"
+      },
+      {
+        "package": "termrock-conformance",
+        "name": "parity_burndown",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-conformance/tests/parity_burndown.rs"
+      },
+      {
+        "package": "termrock-conformance",
+        "name": "render",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-conformance/tests/render.rs"
+      },
+      {
+        "package": "termrock-conformance",
+        "name": "render_components",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-conformance/tests/render_components.rs"
+      },
+      {
+        "package": "termrock-conformance",
+        "name": "tuiscotti_qualification",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-conformance/tests/tuiscotti_qualification.rs"
+      },
+      {
+        "package": "termrock-conformance",
+        "name": "visual_baseline",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-conformance/tests/visual_baseline/main.rs"
+      },
+      {
+        "package": "termrock-test-support",
+        "name": "perf",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-test-support/tests/perf.rs"
+      },
+      {
+        "package": "termrock-test-support",
+        "name": "perf_collections",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-test-support/tests/perf_collections.rs"
+      },
+      {
+        "package": "termrock-visibility-publisher",
+        "name": "impl_observer_ingest",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-visibility-publisher/tests/impl_observer_ingest.rs"
+      },
+      {
+        "package": "termrock-visibility-publisher",
+        "name": "impl_status_publish",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-visibility-publisher/tests/impl_status_publish.rs"
+      },
+      {
+        "package": "termrock-visibility-publisher",
+        "name": "observer_ingest_cli",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-visibility-publisher/tests/observer_ingest_cli.rs"
+      },
+      {
+        "package": "termrock-xtask",
+        "name": "doc_inventory",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-xtask/tests/doc_inventory.rs"
+      },
+      {
+        "package": "termrock-xtask",
+        "name": "ownership",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/termrock-xtask/tests/ownership.rs"
+      },
+      {
+        "package": "visual-harness",
+        "name": "visual_baseline",
+        "kind": [
+          "test"
+        ],
+        "path": "crates/visual-harness/tests/visual_baseline/main.rs"
+      }
+    ],
+    "after_package_count": 47,
+    "after_target_kinds": {
+      "bin": 14,
+      "example": 12,
+      "lib": 42
+    },
+    "survivor_target_identity_stable": true,
+    "survivor_targets": 68
+  },
+  "targets": [
+    {
+      "package": "holla",
+      "manifest": "crates/holla/Cargo.toml",
+      "name": "holla",
+      "kind": [
+        "bin"
+      ],
+      "path": "crates/holla/src/main.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "holla-catalog",
+      "manifest": "crates/holla-catalog/Cargo.toml",
+      "name": "holla_catalog",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/holla-catalog/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "holla-domain",
+      "manifest": "crates/holla-domain/Cargo.toml",
+      "name": "holla_domain",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/holla-domain/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "holla-plan",
+      "manifest": "crates/holla-plan/Cargo.toml",
+      "name": "holla_plan",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/holla-plan/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "holla-sim",
+      "manifest": "crates/holla-sim/Cargo.toml",
+      "name": "holla_sim",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/holla-sim/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "holla-ui",
+      "manifest": "crates/holla-ui/Cargo.toml",
+      "name": "holla_ui",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/holla-ui/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "jackin-preview",
+      "manifest": "crates/jackin-preview/Cargo.toml",
+      "name": "jackin-preview",
+      "kind": [
+        "bin"
+      ],
+      "path": "crates/jackin-preview/src/main.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "jackin-preview-app",
+      "manifest": "crates/jackin-preview-app/Cargo.toml",
+      "name": "jackin_preview_app",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/jackin-preview-app/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "jackin-preview-capsule-ui",
+      "manifest": "crates/jackin-preview-capsule-ui/Cargo.toml",
+      "name": "jackin_preview_capsule_ui",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/jackin-preview-capsule-ui/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "jackin-preview-domain",
+      "manifest": "crates/jackin-preview-domain/Cargo.toml",
+      "name": "jackin_preview_domain",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/jackin-preview-domain/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "jackin-preview-host-ui",
+      "manifest": "crates/jackin-preview-host-ui/Cargo.toml",
+      "name": "jackin_preview_host_ui",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/jackin-preview-host-ui/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "jackin-preview-presentation",
+      "manifest": "crates/jackin-preview-presentation/Cargo.toml",
+      "name": "jackin_preview_presentation",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/jackin-preview-presentation/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "jackin-preview-sim",
+      "manifest": "crates/jackin-preview-sim/Cargo.toml",
+      "name": "jackin_preview_sim",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/jackin-preview-sim/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "refactor-proof",
+      "manifest": "tools/refactor-proof/Cargo.toml",
+      "name": "tc-proof",
+      "kind": [
+        "bin"
+      ],
+      "path": "tools/refactor-proof/src/bin/tc_proof.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "refactor-proof",
+      "manifest": "tools/refactor-proof/Cargo.toml",
+      "name": "tc-proof-host",
+      "kind": [
+        "bin"
+      ],
+      "path": "tools/refactor-proof/src/bin/tc_proof_host.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "refactor-proof",
+      "manifest": "tools/refactor-proof/Cargo.toml",
+      "name": "refactor_proof",
+      "kind": [
+        "lib"
+      ],
+      "path": "tools/refactor-proof/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "showcase",
+      "manifest": "crates/showcase/Cargo.toml",
+      "name": "showcase",
+      "kind": [
+        "bin"
+      ],
+      "path": "crates/showcase/src/main.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "showcase-data",
+      "manifest": "crates/showcase-data/Cargo.toml",
+      "name": "showcase_data",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/showcase-data/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "showcase-demos",
+      "manifest": "crates/showcase-demos/Cargo.toml",
+      "name": "showcase_demos",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/showcase-demos/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "showcase-ui",
+      "manifest": "crates/showcase-ui/Cargo.toml",
+      "name": "showcase_ui",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/showcase-ui/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "tablepro",
+      "manifest": "crates/tablepro/Cargo.toml",
+      "name": "tablepro",
+      "kind": [
+        "bin"
+      ],
+      "path": "crates/tablepro/src/main.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "tablepro-demo",
+      "manifest": "crates/tablepro-demo/Cargo.toml",
+      "name": "tablepro_demo",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/tablepro-demo/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "tablepro-domain",
+      "manifest": "crates/tablepro-domain/Cargo.toml",
+      "name": "tablepro_domain",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/tablepro-domain/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "tablepro-sql",
+      "manifest": "crates/tablepro-sql/Cargo.toml",
+      "name": "tablepro_sql",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/tablepro-sql/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "tablepro-ui",
+      "manifest": "crates/tablepro-ui/Cargo.toml",
+      "name": "tablepro_ui",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/tablepro-ui/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock",
+      "manifest": "crates/termrock/Cargo.toml",
+      "name": "code_editor_blur_consumer",
+      "kind": [
+        "example"
+      ],
+      "path": "crates/termrock/examples/code_editor_blur_consumer.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock",
+      "manifest": "crates/termrock/Cargo.toml",
+      "name": "composition_consumer",
+      "kind": [
+        "example"
+      ],
+      "path": "crates/termrock/examples/composition_consumer.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock",
+      "manifest": "crates/termrock/Cargo.toml",
+      "name": "file_catalogue_master_detail",
+      "kind": [
+        "example"
+      ],
+      "path": "crates/termrock/examples/file_catalogue_master_detail.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock",
+      "manifest": "crates/termrock/Cargo.toml",
+      "name": "form_dialog_consumer",
+      "kind": [
+        "example"
+      ],
+      "path": "crates/termrock/examples/form_dialog_consumer.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock",
+      "manifest": "crates/termrock/Cargo.toml",
+      "name": "master_detail_composition_consumer",
+      "kind": [
+        "example"
+      ],
+      "path": "crates/termrock/examples/master_detail_composition_consumer.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock",
+      "manifest": "crates/termrock/Cargo.toml",
+      "name": "picker_card_layout_consumer",
+      "kind": [
+        "example"
+      ],
+      "path": "crates/termrock/examples/picker_card_layout_consumer.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock",
+      "manifest": "crates/termrock/Cargo.toml",
+      "name": "picker_row_defaults",
+      "kind": [
+        "example"
+      ],
+      "path": "crates/termrock/examples/picker_row_defaults.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock",
+      "manifest": "crates/termrock/Cargo.toml",
+      "name": "semantic_item_row_consumer",
+      "kind": [
+        "example"
+      ],
+      "path": "crates/termrock/examples/semantic_item_row_consumer.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock",
+      "manifest": "crates/termrock/Cargo.toml",
+      "name": "termrock",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-collections",
+      "manifest": "crates/termrock-collections/Cargo.toml",
+      "name": "termrock_collections",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-collections/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-consumer-example",
+      "manifest": "crates/termrock-consumer-example/Cargo.toml",
+      "name": "termrock-consumer-example",
+      "kind": [
+        "bin"
+      ],
+      "path": "crates/termrock-consumer-example/src/main.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-consumer-example",
+      "manifest": "crates/termrock-consumer-example/Cargo.toml",
+      "name": "termrock_consumer_example",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-consumer-example/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-controls",
+      "manifest": "crates/termrock-controls/Cargo.toml",
+      "name": "termrock_controls",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-controls/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-core",
+      "manifest": "crates/termrock-core/Cargo.toml",
+      "name": "termrock_core",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-core/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-editors",
+      "manifest": "crates/termrock-editors/Cargo.toml",
+      "name": "termrock_editors",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-editors/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-feedback",
+      "manifest": "crates/termrock-feedback/Cargo.toml",
+      "name": "termrock_feedback",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-feedback/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-fields",
+      "manifest": "crates/termrock-fields/Cargo.toml",
+      "name": "termrock_fields",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-fields/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-forms",
+      "manifest": "crates/termrock-forms/Cargo.toml",
+      "name": "form_intrinsic_content",
+      "kind": [
+        "example"
+      ],
+      "path": "crates/termrock-forms/examples/form_intrinsic_content.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-forms",
+      "manifest": "crates/termrock-forms/Cargo.toml",
+      "name": "form_lanes",
+      "kind": [
+        "example"
+      ],
+      "path": "crates/termrock-forms/examples/form_lanes.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-forms",
+      "manifest": "crates/termrock-forms/Cargo.toml",
+      "name": "termrock_forms",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-forms/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-grid",
+      "manifest": "crates/termrock-grid/Cargo.toml",
+      "name": "termrock_grid",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-grid/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-layout",
+      "manifest": "crates/termrock-layout/Cargo.toml",
+      "name": "termrock_layout",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-layout/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-navigation",
+      "manifest": "crates/termrock-navigation/Cargo.toml",
+      "name": "termrock_navigation",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-navigation/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-overlays",
+      "manifest": "crates/termrock-overlays/Cargo.toml",
+      "name": "dialog_primary_consumer",
+      "kind": [
+        "example"
+      ],
+      "path": "crates/termrock-overlays/examples/dialog_primary_consumer.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-overlays",
+      "manifest": "crates/termrock-overlays/Cargo.toml",
+      "name": "termrock_overlays",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-overlays/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-render",
+      "manifest": "crates/termrock-render/Cargo.toml",
+      "name": "termrock_render",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-render/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-runtime",
+      "manifest": "crates/termrock-runtime/Cargo.toml",
+      "name": "termrock_runtime",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-runtime/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-session",
+      "manifest": "crates/termrock-session/Cargo.toml",
+      "name": "termrock_session",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-session/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-shell",
+      "manifest": "crates/termrock-shell/Cargo.toml",
+      "name": "shell_consumer",
+      "kind": [
+        "example"
+      ],
+      "path": "crates/termrock-shell/examples/shell_consumer.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-shell",
+      "manifest": "crates/termrock-shell/Cargo.toml",
+      "name": "termrock_shell",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-shell/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-terminal",
+      "manifest": "crates/termrock-terminal/Cargo.toml",
+      "name": "termrock_terminal",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-terminal/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-text",
+      "manifest": "crates/termrock-text/Cargo.toml",
+      "name": "termrock_text",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-text/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-theme",
+      "manifest": "crates/termrock-theme/Cargo.toml",
+      "name": "termrock_theme",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-theme/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-viewport",
+      "manifest": "crates/termrock-viewport/Cargo.toml",
+      "name": "termrock_viewport",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-viewport/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-visibility-publisher",
+      "manifest": "crates/termrock-visibility-publisher/Cargo.toml",
+      "name": "observer-ingest",
+      "kind": [
+        "bin"
+      ],
+      "path": "crates/termrock-visibility-publisher/src/bin/observer-ingest.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-visibility-publisher",
+      "manifest": "crates/termrock-visibility-publisher/Cargo.toml",
+      "name": "status-publish",
+      "kind": [
+        "bin"
+      ],
+      "path": "crates/termrock-visibility-publisher/src/bin/status-publish.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-visibility-publisher",
+      "manifest": "crates/termrock-visibility-publisher/Cargo.toml",
+      "name": "termrock_visibility_publisher",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-visibility-publisher/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-xtask",
+      "manifest": "crates/termrock-xtask/Cargo.toml",
+      "name": "termrock-xtask",
+      "kind": [
+        "bin"
+      ],
+      "path": "crates/termrock-xtask/src/main.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "termrock-xtask",
+      "manifest": "crates/termrock-xtask/Cargo.toml",
+      "name": "termrock_xtask",
+      "kind": [
+        "lib"
+      ],
+      "path": "crates/termrock-xtask/src/lib.rs",
+      "crate_types": [
+        "lib"
+      ],
+      "required_features": [],
+      "doc": true,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "visual-harness",
+      "manifest": "crates/visual-harness/Cargo.toml",
+      "name": "visual-harness-holla",
+      "kind": [
+        "bin"
+      ],
+      "path": "crates/holla/src/main.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "visual-harness",
+      "manifest": "crates/visual-harness/Cargo.toml",
+      "name": "visual-harness-jackin-preview",
+      "kind": [
+        "bin"
+      ],
+      "path": "crates/jackin-preview/src/main.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "visual-harness",
+      "manifest": "crates/visual-harness/Cargo.toml",
+      "name": "visual-harness-showcase",
+      "kind": [
+        "bin"
+      ],
+      "path": "crates/showcase/src/main.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    },
+    {
+      "package": "visual-harness",
+      "manifest": "crates/visual-harness/Cargo.toml",
+      "name": "visual-harness-tablepro",
+      "kind": [
+        "bin"
+      ],
+      "path": "crates/tablepro/src/main.rs",
+      "crate_types": [
+        "bin"
+      ],
+      "required_features": [],
+      "doc": false,
+      "test": false,
+      "bench": false,
+      "doctest": false
+    }
+  ],
+  "final_combined_source": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "final_metadata_summary": {
+    "root_packages": 47,
+    "root_targets": 68,
+    "target_kinds": {
+      "lib": 42,
+      "bin": 14,
+      "example": 12
+    },
+    "separate_test_targets": 0,
+    "separate_bench_targets": 0,
+    "effective_test_enabled_targets": 0,
+    "effective_bench_enabled_targets": 0,
+    "library_doctests_enabled": 0,
+    "package_autotests_false": 47,
+    "package_autobenches_false": 47,
+    "selected_behavior_cases": 0,
+    "behavior_status": "NOT VERIFIED"
+  },
+  "final_check_artifact": "metadata-final.json",
+  "evidence_source_checked": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "current_integrated_source": "865073462331552897822d65ede8d673f9c870d7",
+  "current_evidence_head_before_metadata_commit": "865073462331552897822d65ede8d673f9c870d7",
+  "subsequent_accepted_source_change": {
+    "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+    "decision": "T37-EXPECTED-CACHE-01",
+    "summary": "Remove only private LoadedExpectedCheckpoint cache fields/initializers; keep validation, errors, and order byte/behavior-identical per accepted review.",
+    "final_locked_e2e_check_pending": true
+  },
+  "accepted_source_updates_since_check": [
+    {
+      "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+      "decision": "T37-EXPECTED-CACHE-01",
+      "check_impact": "E2E locked check must rerun after final source input."
+    },
+    {
+      "commit": "865073462331552897822d65ede8d673f9c870d7",
+      "decision": "T37-FMT-0904",
+      "check_impact": "Formatting check must rerun after pending listener-helper source unit."
+    }
+  ]
+}

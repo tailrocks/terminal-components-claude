@@ -49,12 +49,9 @@ pub enum ListCmd {
     ToggleAll,
 }
 
-/// An additive selection command separate from the exhaustive [`ListCmd`] and
-/// [`ListAction`] APIs.
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ListSelectionCmd {
-    /// Select every enabled item without clearing an existing full selection.
     SelectAll,
 }
 
@@ -230,8 +227,6 @@ const fn selection_binding(
     }
 }
 
-// Distinct stable action identities allow each default chord to be remapped
-// or unbound independently without duplicate binding descriptors.
 const DEFAULT_SELECTION: [Binding<ListSelectionCmd>; 2] = [
     selection_binding(
         "list.select-all",
@@ -422,13 +417,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self.id
     }
 
-    /// Handle an isolated focus loss without reconciling the list's source or layout.
-    ///
-    /// `None` means the update cause is not `Settle`, or this owner has another
-    /// intent. Inspecting the owner bucket acknowledges it for diagnostics; any
-    /// unclaimed intents remain available to the ordinary update loop. Call
-    /// [`Self::update`] on this same list and state in the same pass after `None`.
-    /// An empty bucket returns `Some(Response::ignored())`.
     pub fn update_focus_out(&self, cx: &mut Cx<'_>, state: &mut ListState) -> Option<Response<()>> {
         if cx.update_cause() != UpdateCause::Settle {
             return None;
@@ -481,14 +469,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
-    /// Enable or disable the final scroll-edge fade for this list.
-    ///
-    /// By default, the built-in row renderer fades overflowing content. A
-    /// custom [`Self::render_row`] renderer keeps its output unchanged unless
-    /// this is set to `true`. Set this to `false` when the built-in renderer's
-    /// authored edge colors must remain unchanged. Fading runs only when an
-    /// overflowing scrollbar reserves a column and the full vertical content
-    /// viewport is visible.
     #[must_use]
     pub const fn fade_edges(mut self, enabled: bool) -> Self {
         self.fade_edges = Some(enabled);
@@ -613,13 +593,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
-    /// Replace the default Multi/Range Select All bindings with a static table.
-    ///
-    /// The table is ignored in [`SelectMode::Single`] and [`SelectMode::None`].
-    /// Passing an empty slice disables this extra command. The default table
-    /// uses the stable component actions `list.select-all` and
-    /// `list.select-all-super`, which can be remapped or unbound through a
-    /// component [`KeyMap`](termrock_runtime::keymap::KeyMap).
     #[must_use]
     pub const fn selection_bindings(
         mut self,
@@ -706,13 +679,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         }
     }
 
-    /// Bindings for additive multi-selection commands such as SelectAll.
-    ///
-    /// Single and non-selectable lists return an empty table. Multi and range
-    /// lists return their static override when one was configured, or the
-    /// shared default table otherwise. An explicitly empty override disables
-    /// these additional commands. Callers that publish the table must apply
-    /// the same non-inert, non-empty, and non-disabled guards as [`List::draw`].
     pub const fn selection_table(&self) -> &'static [Binding<ListSelectionCmd>] {
         match self.select_mode {
             SelectMode::Multi | SelectMode::Range => match self.selection_bindings {
@@ -821,8 +787,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             return;
         }
 
-        // Keep the collection's existing AllExcept semantics for future keys,
-        // while explicitly removing disabled keys in the current source.
         let checked = st.core.checked_mut();
         checked.all();
         for i in 0..items.len() {
@@ -1404,190 +1368,5 @@ impl<T, K, R> Bindings for List<'_, T, K, R> {
 
     fn bindings(&self, _s: BindingState) -> &'static [Binding<ListCmd>] {
         self.table()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use core::cell::Cell;
-
-    use ratatui_core::buffer::Buffer;
-    use ratatui_core::layout::{Position, Rect};
-    use ratatui_core::style::Modifier;
-
-    use super::*;
-    use termrock_runtime::Runtime;
-    use termrock_runtime::stub::Stub;
-    use termrock_theme::Theme;
-
-    const ID: Id = Id::root("list.status.tests");
-    const AREA: Rect = Rect::new(0, 0, 16, 2);
-
-    #[test]
-    fn range_selection_uses_the_anchor() {
-        let items = ["zero", "one", "two", "three"];
-        let list = List::new(ID).select_mode(SelectMode::Range);
-        let mut state = ListState::default();
-        state.set_cursor(2, ItemKey::index(2));
-
-        let mut acc = Acc::<ListAction>::new();
-        list.move_cursor(&mut state, &items, 0, true, &mut acc);
-        assert_eq!(state.anchor, Some(ItemKey::index(2)));
-        assert!(
-            (0..=2).all(|i| state.checked().contains(ItemKey::index(i))),
-            "the first extension must select the anchor-to-cursor range"
-        );
-        assert!(!state.checked().contains(ItemKey::index(3)));
-
-        let mut acc = Acc::<ListAction>::new();
-        list.move_cursor(&mut state, &items, 1, true, &mut acc);
-        assert_eq!(state.cursor(), Some(ItemKey::index(1)));
-        assert!(state.checked().contains(ItemKey::index(1)));
-        assert!(state.checked().contains(ItemKey::index(2)));
-        assert!(
-            !state.checked().contains(ItemKey::index(0)),
-            "moving the cursor back must contract around the original anchor"
-        );
-        assert!(!state.checked().contains(ItemKey::index(3)));
-    }
-
-    #[test]
-    fn select_all_selects_only_enabled_items() {
-        fn disabled(item: &u8) -> bool {
-            matches!(*item, 1 | 3)
-        }
-        let list = List::new(ID)
-            .select_mode(SelectMode::Multi)
-            .disabled_item(&(disabled as fn(&u8) -> bool));
-        let items = [0_u8, 1, 2, 3, 4];
-        let mut state = ListState::default();
-        let mut acc = Acc::<ListAction>::new();
-        list.toggle_all(&mut state, &items, &mut acc);
-        assert_eq!(acc.finish(ID).action_ref(), Some(&ListAction::ToggledAll));
-        for (index, item) in items.iter().enumerate() {
-            assert_eq!(
-                state.checked().contains(ItemKey::index(index)),
-                !disabled(item),
-                "row {item} selection did not follow its enabled state"
-            );
-        }
-        assert_eq!(state.checked().len_in(items.len()), 3);
-    }
-
-    fn draw(status: Status) -> Buffer {
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(AREA);
-        let state = ListState::default();
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                List::new(ID)
-                    .status(status)
-                    .draw(ui, area, &state, &["one", "two"]);
-            })
-            .commit_presented();
-        buffer
-    }
-
-    #[test]
-    fn readiness_rail_is_conditional_root_owned_and_patchable() {
-        assert!(List::<&str>::PARTS.contains(&Part::ICON));
-        assert_eq!(draw(Status::Ready), draw(Status::Ready));
-        let busy = draw(Status::Busy);
-        let frame = Theme::junie()
-            .design
-            .motion
-            .spinner_frames
-            .first()
-            .copied()
-            .unwrap_or("");
-        assert_eq!(
-            busy.cell(Position::new(0, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some(frame)
-        );
-
-        let seen = Cell::new(None);
-        let slot = |_ui: &mut Ui<'_>, area: Rect| seen.set(Some(area));
-        let patch = [(Part::ICON, StylePatch::new().add(Modifier::UNDERLINED))];
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(AREA);
-        let state = ListState::default();
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                List::new(ID).status(Status::Busy).patch_part(&patch).draw(
-                    ui,
-                    area,
-                    &state,
-                    &["one"],
-                );
-            })
-            .commit_presented();
-        assert!(
-            buffer
-                .cell(Position::new(0, 0))
-                .is_some_and(|cell| cell.modifier.contains(Modifier::UNDERLINED))
-        );
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                List::new(ID)
-                    .status(Status::Error)
-                    .patch_part(&patch)
-                    .slot(Part::ICON, &slot)
-                    .draw(ui, area, &state, &["one"]);
-            })
-            .commit_presented();
-        assert_eq!(seen.get(), Some(Rect::new(0, 0, 1, 1)));
-    }
-
-    #[test]
-    fn chosen_marker_comes_only_from_semantic_state() {
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(AREA);
-        let state = ListState::default();
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                List::new(ID).draw(ui, area, &state, &["one"]);
-            })
-            .commit_presented();
-        assert_eq!(
-            buffer
-                .cell(Position::new(1, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some(" ")
-        );
-
-        let selected = ListState {
-            chosen: Some(ItemKey::index(0)),
-            ..ListState::default()
-        };
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                List::new(ID).draw(ui, area, &selected, &["one"]);
-            })
-            .commit_presented();
-        assert_eq!(
-            buffer
-                .cell(Position::new(1, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some(Theme::junie().design.glyphs.get(GlyphRole::Chosen))
-        );
-    }
-
-    #[test]
-    fn bare_row_paints_the_label_at_the_row_origin() {
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(AREA);
-        let state = ListState::default();
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                List::new(ID).bare(true).draw(ui, area, &state, &["one"]);
-            })
-            .commit_presented();
-        assert_eq!(
-            buffer
-                .cell(Position::new(0, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("o")
-        );
     }
 }

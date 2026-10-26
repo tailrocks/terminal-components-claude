@@ -1,0 +1,132 @@
+diff --git a/crates/holla-sim/src/task_run.rs b/crates/holla-sim/src/task_run.rs
+index 8ca49c13d..4b7022de9 100644
+--- a/crates/holla-sim/src/task_run.rs
++++ b/crates/holla-sim/src/task_run.rs
+@@ -160 +132 @@ pub enum TaskRunEvent {
+-    Completed {
++    Completed { duration_ms: u64 },
+@@ -162,7 +134 @@ pub enum TaskRunEvent {
+-        duration_ms: u64,
+-    },
+-
+-    Cancelled {
+-
+-        duration_ms: u64,
+-    },
++    Cancelled { duration_ms: u64 },
+diff --git a/crates/holla-ui/src/app.rs b/crates/holla-ui/src/app.rs
+index 503a78958..9a2be00a6 100644
+--- a/crates/holla-ui/src/app.rs
++++ b/crates/holla-ui/src/app.rs
+@@ -2139,5 +2064 @@ impl App {
+-            Route::Files => {
+-
+-                Some(files::LIST)
+-            }
+-
++            Route::Files => Some(files::LIST),
+diff --git a/crates/termrock-core/src/selection.rs b/crates/termrock-core/src/selection.rs
+index 4e81d9b3b..0b9d09182 100644
+--- a/crates/termrock-core/src/selection.rs
++++ b/crates/termrock-core/src/selection.rs
+@@ -55,4 +51 @@ pub enum SelectGesture {
+-    Extend {
+-
+-        from: usize,
+-    },
++    Extend { from: usize },
+diff --git a/crates/termrock-feedback/src/hintbar.rs b/crates/termrock-feedback/src/hintbar.rs
+index e90e176ba..4d862d7af 100644
+--- a/crates/termrock-feedback/src/hintbar.rs
++++ b/crates/termrock-feedback/src/hintbar.rs
+@@ -193,3 +193 @@ impl<'a> HintBar<'a> {
+-        {
+-            self.status.flags()
+-        }
++        { self.status.flags() }
+diff --git a/crates/termrock-feedback/src/settings_page.rs b/crates/termrock-feedback/src/settings_page.rs
+index e65d88489..e201b52f1 100644
+--- a/crates/termrock-feedback/src/settings_page.rs
++++ b/crates/termrock-feedback/src/settings_page.rs
+@@ -710 +636,4 @@ pub enum SettingsEnvPaintError {
+-    AreaTooNarrow { minimum: u16, actual: u16 },
++    AreaTooNarrow {
++        minimum: u16,
++        actual: u16,
++    },
+@@ -712 +641,4 @@ pub enum SettingsEnvPaintError {
+-    AreaTooShort { minimum: u16, actual: u16 },
++    AreaTooShort {
++        minimum: u16,
++        actual: u16,
++    },
+@@ -748,0 +680,4 @@ pub enum EditorEnvironmentPaintError {
++    AreaTooNarrow {
++        minimum: u16,
++        actual: u16,
++    },
+@@ -750,3 +685,4 @@ pub enum EditorEnvironmentPaintError {
+-    AreaTooNarrow { minimum: u16, actual: u16 },
+-
+-    AreaTooShort { minimum: u16, actual: u16 },
++    AreaTooShort {
++        minimum: u16,
++        actual: u16,
++    },
+diff --git a/crates/termrock-navigation/src/tabs.rs b/crates/termrock-navigation/src/tabs.rs
+index 28d94d6ce..8a7593027 100644
+--- a/crates/termrock-navigation/src/tabs.rs
++++ b/crates/termrock-navigation/src/tabs.rs
+@@ -324,0 +265,4 @@ pub enum TabsKeyBindingsError {
++    NewGroupCommand {
++        index: usize,
++        found: TabsCmd,
++    },
+@@ -326,3 +270,4 @@ pub enum TabsKeyBindingsError {
+-    NewGroupCommand { index: usize, found: TabsCmd },
+-
+-    CloseGroupCommand { index: usize, found: TabsCmd },
++    CloseGroupCommand {
++        index: usize,
++        found: TabsCmd,
++    },
+@@ -330 +275,3 @@ pub enum TabsKeyBindingsError {
+-    DuplicateAction { action: crate::ActionKey },
++    DuplicateAction {
++        action: crate::ActionKey,
++    },
+diff --git a/crates/termrock-runtime/src/keymap.rs b/crates/termrock-runtime/src/keymap.rs
+index 10c8b7e90..a9cd0319c 100644
+--- a/crates/termrock-runtime/src/keymap.rs
++++ b/crates/termrock-runtime/src/keymap.rs
+@@ -720,3 +718 @@ pub enum HintKey {
+-impl HintKey {
+-
+-}
++impl HintKey {}
+diff --git a/crates/termrock-runtime/src/ui/cx.rs b/crates/termrock-runtime/src/ui/cx.rs
+index 9e4555650..753d25c97 100644
+--- a/crates/termrock-runtime/src/ui/cx.rs
++++ b/crates/termrock-runtime/src/ui/cx.rs
+@@ -947,2 +945 @@ impl<'f> Cx<'f> {
+-
+-    }
++}
+diff --git a/crates/termrock-theme/src/lib.rs b/crates/termrock-theme/src/lib.rs
+index d137395c0..1aea561a5 100644
+--- a/crates/termrock-theme/src/lib.rs
++++ b/crates/termrock-theme/src/lib.rs
+@@ -666,2 +664 @@ impl Theme {
+-
+-    }
++}
+diff --git a/crates/termrock-viewport/src/viewport.rs b/crates/termrock-viewport/src/viewport.rs
+index 061a12606..326b502a9 100644
+--- a/crates/termrock-viewport/src/viewport.rs
++++ b/crates/termrock-viewport/src/viewport.rs
+@@ -1805 +1744,4 @@ impl<'a> TextViewport<'a> {
+-            (viewport_layout.total(), viewport_layout.widest_cols().unwrap_or(0))
++            (
++                viewport_layout.total(),
++                viewport_layout.widest_cols().unwrap_or(0),
++            )

@@ -32,7 +32,7 @@
     "esc_bridge_api_prose_disposition": {
       "production_groups": 9,
       "historical_test_only_groups": 1,
-      "historical_helper_source": "crates/termrock-session/src/esc_bridge.rs:21\u201321"
+      "historical_helper_source": "crates/termrock-session/src/esc_bridge.rs:21–21"
     },
     "open_source_risks": [
       {
@@ -50,25 +50,87 @@
         "task": "T20",
         "risk": "Restore consumes saved state before dup2 succeeds."
       }
-    ]
+    ],
+    "tools_retained_operations": [
+      {
+        "source": "crates/termrock-visibility-tests/src/lib.rs",
+        "sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+        "lines": "592-602",
+        "operations": "F_GETFL/F_SETFL set O_NONBLOCK on a live borrowed pipe descriptor; ownership stays with the File."
+      },
+      {
+        "source": "crates/termrock-visibility-tests/src/lib.rs",
+        "sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+        "lines": "650-668",
+        "operations": "siginfo_t all-zero validity is a supported-target precondition; waitid uses P_PID/WEXITED/WNOHANG/WNOWAIT; si_pid is read only after success."
+      },
+      {
+        "source": "crates/termrock-visibility-tests/src/lib.rs",
+        "sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+        "lines": "324-330, 696-700",
+        "operations": "process_group(0) precedes a negative-pid process-group kill; the helper ignores kill failure and Child::wait covers only the direct child."
+      },
+      {
+        "source": "crates/termrock-visibility-tests/src/bin/capture-command.rs",
+        "sha256": "6cd9c64d85dcda7392ba234f06f54af816f3859b0147759e0420df94c9de0867",
+        "lines": "473-490",
+        "operations": "sigaction all-zero validity is a supported-target precondition; source initializes handler, flags, and mask before libc reads the value."
+      },
+      {
+        "source": "tools/refactor-proof/src/observer/client.rs",
+        "sha256": "903ecfadb486a388239726e07e450c00a66f1b1fda650deb0b6b89184d1db7c7",
+        "lines": "41-60, 163-168",
+        "operations": "host/launcher must transfer two live, valid, distinct pipe descriptors exclusively and once; environment parsing does not establish ownership. T20-OBS-FD-01 remains open."
+      }
+    ],
+    "tools_retired_test_safety_rationales": {
+      "count": 17,
+      "source": "tools safety-rationale.json SHA-256 4dd097c5697b9b6757f855aa48bd2b9a2fdeb201a536a8a14e650712d4bcfebf",
+      "disposition": "Preserve exact source bytes and hashes as historical evidence; do not present retired helper invariants as active production guarantees."
+    }
   },
   "limits": [
     "No source file changed.",
     "No test or build ran.",
     "This is a documentation transfer, not a new unsafe-code audit or product behavior proof."
   ],
-  "maintained_contract_sha256": "49e75678ffc711ff133cffc5689a55c43c2df56b621b11d11a5dfc618c870c1a",
+  "maintained_contract_sha256": "c80133c43064e200c48b811ac86f5195e84bd91994916ff214950ad43e5a94e8",
   "root_safety_sha256": "c7050f7391717e6ac6257aa411fa19cab99e8ad5889001aec026d4dc41a38034",
-  "review_status": "PENDING_EXACT_OUTPUT_REVIEW",
-  "review_correction": {
+  "review_status": "ACCEPTED",
+  "tools_input_records": [
+    {
+      "name": "safety-rationale.json",
+      "source_path": "t37-tools/safety-rationale.json",
+      "sha256": "4dd097c5697b9b6757f855aa48bd2b9a2fdeb201a536a8a14e650712d4bcfebf",
+      "comment_records": 23,
+      "retired_test_rationales": 17,
+      "retained_inline_comment_groups": 6,
+      "retained_uncommented_operations": 3
+    }
+  ],
+  "review": {
+    "decision": "ACCEPT",
     "reviewer": "/root/t00_independent_review",
     "reviewer_model": "gpt-6.1-sol",
     "reviewer_effort": "high",
-    "items": [
-      "Label source line 21 as a historical cfg(test) helper.",
-      "Report nine production API-prose groups and one historical test-only helper.",
-      "Name F17/T20 open risks: session lifetime owner, panic-hook cleanup after session end, and state consumed before dup2 succeeds."
-    ],
-    "prior_reviewed_commit": "2f8b1b7e77ab0606082489cc491844ed67b53d3a"
-  }
+    "accepted_commit": "c645c0b611370bd0974ebe46e8730d85560dbd79",
+    "scope": "Safety documentation transfer only. It does not certify source behavior, target ABI validity, signal delivery, process ownership, or observer descriptor exclusivity."
+  },
+  "session_transfer_review": {
+    "decision": "ACCEPT",
+    "reviewer": "/root/t00_independent_review",
+    "reviewer_model": "gpt-6.1-sol",
+    "reviewer_effort": "high",
+    "accepted_commit": "d92192664d0490e1b750029bf8c8a715217af4d4",
+    "scope": "Session bridge transfer correction: all 28 production rationale mappings remain verbatim; the cfg(test) helper is historical; nine production API-prose groups and one historical helper are distinguished; F17/T20 risks remain open. No behavior or unsafe-code correctness certification."
+  },
+  "committed_input_copies": [
+    {
+      "name": "safety-rationales.json",
+      "source_path": "t37-foundations/safety-rationales.json",
+      "sha256": "17994e97bedd50120829818306bca864a116c8163f5f2763d583df49b5dda1b1",
+      "records": 42,
+      "note": "Hash of the archive present in this merged candidate. The input_records entry above preserves the original transfer input binding; these two artifact hashes are recorded separately and are not asserted to be byte-identical."
+    }
+  ]
 }

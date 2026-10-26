@@ -66,15 +66,8 @@ const fn junie_256() -> ColorTokens {
         fg: [
             Color::Indexed(231),
             Color::Indexed(249),
-            // The frozen source at 4169783 paints text_muted in MUTED
-            // (0x8a8a8a), which the cube rule renders as 245, and text_faint
-            // in WHITE_43 (0x737373), which renders as 242. The approved 256
-            // frames use those indices.
             Color::Indexed(245),
             Color::Indexed(242),
-            // The frozen ghost dim ink renders as cell 238 at this level: the
-            // covered page blanks in the approved 256 frames carry i(238)
-            // (the apply_256 text_ghost), not the source #262626 cube cell.
             Color::Indexed(238),
         ],
         on_accent: Color::Indexed(232),
@@ -92,28 +85,25 @@ const fn junie_256() -> ColorTokens {
         selection_fg: Color::Indexed(231),
         highlight_bg: Color::Indexed(25),
         highlight_fg: Color::Indexed(231),
-        // Frozen ladder highlight danger plate (baseline apply_256
-        // `highlight_danger = i(88)`); the corpus never renders this slot.
+
         highlight_danger_bg: Color::Indexed(88),
         highlight_danger_fg: Color::Indexed(231),
         backdrop_fg: Color::Indexed(238),
         backdrop_bg: Color::Indexed(16),
-        // apply_256 error is 203 (#ff5f5f). Nearest of #f05d5d is 210.
+
         danger: Color::Indexed(203),
-        // Frozen `DANGER_SOFT` ink uses ANSI-256 cell 174.
+
         danger_soft: Color::Indexed(174),
         danger_tint: Color::Indexed(52),
         warning: Color::Indexed(214),
         warning_tint: Color::Indexed(234),
-        // Frozen apply_256 (`self.success = i(71)`): the status green renders
-        // cube cell 71, distinct from the accent cell 78.
+
         success: Color::Indexed(71),
         info: Color::Indexed(147),
         disabled_fg: Color::Indexed(239),
         disabled_bg: Color::Indexed(235),
         read_only_fg: Color::Indexed(249),
-        // The chrome rule and the scroll track keep the frozen 256 cells:
-        // `#3a3a3a` is cell 238 and `#474747` is cell 239.
+
         status_bar_bg: Color::Indexed(232),
         status_bar_fg: Color::Indexed(231),
         status_accent: Color::Indexed(71),
@@ -123,9 +113,6 @@ const fn junie_256() -> ColorTokens {
         tag_ink: Color::Indexed(245),
 
         syntax: SyntaxTokens {
-            // The frozen source at 4169783 sets the 256-tier keyword to
-            // i(111), the string to i(116) and the literal to i(183); the
-            // approved 256 frames paint the operator in 245.
             keyword: Color::Indexed(111),
             ident: Color::Indexed(231),
             string: Color::Indexed(116),
@@ -142,7 +129,7 @@ const fn junie_256() -> ColorTokens {
             match_bg: Color::Indexed(233),
             match_current_bg: Color::Indexed(55),
             bracket_match: Color::Indexed(78),
-            // apply_256 error is 203 (#ff5f5f). 210 is error_strong.
+
             diagnostic_error: Color::Indexed(203),
             diagnostic_warning: Color::Indexed(214),
             diagnostic_info: Color::Indexed(147),
@@ -168,20 +155,15 @@ const fn junie_256() -> ColorTokens {
 }
 
 fn junie_16() -> ColorTokens {
-    // Start with the existing generic ANSI16 projection for every token, then
-    // author only the source-qualified FieldHover surface. This is a profile
-    // derivation, not a frozen-output table for unrelated semantic roles.
     let mut tokens = super::Theme::from_tokens(super::builtin::junie::tokens())
         .downgrade(ColorLevel::Ansi16)
         .color;
     tokens.field_hover = Color::DarkGray;
-    // Frozen apply_16 (`self.text_faint = Gray`): the dimmed faint hint ink
-    // paints Gray, not the DarkGray the generic rule derives from 0x4d4d4d.
+
     tokens.fg[3] = Color::Gray;
-    // Frozen apply_16 (`self.border_strong = Gray`): the dimmed popup border
-    // paints Gray, not the DarkGray the generic rule derives from 0x4d4d4d.
+
     tokens.border_strong = Color::Gray;
-    // Frozen apply_16 (`self.success = Green`): base ladder slot, not bright.
+
     tokens.success = Color::Green;
     tokens.danger_soft = Color::LightRed;
     tokens.meter.stale = Color::Gray;
@@ -204,7 +186,6 @@ const fn junie_mono() -> ColorTokens {
             Color::White,
             Color::Gray,
             Color::Gray,
-            // apply_mono sets text_faint to Gray. #737373 averages to Gray.
             Color::Gray,
             Color::Black,
         ],
@@ -212,9 +193,7 @@ const fn junie_mono() -> ColorTokens {
         on_danger: Color::White,
         on_surface_inverse: Color::Black,
         border_subtle: Color::Black,
-        // Frozen apply_mono (`self.border_strong = Gray`): the dimmed popup
-        // border paints Gray, not the DarkGray the generic rule derives from
-        // 0x4d4d4d.
+
         border_strong: Color::Gray,
         accent: Color::Gray,
         accent_hover: Color::DarkGray,
@@ -235,7 +214,7 @@ const fn junie_mono() -> ColorTokens {
         danger_tint: Color::Black,
         warning: Color::Gray,
         warning_tint: Color::Black,
-        // Frozen apply_mono (`self.success = White`, tag `src/theme.rs:1088`).
+
         success: Color::White,
         info: Color::Gray,
         disabled_fg: Color::DarkGray,
@@ -250,9 +229,6 @@ const fn junie_mono() -> ColorTokens {
         tag_ink: Color::Gray,
 
         syntax: SyntaxTokens {
-            // The mono tier is the luma projection of the truecolor syntax
-            // tokens: the keyword, the string and the operator land on Gray,
-            // the literal on White and the comment on DarkGray.
             keyword: Color::Gray,
             ident: Color::White,
             string: Color::Gray,
@@ -293,8 +269,6 @@ const fn junie_mono() -> ColorTokens {
     }
 }
 
-/// Frozen showcase chrome ink. Truecolor is `0x808080`; mono and 16 stay gray
-/// so `--color none` still captures as `#e5e5e5`.
 pub fn baseline_muted(level: crate::ColorLevel) -> Color {
     match level {
         crate::ColorLevel::TrueColor => Color::from_u32(0x0080_8080),
@@ -303,8 +277,6 @@ pub fn baseline_muted(level: crate::ColorLevel) -> Color {
     }
 }
 
-/// Frozen showcase faint ink. Truecolor is `0x4d4d4d`; mono and 16 are dark gray
-/// (`#666666`).
 pub fn baseline_faint(level: crate::ColorLevel) -> Color {
     match level {
         crate::ColorLevel::TrueColor => Color::from_u32(0x004d_4d4d),

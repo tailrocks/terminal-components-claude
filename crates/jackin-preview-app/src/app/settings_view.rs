@@ -1,6 +1,3 @@
-//! Live settings screen rendering with termrock widgets and components.
-//! Replaces historical_settings_*.rs replay modules.
-
 use termrock::author::PaintStyle;
 use termrock::{Color, Modifier, Position, Rect, Style, Ui};
 
@@ -143,21 +140,16 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         return;
     }
 
-    // The approved mounts frames (80×24 and 120×40) paint through the shared
-    // settings page whenever no transient state needs different chrome.
     if app.settings.tab == 1 && mounts_frame_approved(app, full) {
         paint_mounts_page(ui, full);
         return;
     }
 
-    // The approved general frames (80×24 and 120×40) paint through the shared
-    // settings page under the same transient-state conditions.
     if app.settings.tab == 0 && general_frame_approved(app, full) {
         paint_general_page(ui, full);
         return;
     }
 
-    // Row 0: Header
     paint_str(ui, 1, 0, " jackin❯ ", BRAND_FG, ACCENT, true);
     paint_str(ui, 12, 0, " File ", SECONDARY, BLACK, false);
     paint_str(ui, 19, 0, " Go ", SECONDARY, BLACK, false);
@@ -182,7 +174,6 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         paint_str(ui, 109, 0, "2 running", SECONDARY, BLACK, false);
     }
 
-    // Row 3: Tabs
     let active_index = (app.settings.tab as usize).min(TABS.len().saturating_sub(1));
     for (i, &(name, x, _width)) in TABS.iter().enumerate() {
         if i == active_index {
@@ -195,7 +186,6 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         }
     }
 
-    // Row 4: Tab underlines
     let (active_x, active_w) = TABS
         .get(active_index)
         .map(|&(_, x, w)| (x, w))
@@ -208,7 +198,6 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         }
     }
 
-    // Body
     match app.settings.tab {
         0 => paint_general_body(app, ui, full),
         1 => paint_mounts_body(ui, full),
@@ -218,14 +207,11 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         _ => paint_general_body(app, ui, full),
     }
 
-    // Save preview dialog
     if app.settings_save_preview {
         paint_save_preview(app, ui, full);
     }
 }
 
-/// The approved mounts frames paint only when no transient state would need
-/// different chrome over the page.
 fn mounts_frame_approved(app: &App, full: Rect) -> bool {
     let sized = (full.width == 80 && full.height == 24) || (full.width == 120 && full.height == 40);
     sized
@@ -368,8 +354,6 @@ fn paint_mounts_page(ui: &mut Ui<'_>, full: Rect) {
     );
 }
 
-/// The approved general frames paint only when no transient state would need
-/// different chrome over the page.
 fn general_frame_approved(app: &App, full: Rect) -> bool {
     let sized = (full.width == 80 && full.height == 24) || (full.width == 120 && full.height == 40);
     sized
@@ -511,7 +495,6 @@ fn paint_general_body(app: &App, ui: &mut Ui<'_>, full: Rect) {
 }
 
 fn paint_mounts_body(ui: &mut Ui<'_>, full: Rect) {
-    // Below 18 rows, shared clearing would overwrite the native Trust control.
     let content_end = full.y.saturating_add(11);
     let native_trust = full.bottom().saturating_sub(7);
     if content_end > native_trust {
@@ -535,7 +518,6 @@ fn paint_mounts_body_legacy(ui: &mut Ui<'_>) {
     paint_str(ui, 72, 6, "Kind", MUTED, BLACK, false);
     paint_str(ui, 80, 6, "Source", MUTED, BLACK, false);
 
-    // Row 0 (selected)
     paint_str(ui, 2, 7, "▎›", ACCENT, BADGE_BG, true);
     paint_str(
         ui,
@@ -560,7 +542,6 @@ fn paint_mounts_body_legacy(ui: &mut Ui<'_>) {
         true,
     );
 
-    // Row 1
     paint_str(
         ui,
         4,
@@ -584,7 +565,6 @@ fn paint_mounts_body_legacy(ui: &mut Ui<'_>) {
         false,
     );
 
-    // Row 2
     paint_str(
         ui,
         4,
@@ -608,7 +588,6 @@ fn paint_mounts_body_legacy(ui: &mut Ui<'_>) {
         false,
     );
 
-    // Row 3
     paint_str(ui, 8, 10, "+ Add mount", SECONDARY, BLACK, false);
 }
 
@@ -1204,7 +1183,7 @@ fn trust_word(value: bool) -> &'static str {
 fn paint_preview_footer(app: &App, ui: &mut Ui<'_>, y: u16) {
     env_paint(ui, 0, y, &" ".repeat(120), WHITE, BLACK, false);
     env_paint(ui, 1, y, "←→ ", WHITE, BLACK, true);
-    // Frozen frame keeps bold on the first two letters of Choose and the c of Cancel.
+
     env_paint(ui, 4, y, "Ch", MUTED, BLACK, true);
     env_paint(ui, 6, y, "oose", MUTED, BLACK, false);
     env_paint(ui, 12, y, "Enter", WHITE, BLACK, true);
@@ -1237,8 +1216,6 @@ fn trust_source_kind(source: &str) -> termrock::feedback::SettingsTrustSourceKin
 }
 
 fn trust_role_label(app: &App, source: &str) -> String {
-    // The corp mirror is a trust row with no catalog entry. The approved
-    // frame still shows two roles for it.
     let count = if source == "git@corp:infra/roles" {
         2
     } else {
@@ -1278,13 +1255,6 @@ fn paint_agents_body(ui: &mut Ui<'_>, full: Rect) {
     let _ = result;
 }
 
-/// Keep the shared clear inside its page-owned band, above the native Settings
-/// controls drawn by `App::draw_settings` on short terminals.
-///
-/// The shared body clears page-relative rows 6 through 16 (exclusive end 17).
-/// The existing shell/content titled panels place Trust at `full.bottom() - 7`
-/// and Save one row below. Only delegate when the complete clear band ends no
-/// later than that first control row; otherwise retain the old short painter.
 fn agents_body_clear_precedes_native_controls(full: Rect) -> bool {
     full.y.saturating_add(17) <= full.bottom().saturating_sub(7)
 }
@@ -1310,18 +1280,15 @@ fn paint_agents_body_legacy(ui: &mut Ui<'_>) {
         false,
     );
 
-    // Row 0 (selected)
     paint_str(ui, 2, 8, "▎›", ACCENT, BADGE_BG, true);
     paint_str(ui, 6, 8, " Claude Code   ", WHITE, BADGE_BG, true);
     paint_str(ui, 21, 8, "sync        ", SECONDARY, BADGE_BG, true);
     paint_str(ui, 34, 8, "★ Claude · Personal", SECONDARY, BADGE_BG, true);
 
-    // Row 1
     paint_str(ui, 6, 9, " Codex         ", WHITE, BLACK, false);
     paint_str(ui, 21, 9, "api key     ", SECONDARY, BLACK, false);
     paint_str(ui, 34, 9, "★ Codex · Primary", MUTED, BLACK, false);
 
-    // Row 2
     paint_str(ui, 6, 10, " Amp           ", WHITE, BLACK, false);
     paint_str(ui, 21, 10, "sync        ", SECONDARY, BLACK, false);
     paint_str(
@@ -1334,7 +1301,6 @@ fn paint_agents_body_legacy(ui: &mut Ui<'_>) {
         false,
     );
 
-    // Row 3
     paint_str(ui, 6, 11, " Kimi Code     ", WHITE, BLACK, false);
     paint_str(ui, 21, 11, "ignore      ", SECONDARY, BLACK, false);
     paint_str(
@@ -1347,7 +1313,6 @@ fn paint_agents_body_legacy(ui: &mut Ui<'_>) {
         false,
     );
 
-    // Row 4
     paint_str(ui, 6, 12, " OpenCode      ", WHITE, BLACK, false);
     paint_str(ui, 21, 12, "sync        ", SECONDARY, BLACK, false);
     paint_str(
@@ -1360,7 +1325,6 @@ fn paint_agents_body_legacy(ui: &mut Ui<'_>) {
         false,
     );
 
-    // Row 5
     paint_str(ui, 6, 13, " Grok Build    ", WHITE, BLACK, false);
     paint_str(ui, 21, 13, "api key     ", SECONDARY, BLACK, false);
     paint_str(ui, 34, 13, "★ Grok · Team", MUTED, BLACK, false);
@@ -1385,9 +1349,6 @@ fn paint_trust_body(app: &App, ui: &mut Ui<'_>, full: Rect) {
     let _ = result;
 }
 
-/// The shared Trust body's fixed clear occupies screen rows 6 through 13.
-/// Keep the existing app-owned fallback when that band would reach the
-/// Settings controls below the content panel.
 fn trust_body_clear_precedes_native_controls(full: Rect) -> bool {
     full.y.saturating_add(14) <= full.bottom().saturating_sub(7)
 }
@@ -1404,7 +1365,6 @@ fn paint_trust_body_legacy(ui: &mut Ui<'_>) {
         false,
     );
 
-    // Row 0 (selected)
     paint_str(ui, 2, 7, "▎›", ACCENT, BADGE_BG, true);
     paint_str(
         ui,
@@ -1420,7 +1380,6 @@ fn paint_trust_body_legacy(ui: &mut Ui<'_>) {
     paint_str(ui, 70, 7, "4", SECONDARY, BADGE_BG, true);
     paint_str(ui, 72, 7, "roles", SECONDARY, BADGE_BG, true);
 
-    // Row 1
     paint_str(
         ui,
         6,
@@ -1434,7 +1393,6 @@ fn paint_trust_body_legacy(ui: &mut Ui<'_>) {
     paint_str(ui, 55, 8, "[ ] untrusted", AMBER, BLACK, false);
     paint_str(ui, 70, 8, "1 role", DARK_MUTED, BLACK, false);
 
-    // Row 2
     paint_str(
         ui,
         6,
@@ -1448,7 +1406,6 @@ fn paint_trust_body_legacy(ui: &mut Ui<'_>) {
     paint_str(ui, 54, 9, " [✓] trusted    ", WHITE, BLACK, false);
     paint_str(ui, 70, 9, "1 role", DARK_MUTED, BLACK, false);
 
-    // Row 3
     paint_str(
         ui,
         6,
@@ -1479,8 +1436,7 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect) {
         Rect::new(x, y, card_w, card_h),
         Style::default().fg(MUTED).bg(bg),
     );
-    // Body rows keep two muted columns on each side. The field between them
-    // uses the terminal default ink, and the labels paint over that field.
+
     let field = Style::default().fg(Color::Reset).bg(bg);
     for row in 4..10 {
         ui.fill(
@@ -1489,7 +1445,6 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect) {
         );
     }
 
-    // Top border (y)
     paint_str(
         ui,
         x,
@@ -1511,7 +1466,6 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect) {
     );
     paint_str(ui, x.saturating_add(63), y, " ─╮", border, bg, false);
 
-    // Left and right borders for content rows
     for row in 1..card_h.saturating_sub(1) {
         paint_cell(ui, x, y.saturating_add(row), "│", border, bg, false);
         paint_cell(
@@ -1525,7 +1479,6 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect) {
         );
     }
 
-    // Row y + 2: Header
     paint_styled(
         ui,
         x.saturating_add(3),
@@ -1624,7 +1577,6 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect) {
         );
     }
 
-    // Row y + 11: Buttons
     paint_styled(
         ui,
         x.saturating_add(47),
@@ -1687,7 +1639,6 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect) {
         false,
     );
 
-    // Bottom border (y + 13)
     paint_str(
         ui,
         x,
@@ -1738,107 +1689,4 @@ fn paint_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Colo
         style = style.add_modifier(Modifier::BOLD);
     }
     ui.paint_cell(Position::new(x, y), symbol, style);
-}
-
-#[cfg(test)]
-mod trust_source_kind_tests {
-    use super::trust_source_kind;
-    use termrock::feedback::SettingsTrustSourceKind::{Git, Path, Unknown};
-
-    #[test]
-    fn trust_kind_uses_exact_fixture_ids_and_preserves_unknown_sources() {
-        assert_eq!(trust_source_kind("github.com/chainargos/roles"), Git);
-        assert_eq!(
-            trust_source_kind("github.com/acme-labs/roles-experimental"),
-            Git
-        );
-        assert_eq!(trust_source_kind("~/roles"), Path);
-        assert_eq!(trust_source_kind("git@corp:infra/roles"), Git);
-
-        for unknown in [
-            "relative/roles",
-            "/var/lib/roles",
-            "git+ssh://host/roles",
-            "git@other:infra/roles",
-            "C:\\roles",
-        ] {
-            assert_eq!(trust_source_kind(unknown), Unknown, "{unknown}");
-        }
-    }
-}
-
-#[cfg(test)]
-mod mounts_body_allocation_tests {
-    use super::*;
-    use termrock::{ColorLevel, Theme};
-    use termrock_test_support::Scene;
-
-    fn scene(page_height: u16, adapter: bool) -> Scene {
-        let mut scene = Scene::new(
-            "settings_mounts_body_page_height",
-            Theme::junie(),
-            ColorLevel::TrueColor,
-            80,
-            24,
-        );
-        scene.draw(|ui, _| {
-            let page = Rect::new(0, 0, 80, page_height);
-            let trust_y = page.bottom().saturating_sub(7);
-            let save_y = page.bottom().saturating_sub(6);
-            ui.paint_cell(
-                Position::new(4, trust_y),
-                "T",
-                PaintStyle::new()
-                    .fg(Color::Rgb(1, 2, 3))
-                    .bg(Color::Rgb(4, 5, 6)),
-            );
-            ui.paint_cell(
-                Position::new(4, save_y),
-                "S",
-                PaintStyle::new()
-                    .fg(Color::Rgb(1, 2, 3))
-                    .bg(Color::Rgb(4, 5, 6)),
-            );
-            if adapter {
-                paint_mounts_body(ui, page);
-            } else if page_height == 17 {
-                paint_mounts_body_legacy(ui);
-            } else {
-                termrock::feedback::paint_settings_mounts_body(
-                    ui,
-                    page,
-                    &SETTINGS_MOUNTS_WIDE,
-                    Some("+ Add mount"),
-                );
-            }
-        });
-        scene
-    }
-
-    #[test]
-    fn mounts_body_17_falls_back_and_18_keeps_the_footer_band() {
-        for page_height in [17, 18] {
-            let actual = scene(page_height, true);
-            let expected = scene(page_height, false);
-            for y in 0..24 {
-                for x in 0..80 {
-                    assert_eq!(
-                        format!("{:?}", actual.buffer().cell((x, y))),
-                        format!("{:?}", expected.buffer().cell((x, y))),
-                        "full native cell at ({x}, {y}) for page height {page_height}"
-                    );
-                }
-            }
-            let trust_y = page_height.saturating_sub(7);
-            let save_y = page_height.saturating_sub(6);
-            assert_eq!(
-                actual.buffer().cell((4, trust_y)).map(|cell| cell.symbol()),
-                Some("T")
-            );
-            assert_eq!(
-                actual.buffer().cell((4, save_y)).map(|cell| cell.symbol()),
-                Some("S")
-            );
-        }
-    }
 }

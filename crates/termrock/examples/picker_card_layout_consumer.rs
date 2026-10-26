@@ -1,5 +1,3 @@
-//! Public-facade consumer using live data and the reusable picker card policy.
-
 use termrock::{
     App, Cx, Id, Item, ItemKey, Picker, PickerAction, PickerLayout, PickerState, Response, Runtime,
     ScreenAlign, Theme, Ui,

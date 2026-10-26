@@ -1,0 +1,20 @@
+rust build guard: allowed; checked 1 filesystem(s)
+   Compiling termrock-e2e v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-e2e)
+warning: fields `readiness_timeout_ms` and `input_pacing_ms` are never read
+   --> src/lib.rs:799:5
+    |
+792 | struct Profile {
+    |        ------- fields in this struct
+...
+799 |     readiness_timeout_ms: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^
+800 |     input_pacing_ms: u64,
+    |     ^^^^^^^^^^^^^^^
+    |
+    = note: `Profile` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `termrock-e2e` (lib) generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.75s
+mbx[cache]: 0 hits, 1 misses, 1 not looked up, 1 incremental, 3 bypassed; 0 B downloaded, 0 B uploaded, 0 B stored locally
+mbx[savings]: across 103213 builds, rustc has been excused from 27d 17h of its duties.

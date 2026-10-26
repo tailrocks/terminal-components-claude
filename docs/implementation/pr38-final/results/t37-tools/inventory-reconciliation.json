@@ -1,0 +1,491 @@
+{
+  "schema_version": 1,
+  "fixed_source_input": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "fixed_source_input_parent": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
+  "product_source_baseline": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "t00_inventory": {
+    "path": "docs/implementation/pr38-final/results/t00-source/test-inventory.json",
+    "source_commit": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+    "sha256": "2e684820b5cae6a2817be4ce5760a17d940b3d6054738f2c329a569b061048a6",
+    "1d_source_overlay": {
+      "path": "docs/implementation/pr38-final/results/t00-source/declaration-overlay-1d6.json",
+      "source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "sha256": "bcabf2eacc14fb5febaf0688d447a0a021f0aea754584e56a247a3d849fe3614"
+    },
+    "current_source_summary": {
+      "path": "docs/implementation/pr38-final/results/t00-source/source-summary-1d6.json",
+      "source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "sha256": "8af5ec64185926c1d2b079be3e15bdd70910615a0862c390992f8de00cf73e35"
+    }
+  },
+  "c817_relationship": "c817 is the T00 documentation/status commit whose parent is the independently accepted T00 commit; diff from product source baseline 1d6 changes T00 plan/evidence paths, not product source. T37 source hashes are computed directly from c817 Git blobs.",
+  "changed_path_counts": {
+    "deleted": 128,
+    "modified": 41,
+    "added": 0,
+    "total": 169
+  },
+  "inventory_reconciliation": {
+    "rust_test_functions": {
+      "rows_by_changed_path_status": {
+        "D": 1148,
+        "M": 226
+      },
+      "row_total": 1374,
+      "distinct_changed_paths": 90
+    },
+    "python_test_functions_and_other_test_declarations": {
+      "rows_by_changed_path_status": {
+        "D": 282,
+        "M": 0
+      },
+      "row_total": 282,
+      "distinct_changed_paths": 8
+    },
+    "test_modules": {
+      "rows_by_changed_path_status": {
+        "D": 103,
+        "M": 29
+      },
+      "row_total": 132,
+      "distinct_changed_paths": 38
+    },
+    "test_testing_cfg_scopes": {
+      "rows_by_changed_path_status": {
+        "D": 156,
+        "M": 131
+      },
+      "row_total": 287,
+      "distinct_changed_paths": 40
+    },
+    "implicit_test_source_files": {
+      "rows_by_changed_path_status": {
+        "D": 81,
+        "M": 0
+      },
+      "row_total": 81,
+      "distinct_changed_paths": 81
+    },
+    "fixtures": {
+      "rows_by_changed_path_status": {
+        "D": 1,
+        "M": 0
+      },
+      "row_total": 1,
+      "distinct_changed_paths": 1
+    },
+    "doctest_optouts": {
+      "rows_by_changed_path_status": {
+        "D": 0,
+        "M": 0
+      },
+      "row_total": 0,
+      "distinct_changed_paths": 0
+    }
+  },
+  "fixture_candidate_rows": 1,
+  "test_target_candidates": "0 rows match changed source paths directly because T00 target rows bind to package manifests; the shared manifest owner handles target-level retirement using exact manifest target declarations.",
+  "preserved_evidence_assets": {
+    "inventory_rows_total": 93740,
+    "changed_path_intersections": [],
+    "changed_path_intersection_count": 0,
+    "preserve_rule": "None of the preserved evidence assets is deleted or modified by this fragment."
+  },
+  "decisions": [
+    "T37-E2E-01",
+    "T37-FROZEN-01",
+    "T37-QUALIFIED-01",
+    "T37-E2E-SCHEMA-01",
+    "T37-CAPTURE-01",
+    "T37-INVENTORY-01",
+    "T37-DOC-INVENTORY-01",
+    "T37-TOOLS-SAFETY-01",
+    "T37-E2E-SCHEMA-02"
+  ],
+  "limits": [
+    "Static inventory reconciliation only; no tests or legacy suites were executed.",
+    "Doctest candidates and indirect Cargo target candidates require manifest-level review; source-path matching does not authorize target removal.",
+    "Behavior is NOT VERIFIED.",
+    "Inventory capture and verification were retired by T37-INVENTORY-01; no replacement runner or profile matrix was introduced."
+  ],
+  "approved_ownership_decisions": [
+    {
+      "id": "T37-E2E-01",
+      "authority": "independent gpt-6.1-sol high decision",
+      "retired_closure": [
+        "crates/termrock-e2e/tests/command_lane.rs",
+        "crates/termrock-e2e/tests/contract.rs",
+        "crates/termrock-e2e/tests/holla_help_overlay.rs",
+        "crates/termrock-e2e/tests/holla_tag_capture.rs",
+        "crates/termrock-e2e/tests/shared_journeys.rs",
+        "crates/termrock-e2e/cases/deferred-obligations.json",
+        "tools/visibility/deferred.py",
+        "crates/termrock-e2e/src/lib.rs::run_case",
+        "crates/termrock-e2e/src/lib.rs::run_tag_capture",
+        "crates/termrock-e2e/src/lib.rs::prepare_holla_help_overlay_preflight",
+        "crates/termrock-e2e/src/lib.rs::prepare_frozen_tag_holla_preflight",
+        "crates/termrock-e2e/src/lib.rs::drive_case_subject (both retired callers)",
+        "crates/termrock-e2e/src/lib.rs::deferred_row_count",
+        "crates/termrock-e2e/src/lib.rs::DEFERRED_JSON",
+        "exclusive PTY/tag/deferred runner and trust/write-policy helpers listed by file-deletion-map.json"
+      ],
+      "retained_closure": [
+        "crates/termrock-e2e/src/bin/admit_expected_generation.rs",
+        "crates/termrock-e2e/src/admission.rs",
+        "crates/termrock-e2e/src/lib.rs::admit_expected_generation",
+        "crates/termrock-e2e/src/visual.rs generation validators",
+        "crates/termrock-e2e/cases/registry.json",
+        "crates/termrock-e2e/profile.json",
+        "tools/visibility/subjects.py subject/build receipt readers",
+        "tools/visibility/status.py receipt-v3 diagnostic at line 708"
+      ],
+      "cli": {
+        "source_path": "crates/termrock-e2e/src/bin/admit_expected_generation.rs",
+        "c817_sha256": "947064afb21c3938aa783d9b8d62af2738d4c357d21d2694e96accb1e2f87f1e",
+        "required_flags": [
+          "--generation-id",
+          "--generation-root",
+          "--generation-sha256",
+          "--capture-receipt",
+          "--capture-sha256",
+          "--qualification-review",
+          "--qualification-review-sha256",
+          "--write-root",
+          "--output"
+        ],
+        "preserved_contract": "Reject malformed/repeated/missing/extra arguments; preserve error prefix and exit 2; emit one compact JSON result on stdout; preserve validation order, admission-result schema, all validators/constants, write-root containment/protected-path checks, input revalidation, and no-replace publication."
+      },
+      "schema_policy": "Retain all twelve versioned schemas byte-identically. T37-E2E-SCHEMA-02 classifies seven active retained contracts/formats and five historical-only evidence formats, and records actual file reads/hashes separately from manual typed validation. Historical retention grants no runner or qualification authority.",
+      "orphan_constant_removed": {
+        "name": "RECEIPT_SCHEMA_V2",
+        "path": "crates/termrock-e2e/src/lib.rs",
+        "c817_line": 20,
+        "consumer_search": "No retained Rust or visibility consumer; status.py:708 requires v3. Removal recorded in retained-source-token-comparison.json."
+      }
+    },
+    {
+      "id": "T37-E2E-SCHEMA-01",
+      "authority": "independent gpt-6.1-sol high decision",
+      "retained_schema_files": [
+        {
+          "path": "crates/termrock-e2e/schemas/expected-generation-v1.schema.json",
+          "classification": "active admission input contract",
+          "c817_sha256": "d86c066f58c6edcc92133752d9e02102ab9564c6a7c0b60777ad0f01818b23bc",
+          "current_sha256": "d86c066f58c6edcc92133752d9e02102ab9564c6a7c0b60777ad0f01818b23bc",
+          "byte_identical": true,
+          "schema_json_file_usage": "Manual typed contract and schema-ID check in crates/termrock-e2e/src/visual.rs; the schema JSON file is not loaded by retained code."
+        },
+        {
+          "path": "crates/termrock-e2e/schemas/generation-admission-v1.schema.json",
+          "classification": "active admission output contract",
+          "c817_sha256": "cfec0679de8245be6e165babf7cd4df15855fef42349a28ecc9b8d5102a069a5",
+          "current_sha256": "cfec0679de8245be6e165babf7cd4df15855fef42349a28ecc9b8d5102a069a5",
+          "byte_identical": true,
+          "schema_json_file_usage": "Manual typed admission receipt contract in crates/termrock-e2e/src/admission.rs; the schema JSON file is not loaded by retained code."
+        },
+        {
+          "path": "crates/termrock-e2e/schemas/oracle-capture-receipt-v1.schema.json",
+          "classification": "active admission input contract",
+          "c817_sha256": "448577bd07ccec30596f0a60ee38ca943271183ede8a45c7a7b2c9c167187e20",
+          "current_sha256": "448577bd07ccec30596f0a60ee38ca943271183ede8a45c7a7b2c9c167187e20",
+          "byte_identical": true,
+          "schema_json_file_usage": "Embedded by include_str! in crates/termrock-e2e/src/lib.rs:53 and exposed as ORACLE_CAPTURE_RECEIPT_SCHEMA_JSON; manual typed validation remains distinct from JSON Schema evaluation."
+        },
+        {
+          "path": "crates/termrock-e2e/schemas/qualification-review-v1.schema.json",
+          "classification": "active admission input contract",
+          "c817_sha256": "f3f06b64d25d806dac6ada4b081df8532e83a50f5ec5b6f811a4231c87ba08d0",
+          "current_sha256": "f3f06b64d25d806dac6ada4b081df8532e83a50f5ec5b6f811a4231c87ba08d0",
+          "byte_identical": true,
+          "schema_json_file_usage": "Manual typed review contract and schema-ID validation in crates/termrock-e2e/src/admission.rs; the schema JSON file is not loaded by retained code."
+        },
+        {
+          "path": "crates/termrock-e2e/schemas/receipt-v1.schema.json",
+          "classification": "historical receipt evidence format",
+          "c817_sha256": "68f9c6964d6b732a5a67fa5571b01e8001717f47b0b87db3aa1ab3764768dd61",
+          "current_sha256": "68f9c6964d6b732a5a67fa5571b01e8001717f47b0b87db3aa1ab3764768dd61",
+          "byte_identical": true,
+          "schema_json_file_usage": "Historical-only evidence format; no retained source loader."
+        },
+        {
+          "path": "crates/termrock-e2e/schemas/receipt-v2.schema.json",
+          "classification": "historical receipt evidence format",
+          "c817_sha256": "31135e33541dcc21fffed2c77d3a37a169ae5ceaeb482fa9dc8340394f9b6a5d",
+          "current_sha256": "31135e33541dcc21fffed2c77d3a37a169ae5ceaeb482fa9dc8340394f9b6a5d",
+          "byte_identical": true,
+          "schema_json_file_usage": "Historical-only evidence format; no retained source loader."
+        },
+        {
+          "path": "crates/termrock-e2e/schemas/receipt-v3.schema.json",
+          "classification": "active diagnostic reader for historical receipt-v3 records; no current producer implied",
+          "c817_sha256": "562d95a7a104a6f3127fb9f403f7cb79c24b25f77943e1eec732ed2120f476fe",
+          "current_sha256": "562d95a7a104a6f3127fb9f403f7cb79c24b25f77943e1eec732ed2120f476fe",
+          "byte_identical": true,
+          "schema_json_file_usage": "The format ID is consumed by tools/visibility/status.py:708 as a diagnostic reader for historical records; no current producer is implied, and the schema JSON file is not loaded by that reader."
+        },
+        {
+          "path": "crates/termrock-e2e/schemas/subject-manifest-v1.schema.json",
+          "classification": "historical subject evidence format",
+          "c817_sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+          "current_sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+          "byte_identical": true,
+          "schema_json_file_usage": "Historical-only subject evidence format; no retained source loader."
+        },
+        {
+          "path": "crates/termrock-e2e/schemas/subject-manifest-v2.schema.json",
+          "classification": "active subject contract; consumed by retained admission/visibility subject paths",
+          "c817_sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+          "current_sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+          "byte_identical": true,
+          "schema_json_file_usage": "Active subject contract. tools/visibility/subjects.py pins and reads the schema file; termrock-e2e also hashes the package schema path and manually validates its typed manifest."
+        },
+        {
+          "path": "crates/termrock-e2e/schemas/tag-validator-toolchain-v1.schema.json",
+          "classification": "active validator evidence contract in retained admission validation",
+          "c817_sha256": "979fd241c4b35c8402e3e4161ccd9bad1925c7e5af7f25c0f0b55ebe9fa1b9a6",
+          "current_sha256": "979fd241c4b35c8402e3e4161ccd9bad1925c7e5af7f25c0f0b55ebe9fa1b9a6",
+          "byte_identical": true,
+          "schema_json_file_usage": "Active schema-ID/type contract used by retained admission validation; the schema JSON file is not loaded by retained source."
+        },
+        {
+          "path": "crates/termrock-e2e/schemas/trust-record-v1.schema.json",
+          "classification": "historical trust evidence format",
+          "c817_sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+          "current_sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+          "byte_identical": true,
+          "schema_json_file_usage": "Historical-only trust evidence format; retired runtime Rust trust path has no retained source loader."
+        },
+        {
+          "path": "crates/termrock-e2e/schemas/trust-record-v2.schema.json",
+          "classification": "historical trust evidence format; runtime Rust trust path retired",
+          "c817_sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+          "current_sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+          "byte_identical": true,
+          "schema_json_file_usage": "Historical-only trust evidence format; retired runtime Rust trust path has no retained source loader."
+        }
+      ],
+      "status": "All twelve files are byte-identical at c817 and current source; active vs historical labels are recorded above.",
+      "decision_clarification": "T37-E2E-SCHEMA-02: seven are active retained contracts/formats and five are historical-only. Active format classification does not mean every JSON Schema file is loaded or that current qualification/run authority exists.",
+      "decision_id": "T37-E2E-SCHEMA-02"
+    },
+    {
+      "id": "T37-FROZEN-01",
+      "authority": "independent gpt-6.1-sol high decision; exact tag identity is unsigned annotated tag",
+      "retired_closure": [
+        "tools/frozen_baseline.py",
+        "tools/frozen-cli-frame-support/src/lib.rs",
+        "tools/frozen_cli_extensions.json",
+        "tools/frozen_cli_extensions.rs",
+        "tools/frozen_cli_pair.patch",
+        "shared tools/frozen-cli-frame-support/Cargo.toml and Cargo.lock metadata"
+      ],
+      "caller_search": {
+        "fixed_revision": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "commands": [
+          "git grep for begin_case, prepare_process_launch, record_process_launch, complete_process_launch, handle_frame returned no callers",
+          "git grep TERMROCK_PAIR_PHASE excluding docs found only tools/frozen-cli-frame-support/src/lib.rs:18, tools/frozen_baseline.py:5660, tools/test_frozen_baseline.py:381"
+        ],
+        "retained_non_test_caller": "none"
+      },
+      "preserved": [
+        "refs/tags/visual-baseline annotated unsigned tag and immutable source snapshot",
+        "oracle and snapshots",
+        "immutable capture receipts/reports/provenance/hashes"
+      ],
+      "limitation": "No frozen runner or tests were executed."
+    },
+    {
+      "id": "T37-QUALIFIED-01",
+      "authority": "independent gpt-6.1-sol high decision",
+      "retired_closure": [
+        "tools/qualified-capture/acquire.py",
+        "tools/qualified-capture/fixture.py",
+        "tools/qualified-capture/tuitest_smoke.py",
+        "tools/qualified-capture/oracle.py",
+        "tools/qualified-capture/harness/main.rs",
+        "tools/qualified-capture/proof/run_final_gates.py",
+        "tools/qualified-capture/proof/run_repaired.py",
+        "tools/qualified-capture/expected-cells.json",
+        "tools/qualified-capture/tests/test_integrity.py",
+        "shared tools/qualified-capture/harness/Cargo.toml and Cargo.lock metadata"
+      ],
+      "preserved": [
+        {
+          "path": "tools/qualified-capture/pins.json",
+          "classification": "historical source pins; not current qualification",
+          "c817_sha256": "854e945499f1e1845a74c4d2f1762617c384e2e209fc2fc48249eb2be5c25b25",
+          "current_sha256": "854e945499f1e1845a74c4d2f1762617c384e2e209fc2fc48249eb2be5c25b25",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/qualified-capture/licenses/tui-snap-LICENSE",
+          "classification": "license text",
+          "c817_sha256": "b62eb1da60929bc24f7f8f1fe18c8f228fd39e4d096bf04d9102a038d1cb27ac",
+          "current_sha256": "b62eb1da60929bc24f7f8f1fe18c8f228fd39e4d096bf04d9102a038d1cb27ac",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/qualified-capture/licenses/tui-test-LICENSE",
+          "classification": "license text",
+          "c817_sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "current_sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/qualified-capture/licenses/vt100-LICENSE",
+          "classification": "license text",
+          "c817_sha256": "53a04b0a11073f3d0183c31a4b7bdf9a3f68d453adeec136e59e5a9d9a554370",
+          "current_sha256": "53a04b0a11073f3d0183c31a4b7bdf9a3f68d453adeec136e59e5a9d9a554370",
+          "byte_identical": true
+        },
+        "all immutable proof outputs, receipts, hashes, and repair provenance"
+      ],
+      "status": "Acquisition/qualification lane is retired. Do not repin, promote, or claim current qualification. No replacement runner was added."
+    },
+    {
+      "id": "T37-CAPTURE-01",
+      "authority": "independent gpt-6.1-sol high decision",
+      "retired_closure": [
+        {
+          "path": "tools/capture.sh",
+          "c817_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672"
+        },
+        {
+          "path": "tools/capture_exec.sh",
+          "c817_sha256": "4ac33d52557b01c6942e980b401099d1ef85389a9d3a109ece794bf5a7ffaa0d"
+        },
+        {
+          "path": "tools/baseline_capture.sh",
+          "c817_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a"
+        },
+        {
+          "path": "tools/capture_provenance.py",
+          "c817_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5"
+        },
+        {
+          "path": "tools/parity_replay.py",
+          "c817_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85"
+        },
+        {
+          "path": "tools/parity_approve.py",
+          "c817_sha256": "afae7c3fc37e01d21fec6c7c58d3283590a4992aefb9b809086e7d8ce3bed216"
+        }
+      ],
+      "preserved": "Baseline/parity source data, receipts/manifests/reports/hashes remain byte-identical; evidence.tsv was not rewritten. Generic converters were not included in the retirement."
+    },
+    {
+      "id": "T37-INVENTORY-01",
+      "authority": "independent gpt-6.1-sol high decision",
+      "retired": [
+        {
+          "path": "tools/test-inventory/profiles.json",
+          "classification": "exclusive runner profile matrix retired through shared metadata owner",
+          "c817_sha256": "5e8c81779b129888e27075ea456e408e0b0237a992791521f4e8b0283b7e378f",
+          "current_sha256": "5e8c81779b129888e27075ea456e408e0b0237a992791521f4e8b0283b7e378f",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/test-inventory/inventory.py",
+          "c817_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+          "change": "D"
+        }
+      ],
+      "retained": [
+        {
+          "path": "tools/test-inventory/historical.json",
+          "classification": "historical obligations catalog",
+          "c817_sha256": "cd9c5c4908caf3150cd962e289f7310908c3a5b2285cd26cae624d520068af65",
+          "current_sha256": "cd9c5c4908caf3150cd962e289f7310908c3a5b2285cd26cae624d520068af65",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/test-inventory/required.json",
+          "classification": "pending unapproved historical proposal",
+          "c817_sha256": "1ab6cd9cd95a0ace872085d763547707cb5c5948b727d8f90c2636fc4e8838b2",
+          "current_sha256": "1ab6cd9cd95a0ace872085d763547707cb5c5948b727d8f90c2636fc4e8838b2",
+          "byte_identical": true
+        }
+      ],
+      "preserve_exact_hashes": "Do not change retained catalogs; keep labels historical/unapproved, do not repin or promote.",
+      "retained_callers": "Fixed-source search found no product or CI consumer of inventory.py."
+    },
+    {
+      "id": "T37-DOC-INVENTORY-01",
+      "authority": "independent gpt-6.1-sol high decision",
+      "retired_closure": [
+        {
+          "path": "crates/termrock-xtask/src/doc_inventory.rs",
+          "c817_sha256": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+          "line_count": 2288,
+          "change": "D"
+        },
+        {
+          "path": "crates/termrock-xtask/src/lib.rs",
+          "c817_sha256": "7e6ffe193372791f3e84d77734d0d9c1ff1556d189363685303ee24c2bf46c1d",
+          "current_sha256": "d508f335c69cd871a71277ec5a5e39a4968461319f7d622e7ea3df4f35f22c1f",
+          "removed_item": "pub mod doc_inventory;"
+        }
+      ],
+      "decision": "Retire the documentation-example inventory helper. Fixed c817 caller search found only the retired tests/doc_inventory.rs and historical audit/migration prose. The main command exposes only check-ownership and does not call this helper. Preserve ownership module/CLI/help/diagnostics unchanged.",
+      "metadata_follow_up": "Metadata owner may remove pulldown-cmark only after confirming no remaining target/consumer; do not remove dependencies shared with ownership or CLI.",
+      "replacement": "No replacement gate before T38/T06.",
+      "retired_test_declarations": {
+        "rust_test_functions": 14,
+        "test_modules": 1,
+        "test_testing_cfg_scopes": 4,
+        "source": "docs/implementation/pr38-final/results/t00-source/test-inventory.json"
+      }
+    },
+    {
+      "id": "T37-TOOLS-SAFETY-01",
+      "authority": "independent gpt-6.1-sol high acceptance plus coordinator integration confirmation",
+      "safety_rationale_sha256": "4dd097c5697b9b6757f855aa48bd2b9a2fdeb201a536a8a14e650712d4bcfebf",
+      "transfer_commit": "c645c0b611370bd0974ebe46e8730d85560dbd79",
+      "integration_commit": "b2016ce9190c7875796565faf68855da10a61933",
+      "removed_inline_groups": "six exactly: fcntl F_GETFL/F_SETFL, waitid, si_pid, sigemptyset, sigaction; see post-transfer-comment-deletions.json.",
+      "preserved": "All unsafe operation tokens and exact lint attributes/allowances remain unchanged; no behavior or lint redesign.",
+      "open_obligation": "T20-OBS-FD-01 remains open; no failing/exploit case has run."
+    }
+  ],
+  "open_source_ownership_decisions": [],
+  "test_and_behavior_status": {
+    "selected_tests": [],
+    "legacy_tests_executed": false,
+    "replacement_tests_or_harnesses_added": false,
+    "behavior": "NOT VERIFIED",
+    "structural_reconciliation": "See T00 inventory row counts and per-file deletion map; source function/module removals reconcile by c817 hashes and exact ranges."
+  },
+  "finding_dispositions": [
+    {
+      "id": "F01",
+      "status": "Preserved historical/current distinction",
+      "detail": "Historical failures remain. T00 current run had one failed Required aggregate and 95 cancelled jobs; no product failure or production-build conclusion follows. T37 does not execute tests."
+    },
+    {
+      "id": "F18",
+      "status": "Retained/deferred",
+      "detail": "No changed source path in e08-to-1d6 comparison targeted this finding; current T37 retires the legacy inventory runner and records preserved historical catalogs without asserting current package assumptions."
+    },
+    {
+      "id": "F20",
+      "status": "Retained/rechecked",
+      "detail": "Current product documentation was unchanged from T00; the TablePro comparator remains cmp_values_nulls_last. No test result is claimed."
+    }
+  ],
+  "required_shared_changes": {
+    "owner": "/root/t37_metadata and shared docs owner",
+    "metadata_proposals_path": "docs/implementation/pr38-final/results/t37-tools/shared-metadata-proposals.json",
+    "metadata_proposals_sha256": "c4f5ce52766a1d82782bbd6670e49297271307af9a292a2a2408debc1038bc13",
+    "changes": "Remove orphan Cargo targets/dependencies/packages/locks and old CI citations; remove tools/test-inventory/profiles.json while preserving historical.json and required.json; regenerate managed workflow from declared inputs. Keep visibility publisher and visual-harness production targets and the E2E admission binary.",
+    "generator": "Velnor generation belongs to shared metadata owner; this source agent did not edit generated output or run the generator.",
+    "documentation_citations": {
+      "owner": "shared docs owner",
+      "files": [
+        "crates/termrock-e2e/README.md",
+        "crates/termrock-xtask/RULES.md"
+      ],
+      "action": "Remove active links/procedures that cite deleted tests, or label immutable references as historical; preserve admission and ownership CLI contracts.",
+      "preserve": "Root docs/implementation/pr38-final/REFACTORING_GOAL.md is historical and remains byte-identical under DOCS-OWNERSHIP-01."
+    }
+  }
+}

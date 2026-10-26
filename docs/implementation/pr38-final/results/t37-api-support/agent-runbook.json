@@ -1,0 +1,337 @@
+{
+  "task_id": "T37-API-PROSE-COHORT-C",
+  "input_commit": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
+  "working_base_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+  "output_commit": null,
+  "output_commit_note": "Bind this correction output commit after it is created; the output commit cannot contain its own hash.",
+  "model": "gpt-6-luna",
+  "effort": "max",
+  "agent_id": "/root/t00_import_rules",
+  "record_path": "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json",
+  "changed_paths": [
+    "docs/contracts/foundation-support.md",
+    "docs/implementation/pr38-final/results/t37-api-support/build_disposition.py",
+    "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+    "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json"
+  ],
+  "requirements": [
+    "Dispose all 496 assigned foundation prose groups from shell, theme, collections, and terminal crates.",
+    "Preserve every source group ID, source-map index, path, line range, file hash, and text hash.",
+    "Map required caller rules to exact maintained Markdown excerpts. Give every other group a specific descriptive, internal, historical, compatibility, or retired-test reason.",
+    "Match each surviving attached declaration in its lexical container scope against the accepted clean source tree.",
+    "Add no tests, harnesses, or product-source changes; report behavior as NOT VERIFIED."
+  ],
+  "review": {
+    "reviewer": "/root/t00_independent_review",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "state": "PENDING_INDEPENDENT_REVIEW",
+    "note": "Exact review of 8f355 accepted identities, source hashes, all 427 surviving non-module scopes, all five lexical scope repairs, and most semantic clauses. Four narrow R4 omissions were returned; this correction restores them. Final review is pending."
+  },
+  "design_decisions": [
+    {
+      "id": "T37-API-PROSE-01",
+      "reviewer": "/root/t37_components_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Boundary accepted; this cohort output remains pending exact review."
+    },
+    {
+      "id": "T37-CURSOR-CONTRACT-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; do not infer terminal support or emitted output."
+    },
+    {
+      "id": "T37-BACKDROP-CONTRACT-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; preserve T15-PASS-THROUGH-01 as open."
+    },
+    {
+      "id": "T37-NAV-STATE-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; document current-thread semantics only."
+    },
+    {
+      "id": "T37-KEY-OBSERVE-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; no terminal behavior proof."
+    },
+    {
+      "id": "T37-DIAGNOSTICS-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; preserve saturating dropped-count semantics."
+    },
+    {
+      "id": "T37-SELECTION-CONTRACT-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; preserve T14 eligibility-transition policy as open."
+    },
+    {
+      "id": "T37-CURSOR-NEW-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; constructor does not establish source-bound clamping."
+    },
+    {
+      "id": "T37-VISIT-KEY-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; T19-VISIT-KEY-01 remains open."
+    },
+    {
+      "id": "T37-FOOTER-PIN-CONTRACT-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; T19-FOOTER-PIN-01 remains open."
+    },
+    {
+      "id": "T37-CANVAS-WIDTH-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; T10-CANVAS-WIDTH-01 remains open."
+    },
+    {
+      "id": "T37-SUPPORT-R1",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; modified-quit exception documented and T19-KEYS-TIER-01 remains open."
+    },
+    {
+      "id": "T11-MODAL-DIM-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; T11 owns shared mapping policy, with T22 and T29 consumer obligations."
+    },
+    {
+      "id": "T37-THEME-DATA-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; retain four ungated public arrays as declared compatibility data only."
+    }
+  ],
+  "review_corrections_applied": [
+    "SUPPORT-R1: describe actual key route order, the unconsumed-layer modified-quit exception, and the unresolved T19 keys-tier requirement.",
+    "SUPPORT-R2: remove false non_exhaustive claims for Role and ColorTokens while retaining qualified forward-compatibility advice.",
+    "SUPPORT-R3: correct five lexical declaration scopes in recipe.rs and regenerate the attachment audit.",
+    "SUPPORT-R4: bind exact chord, vocabulary, hint priority, interrupt, selection, quit, input, replay, status clear/query, input-change, sequence-emission, and streaming-row rules to matching excerpts or specific reasons.",
+    "SUPPORT-R5: split prose to the ASD-STE100 sentence limits and remove stray table delimiters.",
+    "SUPPORT-R6: name T11-MODAL-DIM-01 and its T22/T29 consumer obligations.",
+    "SUPPORT-R4 follow-up: restore KeyRouter::replay(Key) as same-path key routing, general KeyHost::request_quit leave-guard behavior, keyboard state-owned once-only push/pop/resume lifecycle alongside emission results, and TextReport default heading/subheading/empty/body row order."
+  ],
+  "inputs": {
+    "frozen_source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+    "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "initial_cohort_input": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
+    "accepted_foundation_source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+    "clean_source_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
+    "clean_source_tree": "ace77f455c4de4f0ef964c621cab511ac9be35b1",
+    "source_map": {
+      "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
+      "sha256": "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619",
+      "records": 1122,
+      "local_path_exists": false,
+      "integration_status": "pending_integration"
+    },
+    "source_disposition": {
+      "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose-disposition.json",
+      "sha256": "8e3923ebb4f6d5974a2e632ca32e5406718a5985a8f26a17a75fcbd9a3f4e9df",
+      "records": 1122,
+      "local_path_exists": false,
+      "integration_status": "pending_integration"
+    },
+    "source_removal_record": {
+      "path": "docs/implementation/pr38-final/results/t37-foundations/source-removal.json",
+      "sha256": "120925eb027ff8365d3046198c7dbfc3375772475acba7b6b60c5185d883b259",
+      "accepted_source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+      "removed_source_path_count": 73,
+      "local_path_exists": false,
+      "integration_status": "pending_integration"
+    }
+  },
+  "outputs": {
+    "cohort_record_count": 496,
+    "cohort_counts": {
+      "termrock-shell": 375,
+      "termrock-theme": 95,
+      "termrock-collections": 18,
+      "termrock-terminal": 8
+    },
+    "disposition_counts": {
+      "required_caller_contract": 244,
+      "descriptive_api_reference": 170,
+      "retired_test_only_provenance": 55,
+      "internal_implementation_description": 9,
+      "retained_public_compatibility_data": 4,
+      "historical_or_internal_description": 5,
+      "unresolved_source_contract_conflict": 9
+    },
+    "attachment_audit": {
+      "reviewer": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "fixed_source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "selected_groups": 496,
+      "retired_or_test_only_groups": 55,
+      "surviving_module_groups": 14,
+      "surviving_non_module_groups": 427,
+      "same_scope_matches": 422,
+      "recipe_scope_corrections": [
+        {
+          "source_map_record": 325,
+          "attached_item": "enum declaration `ManagerPresentationProfile`",
+          "scope": "module root"
+        },
+        {
+          "source_map_record": 328,
+          "attached_item": "variant `Paper`",
+          "scope": "enum `ManagerPresentationProfile`"
+        },
+        {
+          "source_map_record": 329,
+          "attached_item": "struct declaration `AuthoredDeclaration`",
+          "scope": "module root"
+        },
+        {
+          "source_map_record": 330,
+          "attached_item": "method `glyph_slot`",
+          "scope": "impl `PartEdit<'_>`"
+        },
+        {
+          "source_map_record": 331,
+          "attached_item": "method `size_slot`",
+          "scope": "impl `PartEdit<'_>`"
+        }
+      ],
+      "method": "Strip comments and literals into Rust tokens, track a lexical brace stack, and require the attached declaration signature in the same container scope in the clean tree. This is structural evidence, not a Rust parser or semantic proof.",
+      "status": "CORRECTION_APPLIED_PENDING_INDEPENDENT_REVIEW"
+    },
+    "artifact_hashes": {
+      "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae",
+      "docs/implementation/pr38-final/results/t37-api-support/build_disposition.py": "396440aff3b789b7e41ce080706bd8d618fad56e2a75e6da83985426c479e133",
+      "docs/contracts/authoring.md": "3dabb6cc130d892dddc8eb691d90371ea397bdaad2d348f4a233f3b916df845b",
+      "docs/contracts/foundation-support.md": "f3a12716c17fd4fae898a44b41880a90f9ac647e90725e83b2e2380d0ff385c4"
+    },
+    "unchanged_documents_checked": {
+      "docs/contracts/theming.md": "b7c42909eb3850c09f4472be298ccfbc726004db248ddbd0c27af99d64045cd0",
+      "docs/development.md": "e64c3e924a1a3a016ebc653cfbc96a712597461dabbbcd67c7d5c4000b234f10",
+      "crates/termrock-e2e/README.md": "d42309a0b45973e3c2a4eb50212525d9db07ddaac97ea71f3809a7ab20f1bd5d",
+      "crates/termrock-xtask/RULES.md": "4b4a2f433afc90650708f4f56ba8a52d2b969cd8e87cdfeebe985cad1b0f8c4c"
+    },
+    "preserved_historical_report": {
+      "path": "docs/verification/paired-process-receipt-hardening-20261021.md",
+      "sha256": "19d0d25f5bef1672b21a5c70d10bb396a97d5f3a3345da66a80bcfea5dd24c9f",
+      "expected_commit": "265debfb988feb8cd04d57f246262f8881ac1213"
+    },
+    "schema_preservation": {
+      "path": "crates/termrock-e2e/schemas/",
+      "file_count": 12,
+      "comparison_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "changed_files": []
+    }
+  },
+  "commands": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 docs/implementation/pr38-final/results/t37-api-support/build_disposition.py --repo . --source-root /Users/donbeave/Downloads/termrock-t37-foundations/docs/implementation/pr38-final/results/t37-foundations --clean-root /Users/donbeave/Downloads/termrock-t37-metadata",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+      "result": "Generated 496 records with unchanged disposition counts. Output SHA-256: 15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae."
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "evidence_path": "working-tree diff",
+      "result": "No whitespace errors."
+    },
+    {
+      "command": "python3 -",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-api-support/build_disposition.py and foundation-support-disposition.json",
+      "result": "496 unique cohort records; source inventory marked pending integration; builder has no comments other than an optional shebang and no docstrings; historical report hash is unchanged. This is structural evidence, not semantic or behavior proof.",
+      "input_method": "Inline heredoc."
+    },
+    {
+      "command": "python3 -",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "evidence_path": "six maintained Markdown files",
+      "result": "All local targets and anchors resolve except the one accepted foundation source-inventory link, which remains explicitly pending integration.",
+      "input_method": "Inline heredoc."
+    },
+    {
+      "command": "python3 -",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "evidence_path": "docs/contracts/authoring.md and docs/contracts/foundation-support.md",
+      "result": "No sentence exceeds 25 words.",
+      "input_method": "Inline heredoc."
+    },
+    {
+      "command": "python3 -; git show 265debfb988feb8cd04d57f246262f8881ac1213:docs/verification/paired-process-receipt-hardening-20261021.md | shasum -a 256; shasum -a 256 docs/verification/paired-process-receipt-hardening-20261021.md",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "evidence_path": "crates/termrock-e2e/schemas/ and docs/verification/paired-process-receipt-hardening-20261021.md",
+      "result": "All 12 schemas are byte-identical to product input. The report is byte-identical to 265deb and has SHA-256 19d0d25f5bef1672b21a5c70d10bb396a97d5f3a3345da66a80bcfea5dd24c9f.",
+      "input_method": "The Python heredoc compared all 12 schema files to product commit 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd."
+    }
+  ],
+  "approved_test_plan_id": null,
+  "test_plan_reviewer": null,
+  "test_edit_scope": [],
+  "selected_tests": 0,
+  "behavior_cases": 0,
+  "behavior_status": "NOT VERIFIED",
+  "review_state": "PENDING_INDEPENDENT_REVIEW",
+  "open_requirements": [
+    "T19-VISIT-KEY-01: resolve page/focus identity behavior at counter exhaustion.",
+    "T19-FOOTER-PIN-01: resolve pinned-hint versus Danger normalization policy.",
+    "T19-KEYS-TIER-01: resolve source-comment versus current key-tier order.",
+    "T10-CANVAS-WIDTH-01: resolve exact cell width and following-text-run placement.",
+    "T14: define list-selection policy and verification for eligibility changes.",
+    "T15-PASS-THROUGH-01: resolve intended hit pass-through behavior.",
+    "T11-MODAL-DIM-01: resolve shared mapping across Showcase and TablePro consumers.",
+    "Accepted foundation source inventory and source-removal artifacts await normal integration; their current status is pending integration.",
+    "The global 1,122-group crosswalk and overall T37 remain open."
+  ],
+  "limits": [
+    "No Cargo command, test, harness, visual comparison, or product-behavior case ran for this cohort correction.",
+    "The tokenizer and brace-stack matcher provide structural evidence; they are not a Rust parser or semantic proof.",
+    "The excerpt check confirms text presence; it does not prove behavior.",
+    "One accepted foundation source inventory target remains pending integration and is excluded from the local-link pass.",
+    "The preserved report and schemas are immutable-history evidence, not current behavior results."
+  ],
+  "environment": {
+    "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
+    "branch": "pr38/T37-shared",
+    "working_head_before_correction_commit": "34c06c17cab2b6f78734b496f65e6038013b117d",
+    "coordinator": "/root",
+    "cleanup_agent": "/root/t00_import_rules/t37_disk_cleanup",
+    "cleanup_agent_free_bytes_latest": 2147344826368,
+    "cleanup_agent_status": "active until the 2.5 TB gate; read-only scan found no new safe target",
+    "cleanup_agent_selection_note": "The cleanup child spawn arguments are not retained. Its runtime does not attest a more specific backend model or effort. Do not infer model unavailability from this absence.",
+    "cleanup_result": "Disk-only checks found no new safe target; no files were deleted. The child remains active."
+  },
+  "model_selection_note": "Parent dispatch selected gpt-6-luna at max effort for implementation. The runtime does not provide separate backend-model attestation.",
+  "review_correction_from_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2"
+}

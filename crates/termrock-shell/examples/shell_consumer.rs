@@ -1,8 +1,3 @@
-//! Executable consumer exercising the shell crate through the public
-//! Termrock APIs only: the [`termrock_shell::AppShell`] frame, a
-//! [`termrock_shell::Router`] of pages, and the [`termrock_shell::KeyRouter`]
-//! key tiers, with unrelated domain data (a file-browser trail).
-
 use termrock::{
     App, Cx, Family, Focusability, FrameRead, Id, Intent, ItemKey, Key, KeyCode, KeyModifiers,
     Rect, Response, RowUi, Runtime, Theme, Ui,
@@ -14,7 +9,6 @@ use termrock_shell::{
 
 const BODY: Id = Id::root("example.body");
 
-/// One routed screen: a labelled row naming its trail.
 struct Browse {
     label: String,
 }
@@ -120,8 +114,6 @@ impl KeyHost for Workbench {
     }
 
     fn request_quit(&mut self) -> Response<()> {
-        // A clean app leaves at once; an app with stakes hands the leave to
-        // its LeaveGuard instead (see termrock_shell::LeaveGuard).
         self.quit = true;
         Response::changed()
     }

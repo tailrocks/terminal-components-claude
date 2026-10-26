@@ -1,0 +1,193 @@
+{
+  "task_id": "T37",
+  "input_commit": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
+  "output_commit": "21a6b3f223ea56f8a6ba2c6c933047ec51aa43e5",
+  "model": "gpt-6-luna",
+  "effort": "max",
+  "agent_id": "/root/t37_api_runtime",
+  "record_path": "docs/implementation/pr38-final/results/t37-api-runtime/agent-runbook.json",
+  "changed_paths": [
+    "docs/contracts/foundation-runtime.md",
+    "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
+    "docs/implementation/pr38-final/results/t37-api-runtime/verify_runtime_disposition.py",
+    "docs/implementation/pr38-final/results/t37-api-runtime/agent-runbook.json"
+  ],
+  "output_artifacts": {
+    "docs/contracts/foundation-runtime.md": "f4b7d6d704f51c8febdd6d019f198a82ac765c0b976b984a65f28c5294c436b6",
+    "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json": "100b55db7b05031451bca35c2142dbda6b3905d69d7ca404308ed4819a2b03a4",
+    "docs/implementation/pr38-final/results/t37-api-runtime/verify_runtime_disposition.py": "789045aa4550d0dcee37471ede4d5d79bcf551632a50b0963e3f588144ae2b5a"
+  },
+  "dependencies": {
+    "raw_source_inventory": {
+      "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
+      "source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+      "sha256": "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619",
+      "availability": "Read from the immutable integration Git object; absent from this worker worktree."
+    },
+    "identity_crosswalk": {
+      "path": "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
+      "sha256": "7a5a700b240c45c844f4307fb6553b7f22144e5bc932cc6f238be96c3b046ec9"
+    },
+    "source_removal": {
+      "path": "docs/implementation/pr38-final/results/t37-foundations/source-removal.json",
+      "source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+      "sha256": "120925eb027ff8365d3046198c7dbfc3375772475acba7b6b60c5185d883b259"
+    },
+    "deferred_testing_surfaces": {
+      "path": "docs/implementation/pr38-final/results/t37-foundations/deferred-testing-surfaces.json",
+      "source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+      "sha256": "638c72dc94b04ca2fd0bf4b0fd4b6b78b5e97e89017325a5e7607152970d09e8"
+    },
+    "comment_cleanup": {
+      "path": "docs/implementation/pr38-final/results/t37-foundations/comment-cleanup.json",
+      "source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+      "sha256": "cb45ea3385243af51e8a7b6e2b751ca557a54f7f7fa611c7efc8f494697ce1ee"
+    },
+    "api_rules": {
+      "path": "docs/implementation/pr38-final/API-RULES.md",
+      "sha256": "c12fc5549307d714bf193b122bc32b4e8c68de5105a4c18994456b10c2f19a8e",
+      "location": "Imported candidate checkout"
+    }
+  },
+  "requirements": [
+    "Disposition all 304 runtime/session prose groups with exact IDs, paths, ranges, and hashes.",
+    "Transfer every required non-obvious clause to maintained Markdown or record a specific disposition.",
+    "Verify the attached item against the accepted cleanup source for every group.",
+    "Preserve zero behavior cases and report NOT VERIFIED.",
+    "Keep T10-CANVAS-WIDTH-01 and T15-PASS-THROUGH-01 open.",
+    "Apply all independent Sol high R1-R7 corrections from the previous exact output."
+  ],
+  "design_decisions": [
+    {
+      "id": "T37-API-PROSE-01",
+      "reviewer": "/root/t37_components_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; exact-output approval pending."
+    },
+    {
+      "id": "T37-CURSOR-CONTRACT-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; explicit startup shape requests remain distinct from Auto and rendered capability gates."
+    },
+    {
+      "id": "T37-BACKDROP-CONTRACT-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; backdrop pass_through is metadata only and T15 remains open."
+    },
+    {
+      "id": "T37-CANVAS-WIDTH-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied; source mechanics are documented and the intended width contract remains open as T10-CANVAS-WIDTH-01."
+    },
+    {
+      "id": "T37-BUILD-COMPAT-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Recorded as a parent-owned correction. Runtime::draw_scene is not described as retired or as a new harness here."
+    },
+    {
+      "id": "T37-API-PROSE-REVIEW-R1-R7",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "input_commit": "6d35f2b1e53fc076dd1c2f392b1c686dba6a6a42",
+      "status": "R1-R7 corrections applied in 21a6b3f2; independent exact-output approval pending."
+    }
+  ],
+  "commands": [
+    {
+      "command": "python3 docs/implementation/pr38-final/results/t37-api-runtime/verify_runtime_disposition.py",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
+      "tested_commit": "21a6b3f223ea56f8a6ba2c6c933047ec51aa43e5"
+    },
+    {
+      "command": "python3 -m json.tool docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
+      "tested_commit": "21a6b3f223ea56f8a6ba2c6c933047ec51aa43e5"
+    },
+    {
+      "command": "git diff --cached --check",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-api-runtime/agent-runbook.json",
+      "tested_commit": "21a6b3f223ea56f8a6ba2c6c933047ec51aa43e5"
+    },
+    {
+      "command": "git rev-parse HEAD",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "output_commit",
+      "tested_commit": "21a6b3f223ea56f8a6ba2c6c933047ec51aa43e5"
+    }
+  ],
+  "approved_test_plan_id": null,
+  "test_plan_reviewer": null,
+  "test_edit_scope": [],
+  "red_evidence": null,
+  "green_evidence": null,
+  "environment": {
+    "worker_worktree": "/Users/donbeave/Downloads/termrock-t37-api-runtime",
+    "branch": "pr38/T37-api-runtime",
+    "source_input": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+    "cleanup_source": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
+    "cleanup_evidence": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+    "selected_behavior_cases": 0,
+    "runtime_behavior": "NOT VERIFIED"
+  },
+  "open_requirements": [
+    "T10-CANVAS-WIDTH-01 covers groups 435–437. Decide overflow/multiline policy and review listed Unicode, clipping, consecutive-run, and 65,535/65,536/65,537-count cases before edits.",
+    "T15-PASS-THROUGH-01: decide or migrate automatic backdrop pass-through; no delivery behavior is claimed.",
+    "F17/T20 session lease, ended-session panic cleanup, and stdin-restore risks remain open.",
+    "T20/T38 must distinguish Auto and explicit cursor choices with capability true/false and cleanup restoration cases."
+  ],
+  "limits": [
+    "The structural verifier checks identities, hashes, anchors, excerpts, and cleanup attachments; it does not infer semantic coverage.",
+    "The source inventory and cleanup maps are immutable integration-object dependencies, not local path successes.",
+    "No Cargo build or tests ran. T37 behavior remains NOT VERIFIED.",
+    "Parent-owned authoring cursor correction and Runtime::draw_scene source restoration are outside this documentation commit."
+  ],
+  "review_state": "REVIEW",
+  "record_commit_note": "This is a follow-up record commit. output_commit identifies the corrected guide, map, and structural verifier commit.",
+  "behavior_evidence_reason": "T37 selected zero behavior cases and changed documentation only; behavior remains NOT VERIFIED.",
+  "previous_output_commit": "0c2b3b76991c8a8f5b678dbd5ce250d74e056b58",
+  "correction_input_commit": "6d35f2b1e53fc076dd1c2f392b1c686dba6a6a42",
+  "correction_output_commit": "21a6b3f223ea56f8a6ba2c6c933047ec51aa43e5",
+  "review_feedback": {
+    "reviewer": "/root/t00_independent_review",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "input_commit": "6d35f2b1e53fc076dd1c2f392b1c686dba6a6a42",
+    "result": "CORRECTION",
+    "correction_output_commit": "21a6b3f223ea56f8a6ba2c6c933047ec51aa43e5",
+    "items": [
+      "R1: Corrected 16 module-level free-function attachments and five module-documentation chains; verifier checks lexical scope and declaration paths.",
+      "R2: Corrected NestedLayerSlotAuthor, ClosureLeaf, and Runtime::cursor_bar identities.",
+      "R3: Mapped Canvas groups 435-437 to T10; documented painter stop behavior.",
+      "R4: Corrected reserve_right to describe increasing the right-side reservation.",
+      "R5: Restored serial exhaustion, receipt outcomes, Part registration, position labels, and width-dependent remeasurement clauses.",
+      "R6: Restored caller-owned row parts, sticky padded-tail semantics, same-value style authority, trailing-glyph sizing, empty command tables, and Nothing/Target outcomes.",
+      "R7: Corrected T37-BUILD-COMPAT-01 reviewer attribution."
+    ],
+    "status": "Corrections are implemented; exact-output review is pending."
+  }
+}

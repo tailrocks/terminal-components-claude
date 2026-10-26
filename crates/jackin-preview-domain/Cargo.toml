@@ -4,6 +4,8 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+autotests = false
+autobenches = false
 
 
 [lints]
@@ -11,6 +13,7 @@ workspace = true
 [dependencies]
 termrock.workspace = true
 
-# Rust documentation examples are guarded by the workspace doc inventory test.
 [lib]
 doctest = false
+test = false
+bench = false

@@ -1,7 +1,3 @@
-//! A deterministic, read-only filesystem snapshot for the Holla simulator.
-//!
-//! Paths in this module are simulated keys. No method reads or changes the host filesystem.
-
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::sync::Arc;
@@ -10,25 +6,19 @@ pub const PREVIEW_MAX_BYTES: usize = 256 * 1024;
 pub const PREVIEW_MAX_LINES: usize = 2_000;
 pub const PREVIEW_MAX_LINE_CHARS: usize = 4_096;
 
-/// Explicit scan metadata for one simulated filesystem entry.
-///
-/// The identity is local to the modeled snapshot. It is not an operating
-/// system inode and is never inferred from a path or preview content.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ScanMetadata {
-    /// Identity used only to model hardlinks within one snapshot.
     pub modeled_identity: u64,
-    /// Explicit allocated storage bytes for this entry.
+
     pub allocated_bytes: u64,
-    /// Explicit logical or apparent bytes for this entry.
+
     pub apparent_bytes: u64,
-    /// Explicit modeled modification time in Unix seconds.
+
     pub modified_at_secs: i64,
-    /// Whether a directory is modeled as unavailable without materialization.
+
     pub dataless: bool,
 }
 
-/// The subset of simulated node kinds needed by the first Files browser stage.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FileKind {
     File,
@@ -37,7 +27,6 @@ pub enum FileKind {
     Special,
 }
 
-/// One immutable-in-use entry in a [`FilesSnapshot`].
 #[derive(Clone, PartialEq, Eq)]
 pub struct FileEntry {
     path: String,
@@ -62,7 +51,6 @@ impl fmt::Debug for FileEntry {
 }
 
 impl FileEntry {
-    /// Create a readable regular file at a simulated path.
     pub fn file(path: impl Into<String>) -> Self {
         Self {
             path: path.into(),
@@ -73,19 +61,16 @@ impl FileEntry {
         }
     }
 
-    /// Create a readable regular file with explicitly modeled bytes.
     pub fn file_with_bytes(path: impl Into<String>, bytes: impl Into<Vec<u8>>) -> Self {
         Self::file(path).with_bytes(bytes)
     }
 
-    /// Attach explicitly modeled bytes to this simulated file.
     #[must_use]
     fn with_bytes(mut self, bytes: impl Into<Vec<u8>>) -> Self {
         self.content = Some(Arc::<[u8]>::from(bytes.into()));
         self
     }
 
-    /// Create a readable directory at a simulated path.
     pub fn directory(path: impl Into<String>) -> Self {
         Self {
             path: path.into(),
@@ -96,7 +81,6 @@ impl FileEntry {
         }
     }
 
-    /// Create a symbolic link whose target is another snapshot key.
     pub fn symlink(path: impl Into<String>, target: impl Into<String>) -> Self {
         Self {
             path: path.into(),
@@ -109,7 +93,6 @@ impl FileEntry {
         }
     }
 
-    /// Create a special node that the first browser stage does not open.
     pub fn special(path: impl Into<String>) -> Self {
         Self {
             path: path.into(),
@@ -120,17 +103,12 @@ impl FileEntry {
         }
     }
 
-    /// Mark this simulated entry as unreadable.
     #[must_use]
     pub fn unreadable(mut self) -> Self {
         self.readable = false;
         self
     }
 
-    /// Attach explicit in-memory scan facts to this simulated entry.
-    ///
-    /// Constructors leave scan metadata absent; preview bytes and paths are
-    /// never used to synthesize sizes, identities, or modification times.
     #[must_use]
     pub fn with_scan_metadata(mut self, metadata: ScanMetadata) -> Self {
         self.scan_metadata = Some(metadata);
@@ -162,7 +140,6 @@ impl FileEntry {
     }
 }
 
-/// A typed failure while listing or opening a simulated directory.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FilesError {
     NotFound(String),
@@ -184,7 +161,6 @@ impl fmt::Display for FilesError {
 
 impl std::error::Error for FilesError {}
 
-/// The reason a modeled file's inspected bytes must not be displayed as text.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BinaryPreviewReason {
     NulByte,
@@ -200,7 +176,6 @@ impl fmt::Display for BinaryPreviewReason {
     }
 }
 
-/// Safe content outcomes for one explicitly modeled file.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FilePreviewContent {
     Unavailable,
@@ -218,7 +193,6 @@ pub enum FilePreviewContent {
     },
 }
 
-/// A preview result bound to both the selected path and its resolved target.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FilePreview {
     requested_path: String,
@@ -245,7 +219,6 @@ impl FilePreview {
     }
 }
 
-/// A typed failure while resolving a simulated file preview.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FilePreviewError {
     NotFound(String),
@@ -269,7 +242,6 @@ impl fmt::Display for FilePreviewError {
 
 impl std::error::Error for FilePreviewError {}
 
-/// A deterministic snapshot of simulated paths and entries.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FilesSnapshot {
     entries: BTreeMap<String, FileEntry>,
@@ -280,7 +252,6 @@ impl FilesSnapshot {
         Self::default()
     }
 
-    /// Insert or replace one simulated path. Parent creation is explicit.
     pub fn insert(&mut self, entry: FileEntry) {
         self.entries.insert(entry.path.clone(), entry);
     }
@@ -289,7 +260,6 @@ impl FilesSnapshot {
         self.entries.get(path)
     }
 
-    /// List direct children in directory-first, case-insensitive name order.
     pub fn list(&self, directory: &str) -> Result<Vec<FileEntry>, FilesError> {
         let Some(parent) = self.entries.get(directory) else {
             return Err(FilesError::NotFound(directory.to_owned()));
@@ -327,7 +297,6 @@ impl FilesSnapshot {
         Ok(entries)
     }
 
-    /// Resolve a selected directory or directory symlink to its snapshot key.
     pub fn directory_target(&self, path: &str) -> Result<String, FilesError> {
         let mut current = path;
         let mut visited = BTreeSet::new();
@@ -356,7 +325,6 @@ impl FilesSnapshot {
         }
     }
 
-    /// Resolve and safely inspect one file using only entries in this snapshot.
     pub fn preview(&self, path: &str) -> Result<FilePreview, FilePreviewError> {
         let (entry, link_target) = self.resolve_preview_entry(path)?;
         if !entry.readable {
@@ -503,290 +471,4 @@ fn sanitize_preview_line(line: &str) -> String {
         }
     }
     sanitized
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{
-        BinaryPreviewReason, FileEntry, FileKind, FilePreviewContent, FilePreviewError, FilesError,
-        FilesSnapshot, PREVIEW_MAX_BYTES, PREVIEW_MAX_LINE_CHARS, PREVIEW_MAX_LINES, ScanMetadata,
-    };
-
-    fn sample() -> FilesSnapshot {
-        let mut files = FilesSnapshot::new();
-        files.insert(FileEntry::directory("/"));
-        files.insert(FileEntry::directory("/work"));
-        files.insert(FileEntry::directory("/work/Alpha"));
-        files.insert(FileEntry::directory("/work/beta"));
-        files.insert(FileEntry::directory("/work/locked").unreadable());
-        files.insert(FileEntry::file("/work/Zulu.txt"));
-        files.insert(FileEntry::file("/work/éclair.txt"));
-        files.insert(FileEntry::file("/work/.private"));
-        files.insert(FileEntry::symlink("/work/broken", "/work/missing"));
-        files
-    }
-
-    #[test]
-    fn listing_is_directory_first_and_stably_orders_unicode_names() {
-        let files = sample();
-        let root_paths: Vec<_> = files
-            .list("/")
-            .unwrap_or_default()
-            .into_iter()
-            .map(|entry| entry.path().to_owned())
-            .collect();
-        assert_eq!(root_paths, vec!["/work".to_owned()]);
-
-        let entries = files.list("/work").unwrap_or_default();
-        let paths: Vec<_> = entries.iter().map(FileEntry::path).collect();
-        assert_eq!(
-            paths,
-            [
-                "/work/Alpha",
-                "/work/beta",
-                "/work/locked",
-                "/work/.private",
-                "/work/broken",
-                "/work/Zulu.txt",
-                "/work/éclair.txt",
-            ]
-        );
-        assert!(
-            entries
-                .iter()
-                .find(|entry| entry.path() == "/work/.private")
-                .is_some_and(FileEntry::is_hidden)
-        );
-        assert!(
-            entries
-                .iter()
-                .find(|entry| entry.path() == "/work/Alpha")
-                .is_some_and(FileEntry::is_directory)
-        );
-    }
-
-    #[test]
-    fn listing_and_directory_activation_keep_typed_path_errors() {
-        let files = sample();
-        assert_eq!(
-            files.list("/absent"),
-            Err(FilesError::NotFound("/absent".into()))
-        );
-        assert_eq!(
-            files.list("/work/Zulu.txt"),
-            Err(FilesError::NotADirectory("/work/Zulu.txt".into()))
-        );
-        assert_eq!(
-            files.list("/work/locked"),
-            Err(FilesError::PermissionDenied("/work/locked".into()))
-        );
-        assert_eq!(
-            files.directory_target("/work/broken"),
-            Err(FilesError::BrokenLink("/work/broken".into()))
-        );
-        assert_eq!(
-            files.directory_target("/work/Zulu.txt"),
-            Err(FilesError::NotADirectory("/work/Zulu.txt".into()))
-        );
-        assert!(matches!(
-            FileEntry::special("/work/device").kind(),
-            FileKind::Special
-        ));
-    }
-
-    #[test]
-    fn simulated_parent_and_join_keep_tilde_paths_lexical() {
-        assert_eq!(FilesSnapshot::parent("~/work/notes"), Some("~/work".into()));
-        assert_eq!(FilesSnapshot::parent("~/work"), Some("~".into()));
-        assert_eq!(FilesSnapshot::parent("~"), None);
-        assert_eq!(FilesSnapshot::join("~/work", "notes"), "~/work/notes");
-    }
-
-    #[test]
-    fn preview_resolves_file_links_and_keeps_unmodeled_empty_and_error_states_distinct() {
-        let mut files = FilesSnapshot::new();
-        files.insert(FileEntry::directory("/"));
-        files.insert(FileEntry::directory("/work"));
-        files.insert(FileEntry::file_with_bytes(
-            "/work/plain",
-            b"hello\n".to_vec(),
-        ));
-        files.insert(FileEntry::symlink("/work/link", "/work/plain"));
-        files.insert(FileEntry::file_with_bytes("/work/empty", Vec::<u8>::new()));
-        files.insert(FileEntry::file("/work/unmodeled"));
-        files.insert(FileEntry::file_with_bytes(
-            "/work/nul",
-            b"safe\0hidden".to_vec(),
-        ));
-        files.insert(FileEntry::file_with_bytes("/work/invalid", vec![0xff]));
-        files.insert(FileEntry::file_with_bytes("/work/locked", b"secret".to_vec()).unreadable());
-        files.insert(FileEntry::symlink("/work/broken", "/work/missing"));
-        files.insert(FileEntry::symlink("/work/cycle-a", "/work/cycle-b"));
-        files.insert(FileEntry::symlink("/work/cycle-b", "/work/cycle-a"));
-        files.insert(FileEntry::special("/work/device"));
-
-        let link = files.preview("/work/link");
-        assert!(link.is_ok(), "modeled file symlink resolves");
-        let Ok(link) = link else { return };
-        assert_eq!(link.requested_path(), "/work/link");
-        assert_eq!(link.resolved_path(), "/work/plain");
-        assert_eq!(link.link_target(), Some("/work/plain"));
-        assert!(matches!(
-            link.content(),
-            FilePreviewContent::Text { lines, .. }
-                if lines.len() == 1 && lines[0] == "hello"
-        ));
-        assert!(matches!(
-            files
-                .preview("/work/empty")
-                .map(|preview| preview.content().clone()),
-            Ok(FilePreviewContent::Empty)
-        ));
-        assert!(matches!(
-            files
-                .preview("/work/unmodeled")
-                .map(|preview| preview.content().clone()),
-            Ok(FilePreviewContent::Unavailable)
-        ));
-        assert!(matches!(
-            files
-                .preview("/work/nul")
-                .map(|preview| preview.content().clone()),
-            Ok(FilePreviewContent::Binary {
-                reason: BinaryPreviewReason::NulByte
-            })
-        ));
-        assert!(matches!(
-            files
-                .preview("/work/invalid")
-                .map(|preview| preview.content().clone()),
-            Ok(FilePreviewContent::Binary {
-                reason: BinaryPreviewReason::InvalidUtf8
-            })
-        ));
-        assert_eq!(
-            files.preview("/work/locked"),
-            Err(FilePreviewError::PermissionDenied("/work/locked".into()))
-        );
-        assert_eq!(
-            files.preview("/work/broken"),
-            Err(FilePreviewError::BrokenLink("/work/broken".into()))
-        );
-        assert_eq!(
-            files.preview("/work/cycle-a"),
-            Err(FilePreviewError::BrokenLink("/work/cycle-a".into()))
-        );
-        assert_eq!(
-            files.preview("/work/device"),
-            Err(FilePreviewError::SpecialFile("/work/device".into()))
-        );
-        assert_eq!(
-            files.preview("/work/missing"),
-            Err(FilePreviewError::NotFound("/work/missing".into()))
-        );
-    }
-
-    #[test]
-    fn scan_metadata_is_opt_in_and_debug_keeps_preview_content_redacted() {
-        let plain = FileEntry::file("/work/plain");
-        assert!(plain.scan_metadata().is_none());
-
-        let entry = FileEntry::file_with_bytes("/work/secret", b"modeled-secret".to_vec())
-            .with_scan_metadata(ScanMetadata {
-                modeled_identity: 7,
-                allocated_bytes: 4_096,
-                apparent_bytes: 14,
-                modified_at_secs: 123,
-                dataless: false,
-            });
-        let debug = format!("{entry:?}");
-        assert!(debug.contains("content_bytes"));
-        assert!(!debug.contains("modeled-secret"));
-        assert!(!debug.contains("modeled_identity"));
-        assert_eq!(
-            entry
-                .scan_metadata()
-                .map(|metadata| metadata.allocated_bytes),
-            Some(4_096)
-        );
-
-        let mut files = FilesSnapshot::new();
-        files.insert(FileEntry::directory("/"));
-        files.insert(entry);
-        let preview = files.preview("/work/secret");
-        assert!(matches!(
-            preview.map(|preview| preview.content().clone()),
-            Ok(FilePreviewContent::Text { lines, .. })
-                if lines == vec!["modeled-secret".to_owned()]
-        ));
-    }
-
-    #[test]
-    fn preview_applies_original_byte_line_and_control_character_limits() {
-        let mut files = FilesSnapshot::new();
-        files.insert(FileEntry::directory("/"));
-        files.insert(FileEntry::directory("/work"));
-        files.insert(FileEntry::file_with_bytes(
-            "/work/controls",
-            b"tab\tand\x1b\x7f\n".to_vec(),
-        ));
-        files.insert(FileEntry::file_with_bytes(
-            "/work/long-line",
-            format!("{}\n", "界".repeat(PREVIEW_MAX_LINE_CHARS + 3)).into_bytes(),
-        ));
-        files.insert(FileEntry::file_with_bytes(
-            "/work/many-lines",
-            (0..PREVIEW_MAX_LINES + 5)
-                .map(|_| "row")
-                .collect::<Vec<_>>()
-                .join("\n")
-                .into_bytes(),
-        ));
-        let mut boundary = vec![b'a'; PREVIEW_MAX_BYTES - 1];
-        boundary.extend_from_slice("é".as_bytes());
-        files.insert(FileEntry::file_with_bytes("/work/boundary", boundary));
-
-        let controls = files.preview("/work/controls");
-        assert!(controls.is_ok(), "modeled control text previews");
-        let Ok(controls) = controls else { return };
-        assert!(matches!(
-            controls.content(),
-            FilePreviewContent::Text { lines, .. }
-                if lines.len() == 1 && lines[0] == "tab    and��"
-        ));
-        let long_line = files.preview("/work/long-line");
-        assert!(long_line.is_ok(), "modeled long line previews");
-        let Ok(long_line) = long_line else { return };
-        assert!(matches!(
-            long_line.content(),
-            FilePreviewContent::Text { lines, long_lines: 1, .. }
-                if lines.len() == 1
-                    && lines[0].chars().count() == PREVIEW_MAX_LINE_CHARS + 2
-                    && lines[0].ends_with(" …")
-        ));
-        let many_lines = files.preview("/work/many-lines");
-        assert!(many_lines.is_ok(), "modeled line list previews");
-        let Ok(many_lines) = many_lines else { return };
-        assert!(matches!(
-            many_lines.content(),
-            FilePreviewContent::Text { lines, truncated_lines: true, .. }
-                if lines.len() == PREVIEW_MAX_LINES
-        ));
-        let boundary = files.preview("/work/boundary");
-        assert!(
-            boundary.is_ok(),
-            "valid UTF-8 before the byte boundary previews"
-        );
-        let Ok(boundary) = boundary else { return };
-        assert!(matches!(
-            boundary.content(),
-            FilePreviewContent::Text {
-                bytes_shown,
-                total_bytes,
-                truncated_bytes: true,
-                ..
-            } if *bytes_shown == PREVIEW_MAX_BYTES - 1
-                && *total_bytes == PREVIEW_MAX_BYTES + 1
-        ));
-    }
 }

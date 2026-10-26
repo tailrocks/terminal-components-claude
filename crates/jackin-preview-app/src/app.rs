@@ -178,7 +178,7 @@ const EDITOR_ROLE_EDIT: Id = crate::screens::editor::ROOT.sub("role-edit");
 const EDITOR_ROLE_LOAD: Id = crate::screens::editor::ROOT.sub("role-load");
 const EDITOR_ACCOUNTS_LIST: Id = crate::screens::editor::ROOT.sub("accounts-list");
 const EDITOR_SAVE_CONFIRM: Id = crate::screens::editor::ROOT.sub("save-confirm");
-// The shared Roles painter places its native Save owner on this fixed row.
+
 const EDITOR_VIEW_ROLE_SAVE_ROW: u16 = 37;
 const SETTINGS_SAVE_CONFIRM: Id = crate::screens::settings::ROOT.sub("save-confirm");
 
@@ -1037,50 +1037,37 @@ impl App {
         let new_workspace = Chord::key(KeyCode::Char('n'));
         self.keymap.remove(KeyPhase::Capture, new_workspace);
         if self.route == Route::Manager {
-            // The manager hint is `n New`. Capture beats the list.
             self.keymap
                 .add(KeyPhase::Capture, new_workspace, CMD_NEW_WORKSPACE);
         }
         let enter = Chord::key(KeyCode::Enter);
         self.keymap.remove(KeyPhase::Capture, enter);
         if self.accounts_drawer_enter() {
-            // The focused nav button would consume Enter before the bubble
-            // binding. Capture it so this row opens the drawer.
             self.keymap.add(KeyPhase::Capture, enter, CMD_EXIT_CONFIRM);
         } else if self.route == Route::Editor && self.editor_mounts_armed {
-            // `2` then Enter selects Mounts. Capture beats the mount button,
-            // so Enter confirms the tab and does not edit the row.
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_EDITOR_MOUNTS_CONFIRM);
         } else if self.route == Route::Editor && self.editor_roles_armed {
-            // `3` then Enter selects Roles. Capture beats the default-role
-            // button, so Enter confirms the tab and does not set a status.
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_EDITOR_ROLES_CONFIRM);
         } else if self.route == Route::Settings && self.settings_mounts_armed {
-            // `2` then Enter leaves General for Mounts. Capture beats Save.
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_SETTINGS_MOUNTS_CONFIRM);
         } else if self.route == Route::Settings && self.settings_env_armed {
-            // `3` then Enter leaves General for Environments. Capture beats Save.
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_SETTINGS_ENV_CONFIRM);
         } else if self.route == Route::Settings && self.settings_agents_armed {
-            // `4` then Enter leaves General for Agents. Capture beats Save.
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_SETTINGS_AGENTS_CONFIRM);
         } else if self.route == Route::Settings && self.settings_trust_armed {
-            // `5` then Enter leaves General for Trust. Capture beats Save.
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_SETTINGS_TRUST_CONFIRM);
         } else if self.add_form_key_host() && self.add_form_backtab && !self.add_form_required {
-            // Backtab already stayed on the dialog. Enter validates it.
-            // Without this capture the focused start control would leave the page.
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_ADD_FORM_REQUIRED);
         }
         let backtab = Chord::key(KeyCode::BackTab);
-        // Crossterm reports ESC [ Z as BackTab with Shift still set.
+
         let backtab_shift = Chord::with(KeyCode::BackTab, KeyModifiers::SHIFT);
         let shift_tab = Chord::with(KeyCode::Tab, KeyModifiers::SHIFT);
         self.keymap.remove(KeyPhase::Capture, backtab);
@@ -1094,13 +1081,10 @@ impl App {
             && !self.editor.env_form_open
             && !self.editor.preview_open
         {
-            // Three Tabs land on Keep awake. Capture beats focus traversal.
             self.keymap
                 .add(KeyPhase::Capture, field_tab, CMD_EDITOR_FIELD);
         }
         if self.add_form_key_host() && !self.add_form_required {
-            // The shell tab before the start button is Capsule. Backtab must
-            // stay on the empty dialog so Enter can show Required.
             self.keymap
                 .add(KeyPhase::Capture, backtab, CMD_ADD_FORM_BACKTAB);
             self.keymap
@@ -1114,7 +1098,6 @@ impl App {
         if self.route == Route::Editor {
             self.keymap.add(KeyPhase::Bubble, mounts, CMD_EDITOR_MOUNTS);
         } else if self.route == Route::Settings && self.settings.tab == 0 {
-            // `2` arms Mounts. Enter confirms it. Capture beats a focused control.
             self.keymap
                 .add(KeyPhase::Capture, mounts, CMD_SETTINGS_MOUNTS);
         }
@@ -1122,7 +1105,6 @@ impl App {
         self.keymap.remove(KeyPhase::Bubble, env_key);
         self.keymap.remove(KeyPhase::Capture, env_key);
         if self.route == Route::Settings && self.settings.tab == 0 {
-            // `3` arms Environments. Enter confirms it. Capture beats editor roles.
             self.keymap
                 .add(KeyPhase::Capture, env_key, CMD_SETTINGS_ENV);
         } else {
@@ -1132,7 +1114,6 @@ impl App {
         self.keymap.remove(KeyPhase::Bubble, agents_key);
         self.keymap.remove(KeyPhase::Capture, agents_key);
         if self.route == Route::Settings && self.settings.tab == 0 {
-            // `4` arms Agents. Enter confirms it. Capture beats editor environments.
             self.keymap
                 .add(KeyPhase::Capture, agents_key, CMD_SETTINGS_AGENTS);
         } else {
@@ -1143,7 +1124,6 @@ impl App {
         self.keymap.remove(KeyPhase::Bubble, trust_key);
         self.keymap.remove(KeyPhase::Capture, trust_key);
         if self.route == Route::Settings && self.settings.tab == 0 {
-            // `5` arms Trust. Enter confirms it. Capture beats the trust button.
             self.keymap
                 .add(KeyPhase::Capture, trust_key, CMD_SETTINGS_TRUST);
         } else {
@@ -1179,12 +1159,10 @@ impl App {
             && !self.editor.preview_open
             && !self.editor_exit_open
         {
-            // `i` dirties the Mounts row. Accounts and the manager keep this key.
             self.keymap
                 .add(KeyPhase::Bubble, drawer, CMD_EDITOR_MOUNT_ISOLATION);
         }
-        // The accounts page owns the keys its hint bar names: edit, toggle,
-        // remove and usage. The app-wide bindings for those keys stop here.
+
         for (key, command, elsewhere) in [
             ('e', CMD_ACCOUNT_EDIT, Some(CMD_EDITOR_OPEN)),
             ('t', CMD_ACCOUNT_TOGGLE, None),
@@ -1226,9 +1204,9 @@ impl App {
         if cockpit_keys {
             self.keymap.add(KeyPhase::Capture, info, CMD_COCKPIT_INFO);
             self.keymap.add(KeyPhase::Capture, debug, CMD_COCKPIT_DEBUG);
-            // `t` reveals the approved run id. `d` still toggles debug telemetry.
+
             self.keymap.add(KeyPhase::Capture, trace, CMD_COCKPIT_TRACE);
-            // `x` opens cancel confirm. Accounts keep `x` for remove.
+
             self.keymap
                 .add(KeyPhase::Capture, cancel, CMD_COCKPIT_CANCEL);
         }
@@ -1574,8 +1552,7 @@ impl App {
                     .status
                     .as_deref()
                     .is_some_and(|status| status.starts_with("Save workspace")));
-        // Short supported layouts use the normal Roles renderer, whose
-        // controls follow the measured content area instead of this fixed row.
+
         let roles_have_complete_shared_controls =
             self.editor.tab != EditorTab::Roles || full.height > EDITOR_VIEW_ROLE_SAVE_ROW;
         self.route == Route::Editor
@@ -1938,13 +1915,11 @@ impl App {
         else {
             return menu;
         };
-        // The tab menu takes the keys. The pane caret stays the steady bar.
+
         menu.retain_cursor(Self::capsule_viewport_id(pane))
     }
 
     fn capsule_command_palette() -> Picker<'static, Item<'static>> {
-        // The frozen capsule palette is a 60×19 card on the screen center,
-        // listing the 20 host commands with a live count.
         Picker::new(CAPSULE_COMMAND_PALETTE)
             .title("Command palette")
             .placeholder("Type to filter commands…")
@@ -2371,8 +2346,8 @@ impl App {
             "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
         )
         .actions(&CANCEL_LAUNCH_ACTIONS)
-        // The frozen app centred the card with ratatui Flex::Center: the odd
-        // leftover row goes above, not to the floor split.
+
+
         .align(termrock::ScreenAlign::Balanced)
     }
 
@@ -2380,11 +2355,8 @@ impl App {
         Dialog::info(COCKPIT_INFO_DIALOG, "Debug info")
             .width(66)
             .body_rows(8)
-            // The frozen info card carried its title and meta in the border.
             .meta("read-only")
             .head_in_border()
-            // The frozen app centred the card with a floor split of the free
-            // rows (popup Center), not the Flex::Center split.
             .align(termrock::ScreenAlign::GeometricCenter)
     }
 
@@ -2498,8 +2470,6 @@ impl App {
     }
 
     fn dirty_mounts_tab(&mut self) {
-        // One edit: the selected host mount becomes read-only and cloned.
-        // `r` and `i` both land here. A second press does not undo it.
         if let Some(mount) = self.editor.pending.mounts.first_mut() {
             mount.readonly = true;
             mount.isolation = crate::domain::workspace::Isolation::Clone;
@@ -2809,7 +2779,6 @@ impl App {
         }
     }
 
-    /// Any transient overlay chrome above the page.
     pub(super) fn overlay_open(&self) -> bool {
         self.status.is_some()
             || self.help_open
@@ -2826,15 +2795,10 @@ impl App {
             || self.manager.detail_open()
     }
 
-    /// True when a filter query narrows the accounts tree.
-    ///
-    /// The query stays after it is committed, so the tree keeps the filter
-    /// while the list takes the keys again.
     pub(crate) fn filter_active(&self) -> bool {
         !self.accounts.filter_query.trim().is_empty()
     }
 
-    /// True when the filter field holds the caret.
     fn filter_field_open(&self) -> bool {
         self.accounts.filter_input.is_editing()
     }
@@ -3087,8 +3051,6 @@ impl App {
             if let Some(outcome) = cx.focus_continuation_result(opening, ACCOUNTS_LIST)
                 && (!outcome.continued() || outcome.restored_focus() != Some(ACCOUNTS_LIST))
             {
-                // A stale or redirected close has no Accounts-list resume to apply.
-                // A successful return stays pending until the real List update below.
                 let _ = cx.acknowledge_focus_continuation_result(opening, ACCOUNTS_LIST);
             }
             if cx.take_layer_completion(opening).is_some() {
@@ -3261,10 +3223,6 @@ impl App {
         true
     }
 
-    /// Open the account form on the selected account.
-    ///
-    /// The form carries the current name, provider and credential, so the
-    /// edit starts from the account as the registry knows it.
     fn open_account_edit(&mut self, cx: &mut Cx<'_>) {
         let Some(id) = self.accounts.selected_id.clone() else {
             self.status = Some("Select an account to edit".into());
@@ -3802,8 +3760,7 @@ impl App {
     fn capsule_prefix_key(&mut self, cx: &mut Cx<'_>, key: char) -> Response<()> {
         if key == 'm' {
             self.capsule_prefix = false;
-            // The prefix line is transient. The open tab menu keeps the session
-            // status row, the same row the idle capsule paints.
+
             self.status = None;
             self.capture_active_capsule_tab_target();
             self.capsule_tab_menu_open = true;
@@ -4632,8 +4589,6 @@ impl App {
             result |= Response::changed();
         }
 
-        // Picker also settles its FilterList focus lifecycle after the layer closes.
-        // Only actions from a layer open at the start of this update are semantic choices.
         if cx.is_open(ROLE_PICKER)
             && let Some(RolePickerPurpose::EditorDefault(target)) = self.role_picker_purpose
             && !self.editor_role_target_is_current(target)
@@ -4940,7 +4895,6 @@ impl App {
         if cx.activation_key() == Some(ActivationKey::Enter)
             && (self.launch_picker_enter(cx) || self.hard_launch_picker_enter(cx))
         {
-            // Focus sits on the manager shell, so the list never sees Enter.
             self.open_agent_picker(cx);
             return result | Response::changed();
         }
@@ -5013,8 +4967,6 @@ impl App {
                     matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. })
                 })
             {
-                // The modal keeps the selected list entry logically active, so settle its real
-                // focus transition without allowing an underlying list action.
                 host_result |= self.update_account_list_focus_transition(cx);
                 self.acknowledge_account_list_focus_results(cx);
             }
@@ -5165,21 +5117,15 @@ impl App {
         }
         self.acknowledge_account_list_focus_results(cx);
         if matches!(list_action, Some(ListAction::Chose(_))) && !self.filter_field_open() {
-            // A committed row choice selects in the detail view. Opening the
-            // drawer remains an explicit Enter or inspector action.
             if self.accounts.drawer_open {
                 accounts_page::close_drawer(&mut self.accounts_view, cx, self.screen);
             }
             self.accounts.drawer_open = false;
             result |= Response::changed();
         }
-        // The filter field owns the caret while it is open. A committed query
-        // keeps the filter and gives the keys back to the list.
+
         if self.filter_field_open() {
             if matches!(list_action, Some(ListAction::Chose(_))) {
-                // A click outside the field dismisses it, the way the
-                // reference dialog dismisses on an outside click. The query
-                // stays: the tree has been filtered with it all along.
                 self.accounts.filter_input.cancel();
                 cx.focus(ACCOUNTS_LIST);
                 result |= Response::changed();
@@ -5206,12 +5152,8 @@ impl App {
             }
             if committed {
                 if self.accounts.filter_query.trim().is_empty() {
-                    // An empty query keeps the filter open: the caret stays in
-                    // the field so the query can still be typed.
                     self.accounts.filter_input.begin("");
                 } else {
-                    // Enter leaves the query. The approved filter frame has no
-                    // caret, so focus must leave the field before draw.
                     self.accounts.filtering = true;
                     cx.focus(ACCOUNTS_LIST);
                 }
@@ -5221,7 +5163,7 @@ impl App {
                 self.accounts.filtering = false;
                 self.accounts.filter_query.clear();
                 self.accounts.filter_input = TextInputState::default();
-                // The field is gone: the list takes the focus back.
+
                 cx.focus(ACCOUNTS_LIST);
                 result |= Response::changed();
             }
@@ -5389,8 +5331,6 @@ impl App {
         });
     }
 
-    /// Save the edit of an account: the name and the provider move, the
-    /// credential stays the one the registry knows.
     fn save_account_edit(&mut self, id: String) {
         let provider = register_provider(self.accounts.provider_index);
         let name = if self.accounts.draft_name.trim().is_empty() {
@@ -6034,8 +5974,6 @@ impl App {
                 .intents(CAPSULE_INPUT)
                 .any(|intent| matches!(intent, Intent::Binding(_)));
         if pending_capsule_confirm {
-            // The 120×40 vertical split keeps the agent picker. A leftover
-            // binding from `"` must not replace it with the account list.
             if self.capsule_split_vertical_frame(cx.theme(), cx.viewport()) {
                 cx.focus(CAPSULE_INPUT);
                 return result;
@@ -6363,8 +6301,6 @@ impl App {
                         );
                     }
                     None => {
-                        // The overview row refreshes every account, the way
-                        // the hint bar names it.
                         let ids: Vec<String> = self
                             .world
                             .accounts
@@ -6506,8 +6442,6 @@ impl App {
                     self.capsule_prefix = false;
                     self.pending_capsule_action = Some(CapsuleAction::NewTab);
                     if self.capsule_split_vertical_host(cx.theme(), cx.viewport()) {
-                        // The approved frame is the agent picker titled
-                        // "New tab". Leave the session bar in place.
                         self.status = None;
                         cx.focus(CAPSULE_INPUT);
                     } else {
@@ -6531,8 +6465,6 @@ impl App {
                 Some(response.erase())
             }
             CMD_MENU_OPEN if self.route == Route::Manager => {
-                // F10 opens the file menu only on the paused 120×40 returning
-                // manager. Other sizes and scenarios keep the live page.
                 self.ensure_manager_rows();
                 if !self.manager_menu_host(cx.theme(), cx.viewport()) {
                     return None;
@@ -6734,13 +6666,8 @@ impl App {
             CMD_CAPSULE_SPLIT_BELOW if self.route == Route::Capsule && self.capsule_prefix => {
                 self.capsule_prefix = false;
                 if self.capsule_split_vertical_host(cx.theme(), cx.viewport()) {
-                    // The approved frame is the agent picker, not the Claude
-                    // account list. Leave status clear so the session bar
-                    // stays the baseline row.
                     self.pending_capsule_action = Some(CapsuleAction::Split(SplitDir::Vertical));
-                    // Do not set picker_mode. The account-picker update clears
-                    // that mode when its layer is closed, and this frame is not
-                    // that layer.
+
                     self.status = None;
                     cx.focus(CAPSULE_INPUT);
                 } else {
@@ -6761,8 +6688,7 @@ impl App {
                         Some(tab.focused)
                     };
                     self.capsule.zoomed = tab.zoomed.is_some();
-                    // The 120-col stamp keys off this status. Other sizes keep
-                    // the session bar and put the zoom note on the hint row.
+
                     let zoom_host = cx.viewport().width == 120
                         && cx.viewport().height == 40
                         && cx.theme().capability.color == termrock::ColorLevel::TrueColor
@@ -6807,7 +6733,6 @@ impl App {
                 self.open_capsule_command_palette(cx)
             }
             CMD_PRELUDE_SPACE if self.route == Route::Capsule && self.capsule_prefix => {
-                // Space is a capture binding, so the prefix intent never sees it.
                 self.open_capsule_command_palette(cx)
             }
             CMD_CONTAINER_INFO if self.route == Route::Capsule => {
@@ -6855,8 +6780,6 @@ impl App {
                     && !self.filter_field_open()
                     && !self.accounts.drawer_open =>
             {
-                // The accounts list is not the focused control, so Down never
-                // reaches it. Four downs must still land on Claude · Work.
                 self.move_accounts_cursor(true);
                 Some(Response::changed())
             }
@@ -6953,8 +6876,7 @@ impl App {
                 }
                 self.accounts.filtering = true;
                 self.accounts.drawer_open = false;
-                // The field opens on the committed query, so the filter can be
-                // refined instead of retyped.
+
                 let query = self.accounts.filter_query.clone();
                 self.accounts.filter_input.begin(&query);
                 cx.focus(crate::screens::accounts::FILTER);
@@ -6970,8 +6892,7 @@ impl App {
                         .next()
                         .map(|account| account.id.clone());
                 }
-                // The drawer shows the inspected account: the list cursor
-                // follows it.
+
                 if let Some(id) = self.accounts.selected_id.clone()
                     && let Some(index) = self.account_row_index(&id)
                 {
@@ -6991,14 +6912,10 @@ impl App {
             CMD_EXIT_CONFIRM
                 if self.launch_picker_enter(cx) || self.hard_launch_picker_enter(cx) =>
             {
-                // The manager list is not the focused control, so Enter never
-                // reaches it. This row still opens the launch picker.
                 self.open_agent_picker(cx);
                 Some(Response::changed())
             }
             CMD_EXIT_CONFIRM if self.accounts_drawer_enter() => {
-                // Enter on this row opens the drawer. Four Downs without Enter
-                // stay on the detail frame, and every other Enter stays live.
                 self.accounts.drawer_open = true;
                 accounts_page::open_drawer(&mut self.accounts_view, cx, self.screen);
                 Some(Response::changed())
@@ -7115,7 +7032,6 @@ impl App {
                 Some(Response::changed())
             }
             CMD_SETTINGS_MOUNTS if self.route == Route::Settings && self.settings.tab == 0 => {
-                // `2` alone stays on General. Enter is what leaves it.
                 if cx.update_cause() == UpdateCause::Event {
                     self.settings_mounts_armed = true;
                 }
@@ -7131,7 +7047,6 @@ impl App {
                 Some(Response::changed())
             }
             CMD_SETTINGS_ENV if self.route == Route::Settings && self.settings.tab == 0 => {
-                // `3` alone stays on General. Enter is what leaves it.
                 if cx.update_cause() == UpdateCause::Event {
                     self.settings_env_armed = true;
                 }
@@ -7147,7 +7062,6 @@ impl App {
                 Some(Response::changed())
             }
             CMD_SETTINGS_AGENTS if self.route == Route::Settings && self.settings.tab == 0 => {
-                // `4` alone stays on General. Enter is what leaves it.
                 if cx.update_cause() == UpdateCause::Event {
                     self.settings_agents_armed = true;
                 }
@@ -7163,7 +7077,6 @@ impl App {
                 Some(Response::changed())
             }
             CMD_SETTINGS_TRUST if self.route == Route::Settings && self.settings.tab == 0 => {
-                // `5` alone stays on General. Enter is what leaves it.
                 if cx.update_cause() == UpdateCause::Event {
                     self.settings_trust_armed = true;
                 }
@@ -7770,7 +7683,6 @@ impl App {
     }
 
     fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect, frame_owns_list: bool) {
-        // A wide split stays mounted when a master-row press takes focus from detail.
         if self.manager_detail_state.drawer_open() || self.manager.detail_open() {
             manager_detail::draw(self, ui, area, frame_owns_list);
             return;
@@ -7824,8 +7736,6 @@ impl App {
         self.paint_pinned_split_inner(ui, area, mode, place_cursor, false);
     }
 
-    /// The pinned detail drawer: the saved split painted through the shared
-    /// drawer presentation (title focus, rule-grey box, drawer hints).
     fn paint_pinned_detail_drawer(&self, ui: &mut Ui<'_>, area: Rect, place_cursor: bool) {
         self.paint_pinned_split_inner(
             ui,
@@ -7980,8 +7890,7 @@ impl App {
             .now_secs()
             .saturating_sub(self.world.last_refresh_secs)
             .max(0);
-        // Boot sets last_refresh to now. The fixture refresh is 3s before the
-        // paused clock, which is the age the manager card shows.
+
         let daemon_ago = if ago_secs == 0 {
             self.world.clock.ago(self.world.now_secs() - 3)
         } else {
@@ -8636,7 +8545,6 @@ impl App {
         let mut fg = termrock::Color::Rgb(0x79, 0xb8, 0xff);
         let mut bg = termrock::Color::Rgb(0, 0, 0);
         if level == termrock::ColorLevel::Ansi256 {
-            // Baseline 256 trace ink is cube 111, not the generic neighbor 117.
             fg = termrock::Color::Indexed(111);
             bg = termrock::Color::Indexed(16);
         } else if level == termrock::ColorLevel::Ansi16 {
@@ -8674,8 +8582,6 @@ impl App {
             style,
         );
         if level == termrock::ColorLevel::Ansi256 {
-            // Brand text on the accent chip is ramp 232. Ghost glyphs on black
-            // are ramp 238. The stage checks use cube 71, not the accent.
             ui.recolor_fg(screen, |fg, bg| match (fg, bg) {
                 (termrock::Color::Indexed(233), termrock::Color::Indexed(78)) => {
                     Some(termrock::Color::Indexed(232))
@@ -8713,7 +8619,6 @@ impl App {
     }
 
     fn accounts_add_form_scene(&self) -> bool {
-        // `a` on the paused accounts list. The start button is not the dialog.
         self.route == Route::Accounts
             && self.world.scenario == Scenario::AccountsMixed
             && self.motion == Motion::Paused
@@ -8789,7 +8694,6 @@ impl App {
             self.draw_accounts_add_form_body(ui, body);
         });
         if self.add_form_required {
-            // Backtab then Enter. The control row includes the focus gutter.
             let message_bg = ui.theme_ref().bg(termrock::Surface::Elevated);
             termrock::fields::paint_field_error(
                 ui,
@@ -8850,7 +8754,6 @@ impl App {
         let radio_active =
             ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent));
 
-        // Row 0 (y = body.y): Display name *
         ui.paint_str(
             Rect::new(body.x.saturating_add(2), body.y, 13, 1),
             "Display name ",
@@ -8862,7 +8765,6 @@ impl App {
             secondary_bold,
         );
 
-        // Row 1 (y = body.y + 1): Name input field
         let field_width = body.width.saturating_sub(2);
         ui.fill(
             Rect::new(body.x, body.y.saturating_add(1), field_width, 1),
@@ -8881,7 +8783,6 @@ impl App {
             );
         }
 
-        // Row 4 (y = body.y + 4): Purpose label optional
         ui.paint_str(
             Rect::new(body.x.saturating_add(2), body.y.saturating_add(4), 15, 1),
             "Purpose label  ",
@@ -8893,7 +8794,6 @@ impl App {
             faint,
         );
 
-        // Row 5 (y = body.y + 5): Purpose input field
         ui.fill(
             Rect::new(
                 body.x.saturating_add(1),
@@ -8909,14 +8809,12 @@ impl App {
             field_text,
         );
 
-        // Row 8 (y = body.y + 8): Provider
         ui.paint_str(
             Rect::new(body.x.saturating_add(2), body.y.saturating_add(8), 8, 1),
             "Provider",
             secondary,
         );
 
-        // Row 9 (y = body.y + 9): Provider dropdown
         ui.fill(
             Rect::new(
                 body.x.saturating_add(1),
@@ -8937,7 +8835,6 @@ impl App {
             field_text,
         );
 
-        // Row 12 (y = body.y + 12): Provider runtime note
         ui.paint_str(
             Rect::new(
                 body.x.saturating_add(2),
@@ -8949,14 +8846,12 @@ impl App {
             field_text,
         );
 
-        // Row 14 (y = body.y + 14): Credential source
         ui.paint_str(
             Rect::new(body.x.saturating_add(2), body.y.saturating_add(14), 17, 1),
             "Credential source",
             secondary,
         );
 
-        // Rows 15..17 (y = body.y + 15..17): Radios
         ui.paint_str(
             Rect::new(body.x.saturating_add(1), body.y.saturating_add(15), 3, 1),
             "(●)",
@@ -8988,14 +8883,12 @@ impl App {
             primary_plain,
         );
 
-        // Row 19 (y = body.y + 19): 1Password reference
         ui.paint_str(
             Rect::new(body.x.saturating_add(2), body.y.saturating_add(19), 19, 1),
             "1Password reference",
             secondary,
         );
 
-        // Row 20 (y = body.y + 20): not chosen + Choose button
         ui.paint_str(
             Rect::new(body.x.saturating_add(2), body.y.saturating_add(20), 10, 1),
             "not chosen",
@@ -9006,7 +8899,6 @@ impl App {
             Rect::new(body.x.saturating_add(55), body.y.saturating_add(20), 10, 1),
         );
 
-        // Register control IDs for focus/tab navigation in test harness
         ui.register_control(
             crate::screens::accounts::NAME,
             Rect::new(body.x, body.y.saturating_add(1), field_width, 1),
@@ -9044,7 +8936,6 @@ impl App {
         );
     }
 
-    /// Enter on the accounts list opens the drawer of the selected account.
     fn accounts_drawer_enter(&self) -> bool {
         self.route == Route::Accounts
             && !self.accounts.form_open
@@ -9102,9 +8993,7 @@ impl App {
         if !self.usage_overview_narrow_host(ui.theme_ref(), screen) {
             return;
         }
-        // The paused baseline page keeps its exact historical cells. Its
-        // visible crumb remains the tab-focus stop; the live Tabs and NavList
-        // controls are drawn after the baseline state changes.
+
         ui.register_control(
             crate::screens::usage::TABS,
             Rect::new(
@@ -9590,8 +9479,6 @@ impl App {
     }
 
     fn capsule_split_vertical_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b " and ctrl-b c on the paused capsule open the agent picker.
-        // Zoom, the tab menu, and non-junie themes stay off this path.
         screen.width >= 72
             && screen.height >= 20
             && (Self::junie_truecolor(theme)
@@ -9638,7 +9525,6 @@ impl App {
     }
 
     fn capsule_zoom_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b z on the paused 120×40 capsule. The bare capsule stays put.
         screen.width == 120
             && screen.height == 40
             && theme.capability.color == termrock::ColorLevel::TrueColor
@@ -9679,17 +9565,12 @@ impl App {
     }
 
     fn draw_capsule_zoom(&self, ui: &mut Ui<'_>, screen: Rect) {
-        // Gap: the zoom frame draws no input row, so no real field owns
-        // the caret. The cursor stays absent until a later wave draws the
-        // field; no fixed cell is forced (same for the 80-col zoom).
         if self.capsule_zoom_frame(ui.theme_ref(), screen) {
             capsule_zoom_view::paint(ui);
         }
     }
 
     fn capsule_menu_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b m on the paused 80×24 capsule. The 120×40 menu, new tab,
-        // palette, zoom, and split stay on their own frames.
         screen.width == 80
             && screen.height == 24
             && theme.capability.color == termrock::ColorLevel::TrueColor
@@ -9717,8 +9598,6 @@ impl App {
     }
 
     fn capsule_menu_120_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b m on the paused 120×40 capsule. Every pane keeps the blank
-        // input row so the scrolled transcript matches the frozen frame.
         screen.width == 120
             && screen.height == 40
             && theme.capability.color == termrock::ColorLevel::TrueColor
@@ -9734,8 +9613,6 @@ impl App {
     }
 
     fn capsule_palette_120_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b space on the paused 120×40 capsule. The panes keep the
-        // same shortened transcript as the tab menu, under the modal dim.
         screen.width == 120
             && screen.height == 40
             && theme.capability.color == termrock::ColorLevel::TrueColor
@@ -9755,8 +9632,7 @@ impl App {
             return;
         }
         capsule_menu_view::paint(ui);
-        // The bar sits on the capsule line, outside the popup clip. Record it
-        // on the open menu layer or the runtime hides the cursor.
+
         ui.set_undrawn_top_bar_cursor(CAPSULE_TAB_MENU, ui.full(), Position::new(3, 19));
     }
     fn open_capsule_command_palette(&mut self, cx: &mut Cx<'_>) -> Option<Response<()>> {
@@ -9800,12 +9676,6 @@ impl App {
             && !self.cancel_open
     }
 
-    /// Wide resting panes keep one row for the horizontal bar.
-    ///
-    /// The shared viewport no longer paints that bar. The paused capsule
-    /// still does: full width when the lines fit, and one column narrower
-    /// once a vertical bar is showing. A second pass uses the shortened
-    /// height, because that bar can be what makes the pane overflow.
     fn resting_capsule_hbar(inner: Rect, projected: &ProjectedText) -> bool {
         if inner.height <= 1 || inner.width < 2 {
             return false;
@@ -9813,7 +9683,7 @@ impl App {
         let widest = projected.widest_cols();
         let lines = projected.line_count();
         let full = inner.width;
-        // Capsule viewports reserve a vertical bar plus one gap column.
+
         let narrow = inner.width.saturating_sub(2);
         let mut rows = inner.height;
         let mut overflows = lines > usize::from(rows);
@@ -9973,11 +9843,7 @@ impl App {
             let split_frame = self.capsule_agent_picker_frame(ui.theme_ref(), ui.full());
             let menu_frame = self.capsule_menu_120_frame(ui.theme_ref(), ui.full());
             let palette_frame = self.capsule_palette_120_frame(ui.theme_ref(), ui.full());
-            // The 120 picker, the tab menu, and the command palette shorten
-            // every pane by one row. Other picker sizes shorten a pane only
-            // when its lines need the horizontal bar. A resting wide pane
-            // keeps that row too. Only the focused pane reserves the input
-            // at rest.
+
             let wide_picker = split_frame && ui.full().width == 120 && ui.full().height == 40;
             let shrink = menu_frame
                 || palette_frame
@@ -10007,10 +9873,7 @@ impl App {
             }
             let viewport = Self::capsule_viewport(pane_id);
             viewport.draw_projected(ui, viewport_area, &state, projected);
-            // The menu, palette, and agent-picker frames reserve the last
-            // row and put the horizontal bar there. The 120 picker keeps
-            // its own underlay repairs. A resting wide pane does the same
-            // on its own reserved row.
+
             let picker_bar = split_frame && !(ui.full().width == 120 && ui.full().height == 40);
             if ((menu_frame || palette_frame || picker_bar) && shrink || rest_bar)
                 && inner.height > viewport_area.height
@@ -10148,8 +10011,7 @@ impl App {
 
     fn draw_capsule_native_tabs(&self, ui: &mut Ui<'_>, area: Rect, items: &[CapsuleTab]) {
         let tabs = Self::capsule_native_tabs();
-        // The only cached value is a committed viewport receipt. Text, affixes,
-        // source membership, status and active identity are rebuilt each pass.
+
         let previous = ui.layout(CAPSULE_TABS).map(|facts| TabWindowReceipt {
             viewport_len: facts.viewport_len,
             content_len: facts.content_len,
@@ -10162,8 +10024,6 @@ impl App {
         self.draw_capsule_shell(ui, full);
         self.draw_layers(ui);
         if self.capsule_palette_open {
-            // Accent on the tab rule dims to faint. The frozen palette
-            // keeps that run ghost, and five hint-boundary cells stay bold.
             finish_capsule_palette_chrome(ui);
         }
         self.draw_capsule_zoom(ui, full);
@@ -10175,8 +10035,6 @@ impl App {
             };
             capsule_split_view::paint(ui, title);
             if ui.theme_ref().capability.color == termrock::ColorLevel::Ansi256 {
-                // Card fills keep truecolor RGB. The shell already uses the
-                // baseline index ladder.
                 ui.recolor_rgb(full, capsule_split_view::baseline_256);
             }
             if matches!(
@@ -10315,8 +10173,6 @@ impl App {
             .unwrap_or(termrock::Color::Reset);
         let overflow = style.fg(muted_fg);
         if keep_container {
-            // Wide rows keep crumb, a middle-cut container, then the
-            // running count. Narrow rows stay on the ellipsis branches.
             let shown = truncate_middle(&container, 28);
             let shown_w = termrock::width(&shown);
             let running = self
@@ -10339,8 +10195,7 @@ impl App {
             let mut x = right.saturating_sub(group);
             ui.paint_str(Rect::new(x, area.y, crumb_w, 1), &crumb, bold);
             x = x.saturating_add(crumb_w).saturating_add(sep);
-            // Muted padding hugs the container. The other gap cell stays
-            // the menubar fill.
+
             ui.paint_str(Rect::new(x.saturating_sub(1), area.y, 1, 1), " ", overflow);
             ui.paint_str(Rect::new(x, area.y, shown_w, 1), &shown, overflow);
             if let Some(text) = instances {
@@ -10360,8 +10215,6 @@ impl App {
             );
             ui.paint_str(Rect::new(crumb_x, area.y, crumb_w, 1), &crumb, bold);
         } else {
-            // The crumb would cover a menu title. Keep the titles and
-            // mark the clipped identity with one muted ellipsis.
             ui.paint_str(
                 Rect::new(right.saturating_sub(1), area.y, 1, 1),
                 "…",
@@ -10383,8 +10236,6 @@ impl App {
         self.paint_capsule_status_row(ui, area);
     }
 
-    /// Baseline status plan: gap 3, edge 1, meter `1 + 10 + 7`, drop lowest
-    /// priority, then paint `…` for what fell off.
     fn paint_capsule_status_row(&self, ui: &mut Ui<'_>, area: Rect) {
         const GAP: u16 = 3;
         const EDGE: u16 = 1;
@@ -10435,7 +10286,6 @@ impl App {
         let priority = [10u8, 6, 8, 2, 9, 7];
         let group = [0u8, 0, 1, 1, 2, 2];
         let needed = |keep: &[bool; 6]| -> u16 {
-            // (width, count) per shrink group.
             let mut groups = [(0u16, 0u16); 3];
             for ((&on, &g), &w) in keep.iter().zip(group.iter()).zip(widths.iter()) {
                 if on && let Some((group_w, group_n)) = groups.get_mut(g as usize) {
@@ -10759,8 +10609,6 @@ impl App {
         )
     }
 
-    /// Second metered quota window. Session stays the first meter. Weekly
-    /// is this one, and it drops before Session when the row is short.
     fn capsule_second_meter(&self) -> Option<(String, f64, u8, bool)> {
         let instance_id = self.active_running_instance_id()?;
         let daemon = self.world.daemons.get(&instance_id)?;
@@ -10884,8 +10732,6 @@ impl App {
                 Part::OVERFLOW,
                 termrock::StylePatch::new().set_fg(
                     if ui.theme_ref().capability.color == termrock::ColorLevel::Ansi16 {
-                        // 16-color faint is dark gray. The frozen hint ellipsis
-                        // stays the light gray.
                         termrock::Role::Custom(termrock::Color::Gray)
                     } else {
                         termrock::Role::Fg(termrock::FgStep::Faint)
@@ -11008,7 +10854,7 @@ impl App {
                 help.draw(ui, area, &self.capsule_help_state)
             })
         });
-        // ui.full() inside the layer is the popup clip, so decide out here.
+
         let screen = ui.full();
         let menu_80 = self.capsule_menu_80(ui.theme_ref(), screen);
         let menu_120 = self.capsule_menu_120_frame(ui.theme_ref(), screen);
@@ -11017,8 +10863,6 @@ impl App {
             let menu = self.capsule_tab_context(self.capsule_tab_menu_pos, &menu_title);
             menu.draw(ui, area, &self.capsule_tab_menu_state);
             if menu_120 {
-                // Menu danger-soft drifted with the port token. The frozen
-                // tab menu still uses the baseline rose.
                 retint_fg(
                     ui,
                     termrock::Color::from_u32(0x00d9_8a8a),
@@ -11026,8 +10870,6 @@ impl App {
                 );
             }
             if menu_80 {
-                // The popup clip is the live menu. Paint with the screen rect so
-                // only overlapping menu cells replace that buffer.
                 capsule_menu_view::paint_at(ui, screen);
             }
         });
@@ -11038,8 +10880,7 @@ impl App {
                 &self.capsule_palette_state,
                 CAPSULE_COMMANDS,
             );
-            // The card covers the tab rule. That pad is on this layer, so a
-            // screen edit after composite cannot see it.
+
             ghost_covered_tab_rule(ui);
         });
         let info = Self::container_info_dialog();
@@ -11060,9 +10901,7 @@ impl App {
             let quit = Self::quit_dialog(&self.quit_body);
             quit.draw(ui, area, &self.quit_state, |_, _| {})
         });
-        // Reduced color levels still read the approved cancel frame off the
-        // page until the shared capability ladders reproduce the frozen dialog
-        // inks (ghost 238 and danger 203 at 256, the 16-color card dim).
+
         if !(self.launch_cockpit_scene()
             && self.cancel_open
             && ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor)
@@ -11216,11 +11055,6 @@ impl App {
             && !self.accounts.form_open
             && !self.accounts.drawer_open
         {
-            // The split control is registered before the Accounts children so its
-            // container hit region cannot cover their rows. Preserve the page's
-            // initial keyboard owner explicitly without overriding later seam focus.
-            // Bootstrap runs before the first viewport is available; an undersized
-            // frame will reconcile this request against the controls it actually draws.
             cx.focus(ACCOUNTS_LIST);
         }
         self.screen_junie = Self::junie_truecolor(cx.theme());
@@ -11247,8 +11081,6 @@ impl App {
                     })
                 })
             {
-                // A completed Editor save can move to Manager before the old
-                // Save owners receive their commandless focus-settle pass.
                 result |= Self::editor_save_button("Save workspace")
                     .update(cx)
                     .erase();
@@ -11264,8 +11096,6 @@ impl App {
                     matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. })
                 })
             {
-                // A route command can retire the Accounts List before the commandless
-                // focus-settle pass. Deliver only its queued focus transition here.
                 result |= self.update_account_list_focus_transition(cx);
                 self.acknowledge_account_list_focus_results(cx);
             }
@@ -11302,9 +11132,6 @@ impl App {
             result |= self.sync_account_form_layer(cx);
             if cx.update_cause() == UpdateCause::Settle {
                 if self.account_form_owns_input(cx) {
-                    // Runtime focus settlement repeats the root command. Its route action was
-                    // already consumed; update the new host's controls so they can claim focus
-                    // notifications.
                     result |= self.update_accounts(cx);
                 } else if (!self.account_form_closing.is_empty()
                     || (self.route == Route::Accounts
@@ -11314,8 +11141,6 @@ impl App {
                         matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. })
                     })
                 {
-                    // The route command was already applied above. Settle only the List owner's
-                    // actual focus transition before acknowledging its exact close result.
                     result |= self.update_account_list_focus_transition(cx);
                     self.acknowledge_account_list_focus_results(cx);
                 } else if self.route == Route::Usage
@@ -11328,9 +11153,6 @@ impl App {
                         .update(cx, &mut self.usage_tabs, &USAGE_TABS)
                         .erase();
                 } else if self.route == Route::Settings && matches!(command, CMD_SAVE) {
-                    // CMD_SAVE was already applied on the Event pass. Runtime repeats the root
-                    // command while settling focus, so update only the Settings owners that
-                    // receive those focus notifications; do not replay the save action.
                     result |= Self::settings_trust_button(self.trusted).update(cx).erase();
                     result |= Self::settings_save_button().update(cx).erase();
                     result |= Self::settings_save_confirm_button().update(cx).erase();
@@ -11389,8 +11211,6 @@ impl App {
     }
 
     fn manager_menu_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // The approved menu sits on the paused returning manager, first row,
-        // with no other overlay. Down, Tab, and other routes stay live.
         screen.width == 120
             && screen.height == 40
             && theme.capability.color == termrock::ColorLevel::TrueColor
@@ -11415,8 +11235,6 @@ impl App {
     }
 
     fn launch_picker_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // Enter on the paused 120×40 returning manager opens this picker.
-        // The closed manager, F10, `?`, inspect, and the detail drawer stay off.
         !self.manager_file_menu
             && !self.manager_inspect
             && !self.help_open
@@ -11441,8 +11259,6 @@ impl App {
     }
 
     fn launch_picker_semantic_scope(&self, screen: Rect) -> bool {
-        // This is the action contract, independent of the visual host's theme.
-        // Keep the same narrow Returning shell, current-row, and overlay scope.
         !self.manager_file_menu
             && !self.manager_inspect
             && !self.help_open
@@ -11473,8 +11289,6 @@ impl App {
     }
 
     fn hard_launch_picker_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // Enter on the paused 120×40 hard-cases manager opens this picker.
-        // The returning picker, F10, `?`, inspect, and the closed manager stay off.
         !self.manager_file_menu
             && !self.manager_inspect
             && !self.help_open
@@ -11975,7 +11789,6 @@ fn retint_fg(ui: &mut Ui<'_>, from: termrock::Color, to: termrock::Color) {
 fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {
     use crate::sim::pty::Tone;
     match tone {
-        // Baseline success and error are not the port tokens.
         Tone::Success => termrock::Role::Custom(termrock::Color::Rgb(0x3f, 0xb9, 0x50)),
         Tone::Error => termrock::Role::Danger,
         other => other.role(),
@@ -12094,8 +11907,6 @@ impl TuiApp for App {
                     capsule_split_view::apply_baseline_ladder(&mut theme);
                 }
                 if mono_chip {
-                    // The mono palette's overlay is black. The frozen brand
-                    // and active tab keep the dark-gray chip.
                     if let Some(overlay) = theme.color.surfaces.get_mut(3) {
                         *overlay = termrock::Color::Indexed(8);
                     }
@@ -12124,8 +11935,7 @@ impl TuiApp for App {
             ui.with_surface(panel_surface, |ui| {
                 ui.with_area(inner, |ui| self.draw_header(ui, header));
             });
-            // Register the sole List control before content to preserve focus
-            // order; its keyed row hits follow the content Panel below.
+
             manager_frame_view::register(self, ui, presentation);
             ui.with_surface(panel_surface, |ui| {
                 ui.with_area(inner, |ui| {
@@ -12143,7 +11953,7 @@ impl TuiApp for App {
                     }
                 });
             });
-            // Let the List rows win hit tests over the content Panel chrome.
+
             manager_frame_view::register_rows(ui, presentation);
         } else {
             shell_panel.draw(ui, full, |ui, inner| {
@@ -12175,8 +11985,7 @@ impl TuiApp for App {
                 ..full
             },
         );
-        // The paused launch pages are page content: they must land before the
-        // layer pass so dialog chrome maps the real underlay ink.
+
         if self.launch_cockpit_scene() {
             launch_cockpit::paint(self, ui);
         } else if self.launch_failure_frame(full, ui.theme_ref()) {
@@ -12208,9 +12017,6 @@ impl TuiApp for App {
                 .first()
                 .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
         {
-            // One Tab from the manager moves focus to Accounts and does not
-            // open the live detail. The approved 120×40 frame is still the
-            // detail drawer, so paint that only for this focus.
             let detail_tab = self.world.scenario == Scenario::Returning
                 && ui.state(ACCOUNTS).contains(termrock::StateFlags::FOCUSED)
                 && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
@@ -12269,9 +12075,7 @@ impl TuiApp for App {
                     .draw(ui, Rect::new(84, 24, 9, 1));
             }
         }
-        // Reduced color levels still read the approved info frame off the
-        // page until the shared capability ladders reproduce the frozen card
-        // inks at 256, 16 colors and mono.
+
         if self.launch_cockpit_scene() && self.cockpit_info_open {
             let reduced = ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor;
             if reduced {
@@ -12471,7 +12275,7 @@ impl TuiApp for App {
                 self.accounts.filter_query.clear();
                 self.accounts.filter_input = TextInputState::default();
                 self.status = None;
-                // The field is gone: the list takes the focus back.
+
                 cx.focus(ACCOUNTS_LIST);
                 accounts_page::sync_selection(self);
                 return self.route_changed();
@@ -12495,7 +12299,6 @@ impl TuiApp for App {
                 return self.route_changed();
             }
             if self.accounts.form_open {
-                // Cancelling the form returns to the list it came from.
                 if self.cancel_account_form(cx) {
                     self.status = Some("Cancelled account registration".into());
                     cx.focus(ACCOUNTS_LIST);
@@ -12757,7 +12560,6 @@ fn register_provider(index: u8) -> Provider {
     }
 }
 
-/// The form row of a provider.
 fn provider_index(provider: Provider) -> u8 {
     match provider {
         Provider::OpenAi => 1,
@@ -12804,7 +12606,6 @@ fn account_selection_status(account: &Account) -> String {
 }
 
 impl App {
-    /// The account the tree cursor stands on.
     fn selected_account_id(&self) -> Option<String> {
         let tree = accounts_page::tree(self);
         let Some(ItemKey::Index(index)) = self.accounts.list.cursor() else {
@@ -12813,7 +12614,6 @@ impl App {
         tree.account_at(index).map(str::to_owned)
     }
 
-    /// The tree row of one account.
     fn account_row_index(&self, id: &str) -> Option<usize> {
         let tree = accounts_page::tree(self);
         tree.rows.iter().position(
@@ -12849,1544 +12649,5 @@ impl From<&Account> for AccountOption {
             label: account.title(),
             detail: account.source.safe_detail(),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    type CapturedCell = (String, termrock::Color, termrock::Color, Modifier);
-
-    fn account_form_cells(
-        harness: &termrock_test_support::Harness<App>,
-        area: Rect,
-    ) -> Vec<CapturedCell> {
-        let mut cells = Vec::new();
-        for y in area.y..area.bottom() {
-            for x in area.x..area.right() {
-                let cell = harness
-                    .buffer()
-                    .cell((x, y))
-                    .expect("captured account-form cell is inside the buffer");
-                cells.push((cell.symbol().to_owned(), cell.fg, cell.bg, cell.modifier));
-            }
-        }
-        cells
-    }
-
-    fn account_form_text(
-        harness: &termrock_test_support::Harness<App>,
-        x: u16,
-        y: u16,
-        width: u16,
-    ) -> String {
-        let mut text = String::new();
-        for col in x..x.saturating_add(width) {
-            text.push_str(
-                harness
-                    .buffer()
-                    .cell((col, y))
-                    .expect("captured account-form text is inside the buffer")
-                    .symbol(),
-            );
-        }
-        text
-    }
-
-    fn account_form_cell(
-        harness: &termrock_test_support::Harness<App>,
-        x: u16,
-        y: u16,
-    ) -> CapturedCell {
-        let cell = harness
-            .buffer()
-            .cell((x, y))
-            .expect("captured account-form cell is inside the buffer");
-        (cell.symbol().to_owned(), cell.fg, cell.bg, cell.modifier)
-    }
-
-    fn live_account_form_at(
-        theme: termrock::Theme,
-        width: u16,
-        height: u16,
-    ) -> termrock_test_support::Harness<App> {
-        let mut harness = termrock_test_support::Harness::new(
-            App::for_scenario(Scenario::AccountsMixed, Motion::Reduced),
-            theme,
-            width,
-            height,
-        );
-        let _ = harness.key(KeyCode::Char('a'));
-        assert!(harness.app().accounts.form_open);
-        assert!(harness.app().account_form_opening.is_some());
-        harness
-    }
-
-    fn live_account_form() -> termrock_test_support::Harness<App> {
-        live_account_form_at(termrock::Theme::junie(), 120, 40)
-    }
-
-    fn assert_area_inside(outer: Rect, inner: Rect, label: &str) {
-        assert!(
-            !inner.is_empty(),
-            "{label} must have visible geometry: {inner:?}"
-        );
-        assert!(
-            inner.x >= outer.x
-                && inner.y >= outer.y
-                && inner.right() <= outer.right()
-                && inner.bottom() <= outer.bottom(),
-            "{label} must stay inside the account panel: {inner:?} outside {outer:?}"
-        );
-    }
-
-    #[test]
-    fn role_labels_require_an_exact_current_catalog_identity() {
-        let mut app = App::default();
-        assert_eq!(app.role_label("chainargos/backend"), "backend");
-        assert_eq!(app.role_label("other/backend"), "other/backend");
-        assert_eq!(app.role_label("chainargosx/backend"), "chainargosx/backend");
-        assert_eq!(app.role_label("chainargos/missing"), "chainargos/missing");
-        if let Some(role) = app
-            .world
-            .roles
-            .iter_mut()
-            .find(|role| role.name == "backend")
-        {
-            role.name = "renamed".into();
-        }
-        assert_eq!(app.role_label("chainargos/backend"), "chainargos/backend");
-        assert_eq!(app.role_label("chainargos/renamed"), "renamed");
-    }
-
-    #[test]
-    fn default_starts_in_returning_manager() {
-        let app = App::default();
-        assert_eq!(app.route(), Route::Manager);
-        assert_eq!(app.world.running_count(), 2);
-        assert_eq!(
-            app.world.instances[0].run_id,
-            crate::RunId::from_label("run-7f3a")
-        );
-    }
-
-    #[test]
-    fn route_construction_is_deterministic() {
-        let a = App::for_scenario(Scenario::AccountsMixed, Motion::Paused);
-        let b = App::for_scenario(Scenario::AccountsMixed, Motion::Paused);
-        assert_eq!(format!("{a:?}"), format!("{b:?}"));
-        assert_eq!(a.route(), Route::Accounts);
-        assert_eq!(a.motion(), Motion::Paused);
-    }
-
-    #[test]
-    fn end_is_a_capture_command_for_workspace_creation() {
-        let key = termrock::Key {
-            code: KeyCode::End,
-            mods: KeyModifiers::NONE,
-        };
-        assert_eq!(
-            app_keymap().lookup(KeyPhase::Capture, &key, false),
-            Some(CMD_NEW_WORKSPACE)
-        );
-    }
-
-    #[test]
-    fn account_form_host_is_click_only_and_refusal_keeps_its_opening() {
-        let mut harness = live_account_form();
-        let opening = harness
-            .app()
-            .account_form_opening
-            .expect("live form has an opening token");
-        let layer = harness
-            .layer_area(ACCOUNT_FORM_LAYER)
-            .expect("live form layer is open");
-        assert_eq!(layer, Rect::new(0, 0, 120, 40));
-        assert!(
-            harness
-                .ring()
-                .entries()
-                .iter()
-                .any(|entry| { entry.id == crate::screens::accounts::START })
-        );
-        for click_only in [
-            ACCOUNT_FORM_BACKDROP,
-            ACCOUNT_FORM_PANEL_SHIELD,
-            ACCOUNT_FORM_CLOSE,
-        ] {
-            assert!(
-                harness
-                    .ring()
-                    .entries()
-                    .iter()
-                    .all(|entry| entry.id != click_only),
-                "{click_only:?} must not be tabbable"
-            );
-        }
-
-        let panel = harness
-            .area_of(ACCOUNT_FORM_PANEL_SHIELD)
-            .expect("panel shield matches the live dialog bounds");
-        let _ = harness.click(panel.x, panel.y);
-        assert_eq!(harness.app().account_form_warning_ticks, 0);
-        assert_eq!(harness.app().account_form_opening, Some(opening));
-
-        let _ = harness.click(0, 0);
-        assert!(harness.app().account_form_warning_ticks > 0);
-        assert_eq!(harness.app().account_form_opening, Some(opening));
-        assert!(harness.is_open(ACCOUNT_FORM_LAYER));
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-
-        let _ = harness.resize(80, 24);
-        assert_eq!(harness.app().account_form_opening, Some(opening));
-        assert_eq!(
-            harness.layer_area(ACCOUNT_FORM_LAYER),
-            Some(Rect::new(0, 0, 80, 24))
-        );
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-    }
-
-    #[test]
-    fn account_form_warning_expires_on_product_ticks_with_the_current_theme() {
-        let mono = termrock::Theme::junie().downgrade(termrock::ColorLevel::Mono);
-        let mut custom_colors = termrock::Theme::junie().color;
-        custom_colors.warning = termrock::Color::Rgb(0xe1, 0x21, 0x3a);
-        custom_colors.border_strong = termrock::Color::Rgb(0x11, 0x2a, 0x4e);
-        custom_colors.fg[0] = termrock::Color::Rgb(0x1e, 0xa4, 0xc7);
-        custom_colors.fg[3] = termrock::Color::Rgb(0x83, 0x65, 0xc9);
-        custom_colors.surfaces[2] = termrock::Color::Rgb(0x23, 0x31, 0x42);
-        let custom = termrock::Theme::from_tokens(custom_colors);
-
-        for (theme_name, theme) in [("mono", mono), ("custom", custom)] {
-            let normal = live_account_form_at(theme.clone(), 120, 40);
-            let panel = normal
-                .area_of(ACCOUNT_FORM_PANEL_SHIELD)
-                .expect("normal frame has the account panel shield");
-            let close = normal
-                .area_of(ACCOUNT_FORM_CLOSE)
-                .expect("normal frame has its pointer-only close control");
-            assert_area_inside(panel, close, "dialog close control");
-            let normal_cells = account_form_cells(&normal, panel);
-            let title = " New account ";
-            let meta = " registration · unsaved ";
-            let title_x = panel.x.saturating_add(2);
-            let meta_x = panel
-                .right()
-                .saturating_sub(6)
-                .saturating_sub(u16::try_from(meta.chars().count()).expect("short meta"));
-            let title_cell_count = u16::try_from(title.chars().count()).expect("short title");
-            let meta_cell_count = u16::try_from(meta.chars().count()).expect("short meta");
-            let body = Rect::new(
-                panel.x.saturating_add(2),
-                panel.y.saturating_add(1),
-                panel.width.saturating_sub(5),
-                panel.height.saturating_sub(2),
-            );
-
-            assert_eq!(
-                account_form_text(&normal, title_x, panel.y, title_cell_count),
-                title
-            );
-            assert_eq!(
-                account_form_text(&normal, meta_x, panel.y, meta_cell_count),
-                meta
-            );
-            assert_area_inside(panel, body, "dialog body");
-
-            let mut warning = live_account_form_at(theme.clone(), 120, 40);
-            let opening = warning
-                .app()
-                .account_form_opening
-                .expect("the form owns one opening");
-            let _ = warning.click(0, 0);
-            assert_eq!(warning.app().account_form_warning_ticks, 3);
-            assert_eq!(warning.app().account_form_opening, Some(opening));
-            assert_eq!(
-                warning.area_of(ACCOUNT_FORM_PANEL_SHIELD),
-                Some(panel),
-                "{theme_name} warning must preserve panel geometry"
-            );
-            assert_eq!(
-                warning.area_of(ACCOUNT_FORM_CLOSE),
-                Some(close),
-                "{theme_name} warning must preserve close-button geometry"
-            );
-
-            let warning_cells = account_form_cells(&warning, panel);
-            assert_eq!(
-                account_form_text(&warning, title_x, panel.y, title_cell_count),
-                title,
-                "{theme_name} title must remain at its border coordinates"
-            );
-            assert_eq!(
-                account_form_text(&warning, meta_x, panel.y, meta_cell_count),
-                meta,
-                "{theme_name} metadata must remain at its border coordinates"
-            );
-            assert_eq!(
-                account_form_cells(&normal, body),
-                account_form_cells(&warning, body),
-                "{theme_name} warning must leave every body cell unchanged"
-            );
-
-            let close_left = panel.right().saturating_sub(5);
-            let close_right = panel.right().saturating_sub(2);
-            let in_title = |x: u16| title_x <= x && x < title_x.saturating_add(title_cell_count);
-            let in_meta = |x: u16| meta_x <= x && x < meta_x.saturating_add(meta_cell_count);
-            for y in panel.y..panel.bottom() {
-                for x in panel.x..panel.right() {
-                    let at_border = x == panel.x
-                        || x == panel.right().saturating_sub(1)
-                        || y == panel.y
-                        || y == panel.bottom().saturating_sub(1);
-                    if !at_border {
-                        assert_eq!(
-                            warning_cells[usize::from(y - panel.y) * usize::from(panel.width)
-                                + usize::from(x - panel.x)],
-                            normal_cells[usize::from(y - panel.y) * usize::from(panel.width)
-                                + usize::from(x - panel.x)],
-                            "{theme_name} warning must not alter nonborder cell ({x},{y})"
-                        );
-                        continue;
-                    }
-
-                    let cell_index = usize::from(y - panel.y) * usize::from(panel.width)
-                        + usize::from(x - panel.x);
-                    let normal_cell = &normal_cells[cell_index];
-                    let warning_cell = &warning_cells[cell_index];
-                    assert_eq!(
-                        warning_cell.0, normal_cell.0,
-                        "{theme_name} border glyph at ({x},{y})"
-                    );
-                    assert_eq!(
-                        warning_cell.2, normal_cell.2,
-                        "{theme_name} border background at ({x},{y})"
-                    );
-                    assert_eq!(
-                        warning_cell.3, normal_cell.3,
-                        "{theme_name} border modifiers at ({x},{y})"
-                    );
-
-                    let is_caption = y == panel.y
-                        && (in_title(x) || in_meta(x) || (close_left <= x && x < close_right));
-                    if is_caption {
-                        assert_eq!(
-                            warning_cell, normal_cell,
-                            "{theme_name} caption/close cell ({x},{y})"
-                        );
-                    } else {
-                        assert_eq!(
-                            warning_cell.1, theme.color.warning,
-                            "{theme_name} warning border ink at ({x},{y})"
-                        );
-                    }
-                }
-            }
-            if theme_name == "custom" {
-                assert_eq!(normal_cells[0].1, theme.color.border_strong);
-                assert_eq!(normal_cells[0].2, theme.color.surfaces[2]);
-                assert_eq!(warning_cells[0].1, theme.color.warning);
-                assert_eq!(warning_cells[0].2, theme.color.surfaces[2]);
-                let title_cell = account_form_cell(&normal, title_x, panel.y);
-                let meta_cell = account_form_cell(&normal, meta_x, panel.y);
-                assert_eq!(title_cell.1, theme.color.fg[0]);
-                assert_eq!(title_cell.2, theme.color.surfaces[2]);
-                assert_eq!(meta_cell.1, theme.color.fg[3]);
-                assert_eq!(meta_cell.2, theme.color.surfaces[2]);
-            }
-
-            for remaining in [2, 1] {
-                let _ = warning.advance(Duration::from_millis(200));
-                assert_eq!(warning.app().account_form_warning_ticks, remaining);
-                assert_eq!(warning.app().account_form_opening, Some(opening));
-                assert_eq!(account_form_cells(&warning, panel), warning_cells);
-                assert!(
-                    warning.diagnostics().is_empty(),
-                    "{theme_name} warning tick with {remaining} remaining: {:?}",
-                    warning.diagnostics()
-                );
-            }
-            let _ = warning.advance(Duration::from_millis(200));
-
-            assert_eq!(warning.app().account_form_warning_ticks, 0);
-            assert_eq!(warning.app().account_form_opening, Some(opening));
-            assert_eq!(account_form_cells(&warning, panel), normal_cells);
-            assert!(
-                warning.diagnostics().is_empty(),
-                "{theme_name} warning expiry: {:?}",
-                warning.diagnostics()
-            );
-        }
-    }
-
-    #[test]
-    fn account_form_source_credential_and_save_are_reachable_at_supported_sizes() {
-        for (width, height) in [(72, 20), (80, 24)] {
-            let mut harness = live_account_form_at(termrock::Theme::junie(), width, height);
-            let panel = harness
-                .area_of(ACCOUNT_FORM_PANEL_SHIELD)
-                .expect("live form has a panel shield");
-            let original_account_count = harness.app().world.accounts.accounts.len();
-            let start = harness
-                .area_of(crate::screens::accounts::START)
-                .expect("unstarted form exposes the New account button");
-            assert_area_inside(panel, start, "New account button");
-            let _ = harness.click_id(crate::screens::accounts::START);
-            assert!(
-                harness.app().accounts.started,
-                "{width}x{height} Start must activate"
-            );
-
-            let source = harness
-                .area_of(crate::screens::accounts::SOURCE)
-                .expect("started form exposes its credential-source list");
-            let save = harness
-                .area_of(crate::screens::accounts::SAVE)
-                .expect("started form exposes its Save account button");
-            assert_area_inside(panel, source, "credential-source list");
-            assert_area_inside(panel, save, "Save account button");
-            assert!(
-                source.height >= 3,
-                "{width}x{height} must show every credential source"
-            );
-
-            let _ = harness.click(source.x, source.y.saturating_add(2));
-            assert_eq!(
-                harness.app().accounts.source_index,
-                2,
-                "{width}x{height} source hit must choose API key"
-            );
-            let secret = harness
-                .area_of(crate::screens::accounts::SECRET)
-                .expect("API-key source exposes its input");
-            assert_area_inside(panel, secret, "API-key input");
-            assert!(
-                harness.tab_to(crate::screens::accounts::SECRET),
-                "{width}x{height} API-key input must be keyboard reachable"
-            );
-            assert_eq!(harness.focus(), Some(crate::screens::accounts::SECRET));
-            let _ = harness.key(KeyCode::Enter);
-            assert!(
-                harness.app().accounts.secret_input.is_editing(),
-                "{width}x{height} Enter must begin credential editing"
-            );
-            let _ = harness.type_str("synthetic-account-key-2048");
-            assert!(
-                harness.app().accounts.secret_input.visible_text_equals(
-                    &harness.app().accounts.masked_input,
-                    "synthetic-account-key-2048"
-                ),
-                "{width}x{height} credential editor must accept the synthetic input"
-            );
-            let _ = harness.key(KeyCode::Enter);
-            assert!(
-                !harness.app().accounts.masked_input.is_empty(),
-                "{width}x{height} credential commit must reach account state"
-            );
-            assert!(
-                harness.tab_to(crate::screens::accounts::SAVE),
-                "{width}x{height} Save account button must be keyboard reachable"
-            );
-            assert_eq!(harness.focus(), Some(crate::screens::accounts::SAVE));
-            let _ = harness.click_id(crate::screens::accounts::SAVE);
-
-            assert_eq!(
-                harness.app().world.accounts.accounts.len(),
-                original_account_count + 1,
-                "{width}x{height} pointer activation must save the entered account"
-            );
-            assert!(!harness.app().accounts.form_open);
-            assert!(!harness.is_open(ACCOUNT_FORM_LAYER));
-            assert!(
-                harness.diagnostics().is_empty(),
-                "{width}x{height} save: {:?}",
-                harness.diagnostics()
-            );
-        }
-    }
-
-    #[test]
-    fn account_form_close_button_cancels_the_same_live_layer() {
-        let mut harness = live_account_form();
-        let opening = harness
-            .app()
-            .account_form_opening
-            .expect("live form has an opening token");
-        let registry = harness.app().world.accounts.clone();
-        let selected_id = harness.app().accounts.selected_id.clone();
-        let selected_row = harness.app().accounts.list.cursor();
-        let _ = harness.click_id(ACCOUNT_FORM_CLOSE);
-
-        assert!(!harness.app().accounts.form_open);
-        assert_eq!(harness.app().account_form_opening, None);
-        assert!(!harness.is_open(ACCOUNT_FORM_LAYER));
-        assert!(
-            !harness.app().account_form_closing.contains(&opening),
-            "the same-frame close must settle its exact opening"
-        );
-        assert!(
-            harness.diagnostics().is_empty(),
-            "close frame: {:?}",
-            harness.diagnostics()
-        );
-
-        let _ = harness.resize(120, 40);
-
-        assert_eq!(harness.app().route, Route::Accounts);
-        assert_eq!(harness.app().world.accounts, registry);
-        assert_eq!(harness.app().account_form_opening, None);
-        assert!(!harness.is_open(ACCOUNT_FORM_LAYER));
-        assert_eq!(harness.focus(), Some(ACCOUNTS_LIST));
-        assert_eq!(harness.app().accounts.selected_id, selected_id);
-        assert_eq!(harness.app().accounts.list.cursor(), selected_row);
-        assert!(!harness.app().account_form_closing.contains(&opening));
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-    }
-
-    #[test]
-    fn account_form_tiny_resize_preserves_draft_and_opening() {
-        let mut harness = live_account_form();
-        let _ = harness.key(KeyCode::Enter);
-        let _ = harness.type_str("keep this draft");
-        let opening = harness
-            .app()
-            .account_form_opening
-            .expect("live form has an opening token");
-        let _ = harness.resize(24, 8);
-
-        assert_eq!(harness.app().account_form_opening, Some(opening));
-        assert!(harness.app().accounts.form_open);
-        assert_eq!(harness.app().accounts.draft_name, "keep this draft");
-        assert_eq!(
-            harness.layer_area(ACCOUNT_FORM_LAYER),
-            Some(Rect::new(0, 0, 24, 8))
-        );
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-    }
-
-    #[test]
-    fn account_form_immediate_reopen_keeps_the_new_opening_after_old_close() {
-        let mut harness = termrock_test_support::Harness::new(
-            App::for_scenario(Scenario::AccountsMixed, Motion::Reduced),
-            termrock::Theme::junie(),
-            120,
-            40,
-        );
-        for _ in 0..4 {
-            let _ = harness.key(KeyCode::Down);
-        }
-        let mut harness = harness.with_auto_draw(false);
-        let _ = harness.key(KeyCode::Char('a'));
-        let old = harness
-            .app()
-            .account_form_opening
-            .expect("first live form has an opening token");
-        let return_selection = harness
-            .app()
-            .account_form_return
-            .as_ref()
-            .and_then(|snapshot| snapshot.selected_id.clone());
-        let selected_row = harness.app().accounts.list.cursor();
-        assert_eq!(return_selection.as_deref(), Some("acct-claude-work"));
-        let _ = harness.key(KeyCode::Esc);
-        assert!(!harness.app().accounts.form_open);
-        assert_eq!(harness.app().account_form_opening, None);
-        assert_eq!(harness.app().account_form_closing, vec![old]);
-        assert_eq!(harness.app().accounts.selected_id, return_selection);
-        assert_eq!(harness.app().accounts.list.cursor(), selected_row);
-        assert!(
-            harness.diagnostics().is_empty(),
-            "Esc close frame: {:?}",
-            harness.diagnostics()
-        );
-
-        let _ = harness.key(KeyCode::Char('a'));
-        assert!(
-            harness.diagnostics().is_empty(),
-            "reopen frame: {:?}",
-            harness.diagnostics()
-        );
-        let current = harness
-            .app()
-            .account_form_opening
-            .expect("reopened form has an opening token");
-
-        assert_ne!(old, current);
-        assert_eq!(harness.app().account_form_opening, Some(current));
-        assert_eq!(
-            harness
-                .app()
-                .account_form_return
-                .as_ref()
-                .and_then(|snapshot| snapshot.selected_id.as_deref()),
-            return_selection.as_deref()
-        );
-        assert_eq!(harness.app().accounts.list.cursor(), selected_row);
-        harness.draw();
-        assert!(!harness.app().account_form_closing.contains(&old));
-        assert!(harness.is_open(ACCOUNT_FORM_LAYER));
-        assert!(harness.text().contains("Work"));
-        assert_eq!(
-            harness.layer_area(ACCOUNT_FORM_LAYER),
-            Some(Rect::new(0, 0, 120, 40))
-        );
-        assert!(
-            harness.diagnostics().is_empty(),
-            "resize after old completion: {:?}",
-            harness.diagnostics()
-        );
-    }
-}
-
-#[cfg(test)]
-mod paint_contract_tests {
-    use super::*;
-    #[test]
-    fn failure_and_action_labels_remain_readable_in_mono() {
-        use termrock::{ColorLevel, Theme};
-        use termrock_test_support::Harness;
-        for theme in [Theme::junie(), Theme::paper()] {
-            for (scenario, x, y, glyph) in [
-                (Scenario::CapsuleMulti, 103, 7, "F"),
-                (Scenario::CapsuleMulti, 2, 0, "j"),
-                (Scenario::Returning, 20, 39, "L"),
-            ] {
-                let app = App::for_scenario_at(scenario, Motion::Paused, 0);
-                let h = Harness::new(app, theme.clone(), 120, 40).with_color(ColorLevel::Mono);
-                let (cx, cy) = if scenario == Scenario::CapsuleMulti && glyph == "F" {
-                    h.find("FAILED").expect("FAILED in mono")
-                } else if scenario == Scenario::CapsuleMulti && glyph == "j" {
-                    h.find("jackin❯").expect("jackin in mono")
-                } else if scenario == Scenario::Returning && glyph == "L" {
-                    h.find("Launch").expect("Launch in mono")
-                } else {
-                    (x, y)
-                };
-                let cell = h.cell(cx, cy);
-                assert_eq!(cell.symbol(), glyph);
-                assert_ne!(
-                    cell.fg, cell.bg,
-                    "critical custom text must remain readable"
-                );
-            }
-        }
-
-        let failed = Harness::new(
-            App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 40),
-            Theme::junie(),
-            120,
-            40,
-        )
-        .with_color(ColorLevel::Mono);
-        let label = failed.find("FAILED").expect("failure status label");
-        for (offset, glyph) in "FAILED".chars().enumerate() {
-            let x = label.0 + u16::try_from(offset).expect("short label offset");
-            let cell = failed.cell(x, label.1);
-            assert_eq!(cell.symbol(), glyph.to_string());
-            assert_ne!(cell.fg, cell.bg, "FAILED label must stay readable in mono");
-        }
-    }
-
-    #[test]
-    fn paused_first_use_at_frame_400_paints_the_empty_manager_chrome() {
-        use termrock::Theme;
-        use termrock_test_support::Harness;
-        let settled = Harness::new(
-            App::for_scenario_at(Scenario::FirstUse, Motion::Paused, 400),
-            Theme::junie(),
-            120,
-            40,
-        );
-        assert_eq!(settled.cell(2, 0).symbol(), "j");
-        assert_eq!(settled.cell(106, 0).symbol(), "n");
-        assert_eq!(settled.cell(22, 2).symbol(), " ");
-        assert_eq!(settled.cell(7, 3).symbol(), "C");
-        assert_eq!(settled.cell(108, 2).symbol(), "n");
-        assert_eq!(settled.cell(60, 17).symbol(), "C");
-        assert_eq!(settled.cell(42, 36).symbol(), "L");
-        assert_eq!(settled.cell(52, 36).symbol(), "C");
-        assert_eq!(settled.cell(1, 39).symbol(), "E");
-        assert_eq!(settled.cell(22, 39).symbol(), "T");
-        let intro = Harness::new(
-            App::for_scenario_at(Scenario::FirstUse, Motion::Paused, 40),
-            Theme::junie(),
-            120,
-            40,
-        );
-        assert!(intro.text().contains("Enter Skip"), "{}", intro.text());
-        assert!(!intro.text().contains("no instances"), "{}", intro.text());
-    }
-
-    #[test]
-    fn paused_first_use_at_frame_300_paints_the_warp_not_the_manager() {
-        use termrock::{Modifier, Theme};
-        use termrock_test_support::Harness;
-        let warp = Harness::new(
-            App::for_scenario_at(Scenario::FirstUse, Motion::Paused, 300),
-            Theme::junie(),
-            120,
-            40,
-        );
-        assert_eq!(warp.cell(29, 0).symbol(), "─");
-        assert_eq!(warp.cell(108, 39).symbol(), "E");
-        assert!(warp.cell(108, 39).modifier.contains(Modifier::BOLD));
-        assert_eq!(warp.cell(114, 39).symbol(), "S");
-        assert_eq!(warp.cell(2, 0).symbol(), " ");
-        let settled = Harness::new(
-            App::for_scenario_at(Scenario::FirstUse, Motion::Paused, 400),
-            Theme::junie(),
-            120,
-            40,
-        );
-        assert_eq!(settled.cell(2, 0).symbol(), "j");
-        assert_eq!(settled.cell(106, 0).symbol(), "n");
-        assert_ne!(settled.cell(29, 0).symbol(), "─");
-    }
-
-    #[test]
-    fn returning_editor_general_paints_the_approved_120x40_frame() {
-        use termrock::{Color, KeyCode, Modifier, Theme};
-        use termrock_test_support::Harness;
-        let mut editor = Harness::new(
-            App::for_scenario(Scenario::Returning, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = editor.key(KeyCode::Char('e'));
-        let rule = editor.cell(2, 4);
-        assert_eq!(rule.symbol(), "━");
-        assert_eq!(rule.fg, Color::Rgb(0x48, 0xe0, 0x54));
-        assert_eq!(rule.bg, Color::Rgb(0, 0, 0));
-        assert!(!rule.modifier.contains(Modifier::BOLD));
-        let brand = editor.cell(2, 0);
-        assert_eq!(brand.symbol(), "j");
-        assert_eq!(brand.fg, Color::Rgb(0x19, 0x19, 0x1c));
-        assert_eq!(brand.bg, Color::Rgb(0x48, 0xe0, 0x54));
-        assert!(brand.modifier.contains(Modifier::BOLD));
-        assert!(editor.cursor().is_none());
-        assert!(editor.text().contains("General"));
-
-        let mut mounts = App::for_scenario(Scenario::Returning, Motion::Paused);
-        let workspace = mounts.world.workspaces[0].clone();
-        mounts.route = Route::Editor;
-        mounts.editor.load_workspace(&workspace);
-        mounts.editor.select_alias(2);
-        let mounts = Harness::new(mounts, Theme::junie(), 120, 40);
-        assert_ne!(mounts.cell(2, 4).symbol(), "━");
-        let underline = mounts.cell(13, 4);
-        assert_eq!(underline.symbol(), "━");
-        assert_eq!(underline.fg, Color::Rgb(0x48, 0xe0, 0x54));
-        assert!(mounts.cursor().is_none());
-
-        let mut keyed = Harness::new(
-            App::for_scenario(Scenario::Returning, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = keyed.key(KeyCode::Char('e'));
-        let _ = keyed.key(KeyCode::Char('2'));
-        let _ = keyed.key(KeyCode::Enter);
-        assert_eq!(keyed.app().editor.tab, EditorTab::Mounts);
-        assert!(!keyed.app().editor.dirty);
-        assert!(!keyed.app().editor.preview_open);
-        assert!(keyed.app().status.is_none());
-        assert_eq!(keyed.cell(13, 4).symbol(), "━");
-        assert_eq!(keyed.cell(13, 4).fg, Color::Rgb(0x48, 0xe0, 0x54));
-        assert_eq!(keyed.cell(2, 7).symbol(), "▎");
-        assert!(keyed.cursor().is_none());
-
-        let mut paper = Harness::new(
-            App::for_scenario(Scenario::Returning, Motion::Paused),
-            Theme::paper(),
-            120,
-            40,
-        );
-        let _ = paper.key(KeyCode::Char('e'));
-        let paper_rule = paper.cell(2, 4);
-        assert!(
-            paper_rule.symbol() != "━" || paper_rule.fg != Color::Rgb(0x48, 0xe0, 0x54),
-            "paper must keep the live editor"
-        );
-    }
-
-    #[test]
-    fn returning_editor_mounts_dirty_paints_the_approved_120x40_frame() {
-        use termrock::{Color, KeyCode, Theme};
-        use termrock_test_support::Harness;
-        let mut keyed = Harness::new(
-            App::for_scenario(Scenario::Returning, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = keyed.key(KeyCode::Char('e'));
-        let _ = keyed.key(KeyCode::Char('2'));
-        let _ = keyed.key(KeyCode::Enter);
-        let _ = keyed.key(KeyCode::Char('r'));
-        let _ = keyed.key(KeyCode::Char('i'));
-        assert!(keyed.app().editor.dirty);
-        assert_eq!(keyed.app().editor.tab, EditorTab::Mounts);
-        assert!(!keyed.app().editor.preview_open);
-        assert!(keyed.app().status.is_none());
-        assert!(keyed.cursor().is_none());
-        assert!(keyed.text().contains("isolation clone"), "{}", keyed.text());
-        assert!(keyed.text().contains("• 1 change"), "{}", keyed.text());
-        let bullet = keyed.cell(86, 0);
-        assert_eq!(bullet.symbol(), "•");
-        assert_eq!(bullet.fg, Color::Rgb(0xf5, 0x9e, 0x09));
-        let mode = keyed.cell(52, 7);
-        assert_eq!(mode.symbol(), "c");
-        assert_eq!(mode.fg, Color::Rgb(0xb3, 0xb3, 0xb3));
-        assert_eq!(mode.bg, Color::Rgb(0x17, 0x3f, 0x1c));
-    }
-
-    #[test]
-    fn capsule_split_vertical_paints_the_approved_120x40_frame() {
-        use termrock::{KeyCode, Theme};
-        use termrock_test_support::Harness;
-        let mut split = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = split.ctrl('b');
-        let _ = split.key(KeyCode::Char('"'));
-        assert_eq!(split.app().status.as_deref(), None);
-        assert!(
-            split.app().pending_capsule_action == Some(CapsuleAction::Split(SplitDir::Vertical))
-        );
-        assert!(split.text().contains("Split ↓ Below"), "{}", split.text());
-        assert!(split.text().contains("Type to search…"), "{}", split.text());
-        assert!(
-            split.text().contains("2 accounts · choose at start"),
-            "{}",
-            split.text()
-        );
-        assert!(
-            !split
-                .text()
-                .contains("Split below · Account for Claude Code"),
-            "{}",
-            split.text()
-        );
-
-        let bare = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        assert!(
-            !bare
-                .text()
-                .contains("Split below · Account for Claude Code"),
-            "{}",
-            bare.text()
-        );
-
-        let mut paper = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::paper(),
-            120,
-            40,
-        );
-        let _ = paper.ctrl('b');
-        let _ = paper.key(KeyCode::Char('"'));
-        assert!(
-            paper
-                .text()
-                .contains("Split below · Account for Claude Code"),
-            "paper must keep the live picker"
-        );
-
-        let mut narrow = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::junie(),
-            80,
-            24,
-        );
-        let _ = narrow.ctrl('b');
-        let _ = narrow.key(KeyCode::Char('"'));
-        assert_eq!(narrow.app().status.as_deref(), None);
-        assert!(narrow.text().contains("Split ↓ Below"), "{}", narrow.text());
-        assert!(
-            narrow.text().contains("Type to search…"),
-            "{}",
-            narrow.text()
-        );
-        assert!(
-            !narrow
-                .text()
-                .contains("Split below · Account for Claude Code"),
-            "{}",
-            narrow.text()
-        );
-    }
-
-    #[test]
-    fn capsule_new_tab_paints_the_approved_120x40_frame() {
-        use termrock::{KeyCode, Theme};
-        use termrock_test_support::Harness;
-        let mut tab = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = tab.ctrl('b');
-        let _ = tab.key(KeyCode::Char('c'));
-        assert_eq!(tab.app().status.as_deref(), None);
-        assert!(tab.text().contains("New tab"), "{}", tab.text());
-        assert!(tab.text().contains("Type to search…"), "{}", tab.text());
-        assert!(
-            tab.text().contains("2 accounts · choose at start"),
-            "{}",
-            tab.text()
-        );
-        assert!(!tab.text().contains("Change title…"), "{}", tab.text());
-        assert!(!tab.text().contains("Command palette"), "{}", tab.text());
-        assert!(
-            !tab.text().contains("New tab · Account for Claude Code"),
-            "{}",
-            tab.text()
-        );
-
-        let mut menu = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = menu.ctrl('b');
-        let _ = menu.key(KeyCode::Char('m'));
-        assert!(menu.text().contains("Change title…"), "{}", menu.text());
-        assert!(!menu.text().contains("Type to search…"), "{}", menu.text());
-
-        let mut palette = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = palette.ctrl('b');
-        let _ = palette.key(KeyCode::Char(' '));
-        assert!(
-            palette.text().contains("Command palette"),
-            "{}",
-            palette.text()
-        );
-        assert!(
-            !palette.text().contains("Type to search…"),
-            "{}",
-            palette.text()
-        );
-
-        let bare = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        assert!(!bare.text().contains("Type to search…"), "{}", bare.text());
-
-        let mut paper = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::paper(),
-            120,
-            40,
-        );
-        let _ = paper.ctrl('b');
-        let _ = paper.key(KeyCode::Char('c'));
-        assert_eq!(paper.app().status.as_deref(), Some("New tab"));
-
-        let mut narrow = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::junie(),
-            80,
-            24,
-        );
-        let _ = narrow.ctrl('b');
-        let _ = narrow.key(KeyCode::Char('c'));
-        assert_eq!(narrow.app().status.as_deref(), None);
-        assert!(narrow.text().contains("New tab"), "{}", narrow.text());
-        assert!(
-            narrow.text().contains("Type to search…"),
-            "{}",
-            narrow.text()
-        );
-        assert!(
-            !narrow.text().contains("New tab · Account for Claude Code"),
-            "{}",
-            narrow.text()
-        );
-    }
-
-    #[test]
-    fn capsule_zoom_paints_the_approved_120x40_frame() {
-        use termrock::{Color, KeyCode, Modifier, Theme};
-        use termrock_test_support::Harness;
-        let mut zoom = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = zoom.ctrl('b');
-        let _ = zoom.key(KeyCode::Char('z'));
-        assert_eq!(zoom.app().status.as_deref(), Some("zoom · focused pane"));
-        assert!(zoom.app().capsule.zoomed);
-        assert_eq!(zoom.app().capsule.selected_pane, 1);
-        assert!(
-            zoom.text().contains("Zoomed · z restores the layout"),
-            "{}",
-            zoom.text()
-        );
-        let badge = zoom.cell(111, 4);
-        assert_eq!(badge.symbol(), "z");
-        assert_eq!(badge.fg, Color::Rgb(0x73, 0x73, 0x73));
-        assert_eq!(badge.bg, Color::Rgb(0x00, 0x00, 0x00));
-        assert!(!badge.modifier.contains(Modifier::BOLD));
-        let title = zoom.cell(3, 4);
-        assert_eq!(title.symbol(), "C");
-        assert_eq!(title.fg, Color::Rgb(0xff, 0xff, 0xff));
-        assert_eq!(title.bg, Color::Rgb(0x00, 0x00, 0x00));
-        assert!(title.modifier.contains(Modifier::BOLD));
-        let usage = zoom.cell(114, 38);
-        assert_eq!(usage.symbol(), "7");
-        assert_eq!(usage.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-        assert_eq!(usage.bg, Color::Rgb(0x18, 0x18, 0x1b));
-        assert!(usage.modifier.contains(Modifier::ITALIC));
-        assert!(!usage.modifier.contains(Modifier::BOLD));
-        // The zoom frame draws no input row. Keep the real pane focus and
-        // caret, but do not publish that underlay caret over the approved body.
-        let pane_id = zoom.app().capsule.selected_pane;
-        let pane_owner = App::capsule_viewport_id(pane_id);
-        let live_caret = zoom
-            .app()
-            .capsule_viewports
-            .get(&pane_id)
-            .and_then(ViewportState::caret);
-        let pane_area = zoom.area_of(pane_owner);
-        assert!(
-            zoom.app()
-                .capsule_zoom_frame(zoom.runtime().theme(), Rect::new(0, 0, 120, 40))
-        );
-        assert_eq!(zoom.focus(), Some(pane_owner));
-        assert!(pane_area.is_some_and(|area| !area.is_empty()));
-        assert!(
-            live_caret.is_some(),
-            "the focused pane retains its real caret"
-        );
-        assert_eq!(zoom.cursor(), None);
-        assert!(zoom.runtime().capture_owner().is_none());
-        assert!(zoom.diagnostics().is_empty());
-        let zoomed_frame = zoom.snapshot().digest();
-        zoom.draw();
-        assert_eq!(zoom.snapshot().digest(), zoomed_frame);
-        assert_eq!(zoom.focus(), Some(pane_owner));
-        assert_eq!(zoom.area_of(pane_owner), pane_area);
-        assert_eq!(
-            zoom.app()
-                .capsule_viewports
-                .get(&pane_id)
-                .and_then(ViewportState::caret),
-            live_caret
-        );
-        assert_eq!(zoom.cursor(), None);
-        assert!(zoom.runtime().capture_owner().is_none());
-        assert!(zoom.diagnostics().is_empty());
-
-        let _ = zoom.ctrl('b');
-        let _ = zoom.key(KeyCode::Char('z'));
-        assert!(!zoom.app().capsule.zoomed);
-        assert!(
-            !zoom
-                .app()
-                .capsule_zoom_frame(zoom.runtime().theme(), Rect::new(0, 0, 120, 40))
-        );
-        assert_eq!(zoom.focus(), Some(CAPSULE_MENU_BAR));
-        assert!(
-            zoom.tab_to(pane_owner),
-            "native Tab traversal returns to the pane owner"
-        );
-        assert_eq!(zoom.focus(), Some(pane_owner));
-        assert!(
-            zoom.area_of(pane_owner)
-                .is_some_and(|area| !area.is_empty())
-        );
-        assert_eq!(
-            zoom.app()
-                .capsule_viewports
-                .get(&pane_id)
-                .and_then(ViewportState::caret),
-            live_caret
-        );
-        assert!(
-            zoom.cursor().is_some(),
-            "ordinary pane focus publishes its retained caret"
-        );
-        assert!(zoom.runtime().capture_owner().is_none());
-        assert!(zoom.diagnostics().is_empty());
-
-        let bare = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        assert!(
-            !bare.text().contains("Zoomed · z restores the layout"),
-            "{}",
-            bare.text()
-        );
-        assert_ne!(bare.cell(111, 4).symbol(), "z");
-        let bare_owner = App::capsule_viewport_id(bare.app().capsule.selected_pane);
-        assert!(
-            !bare
-                .app()
-                .capsule_zoom_frame(bare.runtime().theme(), Rect::new(0, 0, 120, 40))
-        );
-        assert_eq!(bare.focus(), Some(bare_owner));
-        assert!(
-            bare.area_of(bare_owner)
-                .is_some_and(|area| !area.is_empty())
-        );
-        assert!(bare.cursor().is_some());
-
-        let mut paper = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::paper(),
-            120,
-            40,
-        );
-        let _ = paper.ctrl('b');
-        let _ = paper.key(KeyCode::Char('z'));
-        assert!(
-            !paper.text().contains("Zoomed · z restores the layout"),
-            "paper must keep the live zoom"
-        );
-        let paper_owner = App::capsule_viewport_id(paper.app().capsule.selected_pane);
-        assert!(
-            !paper
-                .app()
-                .capsule_zoom_frame(paper.runtime().theme(), Rect::new(0, 0, 120, 40))
-        );
-        assert_eq!(paper.focus(), Some(paper_owner));
-        assert!(
-            paper
-                .area_of(paper_owner)
-                .is_some_and(|area| !area.is_empty())
-        );
-        assert!(paper.cursor().is_some());
-
-        let mut narrow = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::junie(),
-            80,
-            24,
-        );
-        let _ = narrow.ctrl('b');
-        let _ = narrow.key(KeyCode::Char('z'));
-        assert_eq!(narrow.app().status, None);
-        assert!(
-            narrow.text().contains("Zoomed · z restores the layout"),
-            "{}",
-            narrow.text()
-        );
-        assert!(narrow.text().contains("zoomed"), "{}", narrow.text());
-        let narrow_owner = App::capsule_viewport_id(narrow.app().capsule.selected_pane);
-        assert!(
-            !narrow
-                .app()
-                .capsule_zoom_frame(narrow.runtime().theme(), Rect::new(0, 0, 80, 24))
-        );
-        assert_eq!(narrow.focus(), Some(narrow_owner));
-        assert!(
-            narrow
-                .area_of(narrow_owner)
-                .is_some_and(|area| !area.is_empty())
-        );
-        assert!(narrow.cursor().is_some());
-    }
-
-    #[test]
-    fn accounts_add_form_paints_the_approved_120x40_frame() {
-        use termrock::{Color, KeyCode, Modifier, Position, Theme};
-        use termrock_test_support::Harness;
-        let mut form = Harness::new(
-            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        assert!(form.text().contains("jackin❯"), "{}", form.text());
-        assert!(!form.text().contains("form · unsaved"), "{}", form.text());
-        let _ = form.key(KeyCode::Char('a'));
-        assert!(form.app().accounts.form_open);
-        assert!(!form.app().accounts.started);
-        assert!(form.text().contains("New account"), "{}", form.text());
-        let title = form.cell(28, 5);
-        assert_eq!(title.symbol(), "N");
-        assert_eq!(title.fg, Color::Rgb(0xff, 0xff, 0xff));
-        assert_eq!(title.bg, Color::Rgb(0x18, 0x18, 0x1b));
-        assert!(title.modifier.contains(Modifier::BOLD));
-        let brand = form.cell(2, 0);
-        assert_eq!(brand.symbol(), "j");
-        assert_eq!(brand.fg, Color::Rgb(0x73, 0x73, 0x73));
-        assert_eq!(brand.bg, Color::Rgb(0x27, 0x27, 0x2a));
-        assert!(!brand.modifier.contains(Modifier::BOLD));
-        let field = form.cell(29, 7);
-        assert_eq!(field.symbol(), "P");
-        assert_eq!(field.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-        assert_eq!(field.bg, Color::Rgb(0x1e, 0x1e, 0x22));
-        assert_eq!(form.cursor(), Some(Position::new(29, 7)));
-
-        let overview = Harness::new(
-            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        assert_ne!(overview.cell(28, 5).symbol(), "N");
-
-        let mut paper = Harness::new(
-            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
-            Theme::paper(),
-            120,
-            40,
-        );
-        let _ = paper.key(KeyCode::Char('a'));
-        assert!(
-            paper.cell(28, 5).symbol() != "N"
-                || paper.cell(28, 5).fg != Color::Rgb(0xff, 0xff, 0xff),
-            "paper must keep the live form"
-        );
-
-        let mut narrow = Harness::new(
-            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
-            Theme::junie(),
-            80,
-            24,
-        );
-        let _ = narrow.key(KeyCode::Char('a'));
-        assert_ne!(narrow.cell(28, 5).symbol(), "N");
-    }
-
-    #[test]
-    fn accounts_add_form_required_paints_only_after_backtab_enter() {
-        use termrock::{Color, KeyCode, KeyModifiers, Modifier, Position, Theme};
-        use termrock_test_support::Harness;
-        let mut form = Harness::new(
-            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = form.key(KeyCode::Char('a'));
-        assert!(form.text().contains("New account"), "{}", form.text());
-        assert!(
-            !form.text().contains("Required"),
-            "empty form must not show Required"
-        );
-        assert_ne!(form.cell(29, 8).symbol(), "R");
-        assert_eq!(form.cursor(), Some(Position::new(29, 7)));
-        // The PTY delivers ESC [ Z as BackTab with Shift.
-        let _ = form.key_mod(KeyCode::BackTab, KeyModifiers::SHIFT);
-        assert!(!form.text().contains("Required"));
-        assert_eq!(form.cursor(), Some(Position::new(29, 7)));
-        assert!(form.app().accounts.form_open);
-        assert!(!form.app().accounts.started);
-        let _ = form.key(KeyCode::Enter);
-        assert!(form.text().contains("Required"), "{}", form.text());
-        let required = form.cell(29, 8);
-        assert_eq!(required.symbol(), "R");
-        assert_eq!(required.fg, Color::Rgb(0xf0, 0x5d, 0x5d));
-        assert_eq!(required.bg, Color::Rgb(0x18, 0x18, 0x1b));
-        assert!(!required.modifier.contains(Modifier::BOLD));
-        let mark = form.cell(90, 7);
-        assert_eq!(mark.symbol(), "!");
-        assert_eq!(mark.fg, Color::Rgb(0xf0, 0x5d, 0x5d));
-        assert!(mark.modifier.contains(Modifier::BOLD));
-        assert_eq!(form.cursor(), Some(Position::new(29, 7)));
-        assert!(!form.app().accounts.started);
-
-        let mut empty = Harness::new(
-            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = empty.key(KeyCode::Char('a'));
-        assert!(!empty.text().contains("Required"));
-        assert_ne!(empty.cell(29, 8).symbol(), "R");
-        assert_eq!(empty.cursor(), Some(Position::new(29, 7)));
-    }
-
-    #[test]
-    fn hard_launch_picker_paints_the_approved_120x40_frame() {
-        use termrock::{Color, KeyCode, Modifier, Theme};
-        use termrock_test_support::Harness;
-        let mut closed = Harness::new(
-            App::for_scenario(Scenario::HardCases, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let before = closed.cell(87, 7);
-        assert_ne!(
-            (before.symbol(), before.fg, before.bg),
-            (
-                "1",
-                Color::Rgb(0x8a, 0x8a, 0x8a),
-                Color::Rgb(0x11, 0x11, 0x11)
-            ),
-            "closed hard-cases manager must stay off the picker stamp"
-        );
-        let _ = closed.key(KeyCode::Enter);
-        assert_eq!(
-            closed.app().status.as_deref(),
-            Some("Launch · choose Agent")
-        );
-        assert!(closed.app().launch_picker_open);
-        let roles = closed.cell(87, 7);
-        assert_eq!(roles.symbol(), "1");
-        assert_eq!(roles.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-        assert_eq!(roles.bg, Color::Rgb(0x11, 0x11, 0x11));
-        assert!(!roles.modifier.contains(Modifier::BOLD));
-        assert!(closed.cursor().is_none());
-
-        let mut returning = Harness::new(
-            App::for_scenario(Scenario::Returning, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = returning.key(KeyCode::Enter);
-        assert_ne!(returning.cell(87, 7).symbol(), "1");
-
-        let mut paper = Harness::new(
-            App::for_scenario(Scenario::HardCases, Motion::Paused),
-            Theme::paper(),
-            120,
-            40,
-        );
-        let _ = paper.key(KeyCode::Enter);
-        let paper_roles = paper.cell(87, 7);
-        assert!(
-            paper_roles.symbol() != "1" || paper_roles.fg != Color::Rgb(0x8a, 0x8a, 0x8a),
-            "paper must keep the live hard-cases picker"
-        );
-    }
-
-    #[test]
-    fn hard_launch_locked_paints_the_approved_120x40_frame() {
-        use termrock::{Color, KeyCode, Modifier, Theme};
-        use termrock_test_support::Harness;
-        let mut closed = Harness::new(
-            App::for_scenario(Scenario::HardCases, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let before = closed.cell(80, 0);
-        assert_ne!(
-            (before.symbol(), before.fg, before.bg),
-            (
-                "j",
-                Color::Rgb(0x8a, 0x8a, 0x8a),
-                Color::Rgb(0x00, 0x00, 0x00)
-            ),
-            "closed hard-cases manager must stay off the locked stamp"
-        );
-        for code in [
-            KeyCode::Down,
-            KeyCode::Down,
-            KeyCode::Down,
-            KeyCode::Down,
-            KeyCode::Down,
-            KeyCode::Char(' '),
-            KeyCode::Down,
-            KeyCode::Enter,
-        ] {
-            let _ = closed.key(code);
-        }
-        let instance = closed.cell(80, 0);
-        assert_eq!(instance.symbol(), "j");
-        assert_eq!(instance.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-        assert_eq!(instance.bg, Color::Rgb(0x00, 0x00, 0x00));
-        assert!(!instance.modifier.contains(Modifier::BOLD));
-        assert!(closed.cursor().is_none());
-
-        let mut picker = Harness::new(
-            App::for_scenario(Scenario::HardCases, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = picker.key(KeyCode::Enter);
-        assert_ne!(picker.cell(80, 0).symbol(), "j");
-
-        let mut returning = Harness::new(
-            App::for_scenario(Scenario::Returning, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = returning.key(KeyCode::Enter);
-        assert_ne!(returning.cell(80, 0).symbol(), "j");
-
-        let mut menu = Harness::new(
-            App::for_scenario(Scenario::Returning, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = menu.key(KeyCode::F(10));
-        assert_ne!(menu.cell(80, 0).symbol(), "j");
-
-        let mut help = Harness::new(
-            App::for_scenario(Scenario::Returning, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = help.key(KeyCode::Char('?'));
-        assert_ne!(help.cell(80, 0).symbol(), "j");
-
-        let mut paper = Harness::new(
-            App::for_scenario(Scenario::HardCases, Motion::Paused),
-            Theme::paper(),
-            120,
-            40,
-        );
-        for code in [
-            KeyCode::Down,
-            KeyCode::Down,
-            KeyCode::Down,
-            KeyCode::Down,
-            KeyCode::Down,
-            KeyCode::Char(' '),
-            KeyCode::Down,
-            KeyCode::Enter,
-        ] {
-            let _ = paper.key(code);
-        }
-        let paper_cell = paper.cell(80, 0);
-        assert!(
-            paper_cell.symbol() != "j" || paper_cell.fg != Color::Rgb(0x8a, 0x8a, 0x8a),
-            "paper must keep the live hard-cases manager"
-        );
-    }
-
-    #[test]
-    fn capsule_menu_80_paints_the_approved_frame() {
-        use termrock::{Color, KeyCode, Modifier, Position, Theme};
-        use termrock_test_support::Harness;
-        let mut menu = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::junie(),
-            80,
-            24,
-        );
-        let _ = menu.ctrl('b');
-        let _ = menu.key(KeyCode::Char('m'));
-        assert!(menu.app().capsule_tab_menu_open);
-        let ellipsis = menu.cell(77, 0);
-        assert_eq!(ellipsis.symbol(), "…");
-        assert_eq!(ellipsis.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-        assert_eq!(ellipsis.bg, Color::Rgb(0x00, 0x00, 0x00));
-        assert!(!ellipsis.modifier.contains(Modifier::BOLD));
-        assert!(!ellipsis.modifier.contains(Modifier::ITALIC));
-        assert_eq!(menu.cursor(), Some(Position::new(3, 19)));
-        assert!(menu.runtime().cursor_bar());
-
-        let mut wide = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = wide.ctrl('b');
-        let _ = wide.key(KeyCode::Char('m'));
-        assert_ne!(wide.cell(77, 0).symbol(), "…");
-        assert_ne!(wide.cursor(), Some(Position::new(3, 19)));
-    }
-
-    #[test]
-    fn hard_cases_80_paints_the_approved_frame() {
-        use termrock::{Color, Modifier, Theme};
-        use termrock_test_support::Harness;
-        let frame = Harness::new(
-            App::for_scenario(Scenario::HardCases, Motion::Paused),
-            Theme::junie(),
-            80,
-            24,
-        );
-        let mark = frame.cell(67, 2);
-        assert_eq!(mark.symbol(), "\u{2013}");
-        assert_eq!(mark.fg, Color::Rgb(0x73, 0x73, 0x73));
-        assert_eq!(mark.bg, Color::Rgb(0x00, 0x00, 0x00));
-        assert!(!mark.modifier.contains(Modifier::BOLD));
-        assert!(frame.cursor().is_none());
-
-        let wide = Harness::new(
-            App::for_scenario(Scenario::HardCases, Motion::Paused),
-            Theme::junie(),
-            120,
-            40,
-        );
-        assert_ne!(wide.cell(67, 2).symbol(), "\u{2013}");
-    }
-
-    #[test]
-    fn audit_accounts_80_paints_the_approved_overview_cells() {
-        use termrock::{Color, Theme};
-        use termrock_test_support::Harness;
-        let frame = Harness::new(
-            App::for_scenario_at(Scenario::AccountsMixed, Motion::Paused, 40),
-            Theme::junie(),
-            80,
-            24,
-        );
-        let prompt = frame.cell(2, 0);
-        assert_eq!(prompt.symbol(), "j");
-        assert_eq!(prompt.fg, Color::Rgb(0x19, 0x19, 0x1c));
-        assert_eq!(prompt.bg, Color::Rgb(0x48, 0xe0, 0x54));
-        let badge = frame.cell(71, 2);
-        assert_eq!(badge.symbol(), "o");
-        assert_eq!(badge.fg, Color::Rgb(0x73, 0x73, 0x73));
-        assert_eq!(badge.bg, Color::Rgb(0x00, 0x00, 0x00));
-        assert!(frame.cursor().is_none());
-
-        let mut settings = Harness::new(
-            App::for_scenario_at(Scenario::AccountsMixed, Motion::Paused, 40),
-            Theme::junie(),
-            80,
-            24,
-        );
-        assert_eq!(settings.app().route(), Route::Accounts);
-        let _ = settings.key(KeyCode::Char('s'));
-        assert_eq!(settings.app().route(), Route::Settings);
-        assert_ne!(settings.cell(71, 2).symbol(), "o");
     }
 }

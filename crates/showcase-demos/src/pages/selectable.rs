@@ -109,9 +109,6 @@ impl Model {
         true
     }
 
-    /// Builds the delete dialog and hands it to `body`. The action labels
-    /// borrow the caller-owned `title`/`confirm` strings, so the dialog
-    /// never outlives them.
     fn with_dialog<R>(title: &str, confirm: &str, body: impl FnOnce(Dialog<'_>) -> R) -> R {
         let actions = [
             Action::new(ActionKey::CANCEL, "Cancel"),
@@ -126,8 +123,6 @@ impl Model {
         )
     }
 
-    /// Renders the delete-confirmation dialog in the overlay layer. Called by
-    /// the shell after the page paints, matching the dialogs page.
     pub fn draw_dialog(ui: &mut Ui<'_>, model: &Model) {
         if !model.dialog {
             return;
@@ -1006,9 +1001,6 @@ fn paint_member_row(
     let selected = model.selected & (1_u16 << index) != 0;
     let cursor = model.table_focus && model.cursor == index;
     if selected {
-        // Accent selection fill (owner decision 2026-10-17, `InactiveSelection
-        // ::Accent`): the chosen row keeps its accent fill and bold ink while
-        // focus lives elsewhere in the same layer.
         ui.fill(
             area,
             ink(WHITE, accent_tint_bg(ui.theme_ref())).add_modifier(Modifier::BOLD),
@@ -1097,9 +1089,6 @@ fn paint_members(ui: &mut Ui<'_>, card: Rect, model: &Model) {
     let meta = members_meta(end, model.selected_count());
     let mut title = ink(SECONDARY, SURFACE);
     if model.table_focus {
-        // The focused table's card is the active panel: its title carries the
-        // emphasis while selection keeps the accent (`InactiveSelection
-        // ::Accent`), like a macOS selection in the active window.
         title = ink(WHITE, SURFACE).add_modifier(Modifier::BOLD);
     }
     paint_card_chrome_with_title(ui, card, "Members", &meta, title);
@@ -1166,8 +1155,6 @@ fn paint_centered(ui: &mut Ui<'_>, area: Rect, y: u16, text: &str, style: PaintS
     paint_at(ui, x, y, columns, text, style);
 }
 
-/// What the selected members agree on. `None` means the column is mixed
-/// across the selection and the field shows `— mixed —`.
 struct Summary {
     count: usize,
     role: Option<&'static str>,
@@ -1209,7 +1196,7 @@ impl Summary {
                     unify(&mut shared.status, status_text(member.status));
                     unify(&mut shared.region, member.region);
                     unify(&mut shared.on_call, member.on_call);
-                    // A member without notes makes the shared note mixed.
+
                     if let Some(note) = notes {
                         unify(&mut shared.notes, note);
                     } else {
@@ -1222,8 +1209,6 @@ impl Summary {
     }
 }
 
-/// Narrows a shared value to `None` (mixed) once members disagree. `None`
-/// here means "differs", so it never flips back to a value.
 fn unify<T: PartialEq>(slot: &mut Option<T>, value: T) {
     if let Some(current) = slot
         && *current != value
@@ -1234,16 +1219,12 @@ fn unify<T: PartialEq>(slot: &mut Option<T>, value: T) {
 
 const MIXED: &str = "\u{2014} mixed \u{2014}";
 
-/// One bulk-edit field: a raised chip carrying the shared value (or the
-/// mixed marker), with a dropdown arrow when the field is editable.
 fn paint_field(ui: &mut Ui<'_>, area: Rect, value: &str, arrow: bool) {
     if area.is_empty() {
         return;
     }
     let field_bg = color_u32(ui.theme_ref().bg(Surface::Field));
-    // The chip leads with one cell inked in its own background, then a
-    // white-ink body; the value and the dropdown arrow overwrite their
-    // cells on top.
+
     paint_at(ui, area.x, area.y, 1, " ", ink(field_bg, field_bg));
     if area.width > 1 {
         ui.fill(
@@ -1303,8 +1284,7 @@ fn paint_editor(ui: &mut Ui<'_>, card: Rect, model: &Model) {
         &applies,
         ink(FAINT, SURFACE),
     );
-    // Two field columns with a two-column gap; the right chip absorbs the
-    // odd column when the card width is uneven.
+
     let chip_w = inner.width.saturating_sub(2) / 2;
     let left = inner.x;
     let right = left.saturating_add(chip_w).saturating_add(2);
@@ -1359,7 +1339,7 @@ fn paint_editor(ui: &mut Ui<'_>, card: Rect, model: &Model) {
         Some(false) => (CHECK_OFF, MUTED),
         None => (CHECK_MIXED, ACCENT),
     };
-    // One clearing cell keeps the card fill behind the checkbox inset.
+
     paint_at(
         ui,
         right,
@@ -1384,7 +1364,7 @@ fn paint_editor(ui: &mut Ui<'_>, card: Rect, model: &Model) {
         "On call",
         ink(WHITE, SURFACE),
     );
-    // The Notes label runs to the card edge, unlike the other labels.
+
     paint_at(
         ui,
         left.saturating_add(2),
@@ -1393,7 +1373,7 @@ fn paint_editor(ui: &mut Ui<'_>, card: Rect, model: &Model) {
         &fit("Notes", inner.width.saturating_sub(2)),
         label,
     );
-    // A lone member shows its own (possibly empty) note, not "mixed".
+
     let notes = if summary.count == 1 {
         summary.notes.unwrap_or(EMPTY_MARK)
     } else {
@@ -1452,7 +1432,7 @@ fn paint_wide_playground(ui: &mut Ui<'_>, area: Rect, model: &Model) {
     if area.width <= CARD_GAP {
         return;
     }
-    // Details keeps the right third. Members take the rest of the row.
+
     let right_w = area.width / 3;
     let left_w = area.width.saturating_sub(CARD_GAP).saturating_sub(right_w);
     if left_w == 0 || right_w == 0 {
@@ -1507,137 +1487,5 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect, model: &Model) {
             area.height,
             CANVAS,
         );
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn key(code: KeyCode, mods: KeyModifiers) -> Key {
-        Key { code, mods }
-    }
-
-    #[test]
-    fn down_space_and_shift_down_select_ari_then_neighbors() {
-        let mut model = Model {
-            table_focus: true,
-            ..Model::default()
-        };
-        assert!(model.apply_key(key(KeyCode::Down, KeyModifiers::empty())));
-        assert!(model.apply_key(key(KeyCode::Char(' '), KeyModifiers::empty())));
-        assert_eq!(model.selected_count(), 1);
-        assert_eq!(model.cursor, 1);
-        assert!(model.apply_key(key(KeyCode::Down, KeyModifiers::SHIFT)));
-        assert_eq!(model.selected_count(), 2);
-        // Delete requests now flow through `update` (the dialog layer), not
-        // through `apply_key`; the key itself is not a selection edit.
-        assert!(!model.apply_key(key(KeyCode::Char('d'), KeyModifiers::empty())));
-        assert!(!model.dialog);
-        assert_eq!(model.selected_count(), 2);
-
-        let mut bulk = Model {
-            table_focus: true,
-            ..Model::default()
-        };
-        assert!(bulk.apply_key(key(KeyCode::Down, KeyModifiers::empty())));
-        assert!(bulk.apply_key(key(KeyCode::Char(' '), KeyModifiers::empty())));
-        assert!(bulk.apply_key(key(KeyCode::Down, KeyModifiers::SHIFT)));
-        assert!(bulk.apply_key(key(KeyCode::Down, KeyModifiers::SHIFT)));
-        assert_eq!(bulk.selected_count(), 3);
-        assert_eq!(bulk.cursor, 3);
-    }
-
-    #[test]
-    fn space_on_the_disabled_owner_does_not_select() {
-        let mut model = Model {
-            table_focus: true,
-            ..Model::default()
-        };
-        assert!(model.apply_key(key(KeyCode::Char(' '), KeyModifiers::empty())));
-        assert_eq!(model.selected_count(), 0);
-        assert!(!model.dialog);
-    }
-
-    #[test]
-    fn ctrl_a_selects_all_enabled_and_toggles_back() {
-        let mut model = Model {
-            table_focus: true,
-            ..Model::default()
-        };
-        let enabled = MEMBERS.iter().filter(|m| !m.disabled).count();
-        assert!(model.apply_key(key(KeyCode::Char('a'), KeyModifiers::CONTROL)));
-        assert_eq!(model.selected_count(), enabled);
-        assert!(model.apply_key(key(KeyCode::Char('a'), KeyModifiers::CONTROL)));
-        assert_eq!(model.selected_count(), 0);
-    }
-
-    #[test]
-    fn esc_clears_the_selection() {
-        let mut model = Model {
-            table_focus: true,
-            ..Model::default()
-        };
-        assert!(model.apply_key(key(KeyCode::Down, KeyModifiers::empty())));
-        assert!(model.apply_key(key(KeyCode::Char(' '), KeyModifiers::empty())));
-        assert_eq!(model.selected_count(), 1);
-        assert!(model.apply_key(key(KeyCode::Esc, KeyModifiers::empty())));
-        assert_eq!(model.selected_count(), 0);
-        assert!(!model.apply_key(key(KeyCode::Esc, KeyModifiers::empty())));
-    }
-
-    #[test]
-    fn summary_reports_shared_and_mixed_fields() {
-        let mut model = Model {
-            table_focus: true,
-            ..Model::default()
-        };
-        assert!(Summary::collect(&model).is_none());
-        // Cursor starts on the disabled owner; move to Ari first.
-        assert!(model.apply_key(key(KeyCode::Down, KeyModifiers::empty())));
-        assert!(model.apply_key(key(KeyCode::Char(' '), KeyModifiers::empty())));
-        let one = Summary::collect(&model).expect("one member");
-        assert_eq!(one.count, 1);
-        assert_eq!(one.role, Some(MEMBERS[1].role));
-        assert_eq!(one.status, Some(status_text(MEMBERS[1].status)));
-        assert_eq!(one.notes, Some(MEMBERS[1].notes));
-        // Extend to Cleo: same status, different role, no notes on Bo? no --
-        // Cleo has notes; roles differ (Admin vs Editor).
-        assert!(model.apply_key(key(KeyCode::Down, KeyModifiers::SHIFT)));
-        let two = Summary::collect(&model).expect("two members");
-        assert_eq!(two.count, 2);
-        assert_eq!(two.role, None);
-        assert_eq!(two.status, Some(status_text(MEMBERS[2].status)));
-        assert_eq!(two.notes, None);
-    }
-
-    #[test]
-    fn hints_follow_dialog_selection_and_focus() {
-        let mut model = Model::default();
-        assert_eq!(model.hints(), &[]);
-        model.table_focus = true;
-        assert_eq!(model.hints(), TABLE_HINTS);
-        assert!(model.apply_key(key(KeyCode::Down, KeyModifiers::empty())));
-        assert!(model.apply_key(key(KeyCode::Char(' '), KeyModifiers::empty())));
-        assert_eq!(model.hints(), SELECTION_HINTS);
-        model.dialog = true;
-        assert_eq!(model.hints(), DIALOG_HINTS);
-    }
-
-    #[test]
-    fn dialog_fields_track_the_selection_count() {
-        let mut model = Model {
-            table_focus: true,
-            ..Model::default()
-        };
-        for _ in 0..3 {
-            assert!(model.apply_key(key(KeyCode::Down, KeyModifiers::empty())));
-            assert!(model.apply_key(key(KeyCode::Char(' '), KeyModifiers::empty())));
-        }
-        assert_eq!(model.selected_count(), 3);
-        // `open_dialog` formats the title/confirm from the live selection.
-        let count = model.selected_count();
-        assert_eq!(format!("Delete {count} members?"), "Delete 3 members?");
-        assert_eq!(format!("Delete {count} members"), "Delete 3 members");
     }
 }

@@ -1,0 +1,3 @@
+rust build guard: allowed; checked 1 filesystem(s)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+mbx[savings]: has saved 27d 17h across 103200 builds. this line is the only thanks it needs.

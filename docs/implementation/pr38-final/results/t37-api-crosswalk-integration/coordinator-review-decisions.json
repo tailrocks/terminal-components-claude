@@ -1,0 +1,54 @@
+{
+  "schema": "t37.api-prose-coordinator-review-bindings.v1",
+  "task_id": "T37-API-CROSSWALK-INTEGRATION",
+  "recorded_by": "/root",
+  "input_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+  "decisions": [
+    {
+      "cohort_id": "T37-API-PROSE-COHORT-A",
+      "status": "ACCEPTED",
+      "reviewer_id": "/root/t37_components_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "decision_id": "T37-API-PROSE-01",
+      "reviewed_artifact": {
+        "commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+        "path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
+        "sha256": "6c5c9147f0d0339b5fbba9adfe1fc8703c773c078fb7806e9ec67ee07e958cf4"
+      },
+      "imported_commit": "9463cb8c36f0bc6e53af241334efb19bb8a2e5f1"
+    },
+    {
+      "cohort_id": "T37-API-PROSE-COHORT-B",
+      "status": "ACCEPTED",
+      "reviewer_id": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "decision_id": "T37-API-PROSE-01",
+      "reviewed_artifact": {
+        "commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+        "path": "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
+        "sha256": "100b55db7b05031451bca35c2142dbda6b3905d69d7ca404308ed4819a2b03a4"
+      },
+      "imported_commit": "6e38a1d3be4b0dcfd47f793e7975299254e38d14"
+    },
+    {
+      "cohort_id": "T37-API-PROSE-COHORT-C",
+      "status": "ACCEPTED",
+      "reviewer_id": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "decision_id": "T37-API-SUPPORT-EE8-ACCEPT",
+      "reviewed_artifact": {
+        "commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+        "path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+        "sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae"
+      },
+      "imported_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4"
+    }
+  ],
+  "notes": [
+    "Each decision binds reviewer identity and decision ID to an exact reviewed source commit, artifact path, and SHA-256.",
+    "C acceptance is bound to the corrected source artifact in ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9. Global composition review remains separate and pending."
+  ]
+}

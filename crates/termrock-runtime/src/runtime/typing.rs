@@ -90,9 +90,6 @@ pub(crate) fn resolve(frame: &mut FrameState, focus: Option<Id>) -> TypingResolv
     {
         resolved.owner = editable(frame, owner).then_some(owner);
         if flags(frame, owner).contains(StateFlags::READ_ONLY) {
-            // Read-only controls may still expose a visible caret for navigation or
-            // inspection. Preserve that cursor only when the control itself published
-            // an ordinary cursor request; read-only focus must not manufacture one.
             resolved.cursor = frame
                 .cursors
                 .iter()

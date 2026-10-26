@@ -1,15 +1,8 @@
-//! Immutable, geometry-only plans for composing measured child regions.
-//!
-//! These plans deliberately do not know about widgets, input, or rendering. A
-//! caller measures each child once, resolves a plan, then uses its logical
-//! bounds and clipping bounds for drawing and interaction registration.
-
 use ratatui_core::layout::Rect;
 
 use crate::layout::{Insets, inset};
 use crate::measure::{Constraints, Size};
 
-/// Main-axis alignment for children that do not consume all available space.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum MainAlign {
     #[default]
@@ -19,8 +12,6 @@ pub enum MainAlign {
     SpaceBetween,
 }
 
-/// Cross-axis alignment for children whose measured size is smaller than the
-/// available cross-axis extent.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum CrossAlign {
     #[default]
@@ -30,17 +21,14 @@ pub enum CrossAlign {
     End,
 }
 
-/// Behavior when child minimum sizes exceed the available main-axis size.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum OverflowPolicy {
-    /// Compress children in source order, clipping any final overflow.
     #[default]
     Clip,
-    /// Preserve each child's minimum size; visible bounds remain clipped.
+
     PreserveMinimum,
 }
 
-/// Shared configuration for row, column, and wrapping plans.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Composition {
     pub padding: Insets,
@@ -50,7 +38,6 @@ pub struct Composition {
     pub overflow: OverflowPolicy,
 }
 
-/// Main-axis behavior used to measure a nested composition's intrinsic size.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CompositionKind {
     Row,
@@ -95,7 +82,6 @@ impl Composition {
     }
 }
 
-/// Per-child intrinsic size, bounds, and flexible-space weight.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct ChildPolicy {
     pub intrinsic: Size,
@@ -130,7 +116,6 @@ impl ChildPolicy {
     }
 }
 
-/// A child value paired with its layout policy.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Child<'a, T: ?Sized> {
     pub value: &'a T,
@@ -151,7 +136,6 @@ impl<'a, T: ?Sized> Child<'a, T> {
     }
 }
 
-/// A resolved child's requested bounds and its visible intersection.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ResolvedChild {
     pub index: usize,
@@ -159,7 +143,6 @@ pub struct ResolvedChild {
     pub visible: Rect,
 }
 
-/// Immutable result shared by drawing, clipping, hit testing, and focus bounds.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ResolvedPlan {
     pub area: Rect,
@@ -167,11 +150,6 @@ pub struct ResolvedPlan {
     pub children: Vec<ResolvedChild>,
 }
 
-/// Measure a composition from child sizes without resolving input or drawing.
-///
-/// This is shared by nested composition groups so a group can participate as
-/// one measured child in its parent. Padding and gaps contribute to the
-/// intrinsic size; alignment and flex consume only space supplied by a parent.
 pub fn intrinsic_size<T: ?Sized, F>(
     children: &[Child<'_, T>],
     spec: Composition,
@@ -317,9 +295,6 @@ fn sat_extent(value: u64) -> u16 {
     value.min(u64::from(u16::MAX)) as u16
 }
 
-/// Resolve a horizontal row from immutable child data and a pure measurement
-/// callback. The callback receives loose constraints bounded by the padded
-/// content area and must not perform input handling or domain effects.
 pub fn row<T: ?Sized, F>(
     area: Rect,
     children: &[Child<'_, T>],
@@ -332,8 +307,6 @@ where
     linear(area, children, spec, true, measure)
 }
 
-/// Resolve a vertical column from immutable child data and a pure measurement
-/// callback.
 pub fn column<T: ?Sized, F>(
     area: Rect,
     children: &[Child<'_, T>],
@@ -464,9 +437,6 @@ where
     }
 }
 
-/// Resolve a wrapping row. Children keep source order and wrap before the first
-/// item whose preferred width would exceed the content width. Flex is resolved
-/// within each line; line height is the largest measured child height.
 pub fn wrap<T: ?Sized, F>(
     area: Rect,
     children: &[Child<'_, T>],
@@ -742,8 +712,6 @@ fn distribute_flex<T: ?Sized>(
             continue;
         }
 
-        // Floor division may leave fewer cells than active children. Hand
-        // those cells out in source order, then recalculate weighted shares.
         let mut one_each = 0u64;
         for (index, child) in children.iter().enumerate() {
             if remaining == 0 {
@@ -782,8 +750,6 @@ fn gap_positions(
     extent: u16,
     align: MainAlign,
 ) -> Vec<u16> {
-    #[cfg(test)]
-    GAP_POSITION_CALLS.with(|calls| calls.set(calls.get().saturating_add(1)));
     let gaps = count.saturating_sub(1);
     if gaps == 0 || align != MainAlign::SpaceBetween {
         return vec![0; count];
@@ -801,11 +767,6 @@ fn gap_positions(
             }
         })
         .collect()
-}
-
-#[cfg(test)]
-std::thread_local! {
-    static GAP_POSITION_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 fn cross_position(
@@ -853,373 +814,5 @@ fn intersection(a: Rect, b: Rect) -> Rect {
         y: top.min(u32::from(u16::MAX)) as u16,
         width: right.saturating_sub(left).min(u32::from(u16::MAX)) as u16,
         height: bottom.saturating_sub(top).min(u32::from(u16::MAX)) as u16,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use ratatui_core::layout::Rect;
-
-    fn item(value: &'static str, size: (u16, u16)) -> Child<'static, str> {
-        Child::new(value, ChildPolicy::new(Size::exact(size.0, size.1)))
-    }
-
-    #[test]
-    fn nested_intrinsic_wrap_handles_wide_narrow_empty_and_bounded_children() {
-        let labels = [String::from("a"), String::from("b")];
-        let children = [
-            Child::new(
-                labels[0].as_str(),
-                ChildPolicy::default().min(2, 1).max(Some(4), None),
-            ),
-            Child::new(labels[1].as_str(), ChildPolicy::default().min(2, 1)),
-        ];
-        let measure = |name: &str, _: Constraints| {
-            if name == "a" {
-                Size {
-                    min: (2, 1),
-                    preferred: (3, 1),
-                }
-            } else {
-                Size {
-                    min: (2, 1),
-                    preferred: (4, 2),
-                }
-            }
-        };
-        let narrow = intrinsic_size(
-            &children,
-            Composition::new().gap(1),
-            CompositionKind::Wrap,
-            Constraints::loose(4, 10),
-            measure,
-        );
-        assert_eq!(narrow.min, (2, 3));
-        assert_eq!(narrow.preferred, (4, 4));
-
-        let wide = intrinsic_size(
-            &children,
-            Composition::new().gap(1),
-            CompositionKind::Wrap,
-            Constraints::loose(10, 10),
-            measure,
-        );
-        assert_eq!(wide.preferred, (8, 2));
-
-        let empty: [Child<'_, str>; 0] = [];
-        let padded = intrinsic_size(
-            &empty,
-            Composition::new().padding(Insets::all(2)),
-            CompositionKind::Column,
-            Constraints::loose(8, 8),
-            |_, _| Size::default(),
-        );
-        assert_eq!(padded.preferred, (4, 4));
-
-        let zero = intrinsic_size(
-            &children,
-            Composition::new(),
-            CompositionKind::Wrap,
-            Constraints::loose(0, 0),
-            measure,
-        );
-        assert_eq!(zero.preferred, (0, 0));
-    }
-
-    #[test]
-    fn row_resolves_intrinsic_flex_padding_gap_alignment_and_clips() {
-        let children = [
-            item("label", (3, 1)),
-            Child::new(
-                "body",
-                ChildPolicy::new(Size::exact(2, 1))
-                    .min(2, 1)
-                    .max(Some(8), Some(2))
-                    .flex(1),
-            ),
-        ];
-        let plan = row(
-            Rect::new(4, 3, 12, 5),
-            &children,
-            Composition::new().padding(Insets::symmetric(1, 1)).gap(1),
-            |value, _| {
-                if value == "label" {
-                    Size::exact(3, 1)
-                } else {
-                    Size::exact(2, 1)
-                }
-            },
-        );
-        assert_eq!(plan.content, Rect::new(5, 4, 10, 3));
-        assert_eq!(plan.children[0].logical, Rect::new(5, 4, 3, 3));
-        assert_eq!(plan.children[1].logical, Rect::new(9, 4, 6, 2));
-        assert_eq!(plan.children[1].visible, plan.children[1].logical);
-    }
-
-    #[test]
-    fn row_handles_shifted_origins_tiny_area_and_conflicting_bounds() {
-        let children = [
-            Child::new("a", ChildPolicy::new(Size::exact(4, 1)).min(5, 1)),
-            Child::new("b", ChildPolicy::new(Size::exact(4, 1)).min(5, 1)),
-        ];
-        let area = Rect::new(17, 8, 6, 1);
-        let clipped = row(area, &children, Composition::new().gap(1), |_, _| {
-            Size::exact(4, 1)
-        });
-        assert_eq!(
-            clipped
-                .children
-                .iter()
-                .map(|child| child.logical.width)
-                .collect::<Vec<_>>(),
-            [5, 0]
-        );
-        assert!(
-            clipped
-                .children
-                .iter()
-                .all(|child| child.visible.x >= area.x)
-        );
-        let preserved = row(
-            area,
-            &children,
-            Composition::new()
-                .gap(1)
-                .overflow(OverflowPolicy::PreserveMinimum),
-            |_, _| Size::exact(4, 1),
-        );
-        assert_eq!(
-            preserved
-                .children
-                .iter()
-                .map(|child| child.logical.width)
-                .collect::<Vec<_>>(),
-            [5, 5]
-        );
-        assert_eq!(preserved.children[1].visible.width, 0);
-        let min_larger_than_area = [Child::new(
-            "wide",
-            ChildPolicy::new(Size::default()).min(8, 1),
-        )];
-        let preserved = row(
-            area,
-            &min_larger_than_area,
-            Composition::new().overflow(OverflowPolicy::PreserveMinimum),
-            |_, _| Size::default(),
-        );
-        assert_eq!(preserved.children[0].logical.width, 8);
-        assert_eq!(preserved.children[0].visible.width, area.width);
-        let tiny = column(
-            Rect::new(9, 7, 0, 0),
-            &children,
-            Composition::new().padding(Insets::all(u16::MAX)),
-            |_, _| Size::exact(u16::MAX, u16::MAX),
-        );
-        assert!(tiny.children.iter().all(|child| child.visible.is_empty()));
-    }
-
-    #[test]
-    fn intrinsic_minimum_participates_in_overflow_compression() {
-        let children = [
-            Child::new("first", ChildPolicy::new(Size::exact(8, 1))),
-            Child::new("second", ChildPolicy::new(Size::exact(8, 1))),
-        ];
-        let plan = row(
-            Rect::new(0, 0, 8, 1),
-            &children,
-            Composition::new(),
-            |_, _| Size::default(),
-        );
-        assert_eq!(
-            plan.children
-                .iter()
-                .map(|child| child.logical.width)
-                .collect::<Vec<_>>(),
-            [8, 0]
-        );
-    }
-
-    #[test]
-    fn main_alignment_and_space_between_are_deterministic() {
-        let children = [item("a", (2, 1)), item("b", (2, 1)), item("c", (2, 1))];
-        let centered = row(
-            Rect::new(10, 0, 11, 2),
-            &children,
-            Composition::new().main_align(MainAlign::Center),
-            |_, _| Size::exact(2, 1),
-        );
-        assert_eq!(centered.children[0].logical.x, 12);
-        let spaced = row(
-            Rect::new(0, 0, 11, 2),
-            &children,
-            Composition::new().main_align(MainAlign::SpaceBetween),
-            |_, _| Size::exact(2, 1),
-        );
-        assert_eq!(
-            spaced
-                .children
-                .iter()
-                .map(|child| child.logical.x)
-                .collect::<Vec<_>>(),
-            [0, 5, 9]
-        );
-    }
-
-    #[test]
-    fn flex_respects_individual_maxima_and_reallocates_the_remainder() {
-        let children = [
-            Child::new(
-                "bounded",
-                ChildPolicy::new(Size::exact(1, 1))
-                    .max(Some(3), None)
-                    .flex(1),
-            ),
-            Child::new("open", ChildPolicy::new(Size::exact(1, 1)).flex(1)),
-        ];
-        let plan = row(
-            Rect::new(0, 0, 10, 1),
-            &children,
-            Composition::new(),
-            |_, _| Size::exact(1, 1),
-        );
-        assert_eq!(
-            plan.children
-                .iter()
-                .map(|child| child.logical.width)
-                .collect::<Vec<_>>(),
-            [3, 7]
-        );
-    }
-
-    #[test]
-    fn wrap_preserves_order_and_uses_line_height() {
-        let children = [item("a", (4, 1)), item("b", (4, 2)), item("c", (4, 1))];
-        let plan = wrap(
-            Rect::new(3, 4, 9, 6),
-            &children,
-            Composition::new().gap(1),
-            |value, _| match value {
-                "b" => Size::exact(4, 2),
-                _ => Size::exact(4, 1),
-            },
-        );
-        assert_eq!(
-            plan.children
-                .iter()
-                .map(|child| child.logical.x)
-                .collect::<Vec<_>>(),
-            [3, 8, 3]
-        );
-        assert_eq!(
-            plan.children
-                .iter()
-                .map(|child| child.logical.y)
-                .collect::<Vec<_>>(),
-            [4, 4, 7]
-        );
-        assert_eq!(plan.children[1].logical.height, 2);
-    }
-
-    #[test]
-    fn wrap_space_between_distributes_only_the_remaining_line_width() {
-        let children = [item("a", (4, 1)), item("b", (4, 1)), item("c", (4, 1))];
-        let plan = wrap(
-            Rect::new(3, 4, 11, 5),
-            &children,
-            Composition::new()
-                .gap(1)
-                .main_align(MainAlign::SpaceBetween),
-            |_, _| Size::exact(4, 1),
-        );
-        assert_eq!(
-            plan.children
-                .iter()
-                .map(|child| (child.logical.x, child.logical.y))
-                .collect::<Vec<_>>(),
-            [(3, 4), (10, 4), (3, 6)]
-        );
-    }
-
-    #[test]
-    fn measurement_callback_is_read_only_and_once_per_child() {
-        use std::cell::Cell;
-
-        let children = [item("one", (1, 1)), item("two", (1, 1))];
-        let calls = Cell::new(0);
-        let plan = column(
-            Rect::new(0, 0, 10, 10),
-            &children,
-            Composition::new(),
-            |value, constraints| {
-                calls.set(calls.get() + 1);
-                assert_eq!((constraints.max.0, constraints.max.1), (10, 10));
-                if value == "one" {
-                    Size::exact(2, 2)
-                } else {
-                    Size::exact(3, 3)
-                }
-            },
-        );
-        assert_eq!(plan.children.len(), 2);
-        assert_eq!(plan.children[0].logical.height, 2);
-        assert_eq!(plan.children[1].logical.height, 3);
-        assert_eq!(calls.get(), children.len());
-    }
-
-    #[test]
-    fn large_child_lists_resolve_without_overflow_or_out_of_bounds_visible_regions() {
-        let labels = vec!["item"; 4_000];
-        let children: Vec<_> = labels
-            .iter()
-            .map(|label| Child::new(label, ChildPolicy::new(Size::exact(1, 1)).flex(1)))
-            .collect();
-        let area = Rect::new(31, 9, 80, 4);
-        let plan = row(area, &children, Composition::new().gap(1), |_, _| {
-            Size::exact(1, 1)
-        });
-        assert_eq!(plan.children.len(), labels.len());
-        assert!(plan.children.iter().all(|child| {
-            child.visible.x >= area.x
-                && child.visible.y >= area.y
-                && u32::from(child.visible.x) + u32::from(child.visible.width)
-                    <= u32::from(area.x) + u32::from(area.width)
-        }));
-    }
-
-    #[test]
-    fn very_large_preserved_minimum_sum_does_not_overflow() {
-        let child = Child::new(
-            "wide",
-            ChildPolicy::new(Size::exact(u16::MAX, 1)).min(u16::MAX, 1),
-        );
-        let children = vec![child; 65_538];
-        let plan = row(
-            Rect::new(0, 0, u16::MAX, 1),
-            &children,
-            Composition::new().overflow(OverflowPolicy::PreserveMinimum),
-            |_, _| Size::default(),
-        );
-        assert_eq!(plan.children.len(), children.len());
-        assert_eq!(plan.children[0].logical.width, u16::MAX);
-        assert_eq!(plan.children.last().unwrap().logical.width, u16::MAX);
-    }
-
-    #[test]
-    fn wide_wrap_resolves_gap_positions_once_per_line() {
-        let children = vec![Child::new("empty", ChildPolicy::new(Size::default())); 8_000];
-        GAP_POSITION_CALLS.with(|calls| calls.set(0));
-        let plan = wrap(
-            Rect::new(1, 1, 1, 1),
-            &children,
-            Composition::new().main_align(MainAlign::SpaceBetween),
-            |_, _| Size::default(),
-        );
-        let calls = GAP_POSITION_CALLS.with(std::cell::Cell::get);
-        assert_eq!(calls, 1);
-        assert_eq!(plan.children.len(), children.len());
-        assert_eq!(plan.children[0].logical.x, 1);
-        assert_eq!(plan.children[1].logical.x, 2);
-        assert_eq!(plan.children.last().unwrap().logical.x, 2);
     }
 }

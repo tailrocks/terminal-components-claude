@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "task_id": "T37-EXPECTED-CACHE-01",
+  "scope": "Remove four unused private cached values from LoadedExpectedCheckpoint while preserving expected-generation validation.",
+  "fixed_input": {
+    "source_commit": "ce16cbf2d0b92f370bdb83f2ec6d32290b3e1468",
+    "combined_source_commit": "55c75d292f5288b07f4a779575a42431259e21c4",
+    "source_path": "crates/termrock-e2e/src/visual.rs",
+    "git_blob": "cdae9c6987b20d14f77dff5811a655d4a4810584",
+    "sha256": "693ca7bb6f6d63be9e0b0ad2e6c5f4c306e53536aec33e5afb9677396796e575",
+    "same_blob_at_combined_source": true
+  },
+  "source_output": {
+    "commit": "d4bb2122e070a0a40fb50e80e7da96afc9c364f0",
+    "parent": "ce16cbf2d0b92f370bdb83f2ec6d32290b3e1468",
+    "tree": "571cd786e7533564874841417010d910e9068558",
+    "source_path": "crates/termrock-e2e/src/visual.rs",
+    "git_blob": "664ac1473a842bed16d777028efad321db5bea7b",
+    "sha256": "b9180997007a2812b097fa1a30acd8d6026a529571245b63177da190629bbf51",
+    "changed_paths": [
+      "crates/termrock-e2e/src/visual.rs"
+    ],
+    "diff_sha256": "290389ddfa19d66337954adb251e689b8960bd52900f94b7932736c91649545e",
+    "diff_counts": {
+      "added_lines": 1,
+      "removed_lines": 9,
+      "removed_cached_fields": 4,
+      "removed_initializer_values": 4,
+      "other_source_changes": 0
+    }
+  },
+  "review_decision": {
+    "decision_id": "T37-EXPECTED-CACHE-01",
+    "reviewer": "/root/t00_independent_review",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "approved_change": "Remove only private LoadedExpectedCheckpoint fields frame_bytes, png_bytes, frame, and png_info plus their initializer values. Keep all local validation and decode operations. Replace only the png_info binding with a direct opaque_png_info call."
+  },
+  "removed_private_state": {
+    "type": "LoadedExpectedCheckpoint",
+    "fixed_input_lines": "120-123",
+    "removed_fields": [
+      "frame_bytes: Vec<u8>",
+      "png_bytes: Vec<u8>",
+      "frame: tuiscotti::Frame",
+      "png_info: PngInfoReceipt"
+    ],
+    "initializer": "crates/termrock-e2e/src/visual.rs:330-332 after correction",
+    "retained_field": "metadata: ExpectedCheckpointManifest",
+    "retained_metadata_caller": "ExpectedGeneration::checkpoint_refs at crates/termrock-e2e/src/visual.rs:92"
+  },
+  "preserved_validation": {
+    "function": "load_expected_generation",
+    "path": "crates/termrock-e2e/src/visual.rs",
+    "ordered_operations": [
+      "Read expected frame bytes from the loaded file map.",
+      "Verify the expected frame record and its digest and length.",
+      "Parse the canonical frame.",
+      "Validate expected screen provenance.",
+      "Read expected PNG bytes from the loaded file map.",
+      "Verify the expected PNG record and its digest and length.",
+      "Call opaque_png_info with the expected pixel size and propagate any error.",
+      "Validate manifest PNG dimensions, color type, and bit depth.",
+      "Decode the PNG with the opaque alpha policy and validate dimensions and pixels.",
+      "Store only checkpoint metadata."
+    ],
+    "output_lines": {
+      "frame_record_validation": "288-294",
+      "frame_parse_and_provenance": "295-296",
+      "png_record_validation": "302-308",
+      "opaque_png_validation": "309",
+      "manifest_png_validation": "310-318",
+      "png_decode_validation": "319-327",
+      "metadata_only_initializer": "328-333"
+    },
+    "local_frame_and_png_bytes_retained_for_validation": true,
+    "opaque_png_error_propagation_retained": true,
+    "validation_calls_or_order_changed": false,
+    "public_data_format_types_or_fields_changed": false
+  },
+  "checks": [
+    {
+      "command": "git diff --check ce16cbf2d0b92f370bdb83f2ec6d32290b3e1468 -- crates/termrock-e2e/src/visual.rs",
+      "exit_code": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "mise exec -- rustfmt --edition 2024 --check crates/termrock-e2e/src/visual.rs",
+      "exit_code": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "git diff ce16cbf2d0b92f370bdb83f2ec6d32290b3e1468..d4bb2122e070a0a40fb50e80e7da96afc9c364f0 -- crates/termrock-e2e/src/visual.rs",
+      "exit_code": 0,
+      "result": "PASS; diff contains only the four field removals, four initializer removals, and the direct error-propagating opaque_png_info call."
+    },
+    {
+      "command": "rg -n 'LoadedExpectedCheckpoint|\\.frame_bytes|\\.png_bytes|\\.png_info|frame: tuiscotti::Frame|png_info: PngInfoReceipt|opaque_png_info\\(|parse_canonical_frame\\(|validate_screen_provenance\\(|verify_file_record\\(' crates/termrock-e2e/src/visual.rs",
+      "exit_code": 0,
+      "result": "PASS; no reads of removed cached fields remain, and validation functions remain."
+    }
+  ],
+  "not_run": [
+    {
+      "command": "rust-build-guard -- mise exec -- cargo check --locked -p termrock-e2e",
+      "reason": "The metadata owner runs the combined guarded build after integration."
+    },
+    {
+      "command": "cargo test or cargo nextest run",
+      "reason": "T37 does not authorize legacy or replacement test execution."
+    }
+  ],
+  "follow_up_obligations": {
+    "T01": "Inventory the private cache closure and the retained expected-generation API obligations.",
+    "T04": [
+      "Reject an invalid expected frame hash.",
+      "Reject invalid frame bytes and provenance.",
+      "Reject invalid PNG hash, format, dimensions, and opaque-alpha data.",
+      "Reject invalid expected-generation tree and digest data."
+    ]
+  },
+  "test_and_behavior": {
+    "selected_tests": 0,
+    "selected_cases": 0,
+    "replacement_tests_or_harnesses_added": false,
+    "behavior": "NOT VERIFIED"
+  },
+  "limits": [
+    "No Cargo build or test ran in this fragment.",
+    "This cleanup removes unused private storage. It does not claim runtime behavior verification.",
+    "The combined guarded build remains with the metadata owner."
+  ]
+}

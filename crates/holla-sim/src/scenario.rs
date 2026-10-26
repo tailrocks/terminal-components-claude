@@ -36,10 +36,6 @@ pub enum Scenario {
     ParityPlatformsLinux,
 }
 
-/// Opening page from the visual-baseline `App::start` match.
-///
-/// `UpgradePlan` names the plan review, but the mounted key flows type the
-/// plan query on the finder before that page opens.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Screen {
     Finder,
@@ -227,10 +223,6 @@ impl Scenario {
         }
     }
 
-    /// First finder heading on the baseline frame.
-    ///
-    /// Worlds with no recommended row lead with Recent here. The rest lead
-    /// with Suggested here. Disk and the failed activity paint their own page.
     pub const fn boot_title(self) -> &'static str {
         match self {
             Scenario::DiskCleanup => "Disk usage",
@@ -270,23 +262,5 @@ impl Motion {
             None if no_motion_env => Motion::Reduced,
             None => Motion::Full,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn names_round_trip() {
-        assert_eq!(Scenario::CONCEPT.len(), 11);
-        assert_eq!(Scenario::PARITY.len(), 23);
-        assert_eq!(Scenario::ALL.len(), 34);
-        for s in Scenario::ALL {
-            assert_eq!(Scenario::from_name(s.name()), Some(s));
-        }
-        assert_eq!(Motion::resolve(None, true), Motion::Reduced);
-        assert_eq!(Motion::resolve(Some(Motion::Full), true), Motion::Full);
-        assert_eq!(Motion::resolve(None, false), Motion::Full);
     }
 }

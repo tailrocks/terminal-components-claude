@@ -1,11 +1,3 @@
-//! Passive, same-layer reveal for logically cut [`Notice`] rows.
-//!
-//! The caller owns one controller for each live Notice and passes a new
-//! `revision` whenever its content or options change. `update` observes the
-//! runtime's passive hover state and injected clock. `draw` then resolves the
-//! source again from the current Notice and validated row window before it
-//! paints anything. The controller never retains the borrowed source text.
-
 use core::time::Duration;
 
 use ratatui_core::layout::{Position, Rect};
@@ -33,18 +25,6 @@ struct ActiveCut {
     ready: bool,
 }
 
-/// A passive, same-layer reveal for one caller-owned Notice.
-///
-/// `owner` must be stable and unique for the live Notice. Increment the
-/// revision passed to [`Self::update`] and [`Self::draw`] whenever its text or
-/// cut-related options change. The cut identity combines the semantic source
-/// and Notice-relative row, so pointer movement within one row keeps the
-/// original rest deadline while another row starts a new one.
-///
-/// This painter does not take focus, set a cursor, or handle pointer presses.
-/// Its scroll area is passive: only vertical wheel input inside an overflowing
-/// reveal is considered, and the runtime forwards input at its ends to another
-/// scroll region on the same layer.
 #[derive(Debug)]
 pub struct NoticeReveal {
     owner: Id,
@@ -54,7 +34,6 @@ pub struct NoticeReveal {
 }
 
 impl NoticeReveal {
-    /// Create a reveal controller for one live Notice owner.
     pub fn new(owner: Id) -> Self {
         Self {
             owner,
@@ -64,11 +43,6 @@ impl NoticeReveal {
         }
     }
 
-    /// Observe the current passive hover and advance the 300 ms rest delay.
-    ///
-    /// Call this from the owning app's update path, including tick and settle
-    /// updates. It stores only a stable part identity, revision, and time. The
-    /// current borrowed Notice is resolved by [`Self::draw`] each frame.
     pub fn update(&mut self, cx: &mut Cx<'_>, revision: u64) -> Response<()> {
         let now = cx.now();
         let hovered = if cx.top_layer() == LayerId::PAGE && cx.capture_owner().is_none() {
@@ -119,29 +93,10 @@ impl NoticeReveal {
         response
     }
 
-    /// Clear the active reveal when its owning page or Notice becomes inactive.
-    ///
-    /// A previously requested repaint deadline is harmless after this call:
-    /// `update` starts a fresh rest interval only from a currently registered
-    /// source row, and `draw` resolves that row against the current Notice.
     pub fn reset(&mut self) {
         self.clear();
     }
 
-    /// Register current cut rows and paint the matching reveal after the
-    /// Notice's normal draw.
-    ///
-    /// `logical_area` describes the un-clipped Notice body: its x, width, and
-    /// height must match the row-only `window`'s horizontal geometry and
-    /// logical row count. `window` supplies physical rows after scrolling;
-    /// the current Ui clip supplies the final visible intersection. Calling
-    /// this once after all live Notice content is drawn keeps the reveal above
-    /// the page while it stays in the current layer.
-    ///
-    /// The returned rectangle is the actual painted pane, or `None` when the
-    /// current source is absent, off-window, clipped out, suppressed, or not
-    /// yet ready. The pane itself is paint-only apart from its opt-in passive
-    /// scroll region.
     pub fn draw(
         &mut self,
         ui: &mut Ui<'_>,
@@ -179,9 +134,7 @@ impl NoticeReveal {
         let clip = ui.full();
         let active_part = self.active.map(|active| active.part);
         let hovered_part = ui.hovered_part(self.owner);
-        // `visit_cuts` borrows Ui immutably while invoking its visitor. Keep
-        // only the clipped registrations that must be added after that borrow
-        // ends; original source text is retained only for the active cut.
+
         let mut visible_targets = Vec::with_capacity(usize::from(visible_body.height));
         let mut resolved: Option<(NoticeCut<'_>, Rect)> = None;
         notice.visit_cuts(ui, logical_area.width, logical_rows, |cut| {
@@ -306,8 +259,6 @@ fn wrapped_row_count(text: &str, width: u16) -> usize {
     visit_wrapped(text, width, |_, _, _| {})
 }
 
-/// Stream the same word and grapheme wrapping policy as `termrock_text::wrap`
-/// without retaining all rows or building a full-source line vector.
 fn visit_wrapped(text: &str, width: u16, mut visit: impl FnMut(usize, u16, &str)) -> usize {
     let width = width.max(1);
     let mut row = 0_usize;

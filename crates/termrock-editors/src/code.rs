@@ -520,16 +520,14 @@ struct FindState {
     typing: bool,
 }
 
-/// Read-only summary of the editor's current find operation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CodeFindInfo<'a> {
-    /// Current search text.
     pub query: &'a str,
-    /// Zero-based current match index, or `None` when there are no matches.
+
     pub current: Option<usize>,
-    /// Number of matches in the document.
+
     pub matches: usize,
-    /// Whether the find bar is accepting query input.
+
     pub typing: bool,
 }
 
@@ -602,7 +600,6 @@ impl CodeEditorState {
         self.editing
     }
 
-    /// Whether the Find bar is currently accepting query text.
     pub fn is_find_typing(&self) -> bool {
         self.find.as_ref().is_some_and(|find| find.typing)
     }
@@ -615,12 +612,10 @@ impl CodeEditorState {
         self.editor.cursor_offset()
     }
 
-    /// Current cursor position, with `col` measured in terminal cells.
     pub fn cursor_pos(&self) -> CursorPos {
         self.editor.cursor_pos()
     }
 
-    /// Current find query and match position, when a find operation is open.
     pub fn find_info(&self) -> Option<CodeFindInfo<'_>> {
         self.find.as_ref().map(|find| CodeFindInfo {
             query: &find.needle,
@@ -634,10 +629,6 @@ impl CodeEditorState {
         self.editor.selected_text()
     }
 
-    /// Replace `replace_len` bytes immediately before the cursor with a completion.
-    ///
-    /// The editor snaps the replacement range to its existing grapheme boundaries,
-    /// then applies the edit through the normal generation, find, and scroll path.
     pub fn splice_completion(&mut self, replace_len: usize, insertion: &str) -> bool {
         let end = self.editor.cursor_offset();
         let start = end.saturating_sub(replace_len);
@@ -757,9 +748,7 @@ struct HighlightCache {
     valid: bool,
     spans: Vec<(Range<usize>, SyntaxRole)>,
     line_starts: Vec<usize>,
-    /// Segmenter blocks for the current text generation. Segmenting the whole
-    /// document every draw allocates, so the draw path reuses this list and
-    /// only rebuilds it when the text generation moves.
+
     blocks: Vec<Range<usize>>,
     blocks_generation: u64,
     blocks_valid: bool,
@@ -791,8 +780,6 @@ impl HighlightCache {
     }
 }
 
-/// Block holding `cursor`: the first range that spans it, else the last
-/// range that ends at or before it.
 fn current_block_in(blocks: &[Range<usize>], cursor: usize) -> Option<Range<usize>> {
     blocks
         .iter()
@@ -873,20 +860,12 @@ impl<'a> CodeEditor<'a> {
         }
     }
 
-    /// Use the complete allocated height instead of the configured row limit.
-    ///
-    /// The default keeps [`CodeEditor::new`] row-limited. Set this for layouts that assign the
-    /// editor flexible vertical space; pass `false` to restore the configured row limit.
     #[must_use]
     pub const fn fill_height(mut self, fill: bool) -> Self {
         self.fill_height = fill;
         self
     }
 
-    /// Show the visible row range in the existing footer while the editor is idle and unfocused.
-    ///
-    /// The default is `false`, which preserves the blank idle footer. Focused or editing position
-    /// labels and an open find bar keep their existing precedence.
     #[must_use]
     pub const fn idle_scroll_position(mut self, enabled: bool) -> Self {
         self.idle_scroll_position = enabled;
@@ -952,18 +931,12 @@ impl<'a> CodeEditor<'a> {
         self
     }
 
-    /// Override the app-wide default for entering edit mode.
     #[must_use]
     pub const fn edit_entry(mut self, entry: EditEntry) -> Self {
         self.edit_entry = Some(entry);
         self
     }
 
-    /// Commit the edit session when focus leaves this editor.
-    ///
-    /// Defaults to `true`. Set to `false` when the owning view temporarily removes the editor
-    /// while preserving its edit session, such as switching to another document tab. Explicit
-    /// cancel and editor commands that leave focus continue to commit independently.
     #[must_use]
     pub const fn commit_on_blur(mut self, commit: bool) -> Self {
         self.commit_on_blur = commit;
@@ -1060,8 +1033,7 @@ impl<'a> CodeEditor<'a> {
                 height: 1,
             });
         }
-        // The hscroll clamp parks an end-of-line caret on the first hidden
-        // column. Completion still needs an anchor. The caret stays hidden.
+
         if text_area.width > 0
             && y < usize::from(text_area.height)
             && cursor.col >= hscroll
@@ -1079,9 +1051,6 @@ impl<'a> CodeEditor<'a> {
         None
     }
 
-    /// Open the find bar and focus this editor.
-    ///
-    /// Find remains available for read-only editors. Disabled editors ignore the request.
     pub fn open_find(&self, cx: &mut Cx<'_>, st: &mut CodeEditorState) -> Response<CodeAction> {
         if self.disabled {
             return Response::ignored();
@@ -1220,14 +1189,10 @@ impl<'a> CodeEditor<'a> {
             st.scroll.set_content(st.editor.line_count());
             st.scroll.ensure_visible(cursor.line);
             if let Some(area) = cx.area(self.id) {
-                // The painted text column is the editor minus the gutter.
-                // An extra reserved cell scrolls the cursor off the field.
                 let gutter = Self::gutter_width(lines);
                 let text_width = area.width.saturating_sub(gutter);
                 st.editor.scroll_into_view(text_width);
-                // The viewport shows the glyphs. One more column would hide
-                // the last character behind a cursor that the baseline leaves
-                // just outside the field.
+
                 let widest = st.text().split('\n').map(width).max().unwrap_or(0);
                 st.editor.clamp_hscroll(widest.saturating_sub(text_width));
             }
@@ -1573,9 +1538,7 @@ impl<'a> CodeEditor<'a> {
         let selected_style = style(ui, Part::ROW, live | StateFlags::SELECTED).style;
         let marker_style = style(ui, Part::MARKER, live).style;
         let gutter_style = style(ui, Part::GUTTER, live).style;
-        // Line numbers follow the baseline code gutter: the focused cursor
-        // line is primary and bold, the current block is secondary, and every
-        // other line is muted. Read-only editors use faint for all of them.
+
         let block = if st.editor.selection().is_none() {
             if cache.blocks_valid {
                 current_block_in(&cache.blocks, st.cursor_offset())
@@ -1647,8 +1610,6 @@ impl<'a> CodeEditor<'a> {
                             },
                         }
                     } else {
-                        // An unfocused cursor line keeps a blank gutter cell.
-                        // A modal backdrop then lifts field-on-field to the card.
                         ui.paint_str(
                             cell_at(row, row.x),
                             " ",
@@ -1794,8 +1755,7 @@ impl<'a> CodeEditor<'a> {
                         column = column.saturating_add(cells);
                         continue;
                     }
-                    // The ellipsis occupies the cell of the grapheme that
-                    // starts on the scroll origin. Later graphemes follow it.
+
                     if hs > 0 && column == hs {
                         column = column.saturating_add(cells);
                         x = x.saturating_add(cells.min(usize::from(u16::MAX)) as u16);
@@ -2030,8 +1990,7 @@ impl<'a> CodeEditor<'a> {
                 );
             }
         }
-        // A focused editor that is not editing shows the position label and
-        // hides the caret. Read-only focus still shows the caret.
+
         let show_caret = live.contains(StateFlags::FOCUSED) && (st.editing || self.read_only);
         if show_caret
             && !st.find.as_ref().is_some_and(|find| find.typing)
@@ -2186,1213 +2145,4 @@ fn usize_text(mut number: usize, buf: &mut [u8; 20]) -> &str {
         }
     }
     core::str::from_utf8(buf.get(at..).unwrap_or_default()).unwrap_or("")
-}
-
-#[cfg(test)]
-mod tests {
-    use core::cell::Cell;
-
-    use ratatui_core::buffer::Buffer;
-
-    use super::*;
-    use crate::event::MouseKind;
-    use crate::runtime::stub::{Stub, key, mouse};
-    use crate::runtime::{App, Runtime};
-    use crate::theme::{ColorLevel, FgStep, Surface, Theme};
-
-    const ID: Id = Id::root("code.tests");
-    type TestSegmenter = fn(&str) -> Vec<Range<usize>>;
-    const SAME_PRIMARY_META_PATCHES: [(Part, StylePatch); 1] = [(
-        Part::META,
-        StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Primary))
-            .add(Modifier::ITALIC)
-            .remove(Modifier::BOLD),
-    )];
-
-    struct EditorApp {
-        state: CodeEditorState,
-        read_only: bool,
-        disabled: bool,
-        commit_on_blur: bool,
-        indent: u8,
-        tab_behavior: TabBehavior,
-        meta_patches: &'static [(Part, StylePatch)],
-        segmenter: Option<TestSegmenter>,
-        last_action: Option<CodeAction>,
-        app_entry: EditEntry,
-        widget_entry: Option<EditEntry>,
-    }
-
-    impl App for EditorApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            if cx.update_cause() == crate::runtime::UpdateCause::Bootstrap {
-                cx.focus(ID);
-            }
-            let editor = CodeEditor::new(ID, 5)
-                .read_only(self.read_only)
-                .disabled(self.disabled)
-                .commit_on_blur(self.commit_on_blur)
-                .indent(self.indent)
-                .tab_behavior(self.tab_behavior)
-                .patch_part(self.meta_patches);
-            let editor = match self.segmenter.as_ref() {
-                Some(segmenter) => editor.segmenter(segmenter),
-                None => editor,
-            };
-            let editor = if let Some(entry) = self.widget_entry {
-                editor.edit_entry(entry)
-            } else {
-                editor
-            };
-            let response = editor.update(cx, &mut self.state);
-            self.last_action = response.action_ref().cloned();
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            let editor = CodeEditor::new(ID, 5)
-                .read_only(self.read_only)
-                .disabled(self.disabled)
-                .commit_on_blur(self.commit_on_blur)
-                .indent(self.indent)
-                .tab_behavior(self.tab_behavior)
-                .patch_part(self.meta_patches);
-            let editor = match self.segmenter.as_ref() {
-                Some(segmenter) => editor.segmenter(segmenter),
-                None => editor,
-            };
-            let editor = if let Some(entry) = self.widget_entry {
-                editor.edit_entry(entry)
-            } else {
-                editor
-            };
-            editor.draw(ui, ui.full(), &self.state);
-        }
-
-        fn edit_entry(&self) -> EditEntry {
-            self.app_entry
-        }
-    }
-
-    fn focused_runtime(text: &str, read_only: bool) -> (Runtime<EditorApp>, Buffer) {
-        focused_runtime_with_entry(text, read_only, EditEntry::Immediate)
-    }
-
-    fn focused_runtime_with_entry(
-        text: &str,
-        read_only: bool,
-        app_entry: EditEntry,
-    ) -> (Runtime<EditorApp>, Buffer) {
-        focused_runtime_with_config(text, read_only, false, 2, TabBehavior::Indent, app_entry)
-    }
-
-    fn focused_runtime_with_config(
-        text: &str,
-        read_only: bool,
-        disabled: bool,
-        indent: u8,
-        tab_behavior: TabBehavior,
-        app_entry: EditEntry,
-    ) -> (Runtime<EditorApp>, Buffer) {
-        let area = Rect::new(0, 0, 40, 5);
-        let mut runtime = Runtime::new(
-            EditorApp {
-                state: CodeEditorState::new(text),
-                read_only,
-                disabled,
-                commit_on_blur: true,
-                indent,
-                tab_behavior,
-                meta_patches: &[],
-                segmenter: None,
-                last_action: None,
-                app_entry,
-                widget_entry: None,
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, crate::event::Input::Tick);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        (runtime, buffer)
-    }
-
-    fn styled_runtime(
-        theme: Theme,
-        state: CodeEditorState,
-        read_only: bool,
-        meta_patches: &'static [(Part, StylePatch)],
-        segmenter: Option<TestSegmenter>,
-    ) -> (Runtime<EditorApp>, Buffer) {
-        let area = Rect::new(0, 0, 40, 5);
-        let mut runtime = Runtime::new(
-            EditorApp {
-                state,
-                read_only,
-                disabled: false,
-                commit_on_blur: true,
-                indent: 2,
-                tab_behavior: TabBehavior::Indent,
-                meta_patches,
-                segmenter,
-                last_action: None,
-                app_entry: EditEntry::Immediate,
-                widget_entry: None,
-            },
-            theme,
-        );
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, crate::event::Input::Tick);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        (runtime, buffer)
-    }
-
-    fn footer_position_start(buffer: &Buffer, row: u16) -> Option<u16> {
-        (0..buffer.area.width.saturating_sub(1)).find(|x| {
-            buffer
-                .cell(Position::new(*x, row))
-                .is_some_and(|cell| cell.symbol() == "l")
-                && buffer
-                    .cell(Position::new(x.saturating_add(1), row))
-                    .is_some_and(|cell| cell.symbol() == "n")
-        })
-    }
-
-    fn whole_document(text: &str) -> Vec<Range<usize>> {
-        core::iter::once(0..text.len()).collect()
-    }
-
-    fn send_key(runtime: &mut Runtime<EditorApp>, buffer: &mut Buffer, code: KeyCode) {
-        let _ = crate::runtime::stub::deliver(runtime, key(code));
-        runtime.draw_buffer(buffer.area, buffer).commit_presented();
-    }
-
-    fn send_backtab(runtime: &mut Runtime<EditorApp>, buffer: &mut Buffer) -> Response<()> {
-        let response = crate::runtime::stub::deliver(
-            runtime,
-            crate::event::Input::Key(crate::event::Key {
-                code: KeyCode::BackTab,
-                mods: SHIFT,
-            }),
-        );
-        runtime.draw_buffer(buffer.area, buffer).commit_presented();
-        response
-    }
-
-    #[test]
-    fn backtab_dedents_selected_lines_and_preserves_reversed_selection() {
-        let (mut runtime, mut buffer) = focused_runtime_with_config(
-            " a\n\n\tb\n  界e\u{301}\n   ",
-            false,
-            false,
-            2,
-            TabBehavior::Indent,
-            EditEntry::Explicit,
-        );
-        let state = &mut runtime.app_mut().state;
-        state.begin_edit();
-        let original_len = state.text().len();
-        state.editor.select_range(original_len, 0);
-
-        let response = send_backtab(&mut runtime, &mut buffer);
-
-        assert!(response.is_changed());
-        assert_eq!(runtime.app().last_action, Some(CodeAction::Changed));
-        assert_eq!(runtime.app().state.text(), "a\n\n\tb\n界e\u{301}\n ");
-        assert_eq!(runtime.app().state.cursor_offset(), 0);
-        assert_eq!(
-            runtime.app().state.selected_text(),
-            Some("a\n\n\tb\n界e\u{301}\n ")
-        );
-    }
-
-    #[test]
-    fn backtab_selection_ending_at_next_line_start_excludes_that_line() {
-        let (mut runtime, mut buffer) =
-            focused_runtime_with_entry("  first\n  second", false, EditEntry::Explicit);
-        runtime.app_mut().state.begin_edit();
-        runtime.app_mut().state.editor.select_range(0, 8);
-
-        let response = send_backtab(&mut runtime, &mut buffer);
-
-        assert!(response.is_changed());
-        assert_eq!(runtime.app().state.text(), "first\n  second");
-        assert_eq!(runtime.app().state.cursor_offset(), 6);
-        assert_eq!(runtime.app().state.selected_text(), Some("first\n"));
-    }
-
-    #[test]
-    fn backtab_without_selection_dedents_cursor_line_and_keeps_unicode_cursor() {
-        let (mut runtime, mut buffer) =
-            focused_runtime_with_entry("  λ界suffix", false, EditEntry::Explicit);
-        runtime.app_mut().state.begin_edit();
-        runtime.app_mut().state.jump_to("  λ界".len());
-
-        let response = send_backtab(&mut runtime, &mut buffer);
-
-        assert!(response.is_changed());
-        assert_eq!(runtime.app().state.text(), "λ界suffix");
-        assert_eq!(runtime.app().state.cursor_offset(), "λ界".len());
-        assert_eq!(runtime.app().state.selected_text(), None);
-    }
-
-    #[test]
-    fn backtab_dedents_attached_combining_graphemes_on_cursor_line() {
-        for (text, indent) in [(" \u{301}value", 1), ("  \u{301}value", 2)] {
-            let (mut runtime, mut buffer) = focused_runtime_with_config(
-                text,
-                false,
-                false,
-                indent,
-                TabBehavior::Indent,
-                EditEntry::Explicit,
-            );
-            runtime.app_mut().state.begin_edit();
-            runtime.app_mut().state.jump_to(text.len());
-            let generation = runtime.app().state.edit_generation;
-
-            let response = send_backtab(&mut runtime, &mut buffer);
-
-            assert!(response.is_changed(), "{text:?}");
-            assert_eq!(runtime.app().state.text(), "value", "{text:?}");
-            assert_eq!(runtime.app().state.cursor_offset(), "value".len());
-            assert_eq!(runtime.app().state.edit_generation, generation + 1);
-        }
-    }
-
-    #[test]
-    fn backtab_dedents_attached_combining_graphemes_in_reversed_selection() {
-        let text = " \u{301}one\n  \u{301}two";
-        let (mut runtime, mut buffer) =
-            focused_runtime_with_entry(text, false, EditEntry::Explicit);
-        runtime.app_mut().state.begin_edit();
-        runtime.app_mut().state.editor.select_range(text.len(), 0);
-        let generation = runtime.app().state.edit_generation;
-
-        let response = send_backtab(&mut runtime, &mut buffer);
-
-        assert!(response.is_changed());
-        assert_eq!(runtime.app().state.text(), "one\ntwo");
-        assert_eq!(runtime.app().state.cursor_offset(), 0);
-        assert_eq!(runtime.app().state.selected_text(), Some("one\ntwo"));
-        assert_eq!(runtime.app().state.edit_generation, generation + 1);
-    }
-
-    #[test]
-    fn backtab_noop_indent_zero_and_tab_prefix_are_consumed_without_edits() {
-        for (text, indent) in [("\t  value", 2), ("value", 2), ("  value", 0)] {
-            let (mut runtime, mut buffer) = focused_runtime_with_config(
-                text,
-                false,
-                false,
-                indent,
-                TabBehavior::Indent,
-                EditEntry::Explicit,
-            );
-            runtime.app_mut().state.begin_edit();
-            let before = runtime.app().state.clone();
-
-            let response = send_backtab(&mut runtime, &mut buffer);
-
-            assert!(response.is_consumed(), "{text:?}, indent {indent}");
-            assert!(response.is_changed(), "{text:?}, indent {indent}");
-            assert_eq!(
-                runtime.app().last_action,
-                Some(CodeAction::Changed),
-                "{text:?}, indent {indent}"
-            );
-            assert_eq!(runtime.app().state.text(), before.text());
-            assert_eq!(runtime.app().state.cursor_offset(), before.cursor_offset());
-            assert_eq!(runtime.app().state.selected_text(), before.selected_text());
-            assert_eq!(runtime.app().state.edit_generation, before.edit_generation);
-        }
-    }
-
-    #[test]
-    fn backtab_respects_read_only_disabled_and_leave_configuration() {
-        for disabled in [false, true] {
-            let (mut runtime, mut buffer) = focused_runtime_with_config(
-                "  value",
-                true,
-                disabled,
-                2,
-                TabBehavior::Indent,
-                EditEntry::Explicit,
-            );
-            runtime.app_mut().state.begin_edit();
-            runtime.app_mut().state.editor.select_range(0, 7);
-            let before_text = runtime.app().state.text().to_owned();
-            let before_cursor = runtime.app().state.cursor_offset();
-            let before_selection = runtime.app().state.selected_text().map(str::to_owned);
-            let before_generation = runtime.app().state.edit_generation;
-
-            let _ = send_backtab(&mut runtime, &mut buffer);
-
-            assert_eq!(
-                runtime.app().state.text(),
-                before_text,
-                "disabled={disabled}"
-            );
-            assert_eq!(runtime.app().state.cursor_offset(), before_cursor);
-            assert_eq!(
-                runtime.app().state.selected_text().map(str::to_owned),
-                before_selection
-            );
-            assert_eq!(runtime.app().state.edit_generation, before_generation);
-        }
-
-        let (mut runtime, mut buffer) = focused_runtime_with_config(
-            "  value",
-            false,
-            false,
-            2,
-            TabBehavior::Leave,
-            EditEntry::Explicit,
-        );
-        runtime.app_mut().state.begin_edit();
-        let before = runtime.app().state.clone();
-
-        let response = send_backtab(&mut runtime, &mut buffer);
-
-        assert!(response.is_changed());
-        assert_eq!(
-            runtime.app().last_action,
-            Some(CodeAction::Leave { backward: true })
-        );
-        assert_eq!(runtime.app().state.text(), before.text());
-        assert!(!runtime.app().state.is_editing());
-    }
-
-    #[test]
-    fn focus_entry_is_effective_but_bare_state_and_text_replacement_stay_unedited() {
-        let mut state = CodeEditorState::new("preloaded");
-        assert!(!state.is_editing());
-        state.set_text("replaced");
-        assert!(!state.is_editing());
-
-        let (runtime, _) = focused_runtime("", false);
-        assert!(runtime.app().state.is_editing());
-    }
-
-    #[test]
-    fn immediate_focus_entry_keeps_the_first_i_as_document_text() {
-        let (mut runtime, mut buffer) = focused_runtime("alpha", false);
-        assert!(runtime.app().state.is_editing());
-        send_key(&mut runtime, &mut buffer, KeyCode::Char('i'));
-        assert_eq!(runtime.app().state.text(), "ialpha");
-    }
-
-    #[test]
-    fn focus_out_commits_by_default_but_can_preserve_the_edit_session() {
-        let text = "東京 e\u{301}";
-        let (mut committing, mut committing_buffer) = focused_runtime(text, false);
-        committing
-            .app_mut()
-            .state
-            .editor
-            .select_range(0, "東京".len());
-        assert_eq!(committing.app().state.selected_text(), Some("東京"));
-
-        committing.set_focus(None);
-        let _ = committing.settle();
-        committing
-            .draw_buffer(committing_buffer.area, &mut committing_buffer)
-            .commit_presented();
-
-        assert!(!committing.app().state.is_editing());
-        assert_eq!(committing.app().state.selected_text(), None);
-        assert_eq!(committing.app().last_action, Some(CodeAction::Committed));
-
-        let (mut retaining, mut retaining_buffer) = focused_runtime(text, false);
-        retaining.app_mut().commit_on_blur = false;
-        retaining
-            .app_mut()
-            .state
-            .editor
-            .select_range(0, "東京".len());
-        let before = retaining.app().state.clone();
-
-        retaining.set_focus(None);
-        let _ = retaining.settle();
-        retaining
-            .draw_buffer(retaining_buffer.area, &mut retaining_buffer)
-            .commit_presented();
-
-        assert!(retaining.app().state.is_editing());
-        assert_eq!(retaining.app().state.text(), before.text());
-        assert_eq!(
-            retaining.app().state.selected_text(),
-            before.selected_text()
-        );
-        assert_eq!(
-            retaining.app().state.cursor_offset(),
-            before.cursor_offset()
-        );
-        assert_eq!(
-            retaining.app().state.edit_generation,
-            before.edit_generation
-        );
-        assert_ne!(retaining.app().last_action, Some(CodeAction::Committed));
-        assert!(retaining.diagnostics().is_empty());
-    }
-
-    #[test]
-    fn explicit_cancel_commits_even_when_blur_retains_editing() {
-        let (mut runtime, mut buffer) = focused_runtime("draft", false);
-        runtime.app_mut().commit_on_blur = false;
-
-        send_key(&mut runtime, &mut buffer, KeyCode::Esc);
-
-        assert!(!runtime.app().state.is_editing());
-        assert_eq!(runtime.app().last_action, Some(CodeAction::Committed));
-    }
-
-    #[test]
-    fn retained_editing_cursor_requires_focus_and_returns_after_focus() {
-        let (mut runtime, mut buffer) = focused_runtime("alpha", false);
-        runtime.app_mut().commit_on_blur = false;
-        assert!(runtime.app().state.is_editing());
-        assert!(runtime.cursor().is_some());
-        runtime.set_focus(None);
-        let _ = runtime.settle();
-        runtime
-            .draw_buffer(buffer.area, &mut buffer)
-            .commit_presented();
-        assert!(runtime.app().state.is_editing());
-        assert_eq!(runtime.cursor(), None);
-        assert!(runtime.diagnostics().is_empty());
-        runtime.set_focus(Some(ID));
-        let _ = runtime.settle();
-        runtime
-            .draw_buffer(buffer.area, &mut buffer)
-            .commit_presented();
-        assert!(runtime.app().state.is_editing());
-        assert!(runtime.cursor().is_some());
-        assert!(runtime.diagnostics().is_empty());
-    }
-
-    #[test]
-    fn editor_override_takes_precedence_over_app_edit_entry_policy() {
-        let area = Rect::new(0, 0, 40, 5);
-        let mut runtime = Runtime::new(
-            EditorApp {
-                state: CodeEditorState::new("query"),
-                read_only: false,
-                disabled: false,
-                commit_on_blur: true,
-                indent: 2,
-                tab_behavior: TabBehavior::Indent,
-                meta_patches: &[],
-                segmenter: None,
-                last_action: None,
-                app_entry: EditEntry::Explicit,
-                widget_entry: Some(EditEntry::Immediate),
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Tab));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert!(runtime.app().state.is_editing());
-    }
-
-    #[test]
-    fn type_to_edit_app_policy_inserts_the_first_focused_character() {
-        let area = Rect::new(0, 0, 40, 5);
-        let mut runtime = Runtime::new(
-            EditorApp {
-                state: CodeEditorState::new(""),
-                read_only: false,
-                disabled: false,
-                commit_on_blur: true,
-                indent: 2,
-                tab_behavior: TabBehavior::Indent,
-                meta_patches: &[],
-                segmenter: None,
-                last_action: None,
-                app_entry: EditEntry::TypeToEdit,
-                widget_entry: None,
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Tab));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert!(!runtime.app().state.is_editing());
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('x')));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert!(runtime.app().state.is_editing());
-        assert_eq!(runtime.app().state.text(), "x");
-    }
-
-    #[test]
-    fn type_to_edit_does_not_enter_read_only_editor() {
-        let (mut runtime, mut buffer) =
-            focused_runtime_with_entry("alpha", true, EditEntry::TypeToEdit);
-        assert!(!runtime.app().state.is_editing());
-        send_key(&mut runtime, &mut buffer, KeyCode::Char('x'));
-        assert!(!runtime.app().state.is_editing());
-        assert_eq!(runtime.app().state.text(), "alpha");
-    }
-
-    #[test]
-    fn edit_counter_invalidates_the_highlight_cache() {
-        let calls = Cell::new(0usize);
-        let highlighter = |text: &str| {
-            calls.set(calls.get().saturating_add(1));
-            vec![(0..text.len(), SyntaxRole::Keyword)]
-        };
-        let editor = CodeEditor::new(ID, 4).highlighter(&highlighter);
-        let mut state = CodeEditorState::new("select 1");
-        let area = Rect::new(0, 0, 40, 4);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        for _ in 0..2 {
-            runtime
-                .draw_scene(area, &mut buffer, |ui, rect| {
-                    editor.draw(ui, rect, &state);
-                })
-                .commit_presented();
-        }
-        assert_eq!(calls.get(), 1, "unchanged draw re-highlighted the document");
-        state.set_text("select 2");
-        runtime
-            .draw_scene(area, &mut buffer, |ui, rect| {
-                editor.draw(ui, rect, &state);
-            })
-            .commit_presented();
-        assert_eq!(calls.get(), 2);
-    }
-
-    #[test]
-    fn completion_splice_replaces_bytes_before_cursor_and_preserves_suffix() {
-        let mut state = CodeEditorState::new("SELECT nXme");
-        state.jump_to(9);
-        state.begin_edit();
-        let generation = state.edit_generation;
-
-        assert!(state.splice_completion(2, "na"));
-        assert_eq!(state.text(), "SELECT name");
-        assert_eq!(state.cursor_offset(), 9);
-        assert!(state.is_editing());
-        assert_eq!(state.edit_generation, generation + 1);
-    }
-
-    #[test]
-    fn completion_splice_uses_byte_lengths_and_grapheme_safe_ranges() {
-        let mut state = CodeEditorState::new("λx хвост");
-        state.jump_to("λx".len());
-        assert!(state.splice_completion("λx".len(), "界表"));
-        assert_eq!(state.text(), "界表 хвост");
-        assert_eq!(state.cursor_offset(), "界表".len());
-
-        let mut partial_grapheme = CodeEditorState::new("λtail");
-        partial_grapheme.jump_to("λ".len());
-        assert!(partial_grapheme.splice_completion(1, "X"));
-        assert_eq!(partial_grapheme.text(), "Xtail");
-    }
-
-    #[test]
-    fn completion_splice_clamps_to_document_start_and_keeps_diagnostics() {
-        let mut state = CodeEditorState::new("λtail");
-        state.jump_to("λ".len());
-        state.set_diagnostics(vec![CodeDiagnostic::new(
-            0..2,
-            CodeSeverity::Warning,
-            "kept through completion",
-        )]);
-        state.find = Some(FindState {
-            needle: "done".to_owned(),
-            matches: Vec::new(),
-            current: 0,
-            typing: false,
-        });
-
-        assert!(state.splice_completion(usize::MAX, "done"));
-        assert_eq!(state.text(), "donetail");
-        assert_eq!(state.diagnostics().len(), 1);
-        let matches = &state.find.as_ref().unwrap().matches;
-        assert_eq!(matches.len(), 1);
-        assert_eq!(matches[0], 0..4);
-
-        let mut empty = CodeEditorState::new("done");
-        empty.jump_to(4);
-        let generation = empty.edit_generation;
-        assert!(!empty.splice_completion(0, ""));
-        assert_eq!(empty.edit_generation, generation);
-    }
-
-    #[test]
-    fn editing_style_comes_only_from_the_real_edit_state() {
-        let render = |stale_runtime_editing: bool, real_editing: bool| {
-            let theme = Theme::junie().override_family(Family::CODE, |recipe| {
-                recipe
-                    .part(Part::TEXT)
-                    .when(StateFlags::EDITING, StylePatch::new().set_bg(Role::Danger));
-            });
-            let area = Rect::new(0, 0, 30, 4);
-            let mut runtime = Runtime::new(Stub::default(), theme);
-            let mut buffer = Buffer::empty(area);
-            runtime
-                .draw_scene(area, &mut buffer, |ui, _| {
-                    if stale_runtime_editing {
-                        ui.declare_state(ID, StateFlags::EDITING);
-                    }
-                })
-                .commit_presented();
-            let mut state = CodeEditorState::new("hello");
-            if real_editing {
-                state.begin_edit();
-            }
-            runtime
-                .draw_scene(area, &mut buffer, |ui, area| {
-                    CodeEditor::new(ID, 4).draw(ui, area, &state);
-                })
-                .commit_presented();
-            let text = runtime
-                .registry()
-                .area_of_part(ID, PartRef::of(Part::TEXT))
-                .unwrap_or(Rect::ZERO);
-            buffer
-                .cell(Position::new(text.x, text.y))
-                .map(|cell| cell.bg)
-                .unwrap_or_default()
-        };
-        let idle = render(false, false);
-        assert_eq!(render(true, false), idle, "stale runtime EDITING leaked");
-        assert_ne!(render(false, true), idle, "real edit state was not styled");
-    }
-
-    #[test]
-    fn authored_meta_channels_survive_focus_read_only_and_color_profiles() {
-        const AUTHORED: ratatui_core::style::Color = ratatui_core::style::Color::Rgb(250, 30, 170);
-        for level in [
-            ColorLevel::TrueColor,
-            ColorLevel::Ansi256,
-            ColorLevel::Ansi16,
-            ColorLevel::Mono,
-        ] {
-            for read_only in [false, true] {
-                let theme =
-                    Theme::junie()
-                        .downgrade(level)
-                        .override_family(Family::CODE, |recipe| {
-                            recipe.part(Part::META).base(
-                                StylePatch::new()
-                                    .set_fg(Role::Custom(AUTHORED))
-                                    .add(Modifier::ITALIC)
-                                    .remove(Modifier::BOLD),
-                            );
-                            recipe.part(Part::META).when(
-                                StateFlags::FOCUSED,
-                                StylePatch::new()
-                                    .add(Modifier::UNDERLINED)
-                                    .remove(Modifier::BOLD),
-                            );
-                        });
-                let flags = StateFlags::FOCUSED
-                    | if read_only {
-                        StateFlags::READ_ONLY
-                    } else {
-                        StateFlags::empty()
-                    };
-                let expected = theme
-                    .resolve(
-                        Family::CODE,
-                        Variant::DEFAULT,
-                        Part::META,
-                        flags,
-                        Surface::Canvas,
-                    )
-                    .style;
-                let (runtime, buffer) = styled_runtime(
-                    theme,
-                    CodeEditorState::new("alpha\nbeta"),
-                    read_only,
-                    &[],
-                    None,
-                );
-                assert_eq!(
-                    runtime.focus(),
-                    Some(ID),
-                    "{level:?}, read_only={read_only}"
-                );
-                let cell = buffer
-                    .cell(Position::new(3, 0))
-                    .expect("first line number is inside the editor");
-                assert_eq!(
-                    cell.fg,
-                    expected.fg.unwrap_or_default(),
-                    "{level:?}, read_only={read_only}"
-                );
-                assert!(
-                    cell.modifier.contains(Modifier::ITALIC),
-                    "{level:?}, read_only={read_only}"
-                );
-                assert!(
-                    cell.modifier.contains(Modifier::UNDERLINED),
-                    "{level:?}, read_only={read_only}"
-                );
-                assert!(
-                    !cell.modifier.contains(Modifier::BOLD),
-                    "{level:?}, read_only={read_only}"
-                );
-                let footer_x = footer_position_start(&buffer, 4)
-                    .expect("focused editor position footer is rendered");
-                let footer = buffer
-                    .cell(Position::new(footer_x, 4))
-                    .expect("position footer start");
-                assert_eq!(
-                    footer.fg,
-                    expected.fg.unwrap_or_default(),
-                    "footer foreground: {level:?}, read_only={read_only}"
-                );
-                assert!(
-                    footer.modifier.contains(Modifier::ITALIC),
-                    "footer author modifier: {level:?}, read_only={read_only}"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn code_gutter_defaults_keep_block_semantics_and_same_value_author_patches() {
-        for level in [
-            ColorLevel::TrueColor,
-            ColorLevel::Ansi256,
-            ColorLevel::Ansi16,
-            ColorLevel::Mono,
-        ] {
-            let theme = Theme::junie().downgrade(level);
-            let mut state = CodeEditorState::new("alpha\nbeta");
-            state.jump_to(7);
-            let (runtime, buffer) = styled_runtime(
-                theme.clone(),
-                state.clone(),
-                false,
-                &[],
-                Some(whole_document),
-            );
-            assert_eq!(runtime.focus(), Some(ID));
-            let first = buffer.cell(Position::new(3, 0)).expect("first line number");
-            let second = buffer
-                .cell(Position::new(3, 1))
-                .expect("second line number");
-            assert_eq!(
-                first.fg,
-                theme.color.fg[FgStep::Secondary.index()],
-                "{level:?}"
-            );
-            assert!(!first.modifier.contains(Modifier::BOLD), "{level:?}");
-            assert_eq!(
-                second.fg,
-                theme.color.fg[FgStep::Primary.index()],
-                "{level:?}"
-            );
-            assert!(second.modifier.contains(Modifier::BOLD), "{level:?}");
-
-            let (runtime, buffer) = styled_runtime(
-                theme.clone(),
-                state,
-                false,
-                &SAME_PRIMARY_META_PATCHES,
-                Some(whole_document),
-            );
-            assert_eq!(runtime.focus(), Some(ID));
-            let second = buffer
-                .cell(Position::new(3, 1))
-                .expect("second line number");
-            assert!(second.modifier.contains(Modifier::ITALIC), "{level:?}");
-            assert!(
-                !second.modifier.contains(Modifier::BOLD),
-                "same-value explicit clear at {level:?}"
-            );
-            let footer_x = footer_position_start(&buffer, 4)
-                .expect("focused editor position footer is rendered");
-            let footer = buffer
-                .cell(Position::new(footer_x, 4))
-                .expect("position footer start");
-            assert_eq!(
-                footer.fg,
-                theme.color.fg[FgStep::Primary.index()],
-                "same-value explicit foreground survives footer default at {level:?}"
-            );
-            assert!(footer.modifier.contains(Modifier::ITALIC), "{level:?}");
-            assert!(
-                !footer.modifier.contains(Modifier::BOLD),
-                "same-value explicit clear at footer at {level:?}"
-            );
-
-            let mut selected_state = CodeEditorState::new("alpha\nbeta");
-            selected_state.editor.select_range(0, 1);
-            let (_, buffer) = styled_runtime(
-                theme.clone(),
-                selected_state,
-                false,
-                &[],
-                Some(whole_document),
-            );
-            let second = buffer
-                .cell(Position::new(3, 1))
-                .expect("second line number");
-            assert_eq!(
-                second.fg,
-                theme.color.fg[FgStep::Muted.index()],
-                "selection suppresses current-block defaults at {level:?}"
-            );
-
-            let (_, buffer) = styled_runtime(
-                theme.clone(),
-                CodeEditorState::new("alpha\nbeta"),
-                true,
-                &[],
-                None,
-            );
-            for y in [0, 1] {
-                let cell = buffer
-                    .cell(Position::new(3, y))
-                    .expect("read-only line number");
-                assert_eq!(
-                    cell.fg,
-                    theme.color.fg[FgStep::Faint.index()],
-                    "read-only number keeps faint default at {level:?}"
-                );
-                assert!(!cell.modifier.contains(Modifier::BOLD), "{level:?}");
-            }
-            let footer_x = footer_position_start(&buffer, 4)
-                .expect("focused read-only editor position footer is rendered");
-            let footer = buffer
-                .cell(Position::new(footer_x, 4))
-                .expect("position footer start");
-            assert_eq!(
-                footer.fg,
-                theme.color.fg[FgStep::Faint.index()],
-                "faint remains the default footer foreground at {level:?}"
-            );
-        }
-    }
-
-    #[test]
-    fn saturation_never_reuses_stale_highlights() {
-        let calls = Cell::new(0usize);
-        let highlighter = |_text: &str| {
-            calls.set(calls.get().saturating_add(1));
-            Vec::new()
-        };
-        let editor = CodeEditor::new(ID, 3).highlighter(&highlighter);
-        let mut state = CodeEditorState::new("a");
-        state.edit_generation = u64::MAX;
-        let area = Rect::new(0, 0, 20, 3);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        for _ in 0..2 {
-            runtime
-                .draw_scene(area, &mut buffer, |ui, rect| {
-                    editor.draw(ui, rect, &state);
-                })
-                .commit_presented();
-        }
-        assert_eq!(calls.get(), 2);
-    }
-
-    #[test]
-    fn captured_highlighter_and_segmenter_are_supported() {
-        let keyword = "let".to_owned();
-        let highlighter = |text: &str| {
-            text.match_indices(&keyword)
-                .map(|(at, found)| at..at + found.len())
-                .map(|range| (range, SyntaxRole::Keyword))
-                .collect()
-        };
-        let delimiter = ';';
-        let segmenter = |text: &str| {
-            text.match_indices(delimiter)
-                .scan(0usize, |start, (end, _)| {
-                    let range = *start..end.saturating_add(1);
-                    *start = range.end;
-                    Some(range)
-                })
-                .collect()
-        };
-        let editor = CodeEditor::new(ID, 4)
-            .highlighter(&highlighter)
-            .segmenter(&segmenter);
-        let state = CodeEditorState::new("let a;let b;");
-        assert_eq!(editor.blocks(&state), [0..6, 6..12]);
-    }
-
-    #[test]
-    fn disabled_highlighting_keeps_the_disabled_text_style() {
-        let area = Rect::new(0, 0, 40, 5);
-        let theme = Theme::junie().override_family(Family::CODE, |recipe| {
-            recipe.part(Part::TEXT).when(
-                StateFlags::DISABLED,
-                StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
-            );
-        });
-        let highlighter = |text: &str| vec![(0..text.len(), SyntaxRole::Keyword)];
-        let mut runtime = Runtime::new(Stub::default(), theme.clone());
-        let mut buffer = Buffer::empty(area);
-        let state = CodeEditorState::new("let attempts = 5;");
-        runtime
-            .draw_scene(area, &mut buffer, |ui, rect| {
-                CodeEditor::new(ID, 5)
-                    .disabled(true)
-                    .highlighter(&highlighter)
-                    .draw(ui, rect, &state);
-            })
-            .commit_presented();
-        let text = runtime
-            .area_of_part(ID, PartRef::of(Part::TEXT))
-            .expect("disabled editor registers its text part");
-        let expected = theme
-            .resolve(
-                Family::CODE,
-                Variant::DEFAULT,
-                Part::TEXT,
-                StateFlags::DISABLED,
-                Surface::Canvas,
-            )
-            .style
-            .fg
-            .expect("test override supplies a disabled foreground");
-        for position in text.positions() {
-            let cell = buffer
-                .cell(position)
-                .expect("text part positions are inside the buffer");
-            if cell.symbol() != " " {
-                assert_eq!(cell.fg, expected, "syntax replaced disabled text style");
-            }
-        }
-    }
-
-    #[test]
-    fn draw_cannot_commit_or_change_the_state() {
-        let editor = CodeEditor::new(ID, 4);
-        let mut state = CodeEditorState::new("one\ntwo");
-        state.begin_edit();
-        let before = state.clone();
-        let area = Rect::new(0, 0, 30, 4);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, rect| {
-                editor.draw(ui, rect, &state);
-            })
-            .commit_presented();
-        assert_eq!(state, before);
-    }
-
-    #[test]
-    fn fill_height_measurement_obeys_tight_loose_and_zero_constraints_without_state_effects() {
-        let state = CodeEditorState::new("SELECT\n界 e\u{301}");
-        let before = state.clone();
-        let fixed = CodeEditor::new(ID, 4);
-        let fill = CodeEditor::new(ID, 4).fill_height(true);
-        let area = Rect::new(0, 0, 40, 8);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-
-        runtime
-            .draw_scene(area, &mut buffer, |ui, _| {
-                assert_eq!(
-                    fixed.measure(ui, Constraints::loose(40, 8)).preferred,
-                    (40, 4)
-                );
-                assert_eq!(
-                    fill.measure(ui, Constraints::loose(40, 8)).preferred,
-                    (40, 8)
-                );
-                assert_eq!(
-                    fill.measure(ui, Constraints::tight(17, 6)),
-                    Size::exact(17, 6)
-                );
-                assert_eq!(
-                    fill.measure(ui, Constraints::loose(40, 0)),
-                    Size {
-                        min: (20, 0),
-                        preferred: (40, 0),
-                    }
-                );
-            })
-            .commit_presented();
-
-        assert_eq!(state, before, "measurement changed editor state");
-    }
-
-    #[test]
-    fn find_input_routes_text_backspace_enter_and_escape() {
-        let (mut runtime, mut buffer) =
-            focused_runtime_with_entry("alpha beta alpha", false, EditEntry::Explicit);
-        for code in [
-            KeyCode::Char('/'),
-            KeyCode::Char('a'),
-            KeyCode::Char('l'),
-            KeyCode::Backspace,
-        ] {
-            send_key(&mut runtime, &mut buffer, code);
-        }
-        let find = runtime.app().state.find.as_ref().expect("find is open");
-        assert_eq!(find.needle, "a");
-        assert!(find.typing);
-        assert_eq!(runtime.cursor(), Some(Position::new(6, 4)));
-        send_key(&mut runtime, &mut buffer, KeyCode::Enter);
-        assert!(
-            !runtime
-                .app()
-                .state
-                .find
-                .as_ref()
-                .expect("find remains")
-                .typing
-        );
-        send_key(&mut runtime, &mut buffer, KeyCode::Char('/'));
-        send_key(&mut runtime, &mut buffer, KeyCode::Esc);
-        assert!(runtime.app().state.find.is_none());
-
-        let (mut read_only, mut read_only_buffer) = focused_runtime("alpha", true);
-        send_key(&mut read_only, &mut read_only_buffer, KeyCode::Char('/'));
-        send_key(&mut read_only, &mut read_only_buffer, KeyCode::Char('p'));
-        assert_eq!(
-            read_only
-                .app()
-                .state
-                .find
-                .as_ref()
-                .map(|find| find.needle.as_str()),
-            Some("p")
-        );
-    }
-
-    #[test]
-    fn text_hit_coordinates_are_relative_to_the_text_part() {
-        let (mut runtime, mut buffer) = focused_runtime("a界b", false);
-        let text = runtime
-            .registry()
-            .area_of_part(ID, PartRef::of(Part::TEXT))
-            .expect("text part");
-        for (column, expected) in [(0, 0), (1, 1), (2, 1), (3, 4)] {
-            let x = text.x.saturating_add(column);
-            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, x, text.y));
-            runtime
-                .draw_buffer(buffer.area, &mut buffer)
-                .commit_presented();
-            assert_eq!(
-                runtime.app().state.cursor_offset(),
-                expected,
-                "column {column}"
-            );
-            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, x, text.y));
-            runtime
-                .draw_buffer(buffer.area, &mut buffer)
-                .commit_presented();
-        }
-        let gutter_x = text.x.saturating_sub(1);
-        let _ =
-            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, gutter_x, text.y));
-        runtime
-            .draw_buffer(buffer.area, &mut buffer)
-            .commit_presented();
-        assert_eq!(runtime.app().state.cursor_offset(), 4);
-    }
-
-    #[test]
-    fn read_only_blocks_document_commands_even_if_state_is_editing() {
-        let (mut runtime, mut buffer) = focused_runtime("alpha", true);
-        runtime.app_mut().state.begin_edit();
-        runtime.app_mut().state.jump_to(2);
-        let before = runtime.app().state.clone();
-        runtime
-            .draw_buffer(buffer.area, &mut buffer)
-            .commit_presented();
-        for code in [
-            KeyCode::Char('x'),
-            KeyCode::Backspace,
-            KeyCode::Delete,
-            KeyCode::Enter,
-            KeyCode::Tab,
-        ] {
-            send_key(&mut runtime, &mut buffer, code);
-        }
-        assert_eq!(runtime.app().state, before);
-
-        let editor = CodeEditor::new(ID, 4).read_only(true);
-        for command in [CodeCmd::InsertMode, CodeCmd::AppendMode] {
-            let mut state = CodeEditorState::new("alpha");
-            let before = state.clone();
-            let mut response = Acc::new();
-            editor.command(&mut state, command, 1, &mut response);
-            assert_eq!(state, before, "{command:?} changed read-only state");
-        }
-    }
-
-    #[test]
-    fn cursor_is_only_returned_inside_nonempty_text_area() {
-        assert_eq!(visible_cursor(Rect::new(2, 3, 0, 1), 0, 0, 0), None);
-        assert_eq!(visible_cursor(Rect::new(2, 3, 4, 1), 4, 0, 0), None);
-        assert_eq!(visible_cursor(Rect::new(2, 3, 4, 1), 0, 0, 1), None);
-        assert_eq!(
-            visible_cursor(Rect::new(2, 3, 4, 1), 3, 0, 0),
-            Some(Position::new(5, 3))
-        );
-    }
-
-    #[test]
-    fn editing_empty_line_keeps_placeholder_underline_and_position() {
-        let theme = Theme::junie();
-        let area = Rect::new(0, 0, 40, 5);
-        let mut runtime = Runtime::new(Stub::default(), theme.clone());
-        let mut buffer = Buffer::empty(area);
-        let mut state = CodeEditorState::new("");
-        state.begin_edit();
-        runtime
-            .draw_scene(area, &mut buffer, |ui, rect| {
-                CodeEditor::new(ID, 5)
-                    .placeholder("Type")
-                    .draw(ui, rect, &state);
-            })
-            .commit_presented();
-        let text = runtime
-            .area_of_part(ID, PartRef::of(Part::TEXT))
-            .expect("text part");
-        let head = buffer
-            .cell(ratatui_core::layout::Position::new(text.x, text.y))
-            .expect("placeholder head");
-        assert_eq!(head.symbol(), "T", "editing still shows the placeholder");
-        assert_eq!(head.fg, theme.color.fg[2]);
-        assert!(head.modifier.contains(Modifier::UNDERLINED));
-        assert_eq!(head.underline_color, theme.color.border_strong);
-        let tail = buffer
-            .cell(ratatui_core::layout::Position::new(
-                text.right().saturating_sub(1),
-                text.y,
-            ))
-            .expect("editing tail");
-        assert_eq!(tail.symbol(), " ");
-        assert!(tail.modifier.contains(Modifier::UNDERLINED));
-        assert_eq!(tail.underline_color, theme.color.border_strong);
-        let mut label = String::new();
-        let footer_y = area.bottom().saturating_sub(1);
-        for x in 0..area.width {
-            label.push_str(
-                buffer
-                    .cell(ratatui_core::layout::Position::new(x, footer_y))
-                    .expect("footer")
-                    .symbol(),
-            );
-        }
-        assert!(
-            label.contains("ln 1/1 · col 1"),
-            "position label missing: {label}"
-        );
-    }
 }

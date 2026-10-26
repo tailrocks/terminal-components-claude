@@ -1,0 +1,100 @@
+{
+  "schema": "termrock.t37.example-comments.correction.v1",
+  "input_commit": "4627a1c6f5c65a5f7527922051131080f65288cb",
+  "t00_source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "combined_audit_commit": "0e8e7a7cd1e11d0633309f5da4c1d5e7056dfd6c",
+  "model": "gpt-6-luna",
+  "effort": "max",
+  "agent_id": "/root/t37_components",
+  "scope": [
+    "crates/termrock/examples/code_editor_blur_consumer.rs",
+    "crates/termrock/examples/composition_consumer.rs",
+    "crates/termrock/examples/file_catalogue_master_detail.rs",
+    "crates/termrock/examples/master_detail_composition_consumer.rs",
+    "crates/termrock/examples/picker_card_layout_consumer.rs",
+    "crates/termrock/examples/picker_row_defaults.rs",
+    "crates/termrock/examples/semantic_item_row_consumer.rs",
+    "docs/contracts/facade-examples.md",
+    "docs/implementation/pr38-final/results/t37-example-comments/removed-comments.jsonl",
+    "docs/implementation/pr38-final/results/t37-example-comments/per-file-deletion-map.jsonl"
+  ],
+  "input_identity": {
+    "all_seven_example_files_byte_identical_at": [
+      "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "4627a1c6f5c65a5f7527922051131080f65288cb",
+      "0e8e7a7cd1e11d0633309f5da4c1d5e7056dfd6c"
+    ],
+    "verification": "git show + SHA-256 byte comparison completed before edits"
+  },
+  "comment_deletion": {
+    "removed_comment_groups": 14,
+    "removed_comment_source_lines": 17,
+    "removed_adjacent_leading_blank_separators": 6,
+    "removed_required_directives": [],
+    "remaining_line_comments_or_doc_comments_in_seven_files": 0,
+    "directive_inventory": "The 17 removed lines are ordinary line/doc comments. No legal, SPDX, parser, linter, shebang, or generated directive was present in these groups. All source attributes remain byte-identical."
+  },
+  "preservation": {
+    "noncomment_tokens_changed": 0,
+    "literal_tokens_changed": 0,
+    "surviving_noncomment_bytes": "Each output file equals its fixed input after deleting only the recorded comment lines and the one adjacent leading blank separator where present.",
+    "per_file_map": "docs/implementation/pr38-final/results/t37-example-comments/per-file-deletion-map.jsonl",
+    "preserved_examples": [
+      "code_editor_blur_consumer.rs",
+      "composition_consumer.rs",
+      "file_catalogue_master_detail.rs",
+      "master_detail_composition_consumer.rs",
+      "picker_card_layout_consumer.rs",
+      "picker_row_defaults.rs",
+      "semantic_item_row_consumer.rs"
+    ],
+    "preserved_testbackend_and_other_code": "Exact residual-byte comparison covers imports, TestBackend uses, functions, attributes, API calls, and all string/character literals."
+  },
+  "maintained_contract_transfer": {
+    "document": "docs/contracts/facade-examples.md",
+    "document_sha256": "49c37fe3b8bcd91072f6f5a461183754900238f65c3a7e5a01a68096b8edf3c0",
+    "written_before_source_comment_deletion": true,
+    "raw_comment_archive": "docs/implementation/pr38-final/results/t37-example-comments/removed-comments.jsonl",
+    "archive_role": "Historical provenance only; not itself active API guidance.",
+    "caller_guidance": [
+      "Editor blur example setup and explicit absence of focus-out input/commit observation.",
+      "Borrowed public-facade composition and one-frame rendering scope.",
+      "File catalogue static borrowed data, empty-input initialization, update ordering, Escape-first/unconsumed-input caller contract, root geometry boundary, and policy parameter.",
+      "Master-detail facade composition function and empty main limitation.",
+      "Picker card settings, chosen-key handling, and non-rendering main limitation.",
+      "Picker row Bar/Fill rendering and the same-value focused base rule retained as an open behavior requirement because the resolved value is discarded.",
+      "Semantic item adapter usage and closure argument inference through key/node."
+    ]
+  },
+  "checks": [
+    {
+      "command": "rustfmt --edition 2024 --check crates/termrock/examples/code_editor_blur_consumer.rs crates/termrock/examples/composition_consumer.rs crates/termrock/examples/file_catalogue_master_detail.rs crates/termrock/examples/master_detail_composition_consumer.rs crates/termrock/examples/picker_card_layout_consumer.rs crates/termrock/examples/picker_row_defaults.rs crates/termrock/examples/semantic_item_row_consumer.rs",
+      "status": "PASS, exit 0; Rust syntax/format parse check"
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS, exit 0 before staging; tracked source whitespace check"
+    },
+    {
+      "command": "inline Python byte-residual audit comparing c817 and 462 input blobs with output",
+      "status": "PASS, exit 0; 7/7 files byte-identical after exact comment/leading-separator removal; zero token/literal changes"
+    },
+    {
+      "command": "rg -n ^\\s*(//|/\\*|\\*) across the seven example sources",
+      "status": "PASS, expected exit 1; no comment-like source lines remain"
+    }
+  ],
+  "tests": {
+    "selected": 0,
+    "run": false,
+    "runtime_behavior": "NOT VERIFIED",
+    "test_plan": "N/A: T37 comment cleanup only; no tests, harnesses, fixtures, doctests, or replacement gates were written or executed."
+  },
+  "review": {
+    "status": "PENDING INDEPENDENT HIGH REVIEW",
+    "reviewer": "/root/t37_apps_review",
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "output_commit": "recorded by coordinator after commit; not embedded to avoid self-reference"
+}

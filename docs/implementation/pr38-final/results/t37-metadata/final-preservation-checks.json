@@ -1,0 +1,257 @@
+{
+  "fixed_input": "d402f893d159ac26da5db4d18c13510afdbce12f",
+  "final_source_head": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "preserved_files": [
+    {
+      "path": "mise.toml",
+      "fixed_input_sha256": "a35637525fd0603bb1724aaf3320fc89c5b7f89b3ebf12d3f525dad4ec6ea44a",
+      "current_sha256": "a35637525fd0603bb1724aaf3320fc89c5b7f89b3ebf12d3f525dad4ec6ea44a",
+      "byte_identical": true
+    },
+    {
+      "path": "mise.lock",
+      "fixed_input_sha256": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+      "current_sha256": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+      "byte_identical": true
+    },
+    {
+      "path": "rust-toolchain.toml",
+      "fixed_input_sha256": "4f6c9e5b60864d21b5e71753046337187c510379c4becdd365a9387294c1b80a",
+      "current_sha256": "4f6c9e5b60864d21b5e71753046337187c510379c4becdd365a9387294c1b80a",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/visual-harness/baselines/oracle/ORACLE.toml",
+      "fixed_input_sha256": "bfce62b23519b52c25978561c923a910d4cc633a9aab512e27f8c04dbd5eec2f",
+      "current_sha256": "bfce62b23519b52c25978561c923a910d4cc633a9aab512e27f8c04dbd5eec2f",
+      "byte_identical": true
+    },
+    {
+      "path": "tools/acceptance_policy.json",
+      "fixed_input_sha256": "7a0133ab3724d93de580377ab0e7cfe26a73773bb5e3129557046a55163e1287",
+      "current_sha256": "7a0133ab3724d93de580377ab0e7cfe26a73773bb5e3129557046a55163e1287",
+      "byte_identical": true
+    },
+    {
+      "path": "component-ownership.json",
+      "fixed_input_sha256": "4265116e1ee48092fec6f2a108893ac747bc1c636ca4b279dd9f64e8492822a4",
+      "current_sha256": "4265116e1ee48092fec6f2a108893ac747bc1c636ca4b279dd9f64e8492822a4",
+      "byte_identical": true
+    },
+    {
+      "path": "tools/test-inventory/historical.json",
+      "fixed_input_sha256": "cd9c5c4908caf3150cd962e289f7310908c3a5b2285cd26cae624d520068af65",
+      "current_sha256": "cd9c5c4908caf3150cd962e289f7310908c3a5b2285cd26cae624d520068af65",
+      "byte_identical": true
+    },
+    {
+      "path": "tools/test-inventory/required.json",
+      "fixed_input_sha256": "1ab6cd9cd95a0ace872085d763547707cb5c5948b727d8f90c2636fc4e8838b2",
+      "current_sha256": "1ab6cd9cd95a0ace872085d763547707cb5c5948b727d8f90c2636fc4e8838b2",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-test-support/tests/perf_baseline.txt",
+      "fixed_input_sha256": "e701660042110270f94ea21c78fb9114084afcd1cc57d60320f8e97dfc11d5c4",
+      "current_sha256": "e701660042110270f94ea21c78fb9114084afcd1cc57d60320f8e97dfc11d5c4",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-conformance/tests/baselines/components.txt",
+      "fixed_input_sha256": "010e34d2fec2cae84128911faa1bb19a30b44fd1cce8e0e4c7b1521a33383d70",
+      "current_sha256": "010e34d2fec2cae84128911faa1bb19a30b44fd1cce8e0e4c7b1521a33383d70",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/cases/registry.json",
+      "fixed_input_sha256": "7327cdf90044499444c93d627747237912abe27b41708a64f0fed2a363c78476",
+      "current_sha256": "7327cdf90044499444c93d627747237912abe27b41708a64f0fed2a363c78476",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/profile.json",
+      "fixed_input_sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+      "current_sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/expected-generation-v1.schema.json",
+      "fixed_input_sha256": "d86c066f58c6edcc92133752d9e02102ab9564c6a7c0b60777ad0f01818b23bc",
+      "current_sha256": "d86c066f58c6edcc92133752d9e02102ab9564c6a7c0b60777ad0f01818b23bc",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/generation-admission-v1.schema.json",
+      "fixed_input_sha256": "cfec0679de8245be6e165babf7cd4df15855fef42349a28ecc9b8d5102a069a5",
+      "current_sha256": "cfec0679de8245be6e165babf7cd4df15855fef42349a28ecc9b8d5102a069a5",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/oracle-capture-receipt-v1.schema.json",
+      "fixed_input_sha256": "448577bd07ccec30596f0a60ee38ca943271183ede8a45c7a7b2c9c167187e20",
+      "current_sha256": "448577bd07ccec30596f0a60ee38ca943271183ede8a45c7a7b2c9c167187e20",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/qualification-review-v1.schema.json",
+      "fixed_input_sha256": "f3f06b64d25d806dac6ada4b081df8532e83a50f5ec5b6f811a4231c87ba08d0",
+      "current_sha256": "f3f06b64d25d806dac6ada4b081df8532e83a50f5ec5b6f811a4231c87ba08d0",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/receipt-v1.schema.json",
+      "fixed_input_sha256": "68f9c6964d6b732a5a67fa5571b01e8001717f47b0b87db3aa1ab3764768dd61",
+      "current_sha256": "68f9c6964d6b732a5a67fa5571b01e8001717f47b0b87db3aa1ab3764768dd61",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/receipt-v2.schema.json",
+      "fixed_input_sha256": "31135e33541dcc21fffed2c77d3a37a169ae5ceaeb482fa9dc8340394f9b6a5d",
+      "current_sha256": "31135e33541dcc21fffed2c77d3a37a169ae5ceaeb482fa9dc8340394f9b6a5d",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/receipt-v3.schema.json",
+      "fixed_input_sha256": "562d95a7a104a6f3127fb9f403f7cb79c24b25f77943e1eec732ed2120f476fe",
+      "current_sha256": "562d95a7a104a6f3127fb9f403f7cb79c24b25f77943e1eec732ed2120f476fe",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/subject-manifest-v1.schema.json",
+      "fixed_input_sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+      "current_sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/subject-manifest-v2.schema.json",
+      "fixed_input_sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+      "current_sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/tag-validator-toolchain-v1.schema.json",
+      "fixed_input_sha256": "979fd241c4b35c8402e3e4161ccd9bad1925c7e5af7f25c0f0b55ebe9fa1b9a6",
+      "current_sha256": "979fd241c4b35c8402e3e4161ccd9bad1925c7e5af7f25c0f0b55ebe9fa1b9a6",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/trust-record-v1.schema.json",
+      "fixed_input_sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+      "current_sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+      "byte_identical": true
+    },
+    {
+      "path": "crates/termrock-e2e/schemas/trust-record-v2.schema.json",
+      "fixed_input_sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+      "current_sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+      "byte_identical": true
+    }
+  ],
+  "preserved_file_count": 24,
+  "all_preserved_files_byte_identical": true,
+  "velnor_testing_policy": {
+    "test_runner_unchanged": true,
+    "run_ignored_unchanged": true,
+    "configurations_unchanged": true,
+    "old_discovery_exclusions": [
+      "xtask/fixtures/**",
+      "tools/termrock-visibility-publisher/**",
+      "tools/frozen-cli-frame-support/**",
+      "crates/termrock-e2e/**",
+      "crates/termrock-visibility-tests/**",
+      "crates/showcase-data/**",
+      "crates/holla-catalog/**",
+      "crates/holla-plan/**",
+      "docs/audits/evidence/**",
+      "crates/tablepro-ui/manual-api-contracts/workbench-tabs-privacy/Cargo.toml",
+      "crates/termrock-theme/manual-api-contracts/paint-style-pilot/Cargo.toml"
+    ],
+    "new_discovery_exclusions": [
+      "xtask/fixtures/**",
+      "tools/termrock-visibility-publisher/**",
+      "crates/termrock-e2e/**",
+      "crates/termrock-visibility-tests/**",
+      "crates/showcase-data/**",
+      "crates/holla-catalog/**",
+      "crates/holla-plan/**",
+      "docs/audits/evidence/**"
+    ],
+    "removed_discovery_exclusions": [
+      "crates/tablepro-ui/manual-api-contracts/workbench-tabs-privacy/Cargo.toml",
+      "crates/termrock-theme/manual-api-contracts/paint-style-pilot/Cargo.toml",
+      "tools/frozen-cli-frame-support/**"
+    ],
+    "added_discovery_exclusions": []
+  },
+  "root_nextest_profile": {
+    "profile_ci_unchanged": true,
+    "retained_profile_ci": {
+      "fail-fast": false,
+      "slow-timeout": {
+        "period": "60s",
+        "terminate-after": 10
+      }
+    },
+    "removed_root_profile_names": [
+      "capture",
+      "default",
+      "full",
+      "narrow",
+      "smoke"
+    ],
+    "current_root_profiles": [
+      "ci"
+    ],
+    "removed_visibility_config": "crates/termrock-visibility-tests/.config/nextest.toml is source-retired because its test-only profile has no retained target consumer"
+  },
+  "root_workspace_lint_tables": [
+    {
+      "table": "[workspace.lints.rust]",
+      "fixed_input_sha256": "2797193ed2f3cef71a5ad3c6e4f8b3d712f05926b0295f02ec6dc439f0876f89",
+      "current_sha256": "2797193ed2f3cef71a5ad3c6e4f8b3d712f05926b0295f02ec6dc439f0876f89",
+      "byte_identical": true
+    },
+    {
+      "table": "[workspace.lints.clippy]",
+      "fixed_input_sha256": "c73622fac414702e0efead33f9576bc29cc42e2ba1dec03c336c6b3c7da075ec",
+      "current_sha256": "c73622fac414702e0efead33f9576bc29cc42e2ba1dec03c336c6b3c7da075ec",
+      "byte_identical": true
+    }
+  ],
+  "lint_tables_byte_identical": true,
+  "retired_source_data": [
+    {
+      "path": "crates/termrock-e2e/cases/deferred-obligations.json",
+      "fixed_input_sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+      "current_status": "source-retired",
+      "source_commits": [
+        "697a0353e5c84485b5dc36aa8058a4c71a1c236e",
+        "8bd63d96ab6be07f14b570e434df3d376fc8020b"
+      ],
+      "decision": "accepted E2E-01/tools closure",
+      "behavior_obligations": "remain open; no replacement tests; NOT VERIFIED"
+    }
+  ],
+  "retained_profile_fields": "readiness_timeout_ms=8000 and input_pacing_ms=120 remain required u64 fields in a deny_unknown_fields Profile deserialized from PROFILE_JSON; retained for format/admission validation only, not an executor/timing guarantee.",
+  "evidence_source_checked": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "current_integrated_source": "865073462331552897822d65ede8d673f9c870d7",
+  "current_evidence_head_before_metadata_commit": "865073462331552897822d65ede8d673f9c870d7",
+  "subsequent_accepted_source_change": {
+    "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+    "decision": "T37-EXPECTED-CACHE-01",
+    "summary": "Remove only private LoadedExpectedCheckpoint cache fields/initializers; keep validation, errors, and order byte/behavior-identical per accepted review.",
+    "final_locked_e2e_check_pending": true
+  },
+  "accepted_source_updates_since_check": [
+    {
+      "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+      "decision": "T37-EXPECTED-CACHE-01",
+      "check_impact": "E2E locked check must rerun after final source input."
+    },
+    {
+      "commit": "865073462331552897822d65ede8d673f9c870d7",
+      "decision": "T37-FMT-0904",
+      "check_impact": "Formatting check must rerun after pending listener-helper source unit."
+    }
+  ]
+}

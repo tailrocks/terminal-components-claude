@@ -16,7 +16,7 @@ pub struct Report {
     pub findings: Vec<Finding>,
     pub failures: Vec<Failure>,
     pub wrappers: Vec<Wrapper>,
-    /// Number of inventoried Rust files, including files proven test-only.
+
     pub files_scanned: usize,
 }
 

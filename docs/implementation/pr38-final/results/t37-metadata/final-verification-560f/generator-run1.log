@@ -1,0 +1,19 @@
+.github/AGENTS.md
+.github/CLAUDE.md
+.github/actions/declared-task-0/action.yml
+.github/actions/u26/action.yml
+.github/actions/velnor-tool-seed/action.yml
+.github/actions/velnor-tools-cache-restore/action.yml
+.github/actions/velnor-tools-prelude-u26/action.yml
+.github/actions/velnor-verify-jactionlint/action.yml
+.github/actions/velnor-verify-restored-rust/action.yml
+.github/actions/velnor-verify-rust-manifest/action.yml
+.github/jactionlint.yaml
+.github/scripts/velnor-tools-cache-identity.sh
+.github/velnor/task-execution-manifest-v1.json
+.github/workflows/cache-prune.yml
+.github/workflows/ci.yml
+mise.lock is read-only input; Velnor never modifies it
+mise.toml is read-only input; Velnor never modifies it
+rust-toolchain.toml is read-only input; Velnor never modifies it
+shadowed_nextest_config: .config/nextest.toml shadowed by external-consumer-demo/.config/nextest.toml; profile selected from external-consumer-demo/.config/nextest.toml

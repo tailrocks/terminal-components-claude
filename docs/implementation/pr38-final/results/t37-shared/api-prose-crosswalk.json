@@ -1,0 +1,1257 @@
+{
+  "schema": "t37.api-prose-crosswalk.v1",
+  "task_id": "T37",
+  "status": "SCOPED INPUTS ACCEPTED; GENERAL SUMMARY REVIEW PENDING",
+  "source": {
+    "work_input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+    "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "inventory_path": "docs/implementation/pr38-final/results/t37-components/removed-rustdoc.jsonl",
+    "inventory_source_worktree": "/Users/donbeave/Downloads/termrock-t37-components",
+    "inventory_sha256": "44540f7e878b477d87f0b8b74185398baa0c56f0218e8ac07a18d083394dae93",
+    "inventory_bytes": 374967,
+    "removed_rustdoc_groups": 722,
+    "removed_rustdoc_lines": 1800,
+    "source_paths": 61,
+    "record_type": "removed-rustdoc-provenance-only",
+    "limitation": "The 722-group component archive remains source-hash and line-range provenance. The accepted component transfer covers 129 groups: 113 new clauses, 15 existing mappings, and one approved retirement. The other 593 groups remain in the archive; this summary does not claim a 722-row semantic transfer. T01 owns inventory reconciliation, and T35 owns descriptive public API and application guidance beyond the accepted caller contracts.",
+    "foundation_crosswalk": {
+      "path": "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
+      "composition_input_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+      "source_inventory": {
+        "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
+        "accepted_source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+        "local_integration_commit": "d459a2fc062e7fc3a6215ea5c746690e5c5be4ab",
+        "sha256": "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619",
+        "record_count": 1122,
+        "integration_status": "INTEGRATED_AND_HASH_VERIFIED"
+      },
+      "source_disposition_inventory": {
+        "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose-disposition.json",
+        "accepted_source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+        "local_integration_commit": "2f911b34822bc267e629dec30c46a3386f362bab",
+        "sha256": "8e3923ebb4f6d5974a2e632ca32e5406718a5985a8f26a17a75fcbd9a3f4e9df",
+        "record_count": 1122,
+        "integration_status": "INTEGRATED_AND_HASH_VERIFIED"
+      },
+      "cohort_counts": {
+        "T37-API-PROSE-COHORT-A": 322,
+        "T37-API-PROSE-COHORT-B": 304,
+        "T37-API-PROSE-COHORT-C": 496
+      },
+      "output_commit": "ddeceda0a3e03a6aa454b23c961e28cbb84871fb",
+      "output_sha256": "00ad0737c6b6b2d90ac0878dd8ac72fad07581a20522df2176d89bf600a25ec4",
+      "output_record_count": 1122,
+      "review": {
+        "decision_id": "T37-API-CROSSWALK-DDE-ACCEPT",
+        "reviewer": "/root/t00_independent_review",
+        "model_selection": "gpt-6.1-sol",
+        "effort_selection": "high",
+        "backend_attestation": "NOT PROVIDED",
+        "reviewed_commit": "ddeceda0a3e03a6aa454b23c961e28cbb84871fb",
+        "reviewed_parent": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+        "decision": "ACCEPT_SCOPED",
+        "scope": "Final composition refresh and input preservation only.",
+        "verified": [
+          "All 1,122 source and cohort rows are preserved verbatim.",
+          "Exact A/B/C reviewer, Git commit, and artifact bindings match.",
+          "Both local source inventories are integrated and hash-verified.",
+          "The composition records 30 maintained destinations.",
+          "Artifact hashes and producer script policy pass review."
+        ],
+        "limits": [
+          "This decision does not accept overall T37 or the component caller guide.",
+          "No product, Cargo, or test command ran; selected behavior cases: 0.",
+          "Product behavior remains NOT VERIFIED."
+        ]
+      },
+      "embedded_artifact_review_state": "REVIEW/PENDING (preserved source metadata; later acceptance is recorded separately above)",
+      "status": "ACCEPTED_SCOPED"
+    }
+  },
+  "groups_by_crate": {
+    "termrock-controls": 77,
+    "termrock-editors": 26,
+    "termrock-feedback": 195,
+    "termrock-fields": 41,
+    "termrock-forms": 34,
+    "termrock-grid": 43,
+    "termrock-navigation": 86,
+    "termrock-overlays": 48,
+    "termrock-viewport": 46,
+    "termrock": 126
+  },
+  "maintained_documents": [
+    {
+      "path": "crates/termrock-e2e/README.md",
+      "sections": [
+        "Admission interface",
+        "Case and profile inputs",
+        "Schema status"
+      ],
+      "covered_guidance": [
+        "the nine required admission flags",
+        "suite/profile/case/renderer/generation/capture/review binding",
+        "input revalidation before publication",
+        "existing write root, new output, no replacement, and protected-path contract",
+        "five schemas consumed by admission and two more schemas consumed by retained subject and receipt validators",
+        "five historical receipt, subject, and trust schemas"
+      ],
+      "gaps": [
+        "admission does not authenticate review authors or establish independent evidence",
+        "no PTY runner, capture, qualification, visual comparison, or product behavior is verified"
+      ],
+      "status": "CURRENT ADMISSION REFERENCE AND RETAINED SCHEMA CATALOG ONLY; former runner, capture, preflight, and deferred procedures are linked as immutable history."
+    },
+    {
+      "path": "docs/architecture.md",
+      "sections": [
+        "Current source-backed boundaries"
+      ],
+      "covered_guidance": [
+        "key and modifier ownership",
+        "event adapter identity",
+        "backend-free dependency boundary"
+      ],
+      "gaps": [
+        "source facts are pinned to earlier reviewed snapshots and need T01 source reconciliation"
+      ],
+      "status": "Test citations now name frozen immutable history and state that T37 retired those targets. No fresh behavior proof is claimed."
+    },
+    {
+      "path": "docs/contracts/authoring.md",
+      "sections": [
+        "Public surface snapshot",
+        "Component owner checklist and evidence",
+        "Total clipped composition",
+        "Prepared-frame consumer sequence",
+        "Evidence boundary",
+        "Bounded work obligations",
+        "Event routing and committed layout",
+        "Runtime routing and layer receipts",
+        "Keyboard, list, layout, and text rules",
+        "Shell interaction policy",
+        "Row authoring contracts",
+        "Runtime registration and snapshots",
+        "Historical API-boundary contracts"
+      ],
+      "covered_guidance": [
+        "caller-owned data, borrows, and callback lifetimes",
+        "update/draw/response separation and error versus invalid state",
+        "stable identity, typed input, focus, hit registration, and clipping",
+        "prepared-frame lifecycle, optional geometry, and read-only measurement",
+        "routed viewport and ScrollRegion source revisions, event identity, and exhaustion",
+        "wheel acknowledgement, fallback invalidation, exact intent claims, and layer-opening receipts",
+        "windowed radio choice preserves original keys and supplies the full input list",
+        "List selection-binding eligibility and Tabs committed-layout receipts",
+        "NoticeReveal stable unique ownership and revision changes with text or cut options",
+        "keyboard protocol and cursor-shape output",
+        "shell key priority, focus-scope bubbling, route identity, leave, status, and footer ownership",
+        "row geometry, measurement purity, part scope, metadata admission, labels, windows, and picker fade order",
+        "Canvas and Surface bounds, clipped publication, explicit paint channels, and layer slots",
+        "autoscroll source revisions, hover-only routing, focus, cursor retention, layer receipts, click counts, clipboard wiping, and diagnostics",
+        "runtime snapshots, clock-paste parsing, activation, and failure states",
+        "Bounded-work and performance obligations remain open without replacement probes."
+      ],
+      "gaps": [
+        "T01 must reconcile the maintained requirements with cleaned source and assign unresolved ownership questions.",
+        "T35 must write user-facing public API and application guidance beyond the accepted maintained caller contracts."
+      ],
+      "status": "PARTIAL; accepted foundation cohorts and six selected caller rows remain here. The separate 129-group component caller transfer is accepted and integrated. Behavior is NOT VERIFIED."
+    },
+    {
+      "path": "docs/contracts/overrides.md",
+      "sections": [
+        "Scope mechanisms",
+        "Component API examples",
+        "Evidence limits"
+      ],
+      "covered_guidance": [
+        "global/family/variant/part patch scope",
+        "slot callback ownership and part boundaries",
+        "overlay closure lifetime and restoration",
+        "per-component builder availability and limits"
+      ],
+      "gaps": [
+        "complete component API guidance and all component-specific style fallbacks"
+      ],
+      "status": "PARTIAL; test links are commit-pinned historical evidence."
+    },
+    {
+      "path": "docs/contracts/theming.md",
+      "sections": [
+        "Theme shape and visual scenarios",
+        "ASCII theme-builder configuration",
+        "Resolution order",
+        "Slot merge law and consumer interpretation",
+        "Semantic style provenance",
+        "Paint channel ownership",
+        "Concern ownership",
+        "Acceptance boundary"
+      ],
+      "covered_guidance": [
+        "theme ownership",
+        "capability handling",
+        "theme builder behavior",
+        "override resolution",
+        "Slot Set/Clear/Inherit distinctions",
+        "consumer-specific fallback limits",
+        "paint-channel ownership and per-channel provenance"
+      ],
+      "gaps": [
+        "rendered output rules for every component, theme, state, and color level"
+      ],
+      "status": "PARTIAL; selected source rules for fallback ownership, underlay replay, fill, modal backdrop, and RGB remapping are maintained. Source and test links are historical evidence, not fresh visual proof."
+    },
+    {
+      "path": "docs/contracts/migration.md",
+      "sections": [
+        "historical concept crosswalk table"
+      ],
+      "covered_guidance": [
+        "Response flow versus invalidation",
+        "typed intents and registered geometry",
+        "stable identity",
+        "semantic surfaces and color/reset distinctions"
+      ],
+      "gaps": [
+        "current post-T37 source-owner mapping and per-component behavior"
+      ],
+      "status": "HISTORICAL CROSSWALK; pinned test links are not active targets."
+    },
+    {
+      "path": "docs/guides/quickstart.md",
+      "sections": [
+        "Choose terminal colors",
+        "An app updates, then draws",
+        "Follow a complete consumer",
+        "Historical facade test targets",
+        "Historical source"
+      ],
+      "covered_guidance": [
+        "terminal color selection",
+        "update/draw separation",
+        "prepared-frame presentation sequence"
+      ],
+      "gaps": [
+        "current copy-ready examples and approved executable journeys"
+      ],
+      "status": "PRE-T37 SNAPSHOT; old test commands removed, remaining test links are historical. T35 owns rewrite."
+    },
+    {
+      "path": "docs/architecture/form-lanes-stage1.md",
+      "sections": [
+        "historical form-lanes implementation report"
+      ],
+      "covered_guidance": [
+        "two-lane layout",
+        "data-aware measurement",
+        "validation/update/draw boundary",
+        "radio windowing and clipping"
+      ],
+      "gaps": [
+        "current T18 form API and field-kind contracts"
+      ],
+      "status": "HISTORICAL; test target is linked to frozen source input1d6 and results are not current proof."
+    },
+    {
+      "path": "docs/development.md",
+      "sections": [
+        "Workspace commands",
+        "CLI option discovery",
+        "Backend-free dependency checks",
+        "Retired capture and frozen CLI history",
+        "Rust comments",
+        "Safety evidence",
+        "Documentation compatibility"
+      ],
+      "covered_guidance": [
+        "non-test build/format/lint commands",
+        "explicit CLI-help and diagnostic preservation",
+        "generator ownership boundary",
+        "historical tool provenance"
+      ],
+      "gaps": [
+        "replacement test and capture procedures; T38 and T04 own those designs"
+      ],
+      "status": "ACTIVE NON-TEST GUIDANCE; retired procedures are labelled historical."
+    },
+    {
+      "path": "docs/architecture/termrock-migration-matrix.md",
+      "sections": [
+        "2026-10-22 decision checkpoint and historical appendices"
+      ],
+      "covered_guidance": [
+        "past architecture decisions and test provenance"
+      ],
+      "gaps": [
+        "current API guidance"
+      ],
+      "status": "HISTORICAL; suite counts and results are superseded by T37."
+    },
+    {
+      "path": "docs/architecture/termrock-migration-record.md",
+      "sections": [
+        "coordinator ledger and historical receipts"
+      ],
+      "covered_guidance": [
+        "past owner decisions and evidence limits"
+      ],
+      "gaps": [
+        "cleaned-source map"
+      ],
+      "status": "HISTORICAL; test paths/counts/results are not current."
+    },
+    {
+      "path": "docs/architecture/termrock-coordinator-plan.md",
+      "sections": [
+        "pre-T37 coordinator plan"
+      ],
+      "covered_guidance": [
+        "historical acceptance surface"
+      ],
+      "gaps": [
+        "current commands and source inventory"
+      ],
+      "status": "HISTORICAL; no old test command is current."
+    },
+    {
+      "path": "docs/handoff/README.md",
+      "sections": [
+        "dated handoff entries"
+      ],
+      "covered_guidance": [
+        "historical branch and gate reports"
+      ],
+      "gaps": [
+        "current user guidance"
+      ],
+      "status": "HISTORICAL ARCHIVE; test statuses do not apply to current source."
+    },
+    {
+      "path": "docs/verification/paired-process-receipt-hardening-20261021.md",
+      "sections": [
+        "launch receipts",
+        "verification evidence"
+      ],
+      "covered_guidance": [
+        "historical receipt and child-cleanup design"
+      ],
+      "gaps": [
+        "current executable test procedure"
+      ],
+      "status": "HISTORICAL; old test results are not current proof."
+    },
+    {
+      "path": "docs/contracts/foundation-values.md",
+      "sections": [
+        "Intent claims and diagnostics",
+        "Keyboard protocol and delivery",
+        "List, selection, and type-ahead",
+        "Layout and bounded work",
+        "Text offsets and undo",
+        "Open source wording conflicts"
+      ],
+      "covered_guidance": [
+        "322 source groups with group-specific dispositions and required value/caller rules"
+      ],
+      "gaps": [
+        "User-facing application examples remain T35 work."
+      ],
+      "status": "ACCEPTED_SCOPED_FOUNDATION_VALUES_COHORT; behavior NOT VERIFIED.",
+      "sha256": "37b78cc720209453b0ed7a7ea2a70df46ad88ec5c173cb874fde84dfcb73b044"
+    },
+    {
+      "path": "docs/contracts/foundation-runtime.md",
+      "sections": [
+        "Wheel routing and scroll windows",
+        "Hit ownership and releases",
+        "Binding publication and focus scope",
+        "Layer opening and focus receipts",
+        "Composition, windows, and row cells",
+        "Session input and cursor policy",
+        "Theme, focus, and pointer context",
+        "Retained runtime boundaries",
+        "Evidence limits"
+      ],
+      "covered_guidance": [
+        "304 source groups with group-specific dispositions and required runtime/session caller rules"
+      ],
+      "gaps": [
+        "User-facing application examples remain T35 work."
+      ],
+      "status": "ACCEPTED_SCOPED_FOUNDATION_RUNTIME_COHORT; behavior NOT VERIFIED.",
+      "sha256": "f4b7d6d704f51c8febdd6d019f198a82ac765c0b976b984a65f28c5294c436b6"
+    },
+    {
+      "path": "docs/contracts/foundation-support.md",
+      "sections": [
+        "Shell routing and page identity",
+        "Routing order open contract",
+        "Shell layout, status, and reports",
+        "Scroll and keyboard sessions",
+        "Theme presentation policy",
+        "Modal backdrop and color downgrade",
+        "Focus, selection, and gutter policy",
+        "Descriptive and historical source notes"
+      ],
+      "covered_guidance": [
+        "496 source groups with exact dispositions, supporting excerpts, and named open source conflicts"
+      ],
+      "gaps": [
+        "Named source conflicts and later owners remain open; this scoped transfer does not resolve them."
+      ],
+      "status": "ACCEPTED_SCOPED_SUPPORT_COHORT; behavior NOT VERIFIED.",
+      "sha256": "f3a12716c17fd4fae898a44b41880a90f9ac647e90725e83b2e2380d0ff385c4"
+    },
+    {
+      "path": "docs/contracts/safety-invariants.md",
+      "sections": [
+        "Session bridge source record",
+        "Caller and behavior contract",
+        "Production unsafe-operation rationale map",
+        "Retained Unix process-diagnostic operations",
+        "Maintenance rules",
+        "Evidence limits"
+      ],
+      "covered_guidance": [
+        "Accepted session safety transfer and retained diagnostic/observer operation preconditions"
+      ],
+      "gaps": [
+        "F17 and T20-OBS-FD-01 remain open; this contract does not certify source safety or platform behavior."
+      ],
+      "status": "ACCEPTED_SCOPED_SAFETY_TRANSFER at f2657fe1cf0dcfb7baac271b5d93c523369798f4; behavior and unsafe-code correctness NOT VERIFIED.",
+      "sha256": "c80133c43064e200c48b811ac86f5195e84bd91994916ff214950ad43e5a94e8"
+    },
+    {
+      "path": "docs/contracts/facade-examples.md",
+      "sections": [
+        "Input and composition examples",
+        "Picker examples"
+      ],
+      "covered_guidance": [
+        "Qualified caller guidance for seven retained facade examples after comment removal"
+      ],
+      "gaps": [
+        "Examples do not establish product behavior."
+      ],
+      "status": "ACCEPTED_SCOPED_EXAMPLE_COMMENT_TRANSFER; behavior NOT VERIFIED.",
+      "sha256": "49c37fe3b8bcd91072f6f5a461183754900238f65c3a7e5a01a68096b8edf3c0"
+    },
+    {
+      "path": "docs/contracts/component-caller-contracts.md",
+      "sections": [
+        "Focus and form registration",
+        "Split, reset, and Escape",
+        "Editor lifecycle and input",
+        "Form layout and measurement",
+        "Steps, Tabs, planning, and hit handling",
+        "Picker, menu, and notice ordering",
+        "Viewport revisions and selection",
+        "Borrowed feedback windows and redaction"
+      ],
+      "covered_guidance": [
+        "129 exact component source groups: 113 new transfers, 15 existing mappings, and one approved retirement."
+      ],
+      "gaps": [
+        "The other 593 archive groups remain historical provenance; T01 maintains inventory ownership, and T35 covers descriptive API and application guidance."
+      ],
+      "status": "ACCEPTED_SCOPED_AND_INTEGRATED; behavior NOT VERIFIED.",
+      "candidate": {
+        "reviewed_commit": "11bc4137c5897e29174bc29cadde717375590b2c",
+        "integrated_merge_commit": "d0c95d7ff924af11ddcae8c072a1bee311b714c7",
+        "aggregate_commit": "a9206e2dd64952837a4cf9829ecf648a5121e4f6",
+        "guide_sha256": "60676737b67278eba932adbd980b47cfc2367ea9fd66aa0144113cc613879839",
+        "transfer_path": "docs/implementation/pr38-final/results/t37-component-api-transfer/transfer.json",
+        "transfer_sha256": "880f47db78c30f220b1aa84ed7a1a52eafbabf3a3d0e2b5e5591185f7da7a7dc",
+        "decision_id": "T37-COMPONENT-PROSE-01-R4",
+        "reviewer": "/root/t37_components_review",
+        "model_selection": "gpt-6.1-sol",
+        "effort_selection": "high",
+        "counts": {
+          "selected_groups": 129,
+          "new_transfers": 113,
+          "existing_mappings": 15,
+          "approved_retirements": 1,
+          "unselected_groups": 593
+        },
+        "behavior": "NOT VERIFIED"
+      }
+    }
+  ],
+  "transfers_required_for_t37": [
+    {
+      "decision": "T37-PROBE-02",
+      "source_obligation": "Bounded-work and viewport performance obligations survive removal of ViewportWorkProbe, ViewportWorkSnapshot, TextViewport::work_probe, private hooks, and testing re-exports.",
+      "destination": "docs/contracts/authoring.md#bounded-work-obligations",
+      "disposition": "Recorded. T17/T33 remain open; no replacement instrumentation before T38; behavior and performance NOT VERIFIED."
+    },
+    {
+      "decision": "T37-FROZEN-01",
+      "source_obligation": "Retire the legacy PTY Nextest runner while retaining immutable tag/oracle/snapshot/receipt/reference provenance.",
+      "destination": "docs/development.md#retired-capture-and-frozen-cli-history",
+      "disposition": "Recorded. Old runner commands removed; annotated unsigned tag object and peeled commit recorded; no replacement runner or current visual gate claimed."
+    },
+    {
+      "decision": "T37-QUALIFIED-01",
+      "source_obligation": "Retire active qualified-capture acquisition/qualification harness and exclusive fixtures/tests; preserve pins, proof outputs, receipts, source hashes, licenses, and repair provenance.",
+      "destination": "docs/development.md#documentation-compatibility",
+      "disposition": "Recorded as historical provenance only; no repin or current qualification claim."
+    },
+    {
+      "decision": "T37-doc-citations",
+      "source_obligation": "Do not leave active documentation links or commands to removed tests and harnesses.",
+      "destination": "Maintained contracts, quickstart, development page, form-lanes report, and historical architecture/handoff records",
+      "disposition": "Relative links to removed tests were replaced by immutable source links or removed. Historical results now state that their cases are not current targets or proof."
+    },
+    {
+      "decision": "T37-component-api-prose",
+      "source_obligation": "Preserve selected caller rules recovered from accepted component-source review after removing Rustdoc and test targets.",
+      "destination": "docs/contracts/authoring.md#event-routing-and-committed-layout and docs/contracts/component-caller-contracts.md",
+      "disposition": "The six selected caller-rule rows remain in authoring.md and map to nine exact source groups. The separate 129-group guide is accepted by T37-COMPONENT-PROSE-01-R4 at exact commit 11bc4137c5897e29174bc29cadde717375590b2c and integrated by d0c95d7ff924af11ddcae8c072a1bee311b714c7. The other 593 archive groups remain provenance and descriptive T01/T35 guidance. Behavior NOT VERIFIED."
+    },
+    {
+      "decision": "T37-API-PROSE-01",
+      "source_obligation": "Preserve all non-obvious foundation caller preconditions, lifecycle/failure semantics, identity/revision/selection rules, callback/borrow limits, and bounded-work contracts; assign each of the 1,122 Rustdoc groups an exact destination or specific non-contract reason.",
+      "destination": "Three accepted cohort guides and docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
+      "disposition": "The 1,122 groups are composed into accepted cohorts A 322, B 304, and C 496. Global output commit ddeceda0a3e03a6aa454b23c961e28cbb84871fb has scoped acceptance T37-API-CROSSWALK-DDE-ACCEPT from /root/t00_independent_review, Sol high selection. The decision covers composition/input preservation only, not overall T37 or product behavior."
+    },
+    {
+      "decision": "T37-TOOLS-SAFETY-01",
+      "source_obligation": "Move current invariants for retained unsafe diagnostics and observer descriptor ownership into maintained safety guidance before mapped inline rationale is removed.",
+      "destination": "docs/contracts/safety-invariants.md#production-unsafe-operation-rationale-map",
+      "disposition": "Accepted scoped transfer is present in docs/contracts/safety-invariants.md at merge f2657fe1cf0dcfb7baac271b5d93c523369798f4, decision T37-SAFETY-MERGE-F265-ACCEPT. The c645 tools rationale hash remains 4dd097c5697b9b6757f855aa48bd2b9a2fdeb201a536a8a14e650712d4bcfebf. T20-OBS-FD-01 and F17 remain open; no behavior or unsafe-code correctness is claimed."
+    },
+    {
+      "decision": "T37-DOCS-OWNERSHIP-01",
+      "source_obligation": "Replace current E2E runner guidance with retained admission API and CLI contracts, and preserve old procedures as fixed-source history.",
+      "destination": "crates/termrock-e2e/README.md#admission-interface",
+      "disposition": "Rewritten for the nine admission flags, input binding/recheck, error/result, protected write root, and no-replacement output. The old README is linked at immutable product input 1d6ee92. Behavior NOT VERIFIED."
+    },
+    {
+      "decision": "T37-CAPTURE-01",
+      "source_obligation": "Retire six legacy capture/replay/approval executables and remove active command guidance while preserving source-pinned evidence.",
+      "destination": "docs/development.md#retired-capture-and-frozen-cli-history",
+      "disposition": "Recorded as retired history. Baseline/parity evidence, receipts, manifests, recipes, reviews, and source identities remain immutable. No replacement runner or fresh approval is claimed."
+    },
+    {
+      "decision": "T37-E2E-SCHEMA-02",
+      "source_obligation": "Classify all twelve preserved E2E schemas from retained source consumers and mark retired formats historical-only; preserve schema bytes.",
+      "destination": "crates/termrock-e2e/README.md#schema-status",
+      "disposition": "Seven active consumers: expected-generation, generation-admission, oracle-capture, qualification-review, tag-validator-toolchain, subject-manifest-v2, and receipt-v3. The last two support retained subject validation and diagnostic reading of historical receipts; receipt-v3 has no current runner or producer. Five schemas are historical-only: receipt-v1/v2, subject-manifest-v1, trust-record-v1/v2. All twelve schema bytes are unchanged. This is a source-consumer classification, not behavior verification."
+    }
+  ],
+  "future_documentation_obligations": {
+    "T01": "Maintain the API and requirement inventory and ownership assignments. Reconcile it with accepted T37 cohort and component-transfer records; do not defer caller clauses already identified as required.",
+    "T35": "Write user-facing public API and application guidance that is not covered by accepted maintained contracts. The component caller-contract guide is already accepted and integrated.",
+    "component_transfer": "The 129-group caller-contract transfer is accepted at exact output commit 11bc4137c5897e29174bc29cadde717375590b2c and integrated at d0c95d7ff924af11ddcae8c072a1bee311b714c7. Its selected caller rules are not T01/T35 deferrals."
+  },
+  "behavior_status": "NOT VERIFIED",
+  "no_replacement_tests_or_harnesses_added": true,
+  "component_source_review": {
+    "reviewer_agent_id": "/root/t37_components_review",
+    "reviewer_model": "gpt-6.1-sol",
+    "reviewer_effort": "high",
+    "decision": "ACCEPT",
+    "input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+    "output_commit": "96fe6a2a1430967831777da2da6402206c4716ff",
+    "scope": "Component source cleanup only; this does not by itself accept the separate prose transfer.",
+    "behavior_status": "NOT VERIFIED",
+    "selected_tests": 0,
+    "source_obligations": [
+      {
+        "area": "Routed viewport input",
+        "source": "crates/termrock-viewport/src/viewport.rs",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "caller_rules": [
+          "Use one source revision for routed update and draw.",
+          "Advance the revision when order, content, or layout data changes.",
+          "Do not reuse a revision while an old route can arrive.",
+          "Fail closed at revision exhaustion."
+        ],
+        "disposition": "Transferred as selected caller guidance; no behavior proof."
+      },
+      {
+        "area": "Event-local wheel routing",
+        "source": "crates/termrock-runtime/src/ui/mod.rs",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "caller_rules": [
+          "Link the returned route key to its containing parent.",
+          "Resolve the live source from event position and axis before acknowledging the event."
+        ],
+        "disposition": "Transferred as selected caller guidance; no behavior proof."
+      },
+      {
+        "area": "Windowed radio choice",
+        "source": "crates/termrock-controls/src/choice.rs",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "caller_rules": [
+          "Keep original option indices as keys.",
+          "Pass the full option list to update and input handling after drawing a clipped window."
+        ],
+        "disposition": "Transferred as selected caller guidance; no behavior proof."
+      },
+      {
+        "area": "Custom input host registration",
+        "source": "crates/termrock-fields/src/input.rs",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "caller_rules": [
+          "Pass the visible host control area to register_editor.",
+          "Do not register hidden or off-screen input geometry.",
+          "The method registers the full host area for focus and pointer routing."
+        ],
+        "disposition": "Transferred as selected caller guidance; no behavior proof."
+      },
+      {
+        "area": "List selection bindings",
+        "source": "crates/termrock-navigation/src/list.rs",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "caller_rules": [
+          "Publish selection bindings only when the list is live, non-empty, and enabled.",
+          "Use the same eligibility rules as List::draw."
+        ],
+        "disposition": "Transferred as selected caller guidance; no behavior proof."
+      },
+      {
+        "area": "Tabs committed layout",
+        "source": "crates/termrock-navigation/src/tabs.rs",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "caller_rules": [
+          "Use the receipt from the preceding committed layout for warm-frame overflow reservation.",
+          "Do not infer that receipt from a previously painted frame."
+        ],
+        "disposition": "Transferred as selected caller guidance; no behavior proof."
+      },
+      {
+        "area": "Notice cut metadata and reveal geometry",
+        "source": [
+          "crates/termrock-feedback/src/notice.rs",
+          "crates/termrock-overlays/src/notice_reveal.rs"
+        ],
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "caller_rules": [
+          "Match cut metadata to logical Notice geometry.",
+          "For a window, use body width and logical row count.",
+          "Match reveal geometry to that body and draw it after live Notice content."
+        ],
+        "disposition": "Transferred as selected caller guidance; no behavior proof."
+      }
+    ],
+    "remaining_review_constraints": [
+      "The separate 129-group caller-contract transfer is accepted at exact output commit 11bc4137c5897e29174bc29cadde717375590b2c and integrated by merge d0c95d7ff924af11ddcae8c072a1bee311b714c7.",
+      "T01 maintains the full source API inventory and owner assignments; it must not defer clauses already transferred as required caller guidance.",
+      "T35 covers descriptive API descriptions and application use beyond the accepted maintained contracts.",
+      "No test, harness, fixture, or product behavior verification is included."
+    ],
+    "accepted_followups": [
+      {
+        "decision": "FOUNDATION-TESTING-01/02",
+        "reviewer_agent_id": "/root/t00_independent_review",
+        "reviewer_model": "gpt-6.1-sol",
+        "reviewer_effort": "high",
+        "output_commit": "f03e22c14a5817272cd5643094e974f9c25f1b6a",
+        "parent_commit": "96fe6a2a1430967831777da2da6402206c4716ff",
+        "changed_path": "crates/termrock/src/lib.rs",
+        "scope": "Remove only the testing-feature facade re-export for ProjectedFrame, RenderModel, and StyledQuery; 21 tokens deleted. No Cargo command or test ran.",
+        "review_state": "ACCEPTED_AND_QUEUED_FOR_INTEGRATION",
+        "behavior_status": "NOT VERIFIED"
+      },
+      {
+        "decision": "T37-COMPONENT-PROSE-01-R4",
+        "reviewer_agent_id": "/root/t37_components_review",
+        "reviewer_model": "gpt-6.1-sol",
+        "reviewer_effort": "high",
+        "output_commit": "11bc4137c5897e29174bc29cadde717375590b2c",
+        "integrated_merge_commit": "d0c95d7ff924af11ddcae8c072a1bee311b714c7",
+        "changed_paths": [
+          "docs/contracts/component-caller-contracts.md",
+          "docs/implementation/pr38-final/results/t37-component-api-transfer/README.md",
+          "docs/implementation/pr38-final/results/t37-component-api-transfer/transfer.json"
+        ],
+        "scope": "129-group caller-contract transfer: 113 new clauses, 15 existing mappings, and one approved retirement.",
+        "review_state": "ACCEPTED_AND_INTEGRATED",
+        "selected_behavior_cases": 0,
+        "behavior_status": "NOT VERIFIED"
+      }
+    ]
+  },
+  "source_review_adjustments": {
+    "path": "docs/architecture.md",
+    "change": "Marked test-body citations as immutable historical evidence; pinned the removed key/modifier test link to frozen source input 1d6; stated NOT VERIFIED behavior status.",
+    "reason": "T37 removes source test functions that the active architecture page cited."
+  },
+  "documentation_validation": {
+    "json_parse": {
+      "command": "python3 -m json.tool docs/implementation/pr38-final/results/t37-shared/api-prose-crosswalk.json",
+      "exit_code": 0,
+      "result": "Valid JSON after accepted-state reconciliation."
+    },
+    "local_markdown_links": {
+      "command": "Python standard-library relative-link target check over every Markdown path in maintained_documents; URI schemes and fragment-only links are excluded.",
+      "exit_code": 0,
+      "checked_files": 20,
+      "checked_local_targets": 461,
+      "missing_targets": 0,
+      "missing_details": [],
+      "anchor_validation": "NOT RUN"
+    },
+    "diff_whitespace": {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "No whitespace errors in the bounded general-record update."
+    },
+    "added_test_execution_commands": {
+      "command": "git diff --unified=0 | rg '^\\+.*(cargo nextest run|cargo test|pytest|python3 -m unittest|make test)'",
+      "exit_code": 1,
+      "meaning": "No matching added test invocation was found."
+    },
+    "tests_or_harnesses_added_or_run": 0,
+    "product_behavior": "NOT VERIFIED"
+  },
+  "component_selected_transfers": {
+    "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+    "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "inventory": {
+      "path": "docs/implementation/pr38-final/results/t37-components/removed-rustdoc.jsonl",
+      "sha256": "44540f7e878b477d87f0b8b74185398baa0c56f0218e8ac07a18d083394dae93",
+      "group_count": 722,
+      "source_paths": 61
+    },
+    "selected_contract_rows": 6,
+    "source_groups": [
+      {
+        "source_path": "crates/termrock-controls/src/choice.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "25e1184f74b20c9c45aa64c51034b3b2038cdcd37408e6f9e57dfd0aa8d4b0ff",
+        "line_range": {
+          "start": 1044,
+          "end": 1045
+        },
+        "text_sha256": "d80d0581c280703cec2a8190a11c80de044726a54bb32c0edcda588f929a5dd8",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-feedback/src/notice.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "1099a278857d8a66c3ccd7009d0de20a0837041343c4475228acaa7c271465a3",
+        "line_range": {
+          "start": 293,
+          "end": 304
+        },
+        "text_sha256": "c842943a62168d13bcec11ec785c487f4348f91ca973c68cd1a2e38727d9b218",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-fields/src/input.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "927964354d0ba25e2b4871b594790c99576b16316195b74d5ffd15f449e05f4d",
+        "line_range": {
+          "start": 1245,
+          "end": 1249
+        },
+        "text_sha256": "b16b44783de464b9bf0e1b406796b08d6f6643fca2ad560471f84cbede9b4a94",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-navigation/src/list.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "69eb10b7892b963678b4d6a30d98cd54ac1bdd4a0e0443776d8ba6e5320cd128",
+        "line_range": {
+          "start": 709,
+          "end": 715
+        },
+        "text_sha256": "12c5992e835b26c6b9856635b02e683efb32b32b65537eb78db22227da5c766e",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-navigation/src/tabs.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "7b0f438179327a670bb4e0442336746d062209d1a402f515d7eb11328f6c2d86",
+        "line_range": {
+          "start": 923,
+          "end": 927
+        },
+        "text_sha256": "27a6f2355e8621b47515029779be5bbdb4cc3953526f1798441757e4d45f8c19",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-overlays/src/notice_reveal.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "31bc339c50d5ebe6f52c1014e4a484478d81e2333b9dcc9e7bb7820825316bac",
+        "line_range": {
+          "start": 36,
+          "end": 47
+        },
+        "text_sha256": "809aeaa24f38cccc67e9f53fd4007dc5ba5d54c9e3be23ae87fce387a12f53e5",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-overlays/src/notice_reveal.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "31bc339c50d5ebe6f52c1014e4a484478d81e2333b9dcc9e7bb7820825316bac",
+        "line_range": {
+          "start": 131,
+          "end": 144
+        },
+        "text_sha256": "bcb385ced4223ac6aa202d47cc491511268ea8116cea6c21f3cae6d29e4534c8",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-viewport/src/viewport.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "59d440d67123df82e5e46d2b8ba686bcc311956a4af416084b1f463f651082bc",
+        "line_range": {
+          "start": 1971,
+          "end": 1975
+        },
+        "text_sha256": "b9fee0e926315efee8c67f4c4f43f070cf4c5c0f178545758b40ee64d001a795",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      },
+      {
+        "source_path": "crates/termrock-viewport/src/viewport.rs",
+        "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "source_sha256": "59d440d67123df82e5e46d2b8ba686bcc311956a4af416084b1f463f651082bc",
+        "line_range": {
+          "start": 2908,
+          "end": 2912
+        },
+        "text_sha256": "6b3be22361d89e4fcd412568b9e73d1323f098cb3453ed509d9b1923136f2b33",
+        "maintained_destination": "docs/contracts/authoring.md#event-routing-and-committed-layout",
+        "disposition": "Required caller/lifecycle/identity rule retained in the named table row."
+      }
+    ],
+    "limitation": "These nine exact groups support six selected authoring rows. The separate accepted transfer covers 129 groups: 113 new clauses, 15 existing mappings, and one approved retirement. The other 593 archive groups remain source-hash and line-range provenance; T01 maintains the full inventory and T35 owns descriptive public API and application guidance. This is not a 722-row semantic transfer."
+  },
+  "preserved_historical_files": [
+    {
+      "path": "docs/verification/paired-process-receipt-hardening-20261021.md",
+      "source_commit": "265debfb988feb8cd04d57f246262f8881ac1213",
+      "sha256": "19d0d25f5bef1672b21a5c70d10bb396a97d5f3a3345da66a80bcfea5dd24c9f",
+      "verification": "shasum of the working file equals shasum of `git show 265debfb988feb8cd04d57f246262f8881ac1213:<path>`."
+    }
+  ],
+  "e2e_schema_hashes_against_product_source": {
+    "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "comparison": "working tree SHA-256 equals `git show <product-source>:<path>` SHA-256 for every file",
+    "files": {
+      "expected-generation-v1.schema.json": "d86c066f58c6edcc92133752d9e02102ab9564c6a7c0b60777ad0f01818b23bc",
+      "generation-admission-v1.schema.json": "cfec0679de8245be6e165babf7cd4df15855fef42349a28ecc9b8d5102a069a5",
+      "oracle-capture-receipt-v1.schema.json": "448577bd07ccec30596f0a60ee38ca943271183ede8a45c7a7b2c9c167187e20",
+      "qualification-review-v1.schema.json": "f3f06b64d25d806dac6ada4b081df8532e83a50f5ec5b6f811a4231c87ba08d0",
+      "receipt-v1.schema.json": "68f9c6964d6b732a5a67fa5571b01e8001717f47b0b87db3aa1ab3764768dd61",
+      "receipt-v2.schema.json": "31135e33541dcc21fffed2c77d3a37a169ae5ceaeb482fa9dc8340394f9b6a5d",
+      "receipt-v3.schema.json": "562d95a7a104a6f3127fb9f403f7cb79c24b25f77943e1eec732ed2120f476fe",
+      "subject-manifest-v1.schema.json": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+      "subject-manifest-v2.schema.json": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+      "tag-validator-toolchain-v1.schema.json": "979fd241c4b35c8402e3e4161ccd9bad1925c7e5af7f25c0f0b55ebe9fa1b9a6",
+      "trust-record-v1.schema.json": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+      "trust-record-v2.schema.json": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b"
+    },
+    "unchanged_count": 12
+  },
+  "pending_integration_links": [],
+  "validation_record": {
+    "foundation_crosswalk_generator": {
+      "status": "ACCEPTED_SCOPED_COMPOSITION; INTEGRATED",
+      "owner": "/root/t37_crosswalk",
+      "model_selection": "gpt-6-luna",
+      "effort_selection": "max",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-crosswalk",
+      "branch": "pr38/T37-crosswalk-refresh",
+      "composition_input_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+      "reviewed_output_commit": "ddeceda0a3e03a6aa454b23c961e28cbb84871fb",
+      "output_sha256": "00ad0737c6b6b2d90ac0878dd8ac72fad07581a20522df2176d89bf600a25ec4",
+      "record_count": 1122,
+      "source_inventory_status": "INTEGRATED_AND_HASH_VERIFIED",
+      "source_disposition_inventory_status": "INTEGRATED_AND_HASH_VERIFIED",
+      "independent_review": {
+        "decision_id": "T37-API-CROSSWALK-DDE-ACCEPT",
+        "reviewer": "/root/t00_independent_review",
+        "model_selection": "gpt-6.1-sol",
+        "effort_selection": "high",
+        "backend_attestation": "NOT PROVIDED",
+        "reviewed_commit": "ddeceda0a3e03a6aa454b23c961e28cbb84871fb",
+        "reviewed_parent": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+        "decision": "ACCEPT_SCOPED",
+        "scope": "Final composition refresh and input preservation only.",
+        "verified": [
+          "All 1,122 source and cohort rows are preserved verbatim.",
+          "Exact A/B/C reviewer, Git commit, and artifact bindings match.",
+          "Both local source inventories are integrated and hash-verified.",
+          "The composition records 30 maintained destinations.",
+          "Artifact hashes and producer script policy pass review."
+        ],
+        "limits": [
+          "This decision does not accept overall T37 or the component caller guide.",
+          "No product, Cargo, or test command ran; selected behavior cases: 0.",
+          "Product behavior remains NOT VERIFIED."
+        ]
+      },
+      "limits": [
+        "Decision scope is final composition and input preservation only.",
+        "It does not accept overall T37, the component guide, or product behavior.",
+        "No behavior cases were selected; product behavior remains NOT VERIFIED."
+      ]
+    },
+    "schemas": {
+      "command": "Compare every E2E schema SHA-256 with git show 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd:<path>",
+      "exit_code": 0,
+      "result": "12 of 12 byte-identical"
+    },
+    "historical_receipt_report": {
+      "command": "Compare working SHA-256 with git show 265debfb988feb8cd04d57f246262f8881ac1213:<path>",
+      "exit_code": 0,
+      "result": "Exact match at 19d0d25f5bef1672b21a5c70d10bb396a97d5f3a3345da66a80bcfea5dd24c9f"
+    },
+    "json_parse": {
+      "command": "python3 -m json.tool docs/implementation/pr38-final/results/t37-shared/api-prose-crosswalk.json",
+      "exit_code": 0,
+      "result": "Valid JSON after accepted-state reconciliation."
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "No whitespace errors in the bounded general-record update."
+    },
+    "local_markdown_links": {
+      "status": "PASS_PATHS_ONLY",
+      "result": "All listed relative local target paths resolve. URI targets and fragment anchors were not checked.",
+      "checked_count": 461,
+      "checked_files": 20,
+      "missing_count": 0,
+      "pending_count": 0
+    },
+    "tests_run": 0,
+    "product_behavior": "NOT VERIFIED",
+    "artifact_hash_checks": {
+      "command": "SHA-256 current worktree files and `git show HEAD:<path>` blobs against accepted recorded hashes.",
+      "exit_code": 0,
+      "verified": [
+        {
+          "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
+          "sha256": "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619"
+        },
+        {
+          "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose-disposition.json",
+          "sha256": "8e3923ebb4f6d5974a2e632ca32e5406718a5985a8f26a17a75fcbd9a3f4e9df"
+        },
+        {
+          "path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
+          "sha256": "6c5c9147f0d0339b5fbba9adfe1fc8703c773c078fb7806e9ec67ee07e958cf4"
+        },
+        {
+          "path": "docs/contracts/foundation-values.md",
+          "sha256": "37b78cc720209453b0ed7a7ea2a70df46ad88ec5c173cb874fde84dfcb73b044"
+        },
+        {
+          "path": "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
+          "sha256": "100b55db7b05031451bca35c2142dbda6b3905d69d7ca404308ed4819a2b03a4"
+        },
+        {
+          "path": "docs/contracts/foundation-runtime.md",
+          "sha256": "f4b7d6d704f51c8febdd6d019f198a82ac765c0b976b984a65f28c5294c436b6"
+        },
+        {
+          "path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+          "sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae"
+        },
+        {
+          "path": "docs/contracts/foundation-support.md",
+          "sha256": "f3a12716c17fd4fae898a44b41880a90f9ac647e90725e83b2e2380d0ff385c4"
+        },
+        {
+          "path": "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
+          "sha256": "00ad0737c6b6b2d90ac0878dd8ac72fad07581a20522df2176d89bf600a25ec4"
+        },
+        {
+          "path": "docs/contracts/component-caller-contracts.md",
+          "sha256": "60676737b67278eba932adbd980b47cfc2367ea9fd66aa0144113cc613879839"
+        },
+        {
+          "path": "docs/implementation/pr38-final/results/t37-component-api-transfer/transfer.json",
+          "sha256": "880f47db78c30f220b1aa84ed7a1a52eafbabf3a3d0e2b5e5591185f7da7a7dc"
+        },
+        {
+          "path": "docs/contracts/safety-invariants.md",
+          "sha256": "c80133c43064e200c48b811ac86f5195e84bd91994916ff214950ad43e5a94e8"
+        }
+      ],
+      "result": "All twelve current files match both their accepted recorded SHA-256 values and the current aggregate Git blobs."
+    }
+  },
+  "component_api_transfer": {
+    "path": "docs/contracts/component-caller-contracts.md",
+    "candidate_worktree": "/Users/donbeave/Downloads/termrock-t37-component-contracts",
+    "reviewed_output_commit": "11bc4137c5897e29174bc29cadde717375590b2c",
+    "integrated_merge_commit": "d0c95d7ff924af11ddcae8c072a1bee311b714c7",
+    "aggregate_commit": "a9206e2dd64952837a4cf9829ecf648a5121e4f6",
+    "transfer_record": "docs/implementation/pr38-final/results/t37-component-api-transfer/transfer.json",
+    "transfer_record_sha256": "880f47db78c30f220b1aa84ed7a1a52eafbabf3a3d0e2b5e5591185f7da7a7dc",
+    "guide_sha256": "60676737b67278eba932adbd980b47cfc2367ea9fd66aa0144113cc613879839",
+    "archive_sha256": "44540f7e878b477d87f0b8b74185398baa0c56f0218e8ac07a18d083394dae93",
+    "counts": {
+      "selected_groups": 129,
+      "new_transfers": 113,
+      "existing_mappings": 15,
+      "approved_retirements": 1,
+      "unselected_groups": 593
+    },
+    "previous_exact_review": {
+      "reviewed_commit": "ed3abaf940bc81917a8ebcedb83a5783cc14d667",
+      "decision_id": "T37-COMPONENT-PROSE-01-R2",
+      "reviewer": "/root/t37_components_review",
+      "model_selection": "gpt-6.1-sol",
+      "effort_selection": "high",
+      "result": "CORRECTION"
+    },
+    "final_output_review": {
+      "reviewed_commit": "11bc4137c5897e29174bc29cadde717375590b2c",
+      "decision_id": "T37-COMPONENT-PROSE-01-R4",
+      "reviewer": "/root/t37_components_review",
+      "model_selection": "gpt-6.1-sol",
+      "effort_selection": "high",
+      "result": "ACCEPT",
+      "scope": "Full 129-group caller-contract transfer after all correction rounds.",
+      "selected_behavior_cases": 0,
+      "behavior": "NOT VERIFIED"
+    },
+    "evidence_consistency_review": {
+      "reviewed_commit": "c234bc6f231c251dc515f84076934e0e4bf95abc",
+      "reviewer": "/root/t37_receipt_check",
+      "model_selection": "gpt-6.1-sol",
+      "effort_selection": "medium",
+      "result": "ACCEPTED_EVIDENCE_CONSISTENCY_ONLY",
+      "scope": "Receipt and evidence consistency; it does not replace the Sol high semantic decision."
+    },
+    "status": "ACCEPTED_SCOPED_AND_INTEGRATED",
+    "behavior": "NOT VERIFIED"
+  },
+  "accepted_cohort_transfers": [
+    {
+      "cohort_id": "T37-API-PROSE-COHORT-A",
+      "label": "foundation values",
+      "record_count": 322,
+      "artifact_path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
+      "artifact_sha256": "6c5c9147f0d0339b5fbba9adfe1fc8703c773c078fb7806e9ec67ee07e958cf4",
+      "reviewed_commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+      "integrated_commit": "9463cb8c36f0bc6e53af241334efb19bb8a2e5f1",
+      "reviewer": "/root/t37_components_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "decision": "ACCEPTED_SCOPED"
+    },
+    {
+      "cohort_id": "T37-API-PROSE-COHORT-B",
+      "label": "foundation runtime",
+      "record_count": 304,
+      "artifact_path": "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
+      "artifact_sha256": "100b55db7b05031451bca35c2142dbda6b3905d69d7ca404308ed4819a2b03a4",
+      "reviewed_commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+      "integrated_commit": "6e38a1d3be4b0dcfd47f793e7975299254e38d14",
+      "reviewer": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "decision": "ACCEPTED_SCOPED"
+    },
+    {
+      "cohort_id": "T37-API-PROSE-COHORT-C",
+      "label": "foundation support",
+      "record_count": 496,
+      "artifact_path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+      "artifact_sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae",
+      "reviewed_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+      "integrated_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+      "reviewer": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "decision": "ACCEPTED_SCOPED"
+    }
+  ],
+  "resolved_integration_links": [
+    {
+      "source_document": "docs/contracts/authoring.md",
+      "source_link": "../../docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
+      "target_path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
+      "accepted_source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+      "local_integration_commit": "d459a2fc062e7fc3a6215ea5c746690e5c5be4ab",
+      "sha256": "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619",
+      "status": "RESOLVED_AND_HASH_VERIFIED"
+    },
+    {
+      "source_document": "docs/contracts/authoring.md",
+      "source_link": "component-caller-contracts.md",
+      "target_path": "docs/contracts/component-caller-contracts.md",
+      "accepted_source_commit": "11bc4137c5897e29174bc29cadde717375590b2c",
+      "local_integration_commit": "d0c95d7ff924af11ddcae8c072a1bee311b714c7",
+      "sha256": "60676737b67278eba932adbd980b47cfc2367ea9fd66aa0144113cc613879839",
+      "status": "RESOLVED_AND_HASH_VERIFIED"
+    }
+  ],
+  "safety_transfer_acceptance": {
+    "decision_id": "T37-SAFETY-MERGE-F265-ACCEPT",
+    "reviewer": "/root/t00_independent_review",
+    "reviewer_model": "gpt-6.1-sol",
+    "reviewer_effort": "high",
+    "reviewed_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+    "decision": "ACCEPT_SCOPED",
+    "contract_sha256": "c80133c43064e200c48b811ac86f5195e84bd91994916ff214950ad43e5a94e8",
+    "record_sha256": "b9c687ffba998d33a77dbc5191cb1aecc0d84ebe562fb3623b5ae09970e6276b",
+    "limits": [
+      "Session and tools safety mappings are retained.",
+      "F17 and T20-OBS-FD-01 remain open.",
+      "Behavior and unsafe-code correctness remain NOT VERIFIED."
+    ]
+  },
+  "summary_review": {
+    "status": "PENDING_INDEPENDENT_SOL_HIGH_REVIEW",
+    "scope": "Reconciliation of accepted source, prose, composition, safety, and integration evidence in this summary record.",
+    "product_behavior": "NOT VERIFIED"
+  },
+  "foundation_crosswalk_acceptance": {
+    "decision_id": "T37-API-CROSSWALK-DDE-ACCEPT",
+    "reviewer": "/root/t00_independent_review",
+    "model_selection": "gpt-6.1-sol",
+    "effort_selection": "high",
+    "backend_attestation": "NOT PROVIDED",
+    "reviewed_commit": "ddeceda0a3e03a6aa454b23c961e28cbb84871fb",
+    "reviewed_parent": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+    "decision": "ACCEPT_SCOPED",
+    "scope": "Final composition refresh and input preservation only.",
+    "verified": [
+      "All 1,122 source and cohort rows are preserved verbatim.",
+      "Exact A/B/C reviewer, Git commit, and artifact bindings match.",
+      "Both local source inventories are integrated and hash-verified.",
+      "The composition records 30 maintained destinations.",
+      "Artifact hashes and producer script policy pass review."
+    ],
+    "limits": [
+      "This decision does not accept overall T37 or the component caller guide.",
+      "No product, Cargo, or test command ran; selected behavior cases: 0.",
+      "Product behavior remains NOT VERIFIED."
+    ]
+  },
+  "global_composition_acceptance": {
+    "decision_id": "T37-API-CROSSWALK-DDE-ACCEPT",
+    "reviewer": "/root/t00_independent_review",
+    "model_selection": "gpt-6.1-sol",
+    "effort_selection": "high",
+    "backend_attestation": "NOT PROVIDED",
+    "reviewed_commit": "ddeceda0a3e03a6aa454b23c961e28cbb84871fb",
+    "reviewed_parent": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+    "decision": "ACCEPT_SCOPED",
+    "scope": "Final composition refresh and input preservation only.",
+    "verified": [
+      "All 1,122 source and cohort rows are preserved verbatim.",
+      "Exact A/B/C reviewer, Git commit, and artifact bindings match.",
+      "Both local source inventories are integrated and hash-verified.",
+      "The composition records 30 maintained destinations.",
+      "Artifact hashes and producer script policy pass review."
+    ],
+    "limits": [
+      "This decision does not accept overall T37 or the component caller guide.",
+      "No product, Cargo, or test command ran; selected behavior cases: 0.",
+      "Product behavior remains NOT VERIFIED."
+    ]
+  },
+  "maintained_document_hashes": {
+    "aggregate_commit": "a9206e2dd64952837a4cf9829ecf648a5121e4f6",
+    "files": [
+      {
+        "path": "crates/termrock-e2e/README.md",
+        "sha256": "d42309a0b45973e3c2a4eb50212525d9db07ddaac97ea71f3809a7ab20f1bd5d"
+      },
+      {
+        "path": "docs/architecture.md",
+        "sha256": "6cb619ea6b957839cc8c6602273e415b33d7d4515e24cb08d89fed8799b622ad"
+      },
+      {
+        "path": "docs/contracts/authoring.md",
+        "sha256": "3dabb6cc130d892dddc8eb691d90371ea397bdaad2d348f4a233f3b916df845b"
+      },
+      {
+        "path": "docs/contracts/overrides.md",
+        "sha256": "fca60cdda39e10f52fd331ce3aa55042d02002e5c9f372dcf6a7d867fc89dc7c"
+      },
+      {
+        "path": "docs/contracts/theming.md",
+        "sha256": "b7c42909eb3850c09f4472be298ccfbc726004db248ddbd0c27af99d64045cd0"
+      },
+      {
+        "path": "docs/contracts/migration.md",
+        "sha256": "da3747dd007cb5b596ffa0153a54394cbc304c2e26af158d0d0e5e8ae4416db6"
+      },
+      {
+        "path": "docs/guides/quickstart.md",
+        "sha256": "ec601be8d7769315313c158fec07813461652b2d00ee911f92ef42bd4f4f72c8"
+      },
+      {
+        "path": "docs/architecture/form-lanes-stage1.md",
+        "sha256": "908b0f34b96feb6d2e71192d77981d32d23f4dc8c6a84bc4572dbfd73eb689ee"
+      },
+      {
+        "path": "docs/development.md",
+        "sha256": "e64c3e924a1a3a016ebc653cfbc96a712597461dabbbcd67c7d5c4000b234f10"
+      },
+      {
+        "path": "docs/architecture/termrock-migration-matrix.md",
+        "sha256": "b95719f57c80df1808c7482c11de2bfb7ba7fbe02559c79c19eb3724a2647bf4"
+      },
+      {
+        "path": "docs/architecture/termrock-migration-record.md",
+        "sha256": "d3441157ebf1e394075ae7f2f1e05d4fadbe23fd4f9018365bef8241fe1ad647"
+      },
+      {
+        "path": "docs/architecture/termrock-coordinator-plan.md",
+        "sha256": "773b900f18da704656b9d16895912f499aa96ee33db7df03b303ed314d08a482"
+      },
+      {
+        "path": "docs/handoff/README.md",
+        "sha256": "d357bacb999e6f5037ecc8702f4cf31b3f77156e0589714fc7542f934f7a55d0"
+      },
+      {
+        "path": "docs/verification/paired-process-receipt-hardening-20261021.md",
+        "sha256": "19d0d25f5bef1672b21a5c70d10bb396a97d5f3a3345da66a80bcfea5dd24c9f"
+      },
+      {
+        "path": "docs/contracts/foundation-values.md",
+        "sha256": "37b78cc720209453b0ed7a7ea2a70df46ad88ec5c173cb874fde84dfcb73b044"
+      },
+      {
+        "path": "docs/contracts/foundation-runtime.md",
+        "sha256": "f4b7d6d704f51c8febdd6d019f198a82ac765c0b976b984a65f28c5294c436b6"
+      },
+      {
+        "path": "docs/contracts/foundation-support.md",
+        "sha256": "f3a12716c17fd4fae898a44b41880a90f9ac647e90725e83b2e2380d0ff385c4"
+      },
+      {
+        "path": "docs/contracts/safety-invariants.md",
+        "sha256": "c80133c43064e200c48b811ac86f5195e84bd91994916ff214950ad43e5a94e8"
+      },
+      {
+        "path": "docs/contracts/facade-examples.md",
+        "sha256": "49c37fe3b8bcd91072f6f5a461183754900238f65c3a7e5a01a68096b8edf3c0"
+      },
+      {
+        "path": "docs/contracts/component-caller-contracts.md",
+        "sha256": "60676737b67278eba932adbd980b47cfc2367ea9fd66aa0144113cc613879839"
+      }
+    ]
+  }
+}

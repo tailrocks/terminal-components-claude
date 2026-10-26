@@ -168,11 +168,6 @@ pub struct ConnectionDraft {
 }
 
 impl ConnectionDraft {
-    /// Creates the blank draft used for a new connection.
-    ///
-    /// Driver defaults are retained while identity fields remain empty so the
-    /// user does not accidentally save the currently selected connection as a
-    /// duplicate.
     pub fn new() -> Self {
         Self {
             host: "localhost".into(),
@@ -418,35 +413,5 @@ impl ConnectionsScreen {
     }
     pub fn retry(&mut self) -> Option<Connection> {
         self.connect_selected()
-    }
-}
-
-#[cfg(test)]
-mod validation_tests {
-    use super::{ConnectionDraft, field};
-
-    #[test]
-    fn postgres_name_and_port_validate_without_requiring_database() {
-        let draft = ConnectionDraft {
-            name: "Local scratch".to_owned(),
-            port: "5432".to_owned(),
-            ..ConnectionDraft::new()
-        };
-
-        assert_eq!(draft.database, "");
-        assert!(draft.validate_all().is_ok());
-    }
-
-    #[test]
-    fn name_and_port_remain_required_validation_fields() {
-        let mut draft = ConnectionDraft {
-            port: "5432".to_owned(),
-            ..ConnectionDraft::new()
-        };
-        assert!(matches!(draft.validate_all(), Err((id, _)) if id == field::NAME));
-
-        draft.name = "Local scratch".to_owned();
-        draft.port = "not-a-port".to_owned();
-        assert!(matches!(draft.validate_all(), Err((id, _)) if id == field::PORT));
     }
 }

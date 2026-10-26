@@ -10,6 +10,20 @@ Historical narrative and per-increment receipts stay in
 record and the matrix disagree, this record states the current decision and
 the matrix section is marked superseded by it.
 
+T37 retires the legacy test targets and harnesses named in this record. Test
+paths, counts, and results below are historical at their recorded source
+revisions. They are not current commands or proof. T01 and T38 must rebuild
+the requirements and approve any future cases. Product behavior remains
+`NOT VERIFIED`.
+
+T37-FROZEN-01 and T37-CAPTURE-01 also retire the legacy frozen CLI, capture,
+parity replay, and approval executables. Their commands and recipes below are
+source-pinned historical evidence. Do not run them or treat them as current
+capture authority. The frozen `visual-baseline` tag is annotated and unsigned;
+its tag object, peeled commit, oracle, snapshots, manifests, receipts, and
+review evidence remain immutable. No replacement runner or fresh approval is
+claimed.
+
 ## Delivery path
 
 | Item | Value |
@@ -750,13 +764,17 @@ library gap an application writer hits is recorded, not patched locally.
 The coordinator merges each stream into `parity/termrock-visual-baseline`
 under the shared push lock, and owns the final gates.
 
-## Verification infrastructure (audit, revision `40bc297e5`)
+## Verification infrastructure history (audit, revision `40bc297e5`)
 
-The live paired runner is `tools/frozen_baseline.py live-compare`. The
-legacy `tools/parity_replay.py` / `tools/parity_approve.py` path (499
-recipes) is not the acceptance runner.
+This section records the former `tools/frozen_baseline.py` paired runner and
+`tools/parity_replay.py` / `tools/parity_approve.py` path (499 recipes) at the
+listed source revision. T37-FROZEN-01 and T37-CAPTURE-01 retire these tools
+and the related capture executables. The commands, recipes, and results in
+this section are historical. Do not run them or treat them as a current
+acceptance, capture, replay, or approval procedure. No replacement runner is
+provided before T38 review.
 
-Paired run, in order:
+Former paired-run sequence, retained as historical evidence:
 
 ```bash
 python3 tools/frozen_baseline.py prepare  --repo . --root target/frozen-baseline

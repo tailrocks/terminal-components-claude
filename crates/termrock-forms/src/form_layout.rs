@@ -1,28 +1,21 @@
-//! Borrowed semantic layout descriptions for [`Form`](crate::Form).
-//!
-//! A layout names fields by their stable [`Id`]. It
-//! contains no terminal rectangles and owns no field values or widget state.
-
 use core::fmt;
 
 use termrock_core::id::Id;
 use termrock_layout::{Maximized, SplitAxis, SplitModel};
 
-/// One field row in a form lane.
 #[derive(Clone, Copy, Debug)]
 pub enum FormRow {
-    /// Place one field at the lane's full width.
     Field(Id),
-    /// Place two fields side by side using one canonical split policy.
+
     Pair {
         first: Id,
         second: Id,
         split: SplitModel,
         gap: u16,
     },
-    /// Reserve a fixed number of empty rows.
+
     Spacer(u16),
-    /// Give the remaining lane height to a field, subject to its measured minimum.
+
     Fill(Id),
 }
 
@@ -53,7 +46,6 @@ impl FormRow {
     }
 }
 
-/// A stable semantic lane. `id` owns its independent scroll state.
 #[derive(Clone, Copy, Debug)]
 pub struct FormLane<'a> {
     pub id: Id,
@@ -72,8 +64,6 @@ impl<'a> FormLane<'a> {
     }
 }
 
-/// Borrowed lane composition for a form. One lane is vertical; two lanes use
-/// the supplied horizontal split. More lanes are rejected by Form preflight.
 #[derive(Clone, Copy, Debug)]
 pub struct FormLayout<'a> {
     lanes: &'a [FormLane<'a>],
@@ -86,7 +76,6 @@ impl<'a> FormLayout<'a> {
         Self { lanes, split: None }
     }
 
-    /// Set the one horizontal sibling split for a two-lane form.
     #[must_use]
     pub const fn split(mut self, model: SplitModel, gap: u16) -> Self {
         self.split = Some((model, gap));
@@ -102,7 +91,6 @@ impl<'a> FormLayout<'a> {
     }
 }
 
-/// A malformed borrowed layout rejected before it can register controls.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FormLayoutError {
     Empty,
@@ -147,8 +135,6 @@ impl fmt::Display for FormLayoutError {
 impl std::error::Error for FormLayoutError {}
 
 impl FormLayoutError {
-    /// Returns the field associated with a malformed layout, when the error
-    /// names one. Structural errors are reported against the owning form.
     #[must_use]
     pub const fn field_id(self) -> Option<Id> {
         match self {
@@ -232,7 +218,7 @@ impl FormLayout<'_> {
                         if first == second {
                             return Err(FormLayoutError::DuplicateField(*first));
                         }
-                        // Validate the pair members individually below.
+
                         core::slice::from_ref(first)
                     }
                     FormRow::Spacer(_) => continue,

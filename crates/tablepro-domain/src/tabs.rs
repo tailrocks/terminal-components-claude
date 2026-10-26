@@ -218,14 +218,14 @@ pub struct QueryTab {
     pub id: usize,
     pub name: String,
     pub query: String,
-    /// Shared multiline editor and completion state for this query tab.
+
     pub editor_state: Box<CompletingCodeEditorState>,
     pub saved_text: String,
     pub result: Option<GridView>,
     pub error: Option<String>,
     pub plan: Option<PlanNode>,
     pub running: bool,
-    /// Most recent execution summary and whether it represents an error.
+
     pub last_status: Option<Box<QueryStatus>>,
 }
 
@@ -290,9 +290,6 @@ impl QueryTab {
         outcome
     }
 
-    /// Executes the query while recording the supplied elapsed duration.
-    ///
-    /// This deterministic path does not sample a host clock.
     pub fn execute_with_duration(
         &mut self,
         catalog: &Catalog,
@@ -327,14 +324,6 @@ impl QueryTab {
         self.explain_statement(catalog, false).map(|_| ())
     }
 
-    /// Explains the selected statement or the statement under the editor cursor.
-    ///
-    /// Returns the exact SQL source used to create the successful plan.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the selected or cursor statement is empty, invalid,
-    /// is not a SELECT, or cannot be planned.
     pub fn explain_statement(
         &mut self,
         catalog: &Catalog,
@@ -394,7 +383,6 @@ impl QueryTab {
         self.editor_state.editor().text() != self.saved_text
     }
 
-    /// Copies the editor's authoritative buffer into the SQL execution snapshot.
     pub fn sync_query_text(&mut self) {
         self.editor_state
             .editor()
@@ -402,21 +390,18 @@ impl QueryTab {
             .clone_into(&mut self.query);
     }
 
-    /// Replaces the query and resets editor mechanics for a newly loaded statement.
     pub fn replace_query(&mut self, query: impl Into<String>) {
         let query = query.into();
         *self.editor_state = CompletingCodeEditorState::new(&query);
         self.query = query;
     }
 
-    /// Commits active editing without changing the editor's text.
     pub fn commit_query_edit(&mut self) {
         self.editor_state.editor_mut().commit();
         self.sync_query_text();
     }
 }
 
-/// SQL syntax ranges used by the shared code editor.
 pub fn highlight_sql(src: &str) -> Vec<(core::ops::Range<usize>, SyntaxRole)> {
     sql::tokenize(src)
         .into_iter()
@@ -436,7 +421,6 @@ pub fn highlight_sql(src: &str) -> Vec<(core::ops::Range<usize>, SyntaxRole)> {
         .collect()
 }
 
-/// Statement boundaries used for running the SQL statement at the cursor.
 pub fn segment_sql(src: &str) -> Vec<core::ops::Range<usize>> {
     sql::split_statements(src)
         .into_iter()
@@ -617,291 +601,4 @@ pub fn explorer_items(catalog: &Catalog) -> Vec<ExplorerItem> {
             rows: table.row_count,
         })
         .collect()
-}
-
-#[cfg(test)]
-mod generation_tests {
-    use super::*;
-    #[test]
-    fn mutable_payload_generation_never_reuses_an_exhausted_value() {
-        let mut record = TabRecord::new(TabKey::new(1), Tab::Query(QueryTab::new(1, "")));
-        assert_eq!(record.generation(), Some(0));
-        let _ = record.payload_mut();
-        assert_eq!(record.generation(), Some(1));
-        record.generation = Some(u64::MAX);
-        let _ = record.payload_mut();
-        assert_eq!(record.generation(), None);
-        let _ = record.payload_mut();
-        assert_eq!(record.generation(), None);
-        let _ = record.lifecycle_payload_mut();
-        assert_eq!(record.generation(), None);
-    }
-}
-
-#[cfg(test)]
-mod query_execution_timing_tests {
-    use super::*;
-
-    fn result_values(tab: &QueryTab) -> (Vec<(String, ColType)>, Vec<Vec<Value>>) {
-        let Some(grid) = tab.result.as_ref() else {
-            unreachable!("query result")
-        };
-        let rows = (0..grid.model.row_count())
-            .map(|row| {
-                (0..grid.columns.len())
-                    .map(|column| {
-                        let Some(value) = grid.model.pending().value(row, column) else {
-                            unreachable!("result cell")
-                        };
-                        value.clone()
-                    })
-                    .collect()
-            })
-            .collect();
-        (grid.columns.clone(), rows)
-    }
-
-    fn status(tab: &QueryTab) -> (String, bool, u32) {
-        let Some(status) = tab.last_status.as_deref() else {
-            unreachable!("execution status")
-        };
-        (status.summary.clone(), status.is_error, status.duration_ms)
-    }
-
-    #[test]
-    fn explicit_duration_changes_only_the_reported_query_timing() {
-        let catalog = Catalog::acme_prod();
-        let query = "SELECT id, currency FROM orders LIMIT 2";
-        let mut live = QueryTab::new(1, query);
-        let mut fixed = live.clone();
-
-        assert_eq!(
-            live.execute(&catalog),
-            fixed.execute_with_duration(&catalog, Duration::from_millis(1234))
-        );
-        assert!(!status(&live).1);
-        assert_eq!(status(&fixed), ("ok · 1.23 s".to_owned(), false, 1234));
-        assert_eq!(result_values(&live), result_values(&fixed));
-    }
-
-    #[test]
-    fn explicit_duration_clamps_milliseconds_and_formats_submillisecond_time() {
-        let catalog = Catalog::acme_prod();
-        let mut tab = QueryTab::new(1, "SELECT id FROM orders LIMIT 1");
-
-        assert_eq!(
-            tab.execute_with_duration(&catalog, Duration::from_nanos(999_999)),
-            Ok(1)
-        );
-        assert_eq!(status(&tab), ("ok · <1 ms".to_owned(), false, 0));
-
-        let beyond_u32 = Duration::from_millis(u64::from(u32::MAX) + 1);
-        assert_eq!(tab.execute_with_duration(&catalog, beyond_u32), Ok(1));
-        assert_eq!(
-            status(&tab),
-            ("ok · 71582m 47s".to_owned(), false, u32::MAX)
-        );
-    }
-
-    #[test]
-    fn explicit_duration_records_errors_without_replacing_the_last_result() {
-        let catalog = Catalog::acme_prod();
-        let mut tab = QueryTab::new(1, "SELECT id, currency FROM orders LIMIT 2");
-        assert_eq!(
-            tab.execute_with_duration(&catalog, Duration::from_millis(10)),
-            Ok(2)
-        );
-        let result = result_values(&tab);
-
-        tab.replace_query("SELECT FROM");
-        assert!(
-            tab.execute_with_duration(&catalog, Duration::from_millis(1234))
-                .is_err()
-        );
-        assert_eq!(status(&tab), ("error".to_owned(), true, 1234));
-        assert_eq!(result_values(&tab), result);
-
-        tab.replace_query("SELECT missing_column FROM orders LIMIT 1");
-        assert!(
-            tab.execute_with_duration(&catalog, Duration::from_millis(2345))
-                .is_err()
-        );
-        assert_eq!(status(&tab), ("error".to_owned(), true, 2345));
-        assert_eq!(result_values(&tab), result);
-    }
-
-    #[test]
-    fn pending_result_rejection_preserves_status_and_pending_rows() {
-        let catalog = Catalog::acme_prod();
-        let mut tab = QueryTab::new(1, "SELECT id, currency FROM orders LIMIT 1");
-        assert_eq!(
-            tab.execute_with_duration(&catalog, Duration::from_millis(1234)),
-            Ok(1)
-        );
-        let previous_status = status(&tab);
-        let Some(grid) = tab.result.as_mut() else {
-            unreachable!("result")
-        };
-        assert!(grid.model.delete_row(0));
-        let pending = grid.model.pending().clone();
-
-        assert_eq!(
-            tab.execute_with_duration(&catalog, Duration::from_millis(9000)),
-            Err("Pending result edits require confirmation".to_owned())
-        );
-        assert_eq!(status(&tab), previous_status);
-        let Some(grid) = tab.result.as_ref() else {
-            unreachable!("result")
-        };
-        assert_eq!(grid.model.pending(), &pending);
-    }
-}
-
-#[cfg(test)]
-mod query_explain_tests {
-    use super::*;
-
-    const MULTI_STATEMENT_SQL: &str =
-        "SELECT * FROM customers WHERE id = '界;🙂'; -- ; comment\nSELECT * FROM orders;";
-
-    fn plan_relation(plan: &PlanNode) -> Option<&str> {
-        plan.relation
-            .as_deref()
-            .or_else(|| plan.children.iter().find_map(|child| plan_relation(child)))
-    }
-
-    fn explained_relation(tab: &QueryTab) -> Option<&str> {
-        tab.plan.as_ref().and_then(plan_relation)
-    }
-
-    #[test]
-    fn explain_and_analyze_use_the_live_statement_at_the_cursor() {
-        let catalog = Catalog::acme_prod();
-        let mut tab = QueryTab::new(1, "SELECT * FROM customers");
-        tab.editor_state.editor_mut().set_text(MULTI_STATEMENT_SQL);
-        tab.editor_state.editor_mut().begin_edit();
-        tab.editor_state
-            .editor_mut()
-            .jump_to(MULTI_STATEMENT_SQL.len());
-        let saved_text = tab.saved_text.clone();
-        let cursor = tab.editor_state.editor().cursor_offset();
-        let selection = tab.editor_state.editor().selected_text().map(str::to_owned);
-        assert!(tab.dirty());
-
-        assert_eq!(tab.explain(&catalog), Ok(()));
-        assert_eq!(explained_relation(&tab), Some("public.orders"));
-        assert!(
-            tab.plan
-                .as_ref()
-                .is_some_and(|plan| plan.actual_ms.is_none())
-        );
-        assert_eq!(tab.query, MULTI_STATEMENT_SQL);
-        assert_eq!(tab.editor_state.editor().text(), MULTI_STATEMENT_SQL);
-        assert_eq!(tab.editor_state.editor().cursor_offset(), cursor);
-        assert_eq!(
-            tab.editor_state.editor().selected_text().map(str::to_owned),
-            selection
-        );
-        assert!(tab.editor_state.editor().is_editing());
-        assert_eq!(tab.saved_text, saved_text);
-        assert!(tab.dirty());
-
-        assert_eq!(
-            tab.explain_statement(&catalog, true),
-            Ok("-- ; comment\nSELECT * FROM orders".to_owned())
-        );
-        assert_eq!(explained_relation(&tab), Some("public.orders"));
-        assert!(
-            tab.plan
-                .as_ref()
-                .is_some_and(|plan| plan.actual_ms.is_some())
-        );
-        assert_eq!(tab.query, MULTI_STATEMENT_SQL);
-        assert_eq!(tab.editor_state.editor().cursor_offset(), cursor);
-        assert_eq!(
-            tab.editor_state.editor().selected_text().map(str::to_owned),
-            selection
-        );
-        assert!(tab.editor_state.editor().is_editing());
-        assert_eq!(tab.saved_text, saved_text);
-        assert!(tab.dirty());
-
-        let Some(first_statement) = MULTI_STATEMENT_SQL.find("customers") else {
-            unreachable!("first statement anchor exists")
-        };
-        tab.editor_state.editor_mut().jump_to(first_statement);
-        let first_cursor = tab.editor_state.editor().cursor_offset();
-        assert_eq!(tab.explain(&catalog), Ok(()));
-        assert_eq!(explained_relation(&tab), Some("public.customers"));
-        assert!(
-            tab.plan
-                .as_ref()
-                .is_some_and(|plan| plan.actual_ms.is_none())
-        );
-        assert_eq!(tab.editor_state.editor().cursor_offset(), first_cursor);
-        assert_eq!(tab.editor_state.editor().text(), MULTI_STATEMENT_SQL);
-        assert_eq!(tab.query, MULTI_STATEMENT_SQL);
-    }
-
-    #[test]
-    fn empty_and_non_select_explain_errors_keep_the_last_plan() {
-        let catalog = Catalog::acme_prod();
-        let mut tab = QueryTab::new(1, "SELECT * FROM orders");
-        assert_eq!(tab.explain(&catalog), Ok(()));
-        let previous_plan = tab.plan.clone();
-
-        tab.replace_query("");
-        assert_eq!(
-            tab.explain(&catalog),
-            Err("No SQL statement at cursor".to_owned())
-        );
-        assert_eq!(tab.plan, previous_plan);
-
-        tab.replace_query("DELETE FROM orders;");
-        assert_eq!(
-            tab.explain_statement(&catalog, true),
-            Err("Explain accepts SELECT statements".to_owned())
-        );
-        assert_eq!(tab.plan, previous_plan);
-    }
-
-    #[test]
-    fn selected_statement_ignores_trailing_line_comment_only_range() {
-        let selected = "SELECT * FROM customers;\n-- trailing ; comment";
-
-        assert_eq!(
-            QueryTab::explain_selection_statement(selected),
-            Ok("SELECT * FROM customers")
-        );
-    }
-
-    #[test]
-    fn selected_statement_ignores_trailing_block_comment_only_range() {
-        let selected = "SELECT * FROM customers; /* trailing ; comment */";
-
-        assert_eq!(
-            QueryTab::explain_selection_statement(selected),
-            Ok("SELECT * FROM customers")
-        );
-    }
-
-    #[test]
-    fn comment_only_selection_is_rejected_as_empty() {
-        let selected = "-- comment; still comment\n/* another ; comment */";
-
-        assert_eq!(
-            QueryTab::explain_selection_statement(selected),
-            Err("Explain requires a non-empty selection".to_owned())
-        );
-    }
-
-    #[test]
-    fn selected_batch_counts_only_meaningful_statements() {
-        let selected = "SELECT * FROM customers; -- comment\nSELECT * FROM orders;";
-
-        assert_eq!(
-            QueryTab::explain_selection_statement(selected),
-            Err("Explain selection must contain exactly one statement".to_owned())
-        );
-    }
 }

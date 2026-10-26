@@ -1,5 +1,3 @@
-//! Paused zoomed capsule, composed through the shared zoomed-pane painter.
-
 use termrock::Ui;
 use termrock::feedback::{ZoomHint, ZoomSpan, ZoomTab, ZoomTone, ZoomedPane};
 

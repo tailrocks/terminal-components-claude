@@ -2,9 +2,14 @@
 
 `termrock` is the workspace facade package and the Rust crate name. Its API is still under development. Start with [architecture](../architecture.md), the [product reference](../product.md), and the [component authoring contract](../contracts/authoring.md). See [development](../development.md) for workspace workflows and guidance about interactive applications.
 
+T37 retires the legacy test targets cited on this page. Commit-pinned test links below are historical source evidence only. They do not identify current targets or prove current behavior. T01 and T35 must update the API and user guidance after T38 approves the functional test architecture. Product behavior remains `NOT VERIFIED`.
+
+The API and command examples also refer to older source snapshots. Check the
+cleaned source before using them. T35 owns the current quickstart rewrite.
+
 ## Choose terminal colors
 
-[termrock::run](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-session/src/session.rs#L537-L539) accepts a starting theme and detects terminal capability during session startup ([the startup helper applies Theme::for_terminal() before creating Runtime](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-session/src/session.rs#L638)). The usual call needs no manual detection: `termrock::run(app, termrock::Theme::junie())`. The [consumer binary](../../crates/termrock-consumer-example/src/main.rs) uses this form. The [consumer nextest test](../../crates/termrock-consumer-example/tests/consumer.rs#L27-L56) compiles both call forms and checks their starting theme levels without entering an interactive terminal session.
+[termrock::run](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-session/src/session.rs#L537-L539) accepts a starting theme and detects terminal capability during session startup ([the startup helper applies Theme::for_terminal() before creating Runtime](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-session/src/session.rs#L638)). The usual call needs no manual detection: `termrock::run(app, termrock::Theme::junie())`. The [consumer binary](../../crates/termrock-consumer-example/src/main.rs) uses this form. The [historical consumer test](https://github.com/tailrocks/terminal-components-claude/blob/1d6ee92adf6ccca38eeee64b1371cba1497e8fcd/crates/termrock-consumer-example/tests/consumer.rs#L27-L56) recorded the two call forms and their starting theme levels. T37 retired that target.
 
 To set an upper bound, pass [Theme::for_level(...)](https://github.com/tailrocks/terminal-components-claude/blob/cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1/crates/termrock-theme/src/downgrade.rs#L404-L407): `termrock::run(app, termrock::Theme::junie().for_level(termrock::ColorLevel::Ansi16))`.
 
@@ -16,7 +21,7 @@ The session may narrow that theme further to the detected level; for_level() doe
 
 Keep application data and stable component IDs in your `App`. In `update`, pass `Cx` to the controls, handle their typed responses, and return the combined response. In `draw`, use the same IDs and current state to draw through `Ui`; drawing also registers the geometry used by later input.
 
-The small [SaveProbe example](https://github.com/tailrocks/terminal-components-claude/blob/07ba30f5cb33410d7d6fbe09a3691c877f082915/crates/termrock/tests/ex01_button.rs#L9-L42) separates button update and draw from the `App` implementation. Its [test](https://github.com/tailrocks/terminal-components-claude/blob/07ba30f5cb33410d7d6fbe09a3691c877f082915/crates/termrock/tests/ex01_button.rs#L64-L107) covers a disabled Save button: update returns an ignored response with no activation, and draw paints its label. It is a minimal lifecycle example, not an enabled-button input journey.
+The [historical SaveProbe example](https://github.com/tailrocks/terminal-components-claude/blob/07ba30f5cb33410d7d6fbe09a3691c877f082915/crates/termrock/tests/ex01_button.rs#L9-L42) separates button update and draw from the `App` implementation. Its [historical test](https://github.com/tailrocks/terminal-components-claude/blob/07ba30f5cb33410d7d6fbe09a3691c877f082915/crates/termrock/tests/ex01_button.rs#L64-L107) covers a disabled Save button. T37 retired this target; the cited result is not current proof.
 
 The facade exports `App`, `Cx`, `Ui`, `Runtime`, and `run`. Its [`termrock::author` namespace](https://github.com/tailrocks/terminal-components-claude/blob/07ba30f5cb33410d7d6fbe09a3691c877f082915/crates/termrock/src/lib.rs#L61-L80) exposes the registration vocabulary described by the authoring contract.
 
@@ -26,19 +31,11 @@ The [`termrock-consumer-example` manifest](https://github.com/tailrocks/terminal
 
 Its [application](https://github.com/tailrocks/terminal-components-claude/blob/07ba30f5cb33410d7d6fbe09a3691c877f082915/crates/termrock-consumer-example/src/app.rs#L291-L430) implements `App::update` and `App::draw` with shared controls and composition. Its [binary entry point](https://github.com/tailrocks/terminal-components-claude/blob/07ba30f5cb33410d7d6fbe09a3691c877f082915/crates/termrock-consumer-example/src/main.rs#L10-L12) passes the app to `termrock::run`; this source link does not mean the binary was launched.
 
-For deterministic tests or a custom event loop, inspect the [consumer's Runtime helpers](https://github.com/tailrocks/terminal-components-claude/blob/07ba30f5cb33410d7d6fbe09a3691c877f082915/crates/termrock-consumer-example/tests/consumer.rs#L38-L93) and [journeys](https://github.com/tailrocks/terminal-components-claude/blob/07ba30f5cb33410d7d6fbe09a3691c877f082915/crates/termrock-consumer-example/tests/consumer.rs#L96-L350). The public presentation path is `prepare`, `draw_prepared`, then `acknowledge_presented`; the tests also send input with `Runtime::handle`. They use Ratatui's `TestBackend` and cover rendered content and layout, typed keyboard and pointer actions, app actions, and narrow-screen detail focus and restoration. They do not exercise a PTY, clipboard, or operating-system input, and they do not prove full visual parity.
+The [historical consumer Runtime helpers](https://github.com/tailrocks/terminal-components-claude/blob/07ba30f5cb33410d7d6fbe09a3691c877f082915/crates/termrock-consumer-example/tests/consumer.rs#L38-L93) and [historical journeys](https://github.com/tailrocks/terminal-components-claude/blob/07ba30f5cb33410d7d6fbe09a3691c877f082915/crates/termrock-consumer-example/tests/consumer.rs#L96-L350) record the `prepare`, `draw_prepared`, `acknowledge_presented`, and `Runtime::handle` paths. T37 retired those targets. Their old cases do not establish current behavior, PTY handling, clipboard handling, operating-system input, or full visual parity.
 
-## The `testing` feature
+## Historical facade test targets
 
-The facade's [`ex01_button` target requires `testing`](https://github.com/tailrocks/terminal-components-claude/blob/07ba30f5cb33410d7d6fbe09a3691c877f082915/crates/termrock/Cargo.toml#L8-L10), as does the target's [manifest entry](https://github.com/tailrocks/terminal-components-claude/blob/07ba30f5cb33410d7d6fbe09a3691c877f082915/crates/termrock/Cargo.toml#L35-L43). That test uses the facade's `initialize`, `draw_buffer`, and `commit_presented` helpers. The consumer example instead tests the public `Runtime` presentation path and does not require the facade's `testing` feature.
-
-From the repository root, these are the focused checks for the linked examples. A result must be recorded against the source actually checked; this page reports no fresh test or compile result.
-
-```sh
-/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked -p termrock-consumer-example
-/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo nextest run --locked -p termrock-consumer-example --test consumer
-/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo nextest run --locked -p termrock --features testing --test ex01_button
-```
+The facade's [`testing` feature and `ex01_button` target](https://github.com/tailrocks/terminal-components-claude/blob/1d6ee92adf6ccca38eeee64b1371cba1497e8fcd/crates/termrock/Cargo.toml#L8-L43) are recorded at the pre-cleanup source revision. T37 retired the legacy facade test targets. Do not run their old Nextest commands. T05 will classify any remaining compatibility feature; a replacement test needs an approved T38 plan.
 
 ## Historical source
 

@@ -6,9 +6,7 @@ use crate::{
     PropsList, PropsRow, PropsState, RowFn,
 };
 
-/// Typed consumer methods for drawing a dialog in a resolved layer slot.
 pub trait DialogSlotExt {
-    /// Draw a dialog and compose its body through a nested component slot.
     fn dialog(
         &mut self,
         dialog: &Dialog<'_>,
@@ -28,7 +26,6 @@ impl DialogSlotExt for LayerSlot<'_, '_> {
     }
 }
 
-/// Typed consumer method for drawing a reusable form dialog in its resolved slot.
 pub trait FormDialogSlotExt {
     fn form_dialog<D: crate::forms::FormData + ?Sized>(
         &mut self,
@@ -49,9 +46,7 @@ impl FormDialogSlotExt for LayerSlot<'_, '_> {
     }
 }
 
-/// Typed consumer methods for drawing property rows in a resolved slot.
 pub trait PropsSlotExt {
-    /// Draw keyed property rows with the component's existing renderer.
     fn props_list(
         &mut self,
         component: &PropsList<'_>,
@@ -71,11 +66,7 @@ impl PropsSlotExt for LayerSlot<'_, '_> {
     }
 }
 
-/// Typed consumer methods for drawing reusable components in resolved layer
-/// slots.
 pub trait PickerSlotExt {
-    /// Draw an open picker in this slot's resolved area using the picker's
-    /// existing renderer.
     fn picker<T: AsItem, R: RowFn<T>>(
         &mut self,
         picker: Picker<'_, T, R>,

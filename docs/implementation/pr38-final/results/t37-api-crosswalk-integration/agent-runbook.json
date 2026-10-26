@@ -1,0 +1,245 @@
+{
+  "task_id": "T37-API-CROSSWALK-INTEGRATION",
+  "agent_id": "/root/t37_crosswalk",
+  "model": "gpt-6-luna",
+  "effort": "max",
+  "input_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+  "output_commit": null,
+  "output_commit_note": "The coordinator receives the final commit ID because an artifact cannot contain its own commit hash.",
+  "worktree": "/Users/donbeave/Downloads/termrock-t37-crosswalk",
+  "branch": "pr38/T37-crosswalk-refresh",
+  "changed_paths": [
+    "docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py",
+    "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
+    "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/README.md",
+    "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/agent-runbook.json",
+    "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/coordinator-review-decisions.json"
+  ],
+  "previous_review": {
+    "status": "CORRECTION",
+    "reviewer_id": "/root/t00_independent_review",
+    "reviewer_model": "gpt-6.1-sol",
+    "reviewer_effort": "high",
+    "reviewed_commit": "59118234047f19adaa62621badd8c33bde355040",
+    "previous_output_sha256": "2fd87565502f7f50d6b4595e05f343b6a226c0ed0c20840e8e24ab257a338052",
+    "findings": [
+      "C acceptance was promoted from worker self-status or an unbound review dictionary; require exact coordinator binding to reviewed source commit, artifact path, artifact SHA-256, reviewer, and decision.",
+      "The source-inventory limitation was unconditional despite dynamic local integration detection; report source_inventory.integration_status."
+    ]
+  },
+  "foundation_source": {
+    "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
+    "accepted_source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+    "sha256": "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619",
+    "record_count": 1122,
+    "source_path_count": 81,
+    "local_integration": "INTEGRATED_AND_HASH_VERIFIED",
+    "validation": "Local bytes match the accepted immutable Git blob and the committed local integration blob.",
+    "local_integration_commit": "d459a2fc062e7fc3a6215ea5c746690e5c5be4ab"
+  },
+  "cohorts": [
+    {
+      "cohort_id": "T37-API-PROSE-COHORT-A",
+      "label": "foundation values",
+      "record_count": 322,
+      "reviewed_source_commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+      "integration_commit": "9463cb8c36f0bc6e53af241334efb19bb8a2e5f1",
+      "artifact_path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
+      "artifact_sha256": "6c5c9147f0d0339b5fbba9adfe1fc8703c773c078fb7806e9ec67ee07e958cf4",
+      "runbook_path": "docs/implementation/pr38-final/results/t37-api-values/agent-runbook.json",
+      "runbook_sha256": "acafc73498889bf6b4ecb4dae80659d1b6ec170316a2d37b880a4683989d4f1a",
+      "independent_review": {
+        "status": "ACCEPTED",
+        "reviewer": "/root/t37_components_review",
+        "model": "gpt-6.1-sol",
+        "effort": "high",
+        "decision_id": "T37-API-PROSE-01",
+        "reviewed_source_commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+        "reviewed_artifact_path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
+        "reviewed_artifact_sha256": "6c5c9147f0d0339b5fbba9adfe1fc8703c773c078fb7806e9ec67ee07e958cf4",
+        "binding_status": "EXACT_GIT_BLOB_MATCH"
+      },
+      "recorded_source_review_state": "PENDING_INDEPENDENT_HIGH_REVIEW"
+    },
+    {
+      "cohort_id": "T37-API-PROSE-COHORT-B",
+      "label": "foundation runtime",
+      "record_count": 304,
+      "reviewed_source_commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+      "integration_commit": "6e38a1d3be4b0dcfd47f793e7975299254e38d14",
+      "artifact_path": "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
+      "artifact_sha256": "100b55db7b05031451bca35c2142dbda6b3905d69d7ca404308ed4819a2b03a4",
+      "runbook_path": "docs/implementation/pr38-final/results/t37-api-runtime/agent-runbook.json",
+      "runbook_sha256": "f1b9a3095146a1c4a57ebea448b9aa900d2e44cbc0dd6a0a809307441175f166",
+      "independent_review": {
+        "status": "ACCEPTED",
+        "reviewer": "/root/t00_independent_review",
+        "model": "gpt-6.1-sol",
+        "effort": "high",
+        "decision_id": "T37-API-PROSE-01",
+        "reviewed_source_commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+        "reviewed_artifact_path": "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
+        "reviewed_artifact_sha256": "100b55db7b05031451bca35c2142dbda6b3905d69d7ca404308ed4819a2b03a4",
+        "binding_status": "EXACT_GIT_BLOB_MATCH"
+      },
+      "recorded_source_review_state": "REVIEW"
+    },
+    {
+      "cohort_id": "T37-API-PROSE-COHORT-C",
+      "label": "foundation support",
+      "record_count": 496,
+      "reviewed_source_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+      "integration_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+      "imported_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+      "artifact_path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+      "artifact_sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae",
+      "runbook_path": "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json",
+      "runbook_sha256": "51bf86b979396a5518d69a49e091ad0b37877f875e0ab9cd28cfe497929b4b69",
+      "independent_review": {
+        "status": "ACCEPTED",
+        "reviewer": "/root/t00_independent_review",
+        "model": "gpt-6.1-sol",
+        "effort": "high",
+        "decision_id": "T37-API-SUPPORT-EE8-ACCEPT",
+        "reviewed_source_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+        "reviewed_artifact_path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+        "reviewed_artifact_sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae",
+        "binding_status": "EXACT_GIT_BLOB_MATCH",
+        "decision_source": "coordinator-review-decisions.json"
+      },
+      "recorded_source_review_state": "PENDING_INDEPENDENT_REVIEW"
+    }
+  ],
+  "coordinator_review_decisions": {
+    "path": "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/coordinator-review-decisions.json",
+    "sha256": "72943be051054d75321aec912f1055890d04a70bf505d8514c64b25cbfc76c7f",
+    "schema": "t37.api-prose-coordinator-review-bindings.v1",
+    "binding_rule": "Acceptance requires reviewer identity, decision ID, exact source commit, artifact path, artifact SHA-256, and matching Git blob bytes.",
+    "input_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4"
+  },
+  "output": {
+    "path": "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
+    "schema": "t37.foundation-api-prose-crosswalk.v4",
+    "composition_input_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+    "sha256": "00ad0737c6b6b2d90ac0878dd8ac72fad07581a20522df2176d89bf600a25ec4",
+    "builder_path": "docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py",
+    "builder_sha256": "ce15ad4396af536acff08e0075b54524a4bb2dcdf78d748e610a2b8017173570",
+    "status": "REVIEW/PENDING",
+    "independent_sol_high_review": "PENDING",
+    "cohort_reviews": {
+      "A": "ACCEPTED",
+      "B": "ACCEPTED",
+      "C": "ACCEPTED"
+    }
+  },
+  "coverage": {
+    "expected_records": 1122,
+    "composed_records": 1122,
+    "unique_source_map_indices": 1122,
+    "unique_stable_ids": 1122,
+    "disjoint_indices": true,
+    "index_range": "0-1121",
+    "cohort_counts": {
+      "T37-API-PROSE-COHORT-A": 322,
+      "T37-API-PROSE-COHORT-B": 304,
+      "T37-API-PROSE-COHORT-C": 496
+    },
+    "selected_behavior_cases": 0,
+    "selection_status": "NO_CASES_SELECTED",
+    "behavior_status": "NOT VERIFIED",
+    "global_composition_status": "REVIEW/PENDING"
+  },
+  "documentation": {
+    "path": "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/README.md",
+    "sha256": "7a5b617c722108389a3dc304ba98949ed4b9f95782eab7f1655ae9cee2ae6740"
+  },
+  "commands": [
+    {
+      "command": "git show 2fee2c277d1213fc5fad5d81eb77479600182b69:docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json | shasum -a 256",
+      "exit_code": 0,
+      "result": "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619; matches the accepted source map."
+    },
+    {
+      "command": "git show 2fee2c277d1213fc5fad5d81eb77479600182b69:docs/implementation/pr38-final/results/t37-foundations/source-api-prose-disposition.json | shasum -a 256",
+      "exit_code": 0,
+      "result": "8e3923ebb4f6d5974a2e632ca32e5406718a5985a8f26a17a75fcbd9a3f4e9df; matches the accepted lexical inventory."
+    },
+    {
+      "command": "git show d459a2fc062e7fc3a6215ea5c746690e5c5be4ab:docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json | shasum -a 256",
+      "exit_code": 0,
+      "result": "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619; matches the committed local source-map integration."
+    },
+    {
+      "command": "git show 2f911b34822bc267e629dec30c46a3386f362bab:docs/implementation/pr38-final/results/t37-foundations/source-api-prose-disposition.json | shasum -a 256",
+      "exit_code": 0,
+      "result": "8e3923ebb4f6d5974a2e632ca32e5406718a5985a8f26a17a75fcbd9a3f4e9df; matches the committed local lexical-inventory integration."
+    },
+    {
+      "command": "git show ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9:docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json | shasum -a 256",
+      "exit_code": 0,
+      "result": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae; matches the accepted C artifact."
+    },
+    {
+      "command": "git rev-parse HEAD",
+      "exit_code": 0,
+      "result": "f2657fe1cf0dcfb7baac271b5d93c523369798f4; fixed composition input."
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py",
+      "exit_code": 0,
+      "result": "Wrote 1,122 groups: 322 values, 304 runtime, 496 support. Both local inventories report INTEGRATED_AND_HASH_VERIFIED. Output SHA-256 00ad0737c6b6b2d90ac0878dd8ac72fad07581a20522df2176d89bf600a25ec4."
+    },
+    {
+      "command": "python3 -m json.tool docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json >/dev/null && python3 -m json.tool docs/implementation/pr38-final/results/t37-api-crosswalk-integration/agent-runbook.json >/dev/null && python3 -m json.tool docs/implementation/pr38-final/results/t37-api-crosswalk-integration/coordinator-review-decisions.json >/dev/null",
+      "exit_code": 0,
+      "result": "All three JSON documents parse successfully."
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -c 'import json,pathlib,runpy; p=\"docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py\"; n=runpy.run_path(p); x=json.loads(pathlib.Path(\"docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json\").read_text()); assert n[\"canonical\"](n[\"build\"](pathlib.Path.cwd()))==n[\"canonical\"](x); print(\"rebuild and structural checks passed\")'",
+      "exit_code": 0,
+      "result": "Structural validation reproduces the exact output after checking source identities, row preservation, cohort bindings, coverage, and candidate-local destinations."
+    },
+    {
+      "command": "python3 -c 'import ast,pathlib,tokenize; p=pathlib.Path(\"docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py\"); s=p.read_text(); t=list(tokenize.generate_tokens(iter(s.splitlines(keepends=True)).__next__)); c=[x for x in t if x.type==tokenize.COMMENT and x.start[0]!=1]; a=ast.parse(s); d=[n for n in ast.walk(a) if isinstance(getattr(n,\"body\",None),list) and n.body and isinstance(n.body[0],ast.Expr) and isinstance(n.body[0].value,ast.Constant) and isinstance(n.body[0].value.value,str)]; assert not c and not d; print(\"syntax valid; non-shebang comments=0; docstrings=0\")'",
+      "exit_code": 0,
+      "result": "Producer syntax is valid. It contains no non-shebang comments or docstrings."
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "No whitespace errors."
+    }
+  ],
+  "limits": [
+    "The producer composes three explicit cohorts. It does not derive semantic coverage from keywords, surviving files, or signatures.",
+    "All 1,122 source-map indices and cohort rows are retained exactly once. Source identity and required hashes are validated.",
+    "C is accepted only through the coordinator decision bound to exact source commit ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9, artifact path, SHA-256, reviewer, and decision ID. The source artifact self-status remains quoted metadata.",
+    "The source map and lexical disposition inventory are locally integrated and hash-verified against immutable Git blobs and their committed integration blobs.",
+    "All cohort decisions are ACCEPTED. The global composition remains REVIEW/PENDING until its own exact independent review.",
+    "Selection count is 0. Product behavior is NOT VERIFIED. No tests, harnesses, fixtures, doctests, source edits, or Cargo commands were used."
+  ],
+  "producer_correction_review": {
+    "status": "ACCEPTED",
+    "reviewer_id": "/root/t00_independent_review",
+    "reviewer_model": "gpt-6.1-sol",
+    "reviewer_effort": "high",
+    "reviewed_commit": "ae32524b29baf638d8790ec0f7b320dfd05ee0f1",
+    "scope": "Producer and input-preservation corrections only; this later C/inventory refresh requires exact follow-up review.",
+    "resolved_findings": [
+      "C acceptance requires an exact coordinator binding to the reviewed source commit, artifact path, artifact SHA-256, reviewer, and decision.",
+      "Inventory integration notes report actual local integration status."
+    ],
+    "limits": [
+      "Does not accept C semantics, the global composition, or product behavior."
+    ]
+  },
+  "foundation_source_disposition": {
+    "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose-disposition.json",
+    "accepted_source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+    "sha256": "8e3923ebb4f6d5974a2e632ca32e5406718a5985a8f26a17a75fcbd9a3f4e9df",
+    "record_count": 1122,
+    "local_integration": "INTEGRATED_AND_HASH_VERIFIED",
+    "local_integration_commit": "2f911b34822bc267e629dec30c46a3386f362bab",
+    "validation": "Local bytes match the accepted immutable Git blob and the committed local integration blob; source_map_sha256 binds the accepted source map."
+  }
+}

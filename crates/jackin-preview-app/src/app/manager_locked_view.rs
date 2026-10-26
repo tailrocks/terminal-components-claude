@@ -1,6 +1,3 @@
-//! Locked hard-launch manager chrome: the paused capture state paints the
-//! session header and hint bar through the shared feedback painter.
-
 use termrock::feedback::{SessionChrome, SessionHint, SessionMenu, paint_session_chrome};
 use termrock::{Rect, Ui};
 
@@ -9,8 +6,6 @@ use crate::screens::manager::ManagerRowKey;
 
 use super::{App, Route};
 
-/// The captured launch keeps the manager on the approved chrome while the
-/// picker, menus, help, and every transient dialog stay closed.
 pub(super) fn approved(app: &App, _ui: &Ui<'_>, screen: Rect) -> bool {
     screen.width >= 80
         && screen.height >= 24
@@ -37,8 +32,7 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>, screen: Rect) {
     if !approved(app, ui, screen) {
         return;
     }
-    // Approved frame hides the cursor. This path must not call set_cursor
-    // or set_bar_cursor, and it must not write cursor bytes.
+
     let menus = [
         SessionMenu {
             label: "File",

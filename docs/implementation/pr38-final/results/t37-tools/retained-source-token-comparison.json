@@ -1,0 +1,1707 @@
+{
+  "schema_version": 1,
+  "fixed_input_revision": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "method": "Rust lexical scan skips line and nested block comments, preserves normal/raw/byte/C strings and lifetimes, removes baseline cfg(test) items/statements, compares each surviving function body/signature by declaration name, and compares retained const/type declarations separately.",
+  "files": [
+    {
+      "path": "crates/termrock-e2e/src/admission.rs",
+      "input_sha256": "ceedd85370e1bced6312affb65bb23da888a9ccdcc5b3b453af610f77d711dc5",
+      "output_sha256": "ae35ca68d2327ca9397ff9491f6791ffbb4866187bbc070c3803920991535e7e",
+      "input_functions_after_cfg_test_removal": 10,
+      "current_functions": 7,
+      "exact_retained_function_token_matches": 7,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [
+        {
+          "name": "load_pinned_admission_receipt",
+          "input_line": 192
+        },
+        {
+          "name": "load_admission_envelope",
+          "input_line": 210
+        },
+        {
+          "name": "validate_admission_receipt",
+          "input_line": 253
+        }
+      ],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true,
+      "approved_closure_removed_functions": [
+        {
+          "name": "load_pinned_admission_receipt",
+          "input_line": 192
+        },
+        {
+          "name": "load_admission_envelope",
+          "input_line": 210
+        },
+        {
+          "name": "validate_admission_receipt",
+          "input_line": 253
+        }
+      ],
+      "correction_delta_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json",
+      "approved_closure_removed_named_items": [
+        {
+          "kind": "struct",
+          "name": "LoadedAdmissionReceipt",
+          "input_line_c817": 94
+        },
+        {
+          "kind": "fn",
+          "name": "load_pinned_admission_receipt",
+          "input_line_c817": 192
+        },
+        {
+          "kind": "fn",
+          "name": "load_admission_envelope",
+          "input_line_c817": 210
+        },
+        {
+          "kind": "fn",
+          "name": "validate_admission_receipt",
+          "input_line_c817": 253
+        }
+      ]
+    },
+    {
+      "path": "crates/termrock-e2e/src/lib.rs",
+      "input_sha256": "501bdc0adf0d51aba4854ae3024f4270888ee9a08b77a51663e47bcc2e2abc60",
+      "output_sha256": "b30e665cff6eb6c6a2473e8e0824a113e5ca4ef3030c65e8fae118bbd9c0fc4d",
+      "input_functions_after_cfg_test_removal": 159,
+      "current_functions": 89,
+      "exact_retained_function_token_matches": 85,
+      "retained_functions_with_token_deltas": [
+        {
+          "name": "validate_case_contract",
+          "input_line": 3623,
+          "output_line": 2471,
+          "edits": [
+            {
+              "operation": "insert",
+              "old_tokens": [],
+              "current_tokens": [
+                "{"
+              ]
+            },
+            {
+              "operation": "insert",
+              "old_tokens": [],
+              "current_tokens": [
+                "}"
+              ]
+            },
+            {
+              "operation": "insert",
+              "old_tokens": [],
+              "current_tokens": [
+                ","
+              ]
+            }
+          ],
+          "changed_tokens_include_literals": false
+        },
+        {
+          "name": "valid_checkpoint_id",
+          "input_line": 3846,
+          "output_line": 2695,
+          "edits": [
+            {
+              "operation": "delete",
+              "old_tokens": [
+                "{"
+              ],
+              "current_tokens": []
+            },
+            {
+              "operation": "delete",
+              "old_tokens": [
+                "}"
+              ],
+              "current_tokens": []
+            }
+          ],
+          "changed_tokens_include_literals": false
+        },
+        {
+          "name": "validate_mouse_input",
+          "input_line": 3856,
+          "output_line": 2705,
+          "edits": [
+            {
+              "operation": "insert",
+              "old_tokens": [],
+              "current_tokens": [
+                ","
+              ]
+            }
+          ],
+          "changed_tokens_include_literals": false
+        },
+        {
+          "name": "checkpoint_geometries",
+          "input_line": 3874,
+          "output_line": 2727,
+          "edits": [
+            {
+              "operation": "insert",
+              "old_tokens": [],
+              "current_tokens": [
+                "{"
+              ]
+            },
+            {
+              "operation": "insert",
+              "old_tokens": [],
+              "current_tokens": [
+                ","
+              ]
+            },
+            {
+              "operation": "replace",
+              "old_tokens": [
+                ","
+              ],
+              "current_tokens": [
+                "}"
+              ]
+            }
+          ],
+          "changed_tokens_include_literals": false
+        }
+      ],
+      "functions_not_in_current": [
+        {
+          "name": "deferred_row_count",
+          "input_line": 1264
+        },
+        {
+          "name": "resolve_existing_directory",
+          "input_line": 1593
+        },
+        {
+          "name": "validate_external_trust_parent_relation",
+          "input_line": 1756
+        },
+        {
+          "name": "load_trust_record_source",
+          "input_line": 2519
+        },
+        {
+          "name": "load_generation_admission_source_optional",
+          "input_line": 2544
+        },
+        {
+          "name": "load_future_trust_record_path",
+          "input_line": 2573
+        },
+        {
+          "name": "load_write_policy_input",
+          "input_line": 2584
+        },
+        {
+          "name": "resolve_write_policy_with_evidence",
+          "input_line": 2605
+        },
+        {
+          "name": "canonical_caller_protected_roots_for",
+          "input_line": 3058
+        },
+        {
+          "name": "canonical_absent_file_path",
+          "input_line": 3151
+        },
+        {
+          "name": "push_protected_external_file",
+          "input_line": 3224
+        },
+        {
+          "name": "load_and_verify_trust_record",
+          "input_line": 3266
+        },
+        {
+          "name": "verify_external_record_digest",
+          "input_line": 3335
+        },
+        {
+          "name": "validate_trust_record",
+          "input_line": 3345
+        },
+        {
+          "name": "prepare_holla_help_overlay_preflight",
+          "input_line": 3897
+        },
+        {
+          "name": "run_tag_source_validator",
+          "input_line": 4056
+        },
+        {
+          "name": "load_tag_builder_evidence",
+          "input_line": 4667
+        },
+        {
+          "name": "require_tag_policy_roots",
+          "input_line": 4922
+        },
+        {
+          "name": "prepare_frozen_tag_holla_preflight",
+          "input_line": 4991
+        },
+        {
+          "name": "run_tag_capture",
+          "input_line": 5108
+        },
+        {
+          "name": "publish_oracle_capture_receipt",
+          "input_line": 5762
+        },
+        {
+          "name": "run_case",
+          "input_line": 6380
+        },
+        {
+          "name": "drive_case_subject",
+          "input_line": 6774
+        },
+        {
+          "name": "record_input_result",
+          "input_line": 7175
+        },
+        {
+          "name": "dispatch_mouse_input",
+          "input_line": 7197
+        },
+        {
+          "name": "replace_checkpoint_check",
+          "input_line": 7259
+        },
+        {
+          "name": "compare_visual_capture",
+          "input_line": 7297
+        },
+        {
+          "name": "validate_checkpoint_dimensions",
+          "input_line": 7352
+        },
+        {
+          "name": "validate_visual_receipt_contract",
+          "input_line": 7386
+        },
+        {
+          "name": "validate_visual_comparison_evidence",
+          "input_line": 7542
+        },
+        {
+          "name": "capture_artifact",
+          "input_line": 7660
+        },
+        {
+          "name": "artifact_ref_matches",
+          "input_line": 7686
+        },
+        {
+          "name": "artifact_receipt_ref_matches",
+          "input_line": 7692
+        },
+        {
+          "name": "make_argv",
+          "input_line": 7711
+        },
+        {
+          "name": "verify_subject_executable",
+          "input_line": 7718
+        },
+        {
+          "name": "inspect_executable",
+          "input_line": 7729
+        },
+        {
+          "name": "executable_metadata",
+          "input_line": 7787
+        },
+        {
+          "name": "validate_executable_snapshot",
+          "input_line": 7801
+        },
+        {
+          "name": "mark_subject_build_stale",
+          "input_line": 7821
+        },
+        {
+          "name": "expected_generation_state",
+          "input_line": 7841
+        },
+        {
+          "name": "launch",
+          "input_line": 7851
+        },
+        {
+          "name": "wait_for_observation",
+          "input_line": 8031
+        },
+        {
+          "name": "evaluate_assertion",
+          "input_line": 8055
+        },
+        {
+          "name": "append_not_run_checkpoint",
+          "input_line": 8119
+        },
+        {
+          "name": "append_non_execution_dimensions",
+          "input_line": 8164
+        },
+        {
+          "name": "append_readiness_failure",
+          "input_line": 8184
+        },
+        {
+          "name": "push_check",
+          "input_line": 8227
+        },
+        {
+          "name": "check",
+          "input_line": 8248
+        },
+        {
+          "name": "write_capture",
+          "input_line": 8270
+        },
+        {
+          "name": "validate_case_capture_paths",
+          "input_line": 8424
+        },
+        {
+          "name": "validate_capture_leaf_before_launch",
+          "input_line": 8441
+        },
+        {
+          "name": "atomic_publish_capture",
+          "input_line": 8507
+        },
+        {
+          "name": "create_capture_stage",
+          "input_line": 8709
+        },
+        {
+          "name": "quarantine_capture_stage",
+          "input_line": 8734
+        },
+        {
+          "name": "write_new_synced",
+          "input_line": 8760
+        },
+        {
+          "name": "checkpoint_substep",
+          "input_line": 8784
+        },
+        {
+          "name": "write_receipt",
+          "input_line": 8794
+        },
+        {
+          "name": "receipt_has_blocking_result",
+          "input_line": 12916
+        },
+        {
+          "name": "load_subject_manifest",
+          "input_line": 1370
+        },
+        {
+          "name": "load_subject_evidence",
+          "input_line": 1379
+        },
+        {
+          "name": "resolve_fixed_evidence_file",
+          "input_line": 1476
+        },
+        {
+          "name": "verify_evidence_digest",
+          "input_line": 1836
+        },
+        {
+          "name": "validate_subject_manifest",
+          "input_line": 1846
+        },
+        {
+          "name": "validate_build_evidence_chain",
+          "input_line": 1950
+        },
+        {
+          "name": "validate_build_receipt",
+          "input_line": 2412
+        },
+        {
+          "name": "validate_mise_input",
+          "input_line": 2481
+        },
+        {
+          "name": "validate_actual_output_roots",
+          "input_line": 3521
+        },
+        {
+          "name": "resolve_actual_output_roots",
+          "input_line": 3541
+        },
+        {
+          "name": "canonical_existing_directory",
+          "input_line": 3119
+        },
+        {
+          "name": "protected_root",
+          "input_line": 3205
+        }
+      ],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true,
+      "non_comment_change_explanation": "rustfmt punctuation normalization only in four retained functions; no executable value or operation changed. Retired runner/trust declarations and the unused v2 run-receipt constant are separately enumerated.",
+      "removed_named_const_or_type_items": [
+        {
+          "name": "RECEIPT_SCHEMA_V2",
+          "input_line": 20,
+          "input_tokens": [
+            "pub",
+            "const",
+            "RECEIPT_SCHEMA_V2",
+            ":",
+            "&",
+            "str",
+            "=",
+            "\"termrock-spec/parity-run-receipt-v2\"",
+            ";"
+          ],
+          "classification": "retired orphan legacy run-receipt constant",
+          "authority": "T37-E2E-01 Sol high decision",
+          "consumer_search": "No retained Rust or tools/visibility consumer. The only source occurrence at c817 was the declaration; status.py:708 consumes v3, not v2.",
+          "retained_neighbor": "RECEIPT_SCHEMA (v3) remains for the retained status diagnostic contract."
+        }
+      ],
+      "approved_closure_removed_functions": [
+        {
+          "name": "canonical_existing_directory",
+          "input_line": 3119
+        },
+        {
+          "name": "protected_root",
+          "input_line": 3205
+        }
+      ],
+      "correction_delta_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json",
+      "approved_closure_removed_named_items": [
+        {
+          "kind": "const",
+          "name": "RECEIPT_SCHEMA",
+          "input_line_c817": 22
+        },
+        {
+          "kind": "const",
+          "name": "SUBJECT_SCHEMA",
+          "input_line_c817": 23
+        },
+        {
+          "kind": "const",
+          "name": "BUILDER_RECEIPT_SCHEMA",
+          "input_line_c817": 24
+        },
+        {
+          "kind": "const",
+          "name": "REFERENCE_BRANCH_REF",
+          "input_line_c817": 29
+        },
+        {
+          "kind": "const",
+          "name": "REFERENCE_BRANCH_MEMBERSHIP",
+          "input_line_c817": 30
+        },
+        {
+          "kind": "const",
+          "name": "TAG_SOURCE_VALIDATOR_PATH_ENV",
+          "input_line_c817": 39
+        },
+        {
+          "kind": "const",
+          "name": "TAG_SOURCE_REPOSITORY_ENV",
+          "input_line_c817": 40
+        },
+        {
+          "kind": "struct",
+          "name": "SubjectManifest",
+          "input_line_c817": 326
+        },
+        {
+          "kind": "struct",
+          "name": "SubjectBuildEvidence",
+          "input_line_c817": 346
+        },
+        {
+          "kind": "struct",
+          "name": "BuildEvidenceReceipt",
+          "input_line_c817": 352
+        },
+        {
+          "kind": "struct",
+          "name": "Subject",
+          "input_line_c817": 370
+        },
+        {
+          "kind": "struct",
+          "name": "BuildInputs",
+          "input_line_c817": 395
+        },
+        {
+          "kind": "struct",
+          "name": "LoadedEvidenceContext",
+          "input_line_c817": 893
+        },
+        {
+          "kind": "struct",
+          "name": "SourceInputsEvidence",
+          "input_line_c817": 906
+        },
+        {
+          "kind": "struct",
+          "name": "OracleLineage",
+          "input_line_c817": 922
+        },
+        {
+          "kind": "struct",
+          "name": "ReferenceBranchEvidence",
+          "input_line_c817": 930
+        },
+        {
+          "kind": "struct",
+          "name": "SourceSnapshotEvidence",
+          "input_line_c817": 939
+        },
+        {
+          "kind": "struct",
+          "name": "BuildEnvironmentEvidence",
+          "input_line_c817": 963
+        },
+        {
+          "kind": "struct",
+          "name": "BuilderRunEvidence",
+          "input_line_c817": 1012
+        },
+        {
+          "kind": "struct",
+          "name": "GitIdentityEvidence",
+          "input_line_c817": 1056
+        },
+        {
+          "kind": "struct",
+          "name": "SnapshotReferenceEvidence",
+          "input_line_c817": 1067
+        },
+        {
+          "kind": "struct",
+          "name": "MetadataTargetEvidence",
+          "input_line_c817": 1075
+        },
+        {
+          "kind": "struct",
+          "name": "SubjectIdentity",
+          "input_line_c817": 1092
+        },
+        {
+          "kind": "struct",
+          "name": "LoadedSubjectEvidence",
+          "input_line_c817": 1374
+        },
+        {
+          "kind": "fn",
+          "name": "load_subject_manifest",
+          "input_line_c817": 1370
+        },
+        {
+          "kind": "fn",
+          "name": "load_subject_evidence",
+          "input_line_c817": 1379
+        },
+        {
+          "kind": "fn",
+          "name": "resolve_fixed_evidence_file",
+          "input_line_c817": 1476
+        },
+        {
+          "kind": "fn",
+          "name": "verify_evidence_digest",
+          "input_line_c817": 1836
+        },
+        {
+          "kind": "fn",
+          "name": "validate_subject_manifest",
+          "input_line_c817": 1846
+        },
+        {
+          "kind": "fn",
+          "name": "validate_build_evidence_chain",
+          "input_line_c817": 1950
+        },
+        {
+          "kind": "fn",
+          "name": "validate_build_receipt",
+          "input_line_c817": 2412
+        },
+        {
+          "kind": "fn",
+          "name": "validate_mise_input",
+          "input_line_c817": 2481
+        },
+        {
+          "kind": "fn",
+          "name": "validate_actual_output_roots",
+          "input_line_c817": 3521
+        },
+        {
+          "kind": "fn",
+          "name": "resolve_actual_output_roots",
+          "input_line_c817": 3541
+        },
+        {
+          "kind": "fn",
+          "name": "canonical_existing_directory",
+          "input_line_c817": 3119
+        },
+        {
+          "kind": "fn",
+          "name": "protected_root",
+          "input_line_c817": 3205
+        }
+      ]
+    },
+    {
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "input_sha256": "a918e73a811f6d2f22b82bf3fce5ac9f800d68131991831d5ce399a4493e4a52",
+      "output_sha256": "693ca7bb6f6d63be9e0b0ad2e6c5f4c306e53536aec33e5afb9677396796e575",
+      "input_functions_after_cfg_test_removal": 20,
+      "current_functions": 14,
+      "exact_retained_function_token_matches": 13,
+      "retained_functions_with_token_deltas": [
+        {
+          "name": "read_exact_generation_tree",
+          "input_line": 523,
+          "output_line": 523,
+          "edits": [
+            {
+              "operation": "delete",
+              "old_tokens": [
+                ","
+              ],
+              "current_tokens": []
+            }
+          ],
+          "changed_tokens_include_literals": false
+        }
+      ],
+      "functions_not_in_current": [
+        {
+          "name": "validate_actual_observation",
+          "input_line": 746
+        },
+        {
+          "name": "compare_admitted_observations",
+          "input_line": 803
+        },
+        {
+          "name": "verify_artifact_bytes",
+          "input_line": 908
+        },
+        {
+          "name": "compare_frames",
+          "input_line": 921
+        },
+        {
+          "name": "artifact_ref",
+          "input_line": 961
+        },
+        {
+          "name": "fidelity_binding",
+          "input_line": 977
+        }
+      ],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true,
+      "non_comment_change_explanation": "rustfmt removed one optional trailing comma in read_exact_generation_tree; no executable value or operation changed.",
+      "approved_closure_removed_functions": [
+        {
+          "name": "validate_actual_observation",
+          "input_line": 746
+        },
+        {
+          "name": "compare_admitted_observations",
+          "input_line": 803
+        },
+        {
+          "name": "verify_artifact_bytes",
+          "input_line": 908
+        },
+        {
+          "name": "compare_frames",
+          "input_line": 921
+        },
+        {
+          "name": "artifact_ref",
+          "input_line": 961
+        },
+        {
+          "name": "fidelity_binding",
+          "input_line": 977
+        }
+      ],
+      "correction_delta_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json",
+      "removed_imports": [
+        {
+          "input_line": 8,
+          "removed_name": "ArtifactReceipt",
+          "input_import": "use crate::{ArtifactReceipt, Case, ExpectedGenerationInput, Geometry, RendererIdentity};",
+          "output_import": "use crate::{Case, ExpectedGenerationInput, Geometry, RendererIdentity};",
+          "reason": "ArtifactReceipt was used only by the retired actual-observation executor."
+        }
+      ],
+      "approved_closure_removed_named_items": [
+        {
+          "kind": "struct",
+          "name": "CapturedObservation",
+          "input_line_c817": 229
+        },
+        {
+          "kind": "struct",
+          "name": "ValidatedActualObservation",
+          "input_line_c817": 794
+        },
+        {
+          "kind": "fn",
+          "name": "validate_actual_observation",
+          "input_line_c817": 746
+        },
+        {
+          "kind": "fn",
+          "name": "compare_admitted_observations",
+          "input_line_c817": 803
+        },
+        {
+          "kind": "fn",
+          "name": "verify_artifact_bytes",
+          "input_line_c817": 908
+        },
+        {
+          "kind": "fn",
+          "name": "compare_frames",
+          "input_line_c817": 921
+        },
+        {
+          "kind": "fn",
+          "name": "artifact_ref",
+          "input_line_c817": 961
+        },
+        {
+          "kind": "fn",
+          "name": "fidelity_binding",
+          "input_line_c817": 977
+        }
+      ]
+    },
+    {
+      "path": "crates/termrock-visibility-publisher/src/lib.rs",
+      "input_sha256": "67766c91232c9b0db9854b279b1e74f7c617d4592fd17f7407108e808eb71bcb",
+      "output_sha256": "aa3e158870c75029759483372f9429065ad004161abe1ead6ada9892b723791d",
+      "input_functions_after_cfg_test_removal": 24,
+      "current_functions": 24,
+      "exact_retained_function_token_matches": 23,
+      "retained_functions_with_token_deltas": [
+        {
+          "name": "execute_get",
+          "input_line": 195,
+          "output_line": 43,
+          "edits": [
+            {
+              "operation": "delete",
+              "old_tokens": [
+                "{"
+              ],
+              "current_tokens": []
+            },
+            {
+              "operation": "delete",
+              "old_tokens": [
+                "}"
+              ],
+              "current_tokens": []
+            }
+          ],
+          "changed_tokens_include_literals": false
+        }
+      ],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true,
+      "non_comment_change_explanation": "Removing the cfg(test) error-recording statement allowed rustfmt to collapse execute_get’s single-expression closure, removing only the closure block braces. map_reqwest_error and its arguments are unchanged."
+    },
+    {
+      "path": "crates/termrock-visibility-tests/src/bin/capture-command.rs",
+      "input_sha256": "6cd9c64d85dcda7392ba234f06f54af816f3859b0147759e0420df94c9de0867",
+      "output_sha256": "022377790b1f4e36474ce7f228cb9146f42fa56dcd830af4fee7b73b4f2ac238",
+      "input_functions_after_cfg_test_removal": 17,
+      "current_functions": 17,
+      "exact_retained_function_token_matches": 17,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "crates/termrock-visibility-tests/src/lib.rs",
+      "input_sha256": "a964a9c0cf495b542eab8f763f339f23d576c50d339728ec941b58666a4852c0",
+      "output_sha256": "bbd6272a85cf8c54d44b390b6847e943ed9642ed0ba407542dc362662c1bf78d",
+      "input_functions_after_cfg_test_removal": 49,
+      "current_functions": 15,
+      "exact_retained_function_token_matches": 15,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [
+        {
+          "name": "relative_path",
+          "input_line": 54
+        },
+        {
+          "name": "new",
+          "input_line": 78
+        },
+        {
+          "name": "root",
+          "input_line": 92
+        },
+        {
+          "name": "copy_tool_exact",
+          "input_line": 96
+        },
+        {
+          "name": "copy_tool_exact",
+          "input_line": 199
+        },
+        {
+          "name": "copy_project_file_exact",
+          "input_line": 100
+        },
+        {
+          "name": "write_file",
+          "input_line": 137
+        },
+        {
+          "name": "prepare_destination",
+          "input_line": 158
+        },
+        {
+          "name": "success",
+          "input_line": 215
+        },
+        {
+          "name": "run_cli",
+          "input_line": 227
+        },
+        {
+          "name": "run_cli_with_timeout",
+          "input_line": 238
+        },
+        {
+          "name": "run_cli_with_timeout",
+          "input_line": 256
+        },
+        {
+          "name": "run_captured_command",
+          "input_line": 279
+        },
+        {
+          "name": "install_fixture_aliases",
+          "input_line": 702
+        },
+        {
+          "name": "prepend_path",
+          "input_line": 744
+        },
+        {
+          "name": "drop",
+          "input_line": 759
+        },
+        {
+          "name": "hold_queue_lock",
+          "input_line": 766
+        },
+        {
+          "name": "hold_queue_lock",
+          "input_line": 774
+        },
+        {
+          "name": "source_repository_root",
+          "input_line": 781
+        },
+        {
+          "name": "absolute_path_like_python",
+          "input_line": 797
+        },
+        {
+          "name": "python_temp_root",
+          "input_line": 818
+        },
+        {
+          "name": "python_temp_root_from_candidates",
+          "input_line": 826
+        },
+        {
+          "name": "python_tempdir_candidates",
+          "input_line": 834
+        },
+        {
+          "name": "select_python_temp_root",
+          "input_line": 863
+        },
+        {
+          "name": "is_writable_temp_directory",
+          "input_line": 878
+        },
+        {
+          "name": "validate_relative_path",
+          "input_line": 926
+        },
+        {
+          "name": "effective_uid",
+          "input_line": 948
+        },
+        {
+          "name": "flock_file",
+          "input_line": 955
+        },
+        {
+          "name": "open_queue_lock_file",
+          "input_line": 970
+        },
+        {
+          "name": "open_directory_chain_no_follow",
+          "input_line": 987
+        },
+        {
+          "name": "open_private_lock_directory_at",
+          "input_line": 1044
+        },
+        {
+          "name": "open_private_lock_file_at",
+          "input_line": 1087
+        },
+        {
+          "name": "install_alias",
+          "input_line": 1121
+        },
+        {
+          "name": "install_alias",
+          "input_line": 1126
+        }
+      ],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "crates/termrock-visibility-tests/src/nextest_result.rs",
+      "input_sha256": "d4490398cfabacfa3a49a703c1169a32f66c9b1bad23862e1dfc9b18ea0fc33f",
+      "output_sha256": "328c2bf0859e3107abc53d873ff70718ca5dd1fdda0384a2376b82b250f2ebd8",
+      "input_functions_after_cfg_test_removal": 63,
+      "current_functions": 63,
+      "exact_retained_function_token_matches": 62,
+      "retained_functions_with_token_deltas": [
+        {
+          "name": "parse_human_diagnostics",
+          "input_line": 2046,
+          "output_line": 2045,
+          "edits": [
+            {
+              "operation": "delete",
+              "old_tokens": [
+                ","
+              ],
+              "current_tokens": []
+            }
+          ],
+          "changed_tokens_include_literals": false
+        }
+      ],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true,
+      "non_comment_change_explanation": "rustfmt removed one optional trailing comma in parse_human_diagnostics; no executable value or operation changed."
+    },
+    {
+      "path": "crates/termrock-xtask/src/main.rs",
+      "input_sha256": "f1da33323e22c333e59d0da598863eba4b9f94bac1a0b9f588027c65b6a0ffc1",
+      "output_sha256": "6a6a82d3121d9336091f392c9054ac8698783e05c24a52df167d8f0f7d2dfd1d",
+      "input_functions_after_cfg_test_removal": 4,
+      "current_functions": 4,
+      "exact_retained_function_token_matches": 4,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/exceptions.rs",
+      "input_sha256": "6a7e188368ac78dd06c00ce49e2e583506fa4f4493db700a145bfede0dffe7c8",
+      "output_sha256": "573c889178a3df0c90a0500d577199844ae965d55b0354a8d50caf7e6346cb15",
+      "input_functions_after_cfg_test_removal": 3,
+      "current_functions": 3,
+      "exact_retained_function_token_matches": 3,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/mod.rs",
+      "input_sha256": "6d49b1fed7fd626c4256da0faee7cfc1e1f0b3328558e34992c25c889512f3a6",
+      "output_sha256": "46c83a76aff229ac5e3294202dd391e7e382188e280e582ee53f6c421992f9ea",
+      "input_functions_after_cfg_test_removal": 7,
+      "current_functions": 7,
+      "exact_retained_function_token_matches": 7,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "output_sha256": "d5c4d204294a0604e047b66802f0f8c2dd9c75c5a3de212b40671007512eca39",
+      "input_functions_after_cfg_test_removal": 69,
+      "current_functions": 69,
+      "exact_retained_function_token_matches": 69,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/rules.rs",
+      "input_sha256": "3c22881a344ce1852e1acc0b83dfcd345e146108bd854eba8cde5a9acf2a0ef3",
+      "output_sha256": "bf50f8cc0e90597085ee12a31f89f0c26adb44051a22d4edbbfa1d756142cf0e",
+      "input_functions_after_cfg_test_removal": 49,
+      "current_functions": 49,
+      "exact_retained_function_token_matches": 49,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [
+        [
+          "const",
+          "TOOLING_MEMBERS"
+        ]
+      ],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true,
+      "non_comment_change_explanation": "Remove the obsolete termrock-test-support package literal from the retained TOOLING_MEMBERS ownership classifier because the test-only workspace package is retired; TOOLING_MEMBERS/is_tooling_member otherwise remains unchanged."
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/scan.rs",
+      "input_sha256": "847f1aa176f765132af0a3392ab762df3b7ef332b7bb9dd0e67fdacdc41287c1",
+      "output_sha256": "bbc9672a063ddaedb8954540cfe3772a094fe073cd0f4df071c5cb15bd05143a",
+      "input_functions_after_cfg_test_removal": 29,
+      "current_functions": 29,
+      "exact_retained_function_token_matches": 29,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "output_sha256": "d35e74ebf99dd1ebfd0483edb02e85f02f8ee8161c0ed245afed104d6be7bf3e",
+      "input_functions_after_cfg_test_removal": 30,
+      "current_functions": 30,
+      "exact_retained_function_token_matches": 30,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "external-consumer-demo/src/lib.rs",
+      "input_sha256": "38c0cf32d0636ce3412da27524eb97bdf4737242b2d613897cdc211c775265b4",
+      "output_sha256": "8a587fad2efd13ccd8b8dca44e28f55eae76e8f473ee880063e0312248ec88ce",
+      "input_functions_after_cfg_test_removal": 0,
+      "current_functions": 0,
+      "exact_retained_function_token_matches": 0,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "external-consumer-demo/src/main.rs",
+      "input_sha256": "b2c21d4a6e6eed10ead11ac447d3aeedf6f7af3d5a8842fa3513cfe18ea97610",
+      "output_sha256": "105c3c8389a29444830db84d99cdfb632f814f2335f293b1842244ccc1100f20",
+      "input_functions_after_cfg_test_removal": 1,
+      "current_functions": 1,
+      "exact_retained_function_token_matches": 1,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "output_sha256": "f98003548cca6aa58eccb43482e438e26b73d7095504ba3049dbaf4ce6b0b20b",
+      "input_functions_after_cfg_test_removal": 1,
+      "current_functions": 1,
+      "exact_retained_function_token_matches": 1,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "tools/refactor-proof/src/compare.rs",
+      "input_sha256": "a24e34dee1e38b636ac0abd6a12fff9b7e84a086556b678611866480b543886e",
+      "output_sha256": "f1d4f366da7e7e47f0cc2aac0f136e138bf2cce4a010ee2e2ec4a7eae480e03d",
+      "input_functions_after_cfg_test_removal": 19,
+      "current_functions": 19,
+      "exact_retained_function_token_matches": 19,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "tools/refactor-proof/src/host/context_check.rs",
+      "input_sha256": "62151751995bcbfd4e3ef216b79130661fdbc5e38428f89747005cd774292233",
+      "output_sha256": "fd5cb25dcb739d0c056253d8c3ee6a2b82501dbbb6f8f4233e6fc65cd1059039",
+      "input_functions_after_cfg_test_removal": 5,
+      "current_functions": 4,
+      "exact_retained_function_token_matches": 3,
+      "retained_functions_with_token_deltas": [
+        {
+          "name": "spawn_context_check",
+          "input_line": 19,
+          "output_line": 17,
+          "edits": [
+            {
+              "operation": "delete",
+              "old_tokens": [
+                "if",
+                "member",
+                ".",
+                "schema",
+                "==",
+                "FIXTURE_CONTEXT_SCHEMA",
+                "{",
+                "return",
+                "spawn_fixture_context_check_stub",
+                "(",
+                ")",
+                ";",
+                "}"
+              ],
+              "current_tokens": []
+            }
+          ],
+          "changed_tokens_include_literals": false,
+          "authority": "T37-PROOF-FIXTURE-01"
+        }
+      ],
+      "functions_not_in_current": [
+        {
+          "name": "spawn_fixture_context_check_stub",
+          "input_line": 33
+        }
+      ],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true,
+      "approved_closure_removed_functions": [
+        {
+          "name": "spawn_fixture_context_check_stub",
+          "input_line": 33
+        }
+      ],
+      "correction_delta_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json",
+      "approved_closure_removed_named_items": [
+        {
+          "kind": "const",
+          "name": "FIXTURE_CONTEXT_SCHEMA",
+          "input_line_c817": 6
+        },
+        {
+          "kind": "fn",
+          "name": "spawn_fixture_context_check_stub",
+          "input_line_c817": 33
+        },
+        {
+          "kind": "control-flow",
+          "name": "fixture context dispatch",
+          "input_line_range_c817": [
+            27,
+            29
+          ]
+        }
+      ],
+      "approved_closure_control_flow_deltas": [
+        {
+          "name": "fixture context dispatch",
+          "input_line_range_c817": [
+            27,
+            29
+          ],
+          "input_slice_sha256": "8622bb798caf554d5369e7845201bc4be056df2212dcd2ed089bdae1e3bd6bb8",
+          "surviving_function": "spawn_context_check",
+          "input_function_line_c817": 19,
+          "output_function_line": 17,
+          "reason": "The Sol-high approved fixture stub/dispatch closure is removed; the context existence guard and normal tc-proof dispatch remain."
+        }
+      ],
+      "token_match_accounting": "4 current functions = 3 exact retained token matches + 1 function with the named approved fixture dispatch deletion."
+    },
+    {
+      "path": "tools/refactor-proof/src/host/git.rs",
+      "input_sha256": "f53f96874d1337d327aa51c33de2f59ffa21f920eb8f31c870e420c4b3064213",
+      "output_sha256": "73a4443fa455a3b8adc045f63a50bd325a7b7692dd8faae7d33f8d9a34682576",
+      "input_functions_after_cfg_test_removal": 21,
+      "current_functions": 21,
+      "exact_retained_function_token_matches": 21,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "tools/refactor-proof/src/host/install.rs",
+      "input_sha256": "e22adf92761b229848c21858d33fc4d5b97bb54d7bd84698159b24a1e83e5885",
+      "output_sha256": "0c8e56afe4bdb0b70ab09e7c8844eee861b097605898c07df471cbf5a4f09890",
+      "input_functions_after_cfg_test_removal": 7,
+      "current_functions": 7,
+      "exact_retained_function_token_matches": 7,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "tools/refactor-proof/src/host/integrate.rs",
+      "input_sha256": "d79fd8e23006b43de410e2b49da0f78e26706d43b54b2007b3a27edafbfef85d",
+      "output_sha256": "5db82cc12ec6a95202d3da2adb891d57fcaac0f5c6828323f3cdb19a8a7e85df",
+      "input_functions_after_cfg_test_removal": 4,
+      "current_functions": 4,
+      "exact_retained_function_token_matches": 4,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "tools/refactor-proof/src/host/scope.rs",
+      "input_sha256": "180fc5aa4322951a869f08cbc1d577b7532d1729b570bfa6ba85cd9b2ff3d2ee",
+      "output_sha256": "363ecc4aa52dfaf42ca49dfd897d5bb8b9bc67f78a7de4e03186e47b7854cce5",
+      "input_functions_after_cfg_test_removal": 8,
+      "current_functions": 8,
+      "exact_retained_function_token_matches": 8,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "tools/refactor-proof/src/host/seal.rs",
+      "input_sha256": "3a2a390166039eddf1cedb844128622b883f109917f9786a56163213ae7d94a5",
+      "output_sha256": "8ee46878e21c9c97c58310585a9c9207cbaebd2a2cc3c1f77c3a8acdc8855053",
+      "input_functions_after_cfg_test_removal": 2,
+      "current_functions": 2,
+      "exact_retained_function_token_matches": 2,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "tools/refactor-proof/src/host/verify.rs",
+      "input_sha256": "73f10fc9c4f4f5a03f265d470c966f09132392fa45d9d71785e26874fcb7474e",
+      "output_sha256": "ef27466a113e84e5bde15488a2ab6c3a0184e9b052b2f57ace332a50261cddc2",
+      "input_functions_after_cfg_test_removal": 12,
+      "current_functions": 12,
+      "exact_retained_function_token_matches": 12,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "tools/refactor-proof/src/observer/client.rs",
+      "input_sha256": "903ecfadb486a388239726e07e450c00a66f1b1fda650deb0b6b89184d1db7c7",
+      "output_sha256": "cd44986aab5122bad99044f3cc76524ea2e1ffa9f290d15aa38917b14f65c2e6",
+      "input_functions_after_cfg_test_removal": 14,
+      "current_functions": 14,
+      "exact_retained_function_token_matches": 14,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "tools/termrock-visibility-publisher/src/api.rs",
+      "input_sha256": "4b92633dc03171df6db8f4a4b64c0a222a8119b746a598cc350ebb4108f2a8f0",
+      "output_sha256": "a8dd2bee0aba2d36da54668c79da5e001f6aa89a5ce704aac34f3e8e32c318a1",
+      "input_functions_after_cfg_test_removal": 40,
+      "current_functions": 40,
+      "exact_retained_function_token_matches": 40,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    },
+    {
+      "path": "tools/termrock-visibility-publisher/src/lib.rs",
+      "input_sha256": "01a020a41ce4a879d7d37e55abe23f94b8a003b7c1b4a53a1e0dd7f6f858a564",
+      "output_sha256": "b6ce118851cc1e345f3145e317e67d0a71fc0d50b26d5ffbeb8355a5286eecea",
+      "input_functions_after_cfg_test_removal": 24,
+      "current_functions": 24,
+      "exact_retained_function_token_matches": 23,
+      "retained_functions_with_token_deltas": [
+        {
+          "name": "execute_get",
+          "input_line": 192,
+          "output_line": 43,
+          "edits": [
+            {
+              "operation": "delete",
+              "old_tokens": [
+                "{"
+              ],
+              "current_tokens": []
+            },
+            {
+              "operation": "delete",
+              "old_tokens": [
+                "}"
+              ],
+              "current_tokens": []
+            }
+          ],
+          "changed_tokens_include_literals": false
+        }
+      ],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true,
+      "non_comment_change_explanation": "Removing the cfg(test) error-recording statement allowed rustfmt to collapse execute_get’s single-expression closure, removing only the closure block braces. map_reqwest_error and its arguments are unchanged."
+    },
+    {
+      "path": "tools/termrock-visibility-publisher/src/observer.rs",
+      "input_sha256": "cffcde89551aeef6e1847cffe90900c041e4208ec0c6c1e52b4423bdfcb67b6f",
+      "output_sha256": "b8111bc691d9416804280dec038913907d1074deeb0b777601357c9166f4ccea",
+      "input_functions_after_cfg_test_removal": 9,
+      "current_functions": 9,
+      "exact_retained_function_token_matches": 9,
+      "retained_functions_with_token_deltas": [],
+      "functions_not_in_current": [],
+      "current_functions_without_baseline_match": [],
+      "retained_named_const_or_type_item_mismatches": [],
+      "retained_literal_tokens_unchanged_for_matched_and_changed_functions": true
+    }
+  ],
+  "non_comment_token_delta_summary": {
+    "only_deltas_in_surviving_rust_functions": "Surviving-function deltas are punctuation normalization except for the approved fixture-context branch deletion in tools/refactor-proof/src/host/context_check.rs::spawn_context_check; no retained string/raw-string/byte-string literal token changed. Retained named const/type items match except the approved TOOLING_MEMBERS package-classification literal. Explicitly retired items/files are listed separately. Six retained SAFETY comment groups were removed after the accepted and integrated maintained contract; see post-transfer-comment-deletions.json.",
+    "specific_deltas": [
+      {
+        "path": "crates/termrock-e2e/src/lib.rs",
+        "function": "validate_case_contract",
+        "input_line": 3623,
+        "output_line": 2471,
+        "operation": "insert",
+        "old_tokens": [],
+        "current_tokens": [
+          "{"
+        ]
+      },
+      {
+        "path": "crates/termrock-e2e/src/lib.rs",
+        "function": "validate_case_contract",
+        "input_line": 3623,
+        "output_line": 2471,
+        "operation": "insert",
+        "old_tokens": [],
+        "current_tokens": [
+          "}"
+        ]
+      },
+      {
+        "path": "crates/termrock-e2e/src/lib.rs",
+        "function": "validate_case_contract",
+        "input_line": 3623,
+        "output_line": 2471,
+        "operation": "insert",
+        "old_tokens": [],
+        "current_tokens": [
+          ","
+        ]
+      },
+      {
+        "path": "crates/termrock-e2e/src/lib.rs",
+        "function": "valid_checkpoint_id",
+        "input_line": 3846,
+        "output_line": 2695,
+        "operation": "delete",
+        "old_tokens": [
+          "{"
+        ],
+        "current_tokens": []
+      },
+      {
+        "path": "crates/termrock-e2e/src/lib.rs",
+        "function": "valid_checkpoint_id",
+        "input_line": 3846,
+        "output_line": 2695,
+        "operation": "delete",
+        "old_tokens": [
+          "}"
+        ],
+        "current_tokens": []
+      },
+      {
+        "path": "crates/termrock-e2e/src/lib.rs",
+        "function": "validate_mouse_input",
+        "input_line": 3856,
+        "output_line": 2705,
+        "operation": "insert",
+        "old_tokens": [],
+        "current_tokens": [
+          ","
+        ]
+      },
+      {
+        "path": "crates/termrock-e2e/src/lib.rs",
+        "function": "checkpoint_geometries",
+        "input_line": 3874,
+        "output_line": 2727,
+        "operation": "insert",
+        "old_tokens": [],
+        "current_tokens": [
+          "{"
+        ]
+      },
+      {
+        "path": "crates/termrock-e2e/src/lib.rs",
+        "function": "checkpoint_geometries",
+        "input_line": 3874,
+        "output_line": 2727,
+        "operation": "insert",
+        "old_tokens": [],
+        "current_tokens": [
+          ","
+        ]
+      },
+      {
+        "path": "crates/termrock-e2e/src/lib.rs",
+        "function": "checkpoint_geometries",
+        "input_line": 3874,
+        "output_line": 2727,
+        "operation": "replace",
+        "old_tokens": [
+          ","
+        ],
+        "current_tokens": [
+          "}"
+        ]
+      },
+      {
+        "path": "crates/termrock-e2e/src/visual.rs",
+        "function": "read_exact_generation_tree",
+        "input_line": 523,
+        "output_line": 523,
+        "operation": "delete",
+        "old_tokens": [
+          ","
+        ],
+        "current_tokens": []
+      },
+      {
+        "path": "crates/termrock-visibility-publisher/src/lib.rs",
+        "function": "execute_get",
+        "input_line": 195,
+        "output_line": 43,
+        "operation": "delete",
+        "old_tokens": [
+          "{"
+        ],
+        "current_tokens": []
+      },
+      {
+        "path": "crates/termrock-visibility-publisher/src/lib.rs",
+        "function": "execute_get",
+        "input_line": 195,
+        "output_line": 43,
+        "operation": "delete",
+        "old_tokens": [
+          "}"
+        ],
+        "current_tokens": []
+      },
+      {
+        "path": "crates/termrock-visibility-tests/src/nextest_result.rs",
+        "function": "parse_human_diagnostics",
+        "input_line": 2046,
+        "output_line": 2045,
+        "operation": "delete",
+        "old_tokens": [
+          ","
+        ],
+        "current_tokens": []
+      },
+      {
+        "path": "tools/termrock-visibility-publisher/src/lib.rs",
+        "function": "execute_get",
+        "input_line": 192,
+        "output_line": 43,
+        "operation": "delete",
+        "old_tokens": [
+          "{"
+        ],
+        "current_tokens": []
+      },
+      {
+        "path": "tools/termrock-visibility-publisher/src/lib.rs",
+        "function": "execute_get",
+        "input_line": 192,
+        "output_line": 43,
+        "operation": "delete",
+        "old_tokens": [
+          "}"
+        ],
+        "current_tokens": []
+      },
+      {
+        "path": "tools/refactor-proof/src/host/context_check.rs",
+        "function": "spawn_context_check",
+        "input_line": 19,
+        "output_line": 17,
+        "operation": "delete",
+        "old_tokens": [
+          "if",
+          "member",
+          ".",
+          "schema",
+          "==",
+          "FIXTURE_CONTEXT_SCHEMA",
+          "{",
+          "return",
+          "spawn_fixture_context_check_stub",
+          "(",
+          ")",
+          ";",
+          "}"
+        ],
+        "current_tokens": [],
+        "changed_tokens_include_literals": false,
+        "authority": "T37-PROOF-FIXTURE-01"
+      }
+    ],
+    "meaning": "These deltas include rustfmt punctuation normalization and the separately approved fixture dispatch deletion from spawn_context_check. No retained string/raw-string/byte-string literal changed; behavior remains NOT VERIFIED.",
+    "specific_named_item_change": {
+      "path": "crates/termrock-xtask/src/ownership/rules.rs",
+      "input_line": 142,
+      "output_line": 142,
+      "item": "TOOLING_MEMBERS",
+      "input_tokens": [
+        "pub",
+        "const",
+        "TOOLING_MEMBERS",
+        ":",
+        "&",
+        "[",
+        "&",
+        "str",
+        "]",
+        "=",
+        "&",
+        "[",
+        "\"termrock-test-support\"",
+        ",",
+        "\"termrock-xtask\"",
+        "]",
+        ";"
+      ],
+      "output_tokens": [
+        "pub",
+        "const",
+        "TOOLING_MEMBERS",
+        ":",
+        "&",
+        "[",
+        "&",
+        "str",
+        "]",
+        "=",
+        "&",
+        "[",
+        "\"termrock-xtask\"",
+        "]",
+        ";"
+      ],
+      "reason": "The T00 test-only termrock-test-support package is removed. This was its only non-manifest source reference and the active ownership scanner uses the list through is_tooling_member."
+    }
+  },
+  "scope_notes": [
+    "Full-file deletions and approved legacy helper closures are classified in file-deletion-map.json, not treated as surviving function token changes.",
+    "The Python token/API comparison is in python-source-token-check.json; CLI help string transfers are exact against the original c817 module docstrings.",
+    "No replacement test, harness, fixture, doctest, snapshot, or gate was added.",
+    "The package-classification string removal is the sole retained named-constant literal delta; stale package metadata is removed by the shared metadata owner."
+  ],
+  "retired_files": [
+    {
+      "path": "crates/termrock-xtask/src/doc_inventory.rs",
+      "input_sha256": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+      "line_count": 2288,
+      "authority": "T37-DOC-INVENTORY-01",
+      "reason": "Entire source module retired by the approved ownership decision; per-file full deletion is bound in file-deletion-map.json."
+    }
+  ],
+  "non_function_item_changes": [
+    {
+      "path": "crates/termrock-xtask/src/lib.rs",
+      "input_sha256": "7e6ffe193372791f3e84d77734d0d9c1ff1556d189363685303ee24c2bf46c1d",
+      "output_sha256": "d508f335c69cd871a71277ec5a5e39a4968461319f7d622e7ea3df4f35f22c1f",
+      "input_line": 1,
+      "removed_tokens": [
+        "pub",
+        "mod",
+        "doc_inventory",
+        ";"
+      ],
+      "authority": "T37-DOC-INVENTORY-01",
+      "reason": "Remove the sole export of the retired helper; `pub mod ownership;` is unchanged."
+    }
+  ],
+  "final_output_source_commit": "7fee71b6bd5091ce670d36644273ed1ffda1481d",
+  "correction_delta_path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json",
+  "post_correction_summary": "Final source hashes and approved closures are reconciled in source-correction-delta.json. The surviving spawn_context_check loses one approved fixture dispatch branch; other surviving-function deltas are punctuation only. No retained string/raw-string/byte-string literal changed."
+}

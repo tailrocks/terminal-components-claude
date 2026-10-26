@@ -1,0 +1,63 @@
+{
+  "source_head": "560f3dca487247b1068c45a0d2b469c8eabe3165",
+  "metadata_graph_path_scope": "Exact 62-path set already committed in metadata-output-hashes.json; .github/workflows/cache-prune.yml is unchanged and outside this recorded graph set.",
+  "metadata_file_count": 62,
+  "metadata_graph_sha256": "9a39580c733b65fe02ac28a691188838daef4957235bd658fc305d1d5bdaf2a5",
+  "matches_recorded_metadata_graph": true,
+  "active_reference_checks": [
+    {
+      "pattern": "termrock-conformance",
+      "exit_status": 1,
+      "match_count": 0,
+      "matches": []
+    },
+    {
+      "pattern": "termrock-test-support",
+      "exit_status": 1,
+      "match_count": 0,
+      "matches": []
+    },
+    {
+      "pattern": "workbench-tabs-privacy",
+      "exit_status": 1,
+      "match_count": 0,
+      "matches": []
+    },
+    {
+      "pattern": "paint-style-pilot",
+      "exit_status": 1,
+      "match_count": 0,
+      "matches": []
+    },
+    {
+      "pattern": "frozen-cli-frame-support",
+      "exit_status": 1,
+      "match_count": 0,
+      "matches": []
+    },
+    {
+      "pattern": "visual_baseline",
+      "exit_status": 1,
+      "match_count": 0,
+      "matches": []
+    },
+    {
+      "pattern": "tools/test-inventory/profiles.json",
+      "exit_status": 1,
+      "match_count": 0,
+      "matches": []
+    },
+    {
+      "pattern": "pulldown-cmark",
+      "exit_status": 1,
+      "match_count": 0,
+      "matches": []
+    }
+  ],
+  "all_active_reference_checks_clear": true,
+  "preservation_hashes_match": true,
+  "workflow_preamble_sha256": "2592a3fb0162fae984f0bff0752e81841a6c1cbf999fac2218a7b318e399e261",
+  "workflow_preamble_matches_prior_generated": true,
+  "workflow_action_reference_count": 13,
+  "workflow_action_references_match_prior_generated": true
+}

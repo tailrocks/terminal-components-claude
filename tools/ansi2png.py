@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rasterize a tmux ANSI capture to PNG using JetBrains Mono (falls back to Menlo)."""
+
 import os
 import re
 import sys
@@ -17,7 +17,7 @@ FONTS = {
     "bolditalic": os.path.join(FONT_DIR, "JetBrainsMonoNerdFontMono-BoldItalic.ttf"),
 }
 SIZE = 15
-CW, CH = 9, 20  # cell size at 15px
+CW, CH = 9, 20
 PAD = 12
 
 
@@ -49,7 +49,7 @@ def render(text, cols, rows, out, default_fg="#d0d0d0", default_bg="#000000", cu
     img = Image.new("RGB", (cols * CW + PAD * 2, rows * CH + PAD * 2), hexrgb(default_bg))
     draw = ImageDraw.Draw(img)
     lines = text.split("\n")[:rows]
-    state = State()  # SGR state carries across lines in tmux captures
+    state = State()
     for row, line in enumerate(lines):
         col = 0
         pos = 0
