@@ -3611,6 +3611,7 @@ termrock-runtime::runtime::WheelRouteAttempt::part | Present in the current sour
 termrock-runtime::runtime::WheelRouteAttempt::position | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock-runtime::runtime::WheelRouteAttempt::registry_generation | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock-runtime::runtime::WheelRouteAttempt::source_revision | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
+termrock-runtime::runtime::WheelRouteAttempt::unscaled_delta | New Runtime pre-theme wheel-unit accessor has no current showcase behavior proof; review pending showcase evidence | review
 termrock-runtime::runtime::WheelRouteResult | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock-runtime::runtime::WheelRouteResult::Changed | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock-runtime::runtime::WheelRouteResult::Consumed | Present in the current source inventory; behavior evidence has not yet been reviewed. | review

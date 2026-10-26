@@ -184,6 +184,7 @@ pub struct WheelRouteAttempt {
     layer: LayerId,
     axis: Axis,
     delta: i16,
+    unscaled_delta: i16,
     position: Position,
     modifiers: KeyModifiers,
     registry_generation: u32,
@@ -208,6 +209,7 @@ impl WheelRouteAttempt {
         target: WheelRouteTarget,
         axis: Axis,
         delta: i16,
+        unscaled_delta: i16,
         position: Position,
         modifiers: KeyModifiers,
     ) -> Self {
@@ -221,6 +223,7 @@ impl WheelRouteAttempt {
             layer: target.layer,
             axis,
             delta,
+            unscaled_delta,
             position,
             modifiers,
             registry_generation: target.registry_generation,
@@ -257,6 +260,14 @@ impl WheelRouteAttempt {
     /// Return the already-scaled delta shared by every target in this route.
     pub const fn delta(self) -> i16 {
         self.delta
+    }
+
+    /// Return the pre-theme decoded wheel units shared by every target in this route.
+    ///
+    /// This is the `i16` delta decoded by the input provider before the runtime
+    /// applies `wheel_rows`. It does not promise raw hardware precision.
+    pub const fn unscaled_delta(self) -> i16 {
+        self.unscaled_delta
     }
 
     pub const fn position(self) -> Position {
@@ -1339,6 +1350,7 @@ impl<A: App> Runtime<A> {
                             },
                             axis,
                             scaled_delta,
+                            delta,
                             m.pos,
                             m.mods,
                         ));
@@ -1920,6 +1932,7 @@ impl<A: App> Runtime<A> {
                 },
                 current.axis(),
                 current.delta(),
+                current.unscaled_delta(),
                 current.position(),
                 current.modifiers(),
             );

@@ -3267,6 +3267,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("termrock-runtime::runtime::WheelRouteAttempt::position"),
     Capability::function("termrock-runtime::runtime::WheelRouteAttempt::registry_generation"),
     Capability::function("termrock-runtime::runtime::WheelRouteAttempt::source_revision"),
+    Capability::function("termrock-runtime::runtime::WheelRouteAttempt::unscaled_delta"),
     Capability::ty("termrock-runtime::runtime::WheelRouteResult"),
     Capability::variant("termrock-runtime::runtime::WheelRouteResult::Changed"),
     Capability::variant("termrock-runtime::runtime::WheelRouteResult::Consumed"),
