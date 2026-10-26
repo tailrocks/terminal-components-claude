@@ -3,7 +3,7 @@
   "agent_id": "/root/t37_crosswalk",
   "model": "gpt-6-luna",
   "effort": "max",
-  "input_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+  "input_commit": "59118234047f19adaa62621badd8c33bde355040",
   "output_commit": null,
   "output_commit_note": "The coordinator receives the final commit ID because an artifact cannot contain its own commit hash.",
   "worktree": "/Users/donbeave/Downloads/termrock-t37-crosswalk",
@@ -12,8 +12,21 @@
     "docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py",
     "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
     "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/README.md",
-    "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/agent-runbook.json"
+    "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/agent-runbook.json",
+    "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/coordinator-review-decisions.json"
   ],
+  "previous_review": {
+    "status": "CORRECTION",
+    "reviewer_id": "/root/t00_independent_review",
+    "reviewer_model": "gpt-6.1-sol",
+    "reviewer_effort": "high",
+    "reviewed_commit": "59118234047f19adaa62621badd8c33bde355040",
+    "previous_output_sha256": "2fd87565502f7f50d6b4595e05f343b6a226c0ed0c20840e8e24ab257a338052",
+    "findings": [
+      "C acceptance was promoted from worker self-status or an unbound review dictionary; require exact coordinator binding to reviewed source commit, artifact path, artifact SHA-256, reviewer, and decision.",
+      "The source-inventory limitation was unconditional despite dynamic local integration detection; report source_inventory.integration_status."
+    ]
+  },
   "foundation_source": {
     "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
     "accepted_source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
@@ -39,7 +52,11 @@
         "reviewer": "/root/t37_components_review",
         "model": "gpt-6.1-sol",
         "effort": "high",
-        "decision_id": "T37-API-PROSE-01"
+        "decision_id": "T37-API-PROSE-01",
+        "reviewed_source_commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+        "reviewed_artifact_path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
+        "reviewed_artifact_sha256": "6c5c9147f0d0339b5fbba9adfe1fc8703c773c078fb7806e9ec67ee07e958cf4",
+        "binding_status": "EXACT_GIT_BLOB_MATCH"
       },
       "recorded_source_review_state": "PENDING_INDEPENDENT_HIGH_REVIEW"
     },
@@ -58,7 +75,11 @@
         "reviewer": "/root/t00_independent_review",
         "model": "gpt-6.1-sol",
         "effort": "high",
-        "decision_id": "T37-API-PROSE-01"
+        "decision_id": "T37-API-PROSE-01",
+        "reviewed_source_commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+        "reviewed_artifact_path": "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
+        "reviewed_artifact_sha256": "100b55db7b05031451bca35c2142dbda6b3905d69d7ca404308ed4819a2b03a4",
+        "binding_status": "EXACT_GIT_BLOB_MATCH"
       },
       "recorded_source_review_state": "REVIEW"
     },
@@ -77,17 +98,27 @@
         "model": "gpt-6.1-sol",
         "effort": "high",
         "decision_id": "T37-API-PROSE-01",
+        "reviewed_source_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+        "reviewed_artifact_path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+        "reviewed_artifact_sha256": "379c33052a244411fef78fcaa79864013c53cdf3ed27c02d929568f316a37136",
+        "binding_status": "EXACT_GIT_BLOB_MATCH",
         "pending_work": "Confirmed maintained-guide corrections await independent review."
       }
     }
   ],
+  "coordinator_review_decisions": {
+    "path": "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/coordinator-review-decisions.json",
+    "sha256": "0f4c4b7a871b16664d696c2f54385cb516f2af859123a0a146f9ccbf44fb23b8",
+    "schema": "t37.api-prose-coordinator-review-bindings.v1",
+    "binding_rule": "Acceptance requires reviewer identity, decision ID, exact source commit, artifact path, artifact SHA-256, and matching Git blob bytes."
+  },
   "output": {
     "path": "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
-    "schema": "t37.foundation-api-prose-crosswalk.v2",
-    "composition_input_commit": "fe032a24154819a579c591e1cf87230558d286ee",
-    "sha256": "2fd87565502f7f50d6b4595e05f343b6a226c0ed0c20840e8e24ab257a338052",
+    "schema": "t37.foundation-api-prose-crosswalk.v3",
+    "composition_input_commit": "59118234047f19adaa62621badd8c33bde355040",
+    "sha256": "5e56acd5bdcd0e00109ff9594da81a1ed062c72d482a2557690b147e0348e059",
     "builder_path": "docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py",
-    "builder_sha256": "be29a19e306d7fadde3a0226cae320c7bd893f34bfa67482a84ce002d68cadea",
+    "builder_sha256": "3a10ec4421b1595229da9b0f8e892ef7893c40bb654dd161576b3672200adceb",
     "status": "REVIEW/PENDING",
     "independent_sol_high_review": "PENDING"
   },
@@ -107,7 +138,7 @@
   },
   "documentation": {
     "path": "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/README.md",
-    "sha256": "37105510d259a8fe722b9bd489aa8ede46ae453cdf4cddd4c610f525d2523d8d"
+    "sha256": "c02dc4dfeabef03b07ffa29bf876f47130acc70d10147b190a4c3fbbad1c20fd"
   },
   "commands": [
     {
@@ -123,7 +154,12 @@
     {
       "command": "PYTHONDONTWRITEBYTECODE=1 python3 docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py",
       "exit_code": 0,
-      "result": "Wrote 1,122 groups: 322 values, 304 runtime, 496 support. Output SHA-256 2fd87565502f7f50d6b4595e05f343b6a226c0ed0c20840e8e24ab257a338052."
+      "result": "Wrote 1,122 groups: 322 values, 304 runtime, 496 support. Output SHA-256 5e56acd5bdcd0e00109ff9594da81a1ed062c72d482a2557690b147e0348e059."
+    },
+    {
+      "command": "python3 -c 'import runpy; from pathlib import Path; p=\"docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py\"; ns=runpy.run_path(p); root=Path.cwd(); spec=next(c for c in ns[\"COHORTS\"] if c[\"key\"]==\"support\"); artifact=(root/spec[\"path\"]).read_bytes(); decision_record=ns[\"load_coordinator_decisions\"](root)[1]; result=ns[\"coordinator_review\"](root,spec,artifact,{\"cohort_id\":spec[\"cohort_id\"],\"status\":\"ACCEPTED\"},decision_record,{\"status\":\"ACCEPTED\"}); assert result[\"status\"]==\"REVIEW/PENDING\"; assert result[\"binding_status\"]==\"UNBOUND_OR_STALE_PENDING\"; assert result[\"source_recorded_review_metadata\"][\"status\"]==\"ACCEPTED\"; print(\"unbound worker self-ACCEPT -> REVIEW/PENDING\")'",
+      "exit_code": 0,
+      "result": "Unbound worker self-status ACCEPTED leaves C REVIEW/PENDING."
     },
     {
       "command": "python3 -m json.tool docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json > /dev/null",
@@ -134,6 +170,16 @@
       "command": "python3 -m json.tool docs/implementation/pr38-final/results/t37-api-crosswalk-integration/agent-runbook.json > /dev/null",
       "exit_code": 0,
       "result": "Valid JSON."
+    },
+    {
+      "command": "python3 -m json.tool docs/implementation/pr38-final/results/t37-api-crosswalk-integration/coordinator-review-decisions.json > /dev/null",
+      "exit_code": 0,
+      "result": "Valid JSON."
+    },
+    {
+      "command": "python3 -c 'import json,pathlib; x=json.loads(pathlib.Path(\"docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json\").read_text()); r={c[\"cohort_id\"]:c[\"independent_review\"] for c in x[\"cohorts\"]}; assert x[\"status\"]==\"REVIEW/PENDING\"; assert x[\"source_inventory\"][\"integration_status\"]==\"PENDING_INTEGRATION\"; assert x[\"coverage\"][\"composed_records\"]==1122; assert [x[\"coverage\"][\"cohort_record_counts\"][k] for k in (\"T37-API-PROSE-COHORT-A\",\"T37-API-PROSE-COHORT-B\",\"T37-API-PROSE-COHORT-C\")] == [322,304,496]; assert [r[k][\"status\"] for k in (\"T37-API-PROSE-COHORT-A\",\"T37-API-PROSE-COHORT-B\",\"T37-API-PROSE-COHORT-C\")] == [\"ACCEPTED\",\"ACCEPTED\",\"REVIEW/PENDING\"]; assert all(r[k][\"binding_status\"]==\"EXACT_GIT_BLOB_MATCH\" for k in r); print(\"1122 records; 322/304/496; A/B accepted; C and global pending; source integration pending\")'",
+      "exit_code": 0,
+      "result": "1122 records; 322/304/496; A/B accepted; C and global pending; source integration pending."
     },
     {
       "command": "git diff --check",
@@ -148,14 +194,15 @@
     {
       "command": "git rev-parse HEAD",
       "exit_code": 0,
-      "result": "fe032a24154819a579c591e1cf87230558d286ee; fixed composition input commit."
+      "result": "59118234047f19adaa62621badd8c33bde355040; fixed review-correction input commit."
     }
   ],
   "limits": [
     "The cohort records are copied unchanged. Their embedded historical review fields and identity references are retained and labeled in cohort metadata.",
     "Hashes inside embedded cohort records remain source-commit evidence, not current candidate target hashes.",
     "The builder validates structure, provenance, hash identity, path locality, and disjoint coverage. It makes no semantic coverage claim.",
-    "No tests, harnesses, fixtures, doctests, Cargo commands, or product behavior cases were added or run.",
+    "The unbound self-ACCEPT check is producer metadata validation, not a product behavior test. No test files, harnesses, fixtures, or doctests were added; no Cargo command or product behavior test ran.",
+    "Support C semantic corrections remain a separate pending review.",
     "The full T37 crosswalk requires independent gpt-6.1-sol high review before acceptance."
   ]
 }
