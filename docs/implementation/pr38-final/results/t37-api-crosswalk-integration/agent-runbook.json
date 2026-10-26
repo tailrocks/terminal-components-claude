@@ -1,0 +1,161 @@
+{
+  "task_id": "T37-API-CROSSWALK-INTEGRATION",
+  "agent_id": "/root/t37_crosswalk",
+  "model": "gpt-6-luna",
+  "effort": "max",
+  "input_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+  "output_commit": null,
+  "output_commit_note": "The coordinator receives the final commit ID because an artifact cannot contain its own commit hash.",
+  "worktree": "/Users/donbeave/Downloads/termrock-t37-crosswalk",
+  "branch": "pr38/T37-crosswalk",
+  "changed_paths": [
+    "docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py",
+    "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
+    "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/README.md",
+    "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/agent-runbook.json"
+  ],
+  "foundation_source": {
+    "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
+    "accepted_source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+    "sha256": "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619",
+    "record_count": 1122,
+    "source_path_count": 81,
+    "local_integration": "PENDING_INTEGRATION",
+    "validation": "Immutable Git blob read; SHA-256 matches the accepted source record."
+  },
+  "cohorts": [
+    {
+      "cohort_id": "T37-API-PROSE-COHORT-A",
+      "label": "foundation values",
+      "record_count": 322,
+      "reviewed_source_commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+      "integration_commit": "9463cb8c36f0bc6e53af241334efb19bb8a2e5f1",
+      "artifact_path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
+      "artifact_sha256": "6c5c9147f0d0339b5fbba9adfe1fc8703c773c078fb7806e9ec67ee07e958cf4",
+      "runbook_path": "docs/implementation/pr38-final/results/t37-api-values/agent-runbook.json",
+      "runbook_sha256": "acafc73498889bf6b4ecb4dae80659d1b6ec170316a2d37b880a4683989d4f1a",
+      "independent_review": {
+        "status": "ACCEPTED",
+        "reviewer": "/root/t37_components_review",
+        "model": "gpt-6.1-sol",
+        "effort": "high",
+        "decision_id": "T37-API-PROSE-01"
+      },
+      "recorded_source_review_state": "PENDING_INDEPENDENT_HIGH_REVIEW"
+    },
+    {
+      "cohort_id": "T37-API-PROSE-COHORT-B",
+      "label": "foundation runtime",
+      "record_count": 304,
+      "reviewed_source_commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+      "integration_commit": "6e38a1d3be4b0dcfd47f793e7975299254e38d14",
+      "artifact_path": "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
+      "artifact_sha256": "100b55db7b05031451bca35c2142dbda6b3905d69d7ca404308ed4819a2b03a4",
+      "runbook_path": "docs/implementation/pr38-final/results/t37-api-runtime/agent-runbook.json",
+      "runbook_sha256": "f1b9a3095146a1c4a57ebea448b9aa900d2e44cbc0dd6a0a809307441175f166",
+      "independent_review": {
+        "status": "ACCEPTED",
+        "reviewer": "/root/t00_independent_review",
+        "model": "gpt-6.1-sol",
+        "effort": "high",
+        "decision_id": "T37-API-PROSE-01"
+      },
+      "recorded_source_review_state": "REVIEW"
+    },
+    {
+      "cohort_id": "T37-API-PROSE-COHORT-C",
+      "label": "foundation support",
+      "record_count": 496,
+      "source_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+      "artifact_path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+      "artifact_sha256": "379c33052a244411fef78fcaa79864013c53cdf3ed27c02d929568f316a37136",
+      "runbook_path": "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json",
+      "runbook_sha256": "24aa48613d67e8a0d04c6d75e710965704a773f52fa2060f1128bed7fe2b4c98",
+      "independent_review": {
+        "status": "REVIEW/PENDING",
+        "reviewer": "/root/t00_independent_review",
+        "model": "gpt-6.1-sol",
+        "effort": "high",
+        "decision_id": "T37-API-PROSE-01",
+        "pending_work": "Confirmed maintained-guide corrections await independent review."
+      }
+    }
+  ],
+  "output": {
+    "path": "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
+    "schema": "t37.foundation-api-prose-crosswalk.v2",
+    "composition_input_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+    "sha256": "2fd87565502f7f50d6b4595e05f343b6a226c0ed0c20840e8e24ab257a338052",
+    "builder_path": "docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py",
+    "builder_sha256": "be29a19e306d7fadde3a0226cae320c7bd893f34bfa67482a84ce002d68cadea",
+    "status": "REVIEW/PENDING",
+    "independent_sol_high_review": "PENDING"
+  },
+  "coverage": {
+    "expected_records": 1122,
+    "composed_records": 1122,
+    "unique_source_map_indices": 1122,
+    "unique_stable_ids": 1122,
+    "disjoint_indices": true,
+    "cohort_counts": {
+      "T37-API-PROSE-COHORT-A": 322,
+      "T37-API-PROSE-COHORT-B": 304,
+      "T37-API-PROSE-COHORT-C": 496
+    },
+    "selected_behavior_cases": 0,
+    "behavior_status": "NOT VERIFIED"
+  },
+  "documentation": {
+    "path": "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/README.md",
+    "sha256": "37105510d259a8fe722b9bd489aa8ede46ae453cdf4cddd4c610f525d2523d8d"
+  },
+  "commands": [
+    {
+      "command": "git cat-file -e 2fee2c277d1213fc5fad5d81eb77479600182b69:docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
+      "exit_code": 0,
+      "result": "Accepted source blob exists in the local Git object database."
+    },
+    {
+      "command": "git show 2fee2c277d1213fc5fad5d81eb77479600182b69:docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json | shasum -a 256",
+      "exit_code": 0,
+      "result": "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619; matches accepted source hash."
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py",
+      "exit_code": 0,
+      "result": "Wrote 1,122 groups: 322 values, 304 runtime, 496 support. Output SHA-256 2fd87565502f7f50d6b4595e05f343b6a226c0ed0c20840e8e24ab257a338052."
+    },
+    {
+      "command": "python3 -m json.tool docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json > /dev/null",
+      "exit_code": 0,
+      "result": "Valid JSON."
+    },
+    {
+      "command": "python3 -m json.tool docs/implementation/pr38-final/results/t37-api-crosswalk-integration/agent-runbook.json > /dev/null",
+      "exit_code": 0,
+      "result": "Valid JSON."
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "No whitespace errors."
+    },
+    {
+      "command": "python3 -c 'import ast,tokenize,pathlib; p=pathlib.Path(\"docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py\"); s=p.read_text(); ts=list(tokenize.generate_tokens(iter(s.splitlines(keepends=True)).__next__)); comments=[t for t in ts if t.type==tokenize.COMMENT and t.start[0]!=1]; tree=ast.parse(s); docs=[n for n in ast.walk(tree) if isinstance(getattr(n,\"body\",None),list) and n.body and isinstance(n.body[0],ast.Expr) and isinstance(n.body[0].value,ast.Constant) and isinstance(n.body[0].value.value,str)]; print(\"non-shebang comments=%d docstrings=%d\"%(len(comments),len(docs))); raise SystemExit(bool(comments or docs))'",
+      "exit_code": 0,
+      "result": "non-shebang comments=0 docstrings=0."
+    },
+    {
+      "command": "git rev-parse HEAD",
+      "exit_code": 0,
+      "result": "fe032a24154819a579c591e1cf87230558d286ee; fixed composition input commit."
+    }
+  ],
+  "limits": [
+    "The cohort records are copied unchanged. Their embedded historical review fields and identity references are retained and labeled in cohort metadata.",
+    "Hashes inside embedded cohort records remain source-commit evidence, not current candidate target hashes.",
+    "The builder validates structure, provenance, hash identity, path locality, and disjoint coverage. It makes no semantic coverage claim.",
+    "No tests, harnesses, fixtures, doctests, Cargo commands, or product behavior cases were added or run.",
+    "The full T37 crosswalk requires independent gpt-6.1-sol high review before acceptance."
+  ]
+}
