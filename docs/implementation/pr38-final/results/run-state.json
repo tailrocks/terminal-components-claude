@@ -1,6 +1,6 @@
 {
   "schema": "termrock-run-state-v1",
-  "updated_at": "2026-10-26T01:51:49Z",
+  "updated_at": "2026-10-26T01:53:29Z",
   "plan": {
     "root": "/Users/donbeave/Downloads/terminal-components-claude/docs/implementation/pr38-final",
     "source_root": "/Users/donbeave/Downloads/termrock-pr38-plan",
@@ -119,7 +119,7 @@
       "path": "/Users/donbeave/Downloads/terminal-components-claude",
       "branch": "parity/termrock-visual-baseline",
       "starting_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "current_sha": "aac56e2f0502684010f95b470efa21ca22a9a3e4",
+      "current_sha": "9505b9efb6efde37b24af8de84501aed570e5af0",
       "pending_upstream_refresh": null,
       "code_input_sha": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
       "completed_upstream_refreshes": [
@@ -155,9 +155,9 @@
       ],
       "last_reviewed_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "product_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "t37_role": "C output ee8 awaits exact review. Component contract 932 awaits review. After accepted content merges, execute only the independently reviewed eight-tip history plan; it is not yet run. Overall T37 remains open.",
+      "t37_role": "C cohort ee8 accepted scoped; component caller-contract 932 requires correction; global map and source-history integration remain pending. Product source remains fixed at 1d6.",
       "pending_source_history_plan": {
-        "status": "REVIEWED_PLAN_READY_PENDING_EXECUTION_AFTER_ACCEPTED_CONTENT_MERGES",
+        "status": "REVIEWED_PLAN_READY_PENDING_ACCEPTED_CONTENT_MERGES",
         "reviewer_id": "/root/t37_apps_review",
         "reviewer_model": "gpt-6.1-sol",
         "reviewer_effort": "high",
@@ -165,12 +165,12 @@
           {
             "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
             "required_content_head": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
-            "status": "C correction committed; exact independent high review pending"
+            "status": "C cohort ACCEPTED; normal integration and global crosswalk refresh/review pending"
           },
           {
             "worktree": "/Users/donbeave/Downloads/termrock-t37-component-contracts",
             "required_content_head": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
-            "status": "implementation committed; exact independent high review pending"
+            "status": "review CORRECTION; worker follow-up and independent acceptance pending"
           }
         ],
         "method": [
@@ -309,18 +309,19 @@
           "branch": "pr38/T37-shared",
           "head_sha": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
           "product_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-          "status": "DOCS_COHORT_REVIEW_PENDING",
+          "status": "ACCEPTED_SCOPED_COHORT_C; GLOBAL_MAP_PENDING",
           "ownership": "Maintained documentation and semantic API prose; cohort C evidence; canonical checkpoint. Metadata/config/manifest ownership is released to /root/t37_metadata. Crosswalk producer/output ownership is released to /root/t37_crosswalk. No source or test edits.",
           "reviewer_id": "/root/t00_independent_review",
           "reviewer_model": "gpt-6.1-sol",
           "reviewer_effort": "high",
-          "review_decision": "REVIEW_PENDING",
+          "review_decision": "ACCEPT",
           "review_target_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
-          "pending_followup": true,
+          "pending_followup": false,
           "preliminary_review_findings_pending": [],
           "previous_reviewed_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
-          "review_note": "The four narrow R4 corrections identified at 8f355 are applied; exact review of ee8a is active.",
-          "previous_review_decision": "CORRECTION"
+          "review_note": "Exact C cohort accepted. Source inventory local integration, global crosswalk refresh/review, and integrated T37 acceptance remain pending.",
+          "previous_review_decision": "CORRECTION",
+          "review_decision_id": "T37-API-SUPPORT-EE8-ACCEPT"
         },
         {
           "agent_id": "/root/t37_metadata",
@@ -507,7 +508,7 @@
         "classification_rule": "Reconcile each surviving target against the baseline inventory and subtract retired manual probes, visual harnesses, and frozen helpers; baseline target counts alone do not classify production targets.",
         "evidence_limit": "Structural target metadata only. Zero retained test cases do not verify behavior."
       },
-      "integration_head_at_checkpoint": "aac56e2f0502684010f95b470efa21ca22a9a3e4",
+      "integration_head_at_checkpoint": "9505b9efb6efde37b24af8de84501aed570e5af0",
       "shared_branch_head": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
       "shared_docs_cohort": {
         "agent_id": "/root/t00_import_rules",
@@ -522,7 +523,7 @@
         "review_decision_on_first_output": "CORRECTION",
         "output_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
         "output_parent": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
-        "status": "REVIEW_PENDING",
+        "status": "ACCEPTED_SCOPED_COHORT; INTEGRATION_AND_GLOBAL_MAP_PENDING",
         "reviewer_id": "/root/t00_independent_review",
         "reviewer_model": "gpt-6.1-sol",
         "reviewer_effort": "high",
@@ -552,10 +553,14 @@
           "No Cargo or tests ran.",
           "The foundation source inventory and removal records remain pending local integration.",
           "This cohort does not complete the global crosswalk or overall T37."
-        ]
+        ],
+        "review_decision": "ACCEPT",
+        "review_decision_id": "T37-API-SUPPORT-EE8-ACCEPT",
+        "reviewed_excerpt_count": 317,
+        "global_crosswalk": "PENDING_REFRESH_AND_REVIEW"
       },
       "source_history_integration_plan": {
-        "status": "REVIEWED_PLAN_READY_PENDING_EXECUTION_AFTER_ACCEPTED_CONTENT_MERGES",
+        "status": "REVIEWED_PLAN_READY_PENDING_ACCEPTED_CONTENT_MERGES",
         "reviewer_id": "/root/t37_apps_review",
         "reviewer_model": "gpt-6.1-sol",
         "reviewer_effort": "high",
@@ -563,12 +568,12 @@
           {
             "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
             "required_content_head": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
-            "status": "C correction committed; exact independent high review pending"
+            "status": "C cohort ACCEPTED; normal integration and global crosswalk refresh/review pending"
           },
           {
             "worktree": "/Users/donbeave/Downloads/termrock-t37-component-contracts",
             "required_content_head": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
-            "status": "implementation committed; exact independent high review pending"
+            "status": "review CORRECTION; worker follow-up and independent acceptance pending"
           }
         ],
         "method": [
@@ -941,13 +946,13 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "ACTIVE_COHORT_C_REVIEW_AND_GLOBAL_CROSSWALK",
+      "status": "ACTIVE_GLOBAL_CROSSWALK_AND_CHECKPOINT",
       "completed_task": "T00 ACCEPT at ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "current_input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
       "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
       "branch": "pr38/T37-shared",
       "current_output_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
-      "current_scope": "The 496-group C correction ee8a is committed and awaiting exact high review. Continue maintained-doc/prose integration and canonical checkpoint ownership; no source changes.",
+      "current_scope": "C support cohort accepted scoped. Continue global crosswalk/source-inventory reconciliation and canonical checkpoint; overall T37 is CORRECTION.",
       "current_output_parent": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2"
     },
     {
@@ -961,9 +966,9 @@
       "review_target_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "previous_reviewed_sha": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
       "decision": "ACCEPT",
-      "current_review_target_sha": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+      "current_review_target_sha": null,
       "current_review_scope": "Exact high re-review of the four R4 corrections in support cohort C output ee8a; no Cargo/tests.",
-      "current_scope": "Exact high review of T37 support/docs cohort C; overall T37 acceptance remains separate and pending.",
+      "current_scope": "T37 C cohort accepted at ee8; no product behavior verification. Continue only assigned independent review work.",
       "previous_review_target_sha": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
       "previous_review_decision": "CORRECTION"
     },
@@ -1051,10 +1056,10 @@
       "status": "ACTIVE_DISK_CLEANUP_ONLY",
       "worktree": null,
       "initial_free_bytes": 1998809899008,
-      "latest_reported_free_bytes": 2143195320320,
+      "latest_reported_free_bytes": 2141976481792,
       "stop_at_free_bytes": 2500000000000,
       "scope": "DISK_POLICY cleanup and monitoring only; no project/task work.",
-      "latest_check": "2026-10-26T01:51:49Z; read-only probe; no new safe target; no deletion."
+      "latest_check": "2026-10-26 01:53 UTC; read-only probe; no new safe target; no deletion."
     },
     {
       "id": "/root/t37_metadata",
@@ -1123,10 +1128,10 @@
       "model": "gpt-6.1-sol",
       "effort": "high",
       "assignment": "explicit",
-      "status": "ACTIVE_COMPONENT_CONTRACTS_REVIEW",
-      "reviewed_output_sha": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
-      "decision": "ACCEPT",
-      "current_scope": "Review bounded component caller-contract transfer output 932d36c18c3dc5dbce350e27290a732e0b8957bf; no source edits."
+      "status": "COMPLETED_SCOPED_CORRECTION",
+      "reviewed_output_sha": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
+      "decision": "CORRECTION",
+      "current_scope": "Component caller-contract guide 932 requires bounded documentation corrections before acceptance."
     },
     {
       "id": "/root/t37_apps_review",
@@ -1220,7 +1225,7 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "IMPLEMENTATION_COMPLETE_REVIEW_PENDING",
+      "status": "CORRECTION_REQUIRED; FOLLOWUP_ASSIGNMENT_PENDING",
       "worktree": "/Users/donbeave/Downloads/termrock-t37-component-contracts",
       "input_sha": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
       "output_commit": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
@@ -1231,10 +1236,23 @@
       "reviewer_id": "/root/t37_components_review",
       "reviewer_model": "gpt-6.1-sol",
       "reviewer_effort": "high",
-      "review_decision": "PENDING",
+      "review_decision": "CORRECTION",
       "limits": [
         "No source, Cargo, or test edits.",
         "Behavior remains NOT VERIFIED."
+      ],
+      "review_output_commit": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
+      "corrections": [
+        "C44: name TextViewport::layout_revision and distinguish it from routed source identity.",
+        "C07: preserve initial-cell reset, master_share precedence, and stored resizable-ratio restoration.",
+        "C29/C33: preserve New-only/Close-only validation and binding metadata; publish supplemental tables alongside base bindings.",
+        "C30/C35: preserve callback-count and empty-area bounds, close-target overlap, and unchanged tab sizing.",
+        "C24–C26: separate Env, Roles, whole-page, and body-only restrictions; Roles accepts printable ASCII or middle dot, while Env clips by terminal-cell width.",
+        "C19–C21: preserve callback rebasing, source-row units, empty-window distinctions, and projection rebuilding.",
+        "C17/C41/C43: preserve actual label-width projection, the 300 ms rest delay, and supplied-style rebuilding independent of source revision.",
+        "Remove redundant heading attributes and correct the form-lanes-stage-1 destination anchor.",
+        "C37: both find methods return ignored while disabled, before opening find or dismissing completion. The prior contrary suggestion was withdrawn.",
+        "Keep C14/G343 limited to automatic-reveal suppression."
       ]
     }
   ],
@@ -1692,7 +1710,14 @@
       "output_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
       "previous_output_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
       "prior_review_decision": "CORRECTION",
-      "status": "Four narrow R4 corrections committed; exact independent high re-review pending. 496 groups; source inventory integration pending; behavior NOT VERIFIED."
+      "status": "ACCEPTED_SCOPED by exact independent Sol-high review; local source inventory integration and global crosswalk refresh/review remain open. No source/Cargo/tests; behavior NOT VERIFIED.",
+      "review_decision_id": "T37-API-SUPPORT-EE8-ACCEPT",
+      "reviewer_id": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "reviewed_artifact_sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae",
+      "reviewed_runbook_sha256": "51bf86b979396a5518d69a49e091ad0b37877f875e0ab9cd28cfe497929b4b69",
+      "review_evidence": "All 496 identities and attachments pass; 427 surviving non-module scopes match independently masked source and clean containers; all four final R4 corrections pass; 317 excerpts and artifact/document hashes pass."
     },
     "t37_metadata_final_evidence": {
       "path": "results/t37-metadata/final-verification-953fbd/final-verification.json",
@@ -1705,10 +1730,26 @@
       "output_commit": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
       "implementer": "/root/t37_component_contracts",
       "reviewer": "/root/t37_components_review",
-      "status": "Implementation complete; exact independent high review pending."
+      "status": "CORRECTION_REQUIRED; exact 932d36 review is CORRECTION.",
+      "reviewer_id": "/root/t37_components_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "correction_items": [
+        "C44: name TextViewport::layout_revision and distinguish it from routed source identity.",
+        "C07: preserve initial-cell reset, master_share precedence, and stored resizable-ratio restoration.",
+        "C29/C33: preserve New-only/Close-only validation and binding metadata; publish supplemental tables alongside base bindings.",
+        "C30/C35: preserve callback-count and empty-area bounds, close-target overlap, and unchanged tab sizing.",
+        "C24–C26: separate Env, Roles, whole-page, and body-only restrictions; Roles accepts printable ASCII or middle dot, while Env clips by terminal-cell width.",
+        "C19–C21: preserve callback rebasing, source-row units, empty-window distinctions, and projection rebuilding.",
+        "C17/C41/C43: preserve actual label-width projection, the 300 ms rest delay, and supplied-style rebuilding independent of source revision.",
+        "Remove redundant heading attributes and correct the form-lanes-stage-1 destination anchor.",
+        "C37: both find methods return ignored while disabled, before opening find or dismissing completion. The prior contrary suggestion was withdrawn.",
+        "Keep C14/G343 limited to automatic-reveal suppression."
+      ],
+      "behavior": "NOT VERIFIED"
     },
     "t37_reviewed_source_history_plan": {
-      "status": "REVIEWED_PLAN_READY_PENDING_EXECUTION_AFTER_ACCEPTED_CONTENT_MERGES",
+      "status": "REVIEWED_PLAN_READY_PENDING_ACCEPTED_CONTENT_MERGES",
       "reviewer_id": "/root/t37_apps_review",
       "reviewer_model": "gpt-6.1-sol",
       "reviewer_effort": "high",
@@ -1736,6 +1777,18 @@
       "limits": [
         "No merges, source changes, external actions, or pushes have occurred for this plan.",
         "History reachability does not alter the source tree or establish product behavior."
+      ],
+      "prerequisites": [
+        {
+          "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
+          "required_content_head": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+          "status": "C cohort ACCEPTED; normal integration and global crosswalk refresh/review pending"
+        },
+        {
+          "worktree": "/Users/donbeave/Downloads/termrock-t37-component-contracts",
+          "required_content_head": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
+          "status": "review CORRECTION; worker follow-up and independent acceptance pending"
+        }
       ]
     }
   },
@@ -1765,13 +1818,14 @@
   },
   "blockers": [
     "T02, T03, and T04 remain blocked until T38 passes independent review; T01 and T38 have not started.",
-    "T37 cohort C follow-up ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9 awaits exact high review after the CORRECTION at 8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2. Do not mark the cohort accepted yet.",
     "The global 1,122-group crosswalk remains REVIEW/PENDING until all cohort output and coordinator-bound review records are exact and independently accepted.",
     "Accepted source, metadata, and documentation worktrees are not yet at one integrated candidate commit; overall T37 review remains pending.",
-    "The component caller-contract transfer output 932d36c is awaiting independent Sol-high review.",
     "The generated Nextest lane has zero run tasks and is ABSENT / NOT VERIFIED. No T37 replacement gate or test was added.",
     "No product behavior cases ran; product behavior remains NOT VERIFIED.",
-    "The independently reviewed eight-tip history plan is pending accepted content merges; the history-only merge, tree-equality check, ancestry checks, and fresh-clone blob verification are NOT EXECUTED."
+    "The independently reviewed eight-tip history plan is pending accepted content merges; the history-only merge, tree-equality check, ancestry checks, and fresh-clone blob verification are NOT EXECUTED.",
+    "The support/API-prose C cohort is ACCEPTED_SCOPED at ee8; source inventory integration and global 1,122-group crosswalk refresh/review remain open.",
+    "Component caller-contract output 932d36c received a Sol-high CORRECTION; documentation follow-up and exact review are pending.",
+    "The reviewed history-only plan remains gated on accepted content integration; no history merge or fresh-clone proof has run."
   ],
   "root_instruction_patch": {
     "patch_path": "AGENTS.patch",
@@ -1800,7 +1854,8 @@
     "T37-docs-api-crosswalk-shared": "34c06c17cab2b6f78734b496f65e6038013b117d",
     "T37-docs-api-support-pre-R4-followup": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
     "T37-reviewed-source-history-integration-plan": "NOT_EXECUTED",
-    "T37-run-state-correction-and-history-plan": "aac56e2f0502684010f95b470efa21ca22a9a3e4"
+    "T37-run-state-correction-and-history-plan": "aac56e2f0502684010f95b470efa21ca22a9a3e4",
+    "T37-docs-api-support-correction": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9"
   },
   "task_units": {
     "T00_overall": "ACCEPTED",
@@ -1810,9 +1865,10 @@
     "T37_overall": "CORRECTION",
     "T37_api_values": "ACCEPTED_SCOPED",
     "T37_api_runtime": "ACCEPTED_SCOPED",
-    "T37_api_support": "REVIEW_PENDING",
+    "T37_api_support": "ACCEPTED_SCOPED",
     "T37_metadata_evidence": "ACCEPTED_SCOPED",
-    "T37_integrated_acceptance": "PENDING"
+    "T37_integrated_acceptance": "PENDING",
+    "T37_component_api_transfer": "CORRECTION"
   },
   "tool_limits": [
     {
@@ -2049,7 +2105,7 @@
     },
     {
       "scope": "T37 cohort C four-item R4 correction: replay path, general quit guard, state-owned keyboard protocol lifecycle, and default report row order.",
-      "decision": "PENDING_EXACT_OUTPUT_REVIEW",
+      "decision": "ACCEPT",
       "reviewer_id": "/root/t00_independent_review",
       "model": "gpt-6.1-sol",
       "effort": "high",
@@ -2061,8 +2117,40 @@
       "runbook_path": "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json",
       "runbook_sha256": "51bf86b979396a5518d69a49e091ad0b37877f875e0ab9cd28cfe497929b4b69",
       "limits": [
-        "No Cargo or tests ran.",
-        "The source inventory link remains pending integration.",
+        "Scoped cohort acceptance only.",
+        "No source/Cargo/tests/behavior verification.",
+        "Source inventory integration and global crosswalk refresh/review remain pending."
+      ],
+      "decision_id": "T37-API-SUPPORT-EE8-ACCEPT",
+      "accepted_record_sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae",
+      "accepted_runbook_sha256": "51bf86b979396a5518d69a49e091ad0b37877f875e0ab9cd28cfe497929b4b69",
+      "evidence": [
+        "All 496 identities and target hashes pass.",
+        "All 427 surviving non-module attachment scopes match; 422 same-scope matches plus five corrected recipe containers.",
+        "All four final R4 corrections pass; 317 maintained excerpts and document/script hashes pass."
+      ]
+    },
+    {
+      "scope": "T37 component caller-contract output 932d36c18c3dc5dbce350e27290a732e0b8957bf.",
+      "decision": "CORRECTION",
+      "reviewer_id": "/root/t37_components_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "reviewed_input_sha": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
+      "corrections": [
+        "C44: name TextViewport::layout_revision and distinguish it from routed source identity.",
+        "C07: preserve initial-cell reset, master_share precedence, and stored resizable-ratio restoration.",
+        "C29/C33: preserve New-only/Close-only validation and binding metadata; publish supplemental tables alongside base bindings.",
+        "C30/C35: preserve callback-count and empty-area bounds, close-target overlap, and unchanged tab sizing.",
+        "C24–C26: separate Env, Roles, whole-page, and body-only restrictions; Roles accepts printable ASCII or middle dot, while Env clips by terminal-cell width.",
+        "C19–C21: preserve callback rebasing, source-row units, empty-window distinctions, and projection rebuilding.",
+        "C17/C41/C43: preserve actual label-width projection, the 300 ms rest delay, and supplied-style rebuilding independent of source revision.",
+        "Remove redundant heading attributes and correct the form-lanes-stage-1 destination anchor.",
+        "C37: both find methods return ignored while disabled, before opening find or dismissing completion. The prior contrary suggestion was withdrawn.",
+        "Keep C14/G343 limited to automatic-reveal suppression."
+      ],
+      "limits": [
+        "No source edits, Cargo commands, or tests.",
         "Product behavior remains NOT VERIFIED."
       ]
     }
@@ -2433,13 +2521,14 @@
       "reviewer_id": "/root/t00_independent_review",
       "model": "gpt-6.1-sol",
       "effort": "high",
-      "decision": "REVIEW_PENDING",
+      "decision": "ACCEPT",
       "output_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
       "groups": 496,
-      "scope": "496-group shell/theme/collections/terminal semantic prose cohort; four narrow R4 corrections applied after the 8f355 CORRECTION; exact high review pending. Source inventory remains pending integration; behavior NOT VERIFIED.",
+      "scope": "496-group shell/theme/collections/terminal prose cohort accepted scoped. Source inventory remains pending integration, global crosswalk refresh/review remains pending, and behavior is NOT VERIFIED.",
       "previous_output_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
       "evidence_sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae",
-      "previous_review_decision": "CORRECTION"
+      "previous_review_decision": "CORRECTION",
+      "review_decision_id": "T37-API-SUPPORT-EE8-ACCEPT"
     },
     {
       "id": "T37-METADATA-FINAL-EVIDENCE",
@@ -2466,9 +2555,21 @@
       "reviewer_id": "/root/t37_components_review",
       "model": "gpt-6.1-sol",
       "effort": "high",
-      "decision": "REVIEW_PENDING",
+      "decision": "CORRECTION",
       "output_commit": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
-      "scope": "Bounded missing component caller clauses only; no source edits or behavior verification."
+      "scope": "Component caller-contract transfer requires documented corrections before scoped acceptance; no source/test behavior claims.",
+      "corrections": [
+        "C44: name TextViewport::layout_revision and distinguish it from routed source identity.",
+        "C07: preserve initial-cell reset, master_share precedence, and stored resizable-ratio restoration.",
+        "C29/C33: preserve New-only/Close-only validation and binding metadata; publish supplemental tables alongside base bindings.",
+        "C30/C35: preserve callback-count and empty-area bounds, close-target overlap, and unchanged tab sizing.",
+        "C24–C26: separate Env, Roles, whole-page, and body-only restrictions; Roles accepts printable ASCII or middle dot, while Env clips by terminal-cell width.",
+        "C19–C21: preserve callback rebasing, source-row units, empty-window distinctions, and projection rebuilding.",
+        "C17/C41/C43: preserve actual label-width projection, the 300 ms rest delay, and supplied-style rebuilding independent of source revision.",
+        "Remove redundant heading attributes and correct the form-lanes-stage-1 destination anchor.",
+        "C37: both find methods return ignored while disabled, before opening find or dismissing completion. The prior contrary suggestion was withdrawn.",
+        "Keep C14/G343 limited to automatic-reveal suppression."
+      ]
     }
   ],
   "disk_policy_t37": {
@@ -2482,8 +2583,8 @@
     "target_free_bytes": 2500000000000,
     "status": "CLEANUP_ACTIVE_BELOW_TARGET; latest scan found no safe target; continue monitoring only until 2.5 TB.",
     "authority": "/Users/donbeave/.agents/DISK_POLICY.md",
-    "latest_reported_free_bytes": 2143195320320,
-    "latest_check": "2026-10-26 01:51 UTC; child read-only probe; no new safe target; no deletion; continue to 2.5 TB.",
+    "latest_reported_free_bytes": 2141976481792,
+    "latest_check": "2026-10-26 01:53 UTC; child read-only probe; no new safe target; no deletion; continue to 2.5 TB.",
     "evidence_path": "results/t37-shared/disk-cleanup.json"
   },
   "t37_post_cleanup_build": {
