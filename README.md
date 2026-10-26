@@ -8,7 +8,7 @@ The frozen group contains four flows and twelve checkpoints. Every case uses a 1
 
 The runner requires all four staged binaries. Jackin must be staged as `jackin`, copied from `jackin-preview` with the same SHA-256. The runner does not build application binaries.
 
-Before quiet capture, the runner waits for a visible startup marker: `Overview` for Showcase, `holla❯` for Holla, `jackin❯` for Jackin, and `TablePro` for TablePro. These markers exist in both pinned source commits.
+Before quiet capture, the runner waits for a visible startup marker: `Overview` for Showcase, `holla❯` for Holla, `jackin❯` for Jackin, and `TablePro` for TablePro. These markers exist in both pinned source commits. After `?`, Showcase waits for its source title `Keyboard & mouse`.
 
 ## Run modes
 
