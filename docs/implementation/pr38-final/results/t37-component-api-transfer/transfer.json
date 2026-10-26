@@ -44,7 +44,7 @@
   "maintained_guide": {
     "path": "docs/contracts/component-caller-contracts.md",
     "target_source_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
-    "sha256": "a7a830b1e518de29ed97c53632de2a49a8f399a897a2aeb055e38e8f006f7976",
+    "sha256": "60676737b67278eba932adbd980b47cfc2367ea9fd66aa0144113cc613879839",
     "sentence_limit": "All transferred rule sentences are at most 25 words; procedural sentences are limited to 20 words by the ASD-STE100 rule."
   },
   "target_source_hashes": [
@@ -1815,8 +1815,8 @@
         "target_source_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
         "section": "safe-values-and-fixed-body-limits",
         "clause_id": "C24",
-        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`; each accepted character occupies one terminal cell (`width(text) == text.chars().count()`) and fits its column. Visible role rows cannot exceed the source count.",
-        "excerpt_sha256": "92edb7d2d330926bc2dd1210d60c47848e5ec7796f192137db8afcbf0e7f4c3f"
+        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`. Each accepted character occupies one terminal cell (`width(text) == text.chars().count()`). Each full display string fits its column width. Visible role rows cannot exceed the source count.",
+        "excerpt_sha256": "ee3c90be6fef3a914efca1877bba28800609d7989210e9ecefdaba5a40cf5ee0"
       },
       "decision": {
         "id": "T37-COMPONENT-PROSE-01",
@@ -1955,8 +1955,8 @@
         "target_source_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
         "section": "safe-values-and-fixed-body-limits",
         "clause_id": "C24",
-        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`; each accepted character occupies one terminal cell (`width(text) == text.chars().count()`) and fits its column. Visible role rows cannot exceed the source count.",
-        "excerpt_sha256": "92edb7d2d330926bc2dd1210d60c47848e5ec7796f192137db8afcbf0e7f4c3f"
+        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`. Each accepted character occupies one terminal cell (`width(text) == text.chars().count()`). Each full display string fits its column width. Visible role rows cannot exceed the source count.",
+        "excerpt_sha256": "ee3c90be6fef3a914efca1877bba28800609d7989210e9ecefdaba5a40cf5ee0"
       },
       "decision": {
         "id": "T37-COMPONENT-PROSE-01",
@@ -2011,8 +2011,8 @@
         "target_source_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
         "section": "safe-values-and-fixed-body-limits",
         "clause_id": "C24",
-        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`; each accepted character occupies one terminal cell (`width(text) == text.chars().count()`) and fits its column. Visible role rows cannot exceed the source count.",
-        "excerpt_sha256": "92edb7d2d330926bc2dd1210d60c47848e5ec7796f192137db8afcbf0e7f4c3f"
+        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`. Each accepted character occupies one terminal cell (`width(text) == text.chars().count()`). Each full display string fits its column width. Visible role rows cannot exceed the source count.",
+        "excerpt_sha256": "ee3c90be6fef3a914efca1877bba28800609d7989210e9ecefdaba5a40cf5ee0"
       },
       "decision": {
         "id": "T37-COMPONENT-PROSE-01",
@@ -2046,8 +2046,8 @@
         "target_source_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
         "section": "safe-values-and-fixed-body-limits",
         "clause_id": "C24",
-        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`; each accepted character occupies one terminal cell (`width(text) == text.chars().count()`) and fits its column. Visible role rows cannot exceed the source count.",
-        "excerpt_sha256": "92edb7d2d330926bc2dd1210d60c47848e5ec7796f192137db8afcbf0e7f4c3f"
+        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`. Each accepted character occupies one terminal cell (`width(text) == text.chars().count()`). Each full display string fits its column width. Visible role rows cannot exceed the source count.",
+        "excerpt_sha256": "ee3c90be6fef3a914efca1877bba28800609d7989210e9ecefdaba5a40cf5ee0"
       },
       "decision": {
         "id": "T37-COMPONENT-PROSE-01",
@@ -2081,8 +2081,8 @@
         "target_source_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
         "section": "safe-values-and-fixed-body-limits",
         "clause_id": "C24",
-        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`; each accepted character occupies one terminal cell (`width(text) == text.chars().count()`) and fits its column. Visible role rows cannot exceed the source count.",
-        "excerpt_sha256": "92edb7d2d330926bc2dd1210d60c47848e5ec7796f192137db8afcbf0e7f4c3f"
+        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`. Each accepted character occupies one terminal cell (`width(text) == text.chars().count()`). Each full display string fits its column width. Visible role rows cannot exceed the source count.",
+        "excerpt_sha256": "ee3c90be6fef3a914efca1877bba28800609d7989210e9ecefdaba5a40cf5ee0"
       },
       "decision": {
         "id": "T37-COMPONENT-PROSE-01",
@@ -2116,8 +2116,8 @@
         "target_source_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
         "section": "safe-values-and-fixed-body-limits",
         "clause_id": "C24",
-        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`; each accepted character occupies one terminal cell (`width(text) == text.chars().count()`) and fits its column. Visible role rows cannot exceed the source count.",
-        "excerpt_sha256": "92edb7d2d330926bc2dd1210d60c47848e5ec7796f192137db8afcbf0e7f4c3f"
+        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`. Each accepted character occupies one terminal cell (`width(text) == text.chars().count()`). Each full display string fits its column width. Visible role rows cannot exceed the source count.",
+        "excerpt_sha256": "ee3c90be6fef3a914efca1877bba28800609d7989210e9ecefdaba5a40cf5ee0"
       },
       "decision": {
         "id": "T37-COMPONENT-PROSE-01",
@@ -2151,8 +2151,8 @@
         "target_source_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
         "section": "safe-values-and-fixed-body-limits",
         "clause_id": "C24",
-        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`; each accepted character occupies one terminal cell (`width(text) == text.chars().count()`) and fits its column. Visible role rows cannot exceed the source count.",
-        "excerpt_sha256": "92edb7d2d330926bc2dd1210d60c47848e5ec7796f192137db8afcbf0e7f4c3f"
+        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`. Each accepted character occupies one terminal cell (`width(text) == text.chars().count()`). Each full display string fits its column width. Visible role rows cannot exceed the source count.",
+        "excerpt_sha256": "ee3c90be6fef3a914efca1877bba28800609d7989210e9ecefdaba5a40cf5ee0"
       },
       "decision": {
         "id": "T37-COMPONENT-PROSE-01",
@@ -2186,8 +2186,8 @@
         "target_source_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
         "section": "safe-values-and-fixed-body-limits",
         "clause_id": "C24",
-        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`; each accepted character occupies one terminal cell (`width(text) == text.chars().count()`) and fits its column. Visible role rows cannot exceed the source count.",
-        "excerpt_sha256": "92edb7d2d330926bc2dd1210d60c47848e5ec7796f192137db8afcbf0e7f4c3f"
+        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`. Each accepted character occupies one terminal cell (`width(text) == text.chars().count()`). Each full display string fits its column width. Visible role rows cannot exceed the source count.",
+        "excerpt_sha256": "ee3c90be6fef3a914efca1877bba28800609d7989210e9ecefdaba5a40cf5ee0"
       },
       "decision": {
         "id": "T37-COMPONENT-PROSE-01",
@@ -2221,8 +2221,8 @@
         "target_source_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
         "section": "safe-values-and-fixed-body-limits",
         "clause_id": "C24",
-        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`; each accepted character occupies one terminal cell (`width(text) == text.chars().count()`) and fits its column. Visible role rows cannot exceed the source count.",
-        "excerpt_sha256": "92edb7d2d330926bc2dd1210d60c47848e5ec7796f192137db8afcbf0e7f4c3f"
+        "excerpt": "The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`. Each accepted character occupies one terminal cell (`width(text) == text.chars().count()`). Each full display string fits its column width. Visible role rows cannot exceed the source count.",
+        "excerpt_sha256": "ee3c90be6fef3a914efca1877bba28800609d7989210e9ecefdaba5a40cf5ee0"
       },
       "decision": {
         "id": "T37-COMPONENT-PROSE-01",
@@ -5488,7 +5488,7 @@
     "reviewer_effort": "high",
     "reviewed_output_commit": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
     "immutable_review_status": "COMPLETE; 129 exact selected groups and final correction list received",
-    "implementation_status": "R2 findings applied; awaiting independent review of next exact output commit.",
+    "implementation_status": "R2 and narrow follow-up findings applied; awaiting independent review of next exact output commit.",
     "source_changes": false,
     "tests_or_builds_run": false,
     "code_evidence_groups": [
@@ -5521,10 +5521,20 @@
     "result": "CORRECTION",
     "findings_applied": [
       "C14/G343 clears pointer_hold, not PRESSED, when no fresh press exists and held field state lacks PRESSED; retains missing/hidden/disabled and terminal-intent rules.",
-      "C24/G228/G276-G284 states each accepted Roles character occupies one terminal cell and fits its column; no whole-string one-cell implication.",
+      "C24/G228/G276-G284 states each accepted Roles character occupies one terminal cell.",
       "G343 why_new_clause.existing_guidance_checked.section uses natural slug form-lanes-stage-1.",
       "README output hash matches final guide bytes."
     ],
+    "next_exact_output_review": "PENDING"
+  },
+  "latest_output_review": {
+    "reviewer_agent": "/root/t37_components_review",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "reviewed_output_commit": "812bc519a61c54aed8aac7d7ebf04f15f1b76dfb",
+    "result": "CORRECTION",
+    "finding_applied": "C24 separately states the per-character one-cell rule and the full display string column-width bound.",
+    "full_129_group_review": "PASS; source identities, excerpts, target hashes, current locators, and links remain verified.",
     "next_exact_output_review": "PENDING"
   }
 }

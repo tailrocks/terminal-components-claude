@@ -12,7 +12,7 @@ The high decision `T37-COMPONENT-PROSE-01` selected 112 new caller clauses, 15 e
 
 The final ledger has 113 direct transfers, 15 existing mappings, and one approved retirement. It does not claim that unselected API descriptions migrated. The raw archive remains historical provenance; T01 and T35 own the complete API inventory and guide review.
 
-The first high output review returned `CORRECTION` for commit `932d36c18c3dc5dbce350e27290a732e0b8957bf`. The immutable review is complete. Its correction list covers split reset policy, Form submit ownership, Panel and scroll-window coordinates, fixed Settings painters, Tabs plans and bindings, disabled editor find calls, NoticeReveal timing, and viewport revisions. Exact-output review R2 returned four corrections for `ed3abaf940bc81917a8ebcedb83a5783cc14d667`: the Form hold predicate, per-character Roles width, the Form heading slug, and the guide hash. All four are applied; independent review of the next exact commit remains pending.
+The first high output review returned `CORRECTION` for commit `932d36c18c3dc5dbce350e27290a732e0b8957bf`. The immutable review is complete. Its correction list covers split reset policy, Form submit ownership, Panel and scroll-window coordinates, fixed Settings painters, Tabs plans and bindings, disabled editor find calls, NoticeReveal timing, and viewport revisions. Exact-output review R2 returned four corrections for `ed3abaf940bc81917a8ebcedb83a5783cc14d667`: the Form hold predicate, per-character Roles width, the Form heading slug, and the guide hash. Follow-up review of `812bc519a61c54aed8aac7d7ebf04f15f1b76dfb` clarified that per-character width and full-string column fit are separate constraints. These corrections are applied; independent review of the next exact commit remains pending.
 
 G581 is an approved retirement under `T37-SELECTION-BINDING-01`. Its existing receipt has a pending output-source-commit field. The current candidate source hash and final high disposition are recorded separately.
 
@@ -22,7 +22,7 @@ G581 is an approved retirement under `T37-SELECTION-BINDING-01`. Its existing re
 - The ledger records target source SHA-256 values for all 33 selected component source paths.
 - G343's retained-code evidence is `form.rs:1172-1214`. C14 limits the hold to automatic reveal and records terminal-intent, field-liveness, and held-`PRESSED` clearing conditions.
 - C37 records both disabled `open_find` guards: neither method changes find or completion state. Enabled `CompletingCodeEditor` dismisses and clears before delegation. Read-only editors remain eligible.
-- The Roles gate accepts printable ASCII or `·` and checks one-cell text. Broader Unicode support remains open under T07/T28; no source fix is included.
+- The Roles gate accepts printable ASCII or `·`; each character occupies one terminal cell, and each full display string fits its column. Broader Unicode support remains open under T07/T28; no source fix is included.
 - CodeEditor Cancel still commits when blur commit is disabled; any rollback expectation remains open under T17. NoticeReveal tracks PAGE hover only without active capture; broader layer observation remains open under T15.
 - Selected behavior cases: 0. Behavior status: `NOT VERIFIED`.
 - No Cargo command, build, or test ran.
@@ -42,8 +42,8 @@ An earlier checker expected G581 to be the final sorted record; G609 follows it.
 
 | Path | SHA-256 |
 |---|---|
-| `docs/contracts/component-caller-contracts.md` | `a7a830b1e518de29ed97c53632de2a49a8f399a897a2aeb055e38e8f006f7976` |
-| `docs/implementation/pr38-final/results/t37-component-api-transfer/transfer.json` | `faa8c58a718a89113f5fee73caa9a18473813c9b3936410294b838471fc2d5d2` |
+| `docs/contracts/component-caller-contracts.md` | `60676737b67278eba932adbd980b47cfc2367ea9fd66aa0144113cc613879839` |
+| `docs/implementation/pr38-final/results/t37-component-api-transfer/transfer.json` | `9c23f46efd78bd17f02537bd413f518101cdbbd4aa48fd2de6038c0a0ccdfc27` |
 
 ## Review status
 
