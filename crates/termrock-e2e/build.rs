@@ -23,10 +23,7 @@ fn main() {
         println!("cargo:rerun-if-changed={}", path.display());
     }
     let digest = digest.finalize();
-    let digest_hex: String = digest
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect();
+    let digest_hex: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
     println!("cargo:rustc-env=TERMROCK_E2E_COMPILED_SUITE_SHA256={digest_hex}");
 }
 
