@@ -102,6 +102,27 @@ fn disk_space_opens_an_empty_native_chooser_and_navigation_does_not_select() {
 }
 
 #[test]
+fn outside_click_cancels_native_chooser_without_mutating_inventory() {
+    let mut harness = disk_harness(100, 30);
+    let before = harness.app().world.disk.clone();
+    let revision = harness.app().world.effect_revision;
+
+    open_selection(&mut harness);
+    let _ = harness.click(0, 0);
+
+    assert!(harness.app().route == Route::Disk);
+    assert!(harness.app().overlay.is_none());
+    assert!(!harness.runtime().is_open(disk::SELECTION_DIALOG));
+    assert_eq!(harness.app().world.disk, before);
+    assert_eq!(harness.app().world.effect_revision, revision);
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
 fn click_and_space_select_exact_rows_while_active_today_stays_disabled() {
     let mut harness = disk_harness(100, 30);
     open_selection(&mut harness);

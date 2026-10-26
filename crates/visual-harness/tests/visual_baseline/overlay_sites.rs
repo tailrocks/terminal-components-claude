@@ -222,6 +222,10 @@ pub const SITES: &[Site] = &[
         &["holla/flows/upgrade/confirm", "holla/overlays/alias_prompt"],
     ),
     rows(
+        "crates/holla-ui/src/screens/disk.rs::props",
+        &["holla/overlays/disk_selection"],
+    ),
+    rows(
         "crates/jackin-preview-app/src/app.rs::account_picker",
         &[
             "jackin/overlays/accounts_op_picker",

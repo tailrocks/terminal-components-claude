@@ -84,13 +84,6 @@ fn inspect_retirement_owner(cx: &Cx<'_>, owner: Id, allow_layer: bool) -> OwnerP
     OwnerPoll { safe, has_intents }
 }
 
-fn selection_action_owners() -> [Id; 2] {
-    [
-        Dialog::new(SELECTION_DIALOG).action_id(0),
-        Dialog::new(SELECTION_DIALOG).action_id(1),
-    ]
-}
-
 #[derive(Clone)]
 struct CandidateRow {
     candidate: Candidate,
@@ -287,11 +280,16 @@ impl SelectionChooser {
         (response, event, closed)
     }
 
+    fn selection_action_owners(&self) -> [Id; 2] {
+        let props = self.props();
+        [props.action_id(0), props.action_id(1)]
+    }
+
     /// Service only safe lifecycle buckets while hidden or in a too-small frame.
     /// Dialog.update remains the owner of its Layer receipts and dismissal state.
     fn service_lifecycle(&mut self, cx: &mut Cx<'_>) -> (Response<()>, bool) {
         let list = inspect_retirement_owner(cx, SELECTION_LIST, false);
-        let actions = selection_action_owners();
+        let actions = self.selection_action_owners();
         let root = inspect_retirement_owner(cx, SELECTION_DIALOG, true);
         let action_polls = actions.map(|owner| inspect_retirement_owner(cx, owner, false));
         let dialog_safe = root.safe && action_polls.iter().all(|poll| poll.safe);
@@ -340,7 +338,7 @@ impl SelectionChooser {
     /// disappear from the published frame, focus ring, and pointer capture.
     pub(crate) fn poll_retired(&mut self, cx: &mut Cx<'_>) -> (Response<()>, bool) {
         let (response, owners_safe) = self.service_lifecycle(cx);
-        let actions = selection_action_owners();
+        let actions = self.selection_action_owners();
         let owners = [SELECTION_LIST, SELECTION_DIALOG, actions[0], actions[1]];
         let focused = owners
             .iter()
