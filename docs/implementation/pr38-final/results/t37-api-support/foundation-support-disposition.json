@@ -38,7 +38,7 @@
   },
   "maintained_documents": {
     "docs/contracts/authoring.md": "3dabb6cc130d892dddc8eb691d90371ea397bdaad2d348f4a233f3b916df845b",
-    "docs/contracts/foundation-support.md": "b9d5fef965070fff796adf70d1ac4da89a8bf7ba8afdf978af10cf633fe8ea53",
+    "docs/contracts/foundation-support.md": "f3a12716c17fd4fae898a44b41880a90f9ac647e90725e83b2e2380d0ff385c4",
     "docs/contracts/theming.md": "b7c42909eb3850c09f4472be298ccfbc726004db248ddbd0c27af99d64045cd0",
     "docs/contracts/migration.md": "da3747dd007cb5b596ffa0153a54394cbc304c2e26af158d0d0e5e8ae4416db6",
     "docs/development.md": "e64c3e924a1a3a016ebc653cfbc96a712597461dabbbcd67c7d5c4000b234f10",
@@ -12426,16 +12426,16 @@
       "required_clauses": [
         {
           "destination": "docs/contracts/foundation-support.md#shell-layout-status-and-reports",
-          "supporting_excerpt": "The default report uses successive rows and one column of inset on each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without collecting a per-frame vector. It requests only rows that fit the allocation.",
-          "required_clause": "Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints."
+          "supporting_excerpt": "The default layout places heading, subheading, empty state, and body on rows one, two, three, and four. It adds a one-column inset at each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without a per-frame vector. It requests only rows that fit the allocation.",
+          "required_clause": "The default row order is heading first, subheading second, empty state third, and body fourth. The report also preserves inset, visibility, clipping, and bounded lazy-iteration rules."
         }
       ],
       "decision_ids": [],
       "required_clause": [
-        "Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints."
+        "The default row order is heading first, subheading second, empty state third, and body fourth. The report also preserves inset, visibility, clipping, and bounded lazy-iteration rules."
       ],
-      "supporting_excerpt": "The default report uses successive rows and one column of inset on each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without collecting a per-frame vector. It requests only rows that fit the allocation.",
-      "specific_reason": "The source group states these specific clauses for fn `default` (next declaration: `fn default() -> Self {`): Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints. The quoted maintained excerpts record them."
+      "supporting_excerpt": "The default layout places heading, subheading, empty state, and body on rows one, two, three, and four. It adds a one-column inset at each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without a per-frame vector. It requests only rows that fit the allocation.",
+      "specific_reason": "The source group states these specific clauses for fn `default` (next declaration: `fn default() -> Self {`): The default row order is heading first, subheading second, empty state third, and body fourth. The report also preserves inset, visibility, clipping, and bounded lazy-iteration rules. The quoted maintained excerpts record them."
     },
     {
       "id": "272f4d720bffd0adfe80f3c8c6c5600859e690647dc5d9cfbc330c7bde6a971e",
@@ -12740,16 +12740,16 @@
       "required_clauses": [
         {
           "destination": "docs/contracts/foundation-support.md#shell-layout-status-and-reports",
-          "supporting_excerpt": "The default report uses successive rows and one column of inset on each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without collecting a per-frame vector. It requests only rows that fit the allocation.",
-          "required_clause": "Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints."
+          "supporting_excerpt": "The default layout places heading, subheading, empty state, and body on rows one, two, three, and four. It adds a one-column inset at each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without a per-frame vector. It requests only rows that fit the allocation.",
+          "required_clause": "The default row order is heading first, subheading second, empty state third, and body fourth. The report also preserves inset, visibility, clipping, and bounded lazy-iteration rules."
         }
       ],
       "decision_ids": [],
       "required_clause": [
-        "Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints."
+        "The default row order is heading first, subheading second, empty state third, and body fourth. The report also preserves inset, visibility, clipping, and bounded lazy-iteration rules."
       ],
-      "supporting_excerpt": "The default report uses successive rows and one column of inset on each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without collecting a per-frame vector. It requests only rows that fit the allocation.",
-      "specific_reason": "The source group states these specific clauses for struct `TextReport` (next declaration: `pub struct TextReport {`): Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints. The quoted maintained excerpts record them."
+      "supporting_excerpt": "The default layout places heading, subheading, empty state, and body on rows one, two, three, and four. It adds a one-column inset at each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without a per-frame vector. It requests only rows that fit the allocation.",
+      "specific_reason": "The source group states these specific clauses for struct `TextReport` (next declaration: `pub struct TextReport {`): The default row order is heading first, subheading second, empty state third, and body fourth. The report also preserves inset, visibility, clipping, and bounded lazy-iteration rules. The quoted maintained excerpts record them."
     },
     {
       "id": "e17989609c45bce98a956debd3ad27fc5f451d6f3f98a7abd535ed963b9bd66e",
@@ -12779,16 +12779,16 @@
       "required_clauses": [
         {
           "destination": "docs/contracts/foundation-support.md#shell-layout-status-and-reports",
-          "supporting_excerpt": "The default report uses successive rows and one column of inset on each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without collecting a per-frame vector. It requests only rows that fit the allocation.",
-          "required_clause": "Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints."
+          "supporting_excerpt": "The default layout places heading, subheading, empty state, and body on rows one, two, three, and four. It adds a one-column inset at each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without a per-frame vector. It requests only rows that fit the allocation.",
+          "required_clause": "The default row order is heading first, subheading second, empty state third, and body fourth. The report also preserves inset, visibility, clipping, and bounded lazy-iteration rules."
         }
       ],
       "decision_ids": [],
       "required_clause": [
-        "Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints."
+        "The default row order is heading first, subheading second, empty state third, and body fourth. The report also preserves inset, visibility, clipping, and bounded lazy-iteration rules."
       ],
-      "supporting_excerpt": "The default report uses successive rows and one column of inset on each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without collecting a per-frame vector. It requests only rows that fit the allocation.",
-      "specific_reason": "The source group states these specific clauses for fn `new` (next declaration: `pub const fn new() -> Self {`): Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints. The quoted maintained excerpts record them."
+      "supporting_excerpt": "The default layout places heading, subheading, empty state, and body on rows one, two, three, and four. It adds a one-column inset at each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without a per-frame vector. It requests only rows that fit the allocation.",
+      "specific_reason": "The source group states these specific clauses for fn `new` (next declaration: `pub const fn new() -> Self {`): The default row order is heading first, subheading second, empty state third, and body fourth. The report also preserves inset, visibility, clipping, and bounded lazy-iteration rules. The quoted maintained excerpts record them."
     },
     {
       "id": "7780b3f1b84c76d26ee04aeb98855611dd7dd49ef4875062234fbe8ff4fbb1d1",
@@ -12911,16 +12911,16 @@
       "required_clauses": [
         {
           "destination": "docs/contracts/foundation-support.md#shell-layout-status-and-reports",
-          "supporting_excerpt": "The default report uses successive rows and one column of inset on each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without collecting a per-frame vector. It requests only rows that fit the allocation.",
-          "required_clause": "Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints."
+          "supporting_excerpt": "The default layout places heading, subheading, empty state, and body on rows one, two, three, and four. It adds a one-column inset at each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without a per-frame vector. It requests only rows that fit the allocation.",
+          "required_clause": "The default row order is heading first, subheading second, empty state third, and body fourth. The report also preserves inset, visibility, clipping, and bounded lazy-iteration rules."
         }
       ],
       "decision_ids": [],
       "required_clause": [
-        "Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints."
+        "The default row order is heading first, subheading second, empty state third, and body fourth. The report also preserves inset, visibility, clipping, and bounded lazy-iteration rules."
       ],
-      "supporting_excerpt": "The default report uses successive rows and one column of inset on each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without collecting a per-frame vector. It requests only rows that fit the allocation.",
-      "specific_reason": "The source group states these specific clauses for fn `min_details_height` (next declaration: `pub const fn min_details_height(mut self, rows: u16) -> Self {`): Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints. The quoted maintained excerpts record them."
+      "supporting_excerpt": "The default layout places heading, subheading, empty state, and body on rows one, two, three, and four. It adds a one-column inset at each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without a per-frame vector. It requests only rows that fit the allocation.",
+      "specific_reason": "The source group states these specific clauses for fn `min_details_height` (next declaration: `pub const fn min_details_height(mut self, rows: u16) -> Self {`): The default row order is heading first, subheading second, empty state third, and body fourth. The report also preserves inset, visibility, clipping, and bounded lazy-iteration rules. The quoted maintained excerpts record them."
     },
     {
       "id": "ef74b4717d8822767d0859011467f3147b059d142907d44da388feb6cfb10bf0",
@@ -13043,16 +13043,16 @@
       "required_clauses": [
         {
           "destination": "docs/contracts/foundation-support.md#shell-layout-status-and-reports",
-          "supporting_excerpt": "The default report uses successive rows and one column of inset on each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without collecting a per-frame vector. It requests only rows that fit the allocation.",
-          "required_clause": "Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints."
+          "supporting_excerpt": "The default layout places heading, subheading, empty state, and body on rows one, two, three, and four. It adds a one-column inset at each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without a per-frame vector. It requests only rows that fit the allocation.",
+          "required_clause": "The default row order is heading first, subheading second, empty state third, and body fourth. The report also preserves inset, visibility, clipping, and bounded lazy-iteration rules."
         }
       ],
       "decision_ids": [],
       "required_clause": [
-        "Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints."
+        "The default row order is heading first, subheading second, empty state third, and body fourth. The report also preserves inset, visibility, clipping, and bounded lazy-iteration rules."
       ],
-      "supporting_excerpt": "The default report uses successive rows and one column of inset on each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without collecting a per-frame vector. It requests only rows that fit the allocation.",
-      "specific_reason": "The source group states these specific clauses for fn `draw` (next declaration: `pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, content: &ReportContent<'_>) {`): Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints. The quoted maintained excerpts record them."
+      "supporting_excerpt": "The default layout places heading, subheading, empty state, and body on rows one, two, three, and four. It adds a one-column inset at each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without a per-frame vector. It requests only rows that fit the allocation.",
+      "specific_reason": "The source group states these specific clauses for fn `draw` (next declaration: `pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, content: &ReportContent<'_>) {`): The default row order is heading first, subheading second, empty state third, and body fourth. The report also preserves inset, visibility, clipping, and bounded lazy-iteration rules. The quoted maintained excerpts record them."
     },
     {
       "id": "1f020c3794415e959d5a8c5d8a364f64e434ac4c7956eb9ed6fea38995ddfd23",
@@ -13082,7 +13082,7 @@
       "required_clauses": [
         {
           "destination": "docs/contracts/foundation-support.md#shell-layout-status-and-reports",
-          "supporting_excerpt": "`draw_rows` streams the supplied iterator without collecting a per-frame vector. It requests only rows that fit the allocation.",
+          "supporting_excerpt": "`draw_rows` streams the supplied iterator without a per-frame vector. It requests only rows that fit the allocation.",
           "required_clause": "draw_rows must preserve iterator streaming and the no-per-frame-vector constraint while requesting only rows that fit."
         }
       ],
@@ -13090,7 +13090,7 @@
       "required_clause": [
         "draw_rows must preserve iterator streaming and the no-per-frame-vector constraint while requesting only rows that fit."
       ],
-      "supporting_excerpt": "`draw_rows` streams the supplied iterator without collecting a per-frame vector. It requests only rows that fit the allocation.",
+      "supporting_excerpt": "`draw_rows` streams the supplied iterator without a per-frame vector. It requests only rows that fit the allocation.",
       "specific_reason": "The source group states these specific clauses for fn `draw_rows` (next declaration: `pub fn draw_rows<I, S>(&self, ui: &mut Ui<'_>, area: Rect, content: &ReportContent<'_>, rows: I)`): draw_rows must preserve iterator streaming and the no-per-frame-vector constraint while requesting only rows that fit. The quoted maintained excerpts record them."
     },
     {
@@ -15106,16 +15106,16 @@
       "required_clauses": [
         {
           "destination": "docs/contracts/foundation-support.md#shell-routing-and-page-identity",
-          "supporting_excerpt": "Enabled Ctrl+Q requests quit through the leave guard.",
-          "required_clause": "The quit path uses the leave guard and opens its dialog when required."
+          "supporting_excerpt": "Every quit origin uses `KeyHost::request_quit`. The host runs its leave guard and opens its dialog when it must ask.",
+          "required_clause": "Every quit origin passes through the host's leave guard and displays its dialog when the guard requires a decision."
         }
       ],
       "decision_ids": [],
       "required_clause": [
-        "The quit path uses the leave guard and opens its dialog when required."
+        "Every quit origin passes through the host's leave guard and displays its dialog when the guard requires a decision."
       ],
-      "supporting_excerpt": "Enabled Ctrl+Q requests quit through the leave guard.",
-      "specific_reason": "The source group states these specific clauses for fn `request_quit` (next declaration: `fn request_quit(&mut self) -> Response<()>;`): The quit path uses the leave guard and opens its dialog when required. The quoted maintained excerpts record them."
+      "supporting_excerpt": "Every quit origin uses `KeyHost::request_quit`. The host runs its leave guard and opens its dialog when it must ask.",
+      "specific_reason": "The source group states these specific clauses for fn `request_quit` (next declaration: `fn request_quit(&mut self) -> Response<()>;`): Every quit origin passes through the host's leave guard and displays its dialog when the guard requires a decision. The quoted maintained excerpts record them."
     },
     {
       "id": "b14e668f152cd2cd21f06ddcbb3bbd22a67193ea8794278fc6a8cd4210392a19",
@@ -15328,16 +15328,16 @@
       "required_clauses": [
         {
           "destination": "docs/contracts/foundation-support.md#shell-routing-and-page-identity",
-          "supporting_excerpt": "Use `replay_key` when a menu or hint represents a key. Newline maps to Enter. Arrows map to arrow keys. Escape maps to Esc. Other characters map to unmodified character keys.",
-          "required_clause": "Menu replay maps its represented character to the documented key and routes that key normally."
+          "supporting_excerpt": "`KeyRouter::replay` routes the supplied `Key` through the same once path as `route`. It does not convert a character.",
+          "required_clause": "KeyRouter::replay passes the supplied Key through the same once-routing path as route."
         }
       ],
       "decision_ids": [],
       "required_clause": [
-        "Menu replay maps its represented character to the documented key and routes that key normally."
+        "KeyRouter::replay passes the supplied Key through the same once-routing path as route."
       ],
-      "supporting_excerpt": "Use `replay_key` when a menu or hint represents a key. Newline maps to Enter. Arrows map to arrow keys. Escape maps to Esc. Other characters map to unmodified character keys.",
-      "specific_reason": "The source group states these specific clauses for fn `replay` (next declaration: `pub fn replay<H: KeyHost + ?Sized>(host: &mut H, key: &Key) -> Response<()> {`): Menu replay maps its represented character to the documented key and routes that key normally. The quoted maintained excerpts record them."
+      "supporting_excerpt": "`KeyRouter::replay` routes the supplied `Key` through the same once path as `route`. It does not convert a character.",
+      "specific_reason": "The source group states these specific clauses for fn `replay` (next declaration: `pub fn replay<H: KeyHost + ?Sized>(host: &mut H, key: &Key) -> Response<()> {`): KeyRouter::replay passes the supplied Key through the same once-routing path as route. The quoted maintained excerpts record them."
     },
     {
       "id": "7030c254624139c122e0787ea1618dffdff8a5ae8ca61d9cce8a20e8e774a2d3",
@@ -17580,16 +17580,16 @@
       "required_clauses": [
         {
           "destination": "docs/contracts/foundation-support.md#scroll-and-keyboard-sessions",
-          "supporting_excerpt": "Negotiation is opt-in; without `enter`, no protocol bytes are written.",
-          "required_clause": "Keyboard-protocol negotiation is opt-in for each session."
+          "supporting_excerpt": "Each state owns its pushed flag set. `enter` pushes once when enabled. `leave` pops only its state-owned push once. `resume` restores one enabled suspended push once.",
+          "required_clause": "The negotiation state owns its push: enter pushes once when enabled, leave pops only its push once, and resume restores an enabled suspended push once."
         }
       ],
       "decision_ids": [],
       "required_clause": [
-        "Keyboard-protocol negotiation is opt-in for each session."
+        "The negotiation state owns its push: enter pushes once when enabled, leave pops only its push once, and resume restores an enabled suspended push once."
       ],
-      "supporting_excerpt": "Negotiation is opt-in; without `enter`, no protocol bytes are written.",
-      "specific_reason": "The source group states these specific clauses for struct `KeyboardNegotiation` (next declaration: `pub struct KeyboardNegotiation {`): Keyboard-protocol negotiation is opt-in for each session. The quoted maintained excerpts record them."
+      "supporting_excerpt": "Each state owns its pushed flag set. `enter` pushes once when enabled. `leave` pops only its state-owned push once. `resume` restores one enabled suspended push once.",
+      "specific_reason": "The source group states these specific clauses for struct `KeyboardNegotiation` (next declaration: `pub struct KeyboardNegotiation {`): The negotiation state owns its push: enter pushes once when enabled, leave pops only its push once, and resume restores an enabled suspended push once. The quoted maintained excerpts record them."
     },
     {
       "id": "be47afb68a06e2a1554cf3e3a422c2585dfa532efc754310f77f6061b05d4f0d",
@@ -17619,7 +17619,7 @@
       "required_clauses": [
         {
           "destination": "docs/contracts/foundation-support.md#scroll-and-keyboard-sessions",
-          "supporting_excerpt": "Each `enter`, `leave`, and `resume` result reports whether that call emitted a sequence. `Ok(true)` means a sequence was emitted. A no-op returns `Ok(false)` without writing or flushing. Emitted sequences are flushed. The boolean does not report enabled or pushed state.",
+          "supporting_excerpt": "Each `enter`, `leave`, and `resume` call reports whether it emitted a sequence. `Ok(true)` means a sequence was emitted.",
           "required_clause": "`enter` returns `Ok(true)` only after emitting and flushing a sequence; a no-op returns `Ok(false)`, distinct from enabled or pushed state."
         },
         {
@@ -17633,7 +17633,7 @@
         "`enter` returns `Ok(true)` only after emitting and flushing a sequence; a no-op returns `Ok(false)`, distinct from enabled or pushed state.",
         "Auto mode requires a caller-provided capability result; enabled and emitted state remain separate."
       ],
-      "supporting_excerpt": "Each `enter`, `leave`, and `resume` result reports whether that call emitted a sequence. `Ok(true)` means a sequence was emitted. A no-op returns `Ok(false)` without writing or flushing. Emitted sequences are flushed. The boolean does not report enabled or pushed state.",
+      "supporting_excerpt": "Each `enter`, `leave`, and `resume` call reports whether it emitted a sequence. `Ok(true)` means a sequence was emitted.",
       "specific_reason": "The source group states these specific clauses for fn `enter` (next declaration: `pub fn enter(`): `enter` returns `Ok(true)` only after emitting and flushing a sequence; a no-op returns `Ok(false)`, distinct from enabled or pushed state.; Auto mode requires a caller-provided capability result; enabled and emitted state remain separate. The quoted maintained excerpts record them."
     },
     {
@@ -17664,16 +17664,22 @@
       "required_clauses": [
         {
           "destination": "docs/contracts/foundation-support.md#scroll-and-keyboard-sessions",
-          "supporting_excerpt": "Each `enter`, `leave`, and `resume` result reports whether that call emitted a sequence. `Ok(true)` means a sequence was emitted. A no-op returns `Ok(false)` without writing or flushing. Emitted sequences are flushed. The boolean does not report enabled or pushed state.",
-          "required_clause": "`leave` reports whether it emitted a pop; a no-op returns `Ok(false)` without writing or flushing."
+          "supporting_excerpt": "`leave` pops only its state-owned push once.",
+          "required_clause": "leave pops only the push owned by this state, once."
+        },
+        {
+          "destination": "docs/contracts/foundation-support.md#scroll-and-keyboard-sessions",
+          "supporting_excerpt": "Each `enter`, `leave`, and `resume` call reports whether it emitted a sequence. `Ok(true)` means a sequence was emitted. A no-op returns `Ok(false)` without writing or flushing.",
+          "required_clause": "leave also reports whether it emitted that pop; a no-op returns false without writing or flushing."
         }
       ],
       "decision_ids": [],
       "required_clause": [
-        "`leave` reports whether it emitted a pop; a no-op returns `Ok(false)` without writing or flushing."
+        "leave pops only the push owned by this state, once.",
+        "leave also reports whether it emitted that pop; a no-op returns false without writing or flushing."
       ],
-      "supporting_excerpt": "Each `enter`, `leave`, and `resume` result reports whether that call emitted a sequence. `Ok(true)` means a sequence was emitted. A no-op returns `Ok(false)` without writing or flushing. Emitted sequences are flushed. The boolean does not report enabled or pushed state.",
-      "specific_reason": "The source group states these specific clauses for fn `leave` (next declaration: `pub fn leave(&mut self, out: &mut impl Write) -> io::Result<bool> {`): `leave` reports whether it emitted a pop; a no-op returns `Ok(false)` without writing or flushing. The quoted maintained excerpts record them."
+      "supporting_excerpt": "`leave` pops only its state-owned push once.",
+      "specific_reason": "The source group states these specific clauses for fn `leave` (next declaration: `pub fn leave(&mut self, out: &mut impl Write) -> io::Result<bool> {`): leave pops only the push owned by this state, once.; leave also reports whether it emitted that pop; a no-op returns false without writing or flushing. The quoted maintained excerpts record them."
     },
     {
       "id": "37a41e4083495646b44cb35743be63865be6b428a1b7700f4af7e4f082d70654",
@@ -17703,16 +17709,22 @@
       "required_clauses": [
         {
           "destination": "docs/contracts/foundation-support.md#scroll-and-keyboard-sessions",
-          "supporting_excerpt": "Each `enter`, `leave`, and `resume` result reports whether that call emitted a sequence. `Ok(true)` means a sequence was emitted. A no-op returns `Ok(false)` without writing or flushing. Emitted sequences are flushed. The boolean does not report enabled or pushed state.",
-          "required_clause": "`resume` reports whether it emitted a push; a no-op returns `Ok(false)` without writing or flushing."
+          "supporting_excerpt": "`resume` restores one enabled suspended push once.",
+          "required_clause": "resume restores one enabled suspended push once."
+        },
+        {
+          "destination": "docs/contracts/foundation-support.md#scroll-and-keyboard-sessions",
+          "supporting_excerpt": "Each `enter`, `leave`, and `resume` call reports whether it emitted a sequence. `Ok(true)` means a sequence was emitted. A no-op returns `Ok(false)` without writing or flushing.",
+          "required_clause": "resume also reports whether it emitted that push; a no-op returns false without writing or flushing."
         }
       ],
       "decision_ids": [],
       "required_clause": [
-        "`resume` reports whether it emitted a push; a no-op returns `Ok(false)` without writing or flushing."
+        "resume restores one enabled suspended push once.",
+        "resume also reports whether it emitted that push; a no-op returns false without writing or flushing."
       ],
-      "supporting_excerpt": "Each `enter`, `leave`, and `resume` result reports whether that call emitted a sequence. `Ok(true)` means a sequence was emitted. A no-op returns `Ok(false)` without writing or flushing. Emitted sequences are flushed. The boolean does not report enabled or pushed state.",
-      "specific_reason": "The source group states these specific clauses for fn `resume` (next declaration: `pub fn resume(&mut self, out: &mut impl Write) -> io::Result<bool> {`): `resume` reports whether it emitted a push; a no-op returns `Ok(false)` without writing or flushing. The quoted maintained excerpts record them."
+      "supporting_excerpt": "`resume` restores one enabled suspended push once.",
+      "specific_reason": "The source group states these specific clauses for fn `resume` (next declaration: `pub fn resume(&mut self, out: &mut impl Write) -> io::Result<bool> {`): resume restores one enabled suspended push once.; resume also reports whether it emitted that push; a no-op returns false without writing or flushing. The quoted maintained excerpts record them."
     },
     {
       "id": "92b09210e4fac20ce3273d7cffe8d323527f2b5fa593fec4887b11888ba404bf",

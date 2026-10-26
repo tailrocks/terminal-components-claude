@@ -1,15 +1,14 @@
 {
   "task_id": "T37-API-PROSE-COHORT-C",
   "input_commit": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
-  "working_base_commit": "34c06c17cab2b6f78734b496f65e6038013b117d",
+  "working_base_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
   "output_commit": null,
-  "output_commit_note": "Bind the exact output commit after commit creation; this file cannot include its own commit hash.",
+  "output_commit_note": "Bind this correction output commit after it is created; the output commit cannot contain its own hash.",
   "model": "gpt-6-luna",
   "effort": "max",
   "agent_id": "/root/t00_import_rules",
   "record_path": "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json",
   "changed_paths": [
-    "docs/contracts/authoring.md",
     "docs/contracts/foundation-support.md",
     "docs/implementation/pr38-final/results/t37-api-support/build_disposition.py",
     "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
@@ -27,7 +26,7 @@
     "model": "gpt-6.1-sol",
     "effort": "high",
     "state": "PENDING_INDEPENDENT_REVIEW",
-    "note": "The prior exact-output review returned SUPPORT-R1–R6 corrections. Those corrections are applied in this output; final review is pending."
+    "note": "Exact review of 8f355 accepted identities, source hashes, all 427 surviving non-module scopes, all five lexical scope repairs, and most semantic clauses. Four narrow R4 omissions were returned; this correction restores them. Final review is pending."
   },
   "design_decisions": [
     {
@@ -135,7 +134,8 @@
     "SUPPORT-R3: correct five lexical declaration scopes in recipe.rs and regenerate the attachment audit.",
     "SUPPORT-R4: bind exact chord, vocabulary, hint priority, interrupt, selection, quit, input, replay, status clear/query, input-change, sequence-emission, and streaming-row rules to matching excerpts or specific reasons.",
     "SUPPORT-R5: split prose to the ASD-STE100 sentence limits and remove stray table delimiters.",
-    "SUPPORT-R6: name T11-MODAL-DIM-01 and its T22/T29 consumer obligations."
+    "SUPPORT-R6: name T11-MODAL-DIM-01 and its T22/T29 consumer obligations.",
+    "SUPPORT-R4 follow-up: restore KeyRouter::replay(Key) as same-path key routing, general KeyHost::request_quit leave-guard behavior, keyboard state-owned once-only push/pop/resume lifecycle alongside emission results, and TextReport default heading/subheading/empty/body row order."
   ],
   "inputs": {
     "frozen_source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
@@ -225,10 +225,10 @@
       "status": "CORRECTION_APPLIED_PENDING_INDEPENDENT_REVIEW"
     },
     "artifact_hashes": {
-      "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json": "54ab6a27b7a012a33f489fb9c92f74cf201dbd5e10a84998c6dbff458df2e21e",
-      "docs/implementation/pr38-final/results/t37-api-support/build_disposition.py": "dcf4af58f524c73854ec42bfd10124faae9d0db5dd17135ba62aff9c8d05e69d",
+      "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae",
+      "docs/implementation/pr38-final/results/t37-api-support/build_disposition.py": "396440aff3b789b7e41ce080706bd8d618fad56e2a75e6da83985426c479e133",
       "docs/contracts/authoring.md": "3dabb6cc130d892dddc8eb691d90371ea397bdaad2d348f4a233f3b916df845b",
-      "docs/contracts/foundation-support.md": "b9d5fef965070fff796adf70d1ac4da89a8bf7ba8afdf978af10cf633fe8ea53"
+      "docs/contracts/foundation-support.md": "f3a12716c17fd4fae898a44b41880a90f9ac647e90725e83b2e2380d0ff385c4"
     },
     "unchanged_documents_checked": {
       "docs/contracts/theming.md": "b7c42909eb3850c09f4472be298ccfbc726004db248ddbd0c27af99d64045cd0",
@@ -254,7 +254,7 @@
       "exit_code": 0,
       "selected_tests": 0,
       "evidence_path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
-      "result": "Generated 496 records with 244 required-caller, 170 descriptive, 55 retired/test-only, 9 internal, 5 historical/internal, 9 unresolved-conflict, and 4 retained compatibility-data dispositions. Output SHA-256: 54ab6a27b7a012a33f489fb9c92f74cf201dbd5e10a84998c6dbff458df2e21e."
+      "result": "Generated 496 records with unchanged disposition counts. Output SHA-256: 15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae."
     },
     {
       "command": "git diff --check",
@@ -332,5 +332,6 @@
     "cleanup_agent_selection_note": "The cleanup child spawn arguments are not retained. Its runtime does not attest a more specific backend model or effort. Do not infer model unavailability from this absence.",
     "cleanup_result": "Disk-only checks found no new safe target; no files were deleted. The child remains active."
   },
-  "model_selection_note": "Parent dispatch selected gpt-6-luna at max effort for implementation. The runtime does not provide separate backend-model attestation."
+  "model_selection_note": "Parent dispatch selected gpt-6-luna at max effort for implementation. The runtime does not provide separate backend-model attestation.",
+  "review_correction_from_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2"
 }
