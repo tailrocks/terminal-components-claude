@@ -1,3 +1,4 @@
+use crate::pane_tree::PaneTreePage;
 use showcase_demos::render_number::RenderNumber;
 use termrock::author::PaintStyle;
 use termrock::overlays::NoticeReveal;
@@ -51,6 +52,7 @@ const EMPTY_ERROR_ENTRY: usize = 31;
 const NOTICES_ENTRY: usize = 33;
 const DIFF_ENTRY: usize = 40;
 const MASTER_DETAIL_ENTRY: usize = 37;
+const PANE_TREE_ENTRY: usize = 38;
 const BRAND: Id = id!("brand");
 const STATUS: Id = id!("status");
 const HELP: Id = id!("help");
@@ -269,6 +271,7 @@ impl NavTarget {
                 | Self::Placeholder(NOTICES_ENTRY)
                 | Self::Placeholder(DIFF_ENTRY)
                 | Self::Placeholder(MASTER_DETAIL_ENTRY)
+                | Self::Placeholder(PANE_TREE_ENTRY)
         )
     }
 }
@@ -1306,6 +1309,7 @@ pub struct App {
     notices: NoticesPage,
     diff: DiffPage,
     master_detail: MasterDetailPage,
+    pane_tree: PaneTreePage,
     notice_reveals: std::cell::RefCell<[NoticeReveal; 6]>,
     notice_reveal_snapshot: Option<NoticeRevealSnapshot>,
     notice_reveal_revision: u64,
@@ -1351,6 +1355,7 @@ impl core::fmt::Debug for App {
             .field("empty_error", &self.empty_error)
             .field("notices", &self.notices)
             .field("master_detail", &self.master_detail)
+            .field("pane_tree", &self.pane_tree)
             .field("notice_reveal_snapshot", &self.notice_reveal_snapshot)
             .field("notice_reveal_revision", &self.notice_reveal_revision)
             .field("help_state", &self.help_state)
@@ -1426,6 +1431,7 @@ impl App {
             notices: NoticesPage::new(),
             diff,
             master_detail: MasterDetailPage::new(),
+            pane_tree: PaneTreePage::new(),
             notice_reveals: std::cell::RefCell::new(std::array::from_fn(|index| {
                 NoticeReveal::new(NOTICE_REVEAL_OWNERS[index])
             })),
@@ -1498,6 +1504,19 @@ impl App {
         }
         let nodes = nav_nodes(&self.nav_state, 0);
         reveal_nav(&mut self.nav_state, &nodes, index);
+    }
+
+    fn goto_entry_with_cx(&mut self, cx: &mut Cx<'_>, index: usize) -> Response<()> {
+        let next = nav_target_at(index);
+        let response = if self.nav_target == NavTarget::Placeholder(PANE_TREE_ENTRY)
+            && next.is_some_and(|target| target != self.nav_target)
+        {
+            self.pane_tree.prepare_for_route_leave(cx)
+        } else {
+            Response::ignored()
+        };
+        self.goto_entry(index);
+        response
     }
 
     fn sync_nav_expansion(&mut self, index: usize, reset: bool) {
@@ -1690,6 +1709,7 @@ impl App {
                 | NavTarget::Placeholder(NOTICES_ENTRY)
                 | NavTarget::Placeholder(DIFF_ENTRY)
                 | NavTarget::Placeholder(MASTER_DETAIL_ENTRY)
+                | NavTarget::Placeholder(PANE_TREE_ENTRY)
         )
     }
 
@@ -1711,6 +1731,8 @@ impl App {
             Some(&self.diff)
         } else if self.nav_target == NavTarget::Placeholder(MASTER_DETAIL_ENTRY) {
             Some(&self.master_detail)
+        } else if self.nav_target == NavTarget::Placeholder(PANE_TREE_ENTRY) {
+            Some(&self.pane_tree)
         } else {
             self.pages.get(self.page.index()).map(Box::as_ref)
         }
@@ -1727,6 +1749,8 @@ impl App {
             Some(&mut self.diff)
         } else if self.nav_target == NavTarget::Placeholder(MASTER_DETAIL_ENTRY) {
             Some(&mut self.master_detail)
+        } else if self.nav_target == NavTarget::Placeholder(PANE_TREE_ENTRY) {
+            Some(&mut self.pane_tree)
         } else {
             self.pages.get_mut(self.page.index()).map(Box::as_mut)
         }
@@ -2673,7 +2697,7 @@ impl TuiApp for App {
                 let count = NAV_ENTRIES.len();
                 if count > 0 {
                     let current = nav_index_for_target(self.nav_target).unwrap_or(0);
-                    self.goto_entry(current.saturating_add(1) % count);
+                    response |= self.goto_entry_with_cx(cx, current.saturating_add(1) % count);
                 }
             }
             Some(PREV_PAGE) if !inspector_modal_active => {
@@ -2681,7 +2705,7 @@ impl TuiApp for App {
                 if count > 0 {
                     let current = nav_index_for_target(self.nav_target).unwrap_or(0);
                     let previous = current.checked_sub(1).unwrap_or(count.saturating_sub(1));
-                    self.goto_entry(previous);
+                    response |= self.goto_entry_with_cx(cx, previous);
                 }
             }
             Some(NEXT_PAGE | PREV_PAGE) => {}
@@ -2764,7 +2788,7 @@ impl TuiApp for App {
             Some(TreeAction::Expanded(_) | TreeAction::Collapsed(_)) | None => None,
         };
         if let Some((index, _target)) = picked {
-            self.goto_entry(index);
+            response |= self.goto_entry_with_cx(cx, index);
         }
 
         if self.nav_target == NavTarget::Selection {
@@ -2792,6 +2816,12 @@ impl TuiApp for App {
         self.update_inspector(cx, &mut response);
         self.help_open = cx.is_open(HELP);
         self.overlay_open = cx.top_layer() != termrock::LayerId::PAGE;
+        if self.nav_target == NavTarget::Placeholder(PANE_TREE_ENTRY) {
+            let viewport = cx.viewport();
+            let page_area = (viewport.width >= 72 && viewport.height >= 20 && !self.overlay_open)
+                .then(|| self.resolved_shell_layout(viewport).main);
+            response |= self.pane_tree.prepare_for_presentation(cx, page_area);
+        }
         self.update_notice_reveals(cx, &mut response);
         if !self.motion_paused
             && let Some((_, since)) = &self.status
@@ -2891,7 +2921,7 @@ impl TuiApp for App {
             NavTarget::Selection => self.selectable.hints(),
             NavTarget::Placeholder(
                 CHECKS_RADIOS_ENTRY | EMPTY_ERROR_ENTRY | NOTICES_ENTRY | DIFF_ENTRY
-                | MASTER_DETAIL_ENTRY,
+                | MASTER_DETAIL_ENTRY | PANE_TREE_ENTRY,
             ) => page_hints,
             NavTarget::Live(PageId::Pickers | PageId::DialogKinds | PageId::Toolbars) => page_hints,
             NavTarget::Live(_) | NavTarget::Placeholder(_) => &[][..],
