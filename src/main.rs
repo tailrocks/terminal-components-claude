@@ -20,7 +20,7 @@ use tui_test::snapshot::{SnapshotScope, TerminalSnapshot};
 use tui_test::terminal::cell::Attrs;
 use tui_test::wait::{WaitQuietMode, WaitQuietOptions};
 use tuiscotti::check::{CheckOutcome, FrozenStore};
-use tuiscotti::render_profile::{PROFILE_NAME, resolve_profile};
+use tuiscotti::render_profile::{PROFILE_NAME, platform_key, resolve_profile};
 use tuiscotti::sample::{Observation, Sample};
 
 const COLS: u16 = 120;
@@ -43,6 +43,7 @@ struct Case {
     id: &'static str,
     binary: &'static str,
     args: &'static [&'static str],
+    initial_marker: &'static str,
     help_key: &'static str,
     help_marker: &'static str,
     quit_key: &'static str,
@@ -53,6 +54,7 @@ const CASES: [Case; FLOW_DENOMINATOR] = [
         id: "first/showcase",
         binary: "showcase",
         args: &["--motion", "paused", "--frame", "0", "--color", "truecolor"],
+        initial_marker: "Overview",
         help_key: "?",
         help_marker: "Keyboard shortcuts",
         quit_key: "q",
@@ -70,6 +72,7 @@ const CASES: [Case; FLOW_DENOMINATOR] = [
             "--color",
             "truecolor",
         ],
+        initial_marker: "holla❯",
         help_key: "F1",
         help_marker: "Key reference",
         quit_key: "Ctrl+q",
@@ -87,6 +90,7 @@ const CASES: [Case; FLOW_DENOMINATOR] = [
             "--color",
             "truecolor",
         ],
+        initial_marker: "jackin❯",
         help_key: "?",
         help_marker: "Keyboard shortcuts",
         quit_key: "q",
@@ -95,6 +99,7 @@ const CASES: [Case; FLOW_DENOMINATOR] = [
         id: "first/tablepro",
         binary: "tablepro",
         args: &["--motion", "paused", "--frame", "0", "--color", "truecolor"],
+        initial_marker: "TablePro",
         help_key: "?",
         help_marker: "Keyboard shortcuts",
         quit_key: "q",
@@ -104,7 +109,8 @@ const CASES: [Case; FLOW_DENOMINATOR] = [
 #[derive(Debug)]
 struct Checkpoint {
     label: String,
-    test_id: String,
+    checkpoint_id: String,
+    sample_id: String,
     offset: u64,
     captured_at_unix_ms: u128,
     snapshot: TerminalSnapshot,
@@ -170,7 +176,8 @@ fn run() -> AppResult<()> {
         return Err(format!("unsupported group {group:?}; expected first or all").into());
     }
 
-    let mode = std::env::var("TERMROCK_LIVE_MODE").unwrap_or_else(|_| "capture".into());
+    let mode = std::env::var("TERMROCK_LIVE_MODE")
+        .map_err(|_| "TERMROCK_LIVE_MODE is required; set capture or check explicitly")?;
     if mode != "capture" && mode != "check" {
         return Err(format!("TERMROCK_LIVE_MODE must be capture or check, got {mode:?}").into());
     }
@@ -202,7 +209,9 @@ fn run() -> AppResult<()> {
     let started_at = unix_ms();
     let mut flow_results = Vec::with_capacity(FLOW_DENOMINATOR);
     let mut completed_flows = 0_usize;
+    let mut passed_flows = 0_usize;
     let mut completed_checkpoints = 0_usize;
+    let mut passed_checkpoints = 0_usize;
     let mut failed_flows = 0_usize;
     for case in CASES {
         let result = run_case(
@@ -212,28 +221,44 @@ fn run() -> AppResult<()> {
             &out_dir,
             frozen_store.as_ref(),
         )?;
-        let succeeded = result["status"] == "passed";
-        if succeeded {
+        if result["process_status"] == "complete" {
             completed_flows += 1;
         } else {
             failed_flows += 1;
         }
+        if result["status"] == "passed" {
+            passed_flows += 1;
+        }
         completed_checkpoints +=
             result["checkpoints_completed"].as_u64().unwrap_or_default() as usize;
+        passed_checkpoints += result["checkpoints_passed"].as_u64().unwrap_or_default() as usize;
         flow_results.push(result);
     }
     let elapsed_ms = start.elapsed().as_millis() as u64;
-    let run_status = if failed_flows == 0
-        && completed_flows == FLOW_DENOMINATOR
-        && completed_checkpoints == CHECKPOINT_DENOMINATOR
+    let run_status = if failed_flows > 0
+        || completed_flows != FLOW_DENOMINATOR
+        || completed_checkpoints != CHECKPOINT_DENOMINATOR
     {
+        "failed"
+    } else if mode == "capture" {
+        "captured-unapproved"
+    } else if passed_flows == FLOW_DENOMINATOR && passed_checkpoints == CHECKPOINT_DENOMINATOR {
         "passed"
     } else {
         "failed"
     };
+    let process_status = if failed_flows == 0
+        && completed_flows == FLOW_DENOMINATOR
+        && completed_checkpoints == CHECKPOINT_DENOMINATOR
+    {
+        "complete"
+    } else {
+        "incomplete"
+    };
     let result = json!({
         "schema": "termrock-live-run.v1",
         "status": run_status,
+        "process_status": process_status,
         "mode": mode,
         "group": group,
         "started_at_unix_ms": started_at,
@@ -242,9 +267,13 @@ fn run() -> AppResult<()> {
         "flow_denominator": FLOW_DENOMINATOR,
         "flows_completed": completed_flows,
         "flow_percent": percent(completed_flows, FLOW_DENOMINATOR),
+        "flows_passed": passed_flows,
+        "flow_pass_percent": percent(passed_flows, FLOW_DENOMINATOR),
         "checkpoint_denominator": CHECKPOINT_DENOMINATOR,
         "checkpoints_completed": completed_checkpoints,
         "checkpoint_percent": percent(completed_checkpoints, CHECKPOINT_DENOMINATOR),
+        "checkpoints_passed": passed_checkpoints,
+        "checkpoint_pass_percent": percent(passed_checkpoints, CHECKPOINT_DENOMINATOR),
         "binary_hashes_sha256": binary_hashes,
         "source_pins": {
             "pr26": PR26_COMMIT,
@@ -262,9 +291,12 @@ fn run() -> AppResult<()> {
     write_json_new(&out_dir.join("run-result.json"), &result)?;
     println!("{}", serde_json::to_string_pretty(&result)?);
     if run_status != "passed" {
-        return Err(
-            "run incomplete or one or more flows/checks failed; see run-result.json".into(),
-        );
+        let reason = if run_status == "captured-unapproved" {
+            "capture-only output is unapproved; frozen check mode is required for acceptance"
+        } else {
+            "run incomplete or one or more frozen checks failed"
+        };
+        return Err(format!("{reason}; see run-result.json").into());
     }
     Ok(())
 }
@@ -323,15 +355,18 @@ fn run_case(
         spawned = true;
 
         let sample_profile = resolve_profile(PROFILE_NAME)?;
+        ensure_child_active(&session)?;
+        session
+            .get_by_text(case.initial_marker)
+            .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
         wait_visual_quiet(&session)?;
         let initial_text = match session.execute(Operation::Text { full: true })? {
             OperationResult::Text(text) => text,
             other => return Err(format!("unexpected text result: {other:?}").into()),
         };
         if initial_text.trim().is_empty() {
-            return Err("initial screen is empty after visual quiet".into());
+            return Err("initial visible marker appeared but screen text is empty".into());
         }
-        ensure_child_active(&session)?;
         checkpoints.push(capture_checkpoint(
             &session,
             &sample_profile,
@@ -391,7 +426,7 @@ fn run_case(
             .raw_output_capture_status()
             .ok_or("raw output capture status is unavailable")?;
         write_json_new(&case_out.join("raw-status.json"), &status)?;
-        if !status.complete || !status.errors.is_empty() {
+        if !status.setup_complete || !status.complete || !status.errors.is_empty() {
             return Err(format!("raw capture is incomplete or has errors: {status:?}").into());
         }
         let processed = status
@@ -419,7 +454,7 @@ fn run_case(
             if checkpoint.offset > captured {
                 return Err(format!(
                     "checkpoint {} offset {} exceeds drained stream {captured}",
-                    checkpoint.test_id, checkpoint.offset
+                    checkpoint.checkpoint_id, checkpoint.offset
                 )
                 .into());
             }
@@ -430,7 +465,8 @@ fn run_case(
             write_json_new(
                 &checkpoint_dir.join("capture.json"),
                 &json!({
-                    "test_id": checkpoint.test_id,
+                    "checkpoint_id": checkpoint.checkpoint_id,
+                    "sample_id": checkpoint.sample_id,
                     "processed_output_offset": checkpoint.offset,
                     "raw_prefix_sha256": sha256(&raw[..end]),
                     "raw_stream_sha256": sha256(&raw),
@@ -446,7 +482,7 @@ fn run_case(
                 if let CheckOutcome::Failure(failure) = &outcome {
                     let baseline_path = suite
                         .join("expected")
-                        .join(format!("{}.tui.json", checkpoint.test_id));
+                        .join(format!("{}.tui.json", checkpoint.sample_id));
                     if baseline_path.is_file() {
                         if let Ok(bytes) = fs::read(baseline_path) {
                             if let Ok(baseline) = Sample::from_bytes(&bytes) {
@@ -517,41 +553,64 @@ fn run_case(
         }),
     )?;
 
-    let (status, error) = match work {
-        Ok(()) => ("passed", Value::Null),
-        Err(error) => ("failed", json!(error.to_string())),
+    let (process_status, work_error) = match work {
+        Ok(()) => ("complete", None),
+        Err(error) => ("incomplete", Some(error.to_string())),
     };
-    let check_failures = if frozen_store.is_some() && status == "passed" {
-        checkpoints
-            .iter()
-            .filter(|checkpoint| {
+    let (check_failures, checkpoints_passed) =
+        if frozen_store.is_some() && process_status == "complete" {
+            let mut failures = 0;
+            let mut passed = 0;
+            for checkpoint in &checkpoints {
                 let path = case_out
                     .join("checkpoints")
                     .join(&checkpoint.label)
                     .join("check.json");
-                fs::read(path)
+                let is_pass = fs::read(path)
                     .ok()
                     .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
-                    .is_some_and(|value| value["status"] != "pass")
-            })
-            .count()
+                    .is_some_and(|value| value["status"] == "pass");
+                if is_pass {
+                    passed += 1;
+                } else {
+                    failures += 1;
+                }
+            }
+            (failures, passed)
+        } else {
+            (0, 0)
+        };
+    let final_status = if process_status != "complete" || check_failures > 0 {
+        "failed"
+    } else if frozen_store.is_some() {
+        "passed"
     } else {
-        0
+        "captured-unapproved"
     };
-    let final_status = if check_failures > 0 { "failed" } else { status };
+    let error = if let Some(error) = work_error {
+        json!(error)
+    } else if check_failures > 0 {
+        json!(format!("{check_failures} frozen checkpoint checks failed"))
+    } else {
+        Value::Null
+    };
     let result = json!({
         "schema":"termrock-live-flow.v1",
         "id":case.id,
         "binary":case.binary,
+        "initial_marker":case.initial_marker,
         "status":final_status,
+        "process_status":process_status,
         "error":error,
         "started_at_unix_ms":started_at,
         "finished_at_unix_ms":unix_ms(),
         "live_process_elapsed_ms":case_start.elapsed().as_millis() as u64,
         "expected_checkpoints":CHECKPOINTS,
         "checkpoints_completed":checkpoints.len(),
+        "checkpoints_passed":checkpoints_passed,
         "checkpoint_records":checkpoints.iter().map(|checkpoint| json!({
-            "id":checkpoint.test_id,
+            "id":checkpoint.checkpoint_id,
+            "sample_id":checkpoint.sample_id,
             "label":checkpoint.label,
             "captured_at_unix_ms":checkpoint.captured_at_unix_ms,
             "processed_output_offset":checkpoint.offset,
@@ -559,6 +618,7 @@ fn run_case(
             "png_sha256":checkpoint.png_sha256,
             "rgba_sha256":checkpoint.rgba_sha256,
             "sample_path":format!("{}/{}/sample.tui.json", case.id, checkpoint.label),
+            "expected_path":format!("expected/{}.tui.json", checkpoint.sample_id),
         })).collect::<Vec<_>>(),
         "process_state":process_state,
         "check_failures":check_failures,
@@ -587,8 +647,9 @@ fn capture_checkpoint(
         )
         .into());
     }
-    let test_id = format!("{}/{label}", case.id);
-    let sample = Sample::with_pixels(&test_id, &snapshot, Observation::empty(), profile)?;
+    let checkpoint_id = format!("{}/{label}", case.id);
+    let sample_id = format!("{checkpoint_id}/pixels-{}", platform_key());
+    let sample = Sample::with_pixels(&sample_id, &snapshot, Observation::empty(), profile)?;
     let sample_bytes = sample.to_bytes()?;
     let image = sample.image().ok_or("pixel sample has no PNG image")?;
     let png = base64::engine::general_purpose::STANDARD.decode(image.png_base64())?;
@@ -602,7 +663,8 @@ fn capture_checkpoint(
     write_new(&checkpoint_dir.join("screen.png"), &png)?;
     Ok(Checkpoint {
         label: label.to_string(),
-        test_id,
+        checkpoint_id,
+        sample_id,
         offset,
         captured_at_unix_ms,
         snapshot,
@@ -655,10 +717,22 @@ fn compare_command(args: Vec<std::ffi::OsString>) -> AppResult<()> {
             }
             let left_capture: Value = read_json(&left.join(&relative).join("capture.json"))?;
             let right_capture: Value = read_json(&right.join(&relative).join("capture.json"))?;
+            let checkpoint_id = format!("{}/{label}", case.id);
+            let sample_id = format!("{checkpoint_id}/pixels-{}", platform_key());
+            for capture in [&left_capture, &right_capture] {
+                if capture["checkpoint_id"] != checkpoint_id || capture["sample_id"] != sample_id {
+                    return Err(format!(
+                        "capture identity mismatch for {checkpoint_id}: {:?}",
+                        capture
+                    )
+                    .into());
+                }
+            }
             let left_prefix = raw_prefix(&left, case.id, &left_capture)?;
             let right_prefix = raw_prefix(&right, case.id, &right_capture)?;
             comparisons.push(json!({
-                "id":format!("{}/{label}",case.id),
+                "id":checkpoint_id,
+                "sample_id":sample_id,
                 "status":if state_equal {"stable"} else {"different"},
                 "first_difference":first,
                 "render_contract_equal":contracts_equal,
@@ -677,7 +751,7 @@ fn compare_command(args: Vec<std::ffi::OsString>) -> AppResult<()> {
     }
     let result = json!({
         "schema":"termrock-live-stability.v1",
-        "status":if differing == 0 {"stable"} else {"different"},
+        "status":if differing == 0 {"stable-unapproved"} else {"different"},
         "denominator":CHECKPOINT_DENOMINATOR,
         "compared":comparisons.len(),
         "stable":comparisons.len()-differing,
@@ -694,12 +768,18 @@ fn compare_command(args: Vec<std::ffi::OsString>) -> AppResult<()> {
     if differing > 0 {
         return Err("reference runs are not stable; see compare-runs result".into());
     }
-    Ok(())
+    Err(
+        "stable reference candidates remain unapproved; explicit independent approval is required"
+            .into(),
+    )
 }
 
 fn verify_complete_capture_run(path: &Path) -> AppResult<()> {
     let result: Value = read_json(&path.join("run-result.json"))?;
-    if result["status"] != "passed" || result["mode"] != "capture" {
+    if result["status"] != "captured-unapproved"
+        || result["mode"] != "capture"
+        || result["process_status"] != "complete"
+    {
         return Err(format!("{} is not a complete capture-only run", path.display()).into());
     }
     if result["flows_completed"] != FLOW_DENOMINATOR as u64
@@ -710,6 +790,48 @@ fn verify_complete_capture_run(path: &Path) -> AppResult<()> {
             path.display()
         )
         .into());
+    }
+    let flows = result["flows"]
+        .as_array()
+        .ok_or_else(|| format!("{} has no flow records", path.display()))?;
+    if flows.len() != FLOW_DENOMINATOR {
+        return Err(format!("{} has an incomplete flow record list", path.display()).into());
+    }
+    for case in CASES {
+        let case_out = path.join(case.id);
+        let flow = flows
+            .iter()
+            .find(|flow| flow["id"] == case.id)
+            .ok_or_else(|| format!("{} is missing flow {}", path.display(), case.id))?;
+        if flow["status"] != "captured-unapproved"
+            || flow["process_status"] != "complete"
+            || flow["checkpoints_completed"] != CHECKPOINTS.len() as u64
+            || flow["checkpoint_records"].as_array().map(Vec::len) != Some(CHECKPOINTS.len())
+        {
+            return Err(format!("{} has an incomplete flow {}", path.display(), case.id).into());
+        }
+        let raw_status: Value = read_json(&case_out.join("raw-status.json"))?;
+        if raw_status["setup_complete"] != true
+            || raw_status["complete"] != true
+            || raw_status["drained"] != true
+            || raw_status["flushed"] != true
+            || !raw_status["errors"]
+                .as_array()
+                .is_some_and(|errors| errors.is_empty())
+        {
+            return Err(format!("{} has incomplete raw capture", case_out.display()).into());
+        }
+        let captured = raw_status["captured_output_bytes"]
+            .as_u64()
+            .ok_or_else(|| format!("{} has no captured byte count", case_out.display()))?;
+        let processed = raw_status["processed_output_offset"]
+            .as_u64()
+            .ok_or_else(|| format!("{} has no processed byte offset", case_out.display()))?;
+        if captured != processed
+            || u64::try_from(fs::metadata(case_out.join("raw.ansi"))?.len())? != captured
+        {
+            return Err(format!("{} raw byte counts do not match", case_out.display()).into());
+        }
     }
     Ok(())
 }
