@@ -193,6 +193,9 @@ impl<A: App> Harness<A> {
 
     pub fn draw(&mut self) {
         for _ in 0..16 {
+            self.term
+                .autoresize()
+                .expect("TestBackend autoresize succeeds");
             let area = self.term.get_frame().area();
             let prepared = self.rt.prepare(area).expect("runtime prepares frame");
             let mut area_changed = false;
@@ -450,6 +453,8 @@ pub fn row_text(buf: &Buffer, y: u16) -> (String, Vec<u16>) {
 
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
+
     use ratatui_core::layout::Rect;
     use termrock::{Cx, Focusability, FrameRead, ItemKey, RowUi, Ui};
 
@@ -457,6 +462,7 @@ mod tests {
 
     const LIST: Id = Id::root("harness.list");
     const BUTTON: Id = Id::root("harness.button");
+    const RESIZE_PROBE: Id = Id::root("harness.resize-probe");
 
     struct TwoFamilies;
 
@@ -547,5 +553,72 @@ mod tests {
                 termrock::Surface::Canvas
             )
         );
+    }
+
+    #[derive(Default)]
+    struct ResizeProbe {
+        draw_areas: RefCell<Vec<Rect>>,
+    }
+
+    impl App for ResizeProbe {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let area = ui.full();
+            self.draw_areas.borrow_mut().push(area);
+            ui.register_control(RESIZE_PROBE, area, Focusability::Focusable);
+        }
+    }
+
+    fn assert_draw_areas_match_backend(h: &Harness<ResizeProbe>, expected: Rect) {
+        let draw_areas = h.app().draw_areas.borrow();
+        assert!(!draw_areas.is_empty(), "resize must produce an app draw");
+        assert!(
+            draw_areas.iter().all(|area| *area == expected),
+            "every draw attempt must use the resized backend area {expected:?}; observed {draw_areas:?}"
+        );
+        assert_eq!(*h.buffer().area(), expected);
+        assert_eq!(h.area_of(RESIZE_PROBE), Some(expected));
+    }
+
+    #[test]
+    fn resize_autoresizes_before_each_shrink_and_grow_prepare() {
+        let mut h = Harness::new(ResizeProbe::default(), Theme::junie(), 20, 8);
+        h.app().draw_areas.borrow_mut().clear();
+
+        let shrunk = Rect::new(0, 0, 9, 5);
+        let _ = h.resize(shrunk.width, shrunk.height);
+        assert_draw_areas_match_backend(&h, shrunk);
+
+        h.app().draw_areas.borrow_mut().clear();
+        let grown = Rect::new(0, 0, 28, 13);
+        let _ = h.resize(grown.width, grown.height);
+        assert_draw_areas_match_backend(&h, grown);
+
+        let _ = h.click_id(RESIZE_PROBE);
+        assert_eq!(h.focus(), Some(RESIZE_PROBE));
+        assert_eq!(h.area_of(RESIZE_PROBE), Some(grown));
+        assert_eq!(*h.buffer().area(), grown);
+    }
+
+    #[test]
+    fn autoresize_precedes_a_deferred_draw_when_auto_draw_is_disabled() {
+        let mut h =
+            Harness::new(ResizeProbe::default(), Theme::junie(), 20, 8).with_auto_draw(false);
+        h.app().draw_areas.borrow_mut().clear();
+
+        for expected in [Rect::new(0, 0, 9, 5), Rect::new(0, 0, 28, 13)] {
+            let _ = h.resize(expected.width, expected.height);
+            assert!(
+                h.app().draw_areas.borrow().is_empty(),
+                "disabled auto draw leaves output deferred"
+            );
+
+            h.draw();
+            assert_draw_areas_match_backend(&h, expected);
+            h.app().draw_areas.borrow_mut().clear();
+        }
     }
 }
