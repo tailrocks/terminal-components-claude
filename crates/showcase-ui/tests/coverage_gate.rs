@@ -533,6 +533,15 @@ fn registry_matches_library_source() {
         "the scan found too little: {}",
         scanned.len()
     );
+    let missing_catalogue_items: Vec<_> = scanned
+        .iter()
+        .filter(|item| crate::coverage::catalog::find(&item.id).is_none())
+        .map(|item| item.id.as_str())
+        .collect();
+    assert!(
+        missing_catalogue_items.is_empty(),
+        "catalogue lookup missed scanned items: {missing_catalogue_items:#?}"
+    );
     for item in &scanned {
         let catalogue_item = crate::coverage::catalog::find(&item.id)
             .unwrap_or_else(|| panic!("catalogue lookup missed scanned item {}", item.id));

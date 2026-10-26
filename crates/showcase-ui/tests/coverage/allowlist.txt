@@ -1531,6 +1531,53 @@ termrock-controls::master_detail::MasterDetailMode::Split | Legacy generated per
 termrock-controls::master_detail::MasterDetailState | Legacy generated permanent decision retained for independent review: MasterDetailState is a data type with no rendering of its own; the showcase shows the widget that carries it | review
 termrock-controls::master_detail::MasterDetailState::drawer_open | Legacy generated permanent decision retained for independent review: drawer_open belongs to the data type termrock-controls::master_detail::MasterDetailState, which has no rendering of its own; the showcase shows the widget that carries it | review
 termrock-controls::master_detail::MasterDetailState::split | Legacy generated permanent decision retained for independent review: split belongs to the data type termrock-controls::master_detail::MasterDetailState, which has no rendering of its own; the showcase shows the widget that carries it | review
+termrock-controls::pane_tree::Direction | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::Direction::Down | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::Direction::Left | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::Direction::Right | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::Direction::Up | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::Frames | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::Frames::Always | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::Frames::Never | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::Frames::WhenSplit | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneExtent | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneGeometry | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneLayout | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneLayout::panes | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneLayout::seams | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneNode | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTree | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTree::frames | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTree::gap | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTree::layout | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTree::leaf_at | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTree::leaves | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTree::new | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTree::path_to | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTree::replace_root | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTree::set_zoomed | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTree::split_snapshots | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTree::subtree_extent | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTree::tree_extent | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTree::zoomed | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTreeError | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTreeError::DuplicatePaneId | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTreeError::PercentOutOfRange | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTreeError::SplitIdExhausted | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::PaneTreeError::UnknownPaneId | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::SeamGeometry | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::SizingPolicy | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::SizingPolicy::Configured | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::SizingPolicy::Current | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::SizingPolicy::Reset | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::SplitConfig | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::SplitConfig::maximized | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::SplitConfig::minimums | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::SplitConfig::ratio | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::SplitId | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::SplitId::index | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::SplitSnapshot | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
+termrock-controls::pane_tree::nearest_pane | Public pure PaneTree model API; the Showcase has no item-bound BehaviorProof for this entry, so review is pending. | review
 termrock-controls::panel::Panel | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-controls::panel::Panel::draw | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-controls::panel::Panel::draw_window | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
@@ -4481,6 +4528,68 @@ termrock::blocks::StatusTone::Normal | Present in the current source inventory; 
 termrock::blocks::StatusTone::Secondary | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock::blocks::StatusTone::Success | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock::blocks::Tab | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
+termrock::blocks::ToolItem | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolItem::disabled | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolItem::reason | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolItem::separator | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolItem::shortcut | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolItem::tip | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolItem::toggle | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::draw | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::draw_reference | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::gap | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::id | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::items | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::item_keys | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::more_glyph | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::more_padding | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::more_tip | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::more_tip_value | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::nav | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::overflow | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::skip_disabled | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::tooltip_policy | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::tooltip_policy_value | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::try_item_keys | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::update | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::width | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::wrap | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarAction | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarAction::Activated | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarAction::Toggled | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarActionEvent | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarActions | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarActions::as_slice | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarActions::into_vec | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarActions::is_empty | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarActions::iter | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarActions::len | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarError | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarError::DuplicateItemKey | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarError::ItemKeyCount | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarReferenceState | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarReferenceState::Disabled | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarReferenceState::Focused | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarReferenceState::FocusedHover | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarReferenceState::Hover | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarReferenceState::Narrow | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarReferenceState::Overflow | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarReferenceState::Pressed | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarReferenceState::Rest | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarReferenceState::Selected | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarState | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarState::cursor_index | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarState::cursor_key | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarState::hidden_keys | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarState::menu_open | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarState::on_more | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarTip | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarTip::shortcut | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarTooltipPolicy | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarTooltipPolicy::delay_ms | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarTooltipPolicy::enabled | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::ToolbarTooltipPolicy::max_width | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
 termrock::blocks::paint_row | Legacy generated permanent decision retained for independent review: paint_row is a free helper with no rendering of its own; the library calls it behind the widgets the showcase draws | review
 termrock::blocks::paint_section_header | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock::blocks::paint_status | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
@@ -4547,3 +4656,13 @@ termrock::composition::select | Historical page/title association retained as a 
 termrock::composition::steps | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock::composition::tabs | Legacy generated permanent decision retained for independent review: tabs is a free helper with no rendering of its own; the library calls it behind the widgets the showcase draws | review
 termrock::composition::tree | Legacy generated permanent decision retained for independent review: tree is a free helper with no rendering of its own; the library calls it behind the widgets the showcase draws | review
+termrock-overlays::menu::ContextMenu::item_bindings | Public Menu item-binding control; no item-bound Showcase BehaviorProof is recorded, so review remains pending. | review
+termrock-overlays::menu::ContextMenu::update_with_selection | Public Menu selection-receipt API; no item-bound Showcase BehaviorProof is recorded, so review remains pending. | review
+termrock-runtime::layer::LayerSpec::tooltip_pointer_transparent | Public passive-Tooltip pointer policy; no item-bound Showcase BehaviorProof is recorded, so review remains pending. | review
+termrock-runtime::ui::cx::Cx::close_hover_tooltip | Public native hover-Tooltip lifecycle API; item-bound Showcase proof remains pending. | review
+termrock-runtime::ui::cx::Cx::hover_suppressed | Public native hover-Tooltip state API; item-bound Showcase proof remains pending. | review
+termrock-runtime::ui::cx::Cx::open_hover_tooltip | Public native hover-Tooltip lifecycle API; item-bound Showcase proof remains pending. | review
+termrock-runtime::ui::cx::Cx::refresh_hover_tooltip | Public native hover-Tooltip lifecycle API; item-bound Showcase proof remains pending. | review
+termrock-theme::glyph::GlyphSet::more_titles | Public Toolbar More-title glyph getter; item-bound Showcase proof remains pending. | review
+termrock-theme::glyph::GlyphSet::set_more_titles | Public Toolbar More-title glyph setter; item-bound Showcase proof remains pending. | review
+termrock::composition::adapters::toolbar | Public Toolbar composition adapter; item-bound Showcase proof remains pending. | review
