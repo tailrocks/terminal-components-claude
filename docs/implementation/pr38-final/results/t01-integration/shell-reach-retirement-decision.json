@@ -1,0 +1,445 @@
+{
+  "schema": "termrock.pr38.t01.retirement-decision.v1",
+  "task_id": "T01",
+  "decision_id": "T01-HISTORY-SHELL-REACH-RETIRE-01",
+  "decision": "ACCEPT_RETIREMENT_SCOPED",
+  "decision_scope": "Classify only the exact already-removed shell reach harness and its listed public paths as RETIRE. No other shell API, production behavior, or testing architecture is approved.",
+  "decision_origin": {
+    "reviewer_id": "/root/t01_inventory_review",
+    "requested_model": "gpt-6.1-sol",
+    "requested_effort": "high",
+    "fork_turns": "none",
+    "backend_attestation": "NOT PROVIDED",
+    "review_output_commit": null,
+    "review_evidence": "Independent source review message; this T01 artifact persists its exact scope. A separate receipt consistency review is pending."
+  },
+  "source_boundary": {
+    "historical_product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "cleanup_input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+    "fixed_candidate_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+    "t37_source_unit_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
+    "accepted_t37_source_commits": [
+      "2fee2c277d1213fc5fad5d81eb77479600182b69",
+      "34cbad0123c13612f06cf18a882465e8f108d607"
+    ],
+    "historical_files": [
+      {
+        "path": "crates/termrock-shell/src/reach.rs",
+        "line_range": [
+          1,
+          792
+        ],
+        "git_blob": "bb938a1c2c6842c6d57af3ddc3cdb3aee1952b2b",
+        "sha256": "1c54c65a36534a00bf80faa95d6ebbd3be044675accec3cfcfae220dfbfd9041",
+        "product_and_cleanup_blobs_identical": true
+      },
+      {
+        "path": "crates/termrock-shell/src/lib.rs",
+        "line_range": [
+          26,
+          27
+        ],
+        "text": [
+          "#[cfg(feature = \"testing\")]",
+          "pub mod reach;"
+        ],
+        "git_blob": "cefd5ae4eb4e13050ab14030bad8846568f26b9e",
+        "sha256": "3c2cd6fc6ca62cbb45e9df3a61609fcf93c55a7656312c047b964358f2c8e4ca",
+        "product_and_cleanup_blobs_identical": true
+      },
+      {
+        "path": "crates/termrock-shell/Cargo.toml",
+        "sha256": "b8aa9847ae83f8539872e3c300a8518b1a927e376b9059caf48859b1ab084e74",
+        "feature_facts": [
+          "testing=[] is default-off.",
+          "The old shell self dev-dependency enabled testing for its tests.",
+          "Facade testing alone does not enable termrock-shell/testing."
+        ]
+      },
+      {
+        "path": "crates/termrock/src/lib.rs",
+        "line_range": [
+          56,
+          58
+        ],
+        "git_blob": "d738940264104d459972eab6ed627f07d533f8e7",
+        "sha256": "9a7ab2728661c6e0c71884eda94e6e16146ddf12b95da539b061dbc3d5a4ba27",
+        "facade_reexport": "pub use termrock_shell::*;"
+      }
+    ],
+    "current_absence": {
+      "candidate_shell_lib_sha256": "abfa253ce26584da30170e9461f5a8c95dd0cc5aecfbeed09674623628dc211c",
+      "candidate_shell_manifest_sha256": "c8f3216d2bbded95ed41e9d62ebd54b180414d5d44acef2960679a8538cb4b76",
+      "reach_rs": "ABSENT; git cat-file -e returns 128 at fixed candidate.",
+      "root_module_and_macro": "No pub mod reach, reach_tests macro definition, or reach:: API definition remains in current shell source.",
+      "other_root_non_comment_lines": "Equal to historical shell lib after removing only the cfg/module pair.",
+      "testing_feature": "The candidate manifest retains testing=[]; this decision does not remove it."
+    },
+    "immutable_t00_evidence": {
+      "tracked_tree_path": "docs/implementation/pr38-final/results/t00-source/tracked-tree-1d6.jsonl.gz",
+      "tracked_tree_sha256": "b2c34eca3ff3e003db4e6a9c97cb45321fc1b16e2152525728f4689b8d44536f",
+      "artifact_index_path": "docs/implementation/pr38-final/results/t00-source/artifact-index.json",
+      "artifact_index_sha256": "c859cd09b3ee1a21fe72d4caf3d623a8b675031d0684903d90a1b07ff26180de",
+      "test_inventory_path": "docs/implementation/pr38-final/results/t00-source/test-inventory.json",
+      "test_inventory_sha256": "2e684820b5cae6a2817be4ce5760a17d940b3d6054738f2c329a569b061048a6",
+      "locator_limit": "T00 test-inventory line locators are not substituted for the exact 1d6 source line map above."
+    },
+    "t37_source_removal_record": {
+      "path": "docs/implementation/pr38-final/results/t37-foundations/source-removal.json",
+      "sha256": "120925eb027ff8365d3046198c7dbfc3375772475acba7b6b60c5185d883b259",
+      "source_unit_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
+      "accepted_followup_commits": [
+        "2fee2c277d1213fc5fad5d81eb77479600182b69",
+        "34cbad0123c13612f06cf18a882465e8f108d607"
+      ]
+    }
+  },
+  "conflict_and_replacement": {
+    "specific_conflict": "The user task requires removal of every legacy harness. This module is a feature-gated test tool with direct runtime buffer probes, allow-file assertions, REACH_DUMP output, and a macro that emits test functions.",
+    "replacement": "No replacement harness or API before T38. Preserve the associated historical requirements for later named owners and reviewed planning.",
+    "operational_caller_check": "Independent reviewer reports no operational source caller. Retained catalog entries are inventory records, not operational consumers.",
+    "not_a_prior_t37_decision": "This is a new T01 decision. It does not claim approval under T37-PROBE-01/02. The old generic attribution remains unchanged as immutable history and is not used as this decision binding."
+  },
+  "public_scope": {
+    "crate_paths": [
+      {
+        "path": "termrock_shell::reach",
+        "source_path": "crates/termrock-shell/src/lib.rs",
+        "lines": [
+          26,
+          27
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::SIZES",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          27,
+          36
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Reach",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          49,
+          60
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Reach::size",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          51,
+          51
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Reach::too_small",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          53,
+          53
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Reach::missing",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          55,
+          55
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Reach::cut",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          57,
+          57
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Reach::bars",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          59,
+          59
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Words",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          90,
+          95
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Words::whole",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          92,
+          92
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Words::cut",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          94,
+          94
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Words::read",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          99,
+          103
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Words::add",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          106,
+          112
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Words::add_area",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          115,
+          136
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Words::extend",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          146,
+          149
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Words::against",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          153,
+          170
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Scenario",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          175,
+          193
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Scenario::App",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          177,
+          177
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Scenario::theme",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          180,
+          182
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Scenario::fresh",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          185,
+          185
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Scenario::too_small",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          189,
+          192
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Case",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          196,
+          201
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Case::name",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          198,
+          198
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Case::base",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          200,
+          200
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Case::page",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          205,
+          207
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::Case::run",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          216,
+          226
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::gate",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          488,
+          565
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::check",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          567,
+          577
+        ]
+      },
+      {
+        "path": "termrock_shell::reach::dump",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          579,
+          608
+        ]
+      },
+      {
+        "path": "termrock_shell::reach_tests!",
+        "source_path": "crates/termrock-shell/src/reach.rs",
+        "lines": [
+          609,
+          682
+        ],
+        "macro_export_attribute_line": 609
+      }
+    ],
+    "historical_facade_paths": {
+      "facade_module": "termrock::shell::reach",
+      "facade_macro": "termrock::shell::reach_tests!",
+      "descendants": "The same reach descendants listed above, with the termrock_shell:: crate prefix changed to termrock::shell::.",
+      "source": {
+        "path": "crates/termrock/src/lib.rs",
+        "lines": [
+          56,
+          58
+        ],
+        "reexport_line": 57,
+        "git_blob": "d738940264104d459972eab6ed627f07d533f8e7",
+        "sha256": "9a7ab2728661c6e0c71884eda94e6e16146ddf12b95da539b061dbc3d5a4ba27",
+        "statement": "pub use termrock_shell::*;"
+      },
+      "conditionality": "These are source paths only. They require termrock-shell/testing; facade/testing alone does not enable that feature.",
+      "rustc_resolution": "NOT VERIFIED; no claim of compiler-resolved reachability."
+    },
+    "excluded": "Private Probe, Reach::of, Acc, and other private helpers are not separate public APIs. No other shell or runtime API is in scope."
+  },
+  "future_obligations": [
+    {
+      "requirement_id": "SHELL-REACH-RESIZE-RECOVERY",
+      "owner_task_ids": [
+        "T19",
+        "T22",
+        "T27",
+        "T28",
+        "T29"
+      ],
+      "status": "PROPOSED_NOT_APPROVED",
+      "evidence": "NOT VERIFIED",
+      "obligation": "Preserve supported content and actions, or the deliberate TooSmall fallback, then recover route, draft, selection, focus, and overlay state after resize."
+    },
+    {
+      "requirement_id": "SHELL-REACH-SCROLL-CONTENT",
+      "owner_task_ids": [
+        "T14",
+        "T15",
+        "T16",
+        "T17",
+        "T19",
+        "T22",
+        "T27",
+        "T28",
+        "T29"
+      ],
+      "status": "PROPOSED_NOT_APPROVED",
+      "evidence": "NOT VERIFIED",
+      "obligation": "Preserve required content and actions through real scrolling and reveal paths with shared event ownership, including both axes where supported."
+    },
+    {
+      "requirement_id": "SHELL-REACH-TRUNCATION-REVEAL",
+      "owner_task_ids": [
+        "T12",
+        "T15",
+        "T17",
+        "T19",
+        "T22",
+        "T27",
+        "T28",
+        "T29"
+      ],
+      "status": "PROPOSED_NOT_APPROVED",
+      "evidence": "NOT VERIFIED",
+      "obligation": "Keep required long content and actions reachable through supported disclosure paths; do not turn old substring, three-character, or footer heuristics into product promises."
+    },
+    {
+      "requirement_id": "SHELL-REACH-PRESENTATION-INPUT",
+      "owner_task_ids": [
+        "T09",
+        "T20",
+        "T21"
+      ],
+      "status": "PROPOSED_NOT_APPROVED",
+      "evidence": "NOT VERIFIED",
+      "obligation": "Deliver accepted input once and preserve pending input until the published presentation permits retry."
+    }
+  ],
+  "limits": {
+    "legacy_harness_executed": false,
+    "replacement_harness_created": false,
+    "product_source_changed": false,
+    "cargo_or_tests_run": false,
+    "selected_behavior_cases": 0,
+    "product_behavior": "NOT VERIFIED",
+    "test_plan": "T38 and later independent Sol-medium plans must define any replacement evidence before test edits.",
+    "decision_boundary": "This decision supports only the enumerated source/API retirement classification and future obligations. It does not accept T37, all T01, behavior, or T38."
+  },
+  "persistence_review": {
+    "status": "PENDING_RECEIPT_REVIEW",
+    "reviewer_id": "/root/t01_inventory_review",
+    "requested_model": "gpt-6.1-sol",
+    "requested_effort": "high",
+    "fork_turns": "none",
+    "backend_attestation": "NOT PROVIDED",
+    "scope": "Check this persisted T01 artifact against the independent decision message and exact source bindings before history rows use its hash."
+  }
+}
