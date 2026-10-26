@@ -1,0 +1,208 @@
+{
+  "task_id": "T37-audit-script-cleanup",
+  "input_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+  "introduced_commit": "ef7369664f5413a47b70db5451549037d65113df",
+  "source_path": "docs/implementation/pr38-final/results/t37-apps/audit.py",
+  "input_sha256": "101c3a0b6cc490c9b9e387e3e0ee8bbec7531900e182f273ef495a11bf7099a3",
+  "output_sha256": "b23cb3e25b4f23d61dd3b50c2f41213231589db0c0f019cbe81c0a8d8aac233f",
+  "removed_docstrings": [
+    {
+      "owner": "<module>",
+      "line": 2,
+      "end_line": 2,
+      "text": "T37 app-scope cleanup and source-token audit against the frozen T00 input.",
+      "source": "\"\"\"T37 app-scope cleanup and source-token audit against the frozen T00 input.\"\"\"\n",
+      "source_sha256": "02fc8a4a68ee1b43d144e9d666a02450b5121f226b0853b4a3de6bef5b12aa9d"
+    },
+    {
+      "owner": "_string_end",
+      "line": 91,
+      "end_line": 91,
+      "text": "Return the end of a Rust quoted/raw string, including byte/C prefixes.",
+      "source": "    \"\"\"Return the end of a Rust quoted/raw string, including byte/C prefixes.\"\"\"\n",
+      "source_sha256": "116f59a6182f04c74b72f570aaed4eb16441cece7fca0de4c7497b2764a7fb28"
+    },
+    {
+      "owner": "lex",
+      "line": 129,
+      "end_line": 129,
+      "text": "Lex enough Rust to distinguish comments, attributes, and literal tokens.",
+      "source": "    \"\"\"Lex enough Rust to distinguish comments, attributes, and literal tokens.\"\"\"\n",
+      "source_sha256": "8d24dcbd655291d18c0744e2277c68fa7b0dd11a692061fbeb2bd68107ea1b9e"
+    },
+    {
+      "owner": "_item_start",
+      "line": 211,
+      "end_line": 211,
+      "text": "Read attributes then locate the item keyword/name following an attribute.",
+      "source": "    \"\"\"Read attributes then locate the item keyword/name following an attribute.\"\"\"\n",
+      "source_sha256": "95a945b726d3fbcb65c2205540c860c80b0e05ca5183beb643901bb7462ee341"
+    },
+    {
+      "owner": "_item_end",
+      "line": 229,
+      "end_line": 229,
+      "text": "Return an exclusive token index through an item body or semicolon.",
+      "source": "    \"\"\"Return an exclusive token index through an item body or semicolon.\"\"\"\n",
+      "source_sha256": "f6b510a9f5fd82db5a2ed61a8101d5e9c2a5d27f1f5689c1b1541741b1398039"
+    }
+  ],
+  "removed_comments": [
+    {
+      "line": 272,
+      "text": "# Capture immediately preceding outer attrs for the same item.",
+      "source": "        # Capture immediately preceding outer attrs for the same item.\n",
+      "source_sha256": "55048a00928699f460edaf3d188bfbc9072832db772aec9dd6684aef6c89f62c"
+    },
+    {
+      "line": 308,
+      "text": "# Include an item's visibility prefix so deleting a test-only public",
+      "source": "        # Include an item's visibility prefix so deleting a test-only public\n",
+      "source_sha256": "084a2a5a7f8039fb0710655c352aee835b14d2b41bedcca1e89553e34146e1c5"
+    },
+    {
+      "line": 309,
+      "text": "# helper cannot strand a bare `pub` token before the following item.",
+      "source": "        # helper cannot strand a bare `pub` token before the following item.\n",
+      "source_sha256": "d32f19ced4a86a1184dacaac18c8d6885979cae9c62030ec5744e94fb1d1b0b5"
+    },
+    {
+      "line": 505,
+      "text": "# Preserve newlines so source locations and parser diagnostics remain stable.",
+      "source": "        # Preserve newlines so source locations and parser diagnostics remain stable.\n",
+      "source_sha256": "a2d273b68e4e0d9f94a90b0e4bd3ff9fa8d05659839c0e87cd9f17640a879943"
+    },
+    {
+      "line": 638,
+      "text": "# Every out-of-line module guarded by cfg(test) is an independent test source file.",
+      "source": "    # Every out-of-line module guarded by cfg(test) is an independent test source file.\n",
+      "source_sha256": "75dc622a1889b1c6836277ffe41f56be2334f936f0a8fee12f411cf829aaf4e5"
+    },
+    {
+      "line": 778,
+      "text": "# The two ledgers describe the same source overlay. Deduplicate identical rows.",
+      "source": "    # The two ledgers describe the same source overlay. Deduplicate identical rows.\n",
+      "source_sha256": "a804b7a8a79b1e9bd84d4c7873362fbbdb5c245f8d15341030361f2a1a9e066b"
+    },
+    {
+      "line": 841,
+      "text": "# Remove empty directories below the worker's exclusive crate scope.",
+      "source": "    # Remove empty directories below the worker's exclusive crate scope.\n",
+      "source_sha256": "f52a978d7c9ee73618e32512a0004d83ab415cb89e10f4432e7f4f906431a155"
+    }
+  ],
+  "retained_comments": [
+    {
+      "line": 1,
+      "text": "#!/usr/bin/env python3",
+      "source": "#!/usr/bin/env python3\n",
+      "source_sha256": "d682cbdb4c8b07518bf486c58990fc391783aa20a916bfb27ad211eb1d5c3642"
+    }
+  ],
+  "ast": {
+    "method": "Parse both versions; remove only standalone module/class/function string-expression docstrings; compare normalized AST dumps without location attributes.",
+    "equal_after_docstring_normalization": true,
+    "sha256": "e595d7e459fbb8b68bbb8ebf1133a8f3736ded2479d0a739a4c0a48869b0c1ba"
+  },
+  "tokens": {
+    "method": "Python tokenizer comparison of all significant tokens after removing only AST-identified docstring STRING tokens; comments and layout tokens checked separately.",
+    "equal_after_docstring_removal": true,
+    "input_significant_token_count": 8402,
+    "output_significant_token_count": 8402,
+    "remaining_literal_token_stream_equal": true,
+    "removed_non_comment_tokens": [
+      {
+        "owner": "<module>",
+        "input_line": 2,
+        "token_type": "STRING",
+        "text": "T37 app-scope cleanup and source-token audit against the frozen T00 input."
+      },
+      {
+        "owner": "_string_end",
+        "input_line": 91,
+        "token_type": "STRING",
+        "text": "Return the end of a Rust quoted/raw string, including byte/C prefixes."
+      },
+      {
+        "owner": "lex",
+        "input_line": 129,
+        "token_type": "STRING",
+        "text": "Lex enough Rust to distinguish comments, attributes, and literal tokens."
+      },
+      {
+        "owner": "_item_start",
+        "input_line": 211,
+        "token_type": "STRING",
+        "text": "Read attributes then locate the item keyword/name following an attribute."
+      },
+      {
+        "owner": "_item_end",
+        "input_line": 229,
+        "token_type": "STRING",
+        "text": "Return an exclusive token index through an item body or semicolon."
+      }
+    ],
+    "other_non_comment_token_changes": []
+  },
+  "cli_help": {
+    "command": "python3 docs/implementation/pr38-final/results/t37-apps/audit.py --help; baseline comparison used the same bytes from input commit 516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+    "baseline_exit_code": 0,
+    "output_exit_code": 0,
+    "stdout_equal": true,
+    "stdout_sha256": "e9a9c558057f3d59cf9fb888fd4160f604b1dbd562bae1b08595bd7db22a691e",
+    "stderr_equal": true,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "output": "usage: audit.py [-h] {plan,apply,verify}\n\npositional arguments:\n  {plan,apply,verify}\n\noptions:\n  -h, --help           show this help message and exit\n"
+  },
+  "syntax_compile": {
+    "baseline": "pass",
+    "output": "pass"
+  },
+  "selected_tests": 0,
+  "behavior_status": "NOT VERIFIED",
+  "review_state": "REVIEW",
+  "limits": [
+    "No audit.py plan/apply/verify mode was executed.",
+    "No legacy tests, harnesses, or unrelated audits were run.",
+    "No runtime behavior cases selected."
+  ],
+  "comment_policy": {
+    "nonfunctional_comments_remaining": [],
+    "retained_required_directives": [
+      "#!/usr/bin/env python3"
+    ],
+    "nonfunctional_docstrings_remaining": []
+  },
+  "docstring_use_review": {
+    "argument_parser": "ArgumentParser() has no description; argparse does not use module __doc__.",
+    "module_imports": "No __doc__ consumer found. One historical evidence command imports lex only.",
+    "scope": "This evidence script is private; no public API contract."
+  },
+  "commands": [
+    {
+      "command": "python3 - <<'PY'",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-audit-script-cleanup/token-comment-audit.json",
+      "stdin_program": "Inline AST, tokenizer, comment, compile, and baseline/output CLI-help assertions; detailed assertions and results are recorded in this JSON."
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-audit-script-cleanup/token-comment-audit.json"
+    },
+    {
+      "command": "PYTHONPYCACHEPREFIX=/tmp/t37-audit-script-cleanup-pycache python3 -m py_compile docs/implementation/pr38-final/results/t37-apps/audit.py",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-audit-script-cleanup/token-comment-audit.json"
+    },
+    {
+      "command": "python3 docs/implementation/pr38-final/results/t37-apps/audit.py --help",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-audit-script-cleanup/token-comment-audit.json"
+    }
+  ]
+}

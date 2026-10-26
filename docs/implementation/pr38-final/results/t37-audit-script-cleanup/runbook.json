@@ -1,0 +1,84 @@
+{
+  "task_id": "T37-audit-script-cleanup",
+  "input_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+  "output_commit": "e6f54ede72cda228758a5ab27f539294722472b1",
+  "model": "gpt-6-luna",
+  "effort": "max",
+  "agent_id": "/root/t37_apps",
+  "changed_paths": [
+    "docs/implementation/pr38-final/results/t37-apps/audit.py",
+    "docs/implementation/pr38-final/results/t37-audit-script-cleanup/token-comment-audit.json",
+    "docs/implementation/pr38-final/results/t37-audit-script-cleanup/runbook.json"
+  ],
+  "requirements": [
+    "Remove only the listed nonfunctional comments and docstrings from audit.py.",
+    "Retain the Python shebang and preserve imports, control flow, all non-docstring literals, token order, and CLI help.",
+    "Add no test, harness, fixture, doctest, snapshot, gate, or source behavior change."
+  ],
+  "design_decisions": [
+    "The parser uses argparse.ArgumentParser() with no description. The module docstring does not supply CLI help.",
+    "No __doc__ consumer exists for this script. One historical evidence command imports lex only.",
+    "The removed function docstrings describe private helpers. They are not public API or required user help."
+  ],
+  "commands": [
+    {
+      "command": "python3 - <<'PY'",
+      "operation": "Inline AST, tokenizer, comment, compile, and input/output --help comparison.",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-audit-script-cleanup/token-comment-audit.json",
+      "stdin_program": "Inline AST, tokenizer, comment, compile, and baseline/output CLI-help assertions; result fields are in token-comment-audit.json."
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-audit-script-cleanup/token-comment-audit.json"
+    },
+    {
+      "command": "PYTHONPYCACHEPREFIX=/tmp/t37-audit-script-cleanup-pycache python3 -m py_compile docs/implementation/pr38-final/results/t37-apps/audit.py",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-audit-script-cleanup/token-comment-audit.json"
+    },
+    {
+      "command": "python3 docs/implementation/pr38-final/results/t37-apps/audit.py --help",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-audit-script-cleanup/token-comment-audit.json"
+    },
+    {
+      "command": "git diff --cached --check",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-audit-script-cleanup/token-comment-audit.json"
+    }
+  ],
+  "approved_test_plan_id": null,
+  "test_plan_reviewer": null,
+  "test_edit_scope": [],
+  "red_evidence": null,
+  "green_evidence": null,
+  "environment": {
+    "python": "Python 3.15.1",
+    "worktree": "/Users/donbeave/Downloads/termrock-t37-apps",
+    "branch": "pr38/T37-audit-script-cleanup"
+  },
+  "limits": [
+    "Selected tests: 0. Behavior status: NOT VERIFIED.",
+    "The audit.py plan, apply, and verify modes were not run.",
+    "No legacy test or harness ran. This task proves structure and CLI help only.",
+    "No Cargo command ran."
+  ],
+  "review_state": "REVIEW"
+}

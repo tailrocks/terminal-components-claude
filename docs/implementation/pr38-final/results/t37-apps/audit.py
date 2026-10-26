@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""T37 app-scope cleanup and source-token audit against the frozen T00 input."""
 
 from __future__ import annotations
 
@@ -88,7 +87,6 @@ def is_test_target(path: str) -> bool:
 
 
 def _string_end(s: str, i: int) -> tuple[int, str] | None:
-    """Return the end of a Rust quoted/raw string, including byte/C prefixes."""
     n = len(s)
     starts = i
     j = i
@@ -126,7 +124,6 @@ def _string_end(s: str, i: int) -> tuple[int, str] | None:
 
 
 def lex(data: bytes) -> tuple[list[Token], list[Token]]:
-    """Lex enough Rust to distinguish comments, attributes, and literal tokens."""
     s = data.decode("utf-8")
     tokens: list[Token] = []
     comments: list[Token] = []
@@ -208,7 +205,6 @@ def _attr_end(tokens: list[Token], i: int) -> int | None:
 
 
 def _item_start(tokens: list[Token], i: int) -> tuple[int, str, str]:
-    """Read attributes then locate the item keyword/name following an attribute."""
     j = i
     while j < len(tokens):
         end = _attr_end(tokens, j)
@@ -226,7 +222,6 @@ def _item_start(tokens: list[Token], i: int) -> tuple[int, str, str]:
 
 
 def _item_end(tokens: list[Token], keyword_i: int) -> int:
-    """Return an exclusive token index through an item body or semicolon."""
     paren = bracket = brace = angle = 0
     body_start = None
     for j in range(keyword_i + 1, len(tokens)):
@@ -269,7 +264,6 @@ def _cfg_spans(path: str, data: bytes) -> list[dict]:
         if [t.text for t in tokens[i:i + 7]] != ["#", "[", "cfg", "(", "test", ")", "]"]:
             continue
         start_i = i
-        # Capture immediately preceding outer attrs for the same item.
         while start_i:
             prior = next(
                 (k for k in range(start_i - 1, -1, -1) if _attr_end(tokens, k) == start_i),
@@ -305,8 +299,6 @@ def _named_item_span(path: str, data: bytes, name: str, expected_kind: str) -> d
             continue
         end_i = _item_end(tokens, i)
         start_i = i
-        # Include an item's visibility prefix so deleting a test-only public
-        # helper cannot strand a bare `pub` token before the following item.
         if start_i and tokens[start_i - 1].text == ")":
             depth = 0
             open_i = None
@@ -502,7 +494,6 @@ def _strip_comments(data: bytes, directives: list[dict], path: str) -> tuple[byt
             })
             continue
         chunks.append(text[last:c.start])
-        # Preserve newlines so source locations and parser diagnostics remain stable.
         chunks.append("".join("\n" if ch == "\n" else " " for ch in raw))
         last = c.end
         removed.append({
@@ -635,7 +626,6 @@ def plan() -> tuple[list[str], dict[str, list[dict]]]:
             spans = _base_items(path, source_bytes(path))
             if spans:
                 source_spans[path] = spans
-    # Every out-of-line module guarded by cfg(test) is an independent test source file.
     extra = set(removed_files)
     for path, spans in source_spans.items():
         data = source_bytes(path)
@@ -775,7 +765,6 @@ def _test_inventory_reconciliation(actual: dict[str, list[dict]]) -> dict:
             continue
         added.extend((path, function) for function in item.get("added_test_functions", []))
         removed.extend((path, function) for function in item.get("removed_test_functions", []))
-    # The two ledgers describe the same source overlay. Deduplicate identical rows.
     for key in set(added):
         expected[key] += 1
     for key in set(removed):
@@ -838,7 +827,6 @@ def apply() -> None:
         target = ROOT / path
         if target.exists():
             target.unlink()
-    # Remove empty directories below the worker's exclusive crate scope.
     for package in PACKAGES:
         base = ROOT / "crates" / package
         for directory in sorted((p for p in base.rglob("*") if p.is_dir()), reverse=True):

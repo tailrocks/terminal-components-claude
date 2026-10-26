@@ -1,0 +1,397 @@
+{
+  "schema": "t37.source-history-portability.v1",
+  "task_id": "T37",
+  "status": "VERIFIED_SCOPED_PENDING_INDEPENDENT_REVIEW",
+  "recorded_date": "2026-10-26",
+  "execution": {
+    "agent_id": "/root/t37_history_proof",
+    "requested_model": "gpt-6-luna",
+    "requested_effort": "max",
+    "backend_attestation": "NOT PROVIDED",
+    "selection_limit": "One source-history portability proof. No nested agents.",
+    "independent_review": {
+      "required_model": "gpt-6.1-sol",
+      "required_effort": "high",
+      "status": "PENDING"
+    }
+  },
+  "fixed_input": {
+    "commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+    "tree": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d"
+  },
+  "source_candidate": {
+    "repository_path": "/Users/donbeave/Downloads/terminal-components-claude",
+    "branch": "parity/termrock-visual-baseline",
+    "head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+    "tree": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
+    "parent_commits": [
+      "b1ae56cae7cf7454a996ec1f83c97d28a2f7e0c0",
+      "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+      "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+      "fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a",
+      "cb1a928cb7863597ded56adbd33c77e45713f780",
+      "ae32524b29baf638d8790ec0f7b320dfd05ee0f1",
+      "1dd1cf4d9ac1edfe79afabddd22104ca0c821d46",
+      "34cbad0123c13612f06cf18a882465e8f108d607",
+      "bf1b52a7fe9274593e2dfaf0332b367fb860dfef"
+    ],
+    "first_parent_tree": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
+    "tree_matches_first_parent": true,
+    "tracked_paths_changed_from_first_parent": [],
+    "observed_untracked_path": "docs/implementation/pr38-final/results/t37-shared/disk-cleanup.json",
+    "untracked_path_used_or_modified": false
+  },
+  "fresh_clone": {
+    "path": "/Users/donbeave/Downloads/termrock-pr38-history-clone-20261026",
+    "clone_command": "git clone --no-local --single-branch --no-tags --branch parity/termrock-visual-baseline --no-checkout /Users/donbeave/Downloads/terminal-components-claude /Users/donbeave/Downloads/termrock-pr38-history-clone-20261026",
+    "branch": "parity/termrock-visual-baseline",
+    "head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+    "tree": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
+    "sparse_checkout_paths": [
+      "docs",
+      "crates"
+    ],
+    "sparse_checkout_commands": [
+      "git sparse-checkout init --cone",
+      "git sparse-checkout set docs crates",
+      "git sparse-checkout reapply",
+      "git reset --hard HEAD"
+    ],
+    "checked_out_sizes": {
+      "docs": "111M",
+      "crates": "8.6M"
+    },
+    "worktree_status": "CLEAN",
+    "shallow": false,
+    "alternates_file_present": false,
+    "tag_refs": [],
+    "all_refs": [
+      {
+        "name": "refs/heads/parity/termrock-visual-baseline",
+        "commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba"
+      },
+      {
+        "name": "refs/remotes/origin/parity/termrock-visual-baseline",
+        "commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba"
+      }
+    ],
+    "worker_refs_present": false,
+    "external_object_fallback_used": false,
+    "disk_probes": [
+      {
+        "before": "clone",
+        "free_bytes": 2117727145984,
+        "status": "ok"
+      },
+      {
+        "before": "sparse_checkout",
+        "free_bytes": 2114182803456,
+        "status": "ok"
+      },
+      {
+        "before": "initial_checkout",
+        "free_bytes": 2114164969472,
+        "status": "ok"
+      }
+    ],
+    "cleanup_agent": {
+      "this_agent": "NONE_REQUIRED_ABOVE_2TB",
+      "coordinator_agent": "ACTIVE_AS_REPORTED_BY_COORDINATOR",
+      "coordinator_owner": "/root"
+    }
+  },
+  "history_checks": {
+    "required_ancestors": [
+      {
+        "label": "original_tip_66728",
+        "commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "original_tip_4890",
+        "commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "original_tip_fb667",
+        "commit": "fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "original_tip_cb1a",
+        "commit": "cb1a928cb7863597ded56adbd33c77e45713f780",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "original_tip_ae325",
+        "commit": "ae32524b29baf638d8790ec0f7b320dfd05ee0f1",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "original_tip_1dd1",
+        "commit": "1dd1cf4d9ac1edfe79afabddd22104ca0c821d46",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "original_tip_34cb",
+        "commit": "34cbad0123c13612f06cf18a882465e8f108d607",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "original_tip_bf1b",
+        "commit": "bf1b52a7fe9274593e2dfaf0332b367fb860dfef",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "raw_foundation_source",
+        "commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "producer_work_input",
+        "commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "producer_product_source",
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "producer_cleanup_source",
+        "commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "cohort_a_import",
+        "commit": "9463cb8c36f0bc6e53af241334efb19bb8a2e5f1",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "cohort_a_reviewed_source",
+        "commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "cohort_b_import",
+        "commit": "6e38a1d3be4b0dcfd47f793e7975299254e38d14",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "cohort_b_reviewed_source",
+        "commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "cohort_c_reviewed_source",
+        "commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "cohort_c_import",
+        "commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+        "object_present": true,
+        "ancestor_of_head": true
+      },
+      {
+        "label": "reviewed_crosswalk",
+        "commit": "ddeceda0a3e03a6aa454b23c961e28cbb84871fb",
+        "object_present": true,
+        "ancestor_of_head": true
+      }
+    ],
+    "pr26_separation": {
+      "head": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+      "object_present_in_source_repository": true,
+      "ancestor_of_candidate_head": false
+    },
+    "visual_baseline_tag": {
+      "name": "refs/tags/visual-baseline",
+      "object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+      "peeled_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+      "source_tag_observed": true,
+      "tag_refs_in_fresh_clone": [],
+      "omission_reason": "--no-tags; source tag remains outside the clone"
+    }
+  },
+  "producer_verification": {
+    "script": {
+      "path": "docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py",
+      "commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+      "git_blob_oid": "72a5621b098f31726aa4191292ef3272ffebcc92",
+      "sha256": "ce15ad4396af536acff08e0075b54524a4bb2dcdf78d748e610a2b8017173570",
+      "bytes": 29066
+    },
+    "invocation": {
+      "shell_command": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'",
+      "python_source": [
+        "import hashlib",
+        "import importlib.util",
+        "import json",
+        "from pathlib import Path",
+        "root = Path.cwd()",
+        "script = root / 'docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py'",
+        "spec = importlib.util.spec_from_file_location('t37_crosswalk_producer', script)",
+        "module = importlib.util.module_from_spec(spec)",
+        "spec.loader.exec_module(module)",
+        "generated = module.build(root)",
+        "generated_bytes = (json.dumps(generated, indent=2, ensure_ascii=False) + '\\n').encode('utf-8')",
+        "committed_bytes = (root / module.OUTPUT_PATH).read_bytes()",
+        "committed = json.loads(committed_bytes)",
+        "print(json.dumps({",
+        "    'head': module.git_text(root, 'rev-parse', 'HEAD'),",
+        "    'generated_sha256': hashlib.sha256(generated_bytes).hexdigest(),",
+        "    'committed_sha256': hashlib.sha256(committed_bytes).hexdigest(),",
+        "    'generated_records': generated['coverage']['composed_records'],",
+        "    'unique_indices': generated['coverage']['unique_source_map_indices'],",
+        "    'unique_ids': generated['coverage']['unique_stable_ids'],",
+        "    'records_equal': generated['records'] == committed['records'],",
+        "    'coverage_equal': generated['coverage'] == committed['coverage'],",
+        "    'top_level_differences': {",
+        "        key: {'generated': generated.get(key), 'committed': committed.get(key)}",
+        "        for key in sorted(set(generated) | set(committed))",
+        "        if generated.get(key) != committed.get(key)",
+        "    }",
+        "}, indent=2))"
+      ],
+      "closing_delimiter": "PY",
+      "result_written_to_clone": false
+    },
+    "committed_output_was_not_rewritten": true,
+    "foundation_inventories": [
+      {
+        "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
+        "accepted_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+        "accepted_git_blob_oid": "5f09cce03c8da35a9e20c3914c94d6c673be2863",
+        "sha256": "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619",
+        "integration_commit": "d459a2fc062e7fc3a6215ea5c746690e5c5be4ab",
+        "record_count": 1122,
+        "accepted_and_integrated_blobs_match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose-disposition.json",
+        "accepted_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+        "accepted_git_blob_oid": "964ca20626afddf53edfac2499f1893e8632e35e",
+        "sha256": "8e3923ebb4f6d5974a2e632ca32e5406718a5985a8f26a17a75fcbd9a3f4e9df",
+        "integration_commit": "2f911b34822bc267e629dec30c46a3386f362bab",
+        "record_count": 1122,
+        "accepted_and_integrated_blobs_match": true
+      }
+    ],
+    "coordinator_review_binding": {
+      "path": "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/coordinator-review-decisions.json",
+      "reviewed_commit": "ddeceda0a3e03a6aa454b23c961e28cbb84871fb",
+      "git_blob_oid": "a0a4c350a822753f4737c3fab29670e0b641bde3",
+      "sha256": "72943be051054d75321aec912f1055890d04a70bf505d8514c64b25cbfc76c7f",
+      "current_file_sha256_matches": true
+    },
+    "cohorts": [
+      {
+        "cohort_id": "T37-API-PROSE-COHORT-A",
+        "record_count": 322,
+        "artifact_path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
+        "import_commit": "9463cb8c36f0bc6e53af241334efb19bb8a2e5f1",
+        "reviewed_source_commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+        "git_blob_oid": "e0c8033287db0d856be23657e485e4d0f27a2824",
+        "artifact_sha256": "6c5c9147f0d0339b5fbba9adfe1fc8703c773c078fb7806e9ec67ee07e958cf4",
+        "imported_and_reviewed_blobs_match": true,
+        "runbook_path": "docs/implementation/pr38-final/results/t37-api-values/agent-runbook.json",
+        "runbook_commit": "9463cb8c36f0bc6e53af241334efb19bb8a2e5f1",
+        "runbook_git_blob_oid": "90e7617cc0b5c5471bfec3479d7ee93004870b3d",
+        "runbook_sha256": "acafc73498889bf6b4ecb4dae80659d1b6ec170316a2d37b880a4683989d4f1a"
+      },
+      {
+        "cohort_id": "T37-API-PROSE-COHORT-B",
+        "record_count": 304,
+        "artifact_path": "docs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
+        "import_commit": "6e38a1d3be4b0dcfd47f793e7975299254e38d14",
+        "reviewed_source_commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+        "git_blob_oid": "d67cd9ca6294119f842c242baf5c495ac42b864e",
+        "artifact_sha256": "100b55db7b05031451bca35c2142dbda6b3905d69d7ca404308ed4819a2b03a4",
+        "imported_and_reviewed_blobs_match": true,
+        "runbook_path": "docs/implementation/pr38-final/results/t37-api-runtime/agent-runbook.json",
+        "runbook_commit": "6e38a1d3be4b0dcfd47f793e7975299254e38d14",
+        "runbook_git_blob_oid": "fdebe9491de29587811d0ef1efa417e46a871ed2",
+        "runbook_sha256": "f1b9a3095146a1c4a57ebea448b9aa900d2e44cbc0dd6a0a809307441175f166"
+      },
+      {
+        "cohort_id": "T37-API-PROSE-COHORT-C",
+        "record_count": 496,
+        "artifact_path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+        "import_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+        "reviewed_source_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+        "git_blob_oid": "1e547cf5c83118ea62475e3f76b1857d1e7531be",
+        "artifact_sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae",
+        "imported_and_reviewed_blobs_match": true,
+        "runbook_path": "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json",
+        "runbook_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+        "runbook_git_blob_oid": "1e827f55524e9c2a0f3f41a803407b87a5e83336",
+        "runbook_sha256": "51bf86b979396a5518d69a49e091ad0b37877f875e0ab9cd28cfe497929b4b69"
+      }
+    ],
+    "reviewed_composition_output": {
+      "path": "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
+      "reviewed_commit": "ddeceda0a3e03a6aa454b23c961e28cbb84871fb",
+      "reviewed_commit_parent": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+      "git_blob_oid": "08d152feb77ce2f8431dbe4d0ce440024ddbcc2c",
+      "sha256": "00ad0737c6b6b2d90ac0878dd8ac72fad07581a20522df2176d89bf600a25ec4",
+      "current_head_blob_matches_reviewed_output": true
+    },
+    "current_head_rebuild": {
+      "generated_sha256": "ebea7a088881f72a3a70eeedd23d7334365fc32cffab6be02d5e23cf158c7b0a",
+      "committed_sha256": "00ad0737c6b6b2d90ac0878dd8ac72fad07581a20522df2176d89bf600a25ec4",
+      "generated_record_count": 1122,
+      "committed_record_count": 1122,
+      "unique_source_indices": 1122,
+      "unique_stable_ids": 1122,
+      "records_equal_to_committed": true,
+      "coverage_equal_to_committed": true,
+      "record_indices": "0 through 1121, one-to-one across three cohorts",
+      "maintained_destination_count": 30,
+      "only_top_level_difference": {
+        "field": "composition_input_commit",
+        "committed": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+        "generated": "516198caac5e5b5fa0883fa1f209928c2e86c8ba"
+      },
+      "unexpected_semantic_differences": []
+    },
+    "history_probe": {
+      "method": "Check each full SHA with git cat-file, then verify ancestry with git merge-base --is-ancestor.",
+      "ancestor_exit_status": 0,
+      "non_ancestor_exit_status": 1,
+      "commands": [
+        "git rev-parse HEAD",
+        "git rev-parse HEAD^{tree}",
+        "git show -s --format=%P HEAD",
+        "git for-each-ref --format=%(refname) %(objectname)",
+        "git rev-parse --is-shallow-repository",
+        "git merge-base --is-ancestor <full-commit> HEAD"
+      ]
+    }
+  },
+  "limits": {
+    "cargo_commands": 0,
+    "test_commands": 0,
+    "selected_behavior_cases": 0,
+    "product_behavior": "NOT VERIFIED",
+    "t37_acceptance": "NOT CLAIMED",
+    "external_actions": 0
+  }
+}
