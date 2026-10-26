@@ -2,8 +2,8 @@
 //! Small, dependency-free lexical helpers shared by test-only source guards.
 //!
 //! This is intentionally not a Rust parser: it masks comments and literals, recognizes only
-//! exact inline `#[cfg(test)]` module items, and rejects malformed token structure. Unknown
-//! source bindings remain in the projection.
+//! exact first-root cfg(test) files and inline cfg(test) module items, and rejects malformed token
+//! structure. Unknown source bindings remain in the projection.
 
 fn mask_range(bytes: &mut [u8], range: std::ops::Range<usize>) {
     for byte in &mut bytes[range] {
@@ -280,6 +280,19 @@ fn cfg_test_attribute(
     }
 }
 
+/// Recognize only the exact first-root test condition; mixed cfg expressions stay visible.
+fn exact_root_cfg_test_attribute(code: &str, tokens: &[Token], matching: &[Option<usize>]) -> bool {
+    const ROOT_CFG_TEST: [&str; 8] = ["#", "!", "[", "cfg", "(", "test", ")", "]"];
+
+    tokens.len() >= ROOT_CFG_TEST.len()
+        && ROOT_CFG_TEST
+            .iter()
+            .enumerate()
+            .all(|(index, expected)| token_text(code, tokens, index) == *expected)
+        && matching.get(2).is_some_and(|close| *close == Some(7))
+        && matching.get(4).is_some_and(|close| *close == Some(6))
+}
+
 pub(super) fn identifier_token(code: &str, tokens: &[Token], at: usize) -> bool {
     tokens.get(at).is_some() && {
         token_text(code, tokens, at)
@@ -384,6 +397,9 @@ fn macro_token_ranges(
 fn test_module_ranges(text: &str) -> Result<Vec<std::ops::Range<usize>>, String> {
     let code = String::from_utf8(mask_non_code(text)?).expect("lexical mask preserves UTF-8");
     let (tokens, matching) = tokenize(&code)?;
+    if exact_root_cfg_test_attribute(&code, &tokens, &matching) {
+        return Ok(std::iter::once(0..text.len()).collect());
+    }
     let macro_ranges = macro_token_ranges(&code, &tokens, &matching);
     let mut test_ranges = Vec::new();
     let mut at = 0;
@@ -416,7 +432,7 @@ fn test_module_ranges(text: &str) -> Result<Vec<std::ops::Range<usize>>, String>
     Ok(test_ranges)
 }
 
-/// Blanks only syntactically complete cfg(test) module items, preserving every newline and byte offset.
+/// Blanks exact root cfg(test) files and complete inline test modules, preserving byte offsets.
 pub(super) fn non_test(text: &str) -> Result<String, String> {
     let test_ranges = test_module_ranges(text)?;
     let mut result = text.as_bytes().to_vec();
@@ -502,8 +518,8 @@ pub(super) fn matching_patterns_checked(
     })
 }
 
-/// Return a byte-stable production projection: only proven inline `cfg(test)` modules, comments,
-/// and literal contents are masked. Unknown cfg and macro contexts remain visible to scanners.
+/// Return a byte-stable production projection: exact root test files and proven inline test
+/// modules, comments, and literal contents are masked. Unknown cfg and macro contexts stay visible.
 pub(super) fn production_code(text: &str) -> Result<String, String> {
     let production = non_test(text)?;
     String::from_utf8(mask_non_code(&production)?)

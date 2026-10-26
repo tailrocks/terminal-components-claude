@@ -987,6 +987,173 @@ pub fn scanner_matches_calls_across_comments_without_losing_owners() {
     );
     action_id_projection_first_red_is_a_production_root_case();
     action_id_projection_controls_are_conservative();
+    root_cfg_test_projection_is_exact_and_byte_stable();
+    root_cfg_test_scanner_controls_are_conservative();
+}
+
+fn root_cfg_test_projection_is_exact_and_byte_stable() {
+    let exact = concat!(
+        "/* fake marker #![cfg(test)] */\r\n",
+        "#![cfg(test)]\r\n",
+        "fn test_only() { Dialog::new(ID); }\r\n",
+        "const UTF8: &str = \"é🧪\";\r\n",
+    );
+    let projection = non_test(exact).expect("project exact root cfg(test) source");
+    assert_eq!(projection.len(), exact.len());
+    let line_breaks = |source: &str| {
+        source
+            .bytes()
+            .enumerate()
+            .filter_map(|(index, byte)| matches!(byte, b'\n' | b'\r').then_some((index, byte)))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(line_breaks(&projection), line_breaks(exact));
+    assert!(
+        projection
+            .bytes()
+            .all(|byte| matches!(byte, b' ' | b'\n' | b'\r'))
+    );
+
+    for source in [
+        "// #![cfg(test)]\nfn production() { Dialog::new(ID); }\n",
+        "const FAKE: &str = r##\"#![cfg(test)]\"##;\nfn production() { Dialog::new(ID); }\n",
+        "fn production() { quote! { #![cfg(test)] }; Dialog::new(ID); }\n",
+        "#![cfg(any(test, feature = \"production\"))]\nfn production() { Dialog::new(ID); }\n",
+        "#![cfg(all(test, feature = \"nightly\"))]\nfn production() { Dialog::new(ID); }\n",
+        "#![allow(dead_code)]\n#![cfg(test)]\nfn production() { Dialog::new(ID); }\n",
+    ] {
+        let projection = non_test(source).expect("preserve non-exact root cfg source");
+        assert_eq!(
+            projection,
+            source.to_owned(),
+            "only the exact first-root cfg(test) token sequence proves a test-only file",
+        );
+    }
+
+    assert!(non_test("#![cfg(test]\nfn malformed() { Dialog::new(ID); }").is_err());
+}
+
+fn root_cfg_test_scanner_controls_are_conservative() {
+    let workspace = std::env::temp_dir().join(format!(
+        "visual-harness-root-cfg-controls-{}",
+        std::process::id()
+    ));
+    let source_root = workspace.join("crates/holla-ui/src");
+    std::fs::create_dir_all(&source_root).expect("create source root");
+    std::fs::write(
+        workspace.join("crates/holla-ui/Cargo.toml"),
+        "[package]\nname = \"holla-ui\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("write package manifest");
+    std::fs::write(
+        source_root.join("lib.rs"),
+        concat!(
+            "use termrock::Dialog;\n",
+            "#[cfg(test)] mod root_test;\n",
+            "#[cfg(test)] mod external_tests;\n",
+            "mod shared;\n",
+            "fn production_owner() { Dialog::confirm(ID, \"title\", \"body\"); }\n",
+        ),
+    )
+    .expect("write root source");
+    std::fs::write(
+        source_root.join("root_test.rs"),
+        concat!(
+            "/* fake marker */\r\n",
+            "#![cfg(test)]\r\n",
+            "fn test_only() { Dialog::new(ID); }\r\n",
+        ),
+    )
+    .expect("write root-marked test source");
+    std::fs::write(
+        source_root.join("external_tests.rs"),
+        "#[test] fn external_real_owner() { Dialog::confirm(ID, \"title\", \"body\"); }\n",
+    )
+    .expect("write unmarked external test source");
+    std::fs::write(
+        source_root.join("production_tests_helper.rs"),
+        "fn helper_owner() { Dialog::prompt(ID, \"title\", \"body\"); }\n",
+    )
+    .expect("write unmarked shared production helper");
+    std::fs::write(
+        source_root.join("shared.rs"),
+        "fn shared_open() { Dialog::facts(ID, \"title\", \"body\"); }\n",
+    )
+    .expect("write shared production module");
+    std::fs::write(
+        source_root.join("mixed.rs"),
+        concat!(
+            "#![cfg(any(test, feature = \"production\"))]\n",
+            "fn mixed_owner() { Dialog::new(ID); }\n",
+        ),
+    )
+    .expect("write mixed cfg source");
+    std::fs::write(
+        source_root.join("unknown_cfg.rs"),
+        concat!(
+            "#![cfg(all(test, feature = \"nightly\"))]\n",
+            "fn unknown_cfg_owner() { Dialog::new(ID); }\n",
+        ),
+    )
+    .expect("write unknown cfg source");
+    std::fs::write(
+        source_root.join("later_marker.rs"),
+        concat!(
+            "#![allow(dead_code)]\n",
+            "#![cfg(test)]\n",
+            "fn later_marker_owner() { Dialog::new(ID); }\n",
+        ),
+    )
+    .expect("write non-first root marker source");
+    std::fs::write(
+        source_root.join("fake_markers.rs"),
+        concat!(
+            "fn fake_marker_owner() {\n",
+            "    // #![cfg(test)]\n",
+            "    let literal = r##\"#![cfg(test)]\"##;\n",
+            "    let _ = literal;\n",
+            "    quote! { #![cfg(test)] };\n",
+            "    Dialog::new(ID);\n",
+            "    unknown! { Dialog::confirm(ID, \"title\", \"body\"); }\n",
+            "}\n",
+        ),
+    )
+    .expect("write fake marker source");
+
+    let scanned = scan(&workspace);
+    std::fs::remove_dir_all(&workspace).expect("remove root cfg test fixture");
+    let expected = BTreeMap::from([
+        (
+            "crates/holla-ui/src/external_tests.rs::external_real_owner".to_string(),
+            1,
+        ),
+        (
+            "crates/holla-ui/src/fake_markers.rs::fake_marker_owner".to_string(),
+            2,
+        ),
+        (
+            "crates/holla-ui/src/later_marker.rs::later_marker_owner".to_string(),
+            1,
+        ),
+        (
+            "crates/holla-ui/src/lib.rs::production_owner".to_string(),
+            1,
+        ),
+        ("crates/holla-ui/src/mixed.rs::mixed_owner".to_string(), 1),
+        (
+            "crates/holla-ui/src/production_tests_helper.rs::helper_owner".to_string(),
+            1,
+        ),
+        ("crates/holla-ui/src/shared.rs::shared_open".to_string(), 1),
+        (
+            "crates/holla-ui/src/unknown_cfg.rs::unknown_cfg_owner".to_string(),
+            1,
+        ),
+    ]);
+    assert_eq!(
+        scanned, expected,
+        "mask only exact root test files while preserving unmarked, mixed cfg, and unknown macro sources",
+    );
 }
 
 fn action_id_projection_first_red_is_a_production_root_case() {
