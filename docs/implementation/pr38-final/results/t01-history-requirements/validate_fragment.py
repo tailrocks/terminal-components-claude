@@ -383,6 +383,7 @@ for workload in fragment["workloads"]:
         recorded = {identity for identity in qualified_ids if identity[0] == scope_path and scope_start <= identity[1] <= scope_end}
         check(expected == recorded, "qualified or turbofish call trace omits or invents a source edge: " + scope_path + ":" + str(scope_start))
         expected_bare = set()
+        expected_methods = set()
         for line_number in range(scope_start, scope_end + 1):
             source_line = scope_lines[line_number - 1]
             if not re.match(r"\s*(?:pub(?:\([^)]*\))?\s+)?(?:const\s+)?fn\s+", source_line):
@@ -391,6 +392,11 @@ for workload in fragment["workloads"]:
                     if name in {"if", "while", "for", "match", "assert", "assert_eq", "assert_ne", "debug_assert", "debug_assert_eq", "vec", "format", "concat", "include_str", "include_bytes", "self"}:
                         continue
                     expected_bare.add((scope_path, line_number, call.start() + 1, name))
+            for method in re.finditer(r"\.\s*([A-Za-z_]\w*)\s*(?:::<[^>]+>)?\s*\(", source_line):
+                prefix = source_line[:method.start()].rstrip()
+                is_chain = not prefix or not re.search(r"[A-Za-z_]\w*$", prefix)
+                column = method.start() + 1 if is_chain else method.start(1) + 1
+                expected_methods.add((scope_path, line_number, column, method.group(1), is_chain))
             match = re.match(r"\s*\.\s*([A-Za-z_]\w*)\s*(?:::<[^>]+>)?\s*\(", scope_lines[line_number - 1])
             if match:
                 check((scope_path, line_number, "continuation_method." + match.group(1)) in chain_edges, "continued workload method was omitted from its trace")
@@ -409,6 +415,22 @@ for workload in fragment["workloads"]:
             if edge.get("call_kind") in {"imported_function", "language_prelude_constructor"} and edge.get("callsite_path") == scope_path and scope_start <= edge.get("callsite_line", 0) <= scope_end:
                 recorded_bare.add((scope_path, edge["callsite_line"], edge.get("callsite_column"), edge.get("function")))
         check(expected_bare == recorded_bare, "unqualified call trace omits or invents a source edge: " + scope_path + ":" + str(scope_start))
+        recorded_methods = set()
+        for edge in workload.get("helper_call_edges", []):
+            if edge.get("caller_path") == scope_path and scope_start <= edge.get("callsite_line", 0) <= scope_end and edge.get("receiver"):
+                recorded_methods.add((scope_path, edge["callsite_line"], edge.get("callsite_column"), edge.get("call"), False))
+        for edge in unresolved:
+            if edge.get("callsite_path") != scope_path or not scope_start <= edge.get("callsite_line", 0) <= scope_end:
+                continue
+            call = edge.get("call", "")
+            if call.startswith("continuation_method."):
+                recorded_methods.add((scope_path, edge["callsite_line"], edge.get("callsite_column"), call.split(".", 1)[1], True))
+            elif "." in call and not edge.get("qualified_call_identity"):
+                recorded_methods.add((scope_path, edge["callsite_line"], edge.get("callsite_column"), call.rsplit(".", 1)[-1], False))
+        for edge in workload.get("external_method_calls", []):
+            if edge.get("callsite_path") == scope_path and scope_start <= edge.get("callsite_line", 0) <= scope_end and edge.get("method"):
+                recorded_methods.add((scope_path, edge["callsite_line"], edge.get("callsite_column"), edge["method"], False))
+        check(expected_methods == recorded_methods, "receiver method or method-chain trace omits or invents a source edge: " + scope_path + ":" + str(scope_start))
     for binding in workload["current_production_equivalent"]["source_bindings"]:
         if binding["kind"] == "source_file":
             check(digest(git_bytes(INPUT, binding["path"])) == binding["sha256"], "current workload source hash mismatch")
