@@ -12,7 +12,7 @@ The high decision `T37-COMPONENT-PROSE-01` selected 112 new caller clauses, 15 e
 
 The final ledger has 113 direct transfers, 15 existing mappings, and one approved retirement. It does not claim that unselected API descriptions migrated. The raw archive remains historical provenance; T01 and T35 own the complete API inventory and guide review.
 
-The first high output review returned `CORRECTION` for commit `932d36c18c3dc5dbce350e27290a732e0b8957bf`. The immutable review is complete. Its final correction list now covers split reset policy, Form submit ownership, Panel and scroll-window coordinates, fixed Settings painters, Tabs plans and bindings, disabled editor find calls, NoticeReveal timing, and viewport revisions. Corrections are applied; independent review of the new exact output commit remains pending.
+The first high output review returned `CORRECTION` for commit `932d36c18c3dc5dbce350e27290a732e0b8957bf`. The immutable review is complete. Its correction list covers split reset policy, Form submit ownership, Panel and scroll-window coordinates, fixed Settings painters, Tabs plans and bindings, disabled editor find calls, NoticeReveal timing, and viewport revisions. Exact-output review R2 returned four corrections for `ed3abaf940bc81917a8ebcedb83a5783cc14d667`: the Form hold predicate, per-character Roles width, the Form heading slug, and the guide hash. All four are applied; independent review of the next exact commit remains pending.
 
 G581 is an approved retirement under `T37-SELECTION-BINDING-01`. Its existing receipt has a pending output-source-commit field. The current candidate source hash and final high disposition are recorded separately.
 
@@ -20,7 +20,7 @@ G581 is an approved retirement under `T37-SELECTION-BINDING-01`. Its existing re
 
 - `transfer.json` holds 129 selected groups with exact source commit, path, line range, file SHA-256, attachment SHA-256, full attachment, maintained excerpt, and decision record.
 - The ledger records target source SHA-256 values for all 33 selected component source paths.
-- G343's retained-code evidence is `form.rs:1172-1214`. C14 limits the hold to automatic reveal and records missing, hidden, disabled, and stale-press clearing.
+- G343's retained-code evidence is `form.rs:1172-1214`. C14 limits the hold to automatic reveal and records terminal-intent, field-liveness, and held-`PRESSED` clearing conditions.
 - C37 records both disabled `open_find` guards: neither method changes find or completion state. Enabled `CompletingCodeEditor` dismisses and clears before delegation. Read-only editors remain eligible.
 - The Roles gate accepts printable ASCII or `·` and checks one-cell text. Broader Unicode support remains open under T07/T28; no source fix is included.
 - CodeEditor Cancel still commits when blur commit is disabled; any rollback expectation remains open under T17. NoticeReveal tracks PAGE hover only without active capture; broader layer observation remains open under T15.
@@ -42,9 +42,9 @@ An earlier checker expected G581 to be the final sorted record; G609 follows it.
 
 | Path | SHA-256 |
 |---|---|
-| `docs/contracts/component-caller-contracts.md` | `3de91e0ed9af1e2125992cc839956f8ab1aa3def4512ec2ab1444670c01f9348` |
-| `docs/implementation/pr38-final/results/t37-component-api-transfer/transfer.json` | `f6c20e642c2f67500dbfb5d0e2ef6d8bde454042c29e89ffb8b250fb2598f619` |
+| `docs/contracts/component-caller-contracts.md` | `a7a830b1e518de29ed97c53632de2a49a8f399a897a2aeb055e38e8f006f7976` |
+| `docs/implementation/pr38-final/results/t37-component-api-transfer/transfer.json` | `faa8c58a718a89113f5fee73caa9a18473813c9b3936410294b838471fc2d5d2` |
 
 ## Review status
 
-The implementation agent did not self-approve. The complete bounded correction list is applied; independent exact-output review remains pending. Required reviewer selection: GPT-6.1-Sol, high effort.
+The implementation agent did not self-approve. Both review rounds' corrections are applied; independent exact-output review remains pending. Required reviewer selection: GPT-6.1-Sol, high effort.
