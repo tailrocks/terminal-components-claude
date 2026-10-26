@@ -350,16 +350,6 @@ pub struct PortConflict {
     activity: ActivitySnapshot,
 }
 
-impl PortConflict {
-    pub(crate) fn capture(world: &World, port: u16, activity: &Activity) -> Self {
-        Self {
-            port,
-            context: WorldContext::from(world),
-            activity: ActivitySnapshot::from(activity),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PortConflictError {
     StaleContext,
