@@ -1124,7 +1124,7 @@ PERF_CURRENT_BINDINGS = {
         "frame_tablepro_query_editor_2k_lines": (["crates/tablepro-ui/src/app.rs", "crates/termrock-editors/src/code.rs", "crates/termrock-text/src/buffer.rs"], ["T13", "T17", "T29"], "Draws a TablePro query editor initialized with two thousand SQL lines." , "application_frame_microbenchmark"),
         "diff_2k_cached_projection_has_zero_warm_allocations": (["crates/termrock-editors/src/diff.rs"], ["T17"], "Draws a DiffView over two thousand rows after warming its projection." , "editor_frame_microbenchmark"),
         "frame_hintbar_derived": (["crates/termrock-feedback/src/hintbar.rs", "crates/termrock-runtime/src/keymap.rs"], ["T12", "T19"], "Measures a derived-hint frame and a separate input-routing path." , "application_frame_microbenchmark"),
-        "frame_form_update_draw": (["crates/termrock-forms/src/form.rs"], ["T18"], "Measures warmed Form update and draw in an 80 by 24 runtime." , "component_frame_microbenchmark"),
+        "frame_form_update_draw": (["crates/termrock-runtime/src/runtime.rs", "crates/termrock-forms/src/form.rs", "crates/termrock-controls/src/choice.rs"], ["T09", "T12", "T18"], "Measures warmed Form update and draw through Runtime in an 80 by 24 area; the historical Checkbox configuration and app callback are inventoried separately." , "component_frame_microbenchmark"),
     },
     "crates/termrock-test-support/tests/perf_collections.rs": {
         "picker_100k_borrowed_domain_render": (["crates/termrock-overlays/src/picker.rs", "crates/termrock-collections/src/lib.rs"], ["T14", "T15"], "Draws a Picker over a borrowed one-hundred-thousand-item domain." , "component_render_microbenchmark"),
@@ -1263,10 +1263,19 @@ def workload_file_index(commit, path):
     methods = collections.defaultdict(list)
     free = collections.defaultdict(list)
     for start, line in enumerate(lines):
-        definition = re.match(r"\s*(?:pub(?:\([^)]*\))?\s+)?(?:const\s+)?fn\s+([A-Za-z_]\w*)\s*\(", line)
+        definition = re.match(r"\s*(?:pub(?:\([^)]*\))?\s+)?(?:const\s+)?fn\s+([A-Za-z_]\w*)", line)
         if not definition:
             continue
         name = definition.group(1)
+        signature_cursor = _skip_space(line, definition.end())
+        if signature_cursor < len(line) and line[signature_cursor] == "<":
+            signature_end = _generic_end(line, signature_cursor)
+            if signature_end is None:
+                continue
+            signature_cursor = signature_end
+        signature_cursor = _skip_space(line, signature_cursor)
+        if signature_cursor >= len(line) or line[signature_cursor] != "(":
+            continue
         end = brace_end(lines, start)
         owners = [owner for impl_start, impl_end, owner in impls if impl_start < start < impl_end]
         record = {"name": name, "path": path, "commit": commit, "line_start": start + 1, "line_end": end + 1, "source_sha256": sha(raw), "span_sha256": sha(b"".join(raw.splitlines(keepends=True)[start:end + 1])), "code": "\n".join(lines[start:end + 1]), "signature": lines[start]}
@@ -1309,6 +1318,8 @@ def workload_type_path(raw_type, imports, local_types, path):
     if not source:
         return None
     if "::" in source:
+        if source == "termrock::Runtime":
+            return "termrock_runtime::Runtime"
         return source
     if source in imports:
         return imports[source]
@@ -1389,15 +1400,113 @@ def workload_binding_record(record, callsite_path, callsite_line, call_kind):
     return {key: record[key] for key in ("name", "path", "commit", "line_start", "line_end", "source_sha256", "span_sha256")} | {"callsite_path": callsite_path, "callsite_line": callsite_line, "call_kind": call_kind, "owner_type": record.get("owner_type")}
 
 
+def _skip_space(text, index):
+    while index < len(text) and text[index].isspace():
+        index += 1
+    return index
+
+
+def _generic_end(text, start):
+    if start >= len(text) or text[start] != "<":
+        return None
+    depth = 0
+    for index in range(start, len(text)):
+        if text[index] == "<":
+            depth += 1
+        elif text[index] == ">":
+            depth -= 1
+            if depth == 0:
+                return index + 1
+    return None
+
+
+def qualified_call_sites(code):
+    sites = []
+    starts = list(re.finditer(r"[A-Za-z_]\w*", code))
+    for match in starts:
+        start = match.start()
+        if start and (code[start - 1].isalnum() or code[start - 1] in "_.:"):
+            continue
+        cursor = match.end()
+        qualified = False
+        while True:
+            cursor = _skip_space(code, cursor)
+            if not code.startswith("::", cursor):
+                break
+            qualified = True
+            cursor = _skip_space(code, cursor + 2)
+            if cursor < len(code) and code[cursor] == "<":
+                end = _generic_end(code, cursor)
+                if end is None:
+                    break
+                cursor = end
+                continue
+            segment = re.match(r"[A-Za-z_]\w*", code[cursor:])
+            if not segment:
+                break
+            cursor += segment.end()
+        if not qualified:
+            continue
+        open_paren = _skip_space(code, cursor)
+        if open_paren >= len(code) or code[open_paren] != "(":
+            continue
+        line_offset = code.count("\n", 0, start)
+        line_start = code.rfind("\n", 0, start) + 1
+        sites.append({
+            "path": re.sub(r"\s+", "", code[start:cursor]),
+            "call_text": code[start:open_paren + 1],
+            "line_offset": line_offset,
+            "column": start - line_start + 1,
+        })
+    for match in re.finditer(r"(?<![\w.:])<([^>\n]+)>::([A-Za-z_]\w*)\s*(?:::<[^>]+>)?\s*\(", code):
+        start = match.start()
+        line_offset = code.count("\n", 0, start)
+        line_start = code.rfind("\n", 0, start) + 1
+        sites.append({
+            "path": re.sub(r"\s+", "", match.group(0).rsplit("(", 1)[0]),
+            "call_text": match.group(0),
+            "line_offset": line_offset,
+            "column": start - line_start + 1,
+        })
+    unique = {}
+    for site in sites:
+        unique[(site["line_offset"], site["column"], site["path"])] = site
+    return sorted(unique.values(), key=lambda site: (site["line_offset"], site["column"], site["path"]))
+
+
+def historical_callback_binding(path, line_start, line_end, symbol, role, owner_task_ids):
+    raw = git_bytes(OLD, path)
+    lines = raw.splitlines(keepends=True)
+    span = b"".join(lines[line_start - 1:line_end])
+    return {"symbol": symbol, "role": role, "path": path, "commit": OLD, "line_start": line_start, "line_end": line_end, "source_sha256": sha(raw), "span_sha256": sha(span), "owner_task_ids": owner_task_ids, "source_text": span.decode("utf-8").rstrip("\r\n"), "evidence": "NOT VERIFIED"}
+
+
+def historical_derived_default(path, line_start, line_end, symbol, owner_task_ids):
+    binding = historical_callback_binding(path, line_start, line_end, symbol, "source-bound derive declaration for historical Default call", owner_task_ids)
+    return {"name": symbol, "path": path, "commit": OLD, "line_start": line_start, "line_end": line_end, "source_sha256": binding["source_sha256"], "span_sha256": binding["span_sha256"], "signature": binding["source_text"].splitlines()[0], "owner_type": symbol}
+
+
+def workload_callback_bindings(path, name):
+    if path != "crates/termrock-test-support/tests/perf.rs" or name != "frame_form_update_draw":
+        return []
+    return [
+        historical_callback_binding(path, 1527, 1533, "PERF_FORM/PERF_FORM_FLAG/PERF_FORM_FIELDS", "form field and ID configuration including Checkbox", ["T12", "T18", "T33"]),
+        historical_callback_binding(path, 1535, 1556, "PerfFormData", "form data implementation", ["T18", "T33"]),
+        historical_callback_binding(path, 1558, 1574, "PerfFormApp::update/draw", "historical App callbacks", ["T09", "T18", "T33"]),
+    ]
+
+
 def trace_workload_helpers(path, lines, start, end, workload_id):
     root_index = workload_file_index(OLD, path)
     queue = [(path, start, end, None, 0)]
     visited = set()
-    helpers, edges, external, unresolved = [], [], [], []
+    helpers, edges, external, unresolved, qualified_edges = [], [], [], [], []
     seen_helpers = set()
-    perf_names = {"bench", "bench_sampled", "measure_once", "check_ratio", "report_to", "samples", "iters"}
+    perf_names = {"bench", "bench_sampled", "measure_once", "check_ratio", "report_to", "samples", "iters", "lock", "big"}
     perf_path = "crates/termrock-test-support/src/perf.rs"
     perf_index = workload_file_index(OLD, perf_path)
+    delivery_path = "crates/termrock-test-support/src/lib.rs"
+    delivery_index = workload_file_index(OLD, delivery_path)
     while queue:
         scope_path, scope_start, scope_end, scope_owner, depth = queue.pop(0)
         if depth > 20:
@@ -1411,11 +1520,90 @@ def trace_workload_helpers(path, lines, start, end, workload_id):
         code_lines = scope_index["lines"][scope_start:scope_end]
         code = "\n".join(code_lines)
         receiver_types = workload_receiver_types(scope_index, code, scope_owner)
+        for site in qualified_call_sites(code):
+            callsite_line = scope_start + site["line_offset"] + 1
+            identity = [scope_path, callsite_line, site["column"], site["path"]]
+            call_path = site["path"]
+            clean_path = re.sub(r"::<.*?>", "", call_path)
+            target = None
+            call_kind = None
+            resolution = None
+            queue_target = False
+            if clean_path == "termrock_test_support::deliver_buffer":
+                candidates = delivery_index["free"].get("deliver_buffer", [])
+                if len(candidates) == 1:
+                    target = candidates[0]
+                    call_kind = "qualified_local_free_function"
+                    resolution = "EXACT_QUALIFIED_HISTORICAL_HELPER"
+                    queue_target = True
+            elif call_path == "PerfFormApp::default":
+                target = historical_derived_default("crates/termrock-test-support/tests/perf.rs", 1558, 1562, "PerfFormApp", ["T33"])
+                call_kind = "qualified_derived_default"
+                resolution = "EXACT_HISTORICAL_DERIVE_SOURCE"
+            elif clean_path.startswith("termrock_test_support::perf::") or clean_path.startswith("perf::"):
+                function_name = clean_path.rsplit("::", 1)[-1]
+                if function_name in perf_names:
+                    candidates = perf_index["free"].get(function_name, [])
+                    if len(candidates) == 1:
+                        target = candidates[0]
+                        call_kind = "qualified_measurement_helper"
+                        resolution = "EXACT_QUALIFIED_HISTORICAL_MEASUREMENT_HELPER"
+            if target is not None:
+                key = (target["path"], target["line_start"], target["line_end"])
+                if key not in seen_helpers:
+                    seen_helpers.add(key)
+                    binding = workload_binding_record(target, scope_path, callsite_line, call_kind)
+                    binding["callsite_column"] = site["column"]
+                    binding["qualified_path"] = call_path
+                    helpers.append(binding)
+                if queue_target:
+                    queue.append((target["path"], target["line_start"] - 1, target["line_end"], target.get("owner_type"), depth + 1))
+                qualified_edges.append({"callsite_path": scope_path, "callsite_line": callsite_line, "callsite_column": site["column"], "path": call_path, "call_text": site["call_text"], "resolution": "SOURCE_BOUND", "binding_kind": call_kind, "callee_path": target["path"], "callee_line_start": target["line_start"], "callee_line_end": target["line_end"], "callee_source_sha256": target["source_sha256"], "callee_span_sha256": target["span_sha256"], "evidence": "NOT VERIFIED", "identity": identity})
+                continue
+            first_path_part = clean_path.split("::", 1)[0]
+            if first_path_part in {"std", "core", "alloc", "ratatui", "ratatui_core"}:
+                qualified_edges.append({"callsite_path": scope_path, "callsite_line": callsite_line, "callsite_column": site["column"], "path": call_path, "call_text": site["call_text"], "resolution": "EXTERNAL_BOUNDARY", "boundary_owner": first_path_part, "evidence": "NOT VERIFIED", "identity": identity})
+                continue
+            parts = clean_path.split("::")
+            method_candidates = []
+            qualified_type_path = None
+            if len(parts) >= 2:
+                type_path = "::".join(parts[:-1])
+                type_path = workload_type_path(type_path, scope_index["imports"], scope_index["types"], scope_path)
+                qualified_type_path = type_path
+                if type_path == "termrock_runtime::Rect":
+                    reexport_path = "crates/termrock-runtime/src/author.rs"
+                    reexport_raw = git_bytes(OLD, reexport_path)
+                    reexport_lines = reexport_raw.splitlines(keepends=True)
+                    reexport_span = reexport_lines[247]
+                    qualified_edges.append({"callsite_path": scope_path, "callsite_line": callsite_line, "callsite_column": site["column"], "path": call_path, "call_text": site["call_text"], "resolution": "EXTERNAL_BOUNDARY", "boundary_owner": "ratatui_core", "resolved_type_path": type_path, "reexport_evidence": {"path": reexport_path, "commit": OLD, "line": 248, "source_sha256": sha(reexport_raw), "span_sha256": sha(reexport_span), "text": reexport_span.decode("utf-8").strip()}, "evidence": "NOT VERIFIED", "identity": identity})
+                    continue
+                if type_path and type_path.split("::", 1)[0] in {"std", "core", "alloc", "ratatui", "ratatui_core"}:
+                    qualified_edges.append({"callsite_path": scope_path, "callsite_line": callsite_line, "callsite_column": site["column"], "path": call_path, "call_text": site["call_text"], "resolution": "EXTERNAL_BOUNDARY", "boundary_owner": type_path.split("::", 1)[0], "resolved_type_path": type_path, "evidence": "NOT VERIFIED", "identity": identity})
+                    continue
+                method_candidates = workload_method_location(type_path, parts[-1], scope_path, OLD) if type_path else []
+            if len(method_candidates) == 1:
+                target = method_candidates[0]
+                key = (target["path"], target["line_start"], target["line_end"])
+                if key not in seen_helpers:
+                    seen_helpers.add(key)
+                    binding = workload_binding_record(target, scope_path, callsite_line, "qualified_associated_method")
+                    binding["callsite_column"] = site["column"]
+                    binding["qualified_path"] = call_path
+                    helpers.append(binding)
+                local_helper = target["path"] == path or (target["path"].startswith("crates/termrock-test-support/src/") and target["path"] != perf_path)
+                if local_helper:
+                    queue.append((target["path"], target["line_start"] - 1, target["line_end"], target.get("owner_type"), depth + 1))
+                qualified_edges.append({"callsite_path": scope_path, "callsite_line": callsite_line, "callsite_column": site["column"], "path": call_path, "call_text": site["call_text"], "resolution": "SOURCE_BOUND", "binding_kind": "qualified_associated_method", "callee_path": target["path"], "callee_line_start": target["line_start"], "callee_line_end": target["line_end"], "callee_source_sha256": target["source_sha256"], "callee_span_sha256": target["span_sha256"], "evidence": "NOT VERIFIED", "identity": identity})
+            else:
+                reason = "Qualified callable path has no unique exact historical source owner or explicit external boundary."
+                unresolved.append({"callsite_path": scope_path, "callsite_line": callsite_line, "callsite_column": site["column"], "call": call_path, "reason": reason, "candidate_bindings": [{"path": candidate["path"], "line_start": candidate["line_start"], "line_end": candidate["line_end"], "span_sha256": candidate["span_sha256"]} for candidate in method_candidates], "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED", "qualified_call_identity": identity})
+                qualified_edges.append({"callsite_path": scope_path, "callsite_line": callsite_line, "callsite_column": site["column"], "path": call_path, "call_text": site["call_text"], "resolution": "OPEN_T33", "reason": reason, "evidence": "NOT VERIFIED", "identity": identity})
         for offset, source_line in enumerate(code_lines, scope_start + 1):
             stripped = source_line.strip()
-            continuation = re.match(r"\.\s*([A-Za-z_]\w*)\s*\(", stripped)
+            continuation = re.match(r"\.\s*([A-Za-z_]\w*)\s*(?:::<[^>]+>)?\s*\(", stripped)
             if continuation:
-                unresolved.append({"callsite_path": scope_path, "callsite_line": offset, "call": "continuation_method." + continuation.group(1), "receiver_type": None, "reason": "The method call continues an earlier expression; its receiver and implementation owner are not bound by this source scan.", "candidate_bindings": [], "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
+                unresolved.append({"callsite_path": scope_path, "callsite_line": offset, "callsite_column": source_line.index(".") + 1, "call": "continuation_method." + continuation.group(1), "receiver_type": None, "reason": "The method call continues an earlier expression; its receiver and implementation owner are not bound by this source scan.", "candidate_bindings": [], "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
             if re.match(r"(?:pub(?:\([^)]*\))?\s+)?(?:const\s+)?fn\s+", stripped):
                 continue
             for call in re.finditer(r"(?<![.\w:])([A-Za-z_]\w*)\s*\(", source_line):
@@ -1432,25 +1620,36 @@ def trace_workload_helpers(path, lines, start, end, workload_id):
                         seen_helpers.add(key)
                         helpers.append(workload_binding_record(record, scope_path, offset, "same_file_free_function"))
                         queue.append((record["path"], record["line_start"] - 1, record["line_end"], None, depth + 1))
-                    edges.append({"caller_path": scope_path, "callsite_line": offset, "call": name, "callee_path": record["path"], "callee_line": record["line_start"], "resolution": "UNIQUE_SAME_FILE_FREE_FUNCTION", "evidence": "NOT VERIFIED"})
+                    edges.append({"caller_path": scope_path, "callsite_line": offset, "callsite_column": call.start() + 1, "call": name, "callee_path": record["path"], "callee_line": record["line_start"], "resolution": "UNIQUE_SAME_FILE_FREE_FUNCTION", "evidence": "NOT VERIFIED"})
                 elif len(candidates) > 1:
-                    unresolved.append({"callsite_path": scope_path, "callsite_line": offset, "call": name, "reason": "Multiple same-file free functions share this name; no function was selected.", "candidate_bindings": [{"path": candidate["path"], "line_start": candidate["line_start"], "line_end": candidate["line_end"], "span_sha256": candidate["span_sha256"]} for candidate in candidates], "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
+                    unresolved.append({"callsite_path": scope_path, "callsite_line": offset, "callsite_column": call.start() + 1, "call": name, "reason": "Multiple same-file free functions share this name; no function was selected.", "candidate_bindings": [{"path": candidate["path"], "line_start": candidate["line_start"], "line_end": candidate["line_end"], "span_sha256": candidate["span_sha256"]} for candidate in candidates], "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
                 elif name in perf_names:
                     candidates = perf_index["free"].get(name, [])
                     if len(candidates) == 1:
                         record = candidates[0]
                         helpers.append(workload_binding_record(record, scope_path, offset, "shared_measurement_helper"))
-                        edges.append({"caller_path": scope_path, "callsite_line": offset, "call": name, "callee_path": perf_path, "callee_line": record["line_start"], "resolution": "EXACT_HISTORICAL_MEASUREMENT_HELPER", "evidence": "NOT VERIFIED"})
+                        edges.append({"caller_path": scope_path, "callsite_line": offset, "callsite_column": call.start() + 1, "call": name, "callee_path": perf_path, "callee_line": record["line_start"], "resolution": "EXACT_HISTORICAL_MEASUREMENT_HELPER", "evidence": "NOT VERIFIED"})
                     else:
-                        unresolved.append({"callsite_path": scope_path, "callsite_line": offset, "call": name, "reason": "The shared measurement helper definition was not unique in the immutable source file.", "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
-            for call in re.finditer(r"\b([A-Za-z_]\w*)\s*\.\s*([A-Za-z_]\w*)\s*\(", source_line):
+                        unresolved.append({"callsite_path": scope_path, "callsite_line": offset, "callsite_column": call.start() + 1, "call": name, "reason": "The shared measurement helper definition was not unique in the immutable source file.", "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
+                elif name in scope_index["imports"]:
+                    imported_path = scope_index["imports"][name]
+                    root = imported_path.split("::", 1)[0]
+                    if root in {"std", "core", "alloc", "ratatui", "ratatui_core"}:
+                        external.append({"callsite_path": scope_path, "callsite_line": offset, "callsite_column": call.start() + 1, "function": name, "imported_path": imported_path, "boundary": "external_or_standard_library", "call_kind": "imported_function", "evidence": "NOT VERIFIED"})
+                    else:
+                        unresolved.append({"callsite_path": scope_path, "callsite_line": offset, "callsite_column": call.start() + 1, "call": name, "reason": "Imported callable path is not an explicit external boundary or a unique exact historical local definition.", "candidate_bindings": [{"qualified_path": imported_path}], "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
+                elif name in {"Some", "Ok", "Err"}:
+                    external.append({"callsite_path": scope_path, "callsite_line": offset, "callsite_column": call.start() + 1, "function": name, "imported_path": "core::prelude::" + name, "boundary": "external_or_standard_library", "call_kind": "language_prelude_constructor", "evidence": "NOT VERIFIED"})
+                else:
+                    unresolved.append({"callsite_path": scope_path, "callsite_line": offset, "callsite_column": call.start() + 1, "call": name, "reason": "Unqualified callable was not resolved to one same-file helper, measurement helper, or explicit external import.", "candidate_bindings": [], "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
+            for call in re.finditer(r"\b([A-Za-z_]\w*)\s*\.\s*([A-Za-z_]\w*)\s*(?:::<[^>]+>)?\s*\(", source_line):
                 receiver, method = call.group(1), call.group(2)
                 if receiver in {"self", "Self"} and scope_owner:
                     receiver_type = "local::" + scope_owner
                 else:
                     receiver_type = receiver_types.get(receiver)
                 if receiver_type and receiver_type.split("::", 1)[0] in {"ratatui", "ratatui_core", "std", "core", "alloc"}:
-                    external.append({"callsite_path": scope_path, "callsite_line": offset, "receiver": receiver, "receiver_type": receiver_type, "method": method, "boundary": "external_or_standard_library", "evidence": "NOT VERIFIED"})
+                    external.append({"callsite_path": scope_path, "callsite_line": offset, "callsite_column": call.start(2) + 1, "receiver": receiver, "receiver_type": receiver_type, "method": method, "boundary": "external_or_standard_library", "evidence": "NOT VERIFIED"})
                     continue
                 method_candidates = workload_method_location(receiver_type, method, scope_path, OLD) if receiver_type else []
                 if len(method_candidates) == 1:
@@ -1462,11 +1661,18 @@ def trace_workload_helpers(path, lines, start, end, workload_id):
                         if record["path"] == path or (record["path"].startswith("crates/termrock-test-support/src/") and record["path"] != perf_path):
                             queue.append((record["path"], record["line_start"] - 1, record["line_end"], record.get("owner_type"), depth + 1))
                     resolution = "EXACT_RECEIVER_AND_IMPL_OWNER_HELPER" if record["path"] == path or (record["path"].startswith("crates/termrock-test-support/src/") and record["path"] != perf_path) else "EXACT_RECEIVER_AND_IMPL_OWNER_PRODUCTION_BOUNDARY"
-                    edges.append({"caller_path": scope_path, "callsite_line": offset, "receiver": receiver, "receiver_type": receiver_type, "call": method, "callee_path": record["path"], "callee_line": record["line_start"], "resolution": resolution, "evidence": "NOT VERIFIED"})
+                    edges.append({"caller_path": scope_path, "callsite_line": offset, "callsite_column": call.start(2) + 1, "receiver": receiver, "receiver_type": receiver_type, "call": method, "callee_path": record["path"], "callee_line": record["line_start"], "resolution": resolution, "evidence": "NOT VERIFIED"})
                 else:
                     reason = "Receiver type is unresolved at this source scope." if not receiver_type else ("No unique method with this name was found under the resolved receiver type." if not method_candidates else "Multiple methods share this name for the resolved receiver type.")
-                    unresolved.append({"callsite_path": scope_path, "callsite_line": offset, "call": receiver + "." + method, "receiver_type": receiver_type, "reason": reason, "candidate_bindings": [{"path": candidate["path"], "line_start": candidate["line_start"], "line_end": candidate["line_end"], "span_sha256": candidate["span_sha256"]} for candidate in method_candidates], "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
-    return helpers, edges, external, unresolved
+                    unresolved.append({"callsite_path": scope_path, "callsite_line": offset, "callsite_column": call.start(2) + 1, "call": receiver + "." + method, "receiver_type": receiver_type, "reason": reason, "candidate_bindings": [{"path": candidate["path"], "line_start": candidate["line_start"], "line_end": candidate["line_end"], "span_sha256": candidate["span_sha256"]} for candidate in method_candidates], "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
+            for chain in re.finditer(r"\.\s*([A-Za-z_]\w*)\s*(?:::<[^>]+>)?\s*\(", source_line):
+                prefix = source_line[:chain.start()].rstrip()
+                if not prefix or re.search(r"[A-Za-z_]\w*$", prefix):
+                    continue
+                method = chain.group(1)
+                if not any(item.get("callsite_path") == scope_path and item.get("callsite_line") == offset and item.get("call") == "continuation_method." + method for item in unresolved):
+                    unresolved.append({"callsite_path": scope_path, "callsite_line": offset, "callsite_column": chain.start() + 1, "call": "continuation_method." + method, "reason": "A chained method follows a call result on the same source line; its receiver type and implementation owner are not explicit at this callsite.", "candidate_bindings": [], "owner_task_ids": ["T33"], "evidence": "NOT VERIFIED"})
+    return helpers, edges, external, unresolved, qualified_edges
 
 
 def workloads():
@@ -1490,13 +1696,15 @@ def workloads():
             code = "\n".join(body)
             span_raw = b"".join(raw_lines[start:end + 1])
             workload_id = OLD + ":" + path + ":" + str(start + 1) + ":" + name
-            helper_bindings, call_edges, external_calls, unresolved_edges = trace_workload_helpers(path, lines, start, end + 1, workload_id)
+            helper_bindings, call_edges, external_calls, unresolved_edges, qualified_edges = trace_workload_helpers(path, lines, start, end + 1, workload_id)
+            callback_bindings = workload_callback_bindings(path, name)
             helper_code = []
             for binding in helper_bindings:
                 helper_raw = git_bytes(binding["commit"], binding["path"])
                 helper_lines = helper_raw.decode("utf-8").splitlines()
                 helper_code.append("\n".join(helper_lines[binding["line_start"] - 1:binding["line_end"]]))
-            search_code = code + "\n" + "\n".join(helper_code)
+            callback_code = [binding["source_text"] for binding in callback_bindings]
+            search_code = code + "\n" + "\n".join(helper_code + callback_code)
             helper_calls = sorted(set(helper for helper in ("bench", "bench_sampled", "measure_once", "check_ratio", "report_to", "samples", "iters") if re.search(r"\b" + helper + r"\s*\(", search_code)))
             traced_paths = sorted(set([path] + [x["path"] for x in helper_bindings]))
             used_constants = set(re.findall(r"\b(?:WIDTH|HEIGHT|WARMUPS|SAMPLES|ITERATIONS|QUERY|STEPS|PERF_[A-Z_]+)\b", search_code))
@@ -1562,10 +1770,13 @@ def workloads():
             else:
                 measurement_scope = "No repeat-measurement helper is source-bound for this entry point; classify its historical assertions from the exact entry-point span."
             current_paths, owner_task_ids, equivalence_summary, workload_kind = perf_binding(path, name)
-            current_bindings = [current_source_binding(source_path) for source_path in current_paths]
+            current_bindings = [dict(current_source_binding(source_path)) for source_path in current_paths]
             current_equivalence_status = "SOURCE_MAPPED_NOT_MEASURED" if current_paths else "NO_CURRENT_PRODUCT_PATH"
+            source_owner_overrides = {}
+            if path == "crates/termrock-test-support/tests/perf.rs" and name == "frame_form_update_draw":
+                source_owner_overrides = {"crates/termrock-runtime/src/runtime.rs": ["T09"], "crates/termrock-forms/src/form.rs": ["T18"], "crates/termrock-controls/src/choice.rs": ["T12"]}
             for current in current_bindings:
-                current["owner_task_ids"] = owner_task_ids
+                current["owner_task_ids"] = source_owner_overrides.get(current["path"], owner_task_ids)
                 current["evidence"] = "NOT VERIFIED"
             baseline = None
             if "holla-ui/tests/perf.rs" in path: baseline = "crates/holla-ui/tests/baselines/app.txt"
@@ -1582,7 +1793,20 @@ def workloads():
             elif baseline:
                 try: baseline_candidate = {"path": baseline, "commit": OLD, "sha256": sha(git_bytes(OLD, baseline)), "status": "path candidate only; this entry point does not inspect or report to it"}
                 except Exception: baseline_candidate = {"path": baseline, "commit": OLD, "sha256": None, "status": "not found at historical path"}
-            unresolved_requirements = [{"id": "PERF-TRACE:" + workload_id + ":" + str(i + 1), "block_final": True, "owner_task_ids": ["T33"], "callsite_path": edge["callsite_path"], "callsite_line": edge["callsite_line"], "call": edge["call"], "reason": edge["reason"], "evidence": "NOT VERIFIED"} for i, edge in enumerate(unresolved_edges)]
+            unresolved_requirements = []
+            for i, edge in enumerate(unresolved_edges):
+                requirement = {"id": "PERF-TRACE:" + workload_id + ":" + str(i + 1), "block_final": True, "owner_task_ids": ["T33"], "callsite_path": edge["callsite_path"], "callsite_line": edge["callsite_line"], "call": edge["call"], "reason": edge["reason"], "evidence": "NOT VERIFIED"}
+                if edge.get("callsite_column") is not None:
+                    requirement["callsite_column"] = edge["callsite_column"]
+                edge["requirement_id"] = requirement["id"]
+                unresolved_requirements.append(requirement)
+            unresolved_by_identity = {tuple(edge["qualified_call_identity"]): edge for edge in unresolved_edges if edge.get("qualified_call_identity")}
+            for qualified in qualified_edges:
+                if qualified["resolution"] == "OPEN_T33":
+                    unresolved = unresolved_by_identity.get(tuple(qualified["identity"]))
+                    if unresolved is None:
+                        raise ValueError("qualified open call has no exact T33 requirement: " + str(qualified["identity"]))
+                    qualified["unresolved_requirement_id"] = unresolved["requirement_id"]
             result.append({
                 "workload_id": workload_id,
                 "historical_test_surface": {"path": path, "commit": OLD, "sha256": sha(raw), "test_attribute_line": attr + 1, "line_start": start + 1, "line_end": end + 1, "span_sha256": sha(span_raw), "entrypoint": name},
@@ -1594,6 +1818,7 @@ def workloads():
                 "helper_event_or_scenario_lines": helper_events,
                 "external_method_calls": external_calls,
                 "helper_call_edges": call_edges,
+                "qualified_call_edges": qualified_edges,
                 "unresolved_helper_edges": unresolved_edges,
                 "unresolved_requirement_ids": [x["id"] for x in unresolved_requirements],
                 "helper_trace_status": "OPEN_UNRESOLVED_HELPERS" if unresolved_edges else "SOURCE_BOUND_EDGES_WITH_EXTERNAL_BOUNDARIES",
@@ -1609,6 +1834,8 @@ def workloads():
                 "measurement_and_claim_lines": facts,
                 "helper_measurement_and_claim_lines": helper_claims,
                 "local_helper_source_bindings": helper_bindings,
+                "local_callback_source_bindings": callback_bindings,
+                "local_callback_summary": "Historical 80×24 Runtime frame; field IDs/spec, FormData, and PerfFormApp update/draw callbacks have source spans outside the test. No callback or measurement ran." if callback_bindings else "No additional local app callback span is attached to this workload record.",
                 "external_scenario_source_binding": scenario_source,
                 "measurement_helper_calls": helper_calls,
                 "measurement_scope": measurement_scope,
@@ -1616,9 +1843,9 @@ def workloads():
                 "baseline": bref,
                 "baseline_candidate": baseline_candidate,
                 "historical_entrypoint_summary": name.replace("_", " "),
-                "dimensions": {"dimension_tokens": dims, "numeric_and_size_literals": nums, "workload_definition_summary": equivalence_summary, "entrypoint_source_lines": facts, "helper_source_lines": helper_claims, "status": "source inventory; no workload ran"},
-                "collection_sizes": {"entrypoint_source_lines": collection_size_lines, "helper_source_lines": helper_collection_size_lines, "configuration_constants": configuration_constants, "status": "source inventory; values remain source text"},
-                "options": {"entrypoint_source_lines": option_lines, "helper_source_lines": helper_option_lines, "configuration_constants": configuration_constants},
+                "dimensions": {"dimension_tokens": dims, "numeric_and_size_literals": nums, "workload_definition_summary": equivalence_summary, "entrypoint_source_lines": facts, "helper_source_lines": helper_claims, "callback_source_bindings": callback_bindings, "status": "source inventory; no workload ran"},
+                "collection_sizes": {"entrypoint_source_lines": collection_size_lines, "helper_source_lines": helper_collection_size_lines, "configuration_constants": configuration_constants, "callback_source_bindings": callback_bindings, "status": "source inventory; values remain source text"},
+                "options": {"entrypoint_source_lines": option_lines, "helper_source_lines": helper_option_lines, "configuration_constants": configuration_constants, "callback_source_bindings": callback_bindings},
                 "event_sequence": {"entrypoint_lines": events, "helper_lines": helper_events, "external_method_calls": external_calls, "external_scenario_source": scenario_source},
                 "clock_and_seed": {"entrypoint_lines": clock_seed_lines, "helper_lines": helper_clock_seed_lines, "assessment": "The source-derived list contains explicit clock or seed statements; unresolved helper paths stay open."},
                 "repeat_and_measurement_scope": {"helper_calls": helper_calls, "measurement_scope": measurement_scope, "helper_bindings": helper_bindings, "status": "NOT VERIFIED"},
@@ -1626,7 +1853,7 @@ def workloads():
                 "current_production_equivalent": {"paths": current_paths, "source_bindings": current_bindings, "owner_tasks": owner_task_ids, "owner_task_ids": owner_task_ids, "performance_owner_task": "T33", "performance_owner_task_ids": ["T33"], "equivalence_summary": equivalence_summary, "status": current_equivalence_status, "evidence": "NOT VERIFIED"},
                 "unresolved_requirements": unresolved_requirements,
                 "source_disposition": "ADAPT",
-                "source_disposition_reason": "The historical workload definition stays as a T33 requirement; method edges use receiver-qualified evidence or remain open. No old measurement is current evidence.",
+                "source_disposition_reason": "T33 retains this workload. Qualified calls bind to history, name an external boundary, or stay open at source lines. Callbacks and measurements remain NOT VERIFIED.",
                 "old_measurement_status": "NOT VERIFIED",
                 "current_measurement_status": "NOT VERIFIED",
                 "proposed_case_status": "PROPOSED_NOT_APPROVED_T38",
@@ -1712,6 +1939,11 @@ def main():
     for obligation in shell_decision["future_obligations"]:
         open_requirements.append({"id": obligation["requirement_id"], "block_final": True, "owner_task_ids": obligation["owner_task_ids"], "source": {"path": T01_REACH_DECISION_PATH, "commit": T01_REACH_DECISION_COMMIT, "sha256": T01_REACH_DECISION_SHA256}, "reason": obligation["obligation"], "status": "PROPOSED_NOT_APPROVED_T38", "case_status": "PROPOSED_NOT_APPROVED_T38", "evidence": "NOT VERIFIED"})
     workload_unresolved_call_count = sum(len(w.get("unresolved_helper_edges", [])) for w in perf)
+    workload_qualified_call_count = sum(len(w.get("qualified_call_edges", [])) for w in perf)
+    workload_qualified_source_bound_count = sum(sum(edge.get("resolution") == "SOURCE_BOUND" for edge in w.get("qualified_call_edges", [])) for w in perf)
+    workload_qualified_external_count = sum(sum(edge.get("resolution") == "EXTERNAL_BOUNDARY" for edge in w.get("qualified_call_edges", [])) for w in perf)
+    workload_qualified_open_count = sum(sum(edge.get("resolution") == "OPEN_T33" for edge in w.get("qualified_call_edges", [])) for w in perf)
+    workload_callback_binding_count = sum(len(w.get("local_callback_source_bindings", [])) for w in perf)
     empty_frame_workload = next(w for w in perf if w["historical_test_surface"]["entrypoint"] == "frame_testbackend_empty_120x40")
     exact_migration_member_bindings = {x["item_id"]: x.get("member_source_bindings", []) for x in migrations if x.get("member_source_bindings")}
     fragment = {
@@ -1737,9 +1969,14 @@ def main():
             "all_migrations_have_owner_and_case_task_ids": all(x.get("owner_task_ids") and x.get("required_case", {}).get("owner_task_ids") for x in migrations),
             "all_migration_sources_are_explicit": all(x.get("current_sources") and all(s.get("path") and s.get("sha256") and s.get("owner_task") and s.get("owner_task_ids") for s in x["current_sources"] if not s.get("status")) for x in migrations),
             "exact_migration_member_bindings": exact_migration_member_bindings,
-            "all_workload_calls_are_bound_or_open": all(all(e.get("caller_path") and e.get("callsite_line") and e.get("resolution") for e in w.get("helper_call_edges", [])) and all(e.get("callsite_path") and e.get("callsite_line") and e.get("reason") and e.get("owner_task_ids") == ["T33"] for e in w.get("unresolved_helper_edges", [])) for w in perf),
+            "all_workload_calls_are_bound_or_open": all(all(e.get("caller_path") and e.get("callsite_line") and e.get("resolution") for e in w.get("helper_call_edges", [])) and all(e.get("callsite_path") and e.get("callsite_line") and e.get("reason") and e.get("owner_task_ids") == ["T33"] for e in w.get("unresolved_helper_edges", [])) and all(e.get("callsite_path") and e.get("callsite_line") and e.get("call_text") and e.get("resolution") in {"SOURCE_BOUND", "EXTERNAL_BOUNDARY", "OPEN_T33"} and (e.get("resolution") != "OPEN_T33" or e.get("unresolved_requirement_id") in w.get("unresolved_requirement_ids", [])) for e in w.get("qualified_call_edges", [])) for w in perf),
             "workload_unresolved_call_count": workload_unresolved_call_count,
-            "workload_trace_policy": "Method edges use receiver and implementation owner. Ambiguous local or method edges remain open under T33.",
+            "workload_qualified_call_count": workload_qualified_call_count,
+            "workload_qualified_source_bound_count": workload_qualified_source_bound_count,
+            "workload_qualified_external_boundary_count": workload_qualified_external_count,
+            "workload_qualified_open_count": workload_qualified_open_count,
+            "workload_callback_binding_count": workload_callback_binding_count,
+            "workload_trace_policy": "Qualified calls bind exact history, name an external boundary, or open a source callsite for T33. Receiver methods bind by owner; unowned chains stay open.",
             "frame_testbackend_empty_is_external": empty_frame_workload["external_method_calls"],
             "no_new_wid_allocations": True,
             "current_route_artifact": {"path": str(ROUTE_PATH), "sha256": path_sha(ROUTE_PATH), "route_count": len(routes.get("routes", [])), "join": "reference_identity + reference_index"},
@@ -1756,7 +1993,7 @@ def main():
             {"argv": ["python3", "docs/implementation/pr38-final/results/t01-history-requirements/validate_fragment.py"], "cwd": str(ROOT), "tool": "Python 3.15.1", "exit_code": 0, "selected_tests": 0, "result": "Source-span, row-identity, owner, route, retirement, workload, and NOT VERIFIED assertions pass; no product behavior is proven."},
         ],
         "limits": ["Static source mappings do not prove compiler visibility, runtime behavior, performance, route output, or semantic parity.", "Historical lanes and test names are not current test results.", "T33 owns replacement workload design; no benchmark or new counter ran.", "Route and NULL-sort corrections appear only in this fragment; historical records remain unchanged.", "T37 approvals retire test helpers only; related product behavior remains open."],
-        "counts": {"historical_coverage_rows": len(rows), "lane_counts": lane_counts, "dispositions": disposition_counts, "categories": category_counts, "mapping_methods": dict(collections.Counter(x["current_mapping"]["method"] for x in rows)), "historical_migration_items": len(migrations), "workloads": len(perf), "unresolved_rows": len(unresolved), "selected_cases": 0},
+        "counts": {"historical_coverage_rows": len(rows), "lane_counts": lane_counts, "dispositions": disposition_counts, "categories": category_counts, "mapping_methods": dict(collections.Counter(x["current_mapping"]["method"] for x in rows)), "historical_migration_items": len(migrations), "workloads": len(perf), "workload_unresolved_call_edges": workload_unresolved_call_count, "workload_qualified_call_edges": workload_qualified_call_count, "workload_qualified_source_bound": workload_qualified_source_bound_count, "workload_qualified_external_boundaries": workload_qualified_external_count, "workload_qualified_open_T33": workload_qualified_open_count, "workload_callback_source_bindings": workload_callback_binding_count, "unresolved_rows": len(unresolved), "selected_cases": 0},
     }
     fragment["historical_coverage_rows"]["sha256"] = path_sha(jsonl_path)
     (OUT / "fragment.json").write_text(json.dumps(fragment, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
@@ -1779,7 +2016,9 @@ def main():
         "The fragment maps " + str(len(migrations)) + " migration items, 54 routes, and four application owners.",
         "The performance inventory retains 71 historical entrypoints for T33.",
         "Workload edges bind source owners or stay open with T33.",
-        "Static tracing leaves " + str(workload_unresolved_call_count) + " helper edges open for T33.",
+        "Static tracing leaves " + str(workload_unresolved_call_count) + " helper and qualified-call edges open for T33.",
+        "Qualified call sites: " + str(workload_qualified_call_count) + "; source-bound " + str(workload_qualified_source_bound_count) + "; external boundaries " + str(workload_qualified_external_count) + "; open T33 " + str(workload_qualified_open_count) + ".",
+        "The form workload binds " + str(workload_callback_binding_count) + " callback and configuration spans; behavior remains NOT VERIFIED.",
         "The empty-frame workload calls external ratatui Terminal::draw.",
         "No Termrock production path is mapped for that workload.",
         "Historical and current measurements remain NOT VERIFIED.",

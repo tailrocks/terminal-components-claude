@@ -34,6 +34,69 @@ def check(condition, message):
         raise ValueError(message)
 
 
+def _skip_space(text, index):
+    while index < len(text) and text[index].isspace():
+        index += 1
+    return index
+
+
+def _generic_end(text, start):
+    if start >= len(text) or text[start] != "<":
+        return None
+    depth = 0
+    for index in range(start, len(text)):
+        if text[index] == "<":
+            depth += 1
+        elif text[index] == ">":
+            depth -= 1
+            if depth == 0:
+                return index + 1
+    return None
+
+
+def qualified_call_sites(code):
+    sites = []
+    for match in re.finditer(r"[A-Za-z_]\w*", code):
+        start = match.start()
+        if start and (code[start - 1].isalnum() or code[start - 1] in "_.:"):
+            continue
+        cursor = match.end()
+        qualified = False
+        while True:
+            cursor = _skip_space(code, cursor)
+            if not code.startswith("::", cursor):
+                break
+            qualified = True
+            cursor = _skip_space(code, cursor + 2)
+            if cursor < len(code) and code[cursor] == "<":
+                end = _generic_end(code, cursor)
+                if end is None:
+                    break
+                cursor = end
+                continue
+            segment = re.match(r"[A-Za-z_]\w*", code[cursor:])
+            if not segment:
+                break
+            cursor += segment.end()
+        if not qualified:
+            continue
+        open_paren = _skip_space(code, cursor)
+        if open_paren >= len(code) or code[open_paren] != "(":
+            continue
+        line_offset = code.count("\n", 0, start)
+        line_start = code.rfind("\n", 0, start) + 1
+        sites.append({"path": re.sub(r"\s+", "", code[start:cursor]), "line_offset": line_offset, "column": start - line_start + 1})
+    for match in re.finditer(r"(?<![\w.:])<([^>\n]+)>::([A-Za-z_]\w*)\s*(?:::<[^>]+>)?\s*\(", code):
+        start = match.start()
+        line_offset = code.count("\n", 0, start)
+        line_start = code.rfind("\n", 0, start) + 1
+        sites.append({"path": re.sub(r"\s+", "", match.group(0).rsplit("(", 1)[0]), "line_offset": line_offset, "column": start - line_start + 1})
+    unique = {}
+    for site in sites:
+        unique[(site["line_offset"], site["column"], site["path"])] = site
+    return sorted(unique.values(), key=lambda site: (site["line_offset"], site["column"], site["path"]))
+
+
 old_bytes = git_bytes(OLD, ALLOW_OLD)
 new_bytes = git_bytes(PRESERVED, ALLOW_NEW)
 check(old_bytes == new_bytes, "allowlist preservation mismatch")
@@ -191,6 +254,11 @@ check(len(fragment["workloads"]) == 71, "historical workload count mismatch")
 all_open_requirement_ids = {item["id"] for item in fragment["open_requirements"]}
 workload_unresolved_count = 0
 workload_helper_count = 0
+workload_qualified_call_count = 0
+workload_qualified_source_bound_count = 0
+workload_qualified_external_count = 0
+workload_qualified_open_count = 0
+workload_callback_binding_count = 0
 for workload in fragment["workloads"]:
     check(all(workload.get(key) is not None for key in ("dimensions", "collection_sizes", "options", "event_sequence", "clock_and_seed", "repeat_and_measurement_scope", "old_thresholds_and_claims", "current_production_equivalent")), "normalized workload definition is incomplete")
     history = workload["historical_test_surface"]
@@ -207,6 +275,19 @@ for workload in fragment["workloads"]:
         check(workload["current_production_equivalent"]["owner_task_ids"], "mapped workload lacks a product owner task")
     workload_unresolved_count += len(workload.get("unresolved_helper_edges", []))
     workload_helper_count += len(workload.get("local_helper_source_bindings", []))
+    qualified_edges = workload.get("qualified_call_edges", [])
+    workload_qualified_call_count += len(qualified_edges)
+    workload_qualified_source_bound_count += sum(edge.get("resolution") == "SOURCE_BOUND" for edge in qualified_edges)
+    workload_qualified_external_count += sum(edge.get("resolution") == "EXTERNAL_BOUNDARY" for edge in qualified_edges)
+    workload_qualified_open_count += sum(edge.get("resolution") == "OPEN_T33" for edge in qualified_edges)
+    callbacks = workload.get("local_callback_source_bindings", [])
+    workload_callback_binding_count += len(callbacks)
+    for callback in callbacks:
+        callback_raw = git_bytes(callback["commit"], callback["path"])
+        callback_lines = callback_raw.splitlines(keepends=True)
+        callback_span = b"".join(callback_lines[callback["line_start"] - 1:callback["line_end"]])
+        check(callback["commit"] == OLD and digest(callback_raw) == callback["source_sha256"] and digest(callback_span) == callback["span_sha256"], "local callback source binding hash mismatch")
+        check(callback["source_text"] == callback_span.decode("utf-8").rstrip("\r\n") and callback["evidence"] == "NOT VERIFIED" and callback["owner_task_ids"] and callback["role"], "local callback source text or ownership mismatch")
     source_cache = {}
     for helper in workload.get("local_helper_source_bindings", []):
         helper_raw = git_bytes(helper["commit"], helper["path"])
@@ -223,6 +304,31 @@ for workload in fragment["workloads"]:
         callee_lines = callee_raw.decode().splitlines()
         check(1 <= edge["callsite_line"] <= len(callsite_lines) and 1 <= edge["callee_line"] <= len(callee_lines), "resolved helper source line is out of bounds")
         check(any(helper["path"] == edge["callee_path"] and helper["line_start"] == edge["callee_line"] for helper in workload.get("local_helper_source_bindings", [])), "resolved helper edge has no exact source binding")
+    qualified_ids = set()
+    for edge in qualified_edges:
+        identity = (edge.get("callsite_path"), edge.get("callsite_line"), edge.get("callsite_column"), edge.get("path"))
+        check(all(identity) and edge.get("call_text") and edge.get("evidence") == "NOT VERIFIED", "qualified call edge lacks an exact historical callsite")
+        check(identity not in qualified_ids, "duplicate qualified call identity")
+        qualified_ids.add(identity)
+        callsite_lines = git_bytes(OLD, edge["callsite_path"]).decode().splitlines()
+        check(1 <= edge["callsite_line"] <= len(callsite_lines), "qualified callsite line is out of bounds")
+        if edge["resolution"] == "SOURCE_BOUND":
+            source_raw = git_bytes(OLD, edge["callee_path"])
+            source_lines = source_raw.splitlines(keepends=True)
+            source_span = b"".join(source_lines[edge["callee_line_start"] - 1:edge["callee_line_end"]])
+            check(digest(source_raw) == edge["callee_source_sha256"] and digest(source_span) == edge["callee_span_sha256"], "qualified call target source hash mismatch")
+            check(any(binding["path"] == edge["callee_path"] and binding["line_start"] == edge["callee_line_start"] and binding["span_sha256"] == edge["callee_span_sha256"] for binding in workload["local_helper_source_bindings"]), "qualified source edge has no helper or implementation binding")
+        elif edge["resolution"] == "EXTERNAL_BOUNDARY":
+            check(edge.get("boundary_owner") in {"ratatui", "ratatui_core", "std", "core", "alloc"}, "qualified external call has no recognized boundary owner")
+            reexport = edge.get("reexport_evidence")
+            if reexport:
+                source_raw = git_bytes(reexport["commit"], reexport["path"])
+                source_lines = source_raw.splitlines(keepends=True)
+                check(digest(source_raw) == reexport["source_sha256"] and digest(source_lines[reexport["line"] - 1]) == reexport["span_sha256"] and reexport["text"] == source_lines[reexport["line"] - 1].decode("utf-8").strip(), "qualified external reexport evidence mismatch")
+        else:
+            check(edge["resolution"] == "OPEN_T33" and edge.get("reason") and edge.get("unresolved_requirement_id") in workload.get("unresolved_requirement_ids", []), "qualified unknown call is not an exact T33 open edge")
+            matched = [item for item in workload.get("unresolved_helper_edges", []) if item.get("qualified_call_identity") == list(identity)]
+            check(len(matched) == 1 and matched[0].get("requirement_id") == edge["unresolved_requirement_id"] and matched[0].get("owner_task_ids") == ["T33"], "qualified open edge does not join its exact T33 requirement")
     unresolved = workload.get("unresolved_helper_edges", [])
     unresolved_ids = set(workload.get("unresolved_requirement_ids", []))
     check(len(unresolved) == len(workload.get("unresolved_requirements", [])) == len(unresolved_ids), "unresolved workload edge requirement count mismatch")
@@ -237,7 +343,12 @@ for workload in fragment["workloads"]:
         if edge["call"].startswith("continuation_method."):
             check(edge["call"].split(".", 1)[1] in callsite_lines[edge["callsite_line"] - 1], "continuation method callsite text mismatch")
     for edge in workload.get("external_method_calls", []):
-        check(edge.get("boundary") == "external_or_standard_library" and edge.get("receiver_type", "").split("::", 1)[0] in {"ratatui", "ratatui_core", "std", "core", "alloc"}, "external method boundary lacks a standard or external owner")
+        if edge.get("call_kind") == "imported_function":
+            check(edge.get("boundary") == "external_or_standard_library" and edge.get("imported_path", "").split("::", 1)[0] in {"ratatui", "ratatui_core", "std", "core", "alloc"} and edge.get("function"), "imported function boundary lacks an external source path")
+        elif edge.get("call_kind") == "language_prelude_constructor":
+            check(edge.get("boundary") == "external_or_standard_library" and edge.get("imported_path", "").startswith("core::prelude::") and edge.get("function") in {"Some", "Ok", "Err"}, "language prelude constructor lacks its standard-library identity")
+        else:
+            check(edge.get("boundary") == "external_or_standard_library" and edge.get("receiver_type", "").split("::", 1)[0] in {"ratatui", "ratatui_core", "std", "core", "alloc"}, "external method boundary lacks a standard or external owner")
         callsite_lines = git_bytes(OLD, edge["callsite_path"]).decode().splitlines()
         check(1 <= edge["callsite_line"] <= len(callsite_lines), "external workload callsite is out of bounds")
     def check_fact_lines(value):
@@ -262,13 +373,42 @@ for workload in fragment["workloads"]:
         helper_kind = helper.get("call_kind")
         if helper_kind == "same_file_free_function" or (helper_kind == "receiver_resolved_method" and (helper_path == history_scope["path"] or helper_path.startswith("crates/termrock-test-support/src/"))):
             trace_scopes.append((helper_path, helper["line_start"], helper["line_end"]))
+        elif helper_kind == "qualified_local_free_function":
+            trace_scopes.append((helper_path, helper["line_start"], helper["line_end"]))
     chain_edges = {(edge["callsite_path"], edge["callsite_line"], edge["call"]) for edge in unresolved if edge["call"].startswith("continuation_method.")}
     for scope_path, scope_start, scope_end in set(trace_scopes):
         scope_lines = git_bytes(OLD, scope_path).decode().splitlines()
+        scope_code = "\n".join(scope_lines[scope_start - 1:scope_end])
+        expected = {(scope_path, scope_start + site["line_offset"], site["column"], site["path"]) for site in qualified_call_sites(scope_code)}
+        recorded = {identity for identity in qualified_ids if identity[0] == scope_path and scope_start <= identity[1] <= scope_end}
+        check(expected == recorded, "qualified or turbofish call trace omits or invents a source edge: " + scope_path + ":" + str(scope_start))
+        expected_bare = set()
         for line_number in range(scope_start, scope_end + 1):
-            match = re.match(r"\s*\.\s*([A-Za-z_]\w*)\s*\(", scope_lines[line_number - 1])
+            source_line = scope_lines[line_number - 1]
+            if not re.match(r"\s*(?:pub(?:\([^)]*\))?\s+)?(?:const\s+)?fn\s+", source_line):
+                for call in re.finditer(r"(?<![.\w:])([A-Za-z_]\w*)\s*\(", source_line):
+                    name = call.group(1)
+                    if name in {"if", "while", "for", "match", "assert", "assert_eq", "assert_ne", "debug_assert", "debug_assert_eq", "vec", "format", "concat", "include_str", "include_bytes", "self"}:
+                        continue
+                    expected_bare.add((scope_path, line_number, call.start() + 1, name))
+            match = re.match(r"\s*\.\s*([A-Za-z_]\w*)\s*(?:::<[^>]+>)?\s*\(", scope_lines[line_number - 1])
             if match:
                 check((scope_path, line_number, "continuation_method." + match.group(1)) in chain_edges, "continued workload method was omitted from its trace")
+            for chained in re.finditer(r"\.\s*([A-Za-z_]\w*)\s*(?:::<[^>]+>)?\s*\(", scope_lines[line_number - 1]):
+                prefix = scope_lines[line_number - 1][:chained.start()].rstrip()
+                if prefix and not re.search(r"[A-Za-z_]\w*$", prefix):
+                    check((scope_path, line_number, "continuation_method." + chained.group(1)) in chain_edges, "same-line chained method was omitted from its T33 trace")
+        recorded_bare = set()
+        for edge in workload.get("helper_call_edges", []):
+            if edge.get("caller_path") == scope_path and scope_start <= edge.get("callsite_line", 0) <= scope_end and not edge.get("receiver"):
+                recorded_bare.add((scope_path, edge["callsite_line"], edge.get("callsite_column"), edge.get("call")))
+        for edge in unresolved:
+            if edge.get("callsite_path") == scope_path and scope_start <= edge.get("callsite_line", 0) <= scope_end and not edge.get("qualified_call_identity") and not edge.get("call", "").startswith("continuation_method.") and "." not in edge.get("call", ""):
+                recorded_bare.add((scope_path, edge["callsite_line"], edge.get("callsite_column"), edge.get("call")))
+        for edge in workload.get("external_method_calls", []):
+            if edge.get("call_kind") in {"imported_function", "language_prelude_constructor"} and edge.get("callsite_path") == scope_path and scope_start <= edge.get("callsite_line", 0) <= scope_end:
+                recorded_bare.add((scope_path, edge["callsite_line"], edge.get("callsite_column"), edge.get("function")))
+        check(expected_bare == recorded_bare, "unqualified call trace omits or invents a source edge: " + scope_path + ":" + str(scope_start))
     for binding in workload["current_production_equivalent"]["source_bindings"]:
         if binding["kind"] == "source_file":
             check(digest(git_bytes(INPUT, binding["path"])) == binding["sha256"], "current workload source hash mismatch")
@@ -277,7 +417,21 @@ for workload in fragment["workloads"]:
 empty_frame_workload = next(w for w in fragment["workloads"] if w["historical_test_surface"]["entrypoint"] == "frame_testbackend_empty_120x40")
 check(any(x.get("method") == "draw" and x.get("receiver_type") == "ratatui_core::terminal::Terminal" and x.get("callsite_path") == "crates/termrock-test-support/tests/perf.rs" and x.get("callsite_line") == 62 for x in empty_frame_workload["external_method_calls"]), "empty-frame external Terminal::draw boundary mismatch")
 check(not any(x.get("name") == "draw" and x.get("path") == "crates/termrock-test-support/tests/perf.rs" for x in empty_frame_workload["local_helper_source_bindings"]), "empty-frame workload is bound to an unrelated local draw method")
+form_workload = next(w for w in fragment["workloads"] if w["historical_test_surface"]["entrypoint"] == "frame_form_update_draw")
+delivery_edges = [edge for edge in form_workload["qualified_call_edges"] if edge["path"] == "termrock_test_support::deliver_buffer"]
+check([(edge["callsite_line"], edge["resolution"]) for edge in delivery_edges] == [(1584, "SOURCE_BOUND"), (1588, "SOURCE_BOUND")], "form workload qualified delivery helper callsites are not both source-bound")
+delivery_binding = next((binding for binding in form_workload["local_helper_source_bindings"] if binding["path"] == "crates/termrock-test-support/src/lib.rs" and binding["name"] == "deliver_buffer"), None)
+check(delivery_binding and delivery_binding["line_start"] == 40 and delivery_binding["line_end"] == 61 and delivery_binding["call_kind"] == "qualified_local_free_function", "form workload lacks the exact historical deliver_buffer helper definition")
+check({item["symbol"] for item in form_workload["local_callback_source_bindings"]} == {"PERF_FORM/PERF_FORM_FLAG/PERF_FORM_FIELDS", "PerfFormData", "PerfFormApp::update/draw"}, "form workload local callback/configuration source spans are incomplete")
+check({(item["line_start"], item["line_end"]) for item in form_workload["local_callback_source_bindings"]} == {(1527, 1533), (1535, 1556), (1558, 1574)}, "form workload callback/configuration spans do not match immutable source")
+check({item["line"] for item in form_workload["configuration_constant_lines"] if item["path"] == "crates/termrock-test-support/tests/perf.rs"} >= {1527, 1528, 1529}, "form workload omitted historical PERF_FORM configuration constants")
+check({item["path"] for item in form_workload["current_production_equivalent"]["source_bindings"]} == {"crates/termrock-runtime/src/runtime.rs", "crates/termrock-forms/src/form.rs", "crates/termrock-controls/src/choice.rs"}, "form workload current Runtime/Form/Checkbox source mapping is incomplete")
+form_source_owners = {item["path"]: item["owner_task_ids"] for item in form_workload["current_production_equivalent"]["source_bindings"]}
+check(form_source_owners == {"crates/termrock-runtime/src/runtime.rs": ["T09"], "crates/termrock-forms/src/form.rs": ["T18"], "crates/termrock-controls/src/choice.rs": ["T12"]}, "form workload current source owner tasks mismatch")
+check(not any(item["path"] == "crates/termrock-test-support/src/lib.rs" for item in form_workload["current_production_equivalent"]["source_bindings"]), "historical delivery helper was presented as current product source")
 check(fragment["requirements"]["workload_unresolved_call_count"] == workload_unresolved_count and fragment["requirements"]["all_workload_calls_are_bound_or_open"], "workload trace gate mismatch")
+check(fragment["requirements"]["workload_qualified_call_count"] == workload_qualified_call_count and fragment["requirements"]["workload_qualified_source_bound_count"] == workload_qualified_source_bound_count and fragment["requirements"]["workload_qualified_external_boundary_count"] == workload_qualified_external_count and fragment["requirements"]["workload_qualified_open_count"] == workload_qualified_open_count, "qualified workload call counts mismatch")
+check(fragment["requirements"]["workload_callback_binding_count"] == workload_callback_binding_count, "workload callback source span count mismatch")
 check(fragment["requirements"]["all_rows_have_source_binding_or_approved_retirement"], "current row mapping incomplete")
 check(fragment["requirements"]["all_migration_sources_are_explicit"], "one or more migration sources lack an explicit source, hash, or owner")
 export_join = next((x for x in fragment["open_requirements"] if x["id"] == "HIST-CURRENT-EXPORT-JOIN"), None)
@@ -292,7 +446,7 @@ check(all(x["block_final"] and x["status"] == "PROPOSED_NOT_APPROVED_T38" and x[
 check(fragment["scope"]["selected_cases"] == 0 and fragment["scope"]["product_behavior"] == "NOT VERIFIED", "verification scope mismatch")
 print("rows=4511 unique=4511 lanes=4511 row_source_joins=ok preserved_identity=byte_identical")
 print("migration_items=" + str(len(fragment["historical_migration_items"])) + " routes=54 applications=4 workloads=71 unresolved_historical_rows=" + str(fragment["counts"]["unresolved_rows"]))
-print("workload_open_helper_edges=" + str(workload_unresolved_count) + " owner=T33")
+print("workload_open_helper_edges=" + str(workload_unresolved_count) + " qualified_calls=" + str(workload_qualified_call_count) + " source_bound=" + str(workload_qualified_source_bound_count) + " external=" + str(workload_qualified_external_count) + " open_T33=" + str(workload_qualified_open_count) + " callbacks=" + str(workload_callback_binding_count) + " owner=T33")
 print("selected_cases=0 behavior=NOT_VERIFIED structural_source_checks=ok")
 print("jsonl_sha256=" + digest(jsonl_bytes))
 print("fragment_sha256=" + digest(fragment_bytes))

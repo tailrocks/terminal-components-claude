@@ -20,7 +20,9 @@ Source bindings do not prove behavior, compiler visibility, or test results.
 The fragment maps 165 migration items, 54 routes, and four application owners.
 The performance inventory retains 71 historical entrypoints for T33.
 Workload edges bind source owners or stay open with T33.
-Static tracing leaves 610 helper edges open for T33.
+Static tracing leaves 1329 helper and qualified-call edges open for T33.
+Qualified call sites: 602; source-bound 217; external boundaries 169; open T33 216.
+The form workload binds 3 callback and configuration spans; behavior remains NOT VERIFIED.
 The empty-frame workload calls external ratatui Terminal::draw.
 No Termrock production path is mapped for that workload.
 Historical and current measurements remain NOT VERIFIED.
