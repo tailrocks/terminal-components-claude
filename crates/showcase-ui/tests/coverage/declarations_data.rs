@@ -4754,4 +4754,28 @@ pub static PROOFS: &[BehaviorProof] = &[
         probe: " · review",
         owner: Some("termrock-editors::diff::DiffView"),
     },
+    BehaviorProof {
+        capability: "termrock-fields::textarea::TextArea::edit_entry",
+        page: "textareas",
+        route: "Text areas",
+        kind: ProofKind::Option,
+        probe: "Type to edit",
+        owner: None,
+    },
+    BehaviorProof {
+        capability: "termrock-fields::textarea::TextArea::focus_select",
+        page: "textareas",
+        route: "Text areas",
+        kind: ProofKind::Option,
+        probe: "Select all",
+        owner: None,
+    },
+    BehaviorProof {
+        capability: "termrock-fields::textarea::TextArea::esc_reverts",
+        page: "textareas",
+        route: "Text areas",
+        kind: ProofKind::Option,
+        probe: "Revert",
+        owner: None,
+    },
 ];

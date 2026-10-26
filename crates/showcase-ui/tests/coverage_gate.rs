@@ -19,7 +19,7 @@ use crate::coverage::declarations::{
 };
 use crate::coverage::scan::{self, Item};
 use showcase_ui::{App, NAV_ENTRIES, PageId};
-use termrock::{Id, KeyCode, Theme};
+use termrock::{Id, KeyCode, Part, PartRef, StateFlags, Theme};
 use termrock_test_support::Harness;
 
 const WIDTH: u16 = 120;
@@ -27,6 +27,13 @@ const HEIGHT: u16 = 40;
 const DIFF_TABS: Id = Id::root("showcase_ui::pages::diff.page_tabs");
 const DIFF_MODE: Id = Id::root("showcase_ui::pages::diff.option.mode");
 const DIFF_VIEW: Id = Id::root("showcase_ui::pages::diff.view");
+const TEXTAREAS_PAGE_TABS: Id = Id::root("showcase_ui::pages::textareas::page_tabs");
+const TEXTAREAS_BODY: Id = Id::root("showcase_ui::pages::textareas::textareas.body");
+const TEXTAREAS_BLUR_ACTION: Id = Id::root("showcase_ui::pages::textareas::option.blur_action");
+const TEXTAREAS_EDIT_ENTRY: Id = Id::root("showcase_ui::pages::textareas::option.edit_entry");
+const TEXTAREAS_FOCUS_SELECT: Id = Id::root("showcase_ui::pages::textareas::option.focus_select");
+const TEXTAREAS_ESCAPE_BEHAVIOR: Id =
+    Id::root("showcase_ui::pages::textareas::option.escape_behavior");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ProofControl {
@@ -36,11 +43,14 @@ enum ProofControl {
     StateRow,
     SharedDraw,
     SharedUpdate,
+    TextAreaEditEntry,
+    TextAreaFocusSelect,
+    TextAreaEscReverts,
 }
 
 // This closed table is the only source of proof credit. The order matches
-// ProofControl::index, and every row is exercised by the current Diff test.
-const EXECUTABLE_PROOFS: [BehaviorProof; 6] = [
+// ProofControl::index. Each route test exercises its own listed controls.
+const EXECUTABLE_PROOFS: [BehaviorProof; 9] = [
     BehaviorProof {
         capability: "termrock-editors::diff::DiffView",
         page: "diff",
@@ -89,6 +99,30 @@ const EXECUTABLE_PROOFS: [BehaviorProof; 6] = [
         probe: " · review",
         owner: Some("termrock-editors::diff::DiffView"),
     },
+    BehaviorProof {
+        capability: "termrock-fields::textarea::TextArea::edit_entry",
+        page: "textareas",
+        route: "Text areas",
+        kind: ProofKind::Option,
+        probe: "Type to edit",
+        owner: None,
+    },
+    BehaviorProof {
+        capability: "termrock-fields::textarea::TextArea::focus_select",
+        page: "textareas",
+        route: "Text areas",
+        kind: ProofKind::Option,
+        probe: "Select all",
+        owner: None,
+    },
+    BehaviorProof {
+        capability: "termrock-fields::textarea::TextArea::esc_reverts",
+        page: "textareas",
+        route: "Text areas",
+        kind: ProofKind::Option,
+        probe: "Revert",
+        owner: None,
+    },
 ];
 
 impl ProofControl {
@@ -100,6 +134,9 @@ impl ProofControl {
             Self::StateRow => 3,
             Self::SharedDraw => 4,
             Self::SharedUpdate => 5,
+            Self::TextAreaEditEntry => 6,
+            Self::TextAreaFocusSelect => 7,
+            Self::TextAreaEscReverts => 8,
         }
     }
 }
@@ -111,6 +148,112 @@ fn executable_proof(control: ProofControl) -> &'static BehaviorProof {
 fn diff_harness() -> Harness<App> {
     let route = executable_proof(ProofControl::DiffDemo).route;
     Harness::new(App::for_page_name(route), Theme::junie(), WIDTH, HEIGHT)
+}
+
+fn textareas_harness() -> Harness<App> {
+    let route = executable_proof(ProofControl::TextAreaEditEntry).route;
+    let harness = Harness::new(App::for_page_name(route), Theme::junie(), WIDTH, HEIGHT);
+    assert_eq!(harness.app().page(), PageId::TextAreas);
+    harness
+}
+
+fn assert_control_proof(control: ProofControl, page: &str, route: &str) {
+    let proof = executable_proof(control);
+    assert_eq!(proof.page, page, "{} proof page", proof.capability);
+    assert_eq!(proof.route, route, "{} proof route", proof.capability);
+    assert!(
+        PROOFS.contains(proof),
+        "{} behavior row is absent from declarations_data.rs",
+        proof.capability
+    );
+}
+
+#[expect(
+    clippy::expect_used,
+    reason = "route proofs require the body text part to be visible"
+)]
+fn textarea_text(harness: &Harness<App>) -> String {
+    let area = harness
+        .area_of_part(TEXTAREAS_BODY, PartRef::of(Part::TEXT))
+        .expect("the Text areas body exposes its visible text part");
+    let rows = (area.y..area.bottom())
+        .map(|y| {
+            let mut row = String::new();
+            let mut x = area.x;
+            while x < area.right() {
+                let symbol = harness.cell(x, y).symbol();
+                row.push_str(symbol);
+                x = x.saturating_add(termrock::width(symbol).max(1));
+            }
+            row.trim_end().to_owned()
+        })
+        .collect::<Vec<_>>();
+    rows.join("\n").trim_end_matches('\n').to_owned()
+}
+
+fn seed_textarea(harness: &mut Harness<App>, value: &str) {
+    assert!(
+        harness.tab_to(TEXTAREAS_BODY),
+        "the Text areas body is reachable"
+    );
+    assert!(
+        harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING),
+        "the default Immediate body begins an edit session"
+    );
+    let _ = harness.ctrl('l');
+    let _ = harness.paste(value);
+    let _ = harness.key(KeyCode::Esc);
+    assert!(
+        !harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING),
+        "the seeded value is committed"
+    );
+    assert_eq!(textarea_text(harness), value, "the short seed is exact");
+}
+
+fn choose_textareas_option(
+    harness: &mut Harness<App>,
+    option: Id,
+    steps: &[KeyCode],
+    selected_label: &str,
+) {
+    assert!(
+        harness.tab_to(TEXTAREAS_PAGE_TABS),
+        "Text areas section tabs focus"
+    );
+    let _ = harness.key(KeyCode::Char('2'));
+    assert!(
+        harness.area_of(option).is_some(),
+        "option {option:?} is visible"
+    );
+    assert!(harness.tab_to(option), "option {option:?} receives focus");
+    let _ = harness.key(KeyCode::Enter);
+    assert!(harness.is_open(option), "option {option:?} opens natively");
+    for key in steps {
+        let _ = harness.key(*key);
+    }
+    let _ = harness.key(KeyCode::Enter);
+    assert!(
+        !harness.is_open(option),
+        "option {option:?} closes after choice"
+    );
+    let option_text = harness.text();
+    assert!(
+        option_text.contains(selected_label),
+        "option {option:?} shows {selected_label:?}\n{option_text}"
+    );
+    assert!(
+        harness.tab_to(TEXTAREAS_PAGE_TABS),
+        "section tabs regain focus"
+    );
+    let _ = harness.key(KeyCode::Char('1'));
+    assert!(
+        harness.area_of(option).is_none(),
+        "option {option:?} is hidden"
+    );
 }
 
 /// The page with this slug.
@@ -640,7 +783,7 @@ fn via_requires_matching_parent_and_direct_owner_demo() {
 }
 
 #[test]
-fn current_diff_route_executes_all_supported_proof_controls() {
+fn current_diff_route_executes_each_diff_proof_control() {
     let demo = executable_proof(ProofControl::DiffDemo);
     let draw = executable_proof(ProofControl::SharedDraw);
     assert!(
@@ -676,6 +819,8 @@ fn current_diff_route_executes_all_supported_proof_controls() {
         "the {} draw control renders the declared output\n{direct_text}",
         draw.probe
     );
+    assert_control_proof(ProofControl::DiffDemo, "diff", "Diff");
+    assert_control_proof(ProofControl::SharedDraw, "diff", "Diff");
     assert!(
         direct.diagnostics().is_empty(),
         "{:?}",
@@ -719,6 +864,9 @@ fn current_diff_route_executes_all_supported_proof_controls() {
         "the {} control should update the shared component\\n{option_text}",
         update.probe
     );
+    assert_control_proof(ProofControl::ReviewVariant, "diff", "Diff");
+    assert_control_proof(ProofControl::SetMode, "diff", "Diff");
+    assert_control_proof(ProofControl::SharedUpdate, "diff", "Diff");
     assert!(
         option.diagnostics().is_empty(),
         "{:?}",
@@ -741,17 +889,312 @@ fn current_diff_route_executes_all_supported_proof_controls() {
         "the {} state-row control renders the declared output\n{text}",
         state_row.probe
     );
+    assert_control_proof(ProofControl::StateRow, "diff", "Diff");
     assert!(
         states.diagnostics().is_empty(),
         "{:?}",
         states.diagnostics()
     );
+}
 
-    assert_eq!(PROOFS.len(), EXECUTABLE_PROOFS.len());
-    for proof in PROOFS {
-        assert!(
-            EXECUTABLE_PROOFS.contains(proof),
-            "unsupported proof row: {proof:?}"
-        );
-    }
+#[test]
+fn current_textareas_route_executes_edit_entry_selector_behavior() {
+    let proof = executable_proof(ProofControl::TextAreaEditEntry);
+    let mut harness = textareas_harness();
+    seed_textarea(&mut harness, "base");
+
+    choose_textareas_option(
+        &mut harness,
+        TEXTAREAS_EDIT_ENTRY,
+        &[KeyCode::Down],
+        proof.probe,
+    );
+    assert!(
+        harness.tab_to(TEXTAREAS_BODY),
+        "the TypeToEdit body is reachable"
+    );
+    assert!(
+        !harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    let original = textarea_text(&harness);
+    assert_eq!(original, "base", "the TypeToEdit baseline is known");
+
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.key(KeyCode::Right);
+    assert!(
+        !harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    assert_eq!(
+        textarea_text(&harness),
+        original,
+        "idle Enter and arrows do not begin TypeToEdit"
+    );
+
+    let _ = harness.key(KeyCode::Char('x'));
+    assert!(
+        harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    assert_eq!(textarea_text(&harness), "basex");
+    let _ = harness.key(KeyCode::Esc);
+    assert!(
+        !harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    assert_eq!(textarea_text(&harness), "basex");
+
+    let paste = " plus\n雪";
+    let _ = harness.paste(paste);
+    assert!(
+        harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    let pasted = textarea_text(&harness);
+    assert_eq!(
+        pasted, "basex plus\n雪",
+        "focused paste starts TypeToEdit and inserts the complete multiline payload"
+    );
+    let _ = harness.key(KeyCode::Esc);
+    assert_eq!(textarea_text(&harness), "basex plus\n雪");
+
+    choose_textareas_option(
+        &mut harness,
+        TEXTAREAS_EDIT_ENTRY,
+        &[KeyCode::Down],
+        "Explicit",
+    );
+    assert!(
+        harness.tab_to(TEXTAREAS_BODY),
+        "the Explicit body is reachable"
+    );
+    let explicit_before = textarea_text(&harness);
+    assert!(
+        !harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    let _ = harness.key(KeyCode::Char('y'));
+    assert!(
+        !harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    assert_eq!(
+        textarea_text(&harness),
+        explicit_before,
+        "idle typing does not begin"
+    );
+
+    let _ = harness.key(KeyCode::Enter);
+    assert!(
+        harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    let _ = harness.key(KeyCode::Char('y'));
+    assert!(textarea_text(&harness).ends_with('y'));
+    let _ = harness.key(KeyCode::Esc);
+    assert!(textarea_text(&harness).ends_with('y'));
+
+    assert_control_proof(ProofControl::TextAreaEditEntry, "textareas", "Text areas");
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn current_textareas_route_executes_focus_select_on_unicode_multiline_value() {
+    let proof = executable_proof(ProofControl::TextAreaFocusSelect);
+    let mut harness = textareas_harness();
+    let unicode_multiline = "seed 雪\n👩‍💻";
+    seed_textarea(&mut harness, unicode_multiline);
+    let seeded = textarea_text(&harness);
+    assert_eq!(seeded, unicode_multiline, "the Unicode seed is exact");
+
+    choose_textareas_option(
+        &mut harness,
+        TEXTAREAS_FOCUS_SELECT,
+        &[KeyCode::Down],
+        proof.probe,
+    );
+    choose_textareas_option(
+        &mut harness,
+        TEXTAREAS_FOCUS_SELECT,
+        &[KeyCode::Up],
+        "Caret end",
+    );
+    assert!(harness.tab_to(TEXTAREAS_BODY), "CaretEnd body is reachable");
+    assert!(
+        harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    let _ = harness.key(KeyCode::Char('Z'));
+    let caret_end_value = textarea_text(&harness);
+    assert_eq!(
+        caret_end_value, "seed 雪\n👩‍💻Z",
+        "CaretEnd appends after the existing Unicode lines"
+    );
+    let _ = harness.key(KeyCode::Esc);
+    assert_eq!(textarea_text(&harness), "seed 雪\n👩‍💻Z");
+
+    choose_textareas_option(
+        &mut harness,
+        TEXTAREAS_FOCUS_SELECT,
+        &[KeyCode::Down],
+        proof.probe,
+    );
+    assert!(
+        harness.tab_to(TEXTAREAS_BODY),
+        "SelectAll body is reachable"
+    );
+    assert!(
+        harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    let _ = harness.key(KeyCode::Char('X'));
+    assert_eq!(
+        textarea_text(&harness),
+        "X",
+        "SelectAll replaces both lines"
+    );
+    let _ = harness.key(KeyCode::Esc);
+    assert_eq!(textarea_text(&harness), "X", "the replacement commits");
+
+    assert_control_proof(ProofControl::TextAreaFocusSelect, "textareas", "Text areas");
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn current_textareas_route_executes_escape_policy_for_retained_session_origins() {
+    let proof = executable_proof(ProofControl::TextAreaEscReverts);
+    let mut harness = textareas_harness();
+    seed_textarea(&mut harness, "base");
+
+    choose_textareas_option(
+        &mut harness,
+        TEXTAREAS_BLUR_ACTION,
+        &[KeyCode::Down, KeyCode::Down],
+        "Keep",
+    );
+    choose_textareas_option(
+        &mut harness,
+        TEXTAREAS_EDIT_ENTRY,
+        &[KeyCode::Down],
+        "Type to edit",
+    );
+    choose_textareas_option(
+        &mut harness,
+        TEXTAREAS_ESCAPE_BEHAVIOR,
+        &[KeyCode::Down],
+        proof.probe,
+    );
+
+    assert!(
+        harness.tab_to(TEXTAREAS_BODY),
+        "TypeToEdit body is reachable"
+    );
+    let _ = harness.key(KeyCode::Char('!'));
+    assert!(
+        harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    assert_eq!(textarea_text(&harness), "base!");
+    choose_textareas_option(
+        &mut harness,
+        TEXTAREAS_EDIT_ENTRY,
+        &[KeyCode::Down],
+        "Explicit",
+    );
+    assert!(
+        harness.tab_to(TEXTAREAS_BODY),
+        "retained TypeToEdit session is reachable"
+    );
+    assert!(
+        harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    let _ = harness.key(KeyCode::Esc);
+    assert!(
+        !harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    assert_eq!(textarea_text(&harness), "base", "TypeToEdit origin reverts");
+
+    assert!(harness.tab_to(TEXTAREAS_BODY), "Explicit body is reachable");
+    assert!(
+        !harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    let explicit_before = textarea_text(&harness);
+    let _ = harness.key(KeyCode::Char('!'));
+    assert!(
+        !harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    assert_eq!(
+        textarea_text(&harness),
+        explicit_before,
+        "Explicit ignores idle typing"
+    );
+    let _ = harness.key(KeyCode::Enter);
+    assert!(
+        harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    let _ = harness.key(KeyCode::Char('!'));
+    assert_eq!(textarea_text(&harness), "base!");
+    choose_textareas_option(
+        &mut harness,
+        TEXTAREAS_EDIT_ENTRY,
+        &[KeyCode::Up],
+        "Type to edit",
+    );
+    assert!(
+        harness.tab_to(TEXTAREAS_BODY),
+        "retained Explicit session is reachable"
+    );
+    assert!(
+        harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    let _ = harness.key(KeyCode::Esc);
+    assert!(
+        !harness
+            .state_of(TEXTAREAS_BODY)
+            .contains(StateFlags::EDITING)
+    );
+    assert_eq!(
+        textarea_text(&harness),
+        "base!",
+        "Explicit origin commits on Escape"
+    );
+
+    assert_control_proof(ProofControl::TextAreaEscReverts, "textareas", "Text areas");
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
 }
