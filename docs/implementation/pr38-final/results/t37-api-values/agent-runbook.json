@@ -1,6 +1,6 @@
 {
   "task_id": "T37-API-PROSE-01",
-  "input_commit": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
+  "input_commit": "6d68ea25233c43be524061e84371dc6dcb59acb1",
   "output_commit": null,
   "output_commit_note": "The containing commit ID is returned to the coordinator because a commit cannot include its own hash.",
   "model": "gpt-6-luna",
@@ -11,7 +11,8 @@
     "docs/implementation/pr38-final/results/t37-api-values/agent-runbook.json",
     "docs/implementation/pr38-final/results/t37-api-values/build_decisions.py",
     "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
-    "docs/implementation/pr38-final/results/t37-api-values/validate_decisions.py"
+    "docs/implementation/pr38-final/results/t37-api-values/validate_decisions.py",
+    "docs/implementation/pr38-final/results/t37-api-values/rust_attachment.py"
   ],
   "requirements": [
     "Dispose every assigned Rustdoc group for the 268 core, 32 layout, and 22 text records.",
@@ -90,8 +91,16 @@
       "sha256": "d5ca0c624ba167edf0ecf59e0f889ecb26ab7b31360de6050342dcd05a6514a6"
     },
     "api_rules_reference": {
-      "path": "/Users/donbeave/Downloads/termrock-pr38-plan/API-RULES.md",
+      "path": "docs/implementation/pr38-final/API-RULES.md",
+      "commit": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
       "sha256": "c12fc5549307d714bf193b122bc32b4e8c68de5105a4c18994456b10c2f19a8e"
+    },
+    "prior_t37_api_values_commit": {
+      "commit": "6d68ea25233c43be524061e84371dc6dcb59acb1",
+      "result": "CORRECTION",
+      "reviewer": "/root/t37_components_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high"
     }
   },
   "outputs": {
@@ -105,35 +114,45 @@
       "descriptive_api_reference": 185,
       "historical_or_internal_description": 4,
       "planned_api_retirement": 11,
-      "required_maintained_clause": 112,
+      "required_maintained_clause": 110,
       "source_observation": 1,
-      "source_wording_conflict": 9
+      "source_wording_conflict": 11
     },
     "files": {
-      "docs/contracts/foundation-values.md": "53fa179a3109c2f52d63ec3d8a59702b48b48870543772cb01c67aab8831061e",
-      "docs/implementation/pr38-final/results/t37-api-values/build_decisions.py": "201cca7649a29518842223da9bebc84ee408a43923af95d5893aad6bdada807a",
-      "docs/implementation/pr38-final/results/t37-api-values/validate_decisions.py": "347e41f539f685bf17ee4afe1c56b9e14dafd1ad69227143cd63a448461b91d1",
-      "docs/implementation/pr38-final/results/t37-api-values/decisions.json": "d75509557a94e913abbb67bc4efabc53ea6efbcc01283ebc2668c4180753af4c"
+      "docs/contracts/foundation-values.md": "37b78cc720209453b0ed7a7ea2a70df46ad88ec5c173cb874fde84dfcb73b044",
+      "docs/implementation/pr38-final/results/t37-api-values/build_decisions.py": "40fe5251a6683a6c394f49859635111d977979281c405e135e120472274f89cb",
+      "docs/implementation/pr38-final/results/t37-api-values/validate_decisions.py": "ae5b02e56271638c5adfa286c7f231be0c129b489d9260c6586e3c5a2ec107cc",
+      "docs/implementation/pr38-final/results/t37-api-values/rust_attachment.py": "8eb9ede1ec85d8c9554f9ca615ac5dab7e76a6b8fb6acbecdc60ab41693ff887",
+      "docs/implementation/pr38-final/results/t37-api-values/decisions.json": "6c5c9147f0d0339b5fbba9adfe1fc8703c773c078fb7806e9ec67ee07e958cf4"
     }
   },
   "commands": [
     {
-      "command": "python3 docs/implementation/pr38-final/results/t37-api-values/build_decisions.py",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 docs/implementation/pr38-final/results/t37-api-values/build_decisions.py",
       "exit_code": 0,
       "selected_tests": 0,
       "passed_tests": 0,
       "failed_tests": 0,
       "evidence_path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
-      "result": "Generated 322 source-identity-preserving dispositions from the explicit semantic map."
+      "result": "Generated 322 source-identity-preserving dispositions using explicit semantic rules and token-aware attachment reconstruction."
     },
     {
-      "command": "python3 docs/implementation/pr38-final/results/t37-api-values/validate_decisions.py",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 docs/implementation/pr38-final/results/t37-api-values/validate_decisions.py",
       "exit_code": 0,
       "selected_tests": 0,
       "passed_tests": 0,
       "failed_tests": 0,
       "evidence_path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
-      "result": "All identities, source/text hashes, cleaned declarations, destinations, anchors, excerpts, cohort counts, and sentence lengths passed. Semantic correctness was not checked by this validator."
+      "result": "All identities, source/text hashes, full attachment chains, exact source/cleanup declarations, destinations, anchors, excerpts, cohort counts, and sentence limits passed. Semantic correctness remains subject to independent review."
+    },
+    {
+      "command": "python3 -m py_compile docs/implementation/pr38-final/results/t37-api-values/build_decisions.py docs/implementation/pr38-final/results/t37-api-values/validate_decisions.py docs/implementation/pr38-final/results/t37-api-values/rust_attachment.py",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-api-values/agent-runbook.json",
+      "result": "Python syntax check only; no behavior tests."
     },
     {
       "command": "git diff --cached --check",
@@ -142,7 +161,7 @@
       "passed_tests": 0,
       "failed_tests": 0,
       "evidence_path": "docs/implementation/pr38-final/results/t37-api-values/agent-runbook.json",
-      "result": "No whitespace errors."
+      "result": "No staged whitespace errors."
     }
   ],
   "approved_test_plan_id": null,
@@ -153,13 +172,13 @@
   "behavior_cases": 0,
   "behavior_status": "NOT VERIFIED",
   "downstream_requirements": [
-    "The foundation-values guide records the from_key caller precondition; its source predicate accepts any shifted non-character without Ctrl, Alt, or Super.",
-    "Carry cursor initialization and eligibility transitions into T14 bounds and selection cases.",
+    "The source comment for KeyStep::of conflicts with its TypeAhead default. T01 must reconcile caller prose; T14 must plan both precedence routes.",
+    "Carry cursor initialization and selection eligibility transitions into T14 bounds and selection cases.",
     "T01 must review the selection module wording conflict and the overbroad existing authoring sentence; the coordinator owns that authoring edit.",
     "T19 owns runtime keyboard hints; T20 owns global keyboard observation and protocol lifetime transitions.",
     "T01/T35 own any later descriptive API-reference documentation; those rows remain group-specific provenance here.",
     "The theme data arrays are outside this core/layout/text cohort; T37-THEME-DATA-01 needs its separate inventory and value-order disposition.",
-    "The exact commit needs independent Sol high review before integration."
+    "The corrected commit needs independent Sol high review before integration."
   ],
   "limits": [
     "This task changes maintained prose and evidence only. It does not verify behavior or change source, tests, or harnesses.",
@@ -170,9 +189,42 @@
   ],
   "review": {
     "state": "REVIEW",
-    "required_reviewer": "/root/t37_components_review",
-    "required_model": "gpt-6.1-sol",
-    "required_effort": "high",
-    "exact_commit_review": "PENDING"
-  }
+    "prior_exact_commit": "6d68ea25233c43be524061e84371dc6dcb59acb1",
+    "prior_result": "CORRECTION",
+    "reviewer": "/root/t37_components_review",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "corrected_exact_commit_review": "PENDING"
+  },
+  "fixed_input_commit": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
+  "correction_findings": [
+    {
+      "finding_number": 1,
+      "record": 127,
+      "result": "Changed to source_wording_conflict. The guide and decision record state the TypeAhead predicate and preserve T01/T14 follow-up."
+    },
+    {
+      "finding_number": 2,
+      "records": [
+        82,
+        90
+      ],
+      "result": "The guide and decision records preserve ALT 1/2 overrides, active-flags-or-ALT-3 delivery, and pointer suffixes that start with click or drag."
+    },
+    {
+      "finding_number": 3,
+      "records": "all 322",
+      "result": "A token-aware Rust lexer and scope stack reconstruct full module, trait, type, and impl ownership. Validation checks the attached source declaration and exact full-owner match after cleanup."
+    },
+    {
+      "finding_number": 4,
+      "records": "11 planned retirements",
+      "result": "Destinations use the canonical candidate docs/implementation/pr38-final/API-RULES.md."
+    },
+    {
+      "finding_number": 5,
+      "records": "builder and validator",
+      "result": "Explanatory comments and docstrings were removed. Explanations are recorded in this Markdown and runbook."
+    }
+  ]
 }

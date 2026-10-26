@@ -3,6 +3,7 @@ import json
 import re
 import subprocess
 from pathlib import Path
+from rust_attachment import RustSource
 
 ROOT = Path.cwd()
 INPUT = 'e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab'
@@ -10,10 +11,10 @@ RAW_COMMIT = '2fee2c277d1213fc5fad5d81eb77479600182b69'
 PRODUCT = '1d6ee92adf6ccca38eeee64b1371cba1497e8fcd'
 CLEANUP = '7368d4fc5a71e46cae5ee92963bcf3a6943953e9'
 CONTRACTS = 'c817b99e9e43abbbf3519d56b2f5ee86924243d8'
-PLAN = Path('/Users/donbeave/Downloads/termrock-pr38-plan')
 OUTDIR = ROOT / 'docs/implementation/pr38-final/results/t37-api-values'
 GUIDE = ROOT / 'docs/contracts/foundation-values.md'
 AUTH = ROOT / 'docs/contracts/authoring.md'
+API_RULES = 'docs/implementation/pr38-final/API-RULES.md'
 
 
 def git_json(commit, path):
@@ -29,10 +30,9 @@ cohort = [(i, x) for i, x in enumerate(raw_doc['records']) if x['path'].startswi
 
 FOUNDATION = 'docs/contracts/foundation-values.md'
 AUTH_PATH = 'docs/contracts/authoring.md'
-API_RULES = 'API-RULES.md'
 
-# Every listed clause was checked against the complete source group and its attached item.
-# This map is a semantic disposition authored for this exact cohort, not a lexical classifier.
+
+
 specs = {}
 
 def add(ids, *, section, marker, clause, doc='foundation', disposition='required_maintained_clause', decision_id=None, reason=None, table_cell=None):
@@ -45,7 +45,7 @@ def add(ids, *, section, marker, clause, doc='foundation', disposition='required
             'table_cell': table_cell,
         }
 
-# Intent identity, result semantics, diagnostic meanings, and preserved input decoding.
+
 add([1], section='intent-claims-and-diagnostics', marker='FocusContinuationUnacknowledged', clause='Identify the owner when a settled focus continuation was not acknowledged before bounded retention expired.')
 add([2], section='intent-claims-and-diagnostics', marker='InvalidComponentLayout', clause='Identify the component and optional field or child; None denotes a structural layout error.')
 add([3], section='intent-claims-and-diagnostics', marker='UnsupportedClippedComponentSlot', clause='Identify a legacy part painter that cannot describe a partially clipped component part, with its owner and part.')
@@ -61,7 +61,7 @@ add([19], section='intent-claims-and-diagnostics', marker='A tracked token is op
 add([20], section='intent-claims-and-diagnostics', marker='`claim_next_layer_event` claims', clause='Claim only the next unclaimed event for the owner when its payload matches; leave other owner-bucket intents observable.')
 add([21], section='intent-claims-and-diagnostics', marker='A `Mismatch` result', clause='A token claim targets only its exact entry, never a different same-owner/same-payload event; mismatch leaves the entry and neighbors unchanged.')
 
-# Keyboard policy is separated from the session's protocol lifetime and global mirrors.
+
 add([42], section='keyboard-protocol-and-delivery', marker='The core `KeyboardProtocol` value defaults', clause='Keep the core policy default Auto distinct from the session default Off; protocol negotiation remains opt-in.', decision_id='T37-KEY-PROTOCOL-01')
 add([55], section='keyboard-list-layout-and-text-rules', marker='| Keyboard protocol |', clause='Auto asks the caller probe before pushing.', doc='authoring', table_cell=1)
 add([57], section='keyboard-list-layout-and-text-rules', marker='| Keyboard protocol |', clause='Off writes no protocol bytes.', doc='authoring', table_cell=1)
@@ -69,7 +69,7 @@ add([60], section='keyboard-list-layout-and-text-rules', marker='| Keyboard prot
 add([67], section='keyboard-protocol-and-delivery', marker='`ProtocolState::enter` resolves', clause='Resolve Auto through the supplied probe; return a push only when protocol state enables it.')
 add([68], section='keyboard-protocol-and-delivery', marker='`leave` returns a pop', clause='Pop once only when this state previously pushed protocol flags.')
 add([69], section='keyboard-protocol-and-delivery', marker='`leave` returns a pop', clause='Resume pushes once only when enabled and not already pushed.')
-# These legacy process-global APIs have an explicit T20 retirement target.
+
 for i in [70, 71, 72, 73, 74, 75, 76, 87, 88, 89, 91]:
     specs[i] = {
         'section': '7-keep-the-prepared-frame-protocol',
@@ -85,17 +85,19 @@ add([77], section='keyboard-protocol-and-delivery', marker='For an Alt-modified 
 specs[77]['support_markers'] = ['`observe` learns Super unless delivery was refused.', 'For an Alt-modified key', 'Learning also requires active protocol flags']
 add([80], section='keyboard-protocol-and-delivery', marker='`AltKeys::Refused`', clause='Refused permits callers to install stand-ins for unavailable Alt chords.')
 add([81], section='keyboard-protocol-and-delivery', marker='`UntilSeen` keeps', clause='UntilSeen keeps macOS Option unconfirmed until an unambiguous Alt chord arrives.')
-add([82], section='keyboard-protocol-and-delivery', marker='`WithProtocol` allows', clause='WithProtocol allows Alt only while Kitty protocol flags are active.')
+add([82], section='open-source-wording-conflicts', marker='The `WithProtocol` comment limits Alt', clause='Before policy evaluation, ALT 1 returns true and ALT 2 returns false; otherwise WithProtocol returns active() or ALT 3 from observation.', disposition='source_wording_conflict', decision_id='T37-KEY-OBSERVE-01', reason='The variant comment says Alt arrives only while protocol flags are active. The source checks ALT 1/2 overrides first, then active flags or ALT 3; observe can set ALT 3 without flags. T19/T20 own the target transition.')
+specs[82]['support_markers'] = ['Before policy evaluation, `alt_delivered()` returns true', 'Without an override, `WithProtocol` reports delivery']
 add([84, 85, 86], section='keyboard-protocol-and-delivery', marker='Without a recognized override', clause='Resolve Alt delivery from the override, platform, and named terminal environment values; retain the documented platform fallbacks.')
-add([90], section='keyboard-protocol-and-delivery', marker='Legacy literal hints reject', clause='Do not advertise Shift pointer labels; require Super/Alt delivery for matching chord labels, except Alt labels ending in click or drag.')
+add([90], section='keyboard-protocol-and-delivery', marker='Alt prefixes require Alt delivery', clause='Do not advertise Shift pointer labels; require Super/Alt delivery for matching chord labels, except Alt suffixes starting with click or drag.')
 
-# Shared list cursor/type-ahead behavior and source-index selection.
+
 add([92], section='list-selection-and-type-ahead', marker='List cursor navigation is an opt-in', clause='List navigation is opt-in; existing widgets retain prior routing until they adopt the shared capability.')
 add([103, 104, 105, 106, 107, 108], section='list-selection-and-type-ahead', marker='`Moved::Ignored` means movement', clause='Map Ignored, Stayed, and To to input outcomes; report index only when movement applies and distinguish a type-ahead miss from movement.')
 add([113], section='list-selection-and-type-ahead', marker='`Cursor::new(index)` stores', clause='Cursor defaults to skipping disabled rows.')
 add([117, 119], section='list-selection-and-type-ahead', marker='`step` bypasses disabled rows', clause='Step skips disabled rows when skip_disabled is true; false permits disabled destinations.')
 add([114], section='open-source-wording-conflicts', marker='The `Cursor::new` comment says', clause='Initialize the supplied index unchanged, with vertical axis, no wrapping, and disabled-row skipping; constructor has no row source to validate against.', disposition='source_wording_conflict', decision_id='T37-CURSOR-NEW-01', reason='The source comment says the constructor clamps, but it receives no RowSource. Sol high confirms initialization stores the index unchanged; no source defect is established.')
-add([127], section='keyboard-list-layout-and-text-rules', marker='| List selection |', clause='The default routing gives a bound printable key to shortcuts first.', doc='authoring', table_cell=1)
+add([127], section='open-source-wording-conflicts', marker='`KeyStep::of` passes `TypeAhead` precedence', clause='KeyStep::of passes TypeAhead to ordered; eligible printable characters type before navigation when type-ahead is enabled. Explicit Shortcuts precedence yields bound keys only during the shortcuts route.', disposition='source_wording_conflict', reason='The source comment says shortcuts first, but KeyStep::of passes TypeAhead. Preserve the current predicate as an unverified source observation; T01 must reconcile caller prose and T14 must plan both routes.')
+specs[127]['support_markers'] = ['`KeyStep::of` passes `TypeAhead` precedence', '`ordered` yields a bound key only']
 add([130, 131], section='list-selection-and-type-ahead', marker='`Shortcuts` precedence gives', clause='Shortcuts mode gives bound letters to shortcuts first; TypeAhead mode sends every printable character to type-ahead.')
 add([137], section='keyboard-list-layout-and-text-rules', marker='| List selection |', clause='A shortcut handler that yields without changing state may receive the same key again for type-ahead.', doc='authoring', table_cell=1)
 for i in [135, 136, 143, 144]:
@@ -131,7 +133,7 @@ add([225], section='list-selection-and-type-ahead', marker='`set` changes row me
 add([226], section='list-selection-and-type-ahead', marker='`set` changes row membership', clause='Retain selection after filtering and remap after reorder/removal; None drops the row.')
 add([227], section='list-selection-and-type-ahead', marker='`set` changes row membership', clause='Remap selected source rows after reorder/removal; drop a row when mapping returns None.')
 
-# Cursor shapes, bounded columns/composition, and split sizing.
+
 add([228], section='layout-and-bounded-work', marker='`ShapeSync` is opt-in.', clause='ShapeSync is an opt-in value API; the frozen source comment reports no production emitter, which is source snapshot context rather than behavior proof.', disposition='source_observation', reason='This module group reports shape adoption status in the frozen source. It does not state a caller failure, identity, or safety rule; keep the statement explicitly as unverified repository context.')
 add([253], section='keyboard-list-layout-and-text-rules', marker='| Cursor shape |', clause='Request shapes only when supported, emit only on change, and reset shapes previously sent by the process.', doc='authoring', table_cell=1)
 add([256], section='layout-and-bounded-work', marker='`ShapeSync::forget`', clause='Forget remembered shapes so the next supported apply can resend them.')
@@ -157,7 +159,7 @@ add([295], section='layout-and-bounded-work', marker='Required-extent methods us
 add([296, 297], section='layout-and-bounded-work', marker='Required-extent methods use', clause='Fixed first- and second-share required extents call their matching share layout resolver.')
 add([298, 299], section='layout-and-bounded-work', marker='Basis-point drag and nudge', clause='Drag and nudge retain the precise ratio in basis points for later resizes; nudge moves the first pane by the requested cell delta.')
 
-# Text editing boundaries and undo/redo lifecycle.
+
 add([397], section='text-offsets-and-undo', marker='Selecting a line excludes', clause='Line selection excludes the newline.')
 add([398], section='text-offsets-and-undo', marker='Insertion keeps', clause='Insert without consuming selection; clamp the byte offset and floor it to a grapheme boundary, then normalize cursor/anchor directions.')
 add([399], section='text-offsets-and-undo', marker='Removal uses', clause='Remove a clamped half-open range; no-op empty/reversed ranges; preserve positions through the expanded-start/end rules and normalize grapheme boundaries.')
@@ -171,8 +173,8 @@ add([411], section='text-offsets-and-undo', marker='An `Other` edit', clause='Se
 add([415], section='text-offsets-and-undo', marker='Undo restores', clause='Undo restores the prior snapshot and puts the current state on redo.')
 add([416], section='text-offsets-and-undo', marker='Undo restores', clause='Redo restores the undone state and puts the current state on undo.')
 
-# Confirm only the explicit rows above carry required/open/retirement semantics.
-# Remaining rows were read as individual API labels, values, signatures, or history.
+
+
 
 def text_digest(lines):
     packed = json.dumps(lines, ensure_ascii=False, separators=(',', ':')).encode()
@@ -181,98 +183,13 @@ def text_digest(lines):
 def read_git_bytes(commit, path):
     return subprocess.check_output(['git', 'show', f'{commit}:{path}'])
 
-def module_name(path):
-    m = re.match(r'crates/([^/]+)/src/(.*)\.rs$', path)
-    if not m:
-        return path
-    crate = m.group(1).replace('-', '_')
-    sub = m.group(2).replace('/', '::')
-    if sub == 'lib':
-        return crate
-    return f'{crate}::{sub}'
-
-def braces_open(lines, begin, end):
-    depth = 0
-    for raw in lines[begin:end]:
-        line = raw.split('//', 1)[0]
-        line = re.sub(r'"(?:\\.|[^"\\])*"', '""', line)
-        depth += line.count('{') - line.count('}')
-    return depth > 0
-
-def active_container(lines, end_index, kind):
-    if kind == 'method':
-        candidates = [
-            (i, re.match(r'^\s*impl(?:\s*<[^>]*>)?\s+(?:.*\s+for\s+)?([A-Za-z_]\w*)\b', line))
-            for i, line in enumerate(lines[:end_index])
-        ]
-    else:
-        pattern = r'^\s*(?:pub(?:\([^)]*\))?\s+)?enum\s+([A-Za-z_]\w*)\b' if kind == 'variant' else r'^\s*(?:pub(?:\([^)]*\))?\s+)?struct\s+([A-Za-z_]\w*)\b'
-        candidates = [(i, re.match(pattern, line)) for i, line in enumerate(lines[:end_index])]
-    for i, match in reversed(candidates):
-        if match and braces_open(lines, i, end_index):
-            return match.group(1)
-    return None
-
-def active_module(lines, end_index):
-    for i in range(end_index - 1, -1, -1):
-        m = re.match(r'^\s*pub\s+mod\s+([A-Za-z_]\w*)\b', lines[i])
-        if m and braces_open(lines, i, end_index):
-            return m.group(1)
-    return None
-
-def attached_item(path, text, source_lines, end_line):
-    if any(line.lstrip().startswith('//!') for line in text):
-        name = module_name(path)
-        public_line = None
-        for line in source_lines[end_line: end_line + 80]:
-            clean = line.strip()
-            if re.match(r'pub\s+(?:mod|trait|struct|enum|type|const|fn)\b', clean):
-                public_line = clean
-                break
-        return {'kind': 'module_documentation', 'name': name,
-                'signature': 'module-level Rustdoc', 'anchor_declaration': public_line}
-    j = end_line
-    while j < len(source_lines):
-        stripped = source_lines[j].strip()
-        if not stripped or stripped.startswith(('///', '//!', '//', '#[', '/*', '*')):
-            j += 1
-            continue
-        break
-    sig = source_lines[j].strip() if j < len(source_lines) else ''
-    name = None
-    m = re.search(r'\b(?:async\s+)?fn\s+([A-Za-z_]\w*)', sig)
-    if m:
-        base = m.group(1)
-        parent = active_container(source_lines, j, 'method')
-        name = f'{parent}::{base}' if parent else base
-    else:
-        m = re.search(r'\b(?:pub\s+)?(?:struct|enum|trait|type|mod|const|static|union)\s+([A-Za-z_]\w*)', sig)
-        if m:
-            name = m.group(1)
-        else:
-            m = re.match(r'([A-Z][A-Za-z0-9_]*)\s*(?:\{|\(|,|=)', sig)
-            if m:
-                parent = active_container(source_lines, j, 'variant')
-                name = f'{parent}::{m.group(1)}' if parent else m.group(1)
-            else:
-                m = re.match(r'(?:pub\s+)?([a-z_][A-Za-z0-9_]*)\s*:', sig)
-                if m:
-                    parent = active_container(source_lines, j, 'field')
-                    name = f'{parent}::{m.group(1)}' if parent else m.group(1)
-    ident = module_name(path)
-    nested = active_module(source_lines, j)
-    if nested:
-        ident = f'{ident}::{nested}'
-    full_name = f'{ident}::{name}' if name else f'{ident}::<item at source line {j + 1}>'
-    return {'kind': 'rust_item', 'name': full_name, 'signature': sig, 'source_line': j + 1}
-
 def document_for(spec):
     if spec['doc'] == 'foundation':
         return GUIDE, FOUNDATION
     if spec['doc'] == 'authoring':
         return AUTH, AUTH_PATH
     if spec['doc'] == 'api_rules':
-        return PLAN / 'API-RULES.md', API_RULES
+        return ROOT / API_RULES, API_RULES
     return None, None
 
 def excerpt_for(spec):
@@ -327,10 +244,10 @@ records = []
 for source_map_record, raw in cohort:
     identity = cross_by_record[source_map_record]
     source_bytes = read_git_bytes(PRODUCT, raw['path'])
-    source_lines = source_bytes.decode('utf-8').splitlines()
+    source_parser = RustSource(raw['path'], source_bytes.decode('utf-8'))
     clean_bytes = read_git_bytes(CLEANUP, raw['path'])
-    clean_lines = clean_bytes.decode('utf-8').splitlines()
-    item = attached_item(raw['path'], raw['text'], source_lines, identity['line_range']['end'])
+    clean_parser = RustSource(raw['path'], clean_bytes.decode('utf-8'))
+    item = source_parser.attached_item(raw['text'], identity['line_range']['end'])
     status = {
         'status': 'present_after_accepted_cleanup',
         'cleanup_commit': CLEANUP,
@@ -341,14 +258,24 @@ for source_map_record, raw in cohort:
     if item['kind'] == 'module_documentation':
         if not item['anchor_declaration'] or item['anchor_declaration'] not in clean_bytes.decode('utf-8'):
             raise ValueError(f'module declaration missing after cleanup: {source_map_record} {item}')
-        status['check'] = 'module path remains and its first public declaration remains'
+        status['check'] = 'source module path and exact public anchor declaration remain'
         status['matched_declaration'] = item['anchor_declaration']
     else:
-        if item['signature'] not in [line.strip() for line in clean_lines]:
-            raise ValueError(f'attached item header missing after cleanup: {source_map_record} {item}')
-        status['check'] = 'exact attached item header remains in cleaned source'
+        source_matches = source_parser.find_item(item['name'], item['signature'])
+        clean_matches = clean_parser.find_item(item['name'], item['signature'])
+        if len(source_matches) != 1:
+            raise ValueError(f'expected one source item at full owner path: {source_map_record} {item} {source_matches}')
+        if source_matches[0] != item:
+            raise ValueError(f'attached source declaration mismatch: {source_map_record} {item} {source_matches[0]}')
+        if len(clean_matches) != 1:
+            raise ValueError(f'expected one cleaned item at full owner path: {source_map_record} {item} {clean_matches}')
+        if clean_matches[0]['scope_chain'] != item['scope_chain'] or clean_matches[0]['item_kind'] != item['item_kind']:
+            raise ValueError(f'cleaned owner chain mismatch: {source_map_record} {item} {clean_matches[0]}')
+        status['check'] = 'full module and owner path plus exact declaration signature match after cleanup'
         status['matched_declaration'] = item['signature']
-        status['match_count'] = sum(1 for line in clean_lines if line.strip() == item['signature'])
+        status['matched_name'] = item['name']
+        status['matched_scope_chain'] = item['scope_chain']
+        status['match_count'] = len(clean_matches)
     spec = specs.get(source_map_record)
     if spec:
         excerpt = excerpt_for(spec)
@@ -414,7 +341,7 @@ if len({r['id'] for r in records}) != 322:
 if len({r['source_map_record'] for r in records}) != 322:
     raise ValueError('duplicate source map record')
 
-# Keep original source identities and hashes unchanged; independently verify their bytes.
+
 for record in records:
     i = record['source_map_record']
     raw = raw_by_record[i]
@@ -465,7 +392,8 @@ out = {
         'counts': {'crates/termrock-core/': 268, 'crates/termrock-layout/': 32, 'crates/termrock-text/': 22},
         'record_count': 322,
         'ordering': 'Sorted by source_map_record for readability only; id is the stable identity.',
-        'semantic_method': 'Read each complete raw group with immutable surrounding source and accepted cleaned source; decisions are group-specific and do not reuse lexical dispositions as semantic truth.',
+        'semantic_method': 'Read all source groups with immutable source and accepted cleanup; record group-specific decisions without treating lexical dispositions as semantic truth.',
+        'attachment_method': 'A Rust tokenizer ignores comments and literals, then a brace scope stack records every module, trait, type, and impl owner. Each raw span is bound to its next declaration; cleanup survival matches the full owner path and exact signature.',
         'selected_behavior_cases': 0,
         'behavior_status': 'NOT VERIFIED',
     },
@@ -489,6 +417,22 @@ out = {
         {'id': 'T37-SELECTION-CONTRACT-01', 'reviewer': '/root/t00_independent_review', 'result': 'saved-base reconstruction and operation-specific disabled-row semantics'},
         {'id': 'T37-CURSOR-NEW-01', 'reviewer': '/root/t00_independent_review', 'result': 'constructor stores input index and defaults axis/wrap/skip policy; no defect established'},
     ],
+    'correction_review': {
+        'reviewer': '/root/t37_components_review',
+        'model': 'gpt-6.1-sol',
+        'effort': 'high',
+        'input_commit': '6d68ea25233c43be524061e84371dc6dcb59acb1',
+        'result': 'CORRECTION',
+        'scope': 'All 322 cohort records and maintained API prose.',
+        'findings': [
+            {'finding_number': 1, 'record': 127, 'resolution': 'Record KeyStep::of TypeAhead precedence as a source wording conflict; preserve T01 and T14 follow-up.'},
+            {'finding_number': 2, 'records': [82, 90], 'resolution': 'Record ALT 1/2 overrides and active-flags-or-ALT-3 delivery; use starts-with pointer suffix semantics.'},
+            {'finding_number': 3, 'records': 'all 322', 'resolution': 'Reconstruct every attachment with token-aware module and owner scopes; verify full name and exact signature in source and cleanup.'},
+            {'finding_number': 4, 'records': 'planned retirements', 'resolution': 'Use the candidate canonical API-RULES path in this checkout.'},
+            {'finding_number': 5, 'records': 'builder and validator', 'resolution': 'Remove explanatory comments and docstrings from helper scripts.'},
+        ],
+        'corrected_output_review': 'PENDING_INDEPENDENT_HIGH_REVIEW',
+    },
     'records': records,
 }
 path = OUTDIR / 'decisions.json'
