@@ -1,0 +1,3835 @@
+{
+  "schema": "t37.foundation-token-audit.v1",
+  "task_id": "T37",
+  "work_input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "changed_file_count": 164,
+  "file_change_map": [
+    {
+      "status": "M",
+      "path": "crates/termrock-collections/src/collection/key.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-collections/src/collection/reconcile.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-collections/src/scroll.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/action.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/diagnostics.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/edit_entry.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/event.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/id.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/identity.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/intent.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/keymap.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/keys.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/list.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/nav.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/outcome.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/platform.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/response.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/selection.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/shape.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/typeahead.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-core/src/validate.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-layout/src/columns.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-layout/src/composition_plan.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-layout/src/layout.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-layout/tests/composition_consumer.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "1cb69bd4df7562f89f22cbc3cad114c6479238546164c77f2bad550edb0ac635"
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-render/src/lib.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/author.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/author/canvas.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/author/composition.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/author/surface.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/author/window.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/capture.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/clock_paste.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/cursor.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/decor.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/empty.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/focus.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/hit.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/keymap.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/layer.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/lib.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/rowui.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/runtime.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/runtime/clipboard.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/runtime/typing.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/scroll_region.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/size_watch.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/support.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/ui/command_scope.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/ui/composition.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/ui/cx.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/ui/derived.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/ui/layer_buf.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/ui/measure.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/ui/mod.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-runtime/src/ui/paint.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/activation_origin.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "8da8f27ebb9053b9a5d8d78cc40e6613563ad0c22bd6e3061dc9f7221d0cc2a7"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/author_canvas.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "f17b8080d2b5627baeaa3ac3b5a8935b097bd69865a6f82005b69aa80c68ea48"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/binding_filtered_identity.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "73845ef532db30c36949eb6e71add028094bfb38b901a10c1d65488a575ac427"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/clock_paste.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "e72e1a58b7b814e24bf1812e1df0e37834c6976dac5ea004fe5d7dc9eca9fec0"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/composition_consumer.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "cb25c8d9a48610a92798d6a1198637f40d99e2e278e5bac1df41c7e776b5d2de"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/composition_cursor_clip.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "a0b734b846b0cc0241a24c9729d506e4387da64678fa7c25140d9c896d22f0f2"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/disabled_pointer_refusal_flow.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "48b119fcad015b0ab0cc0a44cd74403c81d6ebf04513c8f6a026077ccb5f862d"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/dismiss_knobs.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "b707e078e66242d3cb9de680a230cf0f20f440954c9071ae70ba213821c5bdfb"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/fill_keep_fg.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "f09520349fa3dede873cbb510bcab579a7fe16586df60b20f8b9e7df77dc83b5"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/focus_restoration.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "6b466dca15b4e52e94ff51f14f92804c9a6870aa01a88646cb6db1779f27f9b8"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/focus_traversal.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "4ce559d7ce723d97b8f2db0e213a252150baf9c0ceed99434f37c8beb031f5dc"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/initialization.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "7c0f7be11b7eabad8312140e559d19a3737c58c3ed18757cbea958a2bd1f244b"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/layer_focus_reparent.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "3cd670eab408f6406d42375d15f8abb8e858401c67764fcb27c66ffefe55364f"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/middle_button_input.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "215f855b826816a18586bba40942b2bcd8cbe8915eb5306e6054351e80fdab29"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/modal_backdrop.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "d8a75bd01566b6779973133f3e1c1335242c98f566fcccb72dd8eca6cb8368c7"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/monotonic.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "2fffb900f704f96cd858ab14413e8a59d55a293416321bf9584a10c9cefe5c73"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/paint_matched.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "f31f6c6146d1b41efa95068efc4d4fa9da5959466e4e7dba403c59f7629d4fbf"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/paint_middle.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "ad957c08237efd0d2f713a12b37ae40a6483c8b447440af681f62a617cb82989"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/paint_surface.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "2a335078ed36521c881f1686f3196df6e2c9fdabe67f64c92a1ee64ed68ab405"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/pointer_capture_eligibility.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "d1d58637120daff161a3f354a6cc862f9cfe032a2b0c61c0fec26ffd238b36b5"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/pointer_publication.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "c1784166c5e7ec5a2a19009327b5b460beb8e420e4160df9b90a76e16684274b"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/publication.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "1b40ac0c4c6f3cb3bd89c5e61eaa96547bae72cd1bdc0f5f662e50a0aa67153f"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/readonly_caret.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "31de718d8addcc34c54e6c0445108beede26ea15735b386a6f92ed8b8f58d311"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/recolor_provenance.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "2c28b580f7eee9ed2473803c59ff10423715c5cfd20a9630c8783f86a2adb1c6"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/recovered_hit_registry.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "c270f9779c79740a2155cdf2fb49430c53b6914d490766488ad8eb73443d44c1"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/resize_focus_pointer_geometry.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "b3f6e908ae499e75d9e22037613b8dfd66c0d3b2daafa4d8587b477591dc6df1"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/resize_geometry_matrix.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "f47160328349e65ec1490092a6f09f162b19ade4f19cd0067eae2b936dc679d5"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/rowui_glyph_before_meta.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "a047326bed532a9b3ef617158d7ddf13c2f9a2a3cbab7e26c92703b0151b97db"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/rowui_glyph_contract.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "69ba1fefcce7c9220f9fb74846cfc6b96485932bba13bc5ff828adf1dd51974e"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/rowui_label_end.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "46e8cada0311c53ef6189e70faa14f1887a645327bdfc24e3244f85e04be412b"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/rowui_label_middle.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "14a16951822f27f38bca38a9b8d76f29c6d9828f1b119cdba479a16943815409"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/rowui_metadata_gap.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "4076b77f4ffb623de4c485cbb36a73b2c5951b39481e971ed7290ff83ee4bd53"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/scene_snapshot.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "ba70944242f45ddc4d344b5a7dae421a127251ce70af8f5c79ecff796700d1e9"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/scroll_edges_allocations.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "7fa0bde3db5ebfea04623a14e793ca2cf68440cdc2cb9e86f1563ef453560334"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/scroll_edges_majority.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "22e92f963de8cad512d530d223280fa1f7943a5109d1045c03d1a83c681c5fcb"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/scroll_position_label.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "b939bad03253e940bea10b86512fa7f7a84378550d53a015fa0eec41d40dc862"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/scroll_region_wheel_route.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "d8ba971d967c485b9c85bc2928d795ce0cec5271c1c1266cc5398ac5896fbbaa"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/typing_owner.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "a593bd464190fa6c5152d80f47a25ea3ae1d34621fa09e409502dd4a492401e9"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/ui_focus_presentation.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "91f84319001b3a47d46a566fec903af87f6f7198c64c012fd8a83bb414a261ff"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/underlay_stack.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "e85a40466b079b6faccfe56e55c08b331541c36d4ed7c0cc3bdcf1543e2369ff"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-runtime/tests/wheel_hit_stack.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "eb8aaa762729ef3dfa49d4393d742333746f57cfcb61a54f5759fd2c611661b0"
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-session/src/session.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-session/tests/terminal_cleanup.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "728a126e95c5a81f0af673c3f3bc0c16cc8ad6f5b3bce9ac8af94610a1994ae7"
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-shell/examples/shell_consumer.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-shell/src/chrome.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-shell/src/footer.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-shell/src/keyboard.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-shell/src/lib.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-shell/src/nav.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-shell/src/nav/tests.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "b051f69237afe312cd2dd369e08cf64e3e1bb478e32db26d08dcd71c45cb8222"
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-shell/src/page.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-shell/src/quit.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-shell/src/reach.rs",
+      "reason": "testing-feature shell reach harness removed under T00 migration record",
+      "input_sha256": "1c54c65a36534a00bf80faa95d6ebbd3be044675accec3cfcfae220dfbfd9041"
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-shell/src/report.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-shell/src/router.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-shell/src/router/tests.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "69bb2b1b261a826232aac0b0163ca51c69cb57f10eb04009efa952c76774cf5e"
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-shell/src/shell.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-shell/src/status.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-shell/tests/api_legacy_compat.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "1c01c6eb30e70f08bd167f48773aca5263b75b86d7992b771771446ef72f8e26"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-shell/tests/api_review_measure.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "d3bf238139e8efda13ab8bcf9b5b614fbd765026ca862633068d375c6548b503"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-shell/tests/composition_interop.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "222f1c7f7f4f1e77ef729b29f8ab508b635011189f0a542655012be8652df9fa"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-shell/tests/esc_vocabulary.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "13018cb958cb9fe0c27eeadfd194d5255227ab73fddd04b4f42b55fbca4bb527"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-shell/tests/shell_geometry_contract.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "18723674689e33f346bca3ab2f88cece11bb5bdb897b3a44d7cb5e29a8d52457"
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-terminal/src/keyboard.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-terminal/src/lib.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-terminal/src/terminal_view.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-text/src/buffer.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-text/src/editor.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-text/src/fuzzy.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-text/src/measure.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-text/src/undo.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-text/tests/fuzzy_boundary.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "39bdf92d52dc1868e5933391c99285fea419a034b279882be47299c4e95a186d"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-text/tests/off_cursor_edits.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "56c8103422a38ccb642992e7a508539f80b14cb333a8fc94f1dca32ac519ab1c"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/manual-api-contracts/paint-style-pilot/src/bin/paint_style_negative.rs",
+      "reason": "manual compile-test fixture source removed under T37-PROBE-01",
+      "input_sha256": "3beab69ce620f51d28afa5a253ab698409e8564e597927523636f58cbc09b482"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/manual-api-contracts/paint-style-pilot/src/bin/paint_style_positive.rs",
+      "reason": "manual compile-test fixture source removed under T37-PROBE-01",
+      "input_sha256": "15f2a4b9616963102b2f5c7069105d5ae9bc4f45fdfcdf02cd4221a229684f59"
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-theme/src/border.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-theme/src/builder.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-theme/src/builtin/junie.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-theme/src/builtin/mod.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-theme/src/downgrade.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-theme/src/glyph.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-theme/src/lib.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-theme/src/palettes.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-theme/src/patch.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-theme/src/recipe.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-theme/src/resolve.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-theme/src/role.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-theme/src/tokens.rs",
+      "reason": "test scopes and comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "M",
+      "path": "crates/termrock-theme/src/visual.rs",
+      "reason": "comments removed",
+      "token_proof": true
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/author_style_defaults.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "7fccda409856b34c0868fe98d0ad18b4bdd29229f50a0685f89f83b267d0932a"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/backdrop_chosen_ink.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "d9916c94e74699c65f34387078ddc4052d91ab575bf5294ccba3dc30ed84b500"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/backdrop_tiers.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "4009c6b4bcac23e0384c5aff8d400b324f4ec5d3c5215fb65705b6d7cc89dbcc"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/capability_palettes.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "04327bab30633c4e758cdef697c4c567a419666dcc647d46c5b1840bb3b25efa"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/chrome_roles.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "edd115f9f66919757b5df0f3457b47263f63ead11d37ca2404c814cf452b99d4"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/empty_style_inheritance.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "6491f5cc36fbcd83771e7d2626258b30849e20b2dfe4a469d5a39370b955531f"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/esc_vocabulary.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "c6f1c692facb7ab815853832a068c8178e6622f2321035e129d39500249ff1cb"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/focus_gutter_api.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "91dabc2a285d36d859935c944c582d83ae29530a4b877f417663a4ba1506d5fb"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/frozen_focus_bar_policy.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "2a00cd139c99e03e8d0c6f0c5d5a8b891f7c1604caa3bdafc862e90a6badeafa"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/frozen_helper_adoption.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "174d6bb4abdab279e5bb22c63621abaa6abfab691f56d9f181f0c79029239196"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/glyph_compat.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "d0eaa2a7ef70e0e755cd39b2102d32db17d83c466d64d277851214acc5a8c5f1"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/gutter_cell_inherit.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "34b88527647ec647720dcdde8d9032e63aaece71ba0be8228e34ffedfc3a7c9f"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/junie_motion_tokens.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "005127c4672d467762b973e3902f7c20fe9e408e67b0f0821f46666e9e7b24fa"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/level_profiles.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "0c6caf0f54f8e4a1858131d49945840e0bcecba7dd1d5bca49d6375b4e55da48"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/menu_danger_soft.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "0e8eaaf7bda6eb14fa56f2a2853e9b16c277331321166eb0ee175cd71ab67d82"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/overrides.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "c271a00bad7ba7394bb420f744181e4c0fa3659d5a84a652be26aece32a41530"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/picker_title.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "3df2fcee6b865f171ee1c9e350f09a281e81e2b0a71cabd3f1b40f0b84622dd0"
+    },
+    {
+      "status": "D",
+      "path": "crates/termrock-theme/tests/theme_holla_states.rs",
+      "reason": "legacy test target or module source removed under T37",
+      "input_sha256": "06a8c2e54ae943e55262ce06dedb4e8aa063dd614d2da8279b9db92e668869b4"
+    }
+  ],
+  "surviving_rust_file_count": 110,
+  "surviving_rust_files": [
+    {
+      "path": "crates/termrock-core/src/action.rs",
+      "input_sha256": "fb7fb8545a1f337dd1e27a745c56bacaa924b0489acd2cb30ef3a53725f6f941",
+      "output_sha256": "e396711f0969e02307df5d5f1b3fb30b2b30c83541c590c6f959e766a92d5458",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 679,
+      "output_token_count": 679,
+      "expected_literal_count": 13,
+      "output_literal_count": 13,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/diagnostics.rs",
+      "input_sha256": "388fb8b66cff4fef311fb1925f4298cff170cb52f6bea66275e3d27ec974e619",
+      "output_sha256": "21dba1899b77a9fdeba571ba4f7801936b8701b506e8b503caad416d60730f92",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 447,
+      "output_token_count": 447,
+      "expected_literal_count": 3,
+      "output_literal_count": 3,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/edit_entry.rs",
+      "input_sha256": "0110e6b248126cd58c4011e87d9659fe742ce62c4b339ab5f0eed2f153dbf904",
+      "output_sha256": "d81e36a3f39d52221170ee198b50d648c961b55bfd52ea57e88769663bdc75f8",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 34,
+      "output_token_count": 34,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/event.rs",
+      "input_sha256": "c6d8b0093fd89545bfc2002fefa2328ae731fc12f3a11e18fd1409a0b1bda8d6",
+      "output_sha256": "2e3657577f708bbcf1bd6d039a60595cc1238431ec521bcd95f8b177edee962d",
+      "cfg_test_item_count_removed": 2,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 3099,
+      "output_token_count": 3099,
+      "expected_literal_count": 39,
+      "output_literal_count": 39,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/geometry.rs",
+      "input_sha256": "21f3976f4a0d2891fd18592505a1fc77a4402e0be93ec7f1ef914b151e70dbf3",
+      "output_sha256": "21f3976f4a0d2891fd18592505a1fc77a4402e0be93ec7f1ef914b151e70dbf3",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 142,
+      "output_token_count": 142,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/id.rs",
+      "input_sha256": "dd4681ebb331d7a8432bd184cafcac94da79388b55490d13e8e7d5f1bb90bdce",
+      "output_sha256": "7285a2bdba659efcc2daf509f86bc52951e07c7e614f20337c550db19c8eff30",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1837,
+      "output_token_count": 1837,
+      "expected_literal_count": 76,
+      "output_literal_count": 76,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 1,
+      "output_linter_attribute_count": 1
+    },
+    {
+      "path": "crates/termrock-core/src/identity.rs",
+      "input_sha256": "f0a8832d3c7460cc2b361a315edaf414f6c48a45983a998620ec70368022801d",
+      "output_sha256": "5318ff66925c60f15205c31b627e499958950af1047f2ed2b514f4fca303dcfc",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 8,
+      "output_token_count": 8,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/intent.rs",
+      "input_sha256": "b68a5bbca51c90968306de245e160b38564244c2abe1043ad2d0b29a20259a40",
+      "output_sha256": "b070a0d8212eaf23639e14bbac26ec03868f0a8ea270427e3545d97d211f2d69",
+      "cfg_test_item_count_removed": 2,
+      "approved_testing_scope_count_removed": 5,
+      "approved_testing_decisions": [
+        "T37-FOUNDATION-TESTING-01"
+      ],
+      "expected_surviving_token_count": 3479,
+      "output_token_count": 3479,
+      "expected_literal_count": 47,
+      "output_literal_count": 47,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/keymap.rs",
+      "input_sha256": "08c10337cfd82fed86e08c3221b2bf9cd6187938f5b8cef5bf52e21bd54438ef",
+      "output_sha256": "01caaca921f47e7ec1e1bae0001cc217b28e9a5deeea6732241692395835e7cd",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 690,
+      "output_token_count": 690,
+      "expected_literal_count": 25,
+      "output_literal_count": 25,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/keys.rs",
+      "input_sha256": "c4c406ac8b099806d7e40fbb3cfbe17c9ec6fdf23bb5cdfc4892357b3177f6fb",
+      "output_sha256": "de1c4388affc12f23705383c6d7e692e6a675b0a3b83caa886cdfa4fe9bffa57",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 2577,
+      "output_token_count": 2577,
+      "expected_literal_count": 108,
+      "output_literal_count": 108,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/layer_types.rs",
+      "input_sha256": "675c978107b8ccdb005c19d285bc94ab0dd83cb79e421feffd3d53cba5c72633",
+      "output_sha256": "675c978107b8ccdb005c19d285bc94ab0dd83cb79e421feffd3d53cba5c72633",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 145,
+      "output_token_count": 145,
+      "expected_literal_count": 3,
+      "output_literal_count": 3,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/lib.rs",
+      "input_sha256": "5dc5bfe31e70bb0fd44d05f59031a72ff06fe26daba83914ae894176b7287232",
+      "output_sha256": "5dc5bfe31e70bb0fd44d05f59031a72ff06fe26daba83914ae894176b7287232",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 210,
+      "output_token_count": 210,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/list.rs",
+      "input_sha256": "3a20d1c3386bbfc0cd20ba88da8a50cf242a0a89c1eac45e601d68561fe4bd6b",
+      "output_sha256": "9f9b09d11d43791768530c388de730f61eb7a208146f3f670f9a6d8e06cd78b7",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 2407,
+      "output_token_count": 2407,
+      "expected_literal_count": 26,
+      "output_literal_count": 26,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/nav.rs",
+      "input_sha256": "d7dcf61b9f2e29c04c6c6c6fb2846f61e34ecca10506a6c2abb5be0b1894d939",
+      "output_sha256": "11d87ad0c7adf2266e7b95ad5e4ada759e0bab0231e8822a25736c4725aac265",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 73,
+      "output_token_count": 73,
+      "expected_literal_count": 4,
+      "output_literal_count": 4,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/outcome.rs",
+      "input_sha256": "47ed590dc84c98b48fc138d4ca73a00f5e92b10fe8522fd83ced792cdaa31c10",
+      "output_sha256": "587bf4b03180381af7d94d0ecaa8c90195fa75a07c02dd3652013a4520727742",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 124,
+      "output_token_count": 124,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/platform.rs",
+      "input_sha256": "c3457ad7f6cec2ddf7e4496a737701bd4c1b8dbe0f1057563203f16884a4bc1c",
+      "output_sha256": "d6327e963c530ff6acfe2ff26372a3660e4e1eaa942f7419d1a1b59b08a9f39c",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 303,
+      "output_token_count": 303,
+      "expected_literal_count": 14,
+      "output_literal_count": 14,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/response.rs",
+      "input_sha256": "ed8cb9fb45eee3ccdcdfd4440c9b8defcf782430ce57471c8fad80c4dc5678a9",
+      "output_sha256": "a413ee144a6f168e3df812deeecf7e6cf8b0c4860c52061a2052295e74ab9062",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1256,
+      "output_token_count": 1256,
+      "expected_literal_count": 37,
+      "output_literal_count": 37,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/secret.rs",
+      "input_sha256": "f7f7bb2d03a9e59ed64881b8ef1cc6ccf5342d761384b9f28fdae3d36f655bc5",
+      "output_sha256": "f7f7bb2d03a9e59ed64881b8ef1cc6ccf5342d761384b9f28fdae3d36f655bc5",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 79,
+      "output_token_count": 79,
+      "expected_literal_count": 2,
+      "output_literal_count": 2,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/selection.rs",
+      "input_sha256": "78b3636666912d7add7c10075f04384bfcdf73bc959c3a65c26565d5577cca22",
+      "output_sha256": "9f2f84ca0a16858e7b7dbe43af1b09f20373c591fd9c2d0aa56c0cf99fc47d07",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 2218,
+      "output_token_count": 2218,
+      "expected_literal_count": 12,
+      "output_literal_count": 12,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/shape.rs",
+      "input_sha256": "486b0a5f1889d8e1f37ceb40b70269943b2e389065c84818f66ce01f6d37ee08",
+      "output_sha256": "63f4f24a190669667fe7513254758752b3a6f8da30e939a804c887940dc9bded",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 962,
+      "output_token_count": 962,
+      "expected_literal_count": 35,
+      "output_literal_count": 35,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/typeahead.rs",
+      "input_sha256": "7304807b169b1e1a33cf241d04256d9f003b3b219a68db2558e9de0a151dd9d6",
+      "output_sha256": "c6d08ce5a57e9f64b25aaca647215f40d317ee03af07a5e612ec4824a591dd90",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 555,
+      "output_token_count": 555,
+      "expected_literal_count": 5,
+      "output_literal_count": 5,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/validate.rs",
+      "input_sha256": "b22d845798735758923a87d26d8e295e5cd82ef7939ce5501f3e0cd79ba5adf1",
+      "output_sha256": "32f3c904ec573e00c2eca9e6643884e0e5dd8637c963d51641049224baf2cc23",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 434,
+      "output_token_count": 434,
+      "expected_literal_count": 5,
+      "output_literal_count": 5,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-core/src/variant.rs",
+      "input_sha256": "7721e9f0feb2db8970856ce59591cb55d67ab69f97214b00033c22874d62a8b0",
+      "output_sha256": "7721e9f0feb2db8970856ce59591cb55d67ab69f97214b00033c22874d62a8b0",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 424,
+      "output_token_count": 424,
+      "expected_literal_count": 23,
+      "output_literal_count": 23,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-layout/src/columns.rs",
+      "input_sha256": "8acea2fc941b0c4b219d98b27d09422e922ba31b95b5b523f8f7b9e83f81f495",
+      "output_sha256": "6b99063d665a8a5b2547899275b6aa6ec69d954df70ecc39e51193d8e0b6a561",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 2437,
+      "output_token_count": 2437,
+      "expected_literal_count": 48,
+      "output_literal_count": 48,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-layout/src/composition_plan.rs",
+      "input_sha256": "f553491ab968258d5db3b771d555d4b21ef52d8f9acdfc342f37cc9c5558f3cc",
+      "output_sha256": "3b35d960048eda38542fc28f4e4b5da8f0638599f815f5b3ef028d44a8fc0407",
+      "cfg_test_item_count_removed": 3,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 5456,
+      "output_token_count": 5456,
+      "expected_literal_count": 107,
+      "output_literal_count": 107,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-layout/src/layout.rs",
+      "input_sha256": "76e5350a5dd0fe91b8f06359479e6788a2f40d0116a8ed8a92f9fe44db351093",
+      "output_sha256": "9f249f9d76ceb0a6be6a609bbb091ce1bc4842603c42c6f5b9c2130bdf9c2f69",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 5724,
+      "output_token_count": 5724,
+      "expected_literal_count": 91,
+      "output_literal_count": 91,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-layout/src/lib.rs",
+      "input_sha256": "57d4d6adf8be6bdaf717a6ca3b4bcb1ae67122e10a3fc014ca0cedadc31657a8",
+      "output_sha256": "57d4d6adf8be6bdaf717a6ca3b4bcb1ae67122e10a3fc014ca0cedadc31657a8",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 78,
+      "output_token_count": 78,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-layout/src/measure.rs",
+      "input_sha256": "611190991e9fcd590236ad006c50d93c2797b39cf39b8615b390739278408690",
+      "output_sha256": "611190991e9fcd590236ad006c50d93c2797b39cf39b8615b390739278408690",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 307,
+      "output_token_count": 307,
+      "expected_literal_count": 4,
+      "output_literal_count": 4,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-theme/src/border.rs",
+      "input_sha256": "f402ae30d6a59459f5691bd621f6cc4bfb8b9f5b37e95a9b17db6874a0dc686a",
+      "output_sha256": "4dbe7bf91e21d946499326ef2516c12bcfa9f2dd55ae71be1a52705d0d8ad2f1",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 74,
+      "output_token_count": 74,
+      "expected_literal_count": 8,
+      "output_literal_count": 8,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-theme/src/builder.rs",
+      "input_sha256": "277433edb03c1bc8b4471d3e8867c09e1514191fb1b9501583e7ed17fbba091d",
+      "output_sha256": "3a6fef31083197d55e389379415652fd00ce3347764a1f751846d1bb48d37dbf",
+      "cfg_test_item_count_removed": 2,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 4172,
+      "output_token_count": 4172,
+      "expected_literal_count": 202,
+      "output_literal_count": 202,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 2,
+      "output_linter_attribute_count": 2
+    },
+    {
+      "path": "crates/termrock-theme/src/builtin/junie.rs",
+      "input_sha256": "7f1d29b6528a7a7b8ad9a68ab35d2813ec9086354e7724a7326acadcc1eae2f0",
+      "output_sha256": "ee71fdf6050dba61061ae2f69d1eefa114eb79cfa45379732e1d3a7ad651b235",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1671,
+      "output_token_count": 1671,
+      "expected_literal_count": 123,
+      "output_literal_count": 123,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-theme/src/builtin/mod.rs",
+      "input_sha256": "98accf6f068ba5007735c478d6937c12ae49913e1d7cc9a09172d082c41f474a",
+      "output_sha256": "644bc6eecce24719d89d504b58928c6a03566ac7d9310fbd2ea6e74baf231140",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 6175,
+      "output_token_count": 6175,
+      "expected_literal_count": 4,
+      "output_literal_count": 4,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-theme/src/builtin/paper.rs",
+      "input_sha256": "a366d581d349bb59283952f256981c6874a23f1393734e653e4706fa8c7d3cf7",
+      "output_sha256": "a366d581d349bb59283952f256981c6874a23f1393734e653e4706fa8c7d3cf7",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 467,
+      "output_token_count": 467,
+      "expected_literal_count": 17,
+      "output_literal_count": 17,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-theme/src/downgrade.rs",
+      "input_sha256": "d41bf1d7673c0a79ff6f2c6af6d6a0eaf6137dc296448cfadcccbb17b7fdf228",
+      "output_sha256": "bac78388998a97015b9479b9e424521d3ebe625bc4e839f112d56f8d9402000e",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 5061,
+      "output_token_count": 5061,
+      "expected_literal_count": 305,
+      "output_literal_count": 305,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-theme/src/glyph.rs",
+      "input_sha256": "3651b3ee0bfb187afa3888304ca39c784d75f8d48cf6d6e47f712d463b7c5cf0",
+      "output_sha256": "945ba7e66f2b28c249c3bbcd86373db9ff413d34a52053bb5a279e074067c210",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1081,
+      "output_token_count": 1081,
+      "expected_literal_count": 35,
+      "output_literal_count": 35,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 2,
+      "output_linter_attribute_count": 2
+    },
+    {
+      "path": "crates/termrock-theme/src/lib.rs",
+      "input_sha256": "ec41547c11154a4f61c1229ee39e6ab6759e1597dd18b46262751b39633b5642",
+      "output_sha256": "f4a921a64a3f5af9bcf9405cf60c053592c224c8766b9fb56755f9cb7d92f8d8",
+      "cfg_test_item_count_removed": 2,
+      "approved_testing_scope_count_removed": 1,
+      "approved_testing_decisions": [
+        "T37-FOUNDATION-TESTING-01"
+      ],
+      "expected_surviving_token_count": 4252,
+      "output_token_count": 4252,
+      "expected_literal_count": 36,
+      "output_literal_count": 36,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-theme/src/palettes.rs",
+      "input_sha256": "24fbfa159168cb8d7e17f495f6d06ab2aea74ea91dcd78c3a6d44aebcd60a4d2",
+      "output_sha256": "90dec71df8333cbdf8f5005860f42ee4b0b71b823752e60fcee2a37cdfe52f33",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1791,
+      "output_token_count": 1791,
+      "expected_literal_count": 84,
+      "output_literal_count": 84,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-theme/src/patch.rs",
+      "input_sha256": "5d5b42baa3fa293055a03dd5aa60a2552d4e0f14efd2d5e3ed95ef6ba8d2e3d2",
+      "output_sha256": "ee6bd8d3d757ff189d0431d5f9b62ec22d09894dd0dc9380c372200a997efb44",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 967,
+      "output_token_count": 967,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-theme/src/recipe.rs",
+      "input_sha256": "9fac84b7ef0bd4228c818f7d02ffde515bb3596ec90c50ca44ec85af0bd63b9f",
+      "output_sha256": "801beef7db83688dfe077ebda27f2e36f3cdf732a290a0586e63d187a7bf4d80",
+      "cfg_test_item_count_removed": 2,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 4787,
+      "output_token_count": 4787,
+      "expected_literal_count": 64,
+      "output_literal_count": 64,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 4,
+      "output_linter_attribute_count": 4
+    },
+    {
+      "path": "crates/termrock-theme/src/resolve.rs",
+      "input_sha256": "5195dd1b13fb23c96f354e2b03cbd8676a6bf235b6b28f4785702debb8919905",
+      "output_sha256": "dfab8b01ff59375e195a1d67d2dc55a3bb6c985098aa6cf746b7c1ea5cb70a15",
+      "cfg_test_item_count_removed": 2,
+      "approved_testing_scope_count_removed": 1,
+      "approved_testing_decisions": [
+        "T37-FOUNDATION-TESTING-01"
+      ],
+      "expected_surviving_token_count": 10097,
+      "output_token_count": 10097,
+      "expected_literal_count": 123,
+      "output_literal_count": 123,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 5,
+      "output_linter_attribute_count": 5
+    },
+    {
+      "path": "crates/termrock-theme/src/role.rs",
+      "input_sha256": "43d6ed509629517ed75c835590d5c2fc972a76d14941f36781be33a4a821dbfc",
+      "output_sha256": "b106b1517871518ca270590823fba8401368c44536efad6818c61265a9d7f751",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 589,
+      "output_token_count": 589,
+      "expected_literal_count": 16,
+      "output_literal_count": 16,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-theme/src/tokens.rs",
+      "input_sha256": "1664c58838569b96f1d3685e93b45b9566f95c012e8c775738105bbbe83d5580",
+      "output_sha256": "8199fb0bc77508803a00eab1ba0c2557a5bf3bde69aee114ade25b6a83551c47",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 2710,
+      "output_token_count": 2710,
+      "expected_literal_count": 26,
+      "output_literal_count": 26,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-theme/src/visual.rs",
+      "input_sha256": "e64c5383706e430116d94f89e89cf0f96754948d373de607706755cd397783e0",
+      "output_sha256": "c0cf3b9d4cfc6ad567c990b3899fc3a6e48e694d66f71728856fe7fb1f8ef3e1",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1343,
+      "output_token_count": 1343,
+      "expected_literal_count": 25,
+      "output_literal_count": 25,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-text/src/buffer.rs",
+      "input_sha256": "179d2848cb228ccdc6d7864321770f9d3d7c2b0a59bb4ffe45d47aeb32855a0a",
+      "output_sha256": "cd4ec3d40dacedc79a2057afbd615d792d193091ae45ccb373f47052b875b5f6",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 4973,
+      "output_token_count": 4973,
+      "expected_literal_count": 65,
+      "output_literal_count": 65,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-text/src/clusters.rs",
+      "input_sha256": "2fe29f0e0444f91646e025a02b4e5a2e7b92eb628f581b1ed4b1ad54bbfff75e",
+      "output_sha256": "2fe29f0e0444f91646e025a02b4e5a2e7b92eb628f581b1ed4b1ad54bbfff75e",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1512,
+      "output_token_count": 1512,
+      "expected_literal_count": 22,
+      "output_literal_count": 22,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-text/src/editor.rs",
+      "input_sha256": "0aa11900334c0c284e63f2265b5b1edc360e2b7b40535056489a06e4200ad53a",
+      "output_sha256": "ce36164f06751fce82ee0fd8608c163d301ee372f2044ee74e53e18677483dc6",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1490,
+      "output_token_count": 1490,
+      "expected_literal_count": 12,
+      "output_literal_count": 12,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-text/src/fuzzy.rs",
+      "input_sha256": "94c27b0dff614e3e94c4e5d774b9dbd2f501b8f159526b3caabf019d2bb05dea",
+      "output_sha256": "50c4ed55aa6ce9876df2ab965ea76b4e9ea4140dccfe65c2020e272c7e0af836",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 649,
+      "output_token_count": 649,
+      "expected_literal_count": 20,
+      "output_literal_count": 20,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-text/src/lib.rs",
+      "input_sha256": "a69d5261b998011bce3822f066e80b78917aeed7e462887ca8f01f87ba300f60",
+      "output_sha256": "a69d5261b998011bce3822f066e80b78917aeed7e462887ca8f01f87ba300f60",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 136,
+      "output_token_count": 136,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-text/src/measure.rs",
+      "input_sha256": "2473e465095c2a54f2526bfab4c36e31af1f84c3aacfbbb0aa2c56a99b62e327",
+      "output_sha256": "309872be98af75be6c83710b19ac1472baa3cf8a2f1ca8e7c2ef82c0e022e767",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1311,
+      "output_token_count": 1311,
+      "expected_literal_count": 46,
+      "output_literal_count": 46,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-text/src/secret.rs",
+      "input_sha256": "076445886ca3c801b8d6e73244797d2c7c4556ad3d56bc7a5d88d9da5a93c04b",
+      "output_sha256": "076445886ca3c801b8d6e73244797d2c7c4556ad3d56bc7a5d88d9da5a93c04b",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 585,
+      "output_token_count": 585,
+      "expected_literal_count": 23,
+      "output_literal_count": 23,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-text/src/span.rs",
+      "input_sha256": "cce37c1efae1d1bd97485ca0af83e85ebf964e22ee4952037442edd5c7972e94",
+      "output_sha256": "cce37c1efae1d1bd97485ca0af83e85ebf964e22ee4952037442edd5c7972e94",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 300,
+      "output_token_count": 300,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-text/src/undo.rs",
+      "input_sha256": "c54b7bb07d53584703f17a82b3ccf95b2394c26dd72972ab5e88c2cf2397d6aa",
+      "output_sha256": "044ab2ef3ad26049fb59df5292dec855a6a636f13f52d22692d6d948f2a62ae2",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 564,
+      "output_token_count": 564,
+      "expected_literal_count": 2,
+      "output_literal_count": 2,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-render/src/lib.rs",
+      "input_sha256": "bf878f56ffa205900eca25c26a3d9a73ac384b0b8b09e7a4182c77328080dd5e",
+      "output_sha256": "ac702038914a36300e73eb31f1d8f6987c048dccfdd9cd8f9b3774d66aef439b",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 570,
+      "output_token_count": 570,
+      "expected_literal_count": 2,
+      "output_literal_count": 2,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-collections/src/collection/key.rs",
+      "input_sha256": "524b20f69294401f302f09a91bcd7e12f8c8cdbd30f04de866d90aefac8c5f32",
+      "output_sha256": "5c59361ccc842256a29a97d3c49d2fda5efd31c12a5639db20f7aa9427e7b805",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1258,
+      "output_token_count": 1258,
+      "expected_literal_count": 5,
+      "output_literal_count": 5,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-collections/src/collection/mod.rs",
+      "input_sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+      "output_sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 38,
+      "output_token_count": 38,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-collections/src/collection/reconcile.rs",
+      "input_sha256": "d17eaa3a3f3387900090ded65a93c84d0b2152c78fa47eee19b1d6d6aea068bc",
+      "output_sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1887,
+      "output_token_count": 1887,
+      "expected_literal_count": 35,
+      "output_literal_count": 35,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-collections/src/lib.rs",
+      "input_sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+      "output_sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 38,
+      "output_token_count": 38,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-collections/src/scroll.rs",
+      "input_sha256": "746f9388576c704cdbdbce7f32a55dea3e279373aada68b260508497856e966e",
+      "output_sha256": "8b903b0881bdd4315bb855fadcedc2df6ab1f134cdf2d2585ff437108346bc96",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 2070,
+      "output_token_count": 2070,
+      "expected_literal_count": 40,
+      "output_literal_count": 40,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/author/canvas.rs",
+      "input_sha256": "6d28221d2d3dab0a384896594f62ded979ac148bc2b240b7144af404feace20a",
+      "output_sha256": "55c77a0cf79ae51d17bb11dc01d846086279d20bd2cbb4faf24c845d95dda9c5",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 516,
+      "output_token_count": 516,
+      "expected_literal_count": 2,
+      "output_literal_count": 2,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/author/composition.rs",
+      "input_sha256": "469600e1aab37d5d98f2ffaf19d8b8c9b0aa7cc4fde611f4fe8aa04602a793f8",
+      "output_sha256": "d5e6d52e2957c138a6c2fcd69f724a7503a64a256f8d6ee47b369f49151d50e7",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 265,
+      "output_token_count": 265,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/author/surface.rs",
+      "input_sha256": "db85a659710eb0b368a568ae1dc621ea3e7c1ec9f945e9fd6b19937636ad809e",
+      "output_sha256": "c1d27df5b903301324d53ce4f853cadf1dbd88a6185dc4ab951790bb68fddecd",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 778,
+      "output_token_count": 778,
+      "expected_literal_count": 4,
+      "output_literal_count": 4,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/author/window.rs",
+      "input_sha256": "cb8e3b779dc31963d94a83ad6e2727711cae52b52f948df4f8144ca46548305f",
+      "output_sha256": "869f4b34473f3e9c3d2ef18011f9c85c7d6f70e2219dec4226af766a35e585f3",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 552,
+      "output_token_count": 552,
+      "expected_literal_count": 10,
+      "output_literal_count": 10,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/author.rs",
+      "input_sha256": "4d4826603c3a1620aada3f56dfbc79d075c0256914b4831ab0b8177735355606",
+      "output_sha256": "8ebdecd0bff2fbf7468d666cd1c5522a39705a79f18ee2d73e533b23caf79dfd",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 2,
+      "approved_testing_decisions": [
+        "T37-FOUNDATION-TESTING-02"
+      ],
+      "expected_surviving_token_count": 1621,
+      "output_token_count": 1621,
+      "expected_literal_count": 4,
+      "output_literal_count": 4,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/capture.rs",
+      "input_sha256": "39f8bb3fd9eed7875e61015bd7e6ddef04b90c4a9cc74544e6db91d87f59e02c",
+      "output_sha256": "c37191e4a710fd1da5f0bb6fdb65d553082255bf23b65d5bc0cd6172719197f4",
+      "cfg_test_item_count_removed": 3,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1281,
+      "output_token_count": 1281,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/clock_paste.rs",
+      "input_sha256": "e4ae94d90815af621c2f0af86b9bb5e0f92005d3e221d990fc8983db487c4129",
+      "output_sha256": "e85f76acc6ef6ccbb54fcddc4b1b09fec45766585b58c0d8ba9810e7e1e2f044",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 144,
+      "output_token_count": 144,
+      "expected_literal_count": 4,
+      "output_literal_count": 4,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/cursor.rs",
+      "input_sha256": "fb3e9fef16e7591a31d8394e1ca9a3464b6dc19ea4cb97819d749d07786b8c66",
+      "output_sha256": "f69b13e81e97f63868115f7e2111f3c3ef1017367a48fdb880434dc2bbd444fc",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 527,
+      "output_token_count": 527,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/decor.rs",
+      "input_sha256": "960a9953a8d751ae5de9a107c8ef4a014fda7aef8e6189b7073cce24afd0bf2b",
+      "output_sha256": "56a7147cde961baf7d3360466d3ea1f1bc8ab3cb1a92a5cd1d5fe05370f73e6e",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 242,
+      "output_token_count": 242,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/empty.rs",
+      "input_sha256": "2a135ea6cdb21c63e9b5a5727cc11b6088751dce5d641950066163d1b0459e2f",
+      "output_sha256": "e45bfcd327e7d49bce536c0ecebf44dbffbbff083041aed4fbe2df8dd396f7d8",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1465,
+      "output_token_count": 1465,
+      "expected_literal_count": 19,
+      "output_literal_count": 19,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/field_control.rs",
+      "input_sha256": "08141a62f09113fa288ced953dd574237595851e34c7b8db26fc7a58f639b5d1",
+      "output_sha256": "08141a62f09113fa288ced953dd574237595851e34c7b8db26fc7a58f639b5d1",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 101,
+      "output_token_count": 101,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/focus.rs",
+      "input_sha256": "56a8d319fd17d3bed8e54584010ffd36caaa6003bd6689dc9f404c5b1244911b",
+      "output_sha256": "b62157dfeabaa12d4a2ab9f83b8afb92e469e44dd68fb154be7823eaf718a4d8",
+      "cfg_test_item_count_removed": 2,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 2296,
+      "output_token_count": 2296,
+      "expected_literal_count": 8,
+      "output_literal_count": 8,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/hit.rs",
+      "input_sha256": "63754f6a9987926903ebec23e454e0c6cc820f997685d1a270ffdcd9a59a365c",
+      "output_sha256": "406523829365eb17eb402cefce20626c3125aade045e83adc0398fce4387f104",
+      "cfg_test_item_count_removed": 2,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 7329,
+      "output_token_count": 7329,
+      "expected_literal_count": 14,
+      "output_literal_count": 14,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 2,
+      "output_linter_attribute_count": 2
+    },
+    {
+      "path": "crates/termrock-runtime/src/keymap.rs",
+      "input_sha256": "26fc8832fd76adb164f8e2b42cdaf56692082e72bf354d9af1b141df9ec2b809",
+      "output_sha256": "689900347a7b2da06b8af821c930b473a4f50e0819a6eac1323a4504195991e3",
+      "cfg_test_item_count_removed": 6,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 5492,
+      "output_token_count": 5492,
+      "expected_literal_count": 40,
+      "output_literal_count": 40,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/layer.rs",
+      "input_sha256": "eeec2d92992d6c69ca36264a3e35b4f6b972070187b12b72ec8a193c0d238a23",
+      "output_sha256": "728f92a10a74e7a7a20d897cd59aaf8fbeb912816f6b6657ff14fcaf0ee31bc1",
+      "cfg_test_item_count_removed": 6,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 4184,
+      "output_token_count": 4184,
+      "expected_literal_count": 32,
+      "output_literal_count": 32,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 1,
+      "output_linter_attribute_count": 1
+    },
+    {
+      "path": "crates/termrock-runtime/src/lib.rs",
+      "input_sha256": "6b78b3ff61bb380f437992f77020dd94759ee31899261df889531dd8db56b3d7",
+      "output_sha256": "bdfa9a6cd0f46b40e7bbdadcf7155118784b0c9d994e422938fdb25518555d3d",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 1,
+      "approved_testing_decisions": [
+        "T37-FOUNDATION-TESTING-03"
+      ],
+      "expected_surviving_token_count": 289,
+      "output_token_count": 289,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/rowui.rs",
+      "input_sha256": "36592e2a42b38193859cfec679200f3e56684ff7f45c02abc520a92a9515af21",
+      "output_sha256": "4ebee9beda7758e6b952f4d7776b7022771f5a818052a92545e0b1141fa87eb5",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 9,
+      "approved_testing_decisions": [
+        "T37-FOUNDATION-TESTING-02"
+      ],
+      "expected_surviving_token_count": 9846,
+      "output_token_count": 9846,
+      "expected_literal_count": 127,
+      "output_literal_count": 127,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 7,
+      "output_linter_attribute_count": 7
+    },
+    {
+      "path": "crates/termrock-runtime/src/runtime/clipboard.rs",
+      "input_sha256": "805a96c02323efbcaa29afbf95b0b1b4b86238d516dfe16658d34ee127f2e220",
+      "output_sha256": "abe98c0c76ab1149fa657ca30b0dabd6358c5b9e5386cfeb2d7769721299d79b",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 298,
+      "output_token_count": 298,
+      "expected_literal_count": 4,
+      "output_literal_count": 4,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/runtime/feedback.rs",
+      "input_sha256": "3a926845ca08d48cf3fd3c7f13f32fadcd3ab93bbc57f74525c53984dee08e01",
+      "output_sha256": "3a926845ca08d48cf3fd3c7f13f32fadcd3ab93bbc57f74525c53984dee08e01",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 905,
+      "output_token_count": 905,
+      "expected_literal_count": 6,
+      "output_literal_count": 6,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/runtime/time.rs",
+      "input_sha256": "0a26f5bd198eca3b1ac718f54d8beaf1f2bfb2d3eb8ace9989c510532315503d",
+      "output_sha256": "0a26f5bd198eca3b1ac718f54d8beaf1f2bfb2d3eb8ace9989c510532315503d",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 246,
+      "output_token_count": 246,
+      "expected_literal_count": 5,
+      "output_literal_count": 5,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/runtime/typing.rs",
+      "input_sha256": "41dca2dd88536644c09606d785303f960535bd7f421ce7d5228197d57257b6f1",
+      "output_sha256": "1f037ffca6298a7e485b569e300125d49b9b83e09ff7c30c54fa427c446d2da6",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 731,
+      "output_token_count": 731,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/runtime.rs",
+      "input_sha256": "a490c0ccc87c4ef8f59229dde7d80f7db18c550a97c0588f0a4f8741b1cd76da",
+      "output_sha256": "a0a05487a17693a9ee3c0ec477601a012eae2c83d0c1c4f76c5fafae1973a152",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 13,
+      "approved_testing_decisions": [
+        "T37-FOUNDATION-TESTING-01",
+        "T37-FOUNDATION-TESTING-03"
+      ],
+      "expected_surviving_token_count": 19237,
+      "output_token_count": 19237,
+      "expected_literal_count": 84,
+      "output_literal_count": 84,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/scroll_region.rs",
+      "input_sha256": "594895cf10d8a6b1d76209d8064ca44a147b16f2507f41f8f56726429035a93b",
+      "output_sha256": "756d9c08f41ee4117ca085234d405998363f7f821c2e30389190d65f7c67d52b",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 4846,
+      "output_token_count": 4846,
+      "expected_literal_count": 28,
+      "output_literal_count": 28,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 1,
+      "output_linter_attribute_count": 1
+    },
+    {
+      "path": "crates/termrock-runtime/src/size_watch.rs",
+      "input_sha256": "29418e748621f4f76d7f0e75c48517952a17e778233975cea2017734623f7e2b",
+      "output_sha256": "d7539fae12a01634625ac74efdd2a448b359b8063ca6788ee5f50953d194f6ba",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 174,
+      "output_token_count": 174,
+      "expected_literal_count": 2,
+      "output_literal_count": 2,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/support.rs",
+      "input_sha256": "74bc728159dc1d0554f7093c17ad546f84a0e9e2cca82288c377473436cd5669",
+      "output_sha256": "c82d3328ed1ccf617915a08b19dee31bbc7edde0b996256f391a64431339b5b8",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1389,
+      "output_token_count": 1389,
+      "expected_literal_count": 9,
+      "output_literal_count": 9,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 1,
+      "output_linter_attribute_count": 1
+    },
+    {
+      "path": "crates/termrock-runtime/src/ui/command_scope.rs",
+      "input_sha256": "5e3d320d095c36498242f5407aff8e97da67234e0e309127a0cd9beff4682fc6",
+      "output_sha256": "d4ee709c91bd4b326f3fd1aaea61ac8ec3fb657c50a7a2a5083d293f5f7c1ae3",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 147,
+      "output_token_count": 147,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/ui/composition.rs",
+      "input_sha256": "06da27a836617e83020f97978fb58d23830ed62e493a40d0a3b5e391cef1e15c",
+      "output_sha256": "3bc2dccd993bf4f851f9b9529a2279af384ff519f311c62e36253ed4abbe56bf",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 2604,
+      "output_token_count": 2604,
+      "expected_literal_count": 14,
+      "output_literal_count": 14,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/ui/cx.rs",
+      "input_sha256": "a9e386cb3dbc73d3863f8613b43ba8d0aefdfb3581d81982cd04c47a2350cff3",
+      "output_sha256": "19f0bcab4b3853bd6d4c4e79073b932107ce1fb293b0a143f2ddad98766ed677",
+      "cfg_test_item_count_removed": 3,
+      "approved_testing_scope_count_removed": 2,
+      "approved_testing_decisions": [
+        "T37-FOUNDATION-TESTING-03"
+      ],
+      "expected_surviving_token_count": 6432,
+      "output_token_count": 6432,
+      "expected_literal_count": 14,
+      "output_literal_count": 14,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/ui/derived.rs",
+      "input_sha256": "f66ba6f4ea6907b2ec018fc4c35171b583619b3ccf7bf8f5817ee443e8d27c9e",
+      "output_sha256": "28a34cc00d2d7837e927eee0a6a83fde62ae7f0bc4543f13f65a414cd9a2ce25",
+      "cfg_test_item_count_removed": 2,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 583,
+      "output_token_count": 583,
+      "expected_literal_count": 8,
+      "output_literal_count": 8,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 1,
+      "output_linter_attribute_count": 1
+    },
+    {
+      "path": "crates/termrock-runtime/src/ui/layer_buf.rs",
+      "input_sha256": "cefa101cacc0e21208ccc1759756e3c46d96f94f31363facb5e8f9114909fe31",
+      "output_sha256": "7a533017a23fab6f05d0fb117b52a3ce6fb67a11c8de47f65facff03ff06758a",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 3262,
+      "output_token_count": 3262,
+      "expected_literal_count": 2,
+      "output_literal_count": 2,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/ui/measure.rs",
+      "input_sha256": "1ecccd35c5502383c6c068f50082894f7abcd29f4f9c571c22552bf38ff86f53",
+      "output_sha256": "f0fca5ed88f78802c3dcd0cd4f35fab3ca859caeae3f3195d55b72714fb669e1",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 43,
+      "output_token_count": 43,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/ui/mod.rs",
+      "input_sha256": "f4d2bc2cbe853c73383e87b268c2ed8f04730fcf9d6f67e4c77b9857e9624fb0",
+      "output_sha256": "e8d029b8614d7692fef366753c33891f23113673a60bbdc8df6e3edbd9d8e72a",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 9,
+      "approved_testing_decisions": [
+        "T37-FOUNDATION-TESTING-02"
+      ],
+      "expected_surviving_token_count": 10743,
+      "output_token_count": 10743,
+      "expected_literal_count": 45,
+      "output_literal_count": 45,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/ui/paint.rs",
+      "input_sha256": "906fc9360f414e3fb06274f2f75eea6d93a15cbcf8e20b54db9cdf2b30907cae",
+      "output_sha256": "6d2d31710931a05d6fa18a28dbb6d76587d5e3fca631c2b54bd17ef35c3a43d2",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 4870,
+      "output_token_count": 4870,
+      "expected_literal_count": 67,
+      "output_literal_count": 67,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-runtime/src/ui/slot.rs",
+      "input_sha256": "856edb2c8745ebb5db99750b416d6304136aa324f1e3cb9b7ca8af504bb5f332",
+      "output_sha256": "856edb2c8745ebb5db99750b416d6304136aa324f1e3cb9b7ca8af504bb5f332",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 328,
+      "output_token_count": 328,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "input_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "output_sha256": "db8daa85f55101373b8f19d1ad56f0d64356e0bcabfa134f91b59e7722e9e45f",
+      "cfg_test_item_count_removed": 2,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 7001,
+      "output_token_count": 7001,
+      "expected_literal_count": 197,
+      "output_literal_count": 197,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-session/src/lib.rs",
+      "input_sha256": "ca1a25fd11fa2cfb4bdf5b4d84f22e1f982e8e071ad927a81d99a26e7f4d40db",
+      "output_sha256": "ca1a25fd11fa2cfb4bdf5b4d84f22e1f982e8e071ad927a81d99a26e7f4d40db",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 13,
+      "output_token_count": 13,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-session/src/session.rs",
+      "input_sha256": "602de22403325f53155b0a907b9c3cf646577f3ab55f302de2a68b58a93d4a5e",
+      "output_sha256": "1121144e3b980edf1824aac6df6115b7263390a6c6d7b2dc187e54a08729f3ba",
+      "cfg_test_item_count_removed": 2,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 4717,
+      "output_token_count": 4717,
+      "expected_literal_count": 26,
+      "output_literal_count": 26,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 1,
+      "output_linter_attribute_count": 1
+    },
+    {
+      "path": "crates/termrock-shell/examples/shell_consumer.rs",
+      "input_sha256": "91428d43e309d5840fb8dfb5b7490156d44f760f9c61875d2abd09e35f4846a3",
+      "output_sha256": "6061c556b88d956a0764927f132d97a4265151240cd904b6acc94d658ddd1e71",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1563,
+      "output_token_count": 1563,
+      "expected_literal_count": 32,
+      "output_literal_count": 32,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-shell/src/chrome.rs",
+      "input_sha256": "c40357c5fde61ef90a65431200d9b83de7322988faba11cf0e7ab1872fa43f3f",
+      "output_sha256": "724598e989dcd29d4f50714a8abfea4487db2eebda4b642744aceb804546eca6",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 509,
+      "output_token_count": 509,
+      "expected_literal_count": 10,
+      "output_literal_count": 10,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-shell/src/footer.rs",
+      "input_sha256": "6c8222660ea4555b84479b820e9001def3e765bc54fffb0e560eef02e17bc69f",
+      "output_sha256": "cf4a0c84e60b8ab072570a7679d482f2c06b2b427b9337c09fa773e2bd893c24",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 786,
+      "output_token_count": 786,
+      "expected_literal_count": 6,
+      "output_literal_count": 6,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-shell/src/keyboard.rs",
+      "input_sha256": "032c877dc733a0ccc384425a1c51aa7f9443ea9b1d8e763592b948e512df9b31",
+      "output_sha256": "2f5de71c1ec3e7e922370f233bb14527684b4ba9221044c88aab9fd8f998be0e",
+      "cfg_test_item_count_removed": 2,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 407,
+      "output_token_count": 407,
+      "expected_literal_count": 27,
+      "output_literal_count": 27,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-shell/src/lib.rs",
+      "input_sha256": "3c2cd6fc6ca62cbb45e9df3a61609fcf93c55a7656312c047b964358f2c8e4ca",
+      "output_sha256": "abfa253ce26584da30170e9461f5a8c95dd0cc5aecfbeed09674623628dc211c",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 189,
+      "output_token_count": 189,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-shell/src/nav.rs",
+      "input_sha256": "8cdd587f4fcfa5f42684c1579d5bd883aad18f6e83ce2488f48cde218d04aedc",
+      "output_sha256": "0fa24d5e765c1ccf2713571dd15c894b85e44673e866f09c389458bbcfa39f37",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 2332,
+      "output_token_count": 2332,
+      "expected_literal_count": 24,
+      "output_literal_count": 24,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-shell/src/page.rs",
+      "input_sha256": "f1eff7a5aed256a663f001b8e4c39250b46031fa8fe8056702b8583e8caec041",
+      "output_sha256": "3e20fe58f29296c87f07ba3a0589489f7ab9f12283ce8b30068d6eb63e9f2d5e",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 600,
+      "output_token_count": 600,
+      "expected_literal_count": 7,
+      "output_literal_count": 7,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-shell/src/quit.rs",
+      "input_sha256": "7c35b306cabab77b9f1bfe05eac22b48b3af2f1de5a22ea1f0fe18868ecd5def",
+      "output_sha256": "9d0427ff8a30b7b52ca1671235b7ed888c44a82afe54a2ff153d6e03abe31e31",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1359,
+      "output_token_count": 1359,
+      "expected_literal_count": 11,
+      "output_literal_count": 11,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-shell/src/report.rs",
+      "input_sha256": "d5216d95ed34f4f484e036e47eb5c1b5a329af8a5a29340449044f9e64b2ad7c",
+      "output_sha256": "0b0456b0f92f53caa5ec7086c60a05c4ade7b78bca9653dd4701e4492a1498dc",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1016,
+      "output_token_count": 1016,
+      "expected_literal_count": 13,
+      "output_literal_count": 13,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-shell/src/router.rs",
+      "input_sha256": "04cacce9f25db8fb245678e14c2f36a5fd4ba971930bbc7579b149e835e7e4a8",
+      "output_sha256": "2d1a19522aa6689324d926cdcd4e821f7e27050c477bdfef00fc8926fbb308a8",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 2575,
+      "output_token_count": 2575,
+      "expected_literal_count": 16,
+      "output_literal_count": 16,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-shell/src/shell.rs",
+      "input_sha256": "875e0a9d2a93d579ebc763ad4299271570560632f92029a3adbd4c6983124d6b",
+      "output_sha256": "b474b6fba6f4646fab82ea9ccae41405f372d49e3cc2ddba940edbf0586d3cce",
+      "cfg_test_item_count_removed": 0,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1734,
+      "output_token_count": 1734,
+      "expected_literal_count": 30,
+      "output_literal_count": 30,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-shell/src/status.rs",
+      "input_sha256": "4a4862221fad6716d34190cf181d110c3a9ecf3a0bfcf5d804739d5278e4654e",
+      "output_sha256": "80b57525df11225c67e2da6f1d41fbb9e7787eafeb4301543b12fec068a02d0e",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 1197,
+      "output_token_count": 1197,
+      "expected_literal_count": 2,
+      "output_literal_count": 2,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-terminal/src/keyboard.rs",
+      "input_sha256": "ea40437196fdf53b543427a6b6fdc47670c4eb5c96f1430311f7d09b0ac6ff1e",
+      "output_sha256": "9f346949836093ba093c882128f28b615f0c8d8a6cf520054fd2dbf2eb3e3599",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 425,
+      "output_token_count": 425,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-terminal/src/lib.rs",
+      "input_sha256": "c4ca9764495b05e21e08c31df3585d680fd5b525e991adf61239a47552e1e944",
+      "output_sha256": "532cddd34f8f9c1e755237f0e08882b841903ab4047c40062dc8221e9e206b44",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 20,
+      "output_token_count": 20,
+      "expected_literal_count": 0,
+      "output_literal_count": 0,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    },
+    {
+      "path": "crates/termrock-terminal/src/terminal_view.rs",
+      "input_sha256": "e576104c94146f698508db924705540029adc037774851f06c983e2d25365696",
+      "output_sha256": "d5ea17281e846c18529f2ade21ffd4d3efee5846a7710a0fd5fd23b93002cb16",
+      "cfg_test_item_count_removed": 1,
+      "approved_testing_scope_count_removed": 0,
+      "approved_testing_decisions": [],
+      "expected_surviving_token_count": 3576,
+      "output_token_count": 3576,
+      "expected_literal_count": 9,
+      "output_literal_count": 9,
+      "surviving_noncomment_tokens_identical": true,
+      "surviving_literals_identical": true,
+      "required_linter_attributes_identical": true,
+      "expected_linter_attribute_count": 0,
+      "output_linter_attribute_count": 0
+    }
+  ],
+  "surviving_noncomment_tokens_identical_after_authorized_deletions": true,
+  "surviving_literal_tokens_identical": true,
+  "required_linter_attributes_identical": true,
+  "required_linter_attribute_count": 28,
+  "linter_attribute_differences_outside_approved_removals": [],
+  "noncomment_token_differences_outside_authorized_deletions": [],
+  "authorized_noncomment_token_removals": [
+    {
+      "kind": "legacy Rust tests",
+      "targets": 68,
+      "functions": 1202,
+      "modules": 92,
+      "cfg_test_scopes": 104,
+      "record": "source-removal.json"
+    },
+    {
+      "kind": "testing-feature shell reach harness",
+      "path": "crates/termrock-shell/src/reach.rs",
+      "module_declaration": "crates/termrock-shell/src/lib.rs"
+    },
+    {
+      "kind": "PaintStyle manual compile-test bins",
+      "paths": [
+        "crates/termrock-theme/manual-api-contracts/paint-style-pilot/src/bin/paint_style_positive.rs",
+        "crates/termrock-theme/manual-api-contracts/paint-style-pilot/src/bin/paint_style_negative.rs"
+      ],
+      "decision_id": "T37-PROBE-01"
+    }
+  ],
+  "approved_testing_surface_retirements": [
+    {
+      "decision_id": "T37-FOUNDATION-TESTING-01",
+      "path": "crates/termrock-core/src/intent.rs",
+      "input_lines": [
+        188,
+        206,
+        211,
+        236,
+        583
+      ]
+    },
+    {
+      "decision_id": "T37-FOUNDATION-TESTING-01",
+      "path": "crates/termrock-runtime/src/runtime.rs",
+      "input_lines": [
+        31,
+        363,
+        370,
+        377,
+        420,
+        427,
+        434,
+        441,
+        467,
+        647,
+        764,
+        3102
+      ]
+    },
+    {
+      "decision_id": "T37-FOUNDATION-TESTING-03",
+      "path": "crates/termrock-runtime/src/runtime.rs",
+      "input_lines": [
+        3301
+      ]
+    },
+    {
+      "decision_id": "T37-FOUNDATION-TESTING-02",
+      "path": "crates/termrock-runtime/src/ui/mod.rs",
+      "input_lines": [
+        85,
+        87,
+        107,
+        208,
+        210,
+        627,
+        642,
+        647,
+        652
+      ]
+    },
+    {
+      "decision_id": "T37-FOUNDATION-TESTING-02",
+      "path": "crates/termrock-runtime/src/rowui.rs",
+      "input_lines": [
+        687,
+        716,
+        770,
+        819,
+        907,
+        1263,
+        1281,
+        1597,
+        1675
+      ]
+    },
+    {
+      "decision_id": "T37-FOUNDATION-TESTING-02",
+      "path": "crates/termrock-runtime/src/author.rs",
+      "input_lines": [
+        138,
+        140
+      ]
+    },
+    {
+      "decision_id": "T37-FOUNDATION-TESTING-03",
+      "path": "crates/termrock-runtime/src/ui/cx.rs",
+      "input_lines": [
+        179,
+        1018
+      ]
+    },
+    {
+      "decision_id": "T37-FOUNDATION-TESTING-01",
+      "path": "crates/termrock-theme/src/lib.rs",
+      "input_lines": [
+        712
+      ]
+    },
+    {
+      "decision_id": "T37-FOUNDATION-TESTING-01",
+      "path": "crates/termrock-theme/src/resolve.rs",
+      "input_lines": [
+        1354
+      ]
+    },
+    {
+      "decision_id": "T37-FOUNDATION-TESTING-03",
+      "path": "crates/termrock-runtime/src/lib.rs",
+      "input_lines": [
+        55
+      ]
+    }
+  ],
+  "removed_test_only_imports": [
+    {
+      "path": "crates/termrock-runtime/src/layer.rs",
+      "input_line": 5,
+      "item": {
+        "import": "crate::action::ActionKey",
+        "kind": "use",
+        "name": null
+      },
+      "disposition": "removed with its test-only cfg scope"
+    }
+  ],
+  "input_test_scope_reconciliation": {
+    "cfg_test_scopes_in_surviving_owned_rust_paths": 103,
+    "cfg_test_scopes_in_deleted_shell_reach_harness": 1,
+    "total_cfg_test_scopes_removed": 104,
+    "inventory_total": 104,
+    "inventory_reconciles": true
+  },
+  "source_directive_check": {
+    "required_linter_attributes_identical_after_approved_scope_removals": true,
+    "linter_attribute_count": 28,
+    "noncomment_directive_tokens_identical_after_approved_scope_removals": true,
+    "legal_notice_files_in_owned_crates": [],
+    "generated_files_in_owned_scope": []
+  },
+  "comment_cleanup": {
+    "removed_non_safety_comment_count": 2396,
+    "remaining_non_safety_comment_count": 0,
+    "removed_accepted_production_safety_group_count": 28,
+    "retained_production_safety_group_count": 0,
+    "safety_transfer_pending": false,
+    "safety_transfer_acceptance_commit": "58daa658503503eec4fc907c3590f978586f5068",
+    "safety_transfer_reviewed_source_commit": "d92192664d0490e1b750029bf8c8a715217af4d4",
+    "safety_contract_path": "docs/contracts/safety-invariants.md",
+    "safety_decision_id": "T37-SAFETY-01",
+    "files": [
+      {
+        "path": "crates/termrock-core/src/action.rs",
+        "input_comment_count_after_test_deletion": 1,
+        "removed_comment_count": 1,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/diagnostics.rs",
+        "input_comment_count_after_test_deletion": 9,
+        "removed_comment_count": 9,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/edit_entry.rs",
+        "input_comment_count_after_test_deletion": 4,
+        "removed_comment_count": 4,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/event.rs",
+        "input_comment_count_after_test_deletion": 11,
+        "removed_comment_count": 11,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/geometry.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/id.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/identity.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/intent.rs",
+        "input_comment_count_after_test_deletion": 21,
+        "removed_comment_count": 21,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/keymap.rs",
+        "input_comment_count_after_test_deletion": 21,
+        "removed_comment_count": 21,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/keys.rs",
+        "input_comment_count_after_test_deletion": 74,
+        "removed_comment_count": 74,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/layer_types.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/lib.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/list.rs",
+        "input_comment_count_after_test_deletion": 68,
+        "removed_comment_count": 68,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/nav.rs",
+        "input_comment_count_after_test_deletion": 3,
+        "removed_comment_count": 3,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/outcome.rs",
+        "input_comment_count_after_test_deletion": 8,
+        "removed_comment_count": 8,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/platform.rs",
+        "input_comment_count_after_test_deletion": 17,
+        "removed_comment_count": 17,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/response.rs",
+        "input_comment_count_after_test_deletion": 14,
+        "removed_comment_count": 14,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/secret.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/selection.rs",
+        "input_comment_count_after_test_deletion": 73,
+        "removed_comment_count": 73,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/shape.rs",
+        "input_comment_count_after_test_deletion": 36,
+        "removed_comment_count": 36,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/typeahead.rs",
+        "input_comment_count_after_test_deletion": 17,
+        "removed_comment_count": 17,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/validate.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-core/src/variant.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-layout/src/columns.rs",
+        "input_comment_count_after_test_deletion": 23,
+        "removed_comment_count": 23,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-layout/src/composition_plan.rs",
+        "input_comment_count_after_test_deletion": 32,
+        "removed_comment_count": 32,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-layout/src/layout.rs",
+        "input_comment_count_after_test_deletion": 32,
+        "removed_comment_count": 32,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-layout/src/lib.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-layout/src/measure.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-theme/src/border.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-theme/src/builder.rs",
+        "input_comment_count_after_test_deletion": 6,
+        "removed_comment_count": 6,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-theme/src/builtin/junie.rs",
+        "input_comment_count_after_test_deletion": 14,
+        "removed_comment_count": 14,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-theme/src/builtin/mod.rs",
+        "input_comment_count_after_test_deletion": 5,
+        "removed_comment_count": 5,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-theme/src/builtin/paper.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-theme/src/downgrade.rs",
+        "input_comment_count_after_test_deletion": 21,
+        "removed_comment_count": 21,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-theme/src/glyph.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-theme/src/lib.rs",
+        "input_comment_count_after_test_deletion": 49,
+        "removed_comment_count": 49,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-theme/src/palettes.rs",
+        "input_comment_count_after_test_deletion": 39,
+        "removed_comment_count": 39,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-theme/src/patch.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-theme/src/recipe.rs",
+        "input_comment_count_after_test_deletion": 21,
+        "removed_comment_count": 21,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-theme/src/resolve.rs",
+        "input_comment_count_after_test_deletion": 18,
+        "removed_comment_count": 18,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-theme/src/role.rs",
+        "input_comment_count_after_test_deletion": 10,
+        "removed_comment_count": 10,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-theme/src/tokens.rs",
+        "input_comment_count_after_test_deletion": 12,
+        "removed_comment_count": 12,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-theme/src/visual.rs",
+        "input_comment_count_after_test_deletion": 110,
+        "removed_comment_count": 110,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-text/src/buffer.rs",
+        "input_comment_count_after_test_deletion": 21,
+        "removed_comment_count": 21,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-text/src/clusters.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-text/src/editor.rs",
+        "input_comment_count_after_test_deletion": 1,
+        "removed_comment_count": 1,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-text/src/fuzzy.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-text/src/lib.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-text/src/measure.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-text/src/secret.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-text/src/span.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-text/src/undo.rs",
+        "input_comment_count_after_test_deletion": 24,
+        "removed_comment_count": 24,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-render/src/lib.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-collections/src/collection/key.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-collections/src/collection/mod.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-collections/src/collection/reconcile.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-collections/src/lib.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-collections/src/scroll.rs",
+        "input_comment_count_after_test_deletion": 32,
+        "removed_comment_count": 32,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/author/canvas.rs",
+        "input_comment_count_after_test_deletion": 32,
+        "removed_comment_count": 32,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/author/composition.rs",
+        "input_comment_count_after_test_deletion": 7,
+        "removed_comment_count": 7,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/author/surface.rs",
+        "input_comment_count_after_test_deletion": 56,
+        "removed_comment_count": 56,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/author/window.rs",
+        "input_comment_count_after_test_deletion": 20,
+        "removed_comment_count": 20,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/author.rs",
+        "input_comment_count_after_test_deletion": 18,
+        "removed_comment_count": 18,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/capture.rs",
+        "input_comment_count_after_test_deletion": 38,
+        "removed_comment_count": 38,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/clock_paste.rs",
+        "input_comment_count_after_test_deletion": 11,
+        "removed_comment_count": 11,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/cursor.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/decor.rs",
+        "input_comment_count_after_test_deletion": 3,
+        "removed_comment_count": 3,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/empty.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/field_control.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/focus.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/hit.rs",
+        "input_comment_count_after_test_deletion": 73,
+        "removed_comment_count": 73,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/keymap.rs",
+        "input_comment_count_after_test_deletion": 12,
+        "removed_comment_count": 12,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/layer.rs",
+        "input_comment_count_after_test_deletion": 37,
+        "removed_comment_count": 37,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/lib.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/rowui.rs",
+        "input_comment_count_after_test_deletion": 147,
+        "removed_comment_count": 147,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/runtime/clipboard.rs",
+        "input_comment_count_after_test_deletion": 10,
+        "removed_comment_count": 10,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/runtime/feedback.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/runtime/time.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/runtime/typing.rs",
+        "input_comment_count_after_test_deletion": 3,
+        "removed_comment_count": 3,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/runtime.rs",
+        "input_comment_count_after_test_deletion": 59,
+        "removed_comment_count": 59,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/scroll_region.rs",
+        "input_comment_count_after_test_deletion": 56,
+        "removed_comment_count": 56,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/size_watch.rs",
+        "input_comment_count_after_test_deletion": 8,
+        "removed_comment_count": 8,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/support.rs",
+        "input_comment_count_after_test_deletion": 3,
+        "removed_comment_count": 3,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/ui/command_scope.rs",
+        "input_comment_count_after_test_deletion": 6,
+        "removed_comment_count": 6,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/ui/composition.rs",
+        "input_comment_count_after_test_deletion": 35,
+        "removed_comment_count": 35,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/ui/cx.rs",
+        "input_comment_count_after_test_deletion": 48,
+        "removed_comment_count": 48,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/ui/derived.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/ui/layer_buf.rs",
+        "input_comment_count_after_test_deletion": 15,
+        "removed_comment_count": 15,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/ui/measure.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/ui/mod.rs",
+        "input_comment_count_after_test_deletion": 132,
+        "removed_comment_count": 132,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/ui/paint.rs",
+        "input_comment_count_after_test_deletion": 36,
+        "removed_comment_count": 36,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-runtime/src/ui/slot.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-session/src/esc_bridge.rs",
+        "input_comment_count_after_test_deletion": 87,
+        "removed_comment_count": 59,
+        "removed_accepted_safety_group_count": 28,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-session/src/lib.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-session/src/session.rs",
+        "input_comment_count_after_test_deletion": 49,
+        "removed_comment_count": 49,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-shell/examples/shell_consumer.rs",
+        "input_comment_count_after_test_deletion": 7,
+        "removed_comment_count": 7,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-shell/src/chrome.rs",
+        "input_comment_count_after_test_deletion": 27,
+        "removed_comment_count": 27,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-shell/src/footer.rs",
+        "input_comment_count_after_test_deletion": 51,
+        "removed_comment_count": 51,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-shell/src/keyboard.rs",
+        "input_comment_count_after_test_deletion": 18,
+        "removed_comment_count": 18,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-shell/src/lib.rs",
+        "input_comment_count_after_test_deletion": 18,
+        "removed_comment_count": 18,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-shell/src/nav.rs",
+        "input_comment_count_after_test_deletion": 69,
+        "removed_comment_count": 69,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-shell/src/page.rs",
+        "input_comment_count_after_test_deletion": 45,
+        "removed_comment_count": 45,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-shell/src/quit.rs",
+        "input_comment_count_after_test_deletion": 74,
+        "removed_comment_count": 74,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-shell/src/report.rs",
+        "input_comment_count_after_test_deletion": 48,
+        "removed_comment_count": 48,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-shell/src/router.rs",
+        "input_comment_count_after_test_deletion": 97,
+        "removed_comment_count": 97,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-shell/src/shell.rs",
+        "input_comment_count_after_test_deletion": 45,
+        "removed_comment_count": 45,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-shell/src/status.rs",
+        "input_comment_count_after_test_deletion": 50,
+        "removed_comment_count": 50,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-terminal/src/keyboard.rs",
+        "input_comment_count_after_test_deletion": 24,
+        "removed_comment_count": 24,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-terminal/src/lib.rs",
+        "input_comment_count_after_test_deletion": 0,
+        "removed_comment_count": 0,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      },
+      {
+        "path": "crates/termrock-terminal/src/terminal_view.rs",
+        "input_comment_count_after_test_deletion": 3,
+        "removed_comment_count": 3,
+        "removed_accepted_safety_group_count": 0,
+        "retained_safety_group_count": 0
+      }
+    ]
+  },
+  "runtime_tests_executed": false,
+  "selected_test_cases": 0,
+  "zero_case_status": "NOT VERIFIED",
+  "limits": [
+    "No Cargo command or test code ran.",
+    "Shared manifest and active-document edits remain with their owner."
+  ]
+}

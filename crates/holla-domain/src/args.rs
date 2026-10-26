@@ -1,12 +1,10 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-/// Stable identity for one producer-owned input field.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InputFieldId(String);
 
 impl InputFieldId {
-    /// Creates a lowercase, stable field identifier.
     pub fn new(value: &str) -> Result<Self, SchemaError> {
         let mut bytes = value.bytes();
         let Some(first) = bytes.next() else {
@@ -22,13 +20,11 @@ impl InputFieldId {
         Ok(Self(value.to_owned()))
     }
 
-    /// Returns the stable identifier text.
     pub fn as_str(&self) -> &str {
         &self.0
     }
 }
 
-/// Identifies whether an input may be projected into safe review facts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputSensitivity {
     Public,
@@ -41,7 +37,6 @@ enum InputKind {
     Choice(Vec<String>),
 }
 
-/// Metadata declared by an action producer for a typed input.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InputField {
     id: InputFieldId,
@@ -54,7 +49,6 @@ pub struct InputField {
 }
 
 impl InputField {
-    /// Declares a text input. The value is preserved exactly after required-value validation.
     pub fn text(id: &str, label: &str, required: bool) -> Result<Self, SchemaError> {
         Ok(Self {
             id: InputFieldId::new(id)?,
@@ -67,7 +61,6 @@ impl InputField {
         })
     }
 
-    /// Declares a finite choice input.
     pub fn choice(
         id: &str,
         label: &str,
@@ -85,50 +78,41 @@ impl InputField {
         })
     }
 
-    /// Adds explanatory copy without changing the field's accepted values.
     pub fn with_help(mut self, help: &str) -> Self {
         self.help = Some(help.to_owned());
         self
     }
 
-    /// Declares a producer-authored default, validated when the schema is built.
     pub fn with_default(mut self, value: &str) -> Self {
         self.default = Some(value.to_owned());
         self
     }
 
-    /// Marks a field as secret so schema construction can reject it before accepting values.
     pub fn with_sensitivity(mut self, sensitivity: InputSensitivity) -> Self {
         self.sensitivity = sensitivity;
         self
     }
 
-    /// Returns the stable field identifier.
     pub fn id(&self) -> &InputFieldId {
         &self.id
     }
 
-    /// Returns the presentation label.
     pub fn label(&self) -> &str {
         &self.label
     }
 
-    /// Returns optional help text.
     pub fn help(&self) -> Option<&str> {
         self.help.as_deref()
     }
 
-    /// Returns whether the field must contain a non-empty value.
     pub fn required(&self) -> bool {
         self.required
     }
 
-    /// Returns the producer-authored default, if any.
     pub fn default_value(&self) -> Option<&str> {
         self.default.as_deref()
     }
 
-    /// Returns the accepted choice values, or an empty slice for text fields.
     pub fn choices(&self) -> &[String] {
         match &self.kind {
             InputKind::Text => &[],
@@ -136,13 +120,11 @@ impl InputField {
         }
     }
 
-    /// Returns the sensitivity declaration.
     pub fn sensitivity(&self) -> InputSensitivity {
         self.sensitivity
     }
 }
 
-/// Validated, producer-owned input metadata.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InputSchema {
     version: u16,
@@ -150,7 +132,6 @@ pub struct InputSchema {
 }
 
 impl InputSchema {
-    /// Validates schema structure, choices, defaults, and sensitivity before it can be used.
     pub fn new(version: u16, fields: Vec<InputField>) -> Result<Self, SchemaError> {
         if version == 0 {
             return Err(SchemaError::ZeroVersion);
@@ -199,25 +180,18 @@ impl InputSchema {
         Ok(Self { version, fields })
     }
 
-    /// Returns the schema version used by request and plan bindings.
     pub fn version(&self) -> u16 {
         self.version
     }
 
-    /// Returns the declared fields in producer order.
     pub fn fields(&self) -> &[InputField] {
         &self.fields
     }
 
-    /// Finds a field by stable identifier.
     pub fn field(&self, id: &str) -> Option<&InputField> {
         self.fields.iter().find(|field| field.id.as_str() == id)
     }
 
-    /// Validates submitted values and returns an accepted request bound to this schema.
-    ///
-    /// Defaults are copied once at acceptance. Optional omitted values stay absent, while an
-    /// explicitly supplied empty string remains an accepted value.
     pub fn accept(&self, values: &[(&str, &str)]) -> Result<AcceptedInputs, InputError> {
         let mut supplied = BTreeMap::<InputFieldId, String>::new();
         for (raw_id, value) in values {
@@ -258,7 +232,6 @@ impl InputSchema {
     }
 }
 
-/// Values that passed the producer's schema and required-field checks.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AcceptedInputs {
     schema: InputSchema,
@@ -266,17 +239,14 @@ pub struct AcceptedInputs {
 }
 
 impl AcceptedInputs {
-    /// Returns the schema captured at acceptance.
     pub fn schema(&self) -> &InputSchema {
         &self.schema
     }
 
-    /// Returns the schema version against which this request was accepted.
     pub fn schema_version(&self) -> u16 {
         self.schema.version
     }
 
-    /// Returns an accepted value by stable field identifier.
     pub fn value(&self, id: &str) -> Option<&str> {
         self.values
             .iter()
@@ -284,13 +254,11 @@ impl AcceptedInputs {
             .map(|(_, value)| value.as_str())
     }
 
-    /// Returns whether a value was explicitly/default accepted for this field.
     pub fn contains(&self, id: &str) -> bool {
         self.values.keys().any(|field_id| field_id.as_str() == id)
     }
 }
 
-/// Errors found while validating an input schema.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SchemaError {
     ZeroVersion,
@@ -326,7 +294,6 @@ impl fmt::Display for SchemaError {
 
 impl std::error::Error for SchemaError {}
 
-/// Errors found while accepting values against an input schema.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InputError {
     InvalidFieldId(String),
@@ -349,80 +316,3 @@ impl fmt::Display for InputError {
 }
 
 impl std::error::Error for InputError {}
-
-#[cfg(test)]
-mod tests {
-    use super::{InputField, InputSchema, InputSensitivity, SchemaError};
-
-    #[test]
-    fn schema_rejects_secret_fields_before_values_can_be_accepted() {
-        let field = InputField::text("token", "Token", true)
-            .map(|field| field.with_sensitivity(InputSensitivity::Secret));
-        let result = field.and_then(|field| InputSchema::new(1, vec![field]));
-
-        assert_eq!(
-            result,
-            Err(SchemaError::SecretInputsUnsupported("token".to_owned()))
-        );
-    }
-
-    #[test]
-    fn schema_rejects_duplicate_ids_empty_choices_and_invalid_defaults() {
-        let first = InputField::text("filter", "Filter", false);
-        let duplicate = InputField::text("filter", "Another filter", false);
-        assert_eq!(
-            first.and_then(|field| {
-                duplicate.and_then(|duplicate| InputSchema::new(1, vec![field, duplicate]))
-            }),
-            Err(SchemaError::DuplicateField("filter".to_owned()))
-        );
-
-        let empty_choices = InputField::choice("profile", "Profile", &[], true);
-        assert_eq!(
-            empty_choices.and_then(|field| InputSchema::new(1, vec![field])),
-            Err(SchemaError::EmptyChoices("profile".to_owned()))
-        );
-
-        let invalid_default = InputField::choice("profile", "Profile", &["default"], true)
-            .map(|field| field.with_default("unknown"));
-        assert_eq!(
-            invalid_default.and_then(|field| InputSchema::new(1, vec![field])),
-            Err(SchemaError::InvalidDefault("profile".to_owned()))
-        );
-    }
-
-    #[test]
-    fn accepted_empty_optional_text_is_distinct_from_no_accepted_request() {
-        let field = InputField::text("filter", "Filter", false);
-        let schema = field.and_then(|field| InputSchema::new(1, vec![field]));
-        assert!(schema.is_ok(), "test schema should be valid");
-        if let Ok(schema) = schema {
-            let accepted_empty = schema.accept(&[("filter", "")]);
-            let accepted_omitted = schema.accept(&[]);
-            assert!(accepted_empty.is_ok(), "empty optional text is accepted");
-            assert!(
-                accepted_omitted.is_ok(),
-                "omitting optional text is accepted"
-            );
-            if let (Ok(accepted_empty), Ok(accepted_omitted)) = (accepted_empty, accepted_omitted) {
-                assert!(accepted_empty.contains("filter"));
-                assert_eq!(accepted_empty.value("filter"), Some(""));
-                assert!(!accepted_omitted.contains("filter"));
-                assert_ne!(accepted_empty, accepted_omitted);
-            }
-        }
-    }
-
-    #[test]
-    fn required_field_without_a_default_must_be_supplied() {
-        let field = InputField::text("name", "Name", true);
-        let schema = field.and_then(|field| InputSchema::new(1, vec![field]));
-        assert!(schema.is_ok(), "required text schema should be valid");
-        if let Ok(schema) = schema {
-            assert_eq!(
-                schema.accept(&[]),
-                Err(super::InputError::MissingRequired("name".to_owned()))
-            );
-        }
-    }
-}

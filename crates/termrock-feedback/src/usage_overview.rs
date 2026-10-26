@@ -1,8 +1,3 @@
-//! Narrow usage overview: menu, framed account tree, scrollbar, hints.
-//!
-//! Width under 100 keeps the list and drops the detail column. Positions
-//! follow the labels, the chrome inset, and the screen edges.
-
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier};
 
@@ -28,14 +23,14 @@ pub enum UsageMark {
 
 pub struct UsageLine {
     pub heading: bool,
-    /// Overview text starts three columns in. Account names start at five.
+
     pub overview: bool,
     pub label: String,
     pub muted: bool,
     pub mark: UsageMark,
     pub meta: String,
     pub selected: bool,
-    /// Keyboard focus draws the accent gutter. A selected row in another pane does not.
+
     pub focused: bool,
 }
 
@@ -145,8 +140,6 @@ struct Seg {
 }
 
 pub fn paint_usage_overview(ui: &mut Ui<'_>, area: Rect, page: &UsageOverview<'_>) {
-    // Chrome insets the body by one column. Baseline keeps a single list
-    // until that body is at least 100 columns wide.
     if area.width < 40 || area.height < 16 {
         return;
     }

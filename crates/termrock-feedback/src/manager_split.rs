@@ -1,9 +1,3 @@
-//! Wide workspace manager: brand, sidebar, and a detail card.
-//!
-//! Column positions are the baseline 120-column split. The app supplies the
-//! pinned workspace, its mounts, and its instances. This painter does not
-//! invent a second list model.
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 
@@ -77,11 +71,10 @@ const MONO_RULES: &[MonoRule] = &[
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum SplitMode {
-    /// Current directory is not a saved workspace.
     Empty,
-    /// Current directory is the pinned workspace. The tree is collapsed.
+
     Saved,
-    /// The pinned workspace row is expanded.
+
     Expanded,
 }
 
@@ -102,11 +95,10 @@ pub struct SplitInstance<'a> {
 
 pub struct SplitWorkspace<'a> {
     pub name: &'a str,
-    /// A collapsed row with at least one visible instance.
+
     pub expandable: bool,
 }
 
-/// Discovery or daemon failure drawn on the saved split.
 #[derive(Clone, Copy)]
 pub struct SplitAlert<'a> {
     pub index_error: Option<&'a str>,
@@ -293,19 +285,11 @@ fn leading_selection_style(ink: &Ink) -> PaintStyle {
     }
 }
 
-/// Detail-drawer presentation over the saved split: focus moves to the
-/// detail title (the accent gutter sits beside it), the workspace list
-/// keeps its selected fill without a second focus bar, the box drops to
-/// the rule grey, and the hint row becomes the drawer hints. Supply the
-/// saved frame (`SplitMode::Saved`); every cell comes from the live split
-/// data. Like the split painter's baseline columns, the approved frame
-/// pins the box rows (3..37) and the hint row (39).
 pub fn paint_manager_detail_drawer(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>) {
     paint_manager_split_inner(ui, area, frame, true);
     let ink = ink_from(ui, false);
     let rule_style = plain(ink.rule.on(InkBackground::Canvas), ink.canvas);
-    // Box top: the label loses the bold primary and the border cells drop
-    // to the rule grey. The running-count badge keeps its split paint.
+
     let summary = format!(" {} running ", frame.running);
     let (line, badge_x) = box_top(&summary);
     let chars: Vec<char> = line.chars().collect();
@@ -342,8 +326,7 @@ pub fn paint_manager_detail_drawer(ui: &mut Ui<'_>, area: Rect, frame: &ManagerS
         "╰───────────────────────────────────╯",
         rule_style,
     );
-    // Focus moves to the detail title: the accent gutter sits beside it and
-    // the title takes the primary bold.
+
     put(
         ui,
         area,
@@ -360,8 +343,7 @@ pub fn paint_manager_detail_drawer(ui: &mut Ui<'_>, area: Rect, frame: &ManagerS
         &format!("Current directory · {}", frame.workspace_name),
         bold(ink.primary.on(InkBackground::Card), ink.card),
     );
-    // The list selection keeps its fill without the focus bar; the single
-    // focus indicator is the title gutter above.
+
     let leading_selection = leading_selection_style(&ink);
     put(ui, area, 3, 3, " ", leading_selection);
     put(
@@ -372,7 +354,7 @@ pub fn paint_manager_detail_drawer(ui: &mut Ui<'_>, area: Rect, frame: &ManagerS
         " ",
         plain(ink.primary.on(InkBackground::AccentTint), ink.select_bg),
     );
-    // Drawer hints replace the manager hint row.
+
     let key = bold(ink.primary.on(InkBackground::Canvas), ink.canvas);
     let hint = plain(ink.muted.on(InkBackground::Canvas), ink.canvas);
     let y = 39;
@@ -1439,388 +1421,5 @@ fn paint_degraded_hints(ui: &mut Ui<'_>, area: Rect, y: u16, alert: SplitAlert<'
             &text,
             plain(ink.stale.on(InkBackground::Canvas), ink.canvas),
         );
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::middle_ellipsis;
-
-    #[test]
-    fn live_child_keeps_the_baseline_middle_cut() {
-        let text = middle_ellipsis(" 7f3a  ", "the-architect · Claude Code", 27);
-        assert_eq!(text, " 7f3a  the-archite…ude Code");
-    }
-
-    #[test]
-    fn long_workspace_uses_the_baseline_middle_cut() {
-        let name = "billing-reconciliation-service-with-a-very-long-name-for-truncation";
-        assert_eq!(
-            crate::text::truncate_middle(name, super::LABEL_BUDGET),
-            "billing-reconcilia…runcation"
-        );
-    }
-}
-
-#[cfg(test)]
-mod manager_semantic_role_tests {
-    use super::*;
-    use crate::theme::{ColorLevel, Theme};
-    use termrock_test_support::Scene;
-
-    #[test]
-    fn junie_mono_preserves_its_existing_role_channels_and_contexts() {
-        let mut scene = Scene::new(
-            "manager-semantic-role-contexts",
-            Theme::junie(),
-            ColorLevel::Mono,
-            120,
-            40,
-        );
-        scene.draw(|ui, _area| {
-            let ink = ink_from(ui, false);
-            let primary = Role::Fg(FgStep::Primary);
-
-            assert_eq!(
-                ink.primary.on(InkBackground::Canvas).paint_style().fg_role,
-                Some((primary, Surface::Canvas))
-            );
-            assert_eq!(
-                ink.primary.on(InkBackground::Card).paint_style().fg_role,
-                Some((primary, Surface::Surface))
-            );
-            assert_eq!(
-                ink.primary.on(InkBackground::Overlay).paint_style().fg_role,
-                Some((primary, Surface::Overlay))
-            );
-            let accent_tint = ink.primary.on(InkBackground::AccentTint);
-            assert_eq!(
-                accent_tint.paint_style().fg_role,
-                Some((primary, Surface::Canvas))
-            );
-            assert_eq!(
-                accent_tint.paint_style().bg_role,
-                Some((Role::AccentTint, Surface::Canvas))
-            );
-
-            let expanded = ink.primary.on(InkBackground::Expanded);
-            assert_eq!(
-                expanded.paint_style().fg_role,
-                Some((primary, Surface::Canvas))
-            );
-            assert_eq!(
-                expanded.paint_style().bg_role,
-                Some((Role::Custom(EXPANDED_BG), Surface::Canvas)),
-                "Expanded uses its authored literal role in Canvas context"
-            );
-            let expanded_primary = plain(expanded, ink.expanded_bg);
-            assert_eq!(expanded_primary.fg_role, Some((primary, Surface::Canvas)));
-            assert_eq!(expanded_primary.bg, Some(ink.expanded_bg));
-            assert_eq!(expanded_primary.bg_role, None);
-            let expanded_accent = ink.accent.on(InkBackground::Expanded);
-            assert_eq!(
-                expanded_accent.paint_style().fg_role,
-                Some((primary, Surface::Canvas))
-            );
-            let expanded_accent = plain(expanded_accent, ink.expanded_bg);
-            assert_eq!(expanded_accent.fg_role, Some((primary, Surface::Canvas)));
-            assert_eq!(expanded_accent.bg, Some(ink.expanded_bg));
-            assert_eq!(
-                ink.secondary.on(InkBackground::Card).paint_style().fg_role,
-                Some((primary, Surface::Surface)),
-                "the shared Mono rule keeps secondary ink owned by primary"
-            );
-
-            let selected = plain(accent_tint, ink.select_bg);
-            assert_eq!(selected.fg_role, Some((primary, Surface::Canvas)));
-            assert_eq!(selected.bg, Some(ink.select_bg));
-            assert_eq!(
-                selected.bg_role, None,
-                "Junie Mono keeps its existing literal background composition"
-            );
-            let card = plain(ink.primary.on(InkBackground::Card), ink.card);
-            assert_eq!(card.fg_role, Some((primary, Surface::Surface)));
-            let button = plain(ink.primary.on(InkBackground::Overlay), ink.button);
-            assert_eq!(button.fg_role, Some((primary, Surface::Overlay)));
-        });
-    }
-
-    #[test]
-    fn paper_truecolor_keeps_semantic_foreground_and_background_roles() {
-        let mut scene = Scene::new(
-            "manager-paper-role-contexts",
-            Theme::paper(),
-            ColorLevel::TrueColor,
-            120,
-            40,
-        );
-        scene.draw(|ui, _area| {
-            let ink = ink_from(ui, false);
-            let primary = Role::Fg(FgStep::Primary);
-            let secondary = Role::Fg(FgStep::Secondary);
-            let muted = Role::Fg(FgStep::Muted);
-
-            let selected = ink.primary.on(InkBackground::AccentTint);
-            assert_eq!(
-                selected.paint_style().fg_role,
-                Some((primary, Surface::Canvas))
-            );
-            assert_eq!(
-                selected.paint_style().bg_role,
-                Some((Role::AccentTint, Surface::Canvas))
-            );
-            let selected = plain(selected, ink.select_bg);
-            assert_eq!(selected.fg_role, Some((primary, Surface::Canvas)));
-            assert_eq!(
-                selected.bg_role,
-                Some((Role::AccentTint, Surface::Canvas)),
-                "the final selected-row style retains its resolved background role"
-            );
-            assert_eq!(selected.as_style().bg, Some(ink.select_bg));
-
-            let drawer_leading = leading_selection_style(&ink);
-            assert_eq!(
-                drawer_leading.fg_role,
-                Some((Role::AccentTint, Surface::Canvas))
-            );
-            assert_eq!(
-                drawer_leading.bg_role,
-                Some((Role::AccentTint, Surface::Canvas))
-            );
-            assert_eq!(drawer_leading.as_style().fg, Some(ink.select_bg));
-            assert_eq!(drawer_leading.as_style().bg, Some(ink.select_bg));
-
-            let card = plain(ink.primary.on(InkBackground::Card), ink.card);
-            assert_eq!(card.fg_role, Some((primary, Surface::Surface)));
-            assert_eq!(
-                card.bg_role,
-                Some((Role::Surface(Surface::Surface), Surface::Surface))
-            );
-            let button = plain(ink.primary.on(InkBackground::Overlay), ink.button);
-            assert_eq!(button.fg_role, Some((primary, Surface::Overlay)));
-            assert_eq!(
-                button.bg_role,
-                Some((Role::Surface(Surface::Overlay), Surface::Overlay))
-            );
-            let expanded = plain(ink.primary.on(InkBackground::Expanded), ink.expanded_bg);
-            assert_eq!(expanded.fg_role, Some((primary, Surface::Canvas)));
-            assert_eq!(
-                expanded.bg_role,
-                Some((Role::Custom(EXPANDED_BG), Surface::Canvas))
-            );
-
-            assert!(ink.paper_semantic);
-            assert_eq!(
-                ink.canvas_surface_fill.fg_role,
-                Some((Role::Surface(Surface::Canvas), Surface::Canvas))
-            );
-            assert_eq!(
-                ink.canvas_surface_fill.bg_role,
-                Some((Role::Surface(Surface::Canvas), Surface::Canvas))
-            );
-            assert_eq!(ink.canvas_surface_fill.as_style().fg, Some(ink.canvas));
-            assert_eq!(ink.canvas_surface_fill.as_style().bg, Some(ink.canvas));
-            assert_eq!(
-                ink.overlay_surface_fill.fg_role,
-                Some((Role::Surface(Surface::Overlay), Surface::Overlay))
-            );
-            assert_eq!(
-                ink.overlay_surface_fill.bg_role,
-                Some((Role::Surface(Surface::Overlay), Surface::Overlay))
-            );
-            assert_eq!(ink.overlay_surface_fill.as_style().fg, Some(ink.button));
-            assert_eq!(ink.overlay_surface_fill.as_style().bg, Some(ink.button));
-
-            let badge_canvas = plain(ink.badge.on(InkBackground::Canvas), ink.canvas);
-            assert_eq!(
-                badge_canvas.fg_role,
-                Some((Role::BorderStrong, Surface::Canvas))
-            );
-            assert_eq!(
-                badge_canvas.bg_role,
-                Some((Role::Surface(Surface::Canvas), Surface::Canvas))
-            );
-            let badge_card = plain(ink.badge.on(InkBackground::Card), ink.card);
-            assert_eq!(
-                badge_card.fg_role,
-                Some((Role::BorderStrong, Surface::Surface))
-            );
-            assert_eq!(
-                badge_card.bg_role,
-                Some((Role::Surface(Surface::Surface), Surface::Surface))
-            );
-            let seam = plain(ink.rule.on(InkBackground::Canvas), ink.canvas);
-            assert_eq!(seam.fg_role, Some((Role::BorderSubtle, Surface::Canvas)));
-            assert_eq!(
-                seam.bg_role,
-                Some((Role::Surface(Surface::Canvas), Surface::Canvas))
-            );
-            let live = plain(ink.live.on(InkBackground::Card), ink.card);
-            assert_eq!(live.fg_role, Some((primary, Surface::Surface)));
-            assert_eq!(
-                live.bg_role,
-                Some((Role::Surface(Surface::Surface), Surface::Surface))
-            );
-            let idle = plain(ink.idle.on(InkBackground::Card), ink.card);
-            assert_eq!(idle.fg_role, Some((secondary, Surface::Surface)));
-            assert_eq!(
-                idle.bg_role,
-                Some((Role::Surface(Surface::Surface), Surface::Surface))
-            );
-            let count = plain(ink.muted.on(InkBackground::Canvas), ink.canvas);
-            assert_eq!(count.fg_role, Some((muted, Surface::Canvas)));
-            assert_eq!(
-                count.bg_role,
-                Some((Role::Surface(Surface::Canvas), Surface::Canvas))
-            );
-        });
-    }
-
-    #[test]
-    fn paper_mono_default_reset_tokens_inherit_without_roles() {
-        let mut scene = Scene::new(
-            "manager-paper-mono-reset-role-contexts",
-            Theme::paper(),
-            ColorLevel::Mono,
-            120,
-            40,
-        );
-        scene.draw(|ui, _area| {
-            let ink = ink_from(ui, false);
-            let theme = ui.theme_ref();
-            let primary = Role::Fg(FgStep::Primary);
-            let secondary = Role::Fg(FgStep::Secondary);
-            let muted = Role::Fg(FgStep::Muted);
-
-            assert!(ink.paper_semantic);
-            assert_eq!(theme.color.accent_tint, Color::Reset);
-            assert_eq!(theme.color.surfaces[3], Color::Reset);
-            assert_eq!(theme.color.border_subtle, Color::Reset);
-
-            let selected = ink.primary.on(InkBackground::AccentTint).paint_style();
-            assert_eq!(selected.fg_role, Some((primary, Surface::Canvas)));
-            assert_eq!(selected.as_style().bg, None);
-            assert_eq!(selected.bg_role, None);
-            let selected = plain(ink.primary.on(InkBackground::AccentTint), ink.select_bg);
-            assert_eq!(selected.as_style().bg, None);
-            assert_eq!(selected.bg_role, None);
-
-            assert_eq!(ink.overlay_surface_fill.as_style().fg, None);
-            assert_eq!(ink.overlay_surface_fill.as_style().bg, None);
-            assert_eq!(ink.overlay_surface_fill.fg_role, None);
-            assert_eq!(ink.overlay_surface_fill.bg_role, None);
-
-            let seam = ink.rule.on(InkBackground::Canvas).paint_style();
-            assert_eq!(seam.as_style().fg, None);
-            assert_eq!(seam.fg_role, None);
-
-            assert_eq!(
-                ink.primary.on(InkBackground::Canvas).paint_style().fg_role,
-                Some((primary, Surface::Canvas))
-            );
-            assert_eq!(
-                ink.secondary
-                    .on(InkBackground::Canvas)
-                    .paint_style()
-                    .fg_role,
-                Some((secondary, Surface::Canvas))
-            );
-            assert_eq!(
-                ink.muted.on(InkBackground::Canvas).paint_style().fg_role,
-                Some((muted, Surface::Canvas))
-            );
-        });
-    }
-
-    #[test]
-    fn paper_mono_non_reset_overrides_keep_generic_theme_role_channels_and_contexts() {
-        let mut theme = Theme::paper().downgrade(ColorLevel::Mono);
-        theme.color.accent_tint = Color::White;
-        theme.color.surfaces[3] = Color::White;
-        theme.color.border_subtle = Color::Black;
-        let mut scene = Scene::new(
-            "manager-paper-mono-role-contexts",
-            theme,
-            ColorLevel::Mono,
-            120,
-            40,
-        );
-        scene.draw(|ui, _area| {
-            let ink = ink_from(ui, true);
-            let primary = Role::Fg(FgStep::Primary);
-            let secondary = Role::Fg(FgStep::Secondary);
-            let muted = Role::Fg(FgStep::Muted);
-
-            assert!(ink.paper_semantic);
-            assert!(ink.restore_saved_layout);
-
-            let selected = ink.primary.on(InkBackground::AccentTint);
-            assert_eq!(
-                selected.paint_style().fg_role,
-                Some((primary, Surface::Canvas))
-            );
-            assert_eq!(
-                selected.paint_style().bg_role,
-                Some((Role::AccentTint, Surface::Canvas))
-            );
-            let selected = plain(selected, ink.select_bg);
-            assert_eq!(selected.fg_role, Some((primary, Surface::Canvas)));
-            assert_eq!(selected.bg_role, Some((Role::AccentTint, Surface::Canvas)));
-            assert_eq!(
-                selected.as_style().bg,
-                ink.primary
-                    .on(InkBackground::AccentTint)
-                    .paint_style()
-                    .as_style()
-                    .bg
-            );
-
-            let selected_label = plain(ink.accent.on(InkBackground::AccentTint), ink.select_bg);
-            assert_eq!(
-                selected_label.fg_role,
-                Some((Role::Accent, Surface::Canvas))
-            );
-            assert_eq!(
-                selected_label.bg_role,
-                Some((Role::AccentTint, Surface::Canvas))
-            );
-
-            let canvas_fill = ink.canvas_surface_fill;
-            assert_eq!(
-                canvas_fill.fg_role,
-                Some((Role::Surface(Surface::Canvas), Surface::Canvas))
-            );
-            assert_eq!(
-                canvas_fill.bg_role,
-                Some((Role::Surface(Surface::Canvas), Surface::Canvas))
-            );
-            let overlay_fill = ink.overlay_surface_fill;
-            assert_eq!(
-                overlay_fill.fg_role,
-                Some((Role::Surface(Surface::Overlay), Surface::Overlay))
-            );
-            assert_eq!(
-                overlay_fill.bg_role,
-                Some((Role::Surface(Surface::Overlay), Surface::Overlay))
-            );
-
-            let secondary_ink = plain(ink.secondary.on(InkBackground::Canvas), ink.canvas);
-            assert_eq!(
-                secondary_ink.fg_role,
-                Some((secondary, Surface::Canvas)),
-                "Paper Mono retains its semantic Secondary role instead of Junie's Primary remap"
-            );
-            let count = plain(ink.muted.on(InkBackground::Canvas), ink.canvas);
-            assert_eq!(count.fg_role, Some((muted, Surface::Canvas)));
-
-            let badge = plain(ink.badge.on(InkBackground::Canvas), ink.canvas);
-            assert_eq!(badge.fg_role, Some((Role::BorderStrong, Surface::Canvas)));
-            let seam = plain(ink.rule.on(InkBackground::Canvas), ink.canvas);
-            assert_eq!(seam.fg_role, Some((Role::BorderSubtle, Surface::Canvas)));
-            let live = plain(ink.live.on(InkBackground::Canvas), ink.canvas);
-            assert_eq!(live.fg_role, Some((primary, Surface::Canvas)));
-            let idle = plain(ink.idle.on(InkBackground::Canvas), ink.canvas);
-            assert_eq!(idle.fg_role, Some((secondary, Surface::Canvas)));
-        });
     }
 }

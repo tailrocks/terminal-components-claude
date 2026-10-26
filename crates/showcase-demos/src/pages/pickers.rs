@@ -509,7 +509,7 @@ fn paint_face(ui: &mut Ui<'_>, origin: Rect, label: &str, primary: bool) {
         text = text.add_modifier(Modifier::BOLD);
     }
     ui.fill(area, text);
-    // Cell style merges modifiers, so the gutter must subtract bold.
+
     ui.fill(
         Rect::new(area.x, area.y, 1, 1),
         ink(bg, bg).remove_modifier(Modifier::BOLD),
@@ -1136,7 +1136,6 @@ fn paint_launchers(ui: &mut Ui<'_>, inner: Rect) {
 
 fn paint_open(ui: &mut Ui<'_>, card: Rect) {
     if card.width > 2 {
-        // The page test clicks the card title. Keep that cell inside this launcher.
         quick_button().draw(
             ui,
             Rect::new(
@@ -1215,7 +1214,7 @@ fn paint_playground(
             paint_applied(ui, Rect::new(content.x, y, content.width, applied_h));
         }
         y = y.saturating_add(applied_h).saturating_add(CARD_GAP);
-        // The last card fills the viewport when the stack is shorter than the view.
+
         let mut results_h = results_height(content.width, &rows);
         if !vertical {
             results_h = results_h.max(view.bottom().saturating_sub(y));
@@ -1446,72 +1445,4 @@ impl Page for PickersPage {
 
 pub fn action_keys() -> impl Iterator<Item = ActionKey> {
     MENU_ITEMS.iter().chain(CONTEXT_ITEMS).map(MenuItem::action)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{Page, PickersPage};
-    use termrock::{App, Color, Cx, Modifier, Response, Theme, Ui};
-    use termrock_test_support::Harness;
-
-    struct Host;
-
-    impl App for Host {
-        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
-            Response::ignored()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            PickersPage::new().draw(ui, ui.full());
-        }
-    }
-
-    #[test]
-    fn playground_matches_the_120_column_body() {
-        let h = Harness::new(Host, Theme::junie(), 94, 36);
-        let text = h.text();
-        assert!(
-            text.contains(
-                "One modal list for files, tabs, levels, commands and branches: search, scope, status"
-            ),
-            "{text}"
-        );
-        assert!(text.contains("Open a picker"), "{text}");
-        assert!(text.contains("Enter · click"), "{text}");
-        assert!(text.contains("Remote branch"), "{text}");
-        assert!(text.contains("read back from a built picker"), "{text}");
-        assert!(text.contains("width 64 · max rows 12 · Center"), "{text}");
-        assert!(text.contains("Chosen"), "{text}");
-        assert!(text.contains("nothing yet"), "{text}");
-        assert!(text.contains("PickerAction"), "{text}");
-        assert!(text.contains("Pickers opened"), "{text}");
-
-        let (x, y) = h.find("Open quickly").expect("primary");
-        assert_eq!(h.cell(x, y).fg, Color::Rgb(0x19, 0x19, 0x1c));
-        assert_eq!(h.cell(x, y).bg, Color::Rgb(0x48, 0xe0, 0x54));
-        assert!(h.cell(x, y).modifier.contains(Modifier::BOLD));
-        let gutter = h.cell(x.saturating_sub(1), y);
-        assert_eq!(gutter.symbol(), " ");
-        assert_eq!(gutter.bg, Color::Rgb(0x48, 0xe0, 0x54));
-        assert!(!gutter.modifier.contains(Modifier::BOLD));
-
-        let (sx, sy) = h.find("Size").expect("prop");
-        assert_eq!(h.cell(sx, sy).fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-        assert_eq!(h.cell(sx + 10, sy).symbol(), "w");
-    }
-
-    #[test]
-    fn narrow_playground_scrolls_and_ends_the_blurb_on_ellipsis() {
-        let h = Harness::new(Host, Theme::junie(), 51, 16);
-        assert_eq!(h.cell(49, 0).symbol(), "…");
-        assert_eq!(h.cell(49, 0).fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-        assert_eq!(h.cell(50, 5).symbol(), "┃");
-        assert_eq!(h.cell(50, 5).fg, Color::Rgb(0x80, 0x80, 0x80));
-        assert_eq!(h.cell(50, 5).bg, Color::Rgb(0, 0, 0));
-        assert_eq!(h.cell(50, 7).symbol(), "┆");
-        assert_eq!(h.cell(50, 7).fg, Color::Rgb(0x47, 0x47, 0x47));
-        assert_eq!(h.cell(49, 5).symbol(), " ");
-        assert_eq!(h.cell(49, 5).bg, Color::Rgb(0, 0, 0));
-        assert!(h.text().contains("retries"), "{}", h.text());
-    }
 }

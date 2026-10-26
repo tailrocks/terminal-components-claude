@@ -1,0 +1,109 @@
+{
+  "source_head": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "metadata_graph_sha256": "9a39580c733b65fe02ac28a691188838daef4957235bd658fc305d1d5bdaf2a5",
+  "locked_checks": [
+    {
+      "name": "root",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --workspace --all-targets --all-features",
+      "workdir": ".",
+      "exit_status": 0,
+      "log": "docs/implementation/pr38-final/results/t37-metadata/build-root-locked-final.log",
+      "log_sha256": "42937d79da2ab276bd2347a48a902833316c8a910a6c497928516fc04922d53b"
+    },
+    {
+      "name": "e2e",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --all-targets --all-features",
+      "workdir": "crates/termrock-e2e",
+      "exit_status": 0,
+      "log": "docs/implementation/pr38-final/results/t37-metadata/build-e2e-locked-final.log",
+      "log_sha256": "f0427c60ec4f66a6e496672d10a88f6f082d98319e634612bb6f10e2451df320"
+    },
+    {
+      "name": "visibility",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --all-targets --all-features",
+      "workdir": "crates/termrock-visibility-tests",
+      "exit_status": 0,
+      "log": "docs/implementation/pr38-final/results/t37-metadata/build-visibility-locked-final.log",
+      "log_sha256": "eb42594c948b0fa1c25c4f4f6c1632897ed8a1edd85fb600524edde58260c8a1"
+    },
+    {
+      "name": "consumer",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --all-targets --all-features",
+      "workdir": "external-consumer-demo",
+      "exit_status": 0,
+      "log": "docs/implementation/pr38-final/results/t37-metadata/build-consumer-locked-final.log",
+      "log_sha256": "9c7d097203d4a21689fad55a5db9e23a8bea1e69699b7694fa15655fd90ac1df"
+    },
+    {
+      "name": "publisher",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --all-targets --all-features",
+      "workdir": "tools/termrock-visibility-publisher",
+      "exit_status": 0,
+      "log": "docs/implementation/pr38-final/results/t37-metadata/build-publisher-locked-final.log",
+      "log_sha256": "d52bd58b6c143da4f6b04291f722842d056ebad56cd789957d1dc170ca26ac22"
+    }
+  ],
+  "warnings": {
+    "root": [
+      "crates/holla-sim/src/listeners.rs:397 PortConflict::capture is unused; source-owner triage pending."
+    ],
+    "e2e": [
+      "crates/termrock-e2e/src/lib.rs:799-800 readiness_timeout_ms and input_pacing_ms unread; retained per T37-PROFILE-FORMAT-01.",
+      "crates/termrock-e2e/src/visual.rs:120-123 private cached expected-checkpoint fields unread; T37-EXPECTED-CACHE-01 approves isolated field removal pending source integration and Sol review."
+    ]
+  },
+  "pre_correction_diagnostics": {
+    "source_head": "0e8e7a7cd1e11d0633309f5da4c1d5e7056dfd6c",
+    "selected_behavior_cases": 0,
+    "root_log": "build-root-nonlocked.log",
+    "root_log_sha256": "200ba7ea3bb6c75b534650e65d6e20e8e89c3563faabdcc0896105d2279e304d",
+    "e2e_log": "build-e2e-nonlocked.log",
+    "e2e_log_sha256": "b2338599df17ff0f75627dc3d0f013f03069a163737cf3f6b586711b0ef982af",
+    "argv_status": "Captured stdout does not encode argv; exact command binding remains pending confirmation from caller execution record. These are pre-correction diagnostics, not final acceptance."
+  },
+  "format_check": {
+    "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check",
+    "exit_status": 1,
+    "log": "docs/implementation/pr38-final/results/t37-metadata/format-check-final.log.gz",
+    "log_sha256": "b48a9855e94b3ac1528495875df6a78a217fb9b6e1507d3257c8547dc8ecb97d",
+    "affected_paths": 202,
+    "diff_blocks": 1792,
+    "blank_line_edits": 3940,
+    "nonblank_changed_lines": 66,
+    "exact_path_list": "docs/implementation/pr38-final/results/t37-metadata/format-check-affected-paths.txt",
+    "path_list_sha256": "ab5517c9ec853ff081d4ec465048a7588e53ebb6a211a61bda8892b760f25a7c",
+    "source_correction": "assigned to separate Luna source worktree; not performed by metadata owner",
+    "compressed_log_sha256": "5de1c0d57a35f157a9e595162f3d791f45eb438c9741ffd6b9034150fb2fd909",
+    "log_sha256_represents": "decompressed exact original cargo fmt output",
+    "decompression_verification": {
+      "command": "set -o pipefail; gzip -dc docs/implementation/pr38-final/results/t37-metadata/format-check-final.log.gz | shasum -a 256",
+      "exit_status": 0,
+      "stdout_sha256": "b48a9855e94b3ac1528495875df6a78a217fb9b6e1507d3257c8547dc8ecb97d"
+    }
+  },
+  "acceptance_limit": "All locked builds passed on source 55c75. Accepted cache and formatting corrections are integrated; final generator, formatter, and locked checks wait for the listener-helper source unit. No tests were run; behavior NOT VERIFIED.",
+  "evidence_source_checked": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "current_integrated_source": "865073462331552897822d65ede8d673f9c870d7",
+  "current_evidence_head_before_metadata_commit": "865073462331552897822d65ede8d673f9c870d7",
+  "subsequent_accepted_source_change": {
+    "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+    "decision": "T37-EXPECTED-CACHE-01",
+    "summary": "Remove only private LoadedExpectedCheckpoint cache fields/initializers; keep validation, errors, and order byte/behavior-identical per accepted review.",
+    "final_locked_e2e_check_pending": true
+  },
+  "tested_source_head": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "followup_source_head": "865073462331552897822d65ede8d673f9c870d7",
+  "rerun_policy": "Coordinator directed one final Velnor generation, formatter check, and locked build round after the pending listener-helper source unit is accepted and integrated; no intermediate reruns.",
+  "accepted_source_updates_since_check": [
+    {
+      "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+      "decision": "T37-EXPECTED-CACHE-01",
+      "check_impact": "E2E locked check must rerun after final source input."
+    },
+    {
+      "commit": "865073462331552897822d65ede8d673f9c870d7",
+      "decision": "T37-FMT-0904",
+      "check_impact": "Formatting check must rerun after pending listener-helper source unit."
+    }
+  ]
+}

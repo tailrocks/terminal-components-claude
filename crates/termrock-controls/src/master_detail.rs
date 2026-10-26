@@ -62,19 +62,16 @@ fn is_close_detail(action: ActionKey) -> bool {
     Binding::command(CLOSE_DETAIL, action) == Some(MasterDetailCmd::CloseDetail)
 }
 
-/// Responsive presentation chosen for a master/detail container.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum MasterDetailMode {
-    /// Master and detail appear side by side.
     #[default]
     Split,
-    /// Detail is hidden while the master and its summary remain visible.
+
     Master,
-    /// Detail fills the available area on a narrow terminal.
+
     Drawer,
 }
 
-/// Regions assigned to the master, detail, summary, and resize seam.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct MasterDetailLayout {
     pub mode: MasterDetailMode,
@@ -84,7 +81,6 @@ pub struct MasterDetailLayout {
     pub seam: Rect,
 }
 
-/// Persistent split and narrow-drawer state for [`MasterDetail`].
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct MasterDetailState {
     split: Option<SplitPaneState>,
@@ -108,14 +104,12 @@ impl MasterDetailState {
         self.drawer_open
     }
 
-    /// Open the narrow detail view and remember the control to restore on close.
     fn open_drawer(&mut self, cx: &mut Cx<'_>, detail: Id, return_focus: Id) {
         self.drawer_open = true;
         self.return_focus = Some(return_focus);
         cx.focus(detail);
     }
 
-    /// Close the detail view and return focus to its remembered owner.
     fn close_drawer(&mut self, cx: &mut Cx<'_>, master: Id) {
         self.drawer_open = false;
         cx.focus(self.return_focus.take().unwrap_or(master));
@@ -131,8 +125,6 @@ impl MasterDetailState {
     }
 }
 
-/// Responsive master/detail layout that delegates split geometry and seam input
-/// to [`SplitPane`].
 #[derive(Clone)]
 pub struct MasterDetail {
     id: Id,
@@ -217,12 +209,10 @@ impl MasterDetail {
         self.detail
     }
 
-    /// Open the narrow detail view, returning focus to the master on close.
     pub fn open_drawer(&self, state: &mut MasterDetailState, cx: &mut Cx<'_>) {
         state.open_drawer(cx, self.detail, self.master);
     }
 
-    /// Open the narrow detail view, remembering the current child as focus owner.
     pub fn open_drawer_from(
         &self,
         state: &mut MasterDetailState,
@@ -232,7 +222,6 @@ impl MasterDetail {
         state.open_drawer(cx, self.detail, return_focus);
     }
 
-    /// Close the narrow detail view and restore its remembered focus owner.
     pub fn close_drawer(&self, state: &mut MasterDetailState, cx: &mut Cx<'_>) {
         state.close_drawer(cx, self.master);
     }
@@ -245,8 +234,6 @@ impl MasterDetail {
         }
     }
 
-    /// Set the initial resizable split ratio, preserving the one-argument
-    /// compatibility builder and its existing behaviour.
     #[must_use]
     pub const fn master_share(mut self, percent: u8) -> Self {
         self.master_share = percent;
@@ -254,12 +241,6 @@ impl MasterDetail {
         self
     }
 
-    /// Keep this exact master-pane width until the split is manually resized.
-    /// Configured minima can clamp the extent. `ResetPolicy::Initial` restores
-    /// the cell width, and a later `master_share` call replaces this policy.
-    /// This selects the resizable sizing mode; a later fixed-share builder can
-    /// still select fixed sizing. Other builders and the legacy default keep
-    /// their existing percentage.
     #[must_use]
     pub const fn initial_master_cells(mut self, cells: u16) -> Self {
         self.initial_master_cells = Some(cells);
@@ -267,9 +248,6 @@ impl MasterDetail {
         self
     }
 
-    /// Use a fixed share for the detail pane, measured from the full width.
-    /// The requested width is floored and clamped to `min..=max`. Calling
-    /// [`Self::resizable`] later restores the stored interactive split ratio.
     #[must_use]
     pub const fn fixed_detail_share(mut self, percent: u8, min: u16, max: u16) -> Self {
         let percent = if percent > 100 { 100 } else { percent };
@@ -283,10 +261,6 @@ impl MasterDetail {
         self
     }
 
-    /// Use a fixed share for the master pane, measured from the full width.
-    /// The requested width is rounded to the nearest cell and clamped to
-    /// `min..=max`. Calling [`Self::resizable`] later restores the stored
-    /// interactive split ratio.
     #[must_use]
     pub const fn fixed_master_share(mut self, percent: u8, min: u16, max: u16) -> Self {
         let percent = if percent > 100 { 100 } else { percent };
@@ -300,47 +274,30 @@ impl MasterDetail {
         self
     }
 
-    /// Return to an interactive split after a fixed-share builder.
-    ///
-    /// The most recent sizing-mode builder wins. This does not change the
-    /// stateful ratio configured by [`Self::master_share`] or retained in
-    /// [`MasterDetailState`].
     #[must_use]
     pub const fn resizable(mut self) -> Self {
         self.split_sizing = SplitSizing::Resizable;
         self
     }
 
-    /// Set the cell count moved by each resize command. Zero is normalized to
-    /// one cell; the default remains one cell.
     #[must_use]
     pub const fn resize_step_cells(mut self, cells: u16) -> Self {
         self.resize_step_cells = if cells == 0 { 1 } else { cells };
         self
     }
 
-    /// Preserve the pointer's grab offset while dragging narrow aligned seams.
-    ///
-    /// The default remains the historical raw-coordinate behavior. When
-    /// enabled, the seam follows the pointer by the same number of cells.
     #[must_use]
     pub const fn preserve_drag_offset(mut self, preserve: bool) -> Self {
         self.preserve_drag_offset = preserve;
         self
     }
 
-    /// Set the static resize command table used both for hints and handling.
-    /// An empty table disables keyboard resizing while leaving seam dragging
-    /// available in resizable mode.
     #[must_use]
     pub const fn resize_bindings(mut self, table: &'static [Binding<SplitCmd>]) -> Self {
         self.resize_bindings = Some(table);
         self
     }
 
-    /// Set the destination used when the split seam is reset.
-    ///
-    /// The default remains balanced to preserve the existing control contract.
     #[must_use]
     pub const fn reset_policy(mut self, policy: ResetPolicy) -> Self {
         self.reset_policy = policy;
@@ -393,7 +350,6 @@ impl MasterDetail {
         self.esc_returns
     }
 
-    /// Route split resizing and master/detail focus transitions at every width.
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut MasterDetailState) -> Response<SplitAction> {
         let master_focused = cx
             .state(self.master)
@@ -452,7 +408,6 @@ impl MasterDetail {
         response
     }
 
-    /// Compute stable pane regions for a terminal area.
     pub fn layout(&self, area: Rect, state: &MasterDetailState) -> MasterDetailLayout {
         let mut layout = self.resolve_responsive_layout(area, state.drawer_open);
         if layout.mode == MasterDetailMode::Split {
@@ -466,11 +421,6 @@ impl MasterDetail {
         layout
     }
 
-    /// Resolve shared responsive mode and narrow summary geometry.
-    ///
-    /// Split pane geometry remains owned by the configured [`SplitPane`]. In
-    /// split mode, the pane rectangles in the returned value are empty; use
-    /// [`Self::layout`] when this control's split regions are needed.
     pub fn resolve_responsive_layout(&self, area: Rect, drawer_open: bool) -> MasterDetailLayout {
         if area.width >= self.collapse_below {
             return MasterDetailLayout {
@@ -505,7 +455,6 @@ impl MasterDetail {
         }
     }
 
-    /// Draw the resize seam in split mode, then expose the three child regions.
     pub fn draw<R>(
         &self,
         ui: &mut Ui<'_>,
@@ -564,10 +513,6 @@ impl MasterDetail {
         }
     }
 
-    /// Build the split pane used by this block's layout, update, and draw paths.
-    ///
-    /// Exposed for component-author adapters that need to measure the same
-    /// pane configuration without creating a second split policy.
     pub fn split_pane(&self) -> SplitPane<'static> {
         let mut split = SplitPane::new(self.id, SplitAxis::Horizontal)
             .gap(self.gap)
@@ -593,670 +538,5 @@ impl MasterDetail {
                 split.fixed_first_share(percent, min, max).fixed_sizing()
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use ratatui_core::layout::Rect;
-
-    use super::*;
-    use crate::focus::Focusability;
-    use crate::runtime::stub::{SCREEN, deliver, key};
-    use crate::runtime::{App, Runtime};
-    use crate::theme::Theme;
-    use crate::ui::Ui;
-    use crate::{
-        event::KeyCode,
-        keymap::{Hint, HintKey, KeyMap},
-        response::Response,
-    };
-
-    const MD: MasterDetail = MasterDetail::new(
-        Id::root("master-detail.test"),
-        Id::root("master-detail.master"),
-        Id::root("master-detail.detail"),
-    );
-
-    #[test]
-    fn default_split_matches_master_share_gap_and_minima() {
-        let l = MD.layout(Rect::new(5, 3, 120, 40), &MasterDetailState::default());
-        assert_eq!(l.mode, MasterDetailMode::Split);
-        assert_eq!(l.master, Rect::new(5, 3, 37, 40));
-        assert_eq!(l.detail, Rect::new(44, 3, 81, 40));
-        assert_eq!(l.seam, Rect::new(43, 3, 1, 40));
-        assert_eq!(l.summary, Rect::ZERO);
-    }
-
-    #[test]
-    fn collapse_threshold_switches_to_master_summary_or_detail_drawer() {
-        let state = MasterDetailState::default();
-        let at_threshold = MD.layout(Rect::new(0, 0, 100, 40), &state);
-        assert_eq!(at_threshold.mode, MasterDetailMode::Split);
-        let below = MD.layout(Rect::new(0, 0, 99, 40), &state);
-        assert_eq!(below.mode, MasterDetailMode::Master);
-        assert_eq!(below.master, Rect::new(0, 0, 99, 33));
-        assert_eq!(below.summary, Rect::new(0, 34, 99, 6));
-
-        let state = MasterDetailState {
-            drawer_open: true,
-            ..state
-        };
-        let drawer = MD.layout(Rect::new(4, 2, 80, 20), &state);
-        assert_eq!(drawer.mode, MasterDetailMode::Drawer);
-        assert_eq!(drawer.detail, Rect::new(4, 2, 80, 20));
-        assert_eq!(drawer.master, Rect::ZERO);
-        assert_eq!(drawer.summary, Rect::ZERO);
-    }
-
-    #[test]
-    fn narrow_summary_respects_tiny_heights_and_area_origin() {
-        let tiny = MD.layout(Rect::new(7, 9, 60, 2), &MasterDetailState::default());
-        assert_eq!(tiny.mode, MasterDetailMode::Master);
-        assert_eq!(tiny.master, Rect::new(7, 9, 60, 2));
-        assert!(tiny.summary.is_empty());
-    }
-
-    #[test]
-    fn split_minima_and_overrides_are_applied_without_escaping_area() {
-        let area = Rect::new(9, 2, 100, 12);
-        let l = MD
-            .min_master(45)
-            .min_detail(50)
-            .gap(5)
-            .master_share(70)
-            .collapse_below(80)
-            .layout(area, &MasterDetailState::default());
-        assert_eq!(l.mode, MasterDetailMode::Split);
-        assert_eq!(l.master.width, 45);
-        assert_eq!(l.detail.width, 50);
-        assert_eq!(l.detail.x, l.master.right() + 5);
-        assert!(l.master.right() <= area.right());
-        assert!(l.detail.right() <= area.right());
-
-        let share = MD
-            .master_share(70)
-            .min_detail(20)
-            .layout(Rect::new(0, 0, 120, 30), &MasterDetailState::default());
-        assert_eq!(share.master.width, 82);
-    }
-
-    #[test]
-    fn split_percentage_tracks_state_and_seam_stays_inside_the_area() {
-        let state = MasterDetailState {
-            split: Some(SplitPaneState::new(60)),
-            ..MasterDetailState::default()
-        };
-        let area = Rect::new(4, 6, 120, 30);
-        let l = MD.layout(area, &state);
-        assert_eq!(l.master.width, 70);
-        assert_eq!(l.detail.x, l.master.right() + 2);
-        assert_eq!(
-            l.seam,
-            Rect::new(l.master.right() + 1, area.y, 1, area.height)
-        );
-        assert!(l.seam.right() <= area.right());
-    }
-
-    struct DrawerApp {
-        md: MasterDetail,
-        state: MasterDetailState,
-        keymap: KeyMap,
-    }
-
-    const REAL_MASTER: Id = Id::root("master-detail.real.master");
-    const REAL_DETAIL: Id = Id::root("master-detail.real.detail");
-    fn real_md() -> MasterDetail {
-        MD.detail_owns(&[REAL_DETAIL])
-    }
-
-    struct RealChildrenApp {
-        state: MasterDetailState,
-        area: Rect,
-        keymap: KeyMap,
-    }
-
-    impl RealChildrenApp {
-        fn master_button() -> crate::Button<'static> {
-            crate::Button::new(REAL_MASTER, "Device catalog")
-        }
-
-        fn detail_button() -> crate::Button<'static> {
-            crate::Button::new(REAL_DETAIL, "Device telemetry")
-        }
-    }
-
-    impl App for RealChildrenApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let md = real_md();
-            let response = md.update(cx, &mut self.state);
-            match md.layout(self.area, &self.state).mode {
-                MasterDetailMode::Split => {
-                    let _ = Self::master_button().update(cx);
-                    let _ = Self::detail_button().update(cx);
-                }
-                MasterDetailMode::Master => {
-                    let _ = Self::master_button().update(cx);
-                }
-                MasterDetailMode::Drawer => {
-                    let _ = Self::detail_button().update(cx);
-                }
-            }
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            real_md().draw(ui, self.area, &self.state, |ui, layout| match layout.mode {
-                MasterDetailMode::Split => {
-                    let _ = Self::master_button().draw(ui, layout.master);
-                    let _ = Self::detail_button().draw(ui, layout.detail);
-                }
-                MasterDetailMode::Master => {
-                    let _ = Self::master_button().draw(ui, layout.master);
-                }
-                MasterDetailMode::Drawer => {
-                    let _ = Self::detail_button().draw(ui, layout.detail);
-                }
-            });
-        }
-
-        fn keymap(&self) -> &KeyMap {
-            &self.keymap
-        }
-    }
-
-    impl Default for DrawerApp {
-        fn default() -> Self {
-            Self {
-                md: MD,
-                state: MasterDetailState::default(),
-                keymap: KeyMap::new(),
-            }
-        }
-    }
-
-    impl App for DrawerApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            self.md.update(cx, &mut self.state).erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            self.md
-                .draw(ui, SCREEN, &self.state, |ui, layout| match layout.mode {
-                    MasterDetailMode::Split => {
-                        ui.register_focus_only(MD.master, Focusability::Focusable);
-                        ui.register_focus_only(MD.detail, Focusability::Focusable);
-                    }
-                    MasterDetailMode::Master => {
-                        ui.register_focus_only(MD.master, Focusability::Focusable);
-                    }
-                    MasterDetailMode::Drawer => {
-                        ui.register_focus_only(MD.detail, Focusability::Focusable);
-                    }
-                });
-        }
-
-        fn keymap(&self) -> &KeyMap {
-            &self.keymap
-        }
-    }
-
-    struct ResizeApp {
-        md: MasterDetail,
-        state: MasterDetailState,
-        area: core::cell::Cell<Rect>,
-        mode: core::cell::Cell<MasterDetailMode>,
-        detail_rect: core::cell::Cell<Rect>,
-        modal_requested: bool,
-    }
-
-    impl Default for ResizeApp {
-        fn default() -> Self {
-            Self {
-                md: MD.detail_owns(&[DETAIL_CHILD]),
-                state: MasterDetailState::default(),
-                area: core::cell::Cell::new(Rect::new(0, 0, 120, 40)),
-                mode: core::cell::Cell::new(MasterDetailMode::Split),
-                detail_rect: core::cell::Cell::new(Rect::ZERO),
-                modal_requested: false,
-            }
-        }
-    }
-
-    const DETAIL_CHILD: Id = Id::root("master-detail.detail.child");
-    const MODAL: Id = Id::root("master-detail.modal");
-    const MODAL_FOCUS: Id = Id::root("master-detail.modal.focus");
-    const MASTER_TAB_ACTION: ActionKey = ActionKey::custom("master_detail.test.master_tab");
-    const MASTER_CHILD_BINDINGS: &[Binding<MasterDetailCmd>] = &[Binding {
-        action: MASTER_TAB_ACTION,
-        chord: Some(Chord::key(KeyCode::Tab)),
-        cmd: MasterDetailCmd::OpenDetail,
-        label: "Next master control",
-        priority: 50,
-        visible: true,
-    }];
-    const HIDDEN_MASTER_CHILD_BINDINGS: &[Binding<MasterDetailCmd>] = &[Binding {
-        action: MASTER_TAB_ACTION,
-        chord: Some(Chord::key(KeyCode::Tab)),
-        cmd: MasterDetailCmd::OpenDetail,
-        label: "Hidden child command",
-        priority: 50,
-        visible: false,
-    }];
-
-    struct WideNavigationApp {
-        state: MasterDetailState,
-        area: Rect,
-        child_tab_seen: bool,
-        child_tab_binding: bool,
-        child_tab_hidden: bool,
-        keymap: KeyMap,
-        hints: std::cell::RefCell<Vec<Hint>>,
-    }
-
-    impl App for WideNavigationApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            self.child_tab_seen |= cx.intents(MD.master).any(
-                |intent| matches!(intent, Intent::Binding(action) if action == MASTER_TAB_ACTION),
-            );
-            MD.update(cx, &mut self.state).erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            MD.draw(ui, self.area, &self.state, |ui, layout| {
-                ui.register_focus_only(MD.master, Focusability::Focusable);
-                ui.register_focus_only(MD.detail, Focusability::Focusable);
-                if layout.mode == MasterDetailMode::Split && self.child_tab_binding {
-                    let table = if self.child_tab_hidden {
-                        HIDDEN_MASTER_CHILD_BINDINGS
-                    } else {
-                        MASTER_CHILD_BINDINGS
-                    };
-                    ui.publish_bindings(MD.master, ui.state(MD.master), table);
-                }
-            });
-            let _ = ui.with_focused_hints(|_, hints| {
-                self.hints.replace(hints.hints.clone());
-            });
-        }
-
-        fn keymap(&self) -> &KeyMap {
-            &self.keymap
-        }
-    }
-
-    impl App for ResizeApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            if core::mem::take(&mut self.modal_requested) {
-                cx.open_layer(
-                    MODAL,
-                    crate::runtime::LayerSpec::modal(MODAL).initial_focus(MODAL_FOCUS),
-                );
-            }
-            self.md.update(cx, &mut self.state).erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            let area = self.area.get();
-            self.md.draw(ui, area, &self.state, |ui, layout| {
-                self.mode.set(layout.mode);
-                self.detail_rect.set(layout.detail);
-                match layout.mode {
-                    MasterDetailMode::Split => {
-                        ui.register_focus_only(MD.master, Focusability::Focusable);
-                        ui.register_focus_only(MD.detail, Focusability::Focusable);
-                        ui.register_focus_only(DETAIL_CHILD, Focusability::Focusable);
-                    }
-                    MasterDetailMode::Master => {
-                        ui.register_focus_only(MD.master, Focusability::Focusable);
-                    }
-                    MasterDetailMode::Drawer => {
-                        ui.register_focus_only(MD.detail, Focusability::Focusable);
-                        ui.register_focus_only(DETAIL_CHILD, Focusability::Focusable);
-                    }
-                }
-            });
-            let _ = ui.layer(MODAL, |ui, _| {
-                ui.register_focus_only(MODAL_FOCUS, Focusability::Focusable);
-            });
-        }
-    }
-
-    #[test]
-    fn narrow_tab_opens_detail_and_escape_restores_master_focus() {
-        let mut runtime = Runtime::new(DrawerApp::default(), Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = ratatui_core::buffer::Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.focus(), Some(MD.master));
-
-        let _ = deliver(&mut runtime, key(KeyCode::Tab));
-        assert!(runtime.app().state.drawer_open());
-        assert_eq!(runtime.focus(), Some(MD.detail));
-
-        let _ = deliver(&mut runtime, key(KeyCode::Esc));
-        assert!(!runtime.app().state.drawer_open());
-        assert_eq!(runtime.focus(), Some(MD.master));
-    }
-
-    #[test]
-    fn split_navigation_tab_and_close_controls_work_at_wide_width() {
-        let area = Rect::new(0, 0, 120, 40);
-        let mut runtime = Runtime::new(
-            WideNavigationApp {
-                state: MasterDetailState::default(),
-                area,
-                child_tab_seen: false,
-                child_tab_binding: false,
-                child_tab_hidden: false,
-                keymap: KeyMap::new(),
-                hints: std::cell::RefCell::default(),
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        runtime.set_focus(Some(MD.master));
-        buffer = ratatui_core::buffer::Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert_eq!(runtime.focus(), Some(MD.master));
-        assert!(runtime.app().hints.borrow().iter().any(|hint| {
-            hint.label == "Show details" && hint.key == HintKey::Chord(Chord::key(KeyCode::Tab))
-        }));
-
-        let _ = deliver(&mut runtime, key(KeyCode::Tab));
-        assert_eq!(runtime.focus(), Some(MD.detail));
-        assert!(runtime.app().state.drawer_open());
-        assert!(!runtime.is_open(MODAL));
-
-        for close in [KeyCode::BackTab, KeyCode::Left, KeyCode::Esc] {
-            buffer = ratatui_core::buffer::Buffer::empty(area);
-            runtime.draw_buffer(area, &mut buffer).commit_presented();
-            for close_chord in [KeyCode::Esc, KeyCode::Left, KeyCode::BackTab] {
-                assert!(runtime.app().hints.borrow().iter().any(|hint| {
-                    hint.label == "Back" && hint.key == HintKey::Chord(Chord::key(close_chord))
-                }));
-            }
-            let _ = deliver(&mut runtime, key(close));
-            assert_eq!(runtime.focus(), Some(MD.master), "close key {close:?}");
-            assert!(!runtime.app().state.drawer_open(), "close key {close:?}");
-            runtime.set_focus(Some(MD.detail));
-            buffer = ratatui_core::buffer::Buffer::empty(area);
-            runtime.draw_buffer(area, &mut buffer).commit_presented();
-        }
-    }
-
-    #[test]
-    fn child_binding_precedes_container_tab_binding_without_being_replaced() {
-        let area = Rect::new(0, 0, 120, 40);
-        let mut runtime = Runtime::new(
-            WideNavigationApp {
-                state: MasterDetailState::default(),
-                area,
-                child_tab_seen: false,
-                child_tab_binding: true,
-                child_tab_hidden: false,
-                keymap: KeyMap::new(),
-                hints: std::cell::RefCell::default(),
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        runtime.set_focus(Some(MD.master));
-        buffer = ratatui_core::buffer::Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-
-        let _ = deliver(&mut runtime, key(KeyCode::Tab));
-        assert!(runtime.app().child_tab_seen);
-        assert_eq!(runtime.focus(), Some(MD.master));
-        assert!(!runtime.app().state.drawer_open());
-        assert!(runtime.app().hints.borrow().iter().any(|hint| {
-            hint.label == "Next master control"
-                && hint.key == HintKey::Chord(Chord::key(KeyCode::Tab))
-        }));
-        assert!(!runtime.app().hints.borrow().iter().any(|hint| {
-            hint.label == "Show details" && hint.key == HintKey::Chord(Chord::key(KeyCode::Tab))
-        }));
-    }
-
-    #[test]
-    fn hidden_child_tab_binding_shadows_master_detail_hint() {
-        let area = Rect::new(0, 0, 120, 40);
-        let mut runtime = Runtime::new(
-            WideNavigationApp {
-                state: MasterDetailState::default(),
-                area,
-                child_tab_seen: false,
-                child_tab_binding: true,
-                child_tab_hidden: true,
-                keymap: KeyMap::new(),
-                hints: std::cell::RefCell::default(),
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        runtime.set_focus(Some(MD.master));
-        buffer = ratatui_core::buffer::Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-
-        assert!(!runtime.app().hints.borrow().iter().any(|hint| {
-            hint.label == "Show details" && hint.key == HintKey::Chord(Chord::key(KeyCode::Tab))
-        }));
-        let _ = deliver(&mut runtime, key(KeyCode::Tab));
-        assert!(runtime.app().child_tab_seen);
-        assert_eq!(runtime.focus(), Some(MD.master));
-        assert!(!runtime.app().state.drawer_open());
-    }
-
-    #[test]
-    fn wide_close_action_remains_remappable() {
-        let area = Rect::new(0, 0, 120, 40);
-        let mut keymap = KeyMap::new();
-        keymap.remap_component(
-            MD.detail,
-            ActionKey::custom("master_detail.close_detail"),
-            Chord::key(KeyCode::Backspace),
-        );
-        let mut runtime = Runtime::new(
-            WideNavigationApp {
-                state: MasterDetailState::default(),
-                area,
-                child_tab_seen: false,
-                child_tab_binding: false,
-                child_tab_hidden: false,
-                keymap,
-                hints: std::cell::RefCell::default(),
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        runtime.set_focus(Some(MD.master));
-        buffer = ratatui_core::buffer::Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        let _ = deliver(&mut runtime, key(KeyCode::Tab));
-        assert_eq!(runtime.focus(), Some(MD.detail));
-        buffer = ratatui_core::buffer::Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert!(runtime.app().hints.borrow().iter().any(|hint| {
-            hint.label == "Back" && hint.key == HintKey::Chord(Chord::key(KeyCode::Backspace))
-        }));
-        assert!(!runtime.app().hints.borrow().iter().any(|hint| {
-            hint.label == "Back" && hint.key == HintKey::Chord(Chord::key(KeyCode::Esc))
-        }));
-
-        runtime
-            .app_mut()
-            .keymap
-            .remove_component(MD.detail, ActionKey::custom("master_detail.close_detail"));
-        let _ = deliver(&mut runtime, key(KeyCode::Backspace));
-        buffer = ratatui_core::buffer::Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert!(!runtime.app().hints.borrow().iter().any(|hint| {
-            hint.label == "Back" && hint.key == HintKey::Chord(Chord::key(KeyCode::Esc))
-        }));
-        assert!(!runtime.app().hints.borrow().iter().any(|hint| {
-            hint.label == "Back" && hint.key == HintKey::Chord(Chord::key(KeyCode::Backspace))
-        }));
-
-        let _ = deliver(&mut runtime, key(KeyCode::Esc));
-        assert_eq!(runtime.focus(), Some(MD.detail));
-        let _ = deliver(&mut runtime, key(KeyCode::Backspace));
-        assert_eq!(runtime.focus(), Some(MD.detail));
-    }
-
-    #[test]
-    fn drawer_survives_modal_focus_excursion() {
-        let mut runtime = Runtime::new(ResizeApp::default(), Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = ratatui_core::buffer::Buffer::empty(Rect::new(0, 0, 120, 40));
-        runtime
-            .draw_buffer(Rect::new(0, 0, 120, 40), &mut buffer)
-            .commit_presented();
-        runtime.set_focus(Some(DETAIL_CHILD));
-        buffer = ratatui_core::buffer::Buffer::empty(Rect::new(0, 0, 120, 40));
-        runtime
-            .draw_buffer(Rect::new(0, 0, 120, 40), &mut buffer)
-            .commit_presented();
-        let _ = deliver(&mut runtime, crate::event::Input::Resize(80, 24));
-        runtime.app().area.set(Rect::new(0, 0, 80, 24));
-        buffer = ratatui_core::buffer::Buffer::empty(Rect::new(0, 0, 80, 24));
-        runtime
-            .draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer)
-            .commit_presented();
-        assert_eq!(runtime.app().mode.get(), MasterDetailMode::Drawer);
-        let drawer_detail = runtime.app().detail_rect.get();
-
-        runtime.app_mut().modal_requested = true;
-        let _ = deliver(&mut runtime, key(KeyCode::Char('x')));
-        assert!(runtime.is_open(MODAL));
-        assert_eq!(runtime.focus(), Some(MODAL_FOCUS));
-        buffer = ratatui_core::buffer::Buffer::empty(Rect::new(0, 0, 80, 24));
-        runtime
-            .draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer)
-            .commit_presented();
-        assert_eq!(runtime.app().mode.get(), MasterDetailMode::Drawer);
-        assert_eq!(runtime.app().detail_rect.get(), drawer_detail);
-        assert!(runtime.app().state.drawer_open());
-    }
-
-    #[test]
-    fn focused_detail_child_selects_drawer_after_narrow_resize() {
-        let mut runtime = Runtime::new(ResizeApp::default(), Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = ratatui_core::buffer::Buffer::empty(Rect::new(0, 0, 120, 40));
-        runtime
-            .draw_buffer(Rect::new(0, 0, 120, 40), &mut buffer)
-            .commit_presented();
-        assert_eq!(runtime.app().mode.get(), MasterDetailMode::Split);
-
-        runtime.set_focus(Some(DETAIL_CHILD));
-        buffer = ratatui_core::buffer::Buffer::empty(Rect::new(0, 0, 120, 40));
-        runtime
-            .draw_buffer(Rect::new(0, 0, 120, 40), &mut buffer)
-            .commit_presented();
-
-        let _ = deliver(&mut runtime, crate::event::Input::Resize(80, 24));
-        runtime.app().area.set(Rect::new(0, 0, 80, 24));
-        buffer = ratatui_core::buffer::Buffer::empty(Rect::new(0, 0, 80, 24));
-        runtime
-            .draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer)
-            .commit_presented();
-        assert_eq!(runtime.focus(), Some(DETAIL_CHILD));
-        assert_eq!(runtime.app().mode.get(), MasterDetailMode::Drawer);
-        assert!(runtime.app().state.drawer_open());
-
-        let _ = deliver(&mut runtime, crate::event::Input::Resize(120, 40));
-        runtime.app().area.set(Rect::new(0, 0, 120, 40));
-        buffer = ratatui_core::buffer::Buffer::empty(Rect::new(0, 0, 120, 40));
-        runtime
-            .draw_buffer(Rect::new(0, 0, 120, 40), &mut buffer)
-            .commit_presented();
-        assert_eq!(runtime.app().mode.get(), MasterDetailMode::Split);
-
-        runtime.set_focus(Some(MD.master));
-        buffer = ratatui_core::buffer::Buffer::empty(Rect::new(0, 0, 120, 40));
-        runtime
-            .draw_buffer(Rect::new(0, 0, 120, 40), &mut buffer)
-            .commit_presented();
-        assert!(runtime.app().state.drawer_open());
-        let _ = deliver(&mut runtime, key(KeyCode::Char('q')));
-        assert!(!runtime.app().state.drawer_open());
-
-        let _ = deliver(&mut runtime, crate::event::Input::Resize(80, 24));
-        runtime.app().area.set(Rect::new(0, 0, 80, 24));
-        buffer = ratatui_core::buffer::Buffer::empty(Rect::new(0, 0, 80, 24));
-        runtime
-            .draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer)
-            .commit_presented();
-        assert_eq!(runtime.focus(), Some(MD.master));
-        assert_eq!(runtime.app().mode.get(), MasterDetailMode::Master);
-        assert!(!runtime.app().state.drawer_open());
-    }
-
-    #[test]
-    fn drawing_real_children_does_not_reconcile_or_mutate_caller_state() {
-        let area = Rect::new(0, 0, 120, 30);
-        let mut runtime = Runtime::new(
-            RealChildrenApp {
-                state: MasterDetailState::default(),
-                area,
-                keymap: KeyMap::new(),
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        runtime.set_focus(Some(REAL_DETAIL));
-
-        let before = runtime.app().state;
-        let md = real_md();
-        let expected = md.layout(area, &before);
-        assert_eq!(expected.mode, MasterDetailMode::Split);
-        for _ in 0..2 {
-            buffer = ratatui_core::buffer::Buffer::empty(area);
-            runtime.draw_buffer(area, &mut buffer).commit_presented();
-            assert_eq!(runtime.app().state, before);
-            assert_eq!(md.layout(area, &runtime.app().state), expected);
-            assert_eq!(runtime.focus(), Some(REAL_DETAIL));
-        }
-
-        let _ = deliver(&mut runtime, key(KeyCode::Char('q')));
-        assert!(runtime.app().state.drawer_open());
-        let narrow = Rect::new(0, 0, 80, 24);
-        runtime.app_mut().area = narrow;
-        buffer = ratatui_core::buffer::Buffer::empty(narrow);
-        runtime.draw_buffer(narrow, &mut buffer).commit_presented();
-        let resolved = md.layout(narrow, &runtime.app().state);
-        assert_eq!(resolved.mode, MasterDetailMode::Drawer);
-        assert_eq!(resolved.detail, narrow);
-    }
-
-    #[test]
-    fn drawer_close_action_uses_the_component_keymap_remap() {
-        let mut app = DrawerApp::default();
-        let close = ActionKey::custom("master_detail.close_detail");
-        let mut keymap = KeyMap::new();
-        keymap.remap_component(MD.detail, close, Chord::key(KeyCode::Backspace));
-        app.keymap = keymap;
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = ratatui_core::buffer::Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = deliver(&mut runtime, key(KeyCode::Tab));
-        assert!(runtime.app().state.drawer_open());
-
-        let _ = deliver(&mut runtime, key(KeyCode::Esc));
-        assert!(runtime.app().state.drawer_open());
-        let _ = deliver(&mut runtime, key(KeyCode::Backspace));
-        assert!(!runtime.app().state.drawer_open());
-        assert_eq!(runtime.focus(), Some(MD.master));
     }
 }

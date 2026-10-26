@@ -119,7 +119,7 @@
       "path": "/Users/donbeave/Downloads/terminal-components-claude",
       "branch": "parity/termrock-visual-baseline",
       "starting_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "current_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
+      "current_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
       "pending_upstream_refresh": null,
       "code_input_sha": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
       "completed_upstream_refreshes": [
@@ -153,7 +153,9 @@
           "behavior_proof": "none"
         }
       ],
-      "last_reviewed_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed"
+      "last_reviewed_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
+      "product_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "t37_role": "Full checkout for the guarded baseline build; no product source edits."
     },
     "reference": {
       "path": "/Users/donbeave/Downloads/termrock-pr26-reference-20261026",
@@ -164,6 +166,105 @@
       "path": "/Users/donbeave/Projects/terminal-components-claude",
       "origin_restored": true,
       "source_mutated": false
+    },
+    "t37_implementation": {
+      "fixed_input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "product_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "shared_branch": "pr38/T37-shared",
+      "worktrees": [
+        {
+          "agent_id": "/root/t37_foundations",
+          "model": "gpt-6-luna",
+          "effort": "max",
+          "path": "/Users/donbeave/Downloads/termrock-t37-foundations",
+          "branch": "pr38/T37-foundations",
+          "head_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+          "status": "ACTIVE_DIRTY_IN_PROGRESS",
+          "ownership": "crates/termrock-core, termrock-layout, termrock-theme, termrock-text, termrock-render, termrock-collections, termrock-runtime, termrock-session, termrock-shell, and termrock-terminal source/tests; excludes manifests, lockfiles, and generated files."
+        },
+        {
+          "agent_id": "/root/t37_components",
+          "model": "gpt-6-luna",
+          "effort": "max",
+          "path": "/Users/donbeave/Downloads/termrock-t37-components",
+          "branch": "pr38/T37-components",
+          "head_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+          "status": "ACTIVE",
+          "ownership": "Controls, fields, feedback, navigation, viewport, overlays, grid, editors, forms, and termrock facade source/tests; excludes manifests, lockfiles, and generated files."
+        },
+        {
+          "agent_id": "/root/t37_apps",
+          "model": "gpt-6-luna",
+          "effort": "max",
+          "path": "/Users/donbeave/Downloads/termrock-t37-apps",
+          "branch": "pr38/T37-apps",
+          "head_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+          "status": "ACTIVE",
+          "ownership": "holla-ui, jackin-preview-app, showcase-ui, tablepro-ui, and termrock-consumer-example source/tests; excludes manifests, lockfiles, and generated files."
+        },
+        {
+          "agent_id": "/root/t37_tools",
+          "model": "gpt-6-luna",
+          "effort": "max",
+          "path": "/Users/donbeave/Downloads/termrock-t37-tools",
+          "branch": "pr38/T37-tools",
+          "head_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+          "status": "ACTIVE",
+          "ownership": "Tools, scripts, root tests, external-consumer-demo, parity and tooling crate source/tests; excludes shared metadata, manifests, lockfiles, and generated files."
+        },
+        {
+          "agent_id": "/root/t00_import_rules",
+          "model": "gpt-6-luna",
+          "effort": "max",
+          "path": "/Users/donbeave/Downloads/termrock-t37-shared",
+          "branch": "pr38/T37-shared",
+          "head_sha": "2f8b1b7e77ab0606082489cc491844ed67b53d3a",
+          "product_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+          "status": "ACTIVE",
+          "ownership": "Shared manifests/locks, tool pins only when cleanup requires, .config, .velnor and generated CI inputs/output through the generator, test inventory/policy metadata, component ownership, maintained README/SAFETY/docs outside immutable audit/visibility and imported T00 package; only results/t37-shared/** in the imported package."
+        }
+      ],
+      "baseline_build": {
+        "status": "NOT_RUN",
+        "worktree": "/Users/donbeave/Downloads/terminal-components-claude",
+        "source_input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "integration_checkpoint_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --workspace --all-targets --all-features",
+        "scope": "Compile only; do not execute legacy tests. Capture command, source/tool/environment, counts, status, and log.",
+        "disk_policy": "Probe before build. Required cleanup child runs to 2.5 TB while cleanup and project work continue in parallel."
+      },
+      "safety_transfer": {
+        "commit": "2f8b1b7e77ab0606082489cc491844ed67b53d3a",
+        "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
+        "status": "PENDING_INDEPENDENT_SOL_HIGH_REVIEW_AND_INTEGRATION",
+        "review_target": "2f8b1b7e77ab0606082489cc491844ed67b53d3a",
+        "source_path": "crates/termrock-session/src/esc_bridge.rs",
+        "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+        "production_rationales_mapped": 28,
+        "esc_bridge_api_groups_mapped": 10,
+        "changed_product_source": false
+      },
+      "approved_test_plan_id": "N/A",
+      "test_writing": "NOT_AUTHORIZED_DURING_T37",
+      "product_behavior": "NOT VERIFIED",
+      "decisions": [
+        {
+          "id": "T37-SAFETY-01",
+          "reviewer_id": "/root/t00_independent_review",
+          "model": "gpt-6.1-sol",
+          "effort": "high",
+          "decision": "PRESERVE_LINT_POLICY",
+          "scope": "No active undocumented_unsafe_blocks conflict in foundation manifests; retain existing unsafe lint policy; do not add allowances."
+        },
+        {
+          "id": "T37-PROBE-01",
+          "reviewer_id": "/root/t00_independent_review",
+          "model": "gpt-6.1-sol",
+          "effort": "high",
+          "decision": "APPROVED",
+          "scope": "Retire manual-api-contracts and paint-style-pilot as active positive/negative compile-test fixtures; preserve original hashes and PaintStyle privacy/builder requirements as historical/T01/T38 obligations; do not change PaintStyle API or add replacement probes."
+        }
+      ]
     }
   },
   "file_locks": [
@@ -182,7 +283,10 @@
         "results/t00-review/**"
       ],
       "t00_scope_released": true,
-      "continuation_scope": "T37 dispatch and checkpoint records only; no product source changes."
+      "continuation_scope": "Canonical run-state and results/t37-shared/** records; no source edits in integration.",
+      "t37_worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
+      "branch": "pr38/T37-shared",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8"
     },
     {
       "path": "docs/implementation/pr38-final/results/t00-source/**",
@@ -201,6 +305,213 @@
       "owner": "/root",
       "state": "COORDINATOR",
       "index_lock_present_at_checkpoint": false
+    },
+    {
+      "id": "T37-foundations",
+      "owner": "/root/t37_foundations",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-foundations",
+      "branch": "pr38/T37-foundations",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "state": "ACTIVE",
+      "paths": [
+        "crates/termrock-core/src/**",
+        "crates/termrock-core/tests/**",
+        "crates/termrock-layout/src/**",
+        "crates/termrock-layout/tests/**",
+        "crates/termrock-theme/src/**",
+        "crates/termrock-theme/tests/**",
+        "crates/termrock-text/src/**",
+        "crates/termrock-text/tests/**",
+        "crates/termrock-render/src/**",
+        "crates/termrock-render/tests/**",
+        "crates/termrock-collections/src/**",
+        "crates/termrock-collections/tests/**",
+        "crates/termrock-runtime/src/**",
+        "crates/termrock-runtime/tests/**",
+        "crates/termrock-session/src/**",
+        "crates/termrock-session/tests/**",
+        "crates/termrock-shell/src/**",
+        "crates/termrock-shell/tests/**",
+        "crates/termrock-terminal/src/**",
+        "crates/termrock-terminal/tests/**",
+        "crates/termrock-shell/examples/**"
+      ],
+      "exclusions": [
+        "**/Cargo.toml",
+        "**/Cargo.lock",
+        "generated output",
+        "shared metadata"
+      ]
+    },
+    {
+      "id": "T37-components",
+      "owner": "/root/t37_components",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-components",
+      "branch": "pr38/T37-components",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "state": "ACTIVE",
+      "paths": [
+        "crates/termrock-controls/src/**",
+        "crates/termrock-controls/tests/**",
+        "crates/termrock-fields/src/**",
+        "crates/termrock-fields/tests/**",
+        "crates/termrock-feedback/src/**",
+        "crates/termrock-feedback/tests/**",
+        "crates/termrock-navigation/src/**",
+        "crates/termrock-navigation/tests/**",
+        "crates/termrock-viewport/src/**",
+        "crates/termrock-viewport/tests/**",
+        "crates/termrock-overlays/src/**",
+        "crates/termrock-overlays/tests/**",
+        "crates/termrock-grid/src/**",
+        "crates/termrock-grid/tests/**",
+        "crates/termrock-editors/src/**",
+        "crates/termrock-editors/tests/**",
+        "crates/termrock-forms/src/**",
+        "crates/termrock-forms/tests/**",
+        "crates/termrock/src/**",
+        "crates/termrock/tests/**"
+      ],
+      "exclusions": [
+        "**/Cargo.toml",
+        "**/Cargo.lock",
+        "generated output",
+        "shared metadata"
+      ]
+    },
+    {
+      "id": "T37-apps",
+      "owner": "/root/t37_apps",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-apps",
+      "branch": "pr38/T37-apps",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "state": "ACTIVE",
+      "paths": [
+        "crates/holla-ui/src/**",
+        "crates/holla-ui/tests/**",
+        "crates/jackin-preview-app/src/**",
+        "crates/jackin-preview-app/tests/**",
+        "crates/showcase-ui/src/**",
+        "crates/showcase-ui/tests/**",
+        "crates/tablepro-ui/src/**",
+        "crates/tablepro-ui/tests/**",
+        "crates/termrock-consumer-example/src/**",
+        "crates/termrock-consumer-example/tests/**"
+      ],
+      "exclusions": [
+        "**/Cargo.toml",
+        "**/Cargo.lock",
+        "generated output",
+        "shared metadata"
+      ]
+    },
+    {
+      "id": "T37-tools",
+      "owner": "/root/t37_tools",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-tools",
+      "branch": "pr38/T37-tools",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "state": "ACTIVE",
+      "paths": [
+        "tools/**",
+        "scripts/**",
+        "tests/**",
+        "external-consumer-demo/**",
+        "crates/termrock-xtask/src/**",
+        "crates/termrock-xtask/tests/**",
+        "crates/termrock-test-support/src/**",
+        "crates/termrock-test-support/tests/**",
+        "crates/termrock-conformance/src/**",
+        "crates/termrock-conformance/tests/**",
+        "crates/termrock-e2e/src/**",
+        "crates/termrock-e2e/tests/**",
+        "crates/termrock-visibility-tests/src/**",
+        "crates/termrock-visibility-tests/tests/**",
+        "crates/termrock-visibility-publisher/src/**",
+        "crates/termrock-visibility-publisher/tests/**",
+        "crates/visual-harness/src/**",
+        "crates/visual-harness/tests/**"
+      ],
+      "exclusions": [
+        "**/Cargo.toml",
+        "**/Cargo.lock",
+        "tools/acceptance_policy.json",
+        "tools/test-inventory/*.json",
+        "generated output",
+        "shared metadata"
+      ]
+    },
+    {
+      "id": "T37-shared-metadata-docs",
+      "owner": "/root/t00_import_rules",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
+      "branch": "pr38/T37-shared",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "state": "ACTIVE",
+      "paths": [
+        "**/Cargo.toml",
+        "**/Cargo.lock",
+        "Cargo.toml",
+        "Cargo.lock",
+        "mise.toml",
+        "mise.lock",
+        "rust-toolchain.toml",
+        ".gitignore",
+        ".gitattributes",
+        ".config/**",
+        ".velnor/**",
+        ".github/**",
+        ".github-gen/**",
+        "tools/acceptance_policy.json",
+        "tools/test-inventory/*.json",
+        "component-ownership.json",
+        "README.md",
+        "SAFETY.md",
+        "docs/**",
+        "docs/implementation/pr38-final/results/t37-shared/**"
+      ],
+      "exclusions": [
+        "docs/audits/**",
+        "docs/implementation/visibility/**",
+        "docs/implementation/pr38-final/** except results/t37-shared/**",
+        "immutable historical evidence",
+        "generated output is changed only through velnor-actions generator"
+      ]
+    },
+    {
+      "id": "T37-baseline-build",
+      "owner": "/root/t00_import_rules",
+      "worktree": "/Users/donbeave/Downloads/terminal-components-claude",
+      "branch": "parity/termrock-visual-baseline",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "state": "READ_ONLY_PRODUCT_SOURCE_BASELINE",
+      "paths": [
+        "workspace product source at c817/1d6"
+      ],
+      "permitted_action": "Guarded cargo check compilation only; no tests execute; only canonical checkpoint metadata may be written by owner."
+    },
+    {
+      "id": "T37-safety-review",
+      "owner": "/root/t00_independent_review",
+      "state": "ACTIVE_REVIEW",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "target_commit": "2f8b1b7e77ab0606082489cc491844ed67b53d3a",
+      "paths": [
+        "/Users/donbeave/Downloads/termrock-t37-shared/docs/contracts/safety-invariants.md",
+        "/Users/donbeave/Downloads/termrock-t37-shared/SAFETY.md",
+        "/Users/donbeave/Downloads/termrock-t37-shared/docs/implementation/pr38-final/results/t37-shared/safety-transfer.json"
+      ],
+      "permission": "read-only; Sol high independent review."
+    },
+    {
+      "id": "T37-disk-cleanup",
+      "owner": "/root/t00_import_rules/t37_disk_cleanup",
+      "state": "ACTIVE_DISK_CLEANUP_ONLY",
+      "paths": [],
+      "initial_free_bytes": 1998809899008,
+      "latest_reported_free_bytes": 2005682032640,
+      "stop_at_free_bytes": 2500000000000,
+      "permission": "DISK_POLICY cleanup only; no product or documentation changes."
     }
   ],
   "agents": [
@@ -229,24 +540,86 @@
     },
     {
       "id": "/root/t00_import_rules",
-      "role": "T00 import implementer; T37 dispatch checkpoint owner",
+      "role": "T37 shared metadata/docs/build implementer and canonical checkpoint owner",
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "ACTIVE_T37_CHECKPOINT_OWNER",
-      "completed_task": "T00 ACCEPT at ce82fd3c2bda98990cdbb5da675df1b1816f64ed"
+      "status": "ACTIVE",
+      "completed_task": "T00 ACCEPT at ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
+      "current_input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
+      "branch": "pr38/T37-shared"
     },
     {
       "id": "/root/t00_independent_review",
-      "role": "T00 independent reviewer",
+      "role": "Independent T37 safety and acceptance reviewer",
       "model": "gpt-6.1-sol",
       "effort": "high",
       "assignment": "explicit",
-      "status": "COMPLETED_ACCEPT",
+      "status": "ACTIVE",
       "review_output_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "review_target_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "previous_reviewed_sha": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
-      "decision": "ACCEPT"
+      "decision": "ACCEPT",
+      "current_review_target_sha": "2f8b1b7e77ab0606082489cc491844ed67b53d3a",
+      "current_review_scope": "T37 safety transfer commit; later full deletion and build review."
+    },
+    {
+      "id": "/root/t37_foundations",
+      "role": "T37 foundation source/tests implementer",
+      "model": "gpt-6-luna",
+      "effort": "max",
+      "assignment": "explicit",
+      "status": "ACTIVE",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-foundations",
+      "branch": "pr38/T37-foundations",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8"
+    },
+    {
+      "id": "/root/t37_components",
+      "role": "T37 component source/tests implementer",
+      "model": "gpt-6-luna",
+      "effort": "max",
+      "assignment": "explicit",
+      "status": "ACTIVE",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-components",
+      "branch": "pr38/T37-components",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8"
+    },
+    {
+      "id": "/root/t37_apps",
+      "role": "T37 application source/tests implementer",
+      "model": "gpt-6-luna",
+      "effort": "max",
+      "assignment": "explicit",
+      "status": "ACTIVE",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-apps",
+      "branch": "pr38/T37-apps",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8"
+    },
+    {
+      "id": "/root/t37_tools",
+      "role": "T37 tools/scripts/parity/tooling source/tests implementer",
+      "model": "gpt-6-luna",
+      "effort": "max",
+      "assignment": "explicit",
+      "status": "ACTIVE",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-tools",
+      "branch": "pr38/T37-tools",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8"
+    },
+    {
+      "id": "/root/t00_import_rules/t37_disk_cleanup",
+      "role": "Required disk cleanup only",
+      "model": "gpt-6-luna",
+      "effort": "max",
+      "assignment": "explicit",
+      "status": "ACTIVE",
+      "worktree": null,
+      "initial_free_bytes": 1998809899008,
+      "latest_reported_free_bytes": 2005682032640,
+      "stop_at_free_bytes": 2500000000000,
+      "scope": "DISK_POLICY cleanup only; no project/task work."
     }
   ],
   "model_selection_limits": [
@@ -290,12 +663,10 @@
     "T34": "NOT_STARTED",
     "T35": "NOT_STARTED",
     "T36": "NOT_STARTED",
-    "T37": "READY",
+    "T37": "ACTIVE",
     "T38": "NOT_STARTED"
   },
-  "ready_tasks": [
-    "T37"
-  ],
+  "ready_tasks": [],
   "blocked_tasks": [
     {
       "id": "T02",
@@ -686,7 +1057,8 @@
     "T02, T03, and T04 remain blocked until T38 passes independent review.",
     "The unaccepted fixture expectation change remains source history; it is not product behavior proof.",
     "Classify tc-proof and visibility publisher/capture ownership before any related removal.",
-    "T37 must inventory all argparse descriptions derived from Python __doc__ and preserve identical help text before docstring removal."
+    "T37 must inventory all argparse descriptions derived from Python __doc__ and preserve identical help text before docstring removal.",
+    "T37 must preserve all production SAFETY comments until the safety-transfer commit is independently accepted and integrated."
   ],
   "root_instruction_patch": {
     "patch_path": "AGENTS.patch",
@@ -709,7 +1081,8 @@
     "T00_overall": "ACCEPTED",
     "T00_import": "ACCEPTED",
     "T00_source_capture": "ACCEPTED",
-    "T00_independent_review": "ACCEPT"
+    "T00_independent_review": "ACCEPT",
+    "T37_overall": "ACTIVE"
   },
   "tool_limits": [
     {
@@ -1101,5 +1474,35 @@
     "source_evidence_commit_paths": [
       "docs/implementation/pr38-final/results/t00-source/**"
     ]
+  },
+  "t37_review_decisions": [
+    {
+      "id": "T37-SAFETY-01",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "KEEP_UNSAFE_LINT_POLICY",
+      "scope": "No active undocumented_unsafe_blocks conflict in foundation manifests; retain policy and do not add allowances."
+    },
+    {
+      "id": "T37-PROBE-01",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "APPROVED_RETIREMENT",
+      "scope": "manual-api-contracts and paint-style-pilot may retire as active compile fixtures; preserve hashes and PaintStyle privacy/builder obligations as immutable history/T01/T38; no API change or replacement probes."
+    }
+  ],
+  "disk_policy_t37": {
+    "probe_command": "df -b /System/Volumes/Data",
+    "initial_free_bytes": 1998809899008,
+    "threshold_bytes": 2000000000000,
+    "cleanup_agent_id": "/root/t00_import_rules/t37_disk_cleanup",
+    "cleanup_model": "gpt-6-luna",
+    "cleanup_effort": "max",
+    "latest_root_reported_free_bytes": 2005682032640,
+    "target_free_bytes": 2500000000000,
+    "status": "CLEANUP_ACTIVE; do not stop above 2 TB; child must continue until 2.5 TB.",
+    "authority": "/Users/donbeave/.agents/DISK_POLICY.md"
   }
 }

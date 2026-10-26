@@ -1,0 +1,3363 @@
+{
+  "source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "removed_or_retained_source_prose": [
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_docstring",
+      "line": 2,
+      "owner": "module",
+      "text": "Fail-closed, source-bound architecture checks for termrock acceptance.",
+      "disposition": "CLI help transferred to explicit literal"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_docstring",
+      "line": 62,
+      "owner": "rust_char_literal_end",
+      "text": "Return the end of a char/byte-char literal, leaving lifetimes untouched.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_docstring",
+      "line": 88,
+      "owner": "rust_literal_end",
+      "text": "Skip Rust string literals; flag malformed forms instead of hiding suffixes.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_docstring",
+      "line": 123,
+      "owner": "include_invocations",
+      "text": "Extract simple literal include calls; report unsupported calls to caller.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_docstring",
+      "line": 194,
+      "owner": "path_attributes",
+      "text": "Find `path` meta items, including nested cfg_attr forms.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_docstring",
+      "line": 269,
+      "owner": "simple_path_literal",
+      "text": "Read a plain or raw Rust string path; unsupported escape forms stay unresolved.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_docstring",
+      "line": 443,
+      "owner": "target_directory_module_aliases",
+      "text": "Find source-tree symlink names that point into Cargo build output.\n\n    Do not follow directory symlinks while walking: target directories can be\n    large. Matching module names anywhere beneath package or actual Cargo\n    target roots is deliberately conservative because lexical scanning does\n    not model nested inline-module scopes.\n    ",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_comment",
+      "line": 359,
+      "text": "# `name` is the resolved package name; `rename` is only the local alias.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_comment",
+      "line": 437,
+      "text": "# The live filesystem is the Cargo input. Git's index may contain stale",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_comment",
+      "line": 438,
+      "text": "# bytes after a generated or included source file has been removed.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_comment",
+      "line": 576,
+      "text": "# Traverse every non-dev workspace edge from each public library role.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_comment",
+      "line": 577,
+      "text": "# Cargo's package dependency inventory includes target-specific edges.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_comment",
+      "line": 719,
+      "text": "# Ordinary `mod name;` declarations also select production inputs.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_comment",
+      "line": 720,
+      "text": "# Do not traverse Cargo's potentially huge build directory through a",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_comment",
+      "line": 721,
+      "text": "# source symlink; report this selected input as unresolved instead.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_comment",
+      "line": 818,
+      "text": "# Stable unique inventory: duplicate includes still retain their owning edge.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_comment",
+      "line": 834,
+      "text": "# This bounded checker cannot attest semantic architecture, workflow coverage,",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "kind": "python_comment",
+      "line": 835,
+      "text": "# exact paired application behavior, or independent review.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/ansi2html.py",
+      "input_sha256": "b8defedcf1703a410be28dc3761377f55bab258239cc5e6fa6b2cddca27a04b5",
+      "kind": "python_docstring",
+      "line": 2,
+      "owner": "module",
+      "text": "Convert `tmux capture-pane -e -p` output (SGR truecolor) into a standalone HTML page.\n\nUsage: ansi2html.py <in.ansi> <out.html> [cols] [rows]\n",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/ansi2html.py",
+      "input_sha256": "b8defedcf1703a410be28dc3761377f55bab258239cc5e6fa6b2cddca27a04b5",
+      "kind": "python_comment",
+      "line": 130,
+      "text": "# tmux emits SGR deltas that carry across line boundaries",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/ansi2png.py",
+      "input_sha256": "f29d92633e44337e2aba6fe0a960053014234ef5811ba18ee4527f336bb9eef2",
+      "kind": "python_docstring",
+      "line": 2,
+      "owner": "module",
+      "text": "Rasterize a tmux ANSI capture to PNG using JetBrains Mono (falls back to Menlo).",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/ansi2png.py",
+      "input_sha256": "f29d92633e44337e2aba6fe0a960053014234ef5811ba18ee4527f336bb9eef2",
+      "kind": "python_comment",
+      "line": 20,
+      "text": "# cell size at 15px",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/ansi2png.py",
+      "input_sha256": "f29d92633e44337e2aba6fe0a960053014234ef5811ba18ee4527f336bb9eef2",
+      "kind": "python_comment",
+      "line": 52,
+      "text": "# SGR state carries across lines in tmux captures",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 2,
+      "owner": "module",
+      "text": "Write reproducible, concurrency-safe capture provenance.",
+      "disposition": "CLI help transferred to explicit literal"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 34,
+      "owner": "nofollow_nonblocking_flags",
+      "text": "Return flags that reject symlinks and never block on special files.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 43,
+      "owner": "provenance_path",
+      "text": "Return a stable workspace-relative path for published evidence.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 54,
+      "owner": "file_info",
+      "text": "Describe a file without following a symlink at the requested path.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 159,
+      "owner": "open_trusted_directory",
+      "text": "Open every directory component without following any symlink.\n\n    A leaf-only O_NOFOLLOW check is insufficient: an attacker can replace an\n    ancestor after a check and redirect a later open/rename. Walking from the\n    root with directory descriptors pins each component used by the caller.\n    ",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 207,
+      "owner": "create_temporary_at",
+      "text": "Create a mode-0600 temporary regular file below a pinned directory.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 231,
+      "owner": "read_regular_text_at",
+      "text": "Read a regular leaf below an already pinned directory descriptor.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 287,
+      "owner": "write_text_atomic",
+      "text": "Write a small state value without following a destination symlink.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 310,
+      "owner": "open_stderr",
+      "text": "Open owned stderr state without following a symlink or special file.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 335,
+      "owner": "open_regular_read",
+      "text": "Open a regular file while pinning every parent directory component.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 356,
+      "owner": "read_regular_text",
+      "text": "Read a regular file through one no-follow descriptor.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 370,
+      "owner": "hash_descriptor",
+      "text": "Hash bytes from an already opened descriptor without reopening its path.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 381,
+      "owner": "lock_execution_directory",
+      "text": "Pin a staged path by removing its directory write permission while it runs.\n\n    macOS does not expose fexecve/execveat to this Python process. The staged\n    file is mode 0500 and lives in this private mode-0700 directory; holding\n    the directory descriptor and removing all directory write permission\n    prevents rename/unlink replacement between descriptor verification and\n    the interpreter's path-based launch. The original mode is restored after\n    the child exits.\n    ",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 406,
+      "owner": "restore_execution_directory",
+      "text": "Restore the run directory mode after the path-pinned execution ends.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 414,
+      "owner": "open_manifest_lock",
+      "text": "Open a manifest lock without following a replaced symlink.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 448,
+      "owner": "path_exists_without_follow",
+      "text": "Check presence below a pinned parent without following the leaf.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 462,
+      "owner": "lock_path_parts",
+      "text": "Pin the common parent used by a lock and its advisory guard.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 533,
+      "owner": "remove_legacy_lock_directory",
+      "text": "Remove only a legacy lock directory containing exactly one owner file.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 672,
+      "owner": "command_stage_binary",
+      "text": "Copy one verified executable into the private run directory.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 751,
+      "owner": "update_manifest",
+      "text": "Run update(records) while holding a per-manifest advisory lock.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 840,
+      "owner": "command_read_state",
+      "text": "Read one shell state value through a no-follow descriptor.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 846,
+      "owner": "command_write_state",
+      "text": "Write one shell state value below a pinned parent directory.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_docstring",
+      "line": 866,
+      "owner": "command_exec",
+      "text": "Execute the exact argv serialized in a live capture run's metadata.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_comment",
+      "line": 170,
+      "text": "# macOS exposes /var and /tmp as stable system symlinks into /private.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_comment",
+      "line": 171,
+      "text": "# Canonicalize only that first system component; all caller-controlled",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_comment",
+      "line": 172,
+      "text": "# components are still walked with O_NOFOLLOW below.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_comment",
+      "line": 601,
+      "text": "# The owner is read from the directory itself before the directory is",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "kind": "python_comment",
+      "line": 602,
+      "text": "# atomically quarantined. A missing/unsafe owner is never deleted.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/historical-render/regenerate.py",
+      "input_sha256": "f1928d0f8e37d2f7ffea9d7432499f4b809adeb3bce1e9ebc8828757105567ab",
+      "kind": "python_docstring",
+      "line": 2,
+      "owner": "module",
+      "text": "Rebuild missing historical images from immutable ANSI, never candidate output.",
+      "disposition": "CLI help transferred to explicit literal"
+    },
+    {
+      "path": "tools/historical-render/regenerate.py",
+      "input_sha256": "f1928d0f8e37d2f7ffea9d7432499f4b809adeb3bce1e9ebc8828757105567ab",
+      "kind": "python_comment",
+      "line": 70,
+      "text": "# Environment adapter only: identical font bytes, unchanged renderer logic.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_approve.py",
+      "input_sha256": "afae7c3fc37e01d21fec6c7c58d3283590a4992aefb9b809086e7d8ce3bed216",
+      "kind": "python_docstring",
+      "line": 2,
+      "owner": "module",
+      "text": "Approve parity evidence only after every frozen contract is proven.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/parity_approve.py",
+      "input_sha256": "afae7c3fc37e01d21fec6c7c58d3283590a4992aefb9b809086e7d8ce3bed216",
+      "kind": "python_docstring",
+      "line": 268,
+      "owner": "git_status_paths",
+      "text": "Return every path named by porcelain status, including rename pairs.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/parity_approve.py",
+      "input_sha256": "afae7c3fc37e01d21fec6c7c58d3283590a4992aefb9b809086e7d8ce3bed216",
+      "kind": "python_comment",
+      "line": 97,
+      "text": "# Agent-instruction symlinks (CLAUDE.md -> AGENTS.md) are first-class",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_approve.py",
+      "input_sha256": "afae7c3fc37e01d21fec6c7c58d3283590a4992aefb9b809086e7d8ce3bed216",
+      "kind": "python_comment",
+      "line": 98,
+      "text": "# tracked files. Permit one sibling target; reject chains and traversal.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_docstring",
+      "line": 2,
+      "owner": "module",
+      "text": "Replay every frozen recipe through the real binary capture harness.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_docstring",
+      "line": 109,
+      "owner": "git_status_paths",
+      "text": "Return every path named by porcelain status, including rename pairs.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_docstring",
+      "line": 173,
+      "owner": "source_dirty",
+      "text": "Report changes that can affect replay, ignoring generated workspace files.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_docstring",
+      "line": 178,
+      "owner": "remove_safely",
+      "text": "Remove one explicit replay output without following symlinks.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 83,
+      "text": "# Agent-instruction symlinks (CLAUDE.md -> AGENTS.md) are first-class",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 84,
+      "text": "# tracked files. Permit one sibling target; reject chains and traversal.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 326,
+      "text": "# capture.sh observes the worktree when each row starts. Replay outputs",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 327,
+      "text": "# make that raw observation change after the first row. Bind both",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 328,
+      "text": "# validator-facing dirty fields to the one pre-replay source snapshot.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 426,
+      "text": "# Each worker owns a private capture-state directory.  capture.sh keeps",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 427,
+      "text": "# one lock per state root, while tmux sessions and artifact paths are",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 428,
+      "text": "# already unique per recipe; sharing that lock would serialize the replay.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 438,
+      "text": "# The Homebrew interpreter may lack Pillow while the trusted",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 439,
+      "text": "# system interpreter used by capture.sh already provides it.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 484,
+      "text": "# A historical anchor can name content visible immediately",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 485,
+      "text": "# before a scroll/click changes the final frame. The final",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 486,
+      "text": "# artifact is still compared exactly; this guard only proves",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 487,
+      "text": "# the recipe reached either side of that transition.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 517,
+      "text": "# Preserve the capture/anchor failure. A missing session is",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 518,
+      "text": "# cleanup fallout, not the cause and must not hide evidence.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 605,
+      "text": "# The serial loop stopped at the first failure; restore that.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 606,
+      "text": "# Cancel every queued recipe and stop accepting new work",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 607,
+      "text": "# without waiting here (in-flight recipes still run their own",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 608,
+      "text": "# capture cleanup); the `with` block then joins the workers",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/parity_replay.py",
+      "input_sha256": "41fc57a25864aa3561a9d70a67d8d22fdb8c8abdcb468aa2a83a316be03b0a85",
+      "kind": "python_comment",
+      "line": 609,
+      "text": "# before the original error propagates.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/rust_build_guard.py",
+      "input_sha256": "48b606262b4e8a5b485770532fef9175a1318118e9f789dc5bf8a12b34f9dd9b",
+      "kind": "python_docstring",
+      "line": 2,
+      "owner": "module",
+      "text": "Fail-closed free-space guard for Cargo commands.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/rust_build_guard.py",
+      "input_sha256": "48b606262b4e8a5b485770532fef9175a1318118e9f789dc5bf8a12b34f9dd9b",
+      "kind": "python_docstring",
+      "line": 37,
+      "owner": "_effective_env",
+      "text": "Resolve mise's project environment without exposing its values.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/rust_build_guard.py",
+      "input_sha256": "48b606262b4e8a5b485770532fef9175a1318118e9f789dc5bf8a12b34f9dd9b",
+      "kind": "python_docstring",
+      "line": 85,
+      "owner": "_mbx_locations",
+      "text": "Return MBX cache and managed target roots using documented precedence.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/rust_build_guard.py",
+      "input_sha256": "48b606262b4e8a5b485770532fef9175a1318118e9f789dc5bf8a12b34f9dd9b",
+      "kind": "python_docstring",
+      "line": 171,
+      "owner": "_cargo_config_documents",
+      "text": "Load applicable Cargo configs and reject indirect path-changing policy.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/rust_build_guard.py",
+      "input_sha256": "48b606262b4e8a5b485770532fef9175a1318118e9f789dc5bf8a12b34f9dd9b",
+      "kind": "python_docstring",
+      "line": 196,
+      "owner": "_cargo_config_output_paths",
+      "text": "Include configured Cargo output roots; inspect every applicable config.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_docstring",
+      "line": 2,
+      "owner": "module",
+      "text": "Exact Cargo/libtest inventory. Capture is evidence, never approval.",
+      "disposition": "Retired with CLI under T37-INVENTORY-01; original literal is retained in retired_cli_help_literals as historical evidence, not active help."
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_comment",
+      "line": 68,
+      "text": "# rustdoc execution appends a mode absent from its --list identity.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_comment",
+      "line": 88,
+      "text": "# Do not pass credentials, fixture content, baseline blessing, or arbitrary",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_comment",
+      "line": 89,
+      "text": "# compiler/test flags. Record only the fingerprint, never these values.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_comment",
+      "line": 128,
+      "text": "# An entirely gated package can emit no artifacts. There are then no",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_comment",
+      "line": 129,
+      "text": "# compiled dev-dependencies to unify features back into this package.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_comment",
+      "line": 130,
+      "text": "# Resolve only its declared local feature closure; unsupported qualified",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_comment",
+      "line": 131,
+      "text": "# selectors fail rather than inventing a workspace-wide resolution.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_comment",
+      "line": 160,
+      "text": "# --all-targets emits runnable example test harnesses even though Cargo",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_comment",
+      "line": 161,
+      "text": "# metadata reports test=false by default. Actual compiler artifacts own",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_comment",
+      "line": 162,
+      "text": "# execution; the metadata flag cannot erase those test identities.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_comment",
+      "line": 227,
+      "text": "# A new target directory per profile prevents feature-unified or",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_comment",
+      "line": 228,
+      "text": "# previous-command executable reuse. Only this command's JSON is used.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_comment",
+      "line": 260,
+      "text": "# The dedicated libtest status file cannot be interleaved by",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_comment",
+      "line": 261,
+      "text": "# subprocess stdout (which can split pretty result lines).",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "kind": "python_comment",
+      "line": 383,
+      "text": "# Never print subprocess output or fixture payloads.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 2,
+      "owner": "module",
+      "text": "Validate and render accepted Termrock visibility work records.\n\nThe accepted task JSON is the authority. WORK_QUEUE.md is a deterministic view.\nThis module never treats a task state as evidence that product checks passed.\nInstruction discovery here only builds a static task packet; it does not prove\nthat an agent runtime loaded the listed instructions. Review receipts bind the\nrecorded external file digest and expected subject in the source record; they do\nnot authenticate reviewer identity or provide a cryptographic signature.\n",
+      "disposition": "CLI help transferred to explicit literal"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 122,
+      "owner": "QueueError",
+      "text": "An invalid or stale accepted-work record.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 181,
+      "owner": "normalize_scope",
+      "text": "Accept exact paths and recursive directory scopes ending in ``/**``.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 212,
+      "owner": "scopes_overlap",
+      "text": "Return whether two supported path scopes can name the same file.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 589,
+      "owner": "validate_records",
+      "text": "Validate the live schema-v1 accepted queue without changing its rules.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 594,
+      "owner": "validate_records_v2",
+      "text": "Validate read-only schema-v2 records with repository-aware conflicts.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 1098,
+      "owner": "render_queue_v2",
+      "text": "Render a deterministic schema-v2 queue without changing the v1 view.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 1173,
+      "owner": "instruction_packet",
+      "text": "Return ancestor/scoped AGENTS paths and hashes for a static task packet.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 1292,
+      "owner": "_open_directory_chain",
+      "text": "Open each directory component without following symlinks.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 1358,
+      "owner": "validate_filesystem_scopes",
+      "text": "Reject existing symlink paths in active write scopes at mutation time.\n\n    This is a queue preflight only; it cannot sandbox the task owner or prevent\n    a link from being created after the check.\n    ",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 1400,
+      "owner": "scope_digest",
+      "text": "Hash current regular files in the accepted scopes, excluding tasks.json.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 1587,
+      "owner": "validate_root_registry",
+      "text": "Validate the portable shape of an externally pinned local root registry.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 1781,
+      "owner": "validate_root_registry_v2",
+      "text": "Validate role and identity relationships without qualifying live roots.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 1965,
+      "owner": "check_root_registry_v2_shape",
+      "text": "Validate caller-pinned v2 role data only; do not probe or qualify live roots.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 1987,
+      "owner": "_git_registry_output",
+      "text": "Run a local read-only Git query without inherited repository overrides.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 2466,
+      "owner": "migration_preview",
+      "text": "Preview a uniform v1 identity mapping without locking or writing files.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 2558,
+      "owner": "report_view_path",
+      "text": "Constrain generated Markdown views to one ignored target directory.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_docstring",
+      "line": 2569,
+      "owner": "_ensure_report_view_parent",
+      "text": "Create the ignored view directory while rejecting symlink components.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_comment",
+      "line": 798,
+      "text": "# Accepted evidence pins local artifact bytes; it is queue policy data, not identity proof.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_comment",
+      "line": 2787,
+      "text": "# Source is replaced first. If the process stops before the derived view is",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_comment",
+      "line": 2788,
+      "text": "# replaced, check fails closed and repair-render is required explicitly.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "kind": "python_comment",
+      "line": 2815,
+      "text": "# A stale generated view is never silently repaired as part of a claim.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/status.py",
+      "input_sha256": "e9d9ab8a75d85a172499265144602e0d8fb6313250e3c4efc037120b0e4fb739",
+      "kind": "python_docstring",
+      "line": 2,
+      "owner": "module",
+      "text": "Render Termrock visibility facts and bounded, source-pinned observations.",
+      "disposition": "CLI help transferred to explicit literal"
+    },
+    {
+      "path": "tools/visibility/status.py",
+      "input_sha256": "e9d9ab8a75d85a172499265144602e0d8fb6313250e3c4efc037120b0e4fb739",
+      "kind": "python_docstring",
+      "line": 4474,
+      "owner": "recorded_status_role",
+      "text": "The `Local role` recorded in a generated STATUS.md, if any.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/status.py",
+      "input_sha256": "e9d9ab8a75d85a172499265144602e0d8fb6313250e3c4efc037120b0e4fb739",
+      "kind": "python_comment",
+      "line": 1784,
+      "text": "# The current fixed-pair renderer reports commit dates as metadata.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/status.py",
+      "input_sha256": "e9d9ab8a75d85a172499265144602e0d8fb6313250e3c4efc037120b0e4fb739",
+      "kind": "python_comment",
+      "line": 1785,
+      "text": "# Require and validate them here so malformed facts fail as a",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/status.py",
+      "input_sha256": "e9d9ab8a75d85a172499265144602e0d8fb6313250e3c4efc037120b0e4fb739",
+      "kind": "python_comment",
+      "line": 1786,
+      "text": "# schema error instead of raising KeyError during rendering.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/status.py",
+      "input_sha256": "e9d9ab8a75d85a172499265144602e0d8fb6313250e3c4efc037120b0e4fb739",
+      "kind": "python_comment",
+      "line": 4008,
+      "text": "# Resolve and validate pinned evidence before rejecting machine-local locators.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/status.py",
+      "input_sha256": "e9d9ab8a75d85a172499265144602e0d8fb6313250e3c4efc037120b0e4fb739",
+      "kind": "python_comment",
+      "line": 4009,
+      "text": "# This preserves field-specific traversal and provenance errors.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/status.py",
+      "input_sha256": "e9d9ab8a75d85a172499265144602e0d8fb6313250e3c4efc037120b0e4fb739",
+      "kind": "python_comment",
+      "line": 4499,
+      "text": "# `--check` without an explicit `--role` compares against the role the",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/status.py",
+      "input_sha256": "e9d9ab8a75d85a172499265144602e0d8fb6313250e3c4efc037120b0e4fb739",
+      "kind": "python_comment",
+      "line": 4500,
+      "text": "# committed record states, so the documented check works on a fresh",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/status.py",
+      "input_sha256": "e9d9ab8a75d85a172499265144602e0d8fb6313250e3c4efc037120b0e4fb739",
+      "kind": "python_comment",
+      "line": 4501,
+      "text": "# checkout of a reference-role STATUS.md.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 2,
+      "owner": "module",
+      "text": "Build pinned branch subjects or the immutable visual-baseline Holla oracle.",
+      "disposition": "CLI help transferred to explicit literal"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 49,
+      "owner": "SubjectError",
+      "text": "A pinned subject could not be resolved or built without ambiguity.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 53,
+      "owner": "TagBuildError",
+      "text": "A frozen-tag build failed or was blocked, with its recorded outcome.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 201,
+      "owner": "canonical_receipt_sha256",
+      "text": "Match serde_json's compact, sorted-key receipt digest contract.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 283,
+      "owner": "_command_env",
+      "text": "Remove ambient compiler routing and wrapper paths from child commands.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 322,
+      "owner": "_git_command_env",
+      "text": "Start from the sanitized environment and disable replacement/lazy fetch.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 349,
+      "owner": "_assert_no_ancestor_cargo_config",
+      "text": "Reject ambient config Cargo could load above an expected snapshot root.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 365,
+      "owner": "_cargo_config_facts",
+      "text": "Reject ambient ancestor Cargo config; report the commit-bound local config.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 536,
+      "owner": "_portable_archive_path",
+      "text": "Reject archive paths that become absolute or ambiguous on Windows.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 560,
+      "owner": "_validate_symlink_target",
+      "text": "Check a relative symlink target under both POSIX and Windows rules.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 609,
+      "owner": "_expected_archive_member_paths",
+      "text": "Return included blob paths plus every tracked parent directory.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 638,
+      "owner": "_partition_tracked_blob_ids",
+      "text": "Separate the two declared oracle trees from all other tracked blobs.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 650,
+      "owner": "_path_blob_map_sha256",
+      "text": "Hash sorted raw Git paths and blob IDs with unambiguous delimiters.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 666,
+      "owner": "_open_absolute_nofollow",
+      "text": "Open an absolute path one component at a time without following links.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 1043,
+      "owner": "validate_frozen_tag_holla_bundle",
+      "text": "Validate tag receipt consistency and immutable source closure; never authenticates build execution.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 1593,
+      "owner": "materialize_readonly_snapshot",
+      "text": "Extract the pinned build inputs, excluding only declared oracle trees.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 1722,
+      "owner": "_verify_oracle_tag_identity",
+      "text": "Verify only the immutable oracle tag; branch refs are irrelevant here.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 2131,
+      "owner": "_single_build_environment",
+      "text": "Create one clean subject environment with no ambient Cargo config.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 2477,
+      "owner": "build_subject_manifest",
+      "text": "Build and record one app's pinned source pair. Never invokes an app.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_docstring",
+      "line": 2755,
+      "owner": "build_frozen_tag_holla",
+      "text": "Build Holla from the immutable oracle tag without creating a pair manifest.",
+      "disposition": "removed; non-executable source prose"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_comment",
+      "line": 1440,
+      "text": "# Verify recorded metadata and Cargo artifact messages against the immutable source and build facts.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_comment",
+      "line": 1599,
+      "text": "# Stream the archive to disk so large binary assets do not sit in memory.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_comment",
+      "line": 2158,
+      "text": "# Keep only platform discovery inputs. In particular, do not pass through",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "kind": "python_comment",
+      "line": 2159,
+      "text": "# user compiler flags, wrappers, Cargo config selectors, or user HOME.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 1,
+      "text": "//! The external consumer application: a recipe shelf built only from the",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 2,
+      "text": "//! public Termrock APIs.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 3,
+      "text": "//!",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 4,
+      "text": "//! The screen is composed as",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 5,
+      "text": "//!",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 6,
+      "text": "//! ```text",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 7,
+      "text": "//! AppShell",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 8,
+      "text": "//!  ├── header : MenuBar        (termrock-overlays)",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 9,
+      "text": "//!  ├── body   : MasterDetail   (termrock blocks)",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 10,
+      "text": "//!  │    ├── master  : NavList  (termrock-navigation)",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 11,
+      "text": "//!  │    ├── detail  : PropsList (termrock-controls)",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 12,
+      "text": "//!  │    └── summary : Button   (termrock-controls)",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 13,
+      "text": "//!  └── footer : StatusBar      (termrock-feedback)",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 14,
+      "text": "//! ```",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 15,
+      "text": "//!",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 16,
+      "text": "//! Every layout decision belongs to a shared component: the consumer never",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 17,
+      "text": "//! computes a rectangle, never paints a cell and never matches on a raw key",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 18,
+      "text": "//! or mouse event. Input is routed by the shared widgets, which answer with",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 19,
+      "text": "//! typed actions that the consumer maps onto its own domain actions.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 34,
+      "text": "/// The master-detail workspace that owns the screen layout.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 36,
+      "text": "/// The menu bar in the shell header.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 38,
+      "text": "/// The recipe list in the master pane.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 40,
+      "text": "/// The property sheet in the detail pane.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 42,
+      "text": "/// The summary row below the master-detail panes.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 44,
+      "text": "/// The summary row's second action.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 46,
+      "text": "/// The status bar in the shell footer.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 48,
+      "text": "/// The keyed status item that carries the note.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 51,
+      "text": "/// The menu action that scales the selected recipe.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 53,
+      "text": "/// The menu action that shows the about note.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 56,
+      "text": "/// The status note shown in the shell footer.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 59,
+      "text": "/// Nothing has happened yet.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 61,
+      "text": "/// The selected recipe was scaled.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 63,
+      "text": "/// The selected recipe was marked as cooked.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 65,
+      "text": "/// The about note was requested.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 70,
+      "text": "/// The static text this note renders as.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 81,
+      "text": "/// The consumer's own typed domain actions.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 82,
+      "text": "///",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 83,
+      "text": "/// Shared widgets answer with their own typed actions; the consumer maps them",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 84,
+      "text": "/// onto these so the domain never depends on a widget's vocabulary.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 87,
+      "text": "/// The list cursor moved onto a recipe.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 89,
+      "text": "/// The user chose a recipe.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 91,
+      "text": "/// The detail pane opened in the narrow layout.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 93,
+      "text": "/// The detail pane closed in the narrow layout.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 95,
+      "text": "/// A menu item was chosen.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 97,
+      "text": "/// The status bar reported a chosen item.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 99,
+      "text": "/// The servings of a recipe were scaled.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 101,
+      "text": "/// A recipe was marked as cooked.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 130,
+      "text": "/// The recipe shelf application.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 163,
+      "text": "/// The typed actions this consumer has produced, oldest first.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 168,
+      "text": "/// The most recent typed action, if any.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 173,
+      "text": "/// The recipe the list cursor currently addresses.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 178,
+      "text": "/// The servings of the selected recipe.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 183,
+      "text": "/// Whether the selected recipe is marked as cooked.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 188,
+      "text": "/// The note the status bar renders.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 193,
+      "text": "/// The recipes on the shelf.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 295,
+      "text": "// The recipe list owns the keyboard when the shelf opens.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 300,
+      "text": "// The layout block gets first refusal on Escape.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 344,
+      "text": "// The detail pane always shows the recipe the list cursor addresses.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 441,
+      "text": "/// The shell header leaf: the shared menu bar.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 459,
+      "text": "/// The shell body leaf: the shared master-detail block.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/app.rs",
+      "input_sha256": "6ef9e5d5797f728ad1d23a27cbb71444c22810934dfda4fddec2894eef672773",
+      "kind": "rust_comment",
+      "line": 487,
+      "text": "/// The shell footer leaf: the shared status bar.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/lib.rs",
+      "input_sha256": "38c0cf32d0636ce3412da27524eb97bdf4737242b2d613897cdc211c775265b4",
+      "kind": "rust_comment",
+      "line": 1,
+      "text": "//! An external consumer of the public Termrock component library.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/lib.rs",
+      "input_sha256": "38c0cf32d0636ce3412da27524eb97bdf4737242b2d613897cdc211c775265b4",
+      "kind": "rust_comment",
+      "line": 2,
+      "text": "//!",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/lib.rs",
+      "input_sha256": "38c0cf32d0636ce3412da27524eb97bdf4737242b2d613897cdc211c775265b4",
+      "kind": "rust_comment",
+      "line": 3,
+      "text": "//! This crate stands outside every application in the repository: it depends",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/lib.rs",
+      "input_sha256": "38c0cf32d0636ce3412da27524eb97bdf4737242b2d613897cdc211c775265b4",
+      "kind": "rust_comment",
+      "line": 4,
+      "text": "//! on the public `termrock` facade only, carries its own domain data (a",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/lib.rs",
+      "input_sha256": "38c0cf32d0636ce3412da27524eb97bdf4737242b2d613897cdc211c775265b4",
+      "kind": "rust_comment",
+      "line": 5,
+      "text": "//! recipe shelf) and composes a real screen — shell, layout block and",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/lib.rs",
+      "input_sha256": "38c0cf32d0636ce3412da27524eb97bdf4737242b2d613897cdc211c775265b4",
+      "kind": "rust_comment",
+      "line": 6,
+      "text": "//! interactive widgets — through public APIs.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/lib.rs",
+      "input_sha256": "38c0cf32d0636ce3412da27524eb97bdf4737242b2d613897cdc211c775265b4",
+      "kind": "rust_comment",
+      "line": 7,
+      "text": "//!",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/lib.rs",
+      "input_sha256": "38c0cf32d0636ce3412da27524eb97bdf4737242b2d613897cdc211c775265b4",
+      "kind": "rust_comment",
+      "line": 8,
+      "text": "//! The crate contains no private helpers borrowed from an application, no",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/lib.rs",
+      "input_sha256": "38c0cf32d0636ce3412da27524eb97bdf4737242b2d613897cdc211c775265b4",
+      "kind": "rust_comment",
+      "line": 9,
+      "text": "//! hand-written geometry and no direct painting: the shell owns the layout,",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/lib.rs",
+      "input_sha256": "38c0cf32d0636ce3412da27524eb97bdf4737242b2d613897cdc211c775265b4",
+      "kind": "rust_comment",
+      "line": 10,
+      "text": "//! the shared widgets own the interaction, and the consumer only maps typed",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/lib.rs",
+      "input_sha256": "38c0cf32d0636ce3412da27524eb97bdf4737242b2d613897cdc211c775265b4",
+      "kind": "rust_comment",
+      "line": 11,
+      "text": "//! widget actions onto typed domain actions.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/main.rs",
+      "input_sha256": "b2c21d4a6e6eed10ead11ac447d3aeedf6f7af3d5a8842fa3513cfe18ea97610",
+      "kind": "rust_comment",
+      "line": 1,
+      "text": "//! The consumer's own binary: a runnable recipe shelf.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/main.rs",
+      "input_sha256": "b2c21d4a6e6eed10ead11ac447d3aeedf6f7af3d5a8842fa3513cfe18ea97610",
+      "kind": "rust_comment",
+      "line": 2,
+      "text": "//!",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/main.rs",
+      "input_sha256": "b2c21d4a6e6eed10ead11ac447d3aeedf6f7af3d5a8842fa3513cfe18ea97610",
+      "kind": "rust_comment",
+      "line": 3,
+      "text": "//! It proves the crate is a standalone application built on the public",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/main.rs",
+      "input_sha256": "b2c21d4a6e6eed10ead11ac447d3aeedf6f7af3d5a8842fa3513cfe18ea97610",
+      "kind": "rust_comment",
+      "line": 4,
+      "text": "//! Termrock APIs alone — no application crate and no private helper is",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/main.rs",
+      "input_sha256": "b2c21d4a6e6eed10ead11ac447d3aeedf6f7af3d5a8842fa3513cfe18ea97610",
+      "kind": "rust_comment",
+      "line": 5,
+      "text": "//! reachable from here.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 1,
+      "text": "//! The consumer's own domain: a recipe shelf.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 2,
+      "text": "//!",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 3,
+      "text": "//! Nothing here is shared with any application in this repository. The data",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 4,
+      "text": "//! is deliberately unrelated to the showcase, Holla, TablePro or Jackin",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 5,
+      "text": "//! domains so the consumer proves that the Termrock components carry an",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 6,
+      "text": "//! arbitrary payload, not one application's vocabulary.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 10,
+      "text": "/// One labelled fact about a recipe, rendered as a property row.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 13,
+      "text": "/// The stable key of this fact inside its recipe.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 15,
+      "text": "/// The left-hand label of the property row.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 17,
+      "text": "/// The right-hand value of the property row.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 21,
+      "text": "/// One recipe on the shelf.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 24,
+      "text": "/// The stable identity of the recipe.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 26,
+      "text": "/// The name shown in the recipe list.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 28,
+      "text": "/// The section the recipe is filed under.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 30,
+      "text": "/// The number of facts the recipe carries.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 35,
+      "text": "/// The stable key the shared list widgets address this recipe by.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "external-consumer-demo/src/recipes.rs",
+      "input_sha256": "0e0212fbe723fbe84df9871ef9256f99b35d3ee99b0fe3c7760366ac44c60076",
+      "kind": "rust_comment",
+      "line": 41,
+      "text": "/// The shelf this consumer ships with.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/doc_inventory.rs",
+      "input_sha256": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+      "kind": "rust_comment",
+      "line": 1,
+      "text": "//! Fail-closed inventory of Rust documentation examples in tracked workspace inputs.",
+      "disposition": "File deleted under T37-DOC-INVENTORY-01; this input-bound comment record remains historical evidence."
+    },
+    {
+      "path": "crates/termrock-xtask/src/doc_inventory.rs",
+      "input_sha256": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+      "kind": "rust_comment",
+      "line": 2,
+      "text": "//!",
+      "disposition": "File deleted under T37-DOC-INVENTORY-01; this input-bound comment record remains historical evidence."
+    },
+    {
+      "path": "crates/termrock-xtask/src/doc_inventory.rs",
+      "input_sha256": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+      "kind": "rust_comment",
+      "line": 3,
+      "text": "//! This guard runs as an ordinary `termrock-xtask` nextest integration test. A new",
+      "disposition": "File deleted under T37-DOC-INVENTORY-01; this input-bound comment record remains historical evidence."
+    },
+    {
+      "path": "crates/termrock-xtask/src/doc_inventory.rs",
+      "input_sha256": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+      "kind": "rust_comment",
+      "line": 4,
+      "text": "//! executable example must first move into a compiled public-consumer target; until",
+      "disposition": "File deleted under T37-DOC-INVENTORY-01; this input-bound comment record remains historical evidence."
+    },
+    {
+      "path": "crates/termrock-xtask/src/doc_inventory.rs",
+      "input_sha256": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+      "kind": "rust_comment",
+      "line": 5,
+      "text": "//! that target exists, the guard rejects the documentation input.",
+      "disposition": "File deleted under T37-DOC-INVENTORY-01; this input-bound comment record remains historical evidence."
+    },
+    {
+      "path": "crates/termrock-xtask/src/doc_inventory.rs",
+      "input_sha256": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+      "kind": "rust_comment",
+      "line": 71,
+      "text": "/// Scan every tracked Rust and Markdown input and validate Cargo's workspace targets.",
+      "disposition": "File deleted under T37-DOC-INVENTORY-01; this input-bound comment record remains historical evidence."
+    },
+    {
+      "path": "crates/termrock-xtask/src/doc_inventory.rs",
+      "input_sha256": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+      "kind": "rust_comment",
+      "line": 255,
+      "text": "// Keep both spellings: includes are relative to the declared alias,",
+      "disposition": "File deleted under T37-DOC-INVENTORY-01; this input-bound comment record remains historical evidence."
+    },
+    {
+      "path": "crates/termrock-xtask/src/doc_inventory.rs",
+      "input_sha256": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+      "kind": "rust_comment",
+      "line": 256,
+      "text": "// while the physical path is an independently tracked source root.",
+      "disposition": "File deleted under T37-DOC-INVENTORY-01; this input-bound comment record remains historical evidence."
+    },
+    {
+      "path": "crates/termrock-xtask/src/doc_inventory.rs",
+      "input_sha256": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+      "kind": "rust_comment",
+      "line": 571,
+      "text": "/// Scan tracked Rust files, Cargo target roots, and every statically resolvable `include!`",
+      "disposition": "File deleted under T37-DOC-INVENTORY-01; this input-bound comment record remains historical evidence."
+    },
+    {
+      "path": "crates/termrock-xtask/src/doc_inventory.rs",
+      "input_sha256": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+      "kind": "rust_comment",
+      "line": 572,
+      "text": "/// source reachable from them. An unresolved or untracked include fails closed.",
+      "disposition": "File deleted under T37-DOC-INVENTORY-01; this input-bound comment record remains historical evidence."
+    },
+    {
+      "path": "crates/termrock-xtask/src/doc_inventory.rs",
+      "input_sha256": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+      "kind": "rust_comment",
+      "line": 739,
+      "text": "/// A small lexer sufficient to distinguish include! invocations from comments and strings.",
+      "disposition": "File deleted under T37-DOC-INVENTORY-01; this input-bound comment record remains historical evidence."
+    },
+    {
+      "path": "crates/termrock-xtask/src/doc_inventory.rs",
+      "input_sha256": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+      "kind": "rust_comment",
+      "line": 740,
+      "text": "/// Unsupported include! expressions fail closed in `include_literals`.",
+      "disposition": "File deleted under T37-DOC-INVENTORY-01; this input-bound comment record remains historical evidence."
+    },
+    {
+      "path": "crates/termrock-xtask/src/doc_inventory.rs",
+      "input_sha256": "87407ea172d2478c24f28baa002be9b9b3ecb89171df24682620000ed185bf67",
+      "kind": "rust_comment",
+      "line": 1544,
+      "text": "/// Exercise the parser without invoking Git, Cargo metadata, or the filesystem.",
+      "disposition": "File deleted under T37-DOC-INVENTORY-01; this input-bound comment record remains historical evidence."
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/mod.rs",
+      "input_sha256": "6d49b1fed7fd626c4256da0faee7cfc1e1f0b3328558e34992c25c889512f3a6",
+      "kind": "rust_comment",
+      "line": 19,
+      "text": "/// Number of inventoried Rust files, including files proven test-only.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 1,
+      "text": "//! Conservative source-level module provenance for ownership scanning.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2,
+      "text": "//!",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 3,
+      "text": "//! This is deliberately a bounded Rust recognizer, not a Rust parser. A",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 4,
+      "text": "//! construct that can change module reachability and that this module does",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 5,
+      "text": "//! not understand disables test-only pruning for the whole package.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 18,
+      "text": "/// Source paths kept in the ownership inventory, including module and",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 19,
+      "text": "/// explicitly configured target paths discovered outside `src`.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 21,
+      "text": "/// Canonical source paths whose every proven incoming route is test-only.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 23,
+      "text": "/// False means the caller must retain every candidate as production.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 74,
+      "text": "/// Predicate values when the built-in `test` cfg is false and true.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 124,
+      "text": "// The caller's module directory carries the included text's namespace.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 126,
+      "text": "// `include!` changes filesystem lookup to the included file's parent.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 232,
+      "text": "// Rust treats a path-attributed external module file like a",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 233,
+      "text": "// `mod.rs` for child lookup. A normal `name.rs` instead gets its",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 234,
+      "text": "// stem appended to the source file's parent.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 386,
+      "text": "/// Enumerates the current physical `src` inventory and source files reached",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 387,
+      "text": "/// from known target roots. Unknown filesystem or manifest shapes retain all",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 388,
+      "text": "/// candidates as production.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 441,
+      "text": "// Explicit Cargo target roots stay production inputs under",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 442,
+      "text": "// this scanner policy; cfg(test) items inside them are still",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 443,
+      "text": "// classified independently.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 478,
+      "text": "/// Returns line ranges for items proven to compile only when `test` is true.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 479,
+      "text": "/// A bounded function-body item macro preserves only independently certified",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 480,
+      "text": "/// literal inline `cfg(test)` module ranges; other uncertain syntax returns no",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 481,
+      "text": "/// ranges, retaining the source as production.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 904,
+      "text": "// Non-ASCII identifiers and punctuation are not needed to prove",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 905,
+      "text": "// module provenance. Keep the package in the production set.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 1413,
+      "text": "// Without resolving macro namespaces, a matching `use` alias or glob",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 1414,
+      "text": "// could shadow a built-in derive or test attribute and generate",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 1415,
+      "text": "// arbitrary module items.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 1440,
+      "text": "// Preserve the pre-existing graph and body-route uncertainty",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 1441,
+      "text": "// policy. The bounded-body exception applies only to RANGE.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 1739,
+      "text": "// Built-in attribute meaning comes from the complete unqualified",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 1740,
+      "text": "// name. A tool or proc-macro path with a familiar first segment is",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 1741,
+      "text": "// still unresolved and must not prove test-only reachability.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 1989,
+      "text": "// This is intentionally broader than resolving a use tree: any",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 1990,
+      "text": "// matching name could be a derive macro import or alias.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2028,
+      "text": "// Resolve only local bindings produced by a complete use tree. Path segments",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2029,
+      "text": "// that spell tracked attribute names do not shadow them; wildcard and unknown",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2030,
+      "text": "// trees stay conservative at the containing scope. The range-only enum proof",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2031,
+      "text": "// also tracks the local name `default` here.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2173,
+      "text": "// Keep this local name available for the narrow enum-variant exception.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2343,
+      "text": "// Advance over the complete attribute, including its arguments. A",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2344,
+      "text": "// hash-like token inside known inert metadata is not a second",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2345,
+      "text": "// attached attribute.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2427,
+      "text": "/// Proves a closed, nongeneric enum with exactly one bare `#[default]` unit variant.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2514,
+      "text": "// Advance over the complete attribute, including its arguments. A",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2515,
+      "text": "// hash-like token inside known inert metadata is not a second",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2516,
+      "text": "// attached attribute.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2610,
+      "text": "// An unknown invocation in the impl header can alter the associated-item",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2611,
+      "text": "// grammar, so only method-only impls with a literal header use the bounded",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2612,
+      "text": "// function-body exception.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2649,
+      "text": "// Associated consts, types, and impl-level macros can generate items",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2650,
+      "text": "// outside a method body. Keep them uncertain until their grammar has a",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/module_graph.rs",
+      "input_sha256": "83cded407a48b88c6e1a3e3f325d1363fd08f532421091a10f97f171ac057326",
+      "kind": "rust_comment",
+      "line": 2651,
+      "text": "// separate proof; this extension covers ordinary method bodies only.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "crates/termrock-xtask/src/ownership/rules.rs",
+      "input_sha256": "3c22881a344ce1852e1acc0b83dfcd345e146108bd854eba8cde5a9acf2a0ef3",
+      "kind": "rust_comment",
+      "line": 453,
+      "text": "// File-level declarations only; unknown blocks and unsupported syntax keep the original view.",
+      "disposition": "removed; nonfunctional source comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 2,
+      "text": "# Before-refactor visual evidence harness (REFACTORING_GOAL.md §6).",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 3,
+      "text": "# Wraps the tmux flow of tools/capture.sh but writes every artifact under",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 4,
+      "text": "# $OUT (default baseline/before) and records each capture's exact recipe in",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 5,
+      "text": "# $OUT/manifest.tsv, from which `manifest` renders $OUT/MANIFEST.md.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 6,
+      "text": "#",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 7,
+      "text": "#   tools/baseline_capture.sh all            # every plan below, then the manifest",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 8,
+      "text": "#   tools/baseline_capture.sh showcase|tablepro|jackin",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 9,
+      "text": "#   tools/baseline_capture.sh manifest       # regenerate MANIFEST.md from manifest.tsv",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 10,
+      "text": "#   tools/baseline_capture.sh stop",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 11,
+      "text": "#",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 12,
+      "text": "# Primitives (also usable interactively for one-off captures):",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 13,
+      "text": "#   start <bin> <cols> <rows> [args...]   keys <tmux-key>...   type <text>",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 14,
+      "text": "#   mouse <x> <y> [move|click|rclick|down|up|drag|wheelup|wheeldown] (1-based)",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 15,
+      "text": "#   find <needle>  -> \"x y\" (1-based, for mouse)   shot <name>   wait <secs>   resize <cols> <rows>",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 63,
+      "text": "# Print \"x y\" (1-based) of the first cell where `needle` starts, or fail.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 74,
+      "text": "# mouse action on a needle, with a column offset",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 96,
+      "text": "# ---------------------------------------------------------------- showcase",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 112,
+      "text": "# --- representative states at 120x40",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 268,
+      "text": "# too small / minimum",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 275,
+      "text": "# ---------------------------------------------------------------- tablepro",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 383,
+      "text": "# narrow drawer mode",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 413,
+      "text": "# ---------------------------------------------------------------- jackin",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 416,
+      "text": "# scenarios, paused, stable frames",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 451,
+      "text": "# host manager interactions",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 476,
+      "text": "# editor tabs (digit keys switch tabs only while the tab strip owns focus)",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 508,
+      "text": "# settings",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 522,
+      "text": "# accounts & usage",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 547,
+      "text": "# capsule (F10 opens File; Right walks Edit, View, Session, Help, then the lockup menu)",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 593,
+      "text": "# responsive",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/baseline_capture.sh",
+      "input_sha256": "b52fcd00677716bf48205fa3868da57a0e45271f8b5c210a2b8d42ebcabcc19a",
+      "kind": "shell_comment",
+      "line": 654,
+      "text": "# `BASELINE_LIB=1 source tools/baseline_capture.sh` exposes the primitives without dispatching.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 2,
+      "text": "# Headless capture harness.",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 3,
+      "text": "#",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 4,
+      "text": "#   tools/capture.sh start <cols> <rows> -- <binary> [arg ...]",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 5,
+      "text": "#   tools/capture.sh keys <keys...>",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 6,
+      "text": "#   tools/capture.sh type <text>",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 7,
+      "text": "#   tools/capture.sh mouse <x> <y> [move|click|wheelup|wheeldown]",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 8,
+      "text": "#   tools/capture.sh wait <seconds>",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 9,
+      "text": "#   tools/capture.sh shot <name>",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 10,
+      "text": "#   tools/capture.sh resize <cols> <rows>",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 11,
+      "text": "#   tools/capture.sh stop",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 12,
+      "text": "#",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 13,
+      "text": "# BIN is required and must equal the first argv element after `--`. Arguments",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 14,
+      "text": "# are passed as an argv array to tmux and capture_exec.sh; they never become",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 16,
+      "text": "# required for every operation that refers to an existing run.",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 58,
+      "text": "# A failed start must not leave a live tmux session or a half-owned run",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 59,
+      "text": "# directory behind.  The session id is recorded as soon as tmux creates the",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 60,
+      "text": "# session, so cleanup never kills a same-named session that replaced ours.",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 81,
+      "text": "# Keep state when cleanup itself fails.  The caller can then report or",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 82,
+      "text": "# retry an explicit stop; deleting unverifiable state would hide a leak.",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 362,
+      "text": "# `${!name+x}` is supported by macOS Bash 3.2; `[[ -v ]]` is Bash 4+.",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 583,
+      "text": "# Keep per-run stderr inside the ignored, mode-0700 state directory so",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 584,
+      "text": "# concurrent captures never share or leave a global stderr artifact.",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 702,
+      "text": "# A server can create a session before reporting a command error.  The",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 703,
+      "text": "# printed id is authoritative only when the named session still has it;",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 704,
+      "text": "# otherwise leave an unverified session untouched for safety.",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 874,
+      "text": "# Pillow selects its encoder from the output suffix. Keep the secure",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 875,
+      "text": "# mktemp reservation, then give the actual PNG path an explicit suffix.",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 897,
+      "text": "# The suffix-free mktemp path only reserves a private name for Pillow's",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 898,
+      "text": "# suffix-bearing output. It is not part of the published generation and",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 899,
+      "text": "# must be gone before transactional publication; otherwise rollback's",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 900,
+      "text": "# exact-artifact cleanup correctly refuses to remove a non-empty tree.",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 935,
+      "text": "# Failed conversions never replace an older complete generation.  The",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 936,
+      "text": "# failure record points at the published paths, not ephemeral staging.",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 1014,
+      "text": "# capture_exec pins its run directory while the application is alive.",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 1015,
+      "text": "# Wait for its finally block to restore write access before finalizing",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 1016,
+      "text": "# metadata; otherwise stop races the security pin and leaves stale state.",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 1024,
+      "text": "# tmux may terminate capture_exec before its Python finally block can",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 1025,
+      "text": "# restore the directory mode. The owned session is gone, so restore",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 1026,
+      "text": "# the private run directory before writing terminal provenance.",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    },
+    {
+      "path": "tools/capture_exec.sh",
+      "input_sha256": "4ac33d52557b01c6942e980b401099d1ef85389a9d3a109ece794bf5a7ffaa0d",
+      "kind": "shell_comment",
+      "line": 2,
+      "text": "# Execute one capture application without putting its argv through a shell.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/capture_exec.sh",
+      "input_sha256": "4ac33d52557b01c6942e980b401099d1ef85389a9d3a109ece794bf5a7ffaa0d",
+      "kind": "shell_comment",
+      "line": 3,
+      "text": "# The normal tmux entrypoint has no user-controlled command arguments.  It",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/capture_exec.sh",
+      "input_sha256": "4ac33d52557b01c6942e980b401099d1ef85389a9d3a109ece794bf5a7ffaa0d",
+      "kind": "shell_comment",
+      "line": 4,
+      "text": "# reads the serialized argv from the run metadata and delegates to Python.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/env.sh",
+      "input_sha256": "ebadb31631ed9297b1d6d9104e1703a4f34f0b47ff39dcde06d3a2bcd035ef27",
+      "kind": "shell_comment",
+      "line": 1,
+      "text": "# Python interpreter with Pillow installed (used by tools/capture.sh for PNG output).",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/env.sh",
+      "input_sha256": "ebadb31631ed9297b1d6d9104e1703a4f34f0b47ff39dcde06d3a2bcd035ef27",
+      "kind": "shell_comment",
+      "line": 2,
+      "text": "# Callers may pin a virtualenv, but the repository must work on a clean machine.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/refactor-proof/scripts/sync-binaries.sh",
+      "input_sha256": "034c3f68d1ad4ae70cb5cd72fabbb99e848232a8f7b6cd43069b464423f7167c",
+      "kind": "shell_comment",
+      "line": 2,
+      "text": "# Copy workspace-built refactor-proof binaries to tools/refactor-proof/bin/.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/refactor-proof/scripts/sync-binaries.sh",
+      "input_sha256": "034c3f68d1ad4ae70cb5cd72fabbb99e848232a8f7b6cd43069b464423f7167c",
+      "kind": "shell_comment",
+      "line": 3,
+      "text": "# verify.toml and host-bootstrap-driver expect these paths; the driver requires",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/refactor-proof/scripts/sync-binaries.sh",
+      "input_sha256": "034c3f68d1ad4ae70cb5cd72fabbb99e848232a8f7b6cd43069b464423f7167c",
+      "kind": "shell_comment",
+      "line": 4,
+      "text": "# bin/tc-proof-host to be a regular Mach-O file (not a shell wrapper) so install",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/refactor-proof/scripts/sync-binaries.sh",
+      "input_sha256": "034c3f68d1ad4ae70cb5cd72fabbb99e848232a8f7b6cd43069b464423f7167c",
+      "kind": "shell_comment",
+      "line": 5,
+      "text": "# reproduces the accepted executable bytes under Darwin sandbox qualification.",
+      "disposition": "removed; nonfunctional comment"
+    },
+    {
+      "path": "tools/capture.sh",
+      "input_sha256": "84d510b5ee084a21846ca5a47a0fad04a0d495ee7b5c8715490597232e2ba672",
+      "kind": "shell_comment",
+      "line": 15,
+      "owner": "file/module",
+      "text": "# shell source. CAPTURE_RUN_ID is generated by start when omitted and is",
+      "disposition": "retired capture harness; preserve source prose in immutable deletion map only"
+    }
+  ],
+  "cli_help_literals": [
+    {
+      "path": "tools/acceptance_architecture.py",
+      "input_sha256": "455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26",
+      "description": "Fail-closed, source-bound architecture checks for termrock acceptance.",
+      "replacement_python_literal": "'Fail-closed, source-bound architecture checks for termrock acceptance.'",
+      "occurrences": 1
+    },
+    {
+      "path": "tools/historical-render/regenerate.py",
+      "input_sha256": "f1928d0f8e37d2f7ffea9d7432499f4b809adeb3bce1e9ebc8828757105567ab",
+      "description": "Rebuild missing historical images from immutable ANSI, never candidate output.",
+      "replacement_python_literal": "'Rebuild missing historical images from immutable ANSI, never candidate output.'",
+      "occurrences": 1
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "input_sha256": "ab05477e970bf8f9283cd37df8b09f080cdff0fc33f5adcd704636b594a46a50",
+      "description": "Validate and render accepted Termrock visibility work records.\n\nThe accepted task JSON is the authority. WORK_QUEUE.md is a deterministic view.\nThis module never treats a task state as evidence that product checks passed.\nInstruction discovery here only builds a static task packet; it does not prove\nthat an agent runtime loaded the listed instructions. Review receipts bind the\nrecorded external file digest and expected subject in the source record; they do\nnot authenticate reviewer identity or provide a cryptographic signature.\n",
+      "replacement_python_literal": "'Validate and render accepted Termrock visibility work records.\\n\\nThe accepted task JSON is the authority. WORK_QUEUE.md is a deterministic view.\\nThis module never treats a task state as evidence that product checks passed.\\nInstruction discovery here only builds a static task packet; it does not prove\\nthat an agent runtime loaded the listed instructions. Review receipts bind the\\nrecorded external file digest and expected subject in the source record; they do\\nnot authenticate reviewer identity or provide a cryptographic signature.\\n'",
+      "occurrences": 1
+    },
+    {
+      "path": "tools/visibility/status.py",
+      "input_sha256": "e9d9ab8a75d85a172499265144602e0d8fb6313250e3c4efc037120b0e4fb739",
+      "description": "Render Termrock visibility facts and bounded, source-pinned observations.",
+      "replacement_python_literal": "'Render Termrock visibility facts and bounded, source-pinned observations.'",
+      "occurrences": 1
+    },
+    {
+      "path": "tools/visibility/subjects.py",
+      "input_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "description": "Build pinned branch subjects or the immutable visual-baseline Holla oracle.",
+      "replacement_python_literal": "'Build pinned branch subjects or the immutable visual-baseline Holla oracle.'",
+      "occurrences": 1
+    }
+  ],
+  "retired_cli_help_literals": [
+    {
+      "path": "tools/capture_provenance.py",
+      "input_sha256": "2601d6dbaccc9a346914e2b21d0114d66a5d5c7dcd660d0c118688a8e65b72f5",
+      "description": "Write reproducible, concurrency-safe capture provenance.",
+      "replacement_python_literal": "'Write reproducible, concurrency-safe capture provenance.'",
+      "occurrences": 1,
+      "disposition": "retired CLI; help surface removed with T37-CAPTURE-01, not transferred"
+    },
+    {
+      "path": "tools/test-inventory/inventory.py",
+      "input_sha256": "271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0",
+      "description": "Exact Cargo/libtest inventory. Capture is evidence, never approval.",
+      "replacement_python_literal": "'Exact Cargo/libtest inventory. Capture is evidence, never approval.'",
+      "occurrences": 1,
+      "disposition": "retired CLI; exact help literal retained only in this immutable T37 source record under T37-INVENTORY-01; not transferred to an active command"
+    }
+  ],
+  "note": "Preserved Rust comments and parser/linter/legal directives are listed in SAFETY/directive/legal evidence or retained inline. This map records removed source prose only; T37 safety-rationale.json records unsafe rationale separately. T37-INVENTORY-01 retires tools/test-inventory/inventory.py and its active help surface; its original description is retained here as historical evidence, not copied into a new CLI."
+}

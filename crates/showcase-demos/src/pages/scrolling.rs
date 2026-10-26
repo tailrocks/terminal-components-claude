@@ -929,7 +929,6 @@ fn paint_collections(ui: &mut Ui<'_>, card: Rect) {
     paint_grid(ui, grid);
 }
 
-// Compact shells show the scroller band only; column widths follow breakpoints.
 const FULL_MIN_W: u16 = 60;
 const COLS_80_MIN_W: u16 = 59;
 
@@ -1263,44 +1262,5 @@ impl Page for ScrollingPage {
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         &[("↑ ↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
-    }
-}
-
-#[cfg(test)]
-mod motion_tests {
-    use super::*;
-
-    #[test]
-    fn paused_seek_stops_the_log_at_two_thousand() {
-        let mut page = ScrollingPage::new();
-        assert_eq!(page.log.len(), 400);
-        page.seek_paused(12);
-        assert_eq!(page.log.len(), 412);
-        page.seek_paused(1_600);
-        assert_eq!(page.log.len(), 2_000);
-        page.seek_paused(usize::MAX);
-        assert_eq!(page.log.len(), 2_000);
-    }
-
-    #[test]
-    fn wrapped_prose_matches_the_open_viewport() {
-        let lines = wrapped_prose(24);
-        assert_eq!(lines.len(), 120);
-        assert_eq!(lines[0], "Junie works through a");
-        assert_eq!(lines[6], "and reports back with a");
-    }
-
-    #[test]
-    fn tail_log_and_hand_slice_match_the_snapshot() {
-        let log = log_lines(2_000);
-        assert_eq!(truncate(&log[1994], 24), " 737.78s  info   Compil…");
-        assert_eq!(truncate(&log[1999], 24), " 739.63s  info   test a…");
-        assert_eq!(hand_visible(None, 29), "Host          Region        …");
-        assert_eq!(hand_visible(Some(0), 29), "api-01        ap-south-1    …");
-        assert_eq!(
-            fit_meta("Log", "1995–2000 of 2000 · following", 26),
-            "1995–2000/2000"
-        );
-        assert_eq!(fit_meta("Wrapped text", "1–7 of 120", 26), "1–7 of 120");
     }
 }

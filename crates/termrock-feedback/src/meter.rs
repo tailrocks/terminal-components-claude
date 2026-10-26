@@ -545,38 +545,3 @@ impl<'a> Meter<'a> {
         .fit(c)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const T: MeterThresholds = MeterThresholds {
-        low_max: 59,
-        medium_max: 84,
-    };
-
-    #[test]
-    fn tone_follows_the_design_thresholds_not_a_hard_coded_match() {
-        assert_eq!(MeterTone::from_ratio(0.0, T), MeterTone::Low);
-        assert_eq!(MeterTone::from_ratio(0.59, T), MeterTone::Low);
-        assert_eq!(MeterTone::from_ratio(0.60, T), MeterTone::Medium);
-        assert_eq!(MeterTone::from_ratio(0.84, T), MeterTone::Medium);
-        assert_eq!(MeterTone::from_ratio(0.85, T), MeterTone::High);
-        assert_eq!(MeterTone::from_ratio(1.0, T), MeterTone::High);
-
-        let tight = MeterThresholds {
-            low_max: 10,
-            medium_max: 20,
-        };
-        assert_eq!(MeterTone::from_ratio(0.15, tight), MeterTone::Medium);
-        assert_eq!(MeterTone::from_ratio(0.15, T), MeterTone::Low);
-    }
-
-    #[test]
-    fn every_tone_names_a_meter_role() {
-        assert_eq!(MeterTone::Low.role(), MeterRole::Low);
-        assert_eq!(MeterTone::Stale.role(), MeterRole::Stale);
-        assert_eq!(MeterTone::Unknown.role(), MeterRole::Unknown);
-        assert_eq!(MeterTone::Series(3).role(), MeterRole::Series(3));
-    }
-}

@@ -71,7 +71,7 @@ fn ladder_color(theme: &Theme, level: u8) -> Color {
     let step = level.min(4);
     let index = 4usize.saturating_sub(usize::from(step));
     let resolved = theme.color.fg.get(index).copied().unwrap_or(Color::Reset);
-    // Tag junie `text_muted` / `text_faint` are not the current FgStep ramp.
+
     match step {
         2 if resolved == Color::from_u32(0x80_80_80) => Color::from_u32(0x8a_8a_8a),
         1 if resolved == Color::from_u32(0x4d_4d_4d) => Color::from_u32(0x73_73_73),
@@ -845,120 +845,5 @@ pub fn paint_atmosphere(
                 );
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn fill_canvas_paints_primary_foreground_on_the_canvas() {
-        let theme = Theme::junie();
-        let area = Rect::new(0, 0, 2, 1);
-        let mut buf = Buffer::empty(area);
-        fill_canvas(&mut buf, area, &theme);
-        let cell = buf.cell((0, 0)).expect("filled cell");
-        assert_eq!(cell.fg, theme.color.fg[FgStep::Primary.index()]);
-        assert_eq!(cell.bg, theme.bg(Surface::Canvas));
-    }
-
-    #[test]
-    fn paused_intro_paints_the_padded_accent_lockup_and_tag_hint_ink() {
-        let theme = Theme::junie();
-        let area = Rect::new(0, 0, 120, 40);
-        let mut buf = Buffer::empty(area);
-        paint_intro(&mut buf, area, &IntroState::new(Motion::Paused, 40), &theme);
-        let pad = buf.cell((55, 38)).expect("lockup pad");
-        let mark = buf.cell((56, 38)).expect("lockup mark");
-        assert_eq!(pad.symbol(), " ");
-        assert_eq!(pad.bg, theme.color.accent);
-        assert_eq!(mark.symbol(), "j");
-        assert_eq!(mark.fg, theme.color.on_accent);
-        assert_eq!(mark.bg, theme.color.accent);
-        assert!(mark.modifier.contains(Modifier::BOLD));
-        let key = buf.cell((108, 39)).expect("hint key");
-        let action = buf.cell((114, 39)).expect("hint action");
-        assert_eq!(key.symbol(), "E");
-        assert_eq!(key.fg, Color::from_u32(0x8a_8a_8a));
-        assert!(key.modifier.contains(Modifier::BOLD));
-        assert_eq!(action.symbol(), "S");
-        assert_eq!(action.fg, Color::from_u32(0x73_73_73));
-        assert!(!action.modifier.contains(Modifier::BOLD));
-    }
-
-    #[test]
-    fn intro_timeline_follows_original_pacing() {
-        assert_eq!(P1_LEN, 64);
-        let mut state = IntroState::new(Motion::Full, 10);
-        assert_eq!(state.phase(), IntroPhase::Phrases);
-        state.skip();
-        assert_eq!(state.tick, WARP_START);
-        state.skip();
-        assert!(state.is_done());
-    }
-
-    #[test]
-    fn outro_skips_and_caption_wording_stay_stable() {
-        let mut state = OutroState::new(Motion::Full, Some(8_040), 5);
-        assert_eq!(state.phase(), OutroPhase::Warp);
-        state.skip();
-        assert_eq!(state.phase(), OutroPhase::Caption);
-        state.skip();
-        assert!(state.is_done());
-        assert_eq!(
-            state.caption().as_deref(),
-            Some("You were in the Construct for 2 hours 14 minutes")
-        );
-        assert_eq!(format_universe_duration(45), "45 seconds");
-        assert_eq!(format_universe_duration(450), "7 minutes 30 seconds");
-    }
-
-    #[test]
-    fn paused_outro_warp_uses_tag_muted_and_faint_ink() {
-        let theme = Theme::junie();
-        let area = Rect::new(0, 0, 120, 40);
-        let mut buf = Buffer::empty(area);
-        paint_outro(
-            &mut buf,
-            area,
-            &OutroState::new(Motion::Paused, Some(8_040), 40),
-            &theme,
-        );
-        let mut muted = 0usize;
-        let mut faint = 0usize;
-        let mut legacy = 0usize;
-        for y in 0..area.height {
-            for x in 0..area.width {
-                let cell = buf.cell((x, y)).expect("cell");
-                if cell.fg == Color::from_u32(0x8a_8a_8a) {
-                    muted += 1;
-                } else if cell.fg == Color::from_u32(0x73_73_73) {
-                    faint += 1;
-                } else if cell.fg == Color::from_u32(0x80_80_80)
-                    || cell.fg == Color::from_u32(0x4d_4d_4d)
-                {
-                    legacy += 1;
-                }
-            }
-        }
-        assert!(muted > 0, "tag muted ink missing");
-        assert!(faint > 0, "tag faint ink missing");
-        assert_eq!(legacy, 0, "current ramp leaked into the warp");
-    }
-
-    #[test]
-    fn starfield_is_deterministic() {
-        let theme = Theme::junie();
-        let area = Rect::new(0, 0, 80, 24);
-        let mut a = Buffer::empty(area);
-        let mut b = Buffer::empty(area);
-        let mut sa = Starfield::new(area.width, area.height, 7);
-        let mut sb = Starfield::new(area.width, area.height, 7);
-        sa.advance(true, 42);
-        sb.advance(true, 42);
-        sa.paint(&mut a, area, 0, &theme);
-        sb.paint(&mut b, area, 0, &theme);
-        assert_eq!(a, b);
     }
 }

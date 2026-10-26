@@ -115,5 +115,22 @@
     "reviewer_effort": "high",
     "accepted_commit": "c645c0b611370bd0974ebe46e8730d85560dbd79",
     "scope": "Safety documentation transfer only. It does not certify source behavior, target ABI validity, signal delivery, process ownership, or observer descriptor exclusivity."
-  }
+  },
+  "session_transfer_review": {
+    "decision": "ACCEPT",
+    "reviewer": "/root/t00_independent_review",
+    "reviewer_model": "gpt-6.1-sol",
+    "reviewer_effort": "high",
+    "accepted_commit": "d92192664d0490e1b750029bf8c8a715217af4d4",
+    "scope": "Session bridge transfer correction: all 28 production rationale mappings remain verbatim; the cfg(test) helper is historical; nine production API-prose groups and one historical helper are distinguished; F17/T20 risks remain open. No behavior or unsafe-code correctness certification."
+  },
+  "committed_input_copies": [
+    {
+      "name": "safety-rationales.json",
+      "source_path": "t37-foundations/safety-rationales.json",
+      "sha256": "17994e97bedd50120829818306bca864a116c8163f5f2763d583df49b5dda1b1",
+      "records": 42,
+      "note": "Hash of the archive present in this merged candidate. The input_records entry above preserves the original transfer input binding; these two artifact hashes are recorded separately and are not asserted to be byte-identical."
+    }
+  ]
 }

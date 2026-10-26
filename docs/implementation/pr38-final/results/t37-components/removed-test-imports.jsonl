@@ -1,0 +1,13 @@
+{"path": "crates/termrock-controls/src/lib.rs", "line": 10, "source": "#[cfg(test)]\npub(crate) use termrock_runtime as runtime;", "reason": "#[cfg(test)] import became unused after legacy test removal"}
+{"path": "crates/termrock-editors/src/lib.rs", "line": 8, "source": "#[cfg(test)]\npub(crate) use termrock_runtime as runtime;", "reason": "#[cfg(test)] import became unused after legacy test removal"}
+{"path": "crates/termrock-feedback/src/lib.rs", "line": 7, "source": "#[cfg(test)]\npub(crate) use termrock_runtime as runtime;", "reason": "#[cfg(test)] import became unused after legacy test removal"}
+{"path": "crates/termrock-fields/src/lib.rs", "line": 10, "source": "#[cfg(test)]\npub(crate) use termrock_runtime as runtime;", "reason": "#[cfg(test)] import became unused after legacy test removal"}
+{"path": "crates/termrock-forms/src/lib.rs", "line": 10, "source": "#[cfg(test)]\npub(crate) use termrock_runtime as runtime;", "reason": "#[cfg(test)] import became unused after legacy test removal"}
+{"path": "crates/termrock-grid/src/lib.rs", "line": 10, "source": "#[cfg(test)]\npub(crate) use termrock_runtime as runtime;", "reason": "#[cfg(test)] import became unused after legacy test removal"}
+{"path": "crates/termrock-navigation/src/lib.rs", "line": 9, "source": "#[cfg(test)]\npub(crate) use termrock_runtime as runtime;", "reason": "#[cfg(test)] import became unused after legacy test removal"}
+{"path": "crates/termrock-overlays/src/lib.rs", "line": 7, "source": "#[cfg(test)]\npub(crate) use termrock_core::diagnostics;", "reason": "#[cfg(test)] import became unused after legacy test removal"}
+{"path": "crates/termrock-overlays/src/lib.rs", "line": 12, "source": "#[cfg(test)]\npub(crate) use termrock_runtime as runtime;", "reason": "#[cfg(test)] import became unused after legacy test removal"}
+{"path": "crates/termrock-overlays/src/lib.rs", "line": 15, "source": "#[cfg(test)]\npub(crate) use termrock_runtime as hit;", "reason": "#[cfg(test)] import became unused after legacy test removal"}
+{"path": "crates/termrock-viewport/src/lib.rs", "line": 8, "source": "#[cfg(test)]\npub(crate) use termrock_runtime as runtime;", "reason": "#[cfg(test)] import became unused after legacy test removal"}
+{"path": "crates/termrock/src/blocks/shell.rs", "line": 46, "source": "#[cfg(test)]\nuse ratatui_core::layout::Rect;", "reason": "#[cfg(test)] import became unused after legacy test removal"}
+{"path": "crates/termrock/src/blocks/shell.rs", "line": 48, "source": "#[cfg(test)]\nuse termrock_runtime::{Measure, Ui};", "reason": "#[cfg(test)] import became unused after legacy test removal"}

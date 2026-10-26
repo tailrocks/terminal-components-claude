@@ -1,0 +1,25 @@
+{
+  "fixed_input": "d402f893d159ac26da5db4d18c13510afdbce12f",
+  "lockfiles": [
+    {
+      "path": "Cargo.lock",
+      "sha256_before_update": "722145d6e1d713be9096727af7e83b5775c99b62095100c4fa8cc9a2b41bf36c"
+    },
+    {
+      "path": "crates/termrock-e2e/Cargo.lock",
+      "sha256_before_update": "1282e5bcb6f5ec415699f2733a402170ef2c6b9de7992543eab57271de929e16"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/Cargo.lock",
+      "sha256_before_update": "351d06eb34428503b7a6bd84cf039ac922d8b362361a79efab4433c0069176c3"
+    },
+    {
+      "path": "external-consumer-demo/Cargo.lock",
+      "sha256_before_update": "fd277a435a18eb9f8021124c7674a3ed34d812db55ffde3a38c55ac0b76386d9"
+    },
+    {
+      "path": "tools/termrock-visibility-publisher/Cargo.lock",
+      "sha256_before_update": "2e8981bf82d278c60e4f9f7e26c5ca3853b094f5a9b8a1144a09e27e70e35337"
+    }
+  ]
+}

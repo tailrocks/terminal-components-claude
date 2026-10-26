@@ -1,0 +1,323 @@
+{
+  "task_id": "T37",
+  "status": "metadata verification completed for this source; overall T37 pending integrated acceptance",
+  "source_head": "560f3dca487247b1068c45a0d2b469c8eabe3165",
+  "metadata_result_commit_review": {
+    "commit": "0d47da019d0ace072558bdce9916824eb67c9180",
+    "reviewer": "/root/t37_apps_review",
+    "reviewer_selection": "gpt-6.1-sol, high",
+    "decision": "scoped ACCEPT, no findings",
+    "limits": "Reviewer did not rerun Cargo or Velnor; all checks below were independently rerun by this metadata owner on source 560f3dca."
+  },
+  "evidence_correction": {
+    "path": "docs/implementation/pr38-final/results/t37-port-conflict-orphan/runbook.json",
+    "fields": [
+      "design_decisions[1]",
+      "caller_audit.historical_call"
+    ],
+    "reviewer": "/root/t00_independent_review",
+    "reviewer_selection": "gpt-6.1-sol, high",
+    "decision": "T37-ORPHAN-CAPTURE-01 caller classification confirmed as free function fixtures.rs::port_conflict_case",
+    "exact_design_decision": "The only historical call was in the free function `crates/holla-sim/src/fixtures.rs::port_conflict_case` at source 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd (definition at line 255; PortConflict::capture call at line 269). T37 app cleanup commit 4f502be854a4d4c7a7585344bd9915b2a26fae79 removed that function. The fixed input has no caller.",
+    "exact_historical_call": "T00 source 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd had one call in the free function `crates/holla-sim/src/fixtures.rs::port_conflict_case` (definition at line 255; capture call at line 269). T37 app cleanup 4f502be854a4d4c7a7585344bd9915b2a26fae79 removed the function."
+  },
+  "metadata": {
+    "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+    "all_metadata_commands_exit_0": true,
+    "workspaces": [
+      {
+        "workdir": ".",
+        "packages": 47,
+        "target_count": 68,
+        "target_kind_counts": {
+          "bin": 14,
+          "example": 12,
+          "lib": 42
+        },
+        "test_kind_targets": 0,
+        "bench_kind_targets": 0,
+        "test_enabled_targets": 0,
+        "bench_enabled_targets": 0,
+        "libraries": 42,
+        "library_doctests_enabled": 0,
+        "packages_autotests_false": 47,
+        "packages_autobenches_false": 47
+      },
+      {
+        "workdir": "crates/termrock-e2e",
+        "packages": 1,
+        "target_count": 3,
+        "target_kind_counts": {
+          "bin": 1,
+          "custom-build": 1,
+          "lib": 1
+        },
+        "test_kind_targets": 0,
+        "bench_kind_targets": 0,
+        "test_enabled_targets": 0,
+        "bench_enabled_targets": 0,
+        "libraries": 1,
+        "library_doctests_enabled": 0,
+        "packages_autotests_false": 1,
+        "packages_autobenches_false": 1
+      },
+      {
+        "workdir": "crates/termrock-visibility-tests",
+        "packages": 1,
+        "target_count": 3,
+        "target_kind_counts": {
+          "bin": 2,
+          "lib": 1
+        },
+        "test_kind_targets": 0,
+        "bench_kind_targets": 0,
+        "test_enabled_targets": 0,
+        "bench_enabled_targets": 0,
+        "libraries": 1,
+        "library_doctests_enabled": 0,
+        "packages_autotests_false": 1,
+        "packages_autobenches_false": 1
+      },
+      {
+        "workdir": "external-consumer-demo",
+        "packages": 1,
+        "target_count": 2,
+        "target_kind_counts": {
+          "bin": 1,
+          "lib": 1
+        },
+        "test_kind_targets": 0,
+        "bench_kind_targets": 0,
+        "test_enabled_targets": 0,
+        "bench_enabled_targets": 0,
+        "libraries": 1,
+        "library_doctests_enabled": 0,
+        "packages_autotests_false": 1,
+        "packages_autobenches_false": 1
+      },
+      {
+        "workdir": "tools/termrock-visibility-publisher",
+        "packages": 1,
+        "target_count": 1,
+        "target_kind_counts": {
+          "lib": 1
+        },
+        "test_kind_targets": 0,
+        "bench_kind_targets": 0,
+        "test_enabled_targets": 0,
+        "bench_enabled_targets": 0,
+        "libraries": 1,
+        "library_doctests_enabled": 0,
+        "packages_autotests_false": 1,
+        "packages_autobenches_false": 1
+      }
+    ],
+    "lockfiles_sha256_unchanged_by_metadata": {
+      "Cargo.lock": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+      "crates/termrock-e2e/Cargo.lock": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+      "crates/termrock-visibility-tests/Cargo.lock": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+      "external-consumer-demo/Cargo.lock": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+      "tools/termrock-visibility-publisher/Cargo.lock": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d"
+    },
+    "metadata_graph_sha256": "9a39580c733b65fe02ac28a691188838daef4957235bd658fc305d1d5bdaf2a5",
+    "metadata_graph_path_count": 62,
+    "metadata_graph_hashes_match": true,
+    "active_reference_scan_clear": true,
+    "preservation_hashes_match": true,
+    "preserved_file_count": 24,
+    "preserved_version_or_checksum_changes": 0
+  },
+  "locks": {
+    "sha256": {
+      "Cargo.lock": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+      "crates/termrock-e2e/Cargo.lock": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+      "crates/termrock-visibility-tests/Cargo.lock": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+      "external-consumer-demo/Cargo.lock": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+      "tools/termrock-visibility-publisher/Cargo.lock": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d"
+    },
+    "entry_changes": "Pruned only; retained package versions/sources unchanged; no new versions or checksum edits, per lockfiles-final.json."
+  },
+  "generator": {
+    "command": "mise exec -- velnor-actions generate",
+    "version": "0.1.48",
+    "runs": 2,
+    "exit_statuses": [
+      0,
+      0
+    ],
+    "run_logs": [
+      {
+        "path": "docs/implementation/pr38-final/results/t37-metadata/final-verification-560f/generator-run1.log",
+        "sha256": "57f682b1cbe32fb02f854d90362e6b830adc5b84198d3013de9984a9d211a4a4"
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t37-metadata/final-verification-560f/generator-run2.log",
+        "sha256": "57f682b1cbe32fb02f854d90362e6b830adc5b84198d3013de9984a9d211a4a4"
+      }
+    ],
+    "run_logs_byte_identical": true,
+    "inputs_sha256": {
+      ".velnor/config.toml": "3bd8343278328708afb79c14740179bcd4018763f4e323d32e08ceaf93b3ff20",
+      "mise.toml": "a35637525fd0603bb1724aaf3320fc89c5b7f89b3ebf12d3f525dad4ec6ea44a",
+      "mise.lock": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+      "rust-toolchain.toml": "4f6c9e5b60864d21b5e71753046337187c510379c4becdd365a9387294c1b80a"
+    },
+    "outputs_sha256": {
+      ".github/workflows/ci.yml": "b2a2747b49052bbec9c565d1436e4d19c6f7aadb6cb3dd3fa18376127ca83107",
+      ".github/velnor/task-execution-manifest-v1.json": "2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305"
+    },
+    "tasks_total": 360,
+    "tasks_by_kind": {
+      "build": 90,
+      "clippy": 90,
+      "doc": 90,
+      "fmt": 90
+    },
+    "nextest_run_tasks": 0,
+    "--no-tests_fail_task_count": 0,
+    "prior_structural_comparison": {
+      "by_kind": {
+        "build": 90,
+        "clippy": 90,
+        "doc": 90,
+        "fmt": 90
+      },
+      "nextest_run_tasks": 0,
+      "no_tests_fail_tasks": 0,
+      "default_testing_pairs": 180,
+      "pairs_with_identical_argv_env": 162,
+      "pairs_with_differences": 18,
+      "default_tasks_unchanged_argv_env_from_prior_generated_output": 180,
+      "default_tasks_compared": 180,
+      "discovered_package_count": 45
+    },
+    "runner_config": "cargo_nextest; run_ignored=default; default/testing configurations retained; --no-tests fail behavior retained for eligible future Nextest tasks",
+    "zero_nextest_status": "ABSENT / NOT VERIFIED, not passed",
+    "visual_jobs": [
+      "rust-visual-harness",
+      "rust-visual-harness-testing"
+    ]
+  },
+  "locked_checks": [
+    {
+      "name": "root",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --workspace --all-targets --all-features",
+      "workdir": ".",
+      "exit_status": 0,
+      "log": "docs/implementation/pr38-final/results/t37-metadata/final-verification-560f/cargo-root-check.log",
+      "log_sha256": "b86a4779d6fb40597055f05e6eb3b6e1eb98f57337231284d209762e66d5f0ae"
+    },
+    {
+      "name": "e2e",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --all-targets --all-features",
+      "workdir": "crates/termrock-e2e",
+      "exit_status": 0,
+      "log": "docs/implementation/pr38-final/results/t37-metadata/final-verification-560f/cargo-e2e-check.log",
+      "log_sha256": "9fff1bcec546fa92053ff6eb1f946afe945b7483a897ea602816368c0f4a97dd"
+    },
+    {
+      "name": "visibility",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --all-targets --all-features",
+      "workdir": "crates/termrock-visibility-tests",
+      "exit_status": 0,
+      "log": "docs/implementation/pr38-final/results/t37-metadata/final-verification-560f/cargo-visibility-check.log",
+      "log_sha256": "94424880914728a1675a8a77e2b574abd9e2dede4927900695d16082356c73ea"
+    },
+    {
+      "name": "consumer",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --all-targets --all-features",
+      "workdir": "external-consumer-demo",
+      "exit_status": 0,
+      "log": "docs/implementation/pr38-final/results/t37-metadata/final-verification-560f/cargo-consumer-check.log",
+      "log_sha256": "29a60732d5f4bbba7afe38955b27bb6be1d0838951bbcd889f047d83c98aa72a"
+    },
+    {
+      "name": "publisher",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --all-targets --all-features",
+      "workdir": "tools/termrock-visibility-publisher",
+      "exit_status": 0,
+      "log": "docs/implementation/pr38-final/results/t37-metadata/final-verification-560f/cargo-publisher-check.log",
+      "log_sha256": "7fd82b0c8fcd6a425af3106d0fd3d5f1063c906468ba8d1bdfb1c723e4a0aab7"
+    }
+  ],
+  "format_checks": {
+    "checks": [
+      {
+        "name": "root",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check",
+        "workdir": ".",
+        "exit_status": 0,
+        "log": "docs/implementation/pr38-final/results/t37-metadata/final-verification-560f/fmt-root.log",
+        "log_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522"
+      },
+      {
+        "name": "e2e",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check",
+        "workdir": "crates/termrock-e2e",
+        "exit_status": 1,
+        "log": "docs/implementation/pr38-final/results/t37-metadata/final-verification-560f/fmt-e2e.log.gz",
+        "log_sha256": "b87b8ddace5fd3db8101523cb90aa0a0f06532408b7ee2bd9390ecd3f96d97e3",
+        "raw_log_sha256": "f4c340049671d4c2826deb7ac90742dd3a5e60083bf362b22442a58f833872c9",
+        "compressed_log_sha256": "b87b8ddace5fd3db8101523cb90aa0a0f06532408b7ee2bd9390ecd3f96d97e3",
+        "decompression": {
+          "command": "set -o pipefail; gzip -dc docs/implementation/pr38-final/results/t37-metadata/final-verification-560f/fmt-e2e.log.gz | shasum -a 256",
+          "exit_status": 0,
+          "stdout_sha256": "f4c340049671d4c2826deb7ac90742dd3a5e60083bf362b22442a58f833872c9"
+        }
+      },
+      {
+        "name": "visibility",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check",
+        "workdir": "crates/termrock-visibility-tests",
+        "exit_status": 0,
+        "log": "docs/implementation/pr38-final/results/t37-metadata/final-verification-560f/fmt-visibility.log",
+        "log_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522"
+      },
+      {
+        "name": "consumer",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check",
+        "workdir": "external-consumer-demo",
+        "exit_status": 0,
+        "log": "docs/implementation/pr38-final/results/t37-metadata/final-verification-560f/fmt-consumer.log",
+        "log_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522"
+      },
+      {
+        "name": "publisher",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check",
+        "workdir": "tools/termrock-visibility-publisher",
+        "exit_status": 0,
+        "log": "docs/implementation/pr38-final/results/t37-metadata/final-verification-560f/fmt-publisher.log",
+        "log_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522"
+      }
+    ],
+    "e2e_failure": {
+      "path": "crates/termrock-e2e/build.rs",
+      "difference": "one formatting-only line wrap at line 23",
+      "current_and_baseline_file_sha256": "d0c867ee75175e6464cd260fd658544c97926fb2c0dc0e69d82af3a4c4ceaa57",
+      "baseline_source": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "classification": "pre-existing formatter drift, not introduced by T37",
+      "correction": "assigned to tools Luna owner; exact token/literal/build output preservation required; final e2e formatter/build rerun pending accepted formatting-only unit"
+    }
+  },
+  "diff_check": {
+    "command": "git diff --check",
+    "exit_status": 0
+  },
+  "warnings": [
+    "The retained PROFILE-FORMAT-01 fields readiness_timeout_ms and input_pacing_ms remain required u64 admission-format fields and continue to warn as unread; no fake reads, serde change, or lint allowance was added.",
+    "Root and external-consumer checks report the existing termrock-feedback unnecessary-braces warning."
+  ],
+  "behavior": {
+    "selected_cases": 0,
+    "tests_executed": 0,
+    "doctests_executed": 0,
+    "benches_executed": 0,
+    "nextest_executed": 0,
+    "status": "NOT VERIFIED"
+  },
+  "limitations": [
+    "Build and structural checks do not prove product behavior.",
+    "Final e2e formatting-only correction and its scoped rerun remain pending.",
+    "Overall T37 requires independent integrated acceptance; this is not a self-approval."
+  ]
+}

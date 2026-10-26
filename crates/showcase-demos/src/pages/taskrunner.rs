@@ -29,8 +29,6 @@ struct RunStep {
     state: StepState,
 }
 
-/// The targets the pipeline runs against: the label, its depth, whether it
-/// holds other targets and the environment glyph it carries.
 #[derive(Clone, Copy)]
 struct Target {
     label: &'static str,
@@ -134,13 +132,9 @@ const TARGET_ROWS: &[Target] = &[
 
 const NAMES: &[&str] = &["compile", "lint", "typecheck", "unit", "integration", "e2e"];
 
-/// The targets card's width and the gap that separates it from the pipeline
-/// card.
 const TARGETS_W: u16 = 30;
 const PANEL_GAP: u16 = 2;
 
-/// The card's height: the title row, the seam, the tree's rows and the
-/// card's bottom padding.
 fn panel_height() -> u16 {
     u16::try_from(TARGET_ROWS.len())
         .unwrap_or(0)
@@ -164,8 +158,6 @@ fn steps()
         .row(step_row)
 }
 
-/// The targets the pipeline runs against. The tree is a drawing: the
-/// pipeline owns the page's focus.
 fn paint_targets(ui: &mut Ui<'_>, inner: Rect) {
     let gutter = ink(0x11_11_11, 0x11_11_11);
     let fold = ink(0xb3_b3b3, 0x11_11_11);
@@ -180,7 +172,7 @@ fn paint_targets(ui: &mut Ui<'_>, inner: Rect) {
             height: 1,
             ..inner
         };
-        // The tree's gutter column carries no ink.
+
         let _ = ui.paint_str(Rect { width: 1, ..area }, " ", gutter);
         let indent = target.depth.saturating_mul(2);
         let label_x = area.x.saturating_add(indent).saturating_add(3);
@@ -398,9 +390,7 @@ impl Page for TaskRunnerPage {
                     height: body.height.saturating_sub(3),
                     ..body
                 };
-                // The targets tree and the pipeline share the page: the
-                // targets card keeps its width and the pipeline card takes
-                // the rest.
+
                 let tree_width = TARGETS_W.min(content.width);
                 let tree_height = content.height.min(panel_height());
                 let tree_area = Rect {
@@ -510,7 +500,6 @@ impl Page for TaskRunnerPage {
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(STEPS).contains(StateFlags::FOCUSED) {
-            // The step rail moves and activates; it does not fold.
             &[("↑ ↓", "Move"), ("Enter", "Activate")]
         } else {
             &[("r", "Run pipeline"), ("Enter", "Activate")]
@@ -518,7 +507,6 @@ impl Page for TaskRunnerPage {
     }
 }
 
-/// The following log: its title, its rule and the latest line.
 fn paint_log(ui: &mut Ui<'_>, row: Rect, message: &str, running: bool) {
     let title = ink(0xb3_b3b3, 0x11_11_11);
     let faint = ink(0x73_73_73, 0x11_11_11);

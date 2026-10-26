@@ -27,33 +27,28 @@ const SYNTAX_STRING: Color = Color::from_u32(0x8b_d5_ca);
 const SYNTAX_NUMBER: Color = Color::from_u32(0xc6_a0_f6);
 const WHITE_15: Color = Color::from_u32(0x26_26_26);
 const GREEN: Color = Color::from_u32(0x48_e0_54);
-/// Frozen `SUCCESS` (tag `src/theme.rs:513`): the status slot's truecolor
-/// ink is the GitHub status green, distinct from the accent `GREEN`.
+
 const SUCCESS_GREEN: Color = Color::from_u32(0x3f_b9_50);
 const GREEN_80: Color = Color::from_u32(0x3a_b3_43);
 const GREEN_60: Color = Color::from_u32(0x002b_8632);
 const GREEN_20: Color = Color::from_u32(0x0f_2e_13);
 const ON_GREEN: Color = Color::from_u32(0x19_19_1c);
-// Frozen source 4169783 sets RED to 0xf05d5d. The old #e44545 was 4.4:1
-// on a card. SQL diagnostics use the same rose through DIAGNOSTIC_ERROR.
+
 const RED: Color = Color::from_u32(0xf0_5d_5d);
-/// TablePro SQL diagnostics. Frozen source paints this rose.
+
 const DIAGNOSTIC_ERROR: Color = Color::from_u32(0xf0_5d_5d);
 const RED_20: Color = Color::from_u32(0x2e_0f_0f);
-/// Frozen `DANGER_SOFT` profile ink: #e8a0a0.
+
 const RED_SOFT: Color = Color::from_u32(0xe8_a0_a0);
 const RED_45: Color = Color::from_u32(0x7a_2a_2a);
 const AMBER: Color = Color::from_u32(0xf5_9e_09);
 const AMBER_TINT: Color = Color::from_u32(0x2c_22_10);
 const PURPLE: Color = Color::from_u32(0x87_87_ff);
-/// The chrome rule that separates application chrome from its content.
-/// The frozen frames carry `#3a3a3a` for the rule between the status strip
-/// and the page body.
+
 const CHROME_RULE: Color = Color::from_u32(0x3a_3a_3a);
-/// The frozen scroll track ink (`src/theme.rs:750`, `WHITE_28`). The approved
-/// frames paint the `┆` track in `#474747`.
+
 const SCROLL_TRACK: Color = Color::from_u32(0x47_47_47);
-/// The frozen scroll thumb ink. The 256 profile paints it as cell 245.
+
 const SCROLL_THUMB: Color = Color::from_u32(0x80_80_80);
 
 pub(crate) const fn tokens() -> ColorTokens {
@@ -100,8 +95,6 @@ pub(crate) const fn tokens() -> ColorTokens {
         tag_ink: TEXT_MUTED,
 
         syntax: SyntaxTokens {
-            // The frozen source paints keywords #79b8ff, strings #8bd5ca,
-            // and numbers #c6a0f6. Operators use muted #8a8a8a.
             keyword: BLUE_INFO,
             ident: WHITE,
             string: SYNTAX_STRING,

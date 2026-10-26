@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "task_id": "T37-BUILD-ADMISSION-01",
+  "scope": "Restore one retained admission-path helper and remove two unused imports in the E2E source file.",
+  "fixed_input": {
+    "source_commit": "8d568cf7820c8539bf3b87c129bdfd6bbd2e0a3b",
+    "combined_source_commit": "0e8e7a7cd1e11d0633309f5da4c1d5e7056dfd6c",
+    "source_path": "crates/termrock-e2e/src/lib.rs",
+    "git_blob": "0c3baa2cbfd31c5e8be9c93b09110d3420fae85a",
+    "sha256": "b30e665cff6eb6c6a2473e8e0824a113e5ca4ef3030c65e8fae118bbd9c0fc4d",
+    "same_blob_at_combined_source": true
+  },
+  "product_baseline": {
+    "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "source_path": "crates/termrock-e2e/src/lib.rs",
+    "source_sha256": "501bdc0adf0d51aba4854ae3024f4270888ee9a08b77a51663e47bcc2e2abc60",
+    "restored_item": "checkpoint_substep",
+    "line_range": "8784-8792",
+    "item_sha256": "c4be083f187551fc2c0117608a9bcf7f5f7084d6ebd4623f0f4a59739b77c9bd"
+  },
+  "source_output": {
+    "commit": "1e3368870974d28499e556225f35d8050224476f",
+    "parent": "8d568cf7820c8539bf3b87c129bdfd6bbd2e0a3b",
+    "tree": "a6a44ec33dcfefaec4d562691cf5cac38b9e6a58",
+    "changed_paths": [
+      "crates/termrock-e2e/src/lib.rs"
+    ],
+    "source_path": "crates/termrock-e2e/src/lib.rs",
+    "git_blob": "b95aaabd98cb664662c74fa31c4dec4ea663272b",
+    "sha256": "9be141533d734fe3b8b6b76181c347cb83b7e746591f5a6c239813618ae9bc9b",
+    "diff_counts": {
+      "added_lines": 12,
+      "removed_lines": 2,
+      "restored_functions": 1,
+      "removed_import_names": 2,
+      "other_source_changes": 0
+    }
+  },
+  "reviewed_correction": {
+    "decision_id": "T37-BUILD-ADMISSION-01",
+    "reviewer": "/root/t00_independent_review",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "approved_change": "Restore checkpoint_substep exactly from the product baseline. Remove only the unused File and Read imports.",
+    "mappings": {
+      "00-boot": "{substep}/boot",
+      "01-help": "{substep}",
+      "02-finder": "{substep}/closed",
+      "03-help-again": "{substep}/reopened",
+      "other": "{substep}/{other}"
+    }
+  },
+  "retained_production_path": {
+    "validation_call": "crates/termrock-e2e/src/lib.rs:2960",
+    "receipt_to_relative_stem": "crates/termrock-e2e/src/lib.rs:2415,2643",
+    "relative_stem_to_checkpoint_mapping": "crates/termrock-e2e/src/lib.rs:3647-3648",
+    "validation_and_path_checks_changed": false,
+    "qualified_file_use": "crates/termrock-e2e/src/lib.rs:3762 uses fs::File::open at source commit 1e3368870974d28499e556225f35d8050224476f",
+    "removed_imports": [
+      "File",
+      "Read"
+    ]
+  },
+  "prior_build_failure": {
+    "reported_by": [
+      "/root",
+      "/root/t00_independent_review"
+    ],
+    "reported_status": 101,
+    "reported_diagnostics": [
+      "The retained standalone E2E build could not find checkpoint_substep at lib.rs:3638.",
+      "The compiler reported unused File and Read imports at lib.rs:2-3."
+    ],
+    "exact_command_supplied": false,
+    "rerun_by_this_worker": false,
+    "classification": "T37-introduced standalone build regression; no pre-existing failure owner applies."
+  },
+  "commands": [
+    {
+      "command": "git diff --check 8d568cf7820c8539bf3b87c129bdfd6bbd2e0a3b -- crates/termrock-e2e/src/lib.rs",
+      "exit_code": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "mise exec -- rustfmt --edition 2024 --check crates/termrock-e2e/src/lib.rs",
+      "exit_code": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "baseline_fn=$(git show 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd:crates/termrock-e2e/src/lib.rs | awk '/^fn checkpoint_substep\\(/ { capture=1 } capture { print; if ($0 == \"}\") exit }'); current_fn=$(awk '/^fn checkpoint_substep\\(/ { capture=1 } capture { print; if ($0 == \"}\") exit }' crates/termrock-e2e/src/lib.rs); [ \"$baseline_fn\" = \"$current_fn\" ]",
+      "exit_code": 0,
+      "result": "PASS; extracted item SHA-256 is c4be083f187551fc2c0117608a9bcf7f5f7084d6ebd4623f0f4a59739b77c9bd."
+    },
+    {
+      "command": "rg -n 'validate_oracle_capture_receipt\\(&receipt, &receipt.write_policy\\)|let relative_stem = capture_relative_stem\\(case, &artifact.checkpoint_id\\)\\?|fn checkpoint_substep|fn capture_relative_stem|checkpoint_substep\\(case' crates/termrock-e2e/src/lib.rs",
+      "exit_code": 0,
+      "result": "PASS; retained validation and caller chain are present."
+    },
+    {
+      "command": "rg -n '^use .*\\b(File|Read)\\b' crates/termrock-e2e/src/lib.rs",
+      "exit_code": 1,
+      "result": "PASS; no match is expected because neither removed import remains."
+    }
+  ],
+  "not_run": [
+    {
+      "command": "guarded standalone E2E Cargo check",
+      "reason": "Parent assigned the combined guarded check to the metadata owner. This correction worker did not invoke Cargo."
+    },
+    {
+      "command": "cargo test or cargo nextest run",
+      "reason": "T37 does not authorize legacy or replacement test execution."
+    }
+  ],
+  "test_and_behavior": {
+    "selected_tests": 0,
+    "selected_cases": 0,
+    "replacement_tests_or_harnesses_added": false,
+    "behavior": "NOT VERIFIED"
+  },
+  "prior_review_status": {
+    "reviewer_evidence_commit": "10f63e7650d8e03fbf949000f76fa3f2e6abb7a1",
+    "reviewed_source_commit": "7fee71b6bd5091ce670d36644273ed1ffda1481d",
+    "status": "ACCEPT for the original structural cleanup. It predates discovery of the standalone build regression and does not review this correction."
+  },
+  "limits": [
+    "The correction restores one production helper. It does not restore a test, harness, fixture, or retired capture helper.",
+    "The reviewer must independently accept source commit 1e3368870974d28499e556225f35d8050224476f and this evidence record.",
+    "No standalone or workspace build ran in this worker."
+  ]
+}

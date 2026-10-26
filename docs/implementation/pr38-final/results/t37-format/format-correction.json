@@ -1,0 +1,1826 @@
+{
+  "schema": "t37.format-correction.v1",
+  "task_id": "T37-format",
+  "status": "FORMAT_CORRECTION_COMPLETE_PENDING_EXACT_OUTPUT_REVIEW",
+  "input": {
+    "source_head": "55c75d292f5288b07f4a779575a42431259e21c4",
+    "branch": "pr38/T37-format",
+    "worktree_was_clean": true,
+    "source_path_count": 202,
+    "input_source_manifest_sha256": "bf191779263edd27bfeb9c4c4fe8bd7a80c71d363fd71eff6cd8791ade55e5de",
+    "output_source_manifest_sha256": "f8149e960cc87710f39af7c4a9384eaa455020f18b2b754fa122b4f65021c379",
+    "manifest_algorithm": "SHA-256 over each approved path in path-list order as path UTF-8, NUL, exact file bytes, NUL."
+  },
+  "approved_scope": {
+    "path_list": "docs/implementation/pr38-final/results/t37-metadata/format-check-affected-paths.txt",
+    "path_list_sha256": "ab5517c9ec853ff081d4ec465048a7588e53ebb6a211a61bda8892b760f25a7c",
+    "path_count": 202,
+    "translation": "Paths were supplied by the fixed metadata worktree; only those Rust paths were formatted.",
+    "tracked_changed_paths_equal_approved_list": true,
+    "untracked_evidence_paths": [
+      "docs/implementation/pr38-final/results/t37-format/format-correction.json",
+      "docs/implementation/pr38-final/results/t37-format/format-check-final.log",
+      "docs/implementation/pr38-final/results/t37-format/nonblank-diff.log",
+      "docs/implementation/pr38-final/results/t37-format/rustfmt-apply.log",
+      "docs/implementation/pr38-final/results/t37-format/token-preservation.json"
+    ],
+    "path_hashes": {
+      "input": [
+        {
+          "path": "crates/holla-domain/src/args.rs",
+          "sha256": "09a3e7e76862b14d663a9e9895fd9009705d8bd753a23b00f91bb38cf56c0e53"
+        },
+        {
+          "path": "crates/holla-sim/src/catalogue.rs",
+          "sha256": "4517d9f109eb96dcc874702121d014950404d218b0d32c4d14d53937d66d2753"
+        },
+        {
+          "path": "crates/holla-sim/src/disk_scan.rs",
+          "sha256": "2d8d9417f613a66d3cdf222f2f0399cb18991e19e27cb28860b7540370dcb640"
+        },
+        {
+          "path": "crates/holla-sim/src/files.rs",
+          "sha256": "9f398723a5fb81f55d05df2f2dac90178443ca5271bf86c0ad245c86ba725778"
+        },
+        {
+          "path": "crates/holla-sim/src/fixtures.rs",
+          "sha256": "9f9c7bfbbb3df2368b6a48f2126daae737ae186a4583bc6bade647f8e2811fb8"
+        },
+        {
+          "path": "crates/holla-sim/src/listeners.rs",
+          "sha256": "5b64e9235e0d781cdb749af35a3f0409e233d99f6126c4dae358f5504cac4ac0"
+        },
+        {
+          "path": "crates/holla-sim/src/plans.rs",
+          "sha256": "87d2e705c72fa2a8f7aa76b5ad22023af32f3cd6400f5d7981ba4f678c271595"
+        },
+        {
+          "path": "crates/holla-sim/src/port_args.rs",
+          "sha256": "ccc701caafadb2e9c6751cb374d2a04da322baeee692f8024693c0d88167085b"
+        },
+        {
+          "path": "crates/holla-sim/src/scenario.rs",
+          "sha256": "4396e6ecad90f29cce874a11a3a7ce3377a3a69ede5067f07d43c3c2809ee3a7"
+        },
+        {
+          "path": "crates/holla-sim/src/task_args.rs",
+          "sha256": "8109b1d2770f78a2f994bc0e9f715d3dfd715047f8895d809b415d866b946a2d"
+        },
+        {
+          "path": "crates/holla-sim/src/task_run.rs",
+          "sha256": "e7c24da18133c0a031cde3e49e84678977a1b1a7940045e7995d86658de6c138"
+        },
+        {
+          "path": "crates/holla-sim/src/world.rs",
+          "sha256": "d192dda8d57babc7b92f67a2d8f4c4db9e9d77e0052f369ef3a4120205920717"
+        },
+        {
+          "path": "crates/holla-ui/src/app.rs",
+          "sha256": "fb7c7b8516d60ef14c1f099cc9990bc95d955cb85e8bec472f1ac99f2eb0cf65"
+        },
+        {
+          "path": "crates/holla-ui/src/dispatch.rs",
+          "sha256": "15f77596f688b3ae3ce8268dfb01ea69443370990872b0a81265e4a53be33968"
+        },
+        {
+          "path": "crates/holla-ui/src/layout.rs",
+          "sha256": "2c09ee24934441b46ec012a989f3d112141502e3e6657b61d05f7222a8b219a6"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/args.rs",
+          "sha256": "e63fa0da8cacf48684f45ed6e88c5406a389ff7b7da9dea91af792931a34f5a2"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/disk.rs",
+          "sha256": "2695ba08b782dfb244ad7e664dd9a988856b1a1b2d68d76a599cbd592d829740"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/disk_scan.rs",
+          "sha256": "180aa8495a783c7ded999816b9eaa5828dad029e51706da93fe1845d205ca58b"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/files.rs",
+          "sha256": "d5f2b239690e005283b7c809b90169f2e7d769a3edfce7304b94dcc936726b41"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/home.rs",
+          "sha256": "84167943f7c0a82bad76021f1563bb4946323ccac149c7e60c7a4bfe059755bb"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/port_args.rs",
+          "sha256": "bca26af9e90cb46591629a3b928ad891e4ca08d2d27f3e1b23cfc272a3b79051"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/task_run.rs",
+          "sha256": "da9faf2d95bf5808b80538ebf2e7280106beba858abb4a0a6ec455c4aa9ce950"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app.rs",
+          "sha256": "c9dc0093788fbdb82e48e30b88840c9ec10c67090e8194d88af3a460ff60085d"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/accounts_page.rs",
+          "sha256": "7637d9be9685791aee0cc7e91574322527c8919a6f147a78b3b29e74bd1039ff"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/capsule_split_view.rs",
+          "sha256": "ddeb57984a16989d15515e383df61a35fbfefed90cc91cdbf86adfdf984ac647"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/capsule_tabs.rs",
+          "sha256": "9424b41a61226a3ca1a0bddb3dde950b08549e5fdaeffb5a450fd0497b49034a"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/capsule_zoom_view.rs",
+          "sha256": "6b0b58895df773df6de01f139a09595ff2f5478ddb68c363cc35126d8d91e4b5"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/editor_view.rs",
+          "sha256": "d4e368a4db24c9cc58bfcaed8fe02c428bb38f2e7abc4d5875263a61d75f89ca"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/launch_cockpit.rs",
+          "sha256": "6f5234f947990f55b91b908d6e6fb36c2648cc0c8a383fbb5769d06fbcfd1acf"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/launch_dialog_plate.rs",
+          "sha256": "43cea125daba5e758eacbeff29126dabd785f0366eecfb5c0cc7c6db5aa14534"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/manager_detail.rs",
+          "sha256": "b5ae8c6049fc239429a381d3b5df2ab96d88054edbe203adab1780f13f572009"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/manager_detail_drawer_view.rs",
+          "sha256": "7b90e0dfa494bb706384ddfe4a8cb5919fa18a6e3040c6726734e13984c98c46"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/manager_frame_view.rs",
+          "sha256": "5279ed7a653f7734769c44a34d4ba5ea50a00aae7b3805d2c81a417266b495c6"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/manager_help.rs",
+          "sha256": "269eaa4d06cb021f880d3940fdceaf7aa2b1eb92c75e34e14afe2ecc150aa893"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/manager_help_overlay_view.rs",
+          "sha256": "695b2995dd6c11d3876375e554d9a01df0e6013873ecbe4cc134364c1fea420d"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/manager_locked_view.rs",
+          "sha256": "28c71808a2e7436cfce397c0dec7840447f966172067f12494fbef765fdd5c9f"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/prelude_view.rs",
+          "sha256": "bd47094c01338d1d1839006c7fa3930b9ef21931cec73b9708463f78b89da3b9"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/settings_view.rs",
+          "sha256": "22aae0c3f95ed9e8102465dda0cac2ae7e87675233c479d5547a11a04a77fcb8"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/arbiter.rs",
+          "sha256": "f80e43e71e4054fbc581cb9ba59a77af6fe434123807c788673143ed4fd9c91b"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/launch.rs",
+          "sha256": "cc09ae74b03da9ef65ccbcd9b7e6ed7981cad6bdd94dd7b2f3604f035bc91c99"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/celleditors.rs",
+          "sha256": "71e25f900d9f0a89be7d091a87474af70d390c89e694082641a6a4450bcd9d04"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/checks_radios.rs",
+          "sha256": "4581f96a47a925415fd910b22697cdde4d19378db75bb0ad7a58bda00be723f3"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/chrome.rs",
+          "sha256": "93ef55ccce0dd783985233a758057f4ca8424c9532279223b0b4acde347648b0"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/dialog_kinds.rs",
+          "sha256": "8c25ecbe63e9b6eeae96e26062ff5c615abc652c6514a9f421c1699ab0b3dd3d"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/dialogs.rs",
+          "sha256": "3dc9e33bbec3d29bdcc6a47309fdbf19cc8fcd4446cf0adc2d9051d3b1c29b93"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/diff.rs",
+          "sha256": "3b8ec70ca330e728c4b8567d515a29088f36bbc88a648322cfce408926b3af4f"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/editable.rs",
+          "sha256": "89770a4e37e2b299ac508926d39111663d032ad0a3bcb7a393d892e80d14dfa5"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/empty_error.rs",
+          "sha256": "32ddbd051405acfe800cb6ba0aedb929076527ec9cb051a0afe1edce8ca14f39"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/forms.rs",
+          "sha256": "468c0cd2ad440dd8e47a2d34ae5408153ab7cdd381f724365bee329247ee5734"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/lists.rs",
+          "sha256": "3ec3d3abb81a98c36ac04506c9ef4a3986a26c23e9a7bf064b78a10a4b7b4130"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/master_detail.rs",
+          "sha256": "5f39b5b2627a74c4f07517d9f9e47bf8b9414f30dfbcb936e62b022a9ce070f6"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/mod.rs",
+          "sha256": "1aaa34030fa09f1f7ac6cc16897b372dc8a0357035586749fd1abeb78034e425"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/notices.rs",
+          "sha256": "10aa713a258f5d085b06b335ce2493b89f7cbf57a416c2b9fc37e5379a506447"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/pickers.rs",
+          "sha256": "18b32dfd3f2869b137a3c6f21824679d2d6f121efc88531ab5e9477f2f7fc04c"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/progress.rs",
+          "sha256": "7557ea8c1525ea129f39615cff01e6114ceb36fc3e9950db98600887b99628aa"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/scrolling.rs",
+          "sha256": "9da7db345f6934d4c2e5daa34c5a243df5b3157f1572e0fc4cce060854f2cc53"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/selectable.rs",
+          "sha256": "541089b38dafc73563511f7d106356be24f64d5371c67462fffa74ff9cf7e60f"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/settings.rs",
+          "sha256": "af91c5c2e17bcbb9874c592f64dcf392e0df2e966457792025038632396ce9b5"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/sidebars.rs",
+          "sha256": "52d649061a399901ffc042f394b5a50dba4715353193cb662ee2459de1a5a563"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/taskrunner.rs",
+          "sha256": "0897e0802f63512650c00e8e88b3e3e8b7dfcf3c598fa8d814eea8eb686274b8"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/terminal.rs",
+          "sha256": "3b870839a91761a21c32ea7ee36efb7ffaa6cd67fa6d86653b0e80bae6b5c6ee"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/trees.rs",
+          "sha256": "0c60cbf557773bfb4f0dda171a59e1784c64f484a9a1ddfab30b15e204b4c73e"
+        },
+        {
+          "path": "crates/showcase-ui/src/app.rs",
+          "sha256": "fbcc087c8efe48ebdd714227ece29fece9b259dcc47b9d7d4c8ec5be63bc01f1"
+        },
+        {
+          "path": "crates/tablepro-domain/src/connections.rs",
+          "sha256": "59df826a2d31de58628a6fd729243ec5cc86abbe4d9e9e3409d3f669b955dafd"
+        },
+        {
+          "path": "crates/tablepro-domain/src/domain.rs",
+          "sha256": "82adc7d52986a49a652f6abe310cdd525791300cdcf61b560b3fb462808e0e65"
+        },
+        {
+          "path": "crates/tablepro-domain/src/model.rs",
+          "sha256": "e673fa3b73d9e483eb51cdcba58bd27831c15cb54199f43f400377a1ec536d6f"
+        },
+        {
+          "path": "crates/tablepro-domain/src/tabs.rs",
+          "sha256": "e8c772d84fbba013222122ad767a580b35b46d1584ee16ce22d0bbcdebe9cbf1"
+        },
+        {
+          "path": "crates/tablepro-sql/src/sql.rs",
+          "sha256": "06060ba8f5460ea145c6e0cf970587df9c707f2590ca6eeca7819c053c247f9e"
+        },
+        {
+          "path": "crates/tablepro-ui/src/app.rs",
+          "sha256": "346b28b9d771379eddead9e62f3cad8dda26eb66a92ba78317bdb58fe676a53d"
+        },
+        {
+          "path": "crates/tablepro-ui/src/app/filter_editor.rs",
+          "sha256": "37f8a7c5c07f49ee40c70128d59ef894fd285a26441cdfce98497b94a3afc9d8"
+        },
+        {
+          "path": "crates/tablepro-ui/src/app/history_controls.rs",
+          "sha256": "b5d22b91ad38566cf3d511119839c1f5ad4fd241b56e7ce8c2cd25eab15dbedc"
+        },
+        {
+          "path": "crates/tablepro-ui/src/app/history_detail.rs",
+          "sha256": "da30be99d83b0c119bf096fb597c7dd267dc7a23f97c3a49361b9ebee7be6627"
+        },
+        {
+          "path": "crates/tablepro-ui/src/app/history_rows.rs",
+          "sha256": "2df12470db3698a867da0d1a4ceb9ecc8c4f85d8ee7adbba7b9440a310e9c5dc"
+        },
+        {
+          "path": "crates/tablepro-ui/src/app/query_safety.rs",
+          "sha256": "5df190320762e06182dfa62eaf2b5ed4faa249b3c3caf469cc404c5bac26f257"
+        },
+        {
+          "path": "crates/tablepro-ui/src/app/result_grid.rs",
+          "sha256": "687219c5cd92bb050c9368a2aea832b634f1a3d88e3baa99b97e608fcb2d6862"
+        },
+        {
+          "path": "crates/tablepro-ui/src/footer.rs",
+          "sha256": "9b80eeca52bcccddbe86e812b8075f7a4528415d9dcec1b900d118a86b4b4747"
+        },
+        {
+          "path": "crates/tablepro-ui/src/safe_mode.rs",
+          "sha256": "3a182b8c78eb7bb30d7eb3a4226eeed1e61a54cdf4c69bc4ef5e4df2f544de56"
+        },
+        {
+          "path": "crates/tablepro-ui/src/workbench.rs",
+          "sha256": "95e378b0b80e11ef3f475bcaa01e6c40aaba7414fed57adb6be28144e15a3231"
+        },
+        {
+          "path": "crates/termrock-collections/src/scroll.rs",
+          "sha256": "8b903b0881bdd4315bb855fadcedc2df6ab1f134cdf2d2585ff437108346bc96"
+        },
+        {
+          "path": "crates/termrock-consumer-example/src/app.rs",
+          "sha256": "92f90bdb18cc337132f89d55172bbe6dafe18bf9a0f00c4df3b3bdaa3a331a37"
+        },
+        {
+          "path": "crates/termrock-consumer-example/src/lib.rs",
+          "sha256": "39cc1c7026882849edfb37f3b85663f2961870f4e4718d18d1a71abe8f32222b"
+        },
+        {
+          "path": "crates/termrock-consumer-example/src/main.rs",
+          "sha256": "92341cbf080f7d063757d10f896c4447ec3f59293c79da407d2cd240950b2901"
+        },
+        {
+          "path": "crates/termrock-consumer-example/src/recipes.rs",
+          "sha256": "63652c74e9d52c5ce4f2797b47856bdfc612d8746586d876c076c4c887d1b607"
+        },
+        {
+          "path": "crates/termrock-controls/src/button.rs",
+          "sha256": "ac40725423a0d587d6b44b4c6453fb14b9a5a950e6344f734ee279f0ed602c94"
+        },
+        {
+          "path": "crates/termrock-controls/src/choice.rs",
+          "sha256": "ba1312a0d7cb5f867fb228b8c3ed8168feb4a21d3c7c634595fb60d786c80f6b"
+        },
+        {
+          "path": "crates/termrock-controls/src/master_detail.rs",
+          "sha256": "c1331f5647dd731506794466dbafda79abb52dea43312019bd73deb2097503b0"
+        },
+        {
+          "path": "crates/termrock-controls/src/panel.rs",
+          "sha256": "b6a7b0dd780e02fe6c0472e64998a80a3706857b11fcac5911e6780c38196f02"
+        },
+        {
+          "path": "crates/termrock-controls/src/props.rs",
+          "sha256": "9bb4d8d4c6cba48c4d3a413bd1e0f759035970d52b9a234bee88841480807743"
+        },
+        {
+          "path": "crates/termrock-controls/src/split.rs",
+          "sha256": "1431756d19cf1354ba056305f94e05d6a4d0ec82cfbed360cf445910be6a0b3f"
+        },
+        {
+          "path": "crates/termrock-core/src/edit_entry.rs",
+          "sha256": "d81e36a3f39d52221170ee198b50d648c961b55bfd52ea57e88769663bdc75f8"
+        },
+        {
+          "path": "crates/termrock-core/src/event.rs",
+          "sha256": "2e3657577f708bbcf1bd6d039a60595cc1238431ec521bcd95f8b177edee962d"
+        },
+        {
+          "path": "crates/termrock-core/src/intent.rs",
+          "sha256": "b070a0d8212eaf23639e14bbac26ec03868f0a8ea270427e3545d97d211f2d69"
+        },
+        {
+          "path": "crates/termrock-core/src/keymap.rs",
+          "sha256": "01caaca921f47e7ec1e1bae0001cc217b28e9a5deeea6732241692395835e7cd"
+        },
+        {
+          "path": "crates/termrock-core/src/keys.rs",
+          "sha256": "de1c4388affc12f23705383c6d7e692e6a675b0a3b83caa886cdfa4fe9bffa57"
+        },
+        {
+          "path": "crates/termrock-core/src/list.rs",
+          "sha256": "9f9b09d11d43791768530c388de730f61eb7a208146f3f670f9a6d8e06cd78b7"
+        },
+        {
+          "path": "crates/termrock-core/src/outcome.rs",
+          "sha256": "587bf4b03180381af7d94d0ecaa8c90195fa75a07c02dd3652013a4520727742"
+        },
+        {
+          "path": "crates/termrock-core/src/platform.rs",
+          "sha256": "d6327e963c530ff6acfe2ff26372a3660e4e1eaa942f7419d1a1b59b08a9f39c"
+        },
+        {
+          "path": "crates/termrock-core/src/response.rs",
+          "sha256": "a413ee144a6f168e3df812deeecf7e6cf8b0c4860c52061a2052295e74ab9062"
+        },
+        {
+          "path": "crates/termrock-core/src/selection.rs",
+          "sha256": "9f2f84ca0a16858e7b7dbe43af1b09f20373c591fd9c2d0aa56c0cf99fc47d07"
+        },
+        {
+          "path": "crates/termrock-core/src/shape.rs",
+          "sha256": "63f4f24a190669667fe7513254758752b3a6f8da30e939a804c887940dc9bded"
+        },
+        {
+          "path": "crates/termrock-core/src/typeahead.rs",
+          "sha256": "c6d08ce5a57e9f64b25aaca647215f40d317ee03af07a5e612ec4824a591dd90"
+        },
+        {
+          "path": "crates/termrock-editors/src/code.rs",
+          "sha256": "259b180c88ae9d6f0dc0e1bbdce184666eacb5eb1568c2056cac15926800959e"
+        },
+        {
+          "path": "crates/termrock-editors/src/completion.rs",
+          "sha256": "b54bdff73a91ba1d015ef20f453fbf01ba4688fd0a8621d9b4ed4f3719b3e46f"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "sha256": "6ea931eaa09e01e1731eb73dabda34c5006eb7dcd0d859be2507de0e664d40ba"
+        },
+        {
+          "path": "crates/termrock-feedback/src/accounts_detail.rs",
+          "sha256": "a5047099f4960174b581c1dff03da879668ef06bcf0cbfeb0e7a77edc5732817"
+        },
+        {
+          "path": "crates/termrock-feedback/src/accounts_drawer.rs",
+          "sha256": "72bf7d72edf32de6e168dacfef1471e02dd5bd4844e3db1cdc2661ca33419ccc"
+        },
+        {
+          "path": "crates/termrock-feedback/src/accounts_filter.rs",
+          "sha256": "621c6941336f570eedf02c0312fb7189aacccabb5b3d3f63603ed9ea0b1f262a"
+        },
+        {
+          "path": "crates/termrock-feedback/src/capsule_menu.rs",
+          "sha256": "dbc4be296da53a63622faeb51f942565658fd65d7c564f9c4bb0302fabdae3f7"
+        },
+        {
+          "path": "crates/termrock-feedback/src/hintbar.rs",
+          "sha256": "c1a44df637634bc795dd8cd2cf2822e665bcd3909d66cc19718c19a93edc0bd4"
+        },
+        {
+          "path": "crates/termrock-feedback/src/inspector_body.rs",
+          "sha256": "14bd3ed268f4f5266c9c74422c15b2fc24e51883a817ccf7a9c1042e84790289"
+        },
+        {
+          "path": "crates/termrock-feedback/src/manager_frame.rs",
+          "sha256": "f25aff0bfadae83009e3aae6ecbbbb1a69c1bdf4e4709db56724fdfe4868a254"
+        },
+        {
+          "path": "crates/termrock-feedback/src/manager_split.rs",
+          "sha256": "a07401ec9d5f33574790534a4adc0e7783f6e02e5729cdbe5391bb1c40b1952b"
+        },
+        {
+          "path": "crates/termrock-feedback/src/notice.rs",
+          "sha256": "2c918a470b7b30c09e45b0433bb5c573aadb706702bb1b0703dc79a2d031cf6f"
+        },
+        {
+          "path": "crates/termrock-feedback/src/section.rs",
+          "sha256": "01da48d33ce97f4178f6f9b9934209fbbbb5e47475b127a69737142de9996f51"
+        },
+        {
+          "path": "crates/termrock-feedback/src/session_chrome.rs",
+          "sha256": "665a88645ed33b9ba08b7b6bdb696dcf05ec7160d3c792958da0d34cc3c24862"
+        },
+        {
+          "path": "crates/termrock-feedback/src/settings_page.rs",
+          "sha256": "7bc0ab7bc8a67a39fe23623e6f36a2f6a56ee82614b47224c135c087fdfe82ec"
+        },
+        {
+          "path": "crates/termrock-feedback/src/usage_overview.rs",
+          "sha256": "438b0043b32e06821e11c95e8f73b6740360536d6a586aa46fd0868e285f0d25"
+        },
+        {
+          "path": "crates/termrock-feedback/src/zoom_pane.rs",
+          "sha256": "d7aabf70e7884426ed96174133b1cf3f3cc7906de35b2a8fc839df6675ed5ac4"
+        },
+        {
+          "path": "crates/termrock-fields/src/edit.rs",
+          "sha256": "53bf73a9fa46bf72a3cc2fb4d4984dd60cba5e53a30568540041c95012e4a19a"
+        },
+        {
+          "path": "crates/termrock-fields/src/field_error.rs",
+          "sha256": "cceb8c973628fbbb8099aad95308ae48f934f74319207584d304ed6c756fd518"
+        },
+        {
+          "path": "crates/termrock-fields/src/input.rs",
+          "sha256": "36277ef1ae45a536abf07b52a9200b690e9191e5e19819d5d9a14abd746d9cdf"
+        },
+        {
+          "path": "crates/termrock-fields/src/textarea.rs",
+          "sha256": "4aeda466632350f3bd860d8d5e7f1afb97f66dacf560e7d05e701a4a3644c4a8"
+        },
+        {
+          "path": "crates/termrock-forms/src/form.rs",
+          "sha256": "0b83443d76389fd15675a1de79558aa8c7c26b1b4efec6d442efbd455c2f0ba1"
+        },
+        {
+          "path": "crates/termrock-forms/src/form_dialog.rs",
+          "sha256": "c23f222cd354994e33f0ea1390b50e9314b47679a4f5c8cc03a659b2c91e8e8f"
+        },
+        {
+          "path": "crates/termrock-forms/src/form_layout.rs",
+          "sha256": "c4a63b2e830f2bb6ca7c6b8dfdb9ea608a67bcdccc431bb22973f7d1985f1c7a"
+        },
+        {
+          "path": "crates/termrock-grid/src/grid.rs",
+          "sha256": "5d8b4e6f7f19db1a920bf2982413e7fef80960864e467e7521eccd2904511346"
+        },
+        {
+          "path": "crates/termrock-grid/src/grid_viewport.rs",
+          "sha256": "91f6ded1acbbe97927e01d2cb3d03bfc3d5563c61edc4bf8133fe158ad1889a6"
+        },
+        {
+          "path": "crates/termrock-grid/src/table.rs",
+          "sha256": "9330a9b7ac3ef82576a653456ac16bc18c439da982336348ec65098d6fba00d9"
+        },
+        {
+          "path": "crates/termrock-layout/src/columns.rs",
+          "sha256": "6b99063d665a8a5b2547899275b6aa6ec69d954df70ecc39e51193d8e0b6a561"
+        },
+        {
+          "path": "crates/termrock-layout/src/composition_plan.rs",
+          "sha256": "3b35d960048eda38542fc28f4e4b5da8f0638599f815f5b3ef028d44a8fc0407"
+        },
+        {
+          "path": "crates/termrock-navigation/src/chip.rs",
+          "sha256": "269534f2c10a96c7a7012805e03b6f097afd9283e6fa660034245e9acbcc1211"
+        },
+        {
+          "path": "crates/termrock-navigation/src/filter_list.rs",
+          "sha256": "9ed685eeb106543a9cf0a44a73f42e2bc6ea36b3f53bb7d28c94990767cab609"
+        },
+        {
+          "path": "crates/termrock-navigation/src/item.rs",
+          "sha256": "0cf9b9777a5075ff34b3edd7ec058e90b05b90a1ebbfff0dc1b17e10893589ae"
+        },
+        {
+          "path": "crates/termrock-navigation/src/list.rs",
+          "sha256": "43a31fa55dc262503c3bbc73f996c0cb810388b703444288ac3f3177a3466724"
+        },
+        {
+          "path": "crates/termrock-navigation/src/nav_list.rs",
+          "sha256": "2dbe045fb08515ae9de2ccb33767f7208ae18ebf5fa59a77f559dafd1fcdba28"
+        },
+        {
+          "path": "crates/termrock-navigation/src/steps.rs",
+          "sha256": "01044a0e66a77eee852fc79d7066001c4492014aa81182cc2da64c01edb3b3dd"
+        },
+        {
+          "path": "crates/termrock-navigation/src/tabs.rs",
+          "sha256": "69ea94dd97fdecfebc9f0e25747ae01ae1963c4768b232e7585cf33b143ec2eb"
+        },
+        {
+          "path": "crates/termrock-navigation/src/tree.rs",
+          "sha256": "7f2d7e2a2d25693575194aec28d2cd75a4760ca2c334167dfc6ea2ab47644526"
+        },
+        {
+          "path": "crates/termrock-overlays/src/cancel_card.rs",
+          "sha256": "a4d431a9869bcaec242cd8511678f035b99d5db888ce0e482940785b79d93a81"
+        },
+        {
+          "path": "crates/termrock-overlays/src/completion.rs",
+          "sha256": "e387614842681f9d92191adf1adbce64763d7103cb816543b8d8b4eaa319c2aa"
+        },
+        {
+          "path": "crates/termrock-overlays/src/dialog.rs",
+          "sha256": "008026ce837688d6a9737355e4c0824aed27d6d75b7034203a813517a960952f"
+        },
+        {
+          "path": "crates/termrock-overlays/src/help.rs",
+          "sha256": "f222bf510f827df570048d8ce9a99afece48395b5408d60cb7306b562a924841"
+        },
+        {
+          "path": "crates/termrock-overlays/src/info_card.rs",
+          "sha256": "536c47af0f0de0c2ee379c496cfd9bef0d837360b720e0d1865220944cbd8a26"
+        },
+        {
+          "path": "crates/termrock-overlays/src/menu.rs",
+          "sha256": "b9bcc7986ad8cfff2ed5b1615a036d363d64a974d78fa3eb2f089965036017c4"
+        },
+        {
+          "path": "crates/termrock-overlays/src/notice_reveal.rs",
+          "sha256": "4d9f63a7568c3872f5a031cb5e97edd43f2316030b92a79d47483f3318b0b179"
+        },
+        {
+          "path": "crates/termrock-overlays/src/picker.rs",
+          "sha256": "c4a34b97a36b8449e761138202167df59d1eec8bff0d193ba0b7ca770787c55a"
+        },
+        {
+          "path": "crates/termrock-overlays/src/select.rs",
+          "sha256": "8cd1202c9a8a96ead84e99315c0177745e6f511471587b355b6a9e7de6f522b6"
+        },
+        {
+          "path": "crates/termrock-runtime/src/author.rs",
+          "sha256": "8ebdecd0bff2fbf7468d666cd1c5522a39705a79f18ee2d73e533b23caf79dfd"
+        },
+        {
+          "path": "crates/termrock-runtime/src/author/surface.rs",
+          "sha256": "c1d27df5b903301324d53ce4f853cadf1dbd88a6185dc4ab951790bb68fddecd"
+        },
+        {
+          "path": "crates/termrock-runtime/src/author/window.rs",
+          "sha256": "869f4b34473f3e9c3d2ef18011f9c85c7d6f70e2219dec4226af766a35e585f3"
+        },
+        {
+          "path": "crates/termrock-runtime/src/capture.rs",
+          "sha256": "c37191e4a710fd1da5f0bb6fdb65d553082255bf23b65d5bc0cd6172719197f4"
+        },
+        {
+          "path": "crates/termrock-runtime/src/decor.rs",
+          "sha256": "56a7147cde961baf7d3360466d3ea1f1bc8ab3cb1a92a5cd1d5fe05370f73e6e"
+        },
+        {
+          "path": "crates/termrock-runtime/src/hit.rs",
+          "sha256": "406523829365eb17eb402cefce20626c3125aade045e83adc0398fce4387f104"
+        },
+        {
+          "path": "crates/termrock-runtime/src/keymap.rs",
+          "sha256": "689900347a7b2da06b8af821c930b473a4f50e0819a6eac1323a4504195991e3"
+        },
+        {
+          "path": "crates/termrock-runtime/src/layer.rs",
+          "sha256": "728f92a10a74e7a7a20d897cd59aaf8fbeb912816f6b6657ff14fcaf0ee31bc1"
+        },
+        {
+          "path": "crates/termrock-runtime/src/rowui.rs",
+          "sha256": "4ebee9beda7758e6b952f4d7776b7022771f5a818052a92545e0b1141fa87eb5"
+        },
+        {
+          "path": "crates/termrock-runtime/src/runtime.rs",
+          "sha256": "05571ecbe25cf3893c7175a680854a20a91779612b4e955930a0f8ca41fbeaf9"
+        },
+        {
+          "path": "crates/termrock-runtime/src/runtime/clipboard.rs",
+          "sha256": "abe98c0c76ab1149fa657ca30b0dabd6358c5b9e5386cfeb2d7769721299d79b"
+        },
+        {
+          "path": "crates/termrock-runtime/src/runtime/typing.rs",
+          "sha256": "1f037ffca6298a7e485b569e300125d49b9b83e09ff7c30c54fa427c446d2da6"
+        },
+        {
+          "path": "crates/termrock-runtime/src/scroll_region.rs",
+          "sha256": "756d9c08f41ee4117ca085234d405998363f7f821c2e30389190d65f7c67d52b"
+        },
+        {
+          "path": "crates/termrock-runtime/src/size_watch.rs",
+          "sha256": "d7539fae12a01634625ac74efdd2a448b359b8063ca6788ee5f50953d194f6ba"
+        },
+        {
+          "path": "crates/termrock-runtime/src/support.rs",
+          "sha256": "c82d3328ed1ccf617915a08b19dee31bbc7edde0b996256f391a64431339b5b8"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/command_scope.rs",
+          "sha256": "d4ee709c91bd4b326f3fd1aaea61ac8ec3fb657c50a7a2a5083d293f5f7c1ae3"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/composition.rs",
+          "sha256": "3bc2dccd993bf4f851f9b9529a2279af384ff519f311c62e36253ed4abbe56bf"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/cx.rs",
+          "sha256": "19f0bcab4b3853bd6d4c4e79073b932107ce1fb293b0a143f2ddad98766ed677"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/derived.rs",
+          "sha256": "28a34cc00d2d7837e927eee0a6a83fde62ae7f0bc4543f13f65a414cd9a2ce25"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/mod.rs",
+          "sha256": "e8d029b8614d7692fef366753c33891f23113673a60bbdc8df6e3edbd9d8e72a"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "sha256": "6d2d31710931a05d6fa18a28dbb6d76587d5e3fca631c2b54bd17ef35c3a43d2"
+        },
+        {
+          "path": "crates/termrock-session/src/esc_bridge.rs",
+          "sha256": "db8daa85f55101373b8f19d1ad56f0d64356e0bcabfa134f91b59e7722e9e45f"
+        },
+        {
+          "path": "crates/termrock-session/src/session.rs",
+          "sha256": "1121144e3b980edf1824aac6df6115b7263390a6c6d7b2dc187e54a08729f3ba"
+        },
+        {
+          "path": "crates/termrock-shell/examples/shell_consumer.rs",
+          "sha256": "6061c556b88d956a0764927f132d97a4265151240cd904b6acc94d658ddd1e71"
+        },
+        {
+          "path": "crates/termrock-shell/src/chrome.rs",
+          "sha256": "724598e989dcd29d4f50714a8abfea4487db2eebda4b642744aceb804546eca6"
+        },
+        {
+          "path": "crates/termrock-shell/src/footer.rs",
+          "sha256": "cf4a0c84e60b8ab072570a7679d482f2c06b2b427b9337c09fa773e2bd893c24"
+        },
+        {
+          "path": "crates/termrock-shell/src/nav.rs",
+          "sha256": "0fa24d5e765c1ccf2713571dd15c894b85e44673e866f09c389458bbcfa39f37"
+        },
+        {
+          "path": "crates/termrock-shell/src/page.rs",
+          "sha256": "3e20fe58f29296c87f07ba3a0589489f7ab9f12283ce8b30068d6eb63e9f2d5e"
+        },
+        {
+          "path": "crates/termrock-shell/src/quit.rs",
+          "sha256": "9d0427ff8a30b7b52ca1671235b7ed888c44a82afe54a2ff153d6e03abe31e31"
+        },
+        {
+          "path": "crates/termrock-shell/src/report.rs",
+          "sha256": "0b0456b0f92f53caa5ec7086c60a05c4ade7b78bca9653dd4701e4492a1498dc"
+        },
+        {
+          "path": "crates/termrock-shell/src/router.rs",
+          "sha256": "2d1a19522aa6689324d926cdcd4e821f7e27050c477bdfef00fc8926fbb308a8"
+        },
+        {
+          "path": "crates/termrock-shell/src/shell.rs",
+          "sha256": "b474b6fba6f4646fab82ea9ccae41405f372d49e3cc2ddba940edbf0586d3cce"
+        },
+        {
+          "path": "crates/termrock-shell/src/status.rs",
+          "sha256": "80b57525df11225c67e2da6f1d41fbb9e7787eafeb4301543b12fec068a02d0e"
+        },
+        {
+          "path": "crates/termrock-terminal/src/keyboard.rs",
+          "sha256": "9f346949836093ba093c882128f28b615f0c8d8a6cf520054fd2dbf2eb3e3599"
+        },
+        {
+          "path": "crates/termrock-text/src/undo.rs",
+          "sha256": "044ab2ef3ad26049fb59df5292dec855a6a636f13f52d22692d6d948f2a62ae2"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/junie.rs",
+          "sha256": "ee71fdf6050dba61061ae2f69d1eefa114eb79cfa45379732e1d3a7ad651b235"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "sha256": "644bc6eecce24719d89d504b58928c6a03566ac7d9310fbd2ea6e74baf231140"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "sha256": "bac78388998a97015b9479b9e424521d3ebe625bc4e839f112d56f8d9402000e"
+        },
+        {
+          "path": "crates/termrock-theme/src/lib.rs",
+          "sha256": "f4a921a64a3f5af9bcf9405cf60c053592c224c8766b9fb56755f9cb7d92f8d8"
+        },
+        {
+          "path": "crates/termrock-theme/src/palettes.rs",
+          "sha256": "90dec71df8333cbdf8f5005860f42ee4b0b71b823752e60fcee2a37cdfe52f33"
+        },
+        {
+          "path": "crates/termrock-theme/src/recipe.rs",
+          "sha256": "801beef7db83688dfe077ebda27f2e36f3cdf732a290a0586e63d187a7bf4d80"
+        },
+        {
+          "path": "crates/termrock-theme/src/resolve.rs",
+          "sha256": "dfab8b01ff59375e195a1d67d2dc55a3bb6c985098aa6cf746b7c1ea5cb70a15"
+        },
+        {
+          "path": "crates/termrock-theme/src/visual.rs",
+          "sha256": "c0cf3b9d4cfc6ad567c990b3899fc3a6e48e694d66f71728856fe7fb1f8ef3e1"
+        },
+        {
+          "path": "crates/termrock-viewport/src/viewport.rs",
+          "sha256": "8ef6c26cc0af93ae030f2e6adc94bb3ff6ee1ebaf071c09564b3d191d26baeb8"
+        },
+        {
+          "path": "crates/termrock/src/blocks/line.rs",
+          "sha256": "8b6dcdf2e4460d0840a41f54a4e3937ba70ab1c6558c50168caa3e0abaa4ccf6"
+        },
+        {
+          "path": "crates/termrock/src/blocks/master_detail.rs",
+          "sha256": "d4a12e6b71791bae7b1b3533437d337c25ca14568e00ea5e79007aa17a69058d"
+        },
+        {
+          "path": "crates/termrock/src/blocks/mod.rs",
+          "sha256": "747e55598672331c9ba2394f84fab4103b8077aaaa9972ba8f69ef1adef4ec57"
+        },
+        {
+          "path": "crates/termrock/src/blocks/section.rs",
+          "sha256": "9132f177b2b6a34950561896e8570862d3be4f95793e20de8262ed65b6c606c7"
+        },
+        {
+          "path": "crates/termrock/src/blocks/shell.rs",
+          "sha256": "0031ed2ec6bfa83b85799680d4beaa1401da360e82e773ed82b2721879172e19"
+        },
+        {
+          "path": "crates/termrock/src/blocks/split.rs",
+          "sha256": "b8a9f449137b2ddb0dcc1369ae8b6cca6ddff6bd34d239a8f5ae46e02c0f7f11"
+        },
+        {
+          "path": "crates/termrock/src/blocks/status.rs",
+          "sha256": "bb407e0a8a807f3facf47dc63fa15309cf022ffcbc9f07e58ea9c4955b3dc5a4"
+        },
+        {
+          "path": "crates/termrock/src/blocks/tabs.rs",
+          "sha256": "0cc3cb8348deda5a0657dce26253e12a1dbcebeb6b5560495fe9dd523c38ae01"
+        },
+        {
+          "path": "crates/termrock/src/composition.rs",
+          "sha256": "e14a15620f6a2a846152572a2c43acbf7eb794f9ff786b3bd94d7fe798120a44"
+        },
+        {
+          "path": "crates/termrock/src/composition/adapters.rs",
+          "sha256": "908d3f12a83aa2a7b0eba0397730d96c44256e4ce195aaee704aa01c54495990"
+        },
+        {
+          "path": "crates/termrock/src/slots.rs",
+          "sha256": "18dbd03712813f305f3ed1f600c36e580c9d6c39b03466fc3ece5c317de7ab90"
+        }
+      ],
+      "output": [
+        {
+          "path": "crates/holla-domain/src/args.rs",
+          "sha256": "b13633ea87b05b6e4b299fb5e73b662bf6120319662e75e7be69b23fd5609d44"
+        },
+        {
+          "path": "crates/holla-sim/src/catalogue.rs",
+          "sha256": "d270ff714ed682ff89b45d403df8dc435cb07d04ee3463bc2c6c03173ee865cb"
+        },
+        {
+          "path": "crates/holla-sim/src/disk_scan.rs",
+          "sha256": "789284b633f04a07b71fc7f969091d216a0d210e156032a5aecc771e1b0f807f"
+        },
+        {
+          "path": "crates/holla-sim/src/files.rs",
+          "sha256": "b498da7fe11ac76b5791271445749c2cb75553471a4d9dc4e7fc53db604e3d31"
+        },
+        {
+          "path": "crates/holla-sim/src/fixtures.rs",
+          "sha256": "7ab1cfb7a0c44f57f556e5c52fb4c14bd18a236f171360f0f15445ad961ece66"
+        },
+        {
+          "path": "crates/holla-sim/src/listeners.rs",
+          "sha256": "1fea0aa51376f547444a62ab7150e741de1f008fb95d429e9c8b51e6856b7372"
+        },
+        {
+          "path": "crates/holla-sim/src/plans.rs",
+          "sha256": "48ae997d05141e8d2324fdfc48f042c65f0d704413f0d023911e65a600d81ae0"
+        },
+        {
+          "path": "crates/holla-sim/src/port_args.rs",
+          "sha256": "7d15e85d03739876947e2529af3459e921e7a04b8fa6fd310a3d1a8dc4754be7"
+        },
+        {
+          "path": "crates/holla-sim/src/scenario.rs",
+          "sha256": "87ac7e6be3342b4ecc22db0f85f0c7ca759597e27a9c647cf4f23e09eb1c5b8b"
+        },
+        {
+          "path": "crates/holla-sim/src/task_args.rs",
+          "sha256": "c0181945707def215c1ba2cd9ac4a40df7d135d56df0ff9ca58b676402287fc5"
+        },
+        {
+          "path": "crates/holla-sim/src/task_run.rs",
+          "sha256": "b64dc522dce075742fad0fdca99603dc1ce184fe0ae4b98d41f1ea11776f8ce8"
+        },
+        {
+          "path": "crates/holla-sim/src/world.rs",
+          "sha256": "854ed4eaf939b618a545936037d0b875f8d80219e07b3d4a591f9137576b4a3f"
+        },
+        {
+          "path": "crates/holla-ui/src/app.rs",
+          "sha256": "0ac2f313352dad6201017b21c22e49a545825bc54d268be66dcc2c53639ab1c1"
+        },
+        {
+          "path": "crates/holla-ui/src/dispatch.rs",
+          "sha256": "ddae5c18e92cd1d2a88d0253e5d9cfdf02c11be1d5f49570191844da2ec557bf"
+        },
+        {
+          "path": "crates/holla-ui/src/layout.rs",
+          "sha256": "194604498a2fc008108bff2858a633f70040de9fb348999af262f669b00b4566"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/args.rs",
+          "sha256": "5519ecac7b52ba241787ea620a7e424ca8383df8c7415eaefc8c2ef36f4bad77"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/disk.rs",
+          "sha256": "58e50804929ef2de64e0a3e523840fbd4a90197a6ffa2b0f92479480e90fa245"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/disk_scan.rs",
+          "sha256": "19066e871e425eb1885d0f72bd65351af1d94035aa46ae652e517b3ababc9828"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/files.rs",
+          "sha256": "aff0a61315b932f48d7cdb4b69b5b366be2a548bd823ac29915093f9df97951d"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/home.rs",
+          "sha256": "2b8eb043d61821210d2f0d2d12f390c356836d27edb61b79e99589f2805eb8f2"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/port_args.rs",
+          "sha256": "d5c2e50a4348681f9d438fcc133727f7ed79000a8d3f407c97cb9133d2c49ab8"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/task_run.rs",
+          "sha256": "db7b10275b960a2823734bd97c23a9fd79eea45d67f944f1920dfa94f559a2dc"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app.rs",
+          "sha256": "9b9bca7f83e91cd8e8a285174eb68a750dec84922ff98c941be654074f4a208c"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/accounts_page.rs",
+          "sha256": "67996a824fcab0c4d7a3f93988a1f1925e778e34d5dea04bfe13141a2b54b84c"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/capsule_split_view.rs",
+          "sha256": "29bd53a7bf737ce6a771eb9fd9105dc790c130eb4a9625ebd45bdaff283487b2"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/capsule_tabs.rs",
+          "sha256": "bc799b691df814012c33f646a9553334bcdd5b8d02eafb0fdc2fd77fdb798e00"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/capsule_zoom_view.rs",
+          "sha256": "3c1b20b3df6e580458e6bb8d497551e03eaf8f3c63e5594328153dd08d99f4d9"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/editor_view.rs",
+          "sha256": "bb97f20ad287cf7e12d2ec2bd86dd8d559a77e9d862388527562c5c525708c14"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/launch_cockpit.rs",
+          "sha256": "7413a4cd7ef36c2db256f8eba0c657a2507b1bebb5e1395e59450f00be68b958"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/launch_dialog_plate.rs",
+          "sha256": "47d521059eb4d90564d85a761653a136c60a9b22ce9c62f6861a74a12a7e4510"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/manager_detail.rs",
+          "sha256": "86d64ad1eb4fff86decfc4f9413c731b82474b31adef829565e3a3e7c9f2e8bc"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/manager_detail_drawer_view.rs",
+          "sha256": "188dab730053c77dd0ec886e62cb06c129deed5dc208425999b87c1de1231f7c"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/manager_frame_view.rs",
+          "sha256": "3723ad73d51016b71230785b3ab69de34687974273e0e6f1f7976c3a6f3c16a6"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/manager_help.rs",
+          "sha256": "cca81e5fbd8aac0832ef8315912342cca98e990e27a98f2e6707ff044864ea0e"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/manager_help_overlay_view.rs",
+          "sha256": "dc748b751138f22aec372a4d09b1df014b736561901ef6352fc3c6748389535b"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/manager_locked_view.rs",
+          "sha256": "36e5c5a7cd2809f658fb9d91b98a833975b51a7e3b23f835ea7b92a443876034"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/prelude_view.rs",
+          "sha256": "36d83b3db4351fb282342be3479867367985f98b24337cfb0ffb487fda914c4a"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/settings_view.rs",
+          "sha256": "f63040113f2e82744d83c8a84e814460910651efae6903ff74f53c1783c23337"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/arbiter.rs",
+          "sha256": "7cea23178c25336c700ca8b67eeafb998cd0678140690284d6bbb3f1afc39734"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/launch.rs",
+          "sha256": "df5ba60cf3f6ccf123826945ed6309279f93bc77ba714f9a4417ed814f90d054"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/celleditors.rs",
+          "sha256": "35c9e2a2f224351fbfe836caa82bb6b6433f69b23b79fe555baa466c4e11dfaa"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/checks_radios.rs",
+          "sha256": "e39525d3165d2546bead64984f73a9461b7406cc6d477c6aa7f9687be0455392"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/chrome.rs",
+          "sha256": "1c2d2d92be7d6711b0d37137d09ca7e6c6d24f78637efc240a9a5fc7b7c27b4c"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/dialog_kinds.rs",
+          "sha256": "10804cd71cfe522b23a7a8330cd95a76974c4bbd532bfc39e1a24125cd96b4e2"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/dialogs.rs",
+          "sha256": "06180f26e4ef644abdff0267b064215534dffe4e9b8c0b2aa87da40b07b1b4ab"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/diff.rs",
+          "sha256": "633f6aea53a142e01e26219dd7bff7f8941d1e054a15886fdb43c438a1ba2e2b"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/editable.rs",
+          "sha256": "9cc379ebb07c3ec6b4271749006ec22d76cdfbab756a1e6f2bd8380c1ef7f5bc"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/empty_error.rs",
+          "sha256": "9e53aa6917447838de802cfd0a8a55b0b7c2fc0ffad03f040ad23742a249da66"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/forms.rs",
+          "sha256": "4d955c9006aff2e345d4e579937dbc6078e1ce700b73ce523cd557cc1bcb75ef"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/lists.rs",
+          "sha256": "c28cf847dc217c395db66724ff04030fbb905736547d490a562d49456c6b796b"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/master_detail.rs",
+          "sha256": "1be04d34d069df81e295b9df8e1416915f076e4d437977ce36be45e728da8499"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/mod.rs",
+          "sha256": "78eb70fe1146eb7a137a2f89c4497e1460e87a81ea49d3cf122671c4fb30640b"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/notices.rs",
+          "sha256": "38eae3f21d7619c2bfb4edc827f2e90685f28c4241861f38728e647d0e3a09a3"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/pickers.rs",
+          "sha256": "3490a553a8f80e472273b0107364511dc8ee411ed7edc33208064bebf44f1815"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/progress.rs",
+          "sha256": "224a9d786678ab2fcca920de142a047f5c22bff8fbe5f6bafd0e34e637c95b2d"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/scrolling.rs",
+          "sha256": "06b7415cc684de8ab45683e3034ecd8f0222e02b9b152c9fef636a8fa2afbba3"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/selectable.rs",
+          "sha256": "6804c260a2006a4e95ac243c2a6b8ed3900b616a2d01254b59123e7d6cf42a3f"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/settings.rs",
+          "sha256": "945b1cf873513b2bdf8beac67b38ff8ab0c2e2a7fdc711eaf486204150142437"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/sidebars.rs",
+          "sha256": "d737b14f10b94705c3f16d003d972415c1cecf22084a05185e872ff4b9fd76fa"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/taskrunner.rs",
+          "sha256": "f1f9987ed94686e82949d83563af1a6b8aebb8e21466554d04c2fe1831a9090f"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/terminal.rs",
+          "sha256": "52165fafea90465edaa04075188febe482195459e6946fd60708026a359ce99d"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/trees.rs",
+          "sha256": "fd91c9cfce28002848f3c7c847c59a83e6fc6e4c62581a03d291c64640bf2640"
+        },
+        {
+          "path": "crates/showcase-ui/src/app.rs",
+          "sha256": "284e125ac19282014ebc383343db6e56a1f00307fc65f181de9e11b58386e64a"
+        },
+        {
+          "path": "crates/tablepro-domain/src/connections.rs",
+          "sha256": "dcc131cf937af16b730651b0ce76589146fae834bf54a6f46ed5009c734fa0f9"
+        },
+        {
+          "path": "crates/tablepro-domain/src/domain.rs",
+          "sha256": "3177a180c0ae6b08f99ec5d8388f96eaf887ff495fc89ac953c37da84c020687"
+        },
+        {
+          "path": "crates/tablepro-domain/src/model.rs",
+          "sha256": "66a3aa03f655c0067b06178e80506ee178dc759e8d7ee431c03ca453f8f11578"
+        },
+        {
+          "path": "crates/tablepro-domain/src/tabs.rs",
+          "sha256": "b429c7b3df0b5fc29ef46ff82a3073259cbefc1f03e2d2296520481daf18fb56"
+        },
+        {
+          "path": "crates/tablepro-sql/src/sql.rs",
+          "sha256": "3eb8903c45d00eeedd4102a54082fd98cc1531c7b6ae4125c1403de94c1a30c7"
+        },
+        {
+          "path": "crates/tablepro-ui/src/app.rs",
+          "sha256": "1dc4efd7a23a57847ffd70f768a8ca8763d00bf78982f0ca37f7e40741a9c6d9"
+        },
+        {
+          "path": "crates/tablepro-ui/src/app/filter_editor.rs",
+          "sha256": "4e37046873b6efa2e2f8f4d5b5aaaaf479baac6029095fb95d8b666d3987f1c1"
+        },
+        {
+          "path": "crates/tablepro-ui/src/app/history_controls.rs",
+          "sha256": "866bfd6295618102ea0017d8e649fa79cfea862c0b7f1135c91075d068657775"
+        },
+        {
+          "path": "crates/tablepro-ui/src/app/history_detail.rs",
+          "sha256": "f0bd26da92de2637cb2b077ac90875aec0568aca491f97da6fadb0c3fa1931ea"
+        },
+        {
+          "path": "crates/tablepro-ui/src/app/history_rows.rs",
+          "sha256": "55933e66316662100006078967cf9f769b21ad395bbf229ae38a2b9958cfc696"
+        },
+        {
+          "path": "crates/tablepro-ui/src/app/query_safety.rs",
+          "sha256": "a53229def7ed58bbbbaac90cee850243223adf8e02a31c44901425c2c54d83d2"
+        },
+        {
+          "path": "crates/tablepro-ui/src/app/result_grid.rs",
+          "sha256": "6d1e5bff8acadeb10b44c2becd7a3992c73ffc0b7bf163a8f611adabf796a92d"
+        },
+        {
+          "path": "crates/tablepro-ui/src/footer.rs",
+          "sha256": "34325dbda606ca49fea3beaa120f546a90f9289064735508f04ae2d434006d24"
+        },
+        {
+          "path": "crates/tablepro-ui/src/safe_mode.rs",
+          "sha256": "287c0f928d5b131f3a76d53c1c0af36c3f0187c73f468692206e9a6fd8ea2570"
+        },
+        {
+          "path": "crates/tablepro-ui/src/workbench.rs",
+          "sha256": "b29585950183ef728426543a7846336ec4fb1c81834335459428e8eb42b0d057"
+        },
+        {
+          "path": "crates/termrock-collections/src/scroll.rs",
+          "sha256": "9c11a25eaa08f3e566626ed5bc2e155fe0f79f9a2a1beb2baa18804bced1c10d"
+        },
+        {
+          "path": "crates/termrock-consumer-example/src/app.rs",
+          "sha256": "0ec466bb680633148e776257dec876e1814881d800850edaa9a81aae7cf703a8"
+        },
+        {
+          "path": "crates/termrock-consumer-example/src/lib.rs",
+          "sha256": "8a587fad2efd13ccd8b8dca44e28f55eae76e8f473ee880063e0312248ec88ce"
+        },
+        {
+          "path": "crates/termrock-consumer-example/src/main.rs",
+          "sha256": "ea64bb8de3769659bb011b12b83a7b86b7201939387deb0fac6136b0de3382c8"
+        },
+        {
+          "path": "crates/termrock-consumer-example/src/recipes.rs",
+          "sha256": "f98003548cca6aa58eccb43482e438e26b73d7095504ba3049dbaf4ce6b0b20b"
+        },
+        {
+          "path": "crates/termrock-controls/src/button.rs",
+          "sha256": "7469c45bad58dd31b54a711d7c19153f1c6e9d46ff0cd9fc6fe182afa5e056ce"
+        },
+        {
+          "path": "crates/termrock-controls/src/choice.rs",
+          "sha256": "aa7f32ab40d2dde72468d00415c709d5dcd8b6ed1b8d15e6e98afa5bbf9864de"
+        },
+        {
+          "path": "crates/termrock-controls/src/master_detail.rs",
+          "sha256": "8c6d80455a0edbea28fcc30fc1d68af1fc1418f37cbdc3eb5d4f3e3a837c18a4"
+        },
+        {
+          "path": "crates/termrock-controls/src/panel.rs",
+          "sha256": "07eacaa4d7f3bae67a9e151cc1b02938198b4d1aa5dae30e3c19c37d2dd0e9c5"
+        },
+        {
+          "path": "crates/termrock-controls/src/props.rs",
+          "sha256": "488e7723fa509697dc80e15132c8639eb961634dbea70ea7dd4dac6f512e8010"
+        },
+        {
+          "path": "crates/termrock-controls/src/split.rs",
+          "sha256": "bdf4e6d35e5aed7b4fb703a48edefab75e6b643222d1d9d8f00f5ae72907b913"
+        },
+        {
+          "path": "crates/termrock-core/src/edit_entry.rs",
+          "sha256": "45deb107f9acdac64021d6060dc8db32ca4bb3a972439c0eb1240c00653cabd4"
+        },
+        {
+          "path": "crates/termrock-core/src/event.rs",
+          "sha256": "2dca4f07ae0628e1023cf96017ce9bd2c0f8e2b987128e7bb46565f691978a49"
+        },
+        {
+          "path": "crates/termrock-core/src/intent.rs",
+          "sha256": "a15a2fc75cabb165eb629aa2b1127975e9c36216f1dc4a23ff6d1e989e11672d"
+        },
+        {
+          "path": "crates/termrock-core/src/keymap.rs",
+          "sha256": "a615d7f307bebec15dbe8162da93fbcb685ff7586ae79f1502ac2edcfd476e04"
+        },
+        {
+          "path": "crates/termrock-core/src/keys.rs",
+          "sha256": "7d7074995d76b8157f2824adf53898bdeeac580644ec63e1aaac9cf0b6b93914"
+        },
+        {
+          "path": "crates/termrock-core/src/list.rs",
+          "sha256": "c4adf6912504637903e809d8e9a3f03add358e536ed632a49cf268bcb0de5837"
+        },
+        {
+          "path": "crates/termrock-core/src/outcome.rs",
+          "sha256": "4fb08cdb753f0e8cc0486f4806f58c4f6b73d1d1a0209531c8023f07d53e7b2f"
+        },
+        {
+          "path": "crates/termrock-core/src/platform.rs",
+          "sha256": "83af5ec6f6aa0a6fd13146365b962b5d2d1fd7f2253fd6b993b4a91466f6745a"
+        },
+        {
+          "path": "crates/termrock-core/src/response.rs",
+          "sha256": "2a359c0a03d3f46fe466b196ecd699aeee5754c03d978fad015a8894151727ed"
+        },
+        {
+          "path": "crates/termrock-core/src/selection.rs",
+          "sha256": "fb5cd0fcf25760a81bae3d733ffe331e946d4db651c523fba2de7f987e70ef46"
+        },
+        {
+          "path": "crates/termrock-core/src/shape.rs",
+          "sha256": "607c1000176d4bb205e4479f3cd587e933e4354607cb0ffd8f06fb0ff88282f1"
+        },
+        {
+          "path": "crates/termrock-core/src/typeahead.rs",
+          "sha256": "a0050676c89221271b9b98f143110f8a64940a99f7ee323838adf7875adda225"
+        },
+        {
+          "path": "crates/termrock-editors/src/code.rs",
+          "sha256": "98f2e58afba660c8a407faefcc8613d4f2701c76b6d07fd69767e45883142c15"
+        },
+        {
+          "path": "crates/termrock-editors/src/completion.rs",
+          "sha256": "42ee00bd6a914cc734a3076d26496766008aa82f8b6f32c54e26c454746296ac"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "sha256": "03c902d3af81f0d2dd3a5416528eb0b52d7de871b594a3739f604ef757e4fa5b"
+        },
+        {
+          "path": "crates/termrock-feedback/src/accounts_detail.rs",
+          "sha256": "962b898fbeaff3b59fe04873daa83a0c7bc893b125a928b0604f9bdf6fa34f9b"
+        },
+        {
+          "path": "crates/termrock-feedback/src/accounts_drawer.rs",
+          "sha256": "07fe68f4fe237a5f01b67ecff9a666f2e7f6cec95662a76c43fc7986cd0af96f"
+        },
+        {
+          "path": "crates/termrock-feedback/src/accounts_filter.rs",
+          "sha256": "6e10264cbaef7b9ffa11cb65a69fe3f71a846cf4de0c6056d000568d168af7f6"
+        },
+        {
+          "path": "crates/termrock-feedback/src/capsule_menu.rs",
+          "sha256": "5d1722ba6076ed4d311f24ddacc65e9dbe05c266d078046ebf99b4bd585c8269"
+        },
+        {
+          "path": "crates/termrock-feedback/src/hintbar.rs",
+          "sha256": "6afe2f75cfb55201ee1e64fdd5ec463e4465258812922db662191f68c8d9efa1"
+        },
+        {
+          "path": "crates/termrock-feedback/src/inspector_body.rs",
+          "sha256": "e6f897eaeef356680f7b198ef718db3efd385ea0f0c5facfedfaaf3eec8fd5b9"
+        },
+        {
+          "path": "crates/termrock-feedback/src/manager_frame.rs",
+          "sha256": "38d806e0900dd38d5da3acf1f119d951ab2a2b6bc34ef2bae6b0ec68f57d7421"
+        },
+        {
+          "path": "crates/termrock-feedback/src/manager_split.rs",
+          "sha256": "f8a01aa61633bf9afdaed03b71cb1a5c4404e3030e89506f2f0fb65c1e3e4018"
+        },
+        {
+          "path": "crates/termrock-feedback/src/notice.rs",
+          "sha256": "9747d87b85393403e64c08add5639c43885447808c2887b0f5c05056bd6fdd7a"
+        },
+        {
+          "path": "crates/termrock-feedback/src/section.rs",
+          "sha256": "63e6e5a69fe6ed180f2ef3158633808c27cdf56c6fc1fdb1f4cf12463fc15e42"
+        },
+        {
+          "path": "crates/termrock-feedback/src/session_chrome.rs",
+          "sha256": "661351e180433f3a4de5a79444c73bbfb1f10ec0d4ceb4cb4232e1b08fc6858f"
+        },
+        {
+          "path": "crates/termrock-feedback/src/settings_page.rs",
+          "sha256": "0b173dcd0a9c98eed777183a6f7fc7b91d11eae1925abeb11c84b836f07f4279"
+        },
+        {
+          "path": "crates/termrock-feedback/src/usage_overview.rs",
+          "sha256": "2d2ed891001d09556408cb8c79662863441f8a7638065eb7316ebc949997a4df"
+        },
+        {
+          "path": "crates/termrock-feedback/src/zoom_pane.rs",
+          "sha256": "56520b9c18df00ac7b3437d80d5aae35023151e20c8c00c325b400349c814636"
+        },
+        {
+          "path": "crates/termrock-fields/src/edit.rs",
+          "sha256": "047eae7d84a9fea94bd53ba67f87a47452df01c3f44de77ea5b3d9f907619302"
+        },
+        {
+          "path": "crates/termrock-fields/src/field_error.rs",
+          "sha256": "a3841229d2fc1acbaa07f8edbcacb87fb2f24c4af02f2b7d646655b8696d76e8"
+        },
+        {
+          "path": "crates/termrock-fields/src/input.rs",
+          "sha256": "426f9dbff5c2f28026d7059cc35abbe54b4350c50f2b5dfb8c1885e90448b220"
+        },
+        {
+          "path": "crates/termrock-fields/src/textarea.rs",
+          "sha256": "af7d003f4876604595dfb6c6ccbce4accb732fc5d003a18daa7e3f307d29774e"
+        },
+        {
+          "path": "crates/termrock-forms/src/form.rs",
+          "sha256": "d4fad257dbc7f09cd3ebbea34109abbfa45d399dcf1ad8d85a8cca3aeb07ef14"
+        },
+        {
+          "path": "crates/termrock-forms/src/form_dialog.rs",
+          "sha256": "951604e2e68b340a942b609d2eb0556ebfd69001d37e8ecc607a411083ef8b48"
+        },
+        {
+          "path": "crates/termrock-forms/src/form_layout.rs",
+          "sha256": "f2e0df9705fd68106337878502aa3e2b06aa29b42c176a2a7a9593c446e2b987"
+        },
+        {
+          "path": "crates/termrock-grid/src/grid.rs",
+          "sha256": "4959b3dea01183b25e875d9a7c61750ca413b9d751d7a6ab89457ec3cad900dc"
+        },
+        {
+          "path": "crates/termrock-grid/src/grid_viewport.rs",
+          "sha256": "ce7421f0d5e7e7e913c28651375b29174267d38756defdd1076992e889e498a0"
+        },
+        {
+          "path": "crates/termrock-grid/src/table.rs",
+          "sha256": "25bc80c9ac657a1f3d767063c3ef029753b8edc356c7400d2d0f5fd337b76560"
+        },
+        {
+          "path": "crates/termrock-layout/src/columns.rs",
+          "sha256": "216ea4d2adb44dddf889c56500f04bc0c06ae0ec5152caecc07b2bbc3613c8af"
+        },
+        {
+          "path": "crates/termrock-layout/src/composition_plan.rs",
+          "sha256": "4287db5c0055e8466a87d3939288e97a062efdf58e54f9d4cb8794c4d9afc037"
+        },
+        {
+          "path": "crates/termrock-navigation/src/chip.rs",
+          "sha256": "e7594e10a2e4ef916da458902459d48adccd46669fef5bf25b95645aed6b92ad"
+        },
+        {
+          "path": "crates/termrock-navigation/src/filter_list.rs",
+          "sha256": "3c448fbf1389566216f3ec641ccd6ea9331e2e22472a08dfe4b55612e882a64a"
+        },
+        {
+          "path": "crates/termrock-navigation/src/item.rs",
+          "sha256": "c1768105774672ae3c8b9ab0f3ae71665a247b39a9634bb123a98b971c579cb2"
+        },
+        {
+          "path": "crates/termrock-navigation/src/list.rs",
+          "sha256": "4b9f9af321cc04ab9c2c435f83019444e17270a21974186c899926cb4ccf2194"
+        },
+        {
+          "path": "crates/termrock-navigation/src/nav_list.rs",
+          "sha256": "7ae15861e119c415f9b3d710007a91de88875bc3fdada52679ebb82befea9860"
+        },
+        {
+          "path": "crates/termrock-navigation/src/steps.rs",
+          "sha256": "fbb60a11086b158067a4137bcac0dc6c1b2484c054a52248f1dff6671429bc61"
+        },
+        {
+          "path": "crates/termrock-navigation/src/tabs.rs",
+          "sha256": "1690714efff8cbb74a4002d7f6d03e4b758f9f06f85302fa8888080b18b77186"
+        },
+        {
+          "path": "crates/termrock-navigation/src/tree.rs",
+          "sha256": "fb69447ae724491daf9f1a73a31845785e237dea6eeb22a19fa654d32396404e"
+        },
+        {
+          "path": "crates/termrock-overlays/src/cancel_card.rs",
+          "sha256": "f656f7043b27c9200c9c98b9faa72e757531071671e4f874b2c0ff169fe2cea2"
+        },
+        {
+          "path": "crates/termrock-overlays/src/completion.rs",
+          "sha256": "3c11258da2fdfc0c624816744988d40e763098af668b068f3c01f01d06e3b748"
+        },
+        {
+          "path": "crates/termrock-overlays/src/dialog.rs",
+          "sha256": "fa5ce37929352a9d13c1f0f2a62522d40220065b51ba74bb7cbdf177db1b7c7c"
+        },
+        {
+          "path": "crates/termrock-overlays/src/help.rs",
+          "sha256": "abcd63c6672db4f5170e3d20aa7edc212ae24b3066ccdd04fabbd8f9c4a1a8b8"
+        },
+        {
+          "path": "crates/termrock-overlays/src/info_card.rs",
+          "sha256": "1183b6fb4a036897d18434adeee1fad05c038d604c7be32000dffe9127b0dfc4"
+        },
+        {
+          "path": "crates/termrock-overlays/src/menu.rs",
+          "sha256": "2d7c3a4b1f15845f3ed8151c6b0f5edd8e7e00b7f977b7a6223a1a16a3b1e4ae"
+        },
+        {
+          "path": "crates/termrock-overlays/src/notice_reveal.rs",
+          "sha256": "be3fdce728f1e41a1e8e23117d83fc49c738c83d7d1eb8bf91c8c5f0f7847be4"
+        },
+        {
+          "path": "crates/termrock-overlays/src/picker.rs",
+          "sha256": "d3cd2076006de50e3d7aab9ece1ccf45fc022cbaceb982b01ecbc978322c4ec5"
+        },
+        {
+          "path": "crates/termrock-overlays/src/select.rs",
+          "sha256": "85310083315d1b41325ff58f1266bac624fd686d8f544dce5f53e9356adde85f"
+        },
+        {
+          "path": "crates/termrock-runtime/src/author.rs",
+          "sha256": "2df0147904edbc33d0552087be29a30beb7730d0b03da63b84cf2a1cfe3295c5"
+        },
+        {
+          "path": "crates/termrock-runtime/src/author/surface.rs",
+          "sha256": "c5c051f7bea4505e840d8fbe8e84bcea0ef9d97825e3d45067015f4bd18125d1"
+        },
+        {
+          "path": "crates/termrock-runtime/src/author/window.rs",
+          "sha256": "f7e0002aab3ab2acf2ad450924af87f818f975e16206b6fbae51b1a25c074d9f"
+        },
+        {
+          "path": "crates/termrock-runtime/src/capture.rs",
+          "sha256": "42232d92819052b5838e002f709fb9e311cb261a33ff613d10721da0f90f1944"
+        },
+        {
+          "path": "crates/termrock-runtime/src/decor.rs",
+          "sha256": "4fc8c1c883c385ecc90c57e6f1c6fd3502663c8f9021c3db7bd8b12264cc1c72"
+        },
+        {
+          "path": "crates/termrock-runtime/src/hit.rs",
+          "sha256": "b43e284719b095023a347c95772e528a1f00ab7d1687306710bf3acbe8458542"
+        },
+        {
+          "path": "crates/termrock-runtime/src/keymap.rs",
+          "sha256": "3005c1736fbdff5cdab247af749bed72bbe36a168bd24b4c3112f77d92f72a2b"
+        },
+        {
+          "path": "crates/termrock-runtime/src/layer.rs",
+          "sha256": "4143f2f3bd2eb6d93b36dda971f64c68373e71493278cf2181e4d8acc06566a9"
+        },
+        {
+          "path": "crates/termrock-runtime/src/rowui.rs",
+          "sha256": "c0d1a38eed9ce63c45be0eecc94d9e02a3c4f0d48319aa59ff40c9090b4524fe"
+        },
+        {
+          "path": "crates/termrock-runtime/src/runtime.rs",
+          "sha256": "67c764a59cf72730a4fb00f01d3e06db452cadf0e3aeca4602097eaba3d0490b"
+        },
+        {
+          "path": "crates/termrock-runtime/src/runtime/clipboard.rs",
+          "sha256": "42afc844c67cf7b99352b65f05c1236d365d5f11e7b68f5e0750f597fcfdcaaf"
+        },
+        {
+          "path": "crates/termrock-runtime/src/runtime/typing.rs",
+          "sha256": "3f14db47815a2a792372b2b68c296eb2add7b453e595c9d72ed2adfff1fef412"
+        },
+        {
+          "path": "crates/termrock-runtime/src/scroll_region.rs",
+          "sha256": "dee3287434187d858a763ea024df4a0565e35ec080c66276d52c9dbc41123e72"
+        },
+        {
+          "path": "crates/termrock-runtime/src/size_watch.rs",
+          "sha256": "9487a9fcdc1ee2d400f626bbbc652f4acf57a0f665691cf164854d4f1b533c1f"
+        },
+        {
+          "path": "crates/termrock-runtime/src/support.rs",
+          "sha256": "4bc15e561528b385b5b0af3fed4411bf2e2298d48ba8569ef48546a39bd79e90"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/command_scope.rs",
+          "sha256": "32aa331d6a9ea70627e94e23d0e3543e59e25df5493da75edf5f5a8f5330ccaa"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/composition.rs",
+          "sha256": "f45041b783579c81cdf4e487768572aac85f772ad32cd5054cbe8532ac19b5a2"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/cx.rs",
+          "sha256": "802a262a40a7f53a1e91325cfb34103be9cedc27463081b6b7443e8b172c4633"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/derived.rs",
+          "sha256": "7034edbf45567c6a395dcfd03f7f643f51c14eb0e40d78509409ebda3b2ba7b6"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/mod.rs",
+          "sha256": "b857b6bcd0cfab87e16d601db6aee35c4f91b7f53527b4d44e3191820e11b85e"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "sha256": "ce57fe0dd9f8620e76ce65e1ce58cfff4c0eb442a7f3bb35fef5add845f7703c"
+        },
+        {
+          "path": "crates/termrock-session/src/esc_bridge.rs",
+          "sha256": "3b307c41e047de8f2063d865329196b0af85d94e20381fa94c99b5c56c6a5cd2"
+        },
+        {
+          "path": "crates/termrock-session/src/session.rs",
+          "sha256": "4826223dc09a0ff6dd12ec141370458284ad146d3efd11b3cbf5a37c89ada928"
+        },
+        {
+          "path": "crates/termrock-shell/examples/shell_consumer.rs",
+          "sha256": "22cbf83c09449027d71f1762909ea6d9b21458cb2dc5fd04efbf2d836cac974e"
+        },
+        {
+          "path": "crates/termrock-shell/src/chrome.rs",
+          "sha256": "8ce0a3ba3e395af656978f2ec0484eabe1edbf65b30ba68822f1d5fa3309e3b3"
+        },
+        {
+          "path": "crates/termrock-shell/src/footer.rs",
+          "sha256": "f2fca6d82b9dabd9c013d15e0cac3c89936da08b3873f0c142c51889d694cc1d"
+        },
+        {
+          "path": "crates/termrock-shell/src/nav.rs",
+          "sha256": "7349cfa13c0b98c2ded8346acabd55f6ad7cc5ae4f759625726882b952ae6782"
+        },
+        {
+          "path": "crates/termrock-shell/src/page.rs",
+          "sha256": "a64ab5d4fd34a8504587561dd9ffadd9cb04c2aa2c29734900921fa7a2c9187e"
+        },
+        {
+          "path": "crates/termrock-shell/src/quit.rs",
+          "sha256": "c5df1184858a3bed5e408a5b9e5ba371e62c90591fbe7d2e3f92170f1e8290b8"
+        },
+        {
+          "path": "crates/termrock-shell/src/report.rs",
+          "sha256": "cc877b049c450ab8bd909eef650d4b9cb4de0f116d24e257faf333084a2eeced"
+        },
+        {
+          "path": "crates/termrock-shell/src/router.rs",
+          "sha256": "208a8dbc9b324bf282456b253f0c55ea902be593fdb927f31f9f8a6f3f75c20d"
+        },
+        {
+          "path": "crates/termrock-shell/src/shell.rs",
+          "sha256": "8b3315243155ac358ad0d2a69296b267b04fa37ea645061d215a2aaf7cccdd8f"
+        },
+        {
+          "path": "crates/termrock-shell/src/status.rs",
+          "sha256": "b79ea85ab7eb7ac5d58e0e896839992f105a4658a4b84bcf77b9389f3c12128f"
+        },
+        {
+          "path": "crates/termrock-terminal/src/keyboard.rs",
+          "sha256": "d9b48c477fb24e22cbe2259b8b9c888b6978950293bbd858877ffcbccea9b7e2"
+        },
+        {
+          "path": "crates/termrock-text/src/undo.rs",
+          "sha256": "4cc55e6acc7e62c28e249c0e8619d15f2561d7611341d7289197fe98645bf89c"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/junie.rs",
+          "sha256": "45c97e81ac66b4f7a048ced9d1612b5fe649ffa2fa206f55b1c78193f7f32a54"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "sha256": "5df36e27a74e8dcbdceb9d5a8342ca1e8e9f8343c776ef0ed000875d2c9b8265"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "sha256": "7e7622bb679ca2b95615ec0f59316084e21b6b48ce63402a0af5b1b59dd90542"
+        },
+        {
+          "path": "crates/termrock-theme/src/lib.rs",
+          "sha256": "43939c7eb75bb4bec8f294be8dc9b0b5bafb51433e8823563d34b3d46d7ae8c1"
+        },
+        {
+          "path": "crates/termrock-theme/src/palettes.rs",
+          "sha256": "6288a59495bccd5454edf0e62eac8ed22c7a1ae03e3eb83179bb1916c695af11"
+        },
+        {
+          "path": "crates/termrock-theme/src/recipe.rs",
+          "sha256": "5d4054e39da861a8c8ae3bcb49b596dbedc60c412e69b1ca46ab695a651fcec4"
+        },
+        {
+          "path": "crates/termrock-theme/src/resolve.rs",
+          "sha256": "995e13e3a21f5c1c3c73b5360978f91d1e5e439d52c15be87bda06efe6aaa401"
+        },
+        {
+          "path": "crates/termrock-theme/src/visual.rs",
+          "sha256": "7198e04f6c162246fa8ea131a722b9114a9e5dfee053c391412cc2f3ee20cb4c"
+        },
+        {
+          "path": "crates/termrock-viewport/src/viewport.rs",
+          "sha256": "a817e9e0bc50377c43d70a8e7d1fe7ac35a27ffee18c963c28a9f75ccbe4b29d"
+        },
+        {
+          "path": "crates/termrock/src/blocks/line.rs",
+          "sha256": "2329700ac2b9034259bcfd7c9fb22087bf25be6085cf8411033f661df9b13363"
+        },
+        {
+          "path": "crates/termrock/src/blocks/master_detail.rs",
+          "sha256": "587b959d1e8acb829f4cfbd4a81c848a70acc10fbede4986a3985d81e08b41b2"
+        },
+        {
+          "path": "crates/termrock/src/blocks/mod.rs",
+          "sha256": "279a7d32b2d4b6447c2c0684709b502935a7fb59c449bf8b4c4c10dd772ff2e4"
+        },
+        {
+          "path": "crates/termrock/src/blocks/section.rs",
+          "sha256": "f63d9277e1f651c5bbb54c201ea986320a505647eb483f049647b4eb832c425e"
+        },
+        {
+          "path": "crates/termrock/src/blocks/shell.rs",
+          "sha256": "963c8311d487bde33f6bae92513a22f1fea3c023c015171af64bc61ab6a4fa09"
+        },
+        {
+          "path": "crates/termrock/src/blocks/split.rs",
+          "sha256": "99439343cc31c962874eb94e8c00626f20a19058904b830c3e2346d98b86d8d4"
+        },
+        {
+          "path": "crates/termrock/src/blocks/status.rs",
+          "sha256": "a47eb4fa6c3a38427036f798eba128c1a005068ec2dc7a9345dcd30df636aacb"
+        },
+        {
+          "path": "crates/termrock/src/blocks/tabs.rs",
+          "sha256": "bf93daaf473d93b7d71427b8f9113b5a58ec07c566ba9c4c05457ff00592c5f2"
+        },
+        {
+          "path": "crates/termrock/src/composition.rs",
+          "sha256": "a5ffc35141923bd123be5325b9685ba50a8343c9c0e10d4bab4c260cf1f05f33"
+        },
+        {
+          "path": "crates/termrock/src/composition/adapters.rs",
+          "sha256": "ac64162cb722e2ca2f0f15f4167ee31a33d69f19e892b03f1c777fc422edb7d7"
+        },
+        {
+          "path": "crates/termrock/src/slots.rs",
+          "sha256": "df22eb3878ba9d6aa7ab19105c7a810d5f61bbd0a0a399355fd191c7d5f64fd5"
+        }
+      ]
+    }
+  },
+  "toolchain": {
+    "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13) (Homebrew)",
+    "rustfmt": "rustfmt 1.10.0-stable (58cf8f9c35 2026-10-13)",
+    "mise": "2026.10.19 macos-arm64 (2026-10-24)",
+    "mbx": "1.27.0",
+    "rustfmt_config": "rustfmt.toml style_edition = 2024",
+    "source_edition_count": {
+      "2024": 202
+    }
+  },
+  "formatter": {
+    "command": "mise exec -- rustfmt --edition 2024 --config skip_children=true <202 approved paths>",
+    "exit_status": 0,
+    "stdout_bytes": 0,
+    "stderr_bytes": 0,
+    "log": "docs/implementation/pr38-final/results/t37-format/rustfmt-apply.log",
+    "log_sha256": "54d9673881f41dc30b9eacc963d2292b80b5242dafe8568a97a65a9a7640f388",
+    "module_recursion": "Disabled with skip_children=true."
+  },
+  "baseline_format_failure": {
+    "source_head": "55c75d292f5288b07f4a779575a42431259e21c4",
+    "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check",
+    "exit_status": 1,
+    "log_path": "docs/implementation/pr38-final/results/t37-metadata/format-check-final.log",
+    "log_sha256": "b48a9855e94b3ac1528495875df6a78a217fb9b6e1507d3257c8547dc8ecb97d",
+    "summary": {
+      "unique_affected_paths": 202,
+      "diff_blocks": 1792,
+      "changed_blank_lines": 3940,
+      "changed_nonblank_lines": 66,
+      "nonblank_change_paths": [
+        "crates/holla-sim/src/task_run.rs",
+        "crates/holla-ui/src/app.rs",
+        "crates/termrock-core/src/selection.rs",
+        "crates/termrock-feedback/src/hintbar.rs",
+        "crates/termrock-feedback/src/settings_page.rs",
+        "crates/termrock-navigation/src/tabs.rs",
+        "crates/termrock-runtime/src/keymap.rs",
+        "crates/termrock-runtime/src/ui/cx.rs",
+        "crates/termrock-theme/src/lib.rs",
+        "crates/termrock-viewport/src/viewport.rs"
+      ]
+    },
+    "summary_sha256": "c6649f556b9d96ef3e751e235aa3308edbc6cc4dbadfd3de02c9aa54a628b0a4"
+  },
+  "format_check": {
+    "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check",
+    "exit_status": 0,
+    "log_path": "docs/implementation/pr38-final/results/t37-format/format-check-final.log",
+    "log_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522",
+    "scope": "Workspace format check only; no build or test ran."
+  },
+  "diff": {
+    "git_diff_check": "passed; exit status 0; no diagnostics",
+    "approved_path_count": 202,
+    "source_insertions": 39,
+    "source_deletions": 3967,
+    "paths_with_nonblank_changes": 10,
+    "unmodified_out_of_scope_files": true
+  },
+  "token_preservation": {
+    "record": "docs/implementation/pr38-final/results/t37-format/token-preservation.json",
+    "sha256": "76d84237a00b031307172b707a36109fe35f1056c5a9cd8b6a35ea826ca58592",
+    "files_compared": 202,
+    "comments_and_positions_equal": true,
+    "literal_tokens_equal": true,
+    "attributes_exact_equal": true,
+    "non_trailing_token_mismatches": [
+      "crates/holla-ui/src/app.rs"
+    ],
+    "exact_high_decision": "T37-FMT-BLOCK-01",
+    "trailing_comma_count_change_paths": [
+      "crates/holla-sim/src/task_run.rs",
+      "crates/termrock-core/src/selection.rs",
+      "crates/termrock-feedback/src/settings_page.rs",
+      "crates/termrock-navigation/src/tabs.rs",
+      "crates/termrock-viewport/src/viewport.rs"
+    ]
+  },
+  "independent_decisions": [
+    {
+      "id": "T37-FMT-BLOCK-01",
+      "reviewer": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "decision": "Accepted exact pinned-formatter block elision in holla-ui/src/app.rs only.",
+      "source_scope": "Fixed-input lines 2139-2142 collapse to formatted line 2064. Sole tail expression Some(files::LIST); no statements, locals, attributes, unsafe scope, or destructor-sensitive temporary.",
+      "limits": "No manual rewrite authority or general block-elision allowance. Final exact format commit review remains pending."
+    },
+    {
+      "id": "T37-ORPHAN-CAPTURE-01",
+      "status": "out of scope; preserve source for separate owner after this unit review/integration",
+      "path": "crates/holla-sim/src/listeners.rs",
+      "limit": "Formatting only here. Do not remove PortConflict::capture or edit its semantic source in this unit."
+    }
+  ],
+  "disk_check": {
+    "command": "/Users/donbeave/.local/bin/disk-check",
+    "free_bytes_before_workspace_format_check": 2135285858304,
+    "status": "ok",
+    "cleanup_action": "none; above 2,000,000,000,000-byte cleanup gate."
+  },
+  "not_run": {
+    "builds": 0,
+    "tests": 0,
+    "selected_behavior_cases": 0,
+    "behavior_status": "NOT VERIFIED",
+    "reason": "Formatting-only T37 follow-up. No product behavior or build claim."
+  },
+  "review": {
+    "product_or_behavior_review": "not applicable to formatting-only unit",
+    "independent_exact_output_review": "pending Sol high review of committed exact output",
+    "commit": "The Git commit containing this record; commit SHA is reported by the worker and is not embedded to avoid self-reference."
+  },
+  "limits": [
+    "No source, test, manifest, lock, configuration, contract, CI, generated output, or immutable reference outside the approved 202 Rust paths changed.",
+    "No tests, harnesses, fixtures, or replacement gates were added.",
+    "No product behavior, API, lint, or safety change was made.",
+    "PortConflict::capture remains unchanged pending its separate owner disposition."
+  ],
+  "assignment": {
+    "worker_id": "/root/t37_format",
+    "role": "T37 formatting correction implementer",
+    "model": "gpt-6-luna",
+    "effort": "max",
+    "nested_agents": 0,
+    "selection_limit": "Only the 202 approved Rust paths and docs/implementation/pr38-final/results/t37-format/**."
+  },
+  "nonblank_diff": {
+    "command": "git diff --ignore-blank-lines --unified=0 -- <202 approved paths>",
+    "record": "docs/implementation/pr38-final/results/t37-format/nonblank-diff.log",
+    "sha256": "7afe7fe3120d7db1feb9b66d36fb649d910e6b68795975b9ec6132efb1e2c00d",
+    "changed_file_count": 10,
+    "paths_and_formatter_changes": [
+      {
+        "path": "crates/holla-sim/src/task_run.rs",
+        "change": "Enum struct variants use rustfmt layout."
+      },
+      {
+        "path": "crates/holla-ui/src/app.rs",
+        "change": "Exact Route::Files single-expression block elision accepted by T37-FMT-BLOCK-01."
+      },
+      {
+        "path": "crates/termrock-core/src/selection.rs",
+        "change": "Enum struct variant uses rustfmt layout."
+      },
+      {
+        "path": "crates/termrock-feedback/src/hintbar.rs",
+        "change": "Nested expression block uses rustfmt layout."
+      },
+      {
+        "path": "crates/termrock-feedback/src/settings_page.rs",
+        "change": "Error enum struct variants use rustfmt layout."
+      },
+      {
+        "path": "crates/termrock-navigation/src/tabs.rs",
+        "change": "Enum struct variants use rustfmt layout."
+      },
+      {
+        "path": "crates/termrock-runtime/src/keymap.rs",
+        "change": "Empty impl uses rustfmt layout."
+      },
+      {
+        "path": "crates/termrock-runtime/src/ui/cx.rs",
+        "change": "Closing brace uses rustfmt indentation."
+      },
+      {
+        "path": "crates/termrock-theme/src/lib.rs",
+        "change": "Closing brace uses rustfmt indentation."
+      },
+      {
+        "path": "crates/termrock-viewport/src/viewport.rs",
+        "change": "Tuple expression uses rustfmt layout."
+      }
+    ]
+  }
+}

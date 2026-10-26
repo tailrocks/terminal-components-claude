@@ -1,0 +1,61 @@
+rust build guard: allowed; checked 1 filesystem(s)
+    Checking termrock-core v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-core)
+    Checking tablepro-sql v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/tablepro-sql)
+    Checking termrock-theme v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-theme)
+    Checking termrock-layout v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-layout)
+    Checking holla-domain v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/holla-domain)
+    Checking holla-plan v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/holla-plan)
+    Checking holla-catalog v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/holla-catalog)
+    Checking holla-sim v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/holla-sim)
+    Checking termrock-text v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-text)
+    Checking termrock-render v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-render)
+    Checking termrock-collections v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-collections)
+    Checking termrock-runtime v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime)
+    Checking termrock-controls v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls)
+    Checking termrock-shell v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-shell)
+    Checking termrock-viewport v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-viewport)
+    Checking termrock-fields v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-fields)
+    Checking termrock-feedback v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback)
+    Checking termrock-terminal v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-terminal)
+    Checking termrock-session v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-session)
+warning: unnecessary braces around block return value
+   --> crates/termrock-feedback/src/hintbar.rs:193:9
+    |
+193 |         { self.status.flags() }
+    |         ^^                   ^^
+    |
+    = note: `#[warn(unused_braces)]` (part of `#[warn(unused)]`) on by default
+help: remove these braces
+    |
+193 -         { self.status.flags() }
+193 +         self.status.flags()
+    |
+
+warning: `termrock-feedback` (lib) generated 1 warning (run `cargo fix --lib -p termrock-feedback` to apply 1 suggestion)
+    Checking termrock-navigation v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation)
+    Checking termrock-overlays v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays)
+    Checking termrock-forms v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-forms)
+    Checking termrock-editors v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-editors)
+    Checking termrock-grid v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-grid)
+    Checking termrock v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock)
+    Checking jackin-preview-domain v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/jackin-preview-domain)
+    Checking showcase-data v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/showcase-data)
+    Checking tablepro-domain v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/tablepro-domain)
+    Checking holla-ui v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/holla-ui)
+    Checking termrock-consumer-example v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-consumer-example)
+    Checking showcase-demos v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/showcase-demos)
+    Checking jackin-preview-sim v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/jackin-preview-sim)
+    Checking jackin-preview-presentation v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/jackin-preview-presentation)
+    Checking tablepro-ui v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/tablepro-ui)
+    Checking jackin-preview-capsule-ui v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/jackin-preview-capsule-ui)
+    Checking jackin-preview-host-ui v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/jackin-preview-host-ui)
+    Checking jackin-preview-app v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/jackin-preview-app)
+    Checking holla v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/holla)
+    Checking tablepro v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/tablepro)
+    Checking showcase-ui v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/showcase-ui)
+    Checking showcase v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/showcase)
+    Checking visual-harness v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/visual-harness)
+    Checking jackin-preview v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/jackin-preview)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.79s
+mbx[cache]: 0 hits, 2 misses, 57 not looked up, 59 incremental; 0 B downloaded, 0 B uploaded, 0 B stored locally
+mbx[savings]: 6.1 TiB shared among checkouts that each believe they are an only child.

@@ -133,9 +133,3 @@ fn render_json(report: &termrock_xtask::ownership::Report) -> String {
     out.push_str("]}");
     out
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_xtask_binary_entry() {}
-}

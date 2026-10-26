@@ -1,5 +1,3 @@
-//! Narrow workspace manager frame, composed from the live world state.
-
 use termrock::feedback::{
     ManagerFrame, ManagerFrameLayout, ManagerLeaf, paint_manager_frame_with_layout,
 };
@@ -22,11 +20,6 @@ pub(super) struct Presentation {
     rows: Vec<PresentedRow>,
 }
 
-/// The paused narrow manager paints the approved frame while every
-/// transient state stays closed and the list rests on its first row at the top
-/// of its scroll range or has one active press on a painted row.
-///
-/// Prepare one row/key layout for both the full-screen painter and its owner.
 pub(super) fn prepare(app: &App, ui: &Ui<'_>, screen: Rect) -> Option<Presentation> {
     if !(screen.width < 120
         && app.route == Route::Manager
@@ -61,8 +54,6 @@ pub(super) fn prepare(app: &App, ui: &Ui<'_>, screen: Rect) -> Option<Presentati
         });
     }
 
-    // The prior exact area proves this press began in the painted-row owner,
-    // not in the stock list after it handed off to a scrolled presentation.
     let frame_owner_was_presented = ui.area(crate::MANAGER_LIST) == Some(layout.rows_area());
     let pressed_row = frame_owner_was_presented
         && ui
@@ -147,7 +138,6 @@ fn leaf_for(app: &App, workspace: &crate::domain::workspace::Workspace) -> LeafM
     }
 }
 
-/// Register the only manager-list owner at the painted leaf rows.
 pub(super) fn register(app: &App, ui: &mut Ui<'_>, presentation: &Presentation) {
     let area = presentation.layout.rows_area();
     if ui.is_inert() || area.is_empty() {
@@ -167,7 +157,7 @@ pub(super) fn register(app: &App, ui: &mut Ui<'_>, presentation: &Presentation) 
     }
     let viewport = usize::from(area.height);
     let mut scroll = *app.manager.list.scroll();
-    // App::manager_list uses the default one-line rows with no gaps.
+
     scroll.apply_layout(viewport, app.manager_rows_cache.len().max(viewport));
     ui.register_scroll(
         crate::MANAGER_LIST,
@@ -187,8 +177,6 @@ pub(super) fn register(app: &App, ui: &mut Ui<'_>, presentation: &Presentation) 
     );
 }
 
-/// Register row hits after the content Panel's decorative chrome so it cannot
-/// mask the visible painted-row labels.
 pub(super) fn register_rows(ui: &mut Ui<'_>, presentation: &Presentation) {
     if ui.is_inert() {
         return;
@@ -203,10 +191,8 @@ pub(super) fn register_rows(ui: &mut Ui<'_>, presentation: &Presentation) {
 }
 
 pub(super) fn paint(app: &App, ui: &mut Ui<'_>, presentation: &Presentation) {
-    // Approved frame hides the cursor. This path must not call set_cursor
-    // or set_bar_cursor, and it must not write cursor bytes.
     let menus = ["File", "Go", "Help"];
-    // The page list ends with the new-workspace action row.
+
     let unassigned = app.manager_instances(None).count();
     let total = 2 + app.world.workspaces.len() + unassigned;
     let shown = presentation.rows.len();
@@ -333,8 +319,6 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>, presentation: &Presentation) {
     );
 }
 
-/// Truncate to the cell budget and close with an ellipsis on a word
-/// boundary, matching the approved frame's clipped warning.
 fn fit_with_ellipsis(text: &str, budget: u16) -> String {
     let budget = usize::from(budget);
     if text.chars().count() <= budget {

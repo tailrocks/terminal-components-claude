@@ -1,0 +1,495 @@
+{
+  "schema": "t37.safety-rationale-transfer.v1",
+  "task_id": "T37",
+  "work_input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "source_comparison": "Owned source paths at work input match the product source commit.",
+  "scope": "Rust safety comments in the ten assigned Termrock crates.",
+  "policy": "Transfer production rationale to maintained safety contracts before removing source comments. Preserve current unsafe lints. Remove test-only rationale with its legacy test code.",
+  "records": [
+    {
+      "path": "crates/termrock-runtime/tests/clock_paste.rs",
+      "source_sha256": "e72e1a58b7b814e24bf1812e1df0e37834c6976dac5ea004fe5d7dc9eca9fec0",
+      "comment_start_line": 27,
+      "comment_end_line": 29,
+      "lines": [
+        "            // SAFETY: nextest runs this integration test in its own process. Drop writes the",
+        "            // previous value back before the test returns, and no other thread in this process",
+        "            // reads or writes `JUNIE_TUI_TEST_CLOCK`."
+      ],
+      "next_unsafe_line": 30,
+      "disposition": "test-only source removed with legacy test code"
+    },
+    {
+      "path": "crates/termrock-runtime/tests/clock_paste.rs",
+      "source_sha256": "e72e1a58b7b814e24bf1812e1df0e37834c6976dac5ea004fe5d7dc9eca9fec0",
+      "comment_start_line": 34,
+      "comment_end_line": 34,
+      "lines": [
+        "            // SAFETY: same isolation as `set_var`. Removing the variable is the unset case."
+      ],
+      "next_unsafe_line": 35,
+      "disposition": "test-only source removed with legacy test code"
+    },
+    {
+      "path": "crates/termrock-runtime/tests/clock_paste.rs",
+      "source_sha256": "e72e1a58b7b814e24bf1812e1df0e37834c6976dac5ea004fe5d7dc9eca9fec0",
+      "comment_start_line": 47,
+      "comment_end_line": 47,
+      "lines": [
+        "            // SAFETY: restores the value captured before this test changed the variable."
+      ],
+      "next_unsafe_line": 48,
+      "disposition": "test-only source removed with legacy test code"
+    },
+    {
+      "path": "crates/termrock-runtime/tests/clock_paste.rs",
+      "source_sha256": "e72e1a58b7b814e24bf1812e1df0e37834c6976dac5ea004fe5d7dc9eca9fec0",
+      "comment_start_line": 52,
+      "comment_end_line": 52,
+      "lines": [
+        "            // SAFETY: the variable was absent on entry; remove any value this test set."
+      ],
+      "next_unsafe_line": 53,
+      "disposition": "test-only source removed with legacy test code"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 271,
+      "comment_end_line": 271,
+      "lines": [
+        "            // SAFETY: `real` is an owned duplicate of the tty stdin captured by install."
+      ],
+      "next_unsafe_line": 272,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 564,
+      "comment_end_line": 564,
+      "lines": [
+        "    // SAFETY: `fd` is the bridge-owned tty and `path` is writable C-string storage."
+      ],
+      "next_unsafe_line": 565,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 624,
+      "comment_end_line": 626,
+      "lines": [
+        "    // SAFETY: `path` was validated as an absolute NUL-terminated path. The",
+        "    // flags create an independent nonblocking descriptor without acquiring a",
+        "    // controlling tty."
+      ],
+      "next_unsafe_line": 627,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 631,
+      "comment_end_line": 631,
+      "lines": [
+        "    // SAFETY: the successful `open` returned a new descriptor owned by this call."
+      ],
+      "next_unsafe_line": 632,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 638,
+      "comment_end_line": 638,
+      "lines": [
+        "        // SAFETY: `stat` is valid writable storage for `fstat`."
+      ],
+      "next_unsafe_line": 639,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 642,
+      "comment_end_line": 642,
+      "lines": [
+        "        // SAFETY: successful `fstat` initialized the structure."
+      ],
+      "next_unsafe_line": 643,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 656,
+      "comment_end_line": 656,
+      "lines": [
+        "    // SAFETY: `endpoint_fd` is the owned descriptor created with O_NONBLOCK."
+      ],
+      "next_unsafe_line": 657,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 689,
+      "comment_end_line": 689,
+      "lines": [
+        "    // SAFETY: `pollfd` points to one initialized descriptor owned by the probe."
+      ],
+      "next_unsafe_line": 690,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 701,
+      "comment_end_line": 701,
+      "lines": [
+        "    // SAFETY: `query` is readable and `fd` is the owned O_NONBLOCK endpoint."
+      ],
+      "next_unsafe_line": 702,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 711,
+      "comment_end_line": 711,
+      "lines": [
+        "    // SAFETY: `buffer` is writable and `fd` is the owned O_NONBLOCK endpoint."
+      ],
+      "next_unsafe_line": 712,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 874,
+      "comment_end_line": 874,
+      "lines": [
+        "    // SAFETY: `bridge.real` is the dup of the tty stdin from `install`."
+      ],
+      "next_unsafe_line": 875,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 991,
+      "comment_end_line": 991,
+      "lines": [
+        "        // SAFETY: `pollfd` points at one struct for this fd, which `install` opened."
+      ],
+      "next_unsafe_line": 992,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1010,
+      "comment_end_line": 1010,
+      "lines": [
+        "        // SAFETY: `buf` is a writable buffer and `fd` is the real tty."
+      ],
+      "next_unsafe_line": 1011,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1033,
+      "comment_end_line": 1033,
+      "lines": [
+        "        // SAFETY: `bytes` is the caller's chunk and `fd` is the side pty master."
+      ],
+      "next_unsafe_line": 1035,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1049,
+      "comment_end_line": 1049,
+      "lines": [
+        "    // SAFETY: duplicating stdin. Ownership of the new descriptor is transferred below."
+      ],
+      "next_unsafe_line": 1050,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1054,
+      "comment_end_line": 1054,
+      "lines": [
+        "    // SAFETY: `dup` returned a new valid descriptor owned by this function."
+      ],
+      "next_unsafe_line": 1055,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1056,
+      "comment_end_line": 1056,
+      "lines": [
+        "    // SAFETY: `fd` is an open descriptor returned by `dup`."
+      ],
+      "next_unsafe_line": 1057,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1072,
+      "comment_end_line": 1073,
+      "lines": [
+        "    // SAFETY: openpty writes the two fds. Null name, termios, and size keep",
+        "    // the implementation defaults."
+      ],
+      "next_unsafe_line": 1074,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1086,
+      "comment_end_line": 1086,
+      "lines": [
+        "    // SAFETY: successful `openpty` returned two new open descriptors owned here."
+      ],
+      "next_unsafe_line": 1087,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1088,
+      "comment_end_line": 1088,
+      "lines": [
+        "    // SAFETY: successful `openpty` returned two new open descriptors owned here."
+      ],
+      "next_unsafe_line": 1089,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1094,
+      "comment_end_line": 1094,
+      "lines": [
+        "    // SAFETY: `tcgetattr` fills `attrs` for this open tty fd."
+      ],
+      "next_unsafe_line": 1095,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1105,
+      "comment_end_line": 1105,
+      "lines": [
+        "    // SAFETY: `attrs` is a complete termios value and `fd` is an open tty."
+      ],
+      "next_unsafe_line": 1106,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1113,
+      "comment_end_line": 1113,
+      "lines": [
+        "    // SAFETY: `tcgetattr` fills `attrs` for this open tty fd."
+      ],
+      "next_unsafe_line": 1114,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1121,
+      "comment_end_line": 1121,
+      "lines": [
+        "    // SAFETY: `cfmakeraw` only rewrites the termios flags in `attrs`."
+      ],
+      "next_unsafe_line": 1122,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1123,
+      "comment_end_line": 1123,
+      "lines": [
+        "    // SAFETY: `attrs` came from `tcgetattr` on this same fd."
+      ],
+      "next_unsafe_line": 1124,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1131,
+      "comment_end_line": 1131,
+      "lines": [
+        "    // SAFETY: `fd` is one of the bridge fds just opened."
+      ],
+      "next_unsafe_line": 1132,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1136,
+      "comment_end_line": 1136,
+      "lines": [
+        "    // SAFETY: same fd, setting the close-on-exec bit only."
+      ],
+      "next_unsafe_line": 1137,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1144,
+      "comment_end_line": 1144,
+      "lines": [
+        "    // SAFETY: `fd` is the open side-pty slave descriptor owned by `install`."
+      ],
+      "next_unsafe_line": 1145,
+      "disposition": "source comment removed after accepted transfer; unsafe operation remains"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1248,
+      "comment_end_line": 1248,
+      "lines": [
+        "        // SAFETY: `fd` is open and `dup` returns a new descriptor on success."
+      ],
+      "next_unsafe_line": 1249,
+      "disposition": "test-only source removed with legacy test code"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1253,
+      "comment_end_line": 1253,
+      "lines": [
+        "        // SAFETY: `dup` returned a new descriptor owned by this function."
+      ],
+      "next_unsafe_line": 1254,
+      "disposition": "test-only source removed with legacy test code"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1258,
+      "comment_end_line": 1258,
+      "lines": [
+        "        // SAFETY: `fstat` initializes each value for the supplied open descriptor."
+      ],
+      "next_unsafe_line": 1259,
+      "disposition": "test-only source removed with legacy test code"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1266,
+      "comment_end_line": 1266,
+      "lines": [
+        "        // SAFETY: `fstat` initializes each value for the supplied open descriptor."
+      ],
+      "next_unsafe_line": 1267,
+      "disposition": "test-only source removed with legacy test code"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1294,
+      "comment_end_line": 1294,
+      "lines": [
+        "        // SAFETY: F_GETFD only inspects this descriptor number."
+      ],
+      "next_unsafe_line": 1295,
+      "disposition": "test-only source removed with legacy test code"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1738,
+      "comment_end_line": 1738,
+      "lines": [
+        "        // SAFETY: F_GETFL only reads the open PTY descriptor's status flags."
+      ],
+      "next_unsafe_line": 1739,
+      "disposition": "test-only source removed with legacy test code"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1747,
+      "comment_end_line": 1747,
+      "lines": [
+        "        // SAFETY: F_GETFL only observes this independently opened endpoint."
+      ],
+      "next_unsafe_line": 1748,
+      "disposition": "test-only source removed with legacy test code"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 1751,
+      "comment_end_line": 1751,
+      "lines": [
+        "        // SAFETY: F_GETFL only reads the bridge-owned PTY descriptor."
+      ],
+      "next_unsafe_line": 1753,
+      "disposition": "test-only source removed with legacy test code"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 2047,
+      "comment_end_line": 2047,
+      "lines": [
+        "        // SAFETY: F_GETFL only reads the bridge-owned PTY descriptor."
+      ],
+      "next_unsafe_line": 2048,
+      "disposition": "test-only source removed with legacy test code"
+    },
+    {
+      "path": "crates/termrock-session/src/esc_bridge.rs",
+      "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
+      "comment_start_line": 2093,
+      "comment_end_line": 2093,
+      "lines": [
+        "        // SAFETY: F_GETFL only reads the bridge-owned PTY descriptor."
+      ],
+      "next_unsafe_line": 2095,
+      "disposition": "test-only source removed with legacy test code"
+    }
+  ],
+  "record_count": 42,
+  "safety_transfer_acceptance": {
+    "decision_id": "T37-SAFETY-01",
+    "reviewed_source_commit": "d92192664d0490e1b750029bf8c8a715217af4d4",
+    "integrated_contract_commit": "58daa658503503eec4fc907c3590f978586f5068",
+    "contract_path": "docs/contracts/safety-invariants.md",
+    "production_group_count": 28,
+    "unsafe_block_count_preserved": 28,
+    "lint_policy_changed": false,
+    "mapping_source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8"
+  },
+  "source_comment_removal": {
+    "path": "crates/termrock-session/src/esc_bridge.rs",
+    "removed_groups": 28,
+    "removed_comment_lines": 31,
+    "all_unsafe_tokens_preserved_by_token_audit": true
+  }
+}

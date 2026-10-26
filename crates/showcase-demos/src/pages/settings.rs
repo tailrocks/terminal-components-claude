@@ -202,7 +202,7 @@ fn member_row(member: &Member, row: &mut RowUi<'_>) {
         .min(MEMBER_STATUS_MAX_WIDTH);
     if status_width > 0 {
         let mut status = row.part(Part::META, status_width);
-        // DotOn and DotOff each reserve one terminal cell at the end.
+
         let text_width = status.available_width().saturating_sub(1);
         let (head, ellipsis) = truncate_parts(member.lifecycle.label(), text_width);
         status.text(head).text(ellipsis).suffix_style(
@@ -431,7 +431,7 @@ const NARROW_W: u16 = 59;
 const NARROW_GUTTER: u16 = 2;
 const NARROW_SCROLL_CONTENT: u16 = 25;
 const COMPACT_W: u16 = 51;
-// 11×11/24 = 5 thumb rows on the 72×20 bar.
+
 const COMPACT_SCROLL_CONTENT: u16 = 24;
 const SCROLL_THUMB: u32 = 0x0080_8080;
 const SCROLL_TRACK: u32 = 0x0047_4747;
@@ -1088,8 +1088,7 @@ impl Page for SettingsPage {
         }
 
         let mut result = Response::ignored();
-        // The editor mode may have just closed while Runtime still has its
-        // focus-retirement notification queued for the Back owner.
+
         result |= member_back_button().update(cx).erase();
         let tabs = Tabs::new(TAB).update(cx, &mut self.tabs, TABS);
         if let Some(TabsAction::Activated(key)) = tabs.action_ref() {
@@ -1189,8 +1188,8 @@ impl Page for SettingsPage {
                             "Member details · edit Name and Role; Email and Last active are read-only",
                             ink(SECONDARY, SURFACE),
                         );
-                        // Keep the regular Grid band, moving Back to the last row
-                        // only when a shortened frame clips its normal action row.
+
+
                         let back_row = if body.height > 16 {
                             16
                         } else {

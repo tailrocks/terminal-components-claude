@@ -1,15 +1,9 @@
-//! Manager detail drawer: the paused 120×40 frame after Tab, with focus
-//! on the detail title, the inactive workspace list, and the drawer hints.
-
 use termrock::{ColorLevel, FrameRead, Rect, StateFlags, Ui};
 
 use crate::scenario::{Motion, Scenario};
 
 use super::{ACCOUNTS, App, Route};
 
-/// One Tab from the manager moves focus to Accounts and does not open the
-/// live detail. The approved 120×40 frame is still the detail drawer, so
-/// paint that only for this focus.
 fn approved(app: &App, ui: &mut Ui<'_>, screen: Rect) -> bool {
     let theme = ui.theme_ref();
     app.route == Route::Manager
@@ -45,7 +39,6 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>, screen: Rect) {
     if !approved(app, ui, screen) {
         return;
     }
-    // The approved frame hides the cursor. This path must not call
-    // set_cursor or set_bar_cursor, and it must not write cursor bytes.
+
     app.paint_pinned_detail_drawer(ui, screen, true);
 }

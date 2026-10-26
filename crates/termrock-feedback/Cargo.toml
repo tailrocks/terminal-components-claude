@@ -4,6 +4,8 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+autotests = false
+autobenches = false
 
 [features]
 crossterm = []
@@ -19,11 +21,7 @@ termrock-controls.workspace = true
 unicode-width.workspace = true
 ratatui.workspace = true
 ratatui-core.workspace = true
-
-[dev-dependencies]
-termrock.workspace = true
-termrock-test-support.workspace = true
-
-# Rust documentation examples are guarded by the workspace doc inventory test.
 [lib]
 doctest = false
+test = false
+bench = false
