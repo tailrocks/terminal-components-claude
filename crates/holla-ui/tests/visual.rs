@@ -737,10 +737,45 @@ fn holla_visual_baseline() {
                         }
                         continue;
                     }
-                    harness(scenario, theme.clone(), width, height, color)
-                        .snapshot()
-                        .named(scenario.name())
-                        .assert_against(&BASELINE);
+                    let ordinary = harness(scenario, theme.clone(), width, height, color);
+                    let scene = ordinary.snapshot().named(scenario.name());
+                    if scenario == Scenario::MonorepoRoot
+                        && width == 80
+                        && height == 24
+                        && theme == Theme::junie()
+                        && color == ColorLevel::TrueColor
+                    {
+                        // `monorepo_root_truecolor_port_visibility_ab_characterization` owns
+                        // the held digest and checks this normal model's full-cell locality.
+                        assert_eq!(
+                            scene.key(),
+                            "monorepo-root 80 24 junie truecolor",
+                            "the relocated key is the exact named historical entry"
+                        );
+                        assert_eq!(
+                            ordinary.cursor(),
+                            Some(Position { x: 3, y: 4 }),
+                            "ordinary MonorepoRoot TrueColor cursor"
+                        );
+                        assert_eq!(
+                            ordinary.area_of(HOME_ROWS),
+                            Some(Rect::new(1, 6, 78, 15)),
+                            "ordinary Home rows geometry"
+                        );
+                        assert_eq!(
+                            ordinary.area_of_part(HOME_ROWS, PartRef::of(Part::TRACK)),
+                            Some(Rect::new(78, 6, 1, 15)),
+                            "ordinary Home track geometry"
+                        );
+                        assert!(
+                            ordinary
+                                .area_of_part(HOME_ROWS, PartRef::of(Part::THUMB))
+                                .is_some(),
+                            "ordinary Home thumb is registered"
+                        );
+                    } else {
+                        scene.assert_against(&BASELINE);
+                    }
                 }
             }
         }
