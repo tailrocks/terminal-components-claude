@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::fs;
+use std::io::Write;
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -3631,6 +3631,16 @@ fn renderer_identity(profile: &tuiscotti::profile::RenderProfile<'_>) -> Rendere
         cursor_policy: format!("{:?}", profile.cursor()),
         blink_phase: format!("{:?}", profile.blink_phase()),
         missing_glyph_policy: format!("{:?}", profile.missing()),
+    }
+}
+
+fn checkpoint_substep(case: &Case, checkpoint: &str) -> String {
+    match checkpoint {
+        "00-boot" => format!("{}/boot", case.substep),
+        "01-help" => case.substep.clone(),
+        "02-finder" => format!("{}/closed", case.substep),
+        "03-help-again" => format!("{}/reopened", case.substep),
+        other => format!("{}/{other}", case.substep),
     }
 }
 
