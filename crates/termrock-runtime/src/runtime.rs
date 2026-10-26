@@ -2328,6 +2328,20 @@ impl<A: App> Runtime<A> {
         r
     }
 
+    #[cfg(feature = "testing")]
+    pub fn draw_scene(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        f: impl FnOnce(&mut Ui<'_>, Rect),
+    ) -> PaintedFrame<'_, A> {
+        self.draw_with_buffer(area, buf, None, |_, ui| f(ui, area));
+        PaintedFrame {
+            runtime: self,
+            committed: false,
+        }
+    }
+
     pub fn draw(&mut self, frame: &mut Frame<'_>) -> PaintedFrame<'_, A> {
         self.refuse_legacy_continuation_draw();
         let area = frame.area();
