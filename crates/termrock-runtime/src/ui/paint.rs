@@ -3,6 +3,7 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier, Style};
 
 use super::{Target, Ui};
+use crate::author::VerticalWindow;
 use crate::scroll::ScrollState;
 use crate::text::Span;
 use crate::text::clusters::ClusterFeed;
@@ -149,6 +150,60 @@ impl Ui<'_> {
 
     pub fn scroll_edges(&mut self, area: Rect, state: &ScrollState) {
         self.scroll_edges_except(area, state, &[]);
+    }
+
+    /// Fade only the true logical edges represented by a visible component window.
+    ///
+    /// The window columns must already be the intended text and gap strip. The
+    /// blend background is sampled from cells painted in the visible area.
+    pub fn scroll_edges_window(&mut self, window: VerticalWindow, state: &ScrollState) {
+        let area = window.visible_body().intersection(self.clip);
+        let rows = window.logical_rows();
+        if area.is_empty() || rows < usize::from(FADE_MIN_ROWS) {
+            return;
+        }
+        let up = state.offset() > 0;
+        let down = state.viewport_len() > 0
+            && state.offset().saturating_add(state.viewport_len()) < state.content_len();
+        if !up && !down {
+            return;
+        }
+        let depth = if rows >= usize::from(FADE_DEEP_FROM) {
+            2usize
+        } else {
+            1usize
+        };
+        let container = self.majority_bg(area);
+        if up {
+            if let Some(y) = window.physical_row_for_source(0)
+                && (area.y..area.bottom()).contains(&y)
+            {
+                self.fade_unless_protected(area, y, FADE_OUTER_KEEP, container, &[]);
+            }
+            if depth == 2
+                && let Some(y) = window.physical_row_for_source(1)
+                && (area.y..area.bottom()).contains(&y)
+            {
+                self.fade_unless_protected(area, y, FADE_INNER_KEEP, container, &[]);
+            }
+        }
+        if down {
+            if let Some(y) = rows
+                .checked_sub(1)
+                .and_then(|row| window.physical_row_for_source(row))
+                && (area.y..area.bottom()).contains(&y)
+            {
+                self.fade_unless_protected(area, y, FADE_OUTER_KEEP, container, &[]);
+            }
+            if depth == 2
+                && let Some(y) = rows
+                    .checked_sub(2)
+                    .and_then(|row| window.physical_row_for_source(row))
+                && (area.y..area.bottom()).contains(&y)
+            {
+                self.fade_unless_protected(area, y, FADE_INNER_KEEP, container, &[]);
+            }
+        }
     }
 
     pub fn scroll_edges_except(&mut self, area: Rect, state: &ScrollState, keep: &[u16]) {

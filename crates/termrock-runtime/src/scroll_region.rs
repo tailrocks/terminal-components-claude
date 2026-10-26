@@ -304,12 +304,51 @@ impl<'a> ScrollRegion<'a> {
         self.handle_intent_in_window(cx, st, track_len, window, it)
     }
 
+    /// Handle input using the caller's current logical viewport geometry.
+    ///
+    /// Pointer registration remains authoritative from the committed frame:
+    /// track/thumb input is accepted only while that part is registered. The
+    /// committed window maps the physical pointer coordinate, while
+    /// `prepared_window` supplies the current logical track length. This lets
+    /// a caller reconcile a reservation change before repaint without mixing
+    /// its new viewport length with the previous frame's logical length.
+    pub fn handle_intent_with_window(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ScrollState,
+        track_len: u16,
+        prepared_window: Option<VerticalWindow>,
+        it: Intent<'_>,
+    ) -> Response<()> {
+        let registered_window = cx.layout(self.id).and_then(|layout| layout.vertical_window);
+        if let Intent::Pointer { phase, part, .. } = it
+            && (part.part == Part::TRACK || part.part == Part::THUMB)
+            && !matches!(phase, Phase::Release | Phase::DragEnd)
+            && cx.area_of_part(self.id, PartRef::of(part.part)).is_none()
+        {
+            return Response::ignored();
+        }
+        self.handle_intent_in_geometry(cx, st, track_len, prepared_window, registered_window, it)
+    }
+
     fn handle_intent_in_window(
         &self,
         cx: &mut Cx<'_>,
         st: &mut ScrollState,
         track_len: u16,
         window: Option<VerticalWindow>,
+        it: Intent<'_>,
+    ) -> Response<()> {
+        self.handle_intent_in_geometry(cx, st, track_len, window, window, it)
+    }
+
+    fn handle_intent_in_geometry(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ScrollState,
+        track_len: u16,
+        prepared_window: Option<VerticalWindow>,
+        registered_window: Option<VerticalWindow>,
         it: Intent<'_>,
     ) -> Response<()> {
         match it {
@@ -335,8 +374,8 @@ impl<'a> ScrollRegion<'a> {
                     part: part.part,
                     pos,
                     local,
-                    track_len: logical_track_len(track_len, window),
-                    window,
+                    track_len: logical_track_len(track_len, prepared_window),
+                    window: registered_window,
                 },
             ),
             _ => Response::ignored(),
@@ -386,7 +425,7 @@ impl<'a> ScrollRegion<'a> {
             }
             Phase::Drag => {
                 if let Some(window) = window {
-                    let Some(track_y) = logical_track_row_for_drag(window, pos.y) else {
+                    let Some(track_y) = logical_track_row_for_drag(window, pos.y, track_len) else {
                         return Response::consumed();
                     };
                     if cx.capture_owner() != Some(self.id) {
@@ -461,6 +500,21 @@ impl<'a> ScrollRegion<'a> {
             ScrollRegistration::Suppressed,
         )
         .0
+    }
+
+    /// Draw a visible logical window without registering its broad wheel target.
+    ///
+    /// Track and thumb pointer regions remain active. Use this when the caller
+    /// registers a disjoint text target for the same logical region.
+    pub fn draw_window_without_wheel_registration(
+        &self,
+        ui: &mut Ui<'_>,
+        window: VerticalWindow,
+        st: &ScrollState,
+        content_len: usize,
+    ) -> Rect {
+        self.draw_window_registered(ui, window, st, content_len, ScrollRegistration::Suppressed)
+            .0
     }
 
     /// Draw this region as an opt-in vertical wheel target.
@@ -819,8 +873,11 @@ fn logical_track_len(fallback: u16, window: Option<VerticalWindow>) -> usize {
     window.map_or(usize::from(fallback), VerticalWindow::logical_rows)
 }
 
-fn logical_track_row_for_drag(window: VerticalWindow, physical_y: u16) -> Option<usize> {
-    let logical_rows = window.logical_rows();
+fn logical_track_row_for_drag(
+    window: VerticalWindow,
+    physical_y: u16,
+    logical_rows: usize,
+) -> Option<usize> {
     if logical_rows == 0 || window.visible_body().height == 0 {
         return None;
     }
@@ -1170,13 +1227,20 @@ mod tests {
             let first = rows.saturating_sub(1);
             let window = VerticalWindow::new(Rect::new(0, 4, 1, 1), rows, first).unwrap();
             assert_eq!(logical_track_len(13, Some(window)), rows);
-            assert_eq!(logical_track_row_for_drag(window, 4), Some(first));
+            assert_eq!(logical_track_row_for_drag(window, 4, rows), Some(first));
             assert_eq!(
-                logical_track_row_for_drag(window, 3),
+                logical_track_row_for_drag(window, 3, rows),
                 Some(first.saturating_sub(1).min(rows.saturating_sub(1)))
             );
         }
         assert_eq!(logical_track_len(13, None), 13);
+    }
+
+    #[test]
+    fn captured_drag_maps_committed_clip_into_the_prepared_track_length() {
+        let committed = VerticalWindow::new(Rect::new(2, 4, 8, 4), 8, 4).unwrap();
+        assert_eq!(logical_track_row_for_drag(committed, 7, 7), Some(6));
+        assert_eq!(logical_track_row_for_drag(committed, 5, 8), Some(5));
     }
 
     #[test]

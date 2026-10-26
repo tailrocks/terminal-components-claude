@@ -35,6 +35,8 @@ pub struct LayoutFacts {
     pub logical_area: Option<Rect>,
     /// The prepared, physically visible rows of a logically taller component body.
     pub vertical_window: Option<VerticalWindow>,
+    /// The committed component body before any internal horizontal-row reservation.
+    pub vertical_body_window: Option<VerticalWindow>,
 }
 
 impl LayoutFacts {
@@ -46,6 +48,7 @@ impl LayoutFacts {
             cols,
             logical_area: None,
             vertical_window: None,
+            vertical_body_window: None,
         }
     }
 
@@ -59,6 +62,13 @@ impl LayoutFacts {
     #[must_use]
     pub const fn with_vertical_window(mut self, window: VerticalWindow) -> Self {
         self.vertical_window = Some(window);
+        self
+    }
+
+    /// Attach the committed component body before internal row reservations.
+    #[must_use]
+    pub const fn with_vertical_body_window(mut self, window: VerticalWindow) -> Self {
+        self.vertical_body_window = Some(window);
         self
     }
 }

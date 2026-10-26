@@ -3635,7 +3635,9 @@ termrock-runtime::scroll_region::ScrollRegion | Historical page/title associatio
 termrock-runtime::scroll_region::ScrollRegion::draw | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-runtime::scroll_region::ScrollRegion::draw_routed | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock-runtime::scroll_region::ScrollRegion::draw_window_routed | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
+termrock-runtime::scroll_region::ScrollRegion::draw_window_without_wheel_registration | A registered executable showcase contract must cover caller-managed wheel targets for this window draw entry point; native ScrollRegion tests do not establish one. | review
 termrock-runtime::scroll_region::ScrollRegion::draw_without_wheel_registration | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
+termrock-runtime::scroll_region::ScrollRegion::handle_intent_with_window | A registered executable showcase contract must cover prepared window intent handling; native ScrollRegion tests do not establish one. | review
 termrock-runtime::scroll_region::ScrollRegion::preserve_underlay | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-runtime::scroll_region::ScrollRegion::service_routed_wheel | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock-runtime::scroll_region::ScrollRegion::update | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
@@ -3698,6 +3700,7 @@ termrock-runtime::ui::Ui::register_routed_scroll | Present in the current source
 termrock-runtime::ui::Ui::register_scroll | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-runtime::ui::Ui::register_text_drag_autoscroll | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock-runtime::ui::Ui::report_layout | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
+termrock-runtime::ui::Ui::scroll_edges_window | A registered executable showcase contract must cover true logical-edge fading through this helper; native viewport tests do not establish one. | review
 termrock-runtime::ui::Ui::set_cursor | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-runtime::ui::Ui::style | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-runtime::ui::Ui::style_defaults_with_fallback_ownership | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
@@ -3728,6 +3731,7 @@ termrock-runtime::ui::cx::Cx::wheel_route_attempt | Present in the current sourc
 termrock-runtime::ui::cx::FrameServices | Legacy generated permanent decision retained for independent review: FrameServices is a data type with no rendering of its own; the showcase shows the widget that carries it | review
 termrock-runtime::ui::cx::LastFrame | Legacy generated permanent decision retained for independent review: LastFrame is a data type with no rendering of its own; the showcase shows the widget that carries it | review
 termrock-runtime::ui::cx::LayoutFacts | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
+termrock-runtime::ui::cx::LayoutFacts::with_vertical_body_window | A registered executable showcase contract must show this builder’s committed pre-reservation body-window fact; native layout tests do not establish one. | review
 termrock-session::session::SessionCursorShape | Legacy generated permanent decision retained for independent review: SessionCursorShape is a data type with no rendering of its own; the showcase shows the widget that carries it | review
 termrock-session::session::SessionCursorShape::Auto | Legacy generated permanent decision retained for independent review: termrock-session::session::SessionCursorShape is a data enum with no rendering of its own; the showcase shows the widget that carries it | review
 termrock-session::session::SessionCursorShape::Bar | Legacy generated permanent decision retained for independent review: termrock-session::session::SessionCursorShape is a data enum with no rendering of its own; the showcase shows the widget that carries it | review
@@ -4386,7 +4390,11 @@ termrock-viewport::viewport::ProjectedText::widest_cols | Legacy generated perma
 termrock-viewport::viewport::TextViewport | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-viewport::viewport::TextViewport::draw | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-viewport::viewport::TextViewport::draw_projected_routed | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
+termrock-viewport::viewport::TextViewport::draw_projected_window | A registered executable Scrolling-page window-mode log must cover this draw entry point; native viewport tests do not establish one. | review
+termrock-viewport::viewport::TextViewport::draw_projected_window_routed | A registered executable Scrolling-page window-mode log must cover this draw entry point; native viewport tests do not establish one. | review
 termrock-viewport::viewport::TextViewport::draw_routed | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
+termrock-viewport::viewport::TextViewport::draw_window | A registered executable Scrolling-page window-mode log must cover this draw entry point; native viewport tests do not establish one. | review
+termrock-viewport::viewport::TextViewport::draw_window_routed | A registered executable Scrolling-page window-mode log must cover this draw entry point; native viewport tests do not establish one. | review
 termrock-viewport::viewport::TextViewport::horizontal_pan | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock-viewport::viewport::TextViewport::layout_revision | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock-viewport::viewport::TextViewport::selection_binding_chords | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
