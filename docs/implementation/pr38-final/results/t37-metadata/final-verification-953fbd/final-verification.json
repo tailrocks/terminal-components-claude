@@ -1,0 +1,62 @@
+{
+  "task_id": "T37 metadata follow-up: E2E format and locked check",
+  "input_source_head": "953fbd76ac47019b0161d86a9a462d04f51b0c7f",
+  "accepted_source_unit": {
+    "source_commit": "d0f7387ee44898f5587b28fdfbc70d1ef9c0313b",
+    "integration_evidence_commit": "953fbd76ac47019b0161d86a9a462d04f51b0c7f",
+    "reviewer": "/root/t37_apps_review",
+    "reviewer_selection": "gpt-6.1-sol, high",
+    "decision": "ACCEPT; only pinned rustfmt layout; tokens and literals preserved; build output format/algorithm unchanged",
+    "path": "crates/termrock-e2e/build.rs"
+  },
+  "previous_evidence_commit": "243487b3dd05816d90b818d299f576d893db62f7",
+  "disk_preflight": {
+    "command": "/Users/donbeave/.local/bin/disk-check",
+    "free_bytes": 2132238647296,
+    "status": "ok"
+  },
+  "commands": [
+    {
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --all-targets --all-features",
+      "workdir": "crates/termrock-e2e",
+      "exit_status": 0,
+      "log": "docs/implementation/pr38-final/results/t37-metadata/final-verification-953fbd/cargo-e2e-check.log",
+      "log_sha256": "14fd0f5da74403b32387e7dd04c672d3607687ea4c0e2b014cab6588d80f1a8b"
+    },
+    {
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check",
+      "workdir": "crates/termrock-e2e",
+      "exit_status": 0,
+      "log": "docs/implementation/pr38-final/results/t37-metadata/final-verification-953fbd/fmt-e2e.log",
+      "log_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522"
+    }
+  ],
+  "source_bound_digest": {
+    "algorithm": "Unchanged build.rs algorithm: collect every regular file beneath crates/termrock-e2e except paths containing target or .git; sort relative paths using Rust PathBuf component ordering; hash each relative-path byte length (big endian u64), relative path bytes, content byte length (big endian u64), and file contents.",
+    "build_rs_included_in_hashed_inputs": true,
+    "input_file_count": 22,
+    "sorted_relative_path_list_sha256": "1647738c5397eb78bcb0d516fa37cd35fc639418e2c128d9a48f83d183f41707",
+    "build_rs_sha256_at_pre_format_source": "d0c867ee75175e6464cd260fd658544c97926fb2c0dc0e69d82af3a4c4ceaa57",
+    "build_rs_sha256_current": "2d1904d678ed04d67f71448de332916e7f2226066b2a57f963882eb2108949bc",
+    "pre_format_source_commit": "560f3dca487247b1068c45a0d2b469c8eabe3165",
+    "algorithm_recomputed_suite_sha256_before": "f38701e25e4d70121eb3934cd4426771809bc48e8c1f50f7c62fdc84df6575d9",
+    "algorithm_recomputed_suite_sha256_current": "6c24418e8060ca31056576dd7db377f27fccc31f18738f0802b4ba90250b12e8",
+    "interpretation": "The compiled suite digest changes because build.rs is included among its own inputs. Do not claim identical suite hashes across the formatting source commits. The locked check reran the build script and compilation at the current source."
+  },
+  "retained_profile_format_warning": {
+    "fields": [
+      "readiness_timeout_ms",
+      "input_pacing_ms"
+    ],
+    "type": "required u64 fields under deny_unknown_fields",
+    "meaning": "Retained admission-format data only; no executor or timing guarantee.",
+    "warning": "Present in successful E2E check log and intentionally retained under T37-PROFILE-FORMAT-01; no fake reads, serde change, or lint allowance."
+  },
+  "prior_format_failure": "The status-1 e2e formatter output on source 560f is preserved at final-verification-560f/fmt-e2e.log.gz as historical evidence. The current formatter check passes after the accepted source unit.",
+  "behavior": {
+    "selected_cases": 0,
+    "tests_executed": 0,
+    "status": "NOT VERIFIED"
+  },
+  "overall_status": "T37 remains pending documentation and integrated independent acceptance; this metadata evidence does not self-approve."
+}

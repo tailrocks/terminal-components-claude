@@ -1,5 +1,13 @@
 # T37 metadata result
 
+## Final E2E follow-up on source `953fbd76ac47019b0161d86a9a462d04f51b0c7f`
+
+The one-line `crates/termrock-e2e/build.rs` formatting unit (`d0f7387ee44898f5587b28fdfbc70d1ef9c0313b`) received independent Sol-high ACCEPT from `/root/t37_apps_review`; it preserves tokens and literals. On the integrated source, the guarded locked E2E all-target/all-feature check and standalone formatter check both exited 0. Exact commands and log hashes are recorded in `final-verification-953fbd/final-verification.json`.
+
+The retained `Profile` warning for required `readiness_timeout_ms` and `input_pacing_ms` remains visible. `build.rs` hashes itself as one of 22 E2E suite inputs, so its source-format change refreshes the compiled suite digest. Applying the unchanged algorithm gives `f38701e25e4d70121eb3934cd4426771809bc48e8c1f50f7c62fdc84df6575d9` before the formatting commit and `6c24418e8060ca31056576dd7db377f27fccc31f18738f0802b4ba90250b12e8` at the current source; these values are not asserted equal. The earlier formatter failure remains preserved as historical evidence.
+
+This follow-up extends evidence commit `243487b3dd05816d90b818d299f576d893db62f7`; no tests ran, selected behavior cases remain zero, and product behavior remains **NOT VERIFIED**. Overall T37 documentation and integrated acceptance are still pending.
+
 ## Final follow-up on source `560f3dca487247b1068c45a0d2b469c8eabe3165`
 
 This section supersedes the earlier pending-source statements below. On this accepted combined source, all five guarded locked build checks passed: the root workspace and the e2e, visibility, external-consumer, and publisher standalone workspaces. Root and three standalone format checks passed. The e2e standalone format check exited 1 on a one-line formatting difference in `crates/termrock-e2e/build.rs:23`; the file SHA-256 (`d0c867ee75175e6464cd260fd658544c97926fb2c0dc0e69d82af3a4c4ceaa57`) matches product baseline `1d6ee92adf6ccca38eeee64b1371cba1497e8fcd`, so the drift predates T37. A formatting-only fix and e2e rerun are assigned to the source owner and remain pending. No Rust source was changed by this metadata owner.
