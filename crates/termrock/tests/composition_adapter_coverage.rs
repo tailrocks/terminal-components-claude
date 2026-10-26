@@ -63,6 +63,7 @@ const NOT_COMPONENTS: &[&str] = &[
     "NoValidate",
     "TextAction",
     "TextCmd",
+    "TextAreaIdleHorizontalScroll",
     "TextAreaState",
     "TextInputState",
     "Validate",

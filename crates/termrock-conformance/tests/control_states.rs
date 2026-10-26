@@ -1881,7 +1881,7 @@ fn keyed_chip_rig() -> KeyedChipRig {
 }
 
 #[test]
-fn w06_chipbar_closable_keyboard_dead() {
+fn w06_chipbar_closable_keyboard_routes_by_stable_key() {
     let (mut app, items, actions) = keyed_chip_rig();
     assert!(app.tab_to(CHIP));
     let _ = app.key(KeyCode::Char(' '));
@@ -1889,10 +1889,38 @@ fn w06_chipbar_closable_keyboard_dead() {
     items.borrow_mut().swap(0, 1);
     let _ = app.key(KeyCode::Delete);
 
+    assert_eq!(
+        actions.borrow().as_slice(),
+        &[
+            ChipBarAction::Toggled(ItemKey::text("alpha")),
+            ChipBarAction::Closed(ItemKey::text("beta")),
+        ],
+        "W06-02: body toggle and close dispatch once each by stable key and order"
+    );
     assert!(
-        actions.borrow().is_empty(),
-        "W06-02: the closable keymap is rejected wholesale, so keys do nothing, got {:?}",
-        actions.borrow()
+        app.app()
+            .inner
+            .st
+            .checked()
+            .contains(ItemKey::text("alpha")),
+        "W06-02: reordering keeps alpha checked by stable key"
+    );
+    assert!(
+        !app.app().inner.st.checked().contains(ItemKey::text("beta")),
+        "W06-02: closing beta does not toggle it"
+    );
+    assert_eq!(
+        items
+            .borrow()
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        vec!["beta", "alpha", "gamma"],
+        "W06-02: the source reorder remains in place"
+    );
+    assert!(
+        app.diagnostics().is_empty(),
+        "W06-02: keyboard route diagnostics"
     );
 }
 
@@ -1908,8 +1936,21 @@ fn w06_chipbar_close_press_then_reorder_or_delete() {
 
     assert_eq!(
         actions.borrow().as_slice(),
-        &[ChipBarAction::Toggled(ItemKey::text("beta"))],
-        "W06-02: the covered close toggles the chip body by stable key"
+        &[ChipBarAction::Closed(ItemKey::text("beta"))],
+        "W06-02: the pressed close follows beta's stable key after reorder"
+    );
+    assert_eq!(
+        items
+            .borrow()
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        vec!["beta", "alpha", "gamma"],
+        "W06-02: pointer release leaves the reordered source intact"
+    );
+    assert!(
+        app.diagnostics().is_empty(),
+        "W06-02: reordered close diagnostics"
     );
 
     let (mut app, items, actions) = keyed_chip_rig();
@@ -1923,6 +1964,19 @@ fn w06_chipbar_close_press_then_reorder_or_delete() {
         actions.borrow().is_empty(),
         "W06-02: deleting the pressed chip must cancel the close, got {:?}",
         actions.borrow()
+    );
+    assert_eq!(
+        items
+            .borrow()
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        vec!["alpha", "gamma"],
+        "W06-02: the deleted source item stays absent"
+    );
+    assert!(
+        app.diagnostics().is_empty(),
+        "W06-02: cancelled close diagnostics"
     );
 }
 
@@ -2031,7 +2085,7 @@ fn w06_chipbar_disabled_body_and_close_inert() {
 }
 
 #[test]
-fn w06_chipbar_close_press_flash_settles_to_pre_click_bytes() {
+fn w06_chipbar_close_feedback_expires_without_buffer_residue() {
     let (mut app, _items, actions) = keyed_chip_rig();
     assert!(app.tab_to(CHIP));
     let close = app
@@ -2049,31 +2103,31 @@ fn w06_chipbar_close_press_flash_settles_to_pre_click_bytes() {
 
     assert_eq!(
         actions.borrow().as_slice(),
-        &[ChipBarAction::Toggled(ItemKey::text("alpha"))],
-        "W06-02: the covered close-click records a body toggle"
+        &[ChipBarAction::Closed(ItemKey::text("alpha"))],
+        "W06-02: the close-click emits one close action, not a body toggle"
     );
+    assert!(
+        !app.app()
+            .inner
+            .st
+            .checked()
+            .contains(ItemKey::text("alpha")),
+        "W06-02: closing alpha does not change its selection state"
+    );
+    assert!(
+        app.diagnostics().is_empty(),
+        "W06-02: close feedback diagnostics"
+    );
+
     let _ = app.advance(Duration::from_millis(150));
     assert!(
         app.activation_feedback().is_none(),
         "W06-02: the press flash must expire after the advance"
     );
-
-    let after = app.buffer();
-    let mut diffs = Vec::new();
-    for y in 0..after.area.height {
-        for x in 0..after.area.width {
-            let p = Position::new(x, y);
-            if after.cell(p) != before.cell(p) {
-                diffs.push(p);
-            }
-        }
-    }
-    let alpha_label = app
-        .area_of_part(CHIP, PartRef::item(Part::LABEL, ItemKey::text("alpha")))
-        .expect("W06-02: the alpha chip must be registered");
-    assert!(
-        !diffs.is_empty() && diffs.iter().all(|p| alpha_label.contains(*p)),
-        "W06-02: flash residue must stay inside the toggled chip, got {diffs:?}"
+    assert_eq!(
+        app.buffer(),
+        &before,
+        "W06-02: after feedback expires, the complete buffer must match the same hovered, focused pre-click state"
     );
 }
 
