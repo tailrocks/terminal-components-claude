@@ -83,6 +83,172 @@ fn exposed_track_cells(
     cells
 }
 
+fn assert_model_thumb_locality(
+    frame_a: &ratatui::buffer::Buffer,
+    frame_b: &ratatui::buffer::Buffer,
+    track: ratatui::layout::Rect,
+    model_thumb_a: ratatui::layout::Rect,
+    model_thumb_b: ratatui::layout::Rect,
+) {
+    let area_a = *frame_a.area();
+    let area_b = *frame_b.area();
+    assert_eq!(area_a, area_b, "A/B complete frame dimensions");
+    let mut differing_coordinates = Vec::new();
+    for y in area_a.y..area_a.y.saturating_add(area_a.height) {
+        for x in area_a.x..area_a.x.saturating_add(area_a.width) {
+            let cell_a = frame_a.cell((x, y));
+            let cell_b = frame_b.cell((x, y));
+            assert!(cell_a.is_some(), "A cell ({x},{y}) exists");
+            assert!(cell_b.is_some(), "B cell ({x},{y}) exists");
+            let (Some(cell_a), Some(cell_b)) = (cell_a, cell_b) else {
+                return;
+            };
+            if cell_a != cell_b {
+                differing_coordinates.push((x, y));
+            }
+        }
+    }
+
+    let coordinates_in_rect = |rect: ratatui::layout::Rect| {
+        let mut coordinates = Vec::new();
+        for y in rect.y..rect.y.saturating_add(rect.height) {
+            for x in rect.x..rect.x.saturating_add(rect.width) {
+                coordinates.push((x, y));
+            }
+        }
+        coordinates
+    };
+    let thumb_coordinates_a = coordinates_in_rect(model_thumb_a);
+    let thumb_coordinates_b = coordinates_in_rect(model_thumb_b);
+    let thumb_only_a: Vec<_> = thumb_coordinates_a
+        .iter()
+        .copied()
+        .filter(|coordinate| !thumb_coordinates_b.contains(coordinate))
+        .collect();
+    let thumb_only_b: Vec<_> = thumb_coordinates_b
+        .iter()
+        .copied()
+        .filter(|coordinate| !thumb_coordinates_a.contains(coordinate))
+        .collect();
+    let mut expected_difference = thumb_only_a.clone();
+    expected_difference.extend(thumb_only_b.iter().copied());
+    expected_difference.sort_unstable();
+    differing_coordinates.sort_unstable();
+    assert!(
+        !expected_difference.is_empty(),
+        "model-derived thumb symmetric difference is nonempty"
+    );
+    assert_eq!(
+        differing_coordinates, expected_difference,
+        "complete Cell differences equal only the model-derived thumb symmetric difference"
+    );
+
+    let shared_thumb_coordinates: Vec<_> = thumb_coordinates_a
+        .iter()
+        .copied()
+        .filter(|coordinate| thumb_coordinates_b.contains(coordinate))
+        .collect();
+    let exposed_track_a = exposed_track_cells(track, model_thumb_a);
+    let exposed_track_b = exposed_track_cells(track, model_thumb_b);
+    let shared_exposed_track_coordinates: Vec<_> = exposed_track_a
+        .iter()
+        .copied()
+        .filter(|coordinate| exposed_track_b.contains(coordinate))
+        .collect();
+    assert!(
+        !shared_thumb_coordinates.is_empty(),
+        "shared model-derived thumb reference region is nonempty"
+    );
+    assert!(
+        !shared_exposed_track_coordinates.is_empty(),
+        "shared model-derived exposed-track reference region is nonempty"
+    );
+
+    let thumb_reference_position = shared_thumb_coordinates.first().copied();
+    assert!(
+        thumb_reference_position.is_some(),
+        "shared thumb reference position exists"
+    );
+    let Some(thumb_reference_position) = thumb_reference_position else {
+        return;
+    };
+    let thumb_reference = frame_a.cell(thumb_reference_position);
+    assert!(
+        thumb_reference.is_some(),
+        "shared thumb reference cell exists"
+    );
+    let Some(thumb_reference) = thumb_reference else {
+        return;
+    };
+
+    let exposed_track_reference_position = shared_exposed_track_coordinates.first().copied();
+    assert!(
+        exposed_track_reference_position.is_some(),
+        "shared exposed-track reference position exists"
+    );
+    let Some(exposed_track_reference_position) = exposed_track_reference_position else {
+        return;
+    };
+    let exposed_track_reference = frame_a.cell(exposed_track_reference_position);
+    assert!(
+        exposed_track_reference.is_some(),
+        "shared exposed-track reference cell exists"
+    );
+    let Some(exposed_track_reference) = exposed_track_reference else {
+        return;
+    };
+
+    for &coordinate in &shared_thumb_coordinates {
+        assert_eq!(
+            frame_a.cell(coordinate),
+            Some(thumb_reference),
+            "A shared thumb Cell fields at {coordinate:?}"
+        );
+        assert_eq!(
+            frame_b.cell(coordinate),
+            Some(thumb_reference),
+            "B shared thumb Cell fields at {coordinate:?}"
+        );
+    }
+    for &coordinate in &shared_exposed_track_coordinates {
+        assert_eq!(
+            frame_a.cell(coordinate),
+            Some(exposed_track_reference),
+            "A shared exposed-track Cell fields at {coordinate:?}"
+        );
+        assert_eq!(
+            frame_b.cell(coordinate),
+            Some(exposed_track_reference),
+            "B shared exposed-track Cell fields at {coordinate:?}"
+        );
+    }
+
+    for &coordinate in &thumb_only_a {
+        assert_eq!(
+            frame_a.cell(coordinate),
+            Some(thumb_reference),
+            "A thumb Cell fields at {coordinate:?}"
+        );
+        assert_eq!(
+            frame_b.cell(coordinate),
+            Some(exposed_track_reference),
+            "B exposed-track Cell fields at {coordinate:?}"
+        );
+    }
+    for &coordinate in &thumb_only_b {
+        assert_eq!(
+            frame_a.cell(coordinate),
+            Some(exposed_track_reference),
+            "A exposed-track Cell fields at {coordinate:?}"
+        );
+        assert_eq!(
+            frame_b.cell(coordinate),
+            Some(thumb_reference),
+            "B thumb Cell fields at {coordinate:?}"
+        );
+    }
+}
+
 fn find(h: &Harness<App>, needle: &str) -> (u16, u16) {
     let position = h.find(needle);
     assert!(position.is_some(), "missing fixture text: {needle}");
@@ -1921,163 +2087,13 @@ fn monorepo_root_truecolor_port_visibility_ab_characterization() {
     };
     assert_eq!(track_a, track_b, "A/B native track rectangles");
 
-    let area_a = *harness_a.buffer().area();
-    let area_b = *harness_b.buffer().area();
-    assert_eq!(area_a, area_b, "A/B complete frame dimensions");
-    let mut differing_coordinates = Vec::new();
-    for y in area_a.y..area_a.y.saturating_add(area_a.height) {
-        for x in area_a.x..area_a.x.saturating_add(area_a.width) {
-            let cell_a = harness_a.buffer().cell((x, y));
-            let cell_b = harness_b.buffer().cell((x, y));
-            assert!(cell_a.is_some(), "A cell ({x},{y}) exists");
-            assert!(cell_b.is_some(), "B cell ({x},{y}) exists");
-            let (Some(cell_a), Some(cell_b)) = (cell_a, cell_b) else {
-                return;
-            };
-            if cell_a != cell_b {
-                differing_coordinates.push((x, y));
-            }
-        }
-    }
-
-    let coordinates_in_rect = |rect: ratatui::layout::Rect| {
-        let mut coordinates = Vec::new();
-        for y in rect.y..rect.y.saturating_add(rect.height) {
-            for x in rect.x..rect.x.saturating_add(rect.width) {
-                coordinates.push((x, y));
-            }
-        }
-        coordinates
-    };
-    let thumb_coordinates_a = coordinates_in_rect(model_thumb_a);
-    let thumb_coordinates_b = coordinates_in_rect(model_thumb_b);
-    let thumb_only_a: Vec<_> = thumb_coordinates_a
-        .iter()
-        .copied()
-        .filter(|coordinate| !thumb_coordinates_b.contains(coordinate))
-        .collect();
-    let thumb_only_b: Vec<_> = thumb_coordinates_b
-        .iter()
-        .copied()
-        .filter(|coordinate| !thumb_coordinates_a.contains(coordinate))
-        .collect();
-    let mut expected_difference = thumb_only_a.clone();
-    expected_difference.extend(thumb_only_b.iter().copied());
-    expected_difference.sort_unstable();
-    differing_coordinates.sort_unstable();
-    assert!(
-        !expected_difference.is_empty(),
-        "model-derived thumb symmetric difference is nonempty"
+    assert_model_thumb_locality(
+        harness_a.buffer(),
+        harness_b.buffer(),
+        track_a,
+        model_thumb_a,
+        model_thumb_b,
     );
-    assert_eq!(
-        differing_coordinates, expected_difference,
-        "complete Cell differences equal only the model-derived thumb symmetric difference"
-    );
-
-    let shared_thumb_coordinates: Vec<_> = thumb_coordinates_a
-        .iter()
-        .copied()
-        .filter(|coordinate| thumb_coordinates_b.contains(coordinate))
-        .collect();
-    let exposed_track_a = exposed_track_cells(track_a, model_thumb_a);
-    let exposed_track_b = exposed_track_cells(track_b, model_thumb_b);
-    let shared_exposed_track_coordinates: Vec<_> = exposed_track_a
-        .iter()
-        .copied()
-        .filter(|coordinate| exposed_track_b.contains(coordinate))
-        .collect();
-    assert!(
-        !shared_thumb_coordinates.is_empty(),
-        "shared model-derived thumb reference region is nonempty"
-    );
-    assert!(
-        !shared_exposed_track_coordinates.is_empty(),
-        "shared model-derived exposed-track reference region is nonempty"
-    );
-
-    let thumb_reference_position = shared_thumb_coordinates.first().copied();
-    assert!(
-        thumb_reference_position.is_some(),
-        "shared thumb reference position exists"
-    );
-    let Some(thumb_reference_position) = thumb_reference_position else {
-        return;
-    };
-    let thumb_reference = harness_a.buffer().cell(thumb_reference_position);
-    assert!(
-        thumb_reference.is_some(),
-        "shared thumb reference cell exists"
-    );
-    let Some(thumb_reference) = thumb_reference else {
-        return;
-    };
-
-    let exposed_track_reference_position = shared_exposed_track_coordinates.first().copied();
-    assert!(
-        exposed_track_reference_position.is_some(),
-        "shared exposed-track reference position exists"
-    );
-    let Some(exposed_track_reference_position) = exposed_track_reference_position else {
-        return;
-    };
-    let exposed_track_reference = harness_a.buffer().cell(exposed_track_reference_position);
-    assert!(
-        exposed_track_reference.is_some(),
-        "shared exposed-track reference cell exists"
-    );
-    let Some(exposed_track_reference) = exposed_track_reference else {
-        return;
-    };
-
-    for &coordinate in &shared_thumb_coordinates {
-        assert_eq!(
-            harness_a.buffer().cell(coordinate),
-            Some(thumb_reference),
-            "A shared thumb Cell fields at {coordinate:?}"
-        );
-        assert_eq!(
-            harness_b.buffer().cell(coordinate),
-            Some(thumb_reference),
-            "B shared thumb Cell fields at {coordinate:?}"
-        );
-    }
-    for &coordinate in &shared_exposed_track_coordinates {
-        assert_eq!(
-            harness_a.buffer().cell(coordinate),
-            Some(exposed_track_reference),
-            "A shared exposed-track Cell fields at {coordinate:?}"
-        );
-        assert_eq!(
-            harness_b.buffer().cell(coordinate),
-            Some(exposed_track_reference),
-            "B shared exposed-track Cell fields at {coordinate:?}"
-        );
-    }
-
-    for &coordinate in &thumb_only_a {
-        assert_eq!(
-            harness_a.buffer().cell(coordinate),
-            Some(thumb_reference),
-            "A thumb Cell fields at {coordinate:?}"
-        );
-        assert_eq!(
-            harness_b.buffer().cell(coordinate),
-            Some(exposed_track_reference),
-            "B exposed-track Cell fields at {coordinate:?}"
-        );
-    }
-    for &coordinate in &thumb_only_b {
-        assert_eq!(
-            harness_a.buffer().cell(coordinate),
-            Some(exposed_track_reference),
-            "A exposed-track Cell fields at {coordinate:?}"
-        );
-        assert_eq!(
-            harness_b.buffer().cell(coordinate),
-            Some(thumb_reference),
-            "B thumb Cell fields at {coordinate:?}"
-        );
-    }
 
     assert_eq!(harness_a.cursor(), Some(Position { x: 3, y: 4 }));
     assert_eq!(harness_b.cursor(), Some(Position { x: 3, y: 4 }));
@@ -2086,6 +2102,274 @@ fn monorepo_root_truecolor_port_visibility_ab_characterization() {
     assert!(
         digest_b == 0x5bf3_beea_13a9_33dd,
         "B must retain the unchanged held digest when local Port hiding is sufficient"
+    );
+}
+
+#[test]
+fn monorepo_root_ansi16_port_hide_ab_diagnostic() {
+    let mut world_a = crate::sim::fixtures::world_for(Scenario::MonorepoRoot);
+    let mut world_b = crate::sim::fixtures::world_for(Scenario::MonorepoRoot);
+    world_a.seek(4_000);
+    world_b.seek(4_000);
+
+    let raw_a_before = crate::sim::catalogue::catalogue(&world_a);
+    let raw_b_before = crate::sim::catalogue::catalogue(&world_b);
+    assert_eq!(
+        raw_a_before, raw_b_before,
+        "initial raw catalogue and order"
+    );
+    assert_eq!(world_a.memory, world_b.memory, "initial Memory values");
+    assert_eq!(world_a.cwd, world_b.cwd, "initial cwd values");
+    assert_eq!(
+        world_a.scenario, world_b.scenario,
+        "initial scenario values"
+    );
+    assert_eq!(world_a.clock, world_b.clock, "initial simulation clocks");
+    let memory_a = world_a.memory.clone();
+    let memory_b_before = world_b.memory.clone();
+    assert_eq!(memory_a, memory_b_before, "initial A/B Memory snapshot");
+
+    let rows_a = home_display_rows(&world_a);
+    let rows_b_before = home_display_rows(&world_b);
+    assert_eq!(rows_a, rows_b_before, "initial displayed row order");
+    let extent_a = home_visual_extent(&rows_a);
+    let extent_b_before = home_visual_extent(&rows_b_before);
+    assert_eq!(extent_a, extent_b_before, "initial model-derived extents");
+
+    let port_actions: Vec<_> = raw_b_before
+        .iter()
+        .filter(|action| action.id == "system.port")
+        .collect();
+    assert_eq!(port_actions.len(), 1, "one actual system.port action");
+    let port_action = *port_actions
+        .first()
+        .expect("the unique raw system.port action exists");
+    let port_pin = Pin {
+        path: world_b.cwd.clone(),
+        command: port_action.command.clone(),
+    };
+    let mut expected_memory_b = memory_b_before.clone();
+    expected_memory_b.hides.push(port_pin.clone());
+    world_b.memory.hides.push(port_pin.clone());
+    assert_eq!(
+        world_b.memory, expected_memory_b,
+        "B adds only this Port hide"
+    );
+    assert_eq!(port_pin.path, world_b.cwd, "B hide uses fixture cwd");
+    assert_eq!(
+        port_pin.command, port_action.command,
+        "B hide uses actual command"
+    );
+
+    let raw_a_after = crate::sim::catalogue::catalogue(&world_a);
+    let raw_b_after = crate::sim::catalogue::catalogue(&world_b);
+    assert_eq!(
+        raw_a_after, raw_a_before,
+        "A raw catalogue remains unchanged"
+    );
+    assert_eq!(raw_b_after, raw_a_after, "B keeps raw catalogue and order");
+    let rows_b = home_display_rows(&world_b);
+    let expected_rows_b: Vec<_> = rows_a
+        .iter()
+        .filter(|(_, action_id)| action_id != "system.port")
+        .cloned()
+        .collect();
+    assert_eq!(rows_b, expected_rows_b, "B removes only displayed Port");
+    assert!(
+        rows_a
+            .iter()
+            .any(|(_, action_id)| action_id == "system.port"),
+        "A keeps Port visible"
+    );
+    assert!(
+        rows_b
+            .iter()
+            .all(|(_, action_id)| action_id != "system.port"),
+        "B hides Port from displayed rows"
+    );
+    assert_eq!(
+        rows_a.len(),
+        rows_b.len().saturating_add(1),
+        "B hides exactly one displayed action"
+    );
+    let extent_b = home_visual_extent(&rows_b);
+
+    let source_theme = Theme::junie();
+    let color = ColorLevel::Ansi16;
+    let make_harness = |world| {
+        let mut app = App::from_fixture_world(world, Motion::Paused, 4_000);
+        app.home.history = false;
+        let app = app.with_source_theme(source_theme.clone());
+        Harness::new_with_feedback_clock(
+            app,
+            source_theme.clone(),
+            80,
+            24,
+            FeedbackClock::Simulation {
+                initial: SimulationMoment::from_millis(4_000),
+            },
+        )
+        .with_color(color)
+    };
+    let harness_a = make_harness(world_a);
+    let harness_b = make_harness(world_b);
+    let expected_runtime_theme = source_theme.for_level(color);
+    let mut model_geometry = [None, None];
+
+    for (arm_index, (label, harness, expected_memory, expected_rows, expected_extent)) in [
+        ("A", &harness_a, &memory_a, &rows_a, extent_a),
+        ("B", &harness_b, &expected_memory_b, &rows_b, extent_b),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        assert_eq!(
+            harness.snapshot().key(),
+            "harness 80 24 junie 16",
+            "{label} exact no-history ANSI16 harness key"
+        );
+        assert_eq!(harness.runtime().theme(), &expected_runtime_theme);
+        assert_eq!(
+            harness
+                .app()
+                .source_theme
+                .as_ref()
+                .map(|theme| &theme.theme),
+            Some(&source_theme),
+            "{label} source theme"
+        );
+        assert_eq!(harness.app().world.scenario, Scenario::MonorepoRoot);
+        assert_eq!(harness.app().world.clock.now_ms, 4_000);
+        assert!(!harness.app().world.clock.running, "{label} paused clock");
+        assert_eq!(harness.app().motion, Motion::Paused);
+        assert_eq!(harness.app().fixture_time_ms(), 4_000);
+        assert!(!harness.app().home.history, "{label} no-history input");
+        assert_eq!(
+            harness.app().world.memory,
+            *expected_memory,
+            "{label} Memory"
+        );
+        assert_eq!(
+            home_display_rows(&harness.app().world),
+            *expected_rows,
+            "{label} displayed row order"
+        );
+        assert_eq!(
+            home_visual_extent(&home_display_rows(&harness.app().world)),
+            expected_extent,
+            "{label} model-derived extent"
+        );
+        assert!(
+            expected_extent > expected_rows.len(),
+            "{label} model includes section headers"
+        );
+        let (first_section, first_action_id) = expected_rows
+            .first()
+            .expect("each ANSI16 model has a first Home action");
+        assert!(!first_section.is_empty(), "{label} first section label");
+
+        let cursor = harness.cursor();
+        assert_eq!(cursor, Some(Position { x: 3, y: 4 }), "{label} cursor");
+        let rows_area = harness
+            .area_of(crate::screens::home::ROWS)
+            .expect("native Home rows area");
+        let track = harness
+            .area_of_part(crate::screens::home::ROWS, PartRef::of(Part::TRACK))
+            .expect("native Home track");
+        let thumb = harness
+            .area_of_part(crate::screens::home::ROWS, PartRef::of(Part::THUMB))
+            .expect("native Home thumb");
+        assert_eq!(
+            rows_area,
+            ratatui::layout::Rect::new(1, 6, 78, 15),
+            "{label} native Home rows geometry"
+        );
+        assert_eq!(
+            track,
+            ratatui::layout::Rect::new(78, 6, 1, 15),
+            "{label} native track geometry"
+        );
+        let first_row = harness
+            .area_of_part(
+                crate::screens::home::ROWS,
+                PartRef::item(Part::ROW, termrock::ItemKey::text(first_action_id)),
+            )
+            .expect("first keyed Home action row");
+        assert_eq!(first_row.x, rows_area.x, "{label} first action x");
+        assert_eq!(first_row.height, 1, "{label} first action height");
+        let expected_first_row_y = rows_area.y.saturating_add(1);
+        assert_eq!(
+            first_row.y, expected_first_row_y,
+            "{label} section header occupies logical row zero"
+        );
+        let projected_offset = expected_first_row_y.checked_sub(first_row.y);
+        assert_eq!(projected_offset, Some(0), "{label} projected offset");
+
+        let viewport = usize::from(rows_area.height);
+        let track_len = usize::from(track.height);
+        let thumb_len = viewport
+            .saturating_mul(track_len)
+            .checked_div(expected_extent)
+            .unwrap_or_default()
+            .max(1)
+            .min(track_len);
+        let expected_thumb_height =
+            u16::try_from(thumb_len).expect("model-derived thumb height fits u16");
+        let expected_thumb =
+            ratatui::layout::Rect::new(track.x, track.y, track.width, expected_thumb_height);
+        assert_eq!(thumb, expected_thumb, "{label} model-derived thumb");
+        assert_eq!(thumb.y, track.y, "{label} initial thumb offset is zero");
+        model_geometry[arm_index] = Some((rows_area, track, thumb));
+    }
+
+    let (rows_a_native, track_a, thumb_a) =
+        model_geometry[0].expect("A model/native geometry was recorded");
+    let (rows_b_native, track_b, thumb_b) =
+        model_geometry[1].expect("B model/native geometry was recorded");
+    assert_eq!(rows_a_native, rows_b_native, "A/B native rows rectangles");
+    assert_eq!(track_a, track_b, "A/B native track rectangles");
+
+    let frame_area = *harness_a.buffer().area();
+    assert_eq!(
+        frame_area,
+        ratatui::layout::Rect::new(0, 0, 80, 24),
+        "A complete frame dimensions"
+    );
+    assert_eq!(
+        *harness_b.buffer().area(),
+        frame_area,
+        "B complete frame dimensions"
+    );
+    let cell_count = usize::from(frame_area.width) * usize::from(frame_area.height);
+    assert_eq!(cell_count, 1_920, "each arm has all 1,920 terminal cells");
+    let cursor_a_before = harness_a.cursor();
+    let cursor_b_before = harness_b.cursor();
+    assert_eq!(cursor_a_before, Some(Position { x: 3, y: 4 }));
+    assert_eq!(cursor_b_before, Some(Position { x: 3, y: 4 }));
+
+    assert_model_thumb_locality(
+        harness_a.buffer(),
+        harness_b.buffer(),
+        track_a,
+        thumb_a,
+        thumb_b,
+    );
+    assert_eq!(
+        harness_a.cursor(),
+        cursor_a_before,
+        "A cursor after comparison"
+    );
+    assert_eq!(
+        harness_b.cursor(),
+        cursor_b_before,
+        "B cursor after comparison"
+    );
+
+    let scene_b = harness_b.snapshot().named(Scenario::MonorepoRoot.name());
+    let digest_b = scene_b.digest();
+    assert!(
+        digest_b == 0x643a_4f12_c50a_45a7,
+        "B preserves the exact held ANSI16 frame"
     );
 }
 
