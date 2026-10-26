@@ -38,6 +38,22 @@ pub fn patch_style(
     ui.patch_style(area, style, explicit);
 }
 
+/// Give registrations for one exact part precedence in pointer hit testing
+/// during a render closure.
+///
+/// The closure runs once. Among regions it adds, `RegionKind::Part` entries
+/// whose complete [`PartRef`] equals `part` are considered after the other
+/// registrations at the same layer. Higher layers still take precedence, and
+/// registrations outside this closure keep their existing order. Use this
+/// when the selected part intentionally owns an overlapping hit area.
+pub fn with_part_hit_precedence<R>(
+    ui: &mut Ui<'_>,
+    part: PartRef,
+    render: impl FnOnce(&mut Ui<'_>) -> R,
+) -> R {
+    ui.with_part_hit_precedence(part, render)
+}
+
 pub type PartPainter<'a> = dyn Fn(&mut Ui<'_>, Rect) + 'a;
 
 #[derive(Clone, Copy)]

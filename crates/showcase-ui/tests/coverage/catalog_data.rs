@@ -2911,6 +2911,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("termrock-runtime::author::put_text_in"),
     Capability::function("termrock-runtime::author::put_text_w"),
     Capability::function("termrock-runtime::author::text_width"),
+    Capability::function("termrock-runtime::author::with_part_hit_precedence"),
     Capability::ty("termrock-runtime::capture::BarInput"),
     Capability::variant("termrock-runtime::capture::BarInput::Drag"),
     Capability::variant("termrock-runtime::capture::BarInput::None"),

@@ -210,16 +210,15 @@ pub(crate) fn backdrop_at(hits: &Registry, pos: Position) -> Option<(Id, Option<
         return None;
     }
     let beneath = hits
-        .regions()
-        .iter()
+        .pointer_regions()
         .rev()
-        .find(|r| {
+        .find(|(_, r)| {
             r.layer < top.layer
                 && r.area.contains(pos)
                 && r.pointer_enabled()
                 && matches!(r.kind, RegionKind::Control | RegionKind::Part)
         })
-        .map(|r| Hit {
+        .map(|(_, r)| Hit {
             owner: r.owner,
             part: r.part,
             layer: r.layer,
@@ -521,6 +520,31 @@ mod pointer_tests {
             }
             other => panic!("expected an Outside route, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn backdrop_underlay_uses_scoped_part_order_and_keeps_pointer_filters() {
+        let area = Rect::new(0, 0, 12, 8);
+        let pos = Position::new(4, 3);
+        let seam = PartRef::of(Part::SEAM);
+        let page = Id::root("page");
+        let later_control = Id::root("later-control");
+        let disabled = Id::root("disabled");
+        let popup = Id::root("popup");
+        let mut hits = Registry::new(1);
+
+        let start = hits.len();
+        hits.register_part(page, seam, area, LayerId::PAGE);
+        hits.register_control(later_control, area, LayerId::PAGE);
+        let _ = hits.register_keyboard_control(disabled, area, LayerId::PAGE);
+        hits.register_part(disabled, seam, area, LayerId::PAGE);
+        hits.promote_part_hit_suffix(start, seam);
+        hits.register_backdrop_of(popup.part(Part::BACKDROP), popup, area, LayerId(1), false);
+
+        let route = backdrop_at(&hits, pos).expect("the popup backdrop at the pointer");
+        assert_eq!(route.0, popup);
+        let underlay = route.1.expect("the highest eligible page target");
+        assert_eq!((underlay.owner, underlay.part), (page, seam));
     }
 
     #[test]

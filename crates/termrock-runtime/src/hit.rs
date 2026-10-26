@@ -202,6 +202,50 @@ struct RoutedScroll {
     invalid: bool,
 }
 
+enum PointerRegions<'a> {
+    Physical(std::iter::Enumerate<std::slice::Iter<'a, Region>>),
+    Virtual {
+        order: std::iter::Enumerate<std::slice::Iter<'a, usize>>,
+        regions: &'a [Region],
+    },
+}
+
+impl<'a> Iterator for PointerRegions<'a> {
+    type Item = (usize, &'a Region);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Physical(regions) => regions.next(),
+            Self::Virtual { order, regions } => {
+                let regions: &'a [Region] = regions;
+                loop {
+                    let (rank, physical_index) = order.next()?;
+                    if let Some(region) = regions.get(*physical_index) {
+                        return Some((rank, region));
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl<'a> DoubleEndedIterator for PointerRegions<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Physical(regions) => regions.next_back(),
+            Self::Virtual { order, regions } => {
+                let regions: &'a [Region] = regions;
+                loop {
+                    let (rank, physical_index) = order.next_back()?;
+                    if let Some(region) = regions.get(*physical_index) {
+                        return Some((rank, region));
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum ScrollRoutePolicy {
     LinkedParent,
@@ -227,6 +271,7 @@ impl Region {
 #[derive(Debug)]
 pub struct Registry {
     regions: Vec<Region>,
+    pointer_order: Option<Vec<usize>>,
     routed_scrolls: Vec<Option<RoutedScroll>>,
     text_drag_regions: Vec<TextDragRegion>,
     registry_id: u64,
@@ -242,6 +287,7 @@ impl Clone for Registry {
     fn clone(&self) -> Self {
         Self {
             regions: self.regions.clone(),
+            pointer_order: self.pointer_order.clone(),
             routed_scrolls: self.routed_scrolls.clone(),
             text_drag_regions: self.text_drag_regions.clone(),
             registry_id: next_scroll_registry_id(),
@@ -265,6 +311,7 @@ impl Registry {
     pub fn new(generation: u32) -> Self {
         Registry {
             regions: Vec::new(),
+            pointer_order: None,
             routed_scrolls: Vec::new(),
             text_drag_regions: Vec::new(),
             registry_id: next_scroll_registry_id(),
@@ -279,6 +326,7 @@ impl Registry {
 
     pub(crate) fn reset(&mut self, generation: u32) {
         self.regions.clear();
+        self.pointer_order = None;
         self.routed_scrolls.clear();
         self.text_drag_regions.clear();
         self.generation = generation;
@@ -306,6 +354,67 @@ impl Registry {
 
     pub fn is_empty(&self) -> bool {
         self.regions.is_empty()
+    }
+
+    pub(crate) fn pointer_regions(&self) -> impl DoubleEndedIterator<Item = (usize, &Region)> + '_ {
+        match self.pointer_order.as_deref() {
+            Some(order) => PointerRegions::Virtual {
+                order: order.iter().enumerate(),
+                regions: &self.regions,
+            },
+            None => PointerRegions::Physical(self.regions.iter().enumerate()),
+        }
+    }
+
+    pub(crate) fn promote_part_hit_suffix(&mut self, start: usize, part: PartRef) {
+        let len = self.regions.len();
+        if start >= len {
+            return;
+        }
+
+        let mut matching_seen = false;
+        let mut needs_partition = false;
+        for rank in start..len {
+            let physical_index = match self.pointer_order.as_ref() {
+                Some(order) => {
+                    let Some(physical_index) = order.get(rank) else {
+                        return;
+                    };
+                    *physical_index
+                }
+                None => rank,
+            };
+            let Some(region) = self.regions.get(physical_index) else {
+                return;
+            };
+            if Self::is_requested_part(region, part) {
+                matching_seen = true;
+            } else if matching_seen {
+                needs_partition = true;
+                break;
+            }
+        }
+
+        if !needs_partition {
+            return;
+        }
+        if self.pointer_order.is_none() {
+            self.pointer_order = Some((0..len).collect());
+        }
+        let regions = &self.regions;
+        if let Some(order) = self.pointer_order.as_mut()
+            && let Some(suffix) = order.get_mut(start..)
+        {
+            suffix.sort_by_key(|physical_index| {
+                regions
+                    .get(*physical_index)
+                    .is_some_and(|region| Self::is_requested_part(region, part))
+            });
+        }
+    }
+
+    fn is_requested_part(region: &Region, part: PartRef) -> bool {
+        region.kind == RegionKind::Part && region.part == part
     }
 
     pub fn register_control(
@@ -1173,6 +1282,9 @@ impl Registry {
             pointer_enabled,
             pass_through,
         });
+        if let Some(pointer_order) = self.pointer_order.as_mut() {
+            pointer_order.push(self.regions.len() - 1);
+        }
         self.routed_scrolls.push(None);
     }
 
@@ -1190,9 +1302,7 @@ impl Registry {
     }
 
     pub fn hit(&self, pos: Position) -> Option<Hit> {
-        self.regions
-            .iter()
-            .enumerate()
+        self.pointer_regions()
             .filter(|(_, r)| {
                 r.pointer_enabled
                     && !matches!(r.kind, RegionKind::Scroll | RegionKind::HoverOnly)
@@ -1205,9 +1315,7 @@ impl Registry {
     /// Resolve an activation target on the shared pointer input boundary.
     /// Public `hit` keeps its established all-layer query semantics.
     pub(crate) fn hit_on_layer(&self, pos: Position, layer: LayerId) -> Option<Hit> {
-        self.regions
-            .iter()
-            .enumerate()
+        self.pointer_regions()
             .filter(|(_, region)| {
                 region.pointer_enabled
                     && region.layer == layer
@@ -1226,9 +1334,7 @@ impl Registry {
         mut layers_high_to_low: impl Iterator<Item = LayerId>,
     ) -> Option<Hit> {
         layers_high_to_low.find_map(|layer| {
-            self.regions
-                .iter()
-                .enumerate()
+            self.pointer_regions()
                 .filter(|(_, region)| {
                     region.pointer_enabled
                         && region.layer == layer
@@ -1241,9 +1347,7 @@ impl Registry {
     }
 
     pub(crate) fn hit_live(&self, pos: Position, layer: LayerId) -> Option<Hit> {
-        self.regions
-            .iter()
-            .enumerate()
+        self.pointer_regions()
             .filter(|(_, r)| {
                 r.pointer_enabled
                     && r.layer == layer
@@ -1343,9 +1447,7 @@ impl Registry {
 
     /// The topmost region at `pos` of any kind, if any.
     pub fn region_at(&self, pos: Position) -> Option<&Region> {
-        self.regions
-            .iter()
-            .enumerate()
+        self.pointer_regions()
             .filter(|(_, r)| r.area.contains(pos))
             .max_by_key(|(i, r)| (r.layer, *i))
             .map(|(_, r)| r)
@@ -1473,6 +1575,150 @@ mod tests {
 
         h.register_control(C, Rect::new(2, 2, 3, 3), LayerId(1));
         assert_eq!(h.hit(Position::new(3, 3)).map(|h| h.owner), Some(C));
+    }
+
+    #[test]
+    fn scoped_part_precedence_is_exact_local_and_shared_by_pointer_queries() {
+        let area = Rect::new(0, 0, 8, 6);
+        let pos = Position::new(3, 2);
+        let requested = PartRef::item(Part::SEAM, crate::id::ItemKey::num(1));
+        let other_item = PartRef::item(Part::SEAM, crate::id::ItemKey::num(2));
+        let mut registry = Registry::new(1);
+        registry.register_control(A, area, LayerId::PAGE);
+
+        let scope_start = registry.len();
+        registry.register_part(B, requested, area, LayerId::PAGE);
+        registry.register_control(C, area, LayerId::PAGE);
+        registry.register_part(C, other_item, area, LayerId::PAGE);
+        registry.register_decor(A, requested, area, LayerId::PAGE);
+        registry.register_hover_part(C, PartRef::of(Part::LABEL), area, LayerId::PAGE);
+        let physical_regions = registry.regions().to_vec();
+
+        registry.promote_part_hit_suffix(scope_start, requested);
+
+        assert_eq!(
+            registry.pointer_order.as_deref(),
+            Some(&[0, 2, 3, 4, 5, 1][..])
+        );
+        assert_eq!(registry.regions(), physical_regions);
+        let hit = registry.hit(pos).expect("the exact requested part wins");
+        assert_eq!(
+            (hit.owner, hit.part, hit.kind),
+            (B, requested, RegionKind::Part)
+        );
+        assert_eq!(registry.hit_on_layer(pos, LayerId::PAGE), Some(hit));
+        assert_eq!(registry.hit_live(pos, LayerId::PAGE), Some(hit));
+        assert_eq!(
+            registry
+                .region_at(pos)
+                .map(|region| (region.owner, region.part, region.kind)),
+            Some((B, requested, RegionKind::Part))
+        );
+        let hover = registry
+            .hit_passive_hover(pos, [LayerId::PAGE].into_iter())
+            .expect("passive hover still filters to hover-only entries");
+        assert_eq!((hover.owner, hover.kind), (C, RegionKind::HoverOnly));
+
+        registry.register_control(A, area, LayerId::PAGE);
+        assert_eq!(
+            registry.hit(pos).map(|hit| hit.owner),
+            Some(A),
+            "registrations after the scope retain ordinary last-wins behavior"
+        );
+        registry.register_control(C, area, LayerId(1));
+        assert_eq!(
+            registry.hit(pos).map(|hit| (hit.owner, hit.layer)),
+            Some((C, LayerId(1))),
+            "layer priority remains above scoped same-layer order"
+        );
+        assert_eq!(
+            registry
+                .hit_on_layer(pos, LayerId::PAGE)
+                .map(|hit| hit.owner),
+            Some(A)
+        );
+    }
+
+    #[test]
+    fn nested_part_scopes_keep_matching_registration_order_and_later_suffixes() {
+        let area = Rect::new(0, 0, 8, 6);
+        let pos = Position::new(3, 2);
+        let seam = PartRef::of(Part::SEAM);
+        let mut registry = Registry::new(1);
+
+        let outer_start = registry.len();
+        registry.register_part(A, seam, area, LayerId::PAGE);
+        registry.register_control(B, area, LayerId::PAGE);
+        let nested_start = registry.len();
+        registry.register_part(C, seam, area, LayerId::PAGE);
+        registry.register_control(Id::root("after-child"), area, LayerId::PAGE);
+        registry.promote_part_hit_suffix(nested_start, seam);
+        registry.register_control(Id::root("after-parent"), area, LayerId::PAGE);
+        registry.promote_part_hit_suffix(outer_start, seam);
+
+        assert_eq!(
+            registry.pointer_order.as_deref(),
+            Some(&[1, 3, 4, 0, 2][..])
+        );
+        assert_eq!(registry.hit(pos).map(|hit| hit.owner), Some(C));
+        registry.register_control(Id::root("outside-scope"), area, LayerId::PAGE);
+        assert_eq!(
+            registry.hit(pos).map(|hit| hit.owner),
+            Some(Id::root("outside-scope")),
+            "later registrations remain after the completed parent scope"
+        );
+    }
+
+    #[test]
+    fn scoped_order_clones_resets_and_keeps_wheel_keys_physical() {
+        let area = Rect::new(1, 1, 8, 6);
+        let pos = Position::new(3, 2);
+        let requested = PartRef::of(Part::SEAM);
+        let mut registry = Registry::new(3);
+        let start = registry.len();
+        registry.register_part(A, requested, area, LayerId::PAGE);
+        let wheel = registry
+            .register_hit_stack_wheel(B, PartRef::of(Part::TRACK), area, LayerId::PAGE, Axes::V, 7)
+            .expect("the physical wheel registration");
+        registry.promote_part_hit_suffix(start, requested);
+
+        assert_eq!(wheel.registration_index, 1);
+        assert_eq!(registry.pointer_order.as_deref(), Some(&[1, 0][..]));
+        assert!(registry.route_key_is_eligible(wheel, Axis::V, pos, LayerId::PAGE));
+        assert_eq!(registry.hit(pos).map(|hit| hit.owner), Some(A));
+
+        let mut cloned = registry.clone();
+        assert_eq!(cloned.pointer_order, registry.pointer_order);
+        assert_eq!(cloned.hit(pos).map(|hit| hit.owner), Some(A));
+        assert!(
+            !cloned.route_key_is_eligible(wheel, Axis::V, pos, LayerId::PAGE),
+            "clone registry identities keep physical wheel keys instance-local"
+        );
+
+        cloned.reset(4);
+        assert!(cloned.pointer_order.is_none());
+        cloned.register_control(A, area, LayerId::PAGE);
+        cloned.register_control(B, area, LayerId::PAGE);
+        assert_eq!(cloned.hit(pos).map(|hit| hit.owner), Some(B));
+    }
+
+    #[test]
+    fn an_already_partitioned_scope_keeps_the_lazy_default_order() {
+        let area = Rect::new(0, 0, 8, 6);
+        let requested = PartRef::of(Part::SEAM);
+        let mut registry = Registry::new(1);
+        registry.register_control(A, area, LayerId::PAGE);
+        let start = registry.len();
+        registry.register_control(B, area, LayerId::PAGE);
+        registry.register_part(C, requested, area, LayerId::PAGE);
+
+        registry.promote_part_hit_suffix(start, requested);
+
+        assert!(registry.pointer_order.is_none());
+        assert_eq!(
+            registry.hit(Position::new(1, 1)).map(|hit| hit.owner),
+            Some(C)
+        );
     }
 
     #[test]

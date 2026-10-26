@@ -711,6 +711,20 @@ impl<'f> Ui<'f> {
         f(&mut self.reborrow(), r)
     }
 
+    pub(crate) fn with_part_hit_precedence<R>(
+        &mut self,
+        part: PartRef,
+        f: impl FnOnce(&mut Ui<'_>) -> R,
+    ) -> R {
+        let start = self.frame.registry.len();
+        let result = {
+            let mut nested = self.reborrow();
+            f(&mut nested)
+        };
+        self.frame.registry.promote_part_hit_suffix(start, part);
+        result
+    }
+
     pub fn with_area<R>(&mut self, area: Rect, f: impl FnOnce(&mut Ui<'_>) -> R) -> R {
         let clip = self.clip.intersection(area);
         let mut nested = self.reborrow();
@@ -3086,6 +3100,41 @@ mod tests {
                 );
             }
             assert_eq!(r.style.bg, Some(theme.bg(Surface::Canvas)));
+        });
+    }
+
+    #[test]
+    fn scoped_part_hit_precedence_runs_once_and_keeps_reference_registration_inert() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            let requested = PartRef::item(Part::SEAM, ItemKey::num(17));
+            let mut calls = 0;
+            crate::author::with_part_hit_precedence(ui, requested, |nested| {
+                calls += 1;
+                nested.register_part(OWNER, requested, SCREEN);
+                nested.register_control(OTHER, SCREEN, Focusability::Focusable);
+            });
+            assert_eq!(calls, 1);
+            let hit = ui
+                .frame
+                .registry
+                .hit(Position::new(1, 1))
+                .expect("the exact part registration is promoted");
+            assert_eq!(
+                (hit.owner, hit.part, hit.kind),
+                (OWNER, requested, RegionKind::Part)
+            );
+
+            let count_before_reference = ui.frame.registry.len();
+            ui.reference(None, |reference| {
+                crate::author::with_part_hit_precedence(reference, requested, |nested| {
+                    calls += 1;
+                    nested.register_part(OTHER, requested, SCREEN);
+                    nested.register_control(OWNER, SCREEN, Focusability::Focusable);
+                });
+            });
+            assert_eq!(calls, 2, "the reference render closure still runs once");
+            assert_eq!(ui.frame.registry.len(), count_before_reference);
         });
     }
 

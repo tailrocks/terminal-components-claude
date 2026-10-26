@@ -1,12 +1,13 @@
 use ratatui::{Terminal, backend::TestBackend};
 use termrock::author::CompositionLeaf;
+use termrock::author::with_part_hit_precedence;
 use termrock::composition::{self, Child, CompositionError, Group};
 use termrock::controls::{Button, SplitPane, SplitPaneState};
 use termrock::layout::{Constraints, Size, SplitAxis};
 use termrock::runtime::Measure;
 use termrock::{
     App, AppShell, Buffer, Cx, Dialog, DialogState, Id, Input, Key, KeyCode, KeyModifiers, Mouse,
-    MouseKind, Position, Rect, Response, Runtime, TextSection, Theme, Ui,
+    MouseKind, Part, PartRef, Position, Rect, Response, Runtime, TextSection, Theme, Ui,
 };
 
 const PANE: Id = Id::root("composition-adapter-behavior.pane");
@@ -333,6 +334,7 @@ fn split_dialog_and_app_shell_adapters_propagate_depth_without_panics() {
 struct SplitHost {
     state: SplitPaneState,
     activated: Option<Id>,
+    scoped_seam_precedence: bool,
 }
 
 impl App for SplitHost {
@@ -355,14 +357,18 @@ impl App for SplitHost {
         let split = SplitPane::new(PANE, SplitAxis::Horizontal);
         let left = Button::new(LEFT, "Left");
         let right = Button::new(RIGHT, "Right");
-        Group::column([composition::split_pane(
+        let content = Group::column([composition::split_pane(
             &split,
             &self.state,
             composition::button(&left),
             composition::button(&right),
-        )])
-        .show(ui)
-        .expect("split pane composition fits the supported depth");
+        )]);
+        let result = if self.scoped_seam_precedence {
+            with_part_hit_precedence(ui, PartRef::of(Part::SEAM), |ui| content.show(ui))
+        } else {
+            content.show(ui)
+        };
+        result.expect("split pane composition fits the supported depth");
     }
 }
 
@@ -373,6 +379,7 @@ fn split_pane_composition_preserves_child_focus_and_activation() {
         SplitHost {
             state: SplitPaneState::default(),
             activated: None,
+            scoped_seam_precedence: false,
         },
         Theme::junie(),
     );
@@ -380,6 +387,13 @@ fn split_pane_composition_preserves_child_focus_and_activation() {
     let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
     publish(&mut runtime, &mut terminal, area);
     let (x, y) = find(terminal.backend().buffer(), "Right").expect("right child is drawn");
+    let seam = runtime
+        .area_of_part(PANE, PartRef::of(Part::SEAM))
+        .expect("the unscoped facade split publishes its reserved seam");
+    assert!(
+        x < seam.x || x >= seam.right() || y < seam.y || y >= seam.bottom(),
+        "the actual child button hit is outside the split's reserved seam: button=({x},{y}), seam={seam:?}"
+    );
 
     for kind in [MouseKind::Down, MouseKind::Up] {
         let _ = runtime
@@ -400,6 +414,52 @@ fn split_pane_composition_preserves_child_focus_and_activation() {
             mods: KeyModifiers::NONE,
         }))
         .expect("focused split pane child receives Enter");
+    publish(&mut runtime, &mut terminal, area);
+    assert_eq!(runtime.app().activated, Some(RIGHT));
+}
+
+#[test]
+fn scoped_split_pane_precedence_preserves_button_focus_and_activation() {
+    let area = Rect::new(0, 0, 44, 10);
+    let mut runtime = Runtime::new(
+        SplitHost {
+            state: SplitPaneState::default(),
+            activated: None,
+            scoped_seam_precedence: true,
+        },
+        Theme::junie(),
+    );
+    let _ = runtime.initialize();
+    let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+    publish(&mut runtime, &mut terminal, area);
+    let (x, y) = find(terminal.backend().buffer(), "Right").expect("right child is drawn");
+    let seam = runtime
+        .area_of_part(PANE, PartRef::of(Part::SEAM))
+        .expect("the scoped facade split publishes its reserved seam");
+    assert!(
+        x < seam.x || x >= seam.right() || y < seam.y || y >= seam.bottom(),
+        "the actual child button hit remains outside the scoped reserved seam: button=({x},{y}), seam={seam:?}"
+    );
+
+    for kind in [MouseKind::Down, MouseKind::Up] {
+        let _ = runtime
+            .handle(Input::Mouse(Mouse {
+                kind,
+                pos: Position::new(x, y),
+                mods: KeyModifiers::NONE,
+            }))
+            .expect("scoped split pane child input is dispatched");
+        publish(&mut runtime, &mut terminal, area);
+    }
+    assert_eq!(runtime.app().activated, Some(RIGHT));
+    assert_eq!(runtime.focus(), Some(RIGHT));
+
+    let _ = runtime
+        .handle(Input::Key(Key {
+            code: KeyCode::Enter,
+            mods: KeyModifiers::NONE,
+        }))
+        .expect("focused scoped split pane child receives Enter");
     publish(&mut runtime, &mut terminal, area);
     assert_eq!(runtime.app().activated, Some(RIGHT));
 }
