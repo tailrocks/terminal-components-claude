@@ -1,0 +1,205 @@
+{
+  "task_id": "T37-API-PROSE-COHORT-C",
+  "input_commit": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
+  "working_base_commit": "6e38a1d3be4b0dcfd47f793e7975299254e38d14",
+  "output_commit": null,
+  "output_commit_note": "The coordinator receives the exact commit ID because a commit cannot include its own hash.",
+  "model": "gpt-6-luna",
+  "effort": "max",
+  "agent_id": "/root/t00_import_rules",
+  "record_path": "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json",
+  "changed_paths": [
+    "crates/termrock-e2e/README.md",
+    "docs/contracts/authoring.md",
+    "docs/contracts/foundation-support.md",
+    "docs/contracts/theming.md",
+    "docs/development.md",
+    "docs/implementation/pr38-final/results/t37-api-support/build_disposition.py",
+    "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+    "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json"
+  ],
+  "requirements": [
+    "Dispose all 496 assigned foundation prose groups from shell, theme, collections, and terminal crates.",
+    "Preserve each source group ID, source-map index, path, line range, file hash, and text hash.",
+    "For every required caller rule, give an exact maintained Markdown destination and excerpt. Give each other group a specific descriptive, internal, historical, compatibility, or retired-test reason.",
+    "Compare the attached declaration in its lexical container scope with the accepted clean source tree.",
+    "Keep all behavior claims marked NOT VERIFIED and add no tests or harnesses."
+  ],
+  "design_decisions": [
+    {
+      "id": "T37-API-PROSE-01",
+      "reviewer": "/root/t37_components_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Boundary accepted; cohort exact-output review pending."
+    },
+    {
+      "id": "T37-THEME-DATA-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied. Retain four ungated public arrays with current values/order; no coverage or permanent-exhaustiveness claim."
+    },
+    {
+      "id": "T37-FOOTER-PIN-CONTRACT-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied. Keep source promise/current assignment conflict open as T19-FOOTER-PIN-01."
+    },
+    {
+      "id": "T37-VISIT-KEY-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied. Document wrapping counter and keep exhaustion identity open as T19-VISIT-KEY-01."
+    },
+    {
+      "id": "T37-NAV-STATE-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied. Document current-thread defaults without cross-thread or runtime isolation claims."
+    },
+    {
+      "id": "T37-CANVAS-WIDTH-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "status": "Applied to authoring guide. Exact cell width and following-text-run position remain open as T10-CANVAS-WIDTH-01."
+    }
+  ],
+  "inputs": {
+    "frozen_source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+    "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "accepted_foundation_source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+    "clean_source_commit": "953fbd76ac47019b0161d86a9a462d04f51b0c7f",
+    "clean_source_tree": "b83d3457495473507dcec2baed97447bba3aaf0e",
+    "source_map": {
+      "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
+      "sha256": "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619",
+      "records": 1122
+    },
+    "source_disposition": {
+      "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose-disposition.json",
+      "sha256": "8e3923ebb4f6d5974a2e632ca32e5406718a5985a8f26a17a75fcbd9a3f4e9df",
+      "records": 1122
+    }
+  },
+  "outputs": {
+    "cohort_record_count": 496,
+    "cohort_counts": {
+      "termrock-shell": 375,
+      "termrock-theme": 95,
+      "termrock-collections": 18,
+      "termrock-terminal": 8
+    },
+    "disposition_counts": {
+      "required_caller_contract": 247,
+      "descriptive_api_reference": 169,
+      "retired_test_only_provenance": 55,
+      "internal_implementation_description": 9,
+      "historical_or_internal_description": 5,
+      "unresolved_source_contract_conflict": 7,
+      "retained_public_compatibility_data": 4
+    },
+    "artifact_hashes": {
+      "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json": "379c33052a244411fef78fcaa79864013c53cdf3ed27c02d929568f316a37136",
+      "docs/implementation/pr38-final/results/t37-api-support/build_disposition.py": "7cdbdaaedcdaf4424efeb62259ff56fd131f37e3652b9a972c58c949bfce4106",
+      "docs/contracts/authoring.md": "c7ead8978fa48a165b4ac32f5bade25361f276748f15eb6ed309d92058595c59",
+      "docs/contracts/foundation-support.md": "a50b4cef7a6215a77729ac15b59dee2e963933c4b483c01a47a70613651d115f",
+      "docs/contracts/theming.md": "b7c42909eb3850c09f4472be298ccfbc726004db248ddbd0c27af99d64045cd0",
+      "docs/development.md": "e64c3e924a1a3a016ebc653cfbc96a712597461dabbbcd67c7d5c4000b234f10",
+      "crates/termrock-e2e/README.md": "d42309a0b45973e3c2a4eb50212525d9db07ddaac97ea71f3809a7ab20f1bd5d"
+    },
+    "preserved_historical_report": {
+      "path": "docs/verification/paired-process-receipt-hardening-20261021.md",
+      "sha256": "19d0d25f5bef1672b21a5c70d10bb396a97d5f3a3345da66a80bcfea5dd24c9f",
+      "expected_commit": "265debfb988feb8cd04d57f246262f8881ac1213"
+    }
+  },
+  "commands": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 docs/implementation/pr38-final/results/t37-api-support/build_disposition.py --repo . --source-root /Users/donbeave/Downloads/termrock-t37-foundations/docs/implementation/pr38-final/results/t37-foundations --clean-root /Users/donbeave/Downloads/termrock-t37-metadata",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+      "result": "496 groups reconciled; no unresolved attached production items."
+    },
+    {
+      "command": "python3 - <<'PY'\nfrom pathlib import Path\nimport re,sys\nfiles=[Path(p) for p in ['docs/contracts/authoring.md','docs/contracts/foundation-support.md','docs/contracts/theming.md','docs/development.md','crates/termrock-e2e/README.md','crates/termrock-xtask/RULES.md']]\nproblems=[]\nfor source in files:\n text=source.read_text()\n for target in re.findall(r'\\]\\(([^)]+)\\)',text):\n  target=target.strip().split()[0].strip('<>')\n  if re.match(r'^[a-zA-Z][a-zA-Z0-9+.-]*:',target) or target.startswith('//'):\n   continue\n  file_part,sep,fragment=target.partition('#')\n  if not file_part: dest=source\n  else: dest=(source.parent/file_part).resolve()\n  if not dest.exists(): problems.append(f'{source}: missing {target}') ; continue\n  if sep and fragment and not re.fullmatch(r'L\\d+(?:-L\\d+)?',fragment):\n   headings=[]\n   for line in dest.read_text(errors='replace').splitlines():\n    m=re.match(r'^#{1,6}\\s+(.+?)\\s*#*$',line)\n    if m:\n     label=m.group(1).strip().lower().replace('`','')\n     label=re.sub(r'\\[([^\\]]+)\\]\\([^)]*\\)',r'\\1',label)\n     label=re.sub(r'[^a-z0-9 _-]','',label)\n     slug=re.sub(r'[ _]+','-',label).strip('-')\n     headings.append(slug)\n   if fragment not in headings: problems.append(f'{source}: missing anchor #{fragment} in {dest}')\nif problems:\n print('\\n'.join(problems)); sys.exit(1)\nprint(f'checked local links in {len(files)} Markdown files; all targets and heading anchors resolve')\nPY",
+      "exit_code": 1,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/contracts/authoring.md",
+      "result": "The sole unresolved local target is the accepted foundation source inventory, not yet integrated at this worktree. The path is recorded as a pending integration dependency."
+    },
+    {
+      "command": "python3 - <<'PY'\nfrom pathlib import Path\nimport re,sys\nfiles=[Path(p) for p in ['docs/contracts/authoring.md','docs/contracts/foundation-support.md','docs/contracts/theming.md','docs/development.md','crates/termrock-e2e/README.md','crates/termrock-xtask/RULES.md']]\npending='../../docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json'\nproblems=[]\nfor source in files:\n for target in re.findall(r'\\]\\(([^)]+)\\)',source.read_text()):\n  target=target.strip().split()[0].strip('<>')\n  if target==pending:\n   continue\n  if re.match(r'^[a-zA-Z][a-zA-Z0-9+.-]*:',target) or target.startswith('//'):\n   continue\n  file_part,sep,fragment=target.partition('#')\n  dest=source if not file_part else (source.parent/file_part).resolve()\n  if not dest.exists():\n   problems.append(f'{source}: missing {target}'); continue\n  if sep and fragment and not re.fullmatch(r'L\\d+(?:-L\\d+)?',fragment):\n   headings=[]\n   for line in dest.read_text(errors='replace').splitlines():\n    m=re.match(r'^#{1,6}\\s+(.+?)\\s*#*$',line)\n    if m:\n     label=m.group(1).strip().lower().replace('`','')\n     label=re.sub(r'\\[([^\\]]+)\\]\\([^)]*\\)',r'\\1',label)\n     label=re.sub(r'[^a-z0-9 _-]','',label)\n     headings.append(re.sub(r'[ _]+','-',label).strip('-'))\n   if fragment not in headings: problems.append(f'{source}: missing anchor #{fragment} in {dest}')\nif problems: print('\\n'.join(problems)); sys.exit(1)\nprint(f'PASS: all local targets and heading anchors in {len(files)} Markdown files resolve except one accepted foundation inventory link pending integration: {pending}')\nPY",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/contracts/authoring.md",
+      "result": "All other local targets and heading anchors resolve in six maintained Markdown files; the accepted foundation inventory link remains pending."
+    },
+    {
+      "command": "git show 265debfb988feb8cd04d57f246262f8881ac1213:docs/verification/paired-process-receipt-hardening-20261021.md | shasum -a 256; shasum -a 256 docs/verification/paired-process-receipt-hardening-20261021.md; git diff --check",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/verification/paired-process-receipt-hardening-20261021.md",
+      "result": "Both report digests equal 19d0d25f5bef1672b21a5c70d10bb396a97d5f3a3345da66a80bcfea5dd24c9f; diff check is clean."
+    },
+    {
+      "command": "python3 - <<'PY'\nimport hashlib,subprocess\nfrom pathlib import Path\ncommit='1d6ee92adf6ccca38eeee64b1371cba1497e8fcd'\nfiles=sorted(Path('crates/termrock-e2e/schemas').glob('*.json'))\nchanged=[]\nfor p in files:\n before=subprocess.check_output(['git','show',f'{commit}:{p.as_posix()}'])\n now=p.read_bytes()\n if hashlib.sha256(before).digest()!=hashlib.sha256(now).digest(): changed.append(p.as_posix())\nprint(f'schemas={len(files)} changed={changed}')\nif len(files)!=12 or changed: raise SystemExit(1)\nPY",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "crates/termrock-e2e/schemas/",
+      "result": "All 12 schemas match the product-source commit byte-for-byte."
+    }
+  ],
+  "approved_test_plan_id": null,
+  "test_plan_reviewer": null,
+  "test_edit_scope": [],
+  "behavior_cases": 0,
+  "behavior_status": "NOT VERIFIED",
+  "open_requirements": [
+    "T19-VISIT-KEY-01: safe page/focus identity at counter exhaustion.",
+    "T19-FOOTER-PIN-01: resolve pinned-hint versus Danger normalization precedence before any behavior change.",
+    "T10-CANVAS-WIDTH-01: resolve exact display-cell width and following-text-run positioning.",
+    "T14: define list selection policy and verification for eligibility changes.",
+    "Accepted foundation source inventory link awaits normal integration.",
+    "Global 1,122-group crosswalk and whole T37 remain open."
+  ],
+  "limits": [
+    "No Cargo command, test, harness, visual comparison, or product behavior case ran.",
+    "The lexical tokenizer and container matcher are evidence checks, not a Rust parser or semantic proof.",
+    "The required-excerpt check verifies presence, not behavioral truth.",
+    "One accepted foundation source-inventory link is pending integration and is excluded from the local-link pass.",
+    "The retained receipt report is byte-identical to the file at 265deb; this does not verify its historical claims."
+  ],
+  "review_state": "PENDING_INDEPENDENT_REVIEW",
+  "environment": {
+    "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
+    "branch": "pr38/T37-shared",
+    "coordinator": "/root",
+    "cleanup_agent": "/root/t00_import_rules/t37_disk_cleanup",
+    "free_bytes_latest": 2132227645440,
+    "disk_status": "ok",
+    "note": "Cleanup agent remains active until the 2.5 TB gate; safe candidate search found no new target.",
+    "free_bytes_latest_child_probe": 2131937669120,
+    "root_disk_probe": {
+      "free_bytes": 2132227645440,
+      "status": "ok"
+    },
+    "cleanup_agent_selection_note": "This unit record does not retain the child spawn arguments. The child runtime does not attest a more specific backend model or effort. Do not infer model unavailability from that absence.",
+    "cleanup_result": "Disk-only checks found no new safe target; no files were deleted. Child remains active until 2.5 TB."
+  }
+}

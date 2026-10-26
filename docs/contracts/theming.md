@@ -8,6 +8,8 @@ See [component customization](overrides.md) for the per-component availability o
 
 The [historical theming guide](https://github.com/tailrocks/terminal-components-claude/blob/d1122f69e6b9c2364aa6ede8174e7d35b8cfff39/docs/guides/theming.md) preserves earlier scenarios and values. Its `junie_tui` examples and old numeric thresholds are not current instructions or acceptance values without a new source and rendered comparison.
 
+See [foundation support contracts](foundation-support.md#theme-presentation-policy) for shared-Manager policy, capability-profile matching, recipe intent, modal dim, focus bars, inactive selection, and gutter behavior.
+
 ## Theme shape and visual scenarios
 
 | Scenario | Current source fact | Existing consumer or test evidence | Remaining acceptance |
