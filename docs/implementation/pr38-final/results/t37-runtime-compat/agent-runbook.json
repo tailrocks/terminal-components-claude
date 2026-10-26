@@ -1,0 +1,78 @@
+{
+  "schema": "t37.runtime-compatibility-result.v1",
+  "task": "T37-BUILD-COMPAT-01",
+  "input": {
+    "accepted_source_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+    "input_runtime_blob": "57944a2753eb4d8fd043857d7c8bbd3f3cc5f286",
+    "combined_revision": "0e8e7a7cd1e11d0633309f5da4c1d5e7056dfd6c",
+    "combined_runtime_blob": "57944a2753eb4d8fd043857d7c8bbd3f3cc5f286",
+    "product_baseline_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "baseline_runtime_blob": "03620b5f4aec8321c54f09c8d8361ec26e5ddc61"
+  },
+  "decision": {
+    "id": "T37-BUILD-COMPAT-01",
+    "reviewer": "/root/t00_independent_review",
+    "review_level": "Sol high",
+    "status": "Approved to restore only Runtime::draw_scene under the testing feature.",
+    "basis": "The fixed caller map identifies two active form examples that call Runtime::draw_scene. The coordinator reports that the baseline all-target, all-feature build passed and the combined revision had 101 missing-method errors. This fragment did not rerun either build.",
+    "metadata_owner_action": "The metadata owner will restore the forms development edge and testing CI input."
+  },
+  "change": {
+    "source_path": "crates/termrock-runtime/src/runtime.rs",
+    "source_paths_changed": 1,
+    "restored_item": "Runtime::draw_scene",
+    "baseline_lines": "3208-3219",
+    "baseline_gate": "The method was inside an impl with cfg(feature = testing).",
+    "current_gate": "The method has its own cfg(feature = testing) attribute.",
+    "method_sha256_baseline": "02ee86b2f7778535033874ea5b49ead36f0b23bb39b40e08cf9b1f0fdcefcd25",
+    "method_sha256_output": "02ee86b2f7778535033874ea5b49ead36f0b23bb39b40e08cf9b1f0fdcefcd25",
+    "method_exact_bytes_match": true,
+    "runtime_file_sha256_output": "05571ecbe25cf3893c7175a680854a20a91779612b4e955930a0f8ca41fbeaf9",
+    "other_retired_methods_restored": 0,
+    "comments_added": 0,
+    "replacement_tests_harnesses_fixtures": 0
+  },
+  "validation": [
+    {
+      "command": "git status --short; git rev-parse HEAD; git rev-parse 2fee2c277d1213fc5fad5d81eb77479600182b69:crates/termrock-runtime/src/runtime.rs; git rev-parse 0e8e7a7cd1e11d0633309f5da4c1d5e7056dfd6c:crates/termrock-runtime/src/runtime.rs; git rev-parse 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd:crates/termrock-runtime/src/runtime.rs",
+      "status": "PASS before edit",
+      "result": "The worktree was clean at the accepted input. The accepted and combined runtime blobs matched."
+    },
+    {
+      "command": "Static Python extraction compared the baseline and output Runtime::draw_scene method bytes and checked its feature gate.",
+      "status": "PASS",
+      "result": "The original method bytes match. The method has the testing feature gate."
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS"
+    },
+    {
+      "command": "mise exec -- rustfmt --check --edition 2024 crates/termrock-runtime/src/runtime.rs",
+      "status": "FAIL on existing formatting differences",
+      "result": "Rustfmt reported blank-line differences outside the restored method, including runtime.rs lines 142, 372, 529, 645, and 900 and unchanged runtime submodules. It reported no difference for draw_scene. The isolated method passed rustfmt check."
+    },
+    {
+      "command": "mise exec -- rustfmt --check --edition 2024 /dev/stdin, with the extracted method inside a temporary impl wrapper",
+      "status": "PASS",
+      "result": "The restored method is formatted."
+    },
+    {
+      "command": "Cargo build, test, and CI generator commands",
+      "status": "NOT RUN",
+      "result": "The coordinator requested no Cargo command until combined metadata is ready."
+    }
+  ],
+  "verification_limits": {
+    "selected_test_cases": 0,
+    "behavior_status": "NOT VERIFIED",
+    "build_status": "NOT VERIFIED in this fragment",
+    "independent_review_status": "PENDING exact output commit",
+    "prior_source_acceptance": "2fee2c277d1213fc5fad5d81eb77479600182b69 was accepted before this compatibility correction. That acceptance does not cover this new output."
+  },
+  "open_dependencies": [
+    "The metadata owner must restore the forms development edge and testing CI input.",
+    "The coordinator must run the guarded combined build after metadata integration.",
+    "An independent Sol high reviewer must review the exact output commit."
+  ]
+}
