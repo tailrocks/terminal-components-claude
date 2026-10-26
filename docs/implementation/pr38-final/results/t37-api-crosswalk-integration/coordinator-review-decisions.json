@@ -2,7 +2,7 @@
   "schema": "t37.api-prose-coordinator-review-bindings.v1",
   "task_id": "T37-API-CROSSWALK-INTEGRATION",
   "recorded_by": "/root",
-  "input_commit": "59118234047f19adaa62621badd8c33bde355040",
+  "input_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
   "decisions": [
     {
       "cohort_id": "T37-API-PROSE-COHORT-A",
@@ -34,21 +34,21 @@
     },
     {
       "cohort_id": "T37-API-PROSE-COHORT-C",
-      "status": "REVIEW/PENDING",
+      "status": "ACCEPTED",
       "reviewer_id": "/root/t00_independent_review",
       "reviewer_model": "gpt-6.1-sol",
       "reviewer_effort": "high",
-      "decision_id": "T37-API-PROSE-01",
+      "decision_id": "T37-API-SUPPORT-EE8-ACCEPT",
       "reviewed_artifact": {
-        "commit": "fe032a24154819a579c591e1cf87230558d286ee",
+        "commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
         "path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
-        "sha256": "379c33052a244411fef78fcaa79864013c53cdf3ed27c02d929568f316a37136"
+        "sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae"
       },
-      "pending_work": "Confirmed maintained-guide corrections remain under independent review."
+      "imported_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4"
     }
   ],
   "notes": [
     "Each decision binds reviewer identity and decision ID to an exact reviewed source commit, artifact path, and SHA-256.",
-    "C remains pending until a coordinator records an accepted decision against the corrected source artifact and its exact identity."
+    "C acceptance is bound to the corrected source artifact in ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9. Global composition review remains separate and pending."
   ]
 }

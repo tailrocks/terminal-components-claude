@@ -15,6 +15,8 @@ CLEANUP_COMMIT = "7368d4fc5a71e46cae5ee92963bcf3a6943953e9"
 FOUNDATION_COMMIT = "2fee2c277d1213fc5fad5d81eb77479600182b69"
 FOUNDATION_SOURCE_PATH = "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json"
 FOUNDATION_SOURCE_SHA256 = "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619"
+FOUNDATION_DISPOSITION_PATH = "docs/implementation/pr38-final/results/t37-foundations/source-api-prose-disposition.json"
+FOUNDATION_DISPOSITION_SHA256 = "8e3923ebb4f6d5974a2e632ca32e5406718a5985a8f26a17a75fcbd9a3f4e9df"
 FOUNDATION_RECORD_COUNT = 1122
 OUTPUT_PATH = "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json"
 COORDINATOR_REVIEW_PATH = "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/coordinator-review-decisions.json"
@@ -66,9 +68,10 @@ COHORTS: tuple[dict[str, Any], ...] = (
         "label": "foundation support",
         "path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
         "runbook_path": "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json",
-        "integration_commit": None,
-        "reviewed_source_commit": None,
-        "artifact_sha256": None,
+        "integration_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+        "imported_commit": "f2657fe1cf0dcfb7baac271b5d93c523369798f4",
+        "reviewed_source_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+        "artifact_sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae",
         "runbook_sha256": None,
         "record_count": 496,
         "disposition_key": "semantic_disposition",
@@ -76,8 +79,8 @@ COHORTS: tuple[dict[str, Any], ...] = (
         "reviewer_id": "/root/t00_independent_review",
         "reviewer_model": "gpt-6.1-sol",
         "reviewer_effort": "high",
-        "decision_id": "T37-API-PROSE-01",
-        "required_review_status": None,
+        "decision_id": "T37-API-SUPPORT-EE8-ACCEPT",
+        "required_review_status": "ACCEPTED",
     },
 )
 
@@ -244,37 +247,64 @@ def resolve_root(script: Path, requested: Path | None) -> Path:
     return root
 
 
-def load_foundation_source(root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
-    object_bytes = git_bytes(root, f"{FOUNDATION_COMMIT}:{FOUNDATION_SOURCE_PATH}")
-    object_sha256 = sha256(object_bytes)
-    if object_sha256 != FOUNDATION_SOURCE_SHA256:
-        fail(f"immutable foundation source hash mismatch: {object_sha256}")
-    local_path = root / FOUNDATION_SOURCE_PATH
+def load_verified_inventory(
+    root: Path,
+    head: str,
+    path: str,
+    expected_sha256: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    object_bytes = git_bytes(root, f"{FOUNDATION_COMMIT}:{path}")
+    if sha256(object_bytes) != expected_sha256:
+        fail(f"immutable inventory hash mismatch for {path}")
+    local_path = root / path
     if local_path.exists():
         local_bytes = local_path.read_bytes()
-        if sha256(local_bytes) != FOUNDATION_SOURCE_SHA256 or local_bytes != object_bytes:
-            fail("integrated foundation source differs from its accepted Git blob")
+        if local_bytes != object_bytes or sha256(local_bytes) != expected_sha256:
+            fail(f"integrated inventory differs from its accepted Git blob: {path}")
+        integration_commit = latest_path_commit(root, head, path)
+        integrated_bytes = git_bytes(root, f"{integration_commit}:{path}")
+        if integrated_bytes != local_bytes:
+            fail(f"local inventory differs from its committed integration: {path}")
         integration_status = "INTEGRATED_AND_HASH_VERIFIED"
         input_mode = "integrated_file_validated_against_immutable_git_blob"
     else:
         local_bytes = object_bytes
+        integration_commit = None
         integration_status = "PENDING_INTEGRATION"
         input_mode = "immutable_git_blob; local integration pending"
-    source = read_json(local_bytes, FOUNDATION_SOURCE_PATH)
-    records = source.get("records")
-    if source.get("record_count") != FOUNDATION_RECORD_COUNT or not isinstance(records, list) or len(records) != FOUNDATION_RECORD_COUNT:
-        fail("foundation source record count mismatch")
-    paths = {record.get("path") for record in records}
+    document = read_json(local_bytes, path)
+    records = document.get("records")
+    if document.get("record_count") != FOUNDATION_RECORD_COUNT or not isinstance(records, list) or len(records) != FOUNDATION_RECORD_COUNT:
+        fail(f"inventory record count mismatch for {path}")
     metadata = {
-        "path": FOUNDATION_SOURCE_PATH,
+        "path": path,
         "accepted_source_commit": FOUNDATION_COMMIT,
-        "sha256": FOUNDATION_SOURCE_SHA256,
+        "local_integration_commit": integration_commit,
+        "sha256": expected_sha256,
         "record_count": len(records),
-        "source_path_count": len(paths),
         "integration_status": integration_status,
         "input_mode": input_mode,
     }
-    return source, metadata
+    return document, metadata
+
+
+def load_foundation_source(root: Path, head: str) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    source, source_metadata = load_verified_inventory(
+        root,
+        head,
+        FOUNDATION_SOURCE_PATH,
+        FOUNDATION_SOURCE_SHA256,
+    )
+    source_disposition, disposition_metadata = load_verified_inventory(
+        root,
+        head,
+        FOUNDATION_DISPOSITION_PATH,
+        FOUNDATION_DISPOSITION_SHA256,
+    )
+    if source_disposition.get("source_map_sha256") != FOUNDATION_SOURCE_SHA256:
+        fail("source disposition inventory does not bind the accepted source map")
+    source_metadata["source_path_count"] = len({record.get("path") for record in source["records"]})
+    return source, source_metadata, disposition_metadata
 
 
 def source_record_for(source: dict[str, Any], index: int) -> dict[str, Any]:
@@ -460,7 +490,7 @@ def load_cohort(
 
 def build(root: Path) -> dict[str, Any]:
     head = git_text(root, "rev-parse", "HEAD")
-    source, source_metadata = load_foundation_source(root)
+    source, source_metadata, disposition_metadata = load_foundation_source(root, head)
     coordinator_decisions, coordinator_record = load_coordinator_decisions(root)
     seen_indices: set[int] = set()
     seen_ids: set[str] = set()
@@ -495,7 +525,7 @@ def build(root: Path) -> dict[str, Any]:
         fail("global one-to-one coverage count mismatch")
     rows.sort(key=lambda row: row["source_map_record"])
     return {
-        "schema": "t37.foundation-api-prose-crosswalk.v3",
+        "schema": "t37.foundation-api-prose-crosswalk.v4",
         "task_id": "T37",
         "status": "REVIEW/PENDING",
         "review_state": "PENDING_INDEPENDENT_SOL_HIGH_REVIEW",
@@ -505,6 +535,7 @@ def build(root: Path) -> dict[str, Any]:
         "cleanup_source_commit": CLEANUP_COMMIT,
         "accepted_foundation_source_commit": FOUNDATION_COMMIT,
         "source_inventory": source_metadata,
+        "source_disposition_inventory": disposition_metadata,
         "coordinator_review_decisions": coordinator_record,
         "cohorts": cohorts,
         "provenance_scope": {
@@ -535,10 +566,11 @@ def build(root: Path) -> dict[str, Any]:
             "The producer composes the three explicit cohort records. It does not infer disposition from keywords, source survival, or matching signatures.",
             "Each cohort record is embedded unchanged. Its attachment, disposition, clauses, excerpt, reason, destination, and decision identifiers retain their cohort-specific field names.",
             "Every source identity is checked against the accepted immutable Git blob.",
-            "Local integration state is recorded at source_inventory.integration_status.",
+            "Local inventory integration states are recorded in source_inventory and source_disposition_inventory.",
             f"Local foundation inventory state: {source_metadata['integration_status']}.",
+            f"Local lexical inventory state: {disposition_metadata['integration_status']}.",
             "Hashes inside embedded cohort records remain source-commit evidence and are not represented as current candidate target hashes.",
-            "The current result remains REVIEW/PENDING while cohort C and independent global review remain open.",
+            "All cohort review decisions are recorded separately from the pending independent global review.",
             "No behavior tests, harnesses, fixtures, doctests, source changes, or Cargo commands are part of this unit.",
         ],
         "records": rows,
