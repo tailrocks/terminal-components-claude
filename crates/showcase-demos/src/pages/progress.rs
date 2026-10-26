@@ -4,9 +4,9 @@ use std::time::Duration;
 use termrock::navigation::TabAffixes;
 use termrock::{
     ActionKey, Binding, Button, Chord, Color, Cx, FrameRead, GlyphRole, Id, ItemKey, Meter,
-    MeterTone, MeterVisual, Modifier, PaintStyle, ProgressBar, Rect, Response, ScrollRegion,
-    ScrollState, Select, SelectState, Spinner, Status, Tabs, TabsState, Ui, Variant,
-    author::VerticalWindow, truncate, width,
+    MeterTone, MeterVisual, Modifier, PaintStyle, Part, ProgressBar, Rect, Response, Role,
+    ScrollRegion, ScrollState, Select, SelectState, Spinner, StateFlags, Status, StylePatch,
+    Surface, Tabs, TabsState, Ui, Variant, author::VerticalWindow, truncate, width,
 };
 
 use super::{Page, PageStatus, PageUpdate, frame, paint_boundary_meta};
@@ -109,6 +109,13 @@ const WARNING: u32 = 0xf59e09;
 const INFO: u32 = 0x79b8ff;
 const TAB_ACTIVE: u32 = 0x27272a;
 const BUTTON_BG: u32 = 0x27272a;
+const PROGRESS_BUTTON_IDLE: StylePatch = StylePatch::new()
+    .set_fg(Role::Custom(Color::from_u32(WHITE)))
+    .set_bg(Role::Custom(Color::from_u32(BUTTON_BG)));
+const PROGRESS_BUTTON_HOVER: &[(Part, StylePatch)] = &[(
+    Part::CONTAINER,
+    StylePatch::new().set_bg(Role::Surface(Surface::Popover)),
+)];
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
 const BLOCK_REST: u32 = 0x26262a;
@@ -689,28 +696,24 @@ fn paint_bar(
     );
 }
 
-fn paint_button(ui: &mut Ui<'_>, button: Button<'_>, area: Rect, label: &str) -> Rect {
-    let drawn = button.draw(ui, area);
-    if drawn.is_empty() {
-        return drawn;
+fn progress_button<'a>(ui: &Ui<'_>, id: Id, button: Button<'a>) -> Button<'a> {
+    let state = ui.state(id);
+    if state.contains(StateFlags::PRESSED) || state.contains(StateFlags::DISABLED) {
+        button
+    } else if state.contains(StateFlags::HOVERED) {
+        // The authored idle plate matches Junie's secondary hover surface. Give
+        // the hovered plate its next semantic surface so the native state stays
+        // visible while preserving the default authored cells.
+        button.patch_part(PROGRESS_BUTTON_HOVER)
+    } else if state.contains(StateFlags::FOCUSED) || state.contains(StateFlags::FOCUS_VISIBLE) {
+        button
+    } else {
+        button.patch(&PROGRESS_BUTTON_IDLE)
     }
-    ui.fill(drawn, ink(WHITE, BUTTON_BG));
-    let _ = ui.paint_str(
-        Rect::new(drawn.x, drawn.y, 1, 1),
-        " ",
-        ink(BUTTON_BG, BUTTON_BG),
-    );
-    let _ = ui.paint_str(
-        Rect::new(
-            drawn.x.saturating_add(1),
-            drawn.y,
-            drawn.width.saturating_sub(1),
-            1,
-        ),
-        label,
-        ink(WHITE, BUTTON_BG),
-    );
-    drawn
+}
+
+fn paint_button(ui: &mut Ui<'_>, button: Button<'_>, id: Id, area: Rect) -> Rect {
+    progress_button(ui, id, button).draw(ui, area)
 }
 
 fn row_at(card: Rect, dy: u16, x: u16, w: u16) -> Rect {
@@ -778,14 +781,14 @@ fn paint_live(
     let pause_label = if paused { "Resume" } else { "Pause" };
     let pause = Button::new(PAUSE, pause_label).variant(Variant::SECONDARY);
     let row = Rect::new(inner_x, button_y, inner_w, 1);
-    let first = paint_button(ui, restart, row, "Restart");
+    let first = paint_button(ui, restart, RESTART, row);
     let next_x = first.right().saturating_add(2);
     if next_x < row.right() {
         paint_button(
             ui,
             pause,
+            PAUSE,
             Rect::new(next_x, button_y, row.right().saturating_sub(next_x), 1),
-            pause_label,
         );
     } else {
         ui.register_focus_only(PAUSE, termrock::Focusability::Focusable);
@@ -1396,32 +1399,8 @@ fn paint_narrow_label_bar(
     }
 }
 
-fn paint_narrow_button(ui: &mut Ui<'_>, button: Button<'_>, area: Rect, label: &str) -> Rect {
-    let drawn = button.draw(ui, area);
-    if drawn.is_empty() {
-        return drawn;
-    }
-    let _ = ui.paint_str(
-        drawn,
-        &" ".repeat(usize::from(drawn.width)),
-        settled(WHITE, BUTTON_BG, false),
-    );
-    let _ = ui.paint_str(
-        Rect::new(drawn.x, drawn.y, 1, 1),
-        " ",
-        settled(BUTTON_BG, BUTTON_BG, false),
-    );
-    let _ = ui.paint_str(
-        Rect::new(
-            drawn.x.saturating_add(1),
-            drawn.y,
-            drawn.width.saturating_sub(1),
-            1,
-        ),
-        label,
-        settled(WHITE, BUTTON_BG, false),
-    );
-    drawn
+fn paint_narrow_button(ui: &mut Ui<'_>, button: Button<'_>, id: Id, area: Rect) -> Rect {
+    progress_button(ui, id, button).draw(ui, area)
 }
 
 fn paint_narrow_scroll(ui: &mut Ui<'_>, view: Rect) {
@@ -1517,21 +1496,20 @@ fn paint_narrow(ui: &mut Ui<'_>, body: Rect, build: f64, paused: bool, frame: us
     }
     let button_y = live.y.saturating_add(8);
     if button_y < live.bottom() {
-        let pause_label = if paused { "Resume" } else { "Pause" };
         let row = Rect::new(
             live.x.saturating_add(2),
             button_y,
             live.width.saturating_sub(2),
             1,
         );
-        let first = paint_narrow_button(ui, restart_button(), row, "Restart");
+        let first = paint_narrow_button(ui, restart_button(), RESTART, row);
         let next_x = first.right().saturating_add(2);
         if next_x < row.right() {
             paint_narrow_button(
                 ui,
                 pause_button(paused),
+                PAUSE,
                 Rect::new(next_x, button_y, row.right().saturating_sub(next_x), 1),
-                pause_label,
             );
         }
     }
@@ -2637,6 +2615,26 @@ mod tests {
         let _ = h.key(termrock::KeyCode::Char(key));
     }
 
+    fn assert_idle_button_plate(
+        h: &termrock_test_support::Harness<InteractiveHost>,
+        id: Id,
+    ) -> Rect {
+        let area = h
+            .area_of(id)
+            .expect("visible Progress button is registered");
+        assert!(area.width > 1 && area.height == 1, "{area:?}");
+        let gutter = h.cell(area.x, area.y);
+        assert_eq!(gutter.symbol(), " ");
+        assert_eq!(gutter.fg, rgb(BUTTON_BG));
+        assert_eq!(gutter.bg, rgb(BUTTON_BG));
+        for x in area.x.saturating_add(1)..area.right() {
+            let cell = h.cell(x, area.y);
+            assert_eq!(cell.fg, rgb(WHITE), "authored label/pad at x={x}");
+            assert_eq!(cell.bg, rgb(BUTTON_BG), "authored plate at x={x}");
+        }
+        area
+    }
+
     fn state_widget_area(
         h: &termrock_test_support::Harness<InteractiveHost>,
         source_row: usize,
@@ -2818,6 +2816,119 @@ mod tests {
 
         let _ = h.click(moved.x.saturating_add(moved.width / 2), moved.y);
         assert_eq!(h.app().page.build, 0.0);
+    }
+
+    #[test]
+    fn progress_buttons_preserve_idle_ink_and_show_native_focus_hover_and_press() {
+        let mut h = termrock_test_support::Harness::new(
+            InteractiveHost {
+                page: ProgressPage::new(),
+            },
+            Theme::junie(),
+            94,
+            36,
+        );
+        h.app_mut().page.build = 0.5;
+        h.draw();
+        let area = assert_idle_button_plate(&h, RESTART);
+        let label_x = area.x.saturating_add(1);
+        let idle_bg = h.cell(label_x, area.y).bg;
+
+        assert!(h.tab_to(RESTART), "Restart remains a real keyboard stop");
+        assert!(h.state_of(RESTART).contains(StateFlags::FOCUSED));
+        assert!(h.state_of(RESTART).contains(StateFlags::FOCUS_VISIBLE));
+        assert!(
+            h.cell(label_x, area.y).modifier.contains(Modifier::BOLD),
+            "the native focused style reaches the presented label"
+        );
+
+        h.blur();
+        let x = area.x.saturating_add(1);
+        let _ = h.mouse(termrock::MouseKind::Move, x, area.y);
+        assert_eq!(h.hover(), Some(RESTART));
+        assert!(h.state_of(RESTART).contains(StateFlags::HOVERED));
+        let hovered = h.cell(label_x, area.y);
+        assert_ne!(
+            hovered.bg, idle_bg,
+            "the authored idle patch yields to hover"
+        );
+        assert_eq!(
+            hovered.bg,
+            rgb(0x3f3f46),
+            "hover uses Junie's popover surface"
+        );
+
+        let _ = h.mouse(termrock::MouseKind::Down, x, area.y);
+        assert!(h.state_of(RESTART).contains(StateFlags::PRESSED));
+        let pressed = h.cell(label_x, area.y);
+        assert_eq!(pressed.fg, rgb(CANVAS));
+        assert_eq!(pressed.bg, rgb(WHITE));
+        assert_eq!(
+            h.app().page.build,
+            0.5,
+            "press alone does not activate Restart"
+        );
+
+        let _ = h.mouse(termrock::MouseKind::Up, x, area.y);
+        assert_eq!(
+            h.app().page.build,
+            0.0,
+            "native click still activates Restart"
+        );
+    }
+
+    #[test]
+    fn compact_button_uses_the_same_idle_patch_and_native_control_bounds() {
+        let mut h = termrock_test_support::Harness::new(
+            InteractiveHost {
+                page: ProgressPage::new(),
+            },
+            Theme::junie(),
+            51,
+            16,
+        );
+        h.app_mut().page.build = 0.5;
+        h.draw();
+
+        let initial_restart = h
+            .area_of(RESTART)
+            .expect("compact Restart is initially focused and visible");
+        assert!(initial_restart.right() <= 51);
+        assert!(h.state_of(RESTART).contains(StateFlags::FOCUSED));
+        assert_eq!(h.cell(initial_restart.x, initial_restart.y).symbol(), "▎");
+        assert!(
+            h.cell(initial_restart.x.saturating_add(1), initial_restart.y)
+                .modifier
+                .contains(Modifier::BOLD)
+        );
+
+        let pause = h
+            .area_of(PAUSE)
+            .expect("compact Pause remains a visible native control");
+        assert!(pause.right() <= 51);
+        assert!(h.tab_to(PAUSE));
+        assert!(h.state_of(PAUSE).contains(StateFlags::FOCUSED));
+        assert!(!h.state_of(RESTART).contains(StateFlags::FOCUSED));
+
+        let area = assert_idle_button_plate(&h, RESTART);
+        assert_eq!(
+            area, initial_restart,
+            "focus movement preserves button geometry"
+        );
+        assert!(
+            area.right() <= 51,
+            "compact hit area is clipped to the viewport"
+        );
+        assert!(h.tab_to(RESTART));
+        assert!(h.state_of(RESTART).contains(StateFlags::FOCUSED));
+        assert_eq!(h.cell(area.x, area.y).symbol(), "▎");
+        assert!(
+            h.cell(area.x.saturating_add(1), area.y)
+                .modifier
+                .contains(Modifier::BOLD),
+            "compact draw retains the native focused state"
+        );
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
 
     #[test]
