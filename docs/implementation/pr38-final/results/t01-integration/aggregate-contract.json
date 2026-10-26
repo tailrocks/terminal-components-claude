@@ -157,33 +157,57 @@
         "evidence",
         "source_refs",
         "live_page_object_exists",
-        "planned_content_owner"
+        "planned_content_owner",
+        "reference_source_commit",
+        "reference_source_path",
+        "reference_source_line_or_range",
+        "reference_source_sha256"
       ],
-      "preservation": "Keep target tag, live Page object, dispatch path, factory, definition owner, and planned content owner separate.",
-      "owner_task_binding": "Join route.requirement_id to the app-routes requirements array by id; preserve current route owner and planned content owner as separate fields."
+      "preservation": "Keep target tag, live Page object, dispatch path, factory, definition owner, and planned content owner separate. Bind the exact full key set to PR26 commit 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948 with source paths, lines, and hashes; 54 rows alone do not establish route coverage.",
+      "owner_task_binding": "Join route.requirement_id to the app-routes requirements array by id; preserve current route owner and planned content owner as separate fields.",
+      "reference_keyset": {
+        "commit": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+        "comparison": "The final 54 reference_identity values must equal the complete key set extracted from the named PR26 source records at this exact commit; a count-only check is insufficient.",
+        "required_provenance": [
+          "reference_identity",
+          "reference_source_commit",
+          "reference_source_path",
+          "reference_source_line_or_range",
+          "reference_source_sha256"
+        ],
+        "check": "Compute sorted keys from the fixed PR26 source bindings and the route index, reject missing, additional, or duplicate keys, and verify every source path/hash against the pinned Git commit."
+      }
     },
     "public_exports": {
       "source": "all fragment export and item records",
       "key": [
+        "workspace_id",
+        "package_id",
         "canonical_public_path",
         "definition_owner"
       ],
       "required_values": [
+        "workspace_id",
+        "package_id",
+        "normalized_package_identity",
+        "source_package_id",
+        "definition_package_id",
         "canonical_public_path",
         "definition_owner",
         "source_path",
-        "source_line",
+        "source_line_or_range",
         "source_sha256",
         "cfg_attributes",
         "cfg_features",
         "fragment_id",
-        "record_pointer"
+        "record_pointer",
+        "source_provenance"
       ],
-      "preservation": "Deduplicate the index without flattening nested module paths. Preserve every distinct path and all source provenance.",
+      "preservation": "Deduplicate only within the complete workspace/package/public-path/definition-owner key. Preserve equal package names from distinct workspaces, nested public paths, every distinct re-export destination, cfg alternatives, source and definition package identities, and exact source provenance.",
       "input_fields": {
-        "foundation": "Items retain package_id, source package, definition package, canonical definition_owner, public_qualified_paths, exact source path/line/hash, and cfg attributes/features; export rows retain canonical destination paths and source-package identity.",
-        "components": "items.qualified_symbol, items.definition_symbol, items.source, items.line_start, items.sha256, cfg, reachability_paths; exports.expanded_public_paths and expanded_symbols",
-        "applications": "items.declared_public_types_aliases_states_actions, exports public_root_modules/public_root_reexports, route/API source refs where exported"
+        "foundation": "Every export and item retains workspace_id, package_id, normalized_package_identity, source_package_id, definition_package_id, canonical definition_owner, package-scoped public_qualified_paths/public_bindings, exact source path/line/hash, cfg attributes/features, and source provenance.",
+        "components": "Items retain package/manifest identity, qualified_symbol, definition_symbol, source, line_start, sha256, cfg alternatives, and reachability_paths; exports retain expanded_public_paths, expanded_symbols, and each exact edge chain with source locations.",
+        "applications": "Use exports.public_modules and exports.reexports for app-owned public paths; root-prefixed public modules/reexports remain under crates. Bind source_locations and enumerate public type, alias, constructor, builder, value, function, and re-export records with source identity, cfg, visibility, and canonical path."
       }
     },
     "requirements": {
@@ -203,14 +227,15 @@
         "RETIRE",
         "UNRESOLVED"
       ],
-      "retire_rule": "RETIRE requires a specific conflict or replacement plus a matching independent decision whose source, artifact, symbol scope, and cleanup scope agree.",
+      "retire_rule": "RETIRE is valid only when the exact qualified public path and source API identity are bound to the fixed product source, the exact removal scope is absent from fixed candidate 542349e2f70ec9883d743594f906ac6c4e96ba5a, and an independent decision artifact matches the same symbol, source input, reviewer, artifact hash, and cleanup scope. A matching decision ID or absent index row alone is not sufficient.",
       "unresolved_rule": "Every unresolved row names a task and blocks final completion.",
       "input_fields": {
-        "foundation": "requirements.id, named_owner_task, disposition, source, proposed_required_cases, evidence_state; historical_api_dispositions preserve source_api_identity, cleanup_attachment record/path/hash, current_binding and resolution status.",
-        "components": "requirements.requirement_id, named_owner_task, disposition, current_source, proposed_required_cases, evidence",
-        "applications": "requirements.id, task, source_refs, proposed_required_cases, case_status, evidence",
-        "history": "Migration items use item_id, historical_source, original_claim, current_sources, owner_task, disposition, disposition_reason, required_case, evidence, and block_final. Historical coverage rows use row_id and current_mapping."
-      }
+        "foundation": "requirements.id, named_owner_task, disposition, source, proposed_required_cases, evidence_state; historical_api_dispositions preserve source_api_identity, cleanup_attachment record/path/hash, current_binding and resolution status. Each RETIRE also records exact candidate-542 absence and independently reviewed T37 decision binding.",
+        "components": "Requirements use requirement_id, named_owner_task, disposition, current_source, proposed_required_cases, and evidence; index every requirement and proposed case ID to its component WID and named task.",
+        "applications": "Requirements use id, task, source_refs, proposed_required_cases, case_status, and evidence; every route, API, requirement, and proposed case reference resolves to a declared record and named task.",
+        "history": "Migration items use item_id, historical_source, original_claim, current_sources, owner_task, disposition, disposition_reason, required_case, evidence, and block_final. Historical coverage rows use row_id and current_mapping. Validate each required_case, route association, owner task, and migration item reference against declared route/component/API/task indexes."
+      },
+      "cross_link_rule": "Normalize each fragment into declared requirement and case indexes. Every component, API, application, route, migration, and historical row requirement/case reference must resolve to an exact declared record; every requirement must name a valid owner task; reject dangling, duplicate, or undeclared IDs. Preserve source-specific IDs in the final index."
     },
     "historical_coverage": {
       "manifest_source": "history-requirements.fragment.json",
@@ -287,13 +312,13 @@
       },
       {
         "case": "historical-retired-api-kept",
-        "mutation": "Change the copied runtime::stub row to KEEP although the fixed product source has no current export.",
-        "expected": "The validator reports the missing required current export."
+        "mutation": "Change the copied runtime::stub row to KEEP although fixed candidate 542349e2f70ec9883d743594f906ac6c4e96ba5a has no current export. Preserve that product source 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd did export runtime::stub before the accepted T37 removal.",
+        "expected": "The validator rejects the missing current export in fixed candidate 542. The historical product-source comparison still records the original 1d6 export; these source identities are not conflated."
       },
       {
         "case": "exact-retirement-disposition",
         "mutation": "Restore the copied runtime::stub row to its exact source-bound RETIRE disposition and T37-FOUNDATION-TESTING-03 decision.",
-        "expected": "The validator discharges only the runtime::stub expectation."
+        "expected": "The validator discharges only the runtime::stub expectation after validating the exact T37 decision artifact hash, independent reviewer, source input, qualified symbol, removed re-export scope, and absence at fixed candidate 542."
       }
     ],
     "decision_artifact": {
@@ -301,7 +326,12 @@
       "sha256": "638c72dc94b04ca2fd0bf4b0fd4b6b78b5e97e89017325a5e7607152970d09e8",
       "decision_id": "T37-FOUNDATION-TESTING-03",
       "source_input": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
-      "reviewer": "/root/t00_independent_review"
+      "reviewer": "/root/t00_independent_review",
+      "decision_status": "ACCEPTED",
+      "qualified_symbol": "termrock_runtime::stub",
+      "removal_scope": "runtime::stub module and root re-export, as recorded in the reviewed T37 decision artifact",
+      "fixed_candidate": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+      "historical_product_source": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
     },
     "mutation_scope": "In-memory copies only. Keep product source, original migration rows, and all source-bound artifacts byte-identical."
   },
@@ -310,11 +340,13 @@
     "checks": [
       "Verify each fragment commit and artifact SHA against the manifest.",
       "Verify each source record against its exact Git commit, path, SHA-256, and line range.",
-      "Verify every WID, route identity, canonical public path, and requirement identifier appears exactly once in its expected index.",
-      "Verify definition owners and every re-export destination resolve to source-bound inventory rows.",
+      "Verify every WID, route identity, canonical public path, requirement identifier, and proposed case identifier appears exactly once in its declared index.",
+      "Verify definition owners and every re-export destination resolve to source-bound inventory rows with workspace/package identity and cfg alternatives.",
+      "Verify the exact 54-key route set against source-bound records from PR26 commit 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948, including path, line, and file hash; do not accept a count-only match.",
+      "Verify every component, API, application, route, historical, migration, requirement, case, and named-owner cross-link resolves to its declared record.",
       "Verify all required behavior cases are present as proposed/not-approved and remain NOT VERIFIED.",
       "Verify all historical JSONL rows, lane/disposition totals, stable IDs, and source-row hashes.",
-      "Verify RETIRE decisions match the source symbol, T37 decision scope, artifact hash, and approved cleanup.",
+      "Verify RETIRE decisions bind the exact historical API, candidate-542 absence, removal scope, T37 artifact hash, source input, and independent reviewer.",
       "Run the five accepted in-memory missing-export controls and record each expected/actual blocker."
     ],
     "limits": [
