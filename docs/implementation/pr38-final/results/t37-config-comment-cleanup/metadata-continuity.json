@@ -1,0 +1,41 @@
+{
+  "dependency_closure_limitation": "No-deps metadata reports declared package edges, not a complete resolved dependency closure. The separate Sol-high T37-CONSUMER-BOUNDARY-01 review records the app/test-tool exclusion scope and T06/T30 ownership.",
+  "external_direct_normal_dependencies": [
+    "termrock"
+  ],
+  "external_metadata_byte_identical": true,
+  "external_metadata_sha256_current": "d2980c17d9de30d3ec66470b62f72f71a93668a21b4559526745444aee8a9b8b",
+  "external_metadata_sha256_previous": "d2980c17d9de30d3ec66470b62f72f71a93668a21b4559526745444aee8a9b8b",
+  "external_package_count": 1,
+  "external_target_count": 2,
+  "facade_direct_production_leaf_count": 19,
+  "facade_direct_production_leaves": [
+    "termrock-collections",
+    "termrock-controls",
+    "termrock-core",
+    "termrock-editors",
+    "termrock-feedback",
+    "termrock-fields",
+    "termrock-forms",
+    "termrock-grid",
+    "termrock-layout",
+    "termrock-navigation",
+    "termrock-overlays",
+    "termrock-render",
+    "termrock-runtime",
+    "termrock-session",
+    "termrock-shell",
+    "termrock-terminal",
+    "termrock-text",
+    "termrock-theme",
+    "termrock-viewport"
+  ],
+  "root_metadata_byte_identical": true,
+  "root_metadata_sha256_current": "e389e3e0b6272e9a6889c84145c1ed1b4b820bc22f17be442020bce35fab2c50",
+  "root_metadata_sha256_previous": "e389e3e0b6272e9a6889c84145c1ed1b4b820bc22f17be442020bce35fab2c50",
+  "root_package_count": 47,
+  "root_target_count": 68,
+  "termrock_consumer_direct_normal_dependencies": [
+    "termrock"
+  ]
+}

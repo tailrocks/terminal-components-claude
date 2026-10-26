@@ -1,0 +1,257 @@
+{
+  "command_source_model": "Each Cargo/check/fmt command used fixed HEAD plus the six comment-only TOML/config changes listed below. The tracked diff remained unchanged from both generator runs through the checks. The added Markdown guide is not a Cargo metadata/build or rustfmt input.",
+  "commands": {
+    "cargo-consumer-check.log": {
+      "header": {
+        "argv": [
+          "/Users/donbeave/.local/bin/rust-build-guard",
+          "--",
+          "mise",
+          "exec",
+          "--",
+          "cargo",
+          "check",
+          "--locked",
+          "--all-targets",
+          "--all-features"
+        ],
+        "disk_preflight": "free_bytes=2084822859776 status=ok\nfree: 1941.6 GiB (1.90 TiB) on /System/Volumes/Data -- ok\ngate OK (>=2TB cleanup gate); no action.",
+        "exit_status": 0,
+        "lock_hashes_after": {
+          "Cargo.lock": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+          "crates/termrock-e2e/Cargo.lock": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+          "crates/termrock-visibility-tests/Cargo.lock": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+          "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/Cargo.lock": "9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de7",
+          "external-consumer-demo/Cargo.lock": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+          "mise.lock": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+          "tools/termrock-visibility-publisher/Cargo.lock": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d"
+        },
+        "lock_hashes_before": {
+          "Cargo.lock": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+          "crates/termrock-e2e/Cargo.lock": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+          "crates/termrock-visibility-tests/Cargo.lock": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+          "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/Cargo.lock": "9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de7",
+          "external-consumer-demo/Cargo.lock": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+          "mise.lock": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+          "tools/termrock-visibility-publisher/Cargo.lock": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d"
+        },
+        "locks_unchanged": true,
+        "source_head": "383ad59b44baf95232005551b4d70f136bef3fea",
+        "source_tree": "402f9324abc73332978a0d03ee1c80f6b8ffa477",
+        "stderr_sha256": "0ff3b3729a9ab4db88696b1a86e5675bb58b40f945d3f86b1413061cffd17385",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "workdir": "/Users/donbeave/Downloads/termrock-t37-metadata/external-consumer-demo"
+      },
+      "sha256": "9c9b89612434f0c7ebe7f4cae09680c2bdc54dc9fad2c25f68d1ce6c51bc8f11"
+    },
+    "cargo-root-check.log": {
+      "header": {
+        "argv": [
+          "/Users/donbeave/.local/bin/rust-build-guard",
+          "--",
+          "mise",
+          "exec",
+          "--",
+          "cargo",
+          "check",
+          "--locked",
+          "--workspace",
+          "--all-targets",
+          "--all-features"
+        ],
+        "disk_preflight": "free_bytes=2084823572480 status=ok\nfree: 1941.6 GiB (1.90 TiB) on /System/Volumes/Data -- ok\ngate OK (>=2TB cleanup gate); no action.",
+        "exit_status": 0,
+        "lock_hashes_after": {
+          "Cargo.lock": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+          "crates/termrock-e2e/Cargo.lock": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+          "crates/termrock-visibility-tests/Cargo.lock": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+          "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/Cargo.lock": "9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de7",
+          "external-consumer-demo/Cargo.lock": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+          "mise.lock": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+          "tools/termrock-visibility-publisher/Cargo.lock": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d"
+        },
+        "lock_hashes_before": {
+          "Cargo.lock": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+          "crates/termrock-e2e/Cargo.lock": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+          "crates/termrock-visibility-tests/Cargo.lock": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+          "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/Cargo.lock": "9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de7",
+          "external-consumer-demo/Cargo.lock": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+          "mise.lock": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+          "tools/termrock-visibility-publisher/Cargo.lock": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d"
+        },
+        "locks_unchanged": true,
+        "source_head": "383ad59b44baf95232005551b4d70f136bef3fea",
+        "source_tree": "402f9324abc73332978a0d03ee1c80f6b8ffa477",
+        "stderr_sha256": "ad8ce8cf3782db625e2bc78ec411dcce37e9fdb53cc826ff35f0fa77892b3241",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "workdir": "/Users/donbeave/Downloads/termrock-t37-metadata"
+      },
+      "sha256": "1a6e16fc5220af660b858e824bd37d1acee9e35a96ebced26b94343dc5f6fd0b"
+    },
+    "fmt-consumer.log": {
+      "header": {
+        "argv": [
+          "/Users/donbeave/.local/bin/rust-build-guard",
+          "--",
+          "mise",
+          "exec",
+          "--",
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "exit_status": 0,
+        "source_head": "383ad59b44baf95232005551b4d70f136bef3fea",
+        "source_tree": "402f9324abc73332978a0d03ee1c80f6b8ffa477",
+        "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "workdir": "/Users/donbeave/Downloads/termrock-t37-metadata/external-consumer-demo"
+      },
+      "sha256": "1471ee4b25fa96257c15e655ee6f169a1613fc69cecc933b0985af91468eae01"
+    },
+    "fmt-root.log": {
+      "header": {
+        "argv": [
+          "/Users/donbeave/.local/bin/rust-build-guard",
+          "--",
+          "mise",
+          "exec",
+          "--",
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "exit_status": 0,
+        "source_head": "383ad59b44baf95232005551b4d70f136bef3fea",
+        "source_tree": "402f9324abc73332978a0d03ee1c80f6b8ffa477",
+        "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "workdir": "/Users/donbeave/Downloads/termrock-t37-metadata"
+      },
+      "sha256": "0427b327c0c249a16548438750dec7ac308f4f2eadd7e0f202036a1259e50fd6"
+    },
+    "generator-run1.log": {
+      "header": {
+        "argv": [
+          "mise",
+          "exec",
+          "--",
+          "velnor-actions",
+          "generate"
+        ],
+        "config_diff_sha256": "84d2084e46811d527c23dbef273c2b937597223487668966f5b1c474038dad2c",
+        "exit_status": 0,
+        "source_head": "383ad59b44baf95232005551b4d70f136bef3fea",
+        "stderr_sha256": "57f682b1cbe32fb02f854d90362e6b830adc5b84198d3013de9984a9d211a4a4",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "workdir": "/Users/donbeave/Downloads/termrock-t37-metadata"
+      },
+      "sha256": "585394b575476c9a49a5be5ff05dee3c34d1621e389041effa408de518f18e4f"
+    },
+    "generator-run2.log": {
+      "header": {
+        "argv": [
+          "mise",
+          "exec",
+          "--",
+          "velnor-actions",
+          "generate"
+        ],
+        "config_diff_sha256": "84d2084e46811d527c23dbef273c2b937597223487668966f5b1c474038dad2c",
+        "exit_status": 0,
+        "source_head": "383ad59b44baf95232005551b4d70f136bef3fea",
+        "stderr_sha256": "57f682b1cbe32fb02f854d90362e6b830adc5b84198d3013de9984a9d211a4a4",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "workdir": "/Users/donbeave/Downloads/termrock-t37-metadata"
+      },
+      "sha256": "585394b575476c9a49a5be5ff05dee3c34d1621e389041effa408de518f18e4f"
+    },
+    "metadata-consumer-no-deps.log": {
+      "header": {
+        "argv": [
+          "/Users/donbeave/.local/bin/rust-build-guard",
+          "--",
+          "mise",
+          "exec",
+          "--",
+          "cargo",
+          "metadata",
+          "--format-version",
+          "1",
+          "--no-deps",
+          "--manifest-path",
+          "Cargo.toml"
+        ],
+        "exit_status": 0,
+        "source_head": "383ad59b44baf95232005551b4d70f136bef3fea",
+        "source_tree": "402f9324abc73332978a0d03ee1c80f6b8ffa477",
+        "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522",
+        "stdout_sha256": "d2980c17d9de30d3ec66470b62f72f71a93668a21b4559526745444aee8a9b8b",
+        "workdir": "/Users/donbeave/Downloads/termrock-t37-metadata/external-consumer-demo"
+      },
+      "sha256": "a121abd23aab7d4818df5fa3cb777e2bece59c369c71fc11acab0c3cc08c6d1e"
+    },
+    "metadata-root-no-deps.log": {
+      "header": {
+        "argv": [
+          "/Users/donbeave/.local/bin/rust-build-guard",
+          "--",
+          "mise",
+          "exec",
+          "--",
+          "cargo",
+          "metadata",
+          "--format-version",
+          "1",
+          "--no-deps",
+          "--manifest-path",
+          "Cargo.toml"
+        ],
+        "exit_status": 0,
+        "source_head": "383ad59b44baf95232005551b4d70f136bef3fea",
+        "source_tree": "402f9324abc73332978a0d03ee1c80f6b8ffa477",
+        "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522",
+        "stdout_sha256": "e389e3e0b6272e9a6889c84145c1ed1b4b820bc22f17be442020bce35fab2c50",
+        "workdir": "/Users/donbeave/Downloads/termrock-t37-metadata"
+      },
+      "sha256": "fbe7ddcd1325fb23a60cec1e60030a9dab9d68952b6494dbc9f8c2049996113f"
+    },
+    "velnor-version.log": {
+      "header": {
+        "argv": [
+          "mise",
+          "exec",
+          "--",
+          "velnor-actions",
+          "--version"
+        ],
+        "exit_status": 0,
+        "source_head": "383ad59b44baf95232005551b4d70f136bef3fea",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "054ea9252f10ffc9552bf7286db491e243f1ebf116c3d5cfc207d23d24e9d1f7",
+        "workdir": "/Users/donbeave/Downloads/termrock-t37-metadata"
+      },
+      "sha256": "950d11e3487faf450d91a8060cade9d11e156a251c45229ce459ba8de6e272da"
+    }
+  },
+  "configuration_tracked_diff_sha256_recorded_by_both_generator_runs": "84d2084e46811d527c23dbef273c2b937597223487668966f5b1c474038dad2c",
+  "current_tracked_diff_matches_generator_binding": true,
+  "current_tracked_diff_sha256": "84d2084e46811d527c23dbef273c2b937597223487668966f5b1c474038dad2c",
+  "final_build_configuration_guide_sha256": "8897715dee83633901ab13b104a0f05fa93135567fa9cf3506972ef6a5e9ba0d",
+  "fixed_input_head": "383ad59b44baf95232005551b4d70f136bef3fea",
+  "fixed_input_tree": "402f9324abc73332978a0d03ee1c80f6b8ffa477",
+  "guide_hash_limitation": "The Markdown guide is not a Cargo metadata/build or rustfmt input. Its final content was refined after the Rust checks; the six config files and tracked diff remained unchanged.",
+  "product_source_changes": [],
+  "six_configuration_sha256_at_check_time": {
+    ".github-gen/velnor-workflow.toml": "16a6bdcc5c6355b8d0ab3adc6d110941cf75455ed8675c75b308317ba7ddb392",
+    "Cargo.toml": "beb074fa9050e7847ab28285904cd4d170ee38eb5f68d5be0a15d8755f8b3e14",
+    "crates/termrock-consumer-example/Cargo.toml": "7b036dfe3ac3d6fb24fde4e7b12201ce65e63a93f6e8d72e884532544dd3dafa",
+    "external-consumer-demo/.config/nextest.toml": "450aea5663b792140076ea139cb53cc0965d24a5e3e04d0386457f964ec3a28e",
+    "external-consumer-demo/Cargo.toml": "f759b31b2bf27e6853b15866eb7e1d8a3f9dd8e3f38af4dc1eec64f91a5f4492",
+    "rustfmt.toml": "903c8aaa927b68e1397573dd6f5da449c2a6c125dc4a8489df2a7cd7a577a1dc"
+  }
+}

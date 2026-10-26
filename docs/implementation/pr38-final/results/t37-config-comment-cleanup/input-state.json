@@ -1,0 +1,1072 @@
+{
+  "comment_lines": {
+    ".github-gen/velnor-workflow.toml": [
+      {
+        "line": 1,
+        "text": "# Generator inputs for velnor-workflow (D19 guard)."
+      },
+      {
+        "line": 2,
+        "text": "# BLOCKED (recovery ledger R-43): the current generator emits one reusable"
+      },
+      {
+        "line": 3,
+        "text": "# unit workflow expanded per crate; with 44 members it exceeds GitHub's"
+      },
+      {
+        "line": 4,
+        "text": "# 5 MiB template ceiling (99 callers = 8.24 MiB). Regenerate when the"
+      },
+      {
+        "line": 5,
+        "text": "# generator chunks units or the workspace splits lanes."
+      }
+    ],
+    "Cargo.toml": [
+      {
+        "line": 123,
+        "text": "# crates/tui raises to forbid at the crate root"
+      },
+      {
+        "line": 131,
+        "text": "# correctness + suspicious + style + complexity + perf"
+      },
+      {
+        "line": 134,
+        "text": "# denied individually \u2014 each maps to a stated invariant, not to taste"
+      },
+      {
+        "line": 135,
+        "text": "# goal \u00a710 \"no panics during normal interaction\""
+      },
+      {
+        "line": 136,
+        "text": "# the structural fix for \u00a71.3's ragged-row panics"
+      },
+      {
+        "line": 139,
+        "text": "# goal \u00a729 \"no material TODO / stub\""
+      },
+      {
+        "line": 142,
+        "text": "# a TUI library must never write to stdout"
+      },
+      {
+        "line": 147,
+        "text": "# warned, not denied \u2014 real signal, too noisy to block on"
+      },
+      {
+        "line": 148,
+        "text": "# the rule is saturating_* (R5); deny would flood"
+      },
+      {
+        "line": 152,
+        "text": "# allowed with reasons"
+      },
+      {
+        "line": 153,
+        "text": "# noise; #[must_use] is applied deliberately (Response)"
+      },
+      {
+        "line": 155,
+        "text": "# u16 terminal coordinates \u2014 ratatui itself allows these four"
+      },
+      {
+        "line": 156,
+        "text": "#   (ratatui-core-0.1.2/Cargo.toml:179-182); staying"
+      },
+      {
+        "line": 157,
+        "text": "#   consistent with the ecosystem we live inside"
+      }
+    ],
+    "crates/termrock-consumer-example/Cargo.toml": [
+      {
+        "line": 11,
+        "text": "# This crate is the external-consumer proof: it depends on the public Termrock"
+      },
+      {
+        "line": 12,
+        "text": "# facade only. No application crate (showcase, holla, tablepro, jackin-preview)"
+      },
+      {
+        "line": 13,
+        "text": "# and no test-only crate is reachable from it."
+      }
+    ],
+    "external-consumer-demo/.config/nextest.toml": [
+      {
+        "line": 1,
+        "text": "# Keep the standalone consumer's CI run policy aligned with the workspace."
+      }
+    ],
+    "external-consumer-demo/Cargo.toml": [
+      {
+        "line": 11,
+        "text": "# This crate is deliberately NOT a member of the repository workspace. It"
+      },
+      {
+        "line": 12,
+        "text": "# builds standalone, exactly like a consumer outside this repository would,"
+      },
+      {
+        "line": 13,
+        "text": "# with its own lockfile and its own dependency resolution. The empty"
+      },
+      {
+        "line": 14,
+        "text": "# `[workspace]` table detaches it from the workspace root above it."
+      },
+      {
+        "line": 19,
+        "text": "# The only Termrock dependency is the public facade. No internal `termrock-*`"
+      },
+      {
+        "line": 20,
+        "text": "# crate is reachable from here."
+      }
+    ],
+    "rustfmt.toml": [
+      {
+        "line": 1,
+        "text": "# Style contract: rustfmt 2024 style, matching the workspace Cargo edition."
+      },
+      {
+        "line": 2,
+        "text": "# Presence of this file is also the Velnor explicit_fmt trigger that emits"
+      },
+      {
+        "line": 3,
+        "text": "# per-crate `cargo fmt --check` Format steps. Without it rustfmt falls back"
+      },
+      {
+        "line": 4,
+        "text": "# to style_edition 2015, which contradicts this tree (565 legacy diffs vs"
+      },
+      {
+        "line": 5,
+        "text": "# 223 under 2024 style at introduction time)."
+      }
+    ]
+  },
+  "configuration_paths": [
+    "Cargo.toml",
+    ".github-gen/velnor-workflow.toml",
+    "crates/termrock-consumer-example/Cargo.toml",
+    "external-consumer-demo/Cargo.toml",
+    "external-consumer-demo/.config/nextest.toml",
+    "rustfmt.toml"
+  ],
+  "configuration_sha256": {
+    ".github-gen/velnor-workflow.toml": "41db6a00ce25fdfcd423e04bfd3a3dcde5f7d820429184be6c29a4b8a5409b75",
+    "Cargo.toml": "f73b5d0ece57b053923d143df1100d6e53bd11f75ff78a710d11040783618d0e",
+    "crates/termrock-consumer-example/Cargo.toml": "e2694c031c6976fde008f45e708e0215950b898fc0864c212dc2e8ae56435457",
+    "external-consumer-demo/.config/nextest.toml": "609ed6f5dc4a62cb9c3b70250412037eda3f8ff66af29d5eeb2a1f79ef8fd9a1",
+    "external-consumer-demo/Cargo.toml": "fa260425fd0d23249c716845e88f078c5f1c3a830b6c1e2baeaa7a959ca91685",
+    "rustfmt.toml": "1f3a2a1be73df8924ff6832adfdfe46e9b00408dff22e777cdb6f12e8a591321"
+  },
+  "e2e_digest_expected": "1777d5a93db4e1884aa1df1ef51323f4577e8d0347170ad2ba361dc39e4070ce",
+  "e2e_digest_input_count": 22,
+  "e2e_digest_inputs": [
+    {
+      "current_git_blob": "a935940ba782f82b67e539721f2328582af37afb",
+      "expected_git_blob": "a935940ba782f82b67e539721f2328582af37afb",
+      "path": "crates/termrock-e2e/Cargo.lock",
+      "same": true
+    },
+    {
+      "current_git_blob": "dee8ced415a37363669abcb43bc170b9132a7e7a",
+      "expected_git_blob": "dee8ced415a37363669abcb43bc170b9132a7e7a",
+      "path": "crates/termrock-e2e/Cargo.toml",
+      "same": true
+    },
+    {
+      "current_git_blob": "e705111e3fac13a034eed6cefa7edc0243058c27",
+      "expected_git_blob": "e705111e3fac13a034eed6cefa7edc0243058c27",
+      "path": "crates/termrock-e2e/README.md",
+      "same": true
+    },
+    {
+      "current_git_blob": "8123c691d483aa633400c22e01d8affa7e0e0e41",
+      "expected_git_blob": "8123c691d483aa633400c22e01d8affa7e0e0e41",
+      "path": "crates/termrock-e2e/build.rs",
+      "same": true
+    },
+    {
+      "current_git_blob": "eba5849f08c8078ae00aa3438f41fd38fe0c0815",
+      "expected_git_blob": "eba5849f08c8078ae00aa3438f41fd38fe0c0815",
+      "path": "crates/termrock-e2e/cases/registry.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "5501ffcbe1bd9d2d602449f510fdaf81f06a78e8",
+      "expected_git_blob": "5501ffcbe1bd9d2d602449f510fdaf81f06a78e8",
+      "path": "crates/termrock-e2e/profile.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "3189e2cdcb01f7cb76f4174239b0f13c08dc7220",
+      "expected_git_blob": "3189e2cdcb01f7cb76f4174239b0f13c08dc7220",
+      "path": "crates/termrock-e2e/schemas/expected-generation-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "e3e179aa8d25f3b630024f14d38f4127d5e90571",
+      "expected_git_blob": "e3e179aa8d25f3b630024f14d38f4127d5e90571",
+      "path": "crates/termrock-e2e/schemas/generation-admission-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "4ff10ebc54f51243e2415ac8ff16583b17f36b50",
+      "expected_git_blob": "4ff10ebc54f51243e2415ac8ff16583b17f36b50",
+      "path": "crates/termrock-e2e/schemas/oracle-capture-receipt-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "016febdf652e5c59ab9a7ecede6eb0899d8782b2",
+      "expected_git_blob": "016febdf652e5c59ab9a7ecede6eb0899d8782b2",
+      "path": "crates/termrock-e2e/schemas/qualification-review-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "fb1575db1da12777934bca9664d6b22282399315",
+      "expected_git_blob": "fb1575db1da12777934bca9664d6b22282399315",
+      "path": "crates/termrock-e2e/schemas/receipt-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "f847dfbf091952fee958df13716b62e6cea314f1",
+      "expected_git_blob": "f847dfbf091952fee958df13716b62e6cea314f1",
+      "path": "crates/termrock-e2e/schemas/receipt-v2.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "fa2eed4f194fd75c86f6f43745088a97aceb7467",
+      "expected_git_blob": "fa2eed4f194fd75c86f6f43745088a97aceb7467",
+      "path": "crates/termrock-e2e/schemas/receipt-v3.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "7643666bacc5a542cec0d8c1d5285ee91df15ae3",
+      "expected_git_blob": "7643666bacc5a542cec0d8c1d5285ee91df15ae3",
+      "path": "crates/termrock-e2e/schemas/subject-manifest-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "b163ab35af6ac0b38764748c1a1aab256e8c9e6b",
+      "expected_git_blob": "b163ab35af6ac0b38764748c1a1aab256e8c9e6b",
+      "path": "crates/termrock-e2e/schemas/subject-manifest-v2.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "225fd7b6507e475c48f05d7ab828a9ebd2ca7125",
+      "expected_git_blob": "225fd7b6507e475c48f05d7ab828a9ebd2ca7125",
+      "path": "crates/termrock-e2e/schemas/tag-validator-toolchain-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "949088bccfd0e19249ea6faa4d891b8a15c0cc7f",
+      "expected_git_blob": "949088bccfd0e19249ea6faa4d891b8a15c0cc7f",
+      "path": "crates/termrock-e2e/schemas/trust-record-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "fd8c8dabeba0c4490ba2238b526aa641b4b2d93b",
+      "expected_git_blob": "fd8c8dabeba0c4490ba2238b526aa641b4b2d93b",
+      "path": "crates/termrock-e2e/schemas/trust-record-v2.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "2285e39f734c58a48906f8f95339f82045dd2fb5",
+      "expected_git_blob": "2285e39f734c58a48906f8f95339f82045dd2fb5",
+      "path": "crates/termrock-e2e/src/admission.rs",
+      "same": true
+    },
+    {
+      "current_git_blob": "148fcdd2fccad570d78b06ec87ab0c41983cbae6",
+      "expected_git_blob": "148fcdd2fccad570d78b06ec87ab0c41983cbae6",
+      "path": "crates/termrock-e2e/src/bin/admit_expected_generation.rs",
+      "same": true
+    },
+    {
+      "current_git_blob": "b95aaabd98cb664662c74fa31c4dec4ea663272b",
+      "expected_git_blob": "b95aaabd98cb664662c74fa31c4dec4ea663272b",
+      "path": "crates/termrock-e2e/src/lib.rs",
+      "same": true
+    },
+    {
+      "current_git_blob": "664ac1473a842bed16d777028efad321db5bea7b",
+      "expected_git_blob": "664ac1473a842bed16d777028efad321db5bea7b",
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "same": true
+    }
+  ],
+  "fixed_input_head": "383ad59b44baf95232005551b4d70f136bef3fea",
+  "fixed_input_tree": "402f9324abc73332978a0d03ee1c80f6b8ffa477",
+  "generator_pin": {
+    "bin": "velnor-actions",
+    "version": "0.1.48"
+  },
+  "lock_sha256": {
+    "Cargo.lock": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+    "crates/termrock-e2e/Cargo.lock": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+    "crates/termrock-visibility-tests/Cargo.lock": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+    "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/Cargo.lock": "9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de7",
+    "external-consumer-demo/Cargo.lock": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+    "mise.lock": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+    "tools/termrock-visibility-publisher/Cargo.lock": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d"
+  },
+  "managed_github_path_count": 12,
+  "managed_github_sha256": {
+    ".github/actions/declared-task-0/action.yml": "43faca40310e5a9b464aa0d9a91fe46a2a2079f149950ed8876465312a2c339b",
+    ".github/actions/u26/action.yml": "ca82c237b186f8e634323281a890c79ce2efba7a99f556f7ce21715f6b28f598",
+    ".github/actions/velnor-tool-seed/action.yml": "3b8d2d48bb2ae123f103a0492b9bfb25f937b4a35cc1dd103f0df70c525550ec",
+    ".github/actions/velnor-tools-cache-restore/action.yml": "6a18a64f0759bc82d9160992f0464931d16671759ee1ab51b5fd3f42dbf15f6a",
+    ".github/actions/velnor-tools-prelude-u26/action.yml": "b315cc3438d0a4386f66ea4ebe0924ba59a742a30a977655403b836bfe1947b6",
+    ".github/actions/velnor-verify-jactionlint/action.yml": "5ae30b6d8a77c65e36085240e1e47717e05be4d2908bb41a0a8932d6a4b70a95",
+    ".github/actions/velnor-verify-restored-rust/action.yml": "092b03114863b0db00d8d20724baa459c893db36bd924eb261bccbc45e11188d",
+    ".github/actions/velnor-verify-rust-manifest/action.yml": "89c91123284e68216284c6e560d37919810817fbb9bd75705ccd2b1c87af0f93",
+    ".github/scripts/velnor-tools-cache-identity.sh": "aeff536ec404aa179aa1745fa0e7347470e75003a49fe51747aeec28f7202837",
+    ".github/velnor/task-execution-manifest-v1.json": "2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305",
+    ".github/workflows/cache-prune.yml": "b47d134eec443811f89d9c78d35a825fd2abe9178f3a3166b11f3b6085383d94",
+    ".github/workflows/ci.yml": "b2a2747b49052bbec9c565d1436e4d19c6f7aadb6cb3dd3fa18376127ca83107"
+  },
+  "task_count": 360,
+  "task_ids": [
+    "stack/rust/crates/holla-domain/build/default",
+    "stack/rust/crates/holla-domain/build/testing",
+    "stack/rust/crates/holla-domain/clippy/default",
+    "stack/rust/crates/holla-domain/clippy/testing",
+    "stack/rust/crates/holla-domain/doc/default",
+    "stack/rust/crates/holla-domain/doc/testing",
+    "stack/rust/crates/holla-domain/fmt/default",
+    "stack/rust/crates/holla-domain/fmt/testing",
+    "stack/rust/crates/holla-sim/build/default",
+    "stack/rust/crates/holla-sim/build/testing",
+    "stack/rust/crates/holla-sim/clippy/default",
+    "stack/rust/crates/holla-sim/clippy/testing",
+    "stack/rust/crates/holla-sim/doc/default",
+    "stack/rust/crates/holla-sim/doc/testing",
+    "stack/rust/crates/holla-sim/fmt/default",
+    "stack/rust/crates/holla-sim/fmt/testing",
+    "stack/rust/crates/holla-ui/build/default",
+    "stack/rust/crates/holla-ui/build/testing",
+    "stack/rust/crates/holla-ui/clippy/default",
+    "stack/rust/crates/holla-ui/clippy/testing",
+    "stack/rust/crates/holla-ui/doc/default",
+    "stack/rust/crates/holla-ui/doc/testing",
+    "stack/rust/crates/holla-ui/fmt/default",
+    "stack/rust/crates/holla-ui/fmt/testing",
+    "stack/rust/crates/holla/build/default",
+    "stack/rust/crates/holla/build/testing",
+    "stack/rust/crates/holla/clippy/default",
+    "stack/rust/crates/holla/clippy/testing",
+    "stack/rust/crates/holla/doc/default",
+    "stack/rust/crates/holla/doc/testing",
+    "stack/rust/crates/holla/fmt/default",
+    "stack/rust/crates/holla/fmt/testing",
+    "stack/rust/crates/jackin-preview-app/build/default",
+    "stack/rust/crates/jackin-preview-app/build/testing",
+    "stack/rust/crates/jackin-preview-app/clippy/default",
+    "stack/rust/crates/jackin-preview-app/clippy/testing",
+    "stack/rust/crates/jackin-preview-app/doc/default",
+    "stack/rust/crates/jackin-preview-app/doc/testing",
+    "stack/rust/crates/jackin-preview-app/fmt/default",
+    "stack/rust/crates/jackin-preview-app/fmt/testing",
+    "stack/rust/crates/jackin-preview-capsule-ui/build/default",
+    "stack/rust/crates/jackin-preview-capsule-ui/build/testing",
+    "stack/rust/crates/jackin-preview-capsule-ui/clippy/default",
+    "stack/rust/crates/jackin-preview-capsule-ui/clippy/testing",
+    "stack/rust/crates/jackin-preview-capsule-ui/doc/default",
+    "stack/rust/crates/jackin-preview-capsule-ui/doc/testing",
+    "stack/rust/crates/jackin-preview-capsule-ui/fmt/default",
+    "stack/rust/crates/jackin-preview-capsule-ui/fmt/testing",
+    "stack/rust/crates/jackin-preview-domain/build/default",
+    "stack/rust/crates/jackin-preview-domain/build/testing",
+    "stack/rust/crates/jackin-preview-domain/clippy/default",
+    "stack/rust/crates/jackin-preview-domain/clippy/testing",
+    "stack/rust/crates/jackin-preview-domain/doc/default",
+    "stack/rust/crates/jackin-preview-domain/doc/testing",
+    "stack/rust/crates/jackin-preview-domain/fmt/default",
+    "stack/rust/crates/jackin-preview-domain/fmt/testing",
+    "stack/rust/crates/jackin-preview-host-ui/build/default",
+    "stack/rust/crates/jackin-preview-host-ui/build/testing",
+    "stack/rust/crates/jackin-preview-host-ui/clippy/default",
+    "stack/rust/crates/jackin-preview-host-ui/clippy/testing",
+    "stack/rust/crates/jackin-preview-host-ui/doc/default",
+    "stack/rust/crates/jackin-preview-host-ui/doc/testing",
+    "stack/rust/crates/jackin-preview-host-ui/fmt/default",
+    "stack/rust/crates/jackin-preview-host-ui/fmt/testing",
+    "stack/rust/crates/jackin-preview-presentation/build/default",
+    "stack/rust/crates/jackin-preview-presentation/build/testing",
+    "stack/rust/crates/jackin-preview-presentation/clippy/default",
+    "stack/rust/crates/jackin-preview-presentation/clippy/testing",
+    "stack/rust/crates/jackin-preview-presentation/doc/default",
+    "stack/rust/crates/jackin-preview-presentation/doc/testing",
+    "stack/rust/crates/jackin-preview-presentation/fmt/default",
+    "stack/rust/crates/jackin-preview-presentation/fmt/testing",
+    "stack/rust/crates/jackin-preview-sim/build/default",
+    "stack/rust/crates/jackin-preview-sim/build/testing",
+    "stack/rust/crates/jackin-preview-sim/clippy/default",
+    "stack/rust/crates/jackin-preview-sim/clippy/testing",
+    "stack/rust/crates/jackin-preview-sim/doc/default",
+    "stack/rust/crates/jackin-preview-sim/doc/testing",
+    "stack/rust/crates/jackin-preview-sim/fmt/default",
+    "stack/rust/crates/jackin-preview-sim/fmt/testing",
+    "stack/rust/crates/jackin-preview/build/default",
+    "stack/rust/crates/jackin-preview/build/testing",
+    "stack/rust/crates/jackin-preview/clippy/default",
+    "stack/rust/crates/jackin-preview/clippy/testing",
+    "stack/rust/crates/jackin-preview/doc/default",
+    "stack/rust/crates/jackin-preview/doc/testing",
+    "stack/rust/crates/jackin-preview/fmt/default",
+    "stack/rust/crates/jackin-preview/fmt/testing",
+    "stack/rust/crates/showcase-demos/build/default",
+    "stack/rust/crates/showcase-demos/build/testing",
+    "stack/rust/crates/showcase-demos/clippy/default",
+    "stack/rust/crates/showcase-demos/clippy/testing",
+    "stack/rust/crates/showcase-demos/doc/default",
+    "stack/rust/crates/showcase-demos/doc/testing",
+    "stack/rust/crates/showcase-demos/fmt/default",
+    "stack/rust/crates/showcase-demos/fmt/testing",
+    "stack/rust/crates/showcase-ui/build/default",
+    "stack/rust/crates/showcase-ui/build/testing",
+    "stack/rust/crates/showcase-ui/clippy/default",
+    "stack/rust/crates/showcase-ui/clippy/testing",
+    "stack/rust/crates/showcase-ui/doc/default",
+    "stack/rust/crates/showcase-ui/doc/testing",
+    "stack/rust/crates/showcase-ui/fmt/default",
+    "stack/rust/crates/showcase-ui/fmt/testing",
+    "stack/rust/crates/showcase/build/default",
+    "stack/rust/crates/showcase/build/testing",
+    "stack/rust/crates/showcase/clippy/default",
+    "stack/rust/crates/showcase/clippy/testing",
+    "stack/rust/crates/showcase/doc/default",
+    "stack/rust/crates/showcase/doc/testing",
+    "stack/rust/crates/showcase/fmt/default",
+    "stack/rust/crates/showcase/fmt/testing",
+    "stack/rust/crates/tablepro-demo/build/default",
+    "stack/rust/crates/tablepro-demo/build/testing",
+    "stack/rust/crates/tablepro-demo/clippy/default",
+    "stack/rust/crates/tablepro-demo/clippy/testing",
+    "stack/rust/crates/tablepro-demo/doc/default",
+    "stack/rust/crates/tablepro-demo/doc/testing",
+    "stack/rust/crates/tablepro-demo/fmt/default",
+    "stack/rust/crates/tablepro-demo/fmt/testing",
+    "stack/rust/crates/tablepro-domain/build/default",
+    "stack/rust/crates/tablepro-domain/build/testing",
+    "stack/rust/crates/tablepro-domain/clippy/default",
+    "stack/rust/crates/tablepro-domain/clippy/testing",
+    "stack/rust/crates/tablepro-domain/doc/default",
+    "stack/rust/crates/tablepro-domain/doc/testing",
+    "stack/rust/crates/tablepro-domain/fmt/default",
+    "stack/rust/crates/tablepro-domain/fmt/testing",
+    "stack/rust/crates/tablepro-sql/build/default",
+    "stack/rust/crates/tablepro-sql/build/testing",
+    "stack/rust/crates/tablepro-sql/clippy/default",
+    "stack/rust/crates/tablepro-sql/clippy/testing",
+    "stack/rust/crates/tablepro-sql/doc/default",
+    "stack/rust/crates/tablepro-sql/doc/testing",
+    "stack/rust/crates/tablepro-sql/fmt/default",
+    "stack/rust/crates/tablepro-sql/fmt/testing",
+    "stack/rust/crates/tablepro-ui/build/default",
+    "stack/rust/crates/tablepro-ui/build/testing",
+    "stack/rust/crates/tablepro-ui/clippy/default",
+    "stack/rust/crates/tablepro-ui/clippy/testing",
+    "stack/rust/crates/tablepro-ui/doc/default",
+    "stack/rust/crates/tablepro-ui/doc/testing",
+    "stack/rust/crates/tablepro-ui/fmt/default",
+    "stack/rust/crates/tablepro-ui/fmt/testing",
+    "stack/rust/crates/tablepro/build/default",
+    "stack/rust/crates/tablepro/build/testing",
+    "stack/rust/crates/tablepro/clippy/default",
+    "stack/rust/crates/tablepro/clippy/testing",
+    "stack/rust/crates/tablepro/doc/default",
+    "stack/rust/crates/tablepro/doc/testing",
+    "stack/rust/crates/tablepro/fmt/default",
+    "stack/rust/crates/tablepro/fmt/testing",
+    "stack/rust/crates/termrock-collections/build/default",
+    "stack/rust/crates/termrock-collections/build/testing",
+    "stack/rust/crates/termrock-collections/clippy/default",
+    "stack/rust/crates/termrock-collections/clippy/testing",
+    "stack/rust/crates/termrock-collections/doc/default",
+    "stack/rust/crates/termrock-collections/doc/testing",
+    "stack/rust/crates/termrock-collections/fmt/default",
+    "stack/rust/crates/termrock-collections/fmt/testing",
+    "stack/rust/crates/termrock-consumer-example/build/default",
+    "stack/rust/crates/termrock-consumer-example/build/testing",
+    "stack/rust/crates/termrock-consumer-example/clippy/default",
+    "stack/rust/crates/termrock-consumer-example/clippy/testing",
+    "stack/rust/crates/termrock-consumer-example/doc/default",
+    "stack/rust/crates/termrock-consumer-example/doc/testing",
+    "stack/rust/crates/termrock-consumer-example/fmt/default",
+    "stack/rust/crates/termrock-consumer-example/fmt/testing",
+    "stack/rust/crates/termrock-controls/build/default",
+    "stack/rust/crates/termrock-controls/build/testing",
+    "stack/rust/crates/termrock-controls/clippy/default",
+    "stack/rust/crates/termrock-controls/clippy/testing",
+    "stack/rust/crates/termrock-controls/doc/default",
+    "stack/rust/crates/termrock-controls/doc/testing",
+    "stack/rust/crates/termrock-controls/fmt/default",
+    "stack/rust/crates/termrock-controls/fmt/testing",
+    "stack/rust/crates/termrock-core/build/default",
+    "stack/rust/crates/termrock-core/build/testing",
+    "stack/rust/crates/termrock-core/clippy/default",
+    "stack/rust/crates/termrock-core/clippy/testing",
+    "stack/rust/crates/termrock-core/doc/default",
+    "stack/rust/crates/termrock-core/doc/testing",
+    "stack/rust/crates/termrock-core/fmt/default",
+    "stack/rust/crates/termrock-core/fmt/testing",
+    "stack/rust/crates/termrock-editors/build/default",
+    "stack/rust/crates/termrock-editors/build/testing",
+    "stack/rust/crates/termrock-editors/clippy/default",
+    "stack/rust/crates/termrock-editors/clippy/testing",
+    "stack/rust/crates/termrock-editors/doc/default",
+    "stack/rust/crates/termrock-editors/doc/testing",
+    "stack/rust/crates/termrock-editors/fmt/default",
+    "stack/rust/crates/termrock-editors/fmt/testing",
+    "stack/rust/crates/termrock-feedback/build/default",
+    "stack/rust/crates/termrock-feedback/build/testing",
+    "stack/rust/crates/termrock-feedback/clippy/default",
+    "stack/rust/crates/termrock-feedback/clippy/testing",
+    "stack/rust/crates/termrock-feedback/doc/default",
+    "stack/rust/crates/termrock-feedback/doc/testing",
+    "stack/rust/crates/termrock-feedback/fmt/default",
+    "stack/rust/crates/termrock-feedback/fmt/testing",
+    "stack/rust/crates/termrock-fields/build/default",
+    "stack/rust/crates/termrock-fields/build/testing",
+    "stack/rust/crates/termrock-fields/clippy/default",
+    "stack/rust/crates/termrock-fields/clippy/testing",
+    "stack/rust/crates/termrock-fields/doc/default",
+    "stack/rust/crates/termrock-fields/doc/testing",
+    "stack/rust/crates/termrock-fields/fmt/default",
+    "stack/rust/crates/termrock-fields/fmt/testing",
+    "stack/rust/crates/termrock-forms/build/default",
+    "stack/rust/crates/termrock-forms/build/testing",
+    "stack/rust/crates/termrock-forms/clippy/default",
+    "stack/rust/crates/termrock-forms/clippy/testing",
+    "stack/rust/crates/termrock-forms/doc/default",
+    "stack/rust/crates/termrock-forms/doc/testing",
+    "stack/rust/crates/termrock-forms/fmt/default",
+    "stack/rust/crates/termrock-forms/fmt/testing",
+    "stack/rust/crates/termrock-grid/build/default",
+    "stack/rust/crates/termrock-grid/build/testing",
+    "stack/rust/crates/termrock-grid/clippy/default",
+    "stack/rust/crates/termrock-grid/clippy/testing",
+    "stack/rust/crates/termrock-grid/doc/default",
+    "stack/rust/crates/termrock-grid/doc/testing",
+    "stack/rust/crates/termrock-grid/fmt/default",
+    "stack/rust/crates/termrock-grid/fmt/testing",
+    "stack/rust/crates/termrock-layout/build/default",
+    "stack/rust/crates/termrock-layout/build/testing",
+    "stack/rust/crates/termrock-layout/clippy/default",
+    "stack/rust/crates/termrock-layout/clippy/testing",
+    "stack/rust/crates/termrock-layout/doc/default",
+    "stack/rust/crates/termrock-layout/doc/testing",
+    "stack/rust/crates/termrock-layout/fmt/default",
+    "stack/rust/crates/termrock-layout/fmt/testing",
+    "stack/rust/crates/termrock-navigation/build/default",
+    "stack/rust/crates/termrock-navigation/build/testing",
+    "stack/rust/crates/termrock-navigation/clippy/default",
+    "stack/rust/crates/termrock-navigation/clippy/testing",
+    "stack/rust/crates/termrock-navigation/doc/default",
+    "stack/rust/crates/termrock-navigation/doc/testing",
+    "stack/rust/crates/termrock-navigation/fmt/default",
+    "stack/rust/crates/termrock-navigation/fmt/testing",
+    "stack/rust/crates/termrock-overlays/build/default",
+    "stack/rust/crates/termrock-overlays/build/testing",
+    "stack/rust/crates/termrock-overlays/clippy/default",
+    "stack/rust/crates/termrock-overlays/clippy/testing",
+    "stack/rust/crates/termrock-overlays/doc/default",
+    "stack/rust/crates/termrock-overlays/doc/testing",
+    "stack/rust/crates/termrock-overlays/fmt/default",
+    "stack/rust/crates/termrock-overlays/fmt/testing",
+    "stack/rust/crates/termrock-render/build/default",
+    "stack/rust/crates/termrock-render/build/testing",
+    "stack/rust/crates/termrock-render/clippy/default",
+    "stack/rust/crates/termrock-render/clippy/testing",
+    "stack/rust/crates/termrock-render/doc/default",
+    "stack/rust/crates/termrock-render/doc/testing",
+    "stack/rust/crates/termrock-render/fmt/default",
+    "stack/rust/crates/termrock-render/fmt/testing",
+    "stack/rust/crates/termrock-runtime/build/default",
+    "stack/rust/crates/termrock-runtime/build/testing",
+    "stack/rust/crates/termrock-runtime/clippy/default",
+    "stack/rust/crates/termrock-runtime/clippy/testing",
+    "stack/rust/crates/termrock-runtime/doc/default",
+    "stack/rust/crates/termrock-runtime/doc/testing",
+    "stack/rust/crates/termrock-runtime/fmt/default",
+    "stack/rust/crates/termrock-runtime/fmt/testing",
+    "stack/rust/crates/termrock-session/build/default",
+    "stack/rust/crates/termrock-session/build/testing",
+    "stack/rust/crates/termrock-session/clippy/default",
+    "stack/rust/crates/termrock-session/clippy/testing",
+    "stack/rust/crates/termrock-session/doc/default",
+    "stack/rust/crates/termrock-session/doc/testing",
+    "stack/rust/crates/termrock-session/fmt/default",
+    "stack/rust/crates/termrock-session/fmt/testing",
+    "stack/rust/crates/termrock-shell/build/default",
+    "stack/rust/crates/termrock-shell/build/testing",
+    "stack/rust/crates/termrock-shell/clippy/default",
+    "stack/rust/crates/termrock-shell/clippy/testing",
+    "stack/rust/crates/termrock-shell/doc/default",
+    "stack/rust/crates/termrock-shell/doc/testing",
+    "stack/rust/crates/termrock-shell/fmt/default",
+    "stack/rust/crates/termrock-shell/fmt/testing",
+    "stack/rust/crates/termrock-terminal/build/default",
+    "stack/rust/crates/termrock-terminal/build/testing",
+    "stack/rust/crates/termrock-terminal/clippy/default",
+    "stack/rust/crates/termrock-terminal/clippy/testing",
+    "stack/rust/crates/termrock-terminal/doc/default",
+    "stack/rust/crates/termrock-terminal/doc/testing",
+    "stack/rust/crates/termrock-terminal/fmt/default",
+    "stack/rust/crates/termrock-terminal/fmt/testing",
+    "stack/rust/crates/termrock-text/build/default",
+    "stack/rust/crates/termrock-text/build/testing",
+    "stack/rust/crates/termrock-text/clippy/default",
+    "stack/rust/crates/termrock-text/clippy/testing",
+    "stack/rust/crates/termrock-text/doc/default",
+    "stack/rust/crates/termrock-text/doc/testing",
+    "stack/rust/crates/termrock-text/fmt/default",
+    "stack/rust/crates/termrock-text/fmt/testing",
+    "stack/rust/crates/termrock-theme/build/default",
+    "stack/rust/crates/termrock-theme/build/testing",
+    "stack/rust/crates/termrock-theme/clippy/default",
+    "stack/rust/crates/termrock-theme/clippy/testing",
+    "stack/rust/crates/termrock-theme/doc/default",
+    "stack/rust/crates/termrock-theme/doc/testing",
+    "stack/rust/crates/termrock-theme/fmt/default",
+    "stack/rust/crates/termrock-theme/fmt/testing",
+    "stack/rust/crates/termrock-viewport/build/default",
+    "stack/rust/crates/termrock-viewport/build/testing",
+    "stack/rust/crates/termrock-viewport/clippy/default",
+    "stack/rust/crates/termrock-viewport/clippy/testing",
+    "stack/rust/crates/termrock-viewport/doc/default",
+    "stack/rust/crates/termrock-viewport/doc/testing",
+    "stack/rust/crates/termrock-viewport/fmt/default",
+    "stack/rust/crates/termrock-viewport/fmt/testing",
+    "stack/rust/crates/termrock-visibility-publisher/build/default",
+    "stack/rust/crates/termrock-visibility-publisher/build/testing",
+    "stack/rust/crates/termrock-visibility-publisher/clippy/default",
+    "stack/rust/crates/termrock-visibility-publisher/clippy/testing",
+    "stack/rust/crates/termrock-visibility-publisher/doc/default",
+    "stack/rust/crates/termrock-visibility-publisher/doc/testing",
+    "stack/rust/crates/termrock-visibility-publisher/fmt/default",
+    "stack/rust/crates/termrock-visibility-publisher/fmt/testing",
+    "stack/rust/crates/termrock-xtask/build/default",
+    "stack/rust/crates/termrock-xtask/build/testing",
+    "stack/rust/crates/termrock-xtask/clippy/default",
+    "stack/rust/crates/termrock-xtask/clippy/testing",
+    "stack/rust/crates/termrock-xtask/doc/default",
+    "stack/rust/crates/termrock-xtask/doc/testing",
+    "stack/rust/crates/termrock-xtask/fmt/default",
+    "stack/rust/crates/termrock-xtask/fmt/testing",
+    "stack/rust/crates/termrock/build/default",
+    "stack/rust/crates/termrock/build/testing",
+    "stack/rust/crates/termrock/clippy/default",
+    "stack/rust/crates/termrock/clippy/testing",
+    "stack/rust/crates/termrock/doc/default",
+    "stack/rust/crates/termrock/doc/testing",
+    "stack/rust/crates/termrock/fmt/default",
+    "stack/rust/crates/termrock/fmt/testing",
+    "stack/rust/crates/visual-harness/build/default",
+    "stack/rust/crates/visual-harness/build/testing",
+    "stack/rust/crates/visual-harness/clippy/default",
+    "stack/rust/crates/visual-harness/clippy/testing",
+    "stack/rust/crates/visual-harness/doc/default",
+    "stack/rust/crates/visual-harness/doc/testing",
+    "stack/rust/crates/visual-harness/fmt/default",
+    "stack/rust/crates/visual-harness/fmt/testing",
+    "stack/rust/external-consumer-demo/build/default",
+    "stack/rust/external-consumer-demo/build/testing",
+    "stack/rust/external-consumer-demo/clippy/default",
+    "stack/rust/external-consumer-demo/clippy/testing",
+    "stack/rust/external-consumer-demo/doc/default",
+    "stack/rust/external-consumer-demo/doc/testing",
+    "stack/rust/external-consumer-demo/fmt/default",
+    "stack/rust/external-consumer-demo/fmt/testing",
+    "stack/rust/tools/refactor-proof/build/default",
+    "stack/rust/tools/refactor-proof/build/testing",
+    "stack/rust/tools/refactor-proof/clippy/default",
+    "stack/rust/tools/refactor-proof/clippy/testing",
+    "stack/rust/tools/refactor-proof/doc/default",
+    "stack/rust/tools/refactor-proof/doc/testing",
+    "stack/rust/tools/refactor-proof/fmt/default",
+    "stack/rust/tools/refactor-proof/fmt/testing"
+  ],
+  "task_manifest_sha256": "2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305",
+  "toml_values": {
+    ".github-gen/velnor-workflow.toml": {
+      "generator": {
+        "repository": "tailrocks/terminal-components-claude"
+      },
+      "schema": 1,
+      "workflow": {
+        "velnor_labels": [
+          "ubuntu-24.04"
+        ]
+      }
+    },
+    "Cargo.toml": {
+      "profile": {
+        "release": {
+          "codegen-units": 1,
+          "lto": "thin"
+        },
+        "test": {
+          "package": {
+            "*": {
+              "opt-level": 3
+            }
+          }
+        }
+      },
+      "workspace": {
+        "default-members": [
+          "crates/termrock",
+          "crates/showcase",
+          "crates/jackin-preview",
+          "crates/holla",
+          "crates/tablepro"
+        ],
+        "dependencies": {
+          "bitflags": "2.13",
+          "clap": {
+            "features": [
+              "derive"
+            ],
+            "version": "4.6"
+          },
+          "holla-catalog": {
+            "path": "crates/holla-catalog"
+          },
+          "holla-domain": {
+            "path": "crates/holla-domain"
+          },
+          "holla-plan": {
+            "path": "crates/holla-plan"
+          },
+          "holla-sim": {
+            "path": "crates/holla-sim"
+          },
+          "holla-ui": {
+            "path": "crates/holla-ui"
+          },
+          "jackin-preview-app": {
+            "path": "crates/jackin-preview-app"
+          },
+          "jackin-preview-capsule-ui": {
+            "path": "crates/jackin-preview-capsule-ui"
+          },
+          "jackin-preview-domain": {
+            "path": "crates/jackin-preview-domain"
+          },
+          "jackin-preview-host-ui": {
+            "path": "crates/jackin-preview-host-ui"
+          },
+          "jackin-preview-presentation": {
+            "path": "crates/jackin-preview-presentation"
+          },
+          "jackin-preview-sim": {
+            "path": "crates/jackin-preview-sim"
+          },
+          "ratatui": {
+            "features": [
+              "crossterm_0_29"
+            ],
+            "version": "0.30"
+          },
+          "ratatui-core": {
+            "default-features": false,
+            "features": [
+              "std",
+              "underline-color"
+            ],
+            "version": "0.1.2"
+          },
+          "ratatui-crossterm": {
+            "version": "0.1.2"
+          },
+          "serde": {
+            "features": [
+              "derive"
+            ],
+            "version": "1.0"
+          },
+          "serde_json": "1.0",
+          "sha2": "0.11",
+          "showcase-data": {
+            "path": "crates/showcase-data"
+          },
+          "showcase-demos": {
+            "path": "crates/showcase-demos"
+          },
+          "showcase-ui": {
+            "path": "crates/showcase-ui"
+          },
+          "tablepro-demo": {
+            "path": "crates/tablepro-demo"
+          },
+          "tablepro-domain": {
+            "path": "crates/tablepro-domain"
+          },
+          "tablepro-sql": {
+            "path": "crates/tablepro-sql"
+          },
+          "tablepro-ui": {
+            "path": "crates/tablepro-ui"
+          },
+          "termrock": {
+            "path": "crates/termrock"
+          },
+          "termrock-collections": {
+            "path": "crates/termrock-collections"
+          },
+          "termrock-controls": {
+            "path": "crates/termrock-controls"
+          },
+          "termrock-core": {
+            "path": "crates/termrock-core"
+          },
+          "termrock-editors": {
+            "path": "crates/termrock-editors"
+          },
+          "termrock-feedback": {
+            "path": "crates/termrock-feedback"
+          },
+          "termrock-fields": {
+            "path": "crates/termrock-fields"
+          },
+          "termrock-forms": {
+            "path": "crates/termrock-forms"
+          },
+          "termrock-grid": {
+            "path": "crates/termrock-grid"
+          },
+          "termrock-layout": {
+            "path": "crates/termrock-layout"
+          },
+          "termrock-navigation": {
+            "path": "crates/termrock-navigation"
+          },
+          "termrock-overlays": {
+            "path": "crates/termrock-overlays"
+          },
+          "termrock-render": {
+            "path": "crates/termrock-render"
+          },
+          "termrock-runtime": {
+            "path": "crates/termrock-runtime"
+          },
+          "termrock-session": {
+            "path": "crates/termrock-session"
+          },
+          "termrock-shell": {
+            "path": "crates/termrock-shell"
+          },
+          "termrock-terminal": {
+            "path": "crates/termrock-terminal"
+          },
+          "termrock-text": {
+            "path": "crates/termrock-text"
+          },
+          "termrock-theme": {
+            "path": "crates/termrock-theme"
+          },
+          "termrock-viewport": {
+            "path": "crates/termrock-viewport"
+          },
+          "unicode-segmentation": "1",
+          "unicode-width": "0.2"
+        },
+        "lints": {
+          "clippy": {
+            "all": {
+              "level": "deny",
+              "priority": -1
+            },
+            "arithmetic_side_effects": "warn",
+            "cast_possible_truncation": "allow",
+            "cast_possible_wrap": "allow",
+            "cast_precision_loss": "allow",
+            "cast_sign_loss": "allow",
+            "dbg_macro": "deny",
+            "expect_used": "deny",
+            "indexing_slicing": "deny",
+            "mem_forget": "deny",
+            "missing_errors_doc": "allow",
+            "missing_panics_doc": "allow",
+            "module_name_repetitions": "allow",
+            "must_use_candidate": "allow",
+            "panic": "deny",
+            "pedantic": {
+              "level": "warn",
+              "priority": -1
+            },
+            "print_stderr": "deny",
+            "print_stdout": "deny",
+            "todo": "deny",
+            "undocumented_unsafe_blocks": "deny",
+            "unimplemented": "deny",
+            "unwrap_used": "deny"
+          },
+          "rust": {
+            "missing_debug_implementations": "warn",
+            "missing_docs": "allow",
+            "rust_2018_idioms": {
+              "level": "warn",
+              "priority": -1
+            },
+            "unreachable_pub": "warn",
+            "unsafe_code": "deny",
+            "unused_qualifications": "warn"
+          }
+        },
+        "members": [
+          "crates/termrock-core",
+          "crates/termrock-layout",
+          "crates/termrock-theme",
+          "crates/termrock-text",
+          "crates/termrock-render",
+          "crates/termrock-collections",
+          "crates/termrock-runtime",
+          "crates/termrock-controls",
+          "crates/termrock-fields",
+          "crates/termrock-feedback",
+          "crates/termrock-navigation",
+          "crates/termrock-viewport",
+          "crates/termrock-overlays",
+          "crates/termrock-grid",
+          "crates/termrock-editors",
+          "crates/termrock-forms",
+          "crates/termrock-terminal",
+          "crates/termrock-session",
+          "crates/termrock-shell",
+          "crates/termrock",
+          "crates/showcase-data",
+          "crates/showcase-demos",
+          "crates/showcase-ui",
+          "crates/showcase",
+          "crates/jackin-preview-domain",
+          "crates/jackin-preview-sim",
+          "crates/jackin-preview-presentation",
+          "crates/jackin-preview-host-ui",
+          "crates/jackin-preview-capsule-ui",
+          "crates/jackin-preview-app",
+          "crates/jackin-preview",
+          "crates/holla-domain",
+          "crates/holla-catalog",
+          "crates/holla-plan",
+          "crates/holla-sim",
+          "crates/holla-ui",
+          "crates/holla",
+          "crates/tablepro-domain",
+          "crates/tablepro-sql",
+          "crates/tablepro-demo",
+          "crates/tablepro-ui",
+          "crates/tablepro",
+          "crates/termrock-consumer-example",
+          "crates/termrock-xtask",
+          "crates/termrock-visibility-publisher",
+          "crates/visual-harness",
+          "tools/refactor-proof"
+        ],
+        "package": {
+          "edition": "2024",
+          "license": "MIT",
+          "repository": "https://github.com/tailrocks/terminal-components-claude",
+          "rust-version": "1.99",
+          "version": "0.1.0"
+        },
+        "resolver": "3"
+      }
+    },
+    "crates/termrock-consumer-example/Cargo.toml": {
+      "bin": [
+        {
+          "bench": false,
+          "name": "termrock-consumer-example",
+          "path": "src/main.rs",
+          "test": false
+        }
+      ],
+      "dependencies": {
+        "termrock": {
+          "workspace": true
+        }
+      },
+      "lib": {
+        "bench": false,
+        "doctest": false,
+        "test": false
+      },
+      "package": {
+        "autobenches": false,
+        "autotests": false,
+        "description": "External public consumer of the Termrock component library",
+        "edition": {
+          "workspace": true
+        },
+        "license": {
+          "workspace": true
+        },
+        "name": "termrock-consumer-example",
+        "publish": false,
+        "repository": "https://github.com/tailrocks/terminal-components-claude",
+        "rust-version": {
+          "workspace": true
+        },
+        "version": {
+          "workspace": true
+        }
+      }
+    },
+    "external-consumer-demo/.config/nextest.toml": {
+      "profile": {
+        "ci": {
+          "fail-fast": false,
+          "slow-timeout": {
+            "period": "60s",
+            "terminate-after": 10
+          }
+        }
+      }
+    },
+    "external-consumer-demo/Cargo.toml": {
+      "bin": [
+        {
+          "bench": false,
+          "name": "external-consumer-demo",
+          "path": "src/main.rs",
+          "test": false
+        }
+      ],
+      "dependencies": {
+        "termrock": {
+          "path": "../crates/termrock"
+        }
+      },
+      "lib": {
+        "bench": false,
+        "doctest": false,
+        "test": false
+      },
+      "package": {
+        "autobenches": false,
+        "autotests": false,
+        "description": "External public consumer of the Termrock component library",
+        "edition": "2024",
+        "license": "MIT",
+        "name": "external-consumer-demo",
+        "publish": false,
+        "repository": "https://github.com/tailrocks/terminal-components-claude",
+        "rust-version": "1.99",
+        "version": "0.1.0"
+      },
+      "workspace": {}
+    },
+    "rustfmt.toml": {
+      "style_edition": "2024"
+    }
+  }
+}

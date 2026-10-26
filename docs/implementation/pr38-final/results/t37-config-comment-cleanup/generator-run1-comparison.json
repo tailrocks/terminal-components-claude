@@ -1,0 +1,87 @@
+{
+  "action_reference_continuity_basis": "All generated workflow/action outputs are byte-identical to the fixed input; the prior accepted record counted 13 unique action/local-action references.",
+  "all_managed_outputs_identical_to_fixed_input": true,
+  "generator": "Velnor Actions 0.1.48",
+  "managed_output_path_count": 12,
+  "managed_outputs": [
+    {
+      "after_sha256": "43faca40310e5a9b464aa0d9a91fe46a2a2079f149950ed8876465312a2c339b",
+      "before_sha256": "43faca40310e5a9b464aa0d9a91fe46a2a2079f149950ed8876465312a2c339b",
+      "identical": true,
+      "path": ".github/actions/declared-task-0/action.yml"
+    },
+    {
+      "after_sha256": "ca82c237b186f8e634323281a890c79ce2efba7a99f556f7ce21715f6b28f598",
+      "before_sha256": "ca82c237b186f8e634323281a890c79ce2efba7a99f556f7ce21715f6b28f598",
+      "identical": true,
+      "path": ".github/actions/u26/action.yml"
+    },
+    {
+      "after_sha256": "3b8d2d48bb2ae123f103a0492b9bfb25f937b4a35cc1dd103f0df70c525550ec",
+      "before_sha256": "3b8d2d48bb2ae123f103a0492b9bfb25f937b4a35cc1dd103f0df70c525550ec",
+      "identical": true,
+      "path": ".github/actions/velnor-tool-seed/action.yml"
+    },
+    {
+      "after_sha256": "6a18a64f0759bc82d9160992f0464931d16671759ee1ab51b5fd3f42dbf15f6a",
+      "before_sha256": "6a18a64f0759bc82d9160992f0464931d16671759ee1ab51b5fd3f42dbf15f6a",
+      "identical": true,
+      "path": ".github/actions/velnor-tools-cache-restore/action.yml"
+    },
+    {
+      "after_sha256": "b315cc3438d0a4386f66ea4ebe0924ba59a742a30a977655403b836bfe1947b6",
+      "before_sha256": "b315cc3438d0a4386f66ea4ebe0924ba59a742a30a977655403b836bfe1947b6",
+      "identical": true,
+      "path": ".github/actions/velnor-tools-prelude-u26/action.yml"
+    },
+    {
+      "after_sha256": "5ae30b6d8a77c65e36085240e1e47717e05be4d2908bb41a0a8932d6a4b70a95",
+      "before_sha256": "5ae30b6d8a77c65e36085240e1e47717e05be4d2908bb41a0a8932d6a4b70a95",
+      "identical": true,
+      "path": ".github/actions/velnor-verify-jactionlint/action.yml"
+    },
+    {
+      "after_sha256": "092b03114863b0db00d8d20724baa459c893db36bd924eb261bccbc45e11188d",
+      "before_sha256": "092b03114863b0db00d8d20724baa459c893db36bd924eb261bccbc45e11188d",
+      "identical": true,
+      "path": ".github/actions/velnor-verify-restored-rust/action.yml"
+    },
+    {
+      "after_sha256": "89c91123284e68216284c6e560d37919810817fbb9bd75705ccd2b1c87af0f93",
+      "before_sha256": "89c91123284e68216284c6e560d37919810817fbb9bd75705ccd2b1c87af0f93",
+      "identical": true,
+      "path": ".github/actions/velnor-verify-rust-manifest/action.yml"
+    },
+    {
+      "after_sha256": "aeff536ec404aa179aa1745fa0e7347470e75003a49fe51747aeec28f7202837",
+      "before_sha256": "aeff536ec404aa179aa1745fa0e7347470e75003a49fe51747aeec28f7202837",
+      "identical": true,
+      "path": ".github/scripts/velnor-tools-cache-identity.sh"
+    },
+    {
+      "after_sha256": "2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305",
+      "before_sha256": "2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305",
+      "identical": true,
+      "path": ".github/velnor/task-execution-manifest-v1.json"
+    },
+    {
+      "after_sha256": "b47d134eec443811f89d9c78d35a825fd2abe9178f3a3166b11f3b6085383d94",
+      "before_sha256": "b47d134eec443811f89d9c78d35a825fd2abe9178f3a3166b11f3b6085383d94",
+      "identical": true,
+      "path": ".github/workflows/cache-prune.yml"
+    },
+    {
+      "after_sha256": "b2a2747b49052bbec9c565d1436e4d19c6f7aadb6cb3dd3fa18376127ca83107",
+      "before_sha256": "b2a2747b49052bbec9c565d1436e4d19c6f7aadb6cb3dd3fa18376127ca83107",
+      "identical": true,
+      "path": ".github/workflows/ci.yml"
+    }
+  ],
+  "prior_action_reference_record": "docs/implementation/pr38-final/results/t37-metadata/AGENT-RUNBOOK.md:76",
+  "task_count_after": 360,
+  "task_count_before": 360,
+  "task_identities_equal": true,
+  "task_identity_sha256_after": "74b7c083338cdeb88b3cf439277118496cec98246c61421194a198e1c79f125b",
+  "task_identity_sha256_before": "74b7c083338cdeb88b3cf439277118496cec98246c61421194a198e1c79f125b",
+  "unique_action_and_local_action_reference_count_from_prior_review": 13
+}

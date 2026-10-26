@@ -1,0 +1,49 @@
+{
+  "all_parsed_values_and_orders_equal": true,
+  "changed_file_count": 6,
+  "fixed_input_commit": "383ad59b44baf95232005551b4d70f136bef3fea",
+  "toml_paths": {
+    ".github-gen/velnor-workflow.toml": {
+      "after_file_sha256": "16a6bdcc5c6355b8d0ab3adc6d110941cf75455ed8675c75b308317ba7ddb392",
+      "before_file_sha256": "41db6a00ce25fdfcd423e04bfd3a3dcde5f7d820429184be6c29a4b8a5409b75",
+      "parsed_value_order_sha256_after": "c0e06b08703b5f135c337fc085333de41e434b599d74725348fad662cf032231",
+      "parsed_value_order_sha256_before": "c0e06b08703b5f135c337fc085333de41e434b599d74725348fad662cf032231",
+      "parsed_values_and_order_equal": true
+    },
+    "Cargo.toml": {
+      "after_file_sha256": "beb074fa9050e7847ab28285904cd4d170ee38eb5f68d5be0a15d8755f8b3e14",
+      "before_file_sha256": "f73b5d0ece57b053923d143df1100d6e53bd11f75ff78a710d11040783618d0e",
+      "parsed_value_order_sha256_after": "fb83ca4f9448da9b9ca43e0655a17a3d393378df06611bb9aba121240a4de577",
+      "parsed_value_order_sha256_before": "fb83ca4f9448da9b9ca43e0655a17a3d393378df06611bb9aba121240a4de577",
+      "parsed_values_and_order_equal": true
+    },
+    "crates/termrock-consumer-example/Cargo.toml": {
+      "after_file_sha256": "7b036dfe3ac3d6fb24fde4e7b12201ce65e63a93f6e8d72e884532544dd3dafa",
+      "before_file_sha256": "e2694c031c6976fde008f45e708e0215950b898fc0864c212dc2e8ae56435457",
+      "parsed_value_order_sha256_after": "e03ee5fd89282a05c896a93459c99b8de6e7a2dc2154b4c11d1d3cef6c9d8c8f",
+      "parsed_value_order_sha256_before": "e03ee5fd89282a05c896a93459c99b8de6e7a2dc2154b4c11d1d3cef6c9d8c8f",
+      "parsed_values_and_order_equal": true
+    },
+    "external-consumer-demo/.config/nextest.toml": {
+      "after_file_sha256": "450aea5663b792140076ea139cb53cc0965d24a5e3e04d0386457f964ec3a28e",
+      "before_file_sha256": "609ed6f5dc4a62cb9c3b70250412037eda3f8ff66af29d5eeb2a1f79ef8fd9a1",
+      "parsed_value_order_sha256_after": "5dd110a5fb09a7ea58f3e93d8ea85f42f5dc73bda6380f58ab551ac1601893f6",
+      "parsed_value_order_sha256_before": "5dd110a5fb09a7ea58f3e93d8ea85f42f5dc73bda6380f58ab551ac1601893f6",
+      "parsed_values_and_order_equal": true
+    },
+    "external-consumer-demo/Cargo.toml": {
+      "after_file_sha256": "f759b31b2bf27e6853b15866eb7e1d8a3f9dd8e3f38af4dc1eec64f91a5f4492",
+      "before_file_sha256": "fa260425fd0d23249c716845e88f078c5f1c3a830b6c1e2baeaa7a959ca91685",
+      "parsed_value_order_sha256_after": "e2765b1d453095e1a1b2a8b212a5b421ea0eb9baedffa57f53785474f62bac05",
+      "parsed_value_order_sha256_before": "e2765b1d453095e1a1b2a8b212a5b421ea0eb9baedffa57f53785474f62bac05",
+      "parsed_values_and_order_equal": true
+    },
+    "rustfmt.toml": {
+      "after_file_sha256": "903c8aaa927b68e1397573dd6f5da449c2a6c125dc4a8489df2a7cd7a577a1dc",
+      "before_file_sha256": "1f3a2a1be73df8924ff6832adfdfe46e9b00408dff22e777cdb6f12e8a591321",
+      "parsed_value_order_sha256_after": "7a3e30a43bb8cb11e13edcdd92138dcada575aaa8f60814980ce67f093f503b4",
+      "parsed_value_order_sha256_before": "7a3e30a43bb8cb11e13edcdd92138dcada575aaa8f60814980ce67f093f503b4",
+      "parsed_values_and_order_equal": true
+    }
+  }
+}
