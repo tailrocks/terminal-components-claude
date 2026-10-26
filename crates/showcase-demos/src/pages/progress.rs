@@ -4,7 +4,7 @@ use std::time::Duration;
 use termrock::navigation::TabAffixes;
 use termrock::{
     ActionKey, Binding, Button, Chord, Color, Cx, FrameRead, GlyphRole, Id, ItemKey, Meter,
-    MeterTone, MeterVisual, Modifier, PaintStyle, Part, ProgressBar, Rect, Response, Role,
+    MeterTone, MeterVisual, Modifier, PaintStyle, Part, PartRef, ProgressBar, Rect, Response, Role,
     ScrollRegion, ScrollState, Select, SelectState, Spinner, StateFlags, Status, StylePatch,
     Surface, Tabs, TabsState, Ui, Variant, author::VerticalWindow, truncate, width,
 };
@@ -115,6 +115,12 @@ const PROGRESS_BUTTON_IDLE: StylePatch = StylePatch::new()
 const PROGRESS_BUTTON_HOVER: &[(Part, StylePatch)] = &[(
     Part::CONTAINER,
     StylePatch::new().set_bg(Role::Surface(Surface::Popover)),
+)];
+const PROGRESS_TABS_CONTAINER: &[(Part, StylePatch)] = &[(
+    Part::CONTAINER,
+    StylePatch::new()
+        .set_fg(Role::Custom(Color::from_u32(CANVAS)))
+        .set_bg(Role::Custom(Color::from_u32(CANVAS))),
 )];
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
@@ -410,6 +416,105 @@ fn paint_section_strip(
         &"━".repeat(usize::from(active)),
         ink(ACCENT, CANVAS),
     );
+}
+
+fn intersects_overflow_hit(layout: &termrock::navigation::tabs::TabLayout, area: Rect) -> bool {
+    (0..=2).any(|index| {
+        layout
+            .part_bounds(PartRef::item(Part::OVERFLOW, ItemKey::index(index)))
+            .is_some_and(|(_, visible)| !visible.intersection(area).is_empty())
+    })
+}
+
+fn paint_tab_layout_strip(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    active_section: usize,
+    focused_cursor: Option<usize>,
+    layout: &termrock::navigation::tabs::TabLayout,
+) {
+    if area.is_empty() {
+        return;
+    }
+    let active_section = active_section.min(SECTIONS.len().saturating_sub(1));
+    let mut tab_end = area.x;
+    for row in layout.rows() {
+        let Some(label) = SECTIONS.get(row.index).copied() else {
+            continue;
+        };
+        let tab = row.visible_tab.intersection(area);
+        if row.logical_tab.width != tab_width(label)
+            || row.logical_tab != row.visible_tab
+            || tab != row.visible_tab
+            || intersects_overflow_hit(layout, tab)
+        {
+            continue;
+        }
+        let style = if row.index == active_section {
+            ink(WHITE, TAB_ACTIVE).add_modifier(Modifier::BOLD)
+        } else if focused_cursor == Some(row.index) {
+            ink(WHITE, CANVAS).add_modifier(Modifier::BOLD)
+        } else {
+            ink(SECONDARY, CANVAS)
+        };
+        ui.fill(tab, style);
+        let _ = ui.paint_str(
+            Rect::new(
+                tab.x.saturating_add(1),
+                tab.y,
+                tab.width.saturating_sub(1),
+                1,
+            ),
+            label,
+            style,
+        );
+        tab_end = tab.right();
+    }
+
+    if area.width >= SECTION_WIDE {
+        let caption = match active_section {
+            1 => "layout controls",
+            2 => "native component states",
+            _ => SECTION_CAPTION,
+        };
+        let caption_width = width(caption);
+        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
+        let caption_area = Rect::new(caption_x, area.y, caption_width, 1);
+        let overlaps_tab = layout
+            .rows()
+            .iter()
+            .any(|row| !row.visible_tab.intersection(caption_area).is_empty());
+        if caption_x > tab_end.saturating_add(2)
+            && !overlaps_tab
+            && !intersects_overflow_hit(layout, caption_area)
+        {
+            let _ = ui.paint_str(caption_area, caption, ink(FAINT, CANVAS));
+        }
+    }
+
+    if area.height < 2 {
+        return;
+    }
+    let rule_y = area.y.saturating_add(1);
+    let _ = ui.paint_str(
+        Rect {
+            y: rule_y,
+            height: 1,
+            ..area
+        },
+        &"─".repeat(usize::from(area.width)),
+        ink(RULE, CANVAS),
+    );
+    if let Some(active_tab) = layout.rows().iter().find(|row| row.index == active_section) {
+        let visible = active_tab.visible_tab.intersection(area);
+        if !visible.is_empty() && !intersects_overflow_hit(layout, visible) {
+            let _ = ui.paint_str(
+                Rect::new(visible.x, rule_y, visible.width, 1),
+                &"━".repeat(usize::from(visible.width)),
+                ink(ACCENT, CANVAS),
+            );
+        }
+    }
 }
 
 fn thumb_len(viewport: u16, content: u16) -> u16 {
@@ -2168,6 +2273,7 @@ impl Page for ProgressPage {
         let mut response = if tabs_ready {
             Tabs::new(PAGE_TABS)
                 .item_affixes(section_tab_affixes)
+                .patch_part(PROGRESS_TABS_CONTAINER)
                 .update(cx, &mut self.tabs, &SECTIONS)
                 .erase()
         } else {
@@ -2306,7 +2412,9 @@ impl Page for ProgressPage {
                 height: 2.min(body.height),
                 ..body
             };
-            let tabs = Tabs::new(PAGE_TABS).item_affixes(section_tab_affixes);
+            let tabs = Tabs::new(PAGE_TABS)
+                .item_affixes(section_tab_affixes)
+                .patch_part(PROGRESS_TABS_CONTAINER);
             let layout = tabs.layout_default(
                 tabs_area,
                 tabs_area.intersection(ui.full()),
@@ -2328,7 +2436,7 @@ impl Page for ProgressPage {
                     _ => None,
                 });
             let section = self.effective_section(area.width);
-            paint_section_strip(ui, tabs_area, section, focused_cursor);
+            paint_tab_layout_strip(ui, tabs_area, section, focused_cursor, &layout);
             let content_top = body.y.saturating_add(3);
             if content_top >= body.bottom() {
                 return;
@@ -2417,6 +2525,48 @@ mod tests {
 
         fn draw(&self, ui: &mut Ui<'_>) {
             self.page.draw(ui, self.area);
+        }
+    }
+
+    struct TabStripHost {
+        page: ProgressPage,
+        area: Rect,
+    }
+
+    impl App for TabStripHost {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            Tabs::new(PAGE_TABS)
+                .item_affixes(section_tab_affixes)
+                .patch_part(PROGRESS_TABS_CONTAINER)
+                .update(cx, &mut self.page.tabs, &SECTIONS)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let tabs = Tabs::new(PAGE_TABS)
+                .item_affixes(section_tab_affixes)
+                .patch_part(PROGRESS_TABS_CONTAINER);
+            let layout = tabs.layout_default(
+                self.area,
+                self.area.intersection(ui.full()),
+                &self.page.tabs,
+                &SECTIONS,
+                None,
+            );
+            if tabs.draw_layout(ui, &layout).is_err() {
+                return;
+            }
+            ui.publish_additional_bindings(PAGE_TABS, ui.state(PAGE_TABS), PAGE_SCROLL_BINDINGS);
+            let focused_cursor = ui
+                .state(PAGE_TABS)
+                .contains(StateFlags::FOCUSED)
+                .then(|| self.page.tabs.cursor())
+                .flatten()
+                .and_then(|key| match key {
+                    ItemKey::Index(index) => Some(index),
+                    _ => None,
+                });
+            paint_tab_layout_strip(ui, self.area, self.page.section(), focused_cursor, &layout);
         }
     }
 
@@ -3203,7 +3353,7 @@ mod tests {
     }
 
     #[test]
-    fn section_tab_pointer_edges_match_the_authored_plates() {
+    fn section_tab_pointer_edges_match_the_presented_layout_receipt() {
         let mut h = termrock_test_support::Harness::new(
             InteractiveHost {
                 page: ProgressPage::new(),
@@ -3212,24 +3362,219 @@ mod tests {
             94,
             36,
         );
-        let tabs = h.area_of(PAGE_TABS).expect("section Tabs are registered");
-        let mut x = tabs.x;
         for (index, label) in SECTIONS.iter().enumerate() {
-            let width = tab_width(label);
-            for col in [
-                x,
-                x.saturating_add(1),
-                x.saturating_add(width).saturating_sub(1),
-            ] {
-                let _ = h.click(col, tabs.y);
+            let tab = h
+                .area_of_part(PAGE_TABS, PartRef::item(Part::TAB, ItemKey::index(index)))
+                .expect("the actual Tabs receipt owns each visible tab hit area");
+            let (label_x, label_y) = h.find(label).expect("the authored label is presented");
+            assert_eq!(label_y, tab.y);
+            assert!(
+                label_x >= tab.x && label_x < tab.right(),
+                "{label} at x={label_x} stays inside its native tab {tab:?}"
+            );
+            for col in [tab.x, label_x, tab.right().saturating_sub(1)] {
+                let _ = h.click(col, tab.y);
                 assert_eq!(
                     h.app().page.section(),
                     index,
-                    "plate edge x={col} selects {label}"
+                    "visible receipt edge x={col} selects {label}"
                 );
             }
-            x = x.saturating_add(width).saturating_add(1);
         }
+    }
+
+    #[test]
+    fn full_tab_skin_preserves_the_selected_plate_rule_and_caption() {
+        let h = termrock_test_support::Harness::new(
+            InteractiveHost {
+                page: ProgressPage::new(),
+            },
+            Theme::junie(),
+            94,
+            36,
+        );
+        let tabs_area = h.area_of(PAGE_TABS).expect("section Tabs are registered");
+        let tab_areas = (0..SECTIONS.len())
+            .filter_map(|index| {
+                h.area_of_part(PAGE_TABS, PartRef::item(Part::TAB, ItemKey::index(index)))
+            })
+            .collect::<Vec<_>>();
+        let overflow_areas = (0..=2)
+            .filter_map(|index| {
+                h.area_of_part(
+                    PAGE_TABS,
+                    PartRef::item(Part::OVERFLOW, ItemKey::index(index)),
+                )
+            })
+            .collect::<Vec<_>>();
+        let caption_x = h
+            .find(SECTION_CAPTION)
+            .expect("the authored section caption remains visible")
+            .0;
+        let caption_area = Rect::new(caption_x, tabs_area.y, width(SECTION_CAPTION), 1);
+        let mut authored_blank = termrock::Cell::default();
+        authored_blank.set_symbol(" ");
+        authored_blank.set_style(termrock::Style::default().fg(rgb(CANVAS)).bg(rgb(CANVAS)));
+        for x in tabs_area.x..tabs_area.right() {
+            let covered_by_native_part = tab_areas
+                .iter()
+                .chain(overflow_areas.iter())
+                .any(|part| x >= part.x && x < part.right());
+            if covered_by_native_part || (x >= caption_area.x && x < caption_area.right()) {
+                continue;
+            }
+            assert_eq!(
+                format!("{:?}", h.cell(x, tabs_area.y)),
+                format!("{authored_blank:?}"),
+                "gap/suffix cell x={x} retains its complete authored CANVAS cell",
+            );
+        }
+        let tab = h
+            .area_of_part(PAGE_TABS, PartRef::item(Part::TAB, ItemKey::index(0)))
+            .expect("the active Playground tab has a native receipt");
+        let label_x = h.find("Playground").expect("the active label is visible").0;
+        for x in tab.x..tab.right() {
+            let cell = h.cell(x, tab.y);
+            assert_eq!(cell.bg, rgb(TAB_ACTIVE));
+            assert!(cell.modifier.contains(Modifier::BOLD));
+        }
+        let label = h.cell(label_x, tab.y);
+        assert_eq!(label.fg, rgb(WHITE));
+        assert_eq!(label.bg, rgb(TAB_ACTIVE));
+
+        let rule = h.cell(tab.x, tab.y.saturating_add(1));
+        assert_eq!(rule.symbol(), "━");
+        assert_eq!(rule.fg, rgb(ACCENT));
+        let caption = h.cell(caption_x, tab.y);
+        assert_eq!(caption.fg, rgb(FAINT));
+        assert_eq!(caption.bg, rgb(CANVAS));
+    }
+
+    #[test]
+    fn clipped_section_strip_keeps_native_overflow_hit_glyph_and_tab_alignment() {
+        // At 32 columns the adaptive strip emits all three native rows, but the
+        // final States label is partial and no right-overflow target is needed.
+        let wide = termrock_test_support::Harness::new(
+            TabStripHost {
+                page: ProgressPage::new(),
+                area: Rect::new(0, 0, 32, 2),
+            },
+            Theme::junie(),
+            32,
+            2,
+        );
+        assert!(
+            wide.area_of_part(PAGE_TABS, PartRef::item(Part::TAB, ItemKey::index(0)))
+                .is_some()
+        );
+        assert!(
+            wide.area_of_part(PAGE_TABS, PartRef::item(Part::TAB, ItemKey::index(1)))
+                .is_some()
+        );
+        let partial_states = wide
+            .area_of_part(PAGE_TABS, PartRef::item(Part::TAB, ItemKey::index(2)))
+            .expect("the adaptive strip emits its partial final native row");
+        assert_eq!(partial_states, Rect::new(25, 0, 7, 1));
+        assert!(
+            wide.area_of_part(PAGE_TABS, PartRef::item(Part::OVERFLOW, ItemKey::index(1)))
+                .is_none()
+        );
+        assert!(wide.find("States").is_none());
+
+        // At 21 columns only Playground fits. Two real overflow clicks advance
+        // through Options, then reveal the complete States tab.
+        let mut h = termrock_test_support::Harness::new(
+            TabStripHost {
+                page: ProgressPage::new(),
+                area: Rect::new(0, 0, 21, 2),
+            },
+            Theme::junie(),
+            21,
+            2,
+        );
+        let right_overflow = PartRef::item(Part::OVERFLOW, ItemKey::index(1));
+        let overflow_area = h
+            .area_of_part(PAGE_TABS, right_overflow)
+            .expect("the hidden two-tab suffix retains its native overflow hit target");
+        assert_eq!(overflow_area, Rect::new(13, 0, 4, 1));
+        assert!(
+            h.area_of_part(PAGE_TABS, PartRef::item(Part::TAB, ItemKey::index(2)))
+                .is_none()
+        );
+        assert!(h.find("States").is_none());
+        let overflow_glyph = Theme::junie().design.glyphs.get(GlyphRole::OverflowRight);
+        assert_eq!(
+            h.cell(overflow_area.right().saturating_sub(1), overflow_area.y)
+                .symbol(),
+            overflow_glyph,
+            "the authored tab skin leaves the native overflow glyph intact"
+        );
+
+        let playground = h
+            .area_of_part(PAGE_TABS, PartRef::item(Part::TAB, ItemKey::index(0)))
+            .expect("the first tab remains a native hit target before scrolling");
+        let (label_x, label_y) = h
+            .find("Playground")
+            .expect("the complete first tab is visible before scrolling");
+        assert_eq!(label_y, playground.y);
+        assert!(label_x >= playground.x && label_x < playground.right());
+        assert!(playground.intersection(overflow_area).is_empty());
+
+        let _ = h.click_part(PAGE_TABS, right_overflow);
+        let options = h
+            .area_of_part(PAGE_TABS, PartRef::item(Part::TAB, ItemKey::index(1)))
+            .expect("the first native overflow click reveals Options");
+        assert_eq!(options, Rect::new(4, 0, 9, 1));
+        assert!(
+            h.area_of_part(PAGE_TABS, PartRef::item(Part::TAB, ItemKey::index(2)))
+                .is_none()
+        );
+        assert!(h.find("States").is_none());
+        let middle_overflow = h
+            .area_of_part(PAGE_TABS, right_overflow)
+            .expect("one hidden tab retains the next native overflow target");
+        assert_eq!(middle_overflow, Rect::new(13, 0, 4, 1));
+        assert_eq!(
+            h.cell(middle_overflow.right().saturating_sub(1), middle_overflow.y)
+                .symbol(),
+            overflow_glyph,
+            "the authored skin leaves the native overflow glyph intact after one step"
+        );
+
+        let double_click_window = Theme::junie().design.motion.double_click_ms;
+        let _ = h.advance(Duration::from_millis(double_click_window.saturating_add(1)));
+        let settled_overflow = h
+            .area_of_part(PAGE_TABS, right_overflow)
+            .expect("the middle overflow receipt remains after its click window settles");
+        assert_eq!(settled_overflow, middle_overflow);
+        assert_eq!(
+            h.cell(
+                settled_overflow.right().saturating_sub(1),
+                settled_overflow.y
+            )
+            .symbol(),
+            overflow_glyph,
+            "settling the click window preserves the native right-overflow glyph"
+        );
+
+        let _ = h.click_part(PAGE_TABS, right_overflow);
+        let states = h
+            .area_of_part(PAGE_TABS, PartRef::item(Part::TAB, ItemKey::index(2)))
+            .expect("the second native overflow click reveals the full States tab");
+        let (states_x, states_y) = h.find("States").expect("the revealed label is presented");
+        assert_eq!(states_y, states.y);
+        assert!(states_x >= states.x && states_x < states.right());
+        let _ = h.click(states_x, states_y);
+        assert_eq!(h.app().page.section(), 2);
+        let selected_states = h
+            .area_of_part(PAGE_TABS, PartRef::item(Part::TAB, ItemKey::index(2)))
+            .expect("the selected States tab remains visible");
+        assert_eq!(
+            h.cell(selected_states.x, selected_states.y.saturating_add(1))
+                .symbol(),
+            "━",
+            "the active rule follows the receipt's selected tab interval"
+        );
     }
 
     #[test]
