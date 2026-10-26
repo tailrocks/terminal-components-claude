@@ -1,0 +1,178 @@
+{
+  "task_id": "T37-API-PROSE-01",
+  "input_commit": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
+  "output_commit": null,
+  "output_commit_note": "The containing commit ID is returned to the coordinator because a commit cannot include its own hash.",
+  "model": "gpt-6-luna",
+  "effort": "max",
+  "agent_id": "/root/t37_api_values",
+  "changed_paths": [
+    "docs/contracts/foundation-values.md",
+    "docs/implementation/pr38-final/results/t37-api-values/agent-runbook.json",
+    "docs/implementation/pr38-final/results/t37-api-values/build_decisions.py",
+    "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
+    "docs/implementation/pr38-final/results/t37-api-values/validate_decisions.py"
+  ],
+  "requirements": [
+    "Dispose every assigned Rustdoc group for the 268 core, 32 layout, and 22 text records.",
+    "Preserve exact crosswalk identities and immutable source text hashes.",
+    "Map caller rules to maintained excerpts, or record a group-specific reason for the disposition.",
+    "Keep source observations separate from behavior proof.",
+    "Do not change source, tests, harnesses, fixtures, snapshots, gates, or existing guides outside the owned paths."
+  ],
+  "design_decisions": [
+    {
+      "id": "T37-API-PROSE-01",
+      "reviewer": "/root/t37_components_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "result": "Approved cohort boundary and required API-prose dispositions; exact artifact review remains pending."
+    },
+    {
+      "id": "T37-NAV-STATE-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "result": "Current/install values are thread-local with per-thread defaults; no process-wide or runtime-instance isolation claim."
+    },
+    {
+      "id": "T37-KEY-OBSERVE-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "result": "Preserve the exact Super/Alt observation predicate; T20 owns global observation retirement and T19 owns runtime hints."
+    },
+    {
+      "id": "T37-DIAGNOSTICS-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "result": "Retained items are capacity-bounded; dropped count is cumulative saturating usize and is not capped at item capacity. No defect is established."
+    },
+    {
+      "id": "T37-SELECTION-CONTRACT-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "result": "Range extension rebuilds from saved base, excludes anchor, and applies current eligibility only to additions; selection is not globally sanitized."
+    },
+    {
+      "id": "T37-CURSOR-NEW-01",
+      "reviewer": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "result": "Cursor::new stores the supplied index and initializes axis, wrap, and disabled-row policy; it cannot validate without a RowSource. No defect is established."
+    }
+  ],
+  "inputs": {
+    "frozen_contract_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+    "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "accepted_cleanup_commit": "7368d4fc5a71e46cae5ee92963bcf3a6943953e9",
+    "raw_prose_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+    "raw_inventory": {
+      "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
+      "sha256": "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619",
+      "records": 1122
+    },
+    "identity_crosswalk": {
+      "path": "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
+      "commit": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
+      "sha256": "7a5a700b240c45c844f4307fb6553b7f22144e5bc932cc6f238be96c3b046ec9"
+    },
+    "source_removal_map": {
+      "path": "docs/implementation/pr38-final/results/t37-foundations/source-removal.json",
+      "commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+      "sha256": "120925eb027ff8365d3046198c7dbfc3375772475acba7b6b60c5185d883b259"
+    },
+    "authoring_reference": {
+      "path": "docs/contracts/authoring.md",
+      "commit": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
+      "sha256": "d5ca0c624ba167edf0ecf59e0f889ecb26ab7b31360de6050342dcd05a6514a6"
+    },
+    "api_rules_reference": {
+      "path": "/Users/donbeave/Downloads/termrock-pr38-plan/API-RULES.md",
+      "sha256": "c12fc5549307d714bf193b122bc32b4e8c68de5105a4c18994456b10c2f19a8e"
+    }
+  },
+  "outputs": {
+    "cohort_records": 322,
+    "cohort_counts": {
+      "termrock-core": 268,
+      "termrock-layout": 32,
+      "termrock-text": 22
+    },
+    "dispositions": {
+      "descriptive_api_reference": 185,
+      "historical_or_internal_description": 4,
+      "planned_api_retirement": 11,
+      "required_maintained_clause": 112,
+      "source_observation": 1,
+      "source_wording_conflict": 9
+    },
+    "files": {
+      "docs/contracts/foundation-values.md": "53fa179a3109c2f52d63ec3d8a59702b48b48870543772cb01c67aab8831061e",
+      "docs/implementation/pr38-final/results/t37-api-values/build_decisions.py": "201cca7649a29518842223da9bebc84ee408a43923af95d5893aad6bdada807a",
+      "docs/implementation/pr38-final/results/t37-api-values/validate_decisions.py": "347e41f539f685bf17ee4afe1c56b9e14dafd1ad69227143cd63a448461b91d1",
+      "docs/implementation/pr38-final/results/t37-api-values/decisions.json": "d75509557a94e913abbb67bc4efabc53ea6efbcc01283ebc2668c4180753af4c"
+    }
+  },
+  "commands": [
+    {
+      "command": "python3 docs/implementation/pr38-final/results/t37-api-values/build_decisions.py",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
+      "result": "Generated 322 source-identity-preserving dispositions from the explicit semantic map."
+    },
+    {
+      "command": "python3 docs/implementation/pr38-final/results/t37-api-values/validate_decisions.py",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-api-values/decisions.json",
+      "result": "All identities, source/text hashes, cleaned declarations, destinations, anchors, excerpts, cohort counts, and sentence lengths passed. Semantic correctness was not checked by this validator."
+    },
+    {
+      "command": "git diff --cached --check",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-api-values/agent-runbook.json",
+      "result": "No whitespace errors."
+    }
+  ],
+  "approved_test_plan_id": null,
+  "test_plan_reviewer": null,
+  "test_edit_scope": [],
+  "red_evidence": null,
+  "green_evidence": null,
+  "behavior_cases": 0,
+  "behavior_status": "NOT VERIFIED",
+  "downstream_requirements": [
+    "The foundation-values guide records the from_key caller precondition; its source predicate accepts any shifted non-character without Ctrl, Alt, or Super.",
+    "Carry cursor initialization and eligibility transitions into T14 bounds and selection cases.",
+    "T01 must review the selection module wording conflict and the overbroad existing authoring sentence; the coordinator owns that authoring edit.",
+    "T19 owns runtime keyboard hints; T20 owns global keyboard observation and protocol lifetime transitions.",
+    "T01/T35 own any later descriptive API-reference documentation; those rows remain group-specific provenance here.",
+    "The theme data arrays are outside this core/layout/text cohort; T37-THEME-DATA-01 needs its separate inventory and value-order disposition.",
+    "The exact commit needs independent Sol high review before integration."
+  ],
+  "limits": [
+    "This task changes maintained prose and evidence only. It does not verify behavior or change source, tests, or harnesses.",
+    "Descriptive API-reference rows retain exact source spans and a group-specific reason for T01/T35 documentation disposition.",
+    "Raw source text remains provenance and is not maintained caller guidance.",
+    "The verifier checks structure and provenance only; semantic correctness requires independent review.",
+    "The worker response supplies the containing commit ID because the commit cannot include its own hash."
+  ],
+  "review": {
+    "state": "REVIEW",
+    "required_reviewer": "/root/t37_components_review",
+    "required_model": "gpt-6.1-sol",
+    "required_effort": "high",
+    "exact_commit_review": "PENDING"
+  }
+}
