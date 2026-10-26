@@ -416,17 +416,20 @@ termrock-fields::textarea::TextArea::draw_window | the textareas page draws term
 termrock-fields::textarea::TextArea::edit_capabilities | the textareas page draws termrock-fields::textarea::TextArea but does not use edit_capabilities; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextArea::execute_edit_command | the textareas page draws termrock-fields::textarea::TextArea but does not use execute_edit_command; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextArea::is_secret | the textareas page draws termrock-fields::textarea::TextArea but does not use is_secret; SC2 adds the option or state that exercises it | SC2
+termrock-fields::textarea::TextArea::idle_horizontal_scroll | New opt-in horizontal scroll configuration has no current showcase behavior proof; review after Fields integration | review
 termrock-fields::textarea::TextArea::patch | the textareas page draws termrock-fields::textarea::TextArea but does not use patch; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextArea::patch_part | the textareas page draws termrock-fields::textarea::TextArea but does not use patch_part; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextArea::rows | the textareas page draws termrock-fields::textarea::TextArea but does not use rows; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextArea::rows_in_form | the textareas page draws termrock-fields::textarea::TextArea but does not use rows_in_form; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextArea::secret | the textareas page draws termrock-fields::textarea::TextArea but does not use secret; SC2 adds the option or state that exercises it | SC2
+termrock-fields::textarea::TextArea::service_idle_horizontal_wheel | New Runtime wheel-attempt service has no current showcase route proof; review after Fields integration | review
 termrock-fields::textarea::TextArea::slot | the textareas page draws termrock-fields::textarea::TextArea but does not use slot; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextArea::update_in_form | the textareas page draws termrock-fields::textarea::TextArea but does not use update_in_form; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextAreaState::begin | the textareas page draws termrock-fields::textarea::TextAreaState but does not use begin; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextAreaState::blur | the textareas page draws termrock-fields::textarea::TextAreaState but does not use blur; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextAreaState::cancel | the textareas page draws termrock-fields::textarea::TextAreaState but does not use cancel; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextAreaState::commit | the textareas page draws termrock-fields::textarea::TextAreaState but does not use commit; SC2 adds the option or state that exercises it | SC2
+termrock-fields::textarea::TextAreaState::idle_horizontal_offset | New idle horizontal state is not displayed by the current Text areas showcase; review after Fields integration | review
 termrock-fields::textarea::TextAreaState::phase | the textareas page draws termrock-fields::textarea::TextAreaState but does not use phase; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextAreaState::scroll | the textareas page draws termrock-fields::textarea::TextAreaState but does not use scroll; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextAreaState::scroll_mut | the textareas page draws termrock-fields::textarea::TextAreaState but does not use scroll_mut; SC2 adds the option or state that exercises it | SC2
@@ -2499,6 +2502,9 @@ termrock-fields::textarea::TextArea::status | Historical page/title association 
 termrock-fields::textarea::TextArea::update | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-fields::textarea::TextArea::validate | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-fields::textarea::TextArea::value | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
+termrock-fields::textarea::TextAreaIdleHorizontalScroll | New opt-in policy has no current showcase behavior proof; review after Fields integration | review
+termrock-fields::textarea::TextAreaIdleHorizontalScroll::Off | New opt-in policy variant has no current showcase behavior proof; review after Fields integration | review
+termrock-fields::textarea::TextAreaIdleHorizontalScroll::Pan | New opt-in policy variant has no current showcase behavior proof; review after Fields integration | review
 termrock-fields::textarea::TextAreaState | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-fields::textarea::TextAreaState::error | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-fields::textarea::TextAreaState::is_editing | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
@@ -3700,6 +3706,7 @@ termrock-runtime::ui::Ui::register_passive_reveal_scroll | Present in the curren
 termrock-runtime::ui::Ui::register_routed_scroll | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock-runtime::ui::Ui::register_scroll | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-runtime::ui::Ui::register_text_drag_autoscroll | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
+termrock-runtime::ui::Ui::report_horizontal_source_offset | New committed-presentation offset helper has no current showcase behavior proof; review with Fields integration | review
 termrock-runtime::ui::Ui::report_layout | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-runtime::ui::Ui::scroll_edges_window | A registered executable showcase contract must cover true logical-edge fading through this helper; native viewport tests do not establish one. | review
 termrock-runtime::ui::Ui::set_cursor | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review

@@ -167,7 +167,8 @@ pub use termrock_controls::{
 
 pub use termrock_fields::{
     BlurPolicy, EditPhase, ErrorState, Field, FocusSelect, NoValidate, Note, TextAction, TextArea,
-    TextAreaState, TextCmd, TextInput, TextInputState, Validate, discard_error, redacted_text,
+    TextAreaIdleHorizontalScroll, TextAreaState, TextCmd, TextInput, TextInputState, Validate,
+    discard_error, redacted_text,
 };
 pub use termrock_runtime::field_control::FieldControl;
 

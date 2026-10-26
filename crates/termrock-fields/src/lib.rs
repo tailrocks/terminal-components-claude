@@ -39,4 +39,4 @@ pub use input::{
     discard_error, redacted_text,
 };
 pub use note::Note;
-pub use textarea::{TextArea, TextAreaState};
+pub use textarea::{TextArea, TextAreaIdleHorizontalScroll, TextAreaState};

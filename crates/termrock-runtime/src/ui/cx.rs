@@ -37,6 +37,12 @@ pub struct LayoutFacts {
     pub vertical_window: Option<VerticalWindow>,
     /// The committed component body before any internal horizontal-row reservation.
     pub vertical_body_window: Option<VerticalWindow>,
+    /// Source column at the left edge of text painted by the committed frame.
+    ///
+    /// This is presentation data for components whose horizontal projection
+    /// can differ from their stored scroll state. It stays `None` when a
+    /// component has no such projection.
+    pub horizontal_source_offset: Option<usize>,
 }
 
 impl LayoutFacts {
@@ -49,6 +55,7 @@ impl LayoutFacts {
             logical_area: None,
             vertical_window: None,
             vertical_body_window: None,
+            horizontal_source_offset: None,
         }
     }
 

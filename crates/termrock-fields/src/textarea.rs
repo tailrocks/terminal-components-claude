@@ -1,4 +1,5 @@
 use core::fmt;
+use core::num::NonZeroU16;
 
 use ratatui_core::layout::{Position, Rect};
 
@@ -18,7 +19,7 @@ use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
-use crate::text::measure::graphemes;
+use crate::text::measure::{grapheme_width, graphemes};
 use crate::text::{EditAction, EditOutcome, Extend, Motion, width};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
@@ -27,7 +28,30 @@ use termrock_core::EditEntry;
 use termrock_runtime::author::VerticalWindow;
 use termrock_runtime::layer::LayerOpening;
 use termrock_runtime::rowui::CellUi;
+use termrock_runtime::runtime::WheelRouteAttempt;
 use termrock_runtime::scroll_region::ScrollRegion;
+use termrock_runtime::{UpdateCause, WheelRouteResult};
+
+/// Opt-in horizontal wheel behavior for idle TextArea content.
+///
+/// This policy does not add a scrollbar. A newly constructed `TextArea` stays
+/// unconfigured; callers opt in and bind the setting to a monotonically
+/// increasing source revision with [`TextArea::idle_horizontal_scroll`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TextAreaIdleHorizontalScroll {
+    /// Acknowledge a visible horizontal wheel attempt without moving.
+    Off,
+    /// Pan by `step` source cells for each pre-theme decoded wheel unit.
+    Pan { step: NonZeroU16 },
+}
+
+impl TextAreaIdleHorizontalScroll {
+    /// Build a positive panning policy. `NonZeroU16` keeps a zero-step policy
+    /// from being confused with disabled panning.
+    pub const fn pan(step: NonZeroU16) -> Self {
+        Self::Pan { step }
+    }
+}
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const ALT: KeyModifiers = KeyModifiers::ALT;
@@ -54,15 +78,14 @@ impl TextAreaGeometry {
         self,
         pos: Position,
         child_scroll: usize,
-        horizontal_scroll: u16,
+        horizontal_scroll: usize,
     ) -> Option<(usize, usize)> {
         if !self.text.contains(pos) {
             return None;
         }
         let source_row = self.window.source_row_for_physical(pos.y)?;
         let line = child_scroll.checked_add(source_row)?;
-        let col = usize::from(pos.x.saturating_sub(self.text.x))
-            .saturating_add(usize::from(horizontal_scroll));
+        let col = usize::from(pos.x.saturating_sub(self.text.x)).saturating_add(horizontal_scroll);
         Some((line, col))
     }
 
@@ -76,7 +99,7 @@ impl TextAreaGeometry {
         self,
         pos: Position,
         child_scroll: usize,
-        horizontal_scroll: u16,
+        horizontal_scroll: usize,
     ) -> Option<(usize, usize)> {
         let logical_rows = self.window.logical_rows();
         if logical_rows == 0 {
@@ -89,8 +112,7 @@ impl TextAreaGeometry {
             .first_source_row()
             .saturating_add(physical_delta);
         let line = child_scroll.checked_add(source_row)?;
-        let col = usize::from(pos.x.saturating_sub(self.text.x))
-            .saturating_add(usize::from(horizontal_scroll));
+        let col = usize::from(pos.x.saturating_sub(self.text.x)).saturating_add(horizontal_scroll);
         Some((line, col))
     }
 
@@ -107,12 +129,11 @@ impl TextAreaGeometry {
         self,
         cursor: crate::text::CursorPos,
         child_scroll: usize,
-        horizontal_scroll: u16,
+        horizontal_scroll: usize,
     ) -> Option<Position> {
         let y = self.physical_row(cursor.line, child_scroll)?;
         let x = self.text.x.checked_add(
-            u16::try_from(cursor.col.saturating_sub(usize::from(horizontal_scroll)))
-                .unwrap_or(u16::MAX),
+            u16::try_from(cursor.col.saturating_sub(horizontal_scroll)).unwrap_or(u16::MAX),
         )?;
         (x <= self.text.right()).then_some(Position::new(x, y))
     }
@@ -386,6 +407,9 @@ pub struct TextAreaState {
     phase: EditPhase,
     session_entry: Option<EditEntry>,
     scroll: ScrollState,
+    idle_horizontal_offset: usize,
+    idle_horizontal_revision: Option<u64>,
+    idle_horizontal_policy: Option<TextAreaIdleHorizontalScroll>,
     error: Option<ErrorState>,
     redacted_snapshot: bool,
     sensitivity: Option<bool>,
@@ -401,6 +425,9 @@ impl Clone for TextAreaState {
             phase: self.phase,
             session_entry: self.session_entry,
             scroll: self.scroll,
+            idle_horizontal_offset: self.idle_horizontal_offset,
+            idle_horizontal_revision: self.idle_horizontal_revision,
+            idle_horizontal_policy: self.idle_horizontal_policy,
             error: self.error.as_ref().map(ErrorState::clone_snapshot),
             redacted_snapshot: self.is_sensitive(),
             sensitivity: self.sensitivity,
@@ -418,6 +445,9 @@ impl PartialEq for TextAreaState {
                 && self.phase == other.phase
                 && self.session_entry == other.session_entry
                 && self.scroll == other.scroll
+                && self.idle_horizontal_offset == other.idle_horizontal_offset
+                && self.idle_horizontal_revision == other.idle_horizontal_revision
+                && self.idle_horizontal_policy == other.idle_horizontal_policy
                 && self.pointer_anchor == other.pointer_anchor
                 && self.focus_continuation == other.focus_continuation
                 && self.error.as_ref().map(ErrorState::is_sensitive)
@@ -427,6 +457,9 @@ impl PartialEq for TextAreaState {
                 && self.phase == other.phase
                 && self.session_entry == other.session_entry
                 && self.scroll == other.scroll
+                && self.idle_horizontal_offset == other.idle_horizontal_offset
+                && self.idle_horizontal_revision == other.idle_horizontal_revision
+                && self.idle_horizontal_policy == other.idle_horizontal_policy
                 && self.pointer_anchor == other.pointer_anchor
                 && self.focus_continuation == other.focus_continuation
                 && match (&self.error, &other.error) {
@@ -448,6 +481,9 @@ impl fmt::Debug for TextAreaState {
             .field("phase", &self.phase)
             .field("session_entry", &self.session_entry)
             .field("scroll", &self.scroll)
+            .field("idle_horizontal_offset", &self.idle_horizontal_offset)
+            .field("idle_horizontal_revision", &self.idle_horizontal_revision)
+            .field("idle_horizontal_policy", &self.idle_horizontal_policy)
             .field("error", &self.error.as_ref().map(|_| "[redacted]"))
             .field("redacted_snapshot", &self.redacted_snapshot)
             .field("sensitivity", &self.sensitivity)
@@ -491,6 +527,70 @@ impl TextAreaState {
         &mut self.scroll
     }
 
+    /// Return the source-cell offset used to paint idle text.
+    pub const fn idle_horizontal_offset(&self) -> usize {
+        self.idle_horizontal_offset
+    }
+
+    fn idle_revision_accepts(&self, policy: TextAreaIdleHorizontalScroll, revision: u64) -> bool {
+        match (self.idle_horizontal_revision, self.idle_horizontal_policy) {
+            (None, None) => true,
+            (Some(current), Some(current_policy)) => {
+                revision > current || (revision == current && policy == current_policy)
+            }
+            _ => false,
+        }
+    }
+
+    fn prepare_idle_horizontal(
+        &mut self,
+        policy: TextAreaIdleHorizontalScroll,
+        revision: u64,
+        max_offset: usize,
+    ) -> Option<bool> {
+        if !self.idle_revision_accepts(policy, revision) {
+            return None;
+        }
+        let mut changed = false;
+        match self.idle_horizontal_revision {
+            None => {
+                self.idle_horizontal_revision = Some(revision);
+                self.idle_horizontal_policy = Some(policy);
+            }
+            Some(current) if revision > current => {
+                changed = self.idle_horizontal_offset != 0;
+                self.idle_horizontal_offset = 0;
+                self.idle_horizontal_revision = Some(revision);
+                self.idle_horizontal_policy = Some(policy);
+            }
+            Some(_) => {}
+        }
+        let next = if policy == TextAreaIdleHorizontalScroll::Off {
+            0
+        } else {
+            self.idle_horizontal_offset.min(max_offset)
+        };
+        changed |= self.idle_horizontal_offset != next;
+        self.idle_horizontal_offset = next;
+        Some(changed)
+    }
+
+    fn commit_idle_horizontal(
+        &mut self,
+        policy: TextAreaIdleHorizontalScroll,
+        revision: u64,
+        offset: usize,
+    ) {
+        if self
+            .idle_horizontal_revision
+            .is_none_or(|current| revision > current)
+        {
+            self.idle_horizontal_revision = Some(revision);
+            self.idle_horizontal_policy = Some(policy);
+        }
+        self.idle_horizontal_offset = offset;
+    }
+
     pub const fn error(&self) -> Option<&FieldError> {
         match &self.error {
             Some(error) => Some(error.as_ref()),
@@ -507,6 +607,7 @@ impl TextAreaState {
         self.draft.set_sensitive(sensitive);
         self.sensitivity = Some(sensitive);
         if changed {
+            self.idle_horizontal_offset = 0;
             self.phase = EditPhase::Idle;
             self.session_entry = None;
             self.redacted_snapshot = false;
@@ -556,6 +657,7 @@ impl TextAreaState {
             return false;
         }
         self.redacted_snapshot = false;
+        self.idle_horizontal_offset = 0;
         self.draft.begin_multi(current);
         self.phase = EditPhase::Editing;
         self.session_entry = Some(entry);
@@ -582,6 +684,7 @@ impl TextAreaState {
         self.phase = EditPhase::Idle;
         self.session_entry = None;
         self.redacted_snapshot = false;
+        self.idle_horizontal_offset = 0;
         self.draft.zeroize();
     }
 
@@ -589,6 +692,7 @@ impl TextAreaState {
         self.phase = EditPhase::Idle;
         self.session_entry = None;
         self.redacted_snapshot = false;
+        self.idle_horizontal_offset = 0;
         self.draft.zeroize();
         if self.is_sensitive() {
             self.clear_error();
@@ -627,6 +731,7 @@ impl TextAreaState {
     pub fn zeroize(&mut self) {
         self.draft.zeroize();
         self.clear_error();
+        self.idle_horizontal_offset = 0;
     }
 
     fn apply(&mut self, a: EditAction<'_>) -> EditOutcome {
@@ -667,6 +772,7 @@ pub struct TextArea<'a> {
     focus_select: FocusSelect,
     esc_reverts: bool,
     secret: Option<SecretPolicy>,
+    idle_horizontal: Option<(TextAreaIdleHorizontalScroll, u64)>,
     read_only: bool,
     disabled: bool,
     status: termrock_runtime::Status,
@@ -685,6 +791,7 @@ impl fmt::Debug for TextArea<'_> {
             .field("focus_select", &self.focus_select)
             .field("esc_reverts", &self.esc_reverts)
             .field("secret", &self.secret)
+            .field("idle_horizontal", &self.idle_horizontal)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
             .field("status", &self.status)
@@ -718,6 +825,7 @@ impl<'a> TextArea<'a> {
             focus_select: FocusSelect::CaretEnd,
             esc_reverts: false,
             secret: None,
+            idle_horizontal: None,
             read_only: false,
             disabled: false,
             status: termrock_runtime::Status::Ready,
@@ -784,6 +892,19 @@ impl<'a> TextArea<'a> {
     #[must_use]
     pub const fn secret(mut self, policy: SecretPolicy) -> Self {
         self.secret = Some(policy);
+        self
+    }
+
+    /// Opt in to idle horizontal wheel handling and bind it to a source
+    /// revision. Increase `source_revision` whenever the displayed source or
+    /// this policy changes; stale or non-monotonic configurations fail closed.
+    #[must_use]
+    pub const fn idle_horizontal_scroll(
+        mut self,
+        policy: TextAreaIdleHorizontalScroll,
+        source_revision: u64,
+    ) -> Self {
+        self.idle_horizontal = Some((policy, source_revision));
         self
     }
 
@@ -874,6 +995,7 @@ impl<'a> TextArea<'a> {
             focus_select: self.focus_select,
             esc_reverts: self.esc_reverts,
             secret: self.secret,
+            idle_horizontal: self.idle_horizontal,
             read_only: self.read_only,
             disabled: self.disabled || inherited,
             status: self.status,
@@ -963,6 +1085,138 @@ impl<'a> TextArea<'a> {
             .update_target(cx, st, value)
     }
 
+    /// Service one real Runtime H-wheel route attempt for this TextArea.
+    ///
+    /// Applications call this from `App::route_wheel_attempt` with the
+    /// supplied attempt. The same transaction is used for the initial event
+    /// update. This helper never synthesizes an intent or edits the value.
+    pub fn service_idle_horizontal_wheel<T: TextTarget + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut TextAreaState,
+        value: &T,
+        attempt: WheelRouteAttempt,
+    ) -> Response<()> {
+        let Some((policy, revision)) = self.idle_horizontal else {
+            return Response::ignored();
+        };
+        if self.disabled
+            || attempt.owner() != self.id
+            || attempt.part() != PartRef::of(Part::TEXT)
+            || attempt.axis() != crate::event::Axis::H
+            || attempt.source_revision() != revision
+            || !st.idle_revision_accepts(policy, revision)
+            || cx.wheel_route_attempt(self.id, PartRef::of(Part::TEXT), crate::event::Axis::H)
+                != Some(attempt)
+        {
+            return Response::ignored();
+        }
+
+        match cx.update_cause() {
+            UpdateCause::Event if attempt.attempt_index() == 0 => {
+                let mut found = false;
+                for intent in cx.intents(self.id) {
+                    if let Intent::Wheel {
+                        axis,
+                        delta,
+                        part,
+                        pos,
+                    } = intent
+                        && axis == crate::event::Axis::H
+                    {
+                        if found
+                            || delta != attempt.delta()
+                            || part != attempt.part()
+                            || pos != attempt.position()
+                        {
+                            return Response::ignored();
+                        }
+                        found = true;
+                    }
+                }
+                if !found {
+                    return Response::ignored();
+                }
+            }
+            UpdateCause::ScrollRoute if attempt.attempt_index() > 0 => {
+                if cx.intents(self.id).next().is_some() {
+                    return Response::ignored();
+                }
+            }
+            _ => return Response::ignored(),
+        }
+
+        let Some(geometry) = Self::prepared_geometry(cx, self.id)
+            .filter(|geometry| geometry.text.contains(attempt.position()))
+            .filter(|geometry| !geometry.text.is_empty())
+        else {
+            return Response::ignored();
+        };
+        let secret = self.secret.or_else(|| {
+            (st.is_sensitive() || value.is_sensitive()).then_some(SecretPolicy::default())
+        });
+        let displayed = value.expose();
+        let content_cols = displayed_width(displayed, secret.is_some());
+        let view_cols = usize::from(geometry.text.width);
+        if view_cols == 0 {
+            return Response::ignored();
+        }
+        let max_offset = content_cols.saturating_sub(view_cols);
+        let base_offset = if st
+            .idle_horizontal_revision
+            .is_none_or(|current| revision > current)
+        {
+            0
+        } else {
+            st.idle_horizontal_offset.min(max_offset)
+        };
+
+        let (result, next_offset) = if st.is_editing()
+            || attempt.modifiers() != KeyModifiers::NONE
+            || attempt.unscaled_delta() == 0
+            || content_cols <= view_cols
+            || policy == TextAreaIdleHorizontalScroll::Off
+        {
+            (WheelRouteResult::Ignored, base_offset)
+        } else {
+            let TextAreaIdleHorizontalScroll::Pan { step } = policy else {
+                return Response::ignored();
+            };
+            let movement = usize::from(step.get())
+                .saturating_mul(usize::from(attempt.unscaled_delta().unsigned_abs()));
+            let next = if attempt.unscaled_delta() < 0 {
+                base_offset.saturating_sub(movement)
+            } else {
+                base_offset.saturating_add(movement).min(max_offset)
+            };
+            if next != base_offset {
+                (WheelRouteResult::Changed, next)
+            } else {
+                (WheelRouteResult::Consumed, base_offset)
+            }
+        };
+
+        let old_offset = st.idle_horizontal_offset;
+        let old_revision = st.idle_horizontal_revision;
+        let old_policy = st.idle_horizontal_policy;
+        if !cx.acknowledge_wheel_route(&attempt, result) {
+            return Response::ignored();
+        }
+        st.commit_idle_horizontal(policy, revision, next_offset);
+        let reconciled = old_offset != st.idle_horizontal_offset
+            || old_revision != st.idle_horizontal_revision
+            || old_policy != st.idle_horizontal_policy;
+        match result {
+            WheelRouteResult::Changed => Response::changed().for_id(self.id),
+            WheelRouteResult::Consumed => Response::consumed().for_id(self.id),
+            WheelRouteResult::Ignored if reconciled => {
+                Response::ignored().repaint().for_id(self.id)
+            }
+            WheelRouteResult::Ignored => Response::ignored(),
+            _ => Response::ignored(),
+        }
+    }
+
     pub fn commit_in_form<T: TextTarget + ?Sized>(
         &self,
         st: &mut TextAreaState,
@@ -985,6 +1239,19 @@ impl<'a> TextArea<'a> {
         st: &mut TextAreaState,
         value: &mut T,
     ) -> Response<TextAction> {
+        // Pointer input targets the last presented frame. Snapshot both axes
+        // before sensitivity or source-revision reconciliation can reset idle state.
+        let displayed_scroll = st.scroll.offset();
+        let displayed_hscroll = cx
+            .layout(self.id)
+            .and_then(|layout| layout.horizontal_source_offset)
+            .unwrap_or_else(|| {
+                if st.is_editing() {
+                    usize::from(st.draft.hscroll())
+                } else {
+                    st.idle_horizontal_offset
+                }
+            });
         st.set_sensitive(self.secret.is_some() || value.is_sensitive());
         let mut acc = Acc::<TextAction>::new();
         let editable = self.editable();
@@ -996,19 +1263,47 @@ impl<'a> TextArea<'a> {
         };
         let scroll = self.scroll_region();
         let geometry = Self::prepared_geometry(cx, self.id);
-        // Pointer coordinates target the last presented frame. FocusIn can
-        // begin an edit and reveal a different document row during this same
-        // update, so retain the viewport origin before processing intents.
-        let displayed_scroll = st.scroll.offset();
-        let displayed_hscroll = st.draft.hscroll();
+        let active_horizontal_attempt =
+            cx.wheel_route_attempt(self.id, PartRef::of(Part::TEXT), crate::event::Axis::H);
+        if active_horizontal_attempt.is_none() {
+            if let Some((policy, revision)) = self.idle_horizontal {
+                if let Some(geometry) = geometry {
+                    let secret = self.secret.or_else(|| {
+                        (st.is_sensitive() || value.is_sensitive())
+                            .then_some(SecretPolicy::default())
+                    });
+                    let columns = displayed_width(value.expose(), secret.is_some());
+                    let max_offset = columns.saturating_sub(usize::from(geometry.text.width));
+                    match st.prepare_idle_horizontal(policy, revision, max_offset) {
+                        Some(true) => acc.changed(),
+                        Some(false) => {}
+                        None => {}
+                    }
+                }
+            } else if st.idle_horizontal_offset != 0 {
+                st.idle_horizontal_offset = 0;
+                acc.changed();
+            }
+        }
         let track_len = if self.disabled {
             None
         } else {
             Some(scroll.prepare(cx, &mut st.scroll, lines))
         };
         let page = st.scroll.viewport_len().max(1);
+        if let Some(attempt) = active_horizontal_attempt {
+            let wheel = self.service_idle_horizontal_wheel(cx, st, value, attempt);
+            acc.fold(&wheel);
+        }
         for it in cx.intents(self.id) {
-            if let Some(track_len) = track_len {
+            if !matches!(
+                &it,
+                Intent::Wheel {
+                    axis: crate::event::Axis::H,
+                    ..
+                }
+            ) && let Some(track_len) = track_len
+            {
                 let bar = scroll.handle_intent(cx, &mut st.scroll, track_len, it);
                 acc.fold(&bar);
             }
@@ -1084,7 +1379,7 @@ impl<'a> TextArea<'a> {
                         g.cursor_position(
                             st.draft.cursor_pos(),
                             st.scroll.offset(),
-                            st.draft.hscroll(),
+                            usize::from(st.draft.hscroll()),
                         )
                     }) {
                         st.edit_menu_request = Some(EditMenuRequest {
@@ -1468,9 +1763,24 @@ impl<'a> TextArea<'a> {
             width: Self::inner_width(content.width),
             height: content.height,
         };
+        let visible_text = inner.intersection(ui.full());
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
         let geometry = TextAreaGeometry::new(window, inner);
         ui.register_editor(self.id, body, focusability, declared);
+        if !self.disabled
+            && !shown.is_empty()
+            && !inner.is_empty()
+            && let Some((policy, revision)) = self.idle_horizontal
+            && st.idle_revision_accepts(policy, revision)
+        {
+            ui.register_hit_stack_wheel(
+                self.id,
+                PartRef::of(Part::TEXT),
+                inner,
+                termrock_runtime::Axes::H,
+                revision,
+            );
+        }
         if !editing && self.edit_entry == EditEntry::TypeToEdit && self.editable() {
             ui.publish_focused_paste_target(self.id);
         }
@@ -1520,7 +1830,33 @@ impl<'a> TextArea<'a> {
             let sel_style = style(ui, Part::ROW, live | StateFlags::SELECTED).style;
             let mut view = st.scroll;
             view.apply_layout(window.logical_rows(), lines);
-            let hs = usize::from(if editing { st.draft.hscroll() } else { 0 });
+            let secret_policy = self
+                .secret
+                .or_else(|| st.is_sensitive().then_some(SecretPolicy::default()));
+            let explicit_idle = !editing
+                && self
+                    .idle_horizontal
+                    .is_some_and(|(policy, revision)| st.idle_revision_accepts(policy, revision));
+            let hs = if editing {
+                usize::from(st.draft.hscroll())
+            } else if explicit_idle {
+                let columns = displayed_width(shown, secret_policy.is_some());
+                if st.idle_horizontal_revision.is_none_or(|revision| {
+                    self.idle_horizontal
+                        .is_some_and(|(_, next)| next > revision)
+                }) {
+                    0
+                } else {
+                    st.idle_horizontal_offset
+                        .min(columns.saturating_sub(usize::from(visible_text.width)))
+                }
+            } else {
+                0
+            };
+            if explicit_idle {
+                let _ = ui.report_horizontal_source_offset(self.id, hs);
+            }
+            let paint_area = if explicit_idle { visible_text } else { inner };
             let sel = if editing { st.draft.selection() } else { None };
             let mut start = 0usize;
             for (i, line) in shown.split('\n').enumerate() {
@@ -1531,17 +1867,19 @@ impl<'a> TextArea<'a> {
                     let row = Rect {
                         y,
                         height: 1,
-                        ..inner
+                        ..paint_area
                     };
                     let secret_policy = self
                         .secret
                         .or_else(|| st.is_sensitive().then_some(SecretPolicy::default()));
-                    let total = if secret_policy.is_some() {
+                    let total = if explicit_idle {
+                        line_display_width(line, secret_policy.is_some())
+                    } else if secret_policy.is_some() {
                         graphemes(line).count()
                     } else {
                         usize::from(width(line))
                     };
-                    let overflow = total > hs.saturating_add(usize::from(inner.width));
+                    let overflow = total > hs.saturating_add(usize::from(paint_area.width));
                     let run = Rect {
                         width: if overflow {
                             row.width.saturating_sub(1)
@@ -1550,7 +1888,9 @@ impl<'a> TextArea<'a> {
                         },
                         ..row
                     };
-                    if let Some(policy) = secret_policy {
+                    if explicit_idle && secret_policy.is_none() {
+                        paint_idle_line(ui, run, line, hs, ts.style);
+                    } else if let Some(policy) = secret_policy {
                         paint_masked_line(ui, run, line, hs, policy, ts.style);
                     } else {
                         let from = byte_at_col(line, hs);
@@ -1580,9 +1920,8 @@ impl<'a> TextArea<'a> {
             if editing
                 && live.contains(StateFlags::FOCUSED)
                 && self.editable()
-                && let Some(cursor) = geometry.and_then(|g| {
-                    g.cursor_position(st.draft.cursor_pos(), view.offset(), hs as u16)
-                })
+                && let Some(cursor) = geometry
+                    .and_then(|g| g.cursor_position(st.draft.cursor_pos(), view.offset(), hs))
             {
                 ui.set_cursor(self.id, cursor);
             }
@@ -1711,6 +2050,73 @@ fn paint_masked_line(
     let total = graphemes(line).count().saturating_sub(skip);
     let mut cells = CellUi::new(ui.reborrow(), run, style);
     cells.glyphs(policy.mask, total);
+}
+
+fn paint_idle_line(
+    ui: &mut Ui<'_>,
+    run: Rect,
+    line: &str,
+    source_column: usize,
+    style: crate::theme::PaintStyle,
+) {
+    if run.is_empty() {
+        return;
+    }
+    let available = usize::from(run.width);
+    let mut source = 0usize;
+    let mut left_clipped = false;
+    for (_, grapheme) in graphemes(line) {
+        let width = usize::from(grapheme_width(grapheme));
+        let end = source.saturating_add(width);
+        if width == 0 {
+            source = end;
+            continue;
+        }
+        if source < source_column && end > source_column {
+            left_clipped = true;
+            source = end;
+            continue;
+        }
+        if source >= source_column {
+            let relative = source.saturating_sub(source_column);
+            if relative.saturating_add(width) > available {
+                break;
+            }
+            let x = run
+                .x
+                .saturating_add(u16::try_from(relative).unwrap_or(u16::MAX));
+            let cell = Rect {
+                x,
+                width: u16::try_from(width).unwrap_or(u16::MAX),
+                ..run
+            }
+            .intersection(run);
+            if usize::from(cell.width) == width {
+                ui.paint_str(cell, grapheme, style);
+            }
+        }
+        source = end;
+    }
+    if left_clipped {
+        ui.glyph(cell_at(run, run.x), GlyphRole::Ellipsis, style);
+    }
+}
+
+fn line_display_width(line: &str, masked: bool) -> usize {
+    if masked {
+        graphemes(line).count()
+    } else {
+        graphemes(line).fold(0usize, |width, (_, grapheme)| {
+            width.saturating_add(usize::from(grapheme_width(grapheme)))
+        })
+    }
+}
+
+fn displayed_width(text: &str, masked: bool) -> usize {
+    text.split('\n')
+        .map(|line| line_display_width(line, masked))
+        .max()
+        .unwrap_or(0)
 }
 
 fn column_span(row: Rect, a: usize, b: usize) -> Rect {

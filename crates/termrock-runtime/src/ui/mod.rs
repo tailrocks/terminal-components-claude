@@ -1341,6 +1341,30 @@ impl<'f> Ui<'f> {
         self.frame.layout.push((id, l));
     }
 
+    /// Attach the source column painted at the left edge of an owner's text
+    /// area to its most recently reported current-frame layout facts.
+    ///
+    /// This updates the same latest-owner entry read by [`FrameRead::layout`]
+    /// after publication. It never appends partial facts or falls back to the
+    /// previous frame. It returns `false` when the owner has not reported
+    /// layout in this frame or when called from a reference scope.
+    pub fn report_horizontal_source_offset(&mut self, owner: Id, source_column: usize) -> bool {
+        if self.reference.is_some() {
+            return false;
+        }
+        let Some((_, facts)) = self
+            .frame
+            .layout
+            .iter_mut()
+            .rev()
+            .find(|(id, _)| *id == owner)
+        else {
+            return false;
+        };
+        facts.horizontal_source_offset = Some(source_column);
+        true
+    }
+
     pub fn set_cursor(&mut self, owner: Id, pos: Position) {
         self.record_cursor(owner, pos, false, crate::cursor::CursorShape::Block);
     }
@@ -1979,6 +2003,48 @@ mod tests {
     };
     const OWNER: Id = Id::root("ui.owner");
     const OTHER: Id = Id::root("ui.other");
+
+    #[test]
+    fn horizontal_source_offset_updates_the_latest_current_layout_entry_only() {
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let mut last = LastFrame::default();
+        let theme = Theme::junie();
+        let first = LayoutFacts::new(2, 20, 2, 12).with_logical_area(Rect::new(1, 1, 12, 2));
+        let other = LayoutFacts::new(3, 30, 3, 18).with_logical_area(Rect::new(2, 0, 18, 3));
+        let latest = LayoutFacts::new(4, 40, 4, 20).with_logical_area(Rect::new(3, 0, 20, 3));
+        let previous_only = Id::root("ui.previous-only");
+        let mut previous = LayoutFacts::new(5, 50, 5, 22);
+        previous.horizontal_source_offset = Some(11);
+        last.layout.push((previous_only, previous));
+
+        let (updated, absent, reference_suppressed) = {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            ui.report_layout(OWNER, first);
+            ui.report_layout(OTHER, other);
+            ui.report_layout(OWNER, latest);
+            let updated = ui.report_horizontal_source_offset(OWNER, 8);
+            let absent = ui.report_horizontal_source_offset(previous_only, 9);
+            let reference_suppressed = ui.reference(None, |reference| {
+                !reference.report_horizontal_source_offset(OWNER, 10)
+            });
+            (updated, absent, reference_suppressed)
+        };
+
+        assert!(updated);
+        assert!(!absent);
+        assert!(reference_suppressed);
+        assert_eq!(frame.layout.len(), 3, "the helper never appends a fact");
+        assert_eq!(frame.layout[0], (OWNER, first));
+        assert_eq!(frame.layout[1], (OTHER, other));
+        let mut expected = latest;
+        expected.horizontal_source_offset = Some(8);
+        assert_eq!(frame.layout[2], (OWNER, expected));
+        assert_eq!(last.layout[0], (previous_only, previous));
+        assert_eq!(LayoutFacts::new(0, 0, 0, 0).horizontal_source_offset, None);
+    }
 
     #[derive(Clone, Copy)]
     enum TestCmd {
