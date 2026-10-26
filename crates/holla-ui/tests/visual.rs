@@ -5,7 +5,8 @@ use ratatui::{
     style::{Color, Modifier},
 };
 use termrock::{
-    ColorLevel, Family, FeedbackClock, FgStep, Part, Role, SimulationMoment, StylePatch, Theme,
+    ColorLevel, Family, FeedbackClock, FgStep, Id, Part, PartRef, Role, SimulationMoment,
+    StylePatch, Theme,
 };
 use termrock_test_support::{Baseline, Harness, Scene};
 
@@ -42,32 +43,25 @@ fn harness(
     .with_color(color)
 }
 
-const LEGACY_BORDER_CASES: [Scenario; 4] = [
+const BORDER_PALETTE_CASES: [Scenario; 4] = [
     Scenario::RustDirty,
     Scenario::MonorepoRoot,
     Scenario::MonorepoChild,
     Scenario::ActivitiesMulti,
 ];
+const HOME_ROWS: Id = Id::root("home.rows");
 
-fn is_legacy_border_case(
+fn is_border_palette_case(
     scenario: Scenario,
     width: u16,
     height: u16,
     theme: &Theme,
     color: ColorLevel,
 ) -> bool {
-    LEGACY_BORDER_CASES.contains(&scenario)
+    BORDER_PALETTE_CASES.contains(&scenario)
         && (width, height) == (80, 24)
         && *theme == Theme::junie()
         && color == ColorLevel::Ansi256
-}
-
-fn holla_border_positions(scenario: Scenario) -> &'static [(u16, u16)] {
-    match scenario {
-        Scenario::RustDirty | Scenario::MonorepoChild => &[(78, 17), (78, 18), (78, 19), (78, 20)],
-        Scenario::MonorepoRoot | Scenario::ActivitiesMulti => &[(78, 18), (78, 19), (78, 20)],
-        _ => panic!("scenario is outside the historical Holla border replay"),
-    }
 }
 
 fn expected_cell(symbol: &str, fg: Color, bg: Color, modifier: Modifier) -> Cell {
@@ -107,55 +101,209 @@ fn assert_only_expected_cells_differ(
     }
 }
 
-fn assert_historical_border_replay(scenario: Scenario) {
-    let mut harness = harness(scenario, Theme::junie(), 80, 24, ColorLevel::Ansi256);
-    let current = harness.buffer().clone();
-    let current_cursor = harness.cursor();
+fn home_display_rows(world: &holla_ui::sim::world::World) -> Vec<(String, String)> {
+    let recent_first = world.scenario.boot_title() == "Recent here";
+    holla_ui::sim::catalogue::sections(world)
+        .into_iter()
+        .flat_map(|section| {
+            let name = if recent_first && section.name == "Suggested here" {
+                "Explore"
+            } else {
+                section.name
+            };
+            holla_ui::sim::catalogue::visible(&section.actions, None, "", &world.memory, &world.cwd)
+                .into_iter()
+                .map(move |action| (name.to_owned(), action.id))
+        })
+        .collect()
+}
 
-    let mut historical_theme = harness.runtime().theme().clone();
-    historical_theme.color.border_subtle = Color::Indexed(235);
-    harness.runtime_mut().set_theme(historical_theme);
-    harness.draw();
+fn home_visual_extent(rows: &[(String, String)]) -> usize {
+    let mut groups = 0_usize;
+    let mut previous = None;
+    for (section, _) in rows {
+        if previous != Some(section.as_str()) {
+            groups = groups.saturating_add(1);
+            previous = Some(section.as_str());
+        }
+    }
+    rows.len()
+        .saturating_add(groups)
+        .saturating_add(groups.saturating_sub(1))
+}
 
-    let historical = harness.buffer();
-    let expected_positions = holla_border_positions(scenario);
+fn exposed_track_cells(track: Rect, thumb: Rect) -> Vec<(u16, u16)> {
+    let mut cells = Vec::new();
+    for y in track.y..track.y.saturating_add(track.height) {
+        for x in track.x..track.x.saturating_add(track.width) {
+            let in_thumb = x >= thumb.x
+                && x < thumb.x.saturating_add(thumb.width)
+                && y >= thumb.y
+                && y < thumb.y.saturating_add(thumb.height);
+            if !in_thumb {
+                cells.push((x, y));
+            }
+        }
+    }
+    cells
+}
+
+fn assert_current_model_border_palette_locality(scenario: Scenario) {
+    let mut world = holla_ui::sim::fixtures::world_for(scenario);
+    world.seek(4_000);
+
+    let raw = holla_ui::sim::catalogue::catalogue(&world);
+    assert_eq!(
+        raw.iter()
+            .filter(|action| action.id == "system.port")
+            .count(),
+        1,
+        "canonical Port remains in the raw catalogue for {scenario:?}"
+    );
+    let rows = home_display_rows(&world);
+    assert_eq!(
+        rows.iter().filter(|(_, id)| id == "system.port").count(),
+        1,
+        "canonical Port remains in the normal Home projection for {scenario:?}"
+    );
+
+    let content_extent = home_visual_extent(&rows);
+    assert!(content_extent > 0, "nonempty Home model for {scenario:?}");
+    if scenario == Scenario::RustDirty {
+        assert_eq!(rows.len(), 16, "normal RustDirty action count");
+        assert_eq!(content_extent, 21, "normal RustDirty visual row count");
+    }
+
+    let mut h = harness(scenario, Theme::junie(), 80, 24, ColorLevel::Ansi256);
+    let expected_rows = Rect::new(1, 6, 78, 15);
+    let expected_track = Rect::new(78, 6, 1, 15);
+    let rows_area = h.area_of(HOME_ROWS);
+    let track = h.area_of_part(HOME_ROWS, PartRef::of(Part::TRACK));
+    let thumb = h.area_of_part(HOME_ROWS, PartRef::of(Part::THUMB));
+    assert!(rows_area.is_some(), "native Home rows for {scenario:?}");
+    assert!(track.is_some(), "native Home track for {scenario:?}");
+    assert!(thumb.is_some(), "native Home thumb for {scenario:?}");
+    let (Some(rows_area), Some(track), Some(thumb)) = (rows_area, track, thumb) else {
+        return;
+    };
+
+    assert_eq!(
+        rows_area, expected_rows,
+        "native Home viewport for {scenario:?}"
+    );
+    assert_eq!(track, expected_track, "native Home track for {scenario:?}");
+    let viewport = usize::from(expected_rows.height);
+    let track_len = usize::from(expected_track.height);
+    let thumb_len = viewport
+        .saturating_mul(track_len)
+        .checked_div(content_extent)
+        .unwrap_or_default()
+        .max(1)
+        .min(track_len);
+    if scenario == Scenario::RustDirty {
+        assert_eq!(viewport, 15, "RustDirty native viewport height");
+        assert_eq!(thumb_len, 10, "RustDirty model-derived thumb height");
+    }
+    let expected_thumb = Rect::new(
+        expected_track.x,
+        expected_track.y,
+        expected_track.width,
+        u16::try_from(thumb_len).unwrap_or_default(),
+    );
+    assert_eq!(
+        thumb, expected_thumb,
+        "model-derived Home thumb for {scenario:?}"
+    );
+    assert_eq!(
+        thumb.y, expected_track.y,
+        "initial offset is zero for {scenario:?}"
+    );
+
+    let exposed = exposed_track_cells(expected_track, expected_thumb);
+    if scenario == Scenario::RustDirty {
+        assert_eq!(
+            exposed,
+            (16..=20).map(|y| (78, y)).collect::<Vec<_>>(),
+            "RustDirty model-derived exposed track rows"
+        );
+    }
+
+    let current = h.buffer().clone();
+    let current_cursor = h.cursor();
     assert_eq!(current.area, Rect::new(0, 0, 80, 24));
-    assert_eq!(historical.area, current.area);
     assert_eq!(current_cursor, Some(Position { x: 3, y: 4 }));
-    assert_eq!(harness.cursor(), current_cursor);
-    assert_only_expected_cells_differ(&current, historical, expected_positions);
-
-    let current_cell = expected_cell(
+    let current_track_cell = expected_cell(
         "┆",
         Color::Indexed(238),
         Color::Indexed(16),
         Modifier::empty(),
     );
-    let historical_cell = expected_cell(
+    let changed_track_cell = expected_cell(
         "┆",
         Color::Indexed(235),
         Color::Indexed(16),
         Modifier::empty(),
     );
-    for &(x, y) in expected_positions {
+    for &(x, y) in &exposed {
         assert_eq!(
-            current.cell((x, y)).expect("historical cell inside frame"),
-            &current_cell,
-            "current Holla cell at ({x}, {y})"
+            current.cell((x, y)),
+            Some(&current_track_cell),
+            "current track cell at ({x}, {y})"
         );
+    }
+    let thumb_cell = expected_cell(
+        "┃",
+        Color::Indexed(245),
+        Color::Indexed(16),
+        Modifier::empty(),
+    );
+    for y in thumb.y..thumb.y.saturating_add(thumb.height) {
         assert_eq!(
-            historical
-                .cell((x, y))
-                .expect("historical cell inside frame"),
-            &historical_cell,
-            "historical Holla cell at ({x}, {y})"
+            current.cell((thumb.x, y)),
+            Some(&thumb_cell),
+            "thumb cell at ({}, {y})",
+            thumb.x
         );
     }
 
-    harness
-        .snapshot()
-        .named(scenario.name())
-        .assert_against(&BASELINE);
+    let mut changed_theme = h.runtime().theme().clone();
+    assert_eq!(
+        changed_theme.color.border_subtle,
+        Color::Indexed(238),
+        "only the authored Junie BorderSubtle source token is replayed"
+    );
+    changed_theme.color.border_subtle = Color::Indexed(235);
+    h.runtime_mut().set_theme(changed_theme);
+    h.draw();
+    let changed = h.buffer();
+
+    assert_eq!(changed.area, current.area);
+    assert_eq!(h.area_of(HOME_ROWS), Some(expected_rows));
+    assert_eq!(
+        h.area_of_part(HOME_ROWS, PartRef::of(Part::TRACK)),
+        Some(expected_track)
+    );
+    assert_eq!(
+        h.area_of_part(HOME_ROWS, PartRef::of(Part::THUMB)),
+        Some(expected_thumb)
+    );
+    assert_eq!(h.cursor(), current_cursor, "cursor after palette replay");
+    assert_only_expected_cells_differ(&current, changed, &exposed);
+    for &(x, y) in &exposed {
+        assert_eq!(
+            changed.cell((x, y)),
+            Some(&changed_track_cell),
+            "changed track cell at ({x}, {y})"
+        );
+    }
+    for y in thumb.y..thumb.y.saturating_add(thumb.height) {
+        assert_eq!(
+            changed.cell((thumb.x, y)),
+            Some(&thumb_cell),
+            "unchanged thumb cell at ({}, {y})",
+            thumb.x
+        );
+    }
 }
 
 fn is_historical_ansi16_faint_case(
@@ -567,8 +715,8 @@ fn holla_visual_baseline() {
         for (width, height) in SIZES {
             for theme in [Theme::junie(), Theme::paper()] {
                 for color in COLORS {
-                    if is_legacy_border_case(scenario, width, height, &theme, color) {
-                        assert_historical_border_replay(scenario);
+                    if is_border_palette_case(scenario, width, height, &theme, color) {
+                        assert_current_model_border_palette_locality(scenario);
                         continue;
                     }
                     if is_historical_ansi16_faint_case(scenario, width, height, &theme, color) {
@@ -600,9 +748,15 @@ fn holla_visual_baseline() {
 }
 
 #[test]
-fn holla_historical_border_subtle_replay_matches_four_held_frames() {
-    for scenario in LEGACY_BORDER_CASES {
-        assert_historical_border_replay(scenario);
+fn holla_current_model_border_subtle_palette_is_local_for_four_scenarios() {
+    // The four held digests are preserved by the matching historical fixtures:
+    // rust_dirty_hidden_port_retains_historical_border_frame,
+    // monorepo_root_hidden_port_retains_historical_border_frame,
+    // monorepo_child_hidden_port_retains_historical_border_frame, and
+    // activities_multi_hidden_port_retains_historical_border_frame. These normal-model
+    // cases keep Port visible and independently check current native geometry/locality.
+    for scenario in BORDER_PALETTE_CASES {
+        assert_current_model_border_palette_locality(scenario);
     }
 }
 
