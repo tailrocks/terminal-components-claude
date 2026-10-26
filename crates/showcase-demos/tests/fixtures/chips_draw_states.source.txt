@@ -1,0 +1,173 @@
+fn draw_states(&self, ui: &mut Ui<'_>, area: Rect) {
+        if area.is_empty() {
+            return;
+        }
+        let view =
+            ScrollRegion::new(STATES_SCROLL).draw(ui, area, &self.states_scroll, STATES_ROWS);
+        self.mark_draw_visible(STATES_SCROLL, view, ui.full());
+        if view.is_empty() {
+            return;
+        }
+        ui.register_focus_only(STATES_SCROLL, Focusability::Focusable);
+        let projected = ScrollRegion::view(&self.states_scroll, view, STATES_ROWS);
+        let first_row = projected.offset().min(STATES_ROWS);
+        let logical_height = u16::try_from(STATES_ROWS).unwrap_or(u16::MAX);
+        let visible = Rect {
+            height: view.height.min(logical_height),
+            ..view
+        };
+        let Ok(window) = VerticalWindow::new(visible, STATES_ROWS, first_row) else {
+            return;
+        };
+        let source_rows = window.visible_source_range();
+        let label_width = view.width.saturating_sub(28).min(18);
+        let control_x = view.x.saturating_add(label_width).saturating_add(1);
+        let control_width = view.right().saturating_sub(control_x);
+        let labels = [
+            "Chip rest",
+            "Chip hovered",
+            "Chip pressed",
+            "Chip focused",
+            "Chip focus + hover",
+            "Chip selected",
+            "Chip disabled",
+            "Chip error",
+            "Chip empty",
+            "Overflow",
+            "Chip narrow",
+            "Unicode",
+            "Select rest",
+            "Select chosen",
+            "Select hovered",
+            "Select pressed",
+            "Select focused",
+            "Select disabled",
+        ];
+        let mut chip_state = ChipBarState::default();
+        chip_state.set_cursor(0, ItemKey::text(STATE_CHIPS[0]));
+        let mut selected_state = chip_state.clone();
+        selected_state
+            .checked_mut()
+            .insert(ItemKey::text(STATE_CHIPS[0]));
+        let select_state = selected_option(0);
+        let empty_select_state = SelectState::default();
+        let empty_chip_state = ChipBarState::default();
+        for (source_y, label) in labels.into_iter().enumerate() {
+            if source_y < source_rows.start || source_y >= source_rows.end {
+                continue;
+            }
+            let Some(y) = window.physical_row_for_source(source_y) else {
+                continue;
+            };
+            if label_width > 0 {
+                let _ = ui.paint_str(
+                    Rect::new(view.x, y, label_width, 1),
+                    label,
+                    ui.surface_style(),
+                );
+            }
+            let mut sample_area = Rect::new(control_x, y, control_width, 1);
+            if sample_area.is_empty() {
+                continue;
+            }
+            match source_y {
+                0..=6 => {
+                    let (state, target, disabled) = match source_y {
+                        1 => (
+                            &chip_state,
+                            Some(ReferenceTarget::new(CHIPS, ReferenceState::HOVERED)),
+                            false,
+                        ),
+                        2 => (
+                            &chip_state,
+                            Some(ReferenceTarget::new(CHIPS, ReferenceState::PRESSED)),
+                            false,
+                        ),
+                        3 => (
+                            &chip_state,
+                            Some(ReferenceTarget::new(CHIPS, ReferenceState::FOCUS_VISIBLE)),
+                            false,
+                        ),
+                        4 => (
+                            &chip_state,
+                            Some(ReferenceTarget::new(
+                                CHIPS,
+                                ReferenceState::FOCUS_VISIBLE | ReferenceState::HOVERED,
+                            )),
+                            false,
+                        ),
+                        5 => (&selected_state, None, false),
+                        6 => (&chip_state, None, true),
+                        _ => (&chip_state, None, false),
+                    };
+                    ui.reference(target, |ui| {
+                        chips(SelectMode::Multi, true).disabled(disabled).draw(
+                            ui,
+                            sample_area,
+                            state,
+                            STATE_CHIPS,
+                        );
+                    });
+                }
+                7 => {
+                    let items = ERROR_CHIPS;
+                    let mut specimen = ChipBarState::default();
+                    specimen.set_cursor(0, ItemKey::text(ERROR_CHIP));
+                    ui.reference(None, |ui| {
+                        ChipBar::new(CHIPS)
+                            .key(chip_key)
+                            .row(error_chip_row)
+                            .select_mode(SelectMode::Multi)
+                            .closable(true)
+                            .draw(ui, sample_area, &specimen, items);
+                    });
+                }
+                8 => {
+                    ui.reference(None, |ui| {
+                        chips(SelectMode::Multi, true).draw(
+                            ui,
+                            sample_area,
+                            &empty_chip_state,
+                            &[],
+                        );
+                    });
+                }
+                9..=11 => {
+                    sample_area.width = sample_area.width.min(28);
+                    if source_y == 10 {
+                        sample_area.width = sample_area.width.min(8);
+                    }
+                    let items = if source_y == 11 {
+                        UNICODE_CHIPS
+                    } else {
+                        STATE_CHIPS
+                    };
+                    let mut specimen = ChipBarState::default();
+                    if !items.is_empty() {
+                        specimen.set_cursor(0, ItemKey::text(items[0]));
+                    }
+                    ui.reference(None, |ui| {
+                        chips(SelectMode::Multi, true).draw(ui, sample_area, &specimen, items);
+                    });
+                }
+                12..=17 => {
+                    let target = match source_y {
+                        14 => Some(ReferenceTarget::new(SELECT, ReferenceState::HOVERED)),
+                        15 => Some(ReferenceTarget::new(SELECT, ReferenceState::PRESSED)),
+                        16 => Some(ReferenceTarget::new(SELECT, ReferenceState::FOCUS_VISIBLE)),
+                        _ => None,
+                    };
+                    let state = if matches!(source_y, 13 | 16 | 17) {
+                        &select_state
+                    } else {
+                        &empty_select_state
+                    };
+                    let disabled = source_y == 17;
+                    ui.reference(target, |ui| {
+                        language_select(None, disabled).draw(ui, sample_area, state, LANGUAGES);
+                    });
+                }
+                _ => (),
+            }
+        }
+    }

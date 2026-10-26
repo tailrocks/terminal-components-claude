@@ -1584,7 +1584,6 @@ pub struct ScrollingPage {
     wrap_lines: bool,
     horizontal_pan: bool,
     option_revision: Option<u64>,
-    page_area: Cell<Rect>,
     options_window: Cell<(usize, usize)>,
     options_window_valid: Cell<bool>,
 }
@@ -1625,7 +1624,6 @@ impl ScrollingPage {
             wrap_lines: false,
             horizontal_pan: false,
             option_revision: Some(ROUTE_REVISION),
-            page_area: Cell::new(Rect::ZERO),
             options_window: Cell::new((0, 0)),
             options_window_valid: Cell::new(false),
         }
@@ -2069,7 +2067,7 @@ impl ScrollingPage {
         response
     }
 
-    fn draw_playground(&self, ui: &mut Ui<'_>, body: Rect) {
+    fn draw_playground(&self, ui: &mut Ui<'_>, body: Rect, width: u16) {
         let list_offset = self.list_state.scroll().offset();
         let log_offset = self.log.len().saturating_sub(6);
         let top = body.y.saturating_add(3);
@@ -2082,7 +2080,6 @@ impl ScrollingPage {
             ..body
         };
         let slots = bands(playground);
-        let width = self.page_area.get().width;
         if width < COLS_80_MIN_W {
             if slots[0].height > 0 {
                 let list_area = content_narrow(narrow_columns(slots[0])[1]);
@@ -2497,7 +2494,6 @@ impl Page for ScrollingPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        self.page_area.set(area);
         frame(ui, area, self.title(), BLURB, |ui, body| {
             let content_top = body.y.saturating_add(3);
             let content = Rect {
@@ -2506,7 +2502,7 @@ impl Page for ScrollingPage {
                 ..body
             };
             match self.section() {
-                0 => self.draw_playground(ui, body),
+                0 => self.draw_playground(ui, body, area.width),
                 1 => self.draw_options(ui, content),
                 _ => self.draw_states(ui, content),
             }
