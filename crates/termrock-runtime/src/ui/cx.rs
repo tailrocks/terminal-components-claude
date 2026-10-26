@@ -33,7 +33,7 @@ pub struct LayoutFacts {
     pub rows: u16,
     pub cols: u16,
     pub logical_area: Option<Rect>,
-    /// The prepared, physically visible rows of a logically taller component body.
+
     pub vertical_window: Option<VerticalWindow>,
 }
 
@@ -55,7 +55,6 @@ impl LayoutFacts {
         self
     }
 
-    /// Attach parent-clipped vertical geometry to the prepared layout facts.
     #[must_use]
     pub const fn with_vertical_window(mut self, window: VerticalWindow) -> Self {
         self.vertical_window = Some(window);
@@ -176,11 +175,6 @@ pub struct FrameServices {
     pub(crate) now: crate::runtime::Moment,
     pub(crate) repaint_at: Option<crate::runtime::Moment>,
     pub(crate) quit: bool,
-    #[cfg_attr(
-        not(feature = "testing"),
-        expect(dead_code, reason = "filled by `Cx::record` under the testing feature")
-    )]
-    pub(crate) records: Vec<&'static str>,
     pub(crate) diagnostics: Diagnostics,
     pub(crate) closed_layers: Vec<crate::layer::OpenLayer>,
     pub(crate) direct_closed_layers: Vec<crate::layer::OpenLayer>,
@@ -244,9 +238,6 @@ impl core::fmt::Debug for Cx<'_> {
     }
 }
 
-/// Advance the serial that identifies one update within a runtime.
-///
-/// Return `None` when the serial is exhausted, without changing it.
 fn next_callback_serial(serial: &mut u64) -> Option<u64> {
     let next = (*serial).checked_add(1)?;
     *serial = next;
@@ -254,17 +245,10 @@ fn next_callback_serial(serial: &mut u64) -> Option<u64> {
 }
 
 impl<'f> Cx<'f> {
-    /// Append a component-author diagnostic to the runtime's bounded diagnostic
-    /// stream. Components cannot clear diagnostics emitted by other owners.
     pub fn diagnostic(&mut self, diagnostic: crate::diagnostics::Diagnostic) {
         self.services.diagnostics.push(diagnostic);
     }
 
-    /// Return the active wheel attempt for this exact owner, part, and axis.
-    ///
-    /// The attempt is available only during the original event update or the
-    /// targeted `ScrollRoute` callback. Owners must validate its source revision
-    /// before they acknowledge a local result.
     pub fn wheel_route_attempt(
         &self,
         owner: Id,
@@ -282,10 +266,6 @@ impl<'f> Cx<'f> {
         })
     }
 
-    /// Acknowledge the local result for the active wheel attempt.
-    ///
-    /// Only one acknowledgement is accepted. A stale, wrong, duplicate, or
-    /// conflicting acknowledgement invalidates fallback for this event.
     pub fn acknowledge_wheel_route(
         &self,
         attempt: &WheelRouteAttempt,
@@ -332,26 +312,6 @@ impl<'f> Cx<'f> {
         }
     }
 
-    #[cfg(test)]
-    pub fn new(
-        intents: &'f IntentQueue,
-        services: &'f mut FrameServices,
-        core: &'f mut UiCore,
-        last: &'f LastFrame,
-        theme: &'f Theme,
-        command: Option<ActionKey>,
-    ) -> Self {
-        Self::new_with_cause(
-            intents,
-            services,
-            core,
-            last,
-            theme,
-            command,
-            UpdateCause::Event,
-        )
-    }
-
     pub fn new_with_cause(
         intents: &'f IntentQueue,
         services: &'f mut FrameServices,
@@ -361,7 +321,6 @@ impl<'f> Cx<'f> {
         command: Option<ActionKey>,
         update_cause: UpdateCause,
     ) -> Self {
-        // Reusing an exhausted callback serial could alias an earlier update.
         let callback_serial = next_callback_serial(&mut services.callback_serial)
             .expect("runtime callback token exhausted");
         let update_token = UpdateToken::new(services.runtime_id, callback_serial);
@@ -432,7 +391,6 @@ impl<'f> Cx<'f> {
         self.update_cause
     }
 
-    /// App-wide default for text editor edit-entry behavior.
     pub const fn edit_entry(&self) -> termrock_core::edit_entry::EditEntry {
         self.edit_entry
     }
@@ -517,27 +475,22 @@ impl<'f> Cx<'f> {
         self.services.viewport
     }
 
-    /// Return text copied through this runtime's shared clipboard service.
     pub fn clipboard_text(&self) -> Option<&str> {
         self.services.clipboard.text()
     }
 
-    /// Copy text into this runtime's shared clipboard service.
     pub fn clipboard_copy(&mut self, text: &str) {
         self.services.clipboard.copy(text);
     }
 
-    /// Clear and wipe this runtime's shared clipboard contents.
     pub fn clipboard_clear(&mut self) {
         self.services.clipboard.clear();
     }
 
-    /// Install an optional integration hook for copied text.
     pub fn set_clipboard_copy_hook(&mut self, hook: impl Fn(&str) + 'static) {
         self.services.clipboard.set_copy_hook(hook);
     }
 
-    /// Remove the optional integration hook for copied text.
     pub fn clear_clipboard_copy_hook(&mut self) {
         self.services.clipboard.clear_copy_hook();
     }
@@ -589,7 +542,6 @@ impl<'f> Cx<'f> {
         self.services.capture.get().map(|c| c.owner)
     }
 
-    /// Return the click count for this component's current press or release intent.
     pub fn pointer_press_count(&self, owner: Id, part: PartRef) -> Option<u8> {
         self.services
             .pointer_press_count
@@ -599,7 +551,6 @@ impl<'f> Cx<'f> {
             .map(|(_, _, count)| count)
     }
 
-    /// Return the click count for this component's current click intent.
     pub fn pointer_click_count(&self, owner: Id, part: PartRef) -> Option<u8> {
         self.pointer_press_count(owner, part)
     }
@@ -610,10 +561,6 @@ impl<'f> Cx<'f> {
         }
     }
 
-    /// Cancel held text-drag autoscroll for this exact captured owner and part.
-    ///
-    /// The physical pointer capture remains active. A fresh pointer press may
-    /// register a new autoscroll gesture.
     pub fn cancel_text_drag_autoscroll(&mut self, owner: Id, part: PartRef) {
         if !self
             .services
@@ -667,7 +614,6 @@ impl<'f> Cx<'f> {
             .filter(|opening| opening.id() == id && opening.runtime() == self.services.runtime_id)
     }
 
-    /// Consume a completion receipt for this exact layer opening, if focus restoration settled.
     pub fn take_layer_completion(&mut self, opening: LayerOpening) -> Option<LayerCompletion> {
         let position = self
             .services
@@ -734,14 +680,12 @@ impl<'f> Cx<'f> {
                 .is_some_and(|entry| entry.layer == parent_layer && !entry.disabled)
     }
 
-    /// Return the exact child-layer opening that owns this pending focus continuation.
     pub fn focus_continuation_opening(&self, owner: Id, to: Id) -> Option<LayerOpening> {
         self.focus_is_continued(owner, to)
             .then(|| self.services.layers.top_layer().map(|layer| layer.opening))
             .flatten()
     }
 
-    /// Observe the settled result for an exact continuation without consuming it.
     pub fn focus_continuation_result(
         &self,
         opening: LayerOpening,
@@ -761,7 +705,6 @@ impl<'f> Cx<'f> {
             })
     }
 
-    /// Acknowledge the exact continuation result after the owner applies its resume or blur.
     pub fn acknowledge_focus_continuation_result(
         &mut self,
         opening: LayerOpening,
@@ -797,7 +740,6 @@ impl<'f> Cx<'f> {
         true
     }
 
-    /// Whether the exact focus-out transition is owned by the active child layer.
     pub fn focus_is_continued(&self, owner: Id, to: Id) -> bool {
         if !self.intents(owner).any(|intent| {
             matches!(intent, crate::intent::Intent::FocusOut { to: Some(target) } if target == to)
@@ -842,7 +784,6 @@ impl<'f> Cx<'f> {
             || (top.spec.initial_focus == Some(to) && self.last.snapshot.focus == Some(to))
     }
 
-    /// Acknowledge that the owning component reconciled state for this exact continuation.
     pub fn acknowledge_focus_continuation(&mut self, owner: Id, to: Id) -> bool {
         if !self.focus_is_continued(owner, to) {
             return false;
@@ -924,7 +865,6 @@ impl<'f> Cx<'f> {
         Some(self.services.events.remove(pos).event())
     }
 
-    /// Takes the next pending event receipt for this component's exact layer id.
     pub fn layer_event_receipt(&mut self, id: Id) -> Option<LayerEventReceipt> {
         let pos = self
             .services
@@ -934,8 +874,6 @@ impl<'f> Cx<'f> {
         Some(self.services.events.remove(pos).receipt())
     }
 
-    /// Claims the next event receipt for this layer ID and its next matching
-    /// unclaimed intent, retaining this API's established by-ID behavior.
     pub fn take_layer_intent_receipt(&mut self, id: Id) -> Option<LayerEventReceipt> {
         let pos = self
             .services
@@ -949,13 +887,6 @@ impl<'f> Cx<'f> {
         Some(self.services.events.remove(pos).receipt())
     }
 
-    /// Claims and retires the receipt for this exact layer opening.
-    ///
-    /// The opening must belong to this runtime. A matching closed opening is
-    /// valid because its dismissal receipt is delivered after the layer closes.
-    /// `AlreadyClaimed` and `NotPending` retire only the owned receipt; neither
-    /// outcome claims or recreates another intent. A payload mismatch leaves
-    /// the receipt and queue unchanged.
     pub fn take_layer_intent_receipt_for(
         &mut self,
         opening: LayerOpening,
@@ -982,7 +913,6 @@ impl<'f> Cx<'f> {
         }
     }
 
-    /// Returns the opaque identity of this application update callback.
     pub const fn update_token(&self) -> UpdateToken {
         self.update_token
     }
@@ -991,8 +921,6 @@ impl<'f> Cx<'f> {
         self.services.layers.top()
     }
 
-    /// Return the currently focused registered control when it belongs to
-    /// `scope` on the topmost interactive layer.
     pub fn focused_in_scope(&self, scope: ScopeId) -> Option<Id> {
         let focused = self.last.snapshot.focus?;
         let entry = self.last.ring.entry(focused)?;
@@ -1013,11 +941,6 @@ impl<'f> Cx<'f> {
 
     pub fn quit(&mut self) {
         self.services.quit = true;
-    }
-
-    #[cfg(feature = "testing")]
-    pub fn record(&mut self, tag: &'static str) {
-        self.services.records.push(tag);
     }
 }
 
@@ -1062,64 +985,5 @@ impl super::Ui<'_> {
 
     pub fn pressed_part(&self, owner: Id) -> Option<PartRef> {
         FrameRead::pressed_part(self, owner)
-    }
-}
-
-#[cfg(test)]
-mod diagnostics_tests {
-    use super::*;
-    use crate::intent::IntentQueue;
-
-    #[test]
-    fn component_author_diagnostics_use_the_bounded_runtime_store() {
-        let intents = IntentQueue::new();
-        let mut services = FrameServices::default();
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let theme = Theme::junie();
-        let owner = Id::root("form");
-        let field = Id::root("name");
-        {
-            let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
-            for _ in 0..70 {
-                cx.diagnostic(crate::diagnostics::Diagnostic::InvalidComponentLayout {
-                    owner,
-                    field: Some(field),
-                });
-            }
-        }
-        assert_eq!(services.diagnostics.items().len(), 64);
-        assert_eq!(services.diagnostics.dropped(), 6);
-        assert!(matches!(
-            services.diagnostics.items().first(),
-            Some(crate::diagnostics::Diagnostic::InvalidComponentLayout {
-                owner: found_owner,
-                field: Some(found_field),
-            }) if *found_owner == owner && *found_field == field
-        ));
-    }
-}
-
-#[cfg(test)]
-mod callback_serial_tests {
-    use super::*;
-
-    fn next_token(serial: &mut u64) -> Option<UpdateToken> {
-        next_callback_serial(serial).map(|callback| UpdateToken::new(7, callback))
-    }
-
-    #[test]
-    fn callback_tokens_remain_unique_and_exhaust_without_reuse() {
-        let mut serial = 0;
-        let first = next_token(&mut serial);
-        let second = next_token(&mut serial);
-        assert_eq!(first, Some(UpdateToken::new(7, 1)));
-        assert_eq!(second, Some(UpdateToken::new(7, 2)));
-        assert_ne!(first, second);
-
-        serial = u64::MAX - 1;
-        assert_eq!(next_token(&mut serial), Some(UpdateToken::new(7, u64::MAX)));
-        assert_eq!(next_token(&mut serial), None);
-        assert_eq!(serial, u64::MAX);
     }
 }

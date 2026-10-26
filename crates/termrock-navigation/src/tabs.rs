@@ -28,18 +28,11 @@ use termrock_runtime::layer::{
 };
 use termrock_runtime::rowui::{RowFn, RowUi};
 
-/// Keyboard aliases used for adjacent tab navigation.
-///
-/// The default `None` profile preserves the existing arrow and lowercase
-/// `h`/`l` bindings. This opt-in profile changes only the Prev/Next keyboard
-/// descriptors; it does not change layout or pointer behavior. The profiles
-/// cover adjacent navigation only and do not add Home/End or `g`/`G` actions.
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TabNavProfile {
-    /// Use Left/Right arrows, including Shift+Left/Right.
     Desktop,
-    /// Use Desktop arrows plus `h`/`H` for Prev and `l`/`L` for Next.
+
     Vim,
 }
 
@@ -50,47 +43,23 @@ pub enum TabsAction {
     New,
 }
 
-/// Controls when an eligible tab's close affordance is painted and registered.
-///
-/// Both modes reserve the same close-target geometry. In
-/// [`Hover`](Self::Hover) mode, the target is a live hit only while its tab is
-/// active or focused, its tab or close part is hovered, or its close part is
-/// pressed.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum TabCloseReveal {
-    /// Keep every eligible close affordance visible. This preserves the
-    /// historical default.
     #[default]
     Always,
-    /// Reveal an eligible close affordance only while its tab is in use.
+
     Hover,
 }
 
-/// Foreground policy for the active tab's rule.
-///
-/// The policy changes only the active rule's foreground. The default Tabs
-/// rendering path is unchanged unless a policy is selected. This enum is
-/// non-exhaustive so additional rule policies can be added without breaking
-/// downstream matches.
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TabRule {
-    /// Resolve the active rule with the theme's Accent role.
     Accent,
-    /// Resolve the active rule with the theme's BorderStrong role.
+
     Neutral,
-    /// Use Accent while the Tabs context is not hidden; otherwise use
-    /// BorderStrong.
-    ///
-    /// Without an explicit host override, hidden means that a native runtime
-    /// layer covers the current drawing context.
+
     Auto,
-    /// Use Accent only while this Tabs owner has focus and its context is not
-    /// hidden; otherwise use BorderStrong.
-    ///
-    /// Focus is presentation data, not input permission. Without an explicit
-    /// host override, hidden means that a native runtime layer covers the
-    /// current drawing context.
+
     FocusOnly,
 }
 
@@ -123,13 +92,6 @@ impl TabRule {
     }
 }
 
-/// Independent status facts for one tab item.
-///
-/// When any fact is set, Tabs reserves a two-cell [`Part::ICON`] lane after
-/// the row content and before its close affordance. If several facts are set,
-/// the visible mark uses this priority: busy, error, dirty, then done. The
-/// type keeps its storage private so callers can use builders without taking
-/// a dependency on its exact representation.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct TabMarks {
     dirty: bool,
@@ -178,12 +140,6 @@ impl TabMarks {
     }
 }
 
-/// Optional semantic text placed before or after a planned default-row label.
-///
-/// Affixes are captured only by [`Tabs::item_affixes`] and are styled as
-/// [`Part::PREFIX`] and [`Part::META`] respectively. Tabs supplies one-cell
-/// separators around the affixes, so callers provide only their text.
-/// Trailing plate padding applies only to the planned default-row layout.
 #[derive(Clone, PartialEq, Eq, Default)]
 pub struct TabAffixes {
     prefix: Option<String>,
@@ -209,7 +165,6 @@ impl fmt::Debug for TabAffixes {
 }
 
 impl TabAffixes {
-    /// Set the optional text displayed before the original label.
     #[must_use]
     pub fn prefix(mut self, text: impl Into<String>) -> Self {
         let text = text.into();
@@ -217,7 +172,6 @@ impl TabAffixes {
         self
     }
 
-    /// Set the optional text displayed after the original label.
     #[must_use]
     pub fn suffix(mut self, text: impl Into<String>) -> Self {
         let text = text.into();
@@ -225,20 +179,12 @@ impl TabAffixes {
         self
     }
 
-    /// Add terminal cells after semantic content and marks, before any close
-    /// affordance.
-    ///
-    /// These cells extend the tab plate only. They do not change label text,
-    /// affix bounds, or overflow-menu labels. Padding is clipped when the row
-    /// cannot fit its minimum content and the requested width.
     #[must_use]
     pub fn trailing_padding(mut self, cells: u16) -> Self {
         self.trailing_padding = cells;
         self
     }
 
-    /// Keep the one-cell separators around semantic affix text in the tab
-    /// plate style instead of applying the affix text style to those cells.
     #[must_use]
     pub fn plate_separators(mut self, enabled: bool) -> Self {
         self.plate_separators = enabled;
@@ -313,22 +259,23 @@ const SHOW_HIDDEN_BINDINGS: &[Binding<TabsMenuCmd>] = &[Binding {
     visible: true,
 }];
 
-/// Configuration errors for Tabs navigation and replacement New/Close groups.
-///
-/// A group may contain only its corresponding command. Action identities must
-/// be unique across the effective Tabs table, and declared chords must not
-/// collide under [`Chord::effective_eq`]. The default New or Close group is
-/// omitted from validation when that same group is replaced.
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TabsKeyBindingsError {
-    /// A binding in the New group had a command other than [`TabsCmd::New`].
-    NewGroupCommand { index: usize, found: TabsCmd },
-    /// A binding in the Close group had a command other than [`TabsCmd::Close`].
-    CloseGroupCommand { index: usize, found: TabsCmd },
-    /// Two effective bindings reused one action identity.
-    DuplicateAction { action: crate::ActionKey },
-    /// Two effective bindings declared chords that match the same input.
+    NewGroupCommand {
+        index: usize,
+        found: TabsCmd,
+    },
+
+    CloseGroupCommand {
+        index: usize,
+        found: TabsCmd,
+    },
+
+    DuplicateAction {
+        action: crate::ActionKey,
+    },
+
     ConflictingChord {
         first: crate::ActionKey,
         second: crate::ActionKey,
@@ -701,10 +648,9 @@ pub struct TabsState {
     active: Option<ItemKey>,
     first: Option<ItemKey>,
     first_index: usize,
-    // Defer the live CLOSE target while its hidden cell belongs to a TAB press.
+
     close_reveal_press: Option<ItemKey>,
-    // The current keyed active identity owns a manually browsed planned window.
-    // This is semantic state: it changes whether the next update follows active.
+
     manual_window_active: Option<Option<ItemKey>>,
     menu: Option<TabsOpenMenu>,
 }
@@ -725,8 +671,6 @@ impl Eq for TabsState {}
 
 impl fmt::Debug for TabsState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Preserve the historical public Debug shape while keeping the
-        // implementation-only manual-follow marker private.
         f.debug_struct("TabsState")
             .field("core", &self.core)
             .field("active", &self.active)
@@ -851,10 +795,6 @@ enum TabsWheelFrameKind {
     Planned,
 }
 
-/// Exact facts from the most recently committed planned Tabs frame.
-///
-/// This is routing authority for the hit registry that was just published,
-/// not a revision or a claim that same-key item text has remained unchanged.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct TabsWheelFrame {
     kind: TabsWheelFrameKind,
@@ -900,11 +840,6 @@ impl Default for TabsWheelFrame {
     }
 }
 
-/// A planned frame whose owned row walk advanced `first` so its active tab
-/// keeps the geometry that the same frame can attain without preceding rows.
-///
-/// This private receipt lets the next update adopt the committed window before
-/// routing input against the published hit registry.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct TabsGeometryFollow {
     active_key: ItemKey,
@@ -920,11 +855,6 @@ fn manual_window_owns_follow(
     frame_kind != TabsWheelFrameKind::Legacy && manual_window_active == Some(active)
 }
 
-/// Committed viewport counts supplied to a pure tabs layout pass.
-///
-/// This receipt is explicit because planning must not inspect a previously
-/// painted frame. Pass the receipt returned by the preceding committed layout
-/// when preserving the warm-frame overflow reservation rule.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct TabWindowReceipt {
     pub viewport_len: usize,
@@ -937,9 +867,6 @@ struct AffixSegment {
     width: u16,
 }
 
-/// Segment boundaries and cell widths captured while the original Display is
-/// formatted. The indexes point into the composed public row segments, so the
-/// visible text and its semantic style spans share one snapshot.
 #[derive(Clone, PartialEq, Eq, Debug)]
 struct OwnedTabAffixes {
     display_start: usize,
@@ -984,7 +911,6 @@ impl OwnedTabAffixes {
     }
 }
 
-/// One immutable semantic row allocation for a [`TabLayout`].
 #[derive(Clone)]
 pub struct TabRowLayout {
     pub key: ItemKey,
@@ -993,14 +919,9 @@ pub struct TabRowLayout {
     pub visible_content: Rect,
     pub logical_tab: Rect,
     pub visible_tab: Rect,
-    /// Allocated close-target geometry for an eligible item. An explicitly
-    /// widened target may overlap label or mark cells. In
-    /// [`TabCloseReveal::Hover`] mode this remains present while the affordance
-    /// is hidden.
+
     pub logical_close: Option<Rect>,
-    /// Clipped allocation for an eligible close target, not a promise that
-    /// the current frame registered a live hit. The committed UI hit registry
-    /// is authoritative for current interaction visibility.
+
     pub visible_close: Option<Rect>,
     logical_mark: Option<Rect>,
     visible_mark: Option<Rect>,
@@ -1086,7 +1007,6 @@ impl TabRowLayout {
     }
 }
 
-/// One item snapshot owned by a fresh planned default layout.
 #[derive(Clone, PartialEq, Eq, Debug)]
 struct OwnedTabMeasurement {
     key: ItemKey,
@@ -1098,17 +1018,6 @@ struct OwnedTabMeasurement {
 }
 
 impl OwnedTabMeasurement {
-    #[cfg(test)]
-    fn new(
-        key: ItemKey,
-        mark: Option<TabItemMark>,
-        close_enabled: bool,
-        label_segments: Vec<String>,
-        affixes: Option<OwnedTabAffixes>,
-    ) -> Self {
-        Self::new_with_natural_extent(key, mark, close_enabled, label_segments, affixes, true)
-    }
-
     fn new_with_natural_extent(
         key: ItemKey,
         mark: Option<TabItemMark>,
@@ -1143,10 +1052,6 @@ struct OwnedTabsWalk<'a> {
     previous: Option<TabWindowReceipt>,
 }
 
-/// One row's exact native allocation, before choosing how to retain it.
-///
-/// Terminal probes keep only the last record; the committed layout sink turns
-/// records into public rows and copies the captured display segments once.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct DefaultRowGeometry {
     key: ItemKey,
@@ -1165,25 +1070,6 @@ struct DefaultRowGeometry {
 }
 
 impl DefaultRowGeometry {
-    #[cfg(test)]
-    fn from_tab_row(row: &TabRowLayout) -> Self {
-        Self {
-            key: row.key,
-            index: row.index,
-            logical_content: row.logical_content,
-            visible_content: row.visible_content,
-            logical_tab: row.logical_tab,
-            visible_tab: row.visible_tab,
-            logical_close: row.logical_close,
-            visible_close: row.visible_close,
-            logical_mark: row.logical_mark,
-            visible_mark: row.visible_mark,
-            mark: row.mark,
-            close_enabled: row.close_enabled,
-            label_extent: row.label_extent,
-        }
-    }
-
     fn into_tab_row(
         self,
         label_segments: Vec<String>,
@@ -1247,7 +1133,6 @@ struct DefaultRowWalk {
 }
 
 fn max_rows_for_width_budget(available: u16) -> usize {
-    // Compute A + 1 in a wider type; `available` can be u16::MAX.
     ((u32::from(available).saturating_add(1)) / 4) as usize
 }
 
@@ -1260,11 +1145,6 @@ fn positive_terminal_candidate_range(len: usize, max_rows: usize) -> core::ops::
     first..len
 }
 
-/// Pure layout result for default display rows.
-///
-/// Layout owns every formatted default-row segment and all tab allocations.
-/// Drawing a layout never invokes item Display or mark callbacks and never
-/// scans rendered buffer cells to recover label extents.
 #[derive(Clone)]
 pub struct TabLayout {
     id: Id,
@@ -1274,12 +1154,9 @@ pub struct TabLayout {
     used_area: Rect,
     rule_area: Option<Rect>,
     rows: Vec<TabRowLayout>,
-    // Some holds every item in a nonempty planned layout. None is the
-    // callback-free empty-area plan. Excluded from historical public Eq/Debug.
+
     owned_items: Option<Vec<OwnedTabMeasurement>>,
-    // Private bound: the earliest suffix whose final allocated tab is visible.
-    // Whole-row mode may instead use the source index of an intrinsically
-    // oversized final item as a finite endpoint, without claiming a tab.
+
     terminal_first_index: Option<usize>,
     geometry_follow: Option<TabsGeometryFollow>,
     planned_whole_rows: bool,
@@ -1469,12 +1346,6 @@ impl TabLayout {
         self.used_area
     }
 
-    /// Return logical and clipped allocated bounds for a tabs part.
-    ///
-    /// A close bound is potential geometry for an eligible item. With
-    /// [`TabCloseReveal::Hover`], the close affordance may be hidden and have
-    /// no live hit target; query the committed UI hit registry to determine
-    /// current interaction visibility.
     pub fn part_bounds(&self, part: PartRef) -> Option<(Rect, Rect)> {
         match part.part {
             Part::TAB => self
@@ -1815,18 +1686,6 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self.id
     }
 
-    /// Select an adjacent-tab navigation profile.
-    ///
-    /// `None` preserves the current default table exactly. A profile changes
-    /// only Prev/Next descriptors; Activate, digit, New, Close, pointer,
-    /// overflow, layout, and wrapping semantics stay unchanged. The selected
-    /// descriptors are used for both binding publication and dispatch.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when a current custom New or Close binding reuses an
-    /// action identity or effective chord with the selected profile or another
-    /// effective binding.
     pub fn try_nav_profile(
         mut self,
         profile: Option<TabNavProfile>,
@@ -1904,58 +1763,24 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
-    /// Show a default-row hidden-tabs menu when the planned strip overflows.
-    ///
-    /// The default is enabled for the planned `DefaultRow` path. The legacy
-    /// callback renderer remains unchanged. Disable this option to preserve
-    /// the prior planned geometry exactly.
     #[must_use]
     pub fn overflow_menu(mut self, enabled: bool) -> Self {
         self.overflow_menu = enabled;
         self
     }
 
-    /// Enable the built-in `1`–`9` shortcuts for selecting tabs by position.
-    ///
-    /// The default is `true`. Disabling digit jumps removes those actions from
-    /// the published key tables while leaving tab layout and pointer behavior
-    /// unchanged.
     #[must_use]
     pub fn digit_jump(mut self, yes: bool) -> Self {
         self.digit_jump = yes;
         self
     }
 
-    /// Wrap the existing previous/next tab commands at the ends of the list.
-    ///
-    /// The default is `false`, which preserves the current endpoint behavior.
-    /// When enabled, only the existing previous/next key actions cycle between
-    /// the first and last tabs; pointer, overflow, and wheel interaction is
-    /// unchanged.
     #[must_use]
     pub fn wrap(mut self, yes: bool) -> Self {
         self.wrap = yes;
         self
     }
 
-    /// Replace the keyboard bindings for [`TabsCmd::New`].
-    ///
-    /// The default `None` keeps the built-in New binding in the base
-    /// [`Bindings`] table. `Some(&[])` explicitly removes New keyboard
-    /// bindings while leaving the pointer New part governed by
-    /// [`Self::allow_new`]. A custom static table is published with its
-    /// original action, chord, label, priority, and visibility metadata.
-    ///
-    /// The complete potential command table is validated, even when New is
-    /// currently disabled or this Tabs instance is passive. Use
-    /// [`Self::new_key_table`] to publish the supplemental table when painting
-    /// manually alongside [`Bindings::bindings`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when a binding uses a command other than
-    /// [`TabsCmd::New`], reuses an effective action identity, or has a chord
-    /// that conflicts with another effective binding.
     pub fn try_new_key_bindings(
         mut self,
         bindings: Option<&'static [Binding<TabsCmd>]>,
@@ -1971,24 +1796,6 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
-    /// Replace the keyboard bindings for [`TabsCmd::Close`].
-    ///
-    /// The default `None` keeps the built-in Close bindings in the base
-    /// [`Bindings`] table. `Some(&[])` explicitly removes Close keyboard
-    /// bindings without changing close-target eligibility, pointer clicks, or
-    /// Middle behavior. A custom static table is published with its original
-    /// action, chord, label, priority, and visibility metadata.
-    ///
-    /// The complete potential command table is validated, even when no item
-    /// is currently closable or this Tabs instance is passive. Use
-    /// [`Self::close_key_table`] to publish the supplemental table when
-    /// painting manually alongside [`Bindings::bindings`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when a binding uses a command other than
-    /// [`TabsCmd::Close`], reuses an effective action identity, or has a chord
-    /// that conflicts with another effective binding.
     pub fn try_close_key_bindings(
         mut self,
         bindings: Option<&'static [Binding<TabsCmd>]>,
@@ -1998,60 +1805,30 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         Ok(self)
     }
 
-    /// Close the currently closable tab under a middle-button press.
-    ///
-    /// The default is `true`. This emits [`TabsAction::Close`] for the
-    /// pointed stable item key without activating or moving the tab cursor.
-    /// Close eligibility remains controlled by [`Self::closable`] and
-    /// [`Self::closable_keys`].
     #[must_use]
     pub fn middle_click_closes(mut self, yes: bool) -> Self {
         self.middle_click_closes = yes;
         self
     }
 
-    /// Set close eligibility by stable item key.
-    ///
-    /// When this policy is present, only current items with a listed key get a
-    /// close affordance. It overrides [`Self::closable`], including when the
-    /// slice is empty. When this method is not called, [`Self::closable`]
-    /// keeps its existing all-items behavior.
     #[must_use]
     pub fn closable_keys(mut self, keys: &'a [ItemKey]) -> Self {
         self.closable_keys = Some(keys);
         self
     }
 
-    /// Choose when an eligible close affordance is visible and interactive.
-    ///
-    /// The default is [`TabCloseReveal::Always`]. [`TabCloseReveal::Hover`]
-    /// keeps each eligible close target reserved so tab geometry does not
-    /// shift, but registers it only while its tab is active or focused, its
-    /// tab or close part is hovered, or its close part is pressed.
     #[must_use]
     pub fn close_reveal(mut self, reveal: TabCloseReveal) -> Self {
         self.close_reveal = reveal;
         self
     }
 
-    /// Widen the close hit target around its existing close glyph.
-    ///
-    /// The default is `None`, which preserves the current one-cell target.
-    /// Explicit widths follow the centered one-cell-glyph plate calculation:
-    /// even requests round down to the nearest odd width, and zero means one
-    /// cell. The target is clamped within each tab and does not change tab
-    /// sizing or the reserved close-label space.
     #[must_use]
     pub fn close_target_w(mut self, cells: u16) -> Self {
         self.close_target_w = Some(cells);
         self
     }
 
-    /// Use danger semantic colors while the close target is hovered or
-    /// pressed.
-    ///
-    /// The default is `false`, preserving the theme's existing CLOSE recipe.
-    /// This changes only the close target's hovered and pressed presentation.
     #[must_use]
     pub fn close_danger_hover(mut self, danger: bool) -> Self {
         self.close_danger_hover = danger;
@@ -2064,60 +1841,30 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
-    /// Choose the foreground role for the active rule.
-    ///
-    /// The default is unset, which preserves the existing theme-resolved
-    /// active rule. An explicit RULE foreground in this Tabs instance takes
-    /// precedence over the selected policy.
     #[must_use]
     pub fn rule(mut self, rule: TabRule) -> Self {
         self.rule = Some(rule);
         self
     }
 
-    /// Override native-layer coverage for the dynamic active-rule policies.
-    ///
-    /// Without this setting, [`TabRule::Auto`] and [`TabRule::FocusOnly`]
-    /// consult the current frame's native layer stack. Set this to `true` when
-    /// a host-owned overlay or popup hides the Tabs context without opening a
-    /// native layer; set it to `false` to explicitly present the rule as
-    /// uncovered. This changes only active-rule presentation, never focus,
-    /// hit registration, or input eligibility. It has no effect on the fixed
-    /// [`TabRule::Accent`] and [`TabRule::Neutral`] policies.
     #[must_use]
     pub fn rule_focus_hidden(mut self, hidden: bool) -> Self {
         self.rule_focus_hidden = Some(hidden);
         self
     }
 
-    /// Keep the tab strip out of the automatic focus order and keyboard map.
-    ///
-    /// Visible tab, close, new and overflow parts remain interactive. The
-    /// default is `false`, which preserves the ordinary focusable strip.
     #[must_use]
     pub fn passive(mut self, passive: bool) -> Self {
         self.passive = passive;
         self
     }
 
-    /// Choose whether a passive strip presents its cursor row as focused.
-    ///
-    /// This only affects presentation while [`Self::passive`] is `true`; it
-    /// never grants focus or keyboard input. The default is `false`.
     #[must_use]
     pub fn passive_focused(mut self, focused: bool) -> Self {
         self.passive_focused = focused;
         self
     }
 
-    /// Map each item to independent optional status marks.
-    ///
-    /// The default is unconfigured and does not reserve per-item space. A
-    /// configured mapper that returns clean marks also reserves no space.
-    /// Nonempty marks reserve two cells after the row content and before an
-    /// eligible close affordance. The mapper's result is copied into a
-    /// [`TabLayout`] when planning; rebuild that plan after changing item data
-    /// or the mapper to display the new facts.
     #[must_use]
     pub fn item_marks(mut self, mapper: fn(&T) -> TabMarks) -> Self {
         self.item_marks = Some(mapper);
@@ -2142,24 +1889,10 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
-    /// Supplemental New bindings for the current keyboard configuration.
-    ///
-    /// The built-in New command remains in the unchanged base table returned
-    /// by [`Bindings::bindings`] while no custom New table is configured. This
-    /// accessor returns only the extra table to publish when a custom table
-    /// replaces that default, and returns an empty slice when New is gated or
-    /// the Tabs owner is passive.
     pub fn new_key_table(&self) -> &'static [Binding<TabsCmd>] {
         self.effective_key_groups().new
     }
 
-    /// Supplemental Close bindings for the current keyboard configuration.
-    ///
-    /// The built-in Close commands remain in the unchanged base table
-    /// returned by [`Bindings::bindings`] while no custom Close table is
-    /// configured. This accessor returns only the extra table to publish when
-    /// a custom table replaces those defaults, and returns an empty slice when
-    /// Close is gated or the Tabs owner is passive.
     pub fn close_key_table(&self) -> &'static [Binding<TabsCmd>] {
         self.effective_key_groups().close
     }
@@ -2177,8 +1910,6 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         let new_base_enabled = self.allow_new && self.new_key_bindings.is_none();
         let close_base_enabled = close_enabled && self.close_key_bindings.is_none();
         let base = if self.new_key_bindings.is_none() && self.close_key_bindings.is_none() {
-            // Keep the original static table and descriptor order byte-for-byte
-            // when no navigation profile or optional group is configured.
             table_for_navigation_profile(
                 self.nav_profile,
                 close_enabled,
@@ -2280,9 +2011,6 @@ fn validate_tabs_key_bindings(
         }
     }
 
-    // Validate every command that could become active, regardless of current
-    // allow_new, close eligibility, or passive presentation. A configured
-    // override replaces only its own default group in this potential union.
     let base = table_for_navigation_profile(
         profile,
         close_bindings.is_none(),
@@ -3116,11 +2844,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 cx.request_repaint_after(Duration::from_millis(delay));
             }
         }
-        // The semantic marker survives derived-cache invalidation. In
-        // particular, Runtime resize can expose an Unknown frame with the
-        // preceding layout while the fresh plan is still pending. Unknown
-        // still cannot authorize wheel input; only a committed legacy update
-        // clears this marker before the guard.
+
         let manual_window_owned =
             manual_window_owns_follow(frame.kind, st.manual_window_active, st.active);
         if !manual_window_owned && let Some(l) = layout {
@@ -3255,18 +2979,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             local.as_ref(),
         );
 
-        // META recipes provide the ordinary muted treatment. These semantic
-        // affixes instead use their active/inactive fallback unless a theme,
-        // capability profile, overlay, or instance patch owns the foreground.
-        // The resolved style stays canonical so profile-bound roles retain
-        // their capability-specific color.
         if ownership.fg == Slot::Inherit {
             semantic.style = semantic
                 .style
                 .patch(ui.paint_patch(&StylePatch::new().set_fg(foreground)));
         }
-        // Affixes stay subordinate to the label by default. An authored BOLD
-        // addition is still authoritative, just like an owned foreground.
+
         if !ownership.add.contains(Modifier::BOLD) {
             semantic.style = semantic
                 .style
@@ -3893,10 +3611,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         );
                     }
                 } else {
-                    // A previous visible frame may have left a custom glyph or
-                    // close-state style in this reserved glyph lane. Restore
-                    // that lane only; row text and marks have already been
-                    // repainted, and may overlap a widened target.
                     ui.fill(close_glyph, ts.style);
                 }
             }
@@ -4220,27 +3934,12 @@ fn item_mark_glyph_area(area: Rect, glyph_width: u16) -> Rect {
 }
 
 impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
-    /// Require a complete natural row allocation for planned default-row layouts.
-    ///
-    /// The default is `false`, preserving partial-row allocation. When enabled,
-    /// the planner omits the next row unless its full captured label, affixes,
-    /// marks, close allocation, and requested trailing padding fit the resolved
-    /// content budget. The setting applies only to planned `DefaultRow` layouts;
-    /// the legacy callback renderer is unchanged.
     #[must_use]
     pub fn planned_whole_rows(mut self, enabled: bool) -> Self {
         self.planned_whole_rows = enabled;
         self
     }
 
-    /// Map each item to optional prefix and suffix text for fresh planned
-    /// default-row layouts.
-    ///
-    /// The mapper runs once for every item in each nonempty fresh plan,
-    /// including items outside the visible window. Its owned text is captured
-    /// with the original Display segments and reused for row geometry,
-    /// rendering, and the hidden-tabs menu. Empty-area plans do not invoke it.
-    /// The legacy custom-row renderer is unchanged.
     #[must_use]
     pub fn item_affixes(mut self, mapper: fn(&T) -> TabAffixes) -> Self {
         self.item_affixes = Some(mapper);
@@ -4307,17 +4006,6 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         }
     }
 
-    /// Resolve default display rows without painting or reading a buffer.
-    ///
-    /// Every fresh nonempty plan formats each item once and captures its key,
-    /// visible mark, close eligibility, and original Display write segments,
-    /// including items that are not allocated in the visible window. Rebuild
-    /// after item content changes; there is no persistent same-key text cache.
-    /// Empty-area plans preserve the original callback/key lookup behavior.
-    ///
-    /// `previous` is the caller-owned receipt from the last committed draw.
-    /// It preserves the existing overflow reservation behavior across cold
-    /// and warm frames while keeping measurement independent of `Ui`.
     pub fn layout_default(
         &self,
         area: Rect,
@@ -4328,8 +4016,6 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
     ) -> TabLayout {
         let len = items.len();
         if area.is_empty() {
-            // Match the original empty-area key lookup exactly, including its
-            // optional hinted lookup and repeated hinted key call on fallback.
             let first_index = state
                 .first
                 .and_then(|first| self.index_of(items, first, Some(state.first_index)))
@@ -4386,10 +4072,6 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             .unwrap_or(0)
             .min(len);
 
-        // Preserve the exact current terminal predicate and ascending candidate
-        // order while skipping only positive starts that cannot emit enough
-        // rows to reach the final item. Candidate zero has different lane
-        // reservations, so it is probed separately.
         let mut extent_scratch = Vec::new();
         let terminal_first_index =
             self.find_terminal_first_index(area, clip, &owned_items, previous, &mut extent_scratch);
@@ -4526,20 +4208,12 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 .is_some_and(|row| row.index == final_index && !row.visible_tab.is_empty())
         };
 
-        // Start zero has different left/right reservations; preserve its
-        // original first place in the exhaustive search explicitly.
         let start_zero =
             self.walk_default_resolved(area, clip, items, 0, previous, extent_scratch, |_| {});
         if reaches_final(start_zero) {
             return Some(0);
         }
 
-        // Every positive start has the same four-cell left and right lanes.
-        // At least three cells are consumed by each emitted row, and each
-        // non-final row advances x by at least four. Thus K bounds the number
-        // of rows any positive-start walk can emit. This header is shared with
-        // the walker, so the bound follows the actual status/New/reservation
-        // geometry rather than a separate width approximation.
         let reserve_more = self.overflow_menu && self.more_lane_fits(area, clip, 1, previous);
         let positive_header = self.default_row_header_with_more(area, 1, previous, reserve_more);
         let max_rows = max_rows_for_width_budget(positive_header.available_width());
@@ -4559,9 +4233,6 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             return terminal;
         }
 
-        // A final item that is intrinsically too wide has no visible-terminal
-        // suffix. Keep one finite source endpoint so manual browsing can still
-        // pass earlier fitting rows and return from the final blank window.
         let final_index = len - 1;
         let final_walk = self.walk_default_resolved(
             area,
@@ -4701,11 +4372,11 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         }
         let base = self.default_row_header(area, first_index, previous);
         let required = if first_index > 0 { 4_u32 } else { 0_u32 }
-            .saturating_add(4) // right-arrow lane
-            .saturating_add(4) // More lane
+            .saturating_add(4)
+            .saturating_add(4)
             .saturating_add(u32::from(base.new_w))
             .saturating_add(u32::from(base.status_w))
-            .saturating_add(3); // minimum tab allocation
+            .saturating_add(3);
         if u32::from(base.row_area.width) < required {
             return false;
         }
@@ -5098,10 +4769,6 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         }
     }
 
-    /// Draw a previously resolved default-row layout.
-    ///
-    /// Rebuild the plan after any state or data change. Returns `Err` when
-    /// component identity or rendering configuration differs from planning.
     pub fn draw_layout(
         &self,
         ui: &mut Ui<'_>,
@@ -5166,8 +4833,6 @@ fn close_glyph_cell(tab: Rect) -> Rect {
     cell_at(tab, tab.right().saturating_sub(2))
 }
 
-/// Paint text at its captured logical cell positions instead of restarting it
-/// at the left edge when a nested Ui clip cuts through the text.
 fn paint_logical_text(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -5188,8 +4853,7 @@ fn paint_logical_text(
             continue;
         }
         let right = x.saturating_add(width);
-        // A clipped wide grapheme is left blank rather than reflowed to the
-        // clip edge. Later graphemes retain their captured logical positions.
+
         if x >= visible.x && right <= visible.right() && right <= area_right {
             ui.paint_str(Rect::new(x, area.y, width, 1), grapheme, style);
         }
@@ -5285,87 +4949,12 @@ fn logical_label_extent(segments: &[String], content: Rect) -> u16 {
     last_nonblank_end.saturating_sub(content.x)
 }
 
-// Preserve the allocating pre-v3 implementation as an independent test oracle.
-#[cfg(test)]
-fn semantic_label_extent(segments: &[String], content: Rect, clip: Rect) -> u16 {
-    // `RowUi::label_fmt` writes each Display segment independently. Each write
-    // clips from the current logical writer position, while the painter starts
-    // at the clipped left edge. Before the writer reaches that edge, successive
-    // segments can therefore overlap and replace cells. Model only those
-    // visible semantic cells; do not render into a scratch Buffer or inspect a
-    // Ui during measurement.
-    let visible = content.intersection(clip);
-    if visible.is_empty() {
-        return 0;
-    }
-
-    let mut cells = vec![false; usize::from(visible.width)];
-    let mut writer_x = content.x;
-    let content_right = content.right();
-
-    for segment in segments {
-        if writer_x >= content_right {
-            break;
-        }
-        let write_x = writer_x.max(clip.x).max(content.x);
-        let write_right = content_right.min(clip.right());
-        if write_x >= write_right || content.y < clip.y || content.y >= clip.bottom() {
-            continue;
-        }
-
-        let mut x = write_x;
-        let mut remaining = write_right.saturating_sub(write_x);
-        for (_, grapheme) in termrock_text::measure::graphemes(segment) {
-            if grapheme.contains(char::is_control) {
-                continue;
-            }
-            let width = grapheme.cell_width();
-            if width == 0 {
-                continue;
-            }
-            let Some(next_remaining) = remaining.checked_sub(width) else {
-                break;
-            };
-
-            let offset = usize::from(x.saturating_sub(visible.x));
-            if let Some(cell) = cells.get_mut(offset) {
-                *cell = grapheme != " ";
-            }
-            for continuation in 1..width {
-                let offset = usize::from(x.saturating_add(continuation).saturating_sub(visible.x));
-                if let Some(cell) = cells.get_mut(offset) {
-                    *cell = false;
-                }
-            }
-
-            remaining = next_remaining;
-            x = x.saturating_add(width);
-            if remaining == 0 {
-                break;
-            }
-        }
-        writer_x = writer_x.saturating_add(x.saturating_sub(write_x));
-    }
-
-    cells
-        .iter()
-        .rposition(|nonblank| *nonblank)
-        .map_or(0, |index| u16::try_from(index + 1).unwrap_or(u16::MAX))
-}
-
-// Same semantic walk as the test oracle, using capacity owned by the caller.
 fn semantic_label_extent_with_scratch(
     segments: &[String],
     content: Rect,
     clip: Rect,
     cells: &mut Vec<bool>,
 ) -> u16 {
-    // `RowUi::label_fmt` writes each Display segment independently. Each write
-    // clips from the current logical writer position, while the painter starts
-    // at the clipped left edge. Before the writer reaches that edge, successive
-    // segments can therefore overlap and replace cells. Model only those
-    // visible semantic cells; do not render into a scratch Buffer or inspect a
-    // Ui during measurement.
     let visible = content.intersection(clip);
     if visible.is_empty() {
         return 0;
@@ -5444,2820 +5033,7 @@ fn painted_width(ui: &mut Ui<'_>, row: Rect) -> u16 {
 impl<T, K, R> Bindings for Tabs<'_, T, K, R> {
     type Cmd = TabsCmd;
 
-    // With a replacement group, the built-in rows for that group are removed
-    // from this base table. Manual publishers must add the corresponding
-    // supplemental table returned by `new_key_table` or `close_key_table`.
     fn bindings(&self, _s: BindingState) -> &'static [Binding<TabsCmd>] {
         self.table()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use core::cell::Cell;
-
-    use ratatui_core::buffer::{Buffer, Cell as BufferCell};
-    use ratatui_core::layout::{Position, Rect};
-    use ratatui_core::style::Modifier;
-    use termrock_runtime::hit::{RegionKind, Registry};
-    use termrock_runtime::layer::LayerId;
-
-    use super::*;
-    use crate::runtime::Runtime;
-    use crate::runtime::stub::Stub;
-    use crate::theme::{ColorLevel, Theme};
-
-    const TABS: Id = Id::root("tabs.tests");
-    const AREA: Rect = Rect {
-        x: 0,
-        y: 0,
-        width: 12,
-        height: 2,
-    };
-    const DOWN_NEW: [Binding<TabsCmd>; 1] = [Binding {
-        action: crate::ActionKey::custom("tabs.tests.new-down"),
-        chord: Some(Chord::key(KeyCode::Down)),
-        cmd: TabsCmd::New,
-        label: "New tab",
-        priority: 70,
-        visible: true,
-    }];
-
-    fn assert_planned_regions_match_legacy(
-        planned: &Registry,
-        legacy: &Registry,
-        layout: &TabLayout,
-    ) {
-        let planned_generation = planned.generation();
-        let legacy_generation = legacy.generation();
-        assert!(
-            planned
-                .regions()
-                .iter()
-                .all(|region| region.generation == planned_generation)
-        );
-        assert!(
-            legacy
-                .regions()
-                .iter()
-                .all(|region| region.generation == legacy_generation)
-        );
-
-        let mut expected = legacy.regions().to_vec();
-        assert!(
-            expected
-                .iter()
-                .all(|region| region.kind != RegionKind::Scroll)
-        );
-        let scroll_is_eligible = !layout.passive
-            && !layout.visible_area.is_empty()
-            && layout.viewport_len > 0
-            && layout
-                .terminal_first_index
-                .is_some_and(|terminal| terminal > 0 && terminal < layout.content_len);
-        if scroll_is_eligible {
-            let terminal = layout
-                .terminal_first_index
-                .expect("eligible planned scrolling has a terminal first index");
-            let backward = u16::try_from(layout.first_index).unwrap_or(u16::MAX);
-            let forward =
-                u16::try_from(terminal.saturating_sub(layout.first_index)).unwrap_or(u16::MAX);
-            let mut expected_scroll = Registry::new(planned_generation);
-            expected_scroll.register_scroll(
-                TABS,
-                layout.visible_area,
-                LayerId::PAGE,
-                Axes::Both,
-                Headroom {
-                    up: backward,
-                    down: forward,
-                    left: backward,
-                    right: forward,
-                },
-            );
-            let scroll_region = *expected_scroll
-                .regions()
-                .first()
-                .expect("the expected planned scroll registration is present");
-            expected.insert(0, scroll_region);
-        }
-
-        let mut actual = planned.regions().to_vec();
-        for region in &mut actual {
-            region.generation = 0;
-        }
-        for region in &mut expected {
-            region.generation = 0;
-        }
-        assert_eq!(actual, expected);
-    }
-
-    fn row_text(buf: &Buffer, width: u16) -> String {
-        let mut text = String::new();
-        for x in 0..width {
-            if let Some(cell) = buf.cell(Position::new(x, 0)) {
-                text.push_str(cell.symbol());
-            }
-        }
-        text
-    }
-
-    fn draw_status(status: Option<Status>) -> Buffer {
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(AREA);
-        let state = TabsState::default();
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                let mut tabs = Tabs::new(TABS);
-                if let Some(status) = status {
-                    tabs = tabs.status(status);
-                }
-                tabs.draw(ui, area, &state, &["tab"]);
-            })
-            .commit_presented();
-        buffer
-    }
-
-    #[test]
-    fn close_targets_the_logical_tab_after_a_reorder() {
-        let mut st = TabsState::default();
-        let keys = |v: &[u64]| {
-            let v: Vec<ItemKey> = v.iter().map(|n| ItemKey::num(*n)).collect();
-            v
-        };
-        let a = keys(&[1, 2, 3]);
-        let _ = st.reconcile(3, |i| a[i]);
-        st.set_active(1, ItemKey::num(2));
-        st.first = Some(ItemKey::num(1));
-
-        let b = keys(&[9, 3, 2, 1]);
-        let r = st.reconcile(4, |i| b[i]);
-        assert_eq!(r, Reconciliation::Unchanged);
-        assert_eq!(st.active(), Some(ItemKey::num(2)));
-        assert_eq!(st.cursor(), Some(ItemKey::num(2)));
-        assert_eq!(st.first(), Some(ItemKey::num(1)));
-        assert_eq!(st.first_index, 3);
-
-        let c = keys(&[9, 3, 1]);
-        let _ = st.reconcile(3, |i| c[i]);
-        assert_eq!(st.active(), st.cursor());
-        assert!(st.active().is_some());
-        let mut buf = [0u8; 2];
-        assert_eq!(digits(7, &mut buf), "7");
-        assert_eq!(digits(42, &mut buf), "42");
-        assert_eq!(digits(500, &mut buf), "99");
-    }
-
-    #[test]
-    fn mono_pressed_brackets_the_reserved_pad_cells() {
-        const LABEL: &str = "Full width";
-        let items = [LABEL];
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
-        let mut buffer = Buffer::empty(AREA);
-        let mut state = TabsState::default();
-        state.set_active(0, ItemKey::index(0));
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                ui.reference(
-                    Some(
-                        crate::ReferenceTarget::new(
-                            TABS,
-                            crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
-                        )
-                        .part(PartRef::item(Part::TAB, ItemKey::index(0))),
-                    ),
-                    |ui| Tabs::new(TABS).draw(ui, area, &state, &items),
-                );
-            })
-            .commit_presented();
-
-        assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
-    }
-
-    #[test]
-    fn mono_pressed_closable_tab_keeps_the_close_cell_after_the_bracket() {
-        let items = ["tab"];
-        let key = ItemKey::index(0);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
-        let mut buffer = Buffer::empty(AREA);
-        let mut state = TabsState::default();
-        state.set_active(0, key);
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                let target = crate::ReferenceTarget::new(
-                    TABS,
-                    crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
-                )
-                .part(PartRef::item(Part::TAB, key));
-                ui.reference(Some(target), |ui| {
-                    Tabs::new(TABS)
-                        .closable(true)
-                        .draw(ui, area, &state, &items);
-                });
-            })
-            .commit_presented();
-
-        assert_eq!(
-            buffer.cell(Position::new(4, 0)).map(BufferCell::symbol),
-            Some(Theme::junie().design.glyphs.get(GlyphRole::PressRight))
-        );
-        assert_eq!(
-            buffer.cell(Position::new(5, 0)).map(BufferCell::symbol),
-            Some(Theme::junie().design.glyphs.get(GlyphRole::Close))
-        );
-    }
-
-    #[test]
-    fn readiness_lane_is_far_right_conditional_patchable_and_replaceable() {
-        assert!(Tabs::<&str>::PARTS.contains(&Part::ICON));
-        assert_eq!(draw_status(None), draw_status(Some(Status::Ready)));
-        let busy = draw_status(Some(Status::Busy));
-        let frame = Theme::junie()
-            .design
-            .motion
-            .spinner_frames
-            .first()
-            .copied()
-            .unwrap_or("");
-        assert_eq!(
-            busy.cell(Position::new(10, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some(frame)
-        );
-
-        let patch = [(Part::ICON, StylePatch::new().add(Modifier::UNDERLINED))];
-        let state = TabsState::default();
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(AREA);
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                Tabs::new(TABS)
-                    .status(Status::Busy)
-                    .patch_part(&patch)
-                    .draw(ui, area, &state, &["tab"]);
-            })
-            .commit_presented();
-        assert!(
-            buffer
-                .cell(Position::new(10, 0))
-                .is_some_and(|cell| cell.modifier.contains(Modifier::UNDERLINED))
-        );
-
-        let seen = Cell::new(None);
-        let slot = |_ui: &mut Ui<'_>, area: Rect| seen.set(Some(area));
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                Tabs::new(TABS)
-                    .status(Status::Error)
-                    .slot(Part::ICON, &slot)
-                    .draw(ui, area, &state, &["tab"]);
-            })
-            .commit_presented();
-        assert_eq!(seen.get(), Some(Rect::new(10, 0, 1, 1)));
-    }
-
-    #[test]
-    fn active_rule_comes_only_from_semantic_state() {
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(AREA);
-        let state = TabsState::default();
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                Tabs::new(TABS).draw(ui, area, &state, &["tab"]);
-            })
-            .commit_presented();
-        assert_eq!(
-            buffer
-                .cell(Position::new(0, 1))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some(Theme::junie().design.glyphs.get(GlyphRole::RuleQuiet))
-        );
-
-        let active = TabsState {
-            active: Some(ItemKey::index(0)),
-            ..TabsState::default()
-        };
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                Tabs::new(TABS).draw(ui, area, &active, &["tab"]);
-            })
-            .commit_presented();
-        assert_eq!(
-            buffer
-                .cell(Position::new(0, 1))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some(Theme::junie().design.glyphs.get(GlyphRole::RuleActive))
-        );
-    }
-
-    #[derive(Clone, Copy)]
-    struct TabsRenderMode {
-        semantic: bool,
-        close_reveal: TabCloseReveal,
-    }
-
-    fn render_semantic_pair(
-        mode: TabsRenderMode,
-        area: Rect,
-        state: &TabsState,
-        items: &[&str],
-        previous: Option<TabWindowReceipt>,
-        level: ColorLevel,
-        target: Option<crate::ReferenceTarget>,
-    ) -> (
-        Buffer,
-        Vec<termrock_runtime::hit::Region>,
-        Option<Position>,
-        TabLayout,
-    ) {
-        let tabs = Tabs::new(TABS)
-            .allow_new(true)
-            .closable(true)
-            .close_reveal(mode.close_reveal)
-            .status(Status::Error)
-            .overflow_menu(false);
-        let layout = tabs.layout_default(area, area, state, items, previous);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(level));
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, area| {
-                ui.reference(target, |ui| {
-                    if mode.semantic {
-                        tabs.draw_layout(ui, &layout)
-                            .expect("same tabs configuration draws its planned layout")
-                    } else {
-                        tabs.draw(ui, area, state, items)
-                    }
-                });
-            })
-            .commit_presented();
-        (
-            buffer,
-            runtime.registry().regions().to_vec(),
-            runtime.cursor(),
-            layout,
-        )
-    }
-
-    #[test]
-    fn default_semantic_layout_matches_legacy_cells_parts_and_cursor_profiles() {
-        let items = ["", "one ", "界e\u{301}", "x\ty", "tail    ", "next"];
-        let mut state = TabsState::default();
-        state.set_active(2, ItemKey::index(2));
-        let targets = [
-            None,
-            Some(
-                crate::ReferenceTarget::new(
-                    TABS,
-                    crate::ReferenceState::FOCUSED | crate::ReferenceState::FOCUS_VISIBLE,
-                )
-                .part(PartRef::item(Part::TAB, ItemKey::index(2))),
-            ),
-            Some(
-                crate::ReferenceTarget::new(TABS, crate::ReferenceState::HOVERED)
-                    .part(PartRef::item(Part::TAB, ItemKey::index(2))),
-            ),
-            Some(
-                crate::ReferenceTarget::new(
-                    TABS,
-                    crate::ReferenceState::FOCUSED | crate::ReferenceState::PRESSED,
-                )
-                .part(PartRef::item(Part::TAB, ItemKey::index(2))),
-            ),
-            Some(
-                crate::ReferenceTarget::new(
-                    TABS,
-                    crate::ReferenceState::HOVERED | crate::ReferenceState::PRESSED,
-                )
-                .part(PartRef::item(Part::CLOSE, ItemKey::index(2))),
-            ),
-            Some(
-                crate::ReferenceTarget::new(TABS, crate::ReferenceState::HOVERED)
-                    .part(PartRef::item(Part::TAB, ItemKey::index(3))),
-            ),
-            Some(
-                crate::ReferenceTarget::new(TABS, crate::ReferenceState::HOVERED)
-                    .part(PartRef::item(Part::CLOSE, ItemKey::index(3))),
-            ),
-            Some(
-                crate::ReferenceTarget::new(TABS, crate::ReferenceState::PRESSED)
-                    .part(PartRef::item(Part::CLOSE, ItemKey::index(3))),
-            ),
-        ];
-
-        for reveal in [TabCloseReveal::Always, TabCloseReveal::Hover] {
-            for level in [
-                ColorLevel::TrueColor,
-                ColorLevel::Ansi256,
-                ColorLevel::Ansi16,
-                ColorLevel::Mono,
-            ] {
-                for width in [0, 1, 2, 8, 13, 24, 40] {
-                    let area = Rect::new(3, 2, width, 2);
-                    for target in targets {
-                        let legacy = render_semantic_pair(
-                            TabsRenderMode {
-                                semantic: false,
-                                close_reveal: reveal,
-                            },
-                            area,
-                            &state,
-                            &items,
-                            None,
-                            level,
-                            target,
-                        );
-                        let semantic = render_semantic_pair(
-                            TabsRenderMode {
-                                semantic: true,
-                                close_reveal: reveal,
-                            },
-                            area,
-                            &state,
-                            &items,
-                            None,
-                            level,
-                            target,
-                        );
-                        assert_eq!(
-                            semantic.0, legacy.0,
-                            "cells differ at {width} / {level:?} / {reveal:?}"
-                        );
-                        assert_eq!(
-                            semantic.1, legacy.1,
-                            "parts differ at {width} / {level:?} / {reveal:?}"
-                        );
-                        assert_eq!(
-                            semantic.2, legacy.2,
-                            "cursor differs at {width} / {level:?} / {reveal:?}"
-                        );
-                        assert_eq!(semantic.3.viewport_len, legacy.3.viewport_len);
-                        assert_eq!(semantic.3.content_len, items.len());
-                        assert_eq!(semantic.3.clip(), area);
-                    }
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn explicit_window_receipt_preserves_warm_overflow_reservation() {
-        let items = ["one", "two", "three", "four", "five"];
-        let area = Rect::new(0, 0, 18, 2);
-        let state = TabsState::default();
-        let tabs = Tabs::new(TABS).closable(true).overflow_menu(false);
-        let mut legacy = Runtime::new(Stub::default(), Theme::junie());
-        let mut semantic = Runtime::new(Stub::default(), Theme::junie());
-        let mut legacy_buf = Buffer::empty(area);
-        let mut semantic_buf = Buffer::empty(area);
-
-        legacy
-            .draw_scene(area, &mut legacy_buf, |ui, area| {
-                tabs.draw(ui, area, &state, &items);
-            })
-            .commit_presented();
-        let first = tabs.layout_default(area, area, &state, &items, None);
-        semantic
-            .draw_scene(area, &mut semantic_buf, |ui, _| {
-                tabs.draw_layout(ui, &first).expect("valid first layout");
-            })
-            .commit_presented();
-        assert_eq!(semantic_buf, legacy_buf);
-
-        legacy_buf = Buffer::empty(area);
-        semantic_buf = Buffer::empty(area);
-        legacy
-            .draw_scene(area, &mut legacy_buf, |ui, area| {
-                tabs.draw(ui, area, &state, &items);
-            })
-            .commit_presented();
-        let warm = tabs.layout_default(area, area, &state, &items, first.window_receipt());
-        assert!(warm.overflow_reserved);
-        semantic
-            .draw_scene(area, &mut semantic_buf, |ui, _| {
-                tabs.draw_layout(ui, &warm).expect("valid warm layout");
-            })
-            .commit_presented();
-        assert_eq!(semantic_buf, legacy_buf);
-        assert_planned_regions_match_legacy(semantic.registry(), legacy.registry(), &warm);
-    }
-
-    struct SegmentedDisplay;
-
-    impl fmt::Display for SegmentedDisplay {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            f.write_str("e")?;
-            f.write_str("\u{301}")?;
-            f.write_str("界 ")
-        }
-    }
-
-    struct PiecesDisplay(&'static [&'static str]);
-
-    impl fmt::Display for PiecesDisplay {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            for piece in self.0 {
-                f.write_str(piece)?;
-            }
-            Ok(())
-        }
-    }
-
-    struct CountingDisplay<'a>(&'a Cell<usize>);
-
-    impl fmt::Display for CountingDisplay<'_> {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            self.0.set(self.0.get() + 1);
-            f.write_str("counted")
-        }
-    }
-
-    struct CountedOwnedItem {
-        key: u64,
-        segments: &'static [&'static str],
-        formats: Cell<usize>,
-        keys: Cell<usize>,
-        marks: Cell<usize>,
-        mark: TabMarks,
-    }
-
-    impl fmt::Display for CountedOwnedItem {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            self.formats.set(self.formats.get() + 1);
-            for segment in self.segments {
-                f.write_str(segment)?;
-            }
-            Ok(())
-        }
-    }
-
-    fn counted_owned_key(item: &CountedOwnedItem) -> ItemKey {
-        item.keys.set(item.keys.get() + 1);
-        ItemKey::num(item.key)
-    }
-
-    fn counted_owned_marks(item: &CountedOwnedItem) -> TabMarks {
-        item.marks.set(item.marks.get() + 1);
-        item.mark
-    }
-
-    struct MutableOwnedItem {
-        key: u64,
-        label: Cell<&'static str>,
-        mark: Cell<TabMarks>,
-    }
-
-    impl fmt::Display for MutableOwnedItem {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            f.write_str(self.label.get())
-        }
-    }
-
-    fn mutable_owned_key(item: &MutableOwnedItem) -> ItemKey {
-        ItemKey::num(item.key)
-    }
-
-    fn mutable_owned_marks(item: &MutableOwnedItem) -> TabMarks {
-        item.mark.get()
-    }
-
-    // Frozen preimage-shaped Debug views: new private planning fields and the
-    // new row close_enabled field are deliberately not represented here.
-    mod frozen_layout_debug {
-        use super::*;
-
-        struct LegacyTabRowLayout<'a> {
-            key: &'a ItemKey,
-            index: &'a usize,
-            logical_content: &'a Rect,
-            visible_content: &'a Rect,
-            logical_tab: &'a Rect,
-            visible_tab: &'a Rect,
-            logical_close: &'a Option<Rect>,
-            visible_close: &'a Option<Rect>,
-            logical_mark: &'a Option<Rect>,
-            visible_mark: &'a Option<Rect>,
-            mark: &'a Option<TabItemMark>,
-            label_segments: &'a Vec<String>,
-            label_extent: &'a u16,
-        }
-
-        impl fmt::Debug for LegacyTabRowLayout<'_> {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                f.debug_struct("LegacyTabRowLayout")
-                    .field("key", &self.key)
-                    .field("index", &self.index)
-                    .field("logical_content", &self.logical_content)
-                    .field("visible_content", &self.visible_content)
-                    .field("logical_tab", &self.logical_tab)
-                    .field("visible_tab", &self.visible_tab)
-                    .field("logical_close", &self.logical_close)
-                    .field("visible_close", &self.visible_close)
-                    .field("logical_mark", &self.logical_mark)
-                    .field("visible_mark", &self.visible_mark)
-                    .field("mark", &self.mark)
-                    .field("label_segments", &self.label_segments)
-                    .field("label_extent", &self.label_extent)
-                    .finish()
-            }
-        }
-
-        struct LegacyTabLayout<'a> {
-            id: &'a Id,
-            area: &'a Rect,
-            clip: &'a Rect,
-            row_area: &'a Rect,
-            used_area: &'a Rect,
-            rule_area: &'a Option<Rect>,
-            rows: Vec<LegacyTabRowLayout<'a>>,
-            first_index: &'a usize,
-            active: &'a Option<ItemKey>,
-            cursor: &'a Option<ItemKey>,
-            first: &'a Option<ItemKey>,
-            first_tab_x: &'a u16,
-            allow_new: &'a bool,
-            new_key_bindings: &'a Option<&'static [Binding<TabsCmd>]>,
-            closable: &'a bool,
-            closable_keys: &'a Option<Vec<ItemKey>>,
-            close_key_bindings: &'a Option<&'static [Binding<TabsCmd>]>,
-            close_reveal: &'a TabCloseReveal,
-            close_target_w: &'a Option<u16>,
-            close_danger_hover: &'a bool,
-            close_reveal_press: &'a Option<ItemKey>,
-            status: &'a Status,
-            rule: &'a Option<TabRule>,
-            rule_focus_hidden: &'a Option<bool>,
-            passive: &'a bool,
-            passive_focused: &'a bool,
-            left_overflow: &'a Option<Rect>,
-            right_overflow: &'a Option<Rect>,
-            new_area: &'a Option<Rect>,
-            status_area: &'a Option<Rect>,
-            item_marks_enabled: &'a bool,
-            right_limit: &'a u16,
-            hidden_right: &'a usize,
-            logical_area: &'a Rect,
-            visible_area: &'a Rect,
-            viewport_len: &'a usize,
-            content_len: &'a usize,
-            overflow_reserved: &'a bool,
-        }
-
-        impl fmt::Debug for LegacyTabLayout<'_> {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                f.debug_struct("LegacyTabLayout")
-                    .field("id", &self.id)
-                    .field("area", &self.area)
-                    .field("clip", &self.clip)
-                    .field("row_area", &self.row_area)
-                    .field("used_area", &self.used_area)
-                    .field("rule_area", &self.rule_area)
-                    .field("rows", &self.rows)
-                    .field("first_index", &self.first_index)
-                    .field("active", &self.active)
-                    .field("cursor", &self.cursor)
-                    .field("first", &self.first)
-                    .field("first_tab_x", &self.first_tab_x)
-                    .field("allow_new", &self.allow_new)
-                    .field("new_key_bindings", &self.new_key_bindings)
-                    .field("closable", &self.closable)
-                    .field("closable_keys", &self.closable_keys)
-                    .field("close_key_bindings", &self.close_key_bindings)
-                    .field("close_reveal", &self.close_reveal)
-                    .field("close_target_w", &self.close_target_w)
-                    .field("close_danger_hover", &self.close_danger_hover)
-                    .field("close_reveal_press", &self.close_reveal_press)
-                    .field("status", &self.status)
-                    .field("rule", &self.rule)
-                    .field("rule_focus_hidden", &self.rule_focus_hidden)
-                    .field("passive", &self.passive)
-                    .field("passive_focused", &self.passive_focused)
-                    .field("left_overflow", &self.left_overflow)
-                    .field("right_overflow", &self.right_overflow)
-                    .field("new_area", &self.new_area)
-                    .field("status_area", &self.status_area)
-                    .field("item_marks_enabled", &self.item_marks_enabled)
-                    .field("right_limit", &self.right_limit)
-                    .field("hidden_right", &self.hidden_right)
-                    .field("logical_area", &self.logical_area)
-                    .field("visible_area", &self.visible_area)
-                    .field("viewport_len", &self.viewport_len)
-                    .field("content_len", &self.content_len)
-                    .field("overflow_reserved", &self.overflow_reserved)
-                    .finish()
-            }
-        }
-
-        fn row(value: &super::TabRowLayout) -> LegacyTabRowLayout<'_> {
-            LegacyTabRowLayout {
-                key: &value.key,
-                index: &value.index,
-                logical_content: &value.logical_content,
-                visible_content: &value.visible_content,
-                logical_tab: &value.logical_tab,
-                visible_tab: &value.visible_tab,
-                logical_close: &value.logical_close,
-                visible_close: &value.visible_close,
-                logical_mark: &value.logical_mark,
-                visible_mark: &value.visible_mark,
-                mark: &value.mark,
-                label_segments: &value.label_segments,
-                label_extent: &value.label_extent,
-            }
-        }
-
-        pub(super) fn row_string(value: &super::TabRowLayout) -> String {
-            format!("{:?}", row(value)).replace("LegacyTabRowLayout", "TabRowLayout")
-        }
-
-        pub(super) fn layout_string(value: &super::TabLayout) -> String {
-            let rows = value.rows.iter().map(row).collect();
-            format!(
-                "{:?}",
-                LegacyTabLayout {
-                    id: &value.id,
-                    area: &value.area,
-                    clip: &value.clip,
-                    row_area: &value.row_area,
-                    used_area: &value.used_area,
-                    rule_area: &value.rule_area,
-                    rows,
-                    first_index: &value.first_index,
-                    active: &value.active,
-                    cursor: &value.cursor,
-                    first: &value.first,
-                    first_tab_x: &value.first_tab_x,
-                    allow_new: &value.allow_new,
-                    new_key_bindings: &value.new_key_bindings,
-                    closable: &value.closable,
-                    closable_keys: &value.closable_keys,
-                    close_key_bindings: &value.close_key_bindings,
-                    close_reveal: &value.close_reveal,
-                    close_target_w: &value.close_target_w,
-                    close_danger_hover: &value.close_danger_hover,
-                    close_reveal_press: &value.close_reveal_press,
-                    status: &value.status,
-                    rule: &value.rule,
-                    rule_focus_hidden: &value.rule_focus_hidden,
-                    passive: &value.passive,
-                    passive_focused: &value.passive_focused,
-                    left_overflow: &value.left_overflow,
-                    right_overflow: &value.right_overflow,
-                    new_area: &value.new_area,
-                    status_area: &value.status_area,
-                    item_marks_enabled: &value.item_marks_enabled,
-                    right_limit: &value.right_limit,
-                    hidden_right: &value.hidden_right,
-                    logical_area: &value.logical_area,
-                    visible_area: &value.visible_area,
-                    viewport_len: &value.viewport_len,
-                    content_len: &value.content_len,
-                    overflow_reserved: &value.overflow_reserved,
-                }
-            )
-            .replace("LegacyTabLayout", "TabLayout")
-            .replace("LegacyTabRowLayout", "TabRowLayout")
-        }
-    }
-
-    struct KeyedDisplay {
-        key: u64,
-        label: &'static str,
-    }
-
-    impl fmt::Display for KeyedDisplay {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            f.write_str(self.label)
-        }
-    }
-
-    #[test]
-    fn semantic_layout_preserves_display_write_boundaries_and_custom_rows_stay_legacy() {
-        let area = Rect::new(0, 0, 20, 2);
-        let items = [SegmentedDisplay];
-        let state = TabsState::default();
-        let tabs = Tabs::new(TABS);
-        let layout = tabs.layout_default(area, area, &state, &items, None);
-        let mut legacy_runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut semantic_runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut legacy = Buffer::empty(area);
-        let mut semantic = Buffer::empty(area);
-        legacy_runtime
-            .draw_scene(area, &mut legacy, |ui, area| {
-                tabs.draw(ui, area, &state, &items);
-            })
-            .commit_presented();
-        semantic_runtime
-            .draw_scene(area, &mut semantic, |ui, _| {
-                tabs.draw_layout(ui, &layout)
-                    .expect("valid segmented layout");
-            })
-            .commit_presented();
-        assert_eq!(semantic, legacy);
-
-        let calls = Cell::new(0usize);
-        let custom = Tabs::new(TABS).row(|_: &&str, row: &mut RowUi<'_>| {
-            calls.set(calls.get() + 1);
-            row.label("custom");
-        });
-        let mut custom_runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut custom_buffer = Buffer::empty(area);
-        custom_runtime
-            .draw_scene(area, &mut custom_buffer, |ui, area| {
-                custom.draw(ui, area, &state, &["item"]);
-            })
-            .commit_presented();
-        assert_eq!(calls.get(), 1);
-        assert_eq!(
-            custom_buffer
-                .cell(Position::new(1, 0))
-                .map(BufferCell::symbol),
-            Some("c")
-        );
-    }
-
-    #[test]
-    fn semantic_layout_matches_legacy_for_left_clipped_segmented_labels() {
-        let area = Rect::new(0, 0, 30, 3);
-        let clip = Rect::new(5, 0, 20, 3);
-        let items = [PiecesDisplay(&["ab", "cd"]), PiecesDisplay(&["next"])];
-        let state = TabsState::default();
-        let tabs = Tabs::new(TABS).closable(true);
-        let layout = tabs.layout_default(area, clip, &state, &items, None);
-        let mut legacy_runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut semantic_runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut legacy = Buffer::empty(area);
-        let mut semantic = Buffer::empty(area);
-
-        legacy_runtime
-            .draw_scene(area, &mut legacy, |ui, _| {
-                ui.with_area(clip, |ui| tabs.draw(ui, area, &state, &items));
-            })
-            .commit_presented();
-        semantic_runtime
-            .draw_scene(area, &mut semantic, |ui, _| {
-                ui.with_area(clip, |ui| {
-                    tabs.draw_layout(ui, &layout)
-                        .expect("same tabs configuration draws its planned layout");
-                });
-            })
-            .commit_presented();
-
-        assert_eq!(semantic, legacy);
-        assert_eq!(
-            semantic_runtime.registry().regions(),
-            legacy_runtime.registry().regions()
-        );
-        assert_eq!(semantic_runtime.cursor(), legacy_runtime.cursor());
-    }
-
-    #[test]
-    fn planned_draw_consumes_owned_text_and_rejects_a_different_configuration() {
-        let area = Rect::new(0, 0, 20, 2);
-        let formats = Cell::new(0);
-        let items = [CountingDisplay(&formats)];
-        let state = TabsState::default();
-        let tabs = Tabs::new(TABS).closable(true);
-        let layout = tabs.layout_default(area, area, &state, &items, None);
-        assert_eq!(formats.get(), 1);
-        assert_eq!(
-            layout
-                .part_bounds(PartRef::item(Part::TAB, ItemKey::index(0)))
-                .map(|(logical, visible)| (logical.width, visible.width)),
-            Some((11, 11))
-        );
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, _| {
-                tabs.draw_layout(ui, &layout)
-                    .expect("same configuration draws the plan");
-            })
-            .commit_presented();
-        assert_eq!(formats.get(), 1, "draw must use owned formatted text");
-        let mismatch = Cell::new(None);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, _| {
-                mismatch.set(Some(
-                    Tabs::<CountingDisplay<'_>>::new(TABS).draw_layout(ui, &layout),
-                ));
-            })
-            .commit_presented();
-        assert_eq!(mismatch.get(), Some(Err(TabLayoutMismatch)));
-    }
-
-    #[test]
-    fn planned_whole_draw_consumes_owned_text_without_reformatting() {
-        let area = Rect::new(0, 0, 20, 2);
-        let formats = Cell::new(0);
-        let items = [CountingDisplay(&formats)];
-        let state = TabsState::default();
-        let tabs = Tabs::new(TABS).closable(true).planned_whole_rows(true);
-        let layout = tabs.layout_default(area, area, &state, &items, None);
-        assert_eq!(formats.get(), 1, "whole-width planning formats once");
-        assert_eq!(
-            layout
-                .part_bounds(PartRef::item(Part::TAB, ItemKey::index(0)))
-                .map(|(logical, visible)| (logical.width, visible.width)),
-            Some((11, 11))
-        );
-
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, _| {
-                tabs.draw_layout(ui, &layout)
-                    .expect("same whole-row configuration draws the plan");
-            })
-            .commit_presented();
-        assert_eq!(formats.get(), 1, "whole-row drawing uses owned text");
-    }
-
-    #[test]
-    fn planned_public_eq_and_debug_keep_preimage_fields_only() {
-        let items = vec![
-            MutableOwnedItem {
-                key: 1,
-                label: Cell::new("a"),
-                mark: Cell::new(TabMarks::default()),
-            },
-            MutableOwnedItem {
-                key: 2,
-                label: Cell::new("b"),
-                mark: Cell::new(TabMarks::default()),
-            },
-            MutableOwnedItem {
-                key: 3,
-                label: Cell::new("c"),
-                mark: Cell::new(TabMarks::default()),
-            },
-            MutableOwnedItem {
-                key: 4,
-                label: Cell::new("hidden"),
-                mark: Cell::new(TabMarks::default()),
-            },
-        ];
-        let tabs = Tabs::new(TABS)
-            .key(mutable_owned_key as fn(&MutableOwnedItem) -> ItemKey)
-            .item_marks(mutable_owned_marks as fn(&MutableOwnedItem) -> TabMarks)
-            .overflow_menu(false);
-        let state = TabsState::default();
-        let area = Rect::new(0, 0, 12, 2);
-        let original = tabs.layout_default(area, area, &state, &items, None);
-        assert_eq!(original.rows().len(), 3, "the fourth item is unallocated");
-        assert_eq!(
-            format!("{original:?}"),
-            frozen_layout_debug::layout_string(&original),
-            "TabLayout Debug must match the frozen preimage field rendering"
-        );
-        assert_eq!(
-            format!("{:?}", original.rows()[0]),
-            frozen_layout_debug::row_string(&original.rows()[0]),
-            "TabRowLayout Debug must match the frozen preimage field rendering"
-        );
-
-        let old_layout_debug = format!("{original:?}");
-        let old_rows = original.rows().to_vec();
-        let mut only_new_row_flag_changed = original.rows()[0].clone();
-        only_new_row_flag_changed.close_enabled = !only_new_row_flag_changed.close_enabled;
-        assert_eq!(only_new_row_flag_changed, original.rows()[0]);
-        assert_eq!(
-            format!("{only_new_row_flag_changed:?}"),
-            frozen_layout_debug::row_string(&only_new_row_flag_changed)
-        );
-
-        items[3].label.set("a longer unseen label");
-        items[3].mark.set(TabMarks::default().error(true));
-        let hidden_changed = tabs.layout_default(area, area, &state, &items, None);
-        assert_eq!(original, hidden_changed);
-        assert_eq!(old_rows.as_slice(), hidden_changed.rows());
-        assert_eq!(format!("{hidden_changed:?}"), old_layout_debug);
-        assert_ne!(original.owned_items, hidden_changed.owned_items);
-
-        items[0].label.set("visible label changed");
-        let visible_changed = tabs.layout_default(area, area, &state, &items, None);
-        assert_ne!(original, visible_changed);
-        assert_ne!(format!("{visible_changed:?}"), old_layout_debug);
-    }
-
-    #[test]
-    fn planned_empty_area_preserves_preimage_callback_and_key_lookup_counts() {
-        let cases = [
-            (Rect::new(0, 0, 0, 2), None, 1, [0, 0, 0], 0),
-            (
-                Rect::new(0, 0, 5, 0),
-                Some(ItemKey::num(2)),
-                1,
-                [0, 1, 0],
-                1,
-            ),
-            (
-                Rect::new(0, 0, 0, 1),
-                Some(ItemKey::num(3)),
-                1,
-                [1, 2, 1],
-                2,
-            ),
-        ];
-
-        for (area, wanted_first, hint, expected_keys, expected_first_index) in cases {
-            let items = [
-                CountedOwnedItem {
-                    key: 1,
-                    segments: &["one"],
-                    formats: Cell::new(0),
-                    keys: Cell::new(0),
-                    marks: Cell::new(0),
-                    mark: TabMarks::default().dirty(true),
-                },
-                CountedOwnedItem {
-                    key: 2,
-                    segments: &["two"],
-                    formats: Cell::new(0),
-                    keys: Cell::new(0),
-                    marks: Cell::new(0),
-                    mark: TabMarks::default().done(true),
-                },
-                CountedOwnedItem {
-                    key: 3,
-                    segments: &["three"],
-                    formats: Cell::new(0),
-                    keys: Cell::new(0),
-                    marks: Cell::new(0),
-                    mark: TabMarks::default().error(true),
-                },
-            ];
-            let tabs = Tabs::new(TABS)
-                .key(counted_owned_key as fn(&CountedOwnedItem) -> ItemKey)
-                .item_marks(counted_owned_marks as fn(&CountedOwnedItem) -> TabMarks);
-            let state = TabsState {
-                first: wanted_first,
-                first_index: hint,
-                ..TabsState::default()
-            };
-            let layout = tabs.layout_default(area, area, &state, &items, None);
-
-            assert_eq!(layout.first_index(), expected_first_index);
-            assert!(layout.owned_items.is_none());
-            assert!(layout.terminal_first_index.is_none());
-            assert!(layout.owned_snapshot_is_consistent());
-            for (item, expected_key_calls) in items.iter().zip(expected_keys) {
-                assert_eq!(
-                    item.formats.get(),
-                    0,
-                    "empty geometry does not format items"
-                );
-                assert_eq!(
-                    item.marks.get(),
-                    0,
-                    "empty geometry does not map item marks"
-                );
-                assert_eq!(
-                    item.keys.get(),
-                    expected_key_calls,
-                    "matches old index_of lookup"
-                );
-            }
-
-            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(area);
-            let result = Cell::new(None);
-            runtime
-                .draw_scene(area, &mut buffer, |ui, _| {
-                    result.set(Some(tabs.draw_layout(ui, &layout)));
-                })
-                .commit_presented();
-            assert_eq!(result.get(), Some(Ok(area)));
-            assert!(runtime.diagnostics().is_empty());
-            for (item, expected_key_calls) in items.iter().zip(expected_keys) {
-                assert_eq!(item.formats.get(), 0);
-                assert_eq!(item.marks.get(), 0);
-                assert_eq!(
-                    item.keys.get(),
-                    expected_key_calls,
-                    "planned empty draw is inert"
-                );
-            }
-        }
-
-        let items = [
-            CountedOwnedItem {
-                key: 11,
-                segments: &["left"],
-                formats: Cell::new(0),
-                keys: Cell::new(0),
-                marks: Cell::new(0),
-                mark: TabMarks::default().dirty(true),
-            },
-            CountedOwnedItem {
-                key: 12,
-                segments: &["right"],
-                formats: Cell::new(0),
-                keys: Cell::new(0),
-                marks: Cell::new(0),
-                mark: TabMarks::default().done(true),
-            },
-        ];
-        let tabs = Tabs::new(TABS)
-            .key(counted_owned_key as fn(&CountedOwnedItem) -> ItemKey)
-            .item_marks(counted_owned_marks as fn(&CountedOwnedItem) -> TabMarks);
-        let area = Rect::new(0, 0, 12, 2);
-        let clip = Rect::new(40, 0, 0, 2);
-        assert!(!area.is_empty());
-        assert!(clip.is_empty());
-        let layout = tabs.layout_default(area, clip, &TabsState::default(), &items, None);
-        assert_eq!(
-            layout.owned_items.as_ref().map_or(0, |items| items.len()),
-            2
-        );
-        for item in &items {
-            assert_eq!(
-                item.formats.get(),
-                1,
-                "nonempty but fully clipped area still plans"
-            );
-            assert_eq!(item.keys.get(), 1);
-            assert_eq!(item.marks.get(), 1);
-        }
-    }
-
-    #[test]
-    fn planned_owned_measurement_visits_zero_one_and_many_items_once_per_fresh_plan() {
-        const SEGMENTED: &[&str] = &["e", "\u{301}", "界", " "];
-        const SHORT: &[&str] = &["x"];
-        const WIDE: &[&str] = &["wide", " ", "label "];
-        const CONTROL: &[&str] = &["\t", "tail "];
-
-        for count in [0usize, 1, 8] {
-            let items: Vec<_> = (0..count)
-                .map(|index| CountedOwnedItem {
-                    key: index as u64 + 1,
-                    segments: match index % 4 {
-                        0 => SEGMENTED,
-                        1 => SHORT,
-                        2 => WIDE,
-                        _ => CONTROL,
-                    },
-                    formats: Cell::new(0),
-                    keys: Cell::new(0),
-                    marks: Cell::new(0),
-                    mark: if index % 3 == 0 {
-                        TabMarks::default().dirty(true)
-                    } else {
-                        TabMarks::default()
-                    },
-                })
-                .collect();
-            let close_keys: Vec<_> = items
-                .iter()
-                .filter(|item| item.key % 2 == 0)
-                .map(|item| ItemKey::num(item.key))
-                .collect();
-            let tabs = Tabs::new(TABS)
-                .key(counted_owned_key as fn(&CountedOwnedItem) -> ItemKey)
-                .item_marks(counted_owned_marks as fn(&CountedOwnedItem) -> TabMarks)
-                .closable_keys(&close_keys)
-                .allow_new(true)
-                .status(Status::Busy);
-            let state = TabsState::default();
-            let area = Rect::new(0, 0, 16, 2);
-            let layout = tabs.layout_default(area, area, &state, &items, None);
-
-            assert_eq!(
-                layout.owned_items.as_ref().map_or(0, |items| items.len()),
-                count
-            );
-            assert_eq!(layout.content_len, count);
-            if count == 8 {
-                assert!(layout.viewport_len < count, "fixture includes unseen items");
-            }
-            for item in &items {
-                assert_eq!(item.formats.get(), 1, "one Display pass per item");
-                assert_eq!(item.keys.get(), 1, "one key resolution per item");
-                assert_eq!(item.marks.get(), 1, "one mark resolution per item");
-            }
-
-            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(area);
-            runtime
-                .draw_scene(area, &mut buffer, |ui, _| {
-                    tabs.draw_layout(ui, &layout)
-                        .expect("the fresh plan matches its Tabs configuration");
-                })
-                .commit_presented();
-            for item in &items {
-                assert_eq!(item.formats.get(), 1, "planned draw does not format");
-                assert_eq!(item.keys.get(), 1, "planned draw uses captured keys");
-                assert_eq!(item.marks.get(), 1, "planned draw uses captured marks");
-            }
-            if let Some(owned_items) = layout.owned_items.as_ref() {
-                assert_eq!(owned_items.len(), count);
-                if !owned_items.is_empty() {
-                    let mut inconsistent = layout.clone();
-                    inconsistent
-                        .owned_items
-                        .as_mut()
-                        .expect("nonempty plan stores its owned snapshot")[0]
-                        .key = ItemKey::num(u64::MAX);
-                    let rejected = Cell::new(None);
-                    runtime
-                        .draw_scene(area, &mut buffer, |ui, _| {
-                            rejected.set(Some(tabs.draw_layout(ui, &inconsistent)));
-                        })
-                        .commit_presented();
-                    assert_eq!(rejected.get(), Some(Err(TabLayoutMismatch)));
-                }
-            }
-
-            let warm = tabs.layout_default(area, area, &state, &items, layout.window_receipt());
-            assert_eq!(
-                warm.owned_items.as_ref().map_or(0, |items| items.len()),
-                count
-            );
-            assert_eq!(warm.overflow_reserved, layout.viewport_len < count);
-            for item in &items {
-                assert_eq!(item.formats.get(), 2, "a fresh plan remeasures all items");
-                assert_eq!(item.keys.get(), 2, "a fresh plan resolves all keys");
-                assert_eq!(item.marks.get(), 2, "a fresh plan resolves all marks");
-            }
-        }
-    }
-
-    #[test]
-    fn planned_terminal_start_reuses_current_geometry_and_clipping_policy() {
-        let area = Rect::new(0, 0, 24, 2);
-        let items = vec!["a"; 8];
-        let state = TabsState::default();
-        let tabs = Tabs::new(TABS).overflow_menu(false);
-        let cold = tabs.layout_default(area, area, &state, &items, None);
-        assert_eq!(cold.viewport_len, 6);
-        assert_eq!(cold.terminal_first_index, Some(4));
-
-        let with_menu = Tabs::new(TABS).layout_default(area, area, &state, &items, None);
-        assert_eq!(with_menu.more_area.map(|area| area.width), Some(4));
-        assert!(
-            with_menu.viewport_len < cold.viewport_len,
-            "the default-on More lane reserves real strip width"
-        );
-        assert!(!with_menu.hidden_menu_items().is_empty());
-
-        let warm = tabs.layout_default(
-            area,
-            area,
-            &state,
-            &items,
-            Some(TabWindowReceipt {
-                viewport_len: 3,
-                content_len: items.len(),
-            }),
-        );
-        assert!(warm.overflow_reserved);
-        assert_eq!(warm.terminal_first_index, Some(4));
-
-        let clipped_items = ["a", "a", "a", "a", "a", "a", "a", "abcdefghijklmnop"];
-        let clip = Rect::new(18, 0, 6, 2);
-        let scrolled = TabsState {
-            first: Some(ItemKey::index(4)),
-            first_index: 4,
-            ..TabsState::default()
-        };
-        let clipped = tabs.layout_default(area, clip, &scrolled, &clipped_items, None);
-        assert_eq!(
-            clipped.terminal_first_index,
-            Some(4),
-            "the existing allocator includes the partially visible clipped final tab"
-        );
-        let final_row = clipped.rows.last().expect("suffix includes the final item");
-        assert_eq!(final_row.index, 7);
-        assert_eq!(final_row.label_extent, 2);
-        assert_eq!(final_row.logical_tab.width, 4);
-        assert_eq!(final_row.visible_tab.width, 2);
-
-        // The exact terminal predicate is not monotone in candidate start:
-        // this clip shows the final item at start 4 but hides it at start 5.
-        // Keep the retained candidate domain in ascending order; do not use a
-        // monotone-search assumption inside it.
-        let owned = clipped
-            .owned_items
-            .as_ref()
-            .expect("nonempty clipped plans retain owned rows");
-        let mut scratch = Vec::new();
-        let start_four = tabs.walk_default_owned(area, clip, owned, 4, None, &mut scratch, |_| {});
-        let start_five = tabs.walk_default_owned(area, clip, owned, 5, None, &mut scratch, |_| {});
-        let at_four = start_four
-            .last_row
-            .expect("suffix at four allocates final item");
-        let at_five = start_five
-            .last_row
-            .expect("suffix at five allocates final item");
-        assert_eq!(at_four.index, 7);
-        assert_eq!(at_four.logical_tab, Rect::new(16, 0, 4, 1));
-        assert_eq!(at_four.visible_tab, Rect::new(18, 0, 2, 1));
-        assert_eq!(at_five.index, 7);
-        assert_eq!(at_five.logical_tab, Rect::new(12, 0, 4, 1));
-        assert!(at_five.visible_tab.is_empty());
-
-        let too_narrow = Rect::new(0, 0, 10, 2);
-        let unrepresentable = tabs.layout_default(too_narrow, too_narrow, &state, &items, None);
-        assert_eq!(unrepresentable.terminal_first_index, None);
-    }
-
-    #[test]
-    fn semantic_rows_and_parts_keep_stable_keys_after_reordering() {
-        let items = [
-            KeyedDisplay {
-                key: 30,
-                label: "third",
-            },
-            KeyedDisplay {
-                key: 10,
-                label: "first",
-            },
-            KeyedDisplay {
-                key: 20,
-                label: "second",
-            },
-        ];
-        let mut state = TabsState::default();
-        state.set_active(1, ItemKey::num(20));
-        state.first = Some(ItemKey::num(10));
-        state.first_index = 0;
-        let tabs = Tabs::new(TABS)
-            .key(|item: &KeyedDisplay| ItemKey::num(item.key))
-            .overflow_menu(false);
-        let area = Rect::new(0, 0, 24, 2);
-        let layout = tabs.layout_default(area, area, &state, &items, None);
-        assert_eq!(layout.first_index(), 1);
-        assert_eq!(
-            layout.rows().iter().map(|row| row.key).collect::<Vec<_>>(),
-            [ItemKey::num(10), ItemKey::num(20)]
-        );
-        assert_eq!(layout.active_key(), Some(ItemKey::num(20)));
-        assert!(
-            layout
-                .part_bounds(PartRef::item(Part::TAB, ItemKey::num(20)))
-                .is_some()
-        );
-
-        let mut legacy_runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut semantic_runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut legacy = Buffer::empty(area);
-        let mut semantic = Buffer::empty(area);
-        legacy_runtime
-            .draw_scene(area, &mut legacy, |ui, area| {
-                tabs.draw(ui, area, &state, &items);
-            })
-            .commit_presented();
-        semantic_runtime
-            .draw_scene(area, &mut semantic, |ui, _| {
-                tabs.draw_layout(ui, &layout)
-                    .expect("same keyed tabs configuration draws its plan");
-            })
-            .commit_presented();
-        assert_eq!(semantic, legacy);
-        assert_eq!(
-            semantic_runtime.registry().regions(),
-            legacy_runtime.registry().regions()
-        );
-    }
-
-    #[test]
-    fn mixed_close_policy_layout_matches_legacy_across_clipping_and_overflow_frames() {
-        let items = [
-            PiecesDisplay(&["pin"]),
-            PiecesDisplay(&["e", "\u{301}", "界"]),
-            PiecesDisplay(&["three"]),
-            PiecesDisplay(&["四"]),
-            PiecesDisplay(&["last"]),
-        ];
-        let eligible = [ItemKey::index(1), ItemKey::index(3)];
-        for reveal in [TabCloseReveal::Always, TabCloseReveal::Hover] {
-            let tabs = Tabs::new(TABS)
-                .allow_new(true)
-                .closable(false)
-                .closable_keys(&eligible)
-                .close_reveal(reveal)
-                .overflow_menu(false);
-            let mut offset = TabsState::default();
-            offset.set_active(4, ItemKey::index(4));
-            offset.first = Some(ItemKey::index(3));
-            offset.first_index = 3;
-            let states = [TabsState::default(), offset];
-            let cases = [
-                (Rect::new(0, 0, 0, 0), Rect::new(0, 0, 0, 0)),
-                (Rect::new(0, 0, 1, 1), Rect::new(0, 0, 1, 1)),
-                (Rect::new(0, 0, 2, 2), Rect::new(0, 0, 2, 2)),
-                (Rect::new(0, 0, 9, 1), Rect::new(0, 0, 9, 1)),
-                (Rect::new(0, 0, 24, 2), Rect::new(0, 0, 24, 2)),
-                (Rect::new(0, 0, 32, 2), Rect::new(5, 0, 20, 2)),
-            ];
-
-            for state in &states {
-                for (area, clip) in cases {
-                    let mut legacy_runtime = Runtime::new(Stub::default(), Theme::junie());
-                    let mut semantic_runtime = Runtime::new(Stub::default(), Theme::junie());
-                    let mut legacy = Buffer::empty(area);
-                    let mut semantic = Buffer::empty(area);
-                    let mut previous = None;
-
-                    for _ in 0..2 {
-                        let layout = tabs.layout_default(area, clip, state, &items, previous);
-                        assert_eq!(
-                            layout.part_bounds(PartRef::item(Part::CLOSE, ItemKey::index(0))),
-                            None
-                        );
-                        assert_eq!(
-                            layout
-                                .part_bounds(PartRef::item(Part::CLOSE, ItemKey::index(1)))
-                                .is_some(),
-                            layout.rows().iter().any(|row| row.key == ItemKey::index(1))
-                        );
-
-                        legacy_runtime
-                            .draw_scene(area, &mut legacy, |ui, _| {
-                                ui.with_area(clip, |ui| tabs.draw(ui, area, state, &items));
-                            })
-                            .commit_presented();
-                        semantic_runtime
-                            .draw_scene(area, &mut semantic, |ui, _| {
-                                ui.with_area(clip, |ui| {
-                                    tabs.draw_layout(ui, &layout)
-                                        .expect("same close policy draws its planned layout");
-                                });
-                            })
-                            .commit_presented();
-
-                        assert_eq!(semantic, legacy, "cells differ for {area:?} / {clip:?}");
-                        assert_planned_regions_match_legacy(
-                            semantic_runtime.registry(),
-                            legacy_runtime.registry(),
-                            &layout,
-                        );
-                        assert_eq!(
-                            semantic_runtime.cursor(),
-                            legacy_runtime.cursor(),
-                            "cursor differs for {area:?} / {clip:?}"
-                        );
-                        previous = layout.window_receipt();
-                    }
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn planned_draw_rejects_changed_close_policy_before_paint_or_registration() {
-        let area = Rect::new(0, 0, 24, 2);
-        let items = ["pinned", "open"];
-        let state = TabsState::default();
-        let planned_keys = [ItemKey::index(0)];
-        let renderer_keys = [ItemKey::index(1)];
-        let planned = Tabs::new(TABS).closable_keys(&planned_keys);
-        let layout = planned.layout_default(area, area, &state, &items, None);
-        let renderer = Tabs::<&str>::new(TABS).closable_keys(&renderer_keys);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        let unpainted = buffer.clone();
-        let result = Cell::new(None);
-
-        runtime
-            .draw_scene(area, &mut buffer, |ui, _| {
-                result.set(Some(renderer.draw_layout(ui, &layout)));
-            })
-            .commit_presented();
-
-        assert_eq!(result.get(), Some(Err(TabLayoutMismatch)));
-        assert_eq!(buffer, unpainted);
-        assert_eq!(
-            runtime
-                .registry()
-                .area_of_part(TABS, PartRef::item(Part::CLOSE, ItemKey::index(0))),
-            None
-        );
-    }
-
-    #[test]
-    fn planned_draw_rejects_changed_whole_row_policy_before_paint_or_registration() {
-        let area = Rect::new(0, 0, 24, 2);
-        let items = ["alpha", "beta"];
-        let state = TabsState::default();
-        let planned = Tabs::new(TABS).planned_whole_rows(true);
-        let layout = planned.layout_default(area, area, &state, &items, None);
-        let renderer = Tabs::<&str>::new(TABS);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        let unpainted = buffer.clone();
-        let result = Cell::new(None);
-
-        runtime
-            .draw_scene(area, &mut buffer, |ui, _| {
-                result.set(Some(renderer.draw_layout(ui, &layout)));
-            })
-            .commit_presented();
-
-        assert_eq!(result.get(), Some(Err(TabLayoutMismatch)));
-        assert_eq!(buffer, unpainted);
-        assert_eq!(runtime.registry().regions(), &[]);
-    }
-
-    fn whole_width_test_affixes(_: &&str) -> TabAffixes {
-        TabAffixes::default()
-            .prefix("pre")
-            .suffix("tail")
-            .trailing_padding(2)
-    }
-
-    fn whole_width_test_mark(_: &&str) -> TabMarks {
-        TabMarks::default().dirty(true)
-    }
-
-    #[test]
-    fn planned_whole_rows_include_affixes_marks_close_padding_and_reserved_lanes() {
-        let state = TabsState::default();
-        let items = ["abc"];
-        let close_keys = [ItemKey::index(0)];
-        let tabs = Tabs::<&str>::new(TABS)
-            .planned_whole_rows(true)
-            .item_affixes(whole_width_test_affixes as fn(&&str) -> TabAffixes)
-            .item_marks(whole_width_test_mark as fn(&&str) -> TabMarks)
-            .closable_keys(&close_keys)
-            .allow_new(true)
-            .status(Status::Error)
-            .overflow_menu(false);
-        let exact = tabs.layout_default(
-            Rect::new(0, 0, 26, 2),
-            Rect::new(0, 0, 26, 2),
-            &state,
-            &items,
-            None,
-        );
-        assert_eq!(exact.viewport_len, 1);
-        let row = exact.rows().first().expect("exact natural plate fits");
-        assert_eq!(row.label_extent, 12, "prefix, separators, label and suffix");
-        assert_eq!(row.logical_tab.width, 20, "all semantic lanes plus padding");
-        assert!(row.logical_mark.is_some());
-        assert!(row.logical_close.is_some());
-        let new_area = exact.new_area.expect("New keeps its reserved lane");
-        let status_area = exact.status_area.expect("status keeps its reserved lane");
-        assert_eq!(new_area, Rect::new(20, 0, 4, 1));
-        assert_eq!(status_area, Rect::new(24, 0, 1, 1));
-        assert_eq!(row.logical_tab.right(), new_area.x);
-        assert!(row.logical_tab.intersection(new_area).is_empty());
-        assert!(new_area.intersection(status_area).is_empty());
-
-        let short = tabs.layout_default(
-            Rect::new(0, 0, 25, 2),
-            Rect::new(0, 0, 25, 2),
-            &state,
-            &items,
-            None,
-        );
-        assert_eq!(short.viewport_len, 0, "one missing cell omits the full row");
-        assert_eq!(short.hidden_right(), 1);
-        assert!(short.rows().is_empty());
-        assert!(short.visible_area.width > 0);
-    }
-
-    #[test]
-    fn planned_close_bounds_are_potential_geometry_and_reveal_mismatch_is_preflighted() {
-        let area = Rect::new(0, 0, 36, 2);
-        let items = ["active", "idle"];
-        let mut state = TabsState::default();
-        state.set_active(0, ItemKey::index(0));
-        let eligible = [ItemKey::index(0), ItemKey::index(1)];
-        let planned = Tabs::new(TABS)
-            .closable_keys(&eligible)
-            .close_reveal(TabCloseReveal::Hover);
-        let layout = planned.layout_default(area, area, &state, &items, None);
-        let idle_close = PartRef::item(Part::CLOSE, ItemKey::index(1));
-        assert!(layout.part_bounds(idle_close).is_some());
-
-        let renderer = Tabs::<&str>::new(TABS)
-            .closable_keys(&eligible)
-            .close_reveal(TabCloseReveal::Always);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        let unpainted = buffer.clone();
-        let result = Cell::new(None);
-
-        runtime
-            .draw_scene(area, &mut buffer, |ui, _| {
-                result.set(Some(renderer.draw_layout(ui, &layout)));
-            })
-            .commit_presented();
-
-        assert_eq!(result.get(), Some(Err(TabLayoutMismatch)));
-        assert_eq!(buffer, unpainted);
-        assert_eq!(runtime.registry().regions(), &[]);
-    }
-
-    // Frozen pre-v3 row loop. Keeping this allocating reference under cfg(test)
-    // lets the new shared walker prove exact geometry without using itself as
-    // the expected-value oracle.
-    fn preimage_default_rows<T, K>(
-        tabs: &Tabs<'_, T, K, DefaultRow>,
-        area: Rect,
-        clip: Rect,
-        items: &[OwnedTabMeasurement],
-        first_index: usize,
-        previous: Option<TabWindowReceipt>,
-    ) -> Vec<TabRowLayout>
-    where
-        T: fmt::Display,
-        K: KeyFn<T>,
-    {
-        let len = items.len();
-        let first_index = first_index.min(len);
-        let overflow_reserved =
-            previous.is_some_and(|receipt| receipt.viewport_len < receipt.content_len);
-        if area.is_empty() {
-            return Vec::new();
-        }
-        let status_w: u16 = if matches!(tabs.status, Status::Ready) {
-            0
-        } else {
-            2
-        };
-        let new_w: u16 = if tabs.allow_new { 4 } else { 0 };
-        let left_w: u16 = if first_index > 0 { 4 } else { 0 };
-        let right_w: u16 = if overflow_reserved || first_index > 0 {
-            4
-        } else {
-            0
-        };
-        let row0 = first_row(area);
-        let right_limit = row0
-            .right()
-            .saturating_sub(status_w)
-            .saturating_sub(right_w)
-            .saturating_sub(new_w);
-        let mut x = row0.x.saturating_add(left_w);
-        let mut rows = Vec::new();
-        for (index, item) in items.iter().enumerate().skip(first_index) {
-            let mark = item.mark;
-            let mark_width = if mark.is_some() { 2 } else { 0 };
-            let close_enabled = item.close_enabled;
-            let close_w: u16 = if close_enabled { 2 } else { 0 };
-            let avail = right_limit.saturating_sub(x);
-            if avail < 3 {
-                break;
-            }
-            if mark.is_some() && avail < 1 + 1 + mark_width + 1 + close_w {
-                break;
-            }
-            let content = Rect {
-                x: x.saturating_add(1),
-                y: row0.y,
-                width: avail
-                    .saturating_sub(1)
-                    .saturating_sub(mark_width)
-                    .saturating_sub(u16::from(mark.is_some()))
-                    .saturating_sub(if mark.is_some() { close_w } else { 0 }),
-                height: 1,
-            };
-            let label_extent = semantic_label_extent(&item.label_segments, content, clip).max(1);
-            let tab_w = 1u16
-                .saturating_add(label_extent)
-                .saturating_add(mark_width)
-                .saturating_add(1)
-                .saturating_add(close_w);
-            let tab = Rect {
-                x,
-                y: row0.y,
-                width: tab_w.min(avail),
-                height: 1,
-            };
-            let close = close_enabled
-                .then(|| close_target_rect(tab, tabs.close_target_w))
-                .flatten();
-            let logical_mark = mark.map(|_| Rect {
-                x: x.saturating_add(1).saturating_add(label_extent),
-                y: row0.y,
-                width: 2,
-                height: 1,
-            });
-            rows.push(TabRowLayout {
-                key: item.key,
-                index,
-                logical_content: content,
-                visible_content: content.intersection(clip),
-                logical_tab: tab,
-                visible_tab: tab.intersection(clip),
-                logical_close: close,
-                visible_close: close.map(|rect| rect.intersection(clip)),
-                logical_mark,
-                visible_mark: logical_mark.map(|rect| rect.intersection(clip)),
-                mark,
-                close_enabled,
-                label_segments: item.label_segments.clone(),
-                affixes: item.affixes.clone(),
-                label_extent,
-            });
-            x = tab.right().saturating_add(1);
-        }
-        rows
-    }
-
-    #[test]
-    fn planned_shared_row_walker_matches_preimage_geometry_and_reuses_extent_scratch() {
-        let items = [
-            OwnedTabMeasurement::new(
-                ItemKey::num(1),
-                Some(TabItemMark::Dirty),
-                true,
-                ["e", "\u{301}", "界", " "]
-                    .into_iter()
-                    .map(str::to_owned)
-                    .collect(),
-                None,
-            ),
-            OwnedTabMeasurement::new(
-                ItemKey::num(2),
-                None,
-                false,
-                ["wide label", " "].into_iter().map(str::to_owned).collect(),
-                None,
-            ),
-            OwnedTabMeasurement::new(
-                ItemKey::num(3),
-                Some(TabItemMark::Error),
-                true,
-                ["\t", "👩‍👩‍👧‍👦", "tail "]
-                    .into_iter()
-                    .map(str::to_owned)
-                    .collect(),
-                None,
-            ),
-            OwnedTabMeasurement::new(
-                ItemKey::num(4),
-                None,
-                true,
-                ["", "  "].into_iter().map(str::to_owned).collect(),
-                None,
-            ),
-            OwnedTabMeasurement::new(
-                ItemKey::num(5),
-                Some(TabItemMark::Done),
-                false,
-                ["last", "界", " "].into_iter().map(str::to_owned).collect(),
-                None,
-            ),
-        ];
-        let tabs = Tabs::<&str>::new(TABS)
-            .allow_new(true)
-            .status(Status::Busy)
-            .close_target_w(4);
-        let area = Rect::new(3, 2, 31, 2);
-        let clips = [
-            area,
-            Rect::new(9, 2, 17, 2),
-            Rect::new(27, 2, 7, 2),
-            Rect::new(45, 2, 0, 2),
-        ];
-        let receipts = [
-            None,
-            Some(TabWindowReceipt {
-                viewport_len: 2,
-                content_len: items.len(),
-            }),
-        ];
-
-        for clip in clips {
-            for previous in receipts {
-                let mut scratch = Vec::new();
-                // Candidate zero may have a narrower content area than later
-                // starts because its left overflow lane is absent. Warm every
-                // suffix first so this check compares the stable capacity only
-                // after the widest tested row has been seen.
-                for first_index in 0..=items.len() {
-                    let _ = tabs.walk_default_owned(
-                        area,
-                        clip,
-                        &items,
-                        first_index,
-                        previous,
-                        &mut scratch,
-                        |_| {},
-                    );
-                }
-                let warmed_capacity = scratch.capacity();
-                for first_index in 0..=items.len() {
-                    let expected =
-                        preimage_default_rows(&tabs, area, clip, &items, first_index, previous);
-                    let mut emitted = Vec::new();
-                    let mut emitted_geometry = Vec::new();
-                    let walk =
-                        tabs.walk_default_owned(
-                            area,
-                            clip,
-                            &items,
-                            first_index,
-                            previous,
-                            &mut scratch,
-                            |geometry| {
-                                emitted_geometry.push(geometry);
-                                emitted.push(geometry.into_tab_row(
-                                    items[geometry.index].label_segments.clone(),
-                                    None,
-                                ));
-                            },
-                        );
-                    assert_eq!(
-                        emitted, expected,
-                        "rows differ for clip={clip:?}, first={first_index}, receipt={previous:?}"
-                    );
-                    assert_eq!(walk.viewport_len, expected.len());
-                    let expected_geometry: Vec<_> = expected
-                        .iter()
-                        .map(DefaultRowGeometry::from_tab_row)
-                        .collect();
-                    assert_eq!(emitted_geometry, expected_geometry);
-                    let expected_last = expected.last().map(DefaultRowGeometry::from_tab_row);
-                    assert_eq!(walk.last_row, expected_last);
-
-                    let scalar = tabs.walk_default_owned(
-                        area,
-                        clip,
-                        &items,
-                        first_index,
-                        previous,
-                        &mut scratch,
-                        |_| {},
-                    );
-                    assert_eq!(scalar.viewport_len, expected.len());
-                    assert_eq!(scalar.last_row, expected_last);
-                    assert_eq!(
-                        scratch.capacity(),
-                        warmed_capacity,
-                        "all suffix probes reuse capacity after every candidate was warmed"
-                    );
-                }
-            }
-        }
-    }
-
-    fn terminal_fixture_items(count: usize) -> Vec<OwnedTabMeasurement> {
-        const SEGMENTS: &[&[&str]] = &[
-            &["short"],
-            &["e", "\u{301}", "tail "],
-            &["界", "joined"],
-            &["\t", "👩‍👩‍👧‍👦", "end"],
-            &["   "],
-            &["wide label"],
-            &["x", "\u{301}", "界"],
-            &["abcdefghijklmnop"],
-        ];
-        (0..count)
-            .map(|index| {
-                OwnedTabMeasurement::new(
-                    ItemKey::index(index),
-                    match index % 4 {
-                        0 => Some(TabItemMark::Dirty),
-                        1 => Some(TabItemMark::Busy),
-                        2 => Some(TabItemMark::Error),
-                        _ => None,
-                    },
-                    index % 3 == 0,
-                    SEGMENTS[index % SEGMENTS.len()]
-                        .iter()
-                        .map(|segment| (*segment).to_owned())
-                        .collect(),
-                    None,
-                )
-            })
-            .collect()
-    }
-
-    fn exhaustive_terminal_start<T, K>(
-        tabs: &Tabs<'_, T, K, DefaultRow>,
-        area: Rect,
-        clip: Rect,
-        items: &[OwnedTabMeasurement],
-        previous: Option<TabWindowReceipt>,
-    ) -> Option<usize>
-    where
-        T: fmt::Display,
-        K: KeyFn<T>,
-    {
-        let final_index = items.len().checked_sub(1)?;
-        let mut scratch = Vec::new();
-        (0..items.len()).find(|&candidate_first| {
-            tabs.walk_default_owned(
-                area,
-                clip,
-                items,
-                candidate_first,
-                previous,
-                &mut scratch,
-                |_| {},
-            )
-            .last_row
-            .is_some_and(|row| row.index == final_index && !row.visible_tab.is_empty())
-        })
-    }
-
-    fn exhaustive_terminal_start_with_more<T, K>(
-        tabs: &Tabs<'_, T, K, DefaultRow>,
-        area: Rect,
-        clip: Rect,
-        items: &[OwnedTabMeasurement],
-        previous: Option<TabWindowReceipt>,
-    ) -> Option<usize>
-    where
-        T: fmt::Display,
-        K: KeyFn<T>,
-    {
-        let final_index = items.len().checked_sub(1)?;
-        let mut scratch = Vec::new();
-        (0..items.len()).find(|&candidate_first| {
-            tabs.walk_default_resolved(
-                area,
-                clip,
-                items,
-                candidate_first,
-                previous,
-                &mut scratch,
-                |_| {},
-            )
-            .last_row
-            .is_some_and(|row| row.index == final_index && !row.visible_tab.is_empty())
-        })
-    }
-
-    #[test]
-    fn bounded_terminal_search_matches_the_exhaustive_domain() {
-        let counts = [0, 1, 2, 5, 8];
-
-        for count in counts {
-            let items = terminal_fixture_items(count);
-            let receipts = [
-                None,
-                Some(TabWindowReceipt {
-                    viewport_len: 0,
-                    content_len: count,
-                }),
-            ];
-            let areas = [
-                Rect::new(0, 0, 2, 2),
-                Rect::new(0, 0, 4, 2),
-                Rect::new(0, 0, 10, 2),
-                Rect::new(3, 2, 31, 2),
-                Rect::new(u16::MAX - 2, 0, 8, 2),
-            ];
-
-            for (status, allow_new, closable) in [
-                (Status::Ready, false, false),
-                (Status::Busy, true, false),
-                (Status::Error, true, true),
-            ] {
-                let tabs = Tabs::<&str>::new(TABS)
-                    .status(status)
-                    .allow_new(allow_new)
-                    .closable(closable)
-                    .close_target_w(5)
-                    .overflow_menu(false);
-                for area in areas {
-                    let clips = [
-                        area,
-                        Rect::new(
-                            area.x.saturating_add(area.width / 2),
-                            area.y,
-                            area.width / 2,
-                            1,
-                        ),
-                        Rect::new(area.x, area.y.saturating_add(4), 5, 1),
-                        Rect::new(area.x, area.y, 0, 1),
-                    ];
-                    for clip in clips {
-                        for previous in receipts {
-                            let expected =
-                                exhaustive_terminal_start(&tabs, area, clip, &items, previous);
-                            let mut scratch = Vec::new();
-                            let actual = tabs.find_terminal_first_index(
-                                area,
-                                clip,
-                                &items,
-                                previous,
-                                &mut scratch,
-                            );
-                            assert_eq!(
-                                actual, expected,
-                                concat!(
-                                    "count={}, status={:?}, allow_new={}, ",
-                                    "closable={}, area={:?}, clip={:?}, receipt={:?}"
-                                ),
-                                count, status, allow_new, closable, area, clip, previous
-                            );
-
-                            if !items.is_empty() {
-                                let budget =
-                                    tabs.default_row_header(area, 1, previous).available_width();
-                                let max_rows = max_rows_for_width_budget(budget);
-                                let lower =
-                                    positive_terminal_candidate_range(count, max_rows).start;
-                                let positive_walk = tabs.walk_default_owned(
-                                    area,
-                                    clip,
-                                    &items,
-                                    1,
-                                    previous,
-                                    &mut scratch,
-                                    |_| {},
-                                );
-                                assert_eq!(
-                                    positive_walk
-                                        .right_limit
-                                        .saturating_sub(positive_walk.first_tab_x),
-                                    budget,
-                                    "positive-start bound uses the exact walker header"
-                                );
-                                for candidate_first in 1..lower {
-                                    let walk = tabs.walk_default_owned(
-                                        area,
-                                        clip,
-                                        &items,
-                                        candidate_first,
-                                        previous,
-                                        &mut scratch,
-                                        |_| {},
-                                    );
-                                    let required_rows = count - candidate_first;
-                                    assert!(required_rows > max_rows);
-                                    assert!(walk.viewport_len <= max_rows);
-                                    assert!(walk.viewport_len < required_rows);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn bounded_more_terminal_search_matches_the_resolved_exhaustive_domain() {
-        let counts = [0, 1, 2, 5, 8];
-        let mut saw_reserved_more_lane = false;
-
-        for count in counts {
-            let items = terminal_fixture_items(count);
-            let receipts = [
-                None,
-                Some(TabWindowReceipt {
-                    viewport_len: 0,
-                    content_len: count,
-                }),
-            ];
-            let areas = [
-                Rect::new(0, 0, 2, 2),
-                Rect::new(0, 0, 4, 2),
-                Rect::new(0, 0, 10, 2),
-                Rect::new(3, 2, 31, 2),
-                Rect::new(u16::MAX - 2, 0, 8, 2),
-            ];
-
-            for (status, allow_new, closable) in [
-                (Status::Ready, false, false),
-                (Status::Busy, true, false),
-                (Status::Error, true, true),
-            ] {
-                let tabs = Tabs::<&str>::new(TABS)
-                    .status(status)
-                    .allow_new(allow_new)
-                    .closable(closable)
-                    .close_target_w(5);
-                for area in areas {
-                    let clips = [
-                        area,
-                        Rect::new(
-                            area.x.saturating_add(area.width / 2),
-                            area.y,
-                            area.width / 2,
-                            1,
-                        ),
-                        Rect::new(area.x, area.y.saturating_add(4), 5, 1),
-                        Rect::new(area.x, area.y, 0, 1),
-                    ];
-                    for clip in clips {
-                        for previous in receipts {
-                            let expected = exhaustive_terminal_start_with_more(
-                                &tabs, area, clip, &items, previous,
-                            );
-                            let mut scratch = Vec::new();
-                            let actual = tabs.find_terminal_first_index(
-                                area,
-                                clip,
-                                &items,
-                                previous,
-                                &mut scratch,
-                            );
-                            assert_eq!(
-                                actual, expected,
-                                concat!(
-                                    "More count={}, status={:?}, allow_new={}, ",
-                                    "closable={}, area={:?}, clip={:?}, receipt={:?}"
-                                ),
-                                count, status, allow_new, closable, area, clip, previous
-                            );
-
-                            if !items.is_empty() {
-                                let reserve_more = tabs.more_lane_fits(area, clip, 1, previous);
-                                saw_reserved_more_lane |= reserve_more;
-                                let header = tabs.default_row_header_with_more(
-                                    area,
-                                    1,
-                                    previous,
-                                    reserve_more,
-                                );
-                                let budget = header.available_width();
-                                let max_rows = max_rows_for_width_budget(budget);
-                                let lower =
-                                    positive_terminal_candidate_range(count, max_rows).start;
-                                let positive_walk = tabs.walk_default_resolved(
-                                    area,
-                                    clip,
-                                    &items,
-                                    1,
-                                    previous,
-                                    &mut scratch,
-                                    |_| {},
-                                );
-                                assert_eq!(
-                                    positive_walk
-                                        .right_limit
-                                        .saturating_sub(positive_walk.first_tab_x),
-                                    budget,
-                                    "More positive-start K uses the resolved exact header"
-                                );
-                                for candidate_first in 1..lower {
-                                    let walk = tabs.walk_default_resolved(
-                                        area,
-                                        clip,
-                                        &items,
-                                        candidate_first,
-                                        previous,
-                                        &mut scratch,
-                                        |_| {},
-                                    );
-                                    let required_rows = count - candidate_first;
-                                    assert!(required_rows > max_rows);
-                                    assert!(walk.viewport_len <= max_rows);
-                                    assert!(walk.viewport_len < required_rows);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        assert!(
-            saw_reserved_more_lane,
-            "the exhaustive domain includes a visible More-reserved header"
-        );
-    }
-
-    #[test]
-    fn terminal_row_budget_and_positive_range_use_wide_exact_arithmetic() {
-        assert_eq!(max_rows_for_width_budget(0), 0);
-        assert_eq!(max_rows_for_width_budget(1), 0);
-        assert_eq!(max_rows_for_width_budget(2), 0);
-        assert_eq!(max_rows_for_width_budget(3), 1);
-        assert_eq!(max_rows_for_width_budget(6), 1);
-        assert_eq!(max_rows_for_width_budget(7), 2);
-        assert_eq!(max_rows_for_width_budget(u16::MAX), 16_384);
-
-        assert_eq!(positive_terminal_candidate_range(0, 0), 0..0);
-        assert_eq!(positive_terminal_candidate_range(1, 0), 1..1);
-        assert_eq!(positive_terminal_candidate_range(8, 0), 8..8);
-        assert_eq!(positive_terminal_candidate_range(8, 1), 7..8);
-        assert_eq!(positive_terminal_candidate_range(8, 8), 1..8);
-        assert_eq!(positive_terminal_candidate_range(8, usize::MAX), 1..8);
-
-        let area = Rect::new(3, 2, 31, 2);
-        for (status, allow_new, expected_budget, expected_rows) in [
-            (Status::Ready, false, 23, 6),
-            (Status::Busy, false, 21, 5),
-            (Status::Error, true, 17, 4),
-        ] {
-            let tabs = Tabs::<&str>::new(TABS)
-                .status(status)
-                .allow_new(allow_new)
-                .overflow_menu(false);
-            let header = tabs.default_row_header(area, 1, None);
-            assert_eq!(header.first_tab_x, 7);
-            assert_eq!(header.available_width(), expected_budget);
-            assert_eq!(
-                max_rows_for_width_budget(header.available_width()),
-                expected_rows
-            );
-        }
-    }
-
-    #[test]
-    fn bounded_terminal_search_matches_exhaustive_large_input() {
-        let items = terminal_fixture_items(128);
-        for (status, allow_new, closable) in
-            [(Status::Ready, false, false), (Status::Busy, true, true)]
-        {
-            let tabs = Tabs::<&str>::new(TABS)
-                .status(status)
-                .allow_new(allow_new)
-                .closable(closable)
-                .overflow_menu(false);
-            for area in [
-                Rect::new(0, 0, 4, 2),
-                Rect::new(3, 2, 31, 2),
-                Rect::new(0, 0, 80, 2),
-            ] {
-                let clips = [
-                    area,
-                    Rect::new(
-                        area.x.saturating_add(area.width / 2),
-                        area.y,
-                        area.width / 2,
-                        1,
-                    ),
-                    Rect::new(area.x, area.y.saturating_add(4), 5, 1),
-                ];
-                for clip in clips {
-                    for previous in [
-                        None,
-                        Some(TabWindowReceipt {
-                            viewport_len: 0,
-                            content_len: items.len(),
-                        }),
-                    ] {
-                        let expected =
-                            exhaustive_terminal_start(&tabs, area, clip, &items, previous);
-                        let mut scratch = Vec::new();
-                        let actual = tabs.find_terminal_first_index(
-                            area,
-                            clip,
-                            &items,
-                            previous,
-                            &mut scratch,
-                        );
-                        assert_eq!(
-                            actual, expected,
-                            concat!(
-                                "large input: status={:?}, allow_new={}, ",
-                                "closable={}, area={:?}, clip={:?}, receipt={:?}"
-                            ),
-                            status, allow_new, closable, area, clip, previous
-                        );
-                    }
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn bounded_more_terminal_search_matches_resolved_large_input() {
-        let items = terminal_fixture_items(128);
-        for (status, allow_new, closable) in
-            [(Status::Ready, false, false), (Status::Busy, true, true)]
-        {
-            let tabs = Tabs::<&str>::new(TABS)
-                .status(status)
-                .allow_new(allow_new)
-                .closable(closable);
-            for area in [
-                Rect::new(0, 0, 4, 2),
-                Rect::new(3, 2, 31, 2),
-                Rect::new(0, 0, 80, 2),
-            ] {
-                let clips = [
-                    area,
-                    Rect::new(
-                        area.x.saturating_add(area.width / 2),
-                        area.y,
-                        area.width / 2,
-                        1,
-                    ),
-                    Rect::new(area.x, area.y.saturating_add(4), 5, 1),
-                ];
-                for clip in clips {
-                    for previous in [
-                        None,
-                        Some(TabWindowReceipt {
-                            viewport_len: 0,
-                            content_len: items.len(),
-                        }),
-                    ] {
-                        let expected = exhaustive_terminal_start_with_more(
-                            &tabs, area, clip, &items, previous,
-                        );
-                        let mut scratch = Vec::new();
-                        let actual = tabs.find_terminal_first_index(
-                            area,
-                            clip,
-                            &items,
-                            previous,
-                            &mut scratch,
-                        );
-                        assert_eq!(
-                            actual, expected,
-                            concat!(
-                                "More large input: status={:?}, allow_new={}, ",
-                                "closable={}, area={:?}, clip={:?}, receipt={:?}"
-                            ),
-                            status, allow_new, closable, area, clip, previous
-                        );
-                    }
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn terminal_probe_work_is_bounded_by_fixed_viewport_width() {
-        let tabs = Tabs::<&str>::new(TABS).overflow_menu(false);
-        let area = Rect::new(0, 0, 80, 2);
-        let clip = Rect::new(100, 0, 1, 1);
-        let mut measurements = Vec::new();
-
-        for count in [8, 128, 4096] {
-            measurements.clear();
-            measurements.extend((0..count).map(|index| {
-                OwnedTabMeasurement::new(
-                    ItemKey::index(index),
-                    None,
-                    false,
-                    vec!["x".to_owned()],
-                    None,
-                )
-            }));
-
-            let positive_budget = tabs.default_row_header(area, 1, None).available_width();
-            let max_rows = max_rows_for_width_budget(positive_budget);
-            let candidates = positive_terminal_candidate_range(count, max_rows);
-            let mut scratch = Vec::new();
-            let mut probes = 0usize;
-            let mut row_visits = 0usize;
-
-            let start_zero =
-                tabs.walk_default_owned(area, clip, &measurements, 0, None, &mut scratch, |_| {});
-            probes += 1;
-            row_visits += start_zero.viewport_len;
-            assert!(
-                !start_zero
-                    .last_row
-                    .is_some_and(|row| row.index + 1 == count && !row.visible_tab.is_empty())
-            );
-
-            let mut positive_row_visits = 0usize;
-            for candidate_first in candidates.clone() {
-                let walk = tabs.walk_default_owned(
-                    area,
-                    clip,
-                    &measurements,
-                    candidate_first,
-                    None,
-                    &mut scratch,
-                    |_| {},
-                );
-                probes += 1;
-                row_visits += walk.viewport_len;
-                positive_row_visits += walk.viewport_len;
-                assert!(
-                    !walk
-                        .last_row
-                        .is_some_and(|row| row.index + 1 == count && !row.visible_tab.is_empty())
-                );
-            }
-
-            assert_eq!(
-                tabs.find_terminal_first_index(area, clip, &measurements, None, &mut scratch,),
-                None
-            );
-            assert_eq!(max_rows, 18);
-            assert_eq!(probes, 1 + candidates.len());
-            assert!(probes <= 1 + max_rows);
-            assert!(positive_row_visits <= max_rows * max_rows);
-            assert_eq!(row_visits, start_zero.viewport_len + positive_row_visits);
-            if count == 8 {
-                assert_eq!(probes, 8);
-                assert_eq!(row_visits, 36);
-            } else {
-                assert_eq!(probes, 19);
-                assert_eq!(positive_row_visits, 171);
-                assert_eq!(row_visits, 191);
-            }
-        }
-    }
-
-    #[test]
-    fn more_terminal_probe_work_is_bounded_by_the_resolved_positive_header() {
-        let tabs = Tabs::<&str>::new(TABS);
-        let area = Rect::new(0, 0, 80, 2);
-        // This clip exposes the More/right-arrow lanes but not the tab rows.
-        // Every terminal candidate is probed, while its final tab remains
-        // outside the clip, so the bounded search returns None.
-        let clip = Rect::new(72, 0, 8, 1);
-        let mut measurements = Vec::new();
-
-        for count in [8, 128, 4096] {
-            measurements.clear();
-            measurements.extend((0..count).map(|index| {
-                OwnedTabMeasurement::new(
-                    ItemKey::index(index),
-                    None,
-                    false,
-                    vec!["x".to_owned()],
-                    None,
-                )
-            }));
-
-            let reserve_more = tabs.more_lane_fits(area, clip, 1, None);
-            assert!(reserve_more);
-            let header = tabs.default_row_header_with_more(area, 1, None, reserve_more);
-            let positive_budget = header.available_width();
-            let max_rows = max_rows_for_width_budget(positive_budget);
-            let candidates = positive_terminal_candidate_range(count, max_rows);
-            let mut scratch = Vec::new();
-            let mut probes = 0usize;
-            let mut row_visits = 0usize;
-
-            let start_zero = tabs.walk_default_resolved(
-                area,
-                clip,
-                &measurements,
-                0,
-                None,
-                &mut scratch,
-                |_| {},
-            );
-            probes += 1;
-            row_visits += start_zero.viewport_len;
-            assert!(
-                !start_zero
-                    .last_row
-                    .is_some_and(|row| row.index + 1 == count && !row.visible_tab.is_empty())
-            );
-
-            let positive_walk = tabs.walk_default_resolved(
-                area,
-                clip,
-                &measurements,
-                1,
-                None,
-                &mut scratch,
-                |_| {},
-            );
-            assert_eq!(
-                positive_walk
-                    .right_limit
-                    .saturating_sub(positive_walk.first_tab_x),
-                positive_budget,
-                "positive-start K budget comes from the More-aware header"
-            );
-
-            let mut positive_row_visits = 0usize;
-            for candidate_first in candidates.clone() {
-                let walk = tabs.walk_default_resolved(
-                    area,
-                    clip,
-                    &measurements,
-                    candidate_first,
-                    None,
-                    &mut scratch,
-                    |_| {},
-                );
-                probes += 1;
-                row_visits += walk.viewport_len;
-                positive_row_visits += walk.viewport_len;
-                assert!(
-                    !walk
-                        .last_row
-                        .is_some_and(|row| row.index + 1 == count && !row.visible_tab.is_empty())
-                );
-            }
-
-            assert_eq!(
-                tabs.find_terminal_first_index(area, clip, &measurements, None, &mut scratch,),
-                None
-            );
-            assert!(tabs.more_lane_fits(area, clip, 1, None));
-            assert_eq!(probes, 1 + candidates.len());
-            assert!(probes <= 1 + max_rows);
-            assert!(positive_row_visits <= max_rows * max_rows);
-            assert_eq!(row_visits, start_zero.viewport_len + positive_row_visits);
-        }
-    }
-
-    #[test]
-    fn manual_window_marker_changes_equality_but_not_legacy_debug_shape() {
-        let ordinary = TabsState::default();
-        let mut manual = ordinary.clone();
-        manual.manual_window_active = Some(None);
-
-        assert_ne!(
-            ordinary, manual,
-            "manual follow changes the next update policy"
-        );
-        assert_eq!(ordinary, ordinary.clone());
-        assert_eq!(manual, manual.clone());
-        let old_shape = format!(
-            "TabsState {{ core: {:?}, active: {:?}, first: {:?}, first_index: {}, close_reveal_press: {:?} }}",
-            manual.core, manual.active, manual.first, manual.first_index, manual.close_reveal_press,
-        );
-        assert_eq!(format!("{manual:?}"), old_shape);
-        assert_eq!(format!("{manual:?}"), format!("{ordinary:?}"));
-        assert!(!format!("{manual:?}").contains("manual_window_active"));
-    }
-
-    #[test]
-    fn unknown_frame_preserves_manual_follow_but_cannot_authorize_wheel_bounds() {
-        let key = ItemKey::index(2);
-        assert!(manual_window_owns_follow(
-            TabsWheelFrameKind::Unknown,
-            Some(Some(key)),
-            Some(key),
-        ));
-        assert!(!manual_window_owns_follow(
-            TabsWheelFrameKind::Unknown,
-            None,
-            Some(key),
-        ));
-        assert!(!manual_window_owns_follow(
-            TabsWheelFrameKind::Legacy,
-            Some(Some(key)),
-            Some(key),
-        ));
-
-        let items = ["Overview", "Editor", "Terminal", "Metrics"];
-        let tabs = Tabs::new(TABS);
-        let state = TabsState {
-            active: Some(ItemKey::index(0)),
-            first: Some(key),
-            first_index: 2,
-            manual_window_active: Some(Some(ItemKey::index(0))),
-            ..TabsState::default()
-        };
-        let frame = TabsWheelFrame {
-            kind: TabsWheelFrameKind::Unknown,
-            eligible: true,
-            planned_whole_rows: false,
-            active: Some(ItemKey::index(0)),
-            manual_window_active: Some(Some(ItemKey::index(0))),
-            content_len: items.len(),
-            viewport_len: 2,
-            rows: 2,
-            cols: 12,
-            first_index: 2,
-            first_key: Some(key),
-            geometry_follow: None,
-            last_key: Some(ItemKey::index(3)),
-            terminal_first_index: Some(2),
-            area: Rect::new(0, 0, 12, 2),
-            visible_area: Rect::new(0, 0, 12, 2),
-            visible_row_area: Rect::new(0, 0, 12, 1),
-        };
-        let old_layout = Some(LayoutFacts::new(2, items.len(), 2, 12));
-
-        assert_eq!(
-            tabs.committed_wheel_bounds(frame, old_layout, &state, &items),
-            None,
-            "Unknown remains ineligible even with otherwise matching old geometry"
-        );
-    }
-
-    #[test]
-    fn manual_window_owner_survives_same_key_and_reorder_but_clears_on_identity_loss() {
-        let first = ItemKey::num(10);
-        let second = ItemKey::num(20);
-        let third = ItemKey::num(30);
-        let mut state = TabsState {
-            active: Some(first),
-            manual_window_active: Some(Some(first)),
-            ..TabsState::default()
-        };
-
-        state.set_active(0, first);
-        assert_eq!(state.manual_window_active, Some(Some(first)));
-        state.set_active(1, second);
-        assert_eq!(state.manual_window_active, None);
-
-        state.manual_window_active = Some(Some(second));
-        let reordered = [second, first, third];
-        let _ = state.reconcile(reordered.len(), |index| reordered[index]);
-        assert_eq!(state.active(), Some(second));
-        assert_eq!(state.manual_window_active, Some(Some(second)));
-
-        let removed = [first, third];
-        let _ = state.reconcile(removed.len(), |index| removed[index]);
-        assert_ne!(state.active(), Some(second));
-        assert_eq!(state.manual_window_active, None);
-
-        state.manual_window_active = Some(state.active());
-        state.invalidate();
-        assert_eq!(state.manual_window_active, None);
-    }
-
-    #[test]
-    fn manual_default_plan_clamps_to_the_fresh_terminal_and_empty_plan_stays_legacy() {
-        let items = [
-            "Overview",
-            "Editor",
-            "Network",
-            "Terminal",
-            "History",
-            "Inspector",
-            "Settings",
-            "Plugins",
-            "Search",
-            "Tasks",
-            "Metrics",
-        ];
-        let tabs = Tabs::new(TABS).allow_new(true).closable(true);
-        let mut state = TabsState::default();
-        state.active = Some(ItemKey::index(0));
-        state.first = Some(ItemKey::index(items.len() - 1));
-        state.first_index = items.len() - 1;
-        state.manual_window_active = Some(state.active);
-        let area = Rect::new(0, 0, 48, 2);
-
-        let layout = tabs.layout_default(area, area, &state, &items, None);
-        let terminal = layout
-            .terminal_first_index
-            .expect("the fixture terminal is representable at 48 cells");
-        assert!(terminal > 0);
-        assert_eq!(layout.first_index(), terminal);
-        assert_eq!(layout.first_key(), Some(ItemKey::index(terminal)));
-
-        let fit_area = Rect::new(0, 0, 200, 2);
-        let fit = tabs.layout_default(fit_area, fit_area, &state, &items, None);
-        assert_eq!(fit.terminal_first_index, Some(0));
-        assert_eq!(
-            fit.first_index(),
-            0,
-            "fitting fresh geometry clamps to the start"
-        );
-
-        let empty = tabs.layout_default(Rect::new(0, 0, 0, 2), area, &state, &items, None);
-        assert_eq!(empty.first_index(), items.len() - 1);
-        assert_eq!(empty.terminal_first_index, None);
-        assert!(empty.owned_items.is_none());
-    }
-
-    #[test]
-    fn default_more_lane_tracks_the_hidden_key_order_without_stealing_neighbor_lanes() {
-        let items = (0..12)
-            .map(|index| format!("Workspace-{index:02}-long"))
-            .collect::<Vec<_>>();
-        let area = Rect::new(11, 3, 46, 2);
-        let state = TabsState {
-            active: Some(ItemKey::index(0)),
-            first: Some(ItemKey::index(2)),
-            first_index: 2,
-            ..TabsState::default()
-        };
-        let tabs = Tabs::new(TABS)
-            .allow_new(true)
-            .status(Status::Error)
-            .closable(false);
-
-        let layout = tabs.layout_default(area, area, &state, &items, None);
-        let left = layout
-            .left_overflow
-            .expect("the scrolled window has a left lane");
-        let right = layout
-            .right_overflow
-            .expect("the remaining rows have a right lane");
-        let more = layout
-            .more_area
-            .expect("the planned default row exposes hidden rows");
-        let new = layout.new_area.expect("New keeps its authored lane");
-        let status = layout.status_area.expect("status keeps its authored lane");
-
-        assert_eq!(more.width, 4);
-        assert_eq!(more.height, 1);
-        assert_eq!(more.y, area.y);
-        assert!(
-            left.right()
-                <= layout
-                    .rows()
-                    .first()
-                    .map_or(more.x, |row| row.logical_tab.x)
-        );
-        assert!(right.right() <= more.x);
-        assert!(more.right() <= new.x);
-        assert!(new.right() <= status.x);
-        for row in layout.rows() {
-            assert!(more.intersection(row.logical_tab).is_empty());
-        }
-        assert_eq!(
-            layout.part_bounds(PartRef::item(Part::OVERFLOW, ItemKey::index(2))),
-            Some((more, more)),
-            "the published More part uses the one resolved geometry",
-        );
-
-        let expected_hidden = (0..items.len())
-            .filter(|index| {
-                *index < layout.first_index()
-                    || *index >= layout.first_index().saturating_add(layout.viewport_len)
-            })
-            .map(ItemKey::index)
-            .collect::<Vec<_>>();
-        let actual_hidden = layout
-            .hidden_menu_items()
-            .into_iter()
-            .map(|item| item.key)
-            .collect::<Vec<_>>();
-        assert_eq!(actual_hidden, expected_hidden);
-        assert!(actual_hidden.len() > 1);
-
-        let short = ["A", "B"];
-        let short_tabs = Tabs::<&str>::new(TABS);
-        let short_layout =
-            short_tabs.layout_default(area, area, &TabsState::default(), &short, None);
-        assert!(short_layout.more_area.is_none());
-        assert!(
-            short_layout
-                .part_bounds(PartRef::item(Part::OVERFLOW, ItemKey::index(2)))
-                .is_none()
-        );
-    }
-
-    #[test]
-    fn more_opt_out_and_clipped_lane_keep_the_old_arrow_new_status_geometry() {
-        let items = (0..12)
-            .map(|index| format!("Workspace-{index:02}-long"))
-            .collect::<Vec<_>>();
-        let area = Rect::new(5, 2, 46, 2);
-        let state = TabsState {
-            active: Some(ItemKey::index(0)),
-            first: Some(ItemKey::index(2)),
-            first_index: 2,
-            ..TabsState::default()
-        };
-        let tabs = Tabs::new(TABS)
-            .allow_new(true)
-            .status(Status::Error)
-            .overflow_menu(false);
-        let layout = tabs.layout_default(area, area, &state, &items, None);
-        assert!(layout.more_area.is_none());
-
-        let owned = items
-            .iter()
-            .enumerate()
-            .map(|(index, label)| {
-                OwnedTabMeasurement::new(
-                    ItemKey::index(index),
-                    None,
-                    false,
-                    vec![label.clone()],
-                    None,
-                )
-            })
-            .collect::<Vec<_>>();
-        let mut scratch = Vec::new();
-        let old_walk = tabs.walk_default_owned(
-            area,
-            area,
-            &owned,
-            state.first_index,
-            None,
-            &mut scratch,
-            |_| {},
-        );
-        assert_eq!(layout.left_overflow, old_walk.left_overflow);
-        assert_eq!(layout.right_overflow, old_walk.right_overflow);
-        assert_eq!(layout.new_area, old_walk.new_area);
-        assert_eq!(layout.status_area, old_walk.status_area);
-        assert_eq!(layout.rows().len(), old_walk.viewport_len);
-        assert!(
-            layout
-                .rows()
-                .iter()
-                .zip(owned.iter().skip(state.first_index))
-                .all(|(row, item)| row.key == item.key && row.logical_tab.height == 1)
-        );
-
-        let narrow_clip = Rect::new(area.x, area.y, 18, 2);
-        let clipped = Tabs::new(TABS).layout_default(area, narrow_clip, &state, &items, None);
-        assert!(clipped.more_area.is_none());
-        assert!(
-            clipped
-                .part_bounds(PartRef::item(Part::OVERFLOW, ItemKey::index(2)))
-                .is_none()
-        );
-    }
-
-    #[test]
-    fn show_hidden_does_not_shadow_an_authored_down_binding() {
-        let plain = Tabs::<&str>::new(TABS);
-        assert!(plain.show_hidden_binding_available());
-
-        let authored_new_disabled = Tabs::<&str>::new(TABS)
-            .try_new_key_bindings(Some(&DOWN_NEW))
-            .expect("the authored New chord does not conflict with the base table");
-        assert!(authored_new_disabled.show_hidden_binding_available());
-
-        let authored = Tabs::<&str>::new(TABS)
-            .allow_new(true)
-            .try_new_key_bindings(Some(&DOWN_NEW))
-            .expect("the authored New chord does not conflict with the base table");
-        assert!(!authored.show_hidden_binding_available());
     }
 }

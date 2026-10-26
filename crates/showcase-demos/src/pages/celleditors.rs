@@ -1,6 +1,3 @@
-//! Environment cell editor. Tab from the shell, Tab onto the field, Enter
-//! opens the shared [`termrock::Select`] that lists Disaster recovery.
-
 use termrock::{Button, Cx, Id, Rect, Response, Select, SelectState, Ui};
 
 use super::{Page, PageUpdate, frame};

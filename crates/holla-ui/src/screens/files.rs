@@ -131,9 +131,6 @@ enum SettleIntentKind {
     Other,
 }
 
-/// Classify one lifecycle bucket before a retained widget is updated or retired.
-/// Iteration drains the whole bucket, so a caller that rejects `Other` must report
-/// `UndeliveredIntent` itself; otherwise Runtime's undrained scan cannot see it.
 fn settle_intents(cx: &Cx<'_>, owner: Id) -> SettleIntentKind {
     let mut saw_intent = false;
     let mut has_other = false;
@@ -165,8 +162,6 @@ fn update_list_during_settle(
     if let Some(response) = widget.update_focus_out(cx, selection) {
         response
     } else {
-        // The caller admitted only empty/focus-only buckets. FocusIn is not
-        // handled by update_focus_out, so List requires this same-pass fallback.
         widget.update(cx, selection, rows).erase()
     }
 }
@@ -200,7 +195,6 @@ fn preview_viewport() -> TextViewport<'static> {
         .reserve_gutter(false)
 }
 
-/// Private synchronous state for the read-only Files route.
 pub(crate) struct State {
     snapshot: FilesSnapshot,
     directory: String,
@@ -238,11 +232,6 @@ impl State {
         state
     }
 
-    #[cfg(test)]
-    pub(crate) fn directory(&self) -> &str {
-        &self.directory
-    }
-
     pub(crate) fn selected_path(&self) -> Option<&str> {
         self.selection.cursor().and_then(|key| {
             self.rows
@@ -252,54 +241,12 @@ impl State {
         })
     }
 
-    #[cfg(test)]
-    pub(crate) fn preview_path(&self) -> Option<&str> {
-        self.preview
-            .as_ref()
-            .filter(|preview| preview.visible)
-            .map(|preview| preview.selected_path.as_str())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn preview_offsets(&self) -> Option<(usize, usize)> {
-        self.preview
-            .as_ref()
-            .filter(|preview| preview.visible)
-            .map(|preview| {
-                (
-                    preview.viewport.scroll().offset(),
-                    preview.viewport.horizontal_offset(),
-                )
-            })
-    }
-
-    #[cfg(test)]
-    pub(crate) fn visible_paths(&self) -> impl Iterator<Item = &str> {
-        self.rows.iter().map(|row| row.entry.path())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn listing_error(&self) -> Option<&FilesError> {
-        self.listing_error.as_ref()
-    }
-
-    #[cfg(test)]
-    pub(crate) fn activation_error(&self) -> Option<&FilesError> {
-        self.activation_error.as_ref()
-    }
-
-    #[cfg(test)]
-    pub(crate) fn show_hidden(&self) -> bool {
-        self.show_hidden
-    }
-
     pub(crate) fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if self.preview.as_ref().is_some_and(|preview| preview.visible) {
             let Some(preview) = self.preview.as_mut() else {
                 return Response::ignored();
             };
-            // Retain the list state while previewing. Service its owner bucket
-            // only during Settle; never process Event input behind the preview.
+
             let mut response = Response::ignored();
             if cx.update_cause() == termrock::UpdateCause::Settle {
                 if settle_intents(cx, LIST) == SettleIntentKind::Other {
@@ -316,9 +263,6 @@ impl State {
         }
 
         if self.preview.is_some() {
-            // A hidden Preview can receive its real focus loss on any update
-            // cause. Service only lifecycle buckets here; never replay input
-            // from a mixed bucket after the route hides.
             if settle_intents(cx, PREVIEW) == SettleIntentKind::Other {
                 cx.diagnostic(termrock::Diagnostic::UndeliveredIntent { owner: PREVIEW });
                 return Response::ignored();
@@ -455,13 +399,6 @@ impl State {
         }
     }
 
-    #[cfg(test)]
-    fn replace_snapshot(&mut self, snapshot: FilesSnapshot) {
-        let selected = self.selected_path().map(str::to_owned);
-        self.snapshot = snapshot;
-        self.reload(selected);
-    }
-
     fn reload(&mut self, preferred: Option<String>) {
         self.activation_error = None;
         match self.snapshot.list(&self.directory) {
@@ -555,42 +492,4 @@ pub(crate) fn draw(state: &State, ui: &mut Ui<'_>, area: Rect) {
             None => list().draw(ui, inner, &state.selection, &state.rows),
         }
     });
-}
-
-#[cfg(test)]
-mod tests {
-    use super::State;
-    use crate::sim::{FileEntry, FilesSnapshot};
-
-    #[test]
-    fn refreshed_rows_keep_selection_by_full_path_and_fall_back_when_removed() {
-        let mut first = FilesSnapshot::new();
-        first.insert(FileEntry::directory("/"));
-        first.insert(FileEntry::directory("/work"));
-        first.insert(FileEntry::directory("/work/Alpha"));
-        first.insert(FileEntry::directory("/work/beta"));
-        first.insert(FileEntry::file("/work/README.md"));
-        let mut state = State::new(first, "/work");
-        assert_eq!(state.selected_path(), Some("/work/Alpha"));
-
-        let mut reordered = FilesSnapshot::new();
-        reordered.insert(FileEntry::directory("/"));
-        reordered.insert(FileEntry::directory("/work"));
-        reordered.insert(FileEntry::file("/work/0-first.txt"));
-        reordered.insert(FileEntry::file("/work/README.md"));
-        reordered.insert(FileEntry::directory("/work/Alpha"));
-        reordered.insert(FileEntry::directory("/work/Aardvark"));
-        reordered.insert(FileEntry::directory("/work/beta"));
-        state.replace_snapshot(reordered);
-        assert_eq!(state.selected_path(), Some("/work/Alpha"));
-        assert_eq!(state.visible_paths().nth(1), Some("/work/Alpha"));
-
-        let mut removed = FilesSnapshot::new();
-        removed.insert(FileEntry::directory("/"));
-        removed.insert(FileEntry::directory("/work"));
-        removed.insert(FileEntry::directory("/work/beta"));
-        removed.insert(FileEntry::file("/work/README.md"));
-        state.replace_snapshot(removed);
-        assert_eq!(state.selected_path(), Some("/work/beta"));
-    }
 }

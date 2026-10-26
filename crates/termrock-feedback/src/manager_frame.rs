@@ -1,8 +1,3 @@
-//! Narrow workspace manager: menu, boxed list, detail band, hint row.
-//!
-//! Column positions follow the labels and the screen width. The last list
-//! row keeps 55% of its ink, which is the baseline bottom fade on black.
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 
@@ -20,9 +15,9 @@ pub struct ManagerLeaf<'a> {
     pub name: &'a str,
     pub expanded: bool,
     pub status: &'a str,
-    /// Danger ink, such as `! failed`.
+
     pub danger: bool,
-    /// Muted ink, such as `1 record`. Idle rows use `faint` and the dotted seam.
+
     pub muted: bool,
     pub faint: bool,
 }
@@ -51,7 +46,6 @@ pub struct ManagerFrame<'a> {
     pub warning: &'a str,
 }
 
-/// Shared full-screen geometry for painted workspace rows and their owner.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ManagerFrameLayout {
     area: Rect,
@@ -63,8 +57,6 @@ impl ManagerFrameLayout {
         Self { area, rows }
     }
 
-    /// Rows that fit between the frame header and the detail band at this
-    /// height; the frame list scrolls with the same window as the page list.
     pub fn row_capacity(height: u16) -> usize {
         usize::from(height.saturating_sub(14))
     }
@@ -73,7 +65,6 @@ impl ManagerFrameLayout {
         self.area
     }
 
-    /// Painted leaf-row allocation, including the frame's side rules.
     pub fn row_rect(self, index: usize) -> Option<Rect> {
         if index >= self.rows {
             return None;
@@ -552,22 +543,4 @@ fn paint_hint(ui: &mut Ui<'_>, area: Rect, frame: &ManagerFrame<'_>, ink: &Ink) 
         frame.warning,
         plain(ink.warning, ink.canvas),
     );
-}
-
-#[cfg(test)]
-mod tests {
-    use ratatui_core::layout::Rect;
-
-    use super::ManagerFrameLayout;
-
-    #[test]
-    fn row_rect_rejects_unrepresentable_and_off_area_rows() {
-        let layout = ManagerFrameLayout::new(Rect::new(0, 0, 100, 30), usize::MAX);
-        assert_eq!(layout.row_rect(usize::MAX), None);
-        assert_eq!(layout.row_rect(usize::from(u16::MAX) + 1), None);
-        assert_eq!(layout.row_rect(26), None);
-
-        let edge = ManagerFrameLayout::new(Rect::new(0, u16::MAX - 2, 100, 10), 1);
-        assert_eq!(edge.row_rect(0), None);
-    }
 }

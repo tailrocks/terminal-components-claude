@@ -1,12 +1,9 @@
-//! A two-pane block that composes existing groups through a shared SplitPane.
-
 use termrock_controls::{SplitAction, SplitPane, SplitPaneState};
 use termrock_layout::{Constraints, Maximized, Size, SplitAxis};
 use termrock_runtime::{Cx, Response, Ui};
 
 use crate::composition::{CompositionError, Group};
 
-/// A missing pane or a composition error detected before drawing begins.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SplitBlockError {
     MissingFirst,
@@ -20,9 +17,6 @@ impl From<CompositionError> for SplitBlockError {
     }
 }
 
-/// Compose two measured groups inside the exact layout produced by a
-/// [`SplitPane`]. The pane configuration is shared by update, measurement,
-/// hit testing, and drawing; state remains owned by the consumer.
 pub struct SplitBlock<'a> {
     pane: SplitPane<'a>,
     first: Option<&'a Group<'a>>,
@@ -50,12 +44,10 @@ impl<'a> SplitBlock<'a> {
         self
     }
 
-    /// Forward input to the shared pane control.
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut SplitPaneState) -> Response<SplitAction> {
         self.pane.update(cx, state)
     }
 
-    /// Measure the pane and both groups without drawing or dispatching input.
     pub fn measure(
         &self,
         ui: &Ui<'_>,
@@ -137,13 +129,10 @@ impl<'a> SplitBlock<'a> {
         Ok(Size { min, preferred }.fit(constraints))
     }
 
-    /// Draw both groups in the two rectangles returned by the shared pane
-    /// control. Composition depth is validated before the seam is painted.
     pub fn show(&self, ui: &mut Ui<'_>, state: &SplitPaneState) -> Result<(), SplitBlockError> {
         let first = self.first.ok_or(SplitBlockError::MissingFirst)?;
         let second = self.second.ok_or(SplitBlockError::MissingSecond)?;
-        // Preflight both groups before the SplitPane can paint or register its
-        // seam. Their normal show path performs the one real shared compose.
+
         first.validate_depth()?;
         second.validate_depth()?;
         let area = ui.full();

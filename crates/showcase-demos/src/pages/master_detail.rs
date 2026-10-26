@@ -232,8 +232,7 @@ impl WidgetIds {
         Self {
             root,
             master: root.index(1),
-            // The props list is the actual focusable detail content, so it is
-            // also the master's detail focus target in the responsive control.
+
             detail: props,
             props,
             open: root.index(4),

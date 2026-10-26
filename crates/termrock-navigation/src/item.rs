@@ -140,17 +140,13 @@ impl ItemColumns {
             tag = tag.max(width(item.tag.unwrap_or("")));
             group = group.max(width(item.group.unwrap_or("")));
         }
-        // Baseline `columns::solve`: the label and the detail share spare
-        // width, so a long label stops short of the 45% cap.
+
         label_need = label_need.max(6);
         let cap = u16::try_from(u32::from(row_width).saturating_mul(45) / 100)
             .unwrap_or(u16::MAX)
             .max(6);
         let label_cap = label_need.min(cap);
-        // The frozen picker solves its label/detail columns with a fixed
-        // two-column gap (tag `picker.rs` measure: `columns::solve(&cols,
-        // row_w - 4, 2)`); the paint-time metadata gap starts at 1, so the
-        // solver gap tracks it from that frozen default.
+
         let (label, detail_col) = solve_label(
             row_width,
             label_cap,
@@ -229,12 +225,7 @@ impl ItemColumns {
             label.text_matched(item.label, item.matched);
         }
         let meta_room = cells.rect(4).width;
-        // The frozen picker gives the detail `min(detail_col,
-        // rx - (dx + 1))`: the solved detail column, capped one spare column
-        // before the row's right edge after the tag and group widths. The
-        // flex cell here also yields the trailing metadata tracks, so widen
-        // the room by the metadata widths (never the configurable gap
-        // before them) less the two spare columns.
+
         let gap_track = if self.tag > 0 || self.group > 0 {
             self.metadata_gap
         } else {
@@ -263,13 +254,7 @@ impl ItemColumns {
             if !meta.authored_modifiers().contains(Modifier::BOLD) {
                 meta.remove_modifier(Modifier::BOLD);
             }
-            // The frozen picker elides an over-long detail to the column
-            // room left of the one spare column before the row's right edge
-            // with a trailing ellipsis (tag `picker.rs` paint: `room =
-            // detail_col.min(rx.saturating_sub(dx + 1))`), instead of hard
-            // clipping at the cell boundary. Elision writes the kept head
-            // and the theme ellipsis glyph directly, so a warmed repaint
-            // allocates nothing.
+
             if width(item.detail) > room {
                 let budget = room.saturating_sub(1);
                 let mut end = item.detail.len();
@@ -349,10 +334,6 @@ impl<T: AsItem> RowFn<T> for ItemRow {
             row.meta_with_defaults(tag, picker_ink(FgStep::Secondary));
         }
         if !item.detail.is_empty() {
-            // The frozen picker truncates the detail to the room left of the
-            // one spare column before the row's right edge, eliding with a
-            // trailing ellipsis (tag `picker.rs` paint: `room =
-            // detail_col.min(rx.saturating_sub(dx + 1))`).
             let budget = row.remaining_width().saturating_sub(2);
             let line = termrock_text::truncate(item.detail, budget);
             row.meta(&line);
@@ -364,22 +345,14 @@ impl<T: AsItem> RowFn<T> for ItemRow {
     }
 }
 
-/// Label overflow used by [`SemanticItemRow`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum ItemLabelOverflow {
-    /// Keep the start of a label and show an ellipsis at the end.
     End,
-    /// Keep both ends of a label and put an ellipsis in the middle.
+
     #[default]
     Middle,
 }
 
-/// A semantic item row for containers that own their own gutter and row chrome.
-///
-/// Unlike [`ItemRow`], this adapter does not paint a gutter. Trees, lists, and
-/// similar containers retain ownership of their disclosure, focus, hit region,
-/// and selection geometry. Metadata is admitted only at the configured content
-/// width and is laid out from the trailing edge inward.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct SemanticItemRow {
     metadata_min_width: u16,
@@ -452,8 +425,6 @@ impl<T: AsItem> RowFn<T> for SemanticItemRow {
                 .remaining_width()
                 .saturating_sub(self.minimum_label_width);
 
-            // Allocate from the right edge inward. This keeps the application
-            // identity label's minimum width before optional metadata can grow.
             for (slot, text) in [
                 (2usize, item.group.unwrap_or("")),
                 (1usize, item.tag.unwrap_or("")),

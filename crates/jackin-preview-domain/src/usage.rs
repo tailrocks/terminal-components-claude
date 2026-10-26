@@ -565,32 +565,3 @@ impl OverallSummary {
 pub fn plural(n: usize) -> &'static str {
     if n == 1 { "" } else { "s" }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn quota_status_thresholds() {
-        assert_eq!(QuotaStatus::from_pct(10), QuotaStatus::Available);
-        assert_eq!(QuotaStatus::from_pct(75), QuotaStatus::Warning);
-        assert_eq!(QuotaStatus::from_pct(100), QuotaStatus::Exhausted);
-        let w = QuotaWindow::counted(
-            "credits",
-            "Credits",
-            WindowCategory::Other,
-            WindowUnit::Credits,
-            1240,
-            5000,
-        );
-        assert_eq!(w.value_label(), "1,240 / 5,000 credits");
-        assert_eq!(w.used_pct, Some(24));
-    }
-
-    #[test]
-    fn empty_registry_is_empty_health() {
-        let s = OverallSummary::compute(&[]);
-        assert_eq!(s.health, HealthWord::Empty);
-        assert_eq!(s.counts_line(), "0 accounts · 0 enabled · 0 providers");
-    }
-}

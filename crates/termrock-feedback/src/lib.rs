@@ -4,8 +4,6 @@ pub(crate) use termrock_core as intent;
 pub(crate) use termrock_core as response;
 pub(crate) use termrock_layout as measure;
 pub(crate) use termrock_runtime as ui;
-#[cfg(test)]
-pub(crate) use termrock_runtime as runtime;
 pub(crate) use termrock_runtime as keymap;
 pub(crate) use termrock_text as text;
 pub(crate) use termrock_theme as theme;

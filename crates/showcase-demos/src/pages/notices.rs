@@ -87,10 +87,6 @@ const OUTCOMES: [(NoticeKind, &str, &str); 3] = [
     ),
 ];
 
-/// One current live Notice and the exact logical window used to draw it.
-///
-/// The App consumes these short-lived values after page content and the
-/// footer have drawn. No borrowed Notice text survives the current draw.
 #[derive(Clone, Copy, Debug)]
 pub struct NoticeRevealTarget {
     pub owner: Id,
@@ -100,7 +96,6 @@ pub struct NoticeRevealTarget {
     pub revision: u64,
 }
 
-/// The content and page-scroll state which governs live Notice cut rows.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct NoticeRevealPageState {
     pub content_revision: u64,
@@ -241,7 +236,6 @@ impl NoticesPage {
         ]
     }
 
-    /// Return the content and page-scroll state that governs live cut rows.
     #[must_use]
     pub fn reveal_state(&self) -> Option<NoticeRevealPageState> {
         if self.section() != 0 {
@@ -825,8 +819,6 @@ impl NoticesPage {
         reveal_targets
     }
 
-    /// Draw the current page and return only the live Notices and exact
-    /// logical windows needed by the Showcase root reveal painter.
     pub fn draw_with_reveal_targets(
         &self,
         ui: &mut Ui<'_>,
@@ -989,9 +981,7 @@ fn scroll_content_window(
     if view.width == 0 || view.height == 0 || logical_rows == 0 {
         return None;
     }
-    // Match the projection ScrollRegion used for its chrome against this
-    // frame's viewport and content. Stored state may still describe the last
-    // viewport (notably during the first draw after a resize).
+
     let first_source_row = ScrollRegion::view(state, view, logical_rows).offset();
     let first_source_row = first_source_row.min(logical_rows);
     let visible_rows = usize::from(view.height).min(logical_rows.saturating_sub(first_source_row));

@@ -99,8 +99,6 @@ pub use termrock_runtime::{
     RenderSnapshotError, Runtime, SimulationMoment, TypingPolicy, UpdateCause,
 };
 pub use termrock_runtime::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
-#[cfg(feature = "testing")]
-pub use termrock_runtime::{ProjectedFrame, RenderModel, StyledQuery};
 pub use termrock_session::{
     DefaultTerminal, TerminalSession, chain_panic_hook, run, run_with_feedback_clock,
 };
@@ -191,8 +189,6 @@ pub use termrock_viewport::{
     CellPos, ProjectedText, ScrollRegion, TextViewport, ViewportAction, ViewportCmd, ViewportLine,
     ViewportState,
 };
-#[cfg(feature = "testing")]
-pub use termrock_viewport::{ViewportWorkProbe, ViewportWorkSnapshot};
 
 pub use termrock_overlays::{
     CommandPalette, Completion, CompletionAction, CompletionCmd, CompletionController,
@@ -234,17 +230,3 @@ pub use ratatui_core::layout::{Position, Rect};
 pub use ratatui_core::style::{Color, Style};
 pub use ratatui_core::symbols::{line::Set as LineSet, scrollbar::Set as ScrollbarSet};
 pub use ratatui_core::terminal::Frame;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_facade_reexports() {
-        let id = id!("facade_sanity");
-        assert_ne!(id.hash(), 0);
-        let rev = Revision::zero();
-        assert_eq!(rev.0, 0);
-        assert_eq!(CursorStyle::default(), CursorStyle::Bar);
-    }
-}

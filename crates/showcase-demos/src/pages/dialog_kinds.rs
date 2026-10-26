@@ -67,9 +67,6 @@ const FIELDS: &[FieldSpec<'static>] = &[
         "SSH key",
         FieldKind::Chooser(Button::new(KEY, "Choose…")),
     ),
-    // FormData::Note currently requires borrowed row slices that cannot safely
-    // represent this live preview. Keep preview data live through the shared
-    // read-only text control until Form exposes an owned note-view contract.
     FieldSpec::new(
         PREVIEW,
         "Preview",

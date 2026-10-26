@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and render accepted Termrock visibility work records.
 
-The accepted task JSON is the authority. WORK_QUEUE.md is a deterministic view.
-This module never treats a task state as evidence that product checks passed.
-Instruction discovery here only builds a static task packet; it does not prove
-that an agent runtime loaded the listed instructions. Review receipts bind the
-recorded external file digest and expected subject in the source record; they do
-not authenticate reviewer identity or provide a cryptographic signature.
-"""
 
 from __future__ import annotations
 
@@ -119,7 +111,7 @@ MAX_SOURCE_SELECTION_REVIEW_BYTES = 64 * 1024
 
 
 class QueueError(ValueError):
-    """An invalid or stale accepted-work record."""
+    pass
 
 
 def require(condition: bool, message: str) -> None:
@@ -178,7 +170,7 @@ def _text(value: Any, label: str) -> str:
 
 
 def normalize_scope(value: Any) -> str:
-    """Accept exact paths and recursive directory scopes ending in ``/**``."""
+
     require(isinstance(value, str) and bool(value), "allowed path must be nonempty text")
     require("\\" not in value and not value.startswith("/"), "allowed path must be repository-relative")
     require("\x00" not in value and not re.match(r"^[A-Za-z]:", value), "invalid allowed path")
@@ -209,7 +201,7 @@ def _scope_parts(scope: str) -> tuple[tuple[str, ...], bool]:
 
 
 def scopes_overlap(left: str, right: str) -> bool:
-    """Return whether two supported path scopes can name the same file."""
+
     left_parts, left_recursive = _scope_parts(left)
     right_parts, right_recursive = _scope_parts(right)
     if not left_recursive and not right_recursive:
@@ -586,12 +578,12 @@ def _validate_records(records: Any, schema_version: int) -> Mapping[str, Any]:
 
 
 def validate_records(records: Any) -> Mapping[str, Any]:
-    """Validate the live schema-v1 accepted queue without changing its rules."""
+
     return _validate_records(records, 1)
 
 
 def validate_records_v2(records: Any) -> Mapping[str, Any]:
-    """Validate read-only schema-v2 records with repository-aware conflicts."""
+
     return _validate_records(records, 2)
 
 
@@ -795,7 +787,7 @@ def bind_review_subject_record(
 def _accepted_branch_scope_plan(
     records: Mapping[str, Any], work_id: str, plan_sha256: str, review_sha256: str,
 ) -> dict[str, Any] | None:
-    # Accepted evidence pins local artifact bytes; it is queue policy data, not identity proof.
+
     plan_task = next((task for task in records["tasks"] if task["work_id"] == "VIS-10"), None)
     if plan_task is None:
         return None
@@ -1095,7 +1087,7 @@ def render_queue(records_value: Any, *, link_prefix: str = "") -> str:
 
 
 def render_queue_v2(records_value: Any, *, link_prefix: str = "") -> str:
-    """Render a deterministic schema-v2 queue without changing the v1 view."""
+
     records = validate_records_v2(records_value)
     highest = highest_open_priority(records)
     ordered = sorted(records["tasks"], key=lambda task: (PRIORITY[task["priority"]], task["work_id"]))
@@ -1170,7 +1162,7 @@ def render_queue_v2(records_value: Any, *, link_prefix: str = "") -> str:
 
 
 def instruction_packet(root: Path, allowed_paths: Sequence[str]) -> list[dict[str, str]]:
-    """Return ancestor/scoped AGENTS paths and hashes for a static task packet."""
+
     root = _absolute_path(root)
     found: set[str] = set()
     root_fd = _open_directory_chain(root)
@@ -1289,7 +1281,7 @@ def _absolute_path(path: Path) -> Path:
 
 
 def _open_directory_chain(directory: Path) -> int:
-    """Open each directory component without following symlinks."""
+
     require(hasattr(os, "O_NOFOLLOW") and hasattr(os, "O_DIRECTORY"),
             "platform lacks required no-follow directory-open flags")
     absolute = _absolute_path(directory)
@@ -1355,11 +1347,7 @@ def _check_scope_tree(directory_fd: int, relative: str) -> None:
 
 
 def validate_filesystem_scopes(root: Path, records: Mapping[str, Any]) -> None:
-    """Reject existing symlink paths in active write scopes at mutation time.
 
-    This is a queue preflight only; it cannot sandbox the task owner or prevent
-    a link from being created after the check.
-    """
     validate_records(records)
     root_fd = _open_directory_chain(root)
     try:
@@ -1397,7 +1385,7 @@ def validate_filesystem_scopes(root: Path, records: Mapping[str, Any]) -> None:
 
 
 def scope_digest(root: Path, allowed_paths: Sequence[str]) -> str:
-    """Hash current regular files in the accepted scopes, excluding tasks.json."""
+
     require(isinstance(allowed_paths, list) and bool(allowed_paths),
             "review subject allowed_paths must be a nonempty array")
     scopes = [normalize_scope(scope) for scope in allowed_paths]
@@ -1584,7 +1572,7 @@ def _validate_source_selection_reference(value: Any, label: str) -> Mapping[str,
 
 
 def validate_root_registry(registry: Any) -> Mapping[str, Any]:
-    """Validate the portable shape of an externally pinned local root registry."""
+
     require(isinstance(registry, dict) and type(registry.get("schema_version")) is int
             and registry.get("schema_version") == 1,
             "unsupported root-registry schema")
@@ -1778,7 +1766,7 @@ def _validate_registry_origin_v2(value: Any, label: str) -> str:
 
 
 def validate_root_registry_v2(registry: Any) -> Mapping[str, Any]:
-    """Validate role and identity relationships without qualifying live roots."""
+
     require(isinstance(registry, dict) and type(registry.get("schema_version")) is int
             and registry.get("schema_version") == 2,
             "unsupported root-registry schema")
@@ -1962,7 +1950,7 @@ def _read_root_registry_v2(
 
 
 def check_root_registry_v2_shape(registry_path: Path, expected_sha256: str) -> dict[str, Any]:
-    """Validate caller-pinned v2 role data only; do not probe or qualify live roots."""
+
     registry, actual_sha256 = _read_root_registry_v2(registry_path, expected_sha256)
     return {
         "schema_version": 2,
@@ -1984,7 +1972,7 @@ def _git_registry_environment() -> dict[str, str]:
 
 
 def _git_registry_output(root: Path, arguments: Sequence[str]) -> str:
-    """Run a local read-only Git query without inherited repository overrides."""
+
     environment = _git_registry_environment()
     command = ["git", "--no-replace-objects", "-C", str(root), *arguments]
     try:
@@ -2463,7 +2451,7 @@ def migration_preview(
     repository_id: Any,
     worktree_id: Any,
 ) -> dict[str, Any]:
-    """Preview a uniform v1 identity mapping without locking or writing files."""
+
     for label, value in (("repository_id", repository_id), ("worktree_id", worktree_id)):
         require(isinstance(value, str) and REGISTRY_ID.fullmatch(value) is not None,
                 "{} must be a valid registry ID".format(label))
@@ -2555,7 +2543,7 @@ def _atomic_write(path: Path, content: bytes) -> None:
 
 
 def report_view_path(root: Path, output: Path | None, default_name: str) -> Path:
-    """Constrain generated Markdown views to one ignored target directory."""
+
     relative = output if output is not None else Path("target/visibility") / default_name
     parts = relative.parts
     require(not relative.is_absolute() and len(parts) == 3
@@ -2566,7 +2554,7 @@ def report_view_path(root: Path, output: Path | None, default_name: str) -> Path
 
 
 def _ensure_report_view_parent(path: Path, root: Path) -> None:
-    """Create the ignored view directory while rejecting symlink components."""
+
     if path.parent != root / "target/visibility":
         return
     for directory in (root / "target", root / "target/visibility"):
@@ -2784,8 +2772,8 @@ def _visual_baseline_branch_tip(root: Path) -> str:
 def _write_pair(records: Mapping[str, Any], tasks_path: Path, queue_path: Path) -> None:
     validate_records(records)
     queue_bytes = render_queue(records, link_prefix=_view_link_prefix(queue_path)).encode("utf-8")
-    # Source is replaced first. If the process stops before the derived view is
-    # replaced, check fails closed and repair-render is required explicitly.
+
+
     _atomic_write(tasks_path, _canonical_json(records))
     _atomic_write(queue_path, queue_bytes)
     check_rendered_queue(tasks_path, queue_path)
@@ -2812,7 +2800,7 @@ def _mutate(
 ) -> dict[str, Any]:
     with _exclusive_lock(tasks_path):
         records = read_records(tasks_path)
-        # A stale generated view is never silently repaired as part of a claim.
+
         check_rendered_queue(tasks_path, queue_path)
         branch, head = subject_reader()
         require(branch == "termrock-implementation",
@@ -2856,7 +2844,7 @@ def _repair_render(
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description='Validate and render accepted Termrock visibility work records.\n\nThe accepted task JSON is the authority. WORK_QUEUE.md is a deterministic view.\nThis module never treats a task state as evidence that product checks passed.\nInstruction discovery here only builds a static task packet; it does not prove\nthat an agent runtime loaded the listed instructions. Review receipts bind the\nrecorded external file digest and expected subject in the source record; they do\nnot authenticate reviewer identity or provide a cryptographic signature.\n')
     parser.add_argument("--root", type=Path, default=ROOT, help=argparse.SUPPRESS)
     subparsers = parser.add_subparsers(dest="command", required=True)
     check = subparsers.add_parser("check", help="validate records and confirm WORK_QUEUE.md is current")

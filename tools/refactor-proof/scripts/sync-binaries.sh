@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Copy workspace-built refactor-proof binaries to tools/refactor-proof/bin/.
-# verify.toml and host-bootstrap-driver expect these paths; the driver requires
-# bin/tc-proof-host to be a regular Mach-O file (not a shell wrapper) so install
-# reproduces the accepted executable bytes under Darwin sandbox qualification.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"

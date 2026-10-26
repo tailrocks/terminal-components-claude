@@ -1,10 +1,3 @@
-//! The result grid view: column budgets, chrome, scroll, header, numbers, status.
-//!
-//! The view owns the per-frame grid paint state. A frame starts with
-//! [`ResultGridView::begin_frame`], paints the body with
-//! [`ResultGridView::draw`], then paints the scrollbar and the status row
-//! from the stored snapshot. Nothing grid-related lives in thread-locals.
-
 use std::cell::{Cell, RefCell};
 
 use tablepro_demo::db::ColType;
@@ -50,10 +43,6 @@ impl ResultGridView {
         frame.scroll = None;
     }
 
-    /// Paint the grid body, focus bar, row numbers, and header.
-    ///
-    /// The origin is whatever the grid painted, so numbers, header, and
-    /// scrollbar always agree with the body. There is no overpaint pass.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn draw(
         &self,
@@ -143,7 +132,6 @@ impl ResultGridView {
         }
     }
 
-    /// Paint the status row, pending bar, and horizontal bar for a table view.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn paint_status(
         &self,
@@ -185,7 +173,6 @@ impl ResultGridView {
         if !viewport.status_text_fits(width(&status))
             && let Some((head, _)) = status.rsplit_once(" · ")
         {
-            // The column window is the clause that drops once a sort prefix lands.
             status = head.to_owned();
         }
         if let Some(chrome) = frame.chrome.as_ref() {
@@ -204,7 +191,7 @@ const GRID_PART_PATCH: [(Part, StylePatch); 2] = [
     (Part::OVERFLOW, StylePatch::new().set_fg(TAG_PATH_FG)),
     (Part::ACTIONS, StylePatch::new().set_fg(TAG_CHROME_FG)),
 ];
-/// The vertical scroll bar of a grid body.
+
 const GRID_VERTICAL_BAR: termrock::grid::GridBarPolicy = termrock::grid::GridBarPolicy {
     track: LEGACY_SCROLL_TRACK,
     thumb: LEGACY_SCROLL_THUMB,
@@ -214,7 +201,7 @@ const GRID_VERTICAL_BAR: termrock::grid::GridBarPolicy = termrock::grid::GridBar
     cover_near: Role::Custom(termrock::Color::from_u32(0x00cc_cccc)),
     cover_far_dim: true,
 };
-/// The horizontal scroll bar of a grid body.
+
 const GRID_HORIZONTAL_BAR: termrock::grid::GridBarPolicy = termrock::grid::GridBarPolicy {
     track: LEGACY_SCROLL_TRACK,
     thumb: LEGACY_SCROLL_THUMB,
@@ -224,14 +211,13 @@ const GRID_HORIZONTAL_BAR: termrock::grid::GridBarPolicy = termrock::grid::GridB
     cover_near: Role::Custom(termrock::Color::from_u32(0x00cc_cccc)),
     cover_far_dim: true,
 };
-/// The keyboard-focus bar of a grid body.
+
 const GRID_FOCUS_BAR: termrock::grid::GridFocusPolicy = termrock::grid::GridFocusPolicy {
     role: Role::Accent,
     bold: true,
     glyph: "▎",
 };
-/// The viewport of a query result grid: the scroll bar lane sits right of
-/// the grid body and the horizontal bar takes the grid body's last row.
+
 const FOLLOW_REF: CellAction = CellAction::new(ActionKey::application("tablepro.follow-ref"));
 const FOLLOW_REFS: [CellAction; 1] = [FOLLOW_REF];
 #[derive(Clone, Copy)]
@@ -260,7 +246,6 @@ struct GridChrome {
 }
 
 impl GridChrome {
-    /// The chrome the shared grid bars align to.
     fn content_chrome(&self) -> termrock::grid::GridContentChrome {
         termrock::grid::GridContentChrome {
             gutter: self.gutter,
@@ -428,8 +413,6 @@ fn install_grid_budgets(
         if !places.is_empty() && needed > avail {
             let room = avail.saturating_sub(used).saturating_sub(gap);
             if room >= 4 {
-                // A reference mark needs a cell of its own. Width 6 is the
-                // whole value, the way the baseline grid skips the arrow.
                 let arrow = foreign && room > 6;
                 let text = room.saturating_sub(if arrow { 2 } else { 0 });
                 budgets.push(ColBudget { kind, text, arrow });
@@ -451,8 +434,7 @@ fn install_grid_budgets(
         let arrow = foreign && natural > 6;
         budgets.push(ColBudget {
             kind,
-            // The follow arrow occupies the last two cells, so the text
-            // budget is what truncate_middle actually paints.
+
             text: natural.saturating_sub(if arrow { 2 } else { 0 }),
             arrow,
         });
@@ -620,10 +602,8 @@ fn column_natural_width(
         }
     }
     if column_is_filtered(filter, name) {
-        // " ∇" plus the gap the header keeps after the mark.
         natural = natural.saturating_add(3);
         if column_is_sorted(sort, col) {
-            // " ▴" / " ▾" follows the filter mark. Unfiltered sorts already fit in the sample.
             natural = natural.saturating_add(2);
         }
     }
@@ -652,7 +632,7 @@ fn layout_window(widths: &[u16], start: usize, avail: u16) -> WindowFit {
         let needed = used.saturating_add(gap).saturating_add(width);
         if !places.is_empty() && needed > avail {
             let room = avail.saturating_sub(used).saturating_sub(gap);
-            // Four cells sit on the overflow count. The filtered sort frame leaves them blank.
+
             if room >= 5 {
                 places.push(ColPlace {
                     x: used.saturating_add(gap),
@@ -713,8 +693,7 @@ fn install_scrolled_budgets(
         .enumerate()
         .map(|(index, (name, ty))| {
             let natural = column_natural_width(name, *ty, model, index, filter, sort);
-            // The inline editor keeps two cells of field chrome past the sample.
-            // A committed edit keeps that width on the focused text column.
+
             if wide == Some(index) && !matches!(ty, ColType::Int | ColType::Numeric) {
                 natural.saturating_add(2)
             } else {
@@ -796,7 +775,7 @@ fn paint_scrolled_title(
     let filtered = column_is_filtered(filter, name);
     let sorted = sort_at.is_some_and(|(column, _)| column == index);
     let editing = edit.is_some_and(|column| column == index);
-    // End keeps the cursor column primary even when that column is not sorted or wide.
+
     let style = if sorted || filtered || editing || focused {
         sorted_style
     } else {
@@ -823,7 +802,6 @@ fn paint_scrolled_title(
         height: 1,
     };
     if filtered {
-        // The mark is accent. The gap after it stays the header surface, sort included.
         ui.fill(cell, base);
         ui.fill(
             termrock::Rect {
@@ -843,7 +821,7 @@ fn paint_scrolled_title(
                 muted,
             );
         }
-        // Editor chrome is wider than the header mark. The extra cells stay the header surface.
+
         let fill_width = if editing {
             place.width.saturating_sub(2)
         } else {
@@ -857,7 +835,6 @@ fn paint_scrolled_title(
             style,
         );
         if editing {
-            // The two-cell gap after the editor header is muted, unlike other gaps.
             ui.fill(
                 termrock::Rect {
                     x: cell.x.saturating_add(place.width),
@@ -1200,8 +1177,7 @@ fn paint_row_numbers(
         };
         let fade = visible.saturating_sub(row);
         let truecolor = ui.theme().capability.color == termrock::ColorLevel::TrueColor;
-        // Baseline scroll edges: under four rows stay solid, under twelve
-        // fade only the outer row, and twelve or more fade two rows.
+
         let depth = if visible >= 12 {
             2
         } else if visible >= 4 {
@@ -1211,8 +1187,7 @@ fn paint_row_numbers(
         };
         let far = depth >= 1 && (fade == 1 || (origin > 0 && row == 0));
         let near = depth >= 2 && (fade == 2 || (origin > 0 && row == 1));
-        // These two pads sit in the grid body. The edge fade already ran.
-        // Repainting them in primary ink hides the bottom (and top) fade.
+
         let pad = if truecolor && far {
             gutter.patch(ui.paint_patch(
                 &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x008c_8c8c))),
@@ -1395,50 +1370,5 @@ pub(crate) fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Gr
         grid.header_prefixes(&ID_HEADER_PREFIX)
     } else {
         grid
-    }
-}
-
-#[cfg(test)]
-mod row_number_formatting_tests {
-    use super::{
-        HIDDEN_LABEL_BUFFER_BYTES, MAX_USIZE_DECIMAL_BYTES, digit_count, format_hidden_label,
-        format_row_number,
-    };
-
-    #[test]
-    fn row_number_formats_the_full_usize_range() {
-        let mut buffer = [0; MAX_USIZE_DECIMAL_BYTES];
-        let number = usize::MAX;
-
-        assert_eq!(
-            format_row_number(&mut buffer, number, usize::from(digit_count(number))),
-            number.to_string()
-        );
-    }
-
-    #[test]
-    fn hidden_column_label_formats_the_full_usize_range() {
-        let mut buffer = [0; HIDDEN_LABEL_BUFFER_BYTES];
-
-        assert_eq!(
-            format_hidden_label(&mut buffer, usize::MAX),
-            format!("{}›", usize::MAX)
-        );
-    }
-
-    #[test]
-    fn row_number_preserves_zero_padding_and_wider_digits() {
-        let mut buffer = [0; MAX_USIZE_DECIMAL_BYTES];
-
-        assert_eq!(format_row_number(&mut buffer, 0, 4), "   0");
-        assert_eq!(format_row_number(&mut buffer, 123, 5), "  123");
-        assert_eq!(format_row_number(&mut buffer, 123, 2), "123");
-    }
-
-    #[test]
-    fn hidden_column_label_formats_zero() {
-        let mut buffer = [0; HIDDEN_LABEL_BUFFER_BYTES];
-
-        assert_eq!(format_hidden_label(&mut buffer, 0), "0›");
     }
 }

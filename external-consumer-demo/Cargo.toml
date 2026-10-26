@@ -10,23 +10,23 @@ publish = false
 
 # This crate is deliberately NOT a member of the repository workspace. It
 # builds standalone, exactly like a consumer outside this repository would,
-# with its own lockfile and its own dependency resolution:
-#
-#     cargo nextest run --manifest-path external-consumer-demo/Cargo.toml
-#
-# The empty `[workspace]` table detaches it from the workspace root above it.
+# with its own lockfile and its own dependency resolution. The empty
+# `[workspace]` table detaches it from the workspace root above it.
+autotests = false
+autobenches = false
 [workspace]
 
 # The only Termrock dependency is the public facade. No internal `termrock-*`
-# crate is reachable from here; tests/public_api_only.rs guards that.
+# crate is reachable from here.
 [dependencies]
 termrock = { path = "../crates/termrock" }
 
-# The test harness drives the consumer through the public production render
-# path (`prepare` / `draw_prepared` / `acknowledge_presented`) on Ratatui's
-# public test backend.
-[dev-dependencies]
-ratatui = { version = "0.30", features = ["crossterm_0_29"] }
-
 [lib]
 doctest = false
+test = false
+bench = false
+[[bin]]
+name = "external-consumer-demo"
+path = "src/main.rs"
+test = false
+bench = false

@@ -1,11 +1,3 @@
-//! Accounts page: the account tree, the registry inspector, and the drawer.
-//!
-//! Every value on this page comes from the live registry. The tree rows are
-//! the accounts of the world, the inspector is the registry summary, and the
-//! drawer shows the selected node. The page picks its layout from the area it
-//! is given: a wide area gets the list beside the inspector, a narrow area
-//! gets the list above the inspector band. Nothing here keys on a screen size.
-
 use termrock::controls::{MasterDetail, MasterDetailLayout, MasterDetailMode, MasterDetailState};
 use termrock::feedback::{
     AccountRole, AccountRow, AccountsDetail, AccountsDrawer, DetailAlert, DetailInk, DetailLine,
@@ -22,27 +14,15 @@ use crate::sim::onepassword::OpSession;
 
 use super::{App, Route};
 
-/// The layout switches to the inspector beside the list when the area is wide
-/// enough for both columns and tall enough for the shared painters.
-///
-/// The reference splits the accounts page when the body beside the list is
-/// 100 columns wide, so the page needs 102 columns of its own.
 const WIDE_MIN_WIDTH: u16 = 102;
 const WIDE_MIN_HEIGHT: u16 = 24;
 
-/// The width of the account list pane of the shared accounts painters.
-///
-/// The shared painters own this geometry; the page needs it to cut a row
-/// name before the pane edge.
 const LIST_PANE_W: u16 = 39;
 
-/// The column of the panel values, measured from the panel content edge.
 const PANEL_VALUE_AT: u16 = 22;
 
-/// The width of the quota meter bar of the panel.
 const METER_BAR_W: u16 = 34;
 
-/// The registration policy of the accounts page.
 const REGISTRATION_POLICY: &str =
     "manual accounts allowed · 1Password, local folder or plain-text key";
 
@@ -507,22 +487,19 @@ fn inspector_widths(
     }
 }
 
-/// What a tree row stands for.
 #[derive(Clone, PartialEq, Eq)]
 pub(super) enum Node {
-    /// The registry overview.
     Overview,
-    /// A provider group.
+
     Provider(Provider),
-    /// One account, by registry id.
+
     Account(String),
-    /// The section of accounts whose quota is not visible.
+
     Unsupported,
-    /// The add-account action row.
+
     AddAccount,
 }
 
-/// One row of the account tree.
 pub(super) struct TreeRow {
     pub(super) node: Node,
     pub(super) role: AccountRole,
@@ -534,13 +511,11 @@ pub(super) struct TreeRow {
     pub(super) tail_tone: DetailTail,
 }
 
-/// The account tree of the live registry.
 pub(super) struct Tree {
     pub(super) rows: Vec<TreeRow>,
 }
 
 impl Tree {
-    /// The account id of the row at `index`, if that row is an account.
     pub(super) fn account_at(&self, index: usize) -> Option<&str> {
         match self.rows.get(index)?.node {
             Node::Account(ref id) => Some(id.as_str()),
@@ -549,7 +524,6 @@ impl Tree {
     }
 }
 
-/// The account tree for the app: the registry, filtered by the live query.
 pub(super) fn tree(app: &App) -> Tree {
     let mut rows = vec![TreeRow {
         node: Node::Overview,
@@ -579,8 +553,7 @@ pub(super) fn tree(app: &App) -> Tree {
             rows.push(account_row(app, account));
         }
     }
-    // A filtered tree shows the matches only: the sentinel section and the
-    // add-account row are not part of the query.
+
     if !app.filter_active() {
         if app
             .world
@@ -645,7 +618,7 @@ fn account_row(app: &App, account: &Account) -> TreeRow {
         AccountRole::Note
     };
     let tail = account_tail(app, account);
-    // A discovered account says so in the tree.
+
     let name =
         if account.origin == AccountOrigin::Discovered && account.display_name != "discovered" {
             format!("{} · discovered", account.display_name)
@@ -668,7 +641,6 @@ fn account_row(app: &App, account: &Account) -> TreeRow {
     }
 }
 
-/// The alert mark of an account: `!` for a blocked account, `▲` for a warning.
 fn account_alert(account: &Account) -> Option<(&'static str, DetailAlert)> {
     if !account.enabled {
         return None;
@@ -682,7 +654,6 @@ fn account_alert(account: &Account) -> Option<(&'static str, DetailAlert)> {
     None
 }
 
-/// The state tail of an account: freshness, lifecycle, or issue.
 fn account_tail(app: &App, account: &Account) -> Option<(String, DetailTail)> {
     if !account.enabled {
         return Some(("disabled".to_owned(), DetailTail::Muted));
@@ -706,7 +677,6 @@ fn account_tail(app: &App, account: &Account) -> Option<(String, DetailTail)> {
     }
 }
 
-/// The tail of an account whose usage failed: the issue decides the word.
 fn failed_tail(account: &Account) -> String {
     match account.issue.as_ref().map(|issue| issue.code) {
         Some(IssueCode::RateLimited) => "rate limited".to_owned(),
@@ -718,7 +688,6 @@ fn failed_tail(account: &Account) -> String {
     }
 }
 
-/// The age of the last good usage sample, without the "ago" suffix.
 fn age_label(app: &App, account: &Account) -> String {
     let Some(last_good) = account.usage.freshness.last_good_secs else {
         return "unknown".to_owned();
@@ -727,7 +696,6 @@ fn age_label(app: &App, account: &Account) -> String {
     ago.trim_end_matches(" ago").to_owned()
 }
 
-/// True when the account cannot show a quota window.
 fn quota_is_hidden(account: &Account) -> bool {
     account.lifecycle == Lifecycle::Unsupported
         || (!account.usage.windows.is_empty()
@@ -738,7 +706,6 @@ fn quota_is_hidden(account: &Account) -> bool {
                 .all(|window| window.status == QuotaStatus::Unsupported))
 }
 
-/// Paint the accounts page into `area`.
 pub(super) fn paint(app: &App, ui: &mut Ui<'_>, area: Rect) {
     let tree = tree(app);
     let control = master_detail(area);
@@ -751,8 +718,6 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>, area: Rect) {
     match responsive.mode {
         MasterDetailMode::Split => {
             if responsive.detail.is_empty() {
-                // Keep the original fixed39 page as a fail-closed rendering
-                // path if the split cannot resolve a real detail rectangle.
                 paint_wide(app, ui, area, &tree);
             } else {
                 paint_live_detail(app, ui, area, &tree, control, mode_area, responsive);
@@ -898,10 +863,6 @@ fn paint_live_detail(
     );
 }
 
-/// The filter field, while it holds the caret.
-///
-/// The field lives on the blank row under the header, so the committed frame
-/// keeps that row empty and the caret is the only sign of the filter.
 fn paint_filter_field(app: &App, ui: &mut Ui<'_>, area: Rect) {
     if !app.accounts.filtering {
         return;
@@ -923,7 +884,6 @@ fn paint_filter_field(app: &App, ui: &mut Ui<'_>, area: Rect) {
         .draw(ui, field, &app.accounts.filter_input);
 }
 
-/// The list beside the inspector.
 fn paint_wide(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
     let selection = selection(app, tree);
     let visible = visible_rows(area, true);
@@ -983,7 +943,6 @@ fn paint_wide(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
     register_add_row(ui, area, tree, offset);
 }
 
-/// The list above the inspector band.
 fn paint_narrow(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
     let selection = selection(app, tree);
     let visible = visible_rows(area, false);
@@ -1005,7 +964,7 @@ fn paint_narrow(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
     let (heading, heading_meta) = narrow_heading(app, &selection);
     let (crumb, status, _running, _note) = header_parts(app, area, &selection, false);
     let shown = offset.saturating_add(visible).min(total);
-    // The range shows only when the tree does not fit on the screen.
+
     let range = if total > visible {
         format!(" · {}\u{2013}{shown} of {total}", offset.saturating_add(1))
     } else {
@@ -1045,10 +1004,6 @@ fn paint_narrow(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
     register_add_row(ui, area, tree, offset);
 }
 
-/// Register the add-account row of the tree as the add control.
-///
-/// The region follows the painted row: the tree scrolls, so the row index and
-/// the row on the screen are not the same thing.
 fn register_add_row(ui: &mut Ui<'_>, area: Rect, tree: &Tree, offset: usize) {
     let Some(index) = tree
         .rows
@@ -1064,7 +1019,7 @@ fn register_add_row(ui: &mut Ui<'_>, area: Rect, tree: &Tree, offset: usize) {
         AccountRole::Root | AccountRole::Group => 7,
         AccountRole::Item | AccountRole::Note => 9,
     };
-    // The painted row of the tree, counted from the first row of the box.
+
     let Some(painted) = index.checked_sub(offset) else {
         return;
     };
@@ -1119,11 +1074,6 @@ fn register_add_row_in(
     );
 }
 
-/// The header of the page: the crumb, the status, and the cluster.
-///
-/// The crumb carries the app message, so a saved account or a help note stays
-/// visible. The status and the cluster follow it when they still fit; a crumb
-/// that does not fit the header at all drops the whole right side.
 fn header_parts(
     app: &App,
     area: Rect,
@@ -1134,9 +1084,9 @@ fn header_parts(
     let crumb = app.status.clone().unwrap_or(tree_crumb);
     let status = header_status(app);
     let note = "inside the Construct".to_owned();
-    // The value carries the gap behind the running mark.
+
     let value = format!(" {} running", app.world.running_count());
-    // The brand and the menus take the left of the header.
+
     let left = 30;
     let crumb_w = text_width(&crumb);
     if left + crumb_w + 2 > usize::from(area.width) {
@@ -1152,16 +1102,10 @@ fn header_parts(
     (crumb, status, value, note)
 }
 
-/// The column width of a text.
 fn text_width(text: &str) -> usize {
     text.chars().count()
 }
 
-/// The area of the list pane.
-///
-/// The rows of the shared painters start under the box title, so the list
-/// owner starts there too: the hit region of a row and the row on the screen
-/// are then the same row.
 fn list_area(area: Rect, wide: bool, visible: usize) -> Rect {
     let width = if wide {
         LIST_PANE_W
@@ -1176,11 +1120,6 @@ fn list_area(area: Rect, wide: bool, visible: usize) -> Rect {
     )
 }
 
-/// Give the list the keys and the hit region.
-///
-/// The shared painter draws the rows, so the list only has to own the
-/// focus: its bindings and its control are published here and the pane is
-/// painted over by the shared component.
 fn draw_list_owner(app: &App, ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1189,59 +1128,52 @@ fn draw_list_owner(app: &App, ui: &mut Ui<'_>, area: Rect) {
     termrock::List::new(crate::ACCOUNTS_LIST).draw(ui, area, &app.accounts.list, &rows);
 }
 
-/// The inspector content of the panel next to the list.
 struct Panel {
-    /// The title of the panel.
     title: String,
-    /// The meta of the title.
+
     meta: String,
-    /// The fields of the panel.
+
     fields: Vec<PanelField>,
-    /// The heading of the quota block and its meta.
+
     quota: Option<(String, String)>,
-    /// The quota meters of the panel.
+
     meters: Vec<PanelMeter>,
-    /// The validation line of the panel.
+
     validation: Option<PanelField>,
-    /// The status line of the panel.
+
     status: Option<PanelField>,
-    /// The inspector body of the registry summary.
+
     body: Vec<InspectLine>,
-    /// The buttons at the foot of the panel.
+
     buttons: Vec<(String, bool)>,
 }
 
-/// One field of the panel: the label, the wrapped value and the ink.
 struct PanelField {
-    /// The label of the field.
     label: String,
-    /// The value of the field, cut on the value column.
+
     parts: Vec<String>,
-    /// The ink of the value.
+
     ink: DrawerInk,
 }
 
-/// One quota meter of the panel.
 struct PanelMeter {
-    /// The label of the meter.
     label: String,
-    /// The readout inside the bar.
+
     readout: String,
-    /// The filled columns of the bar.
+
     fill: u16,
-    /// The empty columns of the bar.
+
     track: u16,
-    /// The tone of the bar.
+
     tone: DrawerTone,
-    /// The mark after the bar.
+
     mark: String,
-    /// Whether the mark is bold.
+
     mark_bold: bool,
-    /// The note after the mark, cut to the room of the note.
+
     note: String,
 }
 
-/// The panel of the selected node.
 fn panel_for(app: &App, selection: &Selection, room: usize, note_room: usize) -> Panel {
     match selection {
         Selection::Overview => {
@@ -1329,7 +1261,6 @@ fn panel_for(app: &App, selection: &Selection, room: usize, note_room: usize) ->
     }
 }
 
-/// One field of the panel, cut on the value column.
 fn field(label: String, value: String, ink: DrawerInk, room: usize) -> PanelField {
     PanelField {
         label,
@@ -1338,7 +1269,6 @@ fn field(label: String, value: String, ink: DrawerInk, room: usize) -> PanelFiel
     }
 }
 
-/// The fields of the account panel.
 fn account_fields(app: &App, account: &Account) -> Vec<(String, String, DrawerInk)> {
     let mut fields: Vec<(String, String, DrawerInk)> = vec![
         (
@@ -1446,7 +1376,6 @@ fn account_fields(app: &App, account: &Account) -> Vec<(String, String, DrawerIn
     fields
 }
 
-/// The workspaces that use the account.
 fn workspace_users(app: &App, account: &Account) -> Vec<String> {
     app.world
         .workspaces
@@ -1461,7 +1390,6 @@ fn workspace_users(app: &App, account: &Account) -> Vec<String> {
         .collect()
 }
 
-/// The quota meters of the account panel.
 fn account_meters(app: &App, account: &Account, note_room: usize) -> Vec<PanelMeter> {
     account
         .usage
@@ -1469,7 +1397,7 @@ fn account_meters(app: &App, account: &Account, note_room: usize) -> Vec<PanelMe
         .iter()
         .map(|window| {
             let pct = window.used_pct.unwrap_or(0);
-            // The bar is filled to the rounded share of its width.
+
             let fill = u16::from(pct)
                 .saturating_mul(METER_BAR_W)
                 .saturating_add(50)
@@ -1495,7 +1423,6 @@ fn account_meters(app: &App, account: &Account, note_room: usize) -> Vec<PanelMe
         .collect()
 }
 
-/// The note of a quota meter: the spend, the reset and the state.
 fn meter_detail(app: &App, window: &crate::domain::usage::QuotaWindow) -> String {
     let mut parts: Vec<String> = Vec::new();
     if let (Some(used), Some(limit)) = (window.used, window.limit)
@@ -1520,7 +1447,6 @@ fn meter_detail(app: &App, window: &crate::domain::usage::QuotaWindow) -> String
     parts.join(" · ")
 }
 
-/// The status line of the account panel.
 fn account_status(app: &App, account: &Account) -> Option<(String, DrawerInk)> {
     let issue = account.issue.as_ref()?;
     let ink = if issue.is_informational() || issue.code == IssueCode::QuotaUnsupported {
@@ -1542,7 +1468,6 @@ fn account_status(app: &App, account: &Account) -> Option<(String, DrawerInk)> {
     Some((text, ink))
 }
 
-/// The accounts of one provider, in registry order.
 fn provider_accounts(app: &App, provider: Provider) -> Vec<&Account> {
     app.world
         .accounts
@@ -1552,7 +1477,6 @@ fn provider_accounts(app: &App, provider: Provider) -> Vec<&Account> {
         .collect()
 }
 
-/// The inspector lines of the registry overview.
 fn registry_lines(app: &App, summary: &OverallSummary) -> Vec<InspectLine> {
     let mut lines = vec![
         InspectLine::Spans {
@@ -1709,7 +1633,6 @@ fn registry_lines(app: &App, summary: &OverallSummary) -> Vec<InspectLine> {
     lines
 }
 
-/// The inspector lines of one provider.
 fn provider_lines(app: &App, provider: Provider, members: &[&Account]) -> Vec<InspectLine> {
     let mut lines = vec![
         InspectLine::Prop {
@@ -1769,9 +1692,6 @@ fn provider_lines(app: &App, provider: Provider, members: &[&Account]) -> Vec<In
     lines
 }
 
-/// The narrow inspector band of the selected node.
-///
-/// Each entry is one band line: the label, then the value.
 fn narrow_facts(
     app: &App,
     selection: &Selection,
@@ -1839,7 +1759,6 @@ fn narrow_facts(
     facts
 }
 
-/// The heading of the narrow inspector band.
 fn narrow_heading(app: &App, selection: &Selection) -> (String, String) {
     let summary = OverallSummary::compute(&app.world.accounts.accounts);
     match selection {
@@ -1878,7 +1797,6 @@ fn narrow_heading(app: &App, selection: &Selection) -> (String, String) {
     }
 }
 
-/// The health text of the registry.
 fn health_text(app: &App, summary: &OverallSummary) -> String {
     let _ = app;
     let mut text = summary.health.label().to_owned();
@@ -2075,7 +1993,6 @@ fn thousands(value: usize) -> String {
     out
 }
 
-/// Cut `text` to `width` columns, ending on a word, and mark the cut.
 fn truncate(text: &str, width: usize) -> String {
     if text.chars().count() <= width {
         return text.to_owned();
@@ -2085,7 +2002,6 @@ fn truncate(text: &str, width: usize) -> String {
     cut
 }
 
-/// What the tree cursor stands for.
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Selection {
     Overview,
@@ -2111,7 +2027,6 @@ fn cursor_index(app: &App) -> Option<usize> {
     }
 }
 
-/// The cut names of the wide list.
 fn pane_names(tree: &Tree) -> Vec<String> {
     tree.rows
         .iter()
@@ -2126,7 +2041,6 @@ fn pane_names_for_width(tree: &Tree, pane_width: u16) -> Vec<String> {
         .collect()
 }
 
-/// The cut names of the narrow list.
 fn detail_names(area_width: u16, tree: &Tree) -> Vec<String> {
     tree.rows
         .iter()
@@ -2134,7 +2048,6 @@ fn detail_names(area_width: u16, tree: &Tree) -> Vec<String> {
         .collect()
 }
 
-/// The rows of the wide list.
 fn pane_rows<'a>(
     app: &App,
     tree: &'a Tree,
@@ -2161,7 +2074,6 @@ fn pane_rows<'a>(
         .collect()
 }
 
-/// The rows of the narrow list.
 fn detail_rows<'a>(
     app: &App,
     tree: &'a Tree,
@@ -2186,14 +2098,12 @@ fn detail_rows<'a>(
             tail: row.tail.as_deref(),
             tail_tone: row.tail_tone,
             selected: Some(index) == selected,
-            // The last row on the screen fades into the edge of the list when
-            // the list carries more rows below.
+
             faded: index == offset.saturating_add(shown).saturating_sub(1) && total > visible,
         })
         .collect()
 }
 
-/// The name column of a row of the wide list.
 fn pane_name_width(row: &TreeRow) -> usize {
     pane_name_width_for(row, LIST_PANE_W)
 }
@@ -2208,12 +2118,11 @@ fn pane_name_width_for(row: &TreeRow, pane_width: u16) -> usize {
     usize::from(right.saturating_sub(name_x))
 }
 
-/// The name column of a row of the narrow list.
 fn narrow_name_width(area_width: u16, row: &TreeRow) -> usize {
     let name_x = name_column(row);
     let tail =
         u16::try_from(row.tail.as_ref().map_or(0, |tail| tail.chars().count())).unwrap_or(u16::MAX);
-    // The tail sits against the scrollbar, three columns clear of the name.
+
     let right = area_width
         .saturating_sub(4)
         .saturating_sub(1)
@@ -2222,7 +2131,6 @@ fn narrow_name_width(area_width: u16, row: &TreeRow) -> usize {
     usize::from(right.saturating_sub(name_x))
 }
 
-/// The column of the name of a row, from the left edge of the screen.
 fn name_column(row: &TreeRow) -> u16 {
     match row.role {
         AccountRole::Root | AccountRole::Group => 7,
@@ -2230,7 +2138,6 @@ fn name_column(row: &TreeRow) -> u16 {
     }
 }
 
-/// How many rows the list shows in one screenful.
 fn visible_rows(area: Rect, wide: bool) -> usize {
     let rows = if wide {
         area.height.saturating_sub(6)
@@ -2240,16 +2147,11 @@ fn visible_rows(area: Rect, wide: bool) -> usize {
     usize::from(rows.max(1))
 }
 
-/// The first visible row of the list.
-///
-/// The list owns the scroll: its offset keeps the cursor on the screen, and
-/// the rows the painter draws are the rows the list shows.
 fn list_offset(app: &App, total: usize, visible: usize) -> usize {
     let offset = app.accounts.list.scroll().offset();
     offset.min(total.saturating_sub(visible))
 }
 
-/// The title of the list box, cut to the room left by the summary.
 fn list_title(app: &App, selection: &Selection, summary: &str, area: Rect, wide: bool) -> String {
     let inner = if app.filter_active() {
         format!("Accounts · filter {}", app.accounts.filter_query.trim())
@@ -2259,8 +2161,7 @@ fn list_title(app: &App, selection: &Selection, summary: &str, area: Rect, wide:
             Selection::Overview | Selection::Account(_) => "Accounts".to_owned(),
         }
     };
-    // The title stops one column before the summary, so the dashes between
-    // them always have a column to draw.
+
     let title_x = area.x.saturating_add(3);
     let summary_x = if wide {
         area.x
@@ -2296,7 +2197,6 @@ fn list_title_for_box(app: &App, selection: &Selection, summary: &str, master_bo
     format!(" {inner} ")
 }
 
-/// The registry counts of the list box.
 fn list_summary(app: &App) -> String {
     let summary = OverallSummary::compute(&app.world.accounts.accounts);
     format!(
@@ -2307,7 +2207,6 @@ fn list_summary(app: &App) -> String {
     )
 }
 
-/// The breadcrumb of the header.
 fn crumb(app: &App, selection: &Selection) -> String {
     match selection {
         Selection::Overview => "Accounts › Overview".to_owned(),
@@ -2325,10 +2224,6 @@ fn crumb(app: &App, selection: &Selection) -> String {
     }
 }
 
-/// The status of the header.
-///
-/// A transient app message takes the slot; otherwise the slot shows how many
-/// accounts are refreshing.
 fn header_status(app: &App) -> String {
     let refreshing = app
         .world
@@ -2340,19 +2235,16 @@ fn header_status(app: &App) -> String {
     format!("⠋ refreshing {refreshing}")
 }
 
-/// The accounts that carry a warning mark.
 fn warning_count(app: &App) -> usize {
     let summary = OverallSummary::compute(&app.world.accounts.accounts);
     summary.counts.warnings
 }
 
-/// The accounts that carry a danger mark.
 fn danger_count(app: &App) -> usize {
     let summary = OverallSummary::compute(&app.world.accounts.accounts);
     summary.counts.exhausted + summary.counts.failed
 }
 
-/// The credential line of an account: the reference and its masked tail.
 fn credential_line(_app: &App, account: &Account) -> String {
     match &account.source {
         CredentialSource::OnePassword(reference) => {
@@ -2386,7 +2278,6 @@ fn credential_line(_app: &App, account: &Account) -> String {
     }
 }
 
-/// The freshness line of an account.
 fn freshness_meta(app: &App, account: &Account) -> String {
     let phase = account.usage.freshness.phase;
     let age = account
@@ -2403,7 +2294,6 @@ fn freshness_meta(app: &App, account: &Account) -> String {
     }
 }
 
-/// The validation line of an account.
 fn validation_line(account: &Account) -> (String, String) {
     let material = if account.validation.level().is_some() {
         "✓ material"
@@ -2429,7 +2319,6 @@ fn validation_line(account: &Account) -> (String, String) {
     )
 }
 
-/// The tail label of an account, for the provider inspector.
 trait TailLabel {
     fn tail_label(&self, app: &App) -> Option<String>;
 }
@@ -2440,10 +2329,6 @@ impl TailLabel for Account {
     }
 }
 
-/// The room of the panel values, measured in columns.
-///
-/// The values sit in the value column of the panel and stop at the panel
-/// edge, so a long value wraps on the same columns as the reference.
 fn panel_value_room(area: Rect) -> usize {
     let content_x = area.x.saturating_add(LIST_PANE_W).saturating_add(3);
     let body_right = area.right().saturating_sub(3);
@@ -2451,7 +2336,6 @@ fn panel_value_room(area: Rect) -> usize {
     usize::from(body_right.saturating_sub(value_x))
 }
 
-/// The room of the meter notes, measured in columns.
 fn panel_note_room(area: Rect) -> usize {
     let content_x = area.x.saturating_add(LIST_PANE_W).saturating_add(3);
     let body_right = area.right().saturating_sub(3);
@@ -2462,14 +2346,13 @@ fn panel_note_room(area: Rect) -> usize {
     usize::from(body_right.saturating_sub(note_x))
 }
 
-/// The lines of the panel, in the order the shared painter draws them.
 fn panel_lines<'a>(
     panel: &'a Panel,
     area: Rect,
     buttons: &'a [DrawerButton<'a>],
 ) -> Vec<DrawerLine<'a>> {
     let mut lines = panel_content_lines(panel);
-    // The buttons sit at the foot of the panel.
+
     let panel_rows = usize::from(area.height.saturating_sub(4));
     while lines.len() + 2 < panel_rows {
         lines.push(DrawerLine::Blank);
@@ -2479,10 +2362,6 @@ fn panel_lines<'a>(
     lines
 }
 
-/// Typed title, fields, quota rows, validation and status before panel padding.
-///
-/// The live scroll owner uses this same source without viewport-sized padding;
-/// the frozen whole painter still adds its blank tail and buttons.
 fn panel_content_lines<'a>(panel: &'a Panel) -> Vec<DrawerLine<'a>> {
     let mut lines = vec![
         DrawerLine::Title {
@@ -2495,7 +2374,6 @@ fn panel_content_lines<'a>(panel: &'a Panel) -> Vec<DrawerLine<'a>> {
         push_field(&mut lines, field);
     }
     if let Some((label, meta)) = &panel.quota {
-        // The quota block sits under a blank row.
         lines.push(DrawerLine::Blank);
         lines.push(DrawerLine::Heading { label, meta });
     }
@@ -2521,8 +2399,6 @@ fn panel_content_lines<'a>(panel: &'a Panel) -> Vec<DrawerLine<'a>> {
     lines
 }
 
-/// Push one field of the panel: the first part under the label, the rest
-/// under the value column.
 fn push_field<'a>(lines: &mut Vec<DrawerLine<'a>>, field: &'a PanelField) {
     for (index, part) in field.parts.iter().enumerate() {
         if index == 0 {
@@ -2541,10 +2417,6 @@ fn push_field<'a>(lines: &mut Vec<DrawerLine<'a>>, field: &'a PanelField) {
     }
 }
 
-/// Wrap a panel value on the value column.
-///
-/// The wrap is the reference wrap: a greedy word wrap on the value column,
-/// with a hanging indent after the first run of three spaces.
 fn wrap_value(text: &str, room: usize) -> Vec<String> {
     let room = room.max(8);
     let hang = hang_column(text, room);
@@ -2582,7 +2454,6 @@ fn wrap_value(text: &str, room: usize) -> Vec<String> {
     lines
 }
 
-/// Split a word that does not fit the room.
 fn hard_wrap(
     line: &mut String,
     used: &mut usize,
@@ -2603,10 +2474,6 @@ fn hard_wrap(
     }
 }
 
-/// The column of the hanging indent of a value.
-///
-/// The indent is the text before the first run of three spaces, so a value
-/// with a gap hangs its continuation under the text that follows the gap.
 fn hang_column(text: &str, room: usize) -> usize {
     let Some(at) = text.find("   ") else {
         return 0;
@@ -2619,10 +2486,6 @@ fn hang_column(text: &str, room: usize) -> usize {
     if column * 2 > room { 0 } else { column }
 }
 
-/// The hints of the page, cut to the room the hint bar has.
-///
-/// The bar keeps the pinned keys and drops the rest from the end, and marks
-/// the cut with an ellipsis.
 fn fit_hints<'a>(hints: &[FilterHint<'a>], width: u16) -> (Vec<FilterHint<'a>>, String) {
     let room = usize::from(width.saturating_sub(1));
     let cost = |keep: &[usize]| -> usize {
@@ -2658,7 +2521,6 @@ fn fit_hints<'a>(hints: &[FilterHint<'a>], width: u16) -> (Vec<FilterHint<'a>>, 
     )
 }
 
-/// The hints the bar keeps.
 fn kept_hints<'a>(hints: &[FilterHint<'a>], keep: &[usize]) -> Vec<FilterHint<'a>> {
     keep.iter()
         .map(|&index| FilterHint {
@@ -2668,12 +2530,10 @@ fn kept_hints<'a>(hints: &[FilterHint<'a>], keep: &[usize]) -> Vec<FilterHint<'a
         .collect()
 }
 
-/// The columns one hint takes, with the gap behind it.
 fn hint_cost(hint: &FilterHint<'_>) -> usize {
     text_width(hint.key) + 1 + text_width(hint.action) + 2
 }
 
-/// The keys the hint bar never drops.
 fn hint_pinned(key: &str) -> bool {
     matches!(key, "Esc" | "?" | "F1")
 }

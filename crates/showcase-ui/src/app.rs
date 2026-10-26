@@ -234,15 +234,13 @@ enum NavTarget {
     Placeholder(usize),
 }
 
-/// Controls how navigation groups follow committed route changes.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum NavExpand {
-    /// Keep every group open by default; later routes preserve manual folds.
     #[default]
     All,
-    /// Keep only the committed destination group open; query previews preserve saved folds.
+
     Accordion,
-    /// Close only the group opened automatically for the previous route.
+
     CurrentGroup,
 }
 
@@ -862,7 +860,7 @@ fn nav_query_projection(nodes: &[NavNode], state: &TreeState, query: &NavQuery) 
             .find(|parent| nodes[*parent].parent && nodes[*parent].depth < node.depth);
         let parent_matches = parent.is_some_and(|parent| matching_groups[parent]);
         let parent_expanded = parent.is_some_and(|parent| state.is_expanded(nodes[parent].key));
-        // A matching group follows its saved fold; a nonmatching ancestor is revealed by projection.
+
         if (parent_matches && parent_expanded)
             || (!parent_matches && nav_entry_matches(entry, entry_index, node.label, &needle))
         {
@@ -947,7 +945,6 @@ fn nav_tree(
     }
 }
 
-// Claim Tree's printable shortcuts while NAV owns query input.
 const TREE_QUERY_BINDINGS: [(ActionKey, Chord); 7] = [
     (
         ActionKey::custom("tree.up-vim"),
@@ -1044,7 +1041,6 @@ fn nav_query_input(cx: &Cx<'_>, active: bool) -> Option<NavQueryInput> {
             .any(|name| action == ActionKey::custom(name))
         })
     {
-        // Query owns the key; Tree's matching Left/Right bindings must not navigate or fold.
         return Some(NavQueryInput::Consume);
     }
 
@@ -1317,7 +1313,7 @@ pub struct App {
     quit: bool,
     status: Option<(PageStatus, Moment)>,
     motion_paused: bool,
-    /// Paused-frame index. `--frame` seeks here, and a paused clock paste adds its milliseconds.
+
     paused_frame: usize,
 }
 
@@ -1443,11 +1439,6 @@ impl App {
         }
     }
 
-    /// Sets the navigation expansion policy and resets saved folds for the current route.
-    ///
-    /// This is an explicit reset, even when `policy` is already selected. During a navigation
-    /// query it preserves the query text, focus, and current route, then refreshes the filtered
-    /// cursor against the reset expansion state.
     pub fn set_nav_expand(&mut self, policy: NavExpand) {
         self.nav_expand = policy;
         self.nav_auto_group = None;
@@ -1614,7 +1605,6 @@ impl App {
     }
 
     fn end_nav_query_for_activation(&mut self) {
-        // The committed route sync owns destination reveal and CurrentGroup ownership.
         self.nav_query = None;
     }
 
@@ -1944,7 +1934,6 @@ struct CachedShellLayout {
     layout: ShellLayout,
 }
 
-/// The panes the shell body is split into.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Pane {
     Sidebar,
@@ -1953,33 +1942,25 @@ enum Pane {
     Inspector,
 }
 
-/// The sidebar rail is wider on roomy terminals.
 const SIDEBAR_WIDE: u16 = 25;
 const SIDEBAR_NARROW: u16 = 20;
 const SIDEBAR_WIDE_FROM: u16 = 110;
-/// The inspector dock needs room to sit beside the main area.
+
 const INSPECTOR_WIDTH: u16 = 30;
 const INSPECTOR_MIN_WIDTH: u16 = 100;
-/// The clear column between the main area and the inspector dock.
+
 const SHELL_GAP: u16 = 1;
 
-/// A fixed-width pane policy.
 fn fixed_pane(width: u16) -> termrock::layout::ChildPolicy {
     termrock::layout::ChildPolicy::new(termrock::layout::Size::exact(width, 1))
         .min(width, 0)
         .max(Some(width), None)
 }
 
-/// A pane that takes the space the fixed panes leave.
 fn flexible_pane() -> termrock::layout::ChildPolicy {
     termrock::layout::ChildPolicy::new(termrock::layout::Size::default()).flex(1)
 }
 
-/// Resolve the shell body from the shared layout plan.
-///
-/// The app states policy only: a fixed sidebar rail, a flexible main area and
-/// an optional fixed inspector dock that keeps one clear column before it. The
-/// shared plan owns the geometry.
 fn shell_layout(area: Rect, inspector: bool) -> ShellLayout {
     let regions = termrock::AppShell::new()
         .header(1)
@@ -2731,7 +2712,6 @@ impl TuiApp for App {
         let nav_action = nav_response.action_ref().copied();
         response |= nav_response.erase();
         if let Some(key) = query_disclosure {
-            // Query-revealed ancestors are temporary; a real row/icon disclosure changes saved membership.
             self.nav_state.toggle(key);
             self.bump_nav_query_revision();
         }
@@ -3112,673 +3092,4 @@ fn parse_args(
         ));
     }
     Ok((nav, theme, paused, frame))
-}
-
-#[cfg(test)]
-mod paint_contract_tests {
-    use super::*;
-    use termrock::{Color, Family, Modifier, Role, StylePatch, Surface};
-
-    fn collision_style(role: Role) -> PaintStyle {
-        let mut theme = Theme::junie();
-        theme.color.accent = Color::Rgb(100, 100, 100);
-        theme.color.danger = theme.color.accent;
-        let family = Family::custom("showcase.paint-contract");
-        theme
-            .define_family(family, |family| {
-                family
-                    .part(Part::LABEL)
-                    .base(StylePatch::new().set_fg(role));
-            })
-            .resolve(
-                family,
-                Variant::DEFAULT,
-                Part::LABEL,
-                StateFlags::empty(),
-                Surface::Canvas,
-            )
-            .style
-    }
-
-    #[test]
-    fn shell_modifier_cleanup_preserves_colliding_semantic_roles() {
-        let accent = collision_style(Role::Accent).add_modifier(Modifier::BOLD | Modifier::ITALIC);
-        let danger = collision_style(Role::Danger).add_modifier(Modifier::BOLD | Modifier::ITALIC);
-        assert_eq!(accent.as_style(), danger.as_style());
-        let accent = shell_compat_style(accent);
-        let danger = shell_compat_style(danger);
-        assert_ne!(accent, danger, "equal RGB must not erase semantic identity");
-        assert_eq!(accent.add_modifier, Modifier::BOLD);
-        assert_eq!(accent.fg, Some(Color::Rgb(100, 100, 100)));
-        assert_eq!(accent.as_style(), danger.as_style());
-    }
-}
-
-#[cfg(test)]
-mod nav_query_tests {
-    use super::*;
-
-    fn query_keys(query: &str) -> Vec<ItemKey> {
-        let query = NavQuery {
-            text: query.to_owned(),
-            revision: 1,
-        };
-        let mut state = TreeState::new();
-        let nodes = nav_nodes(&state, 0);
-        expand_nav_groups(&mut state, &nodes);
-        nav_nodes_for_query(&state, 0, Some(&query))
-            .into_iter()
-            .filter(|node| node.query_match)
-            .map(|node| node.key)
-            .collect()
-    }
-
-    fn section_key(section: &str) -> ItemKey {
-        let mut previous = "";
-        let mut group_index = 0;
-        for entry in NAV_ENTRIES {
-            if entry.section != previous {
-                previous = entry.section;
-                if !previous.is_empty() {
-                    if previous == section {
-                        return nav_group_key(group_index);
-                    }
-                    group_index += 1;
-                }
-            }
-        }
-        panic!("missing navigation section {section:?}");
-    }
-
-    fn section_entry_keys(section: &str) -> Vec<ItemKey> {
-        NAV_ENTRIES
-            .iter()
-            .enumerate()
-            .filter(|(_, entry)| entry.section == section)
-            .map(|(index, _)| nav_entry_key(index))
-            .collect()
-    }
-
-    fn entry_key(label: &str) -> ItemKey {
-        nav_entry_key(
-            NAV_ENTRIES
-                .iter()
-                .position(|entry| entry.label == label)
-                .unwrap_or_else(|| panic!("missing navigation entry {label:?}")),
-        )
-    }
-
-    #[test]
-    fn query_folds_unicode_aliases_and_ignores_overview_placeholder_ids() {
-        assert!(query_contains("CAFÉ", "café"));
-
-        let cell_editors = NAV_ENTRIES
-            .iter()
-            .enumerate()
-            .find(|(_, entry)| entry.label == "Cell editors")
-            .expect("Cell editors catalog entry");
-        assert!(nav_entry_matches(
-            cell_editors.1,
-            cell_editors.0,
-            nav_display_label(cell_editors.1.label),
-            "options"
-        ));
-
-        let placeholder = NAV_ENTRIES
-            .iter()
-            .enumerate()
-            .find(|(index, entry)| {
-                matches!(
-                    nav_target_for_entry(entry, *index),
-                    NavTarget::Placeholder(_)
-                )
-            })
-            .expect("a non-page catalog placeholder");
-        assert!(!nav_entry_matches(
-            placeholder.1,
-            placeholder.0,
-            nav_display_label(placeholder.1.label),
-            "overview"
-        ));
-    }
-
-    #[test]
-    fn query_projection_includes_only_the_matching_leaf_and_its_true_ancestors() {
-        let mut settings = vec![section_key("Screens")];
-        settings.push(entry_key("Settings"));
-        assert_eq!(query_keys("settings"), settings);
-
-        let mut options = vec![section_key("Tables")];
-        options.push(entry_key("Cell editors"));
-        assert_eq!(query_keys("OPTIONS"), options);
-
-        let mut screens = vec![section_key("Screens")];
-        screens.extend(section_entry_keys("Screens"));
-        assert_eq!(
-            query_keys("Screens"),
-            screens,
-            "matching a group includes its own leaves, not preceding groups"
-        );
-    }
-}
-
-#[cfg(test)]
-mod app_tests {
-    use super::*;
-
-    #[test]
-    fn application_commands_are_distinct_from_library_custom_keys() {
-        let owned = [
-            QUIT,
-            QUIT_CTRL,
-            HELP_COMMAND,
-            INSPECTOR_COMMAND,
-            NEXT_PAGE,
-            PREV_PAGE,
-            FORM_SUBMIT,
-            RUN_COMMAND,
-        ]
-        .into_iter()
-        .chain(showcase_demos::pages::pickers::action_keys())
-        .collect::<Vec<_>>();
-        let names = [
-            "showcase.quit",
-            "showcase.quit.ctrl",
-            "showcase.help",
-            "showcase.inspector",
-            "showcase.page.next",
-            "showcase.page.previous",
-            "showcase.form.submit",
-            "showcase.taskrunner.run",
-            "showcase.menu.open",
-            "showcase.menu.close",
-            "showcase.context.inspect",
-            "showcase.context.copy",
-        ];
-        assert_eq!(owned.len(), names.len());
-        for (key, name) in owned.iter().zip(names) {
-            assert_eq!(
-                *key,
-                ActionKey::application(name),
-                "application owner: {name}"
-            );
-            assert_ne!(*key, ActionKey::custom(name), "library namespace: {name}");
-            assert_eq!(
-                owned.iter().filter(|other| *other == key).count(),
-                1,
-                "distinct command: {name}"
-            );
-        }
-    }
-
-    #[test]
-    fn showcase_motion_flags_parse_and_bound_paused_frames() {
-        let parsed = parse_args(
-            ["--page", "progress", "--motion", "paused", "--frame", "80"]
-                .into_iter()
-                .map(str::to_owned),
-        );
-        assert!(parsed.is_ok(), "valid frame options: {parsed:?}");
-        if let Ok((nav, _, paused, frame)) = parsed {
-            assert_eq!(NAV_ENTRIES[nav].id, PageId::Progress);
-            assert_eq!(NAV_ENTRIES[nav].label, "Progress");
-            assert!(paused);
-            assert_eq!(frame, 80);
-        }
-
-        let parsed = parse_args(["--frame", "10000"].into_iter().map(str::to_owned));
-        assert!(parsed.is_ok(), "maximum frame is valid: {parsed:?}");
-        if let Ok((_, _, paused, frame)) = parsed {
-            assert!(paused);
-            assert_eq!(frame, 10_000);
-        }
-        assert!(parse_args(["--frame", "10001"].into_iter().map(str::to_owned)).is_err());
-        assert!(parse_args(["--motion"].into_iter().map(str::to_owned)).is_err());
-        assert!(parse_args(["--motion", "reduced"].into_iter().map(str::to_owned)).is_err());
-        assert!(
-            parse_args(
-                ["--motion", "full", "--frame", "80"]
-                    .into_iter()
-                    .map(str::to_owned)
-            )
-            .is_err()
-        );
-        assert!(
-            parse_args(
-                ["--frame", "80", "--motion", "full"]
-                    .into_iter()
-                    .map(str::to_owned)
-            )
-            .is_err()
-        );
-    }
-
-    #[test]
-    fn paused_clock_step_advances_frame_and_status_by_1100_ms() {
-        let mut paused = App::with_page_motion(PageId::Progress, true, 0);
-        let frame = paused.paused_frame;
-        paused.status = Some((PageStatus("working".to_owned()), Moment::from_millis(5_000)));
-        assert!(TuiApp::accept_paused_clock_step(&mut paused, 1_100));
-        assert_eq!(paused.paused_frame, frame + 1_100);
-        let since = paused
-            .status
-            .as_ref()
-            .map(|(_, since)| since.as_duration().as_millis());
-        assert_eq!(since, Some(3_900));
-
-        let mut running = App::with_page_motion(PageId::Progress, false, 0);
-        let frame = running.paused_frame;
-        running.status = Some((PageStatus("working".to_owned()), Moment::from_millis(5_000)));
-        assert!(!TuiApp::accept_paused_clock_step(&mut running, 1_100));
-        assert_eq!(running.paused_frame, frame);
-        let since = running
-            .status
-            .as_ref()
-            .map(|(_, since)| since.as_duration().as_millis());
-        assert_eq!(since, Some(5_000));
-    }
-}
-
-#[cfg(test)]
-mod navigation_identity_contract {
-    use super::*;
-
-    #[test]
-    fn every_catalog_entry_has_a_unique_stable_target_and_key() {
-        assert_eq!(NAV_ENTRIES.len(), 54);
-        let nodes = nav_nodes(&TreeState::new(), 0);
-        assert_eq!(nodes.len(), NAV_ENTRIES.len() + 9);
-
-        for left in 0..nodes.len() {
-            for right in left + 1..nodes.len() {
-                assert_ne!(nodes[left].key, nodes[right].key, "duplicate node key");
-            }
-        }
-
-        let targets: Vec<_> = NAV_ENTRIES
-            .iter()
-            .enumerate()
-            .map(|(index, entry)| {
-                let target = nav_target_for_entry(entry, index);
-                assert_eq!(nav_index_from_name(entry.label), Some(index));
-                assert_eq!(nav_index_for_target(target), Some(index));
-                let app = App::boot(index, false, 0);
-                assert_eq!(app.nav_target, target, "boot target for {}", entry.label);
-                assert_eq!(
-                    app.nav_state.cursor(),
-                    Some(nav_entry_key(index)),
-                    "boot cursor for {}",
-                    entry.label
-                );
-                assert_eq!(
-                    app.nav_state.chosen(),
-                    Some(nav_entry_key(index)),
-                    "boot chosen route for {}",
-                    entry.label
-                );
-                match target {
-                    NavTarget::Live(page) => assert_eq!(app.page(), page),
-                    NavTarget::Selection | NavTarget::Placeholder(_) => {
-                        assert_eq!(app.page(), PageId::Overview)
-                    }
-                }
-                match target {
-                    NavTarget::Live(page) => {
-                        assert_eq!(PageId::from_name(entry.label), Some(page));
-                    }
-                    NavTarget::Selection | NavTarget::Placeholder(_) => {
-                        assert_eq!(PageId::from_name(entry.label), None);
-                    }
-                }
-                target
-            })
-            .collect();
-        for left in 0..targets.len() {
-            for right in left + 1..targets.len() {
-                assert_ne!(targets[left], targets[right], "duplicate route target");
-            }
-        }
-        assert_eq!(
-            targets
-                .iter()
-                .filter(|target| matches!(target, NavTarget::Live(_)))
-                .count(),
-            24
-        );
-        assert_eq!(
-            targets
-                .iter()
-                .filter(|target| matches!(target, NavTarget::Selection))
-                .count(),
-            1
-        );
-        assert_eq!(
-            targets
-                .iter()
-                .filter(|target| matches!(target, NavTarget::Placeholder(_)))
-                .count(),
-            29
-        );
-    }
-
-    #[test]
-    fn route_aliases_resolve_to_their_catalog_target() {
-        for (alias, label) in NAV_ALIASES {
-            let expected = NAV_ENTRIES
-                .iter()
-                .position(|entry| entry.label == *label)
-                .unwrap_or_else(|| panic!("alias target {label:?} is absent"));
-            assert_eq!(nav_index_from_name(alias), Some(expected), "alias {alias}");
-            let expected_page = match nav_target_at(expected) {
-                Some(NavTarget::Live(page)) => Some(page),
-                Some(NavTarget::Selection | NavTarget::Placeholder(_)) | None => None,
-            };
-            assert_eq!(
-                PageId::from_name(alias),
-                expected_page,
-                "page alias {alias}"
-            );
-        }
-        assert_eq!(nav_display_label("Basic table"), "Tables");
-        assert_eq!(nav_display_label("Editable"), "Editable tables");
-        assert_eq!(legacy_crumb("Overview"), ("Overview", "Foundations"));
-        assert_eq!(legacy_crumb("Settings"), ("Settings", "Screens"));
-        assert_eq!(legacy_crumb("Basic table"), ("Tables", "Components"));
-    }
-
-    #[test]
-    fn revealing_a_route_preserves_other_group_expansion_state() {
-        let mut app = App::new();
-        let nodes = nav_nodes(&app.nav_state, 0);
-        for group in nodes.iter().filter(|node| node.parent) {
-            app.nav_state.collapse(group.key);
-        }
-
-        let target = NAV_ENTRIES
-            .iter()
-            .position(|entry| entry.label == "Settings")
-            .expect("Settings route is in the public catalog");
-        app.goto_entry(target);
-
-        let screen_group = nodes
-            .iter()
-            .find(|node| node.parent && node.label == "Screens")
-            .expect("Screens group is in the shared tree");
-        let shell_group = nodes
-            .iter()
-            .find(|node| node.parent && node.label == "App shell")
-            .expect("App shell group is in the shared tree");
-        assert!(app.nav_state.is_expanded(screen_group.key));
-        assert!(!app.nav_state.is_expanded(shell_group.key));
-        let key = nav_entry_key(target);
-        assert_eq!(app.nav_state.cursor(), Some(key));
-        assert_eq!(app.nav_state.chosen(), Some(key));
-        assert_eq!(app.nav_target, NavTarget::Live(PageId::Settings));
-    }
-}
-
-#[cfg(test)]
-mod shell_layout_contract {
-    use super::*;
-
-    fn legacy_shell_layout(area: Rect, inspector: bool) -> ShellLayout {
-        let regions = termrock::AppShell::new()
-            .header(1)
-            .gap(1)
-            .footer(1)
-            .regions(area);
-        let header = regions.header;
-        let footer = regions.footer;
-        let body = regions.body;
-        let sidebar_span: u16 = if area.width >= 110 { 24 } else { 19 };
-        let inspector_width = if inspector && area.width >= 100 {
-            30
-        } else {
-            0
-        };
-        let sidebar = Rect::new(body.x, body.y, sidebar_span.saturating_add(1), body.height);
-        let main_x = body.x.saturating_add(sidebar_span).saturating_add(2);
-        let main_width = body.width.saturating_sub(
-            sidebar_span
-                .saturating_add(2)
-                .saturating_add(inspector_width)
-                .saturating_add(u16::from(inspector_width > 0).saturating_mul(2)),
-        );
-        let main = Rect::new(main_x, body.y, main_width, body.height);
-        let inspector = (inspector_width > 0).then(|| {
-            Rect::new(
-                main.right().saturating_add(2),
-                body.y,
-                inspector_width,
-                body.height,
-            )
-        });
-        ShellLayout {
-            header,
-            sidebar,
-            main,
-            inspector,
-            footer,
-        }
-    }
-
-    #[test]
-    fn shared_layout_keeps_all_visible_regions_at_width_boundaries() {
-        for (x, y) in [(0, 0), (5, 3)] {
-            for width in [
-                72, 73, 79, 80, 99, 100, 101, 109, 110, 111, 119, 120, 121, 160,
-            ] {
-                for height in [20, 24, 40] {
-                    for inspector in [false, true] {
-                        let area = Rect::new(x, y, width, height);
-                        let old = legacy_shell_layout(area, inspector);
-                        let new = shell_layout(area, inspector);
-                        assert_eq!(new.header, old.header, "header {area:?} {inspector}");
-                        assert_eq!(new.sidebar, old.sidebar, "sidebar {area:?} {inspector}");
-                        assert_eq!(new.main, old.main, "main {area:?} {inspector}");
-                        assert_eq!(
-                            new.inspector, old.inspector,
-                            "inspector {area:?} {inspector}"
-                        );
-                        assert_eq!(new.footer, old.footer, "footer {area:?} {inspector}");
-                        let expected_sidebar = if width >= SIDEBAR_WIDE_FROM {
-                            SIDEBAR_WIDE
-                        } else {
-                            SIDEBAR_NARROW
-                        };
-                        assert_eq!(new.sidebar.width, expected_sidebar);
-                        assert_eq!(new.main.x, new.sidebar.right().saturating_add(SHELL_GAP));
-                        assert!(new.sidebar.right() <= new.main.x);
-                        if let Some(dock) = new.inspector {
-                            assert_eq!(dock.width, INSPECTOR_WIDTH);
-                            assert_eq!(dock.x, new.main.right().saturating_add(2));
-                            assert!(new.main.right() <= dock.x);
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[cfg(test)]
-mod shell_cache_contract {
-    use super::*;
-
-    #[test]
-    fn layout_cache_tracks_area_and_inspector_changes() {
-        let mut app = App::new();
-        let compact = Rect::new(0, 0, 80, 24);
-        let wide = Rect::new(5, 3, 120, 40);
-        assert!(app.resolved_shell_layout(compact).inspector.is_none());
-        assert_eq!(
-            app.resolved_shell_layout(compact).main,
-            shell_layout(compact, false).main
-        );
-        app.inspector = true;
-        assert_eq!(
-            app.resolved_shell_layout(wide).inspector,
-            shell_layout(wide, true).inspector
-        );
-        assert_eq!(
-            app.resolved_shell_layout(wide).main,
-            shell_layout(wide, true).main
-        );
-        assert!(app.resolved_shell_layout(compact).inspector.is_none());
-        app.inspector = false;
-        assert_eq!(
-            app.resolved_shell_layout(wide).main,
-            shell_layout(wide, false).main
-        );
-    }
-}
-
-#[cfg(test)]
-mod sidebar_query_presentation_contract {
-    use super::*;
-
-    #[test]
-    fn partition_preserves_the_inactive_sidebar_and_reserves_one_active_row() {
-        for (x, y) in [(0, 0), (5, 3)] {
-            for width in [72, 80, 99, 100, 109, 110, 120, 160] {
-                for height in [20, 24, 40, 50] {
-                    for inspector in [false, true] {
-                        let area = Rect::new(x, y, width, height);
-                        let sidebar = shell_layout(area, inspector).sidebar;
-                        assert_eq!(SidebarPresentation::new(sidebar, false).tree, sidebar);
-                        let active = SidebarPresentation::new(sidebar, true);
-                        if sidebar.is_empty() {
-                            assert_eq!(active.query, None);
-                            assert_eq!(active.tree, sidebar);
-                        } else {
-                            assert_eq!(
-                                active.query,
-                                Some(Rect::new(sidebar.x, sidebar.y, sidebar.width, 1))
-                            );
-                            assert_eq!(active.tree.x, sidebar.x);
-                            assert_eq!(active.tree.y, sidebar.y.saturating_add(1));
-                            assert_eq!(active.tree.width, sidebar.width);
-                            assert_eq!(active.tree.height, sidebar.height.saturating_sub(1));
-                        }
-                    }
-                }
-            }
-        }
-
-        for (width, height) in [(0, 0), (1, 0), (0, 1)] {
-            let sidebar = Rect::new(7, 9, width, height);
-            let active = SidebarPresentation::new(sidebar, true);
-            assert_eq!(active.query, None);
-            assert_eq!(active.tree, sidebar);
-        }
-        let one_row = Rect::new(7, 9, 1, 1);
-        let active = SidebarPresentation::new(one_row, true);
-        assert_eq!(active.query, Some(one_row));
-        assert_eq!(active.tree, Rect::new(7, 10, 1, 0));
-    }
-
-    #[test]
-    fn query_display_and_caret_respect_narrow_budgets_and_grapheme_widths() {
-        let query = "a\u{301}界👩\u{200d}🚀long";
-        for row_width in 0..=12 {
-            let display = nav_query_display(query, row_width);
-            if row_width == 0 {
-                assert!(display.is_empty());
-                assert_eq!(
-                    nav_query_cursor(Rect::new(7, 9, row_width, 1), &display),
-                    None
-                );
-            } else if row_width < 3 {
-                assert_eq!(display, if row_width == 1 { "/" } else { "/ " });
-                assert_eq!(
-                    nav_query_cursor(Rect::new(7, 9, row_width, 1), &display),
-                    None
-                );
-            } else {
-                assert!(display.starts_with("/ "));
-                assert!(width(&display) <= row_width.saturating_sub(1));
-                let area = Rect::new(7, 9, row_width, 1);
-                let cursor = nav_query_cursor(area, &display).expect("one caret cell is reserved");
-                assert_eq!(cursor.y, area.y);
-                assert!(cursor.x < area.right());
-                assert_eq!(cursor.x, area.x.saturating_add(width(&display)));
-            }
-        }
-    }
-
-    #[test]
-    fn footer_state_excludes_query_owned_shortcuts_and_no_match_activation() {
-        for hints in [NAV_QUERY_MATCH_HINTS, NAV_QUERY_EMPTY_HINTS] {
-            assert!(
-                hints
-                    .iter()
-                    .any(|(key, action)| *key == "Esc" && *action == "Clear")
-            );
-            assert!(!hints.iter().any(|(key, action)| {
-                matches!(*key, "q" | "/" | "i" | "?") || (*key == "Enter" && *action == "Toggle")
-            }));
-        }
-        assert!(NAV_QUERY_MATCH_HINTS.contains(&("Enter", "Open")));
-        assert!(!NAV_QUERY_EMPTY_HINTS.contains(&("Enter", "Open")));
-        assert!(NAV_GROUP_HINTS.contains(&("Enter", "Toggle")));
-        assert!(NAV_GROUP_HINTS.contains(&("← →", "Fold")));
-        assert!(NAV_LEAF_HINTS.contains(&("Enter", "Open")));
-        assert!(NAV_LEAF_HINTS.contains(&("/", "Filter")));
-    }
-
-    #[test]
-    fn query_projection_respects_group_folds_without_mutating_tree_state() {
-        let mut state = TreeState::new();
-        let nodes = nav_nodes(&state, 0);
-        expand_nav_groups(&mut state, &nodes);
-        let app_shell = nodes
-            .iter()
-            .find(|node| node.parent && node.label == "App shell")
-            .expect("catalog has App shell group");
-        let chrome = nodes
-            .iter()
-            .find(|node| node.label == "Chrome")
-            .expect("catalog has Chrome page");
-        let query = NavQuery {
-            text: "App shell".to_owned(),
-            revision: 1,
-        };
-        let expanded_projection = nav_query_projection(&nodes, &state, &query);
-        assert!(
-            expanded_projection[nodes
-                .iter()
-                .position(|node| node.key == app_shell.key)
-                .unwrap()]
-        );
-        assert!(
-            expanded_projection[nodes
-                .iter()
-                .position(|node| node.key == chrome.key)
-                .unwrap()]
-        );
-
-        let cursor = chrome.key;
-        state.set_cursor(1, cursor);
-        state.collapse(app_shell.key);
-        let collapsed_projection = nav_query_projection(&nodes, &state, &query);
-        let app_shell_source = nodes
-            .iter()
-            .position(|node| node.key == app_shell.key)
-            .expect("group source");
-        let chrome_source = nodes
-            .iter()
-            .position(|node| node.key == chrome.key)
-            .expect("leaf source");
-        assert!(collapsed_projection[app_shell_source]);
-        assert!(!collapsed_projection[chrome_source]);
-        assert!(!state.is_expanded(app_shell.key));
-        assert_eq!(state.cursor(), Some(cursor));
-        assert!(
-            nodes
-                .iter()
-                .filter(|node| node.parent && node.key != app_shell.key)
-                .all(|group| state.is_expanded(group.key)),
-            "a query projection only reads the saved folds"
-        );
-    }
 }

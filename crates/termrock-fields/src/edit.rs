@@ -7,7 +7,6 @@ use crate::text::EditAction;
 use crate::ui::Cx;
 use termrock_runtime::layer::{FocusContinuationOutcome, LayerOpening};
 
-/// Editing operation offered by a field's contextual edit menu.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TextEditCommand {
     Cut,
@@ -16,10 +15,8 @@ pub enum TextEditCommand {
     SelectAll,
 }
 
-/// Commands currently available for a field's selection and editability.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct EditCapabilities {
-    /// Whether this field accepts edits. Independent of copy eligibility.
     pub editable: bool,
     pub can_cut: bool,
     pub can_copy: bool,
@@ -27,7 +24,6 @@ pub struct EditCapabilities {
     pub can_select_all: bool,
 }
 
-/// A request to open the shared edit menu at a terminal position.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct EditMenuRequest {
     pub owner: Id,
@@ -112,9 +108,6 @@ pub(crate) fn execute(
     }
 }
 
-/// Stage and acknowledge the exact layer opening that temporarily moves focus
-/// away from a field. The field state is updated before the runtime records the
-/// acknowledgement.
 pub(crate) fn retain_focus_continuation(
     cx: &mut Cx<'_>,
     owner: Id,

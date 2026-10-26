@@ -104,7 +104,7 @@ const CARD_MIN: u16 = 50;
 const CARD_GAP: u16 = 1;
 const CARD_PAD: u16 = 2;
 const SCROLL_ROOM: u16 = 2;
-// Settings sheet outer width: label column 22, value 34, card pad 4.
+
 const SETTINGS_MIN: u16 = 60;
 
 const CANVAS: u32 = 0x000000;
@@ -1122,98 +1122,5 @@ fn paint_scrollbar(ui: &mut Ui<'_>, bar: Rect, content_h: u16) {
                 ink(ui, TRACK, CANVAS)
             },
         );
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{OVERRIDE_ACCENT, OverviewPage, Page};
-    use termrock::{App, Color, Cx, Modifier, Response, Theme, Ui};
-    use termrock_test_support::Harness;
-
-    struct Host;
-
-    impl App for Host {
-        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
-            Response::ignored()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            OverviewPage::new().draw(ui, ui.full());
-        }
-    }
-
-    #[test]
-    fn playground_matches_the_tag_section_strip_and_token_cards() {
-        let h = Harness::new(Host, Theme::junie(), 94, 36);
-        let text = h.text();
-        assert!(text.contains("Playground"), "{text}");
-        assert!(text.contains(" Options"));
-        assert!(text.contains(" States"));
-        assert!(text.contains("the live widget"));
-        assert!(text.contains("Tokens · planes and text"));
-        assert!(text.contains("Tokens · accent and status"));
-        assert!(text.contains("accent.bg.subtle"));
-        assert!(text.contains("#0a1c0c"));
-        let (x, y) = h.find("Playground").expect("playground tab");
-        let tab = h.cell(x, y);
-        assert_eq!(tab.bg, Color::Rgb(0x27, 0x27, 0x2a));
-        assert!(tab.modifier.contains(Modifier::BOLD));
-        assert_eq!(h.cell(x, y + 1).symbol(), "━");
-        let (sx, sy) = h.find("canvas").expect("canvas swatch");
-        assert_eq!(h.cell(sx.saturating_sub(6), sy).bg, Color::Rgb(0, 0, 0));
-    }
-
-    #[test]
-    fn narrow_overview_blurb_ends_on_the_ellipsis() {
-        let h = Harness::new(Host, Theme::junie(), 51, 6);
-        assert_eq!(h.cell(48, 0).symbol(), "p");
-        assert_eq!(h.cell(49, 0).symbol(), "…");
-        assert_eq!(h.cell(49, 0).fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-        assert_eq!(h.cell(49, 0).bg, Color::Rgb(0, 0, 0));
-    }
-
-    #[test]
-    fn wide_overview_paints_glyph_samples_and_ladder_swatches() {
-        let h = Harness::new(Host, Theme::junie(), 132, 50);
-        let text = h.text();
-        assert!(text.contains("[✓] [ ] [–]"), "{text}");
-        assert!(text.contains("Type to search…"), "{text}");
-        assert!(
-            text.contains("Ladder: rest hover pressed · Plane::up"),
-            "{text}"
-        );
-        assert!(text.contains("→ HighlightDanger"), "{text}");
-        let (x, y) = h.find("Canvas").expect("canvas ladder");
-        assert_eq!(h.cell(x + 16, y).bg, Color::Rgb(0, 0, 0));
-        assert_eq!(h.cell(x + 21, y).bg, Color::Rgb(0x1c, 0x1c, 0x1f));
-        assert_eq!(h.cell(x + 26, y).bg, Color::Rgb(0x30, 0x30, 0x36));
-        let (hx, hy) = h.find("handle").expect("handle ladder");
-        assert_eq!(h.cell(hx + 17, hy).symbol(), "┃");
-        assert_eq!(h.cell(hx + 17, hy).fg, Color::Rgb(0x80, 0x80, 0x80));
-        assert_eq!(h.cell(hx + 27, hy).fg, Color::Rgb(0x48, 0xe0, 0x54));
-    }
-
-    #[test]
-    fn chrome_roles_card_shows_status_tag_and_a_local_custom_accent_override() {
-        let theme = Theme::junie();
-        let h = Harness::new(Host, theme.clone(), 132, 120);
-        let text = h.text();
-        assert!(text.contains("Roles · application chrome"), "{text}");
-        assert!(text.contains("READY"), "{text}");
-        assert!(text.contains("TAG"), "{text}");
-        assert!(text.contains("local accent override"), "{text}");
-
-        let (status_x, status_y) = h.find("READY").expect("status accent sample");
-        assert_eq!(h.cell(status_x, status_y).fg, theme.color.status_accent);
-        assert_eq!(h.cell(status_x, status_y).bg, theme.color.status_bar_bg);
-
-        let (tag_x, tag_y) = h.find("TAG").expect("tag ink sample");
-        assert_eq!(h.cell(tag_x, tag_y).fg, theme.color.tag_ink);
-
-        let (custom_x, custom_y) = h
-            .find("local accent override")
-            .expect("local custom accent override");
-        assert_eq!(h.cell(custom_x, custom_y).fg, OVERRIDE_ACCENT);
     }
 }

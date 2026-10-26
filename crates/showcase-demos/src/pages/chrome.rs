@@ -11,23 +11,21 @@ const SCROLL: Id = termrock::Id::root("showcase_ui::pages::chrome::chrome.scroll
 
 const BLURB: &str = "Brand lockup · menu bar with anchored menus · status bar planes and priorities · context menu · hint layers";
 
-/// The playground has a natural width. A narrower page scrolls it sideways
-/// and stacks the card notes under the session list.
 const NATURAL_W: u16 = 91;
-/// The card's inner padding and the row the card starts on.
+
 const CARD_PAD: u16 = 2;
 const CARD_TOP: u16 = 2;
-/// The session list column and the notes column minimum.
+
 const LIST_W: u16 = 48;
 const NOTES_MIN: u16 = 36;
-/// The gap between the card's columns and between its stacked rows.
+
 const TILE_GAP: u16 = 4;
 const TILE_ROW_GAP: u16 = 1;
-/// The session list rows the card reserves.
+
 const LIST_ROWS: u16 = 6;
-/// The narrow status bar row the page shows below the wide one.
+
 const NARROW_STATUS: u16 = 64;
-/// The room the scrollbars need: the bar and its gap.
+
 const SCROLL_ROOM: u16 = 2;
 
 const NOTES_TEXT: &str = "The status bar below sits on its own plane: three groups, no separator glyphs, and items that do not fit collapse into a … that shows them on hover, by priority — the 64-column row shows the center going first.";
@@ -62,7 +60,6 @@ const BLUE: u32 = 0x79b8ff;
 
 const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
-/// The sessions the card lists.
 const SESSIONS: [(&str, &str); 4] = [
     ("  1 Claude Code (Work)", "working"),
     ("  2 Codex (Primary)", "idle"),
@@ -90,8 +87,6 @@ fn bold(fg: u32, bg: u32) -> PaintStyle {
     ink(fg, bg).add_modifier(Modifier::BOLD)
 }
 
-/// The card tiles: the session list and the notes, beside each other when
-/// the card is wide enough and stacked when it is not.
 struct Card {
     inner: u16,
     stacked: bool,
@@ -129,14 +124,11 @@ impl Card {
         }
     }
 
-    /// The card's height: the title, the rule, the content and a padding row.
     fn height(&self) -> u16 {
         3 + self.content_h
     }
 }
 
-/// The notes wrap one column short of the tile so a word never touches the
-/// next column.
 fn notes_lines(width: u16) -> Vec<String> {
     let width = width.max(1);
     let mut lines = wrap(NOTES_TEXT, width);
@@ -145,7 +137,6 @@ fn notes_lines(width: u16) -> Vec<String> {
     lines
 }
 
-/// The menu bar readout wraps at the playground width.
 fn readout_lines(width: u16) -> Vec<String> {
     let mut lines = Vec::new();
     for line in READOUT {
@@ -154,8 +145,6 @@ fn readout_lines(width: u16) -> Vec<String> {
     lines
 }
 
-/// One responsive playground: its width, its height, the card inside and the
-/// row every following block starts on.
 struct Playground {
     width: u16,
     height: u16,
@@ -192,8 +181,6 @@ impl Playground {
     }
 }
 
-/// The scroll view: the visible part of the playground and the room the
-/// bars take.
 struct Scroll {
     area: Rect,
     view: Rect,
@@ -203,7 +190,6 @@ struct Scroll {
 }
 
 impl Scroll {
-    /// The content width the playground needs, and the height it needs.
     fn content_size(area: Rect) -> (u16, u16) {
         let natural = NATURAL_W.max(area.width);
         let wide = Playground::layout(natural);
@@ -287,7 +273,6 @@ fn paint_menu(ui: &mut Ui<'_>, view: Rect) {
     }
 }
 
-/// The sessions card: the title, its meta, the list and the notes.
 fn paint_card(ui: &mut Ui<'_>, view: Rect, card: &Card, scrolls: bool) {
     let top = view.y.saturating_add(2);
     if top >= view.bottom() {
@@ -380,7 +365,6 @@ fn paint_card(ui: &mut Ui<'_>, view: Rect, card: &Card, scrolls: bool) {
     );
 }
 
-/// The identity strip: the segments that drop by priority.
 fn paint_strip(ui: &mut Ui<'_>, view: Rect, row: u16, spinner: &str, content: u16) {
     fill_row(ui, view, row, view.width, ink(WHITE, SURFACE));
     paint_at(ui, view, 2, row, "payments-platform", bold(WHITE, SURFACE));
@@ -388,7 +372,7 @@ fn paint_strip(ui: &mut Ui<'_>, view: Rect, row: u16, spinner: &str, content: u1
     paint_at(ui, view, 35, row, "◇ staging", ink(WARNING, SURFACE));
     paint_at(ui, view, 46, row, spinner, ink(ACCENT, SURFACE));
     paint_at(ui, view, 47, row, " deploying", ink(SECONDARY, SURFACE));
-    // The right group keeps the playground's edge.
+
     let right = content.saturating_sub(2);
     paint_at(
         ui,
@@ -424,7 +408,6 @@ fn paint_strip(ui: &mut Ui<'_>, view: Rect, row: u16, spinner: &str, content: u1
     );
 }
 
-/// One status bar item. The meters carry their own glyphs.
 struct StatusItem {
     text: &'static str,
     priority: u8,
@@ -543,13 +526,10 @@ const STATUS_ITEMS: [StatusItem; 8] = [
     },
 ];
 
-/// The meter's track width and the room its label needs.
 const METER_TRACK: u16 = 10;
 const STATUS_GAP: u16 = 3;
 const STATUS_EDGE: u16 = 1;
 
-/// The status bar places its items by priority and drops the ones that do
-/// not fit. The caption reports what it placed.
 fn status_plan(width: u16) -> (Vec<(usize, u16)>, Option<u16>, usize) {
     let mut keep = [true; STATUS_ITEMS.len()];
     let group_width = |keep: &[bool; STATUS_ITEMS.len()]| -> [u16; 3] {
@@ -677,7 +657,6 @@ fn status_plan(width: u16) -> (Vec<(usize, u16)>, Option<u16>, usize) {
     (result, more, placed)
 }
 
-/// The caption the status bar explains itself with.
 fn status_caption(width: u16) -> String {
     let (placed, _, count) = status_plan(width);
     let mut groups = [0u16; 3];
@@ -698,7 +677,6 @@ fn status_caption(width: u16) -> String {
     )
 }
 
-/// The meter's track: the filled part, the empty part and the value.
 fn paint_meter(ui: &mut Ui<'_>, view: Rect, row: u16, x: u16, meter: Meter) {
     const TRACK: u16 = 11;
     let filled = ((u32::from(meter.percent) * u32::from(TRACK) + 50) / 100) as u16;
@@ -739,7 +717,6 @@ fn paint_meter(ui: &mut Ui<'_>, view: Rect, row: u16, x: u16, meter: Meter) {
     paint_at(ui, view, x + TRACK + 4, row, tail, ink(tone, ELEVATED));
 }
 
-/// The status bar row and its caption.
 fn paint_status(ui: &mut Ui<'_>, view: Rect, row: u16, bar_width: u16) {
     fill_row(ui, view, row, bar_width, ink(WHITE, ELEVATED));
     let (placed, more, _) = status_plan(bar_width);
@@ -786,7 +763,6 @@ fn paint_status(ui: &mut Ui<'_>, view: Rect, row: u16, bar_width: u16) {
     }
 }
 
-/// The hint bar: the keys with their labels and the page's status.
 fn paint_hints(ui: &mut Ui<'_>, view: Rect, row: u16) {
     let mut x = 1u16;
     for (key, label) in HINTS {
@@ -795,7 +771,7 @@ fn paint_hints(ui: &mut Ui<'_>, view: Rect, row: u16) {
         paint_at(ui, view, x, row, label, ink(MUTED, CANVAS));
         x = x.saturating_add(width(label)).saturating_add(2);
     }
-    // The page status follows the hints with a wider gap.
+
     x = x.saturating_add(2);
     paint_at(ui, view, x, row, "last: ", ink(MUTED, CANVAS));
     paint_at(
@@ -865,13 +841,6 @@ fn paint_playground(ui: &mut Ui<'_>, view: Rect, page: &Playground, spinner: &st
     paint_hints(ui, view, page.hint_row);
 }
 
-/// The scrollbars: the vertical one on the right, the horizontal one at the
-/// bottom. Both show how much of the playground is visible.
-///
-/// The vertical bar is the shared scrollbar: it owns the track, the thumb
-/// and the rest, hover and pressed inks. The library has no shared
-/// horizontal scrollbar, so the horizontal bar borrows the shared scrollbar
-/// inks and glyphs. Library need: a shared horizontal scrollbar.
 fn paint_scrollbars(ui: &mut Ui<'_>, scroll: &Scroll, content: &Playground) {
     if scroll.v_bar {
         let track = Rect {
@@ -920,7 +889,6 @@ fn paint_scrollbars(ui: &mut Ui<'_>, scroll: &Scroll, content: &Playground) {
     }
 }
 
-/// The thumb covers the share of the track the viewport shows.
 fn thumb_len(track: u16, content: u16) -> u16 {
     if track == 0 || content == 0 {
         return track;
@@ -976,9 +944,7 @@ impl Page for ChromePage {
             let scroll = Scroll::layout(playground);
             let page = Playground::layout(scroll.content.width);
             let spinner = SPINNER[self.frame % SPINNER.len()];
-            // The bars own their columns: they register before the
-            // playground paints, so the playground's controls keep the
-            // pointer.
+
             paint_scrollbars(ui, &scroll, &page);
             paint_playground(
                 ui,
@@ -991,8 +957,6 @@ impl Page for ChromePage {
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
-        // The playground is a drawing: the brand lockup is the only control
-        // the page owns, and it answers a click.
         &[("click", "Brand lockup")]
     }
 }

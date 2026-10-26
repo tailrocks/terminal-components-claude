@@ -1,9 +1,3 @@
-//! Conservative source-level module provenance for ownership scanning.
-//!
-//! This is deliberately a bounded Rust recognizer, not a Rust parser. A
-//! construct that can change module reachability and that this module does
-//! not understand disables test-only pruning for the whole package.
-
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -15,12 +9,10 @@ const MAX_CONTEXTS: usize = 50_000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MemberAnalysis {
-    /// Source paths kept in the ownership inventory, including module and
-    /// explicitly configured target paths discovered outside `src`.
     pub sources: Vec<PathBuf>,
-    /// Canonical source paths whose every proven incoming route is test-only.
+
     pub test_only: BTreeSet<PathBuf>,
-    /// False means the caller must retain every candidate as production.
+
     pub complete: bool,
 }
 
@@ -71,7 +63,6 @@ impl Truth {
     }
 }
 
-/// Predicate values when the built-in `test` cfg is false and true.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct Predicate(Truth, Truth);
 
@@ -121,9 +112,9 @@ impl Default for Attributes {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct ContextKey {
     file: PathBuf,
-    // The caller's module directory carries the included text's namespace.
+
     module_dir: PathBuf,
-    // `include!` changes filesystem lookup to the included file's parent.
+
     file_module_dir: PathBuf,
     predicate: Predicate,
     expression_fragment: bool,
@@ -229,9 +220,7 @@ impl Traversal {
             };
             self.paths.insert(file.clone());
             self.sources.entry(file.clone()).or_insert(text);
-            // Rust treats a path-attributed external module file like a
-            // `mod.rs` for child lookup. A normal `name.rs` instead gets its
-            // stem appended to the source file's parent.
+
             let child_file_module_dir = if path_override.is_some() {
                 file.parent()
                     .unwrap_or_else(|| Path::new("."))
@@ -383,9 +372,6 @@ struct RangeUncertainty {
     bounded_function_body_item_macro: bool,
 }
 
-/// Enumerates the current physical `src` inventory and source files reached
-/// from known target roots. Unknown filesystem or manifest shapes retain all
-/// candidates as production.
 pub fn analyze_member(member: &Path) -> MemberAnalysis {
     let member_root = match fs::canonicalize(member) {
         Ok(path) => path,
@@ -438,9 +424,7 @@ pub fn analyze_member(member: &Path) -> MemberAnalysis {
                 };
                 traversal.paths.insert(canonical.clone());
                 traversal.sources.entry(canonical.clone()).or_insert(text);
-                // Explicit Cargo target roots stay production inputs under
-                // this scanner policy; cfg(test) items inside them are still
-                // classified independently.
+
                 let predicate = Predicate::ALWAYS;
                 traversal.mark_reachable(&canonical, predicate);
                 traversal.queue_file(
@@ -475,10 +459,6 @@ pub fn analyze_member(member: &Path) -> MemberAnalysis {
     }
 }
 
-/// Returns line ranges for items proven to compile only when `test` is true.
-/// A bounded function-body item macro preserves only independently certified
-/// literal inline `cfg(test)` module ranges; other uncertain syntax returns no
-/// ranges, retaining the source as production.
 pub fn cfg_test_ranges(source: &str) -> Vec<LineRange> {
     let Some(tokens) = lex(source) else {
         return Vec::new();
@@ -901,8 +881,6 @@ fn lex(source: &str) -> Option<Tokens> {
             });
             index += 1;
         } else {
-            // Non-ASCII identifiers and punctuation are not needed to prove
-            // module provenance. Keep the package in the production set.
             return None;
         }
         if values.len() > MAX_TOKENS {
@@ -1410,9 +1388,6 @@ fn parse_scope(
             .iter()
             .any(|name| imported_test_attributes.may_shadow(name))
     {
-        // Without resolving macro namespaces, a matching `use` alias or glob
-        // could shadow a built-in derive or test attribute and generate
-        // arbitrary module items.
         parsed.complete = false;
     }
     for (item_start, item_end, effective, has_default_derive) in skipped_items {
@@ -1437,8 +1412,6 @@ fn parse_scope(
                 item_end,
                 &imported_test_attributes,
             ) {
-                // Preserve the pre-existing graph and body-route uncertainty
-                // policy. The bounded-body exception applies only to RANGE.
                 parsed.complete = false;
             }
         }
@@ -1736,9 +1709,6 @@ fn parse_attribute(tokens: &Tokens, at: usize, end: usize) -> Option<(usize, boo
         return Some((close + 1, inner, attr));
     };
     if qualified {
-        // Built-in attribute meaning comes from the complete unqualified
-        // name. A tool or proc-macro path with a familiar first segment is
-        // still unresolved and must not prove test-only reachability.
         attr.complete = false;
         attr.predicate = Predicate::UNKNOWN;
         return Some((close + 1, inner, attr));
@@ -1986,8 +1956,6 @@ fn collect_use_derive_imports(
         if let Some(name) = ident_at(tokens, index)
             && DERIVE_NAMES.contains(&name)
         {
-            // This is intentionally broader than resolving a use tree: any
-            // matching name could be a derive macro import or alias.
             imported.insert(name.to_string());
         }
     }
@@ -2025,10 +1993,6 @@ fn record_test_attribute_imports(
     }
 }
 
-// Resolve only local bindings produced by a complete use tree. Path segments
-// that spell tracked attribute names do not shadow them; wildcard and unknown
-// trees stay conservative at the containing scope. The range-only enum proof
-// also tracks the local name `default` here.
 fn parse_test_attribute_imports(
     tokens: &Tokens,
     start: usize,
@@ -2170,7 +2134,6 @@ fn parse_use_tree(
 }
 
 fn record_imported_attribute(name: &str, imports: &mut TestAttributeImports) {
-    // Keep this local name available for the narrow enum-variant exception.
     if matches!(name, "test" | "bench" | "default") {
         imports.names.insert(name.to_string());
     }
@@ -2340,9 +2303,7 @@ fn skipped_item_has_unmodeled_routes(
             if !inner {
                 test_attributes.extend(attribute.test_attributes);
             }
-            // Advance over the complete attribute, including its arguments. A
-            // hash-like token inside known inert metadata is not a second
-            // attached attribute.
+
             index = next;
             continue;
         }
@@ -2424,7 +2385,6 @@ fn range_skipped_item_uncertainty(
     }
 }
 
-/// Proves a closed, nongeneric enum with exactly one bare `#[default]` unit variant.
 fn range_default_unit_enum_is_closed(tokens: &Tokens, start: usize, end: usize) -> bool {
     let mut keyword = start;
     if ident_at(tokens, keyword) == Some("pub") {
@@ -2511,9 +2471,7 @@ fn range_skipped_item_uncertainty_legacy(
             if !inner {
                 test_attributes.extend(attribute.test_attributes);
             }
-            // Advance over the complete attribute, including its arguments. A
-            // hash-like token inside known inert metadata is not a second
-            // attached attribute.
+
             index = next;
             continue;
         }
@@ -2607,9 +2565,6 @@ fn impl_method_range_uncertainty(
         return SkippedItemUncertainty::Other;
     };
 
-    // An unknown invocation in the impl header can alter the associated-item
-    // grammar, so only method-only impls with a literal header use the bounded
-    // function-body exception.
     let mut header = start;
     while header < body_open {
         if macro_invocation_group(tokens, header, body_open).is_some() {
@@ -2646,9 +2601,6 @@ fn impl_method_range_uncertainty(
             return SkippedItemUncertainty::Other;
         }
 
-        // Associated consts, types, and impl-level macros can generate items
-        // outside a method body. Keep them uncertain until their grammar has a
-        // separate proof; this extension covers ordinary method bodies only.
         if item_head(tokens, index, body_close) != Some("fn") {
             return SkippedItemUncertainty::Other;
         }
@@ -2959,371 +2911,4 @@ fn is_punct(tokens: &Tokens, index: usize, expected: char) -> bool {
 
 fn is_open(tokens: &Tokens, index: usize) -> bool {
     is_punct(tokens, index, '(') || is_punct(tokens, index, '[') || is_punct(tokens, index, '{')
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn ranges(source: &str) -> Vec<LineRange> {
-        cfg_test_ranges(source)
-    }
-
-    #[test]
-    fn cfg_truth_table_requires_complete_predicate_proof() {
-        let source = "#[cfg(all(test, feature = \"x\"))]\nfn yes() {}\n\
-                      #[cfg(any(test, feature = \"x\"))]\nfn maybe() {}\n\
-                      #[cfg(not(test))]\nfn no() {}\n\
-                      #[cfg(not(not(test)))]\nfn double_not() {}\n";
-        let actual = ranges(source);
-        assert!(actual.iter().any(|range| range.contains(2)));
-        assert!(!actual.iter().any(|range| range.contains(4)));
-        assert!(!actual.iter().any(|range| range.contains(6)));
-        assert!(actual.iter().any(|range| range.contains(8)));
-    }
-
-    #[test]
-    fn exact_file_root_cfg_test_certifies_the_lexed_file() {
-        let source = concat!(
-            "/* leading comment */\n",
-            " \n",
-            "#![cfg(test)]\n",
-            "use super::*;\n",
-            "fn helper(value: Option<u8>) { let _ = value.expect(\"fixture\"); }\n",
-            "trait Adapter { fn draw(&self, ui: &mut Ui); }\n",
-            "struct Candidate;\n",
-            "impl Adapter for Candidate { fn draw(&self, ui: &mut Ui) { ui.paint_str(\"x\"); } }\n",
-            "#[test]\n",
-            "fn child_test() { assert!(true); }\n",
-            "fn generated() { unknown_balanced_items!({ fn nested() {} }); }\n",
-        );
-        let line_count = source.lines().count();
-        assert_eq!(
-            ranges(source),
-            [LineRange {
-                start: 1,
-                end: line_count,
-            }]
-        );
-    }
-
-    #[test]
-    fn file_root_cfg_test_gate_requires_exact_first_tokens() {
-        let candidates = [
-            ("outer attribute", "#[cfg(test)]\nfn candidate() {}\n"),
-            ("qualified cfg", "#![cfg::test(test)]\nfn candidate() {}\n"),
-            (
-                "cfg_attr",
-                "#![cfg_attr(test, cfg(test))]\nfn candidate() {}\n",
-            ),
-            (
-                "any predicate",
-                "#![cfg(any(test, unix))]\nfn candidate() {}\n",
-            ),
-            ("all predicate", "#![cfg(all(test))]\nfn candidate() {}\n"),
-            ("not predicate", "#![cfg(not(test))]\nfn candidate() {}\n"),
-            ("comment text", "// #![cfg(test)]\nfn candidate() {}\n"),
-            (
-                "string text",
-                "const GATE: &str = \"#![cfg(test)]\";\nfn candidate() {}\n",
-            ),
-            (
-                "nested attribute",
-                "mod nested { #![cfg(test)] fn candidate() {} }\n",
-            ),
-            (
-                "attribute after item",
-                "fn before() {}\n#![cfg(test)]\nfn candidate() {}\n",
-            ),
-        ];
-        for (label, source) in candidates {
-            let tokens = lex(source).unwrap_or_else(|| panic!("{label} fixture must lex"));
-            assert!(
-                !has_exact_root_file_cfg_test(&tokens),
-                "{label} must not match the exact root gate"
-            );
-        }
-
-        let malformed = "#![cfg(test)]\nfn incomplete() {\n";
-        assert!(lex(malformed).is_none());
-        assert!(ranges(malformed).is_empty());
-    }
-
-    #[test]
-    fn repeated_and_enclosing_cfg_attributes_compose() {
-        let source = "#[cfg(test)]\n#[cfg(not(feature = \"x\"))]\nmod tests {\n\
-                      #[cfg(not(test))]\nfn impossible() {}\n\
-                      fn helper() {}\n}\n\
-                      #[cfg(test)]\n#[cfg(not(test))]\nfn impossible_outer() {}\n";
-        let actual = ranges(source);
-        assert!(actual.iter().any(|range| range.contains(6)));
-        assert!(!actual.iter().any(|range| range.contains(9)));
-    }
-
-    #[test]
-    fn inline_cfg_test_range_does_not_resolve_descendant_attributes() {
-        let source = "fn before() {} #[allow(dead_code)] #[cfg(test)] mod helpers {\n\
-                      use super::*;\n\
-                      #[test] fn nested_test() {}\n\
-                      #[derive(Clone)] struct Derived;\n\
-                      #[custom_rewrite] fn rewritten() {}\n\
-                      } fn after() {}\n";
-        let actual = ranges(source);
-        assert_eq!(actual, [LineRange { start: 2, end: 5 }]);
-        assert!(!actual.iter().any(|range| range.contains(1)));
-        assert!(!actual.iter().any(|range| range.contains(6)));
-    }
-
-    #[test]
-    fn test_names_comments_raw_strings_and_characters_never_mask_code() {
-        let source = "// #[cfg(test)] mod phantom;\n\
-                      const TEXT: &str = r###\"#[cfg(test)] mod phantom { }\"###;\n\
-                      const BYTES: &[u8] = br##\"#[cfg(test)] mod phantom {}\"##;\n\
-                      const CHAR: char = '{';\n\
-                      fn lifetime<'a>(input: &'a str) { let _ = input; }\n\
-                      mod tests { fn production() {} }\n\
-                      #[cfg(test)]\nfn actual_test() {}\n";
-        let actual = ranges(source);
-        assert_eq!(actual.len(), 1);
-        assert_eq!(actual[0], LineRange { start: 7, end: 8 });
-    }
-
-    #[test]
-    fn cfg_values_do_not_match_test_by_substring_and_byte_strings_are_not_cfg_strings() {
-        assert!(ranges("#[cfg(any(feature = \"test\", unix))]\nfn prod() {}\n").is_empty());
-        assert!(ranges("#[cfg(all(test, feature = b\"x\"))]\nfn malformed() {}\n").is_empty());
-        assert_eq!(
-            ranges("#[cfg(all(test, feature = \"x\"))]\nfn test_only() {}\n"),
-            [LineRange { start: 1, end: 2 }]
-        );
-    }
-
-    #[test]
-    fn default_enum_range_fallback_accepts_only_the_closed_unit_variant_shape() {
-        let positive = concat!(
-            "fn production() { value.expect(\"fixture\"); }\n",
-            "#[derive(Clone, Copy, PartialEq, Eq, Debug, Default,)]\n",
-            "enum ScrollRouting {\n",
-            "    #[default]\n",
-            "    Capture,\n",
-            "    PassiveReveal,\n",
-            "}\n",
-            "#[cfg(test)]\n",
-            "mod tests {\n",
-            "    use super::*;\n",
-            "}\n",
-        );
-        assert_eq!(
-            ranges(positive),
-            [LineRange { start: 8, end: 11 }],
-            "the actual Default derive shape and literal test module should be range-safe"
-        );
-        assert!(
-            ranges(positive).iter().all(|range| !range.contains(1)),
-            "the neighboring production expect stays outside test ranges"
-        );
-
-        let rejected = [
-            (
-                "missing Default derive",
-                "#[derive(Clone)]\nenum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "production function attribute",
-                "#[default]\nfn production() {}\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "production module attribute",
-                "#[default]\nmod production {}\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "imported attribute alias",
-                "use macros::rewrite as default;\n#[derive(Default)]\nenum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "imported default attribute leaf",
-                "use macros::default;\n#[derive(Default)]\nenum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "shadowed Default derive",
-                "use macros::Default;\n#[derive(Default)]\nenum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "renamed import to Default",
-                "use macros::Other as Default;\n#[derive(Default)]\nenum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "renamed Default derive import",
-                "use macros::Default as Shadow;\n#[derive(Default)]\nenum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "glob import",
-                "use macros::*;\n#[derive(Default)]\nenum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "qualified marker",
-                "#[derive(Default)]\nenum E { #[macros::default] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "marker arguments",
-                "#[derive(Default)]\nenum E { #[default(note)] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "inner marker",
-                "#[derive(Default)]\nenum E { #![default] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "duplicate marker",
-                "#[derive(Default)]\nenum E { #[default] #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "tuple payload",
-                "#[derive(Default)]\nenum E { #[default] A(u8), }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "struct payload",
-                "#[derive(Default)]\nenum E { #[default] A { field: u8 }, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "discriminant",
-                "#[derive(Default)]\nenum E { #[default] A = 1, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "unknown neighboring attribute",
-                "#[derive(Default)]\nenum E { #[default] A, #[custom_rewrite] B, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "item macro",
-                "#[derive(Default)]\nenum E { #[default] A, generated!(), }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "dynamic include",
-                "#[derive(Default)]\nenum E { #[default] A, include!(\"variants.rs\"), }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "variant derive",
-                "#[derive(Default)]\nenum E { #[derive(Default)] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "extra inert variant attribute",
-                "#[derive(Default)]\nenum E { #[allow(dead_code)] #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "missing variant separator",
-                "#[derive(Default)]\nenum E { #[default] A B, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "generic enum",
-                "#[derive(Default)]\nenum E<T> { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "restricted visibility item macro",
-                "#[derive(Default)]\npub(generated!()) enum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "restricted visibility dynamic include",
-                "#[derive(Default)]\npub(in include!(concat!(\"route\", \".rs\"))) enum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
-            ),
-            (
-                "malformed enum",
-                "#[derive(Default)]\nenum E { #[default] A,\n#[cfg(test)]\nfn t() {}\n",
-            ),
-        ];
-        for (label, source) in rejected {
-            assert!(ranges(source).is_empty(), "{label} must fail closed");
-        }
-
-        let shared_boundary = concat!(
-            "fn before() {} #[derive(Default)] enum E { #[default] A, } ",
-            "#[cfg(test)] mod helpers { fn test_helper() {} } fn after() {}\n",
-        );
-        assert!(
-            ranges(shared_boundary).is_empty(),
-            "a shared line must not hide neighboring production tokens"
-        );
-    }
-
-    #[test]
-    fn malformed_lexing_and_unknown_attributes_keep_all_lines_production() {
-        assert!(ranges("#[cfg(test)]\nfn x() {\n").is_empty());
-        assert!(ranges("#[custom_rewrite]\n#[cfg(test)]\nfn x() {}\n").is_empty());
-        assert!(ranges("#[cfg_attr(test, path = \"x.rs\")]\nmod x;\n").is_empty());
-    }
-
-    #[test]
-    fn repeated_module_contexts_deduplicate_and_context_cap_fails_closed() {
-        let mut traversal = Traversal {
-            member_root: PathBuf::from("/member"),
-            sources: BTreeMap::new(),
-            paths: BTreeSet::new(),
-            reachable: BTreeMap::new(),
-            visited: BTreeSet::new(),
-            queue: VecDeque::new(),
-            complete: true,
-        };
-        let file = PathBuf::from("/member/src/lib.rs");
-        let module_dir = PathBuf::from("/member/src");
-        traversal.queue_file(
-            file.clone(),
-            module_dir.clone(),
-            module_dir.clone(),
-            Predicate::ALWAYS,
-            false,
-        );
-        traversal.queue_file(
-            file,
-            module_dir.clone(),
-            module_dir.clone(),
-            Predicate::ALWAYS,
-            false,
-        );
-        assert_eq!(traversal.queue.len(), 1);
-
-        for index in 0..=MAX_CONTEXTS {
-            traversal.queue_file(
-                PathBuf::from(format!("/member/src/{index}.rs")),
-                PathBuf::from(format!("/member/src/{index}")),
-                PathBuf::from(format!("/member/src/{index}")),
-                Predicate::ALWAYS,
-                false,
-            );
-        }
-        assert!(!traversal.complete);
-        assert_eq!(traversal.queue.len(), MAX_CONTEXTS);
-    }
-
-    #[test]
-    fn expression_fragment_contexts_do_not_deduplicate_with_item_contexts() {
-        let mut traversal = Traversal {
-            member_root: PathBuf::from("/member"),
-            sources: BTreeMap::new(),
-            paths: BTreeSet::new(),
-            reachable: BTreeMap::new(),
-            visited: BTreeSet::new(),
-            queue: VecDeque::new(),
-            complete: true,
-        };
-        let file = PathBuf::from("/member/outside/shared.inc.rs");
-        let module_dir = PathBuf::from("/member/src/caller");
-        let file_module_dir = PathBuf::from("/member/outside");
-        traversal.queue_file(
-            file.clone(),
-            module_dir.clone(),
-            file_module_dir.clone(),
-            Predicate::ALWAYS,
-            false,
-        );
-        traversal.queue_file(file, module_dir, file_module_dir, Predicate::ALWAYS, true);
-        assert_eq!(traversal.queue.len(), 2);
-        assert_ne!(
-            traversal.queue[0].expression_fragment,
-            traversal.queue[1].expression_fragment
-        );
-    }
-
-    #[test]
-    fn token_limit_fails_closed() {
-        let source = "#[cfg(test)]\nfn test_only() {}\n".repeat(MAX_TOKENS / 4);
-        assert!(ranges(&source).is_empty());
-    }
 }

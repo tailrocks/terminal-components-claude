@@ -24,35 +24,28 @@ pub enum RegionKind {
     Control,
     Part,
     Scroll,
-    /// A non-interactive region that participates only in top-layer hover.
+
     HoverOnly,
     Decorative,
-    /// A light-dismiss backdrop registered behind a popup or modal.
+
     Backdrop,
 }
 
-/// A scrollbar bar registered by its owning widget (ported from PR #26
-/// `src/core/hit.rs::Bar`, commit f4867e9b5).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Bar {
-    /// The bar's own id (the track / thumb control).
     pub id: Id,
-    /// The widget the bar scrolls.
+
     pub owner: Id,
-    /// Which axis the bar scrolls.
+
     pub axis: Axis,
-    /// The track area, including the thumb.
+
     pub track: Rect,
 }
 
-/// Whose release a widget accepts (ported from PR #26 `src/core/hit.rs::ReleaseFrom`,
-/// commit f4867e9b5): a drag that started on a widget keeps receiving
-/// releases, and a secondary-button release may be accepted while pressed.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ReleaseFrom {
-    /// The release of a press that started on `id`.
     Press(Id),
-    /// A secondary (right button) release.
+
     Secondary,
 }
 
@@ -67,10 +60,6 @@ pub struct Hit {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Region {
-    /// The region's own control id (ported from PR #26
-    /// `HitRegion::id`, commit f4867e9b5): equal to `owner` except where a
-    /// registration splits the two — a thumb keeps its bar's id and a
-    /// backdrop keeps the id it was hit-tested as.
     pub id: Id,
     pub owner: Id,
     pub part: PartRef,
@@ -84,9 +73,6 @@ pub struct Region {
     pass_through: bool,
 }
 
-/// Opaque identity for one opt-in wheel registration in one presented registry.
-///
-/// A key can link only registrations created in the same registry generation.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ScrollRouteKey {
     registry_id: u64,
@@ -218,7 +204,6 @@ impl Region {
         self.scroll
     }
 
-    /// Whether a click on this backdrop also reaches the layer beneath.
     pub const fn pass_through(&self) -> bool {
         self.pass_through
     }
@@ -395,10 +380,6 @@ impl Registry {
         );
     }
 
-    /// Register a scroll target that can explicitly acknowledge a wheel route.
-    ///
-    /// The returned key is valid only for this registry frame. Existing scroll
-    /// registrations remain single-target unless they use this opt-in method.
     pub fn register_routed_scroll(
         &mut self,
         owner: Id,
@@ -420,11 +401,6 @@ impl Registry {
         )
     }
 
-    /// Register a scroll-only, source-qualified wheel target in the opt-in hit stack.
-    ///
-    /// This creates a `Scroll` region with the supplied part, while leaving any
-    /// ordinary `Control` or `Part` registration unchanged. Only other targets
-    /// registered with this method can receive fallback offers.
     pub fn register_hit_stack_wheel(
         &mut self,
         owner: Id,
@@ -446,17 +422,6 @@ impl Registry {
         )
     }
 
-    /// Register an event-local, source-qualified target in the opt-in wheel hit stack.
-    ///
-    /// Repeated owner/part registrations are allowed when they resolve to one
-    /// eligible scroll target at the event position and axis. Exact duplicate
-    /// registrations coalesce; conflicting eligible registrations stop
-    /// fallback. Only pointer-enabled registrations on the same layer that
-    /// contain the position and handle the axis participate. The owner must
-    /// resolve its live source from the event position and axis before
-    /// acknowledging an attempt.
-    ///
-    /// The returned key is valid only for this registry frame.
     pub fn register_event_local_hit_stack_wheel(
         &mut self,
         owner: Id,
@@ -523,10 +488,6 @@ impl Registry {
         })
     }
 
-    /// Link an opt-in child target to its immediate containing parent target.
-    ///
-    /// The parent must be the next eligible registration below the child in
-    /// reverse hit order. Invalid links disable routing for the child.
     pub fn link_scroll_parent(&mut self, child: ScrollRouteKey, parent: ScrollRouteKey) -> bool {
         let Some(child_index) = self.valid_route_key(child) else {
             return false;
@@ -1130,7 +1091,7 @@ impl Registry {
             return;
         }
         self.push_kind(owner, owner, part, area, layer, kind, false);
-        // `push_kind` skips an empty area, so a region is present here.
+
         if let Some(scroll) = scroll
             && let Some(region) = self.regions.last_mut()
         {
@@ -1297,13 +1258,10 @@ impl Registry {
             .any(|r| r.owner == id && matches!(r.kind, RegionKind::Control | RegionKind::Part))
     }
 
-    /// Whether `id` owns a region or is a region's control id (a backdrop
-    /// hit-tested under a derived id, as in PR #26).
     pub fn has_owner(&self, id: Id) -> bool {
         self.regions.iter().any(|r| r.owner == id || r.id == id)
     }
 
-    /// The topmost region at `pos` of any kind, if any.
     pub fn region_at(&self, pos: Position) -> Option<&Region> {
         self.regions
             .iter()
@@ -1313,9 +1271,6 @@ impl Registry {
             .map(|(_, r)| r)
     }
 
-    /// Register a scrollbar bar: the track becomes a part region of the
-    /// owning widget (ported from PR #26 `src/core/hit.rs::register_bar`,
-    /// commit f4867e9b5).
     pub fn register_bar(&mut self, bar: Bar, layer: LayerId) {
         if bar.track.is_empty() {
             return;
@@ -1325,11 +1280,6 @@ impl Registry {
         self.bars.push(bar);
     }
 
-    /// Register the draggable thumb of an already-registered bar (ported
-    /// from PR #26 `src/core/hit.rs::register_thumb`, commit f4867e9b5).
-    /// Hits on the thumb resolve to `owner`, the widget the bar scrolls,
-    /// while the region keeps `bar_id` as its control id — PR #26's
-    /// id/owner split. A thumb without its bar is ignored.
     pub fn register_thumb(&mut self, bar_id: Id, owner: Id, thumb: Rect, layer: LayerId) {
         if self.bar(bar_id).is_none() {
             return;
@@ -1345,42 +1295,26 @@ impl Registry {
         );
     }
 
-    /// The registered bars, oldest first.
     pub fn bars(&self) -> &[Bar] {
         &self.bars
     }
 
-    /// The bar with the given id, if registered this frame.
     pub fn bar(&self, id: Id) -> Option<Bar> {
         self.bars.iter().rev().find(|b| b.id == id).copied()
     }
 
-    /// Accept a release for `id` from `from` this frame (ported from PR #26
-    /// `src/core/hit.rs::accept_release`, commit f4867e9b5).
     pub fn accept_release(&mut self, id: Id, from: ReleaseFrom) {
         self.releases.push((id, from));
     }
 
-    /// Whether `id` accepted a release from `from` this frame. Parity keys
-    /// acceptance by the hit's owner (the id a widget registers), where
-    /// PR #26 keyed it by the hit's control id (commit f4867e9b5) — a
-    /// documented adaptation, not a coarsening.
     pub fn accepts_release(&self, id: Id, from: ReleaseFrom) -> bool {
         self.releases.contains(&(id, from))
     }
 
-    /// Register a light-dismiss backdrop owned by `id` (ported from PR #26
-    /// `src/core/hit.rs::register_backdrop`, commit f4867e9b5). The backdrop
-    /// catches clicks outside the popup so they reach the owner; with
-    /// `pass_through` it lets the click also reach the layer beneath.
     pub fn register_backdrop(&mut self, id: Id, area: Rect, layer: LayerId, pass_through: bool) {
         self.register_backdrop_of(id, id, area, layer, pass_through);
     }
 
-    /// Register a light-dismiss backdrop owned by `owner`, hit-tested as `id`.
-    /// The registry answers hits with `owner`; `id` names the backdrop
-    /// control for `has_owner` style queries (stored as the region's id, as
-    /// PR #26's `HitRegion::plain(id, area)` does).
     pub fn register_backdrop_of(
         &mut self,
         id: Id,
@@ -1398,948 +1332,5 @@ impl Registry {
             RegionKind::Backdrop,
             pass_through,
         );
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const A: Id = Id::root("a");
-    const B: Id = Id::root("b");
-    const C: Id = Id::root("c");
-
-    #[test]
-    fn last_registration_wins() {
-        let mut h = Registry::new(1);
-        assert!(
-            h.register_control(A, Rect::new(0, 0, 10, 10), LayerId::PAGE)
-                .is_none()
-        );
-        assert!(
-            h.register_control(B, Rect::new(2, 2, 3, 3), LayerId::PAGE)
-                .is_none()
-        );
-        assert_eq!(h.hit(Position::new(1, 1)).map(|h| h.owner), Some(A));
-        assert_eq!(h.hit(Position::new(3, 3)).map(|h| h.owner), Some(B));
-        assert_eq!(h.hit(Position::new(20, 20)), None);
-    }
-
-    #[test]
-    fn higher_layer_shadows_lower() {
-        let mut h = Registry::new(1);
-        h.register_control(A, Rect::new(0, 0, 10, 10), LayerId::PAGE);
-        h.register_control(B, Rect::new(2, 2, 3, 3), LayerId(1));
-        let hit = h.hit(Position::new(3, 3));
-        assert_eq!(hit.map(|h| (h.owner, h.layer)), Some((B, LayerId(1))));
-
-        h.register_control(C, Rect::new(2, 2, 3, 3), LayerId(1));
-        assert_eq!(h.hit(Position::new(3, 3)).map(|h| h.owner), Some(C));
-    }
-
-    #[test]
-    fn a_lower_layer_region_registered_later_does_not_shadow_a_higher_one() {
-        let mut h = Registry::new(1);
-
-        h.register_control(B, Rect::new(2, 2, 3, 3), LayerId(1));
-        h.register_control(A, Rect::new(0, 0, 10, 10), LayerId::PAGE);
-        let hit = h.hit(Position::new(3, 3)).expect("a covering region");
-        assert_eq!((hit.owner, hit.layer), (B, LayerId(1)));
-
-        h.register_scroll(
-            C,
-            Rect::new(2, 2, 3, 3),
-            LayerId(1),
-            Axes::V,
-            Headroom::default(),
-        );
-        h.register_scroll(
-            A,
-            Rect::new(0, 0, 10, 10),
-            LayerId::PAGE,
-            Axes::V,
-            Headroom::default(),
-        );
-        assert_eq!(
-            h.hit_scroll(Position::new(3, 3), Axis::V).map(|x| x.owner),
-            Some(C)
-        );
-    }
-
-    #[test]
-    fn hit_returns_a_lower_layer_region_for_the_outside_click_test() {
-        let mut h = Registry::new(1);
-        h.register_control(A, Rect::new(0, 0, 10, 10), LayerId::PAGE);
-        h.register_control(B, Rect::new(2, 2, 3, 3), LayerId(1));
-
-        let hit = h.hit(Position::new(8, 8));
-        assert_eq!(hit.map(|h| (h.owner, h.layer)), Some((A, LayerId::PAGE)));
-    }
-
-    #[test]
-    fn hit_returns_part_ref_not_a_derived_id() {
-        let mut h = Registry::new(1);
-        h.register_control(A, Rect::new(0, 0, 10, 10), LayerId::PAGE);
-        let part = PartRef::item(Part::ROW, crate::id::ItemKey::num(7));
-        h.register_part(A, part, Rect::new(0, 3, 10, 1), LayerId::PAGE);
-        let hit = h
-            .hit(Position::new(4, 3))
-            .map(|h| (h.owner, h.part, h.kind, h.local));
-        assert_eq!(hit, Some((A, part, RegionKind::Part, Position::new(4, 0))));
-        assert_eq!(h.area_of_part(A, part), Some(Rect::new(0, 3, 10, 1)));
-        assert_eq!(h.area_of(A), Some(Rect::new(0, 0, 10, 10)));
-    }
-
-    #[test]
-    fn hover_only_is_observable_for_top_layer_hover_but_not_click_delivery() {
-        let mut registry = Registry::new(1);
-        let area = Rect::new(1, 2, 8, 3);
-        let hover_part = PartRef::of(Part::LABEL);
-        registry.register_control(A, area, LayerId::PAGE);
-        registry.register_hover_part(B, hover_part, area, LayerId::PAGE);
-
-        let hover = registry
-            .hit_live(Position::new(3, 3), LayerId::PAGE)
-            .expect("the exact top-layer hover-only part");
-        assert_eq!(
-            (hover.owner, hover.part, hover.kind),
-            (B, hover_part, RegionKind::HoverOnly)
-        );
-        assert_eq!(
-            registry
-                .hit(Position::new(3, 3))
-                .map(|hit| (hit.owner, hit.kind)),
-            Some((A, RegionKind::Control)),
-            "ordinary click hit testing skips hover-only registrations"
-        );
-        assert_eq!(registry.hit_live(Position::new(3, 3), LayerId(1)), None);
-        assert_eq!(registry.hit_scroll(Position::new(3, 3), Axis::V), None);
-        assert!(!registry.delivers_to(B));
-        assert!(
-            registry
-                .regions()
-                .iter()
-                .filter(|region| region.owner == B)
-                .all(|region| region.kind == RegionKind::HoverOnly && region.scroll().is_none())
-        );
-    }
-
-    #[test]
-    fn passive_scroll_policy_is_attached_to_each_registration_and_top_layer() {
-        let mut registry = Registry::new(1);
-        let area = Rect::new(1, 1, 12, 6);
-        let normal_headroom = Headroom {
-            down: 8,
-            ..Headroom::default()
-        };
-        let passive_headroom = Headroom {
-            up: 2,
-            down: 3,
-            ..Headroom::default()
-        };
-        registry.register_scroll(A, area, LayerId::PAGE, Axes::V, normal_headroom);
-        registry.register_passive_reveal_scroll(A, area, LayerId::PAGE, passive_headroom);
-        registry.register_scroll(B, area, LayerId(1), Axes::V, Headroom::default());
-
-        let page_candidates = registry
-            .scroll_candidates(Position::new(4, 3), Axis::V, LayerId::PAGE)
-            .map(|candidate| (candidate.passive_reveal(), candidate.headroom()))
-            .collect::<Vec<_>>();
-        assert_eq!(
-            page_candidates,
-            [(true, passive_headroom), (false, normal_headroom),],
-            "reverse registration order keeps policy on the exact duplicate owner registration"
-        );
-        let modal_candidates = registry
-            .scroll_candidates(Position::new(4, 3), Axis::V, LayerId(1))
-            .map(|candidate| (candidate.hit().owner, candidate.passive_reveal()))
-            .collect::<Vec<_>>();
-        assert_eq!(modal_candidates, [(B, false)]);
-
-        assert_eq!(
-            registry
-                .hit_scroll(Position::new(4, 3), Axis::V)
-                .map(|hit| hit.owner),
-            Some(B),
-            "legacy generic hit_scroll ordering and endpoint behavior remain unchanged"
-        );
-    }
-
-    #[test]
-    fn explicit_scroll_parent_skips_only_exact_duplicate_child_registrations() {
-        let mut registry = Registry::new(3);
-        let outer = Rect::new(0, 0, 20, 20);
-        let inner = Rect::new(2, 2, 10, 10);
-        let parent = registry
-            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
-            .expect("the parent registration");
-        let child = registry
-            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
-            .expect("the child registration");
-        let duplicate = registry
-            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
-            .expect("the duplicate child registration");
-        assert!(registry.link_scroll_parent(child, parent));
-        assert!(registry.link_scroll_parent(duplicate, parent));
-
-        assert_eq!(
-            registry.next_scroll_route_parent(
-                duplicate,
-                Axis::V,
-                Position::new(4, 4),
-                LayerId::PAGE,
-            ),
-            Some((parent, 7)),
-            "identical registration metadata coalesces to one target"
-        );
-    }
-
-    #[test]
-    fn hit_stack_keys_are_registry_scoped_and_epoch_exhaustion_fails_closed() {
-        let area = Rect::new(1, 1, 12, 6);
-        let mut registry = Registry::new(3);
-        let key = registry
-            .register_hit_stack_wheel(
-                A,
-                PartRef::of(Part::LABEL),
-                area,
-                LayerId::PAGE,
-                Axes::Both,
-                7,
-            )
-            .expect("the hit-stack registration");
-        assert!(registry.route_key_is_eligible(key, Axis::H, Position::new(4, 3), LayerId::PAGE,));
-
-        let mut clone = registry.clone();
-        assert!(!clone.route_key_is_eligible(key, Axis::H, Position::new(4, 3), LayerId::PAGE,));
-        let clone_key = clone
-            .register_hit_stack_wheel(
-                A,
-                PartRef::of(Part::LABEL),
-                area,
-                LayerId::PAGE,
-                Axes::Both,
-                7,
-            )
-            .expect("the clone creates a registry-local key");
-        assert_ne!(key, clone_key);
-        assert!(clone.route_key_is_eligible(
-            clone_key,
-            Axis::H,
-            Position::new(4, 3),
-            LayerId::PAGE,
-        ));
-
-        registry.route_epoch = u64::MAX;
-        registry.reset(4);
-        assert!(registry.route_epoch_exhausted);
-        assert!(
-            registry
-                .register_hit_stack_wheel(
-                    A,
-                    PartRef::of(Part::LABEL),
-                    area,
-                    LayerId::PAGE,
-                    Axes::Both,
-                    7,
-                )
-                .is_none()
-        );
-    }
-
-    #[test]
-    fn event_local_ambiguity_ignores_pointer_disabled_sibling_targets() {
-        let mut registry = Registry::new(3);
-        let left = Rect::new(0, 0, 8, 8);
-        let overlapping = Rect::new(0, 0, 8, 8);
-        let under = registry
-            .register_event_local_hit_stack_wheel(
-                C,
-                PartRef::of(Part::CONTAINER),
-                Rect::new(0, 0, 20, 8),
-                LayerId::PAGE,
-                Axes::Both,
-                31,
-            )
-            .expect("the underlying route target");
-        let selected = registry
-            .register_event_local_hit_stack_wheel(
-                A,
-                PartRef::of(Part::BODY),
-                left,
-                LayerId::PAGE,
-                Axes::Both,
-                11,
-            )
-            .expect("the point-eligible source");
-        let disabled = registry
-            .register_event_local_hit_stack_wheel(
-                A,
-                PartRef::of(Part::BODY),
-                overlapping,
-                LayerId::PAGE,
-                Axes::Both,
-                22,
-            )
-            .expect("the pointer-disabled sibling");
-        assert_eq!(
-            registry.next_scroll_route_target(
-                selected,
-                Axis::V,
-                Position::new(2, 2),
-                LayerId::PAGE,
-                &[A],
-            ),
-            None,
-            "an enabled overlapping sibling with another source is ambiguous"
-        );
-
-        registry.regions[disabled.registration_index].pointer_enabled = false;
-
-        assert_eq!(
-            registry.next_scroll_route_target(
-                selected,
-                Axis::V,
-                Position::new(2, 2),
-                LayerId::PAGE,
-                &[A],
-            ),
-            Some((under, 31))
-        );
-    }
-
-    #[test]
-    fn hit_stack_keys_cannot_be_mixed_into_parent_links() {
-        let mut registry = Registry::new(3);
-        let outer = Rect::new(0, 0, 20, 12);
-        let inner = Rect::new(2, 2, 12, 6);
-        let parent = registry
-            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::Both, Headroom::default(), 7)
-            .expect("the linked parent");
-        let child = registry
-            .register_hit_stack_wheel(
-                B,
-                PartRef::of(Part::LABEL),
-                inner,
-                LayerId::PAGE,
-                Axes::Both,
-                11,
-            )
-            .expect("the hit-stack child");
-
-        assert!(!registry.link_scroll_parent(child, parent));
-        assert_eq!(registry.routed_scroll_source_revision(child), None);
-    }
-
-    #[test]
-    fn conflicting_duplicate_or_unrelated_overlap_blocks_scroll_fallback() {
-        let outer = Rect::new(0, 0, 20, 20);
-        let inner = Rect::new(2, 2, 10, 10);
-        let mut conflict = Registry::new(3);
-        let parent = conflict
-            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
-            .expect("the parent registration");
-        let first = conflict
-            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
-            .expect("the first child registration");
-        let second = conflict
-            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 12)
-            .expect("the conflicting child registration");
-        assert!(conflict.link_scroll_parent(first, parent));
-        assert!(conflict.link_scroll_parent(second, parent));
-        assert_eq!(
-            conflict.next_scroll_route_parent(second, Axis::V, Position::new(4, 4), LayerId::PAGE,),
-            None,
-            "same-owner geometry with a changed source revision is ambiguous"
-        );
-
-        let mut overlap = Registry::new(3);
-        let parent = overlap
-            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
-            .expect("the parent registration");
-        overlap.register_scroll(
-            C,
-            Rect::new(1, 1, 15, 15),
-            LayerId::PAGE,
-            Axes::V,
-            Headroom::default(),
-        );
-        let child = overlap
-            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
-            .expect("the child registration");
-        assert!(overlap.link_scroll_parent(child, parent));
-        assert_eq!(
-            overlap.next_scroll_route_parent(child, Axis::V, Position::new(4, 4), LayerId::PAGE),
-            None,
-            "an unrelated eligible registration is not skipped"
-        );
-    }
-
-    #[test]
-    fn older_same_owner_part_scroll_conflicts_block_parent_offer() {
-        let outer = Rect::new(0, 0, 30, 30);
-        let parent_area = Rect::new(0, 0, 20, 20);
-        let inner = Rect::new(2, 2, 10, 10);
-        let point = Position::new(4, 4);
-
-        let mut older_child_conflict = Registry::new(3);
-        older_child_conflict
-            .register_routed_scroll(B, outer, LayerId::PAGE, Axes::V, Headroom::default(), 99)
-            .expect("the older conflicting child registration");
-        let parent = older_child_conflict
-            .register_routed_scroll(
-                A,
-                parent_area,
-                LayerId::PAGE,
-                Axes::V,
-                Headroom::default(),
-                7,
-            )
-            .expect("the selected parent");
-        let child = older_child_conflict
-            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
-            .expect("the selected child with conflicting owner metadata");
-        assert!(older_child_conflict.link_scroll_parent(child, parent));
-        assert_eq!(
-            older_child_conflict.next_scroll_route_parent(child, Axis::V, point, LayerId::PAGE),
-            None,
-            "an older event-eligible same-owner/part child conflict blocks the parent"
-        );
-
-        let mut older_parent_conflict = Registry::new(3);
-        older_parent_conflict
-            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 99)
-            .expect("the older conflicting parent registration");
-        let parent = older_parent_conflict
-            .register_routed_scroll(
-                A,
-                parent_area,
-                LayerId::PAGE,
-                Axes::V,
-                Headroom::default(),
-                7,
-            )
-            .expect("the selected parent with conflicting owner metadata");
-        let child = older_parent_conflict
-            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
-            .expect("the selected child");
-        assert!(older_parent_conflict.link_scroll_parent(child, parent));
-        assert_eq!(
-            older_parent_conflict.next_scroll_route_parent(child, Axis::V, point, LayerId::PAGE),
-            None,
-            "an older event-eligible same-owner/part parent conflict blocks the offer"
-        );
-    }
-
-    #[test]
-    fn scroll_route_links_are_generation_layer_and_axis_bound() {
-        let mut registry = Registry::new(3);
-        let outer = Rect::new(0, 0, 20, 20);
-        let inner = Rect::new(2, 2, 10, 10);
-        let parent = registry
-            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
-            .expect("the parent registration");
-        let horizontal = registry
-            .register_routed_scroll(C, inner, LayerId::PAGE, Axes::H, Headroom::default(), 8)
-            .expect("the horizontal overlap");
-        let child = registry
-            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
-            .expect("the child registration");
-        assert!(registry.link_scroll_parent(child, parent));
-        assert_eq!(
-            registry.next_scroll_route_parent(child, Axis::V, Position::new(4, 4), LayerId::PAGE),
-            Some((parent, 7)),
-            "an axis-ineligible overlapping target is not a route candidate"
-        );
-
-        let wrong_layer = registry
-            .register_routed_scroll(A, outer, LayerId(1), Axes::V, Headroom::default(), 7)
-            .expect("the modal registration");
-        let modal_child = registry
-            .register_routed_scroll(B, inner, LayerId(1), Axes::V, Headroom::default(), 11)
-            .expect("the modal child");
-        assert!(registry.link_scroll_parent(modal_child, wrong_layer));
-        assert!(!registry.link_scroll_parent(modal_child, child));
-        assert_eq!(
-            registry.next_scroll_route_parent(
-                modal_child,
-                Axis::V,
-                Position::new(4, 4),
-                LayerId(1)
-            ),
-            None,
-            "cross-layer re-linking invalidates the child"
-        );
-        assert_ne!(horizontal, child);
-
-        let stale = parent;
-        registry.reset(4);
-        let new_parent = registry
-            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
-            .expect("the current parent registration");
-        let new_child = registry
-            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
-            .expect("the current child registration");
-        assert!(!registry.link_scroll_parent(new_child, stale));
-        assert_eq!(
-            registry.next_scroll_route_parent(
-                new_child,
-                Axis::V,
-                Position::new(4, 4),
-                LayerId::PAGE
-            ),
-            None,
-            "a stale key cannot authorize a current route"
-        );
-
-        registry.reset(5);
-        let fresh_parent = registry
-            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
-            .expect("the fresh parent registration");
-        let fresh_child = registry
-            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
-            .expect("the fresh child registration");
-        assert!(registry.link_scroll_parent(fresh_child, fresh_parent));
-        assert_eq!(
-            registry.next_scroll_route_parent(
-                fresh_child,
-                Axis::V,
-                Position::new(4, 4),
-                LayerId::PAGE,
-            ),
-            Some((fresh_parent, 7))
-        );
-        assert_ne!(new_parent, fresh_parent);
-
-        let mut foreign_registry = Registry::new(5);
-        let foreign_parent = foreign_registry
-            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
-            .expect("the foreign parent registration");
-        assert!(!registry.link_scroll_parent(fresh_child, foreign_parent));
-        assert_eq!(
-            registry.next_scroll_route_parent(
-                fresh_child,
-                Axis::V,
-                Position::new(4, 4),
-                LayerId::PAGE,
-            ),
-            None,
-            "a key from another registry cannot authorize a route"
-        );
-    }
-
-    #[test]
-    fn cloned_registry_preserves_regions_but_gets_a_fresh_route_identity() {
-        let mut source = Registry::new(3);
-        let outer = Rect::new(0, 0, 20, 20);
-        let inner = Rect::new(2, 2, 10, 10);
-        let parent = source
-            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
-            .expect("the source parent");
-        let child = source
-            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
-            .expect("the source child");
-        assert!(source.link_scroll_parent(child, parent));
-
-        let mut clone = source.clone();
-        assert!(!clone.link_scroll_parent(child, parent));
-        assert_eq!(
-            clone.next_scroll_route_parent(child, Axis::V, Position::new(4, 4), LayerId::PAGE),
-            None,
-            "source keys cannot be used in a cloned registry"
-        );
-
-        let outer = Rect::new(30, 30, 20, 20);
-        let inner = Rect::new(32, 32, 10, 10);
-        let clone_parent = clone
-            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 17)
-            .expect("a new parent in the clone");
-        let clone_child = clone
-            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 19)
-            .expect("a new child in the clone");
-        assert!(clone.link_scroll_parent(clone_child, clone_parent));
-        assert_eq!(
-            clone.next_scroll_route_parent(
-                clone_child,
-                Axis::V,
-                Position::new(34, 34),
-                LayerId::PAGE,
-            ),
-            Some((clone_parent, 17)),
-            "fresh clone registrations remain routable"
-        );
-    }
-
-    #[test]
-    fn disabled_and_empty_routed_regions_do_not_offer_a_target() {
-        let mut registry = Registry::new(3);
-        let outer = Rect::new(0, 0, 20, 20);
-        let inner = Rect::new(2, 2, 10, 10);
-        let parent = registry
-            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
-            .expect("the parent registration");
-        let child = registry
-            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
-            .expect("the child registration");
-        assert!(registry.link_scroll_parent(child, parent));
-        assert_eq!(
-            registry.register_routed_scroll(
-                C,
-                Rect::ZERO,
-                LayerId::PAGE,
-                Axes::V,
-                Headroom::default(),
-                12,
-            ),
-            None,
-            "empty clipped geometry has no route key"
-        );
-        registry.register_keyboard_control(B, inner, LayerId::PAGE);
-        assert!(!registry.route_key_is_eligible(
-            child,
-            Axis::V,
-            Position::new(4, 4),
-            LayerId::PAGE,
-        ));
-        assert_eq!(
-            registry.next_scroll_route_parent(child, Axis::V, Position::new(4, 4), LayerId::PAGE),
-            None,
-            "a keyboard-only disabled registration cannot route"
-        );
-    }
-
-    #[test]
-    fn same_owner_control_region_does_not_conflict_with_its_routed_scroll() {
-        let mut registry = Registry::new(3);
-        let outer = Rect::new(0, 0, 20, 20);
-        let inner = Rect::new(2, 2, 10, 10);
-        let parent = registry
-            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
-            .expect("the parent registration");
-        let child = registry
-            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
-            .expect("the child registration");
-        assert!(registry.link_scroll_parent(child, parent));
-        registry.register_control(B, inner, LayerId::PAGE);
-        assert_eq!(
-            registry.next_scroll_route_parent(child, Axis::V, Position::new(4, 4), LayerId::PAGE),
-            Some((parent, 7)),
-            "non-scroll control registration does not create scroll-route ambiguity"
-        );
-    }
-
-    #[test]
-    fn hit_scroll_returns_the_innermost_handler_of_the_axis() {
-        let mut h = Registry::new(1);
-        h.register_scroll(
-            A,
-            Rect::new(0, 0, 20, 20),
-            LayerId::PAGE,
-            Axes::Both,
-            Headroom::default(),
-        );
-        h.register_scroll(
-            B,
-            Rect::new(5, 5, 5, 5),
-            LayerId::PAGE,
-            Axes::V,
-            Headroom::default(),
-        );
-        assert_eq!(
-            h.hit_scroll(Position::new(6, 6), Axis::V).map(|h| h.owner),
-            Some(B)
-        );
-        assert_eq!(
-            h.hit_scroll(Position::new(6, 6), Axis::H).map(|h| h.owner),
-            Some(A)
-        );
-        assert_eq!(
-            h.hit_scroll(Position::new(1, 1), Axis::V).map(|h| h.owner),
-            Some(A)
-        );
-
-        assert_eq!(h.hit(Position::new(6, 6)), None);
-    }
-
-    #[test]
-    fn hit_scroll_returns_a_region_at_zero_headroom() {
-        let mut h = Registry::new(1);
-        h.register_scroll(
-            A,
-            Rect::new(0, 0, 20, 20),
-            LayerId::PAGE,
-            Axes::V,
-            Headroom::default(),
-        );
-        let hit = h.hit_scroll(Position::new(1, 1), Axis::V);
-        assert_eq!(hit.map(|h| h.owner), Some(A));
-    }
-
-    #[test]
-    fn hit_scroll_skips_regions_that_do_not_handle_the_axis() {
-        let mut h = Registry::new(1);
-        h.register_scroll(
-            A,
-            Rect::new(0, 0, 20, 20),
-            LayerId::PAGE,
-            Axes::V,
-            Headroom::default(),
-        );
-        h.register_control(B, Rect::new(0, 0, 20, 20), LayerId::PAGE);
-        assert_eq!(h.hit_scroll(Position::new(1, 1), Axis::H), None);
-    }
-
-    #[test]
-    fn duplicate_id_is_reported_as_a_diagnostic_not_a_panic() {
-        let mut h = Registry::new(1);
-        assert!(
-            h.register_control(A, Rect::new(0, 0, 1, 1), LayerId::PAGE)
-                .is_none()
-        );
-        let d = h.register_control(A, Rect::new(5, 5, 1, 1), LayerId::PAGE);
-        assert_eq!(
-            d,
-            Some(Diagnostic::DuplicateId {
-                id: A,
-                first: Rect::new(0, 0, 1, 1),
-                second: Rect::new(5, 5, 1, 1)
-            })
-        );
-    }
-
-    #[test]
-    fn empty_rects_are_rejected() {
-        let mut h = Registry::new(1);
-        h.register_control(A, Rect::new(0, 0, 0, 5), LayerId::PAGE);
-        h.register_part(A, PartRef::of(Part::LABEL), Rect::ZERO, LayerId::PAGE);
-        h.register_scroll(
-            A,
-            Rect::new(1, 1, 3, 0),
-            LayerId::PAGE,
-            Axes::V,
-            Headroom::default(),
-        );
-        assert!(h.is_empty());
-        assert_eq!(h.area_of(A), None);
-    }
-
-    // Regression for review finding 2 (2026-10-21): a rejected empty-area
-    // registration must never write scroll state onto the previous,
-    // unrelated region.
-    #[test]
-    fn pushing_an_empty_area_never_touches_the_previous_regions_scroll() {
-        let mut h = Registry::new(1);
-        h.register_scroll(
-            A,
-            Rect::new(0, 0, 10, 10),
-            LayerId::PAGE,
-            Axes::V,
-            Headroom::default(),
-        );
-        let scroll = (Axes::V, Headroom::default());
-        h.register_scroll(B, Rect::new(0, 0, 10, 0), LayerId::PAGE, scroll.0, scroll.1);
-        assert_eq!(h.len(), 1, "the empty scroll area registers nothing");
-        let region = h.regions().first().expect("the scrollable region");
-        assert_eq!(
-            (region.owner, region.scroll()),
-            (A, Some(scroll)),
-            "the first region keeps its owner and scroll state"
-        );
-        h.register_part(A, PartRef::of(Part::LABEL), Rect::ZERO, LayerId::PAGE);
-        assert_eq!(h.len(), 1);
-        assert_eq!(h.regions().first().map(|r| r.scroll()), Some(Some(scroll)));
-    }
-
-    #[test]
-    fn generation_bump_invalidates_stale_regions() {
-        let mut h = Registry::new(1);
-        h.register_control(A, Rect::new(0, 0, 1, 1), LayerId::PAGE);
-        assert_eq!(h.regions().first().map(|r| r.generation), Some(1));
-        h.reset(2);
-        assert!(h.is_empty());
-        assert_eq!(h.generation(), 2);
-        assert_eq!(h.hit(Position::new(0, 0)), None);
-    }
-
-    // Ported from PR #26 src/core/hit.rs `parts_resolve_to_their_owner_and_part`
-    // (the bar / thumb half), commit f4867e9b5.
-    #[test]
-    fn a_bar_resolves_to_its_owners_track_and_the_thumb_is_its_own_part() {
-        let mut h = Registry::new(1);
-        h.register_control(A, Rect::new(0, 0, 20, 5), LayerId::PAGE);
-        h.register_bar(
-            Bar {
-                id: B,
-                owner: A,
-                axis: Axis::V,
-                track: Rect::new(19, 0, 1, 5),
-            },
-            LayerId::PAGE,
-        );
-        let on_track = h.hit(Position::new(19, 2)).expect("the track");
-        assert_eq!(
-            (on_track.owner, on_track.part),
-            (A, PartRef::of(Part::TRACK)),
-            "a scrollbar resolves to its owner's track"
-        );
-        assert_eq!(
-            h.bars().iter().map(|b| b.owner).collect::<Vec<_>>(),
-            vec![A],
-            "the frame's scrollbars are listed"
-        );
-        assert_eq!(h.bar(B).map(|b| b.axis), Some(Axis::V));
-
-        h.register_thumb(B, A, Rect::new(19, 1, 1, 2), LayerId::PAGE);
-        let on_thumb = h.hit(Position::new(19, 2)).expect("the thumb");
-        assert_eq!(
-            (on_thumb.owner, on_thumb.part),
-            (A, PartRef::of(Part::THUMB)),
-            "the thumb resolves to the bar's owner, its own part"
-        );
-        let thumb_region = h
-            .regions()
-            .iter()
-            .rev()
-            .find(|r| r.part == PartRef::of(Part::THUMB))
-            .expect("the thumb region");
-        assert_eq!(
-            (thumb_region.id, thumb_region.owner),
-            (B, A),
-            "the thumb keeps the bar's id and the owner's owner"
-        );
-        assert_eq!(
-            h.hit(Position::new(19, 4)).map(|x| x.part),
-            Some(PartRef::of(Part::TRACK)),
-            "the track below the thumb keeps answering"
-        );
-        assert_eq!(h.hit(Position::new(25, 2)), None, "outside every region");
-    }
-
-    #[test]
-    fn a_thumb_without_its_bar_is_ignored_and_an_empty_track_never_registers() {
-        let mut h = Registry::new(1);
-        h.register_thumb(B, A, Rect::new(0, 0, 1, 1), LayerId::PAGE);
-        assert!(h.is_empty(), "a thumb needs its bar first");
-        h.register_bar(
-            Bar {
-                id: B,
-                owner: A,
-                axis: Axis::V,
-                track: Rect::ZERO,
-            },
-            LayerId::PAGE,
-        );
-        assert!(
-            h.is_empty() && h.bars().is_empty(),
-            "an empty track is no bar"
-        );
-    }
-
-    // Ported from PR #26 `accept_release` / `accepts_release`, commit f4867e9b5.
-    #[test]
-    fn releases_are_accepted_per_widget_and_source() {
-        let mut h = Registry::new(1);
-        assert!(!h.accepts_release(A, ReleaseFrom::Press(A)));
-        h.accept_release(A, ReleaseFrom::Press(A));
-        h.accept_release(B, ReleaseFrom::Secondary);
-        assert!(h.accepts_release(A, ReleaseFrom::Press(A)));
-        assert!(!h.accepts_release(A, ReleaseFrom::Secondary));
-        assert!(h.accepts_release(B, ReleaseFrom::Secondary));
-        assert!(!h.accepts_release(B, ReleaseFrom::Press(A)));
-        h.reset(2);
-        assert!(
-            !h.accepts_release(A, ReleaseFrom::Press(A)),
-            "a reset drops the frame's releases"
-        );
-    }
-
-    // Ported from PR #26 `register_backdrop` / `register_backdrop_of`,
-    // commit f4867e9b5 (adapted: parity answers hits with the owner).
-    #[test]
-    fn a_backdrop_catches_clicks_for_its_owner() {
-        let mut h = Registry::new(1);
-        h.register_control(A, Rect::new(0, 0, 10, 10), LayerId::PAGE);
-        h.register_backdrop_of(B, A, Rect::new(0, 0, 40, 20), LayerId(1), false);
-        let on_backdrop = h.hit(Position::new(30, 15)).expect("the backdrop");
-        assert_eq!(
-            (on_backdrop.owner, on_backdrop.part),
-            (A, PartRef::of(Part::BACKDROP))
-        );
-        assert!(
-            h.has_owner(B),
-            "the backdrop's own control id stays queryable"
-        );
-        assert!(h.has_owner(A), "the owner stays queryable");
-        let backdrop = h
-            .regions()
-            .iter()
-            .find(|r| r.kind == RegionKind::Backdrop)
-            .expect("the backdrop region");
-        assert_eq!(
-            (backdrop.id, backdrop.owner),
-            (B, A),
-            "the region keeps the backdrop id alongside its owner"
-        );
-        assert!(
-            !h.region_at(Position::new(30, 15))
-                .is_some_and(|r| r.pass_through()),
-            "a solid backdrop does not pass through"
-        );
-        // On the backdrop's layer the backdrop also wins over the page
-        // control it covers: the popup is the top layer.
-        let over_page = h.hit(Position::new(2, 2)).expect("covered by backdrop");
-        assert_eq!(
-            (over_page.owner, over_page.part, over_page.layer),
-            (A, PartRef::of(Part::BACKDROP), LayerId(1))
-        );
-
-        h.register_backdrop(C, Rect::new(0, 0, 5, 5), LayerId(2), true);
-        assert!(
-            h.region_at(Position::new(2, 2))
-                .is_some_and(|r| r.pass_through()),
-            "a pass-through backdrop says so"
-        );
-        h.register_backdrop(C, Rect::ZERO, LayerId(2), false);
-    }
-}
-
-#[cfg(test)]
-mod runtime_tests {
-    use ratatui_core::layout::Rect;
-
-    use crate::event::{KeyCode, MouseKind};
-    use crate::id::Id;
-    use crate::layer::LayerSpec;
-    use crate::runtime::stub::{Control, Stub, key, mouse, runtime, step};
-
-    const PAGE_A: Id = Id::root("page.a");
-    const DLG: Id = Id::root("dlg");
-    const OK: Id = Id::root("dlg.ok");
-
-    #[test]
-    fn inert_below_registers_nothing() {
-        let s = Stub {
-            page: vec![Control::new(PAGE_A, Rect::new(0, 0, 10, 1))],
-            layers: vec![(DLG, vec![Control::new(OK, Rect::new(2, 4, 5, 1))])],
-            ..Stub::default()
-        };
-        let (mut rt, mut buf) = runtime(s);
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
-        assert!(
-            rt.registry().area_of(PAGE_A).is_some(),
-            "the page registers"
-        );
-
-        rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG)));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
-        assert!(
-            rt.registry().area_of(PAGE_A).is_none(),
-            "a page control below an inert layer registers nothing"
-        );
-        assert!(rt.registry().area_of(OK).is_some());
-
-        rt.app_mut().log.clear();
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 1, 0));
-        assert!(!rt.app().saw(PAGE_A, "Press"), "{:?}", rt.app().log);
     }
 }

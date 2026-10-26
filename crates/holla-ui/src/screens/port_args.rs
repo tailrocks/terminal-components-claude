@@ -89,7 +89,6 @@ pub(crate) enum Event {
     },
 }
 
-/// Native one-field editor for a captured port lookup request.
 pub(crate) struct PortArgsEditor {
     action: Action,
     producer: PortArgsProducer,

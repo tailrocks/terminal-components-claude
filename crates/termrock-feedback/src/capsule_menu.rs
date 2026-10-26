@@ -1,7 +1,3 @@
-//! Capsule tab menu over a split session.
-//!
-//! The menu is a popup. Pane lines are the clipped session text beside it.
-
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier};
 
@@ -149,8 +145,6 @@ fn bold(fg: Color, bg: Color) -> PaintStyle {
 }
 
 fn put(ui: &mut Ui<'_>, area: Rect, x: u16, y: u16, text: &str, style: PaintStyle) {
-    // `paint_str` restarts at a clipped rect, which shifts popup overwrites.
-    // One cell at its absolute column keeps the page and the layer aligned.
     if y >= area.bottom() || text.is_empty() {
         return;
     }

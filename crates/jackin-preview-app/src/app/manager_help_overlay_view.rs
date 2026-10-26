@@ -1,6 +1,3 @@
-//! Manager help overlay: the page, the shared shortcuts card, and the
-//! dimmed underlay composed through the layer stack's parts.
-
 use termrock::author::PaintStyle;
 use termrock::{
     Chord, ColorLevel, HelpOverlayState, Hint, HintBar, HintKey, HintLayer, KeyCode, Part, Rect,
@@ -12,8 +9,6 @@ use crate::scenario::{Motion, Scenario};
 use super::manager_help;
 use super::{APP, App, Route};
 
-/// `?` on the paused 120×40 returning manager. False for F10, Tab, the
-/// expanded tree, inspect, and every other host.
 fn approved(app: &App, ui: &Ui<'_>, screen: Rect) -> bool {
     let theme = ui.theme_ref();
     app.help_open
@@ -45,20 +40,16 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>, screen: Rect) {
     if !approved(app, ui, screen) {
         return;
     }
-    // The approved frame hides the cursor. Paint the manager, the shared
-    // help card, then dim only the underlay. Do not call set_cursor or
-    // set_bar_cursor.
+
     app.paint_pinned_split(ui, screen, termrock::feedback::SplitMode::Saved, false);
-    // White primary dims to muted. The approved title is faint, which is
-    // where backdrop sends secondary ink.
+
     ui.paint_str(
         Rect::new(3, 2, 12, 1),
         " Workspaces ",
         PaintStyle::new().fg(termrock::Color::Rgb(0xb3, 0xb3, 0xb3)),
     );
     manager_help::draw(ui, screen, &HelpOverlayState::default());
-    // Backdrop clears the focus bar and turns accent ink faint. The
-    // approved gutter is a blank, so it dims to the overlay plane.
+
     let select = termrock::Color::Rgb(0x17, 0x3f, 0x1c);
     ui.paint_str(
         Rect::new(3, 3, 1, 1),

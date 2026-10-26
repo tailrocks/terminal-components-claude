@@ -541,8 +541,6 @@ jobs:
       - rust-termrock
       - rust-termrock-collections
       - rust-termrock-collections-testing
-      - rust-termrock-conformance
-      - rust-termrock-conformance-testing
       - rust-termrock-consumer-example
       - rust-termrock-consumer-example-testing
       - rust-termrock-controls
@@ -575,8 +573,6 @@ jobs:
       - rust-termrock-shell-testing
       - rust-termrock-terminal
       - rust-termrock-terminal-testing
-      - rust-termrock-test-support
-      - rust-termrock-test-support-testing
       - rust-termrock-testing
       - rust-termrock-text
       - rust-termrock-text-testing
@@ -614,14 +610,14 @@ jobs:
         env:
           VELNOR_INTERNAL_OP: write-request-v1
           VELNOR_NEEDS_JSON: ${{ toJSON(needs) }}
-          VELNOR_NEEDS_EXPECTED: "[\"jactionlint\",\"plan\",\"rust-external-consumer-demo\",\"rust-external-consumer-demo-testing\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-domain-testing\",\"rust-holla-sim\",\"rust-holla-sim-testing\",\"rust-holla-testing\",\"rust-holla-ui\",\"rust-holla-ui-testing\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-app-testing\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-capsule-ui-testing\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-domain-testing\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-host-ui-testing\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-presentation-testing\",\"rust-jackin-preview-sim\",\"rust-jackin-preview-sim-testing\",\"rust-jackin-preview-testing\",\"rust-refactor-proof\",\"rust-refactor-proof-testing\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-demos-testing\",\"rust-showcase-testing\",\"rust-showcase-ui\",\"rust-showcase-ui-testing\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-demo-testing\",\"rust-tablepro-domain\",\"rust-tablepro-domain-testing\",\"rust-tablepro-sql\",\"rust-tablepro-sql-testing\",\"rust-tablepro-testing\",\"rust-tablepro-ui\",\"rust-tablepro-ui-testing\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-collections-testing\",\"rust-termrock-conformance\",\"rust-termrock-conformance-testing\",\"rust-termrock-consumer-example\",\"rust-termrock-consumer-example-testing\",\"rust-termrock-controls\",\"rust-termrock-controls-testing\",\"rust-termrock-core\",\"rust-termrock-core-testing\",\"rust-termrock-editors\",\"rust-termrock-editors-testing\",\"rust-termrock-feedback\",\"rust-termrock-feedback-testing\",\"rust-termrock-fields\",\"rust-termrock-fields-testing\",\"rust-termrock-forms\",\"rust-termrock-forms-testing\",\"rust-termrock-grid\",\"rust-termrock-grid-testing\",\"rust-termrock-layout\",\"rust-termrock-layout-testing\",\"rust-termrock-navigation\",\"rust-termrock-navigation-testing\",\"rust-termrock-overlays\",\"rust-termrock-overlays-testing\",\"rust-termrock-render\",\"rust-termrock-render-testing\",\"rust-termrock-runtime\",\"rust-termrock-runtime-testing\",\"rust-termrock-session\",\"rust-termrock-session-testing\",\"rust-termrock-shell\",\"rust-termrock-shell-testing\",\"rust-termrock-terminal\",\"rust-termrock-terminal-testing\",\"rust-termrock-test-support\",\"rust-termrock-test-support-testing\",\"rust-termrock-testing\",\"rust-termrock-text\",\"rust-termrock-text-testing\",\"rust-termrock-theme\",\"rust-termrock-theme-testing\",\"rust-termrock-viewport\",\"rust-termrock-viewport-testing\",\"rust-termrock-visibility-publisher\",\"rust-termrock-visibility-publisher-testing\",\"rust-termrock-xtask\",\"rust-termrock-xtask-testing\",\"rust-visual-harness\",\"rust-visual-harness-testing\"]"
+          VELNOR_NEEDS_EXPECTED: "[\"jactionlint\",\"plan\",\"rust-external-consumer-demo\",\"rust-external-consumer-demo-testing\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-domain-testing\",\"rust-holla-sim\",\"rust-holla-sim-testing\",\"rust-holla-testing\",\"rust-holla-ui\",\"rust-holla-ui-testing\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-app-testing\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-capsule-ui-testing\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-domain-testing\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-host-ui-testing\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-presentation-testing\",\"rust-jackin-preview-sim\",\"rust-jackin-preview-sim-testing\",\"rust-jackin-preview-testing\",\"rust-refactor-proof\",\"rust-refactor-proof-testing\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-demos-testing\",\"rust-showcase-testing\",\"rust-showcase-ui\",\"rust-showcase-ui-testing\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-demo-testing\",\"rust-tablepro-domain\",\"rust-tablepro-domain-testing\",\"rust-tablepro-sql\",\"rust-tablepro-sql-testing\",\"rust-tablepro-testing\",\"rust-tablepro-ui\",\"rust-tablepro-ui-testing\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-collections-testing\",\"rust-termrock-consumer-example\",\"rust-termrock-consumer-example-testing\",\"rust-termrock-controls\",\"rust-termrock-controls-testing\",\"rust-termrock-core\",\"rust-termrock-core-testing\",\"rust-termrock-editors\",\"rust-termrock-editors-testing\",\"rust-termrock-feedback\",\"rust-termrock-feedback-testing\",\"rust-termrock-fields\",\"rust-termrock-fields-testing\",\"rust-termrock-forms\",\"rust-termrock-forms-testing\",\"rust-termrock-grid\",\"rust-termrock-grid-testing\",\"rust-termrock-layout\",\"rust-termrock-layout-testing\",\"rust-termrock-navigation\",\"rust-termrock-navigation-testing\",\"rust-termrock-overlays\",\"rust-termrock-overlays-testing\",\"rust-termrock-render\",\"rust-termrock-render-testing\",\"rust-termrock-runtime\",\"rust-termrock-runtime-testing\",\"rust-termrock-session\",\"rust-termrock-session-testing\",\"rust-termrock-shell\",\"rust-termrock-shell-testing\",\"rust-termrock-terminal\",\"rust-termrock-terminal-testing\",\"rust-termrock-testing\",\"rust-termrock-text\",\"rust-termrock-text-testing\",\"rust-termrock-theme\",\"rust-termrock-theme-testing\",\"rust-termrock-viewport\",\"rust-termrock-viewport-testing\",\"rust-termrock-visibility-publisher\",\"rust-termrock-visibility-publisher-testing\",\"rust-termrock-xtask\",\"rust-termrock-xtask-testing\",\"rust-visual-harness\",\"rust-visual-harness-testing\"]"
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/merge-v1-request.json
         run: *r17
       - name: Merge reports
         env:
           VELNOR_INTERNAL_OP: merge-v1
           VELNOR_NEEDS_JSON: ${{ toJSON(needs) }}
-          VELNOR_NEEDS_EXPECTED: "[\"jactionlint\",\"plan\",\"rust-external-consumer-demo\",\"rust-external-consumer-demo-testing\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-domain-testing\",\"rust-holla-sim\",\"rust-holla-sim-testing\",\"rust-holla-testing\",\"rust-holla-ui\",\"rust-holla-ui-testing\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-app-testing\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-capsule-ui-testing\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-domain-testing\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-host-ui-testing\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-presentation-testing\",\"rust-jackin-preview-sim\",\"rust-jackin-preview-sim-testing\",\"rust-jackin-preview-testing\",\"rust-refactor-proof\",\"rust-refactor-proof-testing\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-demos-testing\",\"rust-showcase-testing\",\"rust-showcase-ui\",\"rust-showcase-ui-testing\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-demo-testing\",\"rust-tablepro-domain\",\"rust-tablepro-domain-testing\",\"rust-tablepro-sql\",\"rust-tablepro-sql-testing\",\"rust-tablepro-testing\",\"rust-tablepro-ui\",\"rust-tablepro-ui-testing\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-collections-testing\",\"rust-termrock-conformance\",\"rust-termrock-conformance-testing\",\"rust-termrock-consumer-example\",\"rust-termrock-consumer-example-testing\",\"rust-termrock-controls\",\"rust-termrock-controls-testing\",\"rust-termrock-core\",\"rust-termrock-core-testing\",\"rust-termrock-editors\",\"rust-termrock-editors-testing\",\"rust-termrock-feedback\",\"rust-termrock-feedback-testing\",\"rust-termrock-fields\",\"rust-termrock-fields-testing\",\"rust-termrock-forms\",\"rust-termrock-forms-testing\",\"rust-termrock-grid\",\"rust-termrock-grid-testing\",\"rust-termrock-layout\",\"rust-termrock-layout-testing\",\"rust-termrock-navigation\",\"rust-termrock-navigation-testing\",\"rust-termrock-overlays\",\"rust-termrock-overlays-testing\",\"rust-termrock-render\",\"rust-termrock-render-testing\",\"rust-termrock-runtime\",\"rust-termrock-runtime-testing\",\"rust-termrock-session\",\"rust-termrock-session-testing\",\"rust-termrock-shell\",\"rust-termrock-shell-testing\",\"rust-termrock-terminal\",\"rust-termrock-terminal-testing\",\"rust-termrock-test-support\",\"rust-termrock-test-support-testing\",\"rust-termrock-testing\",\"rust-termrock-text\",\"rust-termrock-text-testing\",\"rust-termrock-theme\",\"rust-termrock-theme-testing\",\"rust-termrock-viewport\",\"rust-termrock-viewport-testing\",\"rust-termrock-visibility-publisher\",\"rust-termrock-visibility-publisher-testing\",\"rust-termrock-xtask\",\"rust-termrock-xtask-testing\",\"rust-visual-harness\",\"rust-visual-harness-testing\"]"
+          VELNOR_NEEDS_EXPECTED: "[\"jactionlint\",\"plan\",\"rust-external-consumer-demo\",\"rust-external-consumer-demo-testing\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-domain-testing\",\"rust-holla-sim\",\"rust-holla-sim-testing\",\"rust-holla-testing\",\"rust-holla-ui\",\"rust-holla-ui-testing\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-app-testing\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-capsule-ui-testing\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-domain-testing\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-host-ui-testing\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-presentation-testing\",\"rust-jackin-preview-sim\",\"rust-jackin-preview-sim-testing\",\"rust-jackin-preview-testing\",\"rust-refactor-proof\",\"rust-refactor-proof-testing\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-demos-testing\",\"rust-showcase-testing\",\"rust-showcase-ui\",\"rust-showcase-ui-testing\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-demo-testing\",\"rust-tablepro-domain\",\"rust-tablepro-domain-testing\",\"rust-tablepro-sql\",\"rust-tablepro-sql-testing\",\"rust-tablepro-testing\",\"rust-tablepro-ui\",\"rust-tablepro-ui-testing\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-collections-testing\",\"rust-termrock-consumer-example\",\"rust-termrock-consumer-example-testing\",\"rust-termrock-controls\",\"rust-termrock-controls-testing\",\"rust-termrock-core\",\"rust-termrock-core-testing\",\"rust-termrock-editors\",\"rust-termrock-editors-testing\",\"rust-termrock-feedback\",\"rust-termrock-feedback-testing\",\"rust-termrock-fields\",\"rust-termrock-fields-testing\",\"rust-termrock-forms\",\"rust-termrock-forms-testing\",\"rust-termrock-grid\",\"rust-termrock-grid-testing\",\"rust-termrock-layout\",\"rust-termrock-layout-testing\",\"rust-termrock-navigation\",\"rust-termrock-navigation-testing\",\"rust-termrock-overlays\",\"rust-termrock-overlays-testing\",\"rust-termrock-render\",\"rust-termrock-render-testing\",\"rust-termrock-runtime\",\"rust-termrock-runtime-testing\",\"rust-termrock-session\",\"rust-termrock-session-testing\",\"rust-termrock-shell\",\"rust-termrock-shell-testing\",\"rust-termrock-terminal\",\"rust-termrock-terminal-testing\",\"rust-termrock-testing\",\"rust-termrock-text\",\"rust-termrock-text-testing\",\"rust-termrock-theme\",\"rust-termrock-theme-testing\",\"rust-termrock-viewport\",\"rust-termrock-viewport-testing\",\"rust-termrock-visibility-publisher\",\"rust-termrock-visibility-publisher-testing\",\"rust-termrock-xtask\",\"rust-termrock-xtask-testing\",\"rust-visual-harness\",\"rust-visual-harness-testing\"]"
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/merge-v1-request.json
         run: *r17
       - name: Publish final report
@@ -709,10 +705,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-4ea10562db58afe94ede17a3607740eb64fd80c3f0e6f9372c83f4f90ca1d37f"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-1bcb21ca67bc8718977ff9250456edcd67a9c196178aa563659c8a22dd90a530"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -772,10 +764,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-6aa5f6d42cc118eea16d6ca9403ed3820326f52bc4a84730fd28ca5a31d96dd8"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-41346ab26a49011f85840047e7b917ed496d5d5d5e929b2ce7bbab45b60cdf99"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -832,10 +820,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-2d40fd49212ed79c3002d527f150cbc852fe9833a7982f0f311e0385a22b66c2"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-a5176cea6f54565a368e3a427cfa0340dd2df2769bc36b39e81045f3f11f6672"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -892,10 +876,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-edc8eae1447ff02ef7a3d82fec7fd20f996b092f42680a96a1e08ba710e3a420"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-636672dfa660649b3ebbcf8779a1eb0a78a309fe9e24e35a00eafaf2d419c03e"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -952,10 +932,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-948f139e8c75dc267ce05dcf77b6ac2d9796782522c176e578c91f0ce3575722"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-4ad11878e1b3e1636c3687f67d97a81526cd9bc6e5a8dff9574ef6578edb6d0c"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1012,10 +988,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-e49ca19f5ed6d7e153e8754394472686ea295c1e19413e91c6c700c9657720d6"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-956dc95f7385ab3fec147077679bd6e25767ed2f57ec53e54d631540b69a8b04"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1072,10 +1044,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-885122db61262640cbe9b02642aa56e72352af1a566b386c11966aef91584c1b"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-f024b3c5a18fc0356e225c9fb38615b9fc6b92e9cf6e5a61dacf948a32962ba3"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1132,10 +1100,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-f10e12280dd4b1109a81d5abb88dcf7bb5cc50a6fba3b77e21246cc28b0a19a5"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-a9d70997d764c530f33e01e13364789d8ef8cc1ee84bd81ee98afab78d7f3ffd"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1192,10 +1156,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-16ebbf36cb642ac4fc8ef34e55c21adb7be59d2170607654334d6cc94478f2e5"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-b57d7d876a96607eb19463ae604f66bc398fa997c6d41f0a8b2c0981b39af4bf"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1252,10 +1212,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-bebe4ee9df1957681eb1cedbedcc5738af7e1486a72c1770e1d167c3ecf55d9a"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-45303aad704e47526169fb51e5cfc05fbd984245de3851fa3d7201a58af5fe4f"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1312,10 +1268,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-a0e2a0ae9fe104cd072a044faf9b6525583e1f9c43af17044eed7a363281776a"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-d624412d9903fc8bf876f238b4994994ff12670126a91ed961efd4be63d9f0fa"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1372,10 +1324,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-dc27cc49412c32244db2008d9c47f37bc4d7bb165d32fbc78b61ba7efefacd6f"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-d3d87f9f9e314b5f05d39336f9a1ab732fc314667c290e48675c2f867325c6c1"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1432,10 +1380,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-a38ab7fc2cc59202f64551dcc06dc9ac6e2d0efab71c9582d22e70d752f0428b"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-841fe0d84aac6c8f033b9a92f03e0a4975f484073826e918d4c2bff49ef2e3e8"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1492,10 +1436,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-73472ff254bc24332ceea7d65a8b340507590b83217aeba46e1fcc90cbb682cb"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-868f95d2fc11d0036789785437cc94a414b3457daff2a4984be156109adf5420"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1552,10 +1492,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-3c543b96636a55d4119650093f04a035ee580afeea5277ee439e8ccf5b5500d4"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-27d13077069ec7dbe0fe961788e5292c1f0e5fad29429e20f4cafe92d02012ec"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1612,10 +1548,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-5df376debbf14451f1c1df0a1f8d7d7e48ca0bb4981b35e624475ce0e77028cf"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-a7ff26387e2f663f10d8cb471e6cc65ddcf6e27ea61c1daa53871d70546a1dca"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1672,10 +1604,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-b95b56fa900a5c31b6ab469fe9ffad85a8539c55a1e873a49ba5e726f2075b6c"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-866464b5c7c20f42dd69eeee27be0bc16bff1743970657eaa2892dbab92c78b1"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1732,10 +1660,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-b3ba482cf22b6b16fc88eb9b87aefc79e23fbc79ffe80dc67f0455e3bf2e71a8"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-2b28f78ca671f713f29b0459889796899d55e2895a2b8b3014e556545e5d5d5c"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1792,10 +1716,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-78ed5008a8857650cbfd944d249f8de0f541650c778596f22e1cbf8834d07533"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-7d9a19848906fd23621e966a57737e7d223f2e1f102928942b550f3c38230c55"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1852,10 +1772,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-a236cf2645e4899dda7b419cf61457079e13021ac586f7b89bb4bccde1bbd6bd"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-34a7bdba11a387824b0187a100b4c5f4d4133f4ef89423bc9d0d15aa0e86a25a"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1912,10 +1828,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-7e834b3b3f577711bfbee74ef11c2818662f43ffa451e3e514716a2ca05dcbb4"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-64cb9caf40884bb942b47a4aea2974be5f113bf4282b635599059b699e3b2c32"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -1972,10 +1884,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-006ce6a53ec4f66dc454278e3554810ec001a7694ae65cc5b0fd2a0925548a89"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-61997f70079cd6c74e2177e4a070a0b9c40bde052114b02be777e976c6628077"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2032,10 +1940,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-25bece66054fe3c996b11871fbf6cce324d4c3ac6413e7fc6dd1080570e6f57b"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-83c5cb4a02f66dd5b23bed31a96917b9581e66528a413c203be0f5134ddf0ea5"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2092,10 +1996,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-4e1090ffda8f2305ae6f0c41949349f2bfd43b8e26c545f6d8776cd7e14fc599"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-47bf27210b20c27b4eab7ea96c8c4ba382b1d7c197db74782542960e7dcb1755"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2152,10 +2052,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-9e544597cb4553ac9efe3867f21eed3db4f4d0625bb426abca66be834909dd92"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-81242060a877f667eb118ca90fa9e0c464ba935cdea4d7e2f11d768a15b2239d"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2212,10 +2108,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-6c598f8d5b52969d9680bf05e825946a3d7357a7041de86c0e24019aea27f7f5"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-74707fa0d3fbeae220a67c7494245599a1d989546b9cf76431968b8174b22880"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2272,10 +2164,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-d988d2a4a9ff29e0a0346db94661825c71782bbd90c7d1bade34174cc571abed"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-4582742a0ddbce0399aa0ff58c8c4c01ce1324b1eb6f32aef2d806a4a05588e8"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2332,10 +2220,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-05b2d3014ede6d518c85ef64a6197f7eeff59189d8bdb13640ea5659ffbbbe59"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-37e4cb4d1a70e6bdbd86ffbe3d962ed1ca7f06986d60374b05287d173909fd54"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2392,10 +2276,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-4a553eff9910b82547a4503241da5bd65e2f656934d78753d395dd3b3b65906a"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-7951c566746c6382f077912d70f352785eefd83292a52f0e4f590e31503727b0"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2452,10 +2332,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-bc1e95579917040aa587e352a605f4aa9a7cc381bebbbc2e0d80be23a2d003fa"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-a71caeb2270646032bd0296c8b46c7e0c96501ea73e403762216de6fd7972f91"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2512,10 +2388,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-e95768f1f85096e1d4f1b917213b088beea4e212b3769ea7ed83a8d458017f25"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-9101deec956ff2776b8b96a92d61292a032ef28c9995a593fcf537d0d52d43cc"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2572,10 +2444,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-4313000e66d6c27592e4005a604ca3ee6f16756f6cf7acb8eb633e583cfa32d1"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-d406da180318aebaf349302c5e4b72b3c98c98f34d351323d14b57ee87376d4d"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2632,10 +2500,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-d2ecf35326a5009b071ac42d9f1a59b387be5bbb45f704db99bad0ee152d6b48"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-eca8d4ed40419bdaec73f8ae88a7fbe9518462ea1b8e2bad3f884f1a14fd3e4d"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2692,10 +2556,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-c5652cee5c17c5c56aac800a6ceb63d063895858b9545cbc5f9ad438ebd3cf68"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-dd084ab8f47d01637d596f00f0dfc72b2e469f243791595b03b4e2c50894d162"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2752,10 +2612,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-fa68c2df8678bb32d0c9ddf80d944acc7a5566e75cd5854be1778a0cd3bf6c63"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-4f80376dadc2e9aa287a22840bd769e5d69b79cd76bf8e5ef2f0740feaad7a25"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2812,10 +2668,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-bbc19cf3984c0f4b3b24a922ce85fa2fc8decfd546740ef6c41e3d7a95cf8d09"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-a801a794018590b43fa95a7cb31a3487383671455a7e973fdd416dda85c01b63"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2872,10 +2724,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-09cce28a990126b3ba3580bc1940dc3bb7ff40af1cedecd62b4742a41ed8c219"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-929bb5c39424876cdfe9ffcbafc51aafbcd64da8defb87c93449079b0e0e3244"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2932,10 +2780,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-d46dc165aea9c51558c55b150515bba664a16631541d44733cdfab1502ab736e"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-b7ef1b8b71e7c0686960bd6349a8619bac2c2bce07465c2345a057a9232254c6"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -2992,10 +2836,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-b428e2ff1842829932ecdb24983e9724df1061d08e15034bde4ac102beb691a7"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-82e4b43545791cf780599c5fc1adc6c5977ee1c08fd350491f8141fa755c1d56"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -3052,10 +2892,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-acb010bb15e865bb94998d1b815cefe55c4eb880136cdafef6aafc764fba4409"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-5918c5f8b48482f5737a688f717223fe4e584c6ad6f679d720dae10781f0ba45"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -3112,10 +2948,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-aa78e90aee7404baeda6c60238a6ae1413b7a43bf98f5a7a4abfe0b57b7d6a3d"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-da708b0fee9485134b4470962b906183d48d9305306a5c87c664b67da611740a"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -3172,10 +3004,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-1e1c4114728af8b5eca281a1a8e5993515a841c30a77d3a47ff4cf7e9203c1f3"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-f22ba695bfc7cdc988ba8b58810facdf058329ba983afb938e9a4516371d1d86"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -3232,10 +3060,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-ff5e9c84aa9c889e0ea2ab2e028bb65198e653c1db1e888f22d513c585896419"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-d9d0962f8bf0b80a907a035251cffae39a8343c1f90914302910247216e08f01"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -3292,10 +3116,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-c5223c9e522b5738ee2dd98d26d0de79674c535da9baef31ed515a999b4fa8d7"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-50dc6644455336c6fc010e2d8f49baf8591f5bc2da73569d033110db82994981"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -3352,10 +3172,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-f70a7ec6e63775ec2af44f443fec45f3c08a9d6f46b145c306edbf148d440a1c"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-c66e3f9af8a21cc853aaf3573263c7ca7ff3f8b444e879922c604ad55c6e742d"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -3368,126 +3184,6 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-collections-testing
-          overwrite: "true"
-          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
-          retention-days: "30"
-      - *s26
-  rust-termrock-conformance:
-    name: Rust / termrock-conformance
-    runs-on: ubuntu-26.04
-    timeout-minutes: 15
-    env: *m23
-    needs:
-      - plan
-    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-conformance,')"
-    steps:
-      - *s2
-      - *s3
-      - *s34
-      - *s35
-      - *s6
-      - *s33
-      - *s36
-      - *s7
-      - *s37
-      - *s32
-      - *s9
-      - *s10
-      - *s11
-      - *s12
-      - *s13
-      - *s14
-      - *s15
-      - *s16
-      - *s17
-      - *s18
-      - name: Build test executables
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-815b2657ce9e410e746fa10ccb1d501cb81f3c0083ac739a4aead4c8b1e2c708"}
-      - name: Format
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-3065100c99dc8f199822435dcb051e9ac0b533189ad73b4898c20a9a101a760c"}
-      - name: Clippy
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-a8c4ccc95a4866c1a774940e9aa24d529cd8ed9e18869d7fda3a237ccf8dff03"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-86441ed679cee29481ae9e4707c395241c759417b7b62ebb3023d8a5a698644f"}
-      - name: Documentation
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-e0c10f21620a3b3b62f3435779bff7ee5aae87e7226cd2c2711e6143296fa4b3"}
-      - name: Wait for parallel checks
-        wait-all:
-      - name: Upload crate reports
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        with:
-          if-no-files-found: error
-          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-conformance
-          overwrite: "true"
-          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
-          retention-days: "30"
-      - *s26
-  rust-termrock-conformance-testing:
-    name: Rust / termrock-conformance (testing)
-    runs-on: ubuntu-26.04
-    timeout-minutes: 15
-    env: *m23
-    needs:
-      - plan
-    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-conformance-testing,')"
-    steps:
-      - *s2
-      - *s3
-      - *s34
-      - *s35
-      - *s6
-      - *s33
-      - *s36
-      - *s7
-      - *s37
-      - *s32
-      - *s9
-      - *s10
-      - *s11
-      - *s12
-      - *s13
-      - *s14
-      - *s15
-      - *s16
-      - *s17
-      - *s18
-      - name: Build test executables
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-fed2c230b362b6bf4c5350f00a40cb548d18466b4215e15f7a5b114e86b38cbb"}
-      - name: Format
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-3bb0a1f88774de44758e0f61572734de340a51284bbcec8a7de067d39558c5b2"}
-      - name: Clippy
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-0808f1ca4454e37b2fd615820e216fb391ec4fce491020a33c7bed5b851fa741"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-3dcf866c1eae824572275d1c69dd2df9d2247e34d4c29e3aa24a49b3fa434e4e"}
-      - name: Documentation
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-fbabc0b17b4aaf3ff9a8ce12308d0cbee0d353aad79914b8cd7add19d3b0dc28"}
-      - name: Wait for parallel checks
-        wait-all:
-      - name: Upload crate reports
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        with:
-          if-no-files-found: error
-          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-conformance-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -3532,10 +3228,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-0b25cfcbfe3d02548b16f177bd32f7325011c9ecadaf632319a728247424c8d7"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-5d3709d377ff92f7f86cf588e7cea604013fde12c9d4bacc50db95b96d411ab1"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -3592,10 +3284,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-3562ab7c73fac9235e2bcc362e2e1a8998665c0b71fdf18880842174733b30da"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-f0ef2c1250bdc2acbd35e7674135e32f2fb37973dda44327835db978f1a3640c"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -3652,10 +3340,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-fd836170e50e94d643688558a2b650ee4d03ea5e255642c5c027e706a4dace1a"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-3c73bd0c324ea6e678b069113da3c7f5d762e94afe7f9cd15c15d4860338d5e3"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -3712,10 +3396,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-68cf8bd0d0da1564e8c909b7f730ddc37e01c67fce3b52411f4863d350a9295e"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-e3a87b79ecc608d9be6b3b3dc1f88367e3e3613e4e03ca5ce576e97460dad2fd"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -3772,10 +3452,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-ebff2304942f0a4e9d93324b78f7e2ed239eff94fba0cafbf578b26e649dc243"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-f89d3d3cc855ca0020417bac14883cd0cf7ef5a4b6d34cc4c00721e5eeaa9cb6"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -3832,10 +3508,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-ae0ae47f951d2daa682bb7f5a0e2902e6f3a2def8e063d6ffdfc22e6ce58d9ce"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-bbe5e00ec81952e9bb83c4dc652ff3033ef56dfbaa17e88dcf5385b1c95047dd"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -3892,10 +3564,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-55a36b988033227fee12a66e5e251a82479f4974b1e8ab4684d0f26279b2cae3"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-bd529c6fab56e6d4ecbe3740e3275de6ac2b393609abd913dce9e2185b1cc06d"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -3952,10 +3620,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-96af1a81cf45d5d74591c8b7bdb9915792340ee13c7ce67f33253dfe094515bb"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-9d9c08c6dcd83772c2b0352cf68a96da07fbc31f84c2ca3f295778979ebadc1d"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4012,10 +3676,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-5ecd3791826ef7c59ec6546da246eff94553a6d4411235812cffbeb21cd0da00"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-c35ce8a6e09d2a816ed7bf7a75d959ed1634c3d2896d26a4d5018218d70a9f18"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4072,10 +3732,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-a08d375b5374e3b1e7980100cc222192c1e13b16ebbe1f179f57c9eb0f497a80"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-d5d9867e9f0ed77e5284d8559b80fc21b8b82e2f6b40425f6690d14268d2b2ca"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4132,10 +3788,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-ab04a0fc2888cdcbeaf67a4f6bce1b3c73410ba474cd64d0d9ea1c01cba4cc58"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-3683abd0ef60e694ba65c444e683b9088bc354edcb2192f56facbcadb549cd70"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4192,10 +3844,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-4992346a9218a21b06e447315b38c581447a29612973fafb0154061b9ddb4d7d"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-83cd5ed5d1e53a013755aee8a1685cb32c7b9daa2c709e3a17438dc316694bc0"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4252,10 +3900,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-7c4600c72173843442376e7022f1fd0a00eac32374631ef14b79e3b0b4ae3136"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-ecd90d3a1d80c75901e186c7c10b1641d405887c08a12f21e5d0d54b3b9dc0e3"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4312,10 +3956,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-bd30b8ff9ea5e1b6d398b4e3d08ada79de4a6784776dca60ea3e782fa72d5f7b"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-f1387f36a1b2138075d4f99e8f0f972e79f080c3cbdb6a28c31d6a82a2910b2e"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4372,10 +4012,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-5c2cd3d4fa8a62af85c77510725fc37a35c9abd2f7bb56bc56f44e7cdd491227"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-b5fa582e774f8b06dcf28eb2fdfb684e2a2d1d29271b9b3c913a1543aa8c74c0"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4432,10 +4068,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-4c7a300ff609be4b748806300f37471451a677490e0696f144d54675db39d228"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-31d0257832c966d2769e4d4e5c89fb51ad86e70edea4f796b31cdb495aef39ed"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4492,10 +4124,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-92a3aa75bae0e25f4444d394b49ca4a7b8ef7c7be0f85af2cb440423dea26e7d"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-b38197b472dcd7b0dc5555ecec9ba9a44241cf82475fe025007c3901bd6d896f"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4552,10 +4180,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-c458d2c4145e12d21d56a196ee04000c4bd505b5292dd271c5f6f36a781f07a2"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-3700abc849593abd392e2de0011a5dc75853271d4da0e78ed1e4827633f62a51"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4612,10 +4236,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-c5baad3c7762c32952b464b75a5a656be93b5934dcc2675ef2a90e82a570e1d6"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-263ba551b8b5b1b351a19ac9879b9c0ccdbe130b9fc5b2fe40dda6f244d347d7"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4672,10 +4292,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-b5d5cfe2eb1b0faba71ce43b8e50b2279fb42ec336780aa5fe51316bd5874640"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-d30d5f9403a027fa97583fb8a7b33a83e055ba4a98968b875288ab4a898f9290"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4732,10 +4348,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-5d78f0331a48d8eb09b3c45fa755e7447ace30eec2c5f79dee97b4de41baec03"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-d92886692f82c80f5fb7b42739515210a2024901850415bd91944dcacaed56b8"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4792,10 +4404,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-9cd20cde7094c3ead4adc6b235f4ce62a56afa3e5e4e6a4e5cbeac1aaf5e061b"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-86662aba527960c7c4c5cac6cc806c853115797d3f08468ffb8b34ad647d5599"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4852,10 +4460,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-3f1813387c246873c080b7e6d9feee70bee3ff6272870fca55df0a8f1f436bba"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-291492382403524cec1f396d8802f41f0bc17cdbc3b2c3b4e0f78e271572ddf4"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4912,10 +4516,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-6543fc046f404362b56c1246135c41205d6664ea8417bed86bc95b8c26f29934"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-7f555223d0466909c8d0cc52a75370c4e6123c3582fa48c4cf328eb16986093f"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -4972,10 +4572,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-1d5996fd13055ddd019e6103145f7c01c1ef563a7e17f7657668d39168c112c8"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-28fa87d402d01d6ec369544b8b5b4fe17307439114e66f7433b74f994cce23e1"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -5032,10 +4628,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-bca46054e3c2258f6addcbdf35e65e27c31840af4bc507f53ec33aa967f095e9"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-d1c569e400135f79364a080ce54c2a94e49ad6b5b516716a17c5fb8c19817431"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -5092,10 +4684,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-2e5e6bc29b6a26cee01c4a3db33c2cfa24edbbf7dffef4bc75d577e341eb18d0"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-7591f79f90a6c5f7a4b18bb088682b6972b179b61ec9736a1a7547b62116443e"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -5152,10 +4740,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-d2ad69fe3114e16eae0e934b52c69b680e63ae300af4b2fa773daaee92331d76"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-0f62d6f139fc494e3555a4885436275507994e5ccbffec0b6d0e8f256cfcbe00"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -5212,10 +4796,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-6249dce8cf7643b4773dc123d7bfdb15fa00f46dd4b3e653f2071471823ac6e0"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-587f0ceece41d82915ca304c980ee4fbaa8b2db181014c49106520ef26aa94bb"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -5272,10 +4852,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-910ca53412bc10d34aa3d6a40bf9ebaff16bab4cd572a8729561eb78c1dca1d4"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-7722ade737cb0e3c225f27fd4e2f03b0c562729320df8738aea58a53fedd9210"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -5332,10 +4908,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-6688ab82f803e1c3ed10295bf6a1f6b2b6c31f8b7389dba6eccb5f25f1aeb19c"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-82ee56529c8ed76393c46abf3465fd163cb5cf1a88df150b5643bf75b2c017ac"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -5392,10 +4964,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-8f0f280156fd791010a1f0c8294a5eec13edc60fcf5b2cbf6fe9d49b26390732"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-3bb1c0b30d86ca8cca6d5f2de5207a954adf83d86d082840951cb81dbdd776d4"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -5408,126 +4976,6 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-terminal-testing
-          overwrite: "true"
-          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
-          retention-days: "30"
-      - *s26
-  rust-termrock-test-support:
-    name: Rust / termrock-test-support
-    runs-on: ubuntu-26.04
-    timeout-minutes: 15
-    env: *m23
-    needs:
-      - plan
-    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-test-support,')"
-    steps:
-      - *s2
-      - *s3
-      - *s34
-      - *s35
-      - *s6
-      - *s33
-      - *s36
-      - *s7
-      - *s37
-      - *s32
-      - *s9
-      - *s10
-      - *s11
-      - *s12
-      - *s13
-      - *s14
-      - *s15
-      - *s16
-      - *s17
-      - *s18
-      - name: Build test executables
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-ceb5f9f8734f85ba983caec66329b044f424bd9ec544bed0a68f4849b2f6fe3b"}
-      - name: Format
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-480b4755fbe4dee02e406d6bfb5caaee82ec1d6e08142dc27aff2ff11ac7daf6"}
-      - name: Clippy
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-d0335139c45fb5d0e07d9c141d6c1bb355dd0968bcbe2e617e0612e9f8945938"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-aa5f31ac64f9a68fc188643b6748289bf9dd4df1ca53432723cd32d67bb3ac14"}
-      - name: Documentation
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-f4729dc42be101e212d545046ec828e6f8b733e4685b14bf9fa709bedad0f67e"}
-      - name: Wait for parallel checks
-        wait-all:
-      - name: Upload crate reports
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        with:
-          if-no-files-found: error
-          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-test-support
-          overwrite: "true"
-          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
-          retention-days: "30"
-      - *s26
-  rust-termrock-test-support-testing:
-    name: Rust / termrock-test-support (testing)
-    runs-on: ubuntu-26.04
-    timeout-minutes: 15
-    env: *m23
-    needs:
-      - plan
-    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-test-support-testing,')"
-    steps:
-      - *s2
-      - *s3
-      - *s34
-      - *s35
-      - *s6
-      - *s33
-      - *s36
-      - *s7
-      - *s37
-      - *s32
-      - *s9
-      - *s10
-      - *s11
-      - *s12
-      - *s13
-      - *s14
-      - *s15
-      - *s16
-      - *s17
-      - *s18
-      - name: Build test executables
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-872300bd0518675a0e8a5da205f55688ad75891752d3eeb7a5702d0e4ee842e6"}
-      - name: Format
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-f69f097320b18f0168a19c1655e546a86a4c51af5207f66abde7385ca4de9c13"}
-      - name: Clippy
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-038209b39d6f2888c03d655d166ea750deefcf92d134b98e2e340513a3a35194"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-23f5e495cf643f3832044b3c7624cee826d9138223304477772854dbeee27604"}
-      - name: Documentation
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-7e6d3650ea247561069d30f6e7a3685f1289ecf3699dff18e2026951ec9c5627"}
-      - name: Wait for parallel checks
-        wait-all:
-      - name: Upload crate reports
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        with:
-          if-no-files-found: error
-          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-test-support-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -5572,10 +5020,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-d47eed6a05e059071f9e971fd6dedbba7c836f425606ce747c10e7b8cd49f9ea"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-3e8cc319d0ab61e9ecef1761a9531f6a4663b40329592de03630345a67c6cadb"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -5632,10 +5076,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-c6e72681172fb1880f62bd871a3c50019aa907b5163933d7a9a12176bf0657cd"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-739a3a140d1f2b3f930094134ca31b3d059428d7678fcbd76208d694fb86c876"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -5692,10 +5132,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-5dd71cb40b68a7f2faf8ab7221fc4ac2f207e1d694e12cb2ba841142efcda669"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-4a2e08aaf98f4ae1d9cefba842968f6c2c61d8d765f2282a79b699e5fbcb0ebb"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -5752,10 +5188,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-51e81f1ec718fa59df38fbb96181bef20b3358050e5bf3beacda1f1a994e121c"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-28fd7fe0772719b896b99802638b4a02450ab194ea02ae993efa5163981740f3"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -5812,10 +5244,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-baea2983ceae09dc924829bb9cd9bd430d1b9502f81c91598d83b9f745bc2b1c"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-59249706591b12af241bfd39fa35e53d7c87f1d9f2cfef5940f7ea8d3f36f2bc"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -5872,10 +5300,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-ed8c68544952576e7176c09e17f97f7c263edc8fa409ce1267a4ba273ec6871a"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-a938700bb1bc62baa4f89411ee6169f9a69a5b67cf610dc12c2a86d64cc1d83e"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -5932,10 +5356,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-5fd71e921e6a6c841b97a16d586c2fe9fe2d935dc994bef5b615b673bd977139"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-63a17dc1d7db16da989850c528a2dd1edef65b08dc8b6add3b0117a216a5a6ba"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -5992,10 +5412,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-1b004380f3d6cccadcd8e7ab401e94f87a3896a3107fe801372f3580d862155a"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-fdae5ff14f0a4ae9636763dbcdbf0ca57ba62a5dc6c5fbe5266122622cde16d2"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -6052,10 +5468,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-0cf83b7b89e23307c1f929a919b2db73240bcab5c1be1e78c6009e9ccca4582e"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-990ddb0a9575cff3b9c4c5bab12cc2be33721dd97949e81041d8f427753a1729"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -6112,10 +5524,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-e8c921c0d49bf13447769d66b0ad3713e099cf418ba23ec53d6b1b4f3c3f1b39"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-5b3bf7a09e3c2719bcbfdeaf5ab9ff95a0d0f55e491cd72468152cf018413a60"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -6172,10 +5580,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-f2c3405f1e2600e3e89c6120a3767435b357ed616082a08f7cfb1e60a377bcb2"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-7ae18a66b494c43581051edec2b00e6fcb9eb1d87e23d2bb6e03d9b3a232c6e6"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -6232,10 +5636,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-cd88ca73a30d84c44aaf2c3d8d83e0e5f9189d3725bb2d630b3d34120f44a159"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-6155c790e759ec3122366261b7f61d1b63a176f67eb4d26b853242005a455c25"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -6292,10 +5692,6 @@ jobs:
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-282382ef750d1b68034c825f04a2386091148f2242eb1775e40d55a8bdcd361a"}
-      - name: Unit and integration tests
-        background: true
-        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-018a56213d7bdabe3a8eb58c35aa2c71837995f7845446e541593891cc802c38"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
