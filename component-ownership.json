@@ -1,230 +1,3844 @@
 {
   "schema": "termrock-component-ownership/proposal-v1",
+  "inventory_task": "T01",
+  "fixed_input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+  "product_behavior": "NOT VERIFIED",
   "components": [
     {
       "id": "W01",
       "name": "Brand",
-      "owner": "termrock-controls"
+      "kind": "control",
+      "owner": "termrock-controls",
+      "definition_owner": "termrock_controls::brand::Brand",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-controls/src/brand.rs",
+        "line": 15,
+        "sha256": "8472373255713a6884f955f6ea33d62c15e9ea64c33b796e07839b91b1c603eb"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::Brand",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/0/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::controls::Brand",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/0/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::controls::brand::Brand",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/0/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_controls::Brand",
+          "destination_module": "termrock_controls",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/0/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W01-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
+        "manifest_path": "crates/termrock-controls/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W01",
+        "proposal_owner": "termrock-controls"
+      }
     },
     {
       "id": "W02",
       "name": "Button",
-      "owner": "termrock-controls"
+      "kind": "control",
+      "owner": "termrock-controls",
+      "definition_owner": "termrock_controls::button::Button",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-controls/src/button.rs",
+        "line": 70,
+        "sha256": "7469c45bad58dd31b54a711d7c19153f1c6e9d46ff0cd9fc6fe182afa5e056ce"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::Button",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/1/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::controls::Button",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/1/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::controls::button::Button",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/1/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_controls::Button",
+          "destination_module": "termrock_controls",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/1/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W02-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
+        "manifest_path": "crates/termrock-controls/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W02",
+        "proposal_owner": "termrock-controls"
+      }
     },
     {
       "id": "W03",
       "name": "Checkbox",
-      "owner": "termrock-controls"
+      "kind": "control",
+      "owner": "termrock-controls",
+      "definition_owner": "termrock_controls::choice::Checkbox",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-controls/src/choice.rs",
+        "line": 349,
+        "sha256": "aa7f32ab40d2dde72468d00415c709d5dcd8b6ed1b8d15e6e98afa5bbf9864de"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::Checkbox",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/2/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::controls::Checkbox",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/2/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::controls::choice::Checkbox",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/2/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_controls::Checkbox",
+          "destination_module": "termrock_controls",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/2/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W03-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
+        "manifest_path": "crates/termrock-controls/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W03",
+        "proposal_owner": "termrock-controls"
+      }
     },
     {
       "id": "W04",
       "name": "Toggle",
-      "owner": "termrock-controls"
+      "kind": "control",
+      "owner": "termrock-controls",
+      "definition_owner": "termrock_controls::choice::Toggle",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-controls/src/choice.rs",
+        "line": 646,
+        "sha256": "aa7f32ab40d2dde72468d00415c709d5dcd8b6ed1b8d15e6e98afa5bbf9864de"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::Toggle",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/3/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::controls::Toggle",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/3/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::controls::choice::Toggle",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/3/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_controls::Toggle",
+          "destination_module": "termrock_controls",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/3/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W04-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
+        "manifest_path": "crates/termrock-controls/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W04",
+        "proposal_owner": "termrock-controls"
+      }
     },
     {
       "id": "W05",
       "name": "RadioGroup",
-      "owner": "termrock-controls"
+      "kind": "control",
+      "owner": "termrock-controls",
+      "definition_owner": "termrock_controls::choice::RadioGroup",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-controls/src/choice.rs",
+        "line": 930,
+        "sha256": "aa7f32ab40d2dde72468d00415c709d5dcd8b6ed1b8d15e6e98afa5bbf9864de"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::RadioGroup",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/4/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::controls::RadioGroup",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/4/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::controls::choice::RadioGroup",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/4/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_controls::RadioGroup",
+          "destination_module": "termrock_controls",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/4/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W05-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
+        "manifest_path": "crates/termrock-controls/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W05",
+        "proposal_owner": "termrock-controls"
+      }
     },
     {
       "id": "W06",
       "name": "ChipBar",
-      "owner": "termrock-navigation"
+      "kind": "control",
+      "owner": "termrock-navigation",
+      "definition_owner": "termrock_navigation::chip::ChipBar",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-navigation/src/chip.rs",
+        "line": 206,
+        "sha256": "e7594e10a2e4ef916da458902459d48adccd46669fef5bf25b95645aed6b92ad"
+      },
+      "owner_task": "T14",
+      "reexports": [
+        {
+          "public_path": "termrock::ChipBar",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/5/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::navigation::ChipBar",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/5/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::navigation::chip::ChipBar",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/5/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_navigation::ChipBar",
+          "destination_module": "termrock_navigation",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/5/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W06-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation#0.1.0",
+        "manifest_path": "crates/termrock-navigation/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W06",
+        "proposal_owner": "termrock-navigation"
+      }
     },
     {
       "id": "W07",
       "name": "Field",
-      "owner": "termrock-fields"
+      "kind": "control",
+      "owner": "termrock-fields",
+      "definition_owner": "termrock_fields::field::Field",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-fields/src/field.rs",
+        "line": 14,
+        "sha256": "e0469ca53dcf81b87d4a6b5e07ce6baa9669e226878f9a70f75666613902e5b1"
+      },
+      "owner_task": "T13",
+      "reexports": [
+        {
+          "public_path": "termrock::Field",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/6/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::fields::Field",
+          "destination_module": "termrock::fields",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/6/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::fields::field::Field",
+          "destination_module": "termrock::fields",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/6/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_fields::Field",
+          "destination_module": "termrock_fields",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/6/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W07-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-fields#0.1.0",
+        "manifest_path": "crates/termrock-fields/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W07",
+        "proposal_owner": "termrock-fields"
+      }
     },
     {
       "id": "W08",
       "name": "TextInput",
-      "owner": "termrock-fields"
+      "kind": "control",
+      "owner": "termrock-fields",
+      "definition_owner": "termrock_fields::input::TextInput",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-fields/src/input.rs",
+        "line": 931,
+        "sha256": "426f9dbff5c2f28026d7059cc35abbe54b4350c50f2b5dfb8c1885e90448b220"
+      },
+      "owner_task": "T13",
+      "reexports": [
+        {
+          "public_path": "termrock::TextInput",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/7/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::fields::TextInput",
+          "destination_module": "termrock::fields",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/7/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::fields::input::TextInput",
+          "destination_module": "termrock::fields",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/7/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_fields::TextInput",
+          "destination_module": "termrock_fields",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/7/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W08-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-fields#0.1.0",
+        "manifest_path": "crates/termrock-fields/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W08",
+        "proposal_owner": "termrock-fields"
+      }
     },
     {
       "id": "W09",
       "name": "TextArea",
-      "owner": "termrock-fields"
+      "kind": "control",
+      "owner": "termrock-fields",
+      "definition_owner": "termrock_fields::textarea::TextArea",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-fields/src/textarea.rs",
+        "line": 587,
+        "sha256": "af7d003f4876604595dfb6c6ccbce4accb732fc5d003a18daa7e3f307d29774e"
+      },
+      "owner_task": "T13",
+      "reexports": [
+        {
+          "public_path": "termrock::TextArea",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/8/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::fields::TextArea",
+          "destination_module": "termrock::fields",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/8/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::fields::textarea::TextArea",
+          "destination_module": "termrock::fields",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/8/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_fields::TextArea",
+          "destination_module": "termrock_fields",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/8/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W09-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-fields#0.1.0",
+        "manifest_path": "crates/termrock-fields/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W09",
+        "proposal_owner": "termrock-fields"
+      }
     },
     {
       "id": "W10",
       "name": "Select",
-      "owner": "termrock-overlays"
+      "kind": "control",
+      "owner": "termrock-overlays",
+      "definition_owner": "termrock_overlays::select::Select",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-overlays/src/select.rs",
+        "line": 146,
+        "sha256": "85310083315d1b41325ff58f1266bac624fd686d8f544dce5f53e9356adde85f"
+      },
+      "owner_task": "T15",
+      "reexports": [
+        {
+          "public_path": "termrock::Select",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/9/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::overlays::Select",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/9/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::overlays::select::Select",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/9/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_overlays::Select",
+          "destination_module": "termrock_overlays",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/9/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W10-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
+        "manifest_path": "crates/termrock-overlays/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W10",
+        "proposal_owner": "termrock-overlays"
+      }
     },
     {
       "id": "W11",
       "name": "Form",
-      "owner": "termrock-forms"
+      "kind": "control",
+      "owner": "termrock-forms",
+      "definition_owner": "termrock_forms::form::Form",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-forms/src/form.rs",
+        "line": 706,
+        "sha256": "d4fad257dbc7f09cd3ebbea34109abbfa45d399dcf1ad8d85a8cca3aeb07ef14"
+      },
+      "owner_task": "T18",
+      "reexports": [
+        {
+          "public_path": "termrock::Form",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/10/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::forms::Form",
+          "destination_module": "termrock::forms",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/10/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::forms::form::Form",
+          "destination_module": "termrock::forms",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/10/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_forms::Form",
+          "destination_module": "termrock_forms",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/10/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W11-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-forms#0.1.0",
+        "manifest_path": "crates/termrock-forms/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W11",
+        "proposal_owner": "termrock-forms"
+      }
     },
     {
       "id": "W12",
       "name": "List",
-      "owner": "termrock-navigation"
+      "kind": "control",
+      "owner": "termrock-navigation",
+      "definition_owner": "termrock_navigation::list::List",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-navigation/src/list.rs",
+        "line": 319,
+        "sha256": "4b9f9af321cc04ab9c2c435f83019444e17270a21974186c899926cb4ccf2194"
+      },
+      "owner_task": "T14",
+      "reexports": [
+        {
+          "public_path": "termrock::List",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/11/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::navigation::List",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/11/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::navigation::list::List",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/11/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_navigation::List",
+          "destination_module": "termrock_navigation",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/11/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W12-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation#0.1.0",
+        "manifest_path": "crates/termrock-navigation/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W12",
+        "proposal_owner": "termrock-navigation"
+      }
     },
     {
       "id": "W13",
       "name": "FilterList",
-      "owner": "termrock-navigation"
+      "kind": "control",
+      "owner": "termrock-navigation",
+      "definition_owner": "termrock_navigation::filter_list::FilterList",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-navigation/src/filter_list.rs",
+        "line": 292,
+        "sha256": "3c448fbf1389566216f3ec641ccd6ea9331e2e22472a08dfe4b55612e882a64a"
+      },
+      "owner_task": "T14",
+      "reexports": [
+        {
+          "public_path": "termrock::FilterList",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/12/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::navigation::FilterList",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/12/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::navigation::filter_list::FilterList",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/12/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_navigation::FilterList",
+          "destination_module": "termrock_navigation",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/12/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W13-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation#0.1.0",
+        "manifest_path": "crates/termrock-navigation/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W13",
+        "proposal_owner": "termrock-navigation"
+      }
     },
     {
       "id": "W14",
       "name": "NavList",
-      "owner": "termrock-navigation"
+      "kind": "control",
+      "owner": "termrock-navigation",
+      "definition_owner": "termrock_navigation::nav_list::NavList",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-navigation/src/nav_list.rs",
+        "line": 233,
+        "sha256": "7ae15861e119c415f9b3d710007a91de88875bc3fdada52679ebb82befea9860"
+      },
+      "owner_task": "T14",
+      "reexports": [
+        {
+          "public_path": "termrock::NavList",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/13/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::navigation::NavList",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/13/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::navigation::nav_list::NavList",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/13/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_navigation::NavList",
+          "destination_module": "termrock_navigation",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/13/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W14-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation#0.1.0",
+        "manifest_path": "crates/termrock-navigation/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W14",
+        "proposal_owner": "termrock-navigation"
+      }
     },
     {
       "id": "W15",
       "name": "Tree",
-      "owner": "termrock-navigation"
+      "kind": "control",
+      "owner": "termrock-navigation",
+      "definition_owner": "termrock_navigation::tree::Tree",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-navigation/src/tree.rs",
+        "line": 475,
+        "sha256": "fb69447ae724491daf9f1a73a31845785e237dea6eeb22a19fa654d32396404e"
+      },
+      "owner_task": "T14",
+      "reexports": [
+        {
+          "public_path": "termrock::Tree",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/14/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::navigation::Tree",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/14/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::navigation::tree::Tree",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/14/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_navigation::Tree",
+          "destination_module": "termrock_navigation",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/14/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W15-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation#0.1.0",
+        "manifest_path": "crates/termrock-navigation/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W15",
+        "proposal_owner": "termrock-navigation"
+      }
     },
     {
       "id": "W16",
       "name": "Steps",
-      "owner": "termrock-navigation"
+      "kind": "control",
+      "owner": "termrock-navigation",
+      "definition_owner": "termrock_navigation::steps::Steps",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-navigation/src/steps.rs",
+        "line": 241,
+        "sha256": "fbb60a11086b158067a4137bcac0dc6c1b2484c054a52248f1dff6671429bc61"
+      },
+      "owner_task": "T14",
+      "reexports": [
+        {
+          "public_path": "termrock::Steps",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/15/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::navigation::Steps",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/15/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::navigation::steps::Steps",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/15/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_navigation::Steps",
+          "destination_module": "termrock_navigation",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/15/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W16-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation#0.1.0",
+        "manifest_path": "crates/termrock-navigation/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W16",
+        "proposal_owner": "termrock-navigation"
+      }
     },
     {
       "id": "W17",
       "name": "Tabs",
-      "owner": "termrock-navigation"
+      "kind": "control",
+      "owner": "termrock-navigation",
+      "definition_owner": "termrock_navigation::tabs::Tabs",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-navigation/src/tabs.rs",
+        "line": 1582,
+        "sha256": "1690714efff8cbb74a4002d7f6d03e4b758f9f06f85302fa8888080b18b77186"
+      },
+      "owner_task": "T14",
+      "reexports": [
+        {
+          "public_path": "termrock::Tabs",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/16/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::navigation::Tabs",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/16/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::navigation::tabs::Tabs",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/16/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_navigation::Tabs",
+          "destination_module": "termrock_navigation",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/16/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W17-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation#0.1.0",
+        "manifest_path": "crates/termrock-navigation/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W17",
+        "proposal_owner": "termrock-navigation"
+      }
     },
     {
       "id": "W18",
       "name": "Picker",
-      "owner": "termrock-overlays"
+      "kind": "control",
+      "owner": "termrock-overlays",
+      "definition_owner": "termrock_overlays::picker::Picker",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-overlays/src/picker.rs",
+        "line": 179,
+        "sha256": "d3cd2076006de50e3d7aab9ece1ccf45fc022cbaceb982b01ecbc978322c4ec5"
+      },
+      "owner_task": "T15",
+      "reexports": [
+        {
+          "public_path": "termrock::Picker",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/17/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::overlays::Picker",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/17/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::overlays::picker::Picker",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/17/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_overlays::Picker",
+          "destination_module": "termrock_overlays",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/17/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W18-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
+        "manifest_path": "crates/termrock-overlays/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W18",
+        "proposal_owner": "termrock-overlays"
+      }
     },
     {
       "id": "W19",
       "name": "CommandPalette",
-      "owner": "termrock-overlays"
+      "kind": "alias",
+      "owner": "termrock-overlays",
+      "definition_owner": "termrock_overlays::picker::CommandPalette",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-overlays/src/picker.rs",
+        "line": 765,
+        "sha256": "d3cd2076006de50e3d7aab9ece1ccf45fc022cbaceb982b01ecbc978322c4ec5"
+      },
+      "owner_task": "T15",
+      "reexports": [
+        {
+          "public_path": "termrock::CommandPalette",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/18/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::overlays::CommandPalette",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/18/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::overlays::picker::CommandPalette",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/18/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_overlays::CommandPalette",
+          "destination_module": "termrock_overlays",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/18/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W19-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
+        "manifest_path": "crates/termrock-overlays/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W19",
+        "proposal_owner": "termrock-overlays"
+      }
     },
     {
       "id": "W20",
       "name": "PickerChain",
-      "owner": "termrock-overlays"
+      "kind": "control",
+      "owner": "termrock-overlays",
+      "definition_owner": "termrock_overlays::picker_chain::PickerChain",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-overlays/src/picker_chain.rs",
+        "line": 98,
+        "sha256": "b5bafe9287e3f133ff30e8d2a047438fbe412f6612aa60a4269ccdddcd2784c8"
+      },
+      "owner_task": "T15",
+      "reexports": [
+        {
+          "public_path": "termrock::PickerChain",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/19/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::overlays::PickerChain",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/19/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::overlays::picker_chain::PickerChain",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/19/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_overlays::PickerChain",
+          "destination_module": "termrock_overlays",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/19/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W20-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
+        "manifest_path": "crates/termrock-overlays/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W20",
+        "proposal_owner": "termrock-overlays"
+      }
     },
     {
       "id": "W21",
       "name": "Completion",
-      "owner": "termrock-overlays"
+      "kind": "control",
+      "owner": "termrock-overlays",
+      "definition_owner": "termrock_overlays::completion::Completion",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-overlays/src/completion.rs",
+        "line": 440,
+        "sha256": "3c11258da2fdfc0c624816744988d40e763098af668b068f3c01f01d06e3b748"
+      },
+      "owner_task": "T15",
+      "reexports": [
+        {
+          "public_path": "termrock::Completion",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/20/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::overlays::Completion",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/20/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::overlays::completion::Completion",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/20/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_overlays::Completion",
+          "destination_module": "termrock_overlays",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/20/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W21-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
+        "manifest_path": "crates/termrock-overlays/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W21",
+        "proposal_owner": "termrock-overlays"
+      }
     },
     {
       "id": "W22",
       "name": "Dialog",
-      "owner": "termrock-overlays"
+      "kind": "control",
+      "owner": "termrock-overlays",
+      "definition_owner": "termrock_overlays::dialog::Dialog",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-overlays/src/dialog.rs",
+        "line": 282,
+        "sha256": "fa5ce37929352a9d13c1f0f2a62522d40220065b51ba74bb7cbdf177db1b7c7c"
+      },
+      "owner_task": "T15",
+      "reexports": [
+        {
+          "public_path": "termrock::Dialog",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/21/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::overlays::Dialog",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/21/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::overlays::dialog::Dialog",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/21/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_overlays::Dialog",
+          "destination_module": "termrock_overlays",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/21/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W22-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
+        "manifest_path": "crates/termrock-overlays/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W22",
+        "proposal_owner": "termrock-overlays"
+      }
     },
     {
       "id": "W23",
       "name": "Menu",
-      "owner": "termrock-overlays"
+      "kind": "descriptor",
+      "owner": "termrock-overlays",
+      "definition_owner": "termrock_overlays::menu::Menu",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-overlays/src/menu.rs",
+        "line": 134,
+        "sha256": "2d7c3a4b1f15845f3ed8151c6b0f5edd8e7e00b7f977b7a6223a1a16a3b1e4ae"
+      },
+      "owner_task": "T15",
+      "reexports": [
+        {
+          "public_path": "termrock::Menu",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/22/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::overlays::Menu",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/22/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::overlays::menu::Menu",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/22/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_overlays::Menu",
+          "destination_module": "termrock_overlays",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/22/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W23-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
+        "manifest_path": "crates/termrock-overlays/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W23",
+        "proposal_owner": "termrock-overlays"
+      }
     },
     {
       "id": "W24",
       "name": "ContextMenu",
-      "owner": "termrock-overlays"
+      "kind": "adapter",
+      "owner": "termrock-overlays",
+      "definition_owner": "termrock_overlays::menu::ContextMenu",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-overlays/src/menu.rs",
+        "line": 375,
+        "sha256": "2d7c3a4b1f15845f3ed8151c6b0f5edd8e7e00b7f977b7a6223a1a16a3b1e4ae"
+      },
+      "owner_task": "T15",
+      "reexports": [
+        {
+          "public_path": "termrock::ContextMenu",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/23/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::overlays::ContextMenu",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/23/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::overlays::menu::ContextMenu",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/23/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_overlays::ContextMenu",
+          "destination_module": "termrock_overlays",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/23/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W24-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
+        "manifest_path": "crates/termrock-overlays/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W24",
+        "proposal_owner": "termrock-overlays"
+      }
     },
     {
       "id": "W25",
       "name": "MenuBar",
-      "owner": "termrock-overlays"
+      "kind": "control",
+      "owner": "termrock-overlays",
+      "definition_owner": "termrock_overlays::menu::MenuBar",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-overlays/src/menu.rs",
+        "line": 1173,
+        "sha256": "2d7c3a4b1f15845f3ed8151c6b0f5edd8e7e00b7f977b7a6223a1a16a3b1e4ae"
+      },
+      "owner_task": "T15",
+      "reexports": [
+        {
+          "public_path": "termrock::MenuBar",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/24/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::overlays::MenuBar",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/24/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::overlays::menu::MenuBar",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/24/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_overlays::MenuBar",
+          "destination_module": "termrock_overlays",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/24/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W25-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
+        "manifest_path": "crates/termrock-overlays/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W25",
+        "proposal_owner": "termrock-overlays"
+      }
     },
     {
       "id": "W26",
       "name": "HelpOverlay",
-      "owner": "termrock-overlays"
+      "kind": "control",
+      "owner": "termrock-overlays",
+      "definition_owner": "termrock_overlays::help::HelpOverlay",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-overlays/src/help.rs",
+        "line": 204,
+        "sha256": "abcd63c6672db4f5170e3d20aa7edc212ae24b3066ccdd04fabbd8f9c4a1a8b8"
+      },
+      "owner_task": "T15",
+      "reexports": [
+        {
+          "public_path": "termrock::HelpOverlay",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/25/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::overlays::HelpOverlay",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/25/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::overlays::help::HelpOverlay",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/25/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_overlays::HelpOverlay",
+          "destination_module": "termrock_overlays",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/25/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W26-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
+        "manifest_path": "crates/termrock-overlays/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W26",
+        "proposal_owner": "termrock-overlays"
+      }
     },
     {
       "id": "W27",
       "name": "Wizard",
-      "owner": "termrock-forms"
+      "kind": "control",
+      "owner": "termrock-forms",
+      "definition_owner": "termrock_forms::wizard::Wizard",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-forms/src/wizard.rs",
+        "line": 121,
+        "sha256": "9dc4ad1fcc4e5f38a97ed8d2093eb1c02f95c76ef64c40ec987e0c413c88fa9f"
+      },
+      "owner_task": "T18",
+      "reexports": [
+        {
+          "public_path": "termrock::Wizard",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/26/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::forms::Wizard",
+          "destination_module": "termrock::forms",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/26/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::forms::wizard::Wizard",
+          "destination_module": "termrock::forms",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/26/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_forms::Wizard",
+          "destination_module": "termrock_forms",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/26/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W27-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-forms#0.1.0",
+        "manifest_path": "crates/termrock-forms/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W27",
+        "proposal_owner": "termrock-forms"
+      }
     },
     {
       "id": "W28",
       "name": "Grid",
-      "owner": "termrock-grid"
+      "kind": "control",
+      "owner": "termrock-grid",
+      "definition_owner": "termrock_grid::grid::Grid",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-grid/src/grid.rs",
+        "line": 989,
+        "sha256": "4959b3dea01183b25e875d9a7c61750ca413b9d751d7a6ab89457ec3cad900dc"
+      },
+      "owner_task": "T16",
+      "reexports": [
+        {
+          "public_path": "termrock::Grid",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/27/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::grid::Grid",
+          "destination_module": "termrock::grid",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/27/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::grid::grid::Grid",
+          "destination_module": "termrock::grid",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/27/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_grid::Grid",
+          "destination_module": "termrock_grid",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/27/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W28-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-grid#0.1.0",
+        "manifest_path": "crates/termrock-grid/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W28",
+        "proposal_owner": "termrock-grid"
+      }
     },
     {
       "id": "W29",
       "name": "CodeEditor",
-      "owner": "termrock-editors"
+      "kind": "control",
+      "owner": "termrock-editors",
+      "definition_owner": "termrock_editors::code::CodeEditor",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-editors/src/code.rs",
+        "line": 791,
+        "sha256": "98f2e58afba660c8a407faefcc8613d4f2701c76b6d07fd69767e45883142c15"
+      },
+      "owner_task": "T17",
+      "reexports": [
+        {
+          "public_path": "termrock::CodeEditor",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/28/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::editors::CodeEditor",
+          "destination_module": "termrock::editors",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/28/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::editors::code::CodeEditor",
+          "destination_module": "termrock::editors",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/28/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_editors::CodeEditor",
+          "destination_module": "termrock_editors",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/28/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W29-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-editors#0.1.0",
+        "manifest_path": "crates/termrock-editors/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W29",
+        "proposal_owner": "termrock-editors"
+      }
     },
     {
       "id": "W30",
       "name": "DiffView",
-      "owner": "termrock-editors"
+      "kind": "control",
+      "owner": "termrock-editors",
+      "definition_owner": "termrock_editors::diff::DiffView",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-editors/src/diff.rs",
+        "line": 271,
+        "sha256": "03c902d3af81f0d2dd3a5416528eb0b52d7de871b594a3739f604ef757e4fa5b"
+      },
+      "owner_task": "T17",
+      "reexports": [
+        {
+          "public_path": "termrock::DiffView",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/29/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::editors::DiffView",
+          "destination_module": "termrock::editors",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/29/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::editors::diff::DiffView",
+          "destination_module": "termrock::editors",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/29/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_editors::DiffView",
+          "destination_module": "termrock_editors",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/29/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W30-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-editors#0.1.0",
+        "manifest_path": "crates/termrock-editors/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W30",
+        "proposal_owner": "termrock-editors"
+      }
     },
     {
       "id": "W31",
       "name": "TextViewport",
-      "owner": "termrock-viewport"
+      "kind": "control",
+      "owner": "termrock-viewport",
+      "definition_owner": "termrock_viewport::viewport::TextViewport",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-viewport/src/viewport.rs",
+        "line": 1438,
+        "sha256": "a817e9e0bc50377c43d70a8e7d1fe7ac35a27ffee18c963c28a9f75ccbe4b29d"
+      },
+      "owner_task": "T17",
+      "reexports": [
+        {
+          "public_path": "termrock::TextViewport",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/30/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::viewport::TextViewport",
+          "destination_module": "termrock::viewport",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/30/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::viewport::viewport::TextViewport",
+          "destination_module": "termrock::viewport",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/30/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_viewport::TextViewport",
+          "destination_module": "termrock_viewport",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/30/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W31-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-viewport#0.1.0",
+        "manifest_path": "crates/termrock-viewport/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W31",
+        "proposal_owner": "termrock-viewport"
+      }
     },
     {
       "id": "W32",
       "name": "Panel",
-      "owner": "termrock-controls"
+      "kind": "control",
+      "owner": "termrock-controls",
+      "definition_owner": "termrock_controls::panel::Panel",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-controls/src/panel.rs",
+        "line": 43,
+        "sha256": "07eacaa4d7f3bae67a9e151cc1b02938198b4d1aa5dae30e3c19c37d2dd0e9c5"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::Panel",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/31/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::controls::Panel",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/31/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::controls::panel::Panel",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/31/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_controls::Panel",
+          "destination_module": "termrock_controls",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/31/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W32-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
+        "manifest_path": "crates/termrock-controls/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W32",
+        "proposal_owner": "termrock-controls"
+      }
     },
     {
       "id": "W33",
       "name": "SplitPane",
-      "owner": "termrock-controls"
+      "kind": "control",
+      "owner": "termrock-controls",
+      "definition_owner": "termrock_controls::split::SplitPane",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-controls/src/split.rs",
+        "line": 206,
+        "sha256": "bdf4e6d35e5aed7b4fb703a48edefab75e6b643222d1d9d8f00f5ae72907b913"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::SplitPane",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/32/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::controls::SplitPane",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/32/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::controls::split::SplitPane",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/32/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_controls::SplitPane",
+          "destination_module": "termrock_controls",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/32/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W33-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
+        "manifest_path": "crates/termrock-controls/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W33",
+        "proposal_owner": "termrock-controls"
+      }
     },
     {
       "id": "W34",
       "name": "Props",
-      "owner": "termrock-controls"
+      "kind": "control",
+      "owner": "termrock-controls",
+      "definition_owner": "termrock_controls::props::Props",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-controls/src/props.rs",
+        "line": 1269,
+        "sha256": "488e7723fa509697dc80e15132c8639eb961634dbea70ea7dd4dac6f512e8010"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::Props",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/33/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::controls::Props",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/33/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::controls::props::Props",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/33/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_controls::Props",
+          "destination_module": "termrock_controls",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/33/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W34-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
+        "manifest_path": "crates/termrock-controls/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W34",
+        "proposal_owner": "termrock-controls"
+      }
     },
     {
       "id": "W35",
       "name": "PropsList",
-      "owner": "termrock-navigation"
+      "kind": "control",
+      "owner": "termrock-controls",
+      "definition_owner": "termrock_controls::props::PropsList",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-controls/src/props.rs",
+        "line": 305,
+        "sha256": "488e7723fa509697dc80e15132c8639eb961634dbea70ea7dd4dac6f512e8010"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::PropsList",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/34/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::controls::PropsList",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/34/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::controls::props::PropsList",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/34/all_reexports/2"
+        },
+        {
+          "public_path": "termrock::navigation::PropsList",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/34/all_reexports/3"
+        },
+        {
+          "public_path": "termrock_controls::PropsList",
+          "destination_module": "termrock_controls",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/34/all_reexports/4"
+        },
+        {
+          "public_path": "termrock_navigation::PropsList",
+          "destination_module": "termrock_navigation",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/34/all_reexports/5"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W35-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
+        "manifest_path": "crates/termrock-controls/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W35",
+        "proposal_owner": "termrock-navigation"
+      }
     },
     {
       "id": "W36",
       "name": "Empty",
-      "owner": "termrock-controls"
+      "kind": "control",
+      "owner": "termrock-controls",
+      "definition_owner": "termrock_controls::empty::Empty",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-controls/src/empty.rs",
+        "line": 14,
+        "sha256": "c4ddeab5bf1f3167e8a4d5d2630f9b9dd147b51abaf5604c7cf89ecd2e756f85"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::Empty",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/35/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::controls::Empty",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/35/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::controls::empty::Empty",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/35/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_controls::Empty",
+          "destination_module": "termrock_controls",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/35/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W36-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
+        "manifest_path": "crates/termrock-controls/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W36",
+        "proposal_owner": "termrock-controls"
+      }
     },
     {
       "id": "W37",
       "name": "ProgressBar",
-      "owner": "termrock-feedback"
+      "kind": "control",
+      "owner": "termrock-feedback",
+      "definition_owner": "termrock_feedback::progress::ProgressBar",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-feedback/src/progress.rs",
+        "line": 64,
+        "sha256": "3314eec3436bac31d2e363f28a7e8790e73f0b14cc2d99c4333aebb905f8e223"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::ProgressBar",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/36/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::feedback::ProgressBar",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/36/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::feedback::progress::ProgressBar",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/36/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_feedback::ProgressBar",
+          "destination_module": "termrock_feedback",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/36/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W37-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
+        "manifest_path": "crates/termrock-feedback/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W37",
+        "proposal_owner": "termrock-feedback"
+      }
     },
     {
       "id": "W38",
       "name": "Spinner",
-      "owner": "termrock-feedback"
+      "kind": "control",
+      "owner": "termrock-feedback",
+      "definition_owner": "termrock_feedback::progress::Spinner",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-feedback/src/progress.rs",
+        "line": 358,
+        "sha256": "3314eec3436bac31d2e363f28a7e8790e73f0b14cc2d99c4333aebb905f8e223"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::Spinner",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/37/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::feedback::Spinner",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/37/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::feedback::progress::Spinner",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/37/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_feedback::Spinner",
+          "destination_module": "termrock_feedback",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/37/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W38-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
+        "manifest_path": "crates/termrock-feedback/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W38",
+        "proposal_owner": "termrock-feedback"
+      }
     },
     {
       "id": "W39",
       "name": "Meter",
-      "owner": "termrock-feedback"
+      "kind": "control",
+      "owner": "termrock-feedback",
+      "definition_owner": "termrock_feedback::meter::Meter",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-feedback/src/meter.rs",
+        "line": 65,
+        "sha256": "ed511d43dd42c50d29925407c362cd8c33189df2b70ddd9cdaf80e3fc56735ad"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::Meter",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/38/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::feedback::Meter",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/38/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::feedback::meter::Meter",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/38/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_feedback::Meter",
+          "destination_module": "termrock_feedback",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/38/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W39-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
+        "manifest_path": "crates/termrock-feedback/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W39",
+        "proposal_owner": "termrock-feedback"
+      }
     },
     {
       "id": "W40",
       "name": "StatusBar",
-      "owner": "termrock-feedback"
+      "kind": "control",
+      "owner": "termrock-feedback",
+      "definition_owner": "termrock_feedback::status::StatusBar",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-feedback/src/status.rs",
+        "line": 187,
+        "sha256": "487aeabe7534756b7d0a323517aabeeaea195c861381ead99947132f7836287f"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::StatusBar",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/39/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::feedback::StatusBar",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/39/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::feedback::status::StatusBar",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/39/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_feedback::StatusBar",
+          "destination_module": "termrock_feedback",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/39/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W40-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
+        "manifest_path": "crates/termrock-feedback/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W40",
+        "proposal_owner": "termrock-feedback"
+      }
     },
     {
       "id": "W41",
       "name": "HintBar",
-      "owner": "termrock-feedback"
+      "kind": "control",
+      "owner": "termrock-feedback",
+      "definition_owner": "termrock_feedback::hintbar::HintBar",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-feedback/src/hintbar.rs",
+        "line": 34,
+        "sha256": "6afe2f75cfb55201ee1e64fdd5ec463e4465258812922db662191f68c8d9efa1"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::HintBar",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/40/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::feedback::HintBar",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/40/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::feedback::hintbar::HintBar",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/40/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_feedback::HintBar",
+          "destination_module": "termrock_feedback",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/40/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W41-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
+        "manifest_path": "crates/termrock-feedback/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W41",
+        "proposal_owner": "termrock-feedback"
+      }
     },
     {
       "id": "W42",
       "name": "KeyHint",
-      "owner": "termrock-feedback"
+      "kind": "control",
+      "owner": "termrock-feedback",
+      "definition_owner": "termrock_feedback::keyhint::KeyHint",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-feedback/src/keyhint.rs",
+        "line": 65,
+        "sha256": "5e0260f25e54cac4f774059e57c8f76cb4768b12363cef384e708e6f2016e85a"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::KeyHint",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/41/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::feedback::KeyHint",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/41/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::feedback::keyhint::KeyHint",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/41/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_feedback::KeyHint",
+          "destination_module": "termrock_feedback",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/41/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W42-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
+        "manifest_path": "crates/termrock-feedback/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W42",
+        "proposal_owner": "termrock-feedback"
+      }
     },
     {
       "id": "W43",
       "name": "TooSmall",
-      "owner": "termrock-controls"
+      "kind": "control",
+      "owner": "termrock-controls",
+      "definition_owner": "termrock_controls::too_small::TooSmall",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-controls/src/too_small.rs",
+        "line": 47,
+        "sha256": "89857c880ae0db2b34bd86e549e280d8993461a3ec4617a8ce09ef1ae40d4ee4"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::TooSmall",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/42/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::controls::TooSmall",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/42/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::controls::too_small::TooSmall",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/42/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_controls::TooSmall",
+          "destination_module": "termrock_controls",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/42/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W43-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
+        "manifest_path": "crates/termrock-controls/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W43",
+        "proposal_owner": "termrock-controls"
+      }
     },
     {
       "id": "W44",
       "name": "TerminalView",
-      "owner": "termrock-terminal"
+      "kind": "control",
+      "owner": "termrock-terminal",
+      "definition_owner": "termrock_terminal::terminal_view::TerminalView",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-terminal/src/terminal_view.rs",
+        "line": 268,
+        "sha256": "d5ea17281e846c18529f2ade21ffd4d3efee5846a7710a0fd5fd23b93002cb16"
+      },
+      "owner_task": "T17",
+      "reexports": [
+        {
+          "public_path": "termrock::TerminalView",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/43/all_reexports/0"
+        },
+        {
+          "public_path": "termrock_terminal::TerminalView",
+          "destination_module": "termrock_terminal",
+          "kind": "package_root_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/43/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::terminal::TerminalView",
+          "destination_module": "termrock::terminal",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/43/all_reexports/2"
+        },
+        {
+          "public_path": "termrock::terminal::terminal_view::TerminalView",
+          "destination_module": "termrock::terminal",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/43/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W44-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-terminal#0.1.0",
+        "manifest_path": "crates/termrock-terminal/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W44",
+        "proposal_owner": "termrock-terminal"
+      }
     },
     {
       "id": "W45",
       "name": "ScrollRegion",
-      "owner": "termrock-viewport"
+      "kind": "control",
+      "owner": "termrock-runtime",
+      "definition_owner": "termrock_runtime::scroll_region::ScrollRegion",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-runtime/src/scroll_region.rs",
+        "line": 44,
+        "sha256": "dee3287434187d858a763ea024df4a0565e35ec080c66276d52c9dbc41123e72"
+      },
+      "owner_task": "T17",
+      "reexports": [
+        {
+          "public_path": "termrock::ScrollRegion",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::controls::ScrollRegion",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::editors::ScrollRegion",
+          "destination_module": "termrock::editors",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/2"
+        },
+        {
+          "public_path": "termrock::fields::ScrollRegion",
+          "destination_module": "termrock::fields",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/3"
+        },
+        {
+          "public_path": "termrock::forms::ScrollRegion",
+          "destination_module": "termrock::forms",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/4"
+        },
+        {
+          "public_path": "termrock::grid::ScrollRegion",
+          "destination_module": "termrock::grid",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/5"
+        },
+        {
+          "public_path": "termrock::navigation::ScrollRegion",
+          "destination_module": "termrock::navigation",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/6"
+        },
+        {
+          "public_path": "termrock::overlays::ScrollRegion",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/7"
+        },
+        {
+          "public_path": "termrock::runtime::ScrollRegion",
+          "destination_module": "termrock::runtime",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/8"
+        },
+        {
+          "public_path": "termrock::runtime::scroll_region::ScrollRegion",
+          "destination_module": "termrock::runtime",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/9"
+        },
+        {
+          "public_path": "termrock::viewport::ScrollRegion",
+          "destination_module": "termrock::viewport",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/10"
+        },
+        {
+          "public_path": "termrock_controls::ScrollRegion",
+          "destination_module": "termrock_controls",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/11"
+        },
+        {
+          "public_path": "termrock_editors::ScrollRegion",
+          "destination_module": "termrock_editors",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/12"
+        },
+        {
+          "public_path": "termrock_fields::ScrollRegion",
+          "destination_module": "termrock_fields",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/13"
+        },
+        {
+          "public_path": "termrock_forms::ScrollRegion",
+          "destination_module": "termrock_forms",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/14"
+        },
+        {
+          "public_path": "termrock_grid::ScrollRegion",
+          "destination_module": "termrock_grid",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/15"
+        },
+        {
+          "public_path": "termrock_navigation::ScrollRegion",
+          "destination_module": "termrock_navigation",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/16"
+        },
+        {
+          "public_path": "termrock_overlays::ScrollRegion",
+          "destination_module": "termrock_overlays",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/17"
+        },
+        {
+          "public_path": "termrock_viewport::ScrollRegion",
+          "destination_module": "termrock_viewport",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/18"
+        },
+        {
+          "public_path": "termrock_runtime::ScrollRegion",
+          "destination_module": "termrock_runtime",
+          "kind": "package_root_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/44/all_reexports/19"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W45-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime#0.1.0",
+        "manifest_path": "crates/termrock-runtime/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W45",
+        "proposal_owner": "termrock-viewport"
+      }
+    },
+    {
+      "id": "W46",
+      "name": "MasterDetail",
+      "kind": "control",
+      "owner": "termrock-controls",
+      "definition_owner": "termrock_controls::master_detail::MasterDetail",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-controls/src/master_detail.rs",
+        "line": 129,
+        "sha256": "8c6d80455a0edbea28fcc30fc1d68af1fc1418f37cbdc3eb5d4f3e3a837c18a4"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::controls::MasterDetail",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/45/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::controls::master_detail::MasterDetail",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/45/all_reexports/1"
+        },
+        {
+          "public_path": "termrock_controls::MasterDetail",
+          "destination_module": "termrock_controls",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/45/all_reexports/2"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W46-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
+        "manifest_path": "crates/termrock-controls/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W46",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W47",
+      "name": "RadioField",
+      "kind": "adapter",
+      "owner": "termrock-controls",
+      "definition_owner": "termrock_controls::radio_field::RadioField",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-controls/src/radio_field.rs",
+        "line": 13,
+        "sha256": "a28bee1f1baebdf7dd98c29e360e94359ff61f8cde197c81c33e1ea5c9b5d170"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::RadioField",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/46/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::controls::RadioField",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/46/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::controls::radio_field::RadioField",
+          "destination_module": "termrock::controls",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/46/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_controls::RadioField",
+          "destination_module": "termrock_controls",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/46/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W47-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls#0.1.0",
+        "manifest_path": "crates/termrock-controls/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W47",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W48",
+      "name": "SplitBlock",
+      "kind": "block",
+      "owner": "termrock",
+      "definition_owner": "termrock::blocks::split::SplitBlock",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock/src/blocks/split.rs",
+        "line": 20,
+        "sha256": "99439343cc31c962874eb94e8c00626f20a19058904b830c3e2346d98b86d8d4"
+      },
+      "owner_task": "T10",
+      "reexports": [
+        {
+          "public_path": "termrock::SplitBlock",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/47/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::blocks::SplitBlock",
+          "destination_module": "termrock::blocks",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/47/all_reexports/1"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W48-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock#0.1.0",
+        "manifest_path": "crates/termrock/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W48",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W49",
+      "name": "MasterDetail",
+      "kind": "block",
+      "owner": "termrock",
+      "definition_owner": "termrock::blocks::master_detail::MasterDetail",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock/src/blocks/master_detail.rs",
+        "line": 169,
+        "sha256": "587b959d1e8acb829f4cfbd4a81c848a70acc10fbede4986a3985d81e08b41b2"
+      },
+      "owner_task": "T10",
+      "reexports": [
+        {
+          "public_path": "termrock::MasterDetail",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/48/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::blocks::MasterDetail",
+          "destination_module": "termrock::blocks",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/48/all_reexports/1"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W49-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock#0.1.0",
+        "manifest_path": "crates/termrock/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W49",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W50",
+      "name": "Table",
+      "kind": "control",
+      "owner": "termrock-grid",
+      "definition_owner": "termrock_grid::table::Table",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-grid/src/table.rs",
+        "line": 122,
+        "sha256": "25bc80c9ac657a1f3d767063c3ef029753b8edc356c7400d2d0f5fd337b76560"
+      },
+      "owner_task": "T16",
+      "reexports": [
+        {
+          "public_path": "termrock::Table",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/49/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::grid::Table",
+          "destination_module": "termrock::grid",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/49/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::grid::table::Table",
+          "destination_module": "termrock::grid",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/49/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_grid::Table",
+          "destination_module": "termrock_grid",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/49/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W50-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-grid#0.1.0",
+        "manifest_path": "crates/termrock-grid/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W50",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W51",
+      "name": "GridViewport",
+      "kind": "control",
+      "owner": "termrock-grid",
+      "definition_owner": "termrock_grid::grid_viewport::GridViewport",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-grid/src/grid_viewport.rs",
+        "line": 22,
+        "sha256": "ce7421f0d5e7e7e913c28651375b29174267d38756defdd1076992e889e498a0"
+      },
+      "owner_task": "T16",
+      "reexports": [
+        {
+          "public_path": "termrock::grid::GridViewport",
+          "destination_module": "termrock::grid",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/50/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::grid::grid_viewport::GridViewport",
+          "destination_module": "termrock::grid",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/50/all_reexports/1"
+        },
+        {
+          "public_path": "termrock_grid::GridViewport",
+          "destination_module": "termrock_grid",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/50/all_reexports/2"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W51-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-grid#0.1.0",
+        "manifest_path": "crates/termrock-grid/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W51",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W52",
+      "name": "FormDialog",
+      "kind": "adapter",
+      "owner": "termrock-forms",
+      "definition_owner": "termrock_forms::form_dialog::FormDialog",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-forms/src/form_dialog.rs",
+        "line": 91,
+        "sha256": "951604e2e68b340a942b609d2eb0556ebfd69001d37e8ecc607a411083ef8b48"
+      },
+      "owner_task": "T18",
+      "reexports": [
+        {
+          "public_path": "termrock::FormDialog",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/51/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::forms::FormDialog",
+          "destination_module": "termrock::forms",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/51/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::forms::form_dialog::FormDialog",
+          "destination_module": "termrock::forms",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/51/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_forms::FormDialog",
+          "destination_module": "termrock_forms",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/51/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W52-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-forms#0.1.0",
+        "manifest_path": "crates/termrock-forms/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W52",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W53",
+      "name": "FormLayout",
+      "kind": "layout",
+      "owner": "termrock-forms",
+      "definition_owner": "termrock_forms::form_layout::FormLayout",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-forms/src/form_layout.rs",
+        "line": 68,
+        "sha256": "f2e0df9705fd68106337878502aa3e2b06aa29b42c176a2a7a9593c446e2b987"
+      },
+      "owner_task": "T18",
+      "reexports": [
+        {
+          "public_path": "termrock::forms::FormLayout",
+          "destination_module": "termrock::forms",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/52/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::forms::form_layout::FormLayout",
+          "destination_module": "termrock::forms",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/52/all_reexports/1"
+        },
+        {
+          "public_path": "termrock_forms::FormLayout",
+          "destination_module": "termrock_forms",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/52/all_reexports/2"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W53-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-forms#0.1.0",
+        "manifest_path": "crates/termrock-forms/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W53",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W54",
+      "name": "SelectField",
+      "kind": "adapter",
+      "owner": "termrock-overlays",
+      "definition_owner": "termrock_overlays::select_field::SelectField",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-overlays/src/select_field.rs",
+        "line": 13,
+        "sha256": "c575200a36622bdd54c281690c0da6ce6d0b66f3f77475a41502efdce4b3c3d8"
+      },
+      "owner_task": "T15",
+      "reexports": [
+        {
+          "public_path": "termrock::SelectField",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/53/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::overlays::SelectField",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/53/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::overlays::select_field::SelectField",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/53/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_overlays::SelectField",
+          "destination_module": "termrock_overlays",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/53/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W54-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
+        "manifest_path": "crates/termrock-overlays/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W54",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W55",
+      "name": "NoticeReveal",
+      "kind": "control",
+      "owner": "termrock-overlays",
+      "definition_owner": "termrock_overlays::notice_reveal::NoticeReveal",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-overlays/src/notice_reveal.rs",
+        "line": 29,
+        "sha256": "be3fdce728f1e41a1e8e23117d83fc49c738c83d7d1eb8bf91c8c5f0f7847be4"
+      },
+      "owner_task": "T15",
+      "reexports": [
+        {
+          "public_path": "termrock::overlays::NoticeReveal",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/54/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::overlays::notice_reveal::NoticeReveal",
+          "destination_module": "termrock::overlays",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/54/all_reexports/1"
+        },
+        {
+          "public_path": "termrock_overlays::NoticeReveal",
+          "destination_module": "termrock_overlays",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/54/all_reexports/2"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W55-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays#0.1.0",
+        "manifest_path": "crates/termrock-overlays/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W55",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W56",
+      "name": "CompletingCodeEditor",
+      "kind": "adapter",
+      "owner": "termrock-editors",
+      "definition_owner": "termrock_editors::completion::CompletingCodeEditor",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-editors/src/completion.rs",
+        "line": 216,
+        "sha256": "42ee00bd6a914cc734a3076d26496766008aa82f8b6f32c54e26c454746296ac"
+      },
+      "owner_task": "T17",
+      "reexports": [
+        {
+          "public_path": "termrock::CompletingCodeEditor",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/55/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::editors::CompletingCodeEditor",
+          "destination_module": "termrock::editors",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/55/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::editors::completion::CompletingCodeEditor",
+          "destination_module": "termrock::editors",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/55/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_editors::CompletingCodeEditor",
+          "destination_module": "termrock_editors",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/55/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W56-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-editors#0.1.0",
+        "manifest_path": "crates/termrock-editors/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W56",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W57",
+      "name": "Note",
+      "kind": "primitive",
+      "owner": "termrock-fields",
+      "definition_owner": "termrock_fields::note::Note",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-fields/src/note.rs",
+        "line": 13,
+        "sha256": "de05dee0b9f35a0d49bec2b763dda551b60208190c9dca01d13c7b2d66c6feee"
+      },
+      "owner_task": "T13",
+      "reexports": [
+        {
+          "public_path": "termrock::Note",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/56/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::fields::Note",
+          "destination_module": "termrock::fields",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/56/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::fields::note::Note",
+          "destination_module": "termrock::fields",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/56/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_fields::Note",
+          "destination_module": "termrock_fields",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/56/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W57-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-fields#0.1.0",
+        "manifest_path": "crates/termrock-fields/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W57",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W58",
+      "name": "Notice",
+      "kind": "control",
+      "owner": "termrock-feedback",
+      "definition_owner": "termrock_feedback::notice::Notice",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-feedback/src/notice.rs",
+        "line": 120,
+        "sha256": "9747d87b85393403e64c08add5639c43885447808c2887b0f5c05056bd6fdd7a"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::feedback::Notice",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/57/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::feedback::notice::Notice",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/57/all_reexports/1"
+        },
+        {
+          "public_path": "termrock_feedback::Notice",
+          "destination_module": "termrock_feedback",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/57/all_reexports/2"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W58-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
+        "manifest_path": "crates/termrock-feedback/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W58",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W59",
+      "name": "TextSection",
+      "kind": "primitive",
+      "owner": "termrock-feedback",
+      "definition_owner": "termrock_feedback::section::TextSection",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-feedback/src/section.rs",
+        "line": 9,
+        "sha256": "63e6e5a69fe6ed180f2ef3158633808c27cdf56c6fc1fdb1f4cf12463fc15e42"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::TextSection",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/58/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::feedback::TextSection",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/58/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::feedback::section::TextSection",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/58/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_feedback::TextSection",
+          "destination_module": "termrock_feedback",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/58/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W59-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
+        "manifest_path": "crates/termrock-feedback/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W59",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W60",
+      "name": "DerivedHintBar",
+      "kind": "control",
+      "owner": "termrock-feedback",
+      "definition_owner": "termrock_feedback::hintbar::DerivedHintBar",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-feedback/src/hintbar.rs",
+        "line": 680,
+        "sha256": "6afe2f75cfb55201ee1e64fdd5ec463e4465258812922db662191f68c8d9efa1"
+      },
+      "owner_task": "T12",
+      "reexports": [
+        {
+          "public_path": "termrock::DerivedHintBar",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/59/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::feedback::DerivedHintBar",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/59/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::feedback::hintbar::DerivedHintBar",
+          "destination_module": "termrock::feedback",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/59/all_reexports/2"
+        },
+        {
+          "public_path": "termrock_feedback::DerivedHintBar",
+          "destination_module": "termrock_feedback",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/59/all_reexports/3"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W60-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback#0.1.0",
+        "manifest_path": "crates/termrock-feedback/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W60",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W61",
+      "name": "TextReport",
+      "kind": "primitive",
+      "owner": "termrock-shell",
+      "definition_owner": "termrock_shell::report::TextReport",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-shell/src/report.rs",
+        "line": 68,
+        "sha256": "cc877b049c450ab8bd909eef650d4b9cb4de0f116d24e257faf333084a2eeced"
+      },
+      "owner_task": "T19",
+      "reexports": [
+        {
+          "public_path": "termrock::shell::TextReport",
+          "destination_module": "termrock::shell",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/60/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::shell::report::TextReport",
+          "destination_module": "termrock::shell",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/60/all_reexports/1"
+        },
+        {
+          "public_path": "termrock_shell::TextReport",
+          "destination_module": "termrock_shell",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/60/all_reexports/2"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W61-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-shell#0.1.0",
+        "manifest_path": "crates/termrock-shell/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W61",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W62",
+      "name": "AppShell",
+      "kind": "control",
+      "owner": "termrock-shell",
+      "definition_owner": "termrock_shell::shell::AppShell",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-shell/src/shell.rs",
+        "line": 26,
+        "sha256": "8b3315243155ac358ad0d2a69296b267b04fa37ea645061d215a2aaf7cccdd8f"
+      },
+      "owner_task": "T10",
+      "reexports": [
+        {
+          "public_path": "termrock::AppShell",
+          "destination_module": "termrock",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/61/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::blocks::AppShell",
+          "destination_module": "termrock::blocks",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/61/all_reexports/1"
+        },
+        {
+          "public_path": "termrock::shell::AppShell",
+          "destination_module": "termrock::shell",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/61/all_reexports/2"
+        },
+        {
+          "public_path": "termrock::shell::shell::AppShell",
+          "destination_module": "termrock::shell",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/61/all_reexports/3"
+        },
+        {
+          "public_path": "termrock_shell::AppShell",
+          "destination_module": "termrock_shell",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/61/all_reexports/4"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W62-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-shell#0.1.0",
+        "manifest_path": "crates/termrock-shell/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W62",
+        "proposal_owner": null
+      }
+    },
+    {
+      "id": "W63",
+      "name": "FieldErrorChrome",
+      "kind": "primitive",
+      "owner": "termrock-fields",
+      "definition_owner": "termrock_fields::field_error::FieldErrorChrome",
+      "definition_source": {
+        "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "path": "crates/termrock-fields/src/field_error.rs",
+        "line": 10,
+        "sha256": "a3841229d2fc1acbaa07f8edbcacb87fb2f24c4af02f2b7d646655b8696d76e8"
+      },
+      "owner_task": "T13",
+      "reexports": [
+        {
+          "public_path": "termrock::fields::FieldErrorChrome",
+          "destination_module": "termrock::fields",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/62/all_reexports/0"
+        },
+        {
+          "public_path": "termrock::fields::field_error::FieldErrorChrome",
+          "destination_module": "termrock::fields",
+          "kind": "facade_glob_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/62/all_reexports/1"
+        },
+        {
+          "public_path": "termrock_fields::FieldErrorChrome",
+          "destination_module": "termrock_fields",
+          "kind": "explicit_reexport",
+          "fragment_id": "components-api",
+          "record_pointer": "/components/62/all_reexports/2"
+        }
+      ],
+      "required_case_ids": [
+        "T01-CASE-COMP-W63-01"
+      ],
+      "status": "PROPOSED_NOT_APPROVED_T38",
+      "evidence": "NOT_VERIFIED",
+      "definition_identity": {
+        "workspace_id": "workspace:.",
+        "package_id": "path+file:///Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-fields#0.1.0",
+        "manifest_path": "crates/termrock-fields/Cargo.toml"
+      },
+      "proposal_source_pointer": {
+        "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "path": "component-ownership.json",
+        "row_id": "W63",
+        "proposal_owner": null
+      }
     }
   ]
 }

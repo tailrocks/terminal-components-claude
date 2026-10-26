@@ -22,8 +22,18 @@
     "termrock-grid",
     "termrock-terminal"
   ],
-  "application_binary_targets": ["showcase", "jackin-preview", "tablepro", "holla"],
-  "application_package_prefixes": ["showcase", "jackin-preview", "tablepro", "holla"],
+  "application_binary_targets": [
+    "showcase",
+    "jackin-preview",
+    "tablepro",
+    "holla"
+  ],
+  "application_package_prefixes": [
+    "showcase",
+    "jackin-preview",
+    "tablepro",
+    "holla"
+  ],
   "forbidden_production_dependency_names": [
     "termrock-test-support",
     "termrock-conformance",
@@ -43,5 +53,13 @@
     "full workspace nextest, clippy, and formatting results bound to this source manifest",
     "isolated production-library build and nextest result",
     "reviewed complete production-input coverage including generated inputs"
-  ]
+  ],
+  "inventory_binding": {
+    "requirements_path": "docs/implementation/pr38-final/requirements.json",
+    "requirements_schema": "termrock.pr38.t01.requirements.v1",
+    "fixed_input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+    "production_libraries": 20,
+    "application_targets": 4,
+    "evidence": "Inventory link only; no behavior gate is closed."
+  }
 }
