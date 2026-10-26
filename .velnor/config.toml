@@ -101,7 +101,7 @@ exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**", "tools
 
 [tools]
 gh = "2.102.0"
-mr-boxington = "1.27.0"
+mr-boxington = "1.28.0"
 
 [agents]
 claude_md = "symlink"
