@@ -117,10 +117,6 @@ impl ExpectedGeneration {
 #[derive(Clone, Debug)]
 struct LoadedExpectedCheckpoint {
     metadata: ExpectedCheckpointManifest,
-    frame_bytes: Vec<u8>,
-    png_bytes: Vec<u8>,
-    frame: tuiscotti::Frame,
-    png_info: PngInfoReceipt,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -310,7 +306,7 @@ pub(crate) fn load_expected_generation(
             entry.png.bytes,
             &png_bytes,
         )?;
-        let png_info = opaque_png_info(&png_bytes, expected_png_size)?;
+        opaque_png_info(&png_bytes, expected_png_size)?;
         if (entry.png.width, entry.png.height) != expected_png_size
             || entry.png.color_type != 2
             || entry.png.bit_depth != 8
@@ -333,10 +329,6 @@ pub(crate) fn load_expected_generation(
             entry.id.clone(),
             LoadedExpectedCheckpoint {
                 metadata: entry.clone(),
-                frame_bytes,
-                png_bytes,
-                frame,
-                png_info,
             },
         );
     }
