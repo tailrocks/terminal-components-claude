@@ -117,7 +117,22 @@
     "artifact_sha256": "3bec2a32d02f8e0db6b867412189f2665c26cdb0d09556f597b279751d587617",
     "metadata_source_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
     "metadata_source_tree": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
-    "counts": "47 root workspace packages and four separate manifests; see per-workspace rows in the bound artifact.",
+    "counts": {
+      "root_workspace_packages": 47,
+      "separate_workspace_packages": 4,
+      "separate_manifests": [
+        "crates/termrock-e2e/Cargo.toml",
+        "crates/termrock-visibility-tests/Cargo.toml",
+        "external-consumer-demo/Cargo.toml",
+        "tools/termrock-visibility-publisher/Cargo.toml"
+      ],
+      "historical_manifest_outside_metadata_workspaces": {
+        "path": "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/Cargo.toml",
+        "sha256": "1a423501877b349621a209d0c6e5d82f2a92d431cb4612f5132b56789b0a6c11",
+        "classification": "Immutable historical audit input; not a workspace or production package."
+      },
+      "evidence_detail": "Per-workspace rows in the bound metadata structure artifact give each package and target count."
+    },
     "locked_no_deps_command": {
       "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --locked --format-version 1 --no-deps --manifest-path Cargo.toml",
       "result": "DENIED_BY_GUARD",
