@@ -1,0 +1,122 @@
+{
+  "schema": "t37-final.integration-identity.v1",
+  "fixed_input_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+  "fixed_input_tree": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
+  "branch": "pr38/T37-final-verification",
+  "worktree_clean_before_verification": true,
+  "status_porcelain": "",
+  "parent_commit": "b1ae56cae7cf7454a996ec1f83c97d28a2f7e0c0",
+  "reviewed_extra_parent_tips": [
+    {
+      "tip": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+      "ancestor": true,
+      "status": 0
+    },
+    {
+      "tip": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+      "ancestor": true,
+      "status": 0
+    },
+    {
+      "tip": "fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a",
+      "ancestor": true,
+      "status": 0
+    },
+    {
+      "tip": "cb1a928cb7863597ded56adbd33c77e45713f780",
+      "ancestor": true,
+      "status": 0
+    },
+    {
+      "tip": "ae32524b29baf638d8790ec0f7b320dfd05ee0f1",
+      "ancestor": true,
+      "status": 0
+    },
+    {
+      "tip": "1dd1cf4d9ac1edfe79afabddd22104ca0c821d46",
+      "ancestor": true,
+      "status": 0
+    },
+    {
+      "tip": "34cbad0123c13612f06cf18a882465e8f108d607",
+      "ancestor": true,
+      "status": 0
+    },
+    {
+      "tip": "bf1b52a7fe9274593e2dfaf0332b367fb860dfef",
+      "ancestor": true,
+      "status": 0
+    }
+  ],
+  "reviewed_extra_parent_count": 8,
+  "all_extra_tips_ancestors": true,
+  "pre_history_commit": "b1ae56cae7cf7454a996ec1f83c97d28a2f7e0c0",
+  "pre_history_tree": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
+  "current_tree_equals_pre_history_tree": true,
+  "pr26_commit": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+  "pr26_ancestor_status": 1,
+  "pr26_is_ancestor": false,
+  "visual_baseline_tag_ref_sha": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+  "expected_visual_baseline_tag_ref_sha": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+  "visual_baseline_tag_matches_expected": true,
+  "diff_from_accepted_source_953fbd": {
+    "path_count": 44,
+    "production_code_path_rows": [],
+    "cargo_and_generator_config_rows": [],
+    "other_documentation_or_evidence_rows": [
+      "M\tcrates/termrock-e2e/README.md",
+      "M\tcrates/termrock-xtask/RULES.md",
+      "M\tdocs/architecture.md",
+      "M\tdocs/architecture/form-lanes-stage1.md",
+      "M\tdocs/architecture/termrock-coordinator-plan.md",
+      "M\tdocs/architecture/termrock-migration-matrix.md",
+      "M\tdocs/architecture/termrock-migration-record.md",
+      "M\tdocs/contracts/authoring.md",
+      "A\tdocs/contracts/component-caller-contracts.md",
+      "A\tdocs/contracts/foundation-runtime.md",
+      "A\tdocs/contracts/foundation-support.md",
+      "A\tdocs/contracts/foundation-values.md",
+      "M\tdocs/contracts/migration.md",
+      "M\tdocs/contracts/overrides.md",
+      "M\tdocs/contracts/safety-invariants.md",
+      "M\tdocs/contracts/theming.md",
+      "M\tdocs/development.md",
+      "M\tdocs/guides/quickstart.md",
+      "M\tdocs/handoff/README.md",
+      "M\tdocs/implementation/pr38-final/results/run-state.json",
+      "A\tdocs/implementation/pr38-final/results/t37-api-crosswalk-integration/README.md",
+      "A\tdocs/implementation/pr38-final/results/t37-api-crosswalk-integration/agent-runbook.json",
+      "A\tdocs/implementation/pr38-final/results/t37-api-crosswalk-integration/coordinator-review-decisions.json",
+      "A\tdocs/implementation/pr38-final/results/t37-api-runtime/agent-runbook.json",
+      "A\tdocs/implementation/pr38-final/results/t37-api-runtime/foundation-runtime-disposition.json",
+      "A\tdocs/implementation/pr38-final/results/t37-api-runtime/verify_runtime_disposition.py",
+      "A\tdocs/implementation/pr38-final/results/t37-api-support/agent-runbook.json",
+      "A\tdocs/implementation/pr38-final/results/t37-api-support/build_disposition.py",
+      "A\tdocs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+      "A\tdocs/implementation/pr38-final/results/t37-api-values/agent-runbook.json",
+      "A\tdocs/implementation/pr38-final/results/t37-api-values/build_decisions.py",
+      "A\tdocs/implementation/pr38-final/results/t37-api-values/decisions.json",
+      "A\tdocs/implementation/pr38-final/results/t37-api-values/rust_attachment.py",
+      "A\tdocs/implementation/pr38-final/results/t37-api-values/validate_decisions.py",
+      "A\tdocs/implementation/pr38-final/results/t37-component-api-transfer/README.md",
+      "A\tdocs/implementation/pr38-final/results/t37-component-api-transfer/transfer.json",
+      "M\tdocs/implementation/pr38-final/results/t37-metadata/AGENT-RUNBOOK.md",
+      "A\tdocs/implementation/pr38-final/results/t37-metadata/final-verification-953fbd/cargo-e2e-check.log",
+      "A\tdocs/implementation/pr38-final/results/t37-metadata/final-verification-953fbd/final-verification.json",
+      "A\tdocs/implementation/pr38-final/results/t37-metadata/final-verification-953fbd/fmt-e2e.log",
+      "A\tdocs/implementation/pr38-final/results/t37-shared/api-prose-crosswalk.json",
+      "A\tdocs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py",
+      "A\tdocs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
+      "M\tdocs/implementation/pr38-final/results/t37-shared/safety-transfer.json"
+    ]
+  },
+  "t00_artifact_index": {
+    "path": "docs/implementation/pr38-final/results/t00-source/artifact-index.json",
+    "artifact_count": 63,
+    "rs_count": 14,
+    "py_count": 8,
+    "sha256": "c859cd09b3ee1a21fe72d4caf3d623a8b675031d0684903d90a1b07ff26180de",
+    "reconciliation_path": "docs/implementation/pr38-final/results/t37-final-integration/t00-immutable-index-reconciliation.json",
+    "all_artifacts_match": true
+  }
+}

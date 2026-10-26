@@ -1,0 +1,3 @@
+free_bytes=2112491200512 status=ok
+free: 1967.4 GiB (1.92 TiB) on /System/Volumes/Data -- ok
+gate OK (>=2TB cleanup gate); no action.

@@ -1,0 +1,145 @@
+source_head=516198caac5e5b5fa0883fa1f209928c2e86c8ba
+tree=a10cd30dfafec83f7668f529bb03e27f1e5b8b4d
+workdir=/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-e2e
+/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --all-targets --all-features
+rust build guard: allowed; checked 1 filesystem(s)
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+    Checking cfg-if v1.0.5
+   Compiling libc v0.2.191
+    Checking bitflags v2.13.2
+   Compiling rustversion v1.0.23
+    Checking either v1.19.0
+    Checking itoa v1.0.18
+   Compiling thiserror v2.0.21
+   Compiling crossbeam-utils v0.8.23
+    Checking foldhash v0.2.0
+    Checking allocator-api2 v0.2.21
+    Checking static_assertions v1.1.0
+   Compiling strsim v0.11.1
+   Compiling ident_case v1.0.1
+    Checking simd-adler32 v0.3.10
+    Checking equivalent v1.0.3
+    Checking unicode-width v0.2.2
+   Compiling zmij v1.0.23
+   Compiling crc32fast v1.5.2
+    Checking itertools v0.14.0
+   Compiling autocfg v1.5.1
+   Compiling crossbeam-epoch v0.9.21
+   Compiling heck v0.5.0
+    Checking hashbrown v0.17.1
+    Checking adler2 v2.0.1
+   Compiling serde_core v1.0.229
+   Compiling crossbeam-deque v0.8.8
+    Checking once_cell v1.21.4
+    Checking unicode-segmentation v1.13.3
+   Compiling num-traits v0.2.19
+    Checking typenum v1.20.1
+    Checking ryu v1.0.23
+    Checking lru v0.18.5
+    Checking miniz_oxide v0.9.1
+   Compiling serde v1.0.229
+    Checking unicode-truncate v2.0.1
+    Checking hybrid-array v0.4.15
+   Compiling indoc v2.0.8
+    Checking memchr v2.8.3
+   Compiling rayon-core v1.13.0
+    Checking miniz_oxide v0.8.9
+    Checking fdeflate v0.3.7
+    Checking line-clipping v0.3.8
+   Compiling cfg_aliases v0.1.1
+   Compiling thiserror v1.0.69
+    Checking color_quant v1.1.0
+   Compiling serde_json v1.0.154
+    Checking pxfm v0.1.30
+    Checking weezl v0.1.12
+    Checking gif v0.14.2
+   Compiling nix v0.28.0
+    Checking crypto-common v0.2.2
+    Checking block-buffer v0.12.1
+   Compiling getrandom v0.4.3
+    Checking const-oid v0.10.2
+   Compiling rustix v1.1.5
+   Compiling anyhow v1.0.104
+    Checking byteorder-lite v0.1.0
+   Compiling cfg_aliases v0.2.2
+    Checking digest v0.11.3
+    Checking zeno v0.3.3
+    Checking castaway v0.2.4
+    Checking moxcms v0.8.1
+    Checking yazi v0.2.1
+   Compiling nix v0.31.3
+    Checking flate2 v1.1.10
+   Compiling syn v3.0.9
+   Compiling syn v2.0.119
+    Checking compact_str v0.9.1
+    Checking shell-words v1.1.1
+    Checking base64 v0.23.1
+    Checking png v0.18.1
+    Checking log v0.4.34
+   Compiling strum_macros v0.28.0
+   Compiling thiserror-impl v1.0.69
+    Checking fastrand v2.5.0
+    Checking downcast-rs v1.2.1
+    Checking arrayvec v0.7.8
+    Checking strum v0.28.0
+    Checking rayon v1.12.0
+    Checking compact_str v0.10.0
+    Checking smallvec v1.16.3
+    Checking similar v2.7.0
+    Checking vte v0.15.0
+mbx[warning]: rustc cache bypassed: failed to read Cargo's build-script declarations: No such file or directory (os error 2)
+    Checking cpufeatures v0.3.1
+    Checking errno v0.3.14
+    Checking serial2 v0.2.38
+    Checking fs2 v0.4.3
+    Checking sha2 v0.11.1
+    Checking filedescriptor v0.8.3
+    Checking portable-pty v0.9.0
+    Checking tempfile v3.27.0
+    Checking termpane v0.1.0
+   Compiling darling_core v0.24.1
+   Compiling thiserror-impl v2.0.21
+   Compiling bytemuck_derive v1.12.1
+   Compiling serde_derive v1.0.229
+   Compiling termrock-e2e v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-e2e)
+    Checking bytemuck v1.25.2
+   Compiling darling_macro v0.24.1
+   Compiling darling v0.24.1
+    Checking kasuari v0.4.13
+    Checking font-types v0.12.7
+    Checking image v0.25.10
+    Checking ratatui-core v0.1.2
+    Checking read-fonts v0.41.0
+   Compiling instability v0.3.14
+    Checking ratatui-widgets v0.3.2
+    Checking image-compare v0.5.0
+    Checking insta v1.49.0
+    Checking ratatui v0.30.2
+    Checking tuiscotti-core v0.2.0 (https://github.com/tailrocks/tuiscotti?rev=a1ea27f757d75d07b05499276cd932e9f8e067ad#a1ea27f7)
+    Checking skrifa v0.44.0
+    Checking swash v0.2.10
+    Checking tuiscotti-render v0.2.0 (https://github.com/tailrocks/tuiscotti?rev=a1ea27f757d75d07b05499276cd932e9f8e067ad#a1ea27f7)
+    Checking tuiscotti-runtime v0.2.0 (https://github.com/tailrocks/tuiscotti?rev=a1ea27f757d75d07b05499276cd932e9f8e067ad#a1ea27f7)
+    Checking tuiscotti-insta v0.2.0 (https://github.com/tailrocks/tuiscotti?rev=a1ea27f757d75d07b05499276cd932e9f8e067ad#a1ea27f7)
+    Checking tuiscotti v0.2.0 (https://github.com/tailrocks/tuiscotti?rev=a1ea27f757d75d07b05499276cd932e9f8e067ad#a1ea27f7)
+warning: fields `readiness_timeout_ms` and `input_pacing_ms` are never read
+   --> src/lib.rs:799:5
+    |
+792 | struct Profile {
+    |        ------- fields in this struct
+...
+799 |     readiness_timeout_ms: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^
+800 |     input_pacing_ms: u64,
+    |     ^^^^^^^^^^^^^^^
+    |
+    = note: `Profile` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `termrock-e2e` (lib) generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.32s
+mbx[cache]: 95 hits, 79 misses, 1 not looked up, 5 bypassed; 0 B downloaded, 0 B uploaded, 144.4 MiB stored locally
+mbx[savings]: disposed of 21.3 TiB logical without being asked. that is rather the point.
+exit_status=0

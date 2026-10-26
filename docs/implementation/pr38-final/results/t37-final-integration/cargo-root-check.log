@@ -1,0 +1,22 @@
+source_head=516198caac5e5b5fa0883fa1f209928c2e86c8ba
+tree=a10cd30dfafec83f7668f529bb03e27f1e5b8b4d
+workdir=/Users/donbeave/Downloads/termrock-t37-metadata
+argv=/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --workspace --all-targets --all-features
+rust build guard: allowed; checked 1 filesystem(s)
+warning: unnecessary braces around block return value
+   --> crates/termrock-feedback/src/hintbar.rs:193:9
+    |
+193 |         { self.status.flags() }
+    |         ^^                   ^^
+    |
+    = note: `#[warn(unused_braces)]` (part of `#[warn(unused)]`) on by default
+help: remove these braces
+    |
+193 -         { self.status.flags() }
+193 +         self.status.flags()
+    |
+
+warning: `termrock-feedback` (lib) generated 1 warning (run `cargo fix --lib -p termrock-feedback` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.16s
+mbx[savings]: 21.3 TiB logical of old files removed to date. the broom sends its regards.
+exit_status=0

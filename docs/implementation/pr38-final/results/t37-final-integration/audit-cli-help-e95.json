@@ -1,0 +1,18 @@
+{
+  "schema": "t37-final.audit-cli-help-e95.v1",
+  "source_head": "e95c45f7aa56959a7173e806f599e4aa371a3499",
+  "source_tree": "9725dd5d7973d9ff56ecb003866eea7827aa1cb3",
+  "command": "python3 docs/implementation/pr38-final/results/t37-apps/audit.py --help",
+  "exit_status": 0,
+  "stdout_path": "docs/implementation/pr38-final/results/t37-final-integration/audit-cli-help-e95.stdout.log",
+  "stdout_sha256": "e9a9c558057f3d59cf9fb888fd4160f604b1dbd562bae1b08595bd7db22a691e",
+  "stdout_bytes": 151,
+  "stderr_path": "docs/implementation/pr38-final/results/t37-final-integration/audit-cli-help-e95.stderr.log",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_bytes": 0,
+  "matches_source_cleanup_evidence_sha256": "e9a9c558057f3d59cf9fb888fd4160f604b1dbd562bae1b08595bd7db22a691e",
+  "matches_accepted_output": true,
+  "mode_execution": "--help only; plan/apply/verify modes not executed",
+  "selected_tests": 0,
+  "behavior": "NOT VERIFIED"
+}

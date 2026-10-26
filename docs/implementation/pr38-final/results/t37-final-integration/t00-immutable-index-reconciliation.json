@@ -1,0 +1,332 @@
+{
+  "schema": "t37-final.t00-immutable-index-reconciliation.v1",
+  "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+  "index_path": "docs/implementation/pr38-final/results/t00-source/artifact-index.json",
+  "index_sha256": "c859cd09b3ee1a21fe72d4caf3d623a8b675031d0684903d90a1b07ff26180de",
+  "declared_artifact_count": 63,
+  "verified_artifact_count": 63,
+  "verified_hash_and_size": true,
+  "errors": [],
+  "source_extension_counts": {
+    ".rs": 14,
+    ".py": 8
+  },
+  "artifact_rows": [
+    {
+      "path": "analyze_latest_test_delta.py",
+      "sha256": "92e4f5add9a772cbb094cdf0c24b63dfa77529b5d7f794afd79e54039822ca71",
+      "size_bytes": 5882
+    },
+    {
+      "path": "build_artifact_index.py",
+      "sha256": "e93313f5036acd43d7bcca7864838c5cac638ab35c87d333fc9b215b837e350d",
+      "size_bytes": 1331
+    },
+    {
+      "path": "capture_finding_deltas.py",
+      "sha256": "d85bc3f26e1350e22b1236936b8a5d85e20cbc473c96317068af6df71dc8e41e",
+      "size_bytes": 4607
+    },
+    {
+      "path": "capture_github_jobs.py",
+      "sha256": "6c1976f0cfba8a30049e7d89fffa6cb796049cf615dbbe11b920a3c2cfddb4c6",
+      "size_bytes": 6331
+    },
+    {
+      "path": "capture_source.py",
+      "sha256": "5266935aad68f4cc96d773536fd7fdc80d59b249e47d50bdfeaf00d443445597",
+      "size_bytes": 20015
+    },
+    {
+      "path": "ci-current.json",
+      "sha256": "fbb15138dc849365fac72ed90b9b5fef5bc5411ecd173c73931d59e727fcbe9b",
+      "size_bytes": 6446
+    },
+    {
+      "path": "ci-head-1d6-required-failure.json",
+      "sha256": "639b8cc7de15c47daadd2ceb165bb5c0da3db83ee2fee6ff0ba082955c6aef23",
+      "size_bytes": 1158
+    },
+    {
+      "path": "ci-head-1d6-required-job-excerpt.txt",
+      "sha256": "ad13185f16021a4b92491a5fb75018ebe8fab1ddc292cdebaa50a688481d3168",
+      "size_bytes": 501
+    },
+    {
+      "path": "ci-head-1d6-rest.json",
+      "sha256": "1ff45c0dff72fe837ee658b424d80b87e5b36e26147cb9c27a72be24709fc71f",
+      "size_bytes": 358846
+    },
+    {
+      "path": "ci-head-1d6-snapshot.json",
+      "sha256": "8cbd5f7138c51de6f761c1e2248d2adf52a18714bd851169c77100c4c625b683",
+      "size_bytes": 116252
+    },
+    {
+      "path": "ci-head-31f-job-inventory.json",
+      "sha256": "191118b7991596829258fdfd8746b6d48479875081fa1c91110a58448c716427",
+      "size_bytes": 105412
+    },
+    {
+      "path": "ci-job-excerpts.json",
+      "sha256": "84151694f814f2ba3ef2f2514c9b85f4a5d8790c7b393626f43801120bbff375",
+      "size_bytes": 5596
+    },
+    {
+      "path": "ci-job-inventory.json",
+      "sha256": "ec9d25655ede19e8731a315213c994c4c49983e83d9d1595a4419dca39506af6",
+      "size_bytes": 260924
+    },
+    {
+      "path": "ci-required-job-excerpt.json",
+      "sha256": "62597d6460de25e29c0e591e1ea8353bae87d5785e3addebf49ce33a4d92d41e",
+      "size_bytes": 948
+    },
+    {
+      "path": "commands.json",
+      "sha256": "75e75900854d49dfda246861cd559e074869078f3fc366f8a16eb63f503725ee",
+      "size_bytes": 8346
+    },
+    {
+      "path": "declaration-overlay-1d6.json",
+      "sha256": "bcabf2eacc14fb5febaf0688d447a0a021f0aea754584e56a247a3d849fe3614",
+      "size_bytes": 5613
+    },
+    {
+      "path": "derive_source_overlays.py",
+      "sha256": "4b5348fd5d7f265940e78411b594461d9c412638ffcc5b0d5112a905d3cfe664",
+      "size_bytes": 4446
+    },
+    {
+      "path": "finding-deltas-e08-to-1d6.json",
+      "sha256": "c8b2b95a3b3133aae78a07523e6c949a4975840049c0ea3b34d3abba37dd22e9",
+      "size_bytes": 10293
+    },
+    {
+      "path": "finding-dispositions.json",
+      "sha256": "866ede9336300817878ed62704467d48a878c99689c140650946123485f86875",
+      "size_bytes": 8029
+    },
+    {
+      "path": "generated-and-legal.json",
+      "sha256": "01c34da828382b6d34b922ae5005631f7175df9c64a637dd9387d3b247c8bd82",
+      "size_bytes": 10943
+    },
+    {
+      "path": "inventory-summary.json",
+      "sha256": "11be7ef3a19fb3d9666dd7a99c41656684051ca6606a3bbba2b64c0edeed9906",
+      "size_bytes": 3577
+    },
+    {
+      "path": "ownership-boundaries.json",
+      "sha256": "cc44155d5be5ff14ff5a07f074024ee86ed9e40e0d018cc8da704820992a2cd4",
+      "size_bytes": 16735
+    },
+    {
+      "path": "ownership-delta-31f.json",
+      "sha256": "bbe2c2035a3d97910cc058925c9f51446a14741142c7e104883262e7141a8ae4",
+      "size_bytes": 2461
+    },
+    {
+      "path": "safety-contracts.json",
+      "sha256": "5624415b65e95752713ef57f38354f89cdecce314960b37dd285e9bfc7b90f12",
+      "size_bytes": 1780
+    },
+    {
+      "path": "scan_source_declarations.py",
+      "sha256": "4c3fc158b40a27281ea5b9b855969c8886d55fb920421587a7dfcf39ea465e1c",
+      "size_bytes": 40986
+    },
+    {
+      "path": "script-directives.json",
+      "sha256": "0065e65c97519c44b859e5188a5baa80662ea3ce95954eaf01758ebcf06e4eaf",
+      "size_bytes": 1289
+    },
+    {
+      "path": "source-deltas/31f-to-1d6/new/crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+      "sha256": "b222ba034d68a509db33a684dd21c155385fdc61d2283be0ad73837d828c76e3",
+      "size_bytes": 41164
+    },
+    {
+      "path": "source-deltas/31f-to-1d6/new/crates/showcase-ui/tests/navigation_contract.rs",
+      "sha256": "eaeeaecae11b3a692091ee7e82ab180e2147e186bc1eda093c0db660dbf46ce5",
+      "size_bytes": 24445
+    },
+    {
+      "path": "source-deltas/31f-to-1d6/old/crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+      "sha256": "faa2a62d72736bc6ead7b99135a7d6e3f1ff1193b8bf48dc5f424241e3ccf0c9",
+      "size_bytes": 41164
+    },
+    {
+      "path": "source-deltas/31f-to-1d6/old/crates/showcase-ui/tests/navigation_contract.rs",
+      "sha256": "5bb23aab81d2877eb8ec0341e32910409d58edec09c176ef8d9ea0b05909cd52",
+      "size_bytes": 22434
+    },
+    {
+      "path": "source-deltas/3a-to-31f/new/crates/termrock-xtask/exceptions/v1.json",
+      "sha256": "a943a901145b2a6c084346ba9bb2b6c6007228e9aeb7bb38522061db7926934e",
+      "size_bytes": 30776
+    },
+    {
+      "path": "source-deltas/3a-to-31f/old/crates/termrock-xtask/exceptions/v1.json",
+      "sha256": "7789eddff384543eeb1d147c29d8a650696a415b0389dc78cac8e57ce35923d0",
+      "size_bytes": 31637
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/new/crates/holla-ui/tests/baselines/app.txt",
+      "sha256": "b6a00b587e8ecae484fea1f85db57e74fd3535bb127e0032594c12b2f95bda11",
+      "size_bytes": 56237
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/allowlist.txt",
+      "sha256": "c83bfcc2c6c1f57289332d1c837683503f1c2a41d7fe13385b825eafb4540c0d",
+      "size_bytes": 929391
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/catalog.rs",
+      "sha256": "b852413adeb6c004bb8f93c0707b7f2c0d9ed40a519e94f581e4cf5a577bfc62",
+      "size_bytes": 2569
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/catalog_data.rs",
+      "sha256": "bcd2d23e2d7623f18718204dc787c5ef12aaaff5eaaf0b1bcde306bce3843846",
+      "size_bytes": 332395
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/declarations.rs",
+      "sha256": "8a2ec2bed3ada0737c1c4b6d1cd8707dfa33da2f2f4b64ff0591b79449e7f69a",
+      "size_bytes": 13126
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/declarations_data.rs",
+      "sha256": "4310f419cc5f207e491568fe3d6d0b5b03296779eb89c7279623c6d89b88d359",
+      "size_bytes": 108750
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/mod.rs",
+      "sha256": "7bfe173cb7c5b71bdd24b36aadd551dc2764ea4eb5a3f99ce691d685c277810d",
+      "size_bytes": 447
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/scan.rs",
+      "sha256": "64dedbe91bb1ae8f04c631093d10e6bf149cd0cf3cbec6c6e1183348c25e9a51",
+      "size_bytes": 30009
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/old/crates/holla-ui/tests/baselines/app.txt",
+      "sha256": "c72badb7ebcc38d7017eac56852bf93b2167547223bbb6af2265bffed1b2cac6",
+      "size_bytes": 56237
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/allowlist.txt",
+      "sha256": "c83bfcc2c6c1f57289332d1c837683503f1c2a41d7fe13385b825eafb4540c0d",
+      "size_bytes": 929391
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/catalog.rs",
+      "sha256": "b852413adeb6c004bb8f93c0707b7f2c0d9ed40a519e94f581e4cf5a577bfc62",
+      "size_bytes": 2569
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/catalog_data.rs",
+      "sha256": "bcd2d23e2d7623f18718204dc787c5ef12aaaff5eaaf0b1bcde306bce3843846",
+      "size_bytes": 332395
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/declarations.rs",
+      "sha256": "8a2ec2bed3ada0737c1c4b6d1cd8707dfa33da2f2f4b64ff0591b79449e7f69a",
+      "size_bytes": 13126
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/declarations_data.rs",
+      "sha256": "4310f419cc5f207e491568fe3d6d0b5b03296779eb89c7279623c6d89b88d359",
+      "size_bytes": 108750
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/mod.rs",
+      "sha256": "7bfe173cb7c5b71bdd24b36aadd551dc2764ea4eb5a3f99ce691d685c277810d",
+      "size_bytes": 447
+    },
+    {
+      "path": "source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/scan.rs",
+      "sha256": "64dedbe91bb1ae8f04c631093d10e6bf149cd0cf3cbec6c6e1183348c25e9a51",
+      "size_bytes": 30009
+    },
+    {
+      "path": "source-overlay-manifest.json",
+      "sha256": "a259947ad412fc1001c032b15a51770b9b41bbc4a271b55bd049af865e208347",
+      "size_bytes": 5253
+    },
+    {
+      "path": "source-report.md",
+      "sha256": "18338746ac53a6a8d9a9bac3acfa8192ce522fda3bc3fd7625a1f2da08246beb",
+      "size_bytes": 5460
+    },
+    {
+      "path": "source-state.json",
+      "sha256": "e82d575937f4d40951be3ddebf4d552344d88908fe62441610e6eccfdfb821fd",
+      "size_bytes": 5624
+    },
+    {
+      "path": "source-summary-1d6.json",
+      "sha256": "8af5ec64185926c1d2b079be3e15bdd70910615a0862c390992f8de00cf73e35",
+      "size_bytes": 3279
+    },
+    {
+      "path": "test-files-1d6.jsonl.gz",
+      "sha256": "7538fc618596e98aab6389ff3458ad02503e322e32a0ff13f57742adbd58a90a",
+      "size_bytes": 5657569
+    },
+    {
+      "path": "test-files-31f.jsonl.gz",
+      "sha256": "2c09395994a4a64851447df3d78a3caabb9265063b28a56da27929a43f6df343",
+      "size_bytes": 5657568
+    },
+    {
+      "path": "test-files.jsonl.gz",
+      "sha256": "03d1df69bfe346eca4cabb52f1caae3f3756e0026bb51e327fce913b30c07e07",
+      "size_bytes": 5795344
+    },
+    {
+      "path": "test-inventory-delta-1d6.json",
+      "sha256": "8ecc9f034676205c673bae5789b578b68a26ca0aee444342e0ccd0b2dcad0c30",
+      "size_bytes": 2731
+    },
+    {
+      "path": "test-inventory.json",
+      "sha256": "2e684820b5cae6a2817be4ce5760a17d940b3d6054738f2c329a569b061048a6",
+      "size_bytes": 33007051
+    },
+    {
+      "path": "toolchain.json",
+      "sha256": "f354c57b3d10341f4dcc7de99ff4dd3bb1873d3cccbefe0bab0cafe8a352895e",
+      "size_bytes": 5968
+    },
+    {
+      "path": "tracked-tree-1d6.jsonl.gz",
+      "sha256": "b2c34eca3ff3e003db4e6a9c97cb45321fc1b16e2152525728f4689b8d44536f",
+      "size_bytes": 5736987
+    },
+    {
+      "path": "tracked-tree-31f.jsonl.gz",
+      "sha256": "1be1b8fb9de3397f2e6deb2c682034f54402355f56c0a72065ff8db9f5e3c05e",
+      "size_bytes": 5736988
+    },
+    {
+      "path": "tracked-tree.jsonl.gz",
+      "sha256": "eb8953c8f88a945b679d6936ed7bfd18111fd9ceed88bbe9eef7d4ba85241202",
+      "size_bytes": 5876409
+    },
+    {
+      "path": "validate_source_records.py",
+      "sha256": "0c2490d52be4f4aa7b41ffe8369f6803f9f9ee63e405c373b02218ac0f99e301",
+      "size_bytes": 3066
+    },
+    {
+      "path": "worker-result.json",
+      "sha256": "68592355d5db726b824a691ff684ca54fdc2727ec839549f8ca4c08d422d6834",
+      "size_bytes": 10620
+    }
+  ],
+  "index_exclusion": "artifact-index.json does not contain its own digest. Verify its file hash from Git after commit."
+}

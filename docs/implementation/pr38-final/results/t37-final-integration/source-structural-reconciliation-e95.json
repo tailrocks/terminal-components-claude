@@ -1,0 +1,110 @@
+{
+  "schema": "t37-final.source-structural-reconciliation-e95.v1",
+  "source_head": "e95c45f7aa56959a7173e806f599e4aa371a3499",
+  "source_tree": "9725dd5d7973d9ff56ecb003866eea7827aa1cb3",
+  "code_delta_from_build_checked_516": {
+    "rust_paths_changed": 0,
+    "manifest_lock_config_generated_paths_changed": 0,
+    "only_private_audit_script_changed": true,
+    "evidence": "post-ff-input-continuity.json"
+  },
+  "accepted_source_ledgers": {
+    "apps": {
+      "path": "docs/implementation/pr38-final/results/t37-apps/deletion-map.json",
+      "sha256": "2c3356e46f72c6cafdfbd182c82b9b319de734ada4673f8001ce34fa5a9cfba0",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "summary": {
+        "removed_files": 134,
+        "test_functions_removed": 1721,
+        "cfg_test_candidates_in_base_ledger": 173,
+        "cfg_test_items_removed": 169,
+        "cfg_test_candidate_false_positives": 9,
+        "inner_cfg_test_attributes_removed": 5,
+        "cfg_test_items_removed_from_surviving_files": 158,
+        "surviving_rust_files": 187,
+        "surviving_token_streams_equal": true,
+        "surviving_literal_streams_equal": true
+      },
+      "remaining_test_attributes": 0,
+      "remaining_cfg_test_attributes": 0,
+      "all_surviving_token_streams_equal": true,
+      "all_surviving_literal_streams_equal": true,
+      "independent_decision": "Source closure and subsequent helper/format units accepted; script cleanup has a separate high review."
+    },
+    "apps_test_inventory": {
+      "path": "docs/implementation/pr38-final/results/t37-apps/test-inventory-reconciliation.json",
+      "sha256": "ddbacc355f43b961685fd05be6b74d6f81490eff5a19f5c6b6d72b490d99e3a6",
+      "base_candidates": 1721,
+      "overlay_added_test_count": 1,
+      "effective_candidate_count": 1722,
+      "lexed_test_attribute_count": 1721,
+      "string_literal_false_positive": [
+        "crates/showcase-demos/src/pages/editor.rs::backoff_doubles is an #[test] example inside the production SAMPLE string; literal preserved by token/literal equality."
+      ]
+    },
+    "tools_rust": {
+      "path": "docs/implementation/pr38-final/results/t37-tools/rust-source-cleanup-delta.json",
+      "sha256": "cd45841ad0660b03a028d1f1abf3aab5d5c0828b0b3b714a4f2dc10d84627c30",
+      "source_row_validation": {
+        "status": "PASS",
+        "validation_checks": 550,
+        "details": {
+          "removed_import_statements": 127,
+          "cfg_test_scope_rows": 287,
+          "test_module_rows": 132,
+          "retained_production_cfg_test_field_records": 4
+        },
+        "method": "A one-off Python audit checked each listed c817 path/hash/source line against the fixed Git blob and checked import, cfg scope, module, and field lines against the exact deletion ranges. The audit code was not retained; the source rows and fixed input hashes are included for independent reproduction."
+      },
+      "test_cfg_scope_rows": 287,
+      "test_module_rows": 132
+    }
+  },
+  "active_package_test_directories": {
+    "tracked_files_in_crates_tools_external_consumer": 580,
+    "paths_under_tests": [
+      "crates/termrock-conformance/tests/baselines/components.txt",
+      "crates/termrock-test-support/tests/perf_baseline.txt"
+    ],
+    "source_code_under_tests": [],
+    "only_remaining_files_are_preserved_data": true
+  },
+  "rust_comment_scan": {
+    "prior_scan_path": "docs/implementation/pr38-final/results/t37-final-integration/rust-comment-scan.json",
+    "prior_scan_sha256": "b2410e37ab4e557dbbb9d4072580069e5f9cc18141e64fffe9dfeece40202e8d",
+    "source_head_scanned": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+    "nonexempt_comment_findings": 0,
+    "exact_indexed_rust_count": 14,
+    "exact_indexed_rust_hashes_match": true,
+    "current_e95_status": "All tracked Rust files have identical Git blobs at 516 and e95; prior zero-finding scan remains applicable. Additional preserved assets are exact hash rows in preservation-reconciliation-e95.json; no directory-wide docs exemption is used."
+  },
+  "python_comment_docstring_scan": {
+    "path": "docs/implementation/pr38-final/results/t37-final-integration/python-comment-docstring-scan-e95.json",
+    "sha256": "ba8be121b68afdc37e20a2e1a497013c2e4fc8334f46498ae5533c57a1e70e22",
+    "status": "PASS",
+    "tracked_files": 27,
+    "exact_indexed_files": 8,
+    "separate_hash_bound_assets": 2,
+    "findings": 0,
+    "retained_directives": [
+      {
+        "path": "tools/ansi2png.py",
+        "line": 10,
+        "text": "# noqa: E402",
+        "sha256": "416533a5db8f4e8686465937903ea9a4f759815f2ae8a4312275424f9b1450f6"
+      }
+    ]
+  },
+  "retained_code_text_exception": {
+    "path": "crates/showcase-demos/src/pages/editor.rs",
+    "symbol": "SAMPLE string containing textual #[test] fn backoff_doubles",
+    "classification": "Production code editor sample text, not a Rust test attribute; literal remains byte-identical under accepted app token/literal comparison."
+  },
+  "behavior": {
+    "selected_cases": 0,
+    "tests_executed": 0,
+    "doctests_executed": 0,
+    "nextest_executed": 0,
+    "status": "NOT VERIFIED"
+  }
+}

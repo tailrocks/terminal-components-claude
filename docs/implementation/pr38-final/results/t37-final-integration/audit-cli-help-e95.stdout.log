@@ -1,0 +1,7 @@
+usage: audit.py [-h] {plan,apply,verify}
+
+positional arguments:
+  {plan,apply,verify}
+
+options:
+  -h, --help           show this help message and exit

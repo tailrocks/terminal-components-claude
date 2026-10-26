@@ -1,0 +1,6 @@
+source_head=516198caac5e5b5fa0883fa1f209928c2e86c8ba
+tree=a10cd30dfafec83f7668f529bb03e27f1e5b8b4d
+workdir=/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-visibility-tests
+/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check
+rust build guard: allowed; checked 1 filesystem(s)
+exit_status=0

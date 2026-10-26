@@ -1,0 +1,153 @@
+{
+  "schema": "t37-final.rust-comment-scan.v1",
+  "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+  "tracked_rust_file_count": 465,
+  "exact_t00_indexed_rust_count": 14,
+  "exact_hash_bound_preserved_rust_count": 6,
+  "exemptions": [
+    {
+      "path": "docs/audits/evidence/2026-10-21-current-blockers/incoming-tablepro-runtime-review-34f73e3/probe.rs",
+      "sha256": "7bd90e6968f7d254266aabfde9e73f1d41fe41749fb02ecbaa0ae8e5b14c1562",
+      "expected_sha256": "7bd90e6968f7d254266aabfde9e73f1d41fe41749fb02ecbaa0ae8e5b14c1562",
+      "byte_identical": true,
+      "classification": "immutable or reference evidence; not deletion authorization"
+    },
+    {
+      "path": "docs/audits/evidence/2026-10-21-native-expectation-protection/rejected/crates/showcase-ui/tests/page_headings.rs",
+      "sha256": "e7145fe124fd323f969692ae9781290f5ffd4f417ad34932898b172fcd3ef5dd",
+      "expected_sha256": "e7145fe124fd323f969692ae9781290f5ffd4f417ad34932898b172fcd3ef5dd",
+      "byte_identical": true,
+      "classification": "immutable or reference evidence; not deletion authorization"
+    },
+    {
+      "path": "docs/audits/evidence/2026-10-21-native-expectation-protection/restored/crates/showcase-ui/tests/page_headings.rs",
+      "sha256": "9d1646c9500d7e6cf143e5f9873451308fcf814e8ec41efa7667b4af723f6d16",
+      "expected_sha256": "9d1646c9500d7e6cf143e5f9873451308fcf814e8ec41efa7667b4af723f6d16",
+      "byte_identical": true,
+      "classification": "immutable or reference evidence; not deletion authorization"
+    },
+    {
+      "path": "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/tests/authored_bg.rs",
+      "sha256": "3869c7044fbb06c9f8776210c0570aa46336349bdd894734545c791da258c6ae",
+      "expected_sha256": "3869c7044fbb06c9f8776210c0570aa46336349bdd894734545c791da258c6ae",
+      "byte_identical": true,
+      "classification": "immutable or reference evidence; not deletion authorization"
+    },
+    {
+      "path": "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/tests/contrast.rs",
+      "sha256": "940da3fa57e92eaf6220f0e3a0ff3da587abfaae0ab4a802507cc846487b8407",
+      "expected_sha256": "940da3fa57e92eaf6220f0e3a0ff3da587abfaae0ab4a802507cc846487b8407",
+      "byte_identical": true,
+      "classification": "immutable or reference evidence; not deletion authorization"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/31f-to-1d6/new/crates/showcase-ui/tests/navigation_contract.rs",
+      "sha256": "eaeeaecae11b3a692091ee7e82ab180e2147e186bc1eda093c0db660dbf46ce5",
+      "expected_sha256": "eaeeaecae11b3a692091ee7e82ab180e2147e186bc1eda093c0db660dbf46ce5",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/31f-to-1d6/old/crates/showcase-ui/tests/navigation_contract.rs",
+      "sha256": "5bb23aab81d2877eb8ec0341e32910409d58edec09c176ef8d9ea0b05909cd52",
+      "expected_sha256": "5bb23aab81d2877eb8ec0341e32910409d58edec09c176ef8d9ea0b05909cd52",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/catalog.rs",
+      "sha256": "b852413adeb6c004bb8f93c0707b7f2c0d9ed40a519e94f581e4cf5a577bfc62",
+      "expected_sha256": "b852413adeb6c004bb8f93c0707b7f2c0d9ed40a519e94f581e4cf5a577bfc62",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/catalog_data.rs",
+      "sha256": "bcd2d23e2d7623f18718204dc787c5ef12aaaff5eaaf0b1bcde306bce3843846",
+      "expected_sha256": "bcd2d23e2d7623f18718204dc787c5ef12aaaff5eaaf0b1bcde306bce3843846",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/declarations.rs",
+      "sha256": "8a2ec2bed3ada0737c1c4b6d1cd8707dfa33da2f2f4b64ff0591b79449e7f69a",
+      "expected_sha256": "8a2ec2bed3ada0737c1c4b6d1cd8707dfa33da2f2f4b64ff0591b79449e7f69a",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/declarations_data.rs",
+      "sha256": "4310f419cc5f207e491568fe3d6d0b5b03296779eb89c7279623c6d89b88d359",
+      "expected_sha256": "4310f419cc5f207e491568fe3d6d0b5b03296779eb89c7279623c6d89b88d359",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/mod.rs",
+      "sha256": "7bfe173cb7c5b71bdd24b36aadd551dc2764ea4eb5a3f99ce691d685c277810d",
+      "expected_sha256": "7bfe173cb7c5b71bdd24b36aadd551dc2764ea4eb5a3f99ce691d685c277810d",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/scan.rs",
+      "sha256": "64dedbe91bb1ae8f04c631093d10e6bf149cd0cf3cbec6c6e1183348c25e9a51",
+      "expected_sha256": "64dedbe91bb1ae8f04c631093d10e6bf149cd0cf3cbec6c6e1183348c25e9a51",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/catalog.rs",
+      "sha256": "b852413adeb6c004bb8f93c0707b7f2c0d9ed40a519e94f581e4cf5a577bfc62",
+      "expected_sha256": "b852413adeb6c004bb8f93c0707b7f2c0d9ed40a519e94f581e4cf5a577bfc62",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/catalog_data.rs",
+      "sha256": "bcd2d23e2d7623f18718204dc787c5ef12aaaff5eaaf0b1bcde306bce3843846",
+      "expected_sha256": "bcd2d23e2d7623f18718204dc787c5ef12aaaff5eaaf0b1bcde306bce3843846",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/declarations.rs",
+      "sha256": "8a2ec2bed3ada0737c1c4b6d1cd8707dfa33da2f2f4b64ff0591b79449e7f69a",
+      "expected_sha256": "8a2ec2bed3ada0737c1c4b6d1cd8707dfa33da2f2f4b64ff0591b79449e7f69a",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/declarations_data.rs",
+      "sha256": "4310f419cc5f207e491568fe3d6d0b5b03296779eb89c7279623c6d89b88d359",
+      "expected_sha256": "4310f419cc5f207e491568fe3d6d0b5b03296779eb89c7279623c6d89b88d359",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/mod.rs",
+      "sha256": "7bfe173cb7c5b71bdd24b36aadd551dc2764ea4eb5a3f99ce691d685c277810d",
+      "expected_sha256": "7bfe173cb7c5b71bdd24b36aadd551dc2764ea4eb5a3f99ce691d685c277810d",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/scan.rs",
+      "sha256": "64dedbe91bb1ae8f04c631093d10e6bf149cd0cf3cbec6c6e1183348c25e9a51",
+      "expected_sha256": "64dedbe91bb1ae8f04c631093d10e6bf149cd0cf3cbec6c6e1183348c25e9a51",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/contract-source/deferred.rs",
+      "sha256": "eb1cd35035b1e2e017505efd242c5f17d4adee5b8a68dfd65c3d3ffc8c72976d",
+      "expected_sha256": "eb1cd35035b1e2e017505efd242c5f17d4adee5b8a68dfd65c3d3ffc8c72976d",
+      "byte_identical": true,
+      "classification": "immutable or reference evidence; not deletion authorization"
+    }
+  ],
+  "all_exemption_hashes_match": true,
+  "nonexempt_comment_findings": [],
+  "status": "PASS",
+  "method": "Lexical scan skips normal/raw/byte/C strings and character literals, recognizes nested block comments, and records line/doc comment spans; source-index exceptions are exact hash-bound files only."
+}
