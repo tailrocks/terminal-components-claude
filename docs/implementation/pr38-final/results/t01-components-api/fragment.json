@@ -167949,12 +167949,12 @@
           ]
         },
         {
-          "qualified_symbol": "termrock_text::Secret",
+          "qualified_symbol": "termrock_text::secret::Secret",
           "source": "crates/termrock-text/src/secret.rs",
           "line": 13,
           "sha256": "076445886ca3c801b8d6e73244797d2c7c4556ad3d56bc7a5d88d9da5a93c04b",
           "impl_ids": [
-            "IMPL:termrock_fields::input::TextTarget:termrock_text::Secret@crates/termrock-fields/src/input.rs:59"
+            "IMPL:termrock_fields::input::TextTarget:termrock_text::secret::Secret@crates/termrock-fields/src/input.rs:59"
           ],
           "public_paths": [
             "termrock::Secret",
@@ -168360,6 +168360,34 @@
       "workdir": "/Users/donbeave/Downloads/termrock-t01-components",
       "result": "PASS: JSON valid; W01-W45 unchanged; all 83 export-owner rows byte-equivalent to the input candidate; 63 WIDs; 239 contracts; 30 extensions with 21 exact and 9 pending joins; 13 blockers; accepted foundation commit/hash/status exact. No product behavior verified.",
       "phase": "FINAL_SECOND_CORRECTION_SOURCE_AND_CROSS_FRAGMENT_CHECK",
+      "selected_behavior_cases": 0
+    },
+    {
+      "argv": [
+        "python3",
+        "-"
+      ],
+      "shell_command": "python3 - <<'PY' ... validate all 239 canonical trait/receiver records against declaration, source module ancestry, source hashes, and explicit alias evidence ... PY",
+      "exit": 0,
+      "tool": "python3 inline source-structural canonical identity audit",
+      "workdir": "/Users/donbeave/Downloads/termrock-t01-components",
+      "phase": "PRE_FINAL2_SECRET_CANONICAL_IDENTITY_CORRECTION",
+      "source_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+      "result": "INTERMEDIATE source-structural audit, superseded by NARROW_FINAL2_CANONICAL_IDENTITY_FINAL_AUDIT below: PASS: 239 trait/receiver contracts; 103/103 workspace trait definitions and 202/202 workspace receiver definitions match source declarations/module ancestry/hashes; 11 Reconcile rows/IDs now use termrock_collections::collection::reconcile::Reconcile while preserving alias termrock_collections::collection::Reconcile; Secret canonical alias/definition split is source-backed; 239 unique IDs; 83 export-owner rows and 13 blockers unchanged; 63 WIDs. Source hashes: crates/termrock-collections/src/lib.rs f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02; collection/mod.rs 65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88; collection/reconcile.rs e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989. No behavior verified.",
+      "selected_behavior_cases": 0
+    },
+    {
+      "argv": [
+        "python3",
+        "-"
+      ],
+      "shell_command": "python3 - <<'PY' ... validate all 239 trait/receiver records against declaration, source module ancestry, source hashes, and separately recorded public aliases ... PY",
+      "exit": 0,
+      "tool": "python3 inline source-structural canonical identity audit",
+      "workdir": "/Users/donbeave/Downloads/termrock-t01-components",
+      "phase": "NARROW_FINAL2_CANONICAL_IDENTITY_FINAL_AUDIT",
+      "source_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+      "result": "PASS all 239 contracts: 103/103 workspace traits and 202/202 workspace receivers match canonical symbol/module/source/hash; 11 Reconcile rows/IDs use nested definition and preserve public alias; Secret canonical receiver, owner and definition equal termrock_text::secret::Secret while termrock_text::Secret remains only public re-export alias in both unjoined receiver records; 239 unique IDs; 83 export-owner rows, 13 blockers, 63 WIDs. Source hashes: crates/termrock-collections/src/lib.rs f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02; collection/mod.rs 65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88; collection/reconcile.rs e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989; termrock-text/src/secret.rs 076445886ca3c801b8d6e73244797d2c7c4556ad3d56bc7a5d88d9da5a93c04b; termrock-text/src/lib.rs a69d5261b998011bce3822f066e80b78917aeed7e462887ca8f01f87ba300f60. No behavior verified.",
       "selected_behavior_cases": 0
     }
   ],
@@ -477807,8 +477835,8 @@
       "trait_public_path_status": "source_paths_joined"
     },
     {
-      "impl_id": "IMPL:termrock_collections::collection::Reconcile:termrock_controls::choice::RadioGroupState@crates/termrock-controls/src/choice.rs:920",
-      "trait": "termrock_collections::collection::Reconcile",
+      "impl_id": "IMPL:termrock_collections::collection::reconcile::Reconcile:termrock_controls::choice::RadioGroupState@crates/termrock-controls/src/choice.rs:920",
+      "trait": "termrock_collections::collection::reconcile::Reconcile",
       "trait_source_spelling": "Reconcile",
       "receiver": "termrock_controls::choice::RadioGroupState",
       "receiver_type_spelling": "RadioGroupState",
@@ -477834,16 +477862,16 @@
       "named_owner_task": "T12",
       "status": "PROPOSED_NOT_APPROVED_T38",
       "evidence": "NOT_VERIFIED",
-      "trait_canonical_path": "termrock_collections::collection::Reconcile",
+      "trait_canonical_path": "termrock_collections::collection::reconcile::Reconcile",
       "trait_resolution_classification": "workspace_public_trait",
       "trait_definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
       "trait_definition_line": 20,
       "trait_definition_sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
-      "trait_definition_symbol": "termrock_collections::collection::Reconcile",
-      "trait_definition_module_path": "termrock_collections::collection",
+      "trait_definition_symbol": "termrock_collections::collection::reconcile::Reconcile",
+      "trait_definition_module_path": "termrock_collections::collection::reconcile",
       "trait_definition_visibility": "public",
       "trait_definition_module_chain": {
-        "module_path": "termrock_collections::collection",
+        "module_path": "termrock_collections::collection::reconcile",
         "public_module_path": true,
         "edges": [
           {
@@ -477855,13 +477883,23 @@
             "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
             "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
             "visibility": "public"
+          },
+          {
+            "from_module": "termrock_collections::collection",
+            "to_module": "termrock_collections::collection::reconcile",
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 2,
+            "statement": "pub mod reconcile;",
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "visibility": "public"
           }
         ],
         "unresolved_edges": []
       },
       "trait_resolution_evidence": {
         "source_spelling": "Reconcile",
-        "canonical_path": "termrock_collections::collection::Reconcile",
+        "canonical_path": "termrock_collections::collection::reconcile::Reconcile",
         "resolution": "explicit_source_import",
         "implementation_site": {
           "path": "crates/termrock-controls/src/choice.rs",
@@ -477889,7 +477927,37 @@
             "role": "module_use"
           }
         ],
-        "evidence": "NOT_VERIFIED"
+        "evidence": "NOT_VERIFIED",
+        "resolved_public_alias": {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
       },
       "impl_source_module_path": "termrock_controls::choice",
       "receiver_canonical_path": "termrock_controls::choice::RadioGroupState",
@@ -478111,7 +478179,7 @@
       "trait_api_item_join": {
         "status": "pending_T01_item_index_join",
         "api_id": null,
-        "qualified_symbol": "termrock_collections::collection::Reconcile",
+        "qualified_symbol": "termrock_collections::collection::reconcile::Reconcile",
         "source": "crates/termrock-collections/src/collection/reconcile.rs",
         "line": 20,
         "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
@@ -478121,12 +478189,53 @@
       "receiver_definition_symbol_classification": "workspace_source_definition",
       "receiver_local_definition_locator": null,
       "trait_public_paths": [
+        "termrock_collections::collection::reconcile::Reconcile",
         "termrock_collections::collection::Reconcile"
       ],
       "trait_public_path_evidence": [
         {
-          "path": "termrock_collections::collection::Reconcile",
+          "path": "termrock_collections::collection::reconcile::Reconcile",
           "basis": "source_public_definition_module_chain",
+          "externally_reachable": true,
+          "module_chain": {
+            "module_path": "termrock_collections::collection::reconcile",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              },
+              {
+                "from_module": "termrock_collections::collection",
+                "to_module": "termrock_collections::collection::reconcile",
+                "source": "crates/termrock-collections/src/collection/mod.rs",
+                "line": 2,
+                "statement": "pub mod reconcile;",
+                "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "definition_site": {
+            "path": "crates/termrock-collections/src/collection/reconcile.rs",
+            "line": 20,
+            "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub trait Reconcile {\n    fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation;\n    fn invalidate(&mut self);\n}",
+            "role": "trait_definition"
+          }
+        },
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "basis": "source_public_named_reexport",
           "externally_reachable": true,
           "module_chain": {
             "module_path": "termrock_collections::collection",
@@ -478145,6 +478254,19 @@
             ],
             "unresolved_edges": []
           },
+          "reexport": {
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 5,
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+            "module": "termrock_collections::collection",
+            "import_path": "reconcile::Reconcile",
+            "actual_definition_owner": "termrock_collections::collection::reconcile::Reconcile",
+            "definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
+            "definition_line": 20,
+            "resolution": "single_canonical_owner"
+          },
           "definition_site": {
             "path": "crates/termrock-collections/src/collection/reconcile.rs",
             "line": 20,
@@ -478155,7 +478277,39 @@
           }
         }
       ],
-      "trait_public_path_status": "source_paths_joined"
+      "trait_public_path_status": "source_paths_joined",
+      "trait_public_aliases": [
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
+      ]
     },
     {
       "impl_id": "IMPL:core::fmt::Debug:termrock_controls::choice::RadioGroup@crates/termrock-controls/src/choice.rs:943",
@@ -481377,8 +481531,8 @@
       "trait_public_path_status": "external_standard_library_trait"
     },
     {
-      "impl_id": "IMPL:termrock_collections::collection::Reconcile:termrock_controls::props::PropsState@crates/termrock-controls/src/props.rs:295",
-      "trait": "termrock_collections::collection::Reconcile",
+      "impl_id": "IMPL:termrock_collections::collection::reconcile::Reconcile:termrock_controls::props::PropsState@crates/termrock-controls/src/props.rs:295",
+      "trait": "termrock_collections::collection::reconcile::Reconcile",
       "trait_source_spelling": "Reconcile",
       "receiver": "termrock_controls::props::PropsState",
       "receiver_type_spelling": "PropsState",
@@ -481406,16 +481560,16 @@
       "named_owner_task": "T12",
       "status": "PROPOSED_NOT_APPROVED_T38",
       "evidence": "NOT_VERIFIED",
-      "trait_canonical_path": "termrock_collections::collection::Reconcile",
+      "trait_canonical_path": "termrock_collections::collection::reconcile::Reconcile",
       "trait_resolution_classification": "workspace_public_trait",
       "trait_definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
       "trait_definition_line": 20,
       "trait_definition_sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
-      "trait_definition_symbol": "termrock_collections::collection::Reconcile",
-      "trait_definition_module_path": "termrock_collections::collection",
+      "trait_definition_symbol": "termrock_collections::collection::reconcile::Reconcile",
+      "trait_definition_module_path": "termrock_collections::collection::reconcile",
       "trait_definition_visibility": "public",
       "trait_definition_module_chain": {
-        "module_path": "termrock_collections::collection",
+        "module_path": "termrock_collections::collection::reconcile",
         "public_module_path": true,
         "edges": [
           {
@@ -481427,13 +481581,23 @@
             "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
             "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
             "visibility": "public"
+          },
+          {
+            "from_module": "termrock_collections::collection",
+            "to_module": "termrock_collections::collection::reconcile",
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 2,
+            "statement": "pub mod reconcile;",
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "visibility": "public"
           }
         ],
         "unresolved_edges": []
       },
       "trait_resolution_evidence": {
         "source_spelling": "Reconcile",
-        "canonical_path": "termrock_collections::collection::Reconcile",
+        "canonical_path": "termrock_collections::collection::reconcile::Reconcile",
         "resolution": "explicit_source_import",
         "implementation_site": {
           "path": "crates/termrock-controls/src/props.rs",
@@ -481461,7 +481625,37 @@
             "role": "module_use"
           }
         ],
-        "evidence": "NOT_VERIFIED"
+        "evidence": "NOT_VERIFIED",
+        "resolved_public_alias": {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
       },
       "impl_source_module_path": "termrock_controls::props",
       "receiver_canonical_path": "termrock_controls::props::PropsState",
@@ -481738,7 +481932,7 @@
       "trait_api_item_join": {
         "status": "pending_T01_item_index_join",
         "api_id": null,
-        "qualified_symbol": "termrock_collections::collection::Reconcile",
+        "qualified_symbol": "termrock_collections::collection::reconcile::Reconcile",
         "source": "crates/termrock-collections/src/collection/reconcile.rs",
         "line": 20,
         "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
@@ -481748,12 +481942,53 @@
       "receiver_definition_symbol_classification": "workspace_source_definition",
       "receiver_local_definition_locator": null,
       "trait_public_paths": [
+        "termrock_collections::collection::reconcile::Reconcile",
         "termrock_collections::collection::Reconcile"
       ],
       "trait_public_path_evidence": [
         {
-          "path": "termrock_collections::collection::Reconcile",
+          "path": "termrock_collections::collection::reconcile::Reconcile",
           "basis": "source_public_definition_module_chain",
+          "externally_reachable": true,
+          "module_chain": {
+            "module_path": "termrock_collections::collection::reconcile",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              },
+              {
+                "from_module": "termrock_collections::collection",
+                "to_module": "termrock_collections::collection::reconcile",
+                "source": "crates/termrock-collections/src/collection/mod.rs",
+                "line": 2,
+                "statement": "pub mod reconcile;",
+                "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "definition_site": {
+            "path": "crates/termrock-collections/src/collection/reconcile.rs",
+            "line": 20,
+            "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub trait Reconcile {\n    fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation;\n    fn invalidate(&mut self);\n}",
+            "role": "trait_definition"
+          }
+        },
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "basis": "source_public_named_reexport",
           "externally_reachable": true,
           "module_chain": {
             "module_path": "termrock_collections::collection",
@@ -481772,6 +482007,19 @@
             ],
             "unresolved_edges": []
           },
+          "reexport": {
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 5,
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+            "module": "termrock_collections::collection",
+            "import_path": "reconcile::Reconcile",
+            "actual_definition_owner": "termrock_collections::collection::reconcile::Reconcile",
+            "definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
+            "definition_line": 20,
+            "resolution": "single_canonical_owner"
+          },
           "definition_site": {
             "path": "crates/termrock-collections/src/collection/reconcile.rs",
             "line": 20,
@@ -481782,7 +482030,39 @@
           }
         }
       ],
-      "trait_public_path_status": "source_paths_joined"
+      "trait_public_path_status": "source_paths_joined",
+      "trait_public_aliases": [
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
+      ]
     },
     {
       "impl_id": "IMPL:core::fmt::Debug:termrock_controls::props::PropsList@crates/termrock-controls/src/props.rs:314",
@@ -496758,10 +497038,10 @@
       "trait_public_path_status": "source_paths_joined"
     },
     {
-      "impl_id": "IMPL:termrock_fields::input::TextTarget:termrock_text::Secret@crates/termrock-fields/src/input.rs:59",
+      "impl_id": "IMPL:termrock_fields::input::TextTarget:termrock_text::secret::Secret@crates/termrock-fields/src/input.rs:59",
       "trait": "termrock_fields::input::TextTarget",
       "trait_source_spelling": "TextTarget",
-      "receiver": "termrock_text::Secret",
+      "receiver": "termrock_text::secret::Secret",
       "receiver_type_spelling": "Secret",
       "receiver_definition_source": "crates/termrock-text/src/secret.rs",
       "receiver_definition_line": 13,
@@ -496803,7 +497083,7 @@
       "named_owner_task": "T13",
       "status": "PROPOSED_NOT_APPROVED_T38",
       "evidence": "NOT_VERIFIED",
-      "receiver_canonical_path": "termrock_text::Secret",
+      "receiver_canonical_path": "termrock_text::secret::Secret",
       "receiver_classification": "workspace_imported_public_type",
       "trait_canonical_path": "termrock_fields::input::TextTarget",
       "trait_resolution_classification": "workspace_public_trait",
@@ -496876,7 +497156,7 @@
       },
       "receiver_import_resolution_evidence": {
         "source_spelling": "Secret",
-        "canonical_path": "termrock_text::Secret",
+        "canonical_path": "termrock_text::secret::Secret",
         "classification": "workspace_imported_public_type",
         "implementation_site": {
           "path": "crates/termrock-fields/src/input.rs",
@@ -496972,7 +497252,48 @@
           ],
           "unresolved_edges": []
         },
-        "evidence": "NOT_VERIFIED"
+        "evidence": "NOT_VERIFIED",
+        "resolved_public_alias": {
+          "path": "termrock_text::Secret",
+          "target": "termrock_text::secret::Secret",
+          "basis": "source_public_named_root_reexport",
+          "source": "crates/termrock-text/src/lib.rs",
+          "line": 18,
+          "sha256": "a69d5261b998011bce3822f066e80b78917aeed7e462887ca8f01f87ba300f60",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use secret::{CellWriter, Secret, SecretPolicy};",
+          "public_path_evidence": {
+            "path": "termrock_text::Secret",
+            "basis": "source_public_named_root_reexport",
+            "externally_reachable": true,
+            "canonical_definition": {
+              "qualified_symbol": "termrock_text::secret::Secret",
+              "source": "crates/termrock-text/src/secret.rs",
+              "line": 13,
+              "sha256": "076445886ca3c801b8d6e73244797d2c7c4556ad3d56bc7a5d88d9da5a93c04b",
+              "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a"
+            },
+            "source_reexport_chain": [
+              {
+                "source": "crates/termrock-text/src/lib.rs",
+                "line": 8,
+                "sha256": "a69d5261b998011bce3822f066e80b78917aeed7e462887ca8f01f87ba300f60",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "statement": "pub mod secret;",
+                "edge_kind": "public_module_declaration"
+              },
+              {
+                "source": "crates/termrock-text/src/lib.rs",
+                "line": 18,
+                "sha256": "a69d5261b998011bce3822f066e80b78917aeed7e462887ca8f01f87ba300f60",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "statement": "pub use secret::{CellWriter, Secret, SecretPolicy};",
+                "edge_kind": "public_named_reexport"
+              }
+            ],
+            "scope": "Exact source named root re-export; the canonical definition remains termrock_text::secret::Secret."
+          }
+        }
       },
       "receiver_api_item_join": {
         "status": "pending_T01_item_index_join",
@@ -497573,7 +497894,7 @@
         "sha256": "426f9dbff5c2f28026d7059cc35abbe54b4350c50f2b5dfb8c1885e90448b220",
         "evidence": "NOT_VERIFIED"
       },
-      "receiver_canonical_owner": "termrock_text::Secret",
+      "receiver_canonical_owner": "termrock_text::secret::Secret",
       "receiver_definition_symbol_classification": "workspace_source_definition",
       "receiver_local_definition_locator": null,
       "trait_public_paths": [
@@ -511131,8 +511452,8 @@
       "trait_public_path_status": "external_standard_library_trait"
     },
     {
-      "impl_id": "IMPL:termrock_collections::collection::Reconcile:termrock_grid::grid::GridState@crates/termrock-grid/src/grid.rs:834",
-      "trait": "termrock_collections::collection::Reconcile",
+      "impl_id": "IMPL:termrock_collections::collection::reconcile::Reconcile:termrock_grid::grid::GridState@crates/termrock-grid/src/grid.rs:834",
+      "trait": "termrock_collections::collection::reconcile::Reconcile",
       "trait_source_spelling": "Reconcile",
       "receiver": "termrock_grid::grid::GridState",
       "receiver_type_spelling": "GridState",
@@ -511158,16 +511479,16 @@
       "named_owner_task": "T16",
       "status": "PROPOSED_NOT_APPROVED_T38",
       "evidence": "NOT_VERIFIED",
-      "trait_canonical_path": "termrock_collections::collection::Reconcile",
+      "trait_canonical_path": "termrock_collections::collection::reconcile::Reconcile",
       "trait_resolution_classification": "workspace_public_trait",
       "trait_definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
       "trait_definition_line": 20,
       "trait_definition_sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
-      "trait_definition_symbol": "termrock_collections::collection::Reconcile",
-      "trait_definition_module_path": "termrock_collections::collection",
+      "trait_definition_symbol": "termrock_collections::collection::reconcile::Reconcile",
+      "trait_definition_module_path": "termrock_collections::collection::reconcile",
       "trait_definition_visibility": "public",
       "trait_definition_module_chain": {
-        "module_path": "termrock_collections::collection",
+        "module_path": "termrock_collections::collection::reconcile",
         "public_module_path": true,
         "edges": [
           {
@@ -511179,13 +511500,23 @@
             "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
             "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
             "visibility": "public"
+          },
+          {
+            "from_module": "termrock_collections::collection",
+            "to_module": "termrock_collections::collection::reconcile",
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 2,
+            "statement": "pub mod reconcile;",
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "visibility": "public"
           }
         ],
         "unresolved_edges": []
       },
       "trait_resolution_evidence": {
         "source_spelling": "Reconcile",
-        "canonical_path": "termrock_collections::collection::Reconcile",
+        "canonical_path": "termrock_collections::collection::reconcile::Reconcile",
         "resolution": "explicit_source_import",
         "implementation_site": {
           "path": "crates/termrock-grid/src/grid.rs",
@@ -511213,7 +511544,37 @@
             "role": "module_use"
           }
         ],
-        "evidence": "NOT_VERIFIED"
+        "evidence": "NOT_VERIFIED",
+        "resolved_public_alias": {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
       },
       "impl_source_module_path": "termrock_grid::grid",
       "receiver_canonical_path": "termrock_grid::grid::GridState",
@@ -511435,7 +511796,7 @@
       "trait_api_item_join": {
         "status": "pending_T01_item_index_join",
         "api_id": null,
-        "qualified_symbol": "termrock_collections::collection::Reconcile",
+        "qualified_symbol": "termrock_collections::collection::reconcile::Reconcile",
         "source": "crates/termrock-collections/src/collection/reconcile.rs",
         "line": 20,
         "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
@@ -511445,12 +511806,53 @@
       "receiver_definition_symbol_classification": "workspace_source_definition",
       "receiver_local_definition_locator": null,
       "trait_public_paths": [
+        "termrock_collections::collection::reconcile::Reconcile",
         "termrock_collections::collection::Reconcile"
       ],
       "trait_public_path_evidence": [
         {
-          "path": "termrock_collections::collection::Reconcile",
+          "path": "termrock_collections::collection::reconcile::Reconcile",
           "basis": "source_public_definition_module_chain",
+          "externally_reachable": true,
+          "module_chain": {
+            "module_path": "termrock_collections::collection::reconcile",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              },
+              {
+                "from_module": "termrock_collections::collection",
+                "to_module": "termrock_collections::collection::reconcile",
+                "source": "crates/termrock-collections/src/collection/mod.rs",
+                "line": 2,
+                "statement": "pub mod reconcile;",
+                "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "definition_site": {
+            "path": "crates/termrock-collections/src/collection/reconcile.rs",
+            "line": 20,
+            "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub trait Reconcile {\n    fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation;\n    fn invalidate(&mut self);\n}",
+            "role": "trait_definition"
+          }
+        },
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "basis": "source_public_named_reexport",
           "externally_reachable": true,
           "module_chain": {
             "module_path": "termrock_collections::collection",
@@ -511469,6 +511871,19 @@
             ],
             "unresolved_edges": []
           },
+          "reexport": {
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 5,
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+            "module": "termrock_collections::collection",
+            "import_path": "reconcile::Reconcile",
+            "actual_definition_owner": "termrock_collections::collection::reconcile::Reconcile",
+            "definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
+            "definition_line": 20,
+            "resolution": "single_canonical_owner"
+          },
           "definition_site": {
             "path": "crates/termrock-collections/src/collection/reconcile.rs",
             "line": 20,
@@ -511479,7 +511894,39 @@
           }
         }
       ],
-      "trait_public_path_status": "source_paths_joined"
+      "trait_public_path_status": "source_paths_joined",
+      "trait_public_aliases": [
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
+      ]
     },
     {
       "impl_id": "IMPL:core::fmt::Debug:termrock_grid::grid::Grid@crates/termrock-grid/src/grid.rs:1019",
@@ -512639,8 +513086,8 @@
       "trait_public_path_status": "source_paths_joined"
     },
     {
-      "impl_id": "IMPL:termrock_collections::collection::Reconcile:termrock_navigation::chip::ChipBarState@crates/termrock-navigation/src/chip.rs:183",
-      "trait": "termrock_collections::collection::Reconcile",
+      "impl_id": "IMPL:termrock_collections::collection::reconcile::Reconcile:termrock_navigation::chip::ChipBarState@crates/termrock-navigation/src/chip.rs:183",
+      "trait": "termrock_collections::collection::reconcile::Reconcile",
       "trait_source_spelling": "Reconcile",
       "receiver": "termrock_navigation::chip::ChipBarState",
       "receiver_type_spelling": "ChipBarState",
@@ -512666,16 +513113,16 @@
       "named_owner_task": "T14",
       "status": "PROPOSED_NOT_APPROVED_T38",
       "evidence": "NOT_VERIFIED",
-      "trait_canonical_path": "termrock_collections::collection::Reconcile",
+      "trait_canonical_path": "termrock_collections::collection::reconcile::Reconcile",
       "trait_resolution_classification": "workspace_public_trait",
       "trait_definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
       "trait_definition_line": 20,
       "trait_definition_sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
-      "trait_definition_symbol": "termrock_collections::collection::Reconcile",
-      "trait_definition_module_path": "termrock_collections::collection",
+      "trait_definition_symbol": "termrock_collections::collection::reconcile::Reconcile",
+      "trait_definition_module_path": "termrock_collections::collection::reconcile",
       "trait_definition_visibility": "public",
       "trait_definition_module_chain": {
-        "module_path": "termrock_collections::collection",
+        "module_path": "termrock_collections::collection::reconcile",
         "public_module_path": true,
         "edges": [
           {
@@ -512687,13 +513134,23 @@
             "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
             "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
             "visibility": "public"
+          },
+          {
+            "from_module": "termrock_collections::collection",
+            "to_module": "termrock_collections::collection::reconcile",
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 2,
+            "statement": "pub mod reconcile;",
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "visibility": "public"
           }
         ],
         "unresolved_edges": []
       },
       "trait_resolution_evidence": {
         "source_spelling": "Reconcile",
-        "canonical_path": "termrock_collections::collection::Reconcile",
+        "canonical_path": "termrock_collections::collection::reconcile::Reconcile",
         "resolution": "explicit_source_import",
         "implementation_site": {
           "path": "crates/termrock-navigation/src/chip.rs",
@@ -512721,7 +513178,37 @@
             "role": "module_use"
           }
         ],
-        "evidence": "NOT_VERIFIED"
+        "evidence": "NOT_VERIFIED",
+        "resolved_public_alias": {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
       },
       "impl_source_module_path": "termrock_navigation::chip",
       "receiver_canonical_path": "termrock_navigation::chip::ChipBarState",
@@ -512943,7 +513430,7 @@
       "trait_api_item_join": {
         "status": "pending_T01_item_index_join",
         "api_id": null,
-        "qualified_symbol": "termrock_collections::collection::Reconcile",
+        "qualified_symbol": "termrock_collections::collection::reconcile::Reconcile",
         "source": "crates/termrock-collections/src/collection/reconcile.rs",
         "line": 20,
         "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
@@ -512953,12 +513440,53 @@
       "receiver_definition_symbol_classification": "workspace_source_definition",
       "receiver_local_definition_locator": null,
       "trait_public_paths": [
+        "termrock_collections::collection::reconcile::Reconcile",
         "termrock_collections::collection::Reconcile"
       ],
       "trait_public_path_evidence": [
         {
-          "path": "termrock_collections::collection::Reconcile",
+          "path": "termrock_collections::collection::reconcile::Reconcile",
           "basis": "source_public_definition_module_chain",
+          "externally_reachable": true,
+          "module_chain": {
+            "module_path": "termrock_collections::collection::reconcile",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              },
+              {
+                "from_module": "termrock_collections::collection",
+                "to_module": "termrock_collections::collection::reconcile",
+                "source": "crates/termrock-collections/src/collection/mod.rs",
+                "line": 2,
+                "statement": "pub mod reconcile;",
+                "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "definition_site": {
+            "path": "crates/termrock-collections/src/collection/reconcile.rs",
+            "line": 20,
+            "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub trait Reconcile {\n    fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation;\n    fn invalidate(&mut self);\n}",
+            "role": "trait_definition"
+          }
+        },
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "basis": "source_public_named_reexport",
           "externally_reachable": true,
           "module_chain": {
             "module_path": "termrock_collections::collection",
@@ -512977,6 +513505,19 @@
             ],
             "unresolved_edges": []
           },
+          "reexport": {
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 5,
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+            "module": "termrock_collections::collection",
+            "import_path": "reconcile::Reconcile",
+            "actual_definition_owner": "termrock_collections::collection::reconcile::Reconcile",
+            "definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
+            "definition_line": 20,
+            "resolution": "single_canonical_owner"
+          },
           "definition_site": {
             "path": "crates/termrock-collections/src/collection/reconcile.rs",
             "line": 20,
@@ -512987,7 +513528,39 @@
           }
         }
       ],
-      "trait_public_path_status": "source_paths_joined"
+      "trait_public_path_status": "source_paths_joined",
+      "trait_public_aliases": [
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
+      ]
     },
     {
       "impl_id": "IMPL:core::fmt::Debug:termrock_navigation::chip::ChipBar@crates/termrock-navigation/src/chip.rs:219",
@@ -513768,8 +514341,8 @@
       "trait_public_path_status": "source_paths_joined"
     },
     {
-      "impl_id": "IMPL:termrock_collections::collection::Reconcile:termrock_navigation::filter_list::FilterListState@crates/termrock-navigation/src/filter_list.rs:283",
-      "trait": "termrock_collections::collection::Reconcile",
+      "impl_id": "IMPL:termrock_collections::collection::reconcile::Reconcile:termrock_navigation::filter_list::FilterListState@crates/termrock-navigation/src/filter_list.rs:283",
+      "trait": "termrock_collections::collection::reconcile::Reconcile",
       "trait_source_spelling": "Reconcile",
       "receiver": "termrock_navigation::filter_list::FilterListState",
       "receiver_type_spelling": "FilterListState",
@@ -513795,16 +514368,16 @@
       "named_owner_task": "T14",
       "status": "PROPOSED_NOT_APPROVED_T38",
       "evidence": "NOT_VERIFIED",
-      "trait_canonical_path": "termrock_collections::collection::Reconcile",
+      "trait_canonical_path": "termrock_collections::collection::reconcile::Reconcile",
       "trait_resolution_classification": "workspace_public_trait",
       "trait_definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
       "trait_definition_line": 20,
       "trait_definition_sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
-      "trait_definition_symbol": "termrock_collections::collection::Reconcile",
-      "trait_definition_module_path": "termrock_collections::collection",
+      "trait_definition_symbol": "termrock_collections::collection::reconcile::Reconcile",
+      "trait_definition_module_path": "termrock_collections::collection::reconcile",
       "trait_definition_visibility": "public",
       "trait_definition_module_chain": {
-        "module_path": "termrock_collections::collection",
+        "module_path": "termrock_collections::collection::reconcile",
         "public_module_path": true,
         "edges": [
           {
@@ -513816,13 +514389,23 @@
             "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
             "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
             "visibility": "public"
+          },
+          {
+            "from_module": "termrock_collections::collection",
+            "to_module": "termrock_collections::collection::reconcile",
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 2,
+            "statement": "pub mod reconcile;",
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "visibility": "public"
           }
         ],
         "unresolved_edges": []
       },
       "trait_resolution_evidence": {
         "source_spelling": "Reconcile",
-        "canonical_path": "termrock_collections::collection::Reconcile",
+        "canonical_path": "termrock_collections::collection::reconcile::Reconcile",
         "resolution": "explicit_source_import",
         "implementation_site": {
           "path": "crates/termrock-navigation/src/filter_list.rs",
@@ -513850,7 +514433,37 @@
             "role": "module_use"
           }
         ],
-        "evidence": "NOT_VERIFIED"
+        "evidence": "NOT_VERIFIED",
+        "resolved_public_alias": {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
       },
       "impl_source_module_path": "termrock_navigation::filter_list",
       "receiver_canonical_path": "termrock_navigation::filter_list::FilterListState",
@@ -514072,7 +514685,7 @@
       "trait_api_item_join": {
         "status": "pending_T01_item_index_join",
         "api_id": null,
-        "qualified_symbol": "termrock_collections::collection::Reconcile",
+        "qualified_symbol": "termrock_collections::collection::reconcile::Reconcile",
         "source": "crates/termrock-collections/src/collection/reconcile.rs",
         "line": 20,
         "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
@@ -514082,12 +514695,53 @@
       "receiver_definition_symbol_classification": "workspace_source_definition",
       "receiver_local_definition_locator": null,
       "trait_public_paths": [
+        "termrock_collections::collection::reconcile::Reconcile",
         "termrock_collections::collection::Reconcile"
       ],
       "trait_public_path_evidence": [
         {
-          "path": "termrock_collections::collection::Reconcile",
+          "path": "termrock_collections::collection::reconcile::Reconcile",
           "basis": "source_public_definition_module_chain",
+          "externally_reachable": true,
+          "module_chain": {
+            "module_path": "termrock_collections::collection::reconcile",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              },
+              {
+                "from_module": "termrock_collections::collection",
+                "to_module": "termrock_collections::collection::reconcile",
+                "source": "crates/termrock-collections/src/collection/mod.rs",
+                "line": 2,
+                "statement": "pub mod reconcile;",
+                "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "definition_site": {
+            "path": "crates/termrock-collections/src/collection/reconcile.rs",
+            "line": 20,
+            "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub trait Reconcile {\n    fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation;\n    fn invalidate(&mut self);\n}",
+            "role": "trait_definition"
+          }
+        },
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "basis": "source_public_named_reexport",
           "externally_reachable": true,
           "module_chain": {
             "module_path": "termrock_collections::collection",
@@ -514106,6 +514760,19 @@
             ],
             "unresolved_edges": []
           },
+          "reexport": {
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 5,
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+            "module": "termrock_collections::collection",
+            "import_path": "reconcile::Reconcile",
+            "actual_definition_owner": "termrock_collections::collection::reconcile::Reconcile",
+            "definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
+            "definition_line": 20,
+            "resolution": "single_canonical_owner"
+          },
           "definition_site": {
             "path": "crates/termrock-collections/src/collection/reconcile.rs",
             "line": 20,
@@ -514116,7 +514783,39 @@
           }
         }
       ],
-      "trait_public_path_status": "source_paths_joined"
+      "trait_public_path_status": "source_paths_joined",
+      "trait_public_aliases": [
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
+      ]
     },
     {
       "impl_id": "IMPL:core::fmt::Debug:termrock_navigation::filter_list::FilterList@crates/termrock-navigation/src/filter_list.rs:314",
@@ -517483,8 +518182,8 @@
       "trait_public_path_status": "source_paths_joined"
     },
     {
-      "impl_id": "IMPL:termrock_collections::collection::Reconcile:termrock_navigation::list::ListState@crates/termrock-navigation/src/list.rs:291",
-      "trait": "termrock_collections::collection::Reconcile",
+      "impl_id": "IMPL:termrock_collections::collection::reconcile::Reconcile:termrock_navigation::list::ListState@crates/termrock-navigation/src/list.rs:291",
+      "trait": "termrock_collections::collection::reconcile::Reconcile",
       "trait_source_spelling": "Reconcile",
       "receiver": "termrock_navigation::list::ListState",
       "receiver_type_spelling": "ListState",
@@ -517510,16 +518209,16 @@
       "named_owner_task": "T14",
       "status": "PROPOSED_NOT_APPROVED_T38",
       "evidence": "NOT_VERIFIED",
-      "trait_canonical_path": "termrock_collections::collection::Reconcile",
+      "trait_canonical_path": "termrock_collections::collection::reconcile::Reconcile",
       "trait_resolution_classification": "workspace_public_trait",
       "trait_definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
       "trait_definition_line": 20,
       "trait_definition_sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
-      "trait_definition_symbol": "termrock_collections::collection::Reconcile",
-      "trait_definition_module_path": "termrock_collections::collection",
+      "trait_definition_symbol": "termrock_collections::collection::reconcile::Reconcile",
+      "trait_definition_module_path": "termrock_collections::collection::reconcile",
       "trait_definition_visibility": "public",
       "trait_definition_module_chain": {
-        "module_path": "termrock_collections::collection",
+        "module_path": "termrock_collections::collection::reconcile",
         "public_module_path": true,
         "edges": [
           {
@@ -517531,13 +518230,23 @@
             "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
             "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
             "visibility": "public"
+          },
+          {
+            "from_module": "termrock_collections::collection",
+            "to_module": "termrock_collections::collection::reconcile",
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 2,
+            "statement": "pub mod reconcile;",
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "visibility": "public"
           }
         ],
         "unresolved_edges": []
       },
       "trait_resolution_evidence": {
         "source_spelling": "Reconcile",
-        "canonical_path": "termrock_collections::collection::Reconcile",
+        "canonical_path": "termrock_collections::collection::reconcile::Reconcile",
         "resolution": "explicit_source_import",
         "implementation_site": {
           "path": "crates/termrock-navigation/src/list.rs",
@@ -517565,7 +518274,37 @@
             "role": "module_use"
           }
         ],
-        "evidence": "NOT_VERIFIED"
+        "evidence": "NOT_VERIFIED",
+        "resolved_public_alias": {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
       },
       "impl_source_module_path": "termrock_navigation::list",
       "receiver_canonical_path": "termrock_navigation::list::ListState",
@@ -517787,7 +518526,7 @@
       "trait_api_item_join": {
         "status": "pending_T01_item_index_join",
         "api_id": null,
-        "qualified_symbol": "termrock_collections::collection::Reconcile",
+        "qualified_symbol": "termrock_collections::collection::reconcile::Reconcile",
         "source": "crates/termrock-collections/src/collection/reconcile.rs",
         "line": 20,
         "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
@@ -517797,12 +518536,53 @@
       "receiver_definition_symbol_classification": "workspace_source_definition",
       "receiver_local_definition_locator": null,
       "trait_public_paths": [
+        "termrock_collections::collection::reconcile::Reconcile",
         "termrock_collections::collection::Reconcile"
       ],
       "trait_public_path_evidence": [
         {
-          "path": "termrock_collections::collection::Reconcile",
+          "path": "termrock_collections::collection::reconcile::Reconcile",
           "basis": "source_public_definition_module_chain",
+          "externally_reachable": true,
+          "module_chain": {
+            "module_path": "termrock_collections::collection::reconcile",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              },
+              {
+                "from_module": "termrock_collections::collection",
+                "to_module": "termrock_collections::collection::reconcile",
+                "source": "crates/termrock-collections/src/collection/mod.rs",
+                "line": 2,
+                "statement": "pub mod reconcile;",
+                "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "definition_site": {
+            "path": "crates/termrock-collections/src/collection/reconcile.rs",
+            "line": 20,
+            "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub trait Reconcile {\n    fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation;\n    fn invalidate(&mut self);\n}",
+            "role": "trait_definition"
+          }
+        },
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "basis": "source_public_named_reexport",
           "externally_reachable": true,
           "module_chain": {
             "module_path": "termrock_collections::collection",
@@ -517821,6 +518601,19 @@
             ],
             "unresolved_edges": []
           },
+          "reexport": {
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 5,
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+            "module": "termrock_collections::collection",
+            "import_path": "reconcile::Reconcile",
+            "actual_definition_owner": "termrock_collections::collection::reconcile::Reconcile",
+            "definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
+            "definition_line": 20,
+            "resolution": "single_canonical_owner"
+          },
           "definition_site": {
             "path": "crates/termrock-collections/src/collection/reconcile.rs",
             "line": 20,
@@ -517831,7 +518624,39 @@
           }
         }
       ],
-      "trait_public_path_status": "source_paths_joined"
+      "trait_public_path_status": "source_paths_joined",
+      "trait_public_aliases": [
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
+      ]
     },
     {
       "impl_id": "IMPL:core::fmt::Debug:termrock_navigation::list::List@crates/termrock-navigation/src/list.rs:361",
@@ -518612,8 +519437,8 @@
       "trait_public_path_status": "source_paths_joined"
     },
     {
-      "impl_id": "IMPL:termrock_collections::collection::Reconcile:termrock_navigation::nav_list::NavListState@crates/termrock-navigation/src/nav_list.rs:217",
-      "trait": "termrock_collections::collection::Reconcile",
+      "impl_id": "IMPL:termrock_collections::collection::reconcile::Reconcile:termrock_navigation::nav_list::NavListState@crates/termrock-navigation/src/nav_list.rs:217",
+      "trait": "termrock_collections::collection::reconcile::Reconcile",
       "trait_source_spelling": "Reconcile",
       "receiver": "termrock_navigation::nav_list::NavListState",
       "receiver_type_spelling": "NavListState",
@@ -518639,16 +519464,16 @@
       "named_owner_task": "T14",
       "status": "PROPOSED_NOT_APPROVED_T38",
       "evidence": "NOT_VERIFIED",
-      "trait_canonical_path": "termrock_collections::collection::Reconcile",
+      "trait_canonical_path": "termrock_collections::collection::reconcile::Reconcile",
       "trait_resolution_classification": "workspace_public_trait",
       "trait_definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
       "trait_definition_line": 20,
       "trait_definition_sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
-      "trait_definition_symbol": "termrock_collections::collection::Reconcile",
-      "trait_definition_module_path": "termrock_collections::collection",
+      "trait_definition_symbol": "termrock_collections::collection::reconcile::Reconcile",
+      "trait_definition_module_path": "termrock_collections::collection::reconcile",
       "trait_definition_visibility": "public",
       "trait_definition_module_chain": {
-        "module_path": "termrock_collections::collection",
+        "module_path": "termrock_collections::collection::reconcile",
         "public_module_path": true,
         "edges": [
           {
@@ -518660,13 +519485,23 @@
             "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
             "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
             "visibility": "public"
+          },
+          {
+            "from_module": "termrock_collections::collection",
+            "to_module": "termrock_collections::collection::reconcile",
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 2,
+            "statement": "pub mod reconcile;",
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "visibility": "public"
           }
         ],
         "unresolved_edges": []
       },
       "trait_resolution_evidence": {
         "source_spelling": "Reconcile",
-        "canonical_path": "termrock_collections::collection::Reconcile",
+        "canonical_path": "termrock_collections::collection::reconcile::Reconcile",
         "resolution": "explicit_source_import",
         "implementation_site": {
           "path": "crates/termrock-navigation/src/nav_list.rs",
@@ -518694,7 +519529,37 @@
             "role": "module_use"
           }
         ],
-        "evidence": "NOT_VERIFIED"
+        "evidence": "NOT_VERIFIED",
+        "resolved_public_alias": {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
       },
       "impl_source_module_path": "termrock_navigation::nav_list",
       "receiver_canonical_path": "termrock_navigation::nav_list::NavListState",
@@ -518916,7 +519781,7 @@
       "trait_api_item_join": {
         "status": "pending_T01_item_index_join",
         "api_id": null,
-        "qualified_symbol": "termrock_collections::collection::Reconcile",
+        "qualified_symbol": "termrock_collections::collection::reconcile::Reconcile",
         "source": "crates/termrock-collections/src/collection/reconcile.rs",
         "line": 20,
         "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
@@ -518926,12 +519791,53 @@
       "receiver_definition_symbol_classification": "workspace_source_definition",
       "receiver_local_definition_locator": null,
       "trait_public_paths": [
+        "termrock_collections::collection::reconcile::Reconcile",
         "termrock_collections::collection::Reconcile"
       ],
       "trait_public_path_evidence": [
         {
-          "path": "termrock_collections::collection::Reconcile",
+          "path": "termrock_collections::collection::reconcile::Reconcile",
           "basis": "source_public_definition_module_chain",
+          "externally_reachable": true,
+          "module_chain": {
+            "module_path": "termrock_collections::collection::reconcile",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              },
+              {
+                "from_module": "termrock_collections::collection",
+                "to_module": "termrock_collections::collection::reconcile",
+                "source": "crates/termrock-collections/src/collection/mod.rs",
+                "line": 2,
+                "statement": "pub mod reconcile;",
+                "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "definition_site": {
+            "path": "crates/termrock-collections/src/collection/reconcile.rs",
+            "line": 20,
+            "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub trait Reconcile {\n    fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation;\n    fn invalidate(&mut self);\n}",
+            "role": "trait_definition"
+          }
+        },
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "basis": "source_public_named_reexport",
           "externally_reachable": true,
           "module_chain": {
             "module_path": "termrock_collections::collection",
@@ -518950,6 +519856,19 @@
             ],
             "unresolved_edges": []
           },
+          "reexport": {
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 5,
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+            "module": "termrock_collections::collection",
+            "import_path": "reconcile::Reconcile",
+            "actual_definition_owner": "termrock_collections::collection::reconcile::Reconcile",
+            "definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
+            "definition_line": 20,
+            "resolution": "single_canonical_owner"
+          },
           "definition_site": {
             "path": "crates/termrock-collections/src/collection/reconcile.rs",
             "line": 20,
@@ -518960,7 +519879,39 @@
           }
         }
       ],
-      "trait_public_path_status": "source_paths_joined"
+      "trait_public_path_status": "source_paths_joined",
+      "trait_public_aliases": [
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
+      ]
     },
     {
       "impl_id": "IMPL:core::fmt::Debug:termrock_navigation::nav_list::NavList@crates/termrock-navigation/src/nav_list.rs:258",
@@ -519741,8 +520692,8 @@
       "trait_public_path_status": "source_paths_joined"
     },
     {
-      "impl_id": "IMPL:termrock_collections::collection::Reconcile:termrock_navigation::steps::StepsState@crates/termrock-navigation/src/steps.rs:231",
-      "trait": "termrock_collections::collection::Reconcile",
+      "impl_id": "IMPL:termrock_collections::collection::reconcile::Reconcile:termrock_navigation::steps::StepsState@crates/termrock-navigation/src/steps.rs:231",
+      "trait": "termrock_collections::collection::reconcile::Reconcile",
       "trait_source_spelling": "Reconcile",
       "receiver": "termrock_navigation::steps::StepsState",
       "receiver_type_spelling": "StepsState",
@@ -519768,16 +520719,16 @@
       "named_owner_task": "T14",
       "status": "PROPOSED_NOT_APPROVED_T38",
       "evidence": "NOT_VERIFIED",
-      "trait_canonical_path": "termrock_collections::collection::Reconcile",
+      "trait_canonical_path": "termrock_collections::collection::reconcile::Reconcile",
       "trait_resolution_classification": "workspace_public_trait",
       "trait_definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
       "trait_definition_line": 20,
       "trait_definition_sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
-      "trait_definition_symbol": "termrock_collections::collection::Reconcile",
-      "trait_definition_module_path": "termrock_collections::collection",
+      "trait_definition_symbol": "termrock_collections::collection::reconcile::Reconcile",
+      "trait_definition_module_path": "termrock_collections::collection::reconcile",
       "trait_definition_visibility": "public",
       "trait_definition_module_chain": {
-        "module_path": "termrock_collections::collection",
+        "module_path": "termrock_collections::collection::reconcile",
         "public_module_path": true,
         "edges": [
           {
@@ -519789,13 +520740,23 @@
             "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
             "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
             "visibility": "public"
+          },
+          {
+            "from_module": "termrock_collections::collection",
+            "to_module": "termrock_collections::collection::reconcile",
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 2,
+            "statement": "pub mod reconcile;",
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "visibility": "public"
           }
         ],
         "unresolved_edges": []
       },
       "trait_resolution_evidence": {
         "source_spelling": "Reconcile",
-        "canonical_path": "termrock_collections::collection::Reconcile",
+        "canonical_path": "termrock_collections::collection::reconcile::Reconcile",
         "resolution": "explicit_source_import",
         "implementation_site": {
           "path": "crates/termrock-navigation/src/steps.rs",
@@ -519823,7 +520784,37 @@
             "role": "module_use"
           }
         ],
-        "evidence": "NOT_VERIFIED"
+        "evidence": "NOT_VERIFIED",
+        "resolved_public_alias": {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
       },
       "impl_source_module_path": "termrock_navigation::steps",
       "receiver_canonical_path": "termrock_navigation::steps::StepsState",
@@ -520045,7 +521036,7 @@
       "trait_api_item_join": {
         "status": "pending_T01_item_index_join",
         "api_id": null,
-        "qualified_symbol": "termrock_collections::collection::Reconcile",
+        "qualified_symbol": "termrock_collections::collection::reconcile::Reconcile",
         "source": "crates/termrock-collections/src/collection/reconcile.rs",
         "line": 20,
         "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
@@ -520055,12 +521046,53 @@
       "receiver_definition_symbol_classification": "workspace_source_definition",
       "receiver_local_definition_locator": null,
       "trait_public_paths": [
+        "termrock_collections::collection::reconcile::Reconcile",
         "termrock_collections::collection::Reconcile"
       ],
       "trait_public_path_evidence": [
         {
-          "path": "termrock_collections::collection::Reconcile",
+          "path": "termrock_collections::collection::reconcile::Reconcile",
           "basis": "source_public_definition_module_chain",
+          "externally_reachable": true,
+          "module_chain": {
+            "module_path": "termrock_collections::collection::reconcile",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              },
+              {
+                "from_module": "termrock_collections::collection",
+                "to_module": "termrock_collections::collection::reconcile",
+                "source": "crates/termrock-collections/src/collection/mod.rs",
+                "line": 2,
+                "statement": "pub mod reconcile;",
+                "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "definition_site": {
+            "path": "crates/termrock-collections/src/collection/reconcile.rs",
+            "line": 20,
+            "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub trait Reconcile {\n    fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation;\n    fn invalidate(&mut self);\n}",
+            "role": "trait_definition"
+          }
+        },
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "basis": "source_public_named_reexport",
           "externally_reachable": true,
           "module_chain": {
             "module_path": "termrock_collections::collection",
@@ -520079,6 +521111,19 @@
             ],
             "unresolved_edges": []
           },
+          "reexport": {
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 5,
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+            "module": "termrock_collections::collection",
+            "import_path": "reconcile::Reconcile",
+            "actual_definition_owner": "termrock_collections::collection::reconcile::Reconcile",
+            "definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
+            "definition_line": 20,
+            "resolution": "single_canonical_owner"
+          },
           "definition_site": {
             "path": "crates/termrock-collections/src/collection/reconcile.rs",
             "line": 20,
@@ -520089,7 +521134,39 @@
           }
         }
       ],
-      "trait_public_path_status": "source_paths_joined"
+      "trait_public_path_status": "source_paths_joined",
+      "trait_public_aliases": [
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
+      ]
     },
     {
       "impl_id": "IMPL:core::fmt::Debug:termrock_navigation::steps::Steps@crates/termrock-navigation/src/steps.rs:258",
@@ -522522,8 +523599,8 @@
       "trait_public_path_status": "external_standard_library_trait"
     },
     {
-      "impl_id": "IMPL:termrock_collections::collection::Reconcile:termrock_navigation::tabs::TabsState@crates/termrock-navigation/src/tabs.rs:707",
-      "trait": "termrock_collections::collection::Reconcile",
+      "impl_id": "IMPL:termrock_collections::collection::reconcile::Reconcile:termrock_navigation::tabs::TabsState@crates/termrock-navigation/src/tabs.rs:707",
+      "trait": "termrock_collections::collection::reconcile::Reconcile",
       "trait_source_spelling": "Reconcile",
       "receiver": "termrock_navigation::tabs::TabsState",
       "receiver_type_spelling": "TabsState",
@@ -522549,16 +523626,16 @@
       "named_owner_task": "T14",
       "status": "PROPOSED_NOT_APPROVED_T38",
       "evidence": "NOT_VERIFIED",
-      "trait_canonical_path": "termrock_collections::collection::Reconcile",
+      "trait_canonical_path": "termrock_collections::collection::reconcile::Reconcile",
       "trait_resolution_classification": "workspace_public_trait",
       "trait_definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
       "trait_definition_line": 20,
       "trait_definition_sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
-      "trait_definition_symbol": "termrock_collections::collection::Reconcile",
-      "trait_definition_module_path": "termrock_collections::collection",
+      "trait_definition_symbol": "termrock_collections::collection::reconcile::Reconcile",
+      "trait_definition_module_path": "termrock_collections::collection::reconcile",
       "trait_definition_visibility": "public",
       "trait_definition_module_chain": {
-        "module_path": "termrock_collections::collection",
+        "module_path": "termrock_collections::collection::reconcile",
         "public_module_path": true,
         "edges": [
           {
@@ -522570,13 +523647,23 @@
             "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
             "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
             "visibility": "public"
+          },
+          {
+            "from_module": "termrock_collections::collection",
+            "to_module": "termrock_collections::collection::reconcile",
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 2,
+            "statement": "pub mod reconcile;",
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "visibility": "public"
           }
         ],
         "unresolved_edges": []
       },
       "trait_resolution_evidence": {
         "source_spelling": "Reconcile",
-        "canonical_path": "termrock_collections::collection::Reconcile",
+        "canonical_path": "termrock_collections::collection::reconcile::Reconcile",
         "resolution": "explicit_source_import",
         "implementation_site": {
           "path": "crates/termrock-navigation/src/tabs.rs",
@@ -522604,7 +523691,37 @@
             "role": "module_use"
           }
         ],
-        "evidence": "NOT_VERIFIED"
+        "evidence": "NOT_VERIFIED",
+        "resolved_public_alias": {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
       },
       "impl_source_module_path": "termrock_navigation::tabs",
       "receiver_canonical_path": "termrock_navigation::tabs::TabsState",
@@ -522826,7 +523943,7 @@
       "trait_api_item_join": {
         "status": "pending_T01_item_index_join",
         "api_id": null,
-        "qualified_symbol": "termrock_collections::collection::Reconcile",
+        "qualified_symbol": "termrock_collections::collection::reconcile::Reconcile",
         "source": "crates/termrock-collections/src/collection/reconcile.rs",
         "line": 20,
         "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
@@ -522836,12 +523953,53 @@
       "receiver_definition_symbol_classification": "workspace_source_definition",
       "receiver_local_definition_locator": null,
       "trait_public_paths": [
+        "termrock_collections::collection::reconcile::Reconcile",
         "termrock_collections::collection::Reconcile"
       ],
       "trait_public_path_evidence": [
         {
-          "path": "termrock_collections::collection::Reconcile",
+          "path": "termrock_collections::collection::reconcile::Reconcile",
           "basis": "source_public_definition_module_chain",
+          "externally_reachable": true,
+          "module_chain": {
+            "module_path": "termrock_collections::collection::reconcile",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              },
+              {
+                "from_module": "termrock_collections::collection",
+                "to_module": "termrock_collections::collection::reconcile",
+                "source": "crates/termrock-collections/src/collection/mod.rs",
+                "line": 2,
+                "statement": "pub mod reconcile;",
+                "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "definition_site": {
+            "path": "crates/termrock-collections/src/collection/reconcile.rs",
+            "line": 20,
+            "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub trait Reconcile {\n    fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation;\n    fn invalidate(&mut self);\n}",
+            "role": "trait_definition"
+          }
+        },
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "basis": "source_public_named_reexport",
           "externally_reachable": true,
           "module_chain": {
             "module_path": "termrock_collections::collection",
@@ -522860,6 +524018,19 @@
             ],
             "unresolved_edges": []
           },
+          "reexport": {
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 5,
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+            "module": "termrock_collections::collection",
+            "import_path": "reconcile::Reconcile",
+            "actual_definition_owner": "termrock_collections::collection::reconcile::Reconcile",
+            "definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
+            "definition_line": 20,
+            "resolution": "single_canonical_owner"
+          },
           "definition_site": {
             "path": "crates/termrock-collections/src/collection/reconcile.rs",
             "line": 20,
@@ -522870,7 +524041,39 @@
           }
         }
       ],
-      "trait_public_path_status": "source_paths_joined"
+      "trait_public_path_status": "source_paths_joined",
+      "trait_public_aliases": [
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
+      ]
     },
     {
       "impl_id": "IMPL:core::cmp::PartialEq:termrock_navigation::tabs::TabRowLayout@crates/termrock-navigation/src/tabs.rs:935",
@@ -524859,8 +526062,8 @@
       "trait_public_path_status": "source_paths_joined"
     },
     {
-      "impl_id": "IMPL:termrock_collections::collection::Reconcile:termrock_navigation::tree::TreeState@crates/termrock-navigation/src/tree.rs:459",
-      "trait": "termrock_collections::collection::Reconcile",
+      "impl_id": "IMPL:termrock_collections::collection::reconcile::Reconcile:termrock_navigation::tree::TreeState@crates/termrock-navigation/src/tree.rs:459",
+      "trait": "termrock_collections::collection::reconcile::Reconcile",
       "trait_source_spelling": "Reconcile",
       "receiver": "termrock_navigation::tree::TreeState",
       "receiver_type_spelling": "TreeState",
@@ -524886,16 +526089,16 @@
       "named_owner_task": "T14",
       "status": "PROPOSED_NOT_APPROVED_T38",
       "evidence": "NOT_VERIFIED",
-      "trait_canonical_path": "termrock_collections::collection::Reconcile",
+      "trait_canonical_path": "termrock_collections::collection::reconcile::Reconcile",
       "trait_resolution_classification": "workspace_public_trait",
       "trait_definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
       "trait_definition_line": 20,
       "trait_definition_sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
-      "trait_definition_symbol": "termrock_collections::collection::Reconcile",
-      "trait_definition_module_path": "termrock_collections::collection",
+      "trait_definition_symbol": "termrock_collections::collection::reconcile::Reconcile",
+      "trait_definition_module_path": "termrock_collections::collection::reconcile",
       "trait_definition_visibility": "public",
       "trait_definition_module_chain": {
-        "module_path": "termrock_collections::collection",
+        "module_path": "termrock_collections::collection::reconcile",
         "public_module_path": true,
         "edges": [
           {
@@ -524907,13 +526110,23 @@
             "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
             "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
             "visibility": "public"
+          },
+          {
+            "from_module": "termrock_collections::collection",
+            "to_module": "termrock_collections::collection::reconcile",
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 2,
+            "statement": "pub mod reconcile;",
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "visibility": "public"
           }
         ],
         "unresolved_edges": []
       },
       "trait_resolution_evidence": {
         "source_spelling": "Reconcile",
-        "canonical_path": "termrock_collections::collection::Reconcile",
+        "canonical_path": "termrock_collections::collection::reconcile::Reconcile",
         "resolution": "explicit_source_import",
         "implementation_site": {
           "path": "crates/termrock-navigation/src/tree.rs",
@@ -524941,7 +526154,37 @@
             "role": "module_use"
           }
         ],
-        "evidence": "NOT_VERIFIED"
+        "evidence": "NOT_VERIFIED",
+        "resolved_public_alias": {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
       },
       "impl_source_module_path": "termrock_navigation::tree",
       "receiver_canonical_path": "termrock_navigation::tree::TreeState",
@@ -525163,7 +526406,7 @@
       "trait_api_item_join": {
         "status": "pending_T01_item_index_join",
         "api_id": null,
-        "qualified_symbol": "termrock_collections::collection::Reconcile",
+        "qualified_symbol": "termrock_collections::collection::reconcile::Reconcile",
         "source": "crates/termrock-collections/src/collection/reconcile.rs",
         "line": 20,
         "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
@@ -525173,12 +526416,53 @@
       "receiver_definition_symbol_classification": "workspace_source_definition",
       "receiver_local_definition_locator": null,
       "trait_public_paths": [
+        "termrock_collections::collection::reconcile::Reconcile",
         "termrock_collections::collection::Reconcile"
       ],
       "trait_public_path_evidence": [
         {
-          "path": "termrock_collections::collection::Reconcile",
+          "path": "termrock_collections::collection::reconcile::Reconcile",
           "basis": "source_public_definition_module_chain",
+          "externally_reachable": true,
+          "module_chain": {
+            "module_path": "termrock_collections::collection::reconcile",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              },
+              {
+                "from_module": "termrock_collections::collection",
+                "to_module": "termrock_collections::collection::reconcile",
+                "source": "crates/termrock-collections/src/collection/mod.rs",
+                "line": 2,
+                "statement": "pub mod reconcile;",
+                "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "definition_site": {
+            "path": "crates/termrock-collections/src/collection/reconcile.rs",
+            "line": 20,
+            "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub trait Reconcile {\n    fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation;\n    fn invalidate(&mut self);\n}",
+            "role": "trait_definition"
+          }
+        },
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "basis": "source_public_named_reexport",
           "externally_reachable": true,
           "module_chain": {
             "module_path": "termrock_collections::collection",
@@ -525197,6 +526481,19 @@
             ],
             "unresolved_edges": []
           },
+          "reexport": {
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 5,
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+            "module": "termrock_collections::collection",
+            "import_path": "reconcile::Reconcile",
+            "actual_definition_owner": "termrock_collections::collection::reconcile::Reconcile",
+            "definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
+            "definition_line": 20,
+            "resolution": "single_canonical_owner"
+          },
           "definition_site": {
             "path": "crates/termrock-collections/src/collection/reconcile.rs",
             "line": 20,
@@ -525207,7 +526504,39 @@
           }
         }
       ],
-      "trait_public_path_status": "source_paths_joined"
+      "trait_public_path_status": "source_paths_joined",
+      "trait_public_aliases": [
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
+      ]
     },
     {
       "impl_id": "IMPL:core::fmt::Debug:termrock_navigation::tree::Tree@crates/termrock-navigation/src/tree.rs:514",
@@ -532050,8 +533379,8 @@
       "trait_public_path_status": "source_paths_joined"
     },
     {
-      "impl_id": "IMPL:termrock_collections::collection::Reconcile:termrock_overlays::select::SelectState@crates/termrock-overlays/src/select.rs:130",
-      "trait": "termrock_collections::collection::Reconcile",
+      "impl_id": "IMPL:termrock_collections::collection::reconcile::Reconcile:termrock_overlays::select::SelectState@crates/termrock-overlays/src/select.rs:130",
+      "trait": "termrock_collections::collection::reconcile::Reconcile",
       "trait_source_spelling": "Reconcile",
       "receiver": "termrock_overlays::select::SelectState",
       "receiver_type_spelling": "SelectState",
@@ -532077,16 +533406,16 @@
       "named_owner_task": "T15",
       "status": "PROPOSED_NOT_APPROVED_T38",
       "evidence": "NOT_VERIFIED",
-      "trait_canonical_path": "termrock_collections::collection::Reconcile",
+      "trait_canonical_path": "termrock_collections::collection::reconcile::Reconcile",
       "trait_resolution_classification": "workspace_public_trait",
       "trait_definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
       "trait_definition_line": 20,
       "trait_definition_sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
-      "trait_definition_symbol": "termrock_collections::collection::Reconcile",
-      "trait_definition_module_path": "termrock_collections::collection",
+      "trait_definition_symbol": "termrock_collections::collection::reconcile::Reconcile",
+      "trait_definition_module_path": "termrock_collections::collection::reconcile",
       "trait_definition_visibility": "public",
       "trait_definition_module_chain": {
-        "module_path": "termrock_collections::collection",
+        "module_path": "termrock_collections::collection::reconcile",
         "public_module_path": true,
         "edges": [
           {
@@ -532098,13 +533427,23 @@
             "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
             "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
             "visibility": "public"
+          },
+          {
+            "from_module": "termrock_collections::collection",
+            "to_module": "termrock_collections::collection::reconcile",
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 2,
+            "statement": "pub mod reconcile;",
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "visibility": "public"
           }
         ],
         "unresolved_edges": []
       },
       "trait_resolution_evidence": {
         "source_spelling": "Reconcile",
-        "canonical_path": "termrock_collections::collection::Reconcile",
+        "canonical_path": "termrock_collections::collection::reconcile::Reconcile",
         "resolution": "explicit_source_import",
         "implementation_site": {
           "path": "crates/termrock-overlays/src/select.rs",
@@ -532132,7 +533471,37 @@
             "role": "module_use"
           }
         ],
-        "evidence": "NOT_VERIFIED"
+        "evidence": "NOT_VERIFIED",
+        "resolved_public_alias": {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
       },
       "impl_source_module_path": "termrock_overlays::select",
       "receiver_canonical_path": "termrock_overlays::select::SelectState",
@@ -532354,7 +533723,7 @@
       "trait_api_item_join": {
         "status": "pending_T01_item_index_join",
         "api_id": null,
-        "qualified_symbol": "termrock_collections::collection::Reconcile",
+        "qualified_symbol": "termrock_collections::collection::reconcile::Reconcile",
         "source": "crates/termrock-collections/src/collection/reconcile.rs",
         "line": 20,
         "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
@@ -532364,12 +533733,53 @@
       "receiver_definition_symbol_classification": "workspace_source_definition",
       "receiver_local_definition_locator": null,
       "trait_public_paths": [
+        "termrock_collections::collection::reconcile::Reconcile",
         "termrock_collections::collection::Reconcile"
       ],
       "trait_public_path_evidence": [
         {
-          "path": "termrock_collections::collection::Reconcile",
+          "path": "termrock_collections::collection::reconcile::Reconcile",
           "basis": "source_public_definition_module_chain",
+          "externally_reachable": true,
+          "module_chain": {
+            "module_path": "termrock_collections::collection::reconcile",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              },
+              {
+                "from_module": "termrock_collections::collection",
+                "to_module": "termrock_collections::collection::reconcile",
+                "source": "crates/termrock-collections/src/collection/mod.rs",
+                "line": 2,
+                "statement": "pub mod reconcile;",
+                "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "definition_site": {
+            "path": "crates/termrock-collections/src/collection/reconcile.rs",
+            "line": 20,
+            "sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub trait Reconcile {\n    fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation;\n    fn invalidate(&mut self);\n}",
+            "role": "trait_definition"
+          }
+        },
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "basis": "source_public_named_reexport",
           "externally_reachable": true,
           "module_chain": {
             "module_path": "termrock_collections::collection",
@@ -532388,6 +533798,19 @@
             ],
             "unresolved_edges": []
           },
+          "reexport": {
+            "source": "crates/termrock-collections/src/collection/mod.rs",
+            "line": 5,
+            "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+            "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+            "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+            "module": "termrock_collections::collection",
+            "import_path": "reconcile::Reconcile",
+            "actual_definition_owner": "termrock_collections::collection::reconcile::Reconcile",
+            "definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
+            "definition_line": 20,
+            "resolution": "single_canonical_owner"
+          },
           "definition_site": {
             "path": "crates/termrock-collections/src/collection/reconcile.rs",
             "line": 20,
@@ -532398,7 +533821,39 @@
           }
         }
       ],
-      "trait_public_path_status": "source_paths_joined"
+      "trait_public_path_status": "source_paths_joined",
+      "trait_public_aliases": [
+        {
+          "path": "termrock_collections::collection::Reconcile",
+          "target": "termrock_collections::collection::reconcile::Reconcile",
+          "basis": "source_public_named_reexport",
+          "externally_reachable": true,
+          "module_path": "termrock_collections::collection",
+          "module_chain": {
+            "module_path": "termrock_collections::collection",
+            "public_module_path": true,
+            "edges": [
+              {
+                "from_module": "termrock_collections",
+                "to_module": "termrock_collections::collection",
+                "source": "crates/termrock-collections/src/lib.rs",
+                "line": 4,
+                "statement": "pub mod collection;",
+                "sha256": "f4baa579804560cb8013ab1caa4d07d37c76ee0602dfcacaa1623343ff213a02",
+                "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+                "visibility": "public"
+              }
+            ],
+            "unresolved_edges": []
+          },
+          "source": "crates/termrock-collections/src/collection/mod.rs",
+          "line": 5,
+          "sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+          "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+          "statement": "pub use reconcile::{CollectionCore, Reconcile, Reconciliation, StepDir};",
+          "import_path": "reconcile::Reconcile"
+        }
+      ]
     },
     {
       "impl_id": "IMPL:core::fmt::Debug:termrock_overlays::select::Select@crates/termrock-overlays/src/select.rs:161",
@@ -734041,12 +735496,12 @@
         ]
       },
       {
-        "qualified_symbol": "termrock_text::Secret",
+        "qualified_symbol": "termrock_text::secret::Secret",
         "source": "crates/termrock-text/src/secret.rs",
         "line": 13,
         "sha256": "076445886ca3c801b8d6e73244797d2c7c4556ad3d56bc7a5d88d9da5a93c04b",
         "impl_ids": [
-          "IMPL:termrock_fields::input::TextTarget:termrock_text::Secret@crates/termrock-fields/src/input.rs:59"
+          "IMPL:termrock_fields::input::TextTarget:termrock_text::secret::Secret@crates/termrock-fields/src/input.rs:59"
         ],
         "public_paths": [
           "termrock::Secret",
@@ -734082,7 +735537,48 @@
     "workspace_trait_contracts_with_source_paths": 103,
     "workspace_trait_path_symbols_without_join": 0,
     "workspace_trait_path_symbols_without_join_list": [],
-    "trait_path_semantics": "Each workspace trait path is separately source-bound through an exact definition module chain, matched item reachability with source export/facade evidence, or extension declaration/export evidence. The canonical definition path remains distinct from reexports; external standard-library traits have no workspace path rows. This set does not claim all cfg-dependent rustc-visible aliases."
+    "trait_path_semantics": "Each workspace trait path is separately source-bound through an exact definition module chain, matched item reachability with source export/facade evidence, or extension declaration/export evidence. The canonical definition path remains distinct from reexports; external standard-library traits have no workspace path rows. This set does not claim all cfg-dependent rustc-visible aliases.",
+    "canonical_identity_audit": {
+      "status": "SOURCE_STRUCTURAL_AUDIT_NOT_BEHAVIOR_VERIFIED",
+      "input_commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+      "contract_records_checked": 239,
+      "unique_impl_ids_after_correction": 239,
+      "workspace_trait_definitions_checked": 103,
+      "workspace_trait_definition_symbol_module_and_source_checks_passed": 103,
+      "workspace_receiver_definitions_checked": 202,
+      "workspace_receiver_definition_symbol_module_and_source_checks_passed": 202,
+      "non_workspace_or_non_public_receiver_classifications_preserved": {
+        "private_local_type_with_null_canonical_owner": 33,
+        "impl_type_parameter_with_null_canonical_owner": 3,
+        "standard_library_named_type": 1
+      },
+      "reconcile_impl_contracts_corrected": 11,
+      "reconcile_definition_symbol": "termrock_collections::collection::reconcile::Reconcile",
+      "reconcile_public_alias_preserved": "termrock_collections::collection::Reconcile",
+      "reconcile_definition_source": "crates/termrock-collections/src/collection/reconcile.rs",
+      "reconcile_definition_line": 20,
+      "reconcile_definition_sha256": "e735147a24daf534b9d33043e2a0f09e34cd3b5b0ac76ba0ac0f48d73d380989",
+      "reconcile_module_edge_source_sha256": "65f3a424841aa762223a35f388b456f3ee3175b62d0ed6e8f011faa5b9206a88",
+      "unresolved_canonical_identity_count": 0,
+      "behavior": "NOT_VERIFIED",
+      "receiver_public_aliases_distinct_from_definition": [
+        {
+          "impl_id": "IMPL:termrock_fields::input::TextTarget:termrock_text::secret::Secret@crates/termrock-fields/src/input.rs:59",
+          "canonical_receiver_path": "termrock_text::secret::Secret",
+          "canonical_owner": "termrock_text::secret::Secret",
+          "definition_symbol": "termrock_text::secret::Secret",
+          "public_alias_path": "termrock_text::Secret",
+          "definition_source": "crates/termrock-text/src/secret.rs",
+          "definition_line": 13,
+          "alias_source": "crates/termrock-text/src/lib.rs",
+          "alias_line": 18,
+          "alias_sha256": "a69d5261b998011bce3822f066e80b78917aeed7e462887ca8f01f87ba300f60",
+          "alias_statement": "pub use secret::{CellWriter, Secret, SecretPolicy};",
+          "evidence": "The root path is a public re-export alias only; canonical receiver, canonical owner, and definition symbol identify the nested source definition."
+        }
+      ],
+      "workspace_receiver_canonical_paths_matching_definition_symbols": 202
+    }
   },
   "extension_join_audit": {
     "status": "SOURCE_STRUCTURAL_AUDIT_NOT_BEHAVIOR_VERIFIED",
