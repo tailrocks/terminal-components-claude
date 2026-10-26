@@ -753,6 +753,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                     );
                 }
             }
+            if !ui.is_inert() {
+                ui.register_part(self.id, PartRef::item(Part::LABEL, key), chip);
+            }
             if self.closable {
                 let close_cell = cell_at(chip, chip.right().saturating_sub(2));
                 let mut close_flags = flags.difference(StateFlags::HOVERED | StateFlags::PRESSED);
@@ -788,9 +791,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 if !ui.is_inert() {
                     ui.register_part(self.id, PartRef::item(Part::CLOSE, key), close_cell);
                 }
-            }
-            if !ui.is_inert() {
-                ui.register_part(self.id, PartRef::item(Part::LABEL, key), chip);
             }
             x = chip.right().saturating_add(1);
             fit = fit.saturating_add(1);
@@ -1007,6 +1007,126 @@ mod tests {
                 .select_mode(SelectMode::Single)
                 .add("+ Add")
                 .draw(ui, AREA, &self.state, &items);
+        }
+    }
+
+    const POINTER_ITEMS: [&str; 2] = ["Alpha", "Beta"];
+    const POINTER_AREA: Rect = Rect::new(0, 0, 28, 1);
+
+    struct PointerApp {
+        state: ChipBarState,
+        actions: Vec<ChipBarAction>,
+        mode: SelectMode,
+        disabled: bool,
+        read_only: bool,
+    }
+
+    impl PointerApp {
+        fn new(mode: SelectMode, disabled: bool, read_only: bool) -> Self {
+            let mut state = ChipBarState::default();
+            state.checked_mut().insert(ItemKey::index(0));
+            state.checked_mut().insert(ItemKey::index(1));
+            Self {
+                state,
+                actions: Vec::new(),
+                mode,
+                disabled,
+                read_only,
+            }
+        }
+
+        fn bar(&self) -> ChipBar<'static, &'static str> {
+            ChipBar::new(BAR)
+                .closable(true)
+                .select_mode(self.mode)
+                .disabled(self.disabled)
+                .read_only(self.read_only)
+        }
+    }
+
+    impl App for PointerApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let response = self.bar().update(cx, &mut self.state, &POINTER_ITEMS);
+            if let Some(action) = response.action_ref() {
+                self.actions.push(*action);
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            self.bar()
+                .draw(ui, POINTER_AREA, &self.state, &POINTER_ITEMS);
+        }
+    }
+
+    fn pointer_app(mode: SelectMode, disabled: bool, read_only: bool) -> Runtime<PointerApp> {
+        let mut runtime = Runtime::new(PointerApp::new(mode, disabled, read_only), Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(POINTER_AREA);
+        runtime
+            .draw_buffer(POINTER_AREA, &mut buffer)
+            .commit_presented();
+        runtime
+    }
+
+    fn click_part<A: App>(runtime: &mut Runtime<A>, part: PartRef) {
+        let area = runtime
+            .area_of_part(BAR, part)
+            .expect("chip part is registered");
+        let x = area.x.saturating_add(area.width / 2);
+        let y = area.y.saturating_add(area.height / 2);
+        let _ = crate::runtime::stub::deliver(runtime, mouse(MouseKind::Down, x, y));
+        let _ = crate::runtime::stub::deliver(runtime, mouse(MouseKind::Up, x, y));
+    }
+
+    #[test]
+    fn close_pointer_target_wins_and_label_keeps_mode_actions() {
+        for (mode, label_action) in [
+            (
+                SelectMode::Single,
+                ChipBarAction::Activated(ItemKey::index(0)),
+            ),
+            (SelectMode::Multi, ChipBarAction::Toggled(ItemKey::index(0))),
+        ] {
+            let mut runtime = pointer_app(mode, false, false);
+            let close = PartRef::item(Part::CLOSE, ItemKey::index(1));
+            let label = PartRef::item(Part::LABEL, ItemKey::index(1));
+            let close_area = runtime.area_of_part(BAR, close).expect("close cell");
+            let label_area = runtime.area_of_part(BAR, label).expect("label target");
+            assert_eq!(close_area.intersection(label_area), close_area);
+            let body = runtime
+                .area_of_part(BAR, PartRef::item(Part::LABEL, ItemKey::index(0)))
+                .expect("body label target");
+
+            click_part(&mut runtime, close);
+            assert_eq!(
+                runtime.app().actions,
+                [ChipBarAction::Closed(ItemKey::index(1))]
+            );
+            assert!(runtime.app().state.checked().contains(ItemKey::index(0)));
+            assert!(runtime.app().state.checked().contains(ItemKey::index(1)));
+
+            let body_x = body.x.saturating_add(1);
+            let body_y = body.y;
+            let _ =
+                crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, body_x, body_y));
+            let _ =
+                crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, body_x, body_y));
+            assert_eq!(
+                runtime.app().actions,
+                [ChipBarAction::Closed(ItemKey::index(1)), label_action]
+            );
+        }
+    }
+
+    #[test]
+    fn disabled_and_read_only_close_targets_emit_no_actions() {
+        for (disabled, read_only) in [(true, false), (false, true)] {
+            let mut runtime = pointer_app(SelectMode::Multi, disabled, read_only);
+            click_part(&mut runtime, PartRef::item(Part::CLOSE, ItemKey::index(1)));
+            assert!(runtime.app().actions.is_empty());
+            assert!(runtime.app().state.checked().contains(ItemKey::index(0)));
+            assert!(runtime.app().state.checked().contains(ItemKey::index(1)));
         }
     }
 
