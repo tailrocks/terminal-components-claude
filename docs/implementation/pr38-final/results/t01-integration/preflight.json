@@ -1,0 +1,140 @@
+{
+  "schema": "termrock.pr38.t01.integration.v1",
+  "task_id": "T01",
+  "status": "ACTIVE",
+  "fixed_candidate": {
+    "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+    "tree": "66507c4aae0555d65904b268d6c95e7f3e3d17d1",
+    "branch": "pr38/T01-integration",
+    "product_source": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+  },
+  "t37_predecessor": {
+    "decision": "T37-PREFLIGHT-A94-ACCEPT",
+    "accepted_candidate": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+    "accepted_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+    "main_integration": "43b5a322e0da46ab7282b5b820831eb70c91f4ed",
+    "main_integration_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+    "fixed_input_delta": "The only path changed from the accepted main integration to fixed input 542349e is run-state.json.",
+    "behavior": "NOT VERIFIED"
+  },
+  "owned_final_files": [
+    "component-ownership.json",
+    "tools/acceptance_policy.json",
+    "docs/implementation/pr38-final/requirements.json",
+    "docs/contracts/migration.md",
+    "docs/implementation/pr38-final/results/t01-integration/**"
+  ],
+  "fragment_inputs": [
+    {
+      "owner": "/root/t01_foundation_api",
+      "path": "docs/implementation/pr38-final/results/t01-foundation-api/fragment.json",
+      "worktree": "/Users/donbeave/Downloads/termrock-t01-foundation",
+      "branch": "pr38/T01-foundation",
+      "schema": "termrock.pr38.t01.fragment.v1",
+      "status": "BUILDING",
+      "output_commit": null
+    },
+    {
+      "owner": "/root/t01_components_api",
+      "path": "docs/implementation/pr38-final/results/t01-components-api/fragment.json",
+      "worktree": "/Users/donbeave/Downloads/termrock-t01-components",
+      "branch": "pr38/T01-components",
+      "schema": "termrock.pr38.t01.fragment.v1",
+      "status": "BUILDING",
+      "preliminary_count": 63,
+      "preliminary_id_range": "W01-W63",
+      "status_basis": "Worker report; pending source/hash reconciliation and independent review.",
+      "output_commit": null
+    },
+    {
+      "owner": "/root/t01_app_routes",
+      "path": "docs/implementation/pr38-final/results/t01-app-routes/fragment.json",
+      "worktree": "/Users/donbeave/Downloads/termrock-t01-apps",
+      "branch": "pr38/T01-apps",
+      "schema": "termrock.pr38.t01.fragment.v1",
+      "status": "BUILDING",
+      "route_count": 54,
+      "placeholder_tag_count": 29,
+      "reported_classification": {
+        "live_special_page_objects": 5,
+        "missing_content": 24,
+        "registry_representation_gaps": 5,
+        "ordinary_or_selection_content": 25
+      },
+      "status_basis": "Worker report; tag, live object, dispatch, and render facts remain separate and pending review.",
+      "output_commit": null
+    },
+    {
+      "owner": "/root/t01_history_requirements",
+      "path": "docs/implementation/pr38-final/results/t01-history-requirements/fragment.json",
+      "rows_path": "docs/implementation/pr38-final/results/t01-history-requirements/historical-coverage-rows.jsonl",
+      "worktree": "/Users/donbeave/Downloads/termrock-t01-history",
+      "branch": "pr38/T01-history",
+      "schema": "termrock.pr38.t01.fragment.v1",
+      "row_schema": "termrock.pr38.t01.history-coverage-row.v1",
+      "expected_row_count": 4511,
+      "join_key": "stable historical row id",
+      "status": "BUILDING",
+      "output_commit": null
+    }
+  ],
+  "aggregation_rules": [
+    "Preserve source IDs and original source hashes from every fragment.",
+    "Keep each definition owner separate from every public re-export path.",
+    "Join the 4,511 historical rows by stable ID and verify every row hash and disposition.",
+    "Keep the 54 reference routes and their current factory, shared components, and required behavior records distinct.",
+    "Preserve W01-W45 and reject duplicate or reused IDs.",
+    "A missing current export must fail structural reconciliation until a migration row changes.",
+    "Each unresolved requirement must name a task and block final completion.",
+    "A RETIRE disposition requires a specific conflict or replacement and an independent decision."
+  ],
+  "consumer_contracts": {
+    "acceptance_policy": {
+      "consumer": "tools/acceptance_architecture.py",
+      "consumer_sha256": "34fa17ff58b20d26801f946a10d982a3533aa033e3995a279b6cba49ca3074fb",
+      "source_lines": "16-17, 486-503, 531-563",
+      "required_keys": [
+        "production_library_packages",
+        "application_binary_targets",
+        "application_package_prefixes",
+        "forbidden_production_dependency_names",
+        "forbidden_application_dependency_prefixes",
+        "unresolved_acceptance_requirements"
+      ],
+      "compatibility_rule": "Preserve these keys and value types. Place detailed API and component records in requirements.json."
+    },
+    "component_ownership": {
+      "active_check_owner": "crates/termrock-xtask/src/main.rs and crates/termrock-xtask/src/ownership/**",
+      "main_sha256": "6a6a82d3121d9336091f392c9054ac8698783e05c24a52df167d8f0f7d2dfd1d",
+      "ownership_module_sha256": "46c83a76aff229ac5e3294202dd391e7e382188e280e582ee53f6c421992f9ea",
+      "rules_sha256": "bf50f8cc0e90597085ee12a31f89f0c26adb44051a22d4edbbfa1d756142cf0e",
+      "observed_contract": "check-ownership reads workspace member declarations and the exceptions file. It does not read component-ownership.json.",
+      "compatibility_rule": "Keep component ownership and re-export detail in the inventory. Do not claim check-ownership validates this file."
+    }
+  },
+  "package_metadata_evidence": {
+    "artifact": "docs/implementation/pr38-final/results/t37-final-integration/metadata-structure.json",
+    "artifact_sha256": "3bec2a32d02f8e0db6b867412189f2665c26cdb0d09556f597b279751d587617",
+    "metadata_source_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+    "metadata_source_tree": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
+    "counts": "47 root workspace packages and four separate manifests; see per-workspace rows in the bound artifact.",
+    "locked_no_deps_command": {
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --locked --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "result": "DENIED_BY_GUARD",
+      "exit_status": 125,
+      "evidence": "docs/implementation/pr38-final/results/t37-metadata/metadata-checks.json",
+      "evidence_sha256": "039a6425ad717337b2d0b429c1c8e4354ecc77e7c1b1f2a162e74e9e14743f47",
+      "lock_unchanged": true,
+      "bypass": "NOT USED"
+    },
+    "limit": "Reuse applies to T01 only through the accepted unchanged-manifest and lock evidence. No Cargo metadata command was run for T01."
+  },
+  "verification": {
+    "fragment_count": 4,
+    "accepted_fragments": 0,
+    "selected_behavior_cases": 0,
+    "product_behavior": "NOT VERIFIED",
+    "independent_review": "PENDING",
+    "task_acceptance": "PENDING"
+  }
+}
