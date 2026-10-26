@@ -1,6 +1,6 @@
 {
   "schema": "termrock-run-state-v1",
-  "updated_at": "2026-10-26T02:46:20Z",
+  "updated_at": "2026-10-26T03:58:09Z",
   "plan": {
     "root": "/Users/donbeave/Downloads/terminal-components-claude/docs/implementation/pr38-final",
     "source_root": "/Users/donbeave/Downloads/termrock-pr38-plan",
@@ -119,7 +119,7 @@
       "path": "/Users/donbeave/Downloads/terminal-components-claude",
       "branch": "parity/termrock-visual-baseline",
       "starting_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "current_sha": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+      "current_sha": "43b5a322e0da46ab7282b5b820831eb70c91f4ed",
       "pending_upstream_refresh": null,
       "code_input_sha": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
       "completed_upstream_refreshes": [
@@ -155,9 +155,9 @@
       ],
       "last_reviewed_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "product_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "t37_role": "Accepted T37 content is integrated at b1ae; history-only merge 516198 preserves tree a10cd30, and the fresh-clone producer check passed its scoped check. Exact producer evidence/review and final post-integration gates remain pending; the audit evidence script correction is active.",
+      "t37_role": "T37 was accepted as a preflight at candidate a94b93128ab71d2f1be43733a1b68d21792820ff and normally integrated at 43b5a322e0da46ab7282b5b820831eb70c91f4ed with identical tree e8aa68881a4ad4d4b4e3d9b34045153240e33ce3. Product behavior remains NOT VERIFIED.",
       "pending_source_history_plan": {
-        "status": "HISTORY_ONLY_MERGE_EXECUTED; FRESH_CLONE_PRODUCER_VERIFICATION_ACTIVE",
+        "status": "ACCEPTED_SCOPED_HISTORY_PROVENANCE; MAIN_CANDIDATE_INTEGRATED",
         "reviewer_id": "/root/t37_apps_review",
         "reviewer_model": "gpt-6.1-sol",
         "reviewer_effort": "high",
@@ -207,7 +207,7 @@
           "pr26_is_ancestor_exit_code": 1,
           "pr26_expected_result": "NOT ANCESTOR; reference remains excluded."
         },
-        "fresh_clone_blob_check": "PASS_SCOPED; EVIDENCE_COMMIT_AND_INDEPENDENT_REVIEW_PENDING",
+        "fresh_clone_blob_check": "ACCEPTED_SCOPED",
         "protected_refs": [
           "visual-baseline annotated unsigned tag",
           "PR26 reference commit 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948"
@@ -217,10 +217,10 @@
           "unrelated historical refs"
         ],
         "limits": [
-          "Normal content merge and history-only strategy=ours merge are complete; the history merge changed no paths and preserved the exact tree.",
-          "All eight reviewed worker tips and raw source inventory commit are ancestors; PR26 reference is not an ancestor by design.",
-          "A fresh non-shallow clone with no tags or alternates and only the requested branch is captured; producer verification and final independent review remain pending.",
-          "History reachability does not establish product behavior."
+          "The accepted content merge and tree-preserving strategy=ours history merge are integrated; the history merge changed no paths.",
+          "All eight reviewed worker tips and raw source inventory commit are ancestors; PR26 is not an ancestor by design; the annotated unsigned visual-baseline tag is unchanged.",
+          "Fresh-clone producer portability passed scoped independent review; this does not establish product behavior.",
+          "The overall T37 decision is a preflight acceptance only; behavior remains NOT VERIFIED."
         ],
         "content_aggregate_commit": "a9206e2dd64952837a4cf9829ecf648a5121e4f6",
         "content_summary_commit": "1023449d82844a03edf0993714fd786b51f7da08",
@@ -246,7 +246,7 @@
           "result": "UNCHANGED"
         },
         "fresh_clone_capture": {
-          "status": "CAPTURED_PRODUCER_CHECK_PASSED_SCOPED; EVIDENCE_AND_INDEPENDENT_REVIEW_PENDING",
+          "status": "ACCEPTED_SCOPED_PRODUCER_CHECK",
           "path": "/Users/donbeave/Downloads/termrock-pr38-history-clone-20261026",
           "path_status": "ACTUAL_PATH_CONFIRMED_BY_HISTORY_AGENT",
           "requested_branch": "parity/termrock-visual-baseline",
@@ -264,14 +264,35 @@
           "verification_model_selection": "gpt-6-luna",
           "verification_effort_selection": "max",
           "verification_backend_attestation": "NOT PROVIDED",
-          "exclusive_evidence_path": "docs/implementation/pr38-final/results/t37-history-provenance/**"
+          "exclusive_evidence_path": "docs/implementation/pr38-final/results/t37-history-provenance/**",
+          "independent_review": {
+            "reviewer_id": "/root/t37_apps_review",
+            "requested_model": "gpt-6.1-sol",
+            "requested_effort": "high",
+            "decision": "ACCEPT_SCOPED",
+            "output_commit": "4ba8fd58f69a1d65546f77184a97997fa91a8d90",
+            "verified": "All 19 required Git commits reachable; exact 516198/a10 tree; no worker refs, alternates, promisor/partial clone; expected composition_input_commit difference only."
+          }
         },
-        "fresh_clone_producer_check_result": "PASS_SCOPED",
+        "fresh_clone_producer_check_result": "ACCEPTED_SCOPED",
         "fresh_clone_path": "/Users/donbeave/Downloads/termrock-pr38-history-clone-20261026",
-        "fresh_clone_known_difference": "Only the expected composition_input_commit differs between captured commit 516198 and source evidence at f265."
+        "fresh_clone_known_difference": "Only the expected composition_input_commit differs between captured commit 516198 and source evidence at f265.",
+        "history_provenance_output_commit": "4ba8fd58f69a1d65546f77184a97997fa91a8d90",
+        "history_provenance_artifacts": {
+          "verification_path": "docs/implementation/pr38-final/results/t37-history-provenance/verification.json",
+          "verification_sha256": "ceab38c2c1ff63c29cfd7fcf879a3cca93d3d3d35b144a9e03d5620d870edf7b",
+          "readme_path": "docs/implementation/pr38-final/results/t37-history-provenance/README.md",
+          "readme_sha256": "c0700d19a1aee272243c5238e24dae3ee867d634f16f6a6a2830c060dc9045b7",
+          "reviewer_id": "/root/t37_apps_review",
+          "reviewer_model": "gpt-6.1-sol",
+          "reviewer_effort": "high",
+          "review_decision": "ACCEPT_SCOPED",
+          "scope": "Fresh-clone history and producer portability only; does not accept T37 behavior."
+        },
+        "independent_overall_review": "T37-PREFLIGHT-A94-ACCEPT"
       },
       "checkpoint_input_sha": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
-      "current_tree": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
+      "current_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
       "content_merge_commit": "b1ae56cae7cf7454a996ec1f83c97d28a2f7e0c0",
       "content_merge_parents": [
         "5d4a3096878bd2138246687719c4ffb6a6752cc8",
@@ -281,7 +302,21 @@
       "history_only_merge_strategy": "ours",
       "history_only_merge_changed_paths": [],
       "history_only_tree_before": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
-      "history_only_tree_after": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d"
+      "history_only_tree_after": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
+      "integrated_t37_candidate": {
+        "accepted_candidate_commit": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+        "accepted_candidate_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+        "main_integration_commit": "43b5a322e0da46ab7282b5b820831eb70c91f4ed",
+        "main_integration_parents": [
+          "e95c45f7aa56959a7173e806f599e4aa371a3499",
+          "a94b93128ab71d2f1be43733a1b68d21792820ff"
+        ],
+        "main_integration_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+        "tree_identity": "PASS; main tree equals accepted candidate tree.",
+        "git_diff_name_status_from_candidate": [],
+        "git_diff_check_exit_code": 0,
+        "tracked_worktree_changes": "NONE; only child-owned untracked disk-cleanup.json remains preserved."
+      }
     },
     "reference": {
       "path": "/Users/donbeave/Downloads/termrock-pr26-reference-20261026",
@@ -345,8 +380,8 @@
           "effort": "max",
           "path": "/Users/donbeave/Downloads/termrock-t37-apps",
           "branch": "pr38/T37-apps",
-          "head_sha": "fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a",
-          "status": "ACCEPTED_SOURCE_UNIT",
+          "head_sha": "fae3cea7e6c4e93326bf6c0139f86daa12a7bd70",
+          "status": "ACCEPTED_SOURCE_AND_AUDIT_SCRIPT_UNITS",
           "ownership": "holla-ui, jackin-preview-app, showcase-ui, tablepro-ui, and termrock-consumer-example source/tests; excludes manifests, lockfiles, and generated files.",
           "reviewer_id": "/root/t37_apps_review",
           "reviewer_model": "gpt-6.1-sol",
@@ -356,7 +391,7 @@
             "4f502be854a4d4c7a7585344bd9915b2a26fae79",
             "fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a"
           ],
-          "pending_followup": true,
+          "pending_followup": false,
           "follow_up_assignment": {
             "model_selection": "gpt-6-luna",
             "effort_selection": "max",
@@ -369,7 +404,13 @@
               "docs/implementation/pr38-final/results/t37-audit-script-cleanup/**"
             ],
             "scope": "Remove explanatory comments/docstrings from this new T37 evidence script under the no-comment rule; no product source/API/behavior changes.",
-            "status": "ACTIVE"
+            "status": "ACCEPTED"
+          },
+          "accepted_followup": {
+            "input_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+            "source_commit": "e6f54ede72cda228758a5ab27f539294722472b1",
+            "evidence_commit": "fae3cea7e6c4e93326bf6c0139f86daa12a7bd70",
+            "review_decision": "T37-AUDIT-SCRIPT-FAE-ACCEPT"
           }
         },
         {
@@ -425,10 +466,10 @@
           "model": "gpt-6-luna",
           "effort": "max",
           "path": "/Users/donbeave/Downloads/termrock-t37-metadata",
-          "branch": "pr38/T37-final-verification",
-          "head_sha": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
+          "branch": "pr38/T37-config-comment-cleanup",
+          "head_sha": "a94b93128ab71d2f1be43733a1b68d21792820ff",
           "product_source_sha": "953fbd76ac47019b0161d86a9a462d04f51b0c7f",
-          "status": "ACTIVE_FINAL_POSTINTEGRATION_GATES; STRUCTURAL_SCRIPT_CORRECTION_PENDING",
+          "status": "ACCEPTED_FINAL_GATES_AND_CONFIG_COMMENT_CORRECTION",
           "reviewer_id": "/root/t37_apps_review",
           "reviewer_model": "gpt-6.1-sol",
           "reviewer_effort": "high",
@@ -436,9 +477,11 @@
           "reviewed_output_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
           "ownership": "Cargo manifests/locks, metadata, generated CI, and results/t37-metadata/**; no product source changes.",
           "final_verification_input_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
-          "final_verification_status": "GATE_FAIL_PENDING_AUDIT_SCRIPT_CORRECTION; OTHER_FINAL_GATES_CONTINUE",
+          "final_verification_status": "ACCEPTED_SCOPED_AT_A94",
           "final_verification_output_path": "docs/implementation/pr38-final/results/t37-final-integration/**",
-          "current_blocker": "New T37 evidence script results/t37-apps/audit.py contains explanatory comments/docstrings outside the immutable T00 index; /root/t37_apps owns the narrow correction."
+          "current_blocker": null,
+          "accepted_config_commit": "ee2b0de1c76dc599c0f588201cb63e1845bcd8ac",
+          "final_acceptance_commit": "a94b93128ab71d2f1be43733a1b68d21792820ff"
         },
         {
           "agent_id": "/root/t37_api_values",
@@ -633,7 +676,7 @@
         "classification_rule": "Reconcile each surviving target against the baseline inventory and subtract retired manual probes, visual harnesses, and frozen helpers; baseline target counts alone do not classify production targets.",
         "evidence_limit": "Structural target metadata only. Zero retained test cases do not verify behavior."
       },
-      "integration_head_at_checkpoint": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+      "integration_head_at_checkpoint": "43b5a322e0da46ab7282b5b820831eb70c91f4ed",
       "shared_branch_head": "1023449d82844a03edf0993714fd786b51f7da08",
       "shared_docs_cohort": {
         "agent_id": "/root/t00_import_rules",
@@ -694,7 +737,7 @@
         "summary_reviewed_commit": "1023449d82844a03edf0993714fd786b51f7da08"
       },
       "source_history_integration_plan": {
-        "status": "HISTORY_ONLY_MERGE_EXECUTED; FRESH_CLONE_PRODUCER_VERIFICATION_ACTIVE",
+        "status": "ACCEPTED_SCOPED_HISTORY_PROVENANCE; MAIN_CANDIDATE_INTEGRATED",
         "reviewer_id": "/root/t37_apps_review",
         "reviewer_model": "gpt-6.1-sol",
         "reviewer_effort": "high",
@@ -744,7 +787,7 @@
           "pr26_is_ancestor_exit_code": 1,
           "pr26_expected_result": "NOT ANCESTOR; reference remains excluded."
         },
-        "fresh_clone_blob_check": "PASS_SCOPED; EVIDENCE_COMMIT_AND_INDEPENDENT_REVIEW_PENDING",
+        "fresh_clone_blob_check": "ACCEPTED_SCOPED",
         "protected_refs": [
           "visual-baseline annotated unsigned tag",
           "PR26 reference commit 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948"
@@ -803,9 +846,23 @@
           "verification_backend_attestation": "NOT PROVIDED",
           "exclusive_evidence_path": "docs/implementation/pr38-final/results/t37-history-provenance/**"
         },
-        "fresh_clone_producer_check_result": "PASS_SCOPED",
+        "fresh_clone_producer_check_result": "ACCEPTED_SCOPED",
         "fresh_clone_path": "/Users/donbeave/Downloads/termrock-pr38-history-clone-20261026",
-        "fresh_clone_known_difference": "Only the expected composition_input_commit differs between captured commit 516198 and source evidence at f265."
+        "fresh_clone_known_difference": "Only the expected composition_input_commit differs between captured commit 516198 and source evidence at f265.",
+        "history_provenance_output_commit": "4ba8fd58f69a1d65546f77184a97997fa91a8d90",
+        "final_postintegration_verification": {
+          "agent_id": "/root/t37_metadata",
+          "worktree": "/Users/donbeave/Downloads/termrock-t37-metadata",
+          "branch": "pr38/T37-config-comment-cleanup",
+          "input_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+          "exclusive_evidence_path": "docs/implementation/pr38-final/results/t37-final-integration/**",
+          "status": "ACCEPTED_SCOPED_FINAL_GATES",
+          "model_selection": "gpt-6-luna",
+          "effort_selection": "max",
+          "backend_attestation": "NOT PROVIDED",
+          "whole_reviewed_candidate": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+          "whole_review_decision": "T37-PREFLIGHT-A94-ACCEPT"
+        }
       },
       "shared_accepted_content_aggregate": "a9206e2dd64952837a4cf9829ecf648a5121e4f6",
       "shared_summary_record": {
@@ -845,7 +902,7 @@
           ]
         }
       },
-      "integration_tree_at_checkpoint": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
+      "integration_tree_at_checkpoint": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
       "main_content_merge_commit": "b1ae56cae7cf7454a996ec1f83c97d28a2f7e0c0",
       "main_history_merge_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
       "main_history_merge_tree_unchanged": true,
@@ -858,10 +915,17 @@
         "branch": "pr38/T37-final-verification",
         "input_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
         "exclusive_evidence_path": "docs/implementation/pr38-final/results/t37-final-integration/**",
-        "status": "ACTIVE_FINAL_POSTINTEGRATION_GATES; STRUCTURAL_SCRIPT_CORRECTION_PENDING",
-        "scope": "Run final post-integration gates and record exact outputs at the fixed 516198 candidate; no source changes.",
-        "structural_scan_status": "FAIL_PENDING_AUDIT_SCRIPT_CORRECTION",
-        "structural_scan_blocker": "New T37 evidence script results/t37-apps/audit.py contains explanatory comments/docstrings outside the immutable T00 index; /root/t37_apps owns the narrow correction."
+        "status": "ACCEPTED_SCOPED_FINAL_GATES; WHOLE_T37_PREFLIGHT_ACCEPTED",
+        "scope": "Structural, metadata, generator, guarded build, formatting, and evidence checks only; product behavior NOT VERIFIED.",
+        "structural_scan_status": "PASS_AFTER_ACCEPTED_AUDIT_SCRIPT_CORRECTION",
+        "structural_scan_blocker": null,
+        "accepted_candidate_commit": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+        "accepted_candidate_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+        "integrated_commit": "43b5a322e0da46ab7282b5b820831eb70c91f4ed",
+        "integrated_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+        "verification_evidence": "docs/implementation/pr38-final/results/t37-final-integration/final-verification-e95.json",
+        "final_decision_id": "T37-PREFLIGHT-A94-ACCEPT",
+        "final_gate_status": "ACCEPTED_SCOPED_AT_A94"
       },
       "history_provenance_verification": {
         "agent_id": "/root/t37_history_proof",
@@ -872,13 +936,22 @@
         "branch": "pr38/T37-history-proof",
         "input_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
         "exclusive_evidence_path": "docs/implementation/pr38-final/results/t37-history-provenance/**",
-        "status": "PRODUCER_CHECK_PASSED_SCOPED; EVIDENCE_COMMIT_AND_INDEPENDENT_REVIEW_PENDING",
+        "status": "ACCEPTED_SCOPED_HISTORY_PROVENANCE",
         "fresh_clone_path": "/Users/donbeave/Downloads/termrock-pr38-history-clone-20261026",
         "fresh_clone_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
         "fresh_clone_tree": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
         "producer_check_result": "PASS_SCOPED",
-        "known_difference": "Only the expected composition_input_commit differs between captured commit 516198 and source evidence at f265."
-      }
+        "known_difference": "Only the expected composition_input_commit differs between captured commit 516198 and source evidence at f265.",
+        "output_commit": "4ba8fd58f69a1d65546f77184a97997fa91a8d90",
+        "reviewer_id": "/root/t37_apps_review",
+        "reviewer_model_selection": "gpt-6.1-sol",
+        "reviewer_effort_selection": "high",
+        "review_decision": "ACCEPT_SCOPED",
+        "verification_sha256": "ceab38c2c1ff63c29cfd7fcf879a3cca93d3d3d35b144a9e03d5620d870edf7b"
+      },
+      "main_final_integration_commit": "43b5a322e0da46ab7282b5b820831eb70c91f4ed",
+      "main_final_integration_parent_before_acceptance": "e95c45f7aa56959a7173e806f599e4aa371a3499",
+      "main_final_integration_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3"
     }
   },
   "file_locks": [
@@ -1061,7 +1134,7 @@
       "worktree": "/Users/donbeave/Downloads/termrock-t37-metadata",
       "branch": "pr38/T37-metadata",
       "input_sha": "d402f893d159ac26da5db4d18c13510afdbce12f",
-      "state": "ACCEPTED_METADATA_EVIDENCE; MAIN_INTEGRATED; FINAL_POSTINTEGRATION_GATES_ACTIVE_WITH_STRUCTURAL_SCRIPT_BLOCKER",
+      "state": "ACCEPTED_METADATA_AND_CONFIG_CORRECTION; INTEGRATED_IN_FINAL_CANDIDATE",
       "paths": [
         "**/Cargo.toml",
         "**/Cargo.lock",
@@ -1126,7 +1199,7 @@
         "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/**"
       ],
       "head_sha": "1023449d82844a03edf0993714fd786b51f7da08",
-      "review_status": "COHORTS, SCOPED TRANSFERS, GLOBAL COMPOSITION, AND GENERAL SUMMARY ACCEPTED; CONTENT AND HISTORY INTEGRATED; PRODUCER EVIDENCE/REVIEW AND FINAL GATES PENDING",
+      "review_status": "ACCEPTED_SCOPED_DOCS_AND_GENERAL_SUMMARY; INTEGRATED_IN_FINAL_CANDIDATE",
       "current_owned_paths": [],
       "review_target_commit": "1023449d82844a03edf0993714fd786b51f7da08",
       "released_paths": [
@@ -1217,13 +1290,15 @@
       "worktree": "/Users/donbeave/Downloads/termrock-t37-history-proof",
       "branch": "pr38/T37-history-proof",
       "input_sha": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
-      "state": "ACTIVE_READ_ONLY_PRODUCER_VERIFICATION",
+      "state": "ACCEPTED_SCOPED_HISTORY_PROVENANCE",
       "paths": [
         "docs/implementation/pr38-final/results/t37-history-provenance/**"
       ],
       "limits": [
         "No source changes. Verify the captured fresh clone and preserve exact commit/tree evidence."
-      ]
+      ],
+      "accepted_output_commit": "4ba8fd58f69a1d65546f77184a97997fa91a8d90",
+      "review_decision": "ACCEPT_SCOPED_BY_T37_APPS_REVIEW"
     },
     {
       "id": "T37-final-postintegration",
@@ -1231,7 +1306,7 @@
       "worktree": "/Users/donbeave/Downloads/termrock-t37-metadata",
       "branch": "pr38/T37-final-verification",
       "input_sha": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
-      "state": "ACTIVE_FINAL_POSTINTEGRATION_GATES",
+      "state": "ACCEPTED_SCOPED_FINAL_GATES; INCLUDED_IN_T37_PREFLIGHT_A94",
       "paths": [
         "docs/implementation/pr38-final/results/t37-final-integration/**"
       ],
@@ -1245,7 +1320,7 @@
       "worktree": "/Users/donbeave/Downloads/termrock-t37-apps",
       "branch": "pr38/T37-audit-script-cleanup",
       "input_sha": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
-      "state": "ACTIVE_EXCLUSIVE_SCRIPT_AND_EVIDENCE_CLEANUP",
+      "state": "ACCEPTED_SCOPED_SCRIPT_CLEANUP; INTEGRATED",
       "paths": [
         "docs/implementation/pr38-final/results/t37-apps/audit.py",
         "docs/implementation/pr38-final/results/t37-audit-script-cleanup/**"
@@ -1253,7 +1328,35 @@
       "limits": [
         "No product source, API, Cargo, tests, or behavior changes.",
         "The current structural scan is FAIL/PENDING until the exact script correction is reviewed and the affected scan reruns."
-      ]
+      ],
+      "accepted_source_commit": "e6f54ede72cda228758a5ab27f539294722472b1",
+      "accepted_evidence_commit": "fae3cea7e6c4e93326bf6c0139f86daa12a7bd70",
+      "review_decision": "T37-AUDIT-SCRIPT-FAE-ACCEPT"
+    },
+    {
+      "id": "T37-config-comment-cleanup",
+      "owner": "/root/t37_metadata",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-metadata",
+      "branch": "pr38/T37-config-comment-cleanup",
+      "input_sha": "383ad59b44baf95232005551b4d70f136bef3fea",
+      "accepted_source_commit": "ee2b0de1c76dc599c0f588201cb63e1845bcd8ac",
+      "accepted_documentation_commit": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+      "reviewed_candidate_commit": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+      "state": "ACCEPTED_SCOPED_AND_INTEGRATED",
+      "paths": [
+        "Cargo.toml",
+        ".github-gen/velnor-workflow.toml",
+        "crates/termrock-consumer-example/Cargo.toml",
+        "external-consumer-demo/Cargo.toml",
+        "external-consumer-demo/.config/nextest.toml",
+        "rustfmt.toml",
+        "docs/contracts/build-configuration.md",
+        "docs/implementation/pr38-final/results/t37-config-comment-cleanup/**",
+        "docs/implementation/pr38-final/results/t37-config-comment-correction/**"
+      ],
+      "reviewer_id": "/root/t37_acceptance_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high"
     }
   ],
   "agents": [
@@ -1372,7 +1475,7 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "ACTIVE_T37_AUDIT_SCRIPT_POLICY_CORRECTION; PRIOR_SOURCE_UNIT_ACCEPTED",
+      "status": "ACCEPTED_SCOPED_SOURCE_AND_AUDIT_SCRIPT_UNITS",
       "worktree": "/Users/donbeave/Downloads/termrock-t37-apps",
       "branch": "pr38/T37-apps",
       "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
@@ -1393,7 +1496,20 @@
           "docs/implementation/pr38-final/results/t37-audit-script-cleanup/**"
         ],
         "scope": "Remove explanatory comments/docstrings from this new T37 evidence script under the no-comment rule; no product source/API/behavior changes.",
-        "status": "ACTIVE"
+        "status": "ACCEPTED",
+        "accepted_commit": "fae3cea7e6c4e93326bf6c0139f86daa12a7bd70",
+        "review_decision": "T37-AUDIT-SCRIPT-FAE-ACCEPT"
+      },
+      "audit_script_cleanup": {
+        "input_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+        "source_commit": "e6f54ede72cda228758a5ab27f539294722472b1",
+        "evidence_commit": "fae3cea7e6c4e93326bf6c0139f86daa12a7bd70",
+        "output_sha256": "b23cb3e25b4f23d61dd3b50c2f41213231589db0c0f019cbe81c0a8d8aac233f",
+        "status": "ACCEPTED_SCOPED",
+        "decision_id": "T37-AUDIT-SCRIPT-FAE-ACCEPT",
+        "reviewer_id": "/root/t00_independent_review",
+        "reviewer_model": "gpt-6.1-sol",
+        "reviewer_effort": "high"
       }
     },
     {
@@ -1433,7 +1549,7 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "ACTIVE_FINAL_POSTINTEGRATION_GATES; STRUCTURAL_SCRIPT_CORRECTION_PENDING",
+      "status": "ACCEPTED_SCOPED_METADATA_CONFIG_AND_FINAL_GATES",
       "worktree": "/Users/donbeave/Downloads/termrock-t37-metadata",
       "branch": "pr38/T37-final-verification",
       "input_sha": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
@@ -1450,8 +1566,19 @@
       "exclusive_paths": [
         "docs/implementation/pr38-final/results/t37-final-integration/**"
       ],
-      "final_verification_status": "GATE_FAIL_PENDING_AUDIT_SCRIPT_CORRECTION; OTHER_FINAL_GATES_CONTINUE",
-      "current_blocker": "New T37 evidence script results/t37-apps/audit.py contains explanatory comments/docstrings outside the immutable T00 index; /root/t37_apps owns the narrow correction."
+      "final_verification_status": "ACCEPTED_SCOPED_AT_A94",
+      "current_blocker": null,
+      "configuration_comment_correction": {
+        "input_commit": "383ad59b44baf95232005551b4d70f136bef3fea",
+        "source_commit": "ee2b0de1c76dc599c0f588201cb63e1845bcd8ac",
+        "guide_followup_commit": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+        "candidate_commit": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+        "status": "ACCEPTED_SCOPED",
+        "reviewer_id": "/root/t37_acceptance_review",
+        "reviewer_model": "gpt-6.1-sol",
+        "reviewer_effort": "high"
+      },
+      "final_acceptance_decision": "T37-PREFLIGHT-A94-ACCEPT"
     },
     {
       "id": "/root/t37_api_values",
@@ -1516,10 +1643,10 @@
       "status": "COMPLETED_SCOPED_ACCEPTANCES",
       "reviewed_output_sha": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
       "decision": "ACCEPT",
-      "current_scope": "Accepted content was merged at b1ae and the tree-preserving history merge completed at 516198. Tree equality and ancestor checks pass; fresh-clone producer verification, final post-integration gates, and overall independent T37 review remain pending.",
-      "source_history_plan_review": "The approved tree-preserving eight-tip plan was executed. Content merge b1ae and history-only merge 516198 have the same tree a10cd30; all eight worker tips and raw inventory commit are ancestors, PR26 remains excluded. Fresh-clone producer verification is active.",
+      "current_scope": "Scoped metadata and history reviews completed; the overall T37 preflight was separately accepted at a94 and normally integrated at 43b5.",
+      "source_history_plan_review": "ACCEPT_SCOPED for the fresh-clone portability record at 4ba8fd58f69a1d65546f77184a97997fa91a8d90; all 19 required commits reachable, with only the expected composition_input_commit difference.",
       "provenance_plan": {
-        "status": "HISTORY_ONLY_MERGE_EXECUTED; FRESH_CLONE_PRODUCER_VERIFICATION_ACTIVE",
+        "status": "EXECUTED_AND_ACCEPTED_SCOPED; MAIN_CANDIDATE_PREFLIGHT_ACCEPTED",
         "prerequisites": [
           {
             "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
@@ -1555,9 +1682,9 @@
         "execution_status": "EXECUTED",
         "resulting_integration_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
         "resulting_integration_tree": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
-        "tree_equality": "PASS: content merge b1ae56cae7cf7454a996ec1f83c97d28a2f7e0c0 and history-only commit 516198caac5e5b5fa0883fa1f209928c2e86c8ba both have tree a10cd30dfafec83f7668f529bb03e27f1e5b8b4d.",
-        "ancestor_checks": "PASS: all eight reviewed worker tips and raw source inventory commit are ancestors (exit 0); PR26 reference is not an ancestor (exit 1), as expected.",
-        "fresh_clone_blob_check": "PENDING_HISTORY_PRODUCER_VERIFICATION",
+        "tree_equality": "PASS; eight-tip history merge preserved the content tree.",
+        "ancestor_checks": "PASS; all eight tips and raw inventory are ancestors, PR26 excluded as expected.",
+        "fresh_clone_blob_check": "ACCEPTED_SCOPED_BY_T37_APPS_REVIEW",
         "protected_refs": [
           "visual-baseline annotated unsigned tag",
           "PR26 reference commit 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948"
@@ -1583,10 +1710,18 @@
           "branch": "pr38/T37-final-verification",
           "input_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
           "exclusive_evidence_path": "docs/implementation/pr38-final/results/t37-final-integration/**",
-          "status": "ACTIVE_PENDING_FINAL_RECORDS",
+          "status": "ACCEPTED_SCOPED_AT_A94",
           "model_selection": "gpt-6-luna",
           "effort_selection": "max",
-          "backend_attestation": "NOT PROVIDED"
+          "backend_attestation": "NOT PROVIDED",
+          "accepted_candidate_commit": "a94b93128ab71d2f1be43733a1b68d21792820ff"
+        },
+        "fresh_clone_review_commit": "4ba8fd58f69a1d65546f77184a97997fa91a8d90",
+        "whole_candidate_acceptance": {
+          "commit": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+          "tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+          "integration_commit": "43b5a322e0da46ab7282b5b820831eb70c91f4ed",
+          "decision": "T37-PREFLIGHT-A94-ACCEPT"
         }
       }
     },
@@ -1679,7 +1814,7 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "PRODUCER_CHECK_PASSED_SCOPED; EVIDENCE_COMMIT_AND_INDEPENDENT_REVIEW_PENDING",
+      "status": "ACCEPTED_SCOPED_HISTORY_PROVENANCE",
       "worktree": "/Users/donbeave/Downloads/termrock-t37-history-proof",
       "branch": "pr38/T37-history-proof",
       "input_sha": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
@@ -1690,7 +1825,25 @@
       "scope": "Verify history-preservation producer in the captured fresh clone; no source edits. Scoped producer check passed; exact evidence commit and independent review remain pending.",
       "producer_check_result": "PASS_SCOPED",
       "fresh_clone_path": "/Users/donbeave/Downloads/termrock-pr38-history-clone-20261026",
-      "known_difference": "Only the expected composition_input_commit differs between captured commit 516198 and source evidence at f265; producer verification passed within this scope."
+      "known_difference": "Only the expected composition_input_commit differs between captured commit 516198 and source evidence at f265; producer verification passed within this scope.",
+      "output_commit": "4ba8fd58f69a1d65546f77184a97997fa91a8d90",
+      "reviewer_id": "/root/t37_apps_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "review_decision": "ACCEPT_SCOPED"
+    },
+    {
+      "id": "/root/t37_acceptance_review",
+      "role": "Independent whole-T37 preflight acceptance reviewer",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "assignment": "explicit",
+      "status": "COMPLETED_ACCEPT",
+      "reviewed_commit": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+      "reviewed_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+      "decision_id": "T37-PREFLIGHT-A94-ACCEPT",
+      "decision": "ACCEPTED_PREFLIGHT",
+      "backend_attestation": "NOT PROVIDED"
     }
   ],
   "model_selection_limits": [
@@ -1735,10 +1888,12 @@
     "T34": "NOT_STARTED",
     "T35": "NOT_STARTED",
     "T36": "NOT_STARTED",
-    "T37": "ACTIVE",
+    "T37": "ACCEPTED_PREFLIGHT",
     "T38": "NOT_STARTED"
   },
-  "ready_tasks": [],
+  "ready_tasks": [
+    "T01"
+  ],
   "blocked_tasks": [
     {
       "id": "T02",
@@ -2244,7 +2399,7 @@
       "behavior": "NOT VERIFIED"
     },
     "t37_reviewed_source_history_plan": {
-      "status": "HISTORY_ONLY_MERGE_EXECUTED; FRESH_CLONE_PRODUCER_VERIFICATION_ACTIVE",
+      "status": "ACCEPTED_SCOPED_HISTORY_PROVENANCE; MAIN_CANDIDATE_INTEGRATED",
       "reviewer_id": "/root/t37_apps_review",
       "reviewer_model": "gpt-6.1-sol",
       "reviewer_effort": "high",
@@ -2277,7 +2432,7 @@
         "pr26_is_ancestor_exit_code": 1,
         "pr26_expected_result": "NOT ANCESTOR; reference remains excluded."
       },
-      "fresh_clone_blob_check": "PASS_SCOPED; EVIDENCE_COMMIT_AND_INDEPENDENT_REVIEW_PENDING",
+      "fresh_clone_blob_check": "ACCEPTED_SCOPED",
       "limits": [
         "Normal content merge and history-only strategy=ours merge are complete; the history merge changed no paths and preserved the exact tree.",
         "All eight reviewed worker tips and raw source inventory commit are ancestors; PR26 reference is not an ancestor by design.",
@@ -2346,7 +2501,14 @@
       },
       "fresh_clone_producer_check_result": "PASS_SCOPED",
       "fresh_clone_path": "/Users/donbeave/Downloads/termrock-pr38-history-clone-20261026",
-      "fresh_clone_known_difference": "Only the expected composition_input_commit differs between captured commit 516198 and source evidence at f265."
+      "fresh_clone_known_difference": "Only the expected composition_input_commit differs between captured commit 516198 and source evidence at f265.",
+      "independent_review": {
+        "reviewer_id": "/root/t37_apps_review",
+        "model": "gpt-6.1-sol",
+        "effort": "high",
+        "decision": "ACCEPT_SCOPED",
+        "output_commit": "4ba8fd58f69a1d65546f77184a97997fa91a8d90"
+      }
     },
     "t37_history_integration": {
       "content_merge_commit": "b1ae56cae7cf7454a996ec1f83c97d28a2f7e0c0",
@@ -2389,7 +2551,7 @@
         "status": "UNCHANGED"
       },
       "fresh_clone": {
-        "status": "CAPTURED_PRODUCER_CHECK_PASSED_SCOPED; EVIDENCE_AND_INDEPENDENT_REVIEW_PENDING",
+        "status": "ACCEPTED_SCOPED_PRODUCER_PORTABILITY",
         "path": "/Users/donbeave/Downloads/termrock-pr38-history-clone-20261026",
         "path_status": "ACTUAL_PATH_CONFIRMED_BY_HISTORY_AGENT",
         "requested_branch": "parity/termrock-visual-baseline",
@@ -2407,9 +2569,10 @@
         "verification_model_selection": "gpt-6-luna",
         "verification_effort_selection": "max",
         "verification_backend_attestation": "NOT PROVIDED",
-        "exclusive_evidence_path": "docs/implementation/pr38-final/results/t37-history-provenance/**"
+        "exclusive_evidence_path": "docs/implementation/pr38-final/results/t37-history-provenance/**",
+        "known_difference": "Only the expected composition_input_commit differs between f265 and 516198."
       },
-      "status": "MERGE_AND_TREE_ANCESTRY_CHECKS_COMPLETE; FRESH_CLONE_PRODUCER_VERIFICATION_ACTIVE",
+      "status": "ACCEPTED_SCOPED_HISTORY_PROVENANCE; MAIN_TREE_AND_ANCESTORS_PRESERVED",
       "comparison_with_accepted_shared_candidate": {
         "base_commit": "1023449d82844a03edf0993714fd786b51f7da08",
         "candidate_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
@@ -2417,6 +2580,18 @@
           "docs/implementation/pr38-final/results/run-state.json"
         ],
         "result": "Only the canonical checkpoint differs from the accepted shared candidate."
+      },
+      "independent_review": {
+        "reviewer_id": "/root/t37_apps_review",
+        "model": "gpt-6.1-sol",
+        "effort": "high",
+        "decision": "ACCEPT_SCOPED",
+        "output_commit": "4ba8fd58f69a1d65546f77184a97997fa91a8d90"
+      },
+      "main_candidate_integration": {
+        "commit": "43b5a322e0da46ab7282b5b820831eb70c91f4ed",
+        "tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+        "diff_from_accepted_candidate": []
       }
     },
     "t37_final_postintegration": {
@@ -2428,9 +2603,15 @@
       "branch": "pr38/T37-final-verification",
       "input_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
       "exclusive_evidence_path": "docs/implementation/pr38-final/results/t37-final-integration/**",
-      "status": "ACTIVE_FINAL_POSTINTEGRATION_GATES; STRUCTURAL_SCRIPT_CORRECTION_PENDING",
-      "structural_scan_status": "FAIL_PENDING_AUDIT_SCRIPT_CORRECTION",
-      "structural_scan_blocker": "New T37 evidence script results/t37-apps/audit.py contains explanatory comments/docstrings outside the immutable T00 index; /root/t37_apps owns the narrow correction."
+      "status": "ACCEPTED_SCOPED_FINAL_GATES; WHOLE_T37_PREFLIGHT_ACCEPTED",
+      "structural_scan_status": "PASS_AFTER_ACCEPTED_AUDIT_SCRIPT_CORRECTION",
+      "structural_scan_blocker": null,
+      "candidate_commit": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+      "candidate_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+      "main_integration_commit": "43b5a322e0da46ab7282b5b820831eb70c91f4ed",
+      "main_integration_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+      "whole_review_decision": "T37-PREFLIGHT-A94-ACCEPT",
+      "final_gate_status": "ACCEPTED_SCOPED_AT_A94"
     }
   },
   "review": {
@@ -2458,13 +2639,10 @@
     "decision": "ACCEPT"
   },
   "blockers": [
-    "Fresh-clone history producer check passed within its scoped check; exact evidence commit and independent review remain pending.",
-    "Final structural verification is FAIL/PENDING because new T37 evidence script results/t37-apps/audit.py contains explanatory comments/docstrings outside the immutable T00 index; its narrow cleanup is active.",
-    "Final post-integration gates continue at fixed candidate 516198; not all structural gates are passed.",
-    "Overall T37 acceptance and final independent high review remain pending.",
-    "No product behavior cases ran. The generated Nextest lane has zero run tasks and is ABSENT / NOT VERIFIED; no replacement gate was added.",
-    "T01 and T38 have not started. T02, T03, and T04 remain blocked until T38 passes independent review.",
-    "Disk cleanup remains active under DISK_POLICY below 2.5 TB; the latest read-only probe found no safe target and deleted nothing."
+    "T01 is ready but not started; coordinator dispatch is pending.",
+    "T38 has not started. T02 and T04 remain blocked until T38 passes independent review; T03 also requires T01 acceptance.",
+    "Product behavior remains NOT VERIFIED: zero behavior cases and tests ran; generated Nextest has zero run tasks and is ABSENT / NOT VERIFIED.",
+    "Disk cleanup remains active below the 2.5 TB target. Latest safe scan found no target and made no deletion."
   ],
   "root_instruction_patch": {
     "patch_path": "AGENTS.patch",
@@ -2502,23 +2680,34 @@
     "T37-shared-content-aggregate": "a9206e2dd64952837a4cf9829ecf648a5121e4f6",
     "T37-general-api-summary": "1023449d82844a03edf0993714fd786b51f7da08",
     "T37-content-integration": "b1ae56cae7cf7454a996ec1f83c97d28a2f7e0c0",
-    "T37-history-only-integration": "516198caac5e5b5fa0883fa1f209928c2e86c8ba"
+    "T37-history-only-integration": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+    "T37-history-provenance": "4ba8fd58f69a1d65546f77184a97997fa91a8d90",
+    "T37-audit-script-cleanup-source": "e6f54ede72cda228758a5ab27f539294722472b1",
+    "T37-audit-script-cleanup-evidence": "fae3cea7e6c4e93326bf6c0139f86daa12a7bd70",
+    "T37-config-comment-cleanup": "ee2b0de1c76dc599c0f588201cb63e1845bcd8ac",
+    "T37-config-comment-evidence-correction": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+    "T37-final-integrated-candidate": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+    "T37-main-integration": "43b5a322e0da46ab7282b5b820831eb70c91f4ed",
+    "T37-overall-preflight-review": "a94b93128ab71d2f1be43733a1b68d21792820ff"
   },
   "task_units": {
     "T00_overall": "ACCEPTED",
     "T00_import": "ACCEPTED",
     "T00_source_capture": "ACCEPTED",
     "T00_independent_review": "ACCEPT",
-    "T37_overall": "PENDING_FINAL_RECORDS_AND_FULL_HIGH_ACCEPTANCE",
+    "T37_overall": "ACCEPTED_PREFLIGHT",
     "T37_api_values": "ACCEPTED_SCOPED",
     "T37_api_runtime": "ACCEPTED_SCOPED",
     "T37_api_support": "ACCEPTED_SCOPED",
     "T37_metadata_evidence": "ACCEPTED_SCOPED",
-    "T37_integrated_acceptance": "PENDING_FRESH_CLONE_PRODUCER_VERIFICATION_FINAL_GATES_AND_OVERALL_HIGH_REVIEW",
+    "T37_integrated_acceptance": "ACCEPTED_PREFLIGHT_AT_A94_AND_INTEGRATED_AT_43B5",
     "T37_component_api_transfer": "ACCEPTED_SCOPED_AND_INTEGRATED_IN_SHARED_AGGREGATE",
     "T37_api_crosswalk": "ACCEPTED_SCOPED_COMPOSITION_AND_INPUT_PRESERVATION",
     "T37_general_api_summary": "ACCEPTED_SCOPED",
-    "T37_history_integration": "TREE_AND_ANCESTRY_CHECKS_PASS; FRESH_CLONE_PRODUCER_VERIFICATION_PENDING"
+    "T37_history_integration": "ACCEPTED_SCOPED_HISTORY_PROVENANCE; TREE_AND_ANCESTRY_CHECKS_PASS",
+    "T37_audit_script_cleanup": "ACCEPTED_SCOPED_AND_INTEGRATED",
+    "T37_config_comment_cleanup": "ACCEPTED_SCOPED_AND_INTEGRATED",
+    "T01": "READY_NOT_STARTED"
   },
   "tool_limits": [
     {
@@ -2558,7 +2747,7 @@
         "effort": "high"
       },
       "status": "SUPERSEDED_BY_T00_COMPLETION_AND_T37_DISPATCH",
-      "task_state_effect": "Historical recommendation only; current T37 is ACTIVE and its scoped source/docs units have independent decisions.",
+      "task_state_effect": "Historical recommendation only; current T37 preflight is ACCEPTED and T01 is READY_NOT_STARTED.",
       "dispatch_authorized": false,
       "groups": [
         "Foundations, runtime, and session.",
@@ -2805,6 +2994,34 @@
       "limits": [
         "No source edits, Cargo commands, or tests.",
         "Product behavior remains NOT VERIFIED."
+      ]
+    },
+    {
+      "id": "T37-PREFLIGHT-A94-ACCEPT",
+      "scope": "Whole T37 cleanup preflight acceptance at the exact candidate and normal integration; structural, docs, metadata, generator, build, formatting, and preservation only.",
+      "decision": "ACCEPTED_PREFLIGHT",
+      "reviewer_id": "/root/t37_acceptance_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "backend_attestation": "NOT PROVIDED",
+      "reviewed_commit": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+      "reviewed_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+      "integrated_commit": "43b5a322e0da46ab7282b5b820831eb70c91f4ed",
+      "integrated_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+      "tree_equal": true,
+      "diff_from_candidate": [],
+      "evidence_paths": [
+        "docs/implementation/pr38-final/results/t37-final-integration/final-verification-e95.json",
+        "docs/implementation/pr38-final/results/t37-history-provenance/verification.json",
+        "docs/implementation/pr38-final/results/t37-config-comment-cleanup/AGENT-RUNBOOK.json",
+        "docs/implementation/pr38-final/results/t37-audit-script-cleanup/runbook.json"
+      ],
+      "selected_behavior_cases": 0,
+      "selected_tests": 0,
+      "product_behavior": "NOT VERIFIED",
+      "limits": [
+        "Preflight acceptance only; no product behavior pass.",
+        "The generated Nextest lane has zero run tasks and remains ABSENT / NOT VERIFIED."
       ]
     }
   ],
@@ -3300,6 +3517,34 @@
         "Does not accept overall T37 or main-candidate integration.",
         "Does not verify product behavior, fresh-clone reachability, or the history-only merge."
       ]
+    },
+    {
+      "id": "T37-PREFLIGHT-A94-ACCEPT",
+      "scope": "Whole T37 cleanup preflight acceptance at the exact candidate and normal integration; structural, docs, metadata, generator, build, formatting, and preservation only.",
+      "decision": "ACCEPTED_PREFLIGHT",
+      "reviewer_id": "/root/t37_acceptance_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "backend_attestation": "NOT PROVIDED",
+      "reviewed_commit": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+      "reviewed_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+      "integrated_commit": "43b5a322e0da46ab7282b5b820831eb70c91f4ed",
+      "integrated_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+      "tree_equal": true,
+      "diff_from_candidate": [],
+      "evidence_paths": [
+        "docs/implementation/pr38-final/results/t37-final-integration/final-verification-e95.json",
+        "docs/implementation/pr38-final/results/t37-history-provenance/verification.json",
+        "docs/implementation/pr38-final/results/t37-config-comment-cleanup/AGENT-RUNBOOK.json",
+        "docs/implementation/pr38-final/results/t37-audit-script-cleanup/runbook.json"
+      ],
+      "selected_behavior_cases": 0,
+      "selected_tests": 0,
+      "product_behavior": "NOT VERIFIED",
+      "limits": [
+        "Preflight acceptance only; no product behavior pass.",
+        "The generated Nextest lane has zero run tasks and remains ABSENT / NOT VERIFIED."
+      ]
     }
   ],
   "disk_policy_t37": {
@@ -3309,16 +3554,16 @@
     "cleanup_agent_id": "/root/t00_import_rules/t37_disk_cleanup",
     "cleanup_model": "gpt-6-luna",
     "cleanup_effort": "max",
-    "latest_root_reported_free_bytes": 2005682032640,
+    "latest_root_reported_free_bytes": 2104824479744,
     "target_free_bytes": 2500000000000,
-    "status": "CLEANUP_ACTIVE_BELOW_TARGET; latest scan found no safe target; continue monitoring only until 2.5 TB.",
+    "status": "CLEANUP_ACTIVE_BELOW_TARGET; latest safe scans found no target; preserve all user and project data.",
     "authority": "/Users/donbeave/.agents/DISK_POLICY.md",
-    "latest_reported_free_bytes": 2112711430144,
-    "latest_check": "Latest child read-only probe at 2026-10-26T02:46Z: free_bytes=2112711430144; no new safe target identified; no deletion; continue monitoring to 2.5 TB.",
+    "latest_reported_free_bytes": 2104695496704,
+    "latest_check": "Latest child read-only probe: free_bytes=2104695496704; no new safe target identified; no deletion; continue monitoring to 2.5 TB.",
     "evidence_path": "results/t37-shared/disk-cleanup.json"
   },
   "t37_post_cleanup_build": {
-    "status": "SCOPED_FINAL_CHECKS_PASS; INTEGRATED_T37_ACCEPTANCE_PENDING",
+    "status": "ACCEPTED_PREFLIGHT; HISTORIC_FAILURE_AND_CORRECTION_RECORDS_PRESERVED; PRODUCT_BEHAVIOR_NOT_VERIFIED",
     "candidate_source_head": "0e8e7a7cd1e11d0633309f5da4c1d5e7056dfd6c",
     "candidate_scope_note": "Combined accepted source candidate before the facade-example comment correction; this is not the integration HEAD.",
     "tests_executed": 0,
@@ -3377,11 +3622,11 @@
       "scope": "Restore only the original feature-testing Runtime::draw_scene method from product input 1d6, runtime.rs:3208-3219, and the original termrock-forms dev dependency edge requesting testing. Do not adapt the runtime pipeline because that can change output. Retain/restore the global testing CI configuration through its generator and the no-tests-fail policy. These retained examples are normal caller examples, not replacement tests.",
       "source_input": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
       "candidate_review_target": "0e8e7a7cd1e11d0633309f5da4c1d5e7056dfd6c",
-      "correction_state": "SCOPED_SOURCE_AND_METADATA_FOLLOWUPS_ACCEPTED; CHECKS PASS; OVERALL T37 REVIEW PENDING",
+      "correction_state": "SCOPED_SOURCE_AND_METADATA_FOLLOWUPS_ACCEPTED; FINAL_GATES_PASS; OVERALL_T37_PREFLIGHT_ACCEPTED",
       "limits": [
-        "The approved compatibility and admission corrections have scoped acceptance and final compile/format checks.",
-        "Overall T37 remains pending main-candidate integration, history verification, and exact overall review.",
-        "No tests are authorized or executed in T37; product behavior remains NOT VERIFIED."
+        "Approved compatibility, admission, audit, and configuration corrections have scoped acceptance and the final preflight gates passed.",
+        "T37 is accepted as a preflight only; no product behavior is proved.",
+        "No tests or behavior cases ran in T37; product behavior remains NOT VERIFIED."
       ],
       "followup_decisions": [
         {
@@ -3405,7 +3650,8 @@
             "High decision T37-BUILD-ADMISSION-01 restores only the exact checkpoint_substep helper from fixed 1d6 source lines 8784-8792 and removes compiler-confirmed unused imports."
           ]
         }
-      ]
+      ],
+      "final_acceptance_decision": "T37-PREFLIGHT-A94-ACCEPT"
     },
     "candidate_tree_sha256": "d361455af0a817d8e1d75c945a948d39e5ec6dd4",
     "tool_versions": {
@@ -3457,6 +3703,14 @@
         "Metadata/build evidence is scoped; final source/docs integration and overall independent T37 acceptance remain pending.",
         "Product behavior remains NOT VERIFIED."
       ]
+    },
+    "final_acceptance": {
+      "decision_id": "T37-PREFLIGHT-A94-ACCEPT",
+      "candidate_commit": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+      "candidate_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+      "integrated_commit": "43b5a322e0da46ab7282b5b820831eb70c91f4ed",
+      "integrated_tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+      "status": "ACCEPTED_PREFLIGHT"
     }
   },
   "t37_exception_policy": {
@@ -3613,6 +3867,14 @@
           "docstring_nodes": [],
           "check": "Python tokenize and AST inspection",
           "result": "PASS"
+        },
+        {
+          "path": "results/t37-apps/audit.py",
+          "sha256": "b23cb3e25b4f23d61dd3b50c2f41213231589db0c0f019cbe81c0a8d8aac233f",
+          "non_shebang_comment_tokens": [],
+          "docstring_nodes": [],
+          "check": "Python tokenize and AST inspection in accepted audit cleanup evidence",
+          "result": "PASS; T37-AUDIT-SCRIPT-FAE-ACCEPT"
         }
       ],
       "audit_status": "PASS",
@@ -3621,5 +3883,137 @@
         "This source-form check does not verify contract meaning."
       ]
     }
+  },
+  "ready_task_details": [
+    {
+      "id": "T01",
+      "status": "READY_NOT_STARTED",
+      "reason": "T37 preflight was independently accepted and integrated; coordinator dispatch remains pending."
+    }
+  ],
+  "overall_goal_status": "ACTIVE",
+  "required_task_count": 39,
+  "t37_completion": {
+    "status": "ACCEPTED_PREFLIGHT",
+    "decision_id": "T37-PREFLIGHT-A94-ACCEPT",
+    "reviewer": {
+      "agent_id": "/root/t37_acceptance_review",
+      "requested_model": "gpt-6.1-sol",
+      "requested_effort": "high",
+      "backend_attestation": "NOT PROVIDED",
+      "decision": "ACCEPT"
+    },
+    "accepted_candidate": {
+      "commit": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+      "tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+      "fixed_product_input": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+    },
+    "main_integration": {
+      "commit": "43b5a322e0da46ab7282b5b820831eb70c91f4ed",
+      "parents": [
+        "e95c45f7aa56959a7173e806f599e4aa371a3499",
+        "a94b93128ab71d2f1be43733a1b68d21792820ff"
+      ],
+      "tree": "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3",
+      "tree_matches_accepted_candidate": true,
+      "diff_from_accepted_candidate": [],
+      "git_diff_check_exit_code": 0,
+      "tracked_worktree_changes": "NONE"
+    },
+    "history_provenance": {
+      "producer_commit": "4ba8fd58f69a1d65546f77184a97997fa91a8d90",
+      "reviewer_id": "/root/t37_apps_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "decision": "ACCEPT_SCOPED",
+      "verification_path": "docs/implementation/pr38-final/results/t37-history-provenance/verification.json",
+      "verification_sha256": "ceab38c2c1ff63c29cfd7fcf879a3cca93d3d3d35b144a9e03d5620d870edf7b",
+      "readme_sha256": "c0700d19a1aee272243c5238e24dae3ee867d634f16f6a6a2830c060dc9045b7",
+      "fresh_clone": "/Users/donbeave/Downloads/termrock-pr38-history-clone-20261026",
+      "candidate_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+      "candidate_tree": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
+      "result": "All 19 required Git commits are reachable; expected difference is composition_input_commit f265 versus 516198; no worker refs, alternate, promisor/partial clone fallback, or tags.",
+      "limits": "History portability only; product behavior NOT VERIFIED."
+    },
+    "audit_script_correction": {
+      "input_commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+      "source_commit": "e6f54ede72cda228758a5ab27f539294722472b1",
+      "evidence_commit": "fae3cea7e6c4e93326bf6c0139f86daa12a7bd70",
+      "output_sha256": "b23cb3e25b4f23d61dd3b50c2f41213231589db0c0f019cbe81c0a8d8aac233f",
+      "reviewer_id": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "decision_id": "T37-AUDIT-SCRIPT-FAE-ACCEPT",
+      "removed": "Five docstrings and seven comments.",
+      "preserved": "8,402 other tokens/literals/AST/CLI help.",
+      "integration_commit": "e95c45f7aa56959a7173e806f599e4aa371a3499",
+      "affected_python_gate": "PASS at accepted final candidate."
+    },
+    "configuration_comment_correction": {
+      "fixed_input_commit": "383ad59b44baf95232005551b4d70f136bef3fea",
+      "fixed_input_tree": "402f9324abc73332978a0d03ee1c80f6b8ffa477",
+      "source_output_commit": "ee2b0de1c76dc599c0f588201cb63e1845bcd8ac",
+      "source_output_tree": "f10885766e2cfcb5fb45a34ea5e846dd413d61e2",
+      "maintained_guide_followup_commit": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+      "reviewed_candidate_commit": "a94b93128ab71d2f1be43733a1b68d21792820ff",
+      "reviewer_id": "/root/t37_acceptance_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "changed_configuration_paths": [
+        ".github-gen/velnor-workflow.toml",
+        "Cargo.toml",
+        "crates/termrock-consumer-example/Cargo.toml",
+        "external-consumer-demo/.config/nextest.toml",
+        "external-consumer-demo/Cargo.toml",
+        "rustfmt.toml"
+      ],
+      "additional_maintained_document": "docs/contracts/build-configuration.md",
+      "removed_ordinary_comment_count": 34,
+      "parsed_TOML_values_order_and_lints_unchanged": true,
+      "configuration_sha256_at_check_time": {
+        ".github-gen/velnor-workflow.toml": "16a6bdcc5c6355b8d0ab3adc6d110941cf75455ed8675c75b308317ba7ddb392",
+        "Cargo.toml": "beb074fa9050e7847ab28285904cd4d170ee38eb5f68d5be0a15d8755f8b3e14",
+        "crates/termrock-consumer-example/Cargo.toml": "7b036dfe3ac3d6fb24fde4e7b12201ce65e63a93f6e8d72e884532544dd3dafa",
+        "external-consumer-demo/.config/nextest.toml": "450aea5663b792140076ea139cb53cc0965d24a5e3e04d0386457f964ec3a28e",
+        "external-consumer-demo/Cargo.toml": "f759b31b2bf27e6853b15866eb7e1d8a3f9dd8e3f38af4dc1eec64f91a5f4492",
+        "rustfmt.toml": "903c8aaa927b68e1397573dd6f5da449c2a6c125dc4a8489df2a7cd7a577a1dc"
+      },
+      "tracked_diff_sha256": "84d2084e46811d527c23dbef273c2b937597223487668966f5b1c474038dad2c",
+      "locks_unchanged": 7,
+      "managed_generator_outputs_unchanged": 12,
+      "generator_version": "Velnor Actions 0.1.48",
+      "generator_runs": 2,
+      "generator_exit_codes": [
+        0,
+        0
+      ],
+      "consumer_decision": "T37-CONSUMER-BOUNDARY-01 ACCEPT",
+      "historical_exception": "T37-RECOVERED-NEXTEST-01 exact path accepted; no blanket exception.",
+      "runbook_path": "docs/implementation/pr38-final/results/t37-config-comment-cleanup/AGENT-RUNBOOK.json",
+      "runbook_sha256": "b489c7ad6a9e6ef3b0105645d515c2dd770c587125bc16ab46584a7e662659db",
+      "correction_runbook_path": "docs/implementation/pr38-final/results/t37-config-comment-correction/AGENT-RUNBOOK.md",
+      "correction_runbook_sha256": "2de38eb1e27ee225e4173acfff7ed29ec3bcb7e138520fcc360c5ecd87842a4c",
+      "limits": "No tests or product behavior cases ran; this correction does not create a Nextest lane."
+    },
+    "final_gate_evidence": {
+      "verification_path": "docs/implementation/pr38-final/results/t37-final-integration/final-verification-e95.json",
+      "verification_sha256": "ccaef5f851ebc202c1401be182020bfac33b77fb90eddb76092ed54ead12ddf1",
+      "locked_checks": "All five guarded locked checks passed at 516198/a10; no behavior tests ran.",
+      "format_checks": "All five formatter checks passed at 516198/a10.",
+      "metadata": "Velnor 0.1.48 ran twice; 360-task output was stable; 12 generated outputs match expected bytes; eligible Nextest run tasks: zero.",
+      "python_structure": "Corrected Python comment/docstring/CLI check passed after accepted script cleanup.",
+      "full_review": "Independent high T37 preflight acceptance at a94 includes the accepted configuration correction and final evidence.",
+      "selected_behavior_cases": 0,
+      "selected_tests": 0,
+      "nextest_status": "ABSENT / NOT VERIFIED",
+      "product_behavior": "NOT VERIFIED"
+    },
+    "scope": "T37 documentation, structural cleanup, metadata/generator, guarded build, formatting, history portability, and preservation preflight only.",
+    "limits": [
+      "This is a T37 preflight acceptance, not product-behavior acceptance.",
+      "No behavior tests ran; selected cases and tests are zero.",
+      "The generated Nextest lane has zero run tasks and is ABSENT / NOT VERIFIED; no replacement gate was added.",
+      "T01 is ready but not started. T38 has not started. T02, T03, and T04 remain blocked until T38 is independently accepted."
+    ]
   }
 }
