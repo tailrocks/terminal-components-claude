@@ -34,6 +34,7 @@ pub mod button;
 pub mod choice;
 pub mod empty;
 pub mod master_detail;
+pub mod pane_tree;
 pub mod panel;
 pub mod props;
 pub mod radio_field;
