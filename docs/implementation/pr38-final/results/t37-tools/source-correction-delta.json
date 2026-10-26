@@ -1617,7 +1617,18 @@
     "cargo_commands_run": false,
     "tests_run": false,
     "behavior": "NOT VERIFIED",
-    "review": "Exact source review pending at final source commit.",
+    "review": {
+      "decision": "ACCEPT",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "reviewed_source_commit": "7fee71b6bd5091ce670d36644273ed1ffda1481d",
+      "accepted_evidence_output_commit": "10f63e7650d8e03fbf949000f76fa3f2e6abb7a1",
+      "accepted_evidence_output_tree": "ccfe24e220120394612bb01018b6b1a1f9fd91f2",
+      "accepted_runbook_sha256": "e1616270f52e37db31e360e212486f956f70a4bbf2127c498e69c5f3a553070b",
+      "accepted_source_correction_delta_sha256": "e981e196de54e7a319c373b1584eb6e6063c5f4adbd992f79abe3a828603be5c",
+      "scope": "Exact source closure and corrected evidence, including 169 source hashes, T00 inventory rows, data-format retention slices, schema/pin/wrapper preservation and safety transfer. Behavior remains NOT VERIFIED."
+    },
     "owned_tree_structural_scan": {
       "command": "rg -n --glob '*.rs' '#\\[[[:space:]]*(test([[:space:]]*\\])|[[:alnum:]_]+::test([[:space:]]*\\])|rstest|test_case)|#\\[[[:space:]]*cfg\\([^]]*test|^[[:space:]]*(pub[[:space:]]+)?mod[[:space:]]+tests\\b' crates/termrock-test-support crates/termrock-conformance crates/termrock-xtask crates/termrock-visibility-publisher crates/termrock-visibility-tests crates/visual-harness crates/termrock-e2e tools scripts tests external-consumer-demo parity",
       "exit_code": 1,

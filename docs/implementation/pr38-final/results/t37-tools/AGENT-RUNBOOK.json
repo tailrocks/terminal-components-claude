@@ -12,7 +12,7 @@
   "model": "gpt-6-luna",
   "effort": "max",
   "agent_id": "/root/t37_tools",
-  "review_state": "REVIEW",
+  "review_state": "ACCEPT",
   "changed_paths": [
     "crates/termrock-conformance/src/lib.rs",
     "crates/termrock-conformance/tests/button_busy_frames.rs",
@@ -315,7 +315,7 @@
     },
     "source_correction_delta": {
       "path": "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json",
-      "sha256": "e981e196de54e7a319c373b1584eb6e6063c5f4adbd992f79abe3a828603be5c",
+      "sha256": "690db64355a7d0917269f72f7ca46aa60563790780c8027e8a92a6d1452718d4",
       "details": "Exact c817 line ranges/hashes, all removed Rust items, retained call paths, public format-retention exception, schema classifications and approved E2E/proof fixture closures."
     }
   },
@@ -596,9 +596,13 @@
     "reviewer_id": "/root/t00_independent_review",
     "model": "gpt-6.1-sol",
     "effort": "high",
-    "status": "PENDING",
+    "status": "ACCEPT",
     "reviewed_commit": "7fee71b6bd5091ce670d36644273ed1ffda1481d",
-    "review_scope": "Exact source after T37-E2E-ORPHAN-01, T37-E2E-FORMAT-01 and T37-PROOF-FIXTURE-01 closure corrections."
+    "accepted_evidence_output_commit": "10f63e7650d8e03fbf949000f76fa3f2e6abb7a1",
+    "accepted_evidence_output_tree": "ccfe24e220120394612bb01018b6b1a1f9fd91f2",
+    "accepted_runbook_sha256": "e1616270f52e37db31e360e212486f956f70a4bbf2127c498e69c5f3a553070b",
+    "accepted_source_correction_delta_sha256": "e981e196de54e7a319c373b1584eb6e6063c5f4adbd992f79abe3a828603be5c",
+    "decision_scope": "Source closure, corrected evidence, all 169 hashes/T00 rows, 14 public format slices, schema/pin/wrapper preservation, and safety mapping. Behavior is NOT VERIFIED."
   },
   "limits": [
     "T37 structural cleanup does not verify product behavior; behavior is NOT VERIFIED.",
@@ -630,5 +634,6 @@
     "docs/implementation/pr38-final/results/t37-tools/AGENT-RUNBOOK.json",
     "docs/implementation/pr38-final/results/t37-tools/rust-source-cleanup-delta.json",
     "docs/implementation/pr38-final/results/t37-tools/source-correction-delta.json"
-  ]
+  ],
+  "post_acceptance_evidence_note": "This runbook update records the Sol-high ACCEPT already issued for the exact source commit and evidence output above. It changes no source or reviewed deletion evidence."
 }
