@@ -1,6 +1,6 @@
 {
   "schema": "termrock-run-state-v1",
-  "updated_at": "2026-10-26T01:40:35Z",
+  "updated_at": "2026-10-26T01:48:43Z",
   "plan": {
     "root": "/Users/donbeave/Downloads/terminal-components-claude/docs/implementation/pr38-final",
     "source_root": "/Users/donbeave/Downloads/termrock-pr38-plan",
@@ -119,7 +119,7 @@
       "path": "/Users/donbeave/Downloads/terminal-components-claude",
       "branch": "parity/termrock-visual-baseline",
       "starting_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "current_sha": "f2e41217c07b775205bddf29721fc86f92baa8dd",
+      "current_sha": "37b1850dce5ebcc3a5d2cae68ff86ee0cd0105a7",
       "pending_upstream_refresh": null,
       "code_input_sha": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
       "completed_upstream_refreshes": [
@@ -155,7 +155,36 @@
       ],
       "last_reviewed_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "product_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "t37_role": "C cohort output 8f355 awaits exact review on its shared docs branch. Global crosswalk is REVIEW/PENDING. Reviewed-source history integration and overall T37 acceptance remain open."
+      "t37_role": "C cohort correction ee8a awaits exact high review on its separate docs branch. Global prose crosswalk remains REVIEW/PENDING. Reviewed-source history integration is planned but not executed; overall T37 acceptance remains open.",
+      "pending_source_history_plan": {
+        "status": "REVIEWED_PLAN_READY_PENDING_EXECUTION_AFTER_ACCEPTED_CONTENT_MERGES",
+        "reviewer_id": "/root/t37_apps_review",
+        "reviewer_model": "gpt-6.1-sol",
+        "reviewer_effort": "high",
+        "method": "After content merges, perform one history-only `git merge --strategy=ours` for the exact tip antichain. Require tree equality before and after and verify all eight tips are ancestors. Then verify required blobs from a fresh `git clone --no-local --single-branch --no-tags`.",
+        "tips": [
+          "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+          "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+          "fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a",
+          "cb1a928cb7863597ded56adbd33c77e45713f780",
+          "ae32524b29baf638d8790ec0f7b320dfd05ee0f1",
+          "1dd1cf4d9ac1edfe79afabddd22104ca0c821d46",
+          "34cbad0123c13612f06cf18a882465e8f108d607",
+          "bf1b52a7fe9274593e2dfaf0332b367fb860dfef"
+        ],
+        "exclusions": [
+          "PR26 reference commit 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+          "unrelated historical refs"
+        ],
+        "execution_status": "NOT EXECUTED",
+        "tree_equality": "PENDING",
+        "ancestor_checks": "PENDING",
+        "fresh_clone_blob_check": "PENDING",
+        "limits": [
+          "Do not use `-Xours`.",
+          "This plan preserves reviewed commit history; it does not alter source-tree contents or establish product behavior."
+        ]
+      }
     },
     "reference": {
       "path": "/Users/donbeave/Downloads/termrock-pr26-reference-20261026",
@@ -253,7 +282,7 @@
           "effort": "max",
           "path": "/Users/donbeave/Downloads/termrock-t37-shared",
           "branch": "pr38/T37-shared",
-          "head_sha": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+          "head_sha": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
           "product_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
           "status": "DOCS_COHORT_REVIEW_PENDING",
           "ownership": "Maintained documentation and semantic API prose; cohort C evidence; canonical checkpoint. Metadata/config/manifest ownership is released to /root/t37_metadata. Crosswalk producer/output ownership is released to /root/t37_crosswalk. No source or test edits.",
@@ -261,11 +290,12 @@
           "reviewer_model": "gpt-6.1-sol",
           "reviewer_effort": "high",
           "review_decision": "REVIEW_PENDING",
-          "review_target_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+          "review_target_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
           "pending_followup": true,
           "preliminary_review_findings_pending": [],
-          "previous_reviewed_commit": "fe032a24154819a579c591e1cf87230558d286ee",
-          "review_note": "SUPPORT-R1–R6 corrections are recorded in the committed cohort runbook; exact review of 8f355 is active."
+          "previous_reviewed_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+          "review_note": "The four narrow R4 corrections identified at 8f355 are applied; exact review of ee8a is active.",
+          "previous_review_decision": "CORRECTION"
         },
         {
           "agent_id": "/root/t37_metadata",
@@ -452,8 +482,8 @@
         "classification_rule": "Reconcile each surviving target against the baseline inventory and subtract retired manual probes, visual harnesses, and frozen helpers; baseline target counts alone do not classify production targets.",
         "evidence_limit": "Structural target metadata only. Zero retained test cases do not verify behavior."
       },
-      "integration_head_at_checkpoint": "f2e41217c07b775205bddf29721fc86f92baa8dd",
-      "shared_branch_head": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+      "integration_head_at_checkpoint": "37b1850dce5ebcc3a5d2cae68ff86ee0cd0105a7",
+      "shared_branch_head": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
       "shared_docs_cohort": {
         "agent_id": "/root/t00_import_rules",
         "model": "gpt-6-luna",
@@ -463,23 +493,24 @@
         "input_commit": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
         "fixed_source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
         "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "previous_reviewed_output_commit": "fe032a24154819a579c591e1cf87230558d286ee",
-        "output_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
-        "output_parent": "34c06c17cab2b6f78734b496f65e6038013b117d",
+        "first_corrected_output_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+        "review_decision_on_first_output": "CORRECTION",
+        "output_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+        "output_parent": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
         "status": "REVIEW_PENDING",
         "reviewer_id": "/root/t00_independent_review",
         "reviewer_model": "gpt-6.1-sol",
         "reviewer_effort": "high",
         "groups": 496,
         "evidence_path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
-        "evidence_sha256": "54ab6a27b7a012a33f489fb9c92f74cf201dbd5e10a84998c6dbff458df2e21e",
+        "evidence_sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae",
         "builder_path": "docs/implementation/pr38-final/results/t37-api-support/build_disposition.py",
-        "builder_sha256": "dcf4af58f524c73854ec42bfd10124faae9d0db5dd17135ba62aff9c8d05e69d",
+        "builder_sha256": "396440aff3b789b7e41ce080706bd8d618fad56e2a75e6da83985426c479e133",
         "guide_path": "docs/contracts/foundation-support.md",
-        "guide_sha256": "b9d5fef965070fff796adf70d1ac4da89a8bf7ba8afdf978af10cf633fe8ea53",
+        "guide_sha256": "f3a12716c17fd4fae898a44b41880a90f9ac647e90725e83b2e2380d0ff385c4",
         "runbook_path": "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json",
-        "runbook_sha256": "0d7de0f4ba64d746efefe3081a1276fd070c61763c4f3a6ef37d67c089e549bd",
-        "record_counts": {
+        "runbook_sha256": "51bf86b979396a5518d69a49e091ad0b37877f875e0ab9cd28cfe497929b4b69",
+        "disposition_counts": {
           "required_caller_contract": 244,
           "descriptive_api_reference": 170,
           "retired_test_only_provenance": 55,
@@ -488,14 +519,43 @@
           "unresolved_source_contract_conflict": 9,
           "retained_public_compatibility_data": 4
         },
-        "review_corrections": "SUPPORT-R1–R6 applied; exact-output independent review pending.",
+        "latest_review_correction": "G1049 KeyRouter::replay, G1043 general request_quit, G1115/G1117/G1118 state-owned once-only lifecycle and emission semantics, G967 report row order; all applied, exact re-review pending.",
         "source_inventory_integration": "PENDING_INTEGRATION",
         "selected_tests": 0,
         "behavior": "NOT VERIFIED",
         "limits": [
           "No Cargo or tests ran.",
-          "The foundation source inventory and removal records are not local in this worktree; their immutable hashes remain recorded.",
-          "C acceptance does not complete global T37."
+          "The foundation source inventory and removal records remain pending local integration.",
+          "This cohort does not complete the global crosswalk or overall T37."
+        ]
+      },
+      "source_history_integration_plan": {
+        "status": "REVIEWED_PLAN_READY_PENDING_EXECUTION_AFTER_ACCEPTED_CONTENT_MERGES",
+        "reviewer_id": "/root/t37_apps_review",
+        "reviewer_model": "gpt-6.1-sol",
+        "reviewer_effort": "high",
+        "method": "After content merges, perform one history-only `git merge --strategy=ours` for the exact tip antichain. Require tree equality before and after and verify all eight tips are ancestors. Then verify required blobs from a fresh `git clone --no-local --single-branch --no-tags`.",
+        "tips": [
+          "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+          "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+          "fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a",
+          "cb1a928cb7863597ded56adbd33c77e45713f780",
+          "ae32524b29baf638d8790ec0f7b320dfd05ee0f1",
+          "1dd1cf4d9ac1edfe79afabddd22104ca0c821d46",
+          "34cbad0123c13612f06cf18a882465e8f108d607",
+          "bf1b52a7fe9274593e2dfaf0332b367fb860dfef"
+        ],
+        "exclusions": [
+          "PR26 reference commit 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+          "unrelated historical refs"
+        ],
+        "execution_status": "NOT EXECUTED",
+        "tree_equality": "PENDING",
+        "ancestor_checks": "PENDING",
+        "fresh_clone_blob_check": "PENDING",
+        "limits": [
+          "Do not use `-Xours`.",
+          "This plan preserves reviewed commit history; it does not alter source-tree contents or establish product behavior."
         ]
       }
     }
@@ -744,7 +804,7 @@
         "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
         "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/**"
       ],
-      "head_sha": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+      "head_sha": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
       "review_status": "REVIEW_PENDING",
       "current_owned_paths": [
         "docs/contracts/authoring.md",
@@ -756,12 +816,13 @@
         "docs/implementation/pr38-final/results/t37-api-support/**",
         "docs/implementation/pr38-final/results/t37-shared/**"
       ],
-      "review_target_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+      "review_target_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
       "released_paths": [
         "shared manifests, locks, config, generator, and policy metadata (owned by /root/t37_metadata)",
         "crosswalk producer/output/integration files (owned by /root/t37_crosswalk)",
         "helper-owned value/runtime/component caller-contract guides and result directories"
-      ]
+      ],
+      "previous_reviewed_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2"
     },
     {
       "id": "T37-baseline-build",
@@ -835,9 +896,9 @@
       "current_input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
       "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
       "branch": "pr38/T37-shared",
-      "current_output_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
-      "current_scope": "Committed 496-group C correction; exact high review pending. Own maintained docs, remaining C/global crosswalk reconciliation, and canonical run-state. Product behavior remains NOT VERIFIED.",
-      "current_output_parent": "34c06c17cab2b6f78734b496f65e6038013b117d"
+      "current_output_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+      "current_scope": "The 496-group C correction ee8a is committed and awaiting exact high review. Continue maintained-doc/prose integration and canonical checkpoint ownership; no source changes.",
+      "current_output_parent": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2"
     },
     {
       "id": "/root/t00_independent_review",
@@ -850,9 +911,11 @@
       "review_target_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "previous_reviewed_sha": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
       "decision": "ACCEPT",
-      "current_review_target_sha": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
-      "current_review_scope": "Exact high review of corrected T37 cohort C (496 groups), output 8f355; global T37 acceptance remains separate.",
-      "current_scope": "Exact high review of T37 support/docs cohort C; overall T37 acceptance remains separate and pending."
+      "current_review_target_sha": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+      "current_review_scope": "Exact high re-review of the four R4 corrections in support cohort C output ee8a; no Cargo/tests.",
+      "current_scope": "Exact high review of T37 support/docs cohort C; overall T37 acceptance remains separate and pending.",
+      "previous_review_target_sha": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+      "previous_review_decision": "CORRECTION"
     },
     {
       "id": "/root/t37_foundations",
@@ -938,10 +1001,10 @@
       "status": "ACTIVE_DISK_CLEANUP_ONLY",
       "worktree": null,
       "initial_free_bytes": 1998809899008,
-      "latest_reported_free_bytes": 2141758271488,
+      "latest_reported_free_bytes": 2140794982400,
       "stop_at_free_bytes": 2500000000000,
       "scope": "DISK_POLICY cleanup and monitoring only; no project/task work.",
-      "latest_check": "2026-10-26 01:40 UTC; read-only probe; no new safe target; no deletion."
+      "latest_check": "2026-10-26 01:48 UTC; read-only probe; no new safe target; no deletion."
     },
     {
       "id": "/root/t37_metadata",
@@ -1021,10 +1084,11 @@
       "model": "gpt-6.1-sol",
       "effort": "high",
       "assignment": "explicit",
-      "status": "ACTIVE_PROVENANCE_REVIEW; PRIOR_METADATA_ACCEPT",
+      "status": "COMPLETED_PROVENANCE_PLAN_REVIEW; HISTORY_INTEGRATION_PENDING",
       "reviewed_output_sha": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
       "decision": "ACCEPT",
-      "current_scope": "Compare original reviewed Git refs with cherry-picked imports; prepare a tree-preserving history plan. No source or tree changes authorized yet."
+      "current_scope": "Exact eight-tip history-only integration plan reviewed; coordinator may execute after accepted content merges, with tree/ancestor/fresh-clone gates. No integration was executed.",
+      "source_history_plan_review": "Tree-preserving eight-tip strategy=ours plan complete. Execution, tree-equality checks, ancestor checks, and fresh-clone blob checks remain pending."
     },
     {
       "id": "/root/t37_crosswalk",
@@ -1517,16 +1581,17 @@
     "t37_api_support": {
       "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
       "path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
-      "sha256": "54ab6a27b7a012a33f489fb9c92f74cf201dbd5e10a84998c6dbff458df2e21e",
+      "sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae",
       "runbook_path": "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json",
-      "runbook_sha256": "0d7de0f4ba64d746efefe3081a1276fd070c61763c4f3a6ef37d67c089e549bd",
+      "runbook_sha256": "51bf86b979396a5518d69a49e091ad0b37877f875e0ab9cd28cfe497929b4b69",
       "builder_path": "docs/implementation/pr38-final/results/t37-api-support/build_disposition.py",
-      "builder_sha256": "dcf4af58f524c73854ec42bfd10124faae9d0db5dd17135ba62aff9c8d05e69d",
+      "builder_sha256": "396440aff3b789b7e41ce080706bd8d618fad56e2a75e6da83985426c479e133",
       "source_input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
       "product_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "output_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
-      "previous_corrected_commit": "fe032a24154819a579c591e1cf87230558d286ee",
-      "status": "SUPPORT-R1–R6 corrections committed; exact independent high review pending. 496 groups, source inventory integration pending, behavior NOT VERIFIED."
+      "output_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+      "previous_output_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+      "prior_review_decision": "CORRECTION",
+      "status": "Four narrow R4 corrections committed; exact independent high re-review pending. 496 groups; source inventory integration pending; behavior NOT VERIFIED."
     },
     "t37_metadata_final_evidence": {
       "path": "results/t37-metadata/final-verification-953fbd/final-verification.json",
@@ -1540,6 +1605,28 @@
       "implementer": "/root/t37_component_contracts",
       "reviewer": "/root/t37_components_review",
       "status": "Implementation complete; exact independent high review pending."
+    },
+    "t37_reviewed_source_history_plan": {
+      "status": "REVIEWED_PLAN_READY_PENDING_EXECUTION_AFTER_ACCEPTED_CONTENT_MERGES",
+      "reviewer_id": "/root/t37_apps_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "method": "One history-only strategy=ours merge, unchanged tree and ancestor checks, then fresh --no-local --single-branch --no-tags clone blob check.",
+      "tips": [
+        "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+        "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+        "fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a",
+        "cb1a928cb7863597ded56adbd33c77e45713f780",
+        "ae32524b29baf638d8790ec0f7b320dfd05ee0f1",
+        "1dd1cf4d9ac1edfe79afabddd22104ca0c821d46",
+        "34cbad0123c13612f06cf18a882465e8f108d607",
+        "bf1b52a7fe9274593e2dfaf0332b367fb860dfef"
+      ],
+      "execution_status": "NOT EXECUTED",
+      "excluded": [
+        "PR26 reference",
+        "unrelated historical refs"
+      ]
     }
   },
   "review": {
@@ -1568,9 +1655,9 @@
   },
   "blockers": [
     "T02, T03, and T04 remain blocked until T38 passes independent review; T01 and T38 have not started.",
-    "T37 cohort C correction 8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2 is committed and awaits exact high review; do not mark the cohort accepted yet.",
+    "T37 cohort C follow-up ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9 awaits exact high review after the CORRECTION at 8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2. Do not mark the cohort accepted yet.",
     "The global 1,122-group crosswalk remains REVIEW/PENDING until all cohort output and coordinator-bound review records are exact and independently accepted.",
-    "Reviewed source commits are not all ancestors of the current candidate. The provenance reviewer is preparing a tree-preserving multi-parent history plan; no history-only integration runs until its exact head list and tree-equality proof are approved.",
+    "The provenance reviewer completed a tree-preserving eight-tip history plan. Execution is pending accepted content merges; tree equality, ancestor checks, and fresh-clone blob verification have not run.",
     "Accepted source, metadata, and documentation worktrees are not yet at one integrated candidate commit; overall T37 review remains pending.",
     "The component caller-contract transfer output 932d36c is awaiting independent Sol-high review.",
     "The generated Nextest lane has zero run tasks and is ABSENT / NOT VERIFIED. No T37 replacement gate or test was added.",
@@ -1596,11 +1683,13 @@
     "T37-docs-api-prose-crosswalk-initial": "bee6e47d4ef077a1a14a78353019a41c273c7d38",
     "T37-docs-api-values": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
     "T37-docs-api-runtime": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
-    "T37-docs-api-support": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+    "T37-docs-api-support": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
     "T37-metadata-final-evidence": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
     "T37-docs-api-support-initial": "fe032a24154819a579c591e1cf87230558d286ee",
     "T37-docs-api-crosswalk-producer": "ae32524b29baf638d8790ec0f7b320dfd05ee0f1",
-    "T37-docs-api-crosswalk-shared": "34c06c17cab2b6f78734b496f65e6038013b117d"
+    "T37-docs-api-crosswalk-shared": "34c06c17cab2b6f78734b496f65e6038013b117d",
+    "T37-docs-api-support-pre-R4-followup": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+    "T37-reviewed-source-history-integration-plan": "NOT_EXECUTED"
   },
   "task_units": {
     "T00_overall": "ACCEPTED",
@@ -1822,7 +1911,7 @@
     },
     {
       "scope": "T37 cohort C SUPPORT-R1–R6 corrected documentation and 496-group disposition output.",
-      "decision": "PENDING_EXACT_OUTPUT_REVIEW",
+      "decision": "CORRECTION",
       "reviewer_id": "/root/t00_independent_review",
       "model": "gpt-6.1-sol",
       "effort": "high",
@@ -1835,6 +1924,34 @@
       "limits": [
         "No Cargo or tests ran.",
         "The source-inventory link remains pending integration.",
+        "Product behavior remains NOT VERIFIED."
+      ],
+      "corrections": [
+        "G1049: distinguish KeyRouter::replay(&Key) from page::replay_key(char).",
+        "G1043: preserve general KeyHost::request_quit leave-guard and dialog contract for every quit origin.",
+        "G1115/G1117/G1118: restore state-owned once-only push/pop/resume lifecycle alongside emission results.",
+        "G967: restore heading, subheading, empty-state, and body row order."
+      ],
+      "correction_owner": "/root/t00_import_rules",
+      "correction_output_sha": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+      "correction_record_sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae"
+    },
+    {
+      "scope": "T37 cohort C four-item R4 correction: replay path, general quit guard, state-owned keyboard protocol lifecycle, and default report row order.",
+      "decision": "PENDING_EXACT_OUTPUT_REVIEW",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "reviewed_input_sha": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+      "previous_review_output_sha": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+      "previous_review_decision": "CORRECTION",
+      "artifact_path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+      "artifact_sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae",
+      "runbook_path": "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json",
+      "runbook_sha256": "51bf86b979396a5518d69a49e091ad0b37877f875e0ab9cd28cfe497929b4b69",
+      "limits": [
+        "No Cargo or tests ran.",
+        "The source inventory link remains pending integration.",
         "Product behavior remains NOT VERIFIED."
       ]
     }
@@ -2206,11 +2323,12 @@
       "model": "gpt-6.1-sol",
       "effort": "high",
       "decision": "REVIEW_PENDING",
-      "output_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+      "output_commit": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
       "groups": 496,
-      "scope": "496-group shell/theme/collections/terminal semantic prose cohort; SUPPORT-R1–R6 corrections applied; exact high review pending. Source inventory link remains pending integration; behavior NOT VERIFIED.",
-      "previous_output_commit": "fe032a24154819a579c591e1cf87230558d286ee",
-      "evidence_sha256": "54ab6a27b7a012a33f489fb9c92f74cf201dbd5e10a84998c6dbff458df2e21e"
+      "scope": "496-group shell/theme/collections/terminal semantic prose cohort; four narrow R4 corrections applied after the 8f355 CORRECTION; exact high review pending. Source inventory remains pending integration; behavior NOT VERIFIED.",
+      "previous_output_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+      "evidence_sha256": "15399df0af526eaf415ec31c6fe2449d659b0c2a1c52f46a0d3e97fde3b063ae",
+      "previous_review_decision": "CORRECTION"
     },
     {
       "id": "T37-METADATA-FINAL-EVIDENCE",
@@ -2253,8 +2371,8 @@
     "target_free_bytes": 2500000000000,
     "status": "CLEANUP_ACTIVE_BELOW_TARGET; latest scan found no safe target; continue monitoring only until 2.5 TB.",
     "authority": "/Users/donbeave/.agents/DISK_POLICY.md",
-    "latest_reported_free_bytes": 2141758271488,
-    "latest_check": "2026-10-26 01:40 UTC; child read-only probe; no new safe target; no deletion; continue to 2.5 TB.",
+    "latest_reported_free_bytes": 2140794982400,
+    "latest_check": "2026-10-26 01:48 UTC; child read-only probe; no new safe target; no deletion; continue to 2.5 TB.",
     "evidence_path": "results/t37-shared/disk-cleanup.json"
   },
   "t37_post_cleanup_build": {
