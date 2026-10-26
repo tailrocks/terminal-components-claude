@@ -32,7 +32,8 @@ The complete 322-group decision record is [t37-api-values/decisions.json](../imp
 - The T20 target assigns protocol lifetime to one session-owned state and retires global mirrors. These are target rules, not proof of current behavior.
 - `AltKeys::Refused` permits caller-installed stand-ins.
 - `UntilSeen` keeps macOS Option unconfirmed until an unambiguous Alt chord arrives.
-- `WithProtocol` allows Alt only while Kitty protocol flags are active.
+- Before policy evaluation, `alt_delivered()` returns true for `ALT == 1` and false for `ALT == 2`.
+- Without an override, `WithProtocol` reports delivery when `active()` or `ALT == 3`. See [`alt_delivered`](https://github.com/tailrocks/terminal-components-claude/blob/1d6ee92adf6ccca38eeee64b1371cba1497e8fcd/crates/termrock-core/src/keys.rs#L388-L401).
 - `TERMROCK_ALT_KEYS` accepts `on`, `1`, `true`, or `yes` for `Delivered`. It accepts `off`, `0`, `false`, or `no` for `Refused`.
 - Without a recognized override, non-macOS clients resolve to `Delivered`.
 - On macOS, `LC_TERMINAL=iTerm2`, `TERM_PROGRAM=Apple_Terminal`, or `TERM_PROGRAM=iTerm.app` selects `UntilSeen`.
@@ -111,6 +112,10 @@ The complete 322-group decision record is [t37-api-values/decisions.json](../imp
 - These values are not process-wide or runtime-instance isolated. They do not propagate across threads. The comments say “process-wide”, but the source uses thread-local storage. See [`list.rs`](https://github.com/tailrocks/terminal-components-claude/blob/1d6ee92adf6ccca38eeee64b1371cba1497e8fcd/crates/termrock-core/src/list.rs#L330-L445).
 - The `Cursor::new` comment says it clamps its index, but initialization has no row source. It stores the supplied index and sets vertical, no-wrap, skip-disabled defaults. T14 bounds and eligibility cases must distinguish initialization from later movement; no source defect is established.
 - The `observe` comment describes Super and protocol-active Alt evidence. The code also learns some non-text Alt keys without active protocol flags. This page records the source predicate; T20 owns the target transition. See [`observe`](https://github.com/tailrocks/terminal-components-claude/blob/1d6ee92adf6ccca38eeee64b1371cba1497e8fcd/crates/termrock-core/src/keys.rs#L275-L308).
+- The `WithProtocol` comment limits Alt to active Kitty flags. It omits observed state.
+- `observe` can set `ALT == 3` without flags. That state can deliver Alt after protocol flags stop. T19 and T20 own target changes.
+- `KeyStep::of` passes `TypeAhead` precedence to `ordered`. With type-ahead enabled, a bare alphanumeric returns as `Type` before navigation fallback. Its comment says shortcuts first.
+- `ordered` yields a bound key only for explicit `Shortcuts` precedence during the shortcuts route. T01 must reconcile the comment; T14 must review both routes. See [`KeyStep::of`](https://github.com/tailrocks/terminal-components-claude/blob/1d6ee92adf6ccca38eeee64b1371cba1497e8fcd/crates/termrock-core/src/list.rs#L308-L333).
 - The selection module says disabled rows are never selected. It says range extension preserves their prior state.
 - The implementation rebuilds from saved base, then adds selectable rows. Keep this wording gap open for T01 review.
 - `from_key` documents movement keys. Its predicate accepts any shifted non-character without Ctrl, Alt, or Super.
