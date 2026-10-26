@@ -22,6 +22,9 @@ FOOTER_PIN_REVIEWER = "/root/t00_independent_review"
 FOOTER_PIN_INDICES = {762, 763, 764, 771, 772}
 VISIT_KEY_DECISION = "T37-VISIT-KEY-01"
 VISIT_KEY_INDICES = {803, 813}
+KEYS_TIER_DECISION = "T19-KEYS-TIER-01"
+KEYS_TIER_INDICES = {1005, 1008}
+MODAL_DIM_DECISION = "T11-MODAL-DIM-01"
 INTERNAL_INDICES = {423, 424, 425, 426, 376, 740, 985}
 SOURCE_MAP_SHA = "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619"
 SOURCE_DISPOSITION_SHA = "8e3923ebb4f6d5974a2e632ca32e5406718a5985a8f26a17a75fcbd9a3f4e9df"
@@ -120,7 +123,14 @@ def rust_tokens(lines: list[str]) -> list[tuple[str, int]]:
             i += string_start.end()
             while i < len(text):
                 if text[i] == "\\":
-                    i += 2
+                    if text.startswith("\\\r\n", i):
+                        line += 1
+                        i += 3
+                    elif text.startswith("\\\n", i):
+                        line += 1
+                        i += 2
+                    else:
+                        i += 2
                 elif text[i] == '"':
                     i += 1
                     break
@@ -214,7 +224,7 @@ def lexical_scopes(lines: list[str]) -> dict[int, tuple[str, ...]]:
     headers: list[list[str]] = [[]]
     scopes: dict[int, tuple[str, ...]] = {}
     for token, line in tokens:
-        scopes[line] = tuple(f"{kind}:{name}" for kind, name, _ in frames if kind)
+        scopes.setdefault(line, tuple(f"{kind}:{name}" for kind, name, _ in frames if kind))
         if token == "{":
             item = container_name(headers[-1])
             frames.append((item[0], item[1], line) if item else ("", "", line))
@@ -261,9 +271,12 @@ add([432], "scroll-and-keyboard-sessions", "`reveal_span` keeps the requested co
 add([433], "scroll-and-keyboard-sessions", "Repeating the same cursor in the same viewport is a no-op, so repaint does not undo wheel movement.", "OnMove deduplicates the cursor/viewport pair so repaint does not undo wheel movement.")
 add([434], "scroll-and-keyboard-sessions", "`TrackClick::Jump` centers the thumb at the pointer. `TrackClick::Page` moves one viewport toward the pointer and starts a paging drag.", "The selected track-click mode controls both the press and the continued paging drag.")
 
-add([1114, 1115, 1116, 1117, 1118], "scroll-and-keyboard-sessions", "Negotiation is opt-in. A session that does not call `enter` writes no protocol bytes. `enter` pushes at most one flag sequence and flushes; `leave` pops only a sequence this state pushed, once; `resume` pushes once after suspension.", "Keyboard-protocol session entry is opt-in and push/pop/resume operations are bounded to the current session state.")
-add([1116], "scroll-and-keyboard-sessions", "In `Auto` mode, the caller supplies `detect` from its terminal capability probe", "Auto mode requires a caller-provided capability result.")
-add([1119, 1120, 1121], "scroll-and-keyboard-sessions", "`state`, `is_pushed`, and `is_enabled` only read state and write no bytes.", "State accessors do not write terminal protocol bytes.")
+add([1114, 1115], "scroll-and-keyboard-sessions", "Negotiation is opt-in; without `enter`, no protocol bytes are written.", "Keyboard-protocol negotiation is opt-in for each session.")
+add([1116], "scroll-and-keyboard-sessions", "Each `enter`, `leave`, and `resume` result reports whether that call emitted a sequence. `Ok(true)` means a sequence was emitted. A no-op returns `Ok(false)` without writing or flushing. Emitted sequences are flushed. The boolean does not report enabled or pushed state.", "`enter` returns `Ok(true)` only after emitting and flushing a sequence; a no-op returns `Ok(false)`, distinct from enabled or pushed state.")
+add([1117], "scroll-and-keyboard-sessions", "Each `enter`, `leave`, and `resume` result reports whether that call emitted a sequence. `Ok(true)` means a sequence was emitted. A no-op returns `Ok(false)` without writing or flushing. Emitted sequences are flushed. The boolean does not report enabled or pushed state.", "`leave` reports whether it emitted a pop; a no-op returns `Ok(false)` without writing or flushing.")
+add([1118], "scroll-and-keyboard-sessions", "Each `enter`, `leave`, and `resume` result reports whether that call emitted a sequence. `Ok(true)` means a sequence was emitted. A no-op returns `Ok(false)` without writing or flushing. Emitted sequences are flushed. The boolean does not report enabled or pushed state.", "`resume` reports whether it emitted a push; a no-op returns `Ok(false)` without writing or flushing.")
+add([1116], "scroll-and-keyboard-sessions", "`Auto` uses the caller's capability probe; `On` skips it and `Off` writes no protocol sequence.", "Auto mode requires a caller-provided capability result; enabled and emitted state remain separate.")
+add([1119, 1120, 1121], "scroll-and-keyboard-sessions", "`state`, `is_pushed`, and `is_enabled` only read state.", "State accessors do not write terminal protocol bytes.")
 
 add([300, 314, 315, 325, 326, 327, 328], "theme-presentation-policy", "A `Theme` carries its explicit shared-Manager presentation policy. Cloning or downgrading the theme keeps that policy. A builder made from the theme inherits it until the caller changes it.", "Shared-Manager presentation policy survives clone/downgrade and is inherited by a builder unless changed.")
 add([315, 327, 328], "theme-presentation-policy", "`Paper` selects Paper semantic ink at Mono and TrueColor; its saved Manager layout applies only to an alert-free Saved frame without the detail drawer.", "Paper policy is limited to the stated tiers and Saved-frame conditions.")
@@ -279,7 +292,8 @@ add([321], "modal-backdrop-and-color-downgrade", "`Theme::backdrop_cell` also re
 add([322], "modal-backdrop-and-color-downgrade", "Preserve the glyph, replace modifiers, and set `DIM` only on nonblank dim cells.", "Backdrop mapping preserves symbols, replaces modifiers, and dims only nonblank cells.")
 add([329, 330, 331], "theme-presentation-policy", "`RecipeEdit` records only the intent that the caller expressed. It does not infer ownership by comparing values with a built-in recipe. Keep `Inherit`, `Set`, and `Clear` distinct when declaring glyph or size channels.", "Recipe slots preserve caller intent, including explicit clear and inherit; ownership is not inferred from value equality.")
 add([334], "theme-presentation-policy", "`bind_defaults_with_ownership` returns the same resolved paint as `bind_defaults` and a separate ownership patch. The patch includes eligible profiles and authored Mono rules, then global and scoped overrides and the instance patch in resolver order. Built-in Mono fallback rules do not claim ownership.", "The ownership patch follows resolver precedence without treating built-in Mono fallback as explicit ownership.")
-add([335, 343], "theme-presentation-policy", "`Role` and `ColorTokens` are non-exhaustive. Downstream matches must include a fallback arm for variants added later. Do not rely on a complete `ColorTokens` struct literal.", "Downstream code must allow future Role variants and must not construct a complete ColorTokens literal.")
+add([335], "theme-presentation-policy", "`Role` currently has no `#[non_exhaustive]` marker. An exhaustive downstream match may need an update when a later release adds a variant.", "A downstream exhaustive match may need an update when a later release adds a Role variant. This is source-compatibility guidance, not a compiler restriction.")
+add([343], "theme-presentation-policy", "`ColorTokens` also has no `#[non_exhaustive]` marker, and its public fields permit complete struct literals today. A later field addition may require an update to those literals. For partial customization, start from a built-in theme's `color` tokens and change selected fields.", "Complete ColorTokens literals may need updates when fields are added. For partial customization, start from built-in theme tokens and change selected fields; current legal literals are not forbidden.")
 add([351], "focus-selection-and-gutter-policy", "The theme helpers expose shared policies. Source comments say existing component families still paint through recipe parts until they adopt the helpers.", "Theme helpers are not a claim that all component families use them.")
 add([352, 353, 354, 355, 371, 373, 374], "focus-selection-and-gutter-policy", "Focused items use accent ink. An unfocused item uses accent only when its `InactiveSelection` policy is `Accent`; otherwise it uses primary text.", "Focused and inactive selected-item ink follows InactiveSelection policy.")
 add([352, 364, 365, 366, 372, 373, 374], "focus-selection-and-gutter-policy", "Under a modal or popup, those marks use the neutral policy unless the explicit backdrop policy selects accent.", "Modal/backdrop selection changes only under the explicit BackdropSelection policy.")
@@ -288,37 +302,41 @@ add([361, 362, 363, 370], "focus-selection-and-gutter-policy", "`GutterCell::Inh
 add([367], "focus-selection-and-gutter-policy", "`gutter_symbol` uses `RowBlanked`: it returns the phosphor bar only while the widget is focused and enabled, and otherwise reserves a blank cell.", "The default gutter helper requires focus and an enabled widget.")
 add([368, 369], "focus-selection-and-gutter-policy", "Use `focus_bar_symbol` with an explicit family policy when those defaults do not match the widget.", "Caller-selected focus-bar policy determines the symbol and gutter style.")
 add([375, 377], "focus-selection-and-gutter-policy", "Choose ink against the background. Try the input, a brighter named-ANSI color, Danger and Success, primary text, then the more legible of primary or on-accent ink. If either color has no known RGB, including `Color::Reset`, the contrast ratio is unknown and the pair does not pass this check.", "Legible-mark fallback order is fixed; unknown RGB never passes the contrast check.")
-add([378, 379, 380, 381], "descriptive-and-historical-source-notes", "The retained public theme arrays expose the declared values and order: `COLOR_LEVELS` is `[TrueColor, Ansi256, Ansi16, Mono]`; `FOCUS_BAR_POLICIES` follows `FocusBarPolicy::ALL` as `[RowBlanked, RowKept, FocusVisible]`; `GUTTER_CELLS` follows `GutterCell::ALL` as `[Inherit, Fill]`; and `BACKDROP_SELECTIONS` follows `BackdropSelection::ALL` as `[Neutral, Accent]`.", "Preserve current public array values and order as compatibility data; do not infer coverage or permanent exhaustiveness.")
+add([378, 379, 380, 381], "descriptive-and-historical-source-notes", "The retained public arrays expose their declared values and order. `COLOR_LEVELS` is `[TrueColor, Ansi256, Ansi16, Mono]`. `FOCUS_BAR_POLICIES` follows `FocusBarPolicy::ALL` as `[RowBlanked, RowKept, FocusVisible]`. `GUTTER_CELLS` follows `GutterCell::ALL` as `[Inherit, Fill]`. `BACKDROP_SELECTIONS` follows `BackdropSelection::ALL` as `[Neutral, Accent]`.", "Preserve current public array values and order as compatibility data; do not infer coverage or permanent exhaustiveness.")
 add([311, 312, 313], "focus-selection-and-gutter-policy", "`CursorStyle::Bar` selects the theme focus gutter. `CursorStyle::Fill` highlights the active row and reserves a blank gutter cell. These are public policy choices; this note does not certify every widget's rendering.", "CursorStyle declares Bar and Fill policies; preserve their stated meanings without a widget-wide rendering claim.")
 
 add([756, 751, 1054], "shell-layout-status-and-reports", "The default shell geometry is one header row, one gap row, one footer row, and no inset. Keep the strip rows while the area can hold them; the body uses the remaining rows and may be empty.", "Chrome splitting preserves strip rows when possible and uses the remainder for the body; defaults are fixed.")
-add([762, 763], "shell-layout-status-and-reports", "The source comment says pinned hints survive errors, so it conflicts with the current assignment order.", "Preserve the pinned-survival promise and current normalization order as separate source facts until T19 resolves their precedence.")
+add([762, 763], "shell-layout-status-and-reports", "The source promise that pinned hints survive errors conflicts with this assignment order.", "Preserve the pinned-survival promise and current normalization order as separate source facts until T19 resolves their precedence.")
 add([765, 766], "shell-layout-status-and-reports", "`Hint::new` starts at `HINT_AUTO`.", "New hints default to HINT_AUTO unless the caller changes priority.")
-add([772], "shell-layout-status-and-reports", "The first non-empty layer hint list wins; an empty list does not override earlier hints or fallback.", "The first non-empty layer list takes precedence; an empty list leaves the previous choice intact.")
-add([772], "shell-layout-status-and-reports", "`compose` preserves that order, appends Tab-next once when enabled and not editing, and filters labels: it rejects recognized Shift-pointer labels and requires recorded delivery for recognized Cmd/Super and non-pointer Alt/Option prefixes.", "Tab-next is added once only outside edit mode, and compose applies the documented label filter.")
-add([772], "shell-layout-status-and-reports", "The filter records label policy; it does not prove terminal support or emitted output.", "Hint filtering records label policy only; it does not prove terminal support or output.")
-add([772], "shell-layout-status-and-reports", "If the status tone is `Role::Danger`, it then assigns `HINT_NORMAL` to every remaining hint, including pinned and custom-priority hints. This normalization does not remove or reorder hints; `HINT_AUTO` changes from 0 to 1.", "The source error wording is retained as a conflict while current code normalizes every returned priority.")
-add([764, 771], "shell-layout-status-and-reports", "If the status tone is `Role::Danger`, it then assigns `HINT_NORMAL` to every remaining hint, including pinned and custom-priority hints. This normalization does not remove or reorder hints; `HINT_AUTO` changes from 0 to 1.", "The error path assigns a common priority and does not necessarily reduce each prior numeric value.")
-add([781], "shell-layout-status-and-reports", "The first non-empty layer hint list wins; an empty list does not override earlier hints or fallback.", "Layer hint folding selects the first non-empty list and uses fallback only when no layer supplies one.")
-add([790], "scroll-and-keyboard-sessions", "The shell observes modifier delivery and filters hint labels; the terminal session owns protocol push/pop.", "Shell modifier-delivery hints and terminal keyboard-mode protocol have separate owners.")
+add([772], "shell-layout-status-and-reports", "The first non-empty layer hint list wins. An empty list leaves the prior choice or fallback.", "The first non-empty layer list takes precedence; an empty list leaves the previous choice intact.")
+add([772], "shell-layout-status-and-reports", "`compose` preserves order and appends Tab-next once when enabled outside edit mode.", "Tab-next is added once only outside edit mode, and compose applies the documented label filter.")
+add([772], "shell-layout-status-and-reports", "Filtering records label policy; it does not prove terminal support or emitted output.", "Hint filtering records label policy only; it does not prove terminal support or output.")
+add([772], "shell-layout-status-and-reports", "Danger status then sets every remaining priority to `HINT_NORMAL`, including pinned and custom priorities. It keeps hints and their order. `HINT_AUTO` changes from 0 to 1.", "The source error wording is retained as a conflict while current code normalizes every returned priority.")
+add([764, 771], "shell-layout-status-and-reports", "Danger status then sets every remaining priority to `HINT_NORMAL`, including pinned and custom priorities. It keeps hints and their order. `HINT_AUTO` changes from 0 to 1.", "The error path assigns a common priority and does not necessarily reduce each prior numeric value.")
+add([781], "shell-layout-status-and-reports", "The first non-empty layer hint list wins. An empty list leaves the prior choice or fallback.", "Layer hint folding selects the first non-empty list and uses fallback only when no layer supplies one.")
+add([790], "scroll-and-keyboard-sessions", "The shell observes modifier delivery; the terminal session owns protocol push and pop.", "Shell modifier-delivery hints and terminal keyboard-mode protocol have separate owners.")
 add([801], "shell-layout-status-and-reports", "The shell supplies routing vocabulary and composes its leaves through the runtime. The runtime owns focus, hit testing, pointer routing, layers, and the update loop.", "Shell/runtime ownership is split; the removed reachability harness is not part of the retained shell surface.")
-add([805], "shell-routing-and-page-identity", "`PageKey::of` hashes the caller's value; include route and visit token when same-route re-entry must differ, but do not treat a 64-bit hash as a collision-free domain key.", "PageKey::of is hash-based; callers that need same-route visit distinction must include a visit token and still account for the open counter identity limit.")
-add([803, 813], "shell-routing-and-page-identity", "Source comments promise that revisits get different keys and describe the counter as monotonic. The implementation advances one shared `u64` visit counter with `wrapping_add(1)`; `key()` uses zero as its absent-entry fallback. It therefore provides no non-reuse guarantee at counter exhaustion. T19-VISIT-KEY-01 remains open: define safe identity behavior at exhaustion before claiming unbounded distinct visits.", "Preserve the revisit-identity promise as an open requirement; do not claim non-reuse at counter exhaustion.")
-add([989, 992], "shell-routing-and-page-identity", "`KeyBinding.priority` is an ordering weight for footer hints; lower values come first when a consumer uses it to order hints. The shell exposes this field but has no production consumer that sorts or renders it in the fixed source tree. This records the declared field meaning, not current presentation behavior. T01 must inventory its current owner.", "Preserve the declared lower-first ordering meaning for KeyBinding.priority without claiming current product sorting or rendering.")
-add([1024, 1025, 1026], "shell-routing-and-page-identity", "Run the `priority` tier before page input. With a key-capturing component, give the page a chance before the `keys` tier. Otherwise, run the `keys` tier, then app chrome, then the page. The `keys` tier holds the shell's own bindings. Run `fallback` only after earlier handlers decline.", "Priority is before the page; Keys is the shell tier; Fallback runs after earlier handlers decline.")
-add([899, 900], "shell-routing-and-page-identity", "A `Resolved::Save` result means save first, then carry out the pending leave; `Resolved::Discard` means abandon unsaved changes, then carry it out.", "Save before continuing the leave; abandon unsaved changes before continuing after Discard.")
-add([1094], "shell-layout-status-and-reports", "`end_job` returns true only when it ends the message currently owned by that job.", "end_job reports and clears only a visible message owned by the requested job.")
-add([806, 807, 808, 809, 810, 811, 812], "shell-routing-and-page-identity", "`Push` adds a page above the active top without dropping pages. `Replace` swaps and drops the old top. `Reset` replaces the active stack with a new root and drops every old entry. `Back` drops the top only when the stack has more than its root. `PopTo(d)` keeps `d + 1` entries and drops later entries when any remain. `Tab` switches stacks without dropping pages.", "The Nav operation determines stack mutation and the pages that must pass through the leave guard.")
-add([809, 834], "shell-routing-and-page-identity", "`Reset` replaces the active stack with a new root and drops every old entry.", "Reset replaces the active stack, so dropped pages must be checked against their stakes.")
-add([815], "shell-routing-and-page-identity", "`Router::with_tabs` requires at least one root and panics when the root list is empty.", "with_tabs has a nonempty-root precondition and panics on an empty root list.")
-add([816], "shell-routing-and-page-identity", "The router keeps an active tab; its optional active-stack accessor returns no stack if that invariant fails, rather than panicking.", "The active-stack accessor is total and returns None when the active-tab invariant is broken.")
-add([831], "shell-routing-and-page-identity", "A pop keeps the root; closing a tab returns no result for an invalid index or the last remaining tab, and a successful close returns its pages while preserving a tab.", "Back/pop retains the root entry.")
-add([835], "shell-routing-and-page-identity", "`select` returns false for an out-of-range or already active tab.", "Tab selection reports false for invalid or no-op selection.")
+add([805], "shell-routing-and-page-identity", "`PageKey::of` hashes the caller's value.", "PageKey::of derives page identity from the caller's hashable value.")
+add([803, 813], "shell-routing-and-page-identity", "Source comments promise distinct revisit keys and call the counter monotonic. The implementation advances one shared `u64` counter with `wrapping_add(1)`. `key()` uses zero when no entry exists. No non-reuse guarantee exists at exhaustion.", "Preserve the revisit-identity promise as an open requirement; do not claim non-reuse at counter exhaustion.")
+add([989, 992], "shell-routing-and-page-identity", "`KeyBinding.priority` is an ordering weight for footer hints. Lower values come first when a consumer sorts hints.", "Preserve the declared lower-first ordering meaning for KeyBinding.priority without claiming current product sorting or rendering.")
+add([1024, 1025, 1026], "shell-routing-and-page-identity", "Run the `priority` tier before page input. During capture, offer `page_key` before the `keys` tier. Without capture, run `keys`, then app chrome, then the page.", "Priority is before the page; Keys is the shell tier; Fallback runs after earlier handlers decline.")
+add([899, 900], "shell-routing-and-page-identity", "After `Resolved::Save`, save before continuing the leave. After `Resolved::Discard`, abandon changes before continuing.", "Save before continuing the leave; abandon unsaved changes before continuing after Discard.")
+add([806], "shell-routing-and-page-identity", "Check dropped pages top-first through the leave guard before applying a move.", "Nav requests are resolved through the quit guard before application.")
+add([807], "shell-routing-and-page-identity", "`Push` adds a page above the active top without dropping pages.", "Push shows a new route above the active page without dropping the current stack.")
+add([808], "shell-routing-and-page-identity", "`Replace` swaps and drops the old top.", "Replace swaps the active top and returns the dropped page for guard handling.")
+add([809, 834], "shell-routing-and-page-identity", "`Reset` replaces the stack and drops every old entry.", "Reset replaces the active stack and drops its old entries.")
+add([810], "shell-routing-and-page-identity", "`Back` drops the top only when a non-root page exists.", "Back retains the root entry.")
+add([811], "shell-routing-and-page-identity", "`PopTo(d)` keeps `d + 1` entries and drops later entries.", "PopTo retains the requested depth and drops later pages.")
+add([812], "shell-routing-and-page-identity", "`Tab` switches stacks without dropping pages.", "Tab selection switches stacks without dropping their pages.")
+add([815], "shell-routing-and-page-identity", "`Router::with_tabs` requires a root and panics when roots are empty.", "with_tabs has a nonempty-root precondition and panics on an empty root list.")
+add([816], "shell-routing-and-page-identity", "Its optional accessor returns `None` if that invariant fails.", "The active-stack accessor returns None if the active-tab invariant fails.")
+add([831], "shell-routing-and-page-identity", "A pop keeps the root.", "Back/pop retains the root entry.")
+add([835], "shell-routing-and-page-identity", "`select` returns false for an out-of-range or active tab.", "Tab selection reports false for invalid or no-op selection.")
 add([836], "shell-routing-and-page-identity", "Opening a tab creates and activates its root stack.", "Opening selects the new root stack.")
-add([837], "shell-routing-and-page-identity", "closing a tab returns no result for an invalid index or the last remaining tab, and a successful close returns its pages while preserving a tab.", "Closing rejects an invalid or final tab and returns removed page ownership while preserving a tab.")
-add([838], "shell-routing-and-page-identity", "A move that drops no page needs no leave confirmation.", "A move with no dropped page does not require a leave guard.")
-add([839], "shell-routing-and-page-identity", "Check dropped pages in top-first order and pass their stakes through the leave guard before applying a move.", "Check each dropped page in top-first order before applying the move.")
-add([840], "shell-routing-and-page-identity", "Apply a confirmed move only after its leave dialog resolves; the result lists dropped pages top first.", "Apply a guarded move after dialog resolution and preserve top-first dropped-page reporting.")
+add([837], "shell-routing-and-page-identity", "Closing an invalid or final tab returns no result. Successful close returns its pages and preserves one tab.", "Closing rejects an invalid or final tab and returns removed page ownership while preserving a tab.")
+add([838], "shell-routing-and-page-identity", "A move that drops no page needs no confirmation.", "A move with no dropped page does not require a leave guard.")
+add([839], "shell-routing-and-page-identity", "Check dropped pages top-first through the leave guard before applying a move.", "Check each dropped page in top-first order before applying the move.")
+add([840], "shell-routing-and-page-identity", "Apply confirmed moves after dialog resolution. Results list dropped pages top-first.", "Apply a guarded move after dialog resolution and preserve top-first dropped-page reporting.")
 add([842, 848], "shell-routing-and-page-identity", "Pass the number of extra rendered levels to click mapping; those levels shift the clicked index to its `PopTo` depth.", "Breadcrumb click mapping accounts for extra rendered levels.")
 add([841, 843, 844, 845, 846, 847], "shell-routing-and-page-identity", "Crumb segments are built from the active stack, root first. Use their emitted child IDs when registering hits. Every segment except the final one links back.", "Breadcrumb labels follow stack order, use emitted child IDs, and expose only nonfinal links.")
 add([849], "shell-routing-and-page-identity", "Every segment except the final one links back.", "Only nonfinal breadcrumb segments are links.")
@@ -326,62 +344,97 @@ add([850], "shell-layout-status-and-reports", "Drain page-owned intents in `upda
 add([852], "shell-layout-status-and-reports", "Drain page-owned intents in `update`. Focus changes, ticks, keys, pastes, pointer events, and layer events arrive through those intents.", "Page event kinds arrive as owner-scoped intents to update.")
 add([853], "shell-layout-status-and-reports", "Draw into the shell body region.", "Page drawing uses the body region supplied by the shell.")
 add([854], "shell-layout-status-and-reports", "Use the shell-resolved body bounds for layout-relative drawing and registration.", "Layout-relative drawing and hit registration use the shell-provided body bounds.")
-add([857], "shell-routing-and-page-identity", "Focus upkeep compares page keys to identify page changes and focus a page's primary control when it appears.", "Page primary focus is coupled to page appearance and visit identity.")
-add([858], "shell-layout-status-and-reports", "appends Tab-next once when enabled and not editing", "Tab-next is hidden while the text field owns typing.")
+add([857], "shell-routing-and-page-identity", "Focus upkeep compares page keys to detect page changes. It focuses the primary control when a page appears.", "Page primary focus is coupled to page appearance and visit identity.")
+add([858], "shell-layout-status-and-reports", "appends Tab-next once when enabled outside edit mode", "Tab-next is hidden while the text field owns typing.")
 add([859], "shell-layout-status-and-reports", "Report `animating` only while the runtime should keep repainting.", "The animation flag controls continued runtime repainting.")
 add([860], "shell-layout-status-and-reports", "Use `on_show` for enter work.", "on_show is the page-enter hook.")
-add([861], "shell-routing-and-page-identity", "when no selection exists, the page interrupt hook may cancel work before the quit request.", "The interrupt hook may cancel page work when Ctrl+C has no selection to copy.")
+add([861], "shell-routing-and-page-identity", "Without a selection, the page interrupt hook may cancel work before quit.", "The interrupt hook may cancel page work when Ctrl+C has no selection to copy.")
 add([855], "shell-routing-and-page-identity", "Crumb segments are built from the active stack, root first.", "A Page label names its segment in the root-first navigation trail.")
-add([856], "shell-routing-and-page-identity", "Check dropped pages in top-first order and pass their stakes through the leave guard before applying a move.", "Page stakes are evaluated for each dropped page before navigation applies.")
-add([862], "shell-routing-and-page-identity", "When a menu or hint represents a key, use `replay_key`. It maps newline to Enter, arrows to arrow keys, Escape to Esc, and other characters to an unmodified character key.", "Replayed menu/hint keys use the defined character-to-key mapping.")
+add([856], "shell-routing-and-page-identity", "Check dropped pages top-first through the leave guard before applying a move.", "Page stakes are evaluated for each dropped page before navigation applies.")
+add([862], "shell-routing-and-page-identity", "Use `replay_key` when a menu or hint represents a key. Newline maps to Enter. Arrows map to arrow keys. Escape maps to Esc. Other characters map to unmodified character keys.", "Replayed menu/hint keys use the defined character-to-key mapping.")
 add([863], "shell-layout-status-and-reports", "`rebuild_on_tick` runs the update closure and reports whether the view changed. Use that result to avoid repainting an unchanged view.", "Tick rebuild result reports view change and can avoid unchanged repaint.")
 add([865], "shell-layout-status-and-reports", "The `page_leaf` adapter borrows the page for the returned leaf's use.", "The borrowed page must outlive the composition leaf use.")
 add([867, 868], "shell-routing-and-page-identity", "A clean stake returns the requested leave without a dialog.", "A clean stake leaves without opening a confirmation dialog.")
-add([869, 870], "shell-routing-and-page-identity", "Unsaved stakes record the count of changes at risk.", "The Unsaved stake carries the count of changes at risk.")
-add([871, 872], "shell-routing-and-page-identity", "Running stakes name work that stopping abandons.", "The Running stake names the work that stopping abandons.")
-add([874], "shell-routing-and-page-identity", "Running work outranks unsaved changes; unsaved counts add with saturation.", "Combining stakes prioritizes running work and saturates unsaved counts.")
-add([876, 881], "shell-routing-and-page-identity", "Ctrl+C classifies as Copy when a selection exists and Quit otherwise", "A selection changes Ctrl+C from a quit request into a copy action.")
-add([877, 884], "shell-routing-and-page-identity", "Ctrl+Q classifies as Quit when enabled, then the leave guard handles stakes.", "Enabled Ctrl+Q asks the leave guard to handle stakes.")
-add([879], "shell-routing-and-page-identity", "Let a text field receive bare letters while it owns typing.", "A text field retains bare-letter input while it owns typing.")
-add([880, 885, 893], "shell-routing-and-page-identity", "The configured letter classifies as Quit only when no text field owns typing and the page is clean", "A dirty page or active text field blocks the configured quit letter.")
-add([882, 883, 887], "shell-routing-and-page-identity", "The defaults are Ctrl+C, Ctrl+Q, and `q`; Escape does not quit.", "Preserve the declared default quit chords and letter.")
-add([886, 889], "shell-routing-and-page-identity", "Escape quitting is opt-in, only applies without text focus, and follows earlier handlers.", "Escape may request quit only when enabled, without text focus, and after earlier handlers decline.")
-add([888], "shell-routing-and-page-identity", "callers can set another letter or disable it with `None`.", "The caller may change or remove the configured quit letter.")
-add([890], "shell-routing-and-page-identity", "Ctrl+C classifies as Copy when a selection exists and Quit otherwise; when no selection exists, the page interrupt hook may cancel work before the quit request.", "Classification uses key context and gives the page interrupt hook the no-selection path.")
+add([869, 870], "shell-routing-and-page-identity", "Unsaved stakes record changes at risk.", "The Unsaved stake carries the count of changes at risk.")
+add([871, 872], "shell-routing-and-page-identity", "Running stakes name abandoned work.", "The Running stake names the work that stopping abandons.")
+add([874], "shell-routing-and-page-identity", "Running work outranks unsaved changes. Unsaved counts add with saturation.", "Combining stakes prioritizes running work and saturates unsaved counts.")
+add([876, 881], "shell-routing-and-page-identity", "Ctrl+C requests Copy with a selection and Quit without one.", "A selection changes Ctrl+C from a quit request into a copy action.")
+add([877, 884], "shell-routing-and-page-identity", "Enabled Ctrl+Q requests quit through the leave guard.", "Enabled Ctrl+Q asks the leave guard to handle stakes.")
+add([879], "shell-routing-and-page-identity", "Text fields receive bare letters while they own typing.", "A text field retains bare-letter input while it owns typing.")
+add([880, 885, 893], "shell-routing-and-page-identity", "It quits only without text focus and when the page is clean.", "A dirty page or active text field blocks the configured quit letter.")
+add([882, 883, 887], "shell-routing-and-page-identity", "Defaults are Ctrl+C, Ctrl+Q, and `q`. Escape does not quit.", "Preserve the declared default quit chords and letter.")
+add([886, 889], "shell-routing-and-page-identity", "Escape quit is opt-in. It applies without text focus after earlier handlers decline.", "Escape may request quit only when enabled, without text focus, and after earlier handlers decline.")
+add([888], "shell-routing-and-page-identity", "The configured letter can change or be disabled with `None`.", "The caller may change or remove the configured quit letter.")
+add([890], "shell-routing-and-page-identity", "Ctrl+C requests Copy with a selection and Quit without one. Without a selection, the page interrupt hook may cancel work before quit.", "Classification uses selection state and gives the page interrupt hook the no-selection path.")
 add([891], "shell-routing-and-page-identity", "Ctrl+C and Ctrl+Q require the exact Control chord.", "Control quit chords require an exact modifier match.")
-add([892], "shell-routing-and-page-identity", "The configured letter may be plain or Shifted, with no other modifiers.", "Quit letters accept only no modifiers or Shift.")
-add([1012], "shell-routing-and-page-identity", "A dirty page blocks the letter and may show `dirty_letter_note`.", "The optional dirty-letter note reports a blocked quit letter.")
-add([901, 914], "shell-routing-and-page-identity", "For other stakes, `request` keeps the pending leave while the app shows the dialog; report the chosen answer to `resolve`.", "The guard retains the requested leave while the application displays and resolves its dialog.")
-add([901], "shell-routing-and-page-identity", "The app renders the requested dialog with its own component and follows the selected kind's action meanings.", "The app supplies the dialog renderer and preserves the selected kind's declared action meaning.")
-add([903, 907], "shell-routing-and-page-identity", "`SaveDiscardCancel` offers Cancel, Discard, and a focused Save action", "SaveDiscardCancel offers its declared actions and focuses Save.")
+add([892], "shell-routing-and-page-identity", "The configured letter accepts no modifiers or Shift.", "Quit letters accept only no modifiers or Shift.")
+add([1012], "shell-routing-and-page-identity", "A dirty page blocks it and may show `dirty_letter_note`.", "The optional dirty-letter note reports a blocked quit letter.")
+add([901, 914], "shell-routing-and-page-identity", "Other requests remain pending while the app displays its dialog. Report the chosen answer to `resolve`.", "The guard retains the requested leave while the application displays and resolves its dialog.")
+add([901], "shell-routing-and-page-identity", "The app renders the requested dialog and follows its action meanings.", "The app supplies the dialog renderer and preserves the selected kind's declared action meaning.")
+add([903, 907], "shell-routing-and-page-identity", "`SaveDiscardCancel` offers Cancel, Discard, and focused Save.", "SaveDiscardCancel offers its declared actions and focuses Save.")
 add([903, 908], "shell-routing-and-page-identity", "`DiscardOnly` offers Cancel and Discard", "DiscardOnly offers Cancel and Discard, without Save.")
-add([903, 909], "shell-routing-and-page-identity", "`StopStay` offers Stay and Stop and leave", "StopStay exposes Stay and Stop-and-leave choices.")
-add([900, 907, 908, 909], "shell-routing-and-page-identity", "A `Resolved::Save` result means save first, then carry out the pending leave; `Resolved::Discard` means abandon unsaved changes, then carry it out.", "The caller performs the selected save or discard before carrying out the leave.")
-add([910, 911, 912, 913], "shell-routing-and-page-identity", "Report `First` for Cancel or Stay, `Second` for Discard or Stop and leave, and `Third` for Save only when that kind offers it.", "The reported answer index must match the offered dialog action.")
-add([916], "shell-routing-and-page-identity", "A read-only context offers Stay or Discard, not Save.", "Read-only contexts do not offer Save.")
-add([917], "shell-routing-and-page-identity", "A new guard starts with Save enabled", "A new leave guard allows the Save action unless changed by the caller.")
+add([903, 909], "shell-routing-and-page-identity", "`StopStay` offers Stay and Stop-and-leave.", "StopStay exposes Stay and Stop-and-leave choices.")
+add([900, 907, 908, 909], "shell-routing-and-page-identity", "After `Resolved::Save`, save before continuing the leave. After `Resolved::Discard`, abandon changes before continuing.", "The caller performs the selected save or discard before carrying out the leave.")
+add([910, 911, 912, 913], "shell-routing-and-page-identity", "Report `First` for Cancel or Stay. Report `Second` for Discard or Stop-and-leave. Report `Third` for Save only when offered.", "The reported answer index must match the offered dialog action.")
+add([916], "shell-routing-and-page-identity", "Read-only contexts offer Stay or Discard, not Save.", "Read-only contexts do not offer Save.")
+add([917], "shell-routing-and-page-identity", "New guards allow Save.", "A new leave guard allows the Save action unless changed by the caller.")
 add([918], "shell-routing-and-page-identity", "`save(false)` offers Discard instead of Save for unsaved changes", "The caller can disable Save to offer Discard in its place.")
 add([919], "shell-routing-and-page-identity", "A clean stake returns the requested leave without a dialog.", "A clean leave request proceeds without a confirmation dialog.")
-add([920], "shell-routing-and-page-identity", "Ctrl+Q classifies as Quit when enabled, then the leave guard handles stakes.", "A quit request passes its stakes through the leave guard.")
-add([922], "shell-routing-and-page-identity", "`request` keeps the pending leave while the app shows the dialog", "The caller keeps the pending leave while the dialog is open.")
-add([923], "shell-routing-and-page-identity", "`resolve` consumes the pending leave; with no pending leave it returns Stay.", "Resolution consumes the pending leave; resolving with no pending path returns Stay.")
-add([916], "shell-routing-and-page-identity", "A read-only context offers Stay or Discard, not Save.", "Read-only guard contexts cannot offer Save.")
-add([967, 977, 978, 982, 986, 987], "shell-layout-status-and-reports", "The default report puts its heading, subheading, empty state, and body on successive rows, with one column of inset on each side. Its inset and row policy can be changed. A configured minimum detail height controls whether the subheading and empty state are shown; zero means no minimum-height gate. Clip every line to the report area and stop body rows at the allocated bottom edge. A lazy report requests only rows that fit the allocation.", "Report row placement, threshold, clipping, and lazy iteration are source-defined rendering constraints.")
-add([988, 994, 1005, 1007, 1008, 1009, 1010, 1013, 1027, 1030, 1031, 1032, 1033, 1034, 1035, 1036, 1038, 1039, 1040, 1043, 1046, 1048, 1049], "shell-routing-and-page-identity", "Ask the active layer first; if it returns `Some`, stop the route even when its response is not consumed. Ask the open menu next; `Some` also stops the route. Run the `priority` tier before page input. With a key-capturing component, give the page a chance before the `keys` tier. Otherwise, run the `keys` tier, then app chrome, then the page. The `keys` tier holds the shell's own bindings. Run `fallback` only after earlier handlers decline.", "Routing is ordered across layer, menu, priority, capture, page, chrome, keys, and fallback, with exact chord matching.")
-add([1010, 1020], "shell-routing-and-page-identity", "A text focus or active capture quiets bare-character bindings and `idle_only` actions, including `idle_only` actions on non-character chords.", "Text focus and component capture suppress bare-character bindings; idle_only suppresses its actions for any chord under either owner.")
-add([1015, 1016, 1017, 1018], "shell-routing-and-page-identity", "`bind`, `bind_priority`, `bind_fallback`, and `bind_with` put a new binding before peers in that tier; exact-chord lookup uses the first match.", "New bindings take precedence over existing same-tier peers for an exact chord.")
-add([1019], "shell-routing-and-page-identity", "`unbind` removes matching chords from all three tiers.", "Unbinding removes the matching exact chord from every shell tier.")
-add([1041, 1042, 1047], "shell-routing-and-page-identity", "For a paste, give the open layer the first chance, then the page.", "Paste input goes to an open layer before the page.")
+add([920], "shell-routing-and-page-identity", "Enabled Ctrl+Q requests quit through the leave guard.", "A quit request passes its stakes through the leave guard.")
+add([922], "shell-routing-and-page-identity", "Other requests remain pending while the app displays its dialog.", "The caller keeps the pending leave while the dialog is open.")
+add([923], "shell-routing-and-page-identity", "`resolve` consumes the pending leave; without one, it returns Stay.", "Resolution consumes the pending leave; resolving with no pending path returns Stay.")
+add([916], "shell-routing-and-page-identity", "Read-only contexts offer Stay or Discard, not Save.", "Read-only guard contexts cannot offer Save.")
+add([967, 977, 978, 982, 986], "shell-layout-status-and-reports", "The default report uses successive rows and one column of inset on each side. Callers may change the inset and row policy. Minimum detail height controls subheading and empty-state visibility; zero disables that gate. Lines clip to the report area. Body rows stop at its bottom edge. `draw_rows` streams the supplied iterator without collecting a per-frame vector. It requests only rows that fit the allocation.", "Report geometry, threshold, clipping, bottom edge, and bounded lazy iteration are source-defined rendering constraints.")
+add([987], "shell-layout-status-and-reports", "`draw_rows` streams the supplied iterator without collecting a per-frame vector. It requests only rows that fit the allocation.", "draw_rows must preserve iterator streaming and the no-per-frame-vector constraint while requesting only rows that fit.")
+add([988], "shell-routing-and-page-identity", "Run the `priority` tier before page input. During capture, offer `page_key` before the `keys` tier. Without capture, run `keys`, then app chrome, then the page.", "The module documents priority, capture, and ordinary routing order; the page-versus-keys source conflict remains separately open.")
+add([988], "shell-routing-and-page-identity", "Runtime focus handles Tab and BackTab before app handlers. Shell focus actions remain available for custom chords; default Tab bindings do not move focus.", "The module documents that runtime focus owns default Tab movement while shell focus actions remain available on custom chords.")
+add([1005], "shell-routing-and-page-identity", "Run the `priority` tier before page input. During capture, offer `page_key` before the `keys` tier. Without capture, run `keys`, then app chrome, then the page. This order conflicts with the source promise that `keys` runs after the page yields. Keep T19-KEYS-TIER-01 open.", "The three-tier comment's page-order promise conflicts with current capture and ordinary routing; keep that policy open under T19-KEYS-TIER-01.")
+add([1005], "shell-routing-and-page-identity", "The `keys` tier holds shell bindings. Run `fallback` only after earlier handlers decline.", "The keys tier holds shell bindings; fallback runs only after earlier handlers decline.")
+add([1005], "shell-routing-and-page-identity", "Text focus or capture quiets bare-character bindings and `idle_only` actions, including actions on non-character chords.", "Text focus or capture suppresses bare-character bindings; idle_only also suppresses its actions on non-character chords.")
+add([1007], "shell-routing-and-page-identity", "Run the `priority` tier before page input.", "The priority tier runs before page input.")
+add([1008], "shell-routing-and-page-identity", "This order conflicts with the source promise that `keys` runs after the page yields. Keep T19-KEYS-TIER-01 open.", "The source comment promises the keys tier runs after page decline; current order differs, so T19-KEYS-TIER-01 remains open.")
+add([1009], "shell-routing-and-page-identity", "Run `fallback` only after earlier handlers decline.", "Fallback runs only after earlier handlers decline.")
+add([1010], "shell-routing-and-page-identity", "Text focus or capture quiets bare-character bindings and `idle_only` actions, including actions on non-character chords.", "Text focus or capture suppresses bare-character bindings; idle_only also suppresses its actions on non-character chords.")
+add([1027], "shell-routing-and-page-identity", "The app owns layers, menus, pages, and commands. The shell supplies its key tiers and quit vocabulary.", "The host supplies app-owned layers, menus, pages, and commands; the shell supplies its tiers and quit vocabulary.")
+add([1030], "shell-routing-and-page-identity", "Ask the active layer first. A consumed response ends routing. An unconsumed `Some` also stops ordinary page and key routing. Before returning it, an enabled modified quit chord can still request quit.", "The active layer answers first; its response ends ordinary routing, with the documented modified-quit exception before return.")
+add([1031], "shell-routing-and-page-identity", "Ask the open menu next; any `Some` ends routing.", "The open menu answers after the layer; any Some ends routing.")
+add([1032], "shell-routing-and-page-identity", "During capture, offer `page_key` before the `keys` tier.", "When a component captures keys, the page gets the documented chance before the keys tier.")
+add([1033], "shell-routing-and-page-identity", "Text focus or capture quiets bare-character bindings and `idle_only` actions, including actions on non-character chords.", "Text focus quiets bare-character bindings and idle_only actions, including non-character chords.")
+add([1035], "shell-routing-and-page-identity", "It quits only without text focus and when the page is clean. A dirty page blocks it and may show `dirty_letter_note`.", "Quit letters require no text focus and a clean page; a dirty page can show the configured note.")
+add([1038], "shell-routing-and-page-identity", "App chrome receives non-printable keys.", "The app-chrome handler receives non-printable key input.")
+add([1039], "shell-routing-and-page-identity", "During capture, offer `page_key` before the `keys` tier. Without capture, run `keys`, then app chrome, then the page.", "Ordinary routing reaches the page after keys and chrome; capture gives the page a chance before keys.")
+add([1040], "shell-routing-and-page-identity", "Escape asks the top layer, then tries shell Back; it does not quit.", "Escape first asks the top layer and then invokes shell Back without requesting quit.")
+add([1048], "shell-routing-and-page-identity", "Ask the active layer first. A consumed response ends routing. An unconsumed `Some` also stops ordinary page and key routing. Before returning it, an enabled modified quit chord can still request quit. Ask the open menu next; any `Some` ends routing. Run the `priority` tier before page input.", "Key routing checks the active layer, then menu, then priority before the remaining route.")
+add([1048], "shell-routing-and-page-identity", "On parity, the runtime drops hover state on every key press before app routing; the router does no hover work.", "On parity, key input clears hover in the runtime before routing; the router does not handle hover.")
+add([994], "shell-routing-and-page-identity", "Match the exact key and modifier chord.", "Lookup matches only the exact key and modifier chord.")
+add([1013], "shell-routing-and-page-identity", "The standard shell vocabulary includes F1 help, menu, Ctrl+PgDn/PgUp, Tab focus actions, and Escape back.", "The standard shell vocabulary includes the documented help, menu, page, focus, and Escape actions.")
+add([1018], "shell-routing-and-page-identity", "`bind_with` inserts the caller's supplied binding, including its priority, at the front of the selected tier.", "bind_with preserves the caller-supplied footer-hint priority while inserting at the front of the requested tier.")
+add([1034], "shell-routing-and-page-identity", "Without a selection, the page interrupt hook may cancel work before quit.", "Without a selection, Ctrl+C offers the page interrupt hook before a quit request.")
+add([1036], "shell-routing-and-page-identity", "Ctrl+C requests Copy with a selection and Quit without one.", "Selection state changes Ctrl+C from Quit to Copy.")
+add([1043], "shell-routing-and-page-identity", "Enabled Ctrl+Q requests quit through the leave guard.", "The quit path uses the leave guard and opens its dialog when required.")
+add([1046], "shell-routing-and-page-identity", "`KeyRouter::input` routes keys and pastes; it ignores other event kinds.", "Input dispatch routes keys and pastes through their handlers and ignores other event kinds.")
+add([1049], "shell-routing-and-page-identity", "Use `replay_key` when a menu or hint represents a key. Newline maps to Enter. Arrows map to arrow keys. Escape maps to Esc. Other characters map to unmodified character keys.", "Menu replay maps its represented character to the documented key and routes that key normally.")
+add([1010, 1020], "shell-routing-and-page-identity", "Text focus or capture quiets bare-character bindings and `idle_only` actions, including actions on non-character chords.", "Text focus and component capture suppress bare-character bindings; idle_only suppresses its actions for any chord under either owner.")
+add([1015, 1016, 1017, 1018], "shell-routing-and-page-identity", "New bindings go before peers in their tier; exact lookup uses the first matching chord.", "New bindings take precedence over existing same-tier peers for an exact chord.")
+add([1019], "shell-routing-and-page-identity", "`unbind` removes matches from all tiers.", "Unbinding removes the matching exact chord from every shell tier.")
+add([1041, 1042, 1047], "shell-routing-and-page-identity", "Paste goes to the open layer, then the page.", "Paste input goes to an open layer before the page.")
 add([1050, 1063, 1069, 1070], "shell-layout-status-and-reports", "The outer composition spec controls only the one-child shell adapter, not the space between shell regions. Keep `ShellSlots` alive while a borrowed shell group is in use. `AppShell::show` resolves the three slots from the framework root and draws each visible leaf once.", "Shell regions share one chrome resolver; the borrowed slots live through use, and visible leaves draw once per show.")
-add([1079, 1080, 1081, 1082, 1083], "shell-layout-status-and-reports", "The shared roles are Error → Danger, Success → Success, Normal → primary foreground, and Secondary → secondary foreground.", "Status tones map onto shared theme roles.")
-add([1084, 1088, 1089, 1105, 1109], "shell-layout-status-and-reports", "Information expires after five seconds by default; `ttl_ms` changes that limit. Errors do not expire on time. A key, paste, mouse Down, or Secondary press clears an error; Tick, Resize, and other mouse input do not.", "Informational TTL and error-clear events use distinct rules.")
-add([1085, 1095, 1110, 1111], "shell-layout-status-and-reports", "A progress message belongs to a job and ends when that job ends. Use a distinct `JobKey` for each live job that must end independently. Setting another message does not end the job.", "Progress messages have independent job ownership; replacing text does not end a job.")
-add([1088, 1092, 1093, 1096, 1097, 1099, 1105, 1106, 1107, 1108], "shell-layout-status-and-reports", "Observe the feedback clock before using `set` or `set_with`; the `_at` forms observe it for you.", "Observed-clock and explicit-clock APIs have distinct preconditions.")
-add([1106], "shell-layout-status-and-reports", "A key, paste, mouse Down, or Secondary press clears an error; Tick, Resize, and other mouse input do not.", "Only key, paste, Down, and Secondary input clear an error.")
-add([759, 762, 763, 764, 765, 766, 772, 773, 774, 775, 776, 778, 779, 781, 789], "shell-layout-status-and-reports", "`compose` preserves that order, appends Tab-next once when enabled and not editing, and filters labels: it rejects recognized Shift-pointer labels and requires recorded delivery for recognized Cmd/Super and non-pointer Alt/Option prefixes.", "Footer composition keeps input order, defines empty/fallback behavior, and gates Tab-next and key labels.")
-add([790], "scroll-and-keyboard-sessions", "The shell observes modifier delivery and filters hint labels; the terminal session owns protocol push/pop.", "Modifier hint delivery and terminal keyboard-mode negotiation have different owners.")
-add([793, 794, 795, 796, 797, 798], "shell-layout-status-and-reports", "`observe` handles key input only. An explicit refusal of Super or Alt stays in force; otherwise, a matching key input can record delivery. The accessors read cached state; they return false until state is set to delivered or observed. The setters record caller-supplied probe or capability answers. The filter records label policy; it does not prove terminal support or emitted output.", "Modifier observation respects explicit refusal; accessors read cached answers; recognized label prefixes consult delivery state without proving terminal support.")
-add([806, 807, 808, 809, 810, 811, 812], "shell-routing-and-page-identity", "Check dropped pages in top-first order and pass their stakes through the leave guard before applying a move. A move that drops no page needs no leave confirmation.", "The application applies a Nav request only after checking every page it drops.")
+add([1079, 1080, 1081, 1082, 1083], "shell-layout-status-and-reports", "Shared roles map Error to Danger, Success to Success, Normal to primary foreground, and Secondary to secondary foreground.", "Status tones map onto shared theme roles.")
+add([1084, 1088, 1089, 1105, 1109], "shell-layout-status-and-reports", "Information expires after five seconds by default; `ttl_ms` changes that limit. Errors do not expire on time. Key, paste, mouse Down, or Secondary input clears an error. Tick, Resize, and other mouse input do not.", "Informational TTL and error-clear events use distinct rules.")
+add([1085, 1095, 1110, 1111], "shell-layout-status-and-reports", "A progress message belongs to a job and ends with that job. Use distinct `JobKey` values for jobs that end independently. Replacing text does not end the job.", "Progress messages have independent job ownership; replacing text does not end a job.")
+add([1088, 1092, 1093, 1096, 1105, 1107, 1108], "shell-layout-status-and-reports", "Observe the feedback clock before `set` or `set_with`; `_at` forms observe it for you.", "Observed-clock and explicit-clock APIs have distinct preconditions.")
+add([1097], "shell-layout-status-and-reports", "`clear` removes the current message and returns true only when one existed.", "clear removes the current message and returns true exactly when one existed.")
+add([1099], "shell-layout-status-and-reports", "`entry` returns current text, tone, and payload, or `None`.", "entry queries the current complete message without mutation and returns None when empty.")
+add([1106], "shell-layout-status-and-reports", "Key, paste, mouse Down, or Secondary input clears an error. Tick, Resize, and other mouse input do not.", "Only key, paste, Down, and Secondary input clear the error.")
+add([1106], "shell-layout-status-and-reports", "`on_input` returns whether the line changed; callers fold that value into `Response`.", "on_input returns its changed flag so callers can fold the change into Response.")
+add([759, 762, 763, 764, 765, 766, 772, 773, 774, 775, 776, 778, 779, 781, 789], "shell-layout-status-and-reports", "`compose` preserves order and appends Tab-next once when enabled outside edit mode.", "Footer composition keeps input order, defines empty/fallback behavior, and gates Tab-next and key labels.")
+add([790], "scroll-and-keyboard-sessions", "The shell observes modifier delivery; the terminal session owns protocol push and pop.", "Modifier hint delivery and terminal keyboard-mode negotiation have different owners.")
+add([793, 795], "shell-layout-status-and-reports", "Accessors read cached state and return false before delivery or observation.", "Super and Alt accessors return cached delivery state and remain false before an observation or supplied answer.")
+add([794, 796], "shell-layout-status-and-reports", "Setters record caller-provided probe or capability answers.", "The Super and Alt setters record caller-supplied probe or capability answers.")
+add([797], "shell-layout-status-and-reports", "Explicit Super or Alt refusal remains in force. Otherwise, matching key input may record delivery.", "Observed matching input can record delivery unless the caller explicitly refused that modifier.")
+add([798], "shell-layout-status-and-reports", "It rejects recognized Shift-pointer labels. Cmd/Super and non-pointer Alt/Option labels require recorded delivery.", "Label filtering rejects Shift-pointer labels and requires recorded modifier delivery.")
+add([798], "shell-layout-status-and-reports", "Filtering records label policy; it does not prove terminal support or emitted output.", "Label filtering describes label policy only; it does not prove terminal support or emitted output.")
+add([806, 807, 808, 809, 810, 811, 812], "shell-routing-and-page-identity", "Check dropped pages top-first through the leave guard before applying a move. A move that drops no page needs no confirmation.", "The application applies a Nav request only after checking every page it drops.")
 add([841, 843, 844, 845, 846, 847, 849], "shell-routing-and-page-identity", "Crumb segments are built from the active stack, root first. Use their emitted child IDs when registering hits. Every segment except the final one links back.", "Breadcrumb data and hit registration follow root-first segments and only nonfinal links.")
 add([850, 852], "shell-layout-status-and-reports", "Drain page-owned intents in `update`. Focus changes, ticks, keys, pastes, pointer events, and layer events arrive through those intents.", "The page drains owner-scoped input and lifecycle intents during update.")
 add([851], "shell-layout-status-and-reports", "Drain page-owned intents in `update`. Focus changes, ticks, keys, pastes, pointer events, and layer events arrive through those intents.", "The Page trait includes its update lifecycle.")
@@ -583,6 +636,16 @@ def main() -> None:
                     "fallback. T37-VISIT-KEY-01 records the current source facts and leaves collision-safe exhaustion "
                     "behavior open as T19-VISIT-KEY-01; T37 makes no source change and no failure was executed."
                 )
+            elif index in KEYS_TIER_INDICES:
+                semantic = "unresolved_source_contract_conflict"
+                status = "retained_source_conflict_open"
+                reason = (
+                    f"The comment attached to `{item}` promises the shell `keys` tier is answered after the page declines. "
+                    "At fixed c817, normal routing runs `keys` before chrome and page; capture routing offers the page "
+                    "before `keys`. An unconsumed layer response also has a modified-quit exception before its return. "
+                    "T37-SUPPORT-R1 records the conflict and leaves routing policy open as T19-KEYS-TIER-01; no behavior "
+                    "case or source change is claimed."
+                )
             else:
                 status = "retained_source_item" if item_survives else "source_item_not_found_in_accepted_output"
                 reason = f"The source group states these specific clauses for {item}: {'; '.join(required_clause)} The quoted maintained excerpts record them."
@@ -639,6 +702,8 @@ def main() -> None:
             "decision_ids": (
                 [FOOTER_PIN_DECISION] if index in FOOTER_PIN_INDICES
                 else [VISIT_KEY_DECISION] if index in VISIT_KEY_INDICES
+                else [KEYS_TIER_DECISION] if index in KEYS_TIER_INDICES
+                else [MODAL_DIM_DECISION] if index == 322
                 else [THEME_DATA_DECISION] if index in (378, 379, 380, 381)
                 else []
             ),
@@ -665,17 +730,23 @@ def main() -> None:
             "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json",
             "sha256": sha256(source_map_bytes),
             "record_count": len(source_map["records"]),
+            "local_path_exists": (args.repo / "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json").is_file(),
+            "integration_status": "integrated" if (args.repo / "docs/implementation/pr38-final/results/t37-foundations/source-api-prose.json").is_file() else "pending_integration",
         },
         "source_disposition_inventory": {
             "path": "docs/implementation/pr38-final/results/t37-foundations/source-api-prose-disposition.json",
             "sha256": sha256(disposition_bytes),
             "record_count": len(disposition["records"]),
+            "local_path_exists": (args.repo / "docs/implementation/pr38-final/results/t37-foundations/source-api-prose-disposition.json").is_file(),
+            "integration_status": "integrated" if (args.repo / "docs/implementation/pr38-final/results/t37-foundations/source-api-prose-disposition.json").is_file() else "pending_integration",
         },
         "source_removal_record": {
             "path": "docs/implementation/pr38-final/results/t37-foundations/source-removal.json",
             "sha256": sha256(removal_bytes),
             "accepted_source_commit": FOUNDATION_OUTPUT,
             "removed_source_path_count": len(removal.get("removed_source_paths", [])),
+            "local_path_exists": (args.repo / "docs/implementation/pr38-final/results/t37-foundations/source-removal.json").is_file(),
+            "integration_status": "integrated" if (args.repo / "docs/implementation/pr38-final/results/t37-foundations/source-removal.json").is_file() else "pending_integration",
         },
         "maintained_documents": {
             path: sha256((args.repo / path).read_bytes())
@@ -683,6 +754,10 @@ def main() -> None:
                 "docs/contracts/authoring.md",
                 "docs/contracts/foundation-support.md",
                 "docs/contracts/theming.md",
+                "docs/contracts/migration.md",
+                "docs/development.md",
+                "crates/termrock-e2e/README.md",
+                "crates/termrock-xtask/RULES.md",
             )
         },
         "decision": {
@@ -725,6 +800,60 @@ def main() -> None:
             "maintained_destination": "docs/contracts/foundation-support.md#shell-routing-and-page-identity",
             "record_indices": [],
         }, {
+            "id": "T37-CURSOR-CONTRACT-01",
+            "reviewer": "/root/t00_independent_review",
+            "reviewer_model": "gpt-6.1-sol",
+            "reviewer_effort": "high",
+            "source": "c817 `crates/termrock-session/src/session.rs:33-56,300-351` and `crates/termrock-runtime/src/runtime.rs:3075-3082`",
+            "disposition": "Auto is capability-gated at startup. Explicit Terminal, Block, Underline, and Bar choices select startup commands regardless of support; Bar selects SteadyBar. Runtime cursor requests are separate. Do not infer support or emitted output.",
+            "maintained_destination": "docs/contracts/authoring.md#keyboard-list-layout-and-text-rules",
+            "record_indices": [],
+        }, {
+            "id": "T37-BACKDROP-CONTRACT-01",
+            "reviewer": "/root/t00_independent_review",
+            "reviewer_model": "gpt-6.1-sol",
+            "reviewer_effort": "high",
+            "source": "c817 `crates/termrock-runtime/src/hit.rs:221-228,1372-1404` and `crates/termrock-runtime/src/capture.rs:147-172`",
+            "disposition": "Document pass_through as stored hit metadata; no production routing reader was found. Preserve T15-PASS-THROUGH-01 as an open intended requirement. SecondaryTracker routes from SecondaryOutside independently. No routing failure or behavior was executed.",
+            "maintained_destination": "docs/contracts/foundation-runtime.md#hit-ownership-and-releases",
+            "record_indices": [],
+        }, {
+            "id": "T37-KEY-OBSERVE-01",
+            "reviewer": "/root/t00_independent_review",
+            "reviewer_model": "gpt-6.1-sol",
+            "reviewer_effort": "high",
+            "source": "c817 `crates/termrock-core/src/keys.rs:285-306`",
+            "disposition": "Observe learns Super unless explicitly refused. It learns Alt only when ALT is unset and protocol flags are active or the key code is outside Char, Esc, Enter, Backspace, Tab, and BackTab. Final hint delivery separately uses cached Alt policy and explicit refusal. No terminal behavior was proved.",
+            "maintained_destination": "docs/contracts/foundation-values.md#keyboard-protocol-and-delivery",
+            "record_indices": [],
+        }, {
+            "id": "T37-DIAGNOSTICS-01",
+            "reviewer": "/root/t00_independent_review",
+            "reviewer_model": "gpt-6.1-sol",
+            "reviewer_effort": "high",
+            "source": "c817 `crates/termrock-core/src/diagnostics.rs:95-137`",
+            "disposition": "Keep at most 64 retained items in this collection. Append preserves existing items before incoming retained items, then saturating-adds the prior dropped count. Dropped is cumulative usize saturation, not capped at 64; exact totals are unavailable beyond usize::MAX. Documentation correction only.",
+            "maintained_destination": "docs/contracts/foundation-values.md#intent-claims-and-diagnostics",
+            "record_indices": [],
+        }, {
+            "id": "T37-SELECTION-CONTRACT-01",
+            "reviewer": "/root/t00_independent_review",
+            "reviewer_model": "gpt-6.1-sol",
+            "reviewer_effort": "high",
+            "source": "c817 `crates/termrock-core/src/selection.rs:264-337,280-303`",
+            "disposition": "Range extension rebuilds from the saved base and adds selectable rows in the current range. Disabled rows in that base can remain; range-only rows from an earlier update can drop. select_only on a disabled row clears; toggle on a disabled row does nothing. Preserve T14 eligibility-transition policy and verification as open; no source defect or behavior proof is claimed.",
+            "maintained_destination": "docs/contracts/foundation-values.md#list-selection-and-type-ahead",
+            "record_indices": [],
+        }, {
+            "id": "T37-CURSOR-NEW-01",
+            "reviewer": "/root/t00_independent_review",
+            "reviewer_model": "gpt-6.1-sol",
+            "reviewer_effort": "high",
+            "source": "c817 `crates/termrock-core/src/list.rs:132-140`",
+            "disposition": "The constructor stores the supplied index with wrap disabled, vertical axis, and disabled-row skipping. It has no source length to clamp or validate. Empty or ignored navigation can retain the old index; settling nonempty source-dependent operations perform bounds work. No constructor defect is established.",
+            "maintained_destination": "docs/contracts/foundation-values.md#list-selection-and-type-ahead",
+            "record_indices": [],
+        }, {
             "id": "T37-CANVAS-WIDTH-01",
             "reviewer": "/root/t00_independent_review",
             "reviewer_model": "gpt-6.1-sol",
@@ -733,6 +862,24 @@ def main() -> None:
             "disposition": "Correct current Canvas wording: text_width counts Unicode scalar values and the grapheme painter stops when a cluster cannot fit. Keep exact display-cell width and following-text-run positioning OPEN as T10-CANVAS-WIDTH-01.",
             "maintained_destination": "docs/contracts/authoring.md#component-author-surfaces",
             "record_indices": [],
+        }, {
+            "id": "T37-SUPPORT-R1",
+            "reviewer": "/root/t00_independent_review",
+            "reviewer_model": "gpt-6.1-sol",
+            "reviewer_effort": "high",
+            "source": "c817 `crates/termrock-shell/src/router.rs:382-446`",
+            "disposition": "Document the modified-quit exception after an unconsumed layer response and keep the mismatch between source-comment and current keys-tier order open as T19-KEYS-TIER-01. No source change or behavior proof is authorized.",
+            "maintained_destination": "docs/contracts/foundation-support.md#routing-order-open-contract",
+            "record_indices": sorted(KEYS_TIER_INDICES),
+        }, {
+            "id": MODAL_DIM_DECISION,
+            "reviewer": "/root/t00_independent_review",
+            "reviewer_model": "gpt-6.1-sol",
+            "reviewer_effort": "high",
+            "source": "c817 `crates/termrock-theme/src/lib.rs:564-579`; immutable historical output difference",
+            "disposition": "Keep Showcase/TablePro modal dim divergence open under T11-MODAL-DIM-01. T11 owns shared mapping policy; T22 and T29 own the respective consumer decisions. No visual acceptance or behavior change is claimed.",
+            "maintained_destination": "docs/contracts/foundation-support.md#modal-backdrop-and-color-downgrade",
+            "record_indices": [322],
         }],
         "open_obligations": [{
             "id": "T19-VISIT-KEY-01",
@@ -765,6 +912,48 @@ def main() -> None:
             "required_outcome": "Resolve exact display-cell width and following-text-run positioning through an approved runtime design.",
             "future_case_scope": ["ASCII", "combining sequences", "wide grapheme at the final available cell", "text following an unpaintable grapheme", "clipping and adjacent text runs"],
             "limits": "No source repair or behavior case was authorized or executed in T37. Product behavior remains NOT VERIFIED.",
+        }, {
+            "id": "T19-KEYS-TIER-01",
+            "task": "T19",
+            "status": "OPEN",
+            "primary_owner": "T19 shell key routing owner",
+            "later_owners": ["T01 inventory", "T38 reviewed public-path cases", "T36 final closure"],
+            "source_fact": "The source comments describe the keys tier as answering after page input. At c817, normal routing checks keys before chrome and page; capture routing gives the page a chance before keys. An unconsumed layer response ends ordinary routing, but an enabled modified quit chord may request quit before return.",
+            "source_record_indices": [1005, 1008],
+            "required_outcome": "Resolve whether the keys tier precedes or follows page input, while preserving the actual layer quit exception and explicit capture path.",
+            "future_case_scope": ["capture enabled and disabled", "same chord in keys and page tiers", "consumed and ignored layer/menu responses", "selection and Ctrl+C copy", "exact modifier quit chords"],
+            "limits": "No behavior case or source change is authorized in T37. Current behavior remains NOT VERIFIED.",
+        }, {
+            "id": "T11-MODAL-DIM-01",
+            "task": "T11",
+            "status": "OPEN",
+            "primary_owner": "T11 shared modal backdrop mapping owner",
+            "later_owners": ["T01 inventory", "T22 Showcase consumer owner", "T29 TablePro consumer owner", "T38 reviewed public-path cases", "T36 final closure"],
+            "source_fact": "The frozen Showcase dialog underlays have no DIM runs. Frozen TablePro picker underlays have DIM at ANSI16 and color none. The shared mapping retains the TablePro-pinned DIM behavior. The source decision preserves this divergence; no new visual output was produced.",
+            "source_record_indices": [322],
+            "required_outcome": "T11 resolves the shared mapping policy with both Showcase and TablePro consumer requirements represented.",
+            "future_case_scope": ["dialog and picker underlays", "ANSI16, Mono, and color planes", "blank and nonblank source cells", "nested and disabled modal layers", "glyph, modifiers, and DIM output"],
+            "limits": "T37 does not change visual behavior or claim visual acceptance. Product behavior remains NOT VERIFIED.",
+        }, {
+            "id": "T15-PASS-THROUGH-01",
+            "task": "T15",
+            "status": "OPEN",
+            "primary_owner": "T15 runtime hit and secondary routing owner",
+            "later_owners": ["T01 inventory", "T38 reviewed public-path cases", "T36 final closure"],
+            "source_fact": "At c817, Registry stores and compares pass_through metadata, but no production routing reader was found. Deleted tests were the only getter callers. SecondaryTracker routes by independent SecondaryOutside and returns its own result.",
+            "required_outcome": "Implement or explicitly migrate the intended public pass-through behavior. Extend the bounded hit/capture source ownership only if required by the approved design.",
+            "future_case_scope": ["primary and secondary hit pass-through true/false", "Ignore, Close, Reopen, and nested modal barriers", "disabled barriers", "exactly-once routing", "current-frame and presentation ownership"],
+            "limits": "T37 changes no source and executes no routing failure. Behavior remains NOT VERIFIED.",
+        }, {
+            "id": "T14",
+            "task": "T14",
+            "status": "OPEN",
+            "primary_owner": "T14 list selection owner",
+            "later_owners": ["T01 inventory", "T38 reviewed public-path cases", "T36 final closure"],
+            "source_fact": "Selection operations accept current enabled-row predicates but do not globally sanitize old selection when eligibility changes. Range extension can preserve disabled rows in its saved base and drop range-only disabled rows from an earlier update.",
+            "required_outcome": "Define consumer policy and verification for eligibility transitions without treating the current behavior as a source defect or adding a replacement test in T37.",
+            "future_case_scope": ["disabled row already in saved base", "row disabled after selection", "range-only row disabled before next extension", "select_only and toggle on disabled rows", "Select All and activation eligibility"],
+            "limits": "T37 records current source semantics only. Product behavior remains NOT VERIFIED.",
         }],
         "review_method": "For every member, compare the exact comment group with the attached source item at c817, the accepted T37 removal classification, and the item in accepted foundation output 2fee. Required rules point to a literal excerpt in maintained Markdown. Every other group has its own source-specific reason or exact retired-scope basis. No keyword/path heuristic assigns semantic disposition.",
         "record_validation": {
@@ -775,6 +964,26 @@ def main() -> None:
             "selected_tests": 0,
             "behavior_status": "NOT VERIFIED",
             "independent_review": "PENDING",
+        },
+        "attachment_audit": {
+            "reviewer": "/root/t00_independent_review",
+            "reviewer_model": "gpt-6.1-sol",
+            "reviewer_effort": "high",
+            "fixed_source_commit": SOURCE_INPUT,
+            "selected_groups": 496,
+            "retired_or_test_only_groups": 55,
+            "surviving_module_groups": 14,
+            "surviving_non_module_groups": 427,
+            "same_scope_matches": 422,
+            "recipe_scope_corrections": [
+                {"source_map_record": 325, "attached_item": "enum declaration `ManagerPresentationProfile`", "scope": "module root"},
+                {"source_map_record": 328, "attached_item": "variant `Paper`", "scope": "enum `ManagerPresentationProfile`"},
+                {"source_map_record": 329, "attached_item": "struct declaration `AuthoredDeclaration`", "scope": "module root"},
+                {"source_map_record": 330, "attached_item": "method `glyph_slot`", "scope": "impl `PartEdit<'_>`"},
+                {"source_map_record": 331, "attached_item": "method `size_slot`", "scope": "impl `PartEdit<'_>`"}
+            ],
+            "method": "Strip comments and literals into Rust tokens, track a lexical brace stack, and require the attached declaration signature in the same container scope in the clean tree. This is structural evidence, not a Rust parser or semantic proof.",
+            "status": "CORRECTION_APPLIED_PENDING_INDEPENDENT_REVIEW"
         },
         "cohort_counts": {"termrock-shell": 375, "termrock-theme": 95, "termrock-collections": 18, "termrock-terminal": 8},
         "disposition_counts": dict(counts),
