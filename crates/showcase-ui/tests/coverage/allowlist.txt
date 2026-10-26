@@ -414,10 +414,10 @@ termrock-fields::textarea::TextArea::draw_secret_in_form | the textareas page dr
 termrock-fields::textarea::TextArea::draw_secret_in_form_window | the textareas page draws termrock-fields::textarea::TextArea but does not use draw_secret_in_form_window; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextArea::draw_window | the textareas page draws termrock-fields::textarea::TextArea but does not use draw_window; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextArea::edit_capabilities | the textareas page draws termrock-fields::textarea::TextArea but does not use edit_capabilities; SC2 adds the option or state that exercises it | SC2
-termrock-fields::textarea::TextArea::edit_entry | The current Text areas page has no session-entry selector; native policy tests do not prove a showcase probe | review
-termrock-fields::textarea::TextArea::esc_reverts | The current Text areas page has no Escape-revert selector; native policy tests do not prove a showcase probe | review
+termrock-fields::textarea::TextArea::edit_entry | The Text areas selector has no registered executable showcase proof contract; native policy tests do not establish that contract. | review
+termrock-fields::textarea::TextArea::esc_reverts | The Text areas selector has no registered executable showcase proof contract; native policy tests do not establish that contract. | review
 termrock-fields::textarea::TextArea::execute_edit_command | the textareas page draws termrock-fields::textarea::TextArea but does not use execute_edit_command; SC2 adds the option or state that exercises it | SC2
-termrock-fields::textarea::TextArea::focus_select | The current Text areas page has no focus-selection selector; native policy tests do not prove a showcase probe | review
+termrock-fields::textarea::TextArea::focus_select | The Text areas selector has no registered executable showcase proof contract; native policy tests do not establish that contract. | review
 termrock-fields::textarea::TextArea::is_secret | the textareas page draws termrock-fields::textarea::TextArea but does not use is_secret; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextArea::patch | the textareas page draws termrock-fields::textarea::TextArea but does not use patch; SC2 adds the option or state that exercises it | SC2
 termrock-fields::textarea::TextArea::patch_part | the textareas page draws termrock-fields::textarea::TextArea but does not use patch_part; SC2 adds the option or state that exercises it | SC2
