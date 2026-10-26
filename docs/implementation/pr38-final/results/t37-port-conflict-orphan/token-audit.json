@@ -83,20 +83,5 @@
     "PortConflictError",
     "validate_port_conflict"
   ],
-  "retained_diagnostics_unchanged": true,
-  "authorization": {
-    "decision_id": "T37-ORPHAN-CAPTURE-01",
-    "decision_source": "Sol high review by /root/t00_independent_review, as relayed by the coordinator",
-    "authorized_change": "Remove only the pub(crate) PortConflict::capture method and its now-empty impl block.",
-    "excluded_changes": [
-      "Do not change public PortConflict, PortConflictError, validate_port_conflict, conversions, diagnostics, listeners, constructors, tests, harnesses, fixtures, manifests, comments, or lints."
-    ]
-  },
-  "caller_audit": {
-    "fixed_input_commit": "0904de5143cfa57a0e87e9b415e9fe972e6783cb",
-    "scoped_rg_result": "No PortConflict::capture call, PortConflictCase, or port_conflict_case exists in crates/holla-sim/src.",
-    "historical_only_call": "T00 source 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd records the only call in PortConflictCase::port_conflict_case; app cleanup commit 4f502be854a4d4c7a7585344bd9915b2a26fae79 removes that helper.",
-    "current_public_construction": "No PortConflict value constructor remains in the scoped crate sources. Its fields stay private.",
-    "follow_up": "T01 records the retained public type and validator without a current production constructor. T27 must prove a supported producer/consumer path or use a separately approved API migration."
-  }
+  "retained_diagnostics_unchanged": true
 }
