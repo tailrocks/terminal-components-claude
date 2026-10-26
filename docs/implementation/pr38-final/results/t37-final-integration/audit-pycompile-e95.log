@@ -1,0 +1,3 @@
+source_head=e95c45f7aa56959a7173e806f599e4aa371a3499
+argv=PYTHONPYCACHEPREFIX=/tmp/t37-final-integration-audit-pycache python3 -m py_compile docs/implementation/pr38-final/results/t37-apps/audit.py
+exit_status=0

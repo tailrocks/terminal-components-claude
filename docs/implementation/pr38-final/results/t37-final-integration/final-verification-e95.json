@@ -1,0 +1,574 @@
+{
+  "schema": "t37-final.integration-verification-e95.v1",
+  "task_id": "T37 final post-integration verification",
+  "fixed_input": {
+    "commit": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+    "tree": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
+    "branch": "pr38/T37-final-verification"
+  },
+  "final_integrated_source": {
+    "commit": "e95c45f7aa56959a7173e806f599e4aa371a3499",
+    "tree": "9725dd5d7973d9ff56ecb003866eea7827aa1cb3",
+    "post_ff_source_and_history_commits": {
+      "audit_source": "e6f54ede72cda228758a5ab27f539294722472b1",
+      "audit_evidence_refinement": "fae3cea7e6c4e93326bf6c0139f86daa12a7bd70",
+      "history_provenance": "4ba8fd58f69a1d65546f77184a97997fa91a8d90",
+      "coordinator_merge": "e95c45f7aa56959a7173e806f599e4aa371a3499"
+    },
+    "source_delta": "Only the private audit evidence script plus review/provenance records and run-state changed after 516; no production Rust, manifests, locks, Velnor config, generated workflow, Nextest, toolchain, or E2E input files changed."
+  },
+  "review_decisions": {
+    "metadata_unit": "Scoped ACCEPT, no findings by /root/t37_apps_review at commit 0d47da019d0ace072558bdce9916824eb67c9180; reviewer did not rerun Cargo or Velnor. This agent performed final gates at 516.",
+    "audit_script": "T37-AUDIT-SCRIPT-FAE-ACCEPT high review reported by coordinator; source commit e6f54ede72cda228758a5ab27f539294722472b1, output SHA b23cb3e25b4f23d61dd3b50c2f41213231589db0c0f019cbe81c0a8d8aac233f.",
+    "history_provenance": "T37 history proof commit 4ba8fd58f69a1d65546f77184a97997fa91a8d90; coordinator reports scoped independent ACCEPT by /root/t37_apps_review.",
+    "overall": "T37 integrated independent acceptance remains pending; no self-approval."
+  },
+  "locked_checks_at_516": {
+    "command_rows": [
+      {
+        "name": "root",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --workspace --all-targets --all-features",
+        "workdir": ".",
+        "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+        "exit_status": 0,
+        "log": "docs/implementation/pr38-final/results/t37-final-integration/cargo-root-check.log",
+        "log_sha256": "2333c8a9bafb8475d8bbf6bb6cdf26e071534ef9eef6561f8caef58e14eef8b0",
+        "disk_preflight_path": "docs/implementation/pr38-final/results/t37-final-integration/disk-root.txt",
+        "disk_preflight_sha256": "4f775d93139ba17cbfdbd4debe0ef01ef40fee38f4e475e4174b655ea26f9373",
+        "disk_first_line": "free_bytes=2112491200512 status=ok"
+      },
+      {
+        "name": "e2e",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --all-targets --all-features",
+        "workdir": "crates/termrock-e2e",
+        "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+        "exit_status": 0,
+        "log": "docs/implementation/pr38-final/results/t37-final-integration/cargo-e2e-check.log",
+        "log_sha256": "1284cf75ec884ca6ab19bece4aae9756bf78ef72bbe7b36da9171caaf9725832",
+        "disk_preflight_path": "docs/implementation/pr38-final/results/t37-final-integration/disk-e2e.txt",
+        "disk_preflight_sha256": "99c941fdc10a1f3f6935651bba2594d9d517a1881dc816adfe87588d4d61e3c7",
+        "disk_first_line": "free_bytes=2112492527616 status=ok"
+      },
+      {
+        "name": "visibility",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --all-targets --all-features",
+        "workdir": "crates/termrock-visibility-tests",
+        "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+        "exit_status": 0,
+        "log": "docs/implementation/pr38-final/results/t37-final-integration/cargo-visibility-check.log",
+        "log_sha256": "56173bea0070d39dad5b002942019d96c773e381a05e273ca2d11819dbfc5f76",
+        "disk_preflight_path": "docs/implementation/pr38-final/results/t37-final-integration/disk-visibility.txt",
+        "disk_preflight_sha256": "53ff6eb8fc13eccbbbc8f4f17ee82ac8f548e615179b7d42b997c8d471934f57",
+        "disk_first_line": "free_bytes=2112316977152 status=ok"
+      },
+      {
+        "name": "consumer",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --all-targets --all-features",
+        "workdir": "external-consumer-demo",
+        "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+        "exit_status": 0,
+        "log": "docs/implementation/pr38-final/results/t37-final-integration/cargo-consumer-check.log",
+        "log_sha256": "62aae87718075b9b600d3922eeb38edbf4e06e95eb6c43e2b1088761a79a1295",
+        "disk_preflight_path": "docs/implementation/pr38-final/results/t37-final-integration/disk-consumer.txt",
+        "disk_preflight_sha256": "a84d9f2bc851d866a2c3a2243d6d3f6d7448d3c505ff4d2507308faf32dd468f",
+        "disk_first_line": "free_bytes=2112290045952 status=ok"
+      },
+      {
+        "name": "publisher",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --all-targets --all-features",
+        "workdir": "tools/termrock-visibility-publisher",
+        "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+        "exit_status": 0,
+        "log": "docs/implementation/pr38-final/results/t37-final-integration/cargo-publisher-check.log",
+        "log_sha256": "2a8be96a084494a15119b799eed18eeb40bf7ab067eeb4f1305db31286bfbe7f",
+        "disk_preflight_path": "docs/implementation/pr38-final/results/t37-final-integration/disk-publisher.txt",
+        "disk_preflight_sha256": "49685cce758fc173b1ef6cd84145a97daa1d56c4637a1abfe411f60e88d37a7f",
+        "disk_first_line": "free_bytes=2112253640704 status=ok"
+      }
+    ],
+    "all_exit_zero": true,
+    "final_source_applicability": "All 465 tracked Rust files, 53 Cargo manifests, 6 tracked lockfiles, and all check-relevant Velnor/toolchain/config paths have identical blobs at 516 and e95. The changed audit.py is a private evidence script outside every Rust/Cargo build input. No build rerun was needed after e95."
+  },
+  "format_checks_at_516": {
+    "command_rows": [
+      {
+        "name": "root",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check",
+        "workdir": ".",
+        "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+        "exit_status": 0,
+        "log": "docs/implementation/pr38-final/results/t37-final-integration/fmt-root.log",
+        "log_sha256": "80d73bd2c984c877149fbc878ca6271e18f4388b703faf696f1d3d53bce0eb17"
+      },
+      {
+        "name": "e2e",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check",
+        "workdir": "crates/termrock-e2e",
+        "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+        "exit_status": 0,
+        "log": "docs/implementation/pr38-final/results/t37-final-integration/fmt-e2e.log",
+        "log_sha256": "f51160ec21334485dfbd1aa582f09201ebe44c37a5e0a22774f4a7ac36da3eed"
+      },
+      {
+        "name": "visibility",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check",
+        "workdir": "crates/termrock-visibility-tests",
+        "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+        "exit_status": 0,
+        "log": "docs/implementation/pr38-final/results/t37-final-integration/fmt-visibility.log",
+        "log_sha256": "098518e08377184eb30b7d703a1c7173553db5c7f8b253dca39fab857d4b8757"
+      },
+      {
+        "name": "consumer",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check",
+        "workdir": "external-consumer-demo",
+        "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+        "exit_status": 0,
+        "log": "docs/implementation/pr38-final/results/t37-final-integration/fmt-consumer.log",
+        "log_sha256": "37690bfb351d932cb3016f0c58baac785a7b44391b21f64ca25cf60c5321449f"
+      },
+      {
+        "name": "publisher",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check",
+        "workdir": "tools/termrock-visibility-publisher",
+        "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+        "exit_status": 0,
+        "log": "docs/implementation/pr38-final/results/t37-final-integration/fmt-publisher.log",
+        "log_sha256": "238e0bdd979bc4a97c0ea97fe691668424e7593a6914ddd784db5a8e3ace1b6a"
+      }
+    ],
+    "all_exit_zero": true,
+    "final_source_applicability": "Rust source and pinned toolchain inputs unchanged through e95."
+  },
+  "metadata": {
+    "commands": [
+      {
+        "workspace": "root",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+        "workdir": ".",
+        "exit_status": 0,
+        "stdout": "docs/implementation/pr38-final/results/t37-final-integration/metadata-root-final.json",
+        "stdout_sha256": "e389e3e0b6272e9a6889c84145c1ed1b4b820bc22f17be442020bce35fab2c50",
+        "stderr": "docs/implementation/pr38-final/results/t37-final-integration/metadata-root-final.stderr.log",
+        "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522"
+      },
+      {
+        "workspace": "e2e",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+        "workdir": "crates/termrock-e2e",
+        "exit_status": 0,
+        "stdout": "docs/implementation/pr38-final/results/t37-final-integration/metadata-e2e-final.json",
+        "stdout_sha256": "c28318172aa3d483123b60d93717a7fbc7ca514ef49484f36e1f30d9b72774fb",
+        "stderr": "docs/implementation/pr38-final/results/t37-final-integration/metadata-e2e-final.stderr.log",
+        "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522"
+      },
+      {
+        "workspace": "visibility",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+        "workdir": "crates/termrock-visibility-tests",
+        "exit_status": 0,
+        "stdout": "docs/implementation/pr38-final/results/t37-final-integration/metadata-visibility-final.json",
+        "stdout_sha256": "cde64ebca1c93c095616b6974b71bcfa7bfc11759d2abb4f0c887967f13ea9dc",
+        "stderr": "docs/implementation/pr38-final/results/t37-final-integration/metadata-visibility-final.stderr.log",
+        "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522"
+      },
+      {
+        "workspace": "consumer",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+        "workdir": "external-consumer-demo",
+        "exit_status": 0,
+        "stdout": "docs/implementation/pr38-final/results/t37-final-integration/metadata-consumer-final.json",
+        "stdout_sha256": "d2980c17d9de30d3ec66470b62f72f71a93668a21b4559526745444aee8a9b8b",
+        "stderr": "docs/implementation/pr38-final/results/t37-final-integration/metadata-consumer-final.stderr.log",
+        "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522"
+      },
+      {
+        "workspace": "publisher",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+        "workdir": "tools/termrock-visibility-publisher",
+        "exit_status": 0,
+        "stdout": "docs/implementation/pr38-final/results/t37-final-integration/metadata-publisher-final.json",
+        "stdout_sha256": "31009b8a2263d915df3a2dbbd96e35a98a28ff387e27e19eb22f7548ee4c504c",
+        "stderr": "docs/implementation/pr38-final/results/t37-final-integration/metadata-publisher-final.stderr.log",
+        "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522"
+      }
+    ],
+    "root_structural_summary": {
+      "workspace": "root",
+      "workdir": ".",
+      "manifest": "Cargo.toml",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "exit_status": 0,
+      "stdout_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-root-final.json",
+      "stdout_sha256": "e389e3e0b6272e9a6889c84145c1ed1b4b820bc22f17be442020bce35fab2c50",
+      "stderr_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-root-final.stderr.log",
+      "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522",
+      "package_count": 47,
+      "target_count": 68,
+      "target_kind_counts": {
+        "lib": 42,
+        "example": 12,
+        "bin": 14
+      },
+      "test_kind_targets": 0,
+      "bench_kind_targets": 0,
+      "test_enabled_targets": 0,
+      "enabled_test_rows": [],
+      "library_count": 42,
+      "library_doctests_enabled": 0,
+      "packages_autotests_false": 47,
+      "packages_autobenches_false": 47
+    },
+    "standalone_structural_summaries": [
+      {
+        "workspace": "e2e",
+        "workdir": "crates/termrock-e2e",
+        "manifest": "crates/termrock-e2e/Cargo.toml",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+        "exit_status": 0,
+        "stdout_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-e2e-final.json",
+        "stdout_sha256": "c28318172aa3d483123b60d93717a7fbc7ca514ef49484f36e1f30d9b72774fb",
+        "stderr_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-e2e-final.stderr.log",
+        "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522",
+        "package_count": 1,
+        "target_count": 3,
+        "target_kind_counts": {
+          "lib": 1,
+          "bin": 1,
+          "custom-build": 1
+        },
+        "test_kind_targets": 0,
+        "bench_kind_targets": 0,
+        "test_enabled_targets": 0,
+        "enabled_test_rows": [],
+        "library_count": 1,
+        "library_doctests_enabled": 0,
+        "packages_autotests_false": 1,
+        "packages_autobenches_false": 1
+      },
+      {
+        "workspace": "visibility",
+        "workdir": "crates/termrock-visibility-tests",
+        "manifest": "crates/termrock-visibility-tests/Cargo.toml",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+        "exit_status": 0,
+        "stdout_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-visibility-final.json",
+        "stdout_sha256": "cde64ebca1c93c095616b6974b71bcfa7bfc11759d2abb4f0c887967f13ea9dc",
+        "stderr_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-visibility-final.stderr.log",
+        "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522",
+        "package_count": 1,
+        "target_count": 3,
+        "target_kind_counts": {
+          "lib": 1,
+          "bin": 2
+        },
+        "test_kind_targets": 0,
+        "bench_kind_targets": 0,
+        "test_enabled_targets": 0,
+        "enabled_test_rows": [],
+        "library_count": 1,
+        "library_doctests_enabled": 0,
+        "packages_autotests_false": 1,
+        "packages_autobenches_false": 1
+      },
+      {
+        "workspace": "consumer",
+        "workdir": "external-consumer-demo",
+        "manifest": "external-consumer-demo/Cargo.toml",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+        "exit_status": 0,
+        "stdout_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-consumer-final.json",
+        "stdout_sha256": "d2980c17d9de30d3ec66470b62f72f71a93668a21b4559526745444aee8a9b8b",
+        "stderr_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-consumer-final.stderr.log",
+        "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522",
+        "package_count": 1,
+        "target_count": 2,
+        "target_kind_counts": {
+          "lib": 1,
+          "bin": 1
+        },
+        "test_kind_targets": 0,
+        "bench_kind_targets": 0,
+        "test_enabled_targets": 0,
+        "enabled_test_rows": [],
+        "library_count": 1,
+        "library_doctests_enabled": 0,
+        "packages_autotests_false": 1,
+        "packages_autobenches_false": 1
+      },
+      {
+        "workspace": "publisher",
+        "workdir": "tools/termrock-visibility-publisher",
+        "manifest": "tools/termrock-visibility-publisher/Cargo.toml",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+        "exit_status": 0,
+        "stdout_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-publisher-final.json",
+        "stdout_sha256": "31009b8a2263d915df3a2dbbd96e35a98a28ff387e27e19eb22f7548ee4c504c",
+        "stderr_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-publisher-final.stderr.log",
+        "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522",
+        "package_count": 1,
+        "target_count": 1,
+        "target_kind_counts": {
+          "lib": 1
+        },
+        "test_kind_targets": 0,
+        "bench_kind_targets": 0,
+        "test_enabled_targets": 0,
+        "enabled_test_rows": [],
+        "library_count": 1,
+        "library_doctests_enabled": 0,
+        "packages_autotests_false": 1,
+        "packages_autobenches_false": 1
+      }
+    ],
+    "root_target_identity_matches_survivor_map": true,
+    "all_target_flags_match": true,
+    "issues": [],
+    "active_locked_graphs": {
+      "before_after_unchanged": true,
+      "files": [
+        {
+          "path": "Cargo.lock",
+          "sha256_before": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+          "sha256_after": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+          "bytes": 90707,
+          "unchanged": true
+        },
+        {
+          "path": "crates/termrock-e2e/Cargo.lock",
+          "sha256_before": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+          "sha256_after": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+          "bytes": 55237,
+          "unchanged": true
+        },
+        {
+          "path": "crates/termrock-visibility-tests/Cargo.lock",
+          "sha256_before": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+          "sha256_after": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+          "bytes": 6636,
+          "unchanged": true
+        },
+        {
+          "path": "external-consumer-demo/Cargo.lock",
+          "sha256_before": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+          "sha256_after": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+          "bytes": 49166,
+          "unchanged": true
+        },
+        {
+          "path": "tools/termrock-visibility-publisher/Cargo.lock",
+          "sha256_before": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d",
+          "sha256_after": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d",
+          "bytes": 36143,
+          "unchanged": true
+        }
+      ]
+    },
+    "archived_evidence_lock": "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/Cargo.lock; hash 9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de; preserved historical evidence, not active workspace lock."
+  },
+  "metadata_guard": {
+    "permitted_form": "cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml via guard, status 0 for root and four standalones",
+    "denied_locked_probe": {
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --locked --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "exit_status": 125,
+      "evidence": "docs/implementation/pr38-final/results/t37-metadata/metadata-checks.json; no bypass"
+    },
+    "lock_changes": 0
+  },
+  "generator": {
+    "command": "mise exec -- velnor-actions generate",
+    "version": "0.1.48",
+    "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+    "runs": [
+      {
+        "path": "docs/implementation/pr38-final/results/t37-final-integration/generator-run1.log",
+        "sha256": "cebb95ee50c9d0e285c14f316d5b2656d526276744bc2444e5b56b2eb3915241",
+        "exit_status": 0,
+        "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba"
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t37-final-integration/generator-run2.log",
+        "sha256": "cebb95ee50c9d0e285c14f316d5b2656d526276744bc2444e5b56b2eb3915241",
+        "exit_status": 0,
+        "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba"
+      }
+    ],
+    "run_logs_byte_identical": true,
+    "input_output_before": {
+      "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+      "files": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "sha256": "b2a2747b49052bbec9c565d1436e4d19c6f7aadb6cb3dd3fa18376127ca83107",
+          "bytes": 292069
+        },
+        {
+          "path": ".github/velnor/task-execution-manifest-v1.json",
+          "sha256": "2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305",
+          "bytes": 452413
+        },
+        {
+          "path": ".velnor/config.toml",
+          "sha256": "3bd8343278328708afb79c14740179bcd4018763f4e323d32e08ceaf93b3ff20",
+          "bytes": 2692
+        },
+        {
+          "path": "mise.toml",
+          "sha256": "a35637525fd0603bb1724aaf3320fc89c5b7f89b3ebf12d3f525dad4ec6ea44a",
+          "bytes": 668
+        },
+        {
+          "path": "mise.lock",
+          "sha256": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+          "bytes": 16839
+        },
+        {
+          "path": "rust-toolchain.toml",
+          "sha256": "4f6c9e5b60864d21b5e71753046337187c510379c4becdd365a9387294c1b80a",
+          "bytes": 154
+        }
+      ]
+    },
+    "input_output_after": {
+      "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+      "files": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "sha256": "b2a2747b49052bbec9c565d1436e4d19c6f7aadb6cb3dd3fa18376127ca83107",
+          "bytes": 292069
+        },
+        {
+          "path": ".github/velnor/task-execution-manifest-v1.json",
+          "sha256": "2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305",
+          "bytes": 452413
+        },
+        {
+          "path": ".velnor/config.toml",
+          "sha256": "3bd8343278328708afb79c14740179bcd4018763f4e323d32e08ceaf93b3ff20",
+          "bytes": 2692
+        },
+        {
+          "path": "mise.toml",
+          "sha256": "a35637525fd0603bb1724aaf3320fc89c5b7f89b3ebf12d3f525dad4ec6ea44a",
+          "bytes": 668
+        },
+        {
+          "path": "mise.lock",
+          "sha256": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+          "bytes": 16839
+        },
+        {
+          "path": "rust-toolchain.toml",
+          "sha256": "4f6c9e5b60864d21b5e71753046337187c510379c4becdd365a9387294c1b80a",
+          "bytes": 154
+        }
+      ],
+      "all_hashes_unchanged": true,
+      "differences": []
+    },
+    "all_input_output_hashes_unchanged": true,
+    "task_reconciliation": {
+      "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+      "generator_version": "0.1.48",
+      "current_task_count": 360,
+      "tasks_by_operation": {
+        "build": 90,
+        "clippy": 90,
+        "doc": 90,
+        "fmt": 90
+      },
+      "default_testing_pairs": 180,
+      "identical_argv_env_pairs": 162,
+      "different_argv_env_pairs": 18,
+      "default_argv_env_matches_fixed_d402": 180,
+      "default_tasks_compared": 180,
+      "default_missing_from_baseline": [],
+      "nextest_run_tasks": 0,
+      "nextest_run_task_ids": [],
+      "no_tests_fail_tasks": 0,
+      "no_tests_fail_task_ids": [],
+      "test_runner": "cargo_nextest",
+      "run_ignored": "default",
+      "status": "ABSENT / NOT VERIFIED"
+    },
+    "post_ff_inputs_unchanged": true,
+    "nextest_status": "ABSENT / NOT VERIFIED; no eligible run tasks, no no-tests fail tasks emitted. Existing cargo_nextest/run_ignored=default and default/testing features remain."
+  },
+  "source_bound_e2e_digest": {
+    "algorithm": "Existing build.rs exact length/path/content SHA-256 algorithm over 22 files; no algorithm or output format change.",
+    "digest_sha256": "1777d5a93db4e1884aa1df1ef51323f4577e8d0347170ad2ba361dc39e4070ce",
+    "previous_953_digest_sha256": "6c24418e8060ca31056576dd7db377f27fccc31f18738f0802b4ba90250b12e8",
+    "current_516_and_e95_digest_equal": true,
+    "reason_for_953_to_516_change": "README.md is one of 22 hashed inputs; substituting its exact 953 Git bytes into current inputs reproduces the 953 digest. Build.rs hashes itself.",
+    "recomputed_at_e95": true
+  },
+  "python_cleanup_gate": {
+    "scan": {
+      "path": "docs/implementation/pr38-final/results/t37-final-integration/python-comment-docstring-scan-e95.json",
+      "sha256": "ba8be121b68afdc37e20a2e1a497013c2e4fc8334f46498ae5533c57a1e70e22",
+      "status": "PASS",
+      "tracked_files": 27,
+      "nonexempt_findings": 0,
+      "exact_t00_indexed_py": 8,
+      "exact_extra_preserved_py": 2
+    },
+    "cli_help": {
+      "schema": "t37-final.audit-cli-help-e95.v1",
+      "source_head": "e95c45f7aa56959a7173e806f599e4aa371a3499",
+      "source_tree": "9725dd5d7973d9ff56ecb003866eea7827aa1cb3",
+      "command": "python3 docs/implementation/pr38-final/results/t37-apps/audit.py --help",
+      "exit_status": 0,
+      "stdout_path": "docs/implementation/pr38-final/results/t37-final-integration/audit-cli-help-e95.stdout.log",
+      "stdout_sha256": "e9a9c558057f3d59cf9fb888fd4160f604b1dbd562bae1b08595bd7db22a691e",
+      "stdout_bytes": 151,
+      "stderr_path": "docs/implementation/pr38-final/results/t37-final-integration/audit-cli-help-e95.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0,
+      "matches_source_cleanup_evidence_sha256": "e9a9c558057f3d59cf9fb888fd4160f604b1dbd562bae1b08595bd7db22a691e",
+      "matches_accepted_output": true,
+      "mode_execution": "--help only; plan/apply/verify modes not executed",
+      "selected_tests": 0,
+      "behavior": "NOT VERIFIED"
+    },
+    "py_compile_log": "docs/implementation/pr38-final/results/t37-final-integration/audit-pycompile-e95.log",
+    "py_compile_log_sha256": "08dfd5f60fa857c5f9846a0046fb6582763ad8e50b87b96faa91097089763273",
+    "py_compile_exit_status": 0,
+    "no_audit_modes_run": [
+      "plan",
+      "apply",
+      "verify"
+    ]
+  },
+  "source_structure_and_preservation": {
+    "structural_reconciliation": "docs/implementation/pr38-final/results/t37-final-integration/source-structural-reconciliation-e95.json",
+    "preservation_reconciliation": "docs/implementation/pr38-final/results/t37-final-integration/preservation-reconciliation-e95.json",
+    "t00_index": {
+      "count": 63,
+      "rs": 14,
+      "py": 8,
+      "sha256": "c859cd09b3ee1a21fe72d4caf3d623a8b675031d0684903d90a1b07ff26180de",
+      "all_match": true
+    },
+    "t37_preserved_file_set_count": 24,
+    "all_preserved_hashes_match": true,
+    "active_metadata_references_clear": true,
+    "no_blanked_docs_exception": true
+  },
+  "retained_warnings": [
+    "termrock-e2e Profile retains required u64 admission fields readiness_timeout_ms and input_pacing_ms; they remain unread per T37-PROFILE-FORMAT-01. No fake reads/serde changes/allowance.",
+    "termrock-feedback unnecessary braces warning remains in root and consumer checks; preexisting and not changed."
+  ],
+  "disk_and_cleanup": {
+    "disk_check_command": "/Users/donbeave/.local/bin/disk-check",
+    "preflight_before_each_root_and_standalone_build": "status ok, approximately 2.11 TB free; exact first lines in individual disk logs.",
+    "cleanup": "No cleanup by this agent; parent cleanup child remained active."
+  },
+  "behavior": {
+    "selected_cases": 0,
+    "test_commands": 0,
+    "doctests": 0,
+    "nextest_runs": 0,
+    "status": "NOT VERIFIED"
+  },
+  "final_status": "Required structural, metadata, generator, locked build, format, and corrected Python comment/docstring/CLI checks passed. T37 behavior remains NOT VERIFIED; overall T37 acceptance and independent integrated review remain pending."
+}

@@ -1,0 +1,21 @@
+header={"argv": ["/Users/donbeave/.local/bin/rust-build-guard", "--", "mise", "exec", "--", "cargo", "check", "--locked", "--all-targets", "--all-features"], "disk_preflight": "free_bytes=2084822859776 status=ok\nfree: 1941.6 GiB (1.90 TiB) on /System/Volumes/Data -- ok\ngate OK (>=2TB cleanup gate); no action.", "exit_status": 0, "lock_hashes_after": {"Cargo.lock": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba", "crates/termrock-e2e/Cargo.lock": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5", "crates/termrock-visibility-tests/Cargo.lock": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8", "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/Cargo.lock": "9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de7", "external-consumer-demo/Cargo.lock": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b", "mise.lock": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0", "tools/termrock-visibility-publisher/Cargo.lock": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d"}, "lock_hashes_before": {"Cargo.lock": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba", "crates/termrock-e2e/Cargo.lock": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5", "crates/termrock-visibility-tests/Cargo.lock": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8", "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/Cargo.lock": "9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de7", "external-consumer-demo/Cargo.lock": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b", "mise.lock": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0", "tools/termrock-visibility-publisher/Cargo.lock": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d"}, "locks_unchanged": true, "source_head": "383ad59b44baf95232005551b4d70f136bef3fea", "source_tree": "402f9324abc73332978a0d03ee1c80f6b8ffa477", "stderr_sha256": "0ff3b3729a9ab4db88696b1a86e5675bb58b40f945d3f86b1413061cffd17385", "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "workdir": "/Users/donbeave/Downloads/termrock-t37-metadata/external-consumer-demo"}
+--- stdout ---
+
+--- stderr ---
+rust build guard: allowed; checked 1 filesystem(s)
+warning: unnecessary braces around block return value
+   --> /Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback/src/hintbar.rs:193:9
+    |
+193 |         { self.status.flags() }
+    |         ^^                   ^^
+    |
+    = note: `#[warn(unused_braces)]` (part of `#[warn(unused)]`) on by default
+help: remove these braces
+    |
+193 -         { self.status.flags() }
+193 +         self.status.flags()
+    |
+
+warning: `termrock-feedback` (lib) generated 1 warning (run `cargo fix --lib -p termrock-feedback` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.14s
+mbx[savings]: 3335644 compilations old. not one compiled twice.

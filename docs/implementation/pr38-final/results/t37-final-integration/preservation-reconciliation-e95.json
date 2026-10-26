@@ -1,0 +1,771 @@
+{
+  "schema": "t37-final.preservation-reconciliation-e95.v1",
+  "source_head": "e95c45f7aa56959a7173e806f599e4aa371a3499",
+  "t00_artifact_index": {
+    "path": "docs/implementation/pr38-final/results/t00-source/artifact-index.json",
+    "sha256": "c859cd09b3ee1a21fe72d4caf3d623a8b675031d0684903d90a1b07ff26180de",
+    "declared_count": 63,
+    "verified_count": 63,
+    "extension_counts": {
+      ".rs": 14,
+      ".py": 8
+    },
+    "all_bytes_and_hashes_match": true,
+    "errors": [],
+    "rows": [
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/analyze_latest_test_delta.py",
+        "sha256": "92e4f5add9a772cbb094cdf0c24b63dfa77529b5d7f794afd79e54039822ca71",
+        "size_bytes": 5882,
+        "expected_sha256": "92e4f5add9a772cbb094cdf0c24b63dfa77529b5d7f794afd79e54039822ca71",
+        "expected_size_bytes": 5882,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/build_artifact_index.py",
+        "sha256": "e93313f5036acd43d7bcca7864838c5cac638ab35c87d333fc9b215b837e350d",
+        "size_bytes": 1331,
+        "expected_sha256": "e93313f5036acd43d7bcca7864838c5cac638ab35c87d333fc9b215b837e350d",
+        "expected_size_bytes": 1331,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/capture_finding_deltas.py",
+        "sha256": "d85bc3f26e1350e22b1236936b8a5d85e20cbc473c96317068af6df71dc8e41e",
+        "size_bytes": 4607,
+        "expected_sha256": "d85bc3f26e1350e22b1236936b8a5d85e20cbc473c96317068af6df71dc8e41e",
+        "expected_size_bytes": 4607,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/capture_github_jobs.py",
+        "sha256": "6c1976f0cfba8a30049e7d89fffa6cb796049cf615dbbe11b920a3c2cfddb4c6",
+        "size_bytes": 6331,
+        "expected_sha256": "6c1976f0cfba8a30049e7d89fffa6cb796049cf615dbbe11b920a3c2cfddb4c6",
+        "expected_size_bytes": 6331,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/capture_source.py",
+        "sha256": "5266935aad68f4cc96d773536fd7fdc80d59b249e47d50bdfeaf00d443445597",
+        "size_bytes": 20015,
+        "expected_sha256": "5266935aad68f4cc96d773536fd7fdc80d59b249e47d50bdfeaf00d443445597",
+        "expected_size_bytes": 20015,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/ci-current.json",
+        "sha256": "fbb15138dc849365fac72ed90b9b5fef5bc5411ecd173c73931d59e727fcbe9b",
+        "size_bytes": 6446,
+        "expected_sha256": "fbb15138dc849365fac72ed90b9b5fef5bc5411ecd173c73931d59e727fcbe9b",
+        "expected_size_bytes": 6446,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/ci-head-1d6-required-failure.json",
+        "sha256": "639b8cc7de15c47daadd2ceb165bb5c0da3db83ee2fee6ff0ba082955c6aef23",
+        "size_bytes": 1158,
+        "expected_sha256": "639b8cc7de15c47daadd2ceb165bb5c0da3db83ee2fee6ff0ba082955c6aef23",
+        "expected_size_bytes": 1158,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/ci-head-1d6-required-job-excerpt.txt",
+        "sha256": "ad13185f16021a4b92491a5fb75018ebe8fab1ddc292cdebaa50a688481d3168",
+        "size_bytes": 501,
+        "expected_sha256": "ad13185f16021a4b92491a5fb75018ebe8fab1ddc292cdebaa50a688481d3168",
+        "expected_size_bytes": 501,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/ci-head-1d6-rest.json",
+        "sha256": "1ff45c0dff72fe837ee658b424d80b87e5b36e26147cb9c27a72be24709fc71f",
+        "size_bytes": 358846,
+        "expected_sha256": "1ff45c0dff72fe837ee658b424d80b87e5b36e26147cb9c27a72be24709fc71f",
+        "expected_size_bytes": 358846,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/ci-head-1d6-snapshot.json",
+        "sha256": "8cbd5f7138c51de6f761c1e2248d2adf52a18714bd851169c77100c4c625b683",
+        "size_bytes": 116252,
+        "expected_sha256": "8cbd5f7138c51de6f761c1e2248d2adf52a18714bd851169c77100c4c625b683",
+        "expected_size_bytes": 116252,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/ci-head-31f-job-inventory.json",
+        "sha256": "191118b7991596829258fdfd8746b6d48479875081fa1c91110a58448c716427",
+        "size_bytes": 105412,
+        "expected_sha256": "191118b7991596829258fdfd8746b6d48479875081fa1c91110a58448c716427",
+        "expected_size_bytes": 105412,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/ci-job-excerpts.json",
+        "sha256": "84151694f814f2ba3ef2f2514c9b85f4a5d8790c7b393626f43801120bbff375",
+        "size_bytes": 5596,
+        "expected_sha256": "84151694f814f2ba3ef2f2514c9b85f4a5d8790c7b393626f43801120bbff375",
+        "expected_size_bytes": 5596,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/ci-job-inventory.json",
+        "sha256": "ec9d25655ede19e8731a315213c994c4c49983e83d9d1595a4419dca39506af6",
+        "size_bytes": 260924,
+        "expected_sha256": "ec9d25655ede19e8731a315213c994c4c49983e83d9d1595a4419dca39506af6",
+        "expected_size_bytes": 260924,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/ci-required-job-excerpt.json",
+        "sha256": "62597d6460de25e29c0e591e1ea8353bae87d5785e3addebf49ce33a4d92d41e",
+        "size_bytes": 948,
+        "expected_sha256": "62597d6460de25e29c0e591e1ea8353bae87d5785e3addebf49ce33a4d92d41e",
+        "expected_size_bytes": 948,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/commands.json",
+        "sha256": "75e75900854d49dfda246861cd559e074869078f3fc366f8a16eb63f503725ee",
+        "size_bytes": 8346,
+        "expected_sha256": "75e75900854d49dfda246861cd559e074869078f3fc366f8a16eb63f503725ee",
+        "expected_size_bytes": 8346,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/declaration-overlay-1d6.json",
+        "sha256": "bcabf2eacc14fb5febaf0688d447a0a021f0aea754584e56a247a3d849fe3614",
+        "size_bytes": 5613,
+        "expected_sha256": "bcabf2eacc14fb5febaf0688d447a0a021f0aea754584e56a247a3d849fe3614",
+        "expected_size_bytes": 5613,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/derive_source_overlays.py",
+        "sha256": "4b5348fd5d7f265940e78411b594461d9c412638ffcc5b0d5112a905d3cfe664",
+        "size_bytes": 4446,
+        "expected_sha256": "4b5348fd5d7f265940e78411b594461d9c412638ffcc5b0d5112a905d3cfe664",
+        "expected_size_bytes": 4446,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/finding-deltas-e08-to-1d6.json",
+        "sha256": "c8b2b95a3b3133aae78a07523e6c949a4975840049c0ea3b34d3abba37dd22e9",
+        "size_bytes": 10293,
+        "expected_sha256": "c8b2b95a3b3133aae78a07523e6c949a4975840049c0ea3b34d3abba37dd22e9",
+        "expected_size_bytes": 10293,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/finding-dispositions.json",
+        "sha256": "866ede9336300817878ed62704467d48a878c99689c140650946123485f86875",
+        "size_bytes": 8029,
+        "expected_sha256": "866ede9336300817878ed62704467d48a878c99689c140650946123485f86875",
+        "expected_size_bytes": 8029,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/generated-and-legal.json",
+        "sha256": "01c34da828382b6d34b922ae5005631f7175df9c64a637dd9387d3b247c8bd82",
+        "size_bytes": 10943,
+        "expected_sha256": "01c34da828382b6d34b922ae5005631f7175df9c64a637dd9387d3b247c8bd82",
+        "expected_size_bytes": 10943,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/inventory-summary.json",
+        "sha256": "11be7ef3a19fb3d9666dd7a99c41656684051ca6606a3bbba2b64c0edeed9906",
+        "size_bytes": 3577,
+        "expected_sha256": "11be7ef3a19fb3d9666dd7a99c41656684051ca6606a3bbba2b64c0edeed9906",
+        "expected_size_bytes": 3577,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/ownership-boundaries.json",
+        "sha256": "cc44155d5be5ff14ff5a07f074024ee86ed9e40e0d018cc8da704820992a2cd4",
+        "size_bytes": 16735,
+        "expected_sha256": "cc44155d5be5ff14ff5a07f074024ee86ed9e40e0d018cc8da704820992a2cd4",
+        "expected_size_bytes": 16735,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/ownership-delta-31f.json",
+        "sha256": "bbe2c2035a3d97910cc058925c9f51446a14741142c7e104883262e7141a8ae4",
+        "size_bytes": 2461,
+        "expected_sha256": "bbe2c2035a3d97910cc058925c9f51446a14741142c7e104883262e7141a8ae4",
+        "expected_size_bytes": 2461,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/safety-contracts.json",
+        "sha256": "5624415b65e95752713ef57f38354f89cdecce314960b37dd285e9bfc7b90f12",
+        "size_bytes": 1780,
+        "expected_sha256": "5624415b65e95752713ef57f38354f89cdecce314960b37dd285e9bfc7b90f12",
+        "expected_size_bytes": 1780,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/scan_source_declarations.py",
+        "sha256": "4c3fc158b40a27281ea5b9b855969c8886d55fb920421587a7dfcf39ea465e1c",
+        "size_bytes": 40986,
+        "expected_sha256": "4c3fc158b40a27281ea5b9b855969c8886d55fb920421587a7dfcf39ea465e1c",
+        "expected_size_bytes": 40986,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/script-directives.json",
+        "sha256": "0065e65c97519c44b859e5188a5baa80662ea3ce95954eaf01758ebcf06e4eaf",
+        "size_bytes": 1289,
+        "expected_sha256": "0065e65c97519c44b859e5188a5baa80662ea3ce95954eaf01758ebcf06e4eaf",
+        "expected_size_bytes": 1289,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/31f-to-1d6/new/crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+        "sha256": "b222ba034d68a509db33a684dd21c155385fdc61d2283be0ad73837d828c76e3",
+        "size_bytes": 41164,
+        "expected_sha256": "b222ba034d68a509db33a684dd21c155385fdc61d2283be0ad73837d828c76e3",
+        "expected_size_bytes": 41164,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/31f-to-1d6/new/crates/showcase-ui/tests/navigation_contract.rs",
+        "sha256": "eaeeaecae11b3a692091ee7e82ab180e2147e186bc1eda093c0db660dbf46ce5",
+        "size_bytes": 24445,
+        "expected_sha256": "eaeeaecae11b3a692091ee7e82ab180e2147e186bc1eda093c0db660dbf46ce5",
+        "expected_size_bytes": 24445,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/31f-to-1d6/old/crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+        "sha256": "faa2a62d72736bc6ead7b99135a7d6e3f1ff1193b8bf48dc5f424241e3ccf0c9",
+        "size_bytes": 41164,
+        "expected_sha256": "faa2a62d72736bc6ead7b99135a7d6e3f1ff1193b8bf48dc5f424241e3ccf0c9",
+        "expected_size_bytes": 41164,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/31f-to-1d6/old/crates/showcase-ui/tests/navigation_contract.rs",
+        "sha256": "5bb23aab81d2877eb8ec0341e32910409d58edec09c176ef8d9ea0b05909cd52",
+        "size_bytes": 22434,
+        "expected_sha256": "5bb23aab81d2877eb8ec0341e32910409d58edec09c176ef8d9ea0b05909cd52",
+        "expected_size_bytes": 22434,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/3a-to-31f/new/crates/termrock-xtask/exceptions/v1.json",
+        "sha256": "a943a901145b2a6c084346ba9bb2b6c6007228e9aeb7bb38522061db7926934e",
+        "size_bytes": 30776,
+        "expected_sha256": "a943a901145b2a6c084346ba9bb2b6c6007228e9aeb7bb38522061db7926934e",
+        "expected_size_bytes": 30776,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/3a-to-31f/old/crates/termrock-xtask/exceptions/v1.json",
+        "sha256": "7789eddff384543eeb1d147c29d8a650696a415b0389dc78cac8e57ce35923d0",
+        "size_bytes": 31637,
+        "expected_sha256": "7789eddff384543eeb1d147c29d8a650696a415b0389dc78cac8e57ce35923d0",
+        "expected_size_bytes": 31637,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/new/crates/holla-ui/tests/baselines/app.txt",
+        "sha256": "b6a00b587e8ecae484fea1f85db57e74fd3535bb127e0032594c12b2f95bda11",
+        "size_bytes": 56237,
+        "expected_sha256": "b6a00b587e8ecae484fea1f85db57e74fd3535bb127e0032594c12b2f95bda11",
+        "expected_size_bytes": 56237,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/allowlist.txt",
+        "sha256": "c83bfcc2c6c1f57289332d1c837683503f1c2a41d7fe13385b825eafb4540c0d",
+        "size_bytes": 929391,
+        "expected_sha256": "c83bfcc2c6c1f57289332d1c837683503f1c2a41d7fe13385b825eafb4540c0d",
+        "expected_size_bytes": 929391,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/catalog.rs",
+        "sha256": "b852413adeb6c004bb8f93c0707b7f2c0d9ed40a519e94f581e4cf5a577bfc62",
+        "size_bytes": 2569,
+        "expected_sha256": "b852413adeb6c004bb8f93c0707b7f2c0d9ed40a519e94f581e4cf5a577bfc62",
+        "expected_size_bytes": 2569,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/catalog_data.rs",
+        "sha256": "bcd2d23e2d7623f18718204dc787c5ef12aaaff5eaaf0b1bcde306bce3843846",
+        "size_bytes": 332395,
+        "expected_sha256": "bcd2d23e2d7623f18718204dc787c5ef12aaaff5eaaf0b1bcde306bce3843846",
+        "expected_size_bytes": 332395,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/declarations.rs",
+        "sha256": "8a2ec2bed3ada0737c1c4b6d1cd8707dfa33da2f2f4b64ff0591b79449e7f69a",
+        "size_bytes": 13126,
+        "expected_sha256": "8a2ec2bed3ada0737c1c4b6d1cd8707dfa33da2f2f4b64ff0591b79449e7f69a",
+        "expected_size_bytes": 13126,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/declarations_data.rs",
+        "sha256": "4310f419cc5f207e491568fe3d6d0b5b03296779eb89c7279623c6d89b88d359",
+        "size_bytes": 108750,
+        "expected_sha256": "4310f419cc5f207e491568fe3d6d0b5b03296779eb89c7279623c6d89b88d359",
+        "expected_size_bytes": 108750,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/mod.rs",
+        "sha256": "7bfe173cb7c5b71bdd24b36aadd551dc2764ea4eb5a3f99ce691d685c277810d",
+        "size_bytes": 447,
+        "expected_sha256": "7bfe173cb7c5b71bdd24b36aadd551dc2764ea4eb5a3f99ce691d685c277810d",
+        "expected_size_bytes": 447,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/scan.rs",
+        "sha256": "64dedbe91bb1ae8f04c631093d10e6bf149cd0cf3cbec6c6e1183348c25e9a51",
+        "size_bytes": 30009,
+        "expected_sha256": "64dedbe91bb1ae8f04c631093d10e6bf149cd0cf3cbec6c6e1183348c25e9a51",
+        "expected_size_bytes": 30009,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/old/crates/holla-ui/tests/baselines/app.txt",
+        "sha256": "c72badb7ebcc38d7017eac56852bf93b2167547223bbb6af2265bffed1b2cac6",
+        "size_bytes": 56237,
+        "expected_sha256": "c72badb7ebcc38d7017eac56852bf93b2167547223bbb6af2265bffed1b2cac6",
+        "expected_size_bytes": 56237,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/allowlist.txt",
+        "sha256": "c83bfcc2c6c1f57289332d1c837683503f1c2a41d7fe13385b825eafb4540c0d",
+        "size_bytes": 929391,
+        "expected_sha256": "c83bfcc2c6c1f57289332d1c837683503f1c2a41d7fe13385b825eafb4540c0d",
+        "expected_size_bytes": 929391,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/catalog.rs",
+        "sha256": "b852413adeb6c004bb8f93c0707b7f2c0d9ed40a519e94f581e4cf5a577bfc62",
+        "size_bytes": 2569,
+        "expected_sha256": "b852413adeb6c004bb8f93c0707b7f2c0d9ed40a519e94f581e4cf5a577bfc62",
+        "expected_size_bytes": 2569,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/catalog_data.rs",
+        "sha256": "bcd2d23e2d7623f18718204dc787c5ef12aaaff5eaaf0b1bcde306bce3843846",
+        "size_bytes": 332395,
+        "expected_sha256": "bcd2d23e2d7623f18718204dc787c5ef12aaaff5eaaf0b1bcde306bce3843846",
+        "expected_size_bytes": 332395,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/declarations.rs",
+        "sha256": "8a2ec2bed3ada0737c1c4b6d1cd8707dfa33da2f2f4b64ff0591b79449e7f69a",
+        "size_bytes": 13126,
+        "expected_sha256": "8a2ec2bed3ada0737c1c4b6d1cd8707dfa33da2f2f4b64ff0591b79449e7f69a",
+        "expected_size_bytes": 13126,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/declarations_data.rs",
+        "sha256": "4310f419cc5f207e491568fe3d6d0b5b03296779eb89c7279623c6d89b88d359",
+        "size_bytes": 108750,
+        "expected_sha256": "4310f419cc5f207e491568fe3d6d0b5b03296779eb89c7279623c6d89b88d359",
+        "expected_size_bytes": 108750,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/mod.rs",
+        "sha256": "7bfe173cb7c5b71bdd24b36aadd551dc2764ea4eb5a3f99ce691d685c277810d",
+        "size_bytes": 447,
+        "expected_sha256": "7bfe173cb7c5b71bdd24b36aadd551dc2764ea4eb5a3f99ce691d685c277810d",
+        "expected_size_bytes": 447,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/scan.rs",
+        "sha256": "64dedbe91bb1ae8f04c631093d10e6bf149cd0cf3cbec6c6e1183348c25e9a51",
+        "size_bytes": 30009,
+        "expected_sha256": "64dedbe91bb1ae8f04c631093d10e6bf149cd0cf3cbec6c6e1183348c25e9a51",
+        "expected_size_bytes": 30009,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-overlay-manifest.json",
+        "sha256": "a259947ad412fc1001c032b15a51770b9b41bbc4a271b55bd049af865e208347",
+        "size_bytes": 5253,
+        "expected_sha256": "a259947ad412fc1001c032b15a51770b9b41bbc4a271b55bd049af865e208347",
+        "expected_size_bytes": 5253,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-report.md",
+        "sha256": "18338746ac53a6a8d9a9bac3acfa8192ce522fda3bc3fd7625a1f2da08246beb",
+        "size_bytes": 5460,
+        "expected_sha256": "18338746ac53a6a8d9a9bac3acfa8192ce522fda3bc3fd7625a1f2da08246beb",
+        "expected_size_bytes": 5460,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-state.json",
+        "sha256": "e82d575937f4d40951be3ddebf4d552344d88908fe62441610e6eccfdfb821fd",
+        "size_bytes": 5624,
+        "expected_sha256": "e82d575937f4d40951be3ddebf4d552344d88908fe62441610e6eccfdfb821fd",
+        "expected_size_bytes": 5624,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/source-summary-1d6.json",
+        "sha256": "8af5ec64185926c1d2b079be3e15bdd70910615a0862c390992f8de00cf73e35",
+        "size_bytes": 3279,
+        "expected_sha256": "8af5ec64185926c1d2b079be3e15bdd70910615a0862c390992f8de00cf73e35",
+        "expected_size_bytes": 3279,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/test-files-1d6.jsonl.gz",
+        "sha256": "7538fc618596e98aab6389ff3458ad02503e322e32a0ff13f57742adbd58a90a",
+        "size_bytes": 5657569,
+        "expected_sha256": "7538fc618596e98aab6389ff3458ad02503e322e32a0ff13f57742adbd58a90a",
+        "expected_size_bytes": 5657569,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/test-files-31f.jsonl.gz",
+        "sha256": "2c09395994a4a64851447df3d78a3caabb9265063b28a56da27929a43f6df343",
+        "size_bytes": 5657568,
+        "expected_sha256": "2c09395994a4a64851447df3d78a3caabb9265063b28a56da27929a43f6df343",
+        "expected_size_bytes": 5657568,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/test-files.jsonl.gz",
+        "sha256": "03d1df69bfe346eca4cabb52f1caae3f3756e0026bb51e327fce913b30c07e07",
+        "size_bytes": 5795344,
+        "expected_sha256": "03d1df69bfe346eca4cabb52f1caae3f3756e0026bb51e327fce913b30c07e07",
+        "expected_size_bytes": 5795344,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/test-inventory-delta-1d6.json",
+        "sha256": "8ecc9f034676205c673bae5789b578b68a26ca0aee444342e0ccd0b2dcad0c30",
+        "size_bytes": 2731,
+        "expected_sha256": "8ecc9f034676205c673bae5789b578b68a26ca0aee444342e0ccd0b2dcad0c30",
+        "expected_size_bytes": 2731,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/test-inventory.json",
+        "sha256": "2e684820b5cae6a2817be4ce5760a17d940b3d6054738f2c329a569b061048a6",
+        "size_bytes": 33007051,
+        "expected_sha256": "2e684820b5cae6a2817be4ce5760a17d940b3d6054738f2c329a569b061048a6",
+        "expected_size_bytes": 33007051,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/toolchain.json",
+        "sha256": "f354c57b3d10341f4dcc7de99ff4dd3bb1873d3cccbefe0bab0cafe8a352895e",
+        "size_bytes": 5968,
+        "expected_sha256": "f354c57b3d10341f4dcc7de99ff4dd3bb1873d3cccbefe0bab0cafe8a352895e",
+        "expected_size_bytes": 5968,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/tracked-tree-1d6.jsonl.gz",
+        "sha256": "b2c34eca3ff3e003db4e6a9c97cb45321fc1b16e2152525728f4689b8d44536f",
+        "size_bytes": 5736987,
+        "expected_sha256": "b2c34eca3ff3e003db4e6a9c97cb45321fc1b16e2152525728f4689b8d44536f",
+        "expected_size_bytes": 5736987,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/tracked-tree-31f.jsonl.gz",
+        "sha256": "1be1b8fb9de3397f2e6deb2c682034f54402355f56c0a72065ff8db9f5e3c05e",
+        "size_bytes": 5736988,
+        "expected_sha256": "1be1b8fb9de3397f2e6deb2c682034f54402355f56c0a72065ff8db9f5e3c05e",
+        "expected_size_bytes": 5736988,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/tracked-tree.jsonl.gz",
+        "sha256": "eb8953c8f88a945b679d6936ed7bfd18111fd9ceed88bbe9eef7d4ba85241202",
+        "size_bytes": 5876409,
+        "expected_sha256": "eb8953c8f88a945b679d6936ed7bfd18111fd9ceed88bbe9eef7d4ba85241202",
+        "expected_size_bytes": 5876409,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/validate_source_records.py",
+        "sha256": "0c2490d52be4f4aa7b41ffe8369f6803f9f9ee63e405c373b02218ac0f99e301",
+        "size_bytes": 3066,
+        "expected_sha256": "0c2490d52be4f4aa7b41ffe8369f6803f9f9ee63e405c373b02218ac0f99e301",
+        "expected_size_bytes": 3066,
+        "match": true
+      },
+      {
+        "path": "docs/implementation/pr38-final/results/t00-source/worker-result.json",
+        "sha256": "68592355d5db726b824a691ff684ca54fdc2727ec839549f8ca4c08d422d6834",
+        "size_bytes": 10620,
+        "expected_sha256": "68592355d5db726b824a691ff684ca54fdc2727ec839549f8ca4c08d422d6834",
+        "expected_size_bytes": 10620,
+        "match": true
+      }
+    ]
+  },
+  "t37_preserved_file_set": {
+    "source_record": "docs/implementation/pr38-final/results/t37-metadata/final-preservation-checks.json",
+    "count": 24,
+    "all_fixed_input_hashes_match": true,
+    "rows": [
+      {
+        "path": "mise.toml",
+        "fixed_input_sha256": "a35637525fd0603bb1724aaf3320fc89c5b7f89b3ebf12d3f525dad4ec6ea44a",
+        "current_sha256": "a35637525fd0603bb1724aaf3320fc89c5b7f89b3ebf12d3f525dad4ec6ea44a",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "mise.lock",
+        "fixed_input_sha256": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+        "current_sha256": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "rust-toolchain.toml",
+        "fixed_input_sha256": "4f6c9e5b60864d21b5e71753046337187c510379c4becdd365a9387294c1b80a",
+        "current_sha256": "4f6c9e5b60864d21b5e71753046337187c510379c4becdd365a9387294c1b80a",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/visual-harness/baselines/oracle/ORACLE.toml",
+        "fixed_input_sha256": "bfce62b23519b52c25978561c923a910d4cc633a9aab512e27f8c04dbd5eec2f",
+        "current_sha256": "bfce62b23519b52c25978561c923a910d4cc633a9aab512e27f8c04dbd5eec2f",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "tools/acceptance_policy.json",
+        "fixed_input_sha256": "7a0133ab3724d93de580377ab0e7cfe26a73773bb5e3129557046a55163e1287",
+        "current_sha256": "7a0133ab3724d93de580377ab0e7cfe26a73773bb5e3129557046a55163e1287",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "component-ownership.json",
+        "fixed_input_sha256": "4265116e1ee48092fec6f2a108893ac747bc1c636ca4b279dd9f64e8492822a4",
+        "current_sha256": "4265116e1ee48092fec6f2a108893ac747bc1c636ca4b279dd9f64e8492822a4",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "tools/test-inventory/historical.json",
+        "fixed_input_sha256": "cd9c5c4908caf3150cd962e289f7310908c3a5b2285cd26cae624d520068af65",
+        "current_sha256": "cd9c5c4908caf3150cd962e289f7310908c3a5b2285cd26cae624d520068af65",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "tools/test-inventory/required.json",
+        "fixed_input_sha256": "1ab6cd9cd95a0ace872085d763547707cb5c5948b727d8f90c2636fc4e8838b2",
+        "current_sha256": "1ab6cd9cd95a0ace872085d763547707cb5c5948b727d8f90c2636fc4e8838b2",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-test-support/tests/perf_baseline.txt",
+        "fixed_input_sha256": "e701660042110270f94ea21c78fb9114084afcd1cc57d60320f8e97dfc11d5c4",
+        "current_sha256": "e701660042110270f94ea21c78fb9114084afcd1cc57d60320f8e97dfc11d5c4",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-conformance/tests/baselines/components.txt",
+        "fixed_input_sha256": "010e34d2fec2cae84128911faa1bb19a30b44fd1cce8e0e4c7b1521a33383d70",
+        "current_sha256": "010e34d2fec2cae84128911faa1bb19a30b44fd1cce8e0e4c7b1521a33383d70",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-e2e/cases/registry.json",
+        "fixed_input_sha256": "7327cdf90044499444c93d627747237912abe27b41708a64f0fed2a363c78476",
+        "current_sha256": "7327cdf90044499444c93d627747237912abe27b41708a64f0fed2a363c78476",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-e2e/profile.json",
+        "fixed_input_sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+        "current_sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/expected-generation-v1.schema.json",
+        "fixed_input_sha256": "d86c066f58c6edcc92133752d9e02102ab9564c6a7c0b60777ad0f01818b23bc",
+        "current_sha256": "d86c066f58c6edcc92133752d9e02102ab9564c6a7c0b60777ad0f01818b23bc",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/generation-admission-v1.schema.json",
+        "fixed_input_sha256": "cfec0679de8245be6e165babf7cd4df15855fef42349a28ecc9b8d5102a069a5",
+        "current_sha256": "cfec0679de8245be6e165babf7cd4df15855fef42349a28ecc9b8d5102a069a5",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/oracle-capture-receipt-v1.schema.json",
+        "fixed_input_sha256": "448577bd07ccec30596f0a60ee38ca943271183ede8a45c7a7b2c9c167187e20",
+        "current_sha256": "448577bd07ccec30596f0a60ee38ca943271183ede8a45c7a7b2c9c167187e20",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/qualification-review-v1.schema.json",
+        "fixed_input_sha256": "f3f06b64d25d806dac6ada4b081df8532e83a50f5ec5b6f811a4231c87ba08d0",
+        "current_sha256": "f3f06b64d25d806dac6ada4b081df8532e83a50f5ec5b6f811a4231c87ba08d0",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/receipt-v1.schema.json",
+        "fixed_input_sha256": "68f9c6964d6b732a5a67fa5571b01e8001717f47b0b87db3aa1ab3764768dd61",
+        "current_sha256": "68f9c6964d6b732a5a67fa5571b01e8001717f47b0b87db3aa1ab3764768dd61",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/receipt-v2.schema.json",
+        "fixed_input_sha256": "31135e33541dcc21fffed2c77d3a37a169ae5ceaeb482fa9dc8340394f9b6a5d",
+        "current_sha256": "31135e33541dcc21fffed2c77d3a37a169ae5ceaeb482fa9dc8340394f9b6a5d",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/receipt-v3.schema.json",
+        "fixed_input_sha256": "562d95a7a104a6f3127fb9f403f7cb79c24b25f77943e1eec732ed2120f476fe",
+        "current_sha256": "562d95a7a104a6f3127fb9f403f7cb79c24b25f77943e1eec732ed2120f476fe",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/subject-manifest-v1.schema.json",
+        "fixed_input_sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+        "current_sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/subject-manifest-v2.schema.json",
+        "fixed_input_sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+        "current_sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/tag-validator-toolchain-v1.schema.json",
+        "fixed_input_sha256": "979fd241c4b35c8402e3e4161ccd9bad1925c7e5af7f25c0f0b55ebe9fa1b9a6",
+        "current_sha256": "979fd241c4b35c8402e3e4161ccd9bad1925c7e5af7f25c0f0b55ebe9fa1b9a6",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/trust-record-v1.schema.json",
+        "fixed_input_sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+        "current_sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555",
+        "exists": true,
+        "match": true
+      },
+      {
+        "path": "crates/termrock-e2e/schemas/trust-record-v2.schema.json",
+        "fixed_input_sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+        "current_sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b",
+        "exists": true,
+        "match": true
+      }
+    ]
+  },
+  "additional_exact_t00_hash_bound_source_and_lock_assets": {
+    "count": 9,
+    "all_hashes_match": true,
+    "rows": [
+      {
+        "path": "docs/audits/evidence/2026-10-21-current-blockers/incoming-tablepro-runtime-review-34f73e3/probe.rs",
+        "expected_sha256": "7bd90e6968f7d254266aabfde9e73f1d41fe41749fb02ecbaa0ae8e5b14c1562",
+        "current_sha256": "7bd90e6968f7d254266aabfde9e73f1d41fe41749fb02ecbaa0ae8e5b14c1562",
+        "classification": "immutable or reference evidence; not deletion authorization",
+        "match": true
+      },
+      {
+        "path": "docs/audits/evidence/2026-10-21-native-expectation-protection/rejected/crates/showcase-ui/tests/page_headings.rs",
+        "expected_sha256": "e7145fe124fd323f969692ae9781290f5ffd4f417ad34932898b172fcd3ef5dd",
+        "current_sha256": "e7145fe124fd323f969692ae9781290f5ffd4f417ad34932898b172fcd3ef5dd",
+        "classification": "immutable or reference evidence; not deletion authorization",
+        "match": true
+      },
+      {
+        "path": "docs/audits/evidence/2026-10-21-native-expectation-protection/restored/crates/showcase-ui/tests/page_headings.rs",
+        "expected_sha256": "9d1646c9500d7e6cf143e5f9873451308fcf814e8ec41efa7667b4af723f6d16",
+        "current_sha256": "9d1646c9500d7e6cf143e5f9873451308fcf814e8ec41efa7667b4af723f6d16",
+        "classification": "immutable or reference evidence; not deletion authorization",
+        "match": true
+      },
+      {
+        "path": "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/Cargo.lock",
+        "expected_sha256": "9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de7",
+        "current_sha256": "9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de7",
+        "classification": "immutable or reference evidence; not deletion authorization",
+        "match": true
+      },
+      {
+        "path": "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/tests/authored_bg.rs",
+        "expected_sha256": "3869c7044fbb06c9f8776210c0570aa46336349bdd894734545c791da258c6ae",
+        "current_sha256": "3869c7044fbb06c9f8776210c0570aa46336349bdd894734545c791da258c6ae",
+        "classification": "immutable or reference evidence; not deletion authorization",
+        "match": true
+      },
+      {
+        "path": "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/tests/contrast.rs",
+        "expected_sha256": "940da3fa57e92eaf6220f0e3a0ff3da587abfaae0ab4a802507cc846487b8407",
+        "current_sha256": "940da3fa57e92eaf6220f0e3a0ff3da587abfaae0ab4a802507cc846487b8407",
+        "classification": "immutable or reference evidence; not deletion authorization",
+        "match": true
+      },
+      {
+        "path": "docs/audits/evidence/2026-10-22-test-integrity-review/ansi_digest.py",
+        "expected_sha256": "46a9e7f6d078bcae176ba9567e49bc20727ff929db7799415d936df2612c4687",
+        "current_sha256": "46a9e7f6d078bcae176ba9567e49bc20727ff929db7799415d936df2612c4687",
+        "classification": "immutable or reference evidence; not deletion authorization",
+        "match": true
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/contract-source/deferred.py",
+        "expected_sha256": "35eacb9bce792bf85ebae60a890c2ac4368dd50271fe00d9f9ca33b74ae63dc0",
+        "current_sha256": "35eacb9bce792bf85ebae60a890c2ac4368dd50271fe00d9f9ca33b74ae63dc0",
+        "classification": "immutable or reference evidence; not deletion authorization",
+        "match": true
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/contract-source/deferred.rs",
+        "expected_sha256": "eb1cd35035b1e2e017505efd242c5f17d4adee5b8a68dfd65c3d3ffc8c72976d",
+        "current_sha256": "eb1cd35035b1e2e017505efd242c5f17d4adee5b8a68dfd65c3d3ffc8c72976d",
+        "classification": "immutable or reference evidence; not deletion authorization",
+        "match": true
+      }
+    ]
+  },
+  "tracked_evidence_lock_separation": {
+    "path": "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/Cargo.lock",
+    "sha256": "9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de7",
+    "role": "archived T00 immutable review evidence, not an active standalone Cargo workspace; distinct from the five active lockfiles checked."
+  }
+}

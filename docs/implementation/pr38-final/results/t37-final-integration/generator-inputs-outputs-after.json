@@ -1,0 +1,37 @@
+{
+  "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+  "files": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "b2a2747b49052bbec9c565d1436e4d19c6f7aadb6cb3dd3fa18376127ca83107",
+      "bytes": 292069
+    },
+    {
+      "path": ".github/velnor/task-execution-manifest-v1.json",
+      "sha256": "2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305",
+      "bytes": 452413
+    },
+    {
+      "path": ".velnor/config.toml",
+      "sha256": "3bd8343278328708afb79c14740179bcd4018763f4e323d32e08ceaf93b3ff20",
+      "bytes": 2692
+    },
+    {
+      "path": "mise.toml",
+      "sha256": "a35637525fd0603bb1724aaf3320fc89c5b7f89b3ebf12d3f525dad4ec6ea44a",
+      "bytes": 668
+    },
+    {
+      "path": "mise.lock",
+      "sha256": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+      "bytes": 16839
+    },
+    {
+      "path": "rust-toolchain.toml",
+      "sha256": "4f6c9e5b60864d21b5e71753046337187c510379c4becdd365a9387294c1b80a",
+      "bytes": 154
+    }
+  ],
+  "all_hashes_unchanged": true,
+  "differences": []
+}

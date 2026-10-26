@@ -1,0 +1,23 @@
+header={"argv": ["mise", "exec", "--", "velnor-actions", "generate"], "config_diff_sha256": "84d2084e46811d527c23dbef273c2b937597223487668966f5b1c474038dad2c", "exit_status": 0, "source_head": "383ad59b44baf95232005551b4d70f136bef3fea", "stderr_sha256": "57f682b1cbe32fb02f854d90362e6b830adc5b84198d3013de9984a9d211a4a4", "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "workdir": "/Users/donbeave/Downloads/termrock-t37-metadata"}
+--- stdout ---
+
+--- stderr ---
+.github/AGENTS.md
+.github/CLAUDE.md
+.github/actions/declared-task-0/action.yml
+.github/actions/u26/action.yml
+.github/actions/velnor-tool-seed/action.yml
+.github/actions/velnor-tools-cache-restore/action.yml
+.github/actions/velnor-tools-prelude-u26/action.yml
+.github/actions/velnor-verify-jactionlint/action.yml
+.github/actions/velnor-verify-restored-rust/action.yml
+.github/actions/velnor-verify-rust-manifest/action.yml
+.github/jactionlint.yaml
+.github/scripts/velnor-tools-cache-identity.sh
+.github/velnor/task-execution-manifest-v1.json
+.github/workflows/cache-prune.yml
+.github/workflows/ci.yml
+mise.lock is read-only input; Velnor never modifies it
+mise.toml is read-only input; Velnor never modifies it
+rust-toolchain.toml is read-only input; Velnor never modifies it
+shadowed_nextest_config: .config/nextest.toml shadowed by external-consumer-demo/.config/nextest.toml; profile selected from external-consumer-demo/.config/nextest.toml

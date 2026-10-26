@@ -1,0 +1,24 @@
+{
+  "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+  "generator_version": "0.1.48",
+  "current_task_count": 360,
+  "tasks_by_operation": {
+    "build": 90,
+    "clippy": 90,
+    "doc": 90,
+    "fmt": 90
+  },
+  "default_testing_pairs": 180,
+  "identical_argv_env_pairs": 162,
+  "different_argv_env_pairs": 18,
+  "default_argv_env_matches_fixed_d402": 180,
+  "default_tasks_compared": 180,
+  "default_missing_from_baseline": [],
+  "nextest_run_tasks": 0,
+  "nextest_run_task_ids": [],
+  "no_tests_fail_tasks": 0,
+  "no_tests_fail_task_ids": [],
+  "test_runner": "cargo_nextest",
+  "run_ignored": "default",
+  "status": "ABSENT / NOT VERIFIED"
+}

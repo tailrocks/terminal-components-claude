@@ -1,0 +1,239 @@
+{
+  "all_six_parsed_values_and_orders_equal": true,
+  "all_six_raw_hashes_changed": true,
+  "changed_config_paths_in_e2e_digest_inputs": [],
+  "changed_tracked_paths": [
+    ".github-gen/velnor-workflow.toml",
+    "Cargo.toml",
+    "crates/termrock-consumer-example/Cargo.toml",
+    "external-consumer-demo/.config/nextest.toml",
+    "external-consumer-demo/Cargo.toml",
+    "rustfmt.toml"
+  ],
+  "configuration_raw_hashes": [
+    {
+      "current_sha256": "16a6bdcc5c6355b8d0ab3adc6d110941cf75455ed8675c75b308317ba7ddb392",
+      "fixed_input_sha256": "41db6a00ce25fdfcd423e04bfd3a3dcde5f7d820429184be6c29a4b8a5409b75",
+      "parsed_values_and_order_equal": true,
+      "path": ".github-gen/velnor-workflow.toml",
+      "raw_bytes_changed": true
+    },
+    {
+      "current_sha256": "beb074fa9050e7847ab28285904cd4d170ee38eb5f68d5be0a15d8755f8b3e14",
+      "fixed_input_sha256": "f73b5d0ece57b053923d143df1100d6e53bd11f75ff78a710d11040783618d0e",
+      "parsed_values_and_order_equal": true,
+      "path": "Cargo.toml",
+      "raw_bytes_changed": true
+    },
+    {
+      "current_sha256": "7b036dfe3ac3d6fb24fde4e7b12201ce65e63a93f6e8d72e884532544dd3dafa",
+      "fixed_input_sha256": "e2694c031c6976fde008f45e708e0215950b898fc0864c212dc2e8ae56435457",
+      "parsed_values_and_order_equal": true,
+      "path": "crates/termrock-consumer-example/Cargo.toml",
+      "raw_bytes_changed": true
+    },
+    {
+      "current_sha256": "450aea5663b792140076ea139cb53cc0965d24a5e3e04d0386457f964ec3a28e",
+      "fixed_input_sha256": "609ed6f5dc4a62cb9c3b70250412037eda3f8ff66af29d5eeb2a1f79ef8fd9a1",
+      "parsed_values_and_order_equal": true,
+      "path": "external-consumer-demo/.config/nextest.toml",
+      "raw_bytes_changed": true
+    },
+    {
+      "current_sha256": "f759b31b2bf27e6853b15866eb7e1d8a3f9dd8e3f38af4dc1eec64f91a5f4492",
+      "fixed_input_sha256": "fa260425fd0d23249c716845e88f078c5f1c3a830b6c1e2baeaa7a959ca91685",
+      "parsed_values_and_order_equal": true,
+      "path": "external-consumer-demo/Cargo.toml",
+      "raw_bytes_changed": true
+    },
+    {
+      "current_sha256": "903c8aaa927b68e1397573dd6f5da449c2a6c125dc4a8489df2a7cd7a577a1dc",
+      "fixed_input_sha256": "1f3a2a1be73df8924ff6832adfdfe46e9b00408dff22e777cdb6f12e8a591321",
+      "parsed_values_and_order_equal": true,
+      "path": "rustfmt.toml",
+      "raw_bytes_changed": true
+    }
+  ],
+  "current_head": "383ad59b44baf95232005551b4d70f136bef3fea",
+  "current_head_tree": "402f9324abc73332978a0d03ee1c80f6b8ffa477",
+  "e2e_build_not_repeated_for_comment_only_correction": true,
+  "e2e_digest_input_count": 22,
+  "e2e_digest_inputs": [
+    {
+      "current_git_blob": "a935940ba782f82b67e539721f2328582af37afb",
+      "expected_git_blob": "a935940ba782f82b67e539721f2328582af37afb",
+      "path": "crates/termrock-e2e/Cargo.lock",
+      "same": true
+    },
+    {
+      "current_git_blob": "dee8ced415a37363669abcb43bc170b9132a7e7a",
+      "expected_git_blob": "dee8ced415a37363669abcb43bc170b9132a7e7a",
+      "path": "crates/termrock-e2e/Cargo.toml",
+      "same": true
+    },
+    {
+      "current_git_blob": "e705111e3fac13a034eed6cefa7edc0243058c27",
+      "expected_git_blob": "e705111e3fac13a034eed6cefa7edc0243058c27",
+      "path": "crates/termrock-e2e/README.md",
+      "same": true
+    },
+    {
+      "current_git_blob": "8123c691d483aa633400c22e01d8affa7e0e0e41",
+      "expected_git_blob": "8123c691d483aa633400c22e01d8affa7e0e0e41",
+      "path": "crates/termrock-e2e/build.rs",
+      "same": true
+    },
+    {
+      "current_git_blob": "eba5849f08c8078ae00aa3438f41fd38fe0c0815",
+      "expected_git_blob": "eba5849f08c8078ae00aa3438f41fd38fe0c0815",
+      "path": "crates/termrock-e2e/cases/registry.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "5501ffcbe1bd9d2d602449f510fdaf81f06a78e8",
+      "expected_git_blob": "5501ffcbe1bd9d2d602449f510fdaf81f06a78e8",
+      "path": "crates/termrock-e2e/profile.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "3189e2cdcb01f7cb76f4174239b0f13c08dc7220",
+      "expected_git_blob": "3189e2cdcb01f7cb76f4174239b0f13c08dc7220",
+      "path": "crates/termrock-e2e/schemas/expected-generation-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "e3e179aa8d25f3b630024f14d38f4127d5e90571",
+      "expected_git_blob": "e3e179aa8d25f3b630024f14d38f4127d5e90571",
+      "path": "crates/termrock-e2e/schemas/generation-admission-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "4ff10ebc54f51243e2415ac8ff16583b17f36b50",
+      "expected_git_blob": "4ff10ebc54f51243e2415ac8ff16583b17f36b50",
+      "path": "crates/termrock-e2e/schemas/oracle-capture-receipt-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "016febdf652e5c59ab9a7ecede6eb0899d8782b2",
+      "expected_git_blob": "016febdf652e5c59ab9a7ecede6eb0899d8782b2",
+      "path": "crates/termrock-e2e/schemas/qualification-review-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "fb1575db1da12777934bca9664d6b22282399315",
+      "expected_git_blob": "fb1575db1da12777934bca9664d6b22282399315",
+      "path": "crates/termrock-e2e/schemas/receipt-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "f847dfbf091952fee958df13716b62e6cea314f1",
+      "expected_git_blob": "f847dfbf091952fee958df13716b62e6cea314f1",
+      "path": "crates/termrock-e2e/schemas/receipt-v2.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "fa2eed4f194fd75c86f6f43745088a97aceb7467",
+      "expected_git_blob": "fa2eed4f194fd75c86f6f43745088a97aceb7467",
+      "path": "crates/termrock-e2e/schemas/receipt-v3.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "7643666bacc5a542cec0d8c1d5285ee91df15ae3",
+      "expected_git_blob": "7643666bacc5a542cec0d8c1d5285ee91df15ae3",
+      "path": "crates/termrock-e2e/schemas/subject-manifest-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "b163ab35af6ac0b38764748c1a1aab256e8c9e6b",
+      "expected_git_blob": "b163ab35af6ac0b38764748c1a1aab256e8c9e6b",
+      "path": "crates/termrock-e2e/schemas/subject-manifest-v2.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "225fd7b6507e475c48f05d7ab828a9ebd2ca7125",
+      "expected_git_blob": "225fd7b6507e475c48f05d7ab828a9ebd2ca7125",
+      "path": "crates/termrock-e2e/schemas/tag-validator-toolchain-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "949088bccfd0e19249ea6faa4d891b8a15c0cc7f",
+      "expected_git_blob": "949088bccfd0e19249ea6faa4d891b8a15c0cc7f",
+      "path": "crates/termrock-e2e/schemas/trust-record-v1.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "fd8c8dabeba0c4490ba2238b526aa641b4b2d93b",
+      "expected_git_blob": "fd8c8dabeba0c4490ba2238b526aa641b4b2d93b",
+      "path": "crates/termrock-e2e/schemas/trust-record-v2.schema.json",
+      "same": true
+    },
+    {
+      "current_git_blob": "2285e39f734c58a48906f8f95339f82045dd2fb5",
+      "expected_git_blob": "2285e39f734c58a48906f8f95339f82045dd2fb5",
+      "path": "crates/termrock-e2e/src/admission.rs",
+      "same": true
+    },
+    {
+      "current_git_blob": "148fcdd2fccad570d78b06ec87ab0c41983cbae6",
+      "expected_git_blob": "148fcdd2fccad570d78b06ec87ab0c41983cbae6",
+      "path": "crates/termrock-e2e/src/bin/admit_expected_generation.rs",
+      "same": true
+    },
+    {
+      "current_git_blob": "b95aaabd98cb664662c74fa31c4dec4ea663272b",
+      "expected_git_blob": "b95aaabd98cb664662c74fa31c4dec4ea663272b",
+      "path": "crates/termrock-e2e/src/lib.rs",
+      "same": true
+    },
+    {
+      "current_git_blob": "664ac1473a842bed16d777028efad321db5bea7b",
+      "expected_git_blob": "664ac1473a842bed16d777028efad321db5bea7b",
+      "path": "crates/termrock-e2e/src/visual.rs",
+      "same": true
+    }
+  ],
+  "e2e_digest_inputs_all_current_git_blobs_match": true,
+  "e2e_digest_sha256": "1777d5a93db4e1884aa1df1ef51323f4577e8d0347170ad2ba361dc39e4070ce",
+  "fixed_input_commit": "383ad59b44baf95232005551b4d70f136bef3fea",
+  "no_product_source_changes_in_working_diff": true,
+  "other_three_standalone_inputs_byte_identical": true,
+  "other_three_standalone_manifest_lock_rows": [
+    {
+      "byte_identical": true,
+      "current_git_blob": "dee8ced415a37363669abcb43bc170b9132a7e7a",
+      "fixed_input_git_blob": "dee8ced415a37363669abcb43bc170b9132a7e7a",
+      "path": "crates/termrock-e2e/Cargo.toml"
+    },
+    {
+      "byte_identical": true,
+      "current_git_blob": "a935940ba782f82b67e539721f2328582af37afb",
+      "fixed_input_git_blob": "a935940ba782f82b67e539721f2328582af37afb",
+      "path": "crates/termrock-e2e/Cargo.lock"
+    },
+    {
+      "byte_identical": true,
+      "current_git_blob": "b23ee0bf251b7b3554f93810e570b6c637554bcf",
+      "fixed_input_git_blob": "b23ee0bf251b7b3554f93810e570b6c637554bcf",
+      "path": "crates/termrock-visibility-tests/Cargo.toml"
+    },
+    {
+      "byte_identical": true,
+      "current_git_blob": "0b834a4e990f977c17a3cea3ade23a1a25822672",
+      "fixed_input_git_blob": "0b834a4e990f977c17a3cea3ade23a1a25822672",
+      "path": "crates/termrock-visibility-tests/Cargo.lock"
+    },
+    {
+      "byte_identical": true,
+      "current_git_blob": "3c3948b82600222fa63e7373d5006dbad93f390d",
+      "fixed_input_git_blob": "3c3948b82600222fa63e7373d5006dbad93f390d",
+      "path": "tools/termrock-visibility-publisher/Cargo.toml"
+    },
+    {
+      "byte_identical": true,
+      "current_git_blob": "5b6c12506664a286e8acdd6664d13ee4904e1e85",
+      "fixed_input_git_blob": "5b6c12506664a286e8acdd6664d13ee4904e1e85",
+      "path": "tools/termrock-visibility-publisher/Cargo.lock"
+    }
+  ],
+  "previous_metadata_retention_claim_superseded": "docs/implementation/pr38-final/results/t37-metadata/AGENT-RUNBOOK.md:89-90 remains unchanged; this correction record supersedes its incorrect retention decision."
+}

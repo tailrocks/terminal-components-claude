@@ -1,0 +1,50 @@
+{
+  "all_lock_hashes_unchanged": true,
+  "fixed_input": "383ad59b44baf95232005551b4d70f136bef3fea",
+  "lock_count": 7,
+  "locked_builds_saw_unchanged_hashes": true,
+  "locks": [
+    {
+      "current_sha256": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+      "fixed_input_sha256": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+      "path": "Cargo.lock",
+      "same": true
+    },
+    {
+      "current_sha256": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+      "fixed_input_sha256": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+      "path": "crates/termrock-e2e/Cargo.lock",
+      "same": true
+    },
+    {
+      "current_sha256": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+      "fixed_input_sha256": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+      "path": "crates/termrock-visibility-tests/Cargo.lock",
+      "same": true
+    },
+    {
+      "current_sha256": "9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de7",
+      "fixed_input_sha256": "9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de7",
+      "path": "docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/Cargo.lock",
+      "same": true
+    },
+    {
+      "current_sha256": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+      "fixed_input_sha256": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+      "path": "external-consumer-demo/Cargo.lock",
+      "same": true
+    },
+    {
+      "current_sha256": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+      "fixed_input_sha256": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+      "path": "mise.lock",
+      "same": true
+    },
+    {
+      "current_sha256": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d",
+      "fixed_input_sha256": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d",
+      "path": "tools/termrock-visibility-publisher/Cargo.lock",
+      "same": true
+    }
+  ]
+}

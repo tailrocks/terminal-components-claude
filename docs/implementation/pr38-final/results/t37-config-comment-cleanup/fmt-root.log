@@ -1,0 +1,5 @@
+header={"argv": ["/Users/donbeave/.local/bin/rust-build-guard", "--", "mise", "exec", "--", "cargo", "fmt", "--all", "--", "--check"], "exit_status": 0, "source_head": "383ad59b44baf95232005551b4d70f136bef3fea", "source_tree": "402f9324abc73332978a0d03ee1c80f6b8ffa477", "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522", "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "workdir": "/Users/donbeave/Downloads/termrock-t37-metadata"}
+--- stdout ---
+
+--- stderr ---
+rust build guard: allowed; checked 1 filesystem(s)

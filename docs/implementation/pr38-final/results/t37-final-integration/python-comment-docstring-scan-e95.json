@@ -1,0 +1,100 @@
+{
+  "schema": "t37-final.python-comment-docstring-scan.v1",
+  "source_head": "e95c45f7aa56959a7173e806f599e4aa371a3499",
+  "source_tree": "9725dd5d7973d9ff56ecb003866eea7827aa1cb3",
+  "tracked_python_file_count": 27,
+  "exact_t00_indexed_python_count": 8,
+  "exact_hash_bound_preserved_python_count": 2,
+  "exemptions": [
+    {
+      "path": "docs/audits/evidence/2026-10-22-test-integrity-review/ansi_digest.py",
+      "sha256": "46a9e7f6d078bcae176ba9567e49bc20727ff929db7799415d936df2612c4687",
+      "expected_sha256": "46a9e7f6d078bcae176ba9567e49bc20727ff929db7799415d936df2612c4687",
+      "byte_identical": true,
+      "classification": "immutable or reference evidence; not deletion authorization"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/analyze_latest_test_delta.py",
+      "sha256": "92e4f5add9a772cbb094cdf0c24b63dfa77529b5d7f794afd79e54039822ca71",
+      "expected_sha256": "92e4f5add9a772cbb094cdf0c24b63dfa77529b5d7f794afd79e54039822ca71",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/build_artifact_index.py",
+      "sha256": "e93313f5036acd43d7bcca7864838c5cac638ab35c87d333fc9b215b837e350d",
+      "expected_sha256": "e93313f5036acd43d7bcca7864838c5cac638ab35c87d333fc9b215b837e350d",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/capture_finding_deltas.py",
+      "sha256": "d85bc3f26e1350e22b1236936b8a5d85e20cbc473c96317068af6df71dc8e41e",
+      "expected_sha256": "d85bc3f26e1350e22b1236936b8a5d85e20cbc473c96317068af6df71dc8e41e",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/capture_github_jobs.py",
+      "sha256": "6c1976f0cfba8a30049e7d89fffa6cb796049cf615dbbe11b920a3c2cfddb4c6",
+      "expected_sha256": "6c1976f0cfba8a30049e7d89fffa6cb796049cf615dbbe11b920a3c2cfddb4c6",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/capture_source.py",
+      "sha256": "5266935aad68f4cc96d773536fd7fdc80d59b249e47d50bdfeaf00d443445597",
+      "expected_sha256": "5266935aad68f4cc96d773536fd7fdc80d59b249e47d50bdfeaf00d443445597",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/derive_source_overlays.py",
+      "sha256": "4b5348fd5d7f265940e78411b594461d9c412638ffcc5b0d5112a905d3cfe664",
+      "expected_sha256": "4b5348fd5d7f265940e78411b594461d9c412638ffcc5b0d5112a905d3cfe664",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/scan_source_declarations.py",
+      "sha256": "4c3fc158b40a27281ea5b9b855969c8886d55fb920421587a7dfcf39ea465e1c",
+      "expected_sha256": "4c3fc158b40a27281ea5b9b855969c8886d55fb920421587a7dfcf39ea465e1c",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/pr38-final/results/t00-source/validate_source_records.py",
+      "sha256": "0c2490d52be4f4aa7b41ffe8369f6803f9f9ee63e405c373b02218ac0f99e301",
+      "expected_sha256": "0c2490d52be4f4aa7b41ffe8369f6803f9f9ee63e405c373b02218ac0f99e301",
+      "byte_identical": true,
+      "classification": "immutable T00 artifact-index source row"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/contract-source/deferred.py",
+      "sha256": "35eacb9bce792bf85ebae60a890c2ac4368dd50271fe00d9f9ca33b74ae63dc0",
+      "expected_sha256": "35eacb9bce792bf85ebae60a890c2ac4368dd50271fe00d9f9ca33b74ae63dc0",
+      "byte_identical": true,
+      "classification": "immutable or reference evidence; not deletion authorization"
+    }
+  ],
+  "all_exemption_hashes_match": true,
+  "retained_cli_help_docstrings": [],
+  "retained_lint_directives": [
+    {
+      "path": "tools/ansi2png.py",
+      "line": 10,
+      "text": "# noqa: E402",
+      "sha256": "416533a5db8f4e8686465937903ea9a4f759815f2ae8a4312275424f9b1450f6"
+    }
+  ],
+  "nonfunctional_comment_or_docstring_findings": [],
+  "status": "PASS",
+  "prior_516_scan": "Preserved in python-comment-docstring-scan.json as FAIL / PENDING for old audit.py SHA 101c3a0b\u2026bf7099a3.",
+  "source_correction": {
+    "commit": "e6f54ede72cda228758a5ab27f539294722472b1",
+    "parent_input": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+    "path": "docs/implementation/pr38-final/results/t37-apps/audit.py",
+    "sha256": "b23cb3e25b4f23d61dd3b50c2f41213231589db0c0f019cbe81c0a8d8aac233f",
+    "change": "Removed 12 nonfunctional comments/docstrings; retained shebang; source-owner token/AST/help checks report equality; no plan/apply/verify modes run."
+  }
+}

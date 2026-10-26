@@ -1,0 +1,220 @@
+{
+  "schema": "t37-final.metadata-structure.v2",
+  "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+  "source_tree": "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d",
+  "metadata_command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+  "workspaces": [
+    {
+      "workspace": "root",
+      "workdir": ".",
+      "manifest": "Cargo.toml",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "exit_status": 0,
+      "stdout_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-root-final.json",
+      "stdout_sha256": "e389e3e0b6272e9a6889c84145c1ed1b4b820bc22f17be442020bce35fab2c50",
+      "stderr_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-root-final.stderr.log",
+      "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522",
+      "package_count": 47,
+      "target_count": 68,
+      "target_kind_counts": {
+        "lib": 42,
+        "example": 12,
+        "bin": 14
+      },
+      "test_kind_targets": 0,
+      "bench_kind_targets": 0,
+      "test_enabled_targets": 0,
+      "enabled_test_rows": [],
+      "library_count": 42,
+      "library_doctests_enabled": 0,
+      "packages_autotests_false": 47,
+      "packages_autobenches_false": 47
+    },
+    {
+      "workspace": "e2e",
+      "workdir": "crates/termrock-e2e",
+      "manifest": "crates/termrock-e2e/Cargo.toml",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "exit_status": 0,
+      "stdout_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-e2e-final.json",
+      "stdout_sha256": "c28318172aa3d483123b60d93717a7fbc7ca514ef49484f36e1f30d9b72774fb",
+      "stderr_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-e2e-final.stderr.log",
+      "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522",
+      "package_count": 1,
+      "target_count": 3,
+      "target_kind_counts": {
+        "lib": 1,
+        "bin": 1,
+        "custom-build": 1
+      },
+      "test_kind_targets": 0,
+      "bench_kind_targets": 0,
+      "test_enabled_targets": 0,
+      "enabled_test_rows": [],
+      "library_count": 1,
+      "library_doctests_enabled": 0,
+      "packages_autotests_false": 1,
+      "packages_autobenches_false": 1
+    },
+    {
+      "workspace": "visibility",
+      "workdir": "crates/termrock-visibility-tests",
+      "manifest": "crates/termrock-visibility-tests/Cargo.toml",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "exit_status": 0,
+      "stdout_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-visibility-final.json",
+      "stdout_sha256": "cde64ebca1c93c095616b6974b71bcfa7bfc11759d2abb4f0c887967f13ea9dc",
+      "stderr_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-visibility-final.stderr.log",
+      "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522",
+      "package_count": 1,
+      "target_count": 3,
+      "target_kind_counts": {
+        "lib": 1,
+        "bin": 2
+      },
+      "test_kind_targets": 0,
+      "bench_kind_targets": 0,
+      "test_enabled_targets": 0,
+      "enabled_test_rows": [],
+      "library_count": 1,
+      "library_doctests_enabled": 0,
+      "packages_autotests_false": 1,
+      "packages_autobenches_false": 1
+    },
+    {
+      "workspace": "consumer",
+      "workdir": "external-consumer-demo",
+      "manifest": "external-consumer-demo/Cargo.toml",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "exit_status": 0,
+      "stdout_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-consumer-final.json",
+      "stdout_sha256": "d2980c17d9de30d3ec66470b62f72f71a93668a21b4559526745444aee8a9b8b",
+      "stderr_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-consumer-final.stderr.log",
+      "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522",
+      "package_count": 1,
+      "target_count": 2,
+      "target_kind_counts": {
+        "lib": 1,
+        "bin": 1
+      },
+      "test_kind_targets": 0,
+      "bench_kind_targets": 0,
+      "test_enabled_targets": 0,
+      "enabled_test_rows": [],
+      "library_count": 1,
+      "library_doctests_enabled": 0,
+      "packages_autotests_false": 1,
+      "packages_autobenches_false": 1
+    },
+    {
+      "workspace": "publisher",
+      "workdir": "tools/termrock-visibility-publisher",
+      "manifest": "tools/termrock-visibility-publisher/Cargo.toml",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "exit_status": 0,
+      "stdout_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-publisher-final.json",
+      "stdout_sha256": "31009b8a2263d915df3a2dbbd96e35a98a28ff387e27e19eb22f7548ee4c504c",
+      "stderr_path": "docs/implementation/pr38-final/results/t37-final-integration/metadata-publisher-final.stderr.log",
+      "stderr_sha256": "e58aca08cbfae0d9cd6edb1d315c74f97902ab3f7f6f2ce49eec0511192a3522",
+      "package_count": 1,
+      "target_count": 1,
+      "target_kind_counts": {
+        "lib": 1
+      },
+      "test_kind_targets": 0,
+      "bench_kind_targets": 0,
+      "test_enabled_targets": 0,
+      "enabled_test_rows": [],
+      "library_count": 1,
+      "library_doctests_enabled": 0,
+      "packages_autotests_false": 1,
+      "packages_autobenches_false": 1
+    }
+  ],
+  "root_target_identity_matches_accepted_survivor_map": true,
+  "root_target_survivor_count": 68,
+  "target_flags_match_accepted_survivor_map": true,
+  "target_manifest_flag_rows": 68,
+  "all_target_manifest_flags_match": true,
+  "target_manifest_flag_failures": [],
+  "root_feature_names_with_testing_alias": [
+    {
+      "package": "termrock-core",
+      "testing_feature": []
+    },
+    {
+      "package": "termrock-theme",
+      "testing_feature": []
+    },
+    {
+      "package": "termrock-runtime",
+      "testing_feature": [
+        "termrock-core/testing",
+        "termrock-theme/testing"
+      ]
+    },
+    {
+      "package": "termrock-viewport",
+      "testing_feature": []
+    },
+    {
+      "package": "termrock-shell",
+      "testing_feature": []
+    },
+    {
+      "package": "termrock",
+      "testing_feature": [
+        "termrock-runtime/testing",
+        "termrock-viewport/testing"
+      ]
+    }
+  ],
+  "forms_dev_runtime_testing_edge": {
+    "workspace": true
+  },
+  "lock_hashes_before_after": [
+    {
+      "path": "Cargo.lock",
+      "before_sha256": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+      "after_sha256": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+      "bytes": 90707,
+      "unchanged": true
+    },
+    {
+      "path": "crates/termrock-e2e/Cargo.lock",
+      "before_sha256": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+      "after_sha256": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+      "bytes": 55237,
+      "unchanged": true
+    },
+    {
+      "path": "crates/termrock-visibility-tests/Cargo.lock",
+      "before_sha256": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+      "after_sha256": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+      "bytes": 6636,
+      "unchanged": true
+    },
+    {
+      "path": "external-consumer-demo/Cargo.lock",
+      "before_sha256": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+      "after_sha256": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+      "bytes": 49166,
+      "unchanged": true
+    },
+    {
+      "path": "tools/termrock-visibility-publisher/Cargo.lock",
+      "before_sha256": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d",
+      "after_sha256": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d",
+      "bytes": 36143,
+      "unchanged": true
+    }
+  ],
+  "all_five_lock_hashes_unchanged": true,
+  "structural_behavior_limit": {
+    "selected_cases": 0,
+    "tests_executed": 0,
+    "status": "NOT VERIFIED"
+  },
+  "issues": [],
+  "target_flag_derivation": "Cargo metadata no-deps target identity/doc/test/doctest fields plus effective [package].autotests/autobenches and explicit target test/bench/doc/doctest/required-features values; Cargo metadata omits package autotests/autobenches and target bench fields."
+}

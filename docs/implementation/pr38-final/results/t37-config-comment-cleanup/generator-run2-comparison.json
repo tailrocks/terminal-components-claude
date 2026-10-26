@@ -1,0 +1,91 @@
+{
+  "configuration_counts": {
+    "default": 180,
+    "testing": 180
+  },
+  "default_testing_pair_count": 180,
+  "different_argv_or_env_pair_count": 18,
+  "different_pair_prefixes": [
+    "stack/rust/crates/termrock-core/build",
+    "stack/rust/crates/termrock-core/clippy",
+    "stack/rust/crates/termrock-core/doc",
+    "stack/rust/crates/termrock-runtime/build",
+    "stack/rust/crates/termrock-runtime/clippy",
+    "stack/rust/crates/termrock-runtime/doc",
+    "stack/rust/crates/termrock-shell/build",
+    "stack/rust/crates/termrock-shell/clippy",
+    "stack/rust/crates/termrock-shell/doc",
+    "stack/rust/crates/termrock-theme/build",
+    "stack/rust/crates/termrock-theme/clippy",
+    "stack/rust/crates/termrock-theme/doc",
+    "stack/rust/crates/termrock-viewport/build",
+    "stack/rust/crates/termrock-viewport/clippy",
+    "stack/rust/crates/termrock-viewport/doc",
+    "stack/rust/crates/termrock/build",
+    "stack/rust/crates/termrock/clippy",
+    "stack/rust/crates/termrock/doc"
+  ],
+  "eligible_nextest_run_task_count": 0,
+  "eligible_nextest_run_task_ids": [],
+  "generated_path_count": 12,
+  "generated_path_hashes_equal_to_fixed_input": true,
+  "generated_path_hashes_equal_to_run1": true,
+  "generation_and_runner_inputs": [
+    {
+      "current_sha256": "3bd8343278328708afb79c14740179bcd4018763f4e323d32e08ceaf93b3ff20",
+      "fixed_input_sha256": "3bd8343278328708afb79c14740179bcd4018763f4e323d32e08ceaf93b3ff20",
+      "path": ".velnor/config.toml",
+      "same": true
+    },
+    {
+      "current_sha256": "a35637525fd0603bb1724aaf3320fc89c5b7f89b3ebf12d3f525dad4ec6ea44a",
+      "fixed_input_sha256": "a35637525fd0603bb1724aaf3320fc89c5b7f89b3ebf12d3f525dad4ec6ea44a",
+      "path": "mise.toml",
+      "same": true
+    },
+    {
+      "current_sha256": "4f6c9e5b60864d21b5e71753046337187c510379c4becdd365a9387294c1b80a",
+      "fixed_input_sha256": "4f6c9e5b60864d21b5e71753046337187c510379c4becdd365a9387294c1b80a",
+      "path": "rust-toolchain.toml",
+      "same": true
+    },
+    {
+      "current_sha256": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+      "fixed_input_sha256": "c7298d95beab94f404cda667e5981956b725d0a69642695e666e06c0b6e40cf0",
+      "path": "mise.lock",
+      "same": true
+    }
+  ],
+  "generation_and_runner_inputs_unchanged": true,
+  "generator": "Velnor Actions 0.1.48",
+  "generator_inputs": {
+    "configurations": [
+      "default",
+      "testing"
+    ],
+    "run_ignored": "default",
+    "test_runner": "cargo_nextest"
+  },
+  "nextest_lane_status": "ABSENT / NOT VERIFIED",
+  "no_tests_policy_limit": "The current generated manifest has no eligible Nextest run task. The existing no-tests-fail rule remains recorded by the prior accepted generator evidence for eligible tasks; this correction adds no replacement gate and does not treat zero selected cases as proof.",
+  "run1_and_run2_generator_log_sha256_equal": true,
+  "run1_and_run2_generator_logs_sha256": "585394b575476c9a49a5be5ff05dee3c34d1621e389041effa408de518f18e4f",
+  "runner_policy": {
+    "configurations": [
+      "default",
+      "testing"
+    ],
+    "run_ignored": "default",
+    "test_runner": "cargo_nextest"
+  },
+  "same_argv_and_env_pair_count": 162,
+  "task_count": 360,
+  "task_identity_sha256": "74b7c083338cdeb88b3cf439277118496cec98246c61421194a198e1c79f125b",
+  "task_kind_counts": {
+    "build": 90,
+    "clippy": 90,
+    "doc": 90,
+    "fmt": 90
+  },
+  "task_manifest_sha256": "2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305"
+}

@@ -1,0 +1,31 @@
+{
+  "source_head": "516198caac5e5b5fa0883fa1f209928c2e86c8ba",
+  "capture": "immediately before final permitted no-deps metadata command set",
+  "locks": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+      "bytes": 90707
+    },
+    {
+      "path": "crates/termrock-e2e/Cargo.lock",
+      "sha256": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+      "bytes": 55237
+    },
+    {
+      "path": "crates/termrock-visibility-tests/Cargo.lock",
+      "sha256": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+      "bytes": 6636
+    },
+    {
+      "path": "external-consumer-demo/Cargo.lock",
+      "sha256": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+      "bytes": 49166
+    },
+    {
+      "path": "tools/termrock-visibility-publisher/Cargo.lock",
+      "sha256": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d",
+      "bytes": 36143
+    }
+  ]
+}

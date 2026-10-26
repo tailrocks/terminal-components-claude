@@ -1,0 +1,5 @@
+header={"argv": ["mise", "exec", "--", "velnor-actions", "--version"], "exit_status": 0, "source_head": "383ad59b44baf95232005551b4d70f136bef3fea", "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "stdout_sha256": "054ea9252f10ffc9552bf7286db491e243f1ebf116c3d5cfc207d23d24e9d1f7", "workdir": "/Users/donbeave/Downloads/termrock-t37-metadata"}
+--- stdout ---
+velnor-actions 0.1.48
+
+--- stderr ---

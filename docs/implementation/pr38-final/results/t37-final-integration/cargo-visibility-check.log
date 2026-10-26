@@ -1,0 +1,32 @@
+source_head=516198caac5e5b5fa0883fa1f209928c2e86c8ba
+tree=a10cd30dfafec83f7668f529bb03e27f1e5b8b4d
+workdir=/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-visibility-tests
+/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --all-targets --all-features
+rust build guard: allowed; checked 1 filesystem(s)
+   Compiling libc v0.2.191
+    Checking typenum v1.20.1
+    Checking cfg-if v1.0.5
+   Compiling zmij v1.0.23
+   Compiling crc32fast v1.5.2
+   Compiling serde_core v1.0.229
+    Checking const-oid v0.10.2
+    Checking simd-adler32 v0.3.10
+    Checking adler2 v2.0.1
+   Compiling serde_json v1.0.154
+    Checking memchr v2.8.3
+    Checking itoa v1.0.18
+    Checking hybrid-array v0.4.15
+    Checking crypto-common v0.2.2
+    Checking block-buffer v0.12.1
+    Checking digest v0.11.3
+    Checking miniz_oxide v0.9.1
+    Checking cpufeatures v0.3.1
+    Checking filetime v0.2.29
+    Checking sha2 v0.11.1
+    Checking tar v0.4.46
+    Checking flate2 v1.1.10
+    Checking termrock-visibility-tests v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-visibility-tests)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.80s
+mbx[cache]: 20 hits, 15 misses, 2 incremental; 0 B downloaded, 0 B uploaded, 6.4 MiB stored locally
+mbx[savings]: rustc believes it compiled everything. it is down 27d 17h across 103456 builds. let it believe.
+exit_status=0
