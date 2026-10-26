@@ -9,7 +9,7 @@ use crate::capture::{Capture, CaptureSlot};
 use crate::diagnostics::Diagnostics;
 use crate::event::Chord;
 use crate::focus::{FocusRing, ScopeId};
-use crate::hit::Registry;
+use crate::hit::{RegionKind, Registry};
 use crate::id::{Id, PartRef};
 use crate::intent::{IntentIter, IntentQueue, LayerIntentClaim};
 use crate::keymap::{BindingRegistry, KeyMap, ScopedBubbleBinding};
@@ -182,6 +182,7 @@ pub struct FrameServices {
     pub(crate) runtime_id: u64,
     pub(crate) viewport: Rect,
     pub(crate) layers: LayerStack,
+    pub(crate) managed_tooltip: Option<ManagedTooltip>,
     pub(crate) capture: CaptureSlot,
     pub(crate) events: Vec<RoutedLayerEvent>,
     pub(crate) callback_serial: u64,
@@ -218,6 +219,30 @@ pub struct FrameServices {
     pub(crate) wheel_route_ack: Cell<WheelRouteAck>,
     pub(crate) wheel_route_invalidated: bool,
     pub(crate) next_wheel_route_event: u64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct ManagedTooltip {
+    pub(crate) owner: Id,
+    pub(crate) source_part: PartRef,
+    pub(crate) parent_layer: LayerId,
+    pub(crate) opening: LayerOpening,
+}
+
+impl ManagedTooltip {
+    pub(crate) fn source_is_live(self, registry: &Registry) -> bool {
+        registry.regions().iter().any(|region| {
+            region.owner == self.owner
+                && region.part == self.source_part
+                && region.layer == self.parent_layer
+                && !region.area.is_empty()
+                && region.pointer_enabled()
+                && matches!(
+                    region.kind,
+                    RegionKind::Control | RegionKind::Part | RegionKind::HoverOnly
+                )
+        })
+    }
 }
 
 impl FrameServices {
@@ -579,7 +604,7 @@ impl<'f> Cx<'f> {
         let Some(area) = crate::capture::target_area(
             &self.last.registry,
             &self.last.ring,
-            self.top_layer(),
+            self.services.layers.pointer_input_layer(),
             owner,
             part,
         ) else {
@@ -654,26 +679,251 @@ impl<'f> Cx<'f> {
     }
 
     pub fn open_layer_with_token(&mut self, id: Id, spec: LayerSpec) -> Option<LayerOpening> {
-        self.invalidate_continuation_result_readiness();
         let restore = if spec.restore_focus {
             self.last.snapshot.focus.or(self.services.focus_request)
         } else {
             None
         };
+
+        if let Some(managed) = self.services.managed_tooltip {
+            let (closed, opening) = self.services.layers.replace_top_with_runtime(
+                managed.opening,
+                id,
+                spec,
+                restore,
+                self.services.runtime_id,
+                Some(self.update_token),
+            )?;
+            self.invalidate_continuation_result_readiness();
+            self.record_closed_layers(closed);
+            self.finish_layer_open(opening, spec);
+            return Some(opening);
+        }
+
+        self.invalidate_continuation_result_readiness();
         let opening =
             self.services
                 .layers
                 .open_with_runtime(id, spec, restore, self.services.runtime_id);
         if let Some(opening) = opening {
-            self.invalidate_active_wheel_route();
-            self.services.reset_pointer_clicks = true;
-            self.services.initial_focus_layer = None;
-            if let Some(target) = spec.initial_focus {
-                self.focus(target);
-                self.services.initial_focus_layer = Some(opening.layer_id());
-            }
+            self.finish_layer_open(opening, spec);
         }
         opening
+    }
+
+    fn finish_layer_open(&mut self, opening: LayerOpening, spec: LayerSpec) {
+        self.invalidate_active_wheel_route();
+        self.services.reset_pointer_clicks = true;
+        self.services.initial_focus_layer = None;
+        if let Some(target) = spec.initial_focus {
+            self.focus(target);
+            self.services.initial_focus_layer = Some(opening.layer_id());
+        }
+    }
+
+    fn record_closed_layers(&mut self, closed: Vec<crate::layer::OpenLayer>) {
+        if closed.is_empty() {
+            return;
+        }
+        if self
+            .services
+            .managed_tooltip
+            .is_some_and(|managed| closed.iter().any(|layer| layer.opening == managed.opening))
+        {
+            self.services.managed_tooltip = None;
+        }
+        self.invalidate_active_wheel_route();
+        self.services.reset_pointer_clicks = true;
+        if self
+            .services
+            .initial_focus_layer
+            .is_some_and(|id| closed.iter().any(|layer| layer.layer == id))
+        {
+            self.services.initial_focus_layer = None;
+        }
+        self.services.direct_closed_layers.push(closed[0]);
+        self.services.closed_layers.extend(closed);
+    }
+
+    fn hover_tooltip_source_layer(&self, owner: Id, part: PartRef) -> Option<LayerId> {
+        let parent = self.services.layers.pointer_input_layer();
+        let inert_floor = self.services.layers.inert_floor();
+        self.last
+            .registry
+            .regions()
+            .iter()
+            .rev()
+            .find_map(|region| {
+                (region.owner == owner
+                    && region.part == part
+                    && region.layer == parent
+                    && region.layer >= inert_floor
+                    && !region.area.is_empty()
+                    && region.pointer_enabled()
+                    && matches!(
+                        region.kind,
+                        RegionKind::Control | RegionKind::Part | RegionKind::HoverOnly
+                    ))
+                .then_some(region.layer)
+            })
+    }
+
+    fn hover_tooltip_spec(&self, owner: Id, anchor: Anchor, size: LayerSize) -> Option<LayerSpec> {
+        let mut spec = LayerSpec::tooltip(owner, Position::new(0, 0));
+        spec.anchor = anchor;
+        spec.size = size;
+        spec.dismiss = crate::layer::Dismiss::ESC.close_button(false);
+        spec = spec.tooltip_pointer_transparent(true);
+        (!crate::layer::resolve_layer_area(self.services.viewport, spec).is_empty()).then_some(spec)
+    }
+
+    /// Open or replace the one native, passive Tooltip owned by a hover source.
+    /// Rejected requests leave an existing managed presentation unchanged.
+    pub fn open_hover_tooltip(
+        &mut self,
+        id: Id,
+        owner: Id,
+        source_part: PartRef,
+        anchor: Anchor,
+        size: LayerSize,
+    ) -> Option<LayerOpening> {
+        let parent_layer = self.hover_tooltip_source_layer(owner, source_part)?;
+        let spec = self.hover_tooltip_spec(owner, anchor, size)?;
+
+        if let Some(current) = self.services.managed_tooltip {
+            if !self.services.layers.top_layer().is_some_and(|layer| {
+                layer.opening == current.opening
+                    && current.opening.runtime() == self.services.runtime_id
+            }) {
+                return None;
+            }
+            if current.opening.id() == id {
+                if current.owner != owner
+                    || current.source_part != source_part
+                    || current.parent_layer != parent_layer
+                {
+                    return None;
+                }
+                return self
+                    .refresh_hover_tooltip(current.opening, anchor, size)
+                    .then_some(current.opening);
+            }
+            let (closed, opening) = self.services.layers.replace_top_with_runtime(
+                current.opening,
+                id,
+                spec,
+                None,
+                self.services.runtime_id,
+                Some(self.update_token),
+            )?;
+            self.invalidate_continuation_result_readiness();
+            self.record_closed_layers(closed);
+            self.finish_layer_open(opening, spec);
+            self.services.managed_tooltip = Some(ManagedTooltip {
+                owner,
+                source_part,
+                parent_layer,
+                opening,
+            });
+            return Some(opening);
+        }
+
+        if !self.services.layers.can_open(id) {
+            return None;
+        }
+        let opening =
+            self.services
+                .layers
+                .open_with_runtime(id, spec, None, self.services.runtime_id)?;
+        self.invalidate_continuation_result_readiness();
+        self.finish_layer_open(opening, spec);
+        self.services.managed_tooltip = Some(ManagedTooltip {
+            owner,
+            source_part,
+            parent_layer,
+            opening,
+        });
+        Some(opening)
+    }
+
+    /// Refresh an exact managed Tooltip opening while its source remains live.
+    pub fn refresh_hover_tooltip(
+        &mut self,
+        opening: LayerOpening,
+        anchor: Anchor,
+        size: LayerSize,
+    ) -> bool {
+        let Some(managed) = self.services.managed_tooltip else {
+            return false;
+        };
+        if managed.opening != opening
+            || opening.runtime() != self.services.runtime_id
+            || !self
+                .services
+                .layers
+                .top_layer()
+                .is_some_and(|layer| layer.opening == opening)
+            || self.hover_tooltip_source_layer(managed.owner, managed.source_part)
+                != Some(managed.parent_layer)
+        {
+            return false;
+        }
+        let Some(requested) = self.hover_tooltip_spec(managed.owner, anchor, size) else {
+            return false;
+        };
+        let changed = self
+            .services
+            .layers
+            .spec_mut(opening.id())
+            .is_some_and(|spec| {
+                if spec.anchor == requested.anchor && spec.size == requested.size {
+                    return false;
+                }
+                spec.anchor = requested.anchor;
+                spec.size = requested.size;
+                true
+            });
+        if changed {
+            self.invalidate_active_wheel_route();
+            self.services.repaint = true;
+        }
+        true
+    }
+
+    /// Close only the exact current managed Tooltip opening.
+    pub fn close_hover_tooltip(&mut self, opening: LayerOpening) -> bool {
+        let Some(managed) = self.services.managed_tooltip else {
+            return false;
+        };
+        if managed.opening != opening
+            || opening.runtime() != self.services.runtime_id
+            || !self
+                .services
+                .layers
+                .top_layer()
+                .is_some_and(|layer| layer.opening == opening)
+        {
+            return false;
+        }
+        self.invalidate_continuation_result_readiness();
+        let closed = self.services.layers.close_with_update(
+            opening.id(),
+            LayerEvent::Dismissed(DismissReason::Programmatic),
+            Some(self.update_token),
+        );
+        if closed.is_empty() {
+            return false;
+        }
+        self.record_closed_layers(closed);
+        true
+    }
+
+    /// Return the native snapshot's hover-suppressed bit.
+    ///
+    /// Native hover layout can also set this bit when it did not settle, so a
+    /// suppressed `None` is not proof that the pointer left a source.
+    pub const fn hover_suppressed(&self) -> bool {
+        self.last.snapshot.hover_suppressed
     }
 
     pub fn layer_opening(&self, id: Id) -> Option<LayerOpening> {
@@ -917,19 +1167,7 @@ impl<'f> Cx<'f> {
             .services
             .layers
             .close_with_update(id, ev, Some(self.update_token));
-        if !closed.is_empty() {
-            self.invalidate_active_wheel_route();
-            self.services.reset_pointer_clicks = true;
-            self.services.direct_closed_layers.push(closed[0]);
-        }
-        if self
-            .services
-            .initial_focus_layer
-            .is_some_and(|id| closed.iter().any(|layer| layer.layer == id))
-        {
-            self.services.initial_focus_layer = None;
-        }
-        self.services.closed_layers.extend(closed);
+        self.record_closed_layers(closed);
     }
 
     pub fn layer_event(&mut self, id: Id) -> Option<LayerEvent> {

@@ -68,6 +68,8 @@ pub struct FrameState {
     pub(crate) ring: FocusRing,
     pub(crate) layers: LayerPool,
     pub(crate) layer_openings: Vec<LayerOpening>,
+    pub(crate) managed_tooltip_opening: Option<LayerOpening>,
+    pub(crate) managed_tooltip_drawn: bool,
     pub(crate) cursors: Vec<CursorRequest>,
     pub(crate) retained_cursor_request: Option<RetainedCursorRequest>,
     pub(crate) typing: Vec<crate::runtime::typing::TypingDeclaration>,
@@ -190,6 +192,8 @@ impl FrameState {
         self.ring.reset();
         self.layers.begin();
         self.layer_openings.clear();
+        self.managed_tooltip_opening = None;
+        self.managed_tooltip_drawn = false;
         self.cursors.clear();
         self.retained_cursor_request = None;
         self.typing.clear();
@@ -1532,11 +1536,24 @@ impl<'f> Ui<'f> {
         if !layer_matches || !self.frame.layer_openings.contains(&opening) {
             return None;
         }
-        self.layer(opening.id(), f)
+        self.layer_with_opening(opening.id(), Some(opening), f)
     }
 
     pub fn layer<R>(&mut self, id: Id, f: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> Option<R> {
+        self.layer_with_opening(id, None, f)
+    }
+
+    fn layer_with_opening<R>(
+        &mut self,
+        id: Id,
+        opening: Option<LayerOpening>,
+        f: impl FnOnce(&mut Ui<'_>, Rect) -> R,
+    ) -> Option<R> {
         if self.reference.is_some() {
+            return None;
+        }
+        let managed = self.frame.managed_tooltip_opening;
+        if managed.is_some_and(|managed| managed.id() == id) && opening != managed {
             return None;
         }
         let idx = self.frame.layers.find(id)?;
@@ -1551,6 +1568,9 @@ impl<'f> Ui<'f> {
             d.drawn = true;
             (d.layer, d.area, d.spec.kind)
         };
+        if managed.is_some() && opening == managed {
+            self.frame.managed_tooltip_drawn = true;
+        }
         let inert = layer < self.frame.inert_floor;
         let surface = match kind {
             LayerKind::Modal => Surface::Overlay,

@@ -1202,6 +1202,44 @@ impl Registry {
             .map(|(_, r)| Self::hit_of(r, pos))
     }
 
+    /// Resolve an activation target on the shared pointer input boundary.
+    /// Public `hit` keeps its established all-layer query semantics.
+    pub(crate) fn hit_on_layer(&self, pos: Position, layer: LayerId) -> Option<Hit> {
+        self.regions
+            .iter()
+            .enumerate()
+            .filter(|(_, region)| {
+                region.pointer_enabled
+                    && region.layer == layer
+                    && !matches!(region.kind, RegionKind::Scroll | RegionKind::HoverOnly)
+                    && region.area.contains(pos)
+            })
+            .max_by_key(|(index, _)| *index)
+            .map(|(_, region)| Self::hit_of(region, pos))
+    }
+
+    /// Observe only passive hover registrations from an explicitly supplied
+    /// transparent suffix. Activation regions in those layers stay ignored.
+    pub(crate) fn hit_passive_hover(
+        &self,
+        pos: Position,
+        mut layers_high_to_low: impl Iterator<Item = LayerId>,
+    ) -> Option<Hit> {
+        layers_high_to_low.find_map(|layer| {
+            self.regions
+                .iter()
+                .enumerate()
+                .filter(|(_, region)| {
+                    region.pointer_enabled
+                        && region.layer == layer
+                        && region.kind == RegionKind::HoverOnly
+                        && region.area.contains(pos)
+                })
+                .max_by_key(|(index, _)| *index)
+                .map(|(_, region)| Self::hit_of(region, pos))
+        })
+    }
+
     pub(crate) fn hit_live(&self, pos: Position, layer: LayerId) -> Option<Hit> {
         self.regions
             .iter()

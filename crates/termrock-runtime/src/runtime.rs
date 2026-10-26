@@ -32,7 +32,7 @@ use crate::measure::Size;
 use crate::response::StateFlags;
 use crate::response::{Invalidate, Response};
 use crate::theme::Theme;
-use crate::ui::cx::{FrameServices, LastFrame, WheelRouteAck};
+use crate::ui::cx::{FrameServices, LastFrame, ManagedTooltip, WheelRouteAck};
 use crate::ui::{Cx, FrameState, Ui, UiCore};
 
 static NEXT_RUNTIME_ID: AtomicU64 = AtomicU64::new(1);
@@ -308,6 +308,7 @@ pub enum UpdateCause {
 struct Press {
     owner: Id,
     part: PartRef,
+    layer: LayerId,
     area: Rect,
     dragging: bool,
     pos: Position,
@@ -613,6 +614,7 @@ struct PendingFocus {
 struct WheelRouteGuard {
     focus: Option<Id>,
     top_layer: LayerId,
+    input_layer: LayerId,
     registry_generation: u32,
     capture: Option<Capture>,
 }
@@ -629,6 +631,7 @@ pub struct Runtime<A: App> {
     held_text_drag: Option<HeldTextDrag>,
     cancelled_text_drag: Option<(Id, PartRef)>,
     pending_tick: bool,
+    pending_managed_tooltip_settle: bool,
     frame: FrameState,
     core: UiCore,
     generation: u32,
@@ -746,6 +749,7 @@ impl<A: App> Runtime<A> {
             held_text_drag: None,
             cancelled_text_drag: None,
             pending_tick: false,
+            pending_managed_tooltip_settle: false,
             frame: FrameState::default(),
             core,
             generation: 0,
@@ -904,8 +908,23 @@ impl<A: App> Runtime<A> {
         self.services.viewport
     }
 
-    fn top(&self) -> LayerId {
-        self.services.layers.top()
+    fn pointer_input_layer(&self) -> LayerId {
+        self.services.layers.pointer_input_layer()
+    }
+
+    fn pointer_live_hit(&self, pos: Position) -> Option<Hit> {
+        let input_layer = self.pointer_input_layer();
+        let passive = self.services.layers.pointer_transparent_suffix();
+        self.last
+            .registry
+            .hit_passive_hover(pos, passive)
+            .or_else(|| self.last.registry.hit_live(pos, input_layer))
+    }
+
+    fn pointer_hit(&self, pos: Position) -> Option<Hit> {
+        self.last
+            .registry
+            .hit_on_layer(pos, self.pointer_input_layer())
     }
 
     fn sync_keymap(&mut self, snapshot: Option<&KeyMap>) {
@@ -1100,11 +1119,7 @@ impl<A: App> Runtime<A> {
     }
 
     fn enqueue_key(&mut self, k: Key) {
-        self.inter.last_input_key = true;
-        self.inter.hover_suppressed = true;
-        self.focus.set_visible(true);
-        self.last.snapshot.focus_visible = true;
-        self.last.snapshot.hover_suppressed = true;
+        self.prepare_keyboard_input();
         let current = self.focus.current();
         if !matches!(k.code, KeyCode::Tab | KeyCode::BackTab)
             && let Some(owner) = self.last.typing.fallback
@@ -1148,22 +1163,62 @@ impl<A: App> Runtime<A> {
         }
     }
 
+    fn prepare_keyboard_input(&mut self) {
+        self.inter.last_input_key = true;
+        self.inter.hover_suppressed = true;
+        self.focus.set_visible(true);
+        self.last.snapshot.focus_visible = true;
+        self.last.snapshot.hover_suppressed = true;
+    }
+
+    fn top_transparent_tooltip_allows_escape(&self) -> bool {
+        let Some(top) = self.services.layers.top_layer() else {
+            return false;
+        };
+        top.layer == self.services.layers.top()
+            && self.services.layers.pointer_transparent_suffix().next() == Some(top.layer)
+            && top.spec.dismiss.allows(DismissReason::Esc)
+    }
+
     fn ring_proves_disabled(&self, id: Id) -> bool {
         self.last.ring.entry(id).is_some_and(|e| e.disabled)
     }
 
     fn deliverable(&self, hit: Hit) -> bool {
-        crate::capture::target_eligible(&self.last.ring, self.top(), hit.owner, hit.layer, hit.kind)
+        crate::capture::target_eligible(
+            &self.last.ring,
+            self.pointer_input_layer(),
+            hit.owner,
+            hit.layer,
+            hit.kind,
+        )
     }
 
     fn is_disabled_primary_hit(&self, hit: Hit) -> bool {
-        hit.layer == self.top()
+        hit.layer == self.pointer_input_layer()
             && matches!(hit.kind, RegionKind::Control | RegionKind::Part)
             && self
                 .last
                 .ring
                 .entry(hit.owner)
                 .is_some_and(|entry| entry.disabled && entry.layer == hit.layer)
+    }
+
+    fn managed_tooltip_source_is_live(&self, managed: ManagedTooltip) -> bool {
+        managed.parent_layer == self.services.layers.pointer_input_layer()
+            && managed.source_is_live(&self.last.registry)
+    }
+
+    fn dismiss_managed_tooltip_for_source_press(&mut self, hit: Hit) {
+        let Some(managed) = self.services.managed_tooltip else {
+            return;
+        };
+        if hit.owner == managed.owner
+            && hit.part == managed.source_part
+            && hit.layer == managed.parent_layer
+        {
+            self.dismiss_layer(managed.opening.id(), DismissReason::OutsideClick);
+        }
     }
 
     fn local_in(area: Rect, pos: Position) -> Position {
@@ -1216,19 +1271,20 @@ impl<A: App> Runtime<A> {
             self.pointer_captured(cap, m);
             return false;
         }
-        let hit = self.last.registry.hit(m.pos);
-        let top = self.top();
-        let outside = hit.is_none_or(|h| h.layer < top);
+        let input_layer = self.pointer_input_layer();
+        let hit = self.last.registry.hit_on_layer(m.pos, input_layer);
         let mut disabled_primary_refusal = false;
         match m.kind {
-            MouseKind::Move => self.pointer_moved(m, top, hover_was_suppressed),
+            MouseKind::Move => self.pointer_moved(m, hover_was_suppressed),
             MouseKind::Down => {
-                if outside {
-                    self.outside_click();
+                self.dismiss_transparent_tooltips_outside(m.pos);
+                if input_layer != LayerId::PAGE && hit.is_none() {
+                    self.outside_click_at(input_layer);
                     return false;
                 }
                 if let Some(h) = hit {
                     disabled_primary_refusal = self.is_disabled_primary_hit(h);
+                    self.dismiss_managed_tooltip_for_source_press(h);
                     self.pointer_down(h, m);
                 }
             }
@@ -1268,8 +1324,9 @@ impl<A: App> Runtime<A> {
                 }
             }
             MouseKind::Secondary => {
-                if outside {
-                    self.outside_click();
+                self.dismiss_transparent_tooltips_outside(m.pos);
+                if input_layer != LayerId::PAGE && hit.is_none() {
+                    self.outside_click_at(input_layer);
                     return false;
                 }
                 let Some(h) = hit else {
@@ -1291,7 +1348,11 @@ impl<A: App> Runtime<A> {
             MouseKind::SecondaryUp => {}
             MouseKind::Wheel(axis, delta) => {
                 let mut skipped_passive_reveal = false;
-                for candidate in self.last.registry.scroll_candidates(m.pos, axis, top) {
+                for candidate in self
+                    .last
+                    .registry
+                    .scroll_candidates(m.pos, axis, input_layer)
+                {
                     let hit = candidate.hit();
                     if candidate.passive_reveal() {
                         if skipped_passive_reveal {
@@ -1332,7 +1393,7 @@ impl<A: App> Runtime<A> {
                         .filter(|(key, _)| {
                             self.last
                                 .registry
-                                .route_key_is_eligible(*key, axis, m.pos, top)
+                                .route_key_is_eligible(*key, axis, m.pos, input_layer)
                         })
                         && let Some(event_id) = self.services.next_wheel_route_event()
                     {
@@ -1365,7 +1426,7 @@ impl<A: App> Runtime<A> {
     fn enqueue_middle_click(&mut self, pos: Position, mods: KeyModifiers) {
         self.services.pointer_press_count = None;
         self.inter.pointer_position = Some(pos);
-        let Some(hit) = self.last.registry.hit(pos) else {
+        let Some(hit) = self.pointer_hit(pos) else {
             return;
         };
         if !self.deliverable(hit) {
@@ -1382,8 +1443,8 @@ impl<A: App> Runtime<A> {
         );
     }
 
-    fn pointer_moved(&mut self, m: Mouse, top: LayerId, hover_was_suppressed: bool) {
-        let live = self.last.registry.hit_live(m.pos, top);
+    fn pointer_moved(&mut self, m: Mouse, hover_was_suppressed: bool) {
+        let live = self.pointer_live_hit(m.pos);
         let previous = self.inter.hover;
         let visible_previous = if hover_was_suppressed { None } else { previous };
         self.inter.hover = live.map(|h| (h.owner, h.part));
@@ -1425,6 +1486,7 @@ impl<A: App> Runtime<A> {
         self.inter.press = Some(Press {
             owner: h.owner,
             part: h.part,
+            layer: h.layer,
             area,
             dragging: false,
             pos: m.pos,
@@ -1456,7 +1518,8 @@ impl<A: App> Runtime<A> {
                 .pointer(p.owner, Phase::DragEnd, p.part, m.pos, local, m.mods);
             return;
         }
-        let same = hit.is_some_and(|h| h.owner == p.owner && h.part == p.part);
+        let same =
+            hit.is_some_and(|h| h.owner == p.owner && h.part == p.part && h.layer == p.layer);
         if !same {
             return;
         }
@@ -1555,12 +1618,51 @@ impl<A: App> Runtime<A> {
             .map_or(1, |last| last.count.saturating_add(1))
     }
 
-    fn outside_click(&mut self) {
-        let Some(top) = self.services.layers.top_layer().copied() else {
+    fn outside_click_at(&mut self, input_layer: LayerId) {
+        let Some(target) = self
+            .services
+            .layers
+            .layers()
+            .iter()
+            .find(|layer| layer.layer == input_layer)
+            .copied()
+        else {
             return;
         };
-        if top.spec.dismiss.outside_click {
-            self.dismiss_top(DismissReason::OutsideClick);
+        if target.spec.dismiss.outside_click {
+            self.dismiss_layer(target.id, DismissReason::OutsideClick);
+        }
+    }
+
+    fn dismiss_transparent_tooltips_outside(&mut self, pos: Position) {
+        let suffix: Vec<_> = self.services.layers.pointer_transparent_suffix().collect();
+        for layer_id in suffix {
+            let Some(open) = self
+                .services
+                .layers
+                .layers()
+                .iter()
+                .find(|layer| layer.layer == layer_id)
+                .copied()
+            else {
+                continue;
+            };
+            if !open.spec.dismiss.outside_click {
+                continue;
+            }
+            let area = self
+                .frame
+                .layers
+                .active()
+                .iter()
+                .find(|draw| draw.id == open.id)
+                .map_or_else(
+                    || resolve_layer_area(self.services.viewport, open.spec),
+                    |draw| draw.area,
+                );
+            if !area.contains(pos) {
+                self.dismiss_layer(open.id, DismissReason::OutsideClick);
+            }
         }
     }
 
@@ -1568,23 +1670,41 @@ impl<A: App> Runtime<A> {
         let Some(top) = self.services.layers.top_layer().copied() else {
             return false;
         };
+        self.dismiss_layer(top.id, reason)
+    }
+
+    fn dismiss_layer(&mut self, id: Id, reason: DismissReason) -> bool {
+        let Some(target) = self.services.layers.get(id).copied() else {
+            return false;
+        };
         let closed =
             self.services
                 .layers
-                .close_with_update(top.id, LayerEvent::Dismissed(reason), None);
+                .close_with_update(id, LayerEvent::Dismissed(reason), None);
         let changed = !closed.is_empty();
         if let Some(root) = closed.first() {
             self.services.direct_closed_layers.push(*root);
         }
+        self.clear_managed_tooltip_for_closed(&closed);
         self.services.closed_layers.extend(closed);
         if changed {
             self.services.reset_pointer_clicks = true;
         }
 
         if reason == DismissReason::Esc {
-            self.intents.cancel(top.spec.owner);
+            self.intents.cancel(target.spec.owner);
         }
-        true
+        changed
+    }
+
+    fn clear_managed_tooltip_for_closed(&mut self, closed: &[OpenLayer]) {
+        if self
+            .services
+            .managed_tooltip
+            .is_some_and(|managed| closed.iter().any(|layer| layer.opening == managed.opening))
+        {
+            self.services.managed_tooltip = None;
+        }
     }
 
     fn settle_closed_layers(&mut self) {
@@ -1836,10 +1956,11 @@ impl<A: App> Runtime<A> {
             || self.pending_focus.is_some()
             || self.focus.current() != guard.focus
             || self.services.layers.top() != guard.top_layer
+            || self.pointer_input_layer() != guard.input_layer
             || self.services.capture.get() != guard.capture
             || self.last.registry.generation() != guard.registry_generation
             || self.services.runtime_id != attempt.runtime_id
-            || attempt.layer() != guard.top_layer
+            || attempt.layer() != guard.input_layer
             || attempt.registry_generation() != guard.registry_generation
         {
             return false;
@@ -1990,6 +2111,7 @@ impl<A: App> Runtime<A> {
         self.pending_focus.is_some()
             || self.completion_dispatch_pending
             || self.services.focus_result_ack_dispatch_pending
+            || self.pending_managed_tooltip_settle
             || (self.bootstrapped && self.pending_tick)
     }
 
@@ -2150,7 +2272,8 @@ impl<A: App> Runtime<A> {
             let completion_dispatch = core::mem::take(&mut self.completion_dispatch_pending);
             let focus_result_ack_dispatch =
                 core::mem::take(&mut self.services.focus_result_ack_dispatch_pending);
-            if completion_dispatch || focus_result_ack_dispatch {
+            let managed_tooltip_settle = core::mem::take(&mut self.pending_managed_tooltip_settle);
+            if completion_dispatch || focus_result_ack_dispatch || managed_tooltip_settle {
                 self.intents.clear();
                 let r = self.run_update(None, UpdateCause::Settle, None);
                 return self.finish(r);
@@ -2240,6 +2363,19 @@ impl<A: App> Runtime<A> {
                 self.enqueue_due_text_drag();
             }
             RoutedInput::Input(Input::Key(k)) => {
+                if k.code == KeyCode::Esc
+                    && k.mods.is_empty()
+                    && self.top_transparent_tooltip_allows_escape()
+                {
+                    self.prepare_keyboard_input();
+                    if self.dismiss_top(DismissReason::Esc) {
+                        let r = self
+                            .run_update(None, UpdateCause::Event, activation_key)
+                            .repaint();
+                        drop(input);
+                        return self.finish(r);
+                    }
+                }
                 let swallows = self.swallows_typing() || self.last.typing.fallback.is_some();
                 let scoped = self
                     .last
@@ -2280,12 +2416,14 @@ impl<A: App> Runtime<A> {
         // fallback for the same physical key must not then act on that new
         // scope.
         let input_top_layer = self.services.layers.top();
-        let swallow_middle =
-            matches!(&input, RoutedInput::MiddleClick { .. }) && input_top_layer != LayerId::PAGE;
+        let input_pointer_layer = self.pointer_input_layer();
+        let swallow_middle = matches!(&input, RoutedInput::MiddleClick { .. })
+            && input_pointer_layer != LayerId::PAGE;
         let input_focus = self.focus.current();
         let wheel_route_guard = wheel_route_attempt.map(|_| WheelRouteGuard {
             focus: self.focus.current(),
             top_layer: self.services.layers.top(),
+            input_layer: self.pointer_input_layer(),
             registry_generation: self.last.registry.generation(),
             capture: self.services.capture.get(),
         });
@@ -2519,6 +2657,17 @@ impl<A: App> Runtime<A> {
         self.core.begin_cache_frame(self.generation);
         self.core.style_cache.clear();
         self.frame.reset(self.generation, area);
+        self.frame.managed_tooltip_opening = if snapshot.is_none() {
+            self.services.managed_tooltip.and_then(|managed| {
+                self.services
+                    .layers
+                    .top_layer()
+                    .is_some_and(|layer| layer.opening == managed.opening)
+                    .then_some(managed.opening)
+            })
+        } else {
+            None
+        };
         self.frame.inert_floor = snapshot.map_or_else(
             || self.services.layers.inert_floor(),
             |value| value.inert_floor,
@@ -2632,6 +2781,7 @@ impl<A: App> Runtime<A> {
         self.services.initial_focus_layer = None;
         self.commit_geometry();
         self.presented = true;
+        self.retire_unpublished_managed_tooltip();
 
         let previous = self.focus.current();
         let restoration = self.restore_after_publication.take();
@@ -2831,6 +2981,32 @@ impl<A: App> Runtime<A> {
         self.cursor = self.painted_cursor;
     }
 
+    fn retire_unpublished_managed_tooltip(&mut self) {
+        let Some(managed) = self.services.managed_tooltip else {
+            return;
+        };
+        let frame_proves_draw = self.frame.managed_tooltip_opening == Some(managed.opening)
+            && self.frame.managed_tooltip_drawn;
+        let stack_has_top = self
+            .services
+            .layers
+            .top_layer()
+            .is_some_and(|layer| layer.opening == managed.opening);
+        if frame_proves_draw && stack_has_top && self.managed_tooltip_source_is_live(managed) {
+            return;
+        }
+
+        if stack_has_top {
+            self.dismiss_layer(managed.opening.id(), DismissReason::Programmatic);
+        } else {
+            self.services.managed_tooltip = None;
+        }
+        self.pending_managed_tooltip_settle = true;
+        self.presented = false;
+        self.invalidate_prepared();
+        self.services.repaint = true;
+    }
+
     fn store_focus_continuation_outcome(&mut self, outcome: FocusContinuationOutcome) {
         if self.services.focus_continuation_outcomes.len() == 64 {
             let oldest = self.services.focus_continuation_outcomes.remove(0).0;
@@ -2850,7 +3026,7 @@ impl<A: App> Runtime<A> {
             crate::capture::target_area(
                 &self.last.registry,
                 &self.last.ring,
-                self.top(),
+                self.pointer_input_layer(),
                 owner,
                 part,
             )
@@ -2907,17 +3083,18 @@ impl<A: App> Runtime<A> {
         if self.cancelled_text_drag == Some((capture.owner, capture.part)) {
             return None;
         }
-        let region =
-            self.last
-                .registry
-                .text_drag_region(capture.owner, capture.part, self.top())?;
+        let region = self.last.registry.text_drag_region(
+            capture.owner,
+            capture.part,
+            self.pointer_input_layer(),
+        )?;
         if region.generation() != self.last.registry.generation()
             || capture.generation > region.generation()
             || !region.can_scroll_at(motion.position)
             || crate::capture::target_area(
                 &self.last.registry,
                 &self.last.ring,
-                self.top(),
+                self.pointer_input_layer(),
                 capture.owner,
                 capture.part,
             )
@@ -3038,9 +3215,7 @@ impl<A: App> Runtime<A> {
             None
         } else {
             self.inter.pointer_position.and_then(|position| {
-                self.last
-                    .registry
-                    .hit_live(position, self.top())
+                self.pointer_live_hit(position)
                     .map(|hit| (hit.owner, hit.part))
             })
         };

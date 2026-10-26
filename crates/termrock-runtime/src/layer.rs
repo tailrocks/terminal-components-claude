@@ -472,6 +472,8 @@ pub struct LayerSpec {
     pub backdrop: Backdrop,
 
     pub inert_below: bool,
+
+    pointer_transparent: bool,
 }
 
 impl LayerSpec {
@@ -490,6 +492,7 @@ impl LayerSpec {
                 exclude_footer: true,
             },
             inert_below: true,
+            pointer_transparent: false,
         }
     }
 
@@ -506,6 +509,7 @@ impl LayerSpec {
             continues_focus_owner: None,
             backdrop: Backdrop::None,
             inert_below: false,
+            pointer_transparent: false,
         }
     }
 
@@ -522,7 +526,23 @@ impl LayerSpec {
             continues_focus_owner: None,
             backdrop: Backdrop::None,
             inert_below: false,
+            pointer_transparent: false,
         }
+    }
+
+    /// Let pointer input pass through this tooltip to the nearest opaque layer.
+    ///
+    /// This affects pointer targeting, hover observation, capture eligibility,
+    /// and wheel routing. A bare Escape is handled by this layer only when it is
+    /// the actual top layer and its dismissal policy allows Escape; the runtime
+    /// closes it before lower key handlers run and does not replay the key.
+    /// Other keys, focus, paint order, and dismissal receipts keep their native
+    /// behavior. The option is effective only for a non-inert `Tooltip`; every
+    /// constructor defaults to opaque pointer behavior.
+    #[must_use]
+    pub const fn tooltip_pointer_transparent(mut self, on: bool) -> Self {
+        self.pointer_transparent = on;
+        self
     }
 
     #[must_use]
@@ -773,6 +793,19 @@ impl LayerStack {
         self.get(id).is_some()
     }
 
+    fn admission(&self, id: Id) -> Option<(LayerId, u64)> {
+        if self.is_open(id) {
+            return None;
+        }
+        let layer = LayerId(u16::try_from(self.next).ok()?);
+        self.next_generation.checked_add(1)?;
+        Some((layer, self.next_generation))
+    }
+
+    pub(crate) fn can_open(&self, id: Id) -> bool {
+        self.admission(id).is_some()
+    }
+
     pub(crate) fn spec_mut(&mut self, id: Id) -> Option<&mut LayerSpec> {
         self.open
             .iter_mut()
@@ -790,6 +823,40 @@ impl LayerStack {
             .rev()
             .find(|l| l.spec.inert_below)
             .map_or(LayerId::PAGE, |l| l.layer)
+    }
+
+    /// Resolve the nearest opaque layer for pointer routing without changing
+    /// visual top, focus, or the inert modal boundary.
+    pub(crate) fn pointer_input_layer(&self) -> LayerId {
+        let inert_floor = self.inert_floor();
+        for open in self.open.iter().rev() {
+            if open.layer <= inert_floor {
+                return inert_floor;
+            }
+            let transparent_tooltip = open.spec.kind == LayerKind::Tooltip
+                && open.spec.pointer_transparent
+                && !open.spec.inert_below;
+            if !transparent_tooltip {
+                return open.layer;
+            }
+        }
+        LayerId::PAGE
+    }
+
+    /// The eligible, consecutive pointer-transparent tooltip suffix, highest
+    /// layer first. Its lower bound is the opaque pointer input layer.
+    pub(crate) fn pointer_transparent_suffix(&self) -> impl Iterator<Item = LayerId> + '_ {
+        let inert_floor = self.inert_floor();
+        self.open
+            .iter()
+            .rev()
+            .take_while(move |open| {
+                open.layer > inert_floor
+                    && open.spec.kind == LayerKind::Tooltip
+                    && open.spec.pointer_transparent
+                    && !open.spec.inert_below
+            })
+            .map(|open| open.layer)
     }
 
     #[cfg(test)]
@@ -810,13 +877,51 @@ impl LayerStack {
         restore_to: Option<Id>,
         runtime: u64,
     ) -> Option<LayerOpening> {
-        if self.is_open(id) {
+        let (layer, generation) = self.admission(id)?;
+        Some(self.open_admitted(id, spec, restore_to, runtime, layer, generation))
+    }
+
+    /// Replace one exact top opening only when the new opening can be admitted.
+    /// The preflight shares the normal ID, layer-number, and generation checks,
+    /// so a rejected replacement leaves the current top and pending receipts
+    /// unchanged.
+    pub(crate) fn replace_top_with_runtime(
+        &mut self,
+        current: LayerOpening,
+        id: Id,
+        spec: LayerSpec,
+        restore_to: Option<Id>,
+        runtime: u64,
+        update: Option<UpdateToken>,
+    ) -> Option<(Vec<OpenLayer>, LayerOpening)> {
+        if self
+            .top_layer()
+            .is_none_or(|layer| layer.opening != current)
+        {
             return None;
         }
-        let layer = LayerId(u16::try_from(self.next).ok()?);
+        let (layer, generation) = self.admission(id)?;
+        let closed = self.close_with_update(
+            current.id(),
+            LayerEvent::Dismissed(DismissReason::Programmatic),
+            update,
+        );
+        debug_assert_eq!(closed.len(), 1, "an exact top replacement closes one layer");
+        let opening = self.open_admitted(id, spec, restore_to, runtime, layer, generation);
+        Some((closed, opening))
+    }
+
+    fn open_admitted(
+        &mut self,
+        id: Id,
+        spec: LayerSpec,
+        restore_to: Option<Id>,
+        runtime: u64,
+        layer: LayerId,
+        generation: u64,
+    ) -> LayerOpening {
         self.next = self.next.saturating_add(1);
-        let generation = self.next_generation;
-        self.next_generation = self.next_generation.checked_add(1)?;
+        self.next_generation = generation + 1;
         let parent = self.open.last().map(|open| LayerParent::from(open.opening));
         let opening = LayerOpening::new(runtime, generation, id, spec.owner, layer, parent);
         self.open.push(OpenLayer {
@@ -832,7 +937,7 @@ impl LayerStack {
             event: LayerEvent::Opened,
             update: None,
         });
-        Some(opening)
+        opening
     }
 
     #[cfg(test)]
@@ -915,6 +1020,154 @@ mod tests {
         let ev = s.take_pending();
         assert!(ev.contains(&(DLG, LayerEvent::Dismissed(DismissReason::Esc))));
         assert!(ev.contains(&(PICK, LayerEvent::Dismissed(DismissReason::Programmatic))));
+    }
+
+    #[test]
+    fn pointer_transparent_boundary_stops_at_opaque_and_inert_layers() {
+        let mut stack = LayerStack::default();
+        let base = stack
+            .open_with_runtime(
+                DLG,
+                LayerSpec::popover(DLG, Anchor::Screen(ScreenAlign::Center)),
+                None,
+                0,
+            )
+            .expect("opaque base");
+        let tip = Id::root("tip");
+        let tip_opening = stack
+            .open_with_runtime(
+                tip,
+                LayerSpec::tooltip(tip, Position::new(1, 1)).tooltip_pointer_transparent(true),
+                None,
+                0,
+            )
+            .expect("transparent tooltip");
+        assert_eq!(stack.top(), tip_opening.layer_id());
+        assert_eq!(stack.pointer_input_layer(), base.layer_id());
+        assert_eq!(
+            stack.pointer_transparent_suffix().collect::<Vec<_>>(),
+            vec![tip_opening.layer_id()]
+        );
+
+        let modal = Id::root("modal");
+        let modal_opening = stack
+            .open_with_runtime(modal, LayerSpec::modal(modal), None, 0)
+            .expect("inert modal");
+        assert_eq!(stack.pointer_input_layer(), modal_opening.layer_id());
+        assert!(stack.pointer_transparent_suffix().next().is_none());
+        assert_eq!(stack.top(), modal_opening.layer_id());
+    }
+
+    #[test]
+    fn rejected_top_replacement_preserves_openings_receipts_and_counters() {
+        const TIP: Id = Id::root("replace-tip");
+        const NEXT: Id = Id::root("replace-next");
+        let mut stack = LayerStack::default();
+        stack
+            .open_with_runtime(
+                DLG,
+                LayerSpec::popover(DLG, Anchor::Screen(ScreenAlign::Center)),
+                None,
+                7,
+            )
+            .expect("base opens");
+        let tip = stack
+            .open_with_runtime(
+                TIP,
+                LayerSpec::tooltip(TIP, Position::new(1, 1)).tooltip_pointer_transparent(true),
+                None,
+                7,
+            )
+            .expect("tip opens");
+        let _ = stack.take_pending_receipts();
+
+        let top_before = stack.top_layer().map(|layer| layer.opening);
+        let next_before = stack.next;
+        let generation_before = stack.next_generation;
+        let pending_before = stack.pending.len();
+        assert!(
+            stack
+                .replace_top_with_runtime(tip, DLG, LayerSpec::modal(DLG), None, 7, None,)
+                .is_none()
+        );
+        assert_eq!(stack.top_layer().map(|layer| layer.opening), top_before);
+        assert_eq!(stack.next, next_before);
+        assert_eq!(stack.next_generation, generation_before);
+        assert_eq!(stack.pending.len(), pending_before);
+
+        stack.next = u32::MAX;
+        let next_before = stack.next;
+        assert!(
+            stack
+                .replace_top_with_runtime(
+                    tip,
+                    NEXT,
+                    LayerSpec::popover(NEXT, Anchor::Screen(ScreenAlign::Center)),
+                    None,
+                    7,
+                    None,
+                )
+                .is_none()
+        );
+        assert_eq!(stack.top_layer().map(|layer| layer.opening), top_before);
+        assert_eq!(stack.next, next_before);
+        assert_eq!(stack.next_generation, generation_before);
+        assert_eq!(stack.pending.len(), pending_before);
+
+        stack.next = 3;
+        stack.next_generation = u64::MAX;
+        let next_before = stack.next;
+        let pending_before = stack.pending.len();
+        assert!(
+            stack
+                .replace_top_with_runtime(
+                    tip,
+                    NEXT,
+                    LayerSpec::popover(NEXT, Anchor::Screen(ScreenAlign::Center)),
+                    None,
+                    7,
+                    None,
+                )
+                .is_none()
+        );
+        assert_eq!(stack.top_layer().map(|layer| layer.opening), top_before);
+        assert_eq!(stack.next, next_before);
+        assert_eq!(stack.next_generation, u64::MAX);
+        assert_eq!(stack.pending.len(), pending_before);
+    }
+
+    #[test]
+    fn exact_top_replacement_records_close_before_open_receipts() {
+        const TIP: Id = Id::root("replace-receipt-tip");
+        const NEXT: Id = Id::root("replace-receipt-next");
+        let mut stack = LayerStack::default();
+        let tip = stack
+            .open_with_runtime(TIP, LayerSpec::tooltip(TIP, Position::new(1, 1)), None, 8)
+            .expect("tip opens");
+        let _ = stack.take_pending_receipts();
+
+        let (closed, opened) = stack
+            .replace_top_with_runtime(tip, NEXT, LayerSpec::modal(NEXT), None, 8, None)
+            .expect("admitted top replacement");
+        assert_eq!(closed.len(), 1);
+        assert_eq!(closed[0].opening, tip);
+        assert_eq!(stack.top_layer().map(|layer| layer.opening), Some(opened));
+        let receipts = stack
+            .take_pending_receipts()
+            .into_iter()
+            .map(|pending| (pending.opening, pending.event, pending.update))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            receipts,
+            vec![
+                (
+                    tip,
+                    LayerEvent::Dismissed(DismissReason::Programmatic),
+                    None,
+                ),
+                (opened, LayerEvent::Opened, None),
+            ]
+        );
     }
 
     #[test]
