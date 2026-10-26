@@ -1006,10 +1006,23 @@ fn tab_traversal_is_deterministic_and_wraps() {
     let start = h.focus();
     let reachable: Vec<_> = h.ring().reachable().map(|entry| entry.id).collect();
     assert!(start.is_some());
+    let buttons = Id::root("showcase_ui::pages::buttons::buttons");
+    let expected = [
+        APP_NAV,
+        buttons.index(0),
+        buttons.index(1),
+        buttons.index(2),
+        buttons.index(3),
+        buttons.index(4),
+        buttons.index(5),
+        buttons.index(8),
+        Id::root("showcase_ui::pages::buttons.page_tabs"),
+    ];
+    assert_eq!(reachable.as_slice(), expected.as_slice());
     assert_eq!(
         reachable.len(),
-        8,
-        "nav plus seven enabled playground buttons"
+        9,
+        "nav, seven enabled playground buttons, then native page Tabs"
     );
     let start = require(start, "initial navigation focus");
     let mut seen = vec![start];
