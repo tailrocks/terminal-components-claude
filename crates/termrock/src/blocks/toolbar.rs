@@ -23,7 +23,7 @@ use termrock_core::response::{Response, StateFlags};
 use termrock_layout::{Constraints, Size};
 use termrock_overlays::{ContextMenu, MenuAction, MenuItem, MenuState};
 use termrock_runtime::focus::Focusability;
-use termrock_runtime::layer::{CrossAlign, Side};
+use termrock_runtime::layer::{CrossAlign, LayerEvent, LayerOpening, Side};
 use termrock_runtime::{
     Binding, Cx, FrameRead, LayoutFacts, Measure, ReferenceState, ReferenceTarget, Ui,
 };
@@ -401,6 +401,7 @@ struct PublishedFrame {
 #[derive(Clone, Debug)]
 struct OverflowSession {
     owner: Id,
+    opening: LayerOpening,
     snapshot: Vec<OverflowSlot>,
     menu_state: MenuState,
 }
@@ -418,6 +419,7 @@ pub struct ToolbarState {
     more_focused: bool,
     published: RefCell<Option<PublishedFrame>>,
     overflow: Option<OverflowSession>,
+    retired_overflow_openings: Vec<LayerOpening>,
     tooltip: TooltipController,
 }
 
@@ -456,6 +458,36 @@ impl ToolbarState {
     pub fn menu_open(&self) -> bool {
         self.overflow.is_some()
     }
+
+    fn drain_retired_overflow_openings(&mut self, cx: &mut Cx<'_>) {
+        let openings = std::mem::take(&mut self.retired_overflow_openings);
+        for opening in openings {
+            if !drain_overflow_opening_receipts(cx, opening) {
+                self.retired_overflow_openings.push(opening);
+            }
+        }
+    }
+
+    fn retire_overflow_opening(&mut self, cx: &mut Cx<'_>, opening: LayerOpening) {
+        if !drain_overflow_opening_receipts(cx, opening)
+            && !self.retired_overflow_openings.contains(&opening)
+        {
+            self.retired_overflow_openings.push(opening);
+        }
+    }
+}
+
+fn drain_overflow_opening_receipts(cx: &mut Cx<'_>, opening: LayerOpening) -> bool {
+    let mut terminal = false;
+    while let Some(receipt) = cx.take_layer_intent_receipt_for(opening) {
+        if matches!(
+            receipt.event(),
+            LayerEvent::Closed(_) | LayerEvent::Dismissed(_)
+        ) {
+            terminal = true;
+        }
+    }
+    terminal
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -667,11 +699,16 @@ impl Toolbar {
     /// validates it against the current item configuration; coordinates are
     /// never reinterpreted in update.
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut ToolbarState) -> Response<ToolbarActions> {
-        if let Some(session) = state.overflow.as_ref()
-            && session.owner != self.id
+        state.drain_retired_overflow_openings(cx);
+
+        if state
+            .overflow
+            .as_ref()
+            .is_some_and(|session| session.owner != self.id)
+            && let Some(session) = state.overflow.take()
         {
             cx.close_layer(session.owner.sub(OVERFLOW_MENU_ID), None);
-            state.overflow = None;
+            state.retire_overflow_opening(cx, session.opening);
         }
         let published_layout = self.committed_layout(cx);
 
@@ -842,8 +879,8 @@ impl Toolbar {
 
             retire_overflow = !cx.is_open(menu_id);
         }
-        if retire_overflow {
-            state.overflow = None;
+        if retire_overflow && let Some(session) = state.overflow.take() {
+            state.retire_overflow_opening(cx, session.opening);
         }
 
         state.tooltip.update(
@@ -1303,9 +1340,12 @@ impl Toolbar {
         let Some(layer) = menu.try_layer(cx) else {
             return false;
         };
-        cx.open_layer(menu_id, layer);
+        let Some(opening) = cx.open_layer_with_token(menu_id, layer) else {
+            return false;
+        };
         state.overflow = Some(OverflowSession {
             owner: self.id,
+            opening,
             snapshot,
             menu_state: MenuState::default(),
         });

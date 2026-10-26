@@ -1436,6 +1436,74 @@ fn default_overflow_uses_native_menu_receipts_hints_reasons_and_focus_return() {
 }
 
 #[test]
+fn overflow_retirement_drains_only_its_terminal_receipt() {
+    let visible = ItemKey::text("receipt-visible");
+    let alpha = ItemKey::text("receipt-alpha");
+    let beta = ItemKey::text("receipt-beta");
+    let mut host = ToolbarHost::new(
+        vec![
+            ToolItem::new("Visible"),
+            ToolItem::new("Alpha").toggle(false),
+            ToolItem::new("Beta").toggle(false),
+        ],
+        vec![visible, alpha, beta],
+    );
+    host.toolbar_area = Rect::new(5, 1, 16, 1);
+    host.use_default_overflow();
+    let (mut runtime, mut terminal) = runtime_for(host);
+    render(&mut runtime, &mut terminal, SCREEN);
+
+    open_overflow_by_keyboard(&mut runtime, &mut terminal, SCREEN);
+    key(&mut runtime, &mut terminal, SCREEN, KeyCode::End);
+    key(&mut runtime, &mut terminal, SCREEN, KeyCode::Enter);
+    render(&mut runtime, &mut terminal, SCREEN);
+
+    assert_eq!(
+        runtime.app().events,
+        vec![ToolbarActionEvent {
+            key: beta,
+            action: ToolbarAction::Toggled(2, true),
+        }]
+    );
+    assert_eq!(runtime.app().items[2].on, Some(true));
+    assert!(!runtime.is_open(OVERFLOW_MENU));
+    assert!(!runtime.app().state.menu_open());
+    assert_eq!(runtime.focus(), Some(TOOLBAR));
+    assert!(runtime.diagnostics().is_empty());
+
+    ready_for_input(&mut runtime, &mut terminal, SCREEN);
+    let _ = runtime
+        .handle(Input::Tick)
+        .expect("ordinary update after closing More is dispatched");
+    render(&mut runtime, &mut terminal, SCREEN);
+    assert_eq!(runtime.app().events.len(), 1);
+    assert!(runtime.diagnostics().is_empty());
+
+    open_overflow_by_keyboard(&mut runtime, &mut terminal, SCREEN);
+    key(&mut runtime, &mut terminal, SCREEN, KeyCode::Enter);
+    render(&mut runtime, &mut terminal, SCREEN);
+
+    assert_eq!(
+        runtime.app().events,
+        vec![
+            ToolbarActionEvent {
+                key: beta,
+                action: ToolbarAction::Toggled(2, true),
+            },
+            ToolbarActionEvent {
+                key: alpha,
+                action: ToolbarAction::Toggled(1, true),
+            },
+        ]
+    );
+    assert_eq!(runtime.app().items[1].on, Some(true));
+    assert!(!runtime.is_open(OVERFLOW_MENU));
+    assert!(!runtime.app().state.menu_open());
+    assert_eq!(runtime.focus(), Some(TOOLBAR));
+    assert!(runtime.diagnostics().is_empty());
+}
+
+#[test]
 fn pointer_more_opens_native_menu_and_pointer_receipt_selects_the_hidden_key() {
     let keys = keys(&["visible", "one", "two", "three"]);
     let mut host = ToolbarHost::new(
@@ -1761,7 +1829,9 @@ fn more_tip_and_hover_policy_defaults_and_overrides_are_owned_configuration() {
             max_width: 48,
         }
     );
-    const { assert!(!ToolbarTooltipPolicy::OFF.enabled); }
+    const {
+        assert!(!ToolbarTooltipPolicy::OFF.enabled);
+    }
 
     let custom_tip = ToolbarTip::new("Extra actions").shortcut("Ctrl+M");
     let custom_policy = ToolbarTooltipPolicy::OFF
