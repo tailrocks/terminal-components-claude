@@ -11,7 +11,6 @@ pub struct VerticalWindow {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VerticalWindowError {
-
     EmptyVisibleBody,
 
     OutsideLogicalBody,
@@ -20,7 +19,6 @@ pub enum VerticalWindowError {
 }
 
 impl VerticalWindow {
-
     pub const fn new(
         visible_body: Rect,
         logical_rows: usize,

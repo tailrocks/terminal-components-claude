@@ -6,7 +6,6 @@ use crate::keyboard;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hint {
-
     pub key: &'static str,
 
     pub action: Cow<'static, str>,
@@ -21,7 +20,6 @@ pub const HINT_NORMAL: u8 = 1;
 pub const HINT_AUTO: u8 = 0;
 
 impl Hint {
-
     pub fn new(key: &'static str, action: impl Into<Cow<'static, str>>) -> Self {
         Self {
             key,
@@ -33,7 +31,6 @@ impl Hint {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FooterStatus {
-
     pub text: String,
 
     pub tone: Role,
@@ -42,7 +39,6 @@ pub struct FooterStatus {
 }
 
 impl FooterStatus {
-
     pub fn is_error(&self) -> bool {
         self.tone == Role::Danger
     }
@@ -50,7 +46,6 @@ impl FooterStatus {
 
 #[derive(Debug, Clone, Default)]
 pub struct Footer {
-
     pub hints: Option<Vec<Hint>>,
 
     pub fallback: Vec<Hint>,
@@ -67,7 +62,6 @@ pub struct Footer {
 }
 
 impl Footer {
-
     pub fn new() -> Self {
         Self::default()
     }

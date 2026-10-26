@@ -1,6 +1,3 @@
-
-
-
 use termrock::author::PaintStyle;
 use termrock::feedback::{
     EditorEnvironmentBody, EditorEnvironmentRole, EditorEnvironmentRow, EditorEnvironmentValue,
@@ -36,8 +33,6 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     paint_with_modes(app, ui, full, false, false);
 }
 
-
-
 fn paint_with_modes(
     app: &App,
     ui: &mut Ui<'_>,
@@ -58,7 +53,6 @@ fn paint_with_modes(
     if chrome {
         ui.fill(full, canvas());
     }
-
 
     paint_str(ui, 1, 0, " jackin❯ ", BRAND_FG, ACCENT, true);
     paint_str(ui, 12, 0, " File ", SECONDARY, BLACK, false);
@@ -142,7 +136,6 @@ fn paint_with_modes(
         }
     }
 
-
     let active_index = match app.editor.tab {
         EditorTab::General => 0,
         EditorTab::Mounts => 1,
@@ -219,7 +212,6 @@ fn paint_with_modes(
         }
     }
 
-
     let active_x = TABS.get(active_index).map(|&(_, x, _)| x).unwrap_or(2);
     let rule_start = if chrome { 2 } else { 0 };
     let rule_end = if chrome {
@@ -245,7 +237,6 @@ fn paint_with_modes(
             paint_cell(ui, col, 4, "─", SEAM, BLACK, false);
         }
     }
-
 
     match app.editor.tab {
         EditorTab::General => paint_general_body(app, ui),
@@ -534,7 +525,6 @@ fn paint_roles_body(app: &App, ui: &mut Ui<'_>, full: Rect) {
 }
 
 fn paint_shared_roles_body(app: &App, ui: &mut Ui<'_>, full: Rect) -> bool {
-
     if full.x != 0 || full.y != 0 || full.width != 120 || full.height != 40 {
         return false;
     }
@@ -658,7 +648,6 @@ fn paint_roles_body_legacy(app: &App, ui: &mut Ui<'_>) {
         paint_str(ui, 117, y, bar, bar_ink, BLACK, false);
     }
 
-
     let mut scroll = termrock::ScrollState::new(app.world.roles.len());
     scroll.set_viewport(visible);
     ui.scroll_edges(Rect::new(2, 7, 115, visible as u16), &scroll);
@@ -774,7 +763,6 @@ fn paint_env_body(app: &App, ui: &mut Ui<'_>, full: Rect) {
 }
 
 fn paint_shared_env_body(app: &App, ui: &mut Ui<'_>, full: Rect) -> bool {
-
     if full.x != 0 || full.y != 0 || full.width != 120 || full.height != 40 {
         return false;
     }
@@ -859,9 +847,6 @@ fn editor_env_rows_have_known_widths(
     envs: &[crate::domain::workspace::EnvVar],
     paths: &[Option<String>],
 ) -> bool {
-
-
-
     if envs.len() != paths.len() {
         return false;
     }

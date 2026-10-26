@@ -101,7 +101,6 @@ pub(crate) enum Event {
     },
 }
 
-
 pub(crate) struct TaskArgsEditor {
     action: Action,
     producer: TaskArgsProducer,
@@ -289,7 +288,6 @@ fn props() -> FormDialog<'static> {
         .enter_policy(EnterPolicy::Never)
         .submit_policy(FormDialogSubmitPolicy::KeepOpen)
 }
-
 
 pub(crate) fn quote_value(value: &str) -> String {
     quote(value)

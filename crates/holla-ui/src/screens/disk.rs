@@ -68,8 +68,6 @@ struct OwnerPoll {
     has_intents: bool,
 }
 
-
-
 fn inspect_retirement_owner(cx: &Cx<'_>, owner: Id, allow_layer: bool) -> OwnerPoll {
     let mut safe = true;
     let mut has_intents = false;
@@ -287,8 +285,6 @@ impl SelectionChooser {
         (response, event, closed)
     }
 
-
-
     fn service_lifecycle(&mut self, cx: &mut Cx<'_>) -> (Response<()>, bool) {
         let list = inspect_retirement_owner(cx, SELECTION_LIST, false);
         let actions = selection_action_owners();
@@ -313,9 +309,6 @@ impl SelectionChooser {
             let _ = dialog_response.take_action();
             response |= dialog_response.erase();
         } else {
-
-
-
             if !root.safe || root.has_intents {
                 cx.diagnostic(termrock::Diagnostic::UndeliveredIntent {
                     owner: SELECTION_DIALOG,
@@ -331,12 +324,9 @@ impl SelectionChooser {
         (response, list.safe && dialog_safe)
     }
 
-
     pub(crate) fn poll(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.service_lifecycle(cx).0
     }
-
-
 
     pub(crate) fn poll_retired(&mut self, cx: &mut Cx<'_>) -> (Response<()>, bool) {
         let (response, owners_safe) = self.service_lifecycle(cx);
@@ -356,8 +346,6 @@ impl SelectionChooser {
         }
         (response, ready)
     }
-
-
 
     pub(crate) fn draw(&self, ui: &mut Ui<'_>) {
         ui.layer(SELECTION_DIALOG, |ui, area| {

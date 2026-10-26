@@ -24,7 +24,6 @@ impl CompositionLeaf for EmptyLeaf {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AppShell {
-
     pub chrome: Chrome,
 }
 
@@ -35,7 +34,6 @@ impl Default for AppShell {
 }
 
 impl AppShell {
-
     pub const fn new() -> Self {
         Self {
             chrome: Chrome::new(),
@@ -153,7 +151,6 @@ pub struct ShellSlots<'a> {
 }
 
 impl ShellSlots<'_> {
-
     #[must_use]
     pub const fn spec(mut self, spec: termrock_layout::Composition) -> Self {
         self.spec = spec;
@@ -251,7 +248,6 @@ pub struct AppShellSlots<'a> {
 }
 
 impl<'a> AppShellSlots<'a> {
-
     #[must_use]
     pub const fn header(mut self, leaf: &'a dyn CompositionLeaf) -> Self {
         self.slots.header = leaf;

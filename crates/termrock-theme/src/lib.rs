@@ -45,7 +45,6 @@ pub use visual::{
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum CursorStyle {
-
     #[default]
     Bar,
 
@@ -123,7 +122,6 @@ pub struct Theme {
 }
 
 impl Theme {
-
     #[must_use]
     pub fn manager_presentation_profile(&self) -> ManagerPresentationProfile {
         self.recipes.manager_presentation_profile()
@@ -663,5 +661,4 @@ impl Theme {
     ) -> PartMetrics {
         resolve::metrics_of(&resolve::accumulate(self, f, v, p, s, &[]))
     }
-
-    }
+}

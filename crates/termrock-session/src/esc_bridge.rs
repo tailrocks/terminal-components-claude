@@ -45,7 +45,6 @@ enum CsiFraming {
 }
 
 impl InputFraming {
-
     fn at_event_boundary(self) -> bool {
         self == Self::Ground
     }
@@ -133,7 +132,6 @@ impl InputFraming {
 
 fn feed_utf8(remaining: u8, byte: u8, alt: bool) -> InputFraming {
     if byte & 0xc0 != 0x80 {
-
         return InputFraming::Ground;
     }
     if remaining == 1 {
@@ -196,7 +194,6 @@ impl InputState {
                     return Some(bytes[..=index].to_vec());
                 }
                 if index + 1 == bytes.len() {
-
                     self.stash.push(byte);
                     return (!bytes[..index].is_empty()).then(|| bytes[..index].to_vec());
                 }

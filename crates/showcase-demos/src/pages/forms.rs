@@ -476,8 +476,6 @@ impl FormsPage {
     }
 }
 
-
-
 fn submission_deadline(now: Moment) -> Option<Moment> {
     let deadline = now.saturating_add(SUBMISSION_INTERVAL);
     (deadline > now).then_some(deadline)
@@ -587,9 +585,6 @@ impl FormsPage {
         if matches!(self.submission, Submission::Busy { .. }) {
             return Response::ignored();
         }
-
-
-
 
         let _ = self.summary_state.commit(&mut self.summary, &accept_text);
         let _ = self.details_state.commit(&mut self.details, &accept_text);
@@ -769,7 +764,6 @@ impl Page for FormsPage {
             status = self.service_submission_clock(cx, &mut result);
         }
         if self.task_scroll_frame.get().is_none() {
-
             self.task_scroll.jump_start();
         }
         result |= self.update_task_scroll(cx);
@@ -1038,7 +1032,6 @@ impl FormsPage {
             return;
         }
         if span.start < viewport_start || span_end > viewport_end {
-
             for owner in span.section.owners() {
                 ui.register_focus_only(*owner, task_card_focusability(*owner, self.confirm));
             }

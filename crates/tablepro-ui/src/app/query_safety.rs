@@ -41,9 +41,6 @@ impl From<&GridView> for ResultSnapshot {
 
 #[derive(Clone, PartialEq)]
 struct QuerySnapshot {
-
-
-
     stored_text: String,
     editor_text: String,
     saved_text: String,
@@ -377,8 +374,6 @@ impl QuerySafetyController {
                 .is_some_and(|opening| cx.top_layer() == opening.layer_id());
         self.sync_escape_capture(&mut app.keymap, active_opening);
         if had_request && cx.is_open(ID) && !opening_matches {
-
-
             if let Some(request) = self.request.take()
                 && app.surface == Surface::SafetyDialogTypedAck
             {
@@ -424,7 +419,6 @@ impl QuerySafetyController {
                     Some(DialogAction::Dismissed(_) | DialogAction::Action(ActionKey::CANCEL))
                 )
                 || !cx.is_open(ID));
-
 
         let stale_opening = had_request && !opening_matches;
 
@@ -517,9 +511,6 @@ fn evaluate(app: &TableProApp, query: &str) -> Option<Evaluation> {
 
 fn resolve_table(app: &TableProApp, statement: &Statement) -> Option<Table> {
     let Statement::Select(select) = statement else {
-
-
-
         return None;
     };
     app.catalog

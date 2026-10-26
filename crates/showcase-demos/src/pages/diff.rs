@@ -845,8 +845,6 @@ impl Page for DiffPage {
                         let _ = tabs.draw(ui, tabs_area, &self.tabs, PAGE_TABS_ITEMS);
                     }
 
-
-
                     let content_offset = if self.section() == 2 { 2 } else { 3 };
                     let content = Rect {
                         y: body.y.saturating_add(content_offset),
@@ -943,8 +941,6 @@ fn state_specimen_source_start(group_start: usize, mode: DiffMode, state_index: 
 fn state_specimen_diff_height(mode: DiffMode, _state_index: usize) -> u16 {
     match mode {
         DiffMode::Unified => 5,
-
-
 
         DiffMode::Review => 5,
     }

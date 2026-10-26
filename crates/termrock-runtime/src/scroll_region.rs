@@ -19,7 +19,6 @@ use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ScrollbarGutter {
-
     #[default]
     Auto,
 
@@ -789,7 +788,6 @@ fn without_inherited_bold(
     style: crate::theme::PaintStyle,
     explicit: StylePatch,
 ) -> crate::theme::PaintStyle {
-
     if explicit.add.contains(Modifier::BOLD)
         || style.as_style().add_modifier.contains(Modifier::BOLD)
     {

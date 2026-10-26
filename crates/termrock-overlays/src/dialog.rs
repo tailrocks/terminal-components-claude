@@ -351,16 +351,11 @@ impl<'a> Dialog<'a> {
         }
     }
 
-
-
     pub const fn chrome(id: Id) -> Self {
         let mut dialog = Self::new(id);
         dialog.chrome_only = true;
         dialog
     }
-
-
-
 
     #[must_use]
     pub const fn close_button(mut self, action: ActionKey) -> Self {
@@ -452,15 +447,11 @@ impl<'a> Dialog<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn meta(mut self, s: &'a str) -> Self {
         self.meta = Some(s);
         self
     }
-
-
 
     #[must_use]
     pub const fn head_in_border(mut self) -> Self {
@@ -494,7 +485,6 @@ impl<'a> Dialog<'a> {
 
     #[must_use]
 
-
     pub const fn primary(mut self, k: ActionKey) -> Self {
         self.primary = Some(k);
         self
@@ -511,7 +501,6 @@ impl<'a> Dialog<'a> {
         self.body_rows = Some(n);
         self
     }
-
 
     #[must_use]
     pub const fn align(mut self, a: ScreenAlign) -> Self {
@@ -885,9 +874,6 @@ impl<'a> Dialog<'a> {
     }
 
     fn layout(&self, outer: Rect, d: &DesignTokens, action_widths: &[u16]) -> DialogLayout {
-
-
-
         let border_head = self.head_in_border;
         let vertical_pad = if border_head {
             0
@@ -897,8 +883,6 @@ impl<'a> Dialog<'a> {
         let content = crate::layout::inset(
             outer,
             crate::layout::Insets {
-
-
                 l: if border_head { 2 } else { 3 },
                 t: 1 + vertical_pad,
                 r: 3,
@@ -913,9 +897,6 @@ impl<'a> Dialog<'a> {
         };
         let title_rows = u16::from(self.title.is_some() && !border_head);
         let title_gap = title_rows.min(vertical_pad);
-
-
-
 
         let natural_footer_gap = !border_head && (!self.chrome_only || !self.actions.is_empty());
         let action_height = requested_action_height.min(
@@ -1209,8 +1190,6 @@ impl<'a> Dialog<'a> {
                             .disabled(!enabled)
                             .draw(ui, r);
                         if self.head_in_border {
-
-
                             let pad = ui.paint_patch(
                                 &StylePatch::new()
                                     .set_fg(Role::Surface(Surface::Overlay))
@@ -1227,7 +1206,6 @@ impl<'a> Dialog<'a> {
                                 pad,
                             );
                         }
-
 
                         let mnemonics = !self.head_in_border;
                         if mnemonics
@@ -1287,7 +1265,6 @@ impl<'a> Dialog<'a> {
             },
         );
 
-
         if self.head_in_border
             && let Some(t) = self.title
         {
@@ -1309,8 +1286,6 @@ impl<'a> Dialog<'a> {
             ui.register_decor(id, PartRef::of(Part::TITLE), head);
         }
         if let Some(m) = self.meta {
-
-
             let ms = ui.paint_patch(
                 &StylePatch::new()
                     .set_fg(Role::Fg(FgStep::Faint))
@@ -1330,12 +1305,6 @@ impl<'a> Dialog<'a> {
         self.paint_close(ui, chrome);
         painted
     }
-
-
-
-
-
-
 
     pub fn draw_body_slot(
         &self,

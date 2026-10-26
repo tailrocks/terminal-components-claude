@@ -6,7 +6,6 @@ pub struct SizeWatch {
 }
 
 impl SizeWatch {
-
     pub fn new(size: Option<(u16, u16)>) -> Self {
         Self { known: size }
     }

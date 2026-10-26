@@ -10,7 +10,6 @@ pub struct KeyboardNegotiation {
 }
 
 impl KeyboardNegotiation {
-
     pub fn enter(
         &mut self,
         out: &mut impl Write,

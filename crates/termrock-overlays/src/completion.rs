@@ -37,9 +37,7 @@ pub enum CompletionCmd {
     Dismiss,
 }
 
-
 const COMPLETION_TEXT_INSET: u16 = 4;
-
 
 pub const COMPLETION_DETAILS_CHORD: Chord = Chord::with(
     KeyCode::Char('d'),
@@ -169,8 +167,6 @@ fn paint_completion_row(
         );
     }
 }
-
-
 
 fn popup_width<T: AsItem>(cx: &Cx<'_>, items: &[T]) -> u16 {
     let mut label_w = 0u16;
@@ -312,7 +308,6 @@ impl CompletionState {
         self.details_open
     }
 
-
     pub const fn details_input_consumed(&self) -> bool {
         self.details_input_consumed
     }
@@ -372,9 +367,6 @@ impl CompletionController {
                 cx.reanchor_layer(self.popup_id, anchor);
                 cx.resize_layer(self.popup_id, size);
             } else {
-
-
-
                 let _ = cx.open_layer_with_token(
                     self.popup_id,
                     LayerSpec::popover(self.popup_id, anchor)
@@ -424,11 +416,6 @@ impl CompletionController {
             Self::splice(buffer, replace_len, insertion)
         })
     }
-
-
-
-
-
 
     pub fn accept_with(
         &self,
@@ -544,8 +531,6 @@ impl<'a, T, R> Completion<'a, T, R> {
         self.ov = self.ov.slot(part, slot);
         self
     }
-
-
 
     #[must_use]
     pub const fn selected_detail(mut self, detail: Option<&'a str>) -> Self {

@@ -234,10 +234,8 @@ enum NavTarget {
     Placeholder(usize),
 }
 
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum NavExpand {
-
     #[default]
     All,
 
@@ -947,7 +945,6 @@ fn nav_tree(
     }
 }
 
-
 const TREE_QUERY_BINDINGS: [(ActionKey, Chord); 7] = [
     (
         ActionKey::custom("tree.up-vim"),
@@ -1044,7 +1041,6 @@ fn nav_query_input(cx: &Cx<'_>, active: bool) -> Option<NavQueryInput> {
             .any(|name| action == ActionKey::custom(name))
         })
     {
-
         return Some(NavQueryInput::Consume);
     }
 
@@ -1443,11 +1439,6 @@ impl App {
         }
     }
 
-
-
-
-
-
     pub fn set_nav_expand(&mut self, policy: NavExpand) {
         self.nav_expand = policy;
         self.nav_auto_group = None;
@@ -1614,7 +1605,6 @@ impl App {
     }
 
     fn end_nav_query_for_activation(&mut self) {
-
         self.nav_query = None;
     }
 
@@ -1944,7 +1934,6 @@ struct CachedShellLayout {
     layout: ShellLayout,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Pane {
     Sidebar,
@@ -1952,7 +1941,6 @@ enum Pane {
     Spacer,
     Inspector,
 }
-
 
 const SIDEBAR_WIDE: u16 = 25;
 const SIDEBAR_NARROW: u16 = 20;
@@ -1963,22 +1951,15 @@ const INSPECTOR_MIN_WIDTH: u16 = 100;
 
 const SHELL_GAP: u16 = 1;
 
-
 fn fixed_pane(width: u16) -> termrock::layout::ChildPolicy {
     termrock::layout::ChildPolicy::new(termrock::layout::Size::exact(width, 1))
         .min(width, 0)
         .max(Some(width), None)
 }
 
-
 fn flexible_pane() -> termrock::layout::ChildPolicy {
     termrock::layout::ChildPolicy::new(termrock::layout::Size::default()).flex(1)
 }
-
-
-
-
-
 
 fn shell_layout(area: Rect, inspector: bool) -> ShellLayout {
     let regions = termrock::AppShell::new()
@@ -2731,7 +2712,6 @@ impl TuiApp for App {
         let nav_action = nav_response.action_ref().copied();
         response |= nav_response.erase();
         if let Some(key) = query_disclosure {
-
             self.nav_state.toggle(key);
             self.bump_nav_query_revision();
         }

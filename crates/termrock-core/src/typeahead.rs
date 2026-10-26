@@ -22,7 +22,6 @@ impl Default for TypeAhead {
 }
 
 impl TypeAhead {
-
     pub const DEFAULT_TIMEOUT: Duration = Duration::from_millis(1000);
 
     pub fn with_timeout(timeout: Duration) -> Self {
@@ -75,7 +74,6 @@ impl TypeAhead {
         let first = chars.next()?;
         let repeated = chars.all(|c| c == first);
         let (needle, start) = if repeated && prefix.chars().count() > 1 {
-
             (first.to_string(), from + 1)
         } else {
             (prefix.to_owned(), from)

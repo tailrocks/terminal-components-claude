@@ -1,17 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use termrock::{Color, ColorLevel, Rect, Ui};
 
 pub(super) fn paint_info(ui: &mut Ui<'_>, facts: &[termrock::overlays::info_card::Fact<'_>]) {
@@ -40,11 +26,9 @@ fn recolor(ui: &mut Ui<'_>, width: u16, height: u16, y_bias: u16) {
         .saturating_add(screen.height.saturating_sub(height) / 2)
         .saturating_add(y_bias);
 
-
     if ui.theme_ref().capability.color == ColorLevel::Ansi256 {
         let card = Rect::new(origin_x, origin_y, width, height);
         ui.recolor_rgb(card, ansi256_ink);
-
 
         ui.recolor_fg(screen, |fg, bg| {
             let rain = matches!(fg, Color::Indexed(235) | Color::Rgb(0x26, 0x26, 0x26));
@@ -57,10 +41,6 @@ fn recolor(ui: &mut Ui<'_>, width: u16, height: u16, y_bias: u16) {
         });
     }
 
-
-
-
-
     if matches!(
         ui.theme_ref().capability.color,
         ColorLevel::Ansi16 | ColorLevel::Mono
@@ -70,10 +50,6 @@ fn recolor(ui: &mut Ui<'_>, width: u16, height: u16, y_bias: u16) {
             let mono = ui.theme_ref().capability.color == ColorLevel::Mono;
             if mono {
                 ui.recolor_pair(card, |fg, bg| {
-
-
-
-
                     if matches!(
                         (fg, bg),
                         (Color::Rgb(0x4d, 0x4d, 0x4d), Color::Rgb(0x18, 0x18, 0x1b))
@@ -109,15 +85,9 @@ fn on_black(color: Color) -> bool {
     )
 }
 
-
-
-
 fn ansi256_ink(color: Color) -> Color {
     if let Color::Rgb(red, green, blue) = color {
         match (red, green, blue) {
-
-
-
             (0x4d, 0x4d, 0x4d) => return Color::Indexed(242),
             (0x26, 0x26, 0x26) => return Color::Indexed(238),
             _ => {}

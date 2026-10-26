@@ -324,14 +324,6 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         self.id
     }
 
-
-
-
-
-
-
-
-
     pub fn update_focus_out(&self, cx: &mut Cx<'_>) -> Option<crate::response::Response<()>> {
         if cx.update_cause() != UpdateCause::Settle {
             return None;
@@ -365,8 +357,6 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         self
     }
 
-
-
     #[must_use]
     pub const fn scrollbar_gutter(mut self, gutter: ScrollbarGutter) -> Self {
         self.scrollbar_gutter = gutter;
@@ -397,20 +387,11 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         self
     }
 
-
-
-
-
     #[must_use]
     pub const fn marker_gap(mut self, cells: u16) -> Self {
         self.marker_gap = cells;
         self
     }
-
-
-
-
-
 
     #[must_use]
     pub const fn content_gap(mut self, cells: u16) -> Self {
@@ -418,15 +399,11 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         self
     }
 
-
-
     #[must_use]
     pub const fn header_text_patch(mut self, patch: &'a StylePatch) -> Self {
         self.header_text_patch = Some(patch);
         self
     }
-
-
 
     #[must_use]
     pub const fn cursor_style(mut self, style: CursorStyle) -> Self {
@@ -1011,7 +988,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                 .part_patch(Part::HEADER)
                 .unwrap_or_default()
                 .merge(*text_patch);
-
 
             let text_style = ui.style_patched(
                 Family::LIST,

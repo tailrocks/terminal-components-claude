@@ -87,10 +87,6 @@ const OUTCOMES: [(NoticeKind, &str, &str); 3] = [
     ),
 ];
 
-
-
-
-
 #[derive(Clone, Copy, Debug)]
 pub struct NoticeRevealTarget {
     pub owner: Id,
@@ -99,7 +95,6 @@ pub struct NoticeRevealTarget {
     pub window: VerticalWindow,
     pub revision: u64,
 }
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct NoticeRevealPageState {
@@ -240,7 +235,6 @@ impl NoticesPage {
             self.styled(Notice::success("Saved 12 rows in 84 ms")),
         ]
     }
-
 
     #[must_use]
     pub fn reveal_state(&self) -> Option<NoticeRevealPageState> {
@@ -825,8 +819,6 @@ impl NoticesPage {
         reveal_targets
     }
 
-
-
     pub fn draw_with_reveal_targets(
         &self,
         ui: &mut Ui<'_>,
@@ -989,8 +981,6 @@ fn scroll_content_window(
     if view.width == 0 || view.height == 0 || logical_rows == 0 {
         return None;
     }
-
-
 
     let first_source_row = ScrollRegion::view(state, view, logical_rows).offset();
     let first_source_row = first_source_row.min(logical_rows);

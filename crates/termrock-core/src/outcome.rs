@@ -1,6 +1,5 @@
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Outcome {
-
     #[default]
     Ignored,
 
@@ -10,7 +9,6 @@ pub enum Outcome {
 }
 
 impl Outcome {
-
     pub fn consumed(self) -> bool {
         !matches!(self, Outcome::Ignored)
     }

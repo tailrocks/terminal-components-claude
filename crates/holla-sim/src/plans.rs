@@ -230,12 +230,6 @@ pub fn plan_for(w: &World, action_id: &str) -> Option<ReviewedPlan> {
     Some(ReviewedPlan::new(plan, w))
 }
 
-
-
-
-
-
-
 pub fn plan_for_disk_selection(w: &World, selected_paths: &[String]) -> Option<ReviewedPlan> {
     let disk = w.disk.as_ref()?;
     disk.validate(&w.cwd).ok()?;

@@ -11,7 +11,6 @@ pub struct Clipboard {
 }
 
 impl Clipboard {
-
     pub fn copy(&mut self, text: &str) {
         let mut secret = self.text.take().unwrap_or_default();
         secret.set(text);

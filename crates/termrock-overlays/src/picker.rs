@@ -46,13 +46,6 @@ pub enum PickerAction {
     QueryChanged,
 }
 
-
-
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PickerLayout {
     legacy: bool,
@@ -76,9 +69,6 @@ impl PickerLayout {
             viewport_margin: None,
         }
     }
-
-
-
 
     pub const fn card() -> Self {
         Self {
@@ -113,7 +103,6 @@ impl PickerLayout {
     }
 
     #[must_use]
-
 
     pub const fn footer_rows(mut self, rows: u16) -> Self {
         self.footer_rows = Some(rows);
@@ -310,13 +299,11 @@ impl<'a, T, R> Picker<'a, T, R> {
         self
     }
 
-
     #[must_use]
     pub const fn layout(mut self, layout: PickerLayout) -> Self {
         self.layout = layout;
         self
     }
-
 
     #[must_use]
     pub const fn max_rows(mut self, rows: u16) -> Self {
@@ -369,7 +356,6 @@ impl<'a, T, R> Picker<'a, T, R> {
         self.scopes = scopes;
         self
     }
-
 
     #[must_use]
     pub const fn selection_policy(mut self, policy: SelectionPolicy) -> Self {
@@ -567,8 +553,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             cx.resize_layer(self.id, self.measured_size(cx, items));
         }
 
-
-
         let query_changed = !self.searchable && !st.query().is_empty();
         let inner = self.list().update(cx, &mut st.list, items);
         let mut acc = Acc::new();
@@ -590,8 +574,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     if query_changed => {}
                 FilterListAction::QueryChanged => {
                     if self.selection_policy == SelectionPolicy::FirstEnabledOnFilterChange {
-
-
                         st.list.reset_selection_on_next_reconcile();
                     }
                     acc.action(PickerAction::QueryChanged);
@@ -726,9 +708,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     self.list().draw_query(ui, query, &st.list);
                 }
 
-
-
-
                 let show_hint = !self.hints.is_empty()
                     && (self.layout.legacy || self.layout.footer_rows != Some(0));
                 if show_hint {
@@ -743,8 +722,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                             .set_fg(Role::Fg(FgStep::Faint))
                             .set_bg(Role::CurrentSurface),
                     );
-
-
 
                     let line = termrock_text::truncate(self.hints, hint_area.width);
                     ui.paint_str(hint_area, &line, hint_style);

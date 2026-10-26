@@ -1,0 +1,4 @@
+Command: mise exec -- rustfmt --edition 2024 --config skip_children=true <202 approved paths>
+Exit status: 0
+stdout bytes: 0
+stderr bytes: 0

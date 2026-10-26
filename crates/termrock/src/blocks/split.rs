@@ -1,11 +1,8 @@
-
-
 use termrock_controls::{SplitAction, SplitPane, SplitPaneState};
 use termrock_layout::{Constraints, Maximized, Size, SplitAxis};
 use termrock_runtime::{Cx, Response, Ui};
 
 use crate::composition::{CompositionError, Group};
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SplitBlockError {
@@ -19,9 +16,6 @@ impl From<CompositionError> for SplitBlockError {
         SplitBlockError::Composition(error)
     }
 }
-
-
-
 
 pub struct SplitBlock<'a> {
     pane: SplitPane<'a>,
@@ -50,11 +44,9 @@ impl<'a> SplitBlock<'a> {
         self
     }
 
-
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut SplitPaneState) -> Response<SplitAction> {
         self.pane.update(cx, state)
     }
-
 
     pub fn measure(
         &self,
@@ -137,12 +129,9 @@ impl<'a> SplitBlock<'a> {
         Ok(Size { min, preferred }.fit(constraints))
     }
 
-
-
     pub fn show(&self, ui: &mut Ui<'_>, state: &SplitPaneState) -> Result<(), SplitBlockError> {
         let first = self.first.ok_or(SplitBlockError::MissingFirst)?;
         let second = self.second.ok_or(SplitBlockError::MissingSecond)?;
-
 
         first.validate_depth()?;
         second.validate_depth()?;

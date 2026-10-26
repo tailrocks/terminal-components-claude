@@ -6,7 +6,6 @@ use crate::quit::{KeyContext, LeaveKey, QuitKeys, ctrl_char};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyBinding<C> {
-
     pub chord: Chord,
 
     pub action: ShellAction<C>,
@@ -26,7 +25,6 @@ pub fn lookup<'a, C: PartialEq>(map: &'a [KeyBinding<C>], key: &Key) -> Option<&
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShellAction<C = ()> {
-
     Quit,
 
     Help,
@@ -54,7 +52,6 @@ impl<C> From<C> for ShellAction<C> {
 
 #[derive(Debug, Clone)]
 pub struct ShellKeys<C = ()> {
-
     pub quit: QuitKeys,
 
     pub priority: Vec<KeyBinding<C>>,
@@ -77,7 +74,6 @@ impl<C> Default for ShellKeys<C> {
 }
 
 impl<C> ShellKeys<C> {
-
     pub fn new() -> Self {
         let bind = |code: KeyCode, mods: KeyModifiers, action| KeyBinding {
             chord: chord(code, mods),
@@ -217,7 +213,6 @@ impl<C> ShellKeys<C> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tier {
-
     Priority,
 
     Keys,
@@ -226,7 +221,6 @@ pub enum Tier {
 }
 
 pub trait KeyHost {
-
     type Cmd: Copy + PartialEq + 'static;
 
     fn shell_keys(&self) -> &ShellKeys<Self::Cmd>;
@@ -289,7 +283,6 @@ pub trait KeyHost {
 pub struct KeyRouter;
 
 impl KeyRouter {
-
     pub fn input<H: KeyHost + ?Sized>(host: &mut H, input: &Input) -> Response<()> {
         match input {
             Input::Key(key) => Self::route(host, key),
@@ -420,7 +413,6 @@ impl KeyRouter {
         key: &Key,
     ) -> Response<()> {
         match action {
-
             ShellAction::Quit => host.request_quit(),
             ShellAction::Back => {
                 let out = host.esc_top();

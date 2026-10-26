@@ -22,7 +22,6 @@ const PORT_FIELD_HELP: &str =
     "Required text; malformed non-empty input preserves the historical fallback to 5173";
 const LEGACY_PORT: u16 = 5173;
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PortArgsProducer {
     adapter_id: String,
@@ -31,10 +30,6 @@ pub struct PortArgsProducer {
 }
 
 impl PortArgsProducer {
-
-
-
-
     pub fn new() -> Result<Self, SchemaError> {
         let field = InputField::text(PORT_FIELD_ID, PORT_FIELD_LABEL, true)?
             .with_help(PORT_FIELD_HELP)
@@ -47,7 +42,6 @@ impl PortArgsProducer {
         })
     }
 
-
     pub fn schema(&self) -> &InputSchema {
         &self.schema
     }
@@ -59,14 +53,9 @@ impl PortArgsProducer {
     }
 }
 
-
-
-
-
 pub fn port_args_producer() -> Result<PortArgsProducer, SchemaError> {
     PortArgsProducer::new()
 }
-
 
 pub(crate) fn catalogue_action(world: &World) -> Action {
     let mut action = Action::new(
@@ -84,10 +73,6 @@ pub(crate) fn catalogue_action(world: &World) -> Action {
         "port listen eaddrinuse address already in use lsof process on port TCP".to_owned();
     action
 }
-
-
-
-
 
 pub fn port_args_producer_for(row: &Action) -> Result<Option<PortArgsProducer>, SchemaError> {
     if row.id == ACTION_ID || row.intent_id() == Some(ACTION_ID) {
@@ -124,7 +109,6 @@ pub enum PortParseDisposition {
     LegacyFallbackTo5173,
 }
 
-
 #[derive(Debug)]
 pub struct PortArgsSession {
     producer: PortArgsProducer,
@@ -133,7 +117,6 @@ pub struct PortArgsSession {
     context: ContextSnapshot,
     accepted: bool,
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PortArgsError {
@@ -164,7 +147,6 @@ impl fmt::Display for PortArgsError {
 
 impl std::error::Error for PortArgsError {}
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PortArgsAcceptError {
     Binding(PortArgsError),
@@ -183,10 +165,6 @@ impl fmt::Display for PortArgsAcceptError {
 impl std::error::Error for PortArgsAcceptError {}
 
 impl PortArgsSession {
-
-
-
-
     pub fn begin(
         world: &World,
         row: &Action,
@@ -202,14 +180,6 @@ impl PortArgsSession {
             accepted: false,
         })
     }
-
-
-
-
-
-
-
-
 
     pub fn accept(
         &mut self,
@@ -248,7 +218,6 @@ impl PortArgsSession {
     }
 }
 
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct PortInvocationPlan {
     producer: PortArgsProducer,
@@ -262,27 +231,22 @@ pub struct PortInvocationPlan {
 }
 
 impl PortInvocationPlan {
-
     pub fn invocation(&self) -> &Invocation {
         &self.invocation
     }
-
 
     pub fn accepted_inputs(&self) -> &AcceptedInputs {
         &self.accepted
     }
 
-
     pub fn disposition(&self) -> PortParseDisposition {
         self.disposition
     }
-
 
     pub fn effective_port(&self) -> u16 {
         self.effective_port
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PortReviewFacts {
@@ -294,10 +258,6 @@ pub struct PortReviewFacts {
     pub disposition: PortParseDisposition,
     pub effective_port: u16,
 }
-
-
-
-
 
 pub fn port_review_facts(
     world: &World,
@@ -315,12 +275,6 @@ pub fn port_review_facts(
         effective_port: plan.effective_port,
     })
 }
-
-
-
-
-
-
 
 pub fn simulate_port_invocation(
     world: &World,
@@ -476,13 +430,6 @@ fn port_invocation(action: &Action, port: u16) -> Invocation {
     )
 }
 
-
-
-
-
-
-
-
 pub fn modeled_port_listeners(
     world: &World,
     producer: &PortArgsProducer,
@@ -493,10 +440,6 @@ pub fn modeled_port_listeners(
         simulate_port_invocation(world, producer, plan).map_err(ModeledPortError::PortArgs)?;
     listeners::project_port_listeners(world, plan, simulation, model)
 }
-
-
-
-
 
 pub fn validate_listener_suggestion(
     world: &World,

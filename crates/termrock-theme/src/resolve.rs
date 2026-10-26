@@ -384,7 +384,6 @@ impl ProfiledStyle {
     }
 
     fn suppress_targeted_exact_channels(&mut self, targeted: StylePatch) {
-
         if targeted.fg.speaks() {
             self.fg = false;
         }
@@ -549,7 +548,6 @@ fn authored_mono_override(
     live: StateFlags,
     authored: Option<&[super::MonoRule]>,
 ) -> StylePatch {
-
     let rules = match theme.recipes.mono_rules(family) {
         Some(rules) if theme.recipes.mono_is_consumer_authored(family) => rules,
         Some(_) => &[],

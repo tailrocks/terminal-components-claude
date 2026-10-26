@@ -1,8 +1,3 @@
-
-
-
-
-
 use termrock::author::PaintStyle;
 use termrock::{Color, Modifier, Position, Rect, Ui};
 
@@ -73,8 +68,6 @@ fn paint_120(ui: &mut Ui<'_>, title: &str) {
     paint_footer(ui, full.height.saturating_sub(1));
 }
 
-
-
 fn lift_256(ui: &Ui<'_>, color: Color) -> Color {
     if ui.theme_ref().capability.color != termrock::ColorLevel::Ansi256 {
         return color;
@@ -89,8 +82,6 @@ fn lift_256(ui: &Ui<'_>, color: Color) -> Color {
 }
 
 fn repair_underlay(ui: &mut Ui<'_>) {
-
-
     for x in [12, 17, 19, 24, 26, 31, 33, 41, 43, 48] {
         paint_cell(ui, x, 0, " ", FAINT, BLACK, false);
     }
@@ -260,8 +251,6 @@ fn paint_fitted(ui: &mut Ui<'_>, title: &str) {
 fn repair_fitted_footer(ui: &mut Ui<'_>, full: Rect) {
     let y = full.bottom().saturating_sub(1);
     if full.width == 72 {
-
-
         paint_cell(ui, 16, y, " ", WHITE, BLACK, false);
         let status = ellipsize(
             "Attached to payments-platform · tabs and panes restored",
@@ -269,8 +258,6 @@ fn repair_fitted_footer(ui: &mut Ui<'_>, full: Rect) {
         );
         paint_str(ui, 17, y, &status, SECONDARY, BLACK, false);
     } else if full.width == 100 {
-
-
         paint_cell(ui, 5, y, " ", WHITE, BLACK, true);
         paint_cell(ui, 6, y, "F", MUTED, BLACK, true);
         paint_cell(ui, 26, y, " ", WHITE, BLACK, true);
@@ -400,14 +387,11 @@ fn paint_fitted_option(
 }
 
 fn repair_fitted_underlay(ui: &mut Ui<'_>, width: u16) {
-
     for x in [12, 17, 19, 24, 26, 31, 33, 41, 43, 48] {
         if x < width {
             paint_cell(ui, x, 0, " ", FAINT, BLACK, false);
         }
     }
-
-
 
     let rule = 14.min(width.saturating_sub(1));
     if rule > 0 {
@@ -568,12 +552,6 @@ fn paint_footer(ui: &mut Ui<'_>, y: u16) {
     paint_str(ui, 119, y, " ", WHITE, BLACK, false);
 }
 
-
-
-
-
-
-
 pub(super) fn apply_baseline_ladder(theme: &mut termrock::Theme) {
     if let Some(slot) = theme.color.fg.get_mut(2) {
         *slot = Color::Indexed(245);
@@ -588,9 +566,6 @@ pub(super) fn apply_baseline_ladder(theme: &mut termrock::Theme) {
     theme.color.border_subtle = Color::Indexed(238);
     theme.color.backdrop_fg = Color::Indexed(238);
 }
-
-
-
 
 pub(super) fn finish_reduced(ui: &mut Ui<'_>) {
     let ansi16 = ui.theme_ref().capability.color == termrock::ColorLevel::Ansi16;
@@ -623,9 +598,6 @@ pub(super) fn finish_reduced(ui: &mut Ui<'_>) {
         (reduced_ink(fg, ansi16), reduced_ink(bg, ansi16))
     });
     if !ansi16 {
-
-
-
         let mut rules = Vec::new();
         {
             let gutter_x = card.x.saturating_add(2);

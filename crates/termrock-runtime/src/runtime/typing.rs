@@ -90,7 +90,6 @@ pub(crate) fn resolve(frame: &mut FrameState, focus: Option<Id>) -> TypingResolv
     {
         resolved.owner = editable(frame, owner).then_some(owner);
         if flags(frame, owner).contains(StateFlags::READ_ONLY) {
-
             resolved.cursor = frame
                 .cursors
                 .iter()

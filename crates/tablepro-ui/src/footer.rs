@@ -1,21 +1,4 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use termrock::{PaintStyle, Role, StylePatch, Ui, text::width};
-
 
 const ACTION_ROLE: Role = Role::Custom(termrock::Color::from_u32(0x008a_8a8a));
 
@@ -24,7 +7,6 @@ const OVERFLOW_ROLE: Role = Role::Custom(termrock::Color::from_u32(0x0073_7373))
 const BADGE_FG_ROLE: Role = Role::Custom(termrock::Color::from_u32(0x0019_191c));
 
 const BADGE_BG_ROLE: Role = Role::Custom(termrock::Color::from_u32(0x0048_e054));
-
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Hint {
@@ -37,7 +19,6 @@ impl Hint {
         Self { key, action }
     }
 
-
     fn content_width(self) -> u16 {
         width(self.key) + 1 + width(self.action)
     }
@@ -47,10 +28,7 @@ impl Hint {
     }
 }
 
-
-
 const GAP: u16 = 2;
-
 
 #[derive(Clone, Debug)]
 pub(crate) struct Status {
@@ -67,24 +45,14 @@ impl Status {
     }
 }
 
-
 const OVERFLOW: &str = "…";
-
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Plan {
-
     pub groups: Vec<usize>,
 
     pub overflow_at: Option<u16>,
 }
-
-
-
-
-
-
-
 
 pub(crate) fn fit_hint_mask(costs: &[u16], room: u16, pinned: &[bool]) -> (Vec<bool>, bool) {
     let mut keep = vec![true; costs.len()];
@@ -107,8 +75,6 @@ pub(crate) fn fit_hint_mask(costs: &[u16], room: u16, pinned: &[bool]) -> (Vec<b
             .filter(|index| pinned.get(*index).copied() == Some(true)),
     );
     for index in order {
-
-
         let overflow = if keep.iter().any(|on| !on) { GAP } else { 0 };
         if cost(&keep).saturating_add(overflow) <= room {
             break;
@@ -120,11 +86,6 @@ pub(crate) fn fit_hint_mask(costs: &[u16], room: u16, pinned: &[bool]) -> (Vec<b
     let ellipsis = keep.iter().any(|on| !on);
     (keep, ellipsis)
 }
-
-
-
-
-
 
 pub(crate) fn plan(
     groups: &[Hint],
@@ -169,10 +130,6 @@ pub(crate) fn plan(
         overflow_at,
     }
 }
-
-
-
-
 
 pub(crate) fn draw(
     ui: &mut Ui<'_>,

@@ -109,9 +109,6 @@ impl Model {
         true
     }
 
-
-
-
     fn with_dialog<R>(title: &str, confirm: &str, body: impl FnOnce(Dialog<'_>) -> R) -> R {
         let actions = [
             Action::new(ActionKey::CANCEL, "Cancel"),
@@ -125,8 +122,6 @@ impl Model {
                 .cancel(ActionKey::CANCEL),
         )
     }
-
-
 
     pub fn draw_dialog(ui: &mut Ui<'_>, model: &Model) {
         if !model.dialog {
@@ -1006,9 +1001,6 @@ fn paint_member_row(
     let selected = model.selected & (1_u16 << index) != 0;
     let cursor = model.table_focus && model.cursor == index;
     if selected {
-
-
-
         ui.fill(
             area,
             ink(WHITE, accent_tint_bg(ui.theme_ref())).add_modifier(Modifier::BOLD),
@@ -1097,9 +1089,6 @@ fn paint_members(ui: &mut Ui<'_>, card: Rect, model: &Model) {
     let meta = members_meta(end, model.selected_count());
     let mut title = ink(SECONDARY, SURFACE);
     if model.table_focus {
-
-
-
         title = ink(WHITE, SURFACE).add_modifier(Modifier::BOLD);
     }
     paint_card_chrome_with_title(ui, card, "Members", &meta, title);
@@ -1166,8 +1155,6 @@ fn paint_centered(ui: &mut Ui<'_>, area: Rect, y: u16, text: &str, style: PaintS
     paint_at(ui, x, y, columns, text, style);
 }
 
-
-
 struct Summary {
     count: usize,
     role: Option<&'static str>,
@@ -1222,8 +1209,6 @@ impl Summary {
     }
 }
 
-
-
 fn unify<T: PartialEq>(slot: &mut Option<T>, value: T) {
     if let Some(current) = slot
         && *current != value
@@ -1234,15 +1219,11 @@ fn unify<T: PartialEq>(slot: &mut Option<T>, value: T) {
 
 const MIXED: &str = "\u{2014} mixed \u{2014}";
 
-
-
 fn paint_field(ui: &mut Ui<'_>, area: Rect, value: &str, arrow: bool) {
     if area.is_empty() {
         return;
     }
     let field_bg = color_u32(ui.theme_ref().bg(Surface::Field));
-
-
 
     paint_at(ui, area.x, area.y, 1, " ", ink(field_bg, field_bg));
     if area.width > 1 {
@@ -1303,7 +1284,6 @@ fn paint_editor(ui: &mut Ui<'_>, card: Rect, model: &Model) {
         &applies,
         ink(FAINT, SURFACE),
     );
-
 
     let chip_w = inner.width.saturating_sub(2) / 2;
     let left = inner.x;

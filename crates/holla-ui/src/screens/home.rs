@@ -591,7 +591,6 @@ impl HomeState {
     }
 }
 
-
 const TAG_GREY: StylePatch = StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)));
 const QUERY_PARTS: &[(Part, StylePatch)] = &[(Part::PLACEHOLDER, TAG_GREY)];
 
@@ -760,8 +759,6 @@ fn paint_action_with_peek(
     let kind = action_kind_label(action.kind);
     let scope = scope_text(action);
     let risk = risk_text(action);
-
-
 
     let content_width = cells.remaining_width().min(cells.container_width());
     let title_width = row
@@ -1122,15 +1119,10 @@ fn split_detail(area: Rect) -> Option<(Rect, Rect)> {
     ))
 }
 
-
-
 fn paint_narrow_tag_list(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
     (80..120).contains(&full.width) && paint_tag_list(ui, area, view, None)
 }
-
-
-
 
 fn paint_parity_history(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
@@ -1149,8 +1141,6 @@ fn paint_parity_history(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDis
     false
 }
 
-
-
 fn paint_parity_files(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
     if (80..120).contains(&full.width) {
@@ -1161,7 +1151,6 @@ fn paint_parity_files(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDisco
     }
     false
 }
-
 
 fn paint_parity_files_list(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
@@ -1204,7 +1193,6 @@ fn paint_parity_files_list(ui: &mut Ui<'_>, area: Rect, view: &catalogue::Parity
     );
     true
 }
-
 
 fn paint_parity_files_card(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
@@ -1253,7 +1241,6 @@ fn paint_parity_files_card(ui: &mut Ui<'_>, area: Rect, view: &catalogue::Parity
     true
 }
 
-
 fn paint_tag_chips_selected(ui: &mut Ui<'_>, master: Rect, y: u16, labels: &[&str]) {
     let fill = ink(ui, WHITE, SELECT_BG, true);
     ui.fill(Rect::new(master.x, y, master.width, 1), fill);
@@ -1274,9 +1261,6 @@ fn paint_tag_chips_selected(ui: &mut Ui<'_>, master: Rect, y: u16, labels: &[&st
     }
 }
 
-
-
-
 fn paint_parity_browser(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
     let cols = TagCols {
@@ -1293,8 +1277,6 @@ fn paint_parity_browser(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDis
     }
     false
 }
-
-
 
 fn paint_parity_wide_card(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
@@ -1320,8 +1302,6 @@ fn paint_parity_wide_card(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityD
     )
 }
 
-
-
 fn paint_parity_git_batch(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
     if (80..120).contains(&full.width) {
@@ -1334,7 +1314,6 @@ fn paint_parity_git_batch(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityD
     }
     paint_parity_wide_card(ui, area, view)
 }
-
 
 fn fit_narrow_runs(view: &mut catalogue::ParityDiscovery, room: u16) {
     let scope = view
@@ -1361,9 +1340,6 @@ fn fit_narrow_runs(view: &mut catalogue::ParityDiscovery, room: u16) {
     }
 }
 
-
-
-
 fn paint_parity_task_sources(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1386,7 +1362,6 @@ fn paint_parity_task_sources(
     false
 }
 
-
 fn paint_parity_cargo(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
     if (80..120).contains(&full.width) {
@@ -1394,7 +1369,6 @@ fn paint_parity_cargo(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDisco
     }
     paint_parity_wide_card(ui, area, view)
 }
-
 
 fn paint_parity_git_current(
     ui: &mut Ui<'_>,
@@ -1407,7 +1381,6 @@ fn paint_parity_git_current(
     }
     paint_parity_wide_card(ui, area, view)
 }
-
 
 fn paint_tag_list(
     ui: &mut Ui<'_>,
@@ -1502,8 +1475,6 @@ fn narrow_action_line(view: &catalogue::ParityDiscovery) -> Option<String> {
     ))
 }
 
-
-
 fn paint_hard_cases_discovery(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1516,8 +1487,6 @@ fn paint_hard_cases_discovery(
     paint_parity_discovery(ui, area, view)
 }
 
-
-
 fn paint_parity_discovery_view(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1528,8 +1497,6 @@ fn paint_parity_discovery_view(
     }
     paint_parity_discovery(ui, area, view)
 }
-
-
 
 fn paint_parity_discovery(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let Some((master, _)) = split_detail(area) else {
@@ -1748,7 +1715,6 @@ fn paint_tag_chips(
     labels: &[&str],
     fade: Option<(u32, u32)>,
 ) {
-
     ui.paint_str(
         Rect::new(master.x, y, 1, 1),
         " ",
@@ -1774,7 +1740,6 @@ fn paint_tag_row(
     cols: &TagCols,
     fade: Option<(u32, u32)>,
 ) {
-
     let fade = if row.selected { None } else { fade };
     let bg = if row.selected { SELECT_BG } else { BLACK };
     let title_style = ink(ui, faded(WHITE, fade), bg, row.selected);
@@ -1989,7 +1954,6 @@ fn tone_color(tone: catalogue::PreviewTone) -> Color {
     }
 }
 
-
 fn preview_fade(index: usize, shown: usize) -> Option<(u32, u32)> {
     if shown < 4 {
         return None;
@@ -2066,7 +2030,6 @@ fn paint_preview_scrollbar(ui: &mut Ui<'_>, area: Rect, content_len: usize) {
         );
     }
 }
-
 
 fn paint_narrow_scrollbar(ui: &mut Ui<'_>, area: Rect, content_len: usize) {
     if area.is_empty() {

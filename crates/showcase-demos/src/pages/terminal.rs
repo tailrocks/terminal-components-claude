@@ -19,7 +19,6 @@ const STEP_SPINNER: Id = termrock::Id::root("showcase_ui::pages::terminal::termi
 const RUN: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.run");
 const FAIL: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.fail");
 
-
 const STAGE_TICKS: u32 = 6;
 const TICK_INTERVAL: Duration = Duration::from_millis(16);
 
@@ -27,7 +26,6 @@ fn future_deadline(now: Moment) -> Option<Moment> {
     let deadline = now.saturating_add(TICK_INTERVAL);
     (deadline > now).then_some(deadline)
 }
-
 
 const FOOTER_ROWS: u16 = 2;
 
@@ -167,8 +165,6 @@ impl TerminalPage {
         self.next_deadline = None;
     }
 
-
-
     fn advance(&mut self) {
         if !self.running {
             return;
@@ -189,7 +185,6 @@ impl TerminalPage {
             }
         }
     }
-
 
     fn settled(&self) -> usize {
         self.steps
@@ -232,7 +227,6 @@ impl Page for TerminalPage {
         let _ = output_panel();
         let _ = step_spinner();
 
-
         if self.running {
             let now = cx.now();
             if self.next_deadline.is_none() {
@@ -272,7 +266,6 @@ impl Page for TerminalPage {
                     height: body.height.saturating_sub(3),
                     ..body
                 };
-
 
                 let panes_area = Rect {
                     height: content.height.saturating_sub(FOOTER_ROWS),
@@ -354,8 +347,6 @@ impl Page for TerminalPage {
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(OUTPUT).contains(StateFlags::FOCUSED) {
-
-
             &[("↑ ↓", "Scroll"), ("Home End", "Oldest / live")]
         } else if ui.state(RAIL).contains(StateFlags::FOCUSED) {
             &[("↑ ↓", "Move")]

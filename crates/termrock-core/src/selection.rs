@@ -6,7 +6,6 @@ use crate::platform::ClientPlatform;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SelectionMode {
-
     None,
 
     #[default]
@@ -17,7 +16,6 @@ pub enum SelectionMode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TriState {
-
     None,
 
     Mixed,
@@ -26,7 +24,6 @@ pub enum TriState {
 }
 
 impl TriState {
-
     pub fn glyph(self) -> &'static str {
         self.glyph_with("[ ]", "[–]", "[✓]")
     }
@@ -47,21 +44,16 @@ impl TriState {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelectGesture {
-
     Only,
 
     Toggle,
 
-    Extend {
-
-        from: usize,
-    },
+    Extend { from: usize },
 
     All,
 }
 
 impl SelectGesture {
-
     pub const TOGGLE_CTRL_CMD: KeyModifiers = KeyModifiers::CONTROL.union(KeyModifiers::SUPER);
 
     pub const TOGGLE_OPTION_CMD: KeyModifiers = KeyModifiers::ALT.union(KeyModifiers::SUPER);
@@ -102,7 +94,6 @@ impl SelectGesture {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Activate {
-
     Single,
 
     #[default]
@@ -114,7 +105,6 @@ pub enum Activate {
 }
 
 impl Activate {
-
     pub fn fires(self, count: u8, again: bool) -> bool {
         match self {
             Self::Single => true,
@@ -127,7 +117,6 @@ impl Activate {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CheckClick {
-
     #[default]
     BoxOnly,
 
@@ -136,7 +125,6 @@ pub enum CheckClick {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ClickPolicy {
-
     pub activate: Activate,
 
     pub edit_on: Activate,
@@ -145,7 +133,6 @@ pub struct ClickPolicy {
 }
 
 impl ClickPolicy {
-
     pub const DATA: Self = Self {
         activate: Activate::Double,
         edit_on: Activate::Double,

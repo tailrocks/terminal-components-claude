@@ -644,9 +644,6 @@ impl ResultGrid {
         grid
     }
 
-
-
-
     pub fn from_filter_refresh(
         result: &sql::ResultSet,
         source: &Self,
@@ -694,8 +691,6 @@ impl ResultGrid {
             if row_keys.iter().any(Option::is_none)
                 && is_complete_source_record(source_columns, &table_columns)
                 && is_complete_source_record(&result.columns, &table_columns)
-
-
                 && let Some(old_identities) =
                     identities_for_grid(source, source_columns, &table_columns, true)
                 && let Some(new_identities) = identities_for_result(result, &table_columns, true)
@@ -878,10 +873,6 @@ impl ResultGrid {
         self.pending.clear();
         self.restore_sort();
     }
-
-
-
-
 
     pub fn commit_pending(&mut self) -> bool {
         if !self.editable || self.pending_total() == 0 {

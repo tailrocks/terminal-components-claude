@@ -1,7 +1,3 @@
-
-
-
-
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::sync::Arc;
@@ -10,13 +6,8 @@ pub const PREVIEW_MAX_BYTES: usize = 256 * 1024;
 pub const PREVIEW_MAX_LINES: usize = 2_000;
 pub const PREVIEW_MAX_LINE_CHARS: usize = 4_096;
 
-
-
-
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ScanMetadata {
-
     pub modeled_identity: u64,
 
     pub allocated_bytes: u64,
@@ -28,7 +19,6 @@ pub struct ScanMetadata {
     pub dataless: bool,
 }
 
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FileKind {
     File,
@@ -36,7 +26,6 @@ pub enum FileKind {
     Symlink { target: String },
     Special,
 }
-
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct FileEntry {
@@ -62,7 +51,6 @@ impl fmt::Debug for FileEntry {
 }
 
 impl FileEntry {
-
     pub fn file(path: impl Into<String>) -> Self {
         Self {
             path: path.into(),
@@ -73,18 +61,15 @@ impl FileEntry {
         }
     }
 
-
     pub fn file_with_bytes(path: impl Into<String>, bytes: impl Into<Vec<u8>>) -> Self {
         Self::file(path).with_bytes(bytes)
     }
-
 
     #[must_use]
     fn with_bytes(mut self, bytes: impl Into<Vec<u8>>) -> Self {
         self.content = Some(Arc::<[u8]>::from(bytes.into()));
         self
     }
-
 
     pub fn directory(path: impl Into<String>) -> Self {
         Self {
@@ -95,7 +80,6 @@ impl FileEntry {
             scan_metadata: None,
         }
     }
-
 
     pub fn symlink(path: impl Into<String>, target: impl Into<String>) -> Self {
         Self {
@@ -109,7 +93,6 @@ impl FileEntry {
         }
     }
 
-
     pub fn special(path: impl Into<String>) -> Self {
         Self {
             path: path.into(),
@@ -120,16 +103,11 @@ impl FileEntry {
         }
     }
 
-
     #[must_use]
     pub fn unreadable(mut self) -> Self {
         self.readable = false;
         self
     }
-
-
-
-
 
     #[must_use]
     pub fn with_scan_metadata(mut self, metadata: ScanMetadata) -> Self {
@@ -162,7 +140,6 @@ impl FileEntry {
     }
 }
 
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FilesError {
     NotFound(String),
@@ -184,7 +161,6 @@ impl fmt::Display for FilesError {
 
 impl std::error::Error for FilesError {}
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BinaryPreviewReason {
     NulByte,
@@ -199,7 +175,6 @@ impl fmt::Display for BinaryPreviewReason {
         }
     }
 }
-
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FilePreviewContent {
@@ -217,7 +192,6 @@ pub enum FilePreviewContent {
         long_lines: usize,
     },
 }
-
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FilePreview {
@@ -245,7 +219,6 @@ impl FilePreview {
     }
 }
 
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FilePreviewError {
     NotFound(String),
@@ -269,7 +242,6 @@ impl fmt::Display for FilePreviewError {
 
 impl std::error::Error for FilePreviewError {}
 
-
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FilesSnapshot {
     entries: BTreeMap<String, FileEntry>,
@@ -280,7 +252,6 @@ impl FilesSnapshot {
         Self::default()
     }
 
-
     pub fn insert(&mut self, entry: FileEntry) {
         self.entries.insert(entry.path.clone(), entry);
     }
@@ -288,7 +259,6 @@ impl FilesSnapshot {
     pub fn get(&self, path: &str) -> Option<&FileEntry> {
         self.entries.get(path)
     }
-
 
     pub fn list(&self, directory: &str) -> Result<Vec<FileEntry>, FilesError> {
         let Some(parent) = self.entries.get(directory) else {
@@ -327,7 +297,6 @@ impl FilesSnapshot {
         Ok(entries)
     }
 
-
     pub fn directory_target(&self, path: &str) -> Result<String, FilesError> {
         let mut current = path;
         let mut visited = BTreeSet::new();
@@ -355,7 +324,6 @@ impl FilesSnapshot {
             }
         }
     }
-
 
     pub fn preview(&self, path: &str) -> Result<FilePreview, FilePreviewError> {
         let (entry, link_target) = self.resolve_preview_entry(path)?;

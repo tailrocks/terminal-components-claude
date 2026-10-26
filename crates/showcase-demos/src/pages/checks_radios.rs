@@ -184,8 +184,6 @@ impl ChecksRadiosPage {
 
         let after = (self.hit, self.mixed, self.radio_nav, self.globally_disabled);
         if before != after {
-
-
             self.checks[0] = if self.mixed {
                 CheckboxState::Mixed
             } else {

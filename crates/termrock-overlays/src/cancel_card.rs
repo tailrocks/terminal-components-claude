@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 
@@ -21,9 +17,6 @@ const CLOSE_INK: u32 = 0x00b3_b3b3;
 const FOCUS: u32 = 0x0048_e054;
 const BUTTON: u32 = 0x0027_272a;
 const DANGER: u32 = 0x00ff_6b6b;
-
-
-
 
 pub fn paint(ui: &mut Ui<'_>, title: &str, body: &str, keep: &str, cancel: &str) {
     let screen = ui.full();

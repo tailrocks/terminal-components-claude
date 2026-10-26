@@ -28,8 +28,6 @@ use crate::tab_list::{self, TabList};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
-
-
 mod filter_editor;
 mod history_controls;
 mod history_detail;
@@ -45,7 +43,6 @@ use history_detail::{HistoryDetailController, HistoryDetailRequest};
 use history_rows::{HistoryAction, HistoryRows};
 use query_panes::{QueryContent, QueryLayout, QueryPaneMode, QueryPaneState, idle_query_top};
 use result_grid::ResultGridView;
-
 
 use tablepro_demo::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
@@ -153,9 +150,6 @@ fn query_editor(
     provider: &dyn CompletionProvider,
     commit_on_blur: bool,
 ) -> CompletingCodeEditor<'_> {
-
-
-
     const PARTS: &[(Part, StylePatch)] = &[(
         Part::CONTAINER,
         StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field)),
@@ -370,10 +364,8 @@ const CONNECTION_DETAILS_TITLE_PATCH: [(Part, StylePatch); 1] = [(
         .remove(Modifier::BOLD),
 )];
 
-
 const TAG_CHROME_FG: Role = Role::Custom(termrock::Color::from_u32(0x008a_8a8a));
 const TAG_PATH_FG: Role = Role::Custom(termrock::Color::from_u32(0x00b3_b3b3));
-
 
 const TAG_OK_FG: Role = Role::Success;
 const TAG_RULE_FG: Role = Role::Custom(termrock::Color::from_u32(0x003a_3a3a));
@@ -619,8 +611,6 @@ fn keymap() -> KeyMap {
                 Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
                 RUN,
             )
-
-
             .bind(
                 KeyPhase::Bubble,
                 Chord::with(
@@ -957,10 +947,6 @@ impl TableProApp {
         Self::new_with_timing(QueryTiming::Live)
     }
 
-
-
-
-
     pub fn new_with_query_duration(duration: Duration) -> Self {
         Self::new_with_timing(QueryTiming::Explicit(duration))
     }
@@ -1126,7 +1112,6 @@ impl TableProApp {
     pub fn status(&self) -> &str {
         &self.status
     }
-
 
     pub const fn filter_value_focused(&self) -> bool {
         self.filter_value_focused
@@ -1381,7 +1366,6 @@ impl TableProApp {
     }
 
     fn draw_connection_tree(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
-
         if self.form_open {
             ui.reference(None, |ui| self.draw_connection_tree_rows(ui, area));
             return;
@@ -1511,8 +1495,6 @@ impl TableProApp {
         }
     }
 
-
-
     pub fn begin_connection_form(&mut self) {
         self.connection_filter_editing = false;
         self.sync_connection_filter_chords();
@@ -1567,7 +1549,6 @@ impl TableProApp {
         self.sync_tabs_state();
         self.screen = Screen::Workbench;
         self.surface = Surface::WorkbenchDefault;
-
 
         self.explorer_pin = 2;
         self.split_state = SplitPaneState::new(25);
@@ -2435,7 +2416,6 @@ impl TableProApp {
                 .viewport_margin(4, 2),
         );
 
-
         self.surface = Surface::TabListPicker;
         true
     }
@@ -2453,7 +2433,6 @@ impl TableProApp {
             crate::safe_mode::picker(self.safe_mode_picker.rows.len())
                 .layer(cx, &self.safe_mode_picker.rows),
         );
-
 
         self.surface = Surface::SafeModePicker;
         true
@@ -2605,8 +2584,6 @@ impl TableProApp {
     fn update_tab_list(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let was_open = cx.is_open(tab_list::ID);
         if was_open && !self.workbench.matches_owner(&self.tab_list.owner) {
-
-
             for owner in [tab_list::ID, tab_list::ID.sub("results")] {
                 for _ in cx.intents(owner) {}
             }
@@ -2653,9 +2630,6 @@ impl TableProApp {
                     let existed = self.workbench.generation(tab_key).is_some();
                     self.request_close_tab(cx, tab_key);
                     if existed && self.workbench.generation(tab_key).is_none() {
-
-
-
                         cx.close_layer(tab_list::ID, None);
                         self.tab_list = TabList::default();
                         let _ = self.open_tab_list(cx);
@@ -2683,15 +2657,12 @@ impl TableProApp {
                 }
             }
 
-
-
             Some(Tab::Table(_) | Tab::History(_)) | None => {}
         }
     }
 
     fn update_safe_mode(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let was_open = cx.is_open(crate::safe_mode::ID);
-
 
         let mut response = crate::safe_mode::picker(self.safe_mode_picker.rows.len()).update(
             cx,
@@ -3053,10 +3024,6 @@ impl TableProApp {
                     }
                     response |= editor_response.erase();
                 }
-
-
-
-
 
                 if !active_editor {
                     continue;
@@ -3555,8 +3522,6 @@ impl TableProApp {
         let body = legacy_tree_body(inner);
         panel.draw(ui, list_area, |_, _| {});
         if self.connection_delete == ConnectionDelete::Open {
-
-
             let title = " Connections ";
             let style = ui.surface_style().patch(
                 ui.paint_patch(
@@ -3664,7 +3629,6 @@ impl TableProApp {
     }
 
     fn draw_explorer(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
-
         let meta = format!("{}     ", self.workbench.current_schema());
         let focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
         let panel = Self::explorer_panel(&meta, focused);
@@ -3810,7 +3774,6 @@ impl TableProApp {
             let fallback = HistoryControls::default();
             let controls = self.history_controls.get(&key).unwrap_or(&fallback);
             let list_y = controls.layout(inner).list_y;
-
 
             let edge = area.right().saturating_sub(3);
             let pad = PaintStyle::new()
@@ -4135,8 +4098,6 @@ pub enum QueryOutcome {
 const CONNECTION_STATUS_TTL: Duration = Duration::from_millis(5_000);
 
 impl TableProApp {
-
-
     fn roll_connection_status(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if self.connection_status_arm {
             self.connection_status_arm = false;
@@ -4151,13 +4112,8 @@ impl TableProApp {
             return Response::changed();
         }
 
-
-
         let view = cx.viewport();
         if view.width > 0 {
-
-
-
             let costs = [12u16, 12, 15, 16, 8, 10];
             let pinned = [false, false, false, false, false, false];
             let status_width = width(&format!("✓ Connected to {}", self.connection.name));
@@ -4241,7 +4197,6 @@ fn paint_query_plan(
     paint_plan_results(ui, layout.content, sql, plan, inner.right());
     layout.editor.unwrap_or(termrock::Rect::ZERO)
 }
-
 
 const PLAN_COLS_W: u16 = 40;
 
@@ -4356,8 +4311,6 @@ fn paint_plan_results(
         head,
     );
 
-
-
     let detail_w = if area.width >= PLAN_DETAIL_MIN_BODY {
         PLAN_DETAIL_W
     } else {
@@ -4379,7 +4332,6 @@ fn paint_plan_results(
     let mut y = head_y.saturating_add(1);
     paint_plan_node(ui, area, &mut y, plan, 0, root_cost, cols_x);
     if detail_w > 0 {
-
         let card_x = cols_x.saturating_add(PLAN_COLS_W).saturating_add(2);
         paint_plan_detail(ui, area, head_y, card_x, detail_w, plan);
     }
@@ -4885,8 +4837,6 @@ fn paint_query_error_results(ui: &mut Ui<'_>, area: termrock::Rect, message: &st
         secondary,
     );
 
-
-
     let rule_tail = if card.width < area.width { 4 } else { 6 };
     let rule_w = card.width.saturating_sub(rule_tail);
     ui.paint_str(
@@ -5119,7 +5069,6 @@ fn extend_query_plan_edge(
     let mut y = seam_y.saturating_add(5);
     paint_plan_edge_nodes(ui, x, &mut y, plan, root_cost);
 
-
     if area.width.saturating_sub(ui.design().space.frame_inset) >= PLAN_DETAIL_MIN_BODY {
         let head_y = seam_y.saturating_add(4);
         let rows = 16.min(area.bottom().saturating_sub(head_y));
@@ -5158,8 +5107,6 @@ fn paint_plan_edge_nodes(
 }
 
 pub(crate) fn query_hbar_overflows(query: &str, editor_width: u16) -> bool {
-
-
     let text_w = usize::from(editor_width.saturating_sub(6));
     let widest = query
         .split('\n')
@@ -5282,7 +5229,6 @@ fn extend_query_error_edge(ui: &mut Ui<'_>, area: termrock::Rect, inner: termroc
     let card_h = inner.bottom().saturating_sub(card_y).min(8);
     let body_width = area.width.saturating_sub(ui.design().space.frame_inset);
     let card_w = body_width.min(90);
-
 
     if card_h > 0 && card_w > inner.width {
         ui.fill(termrock::Rect::new(x, card_y, 1, card_h), card);
@@ -5753,9 +5699,6 @@ fn qualified_label(prefix: &str, left: &str, right: &str) -> String {
     text
 }
 
-
-
-
 struct MetaBuf {
     buf: [u8; 24],
     len: usize,
@@ -5790,11 +5733,6 @@ impl core::fmt::Write for MetaBuf {
         Ok(())
     }
 }
-
-
-
-
-
 
 fn explorer_meta_visible(
     nodes: &[ExplorerNode],
@@ -5836,7 +5774,6 @@ fn explorer_meta_visible(
     }
     true
 }
-
 
 fn explorer_meta_need(node: &ExplorerNode, indent: u16, meta_w: u16) -> u16 {
     let depth = u16::try_from(explorer_depth(node)).unwrap_or(u16::MAX);
@@ -5884,10 +5821,6 @@ fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>, show_meta: bool) {
     }
 }
 
-
-
-
-
 fn explorer_node_meta<'a>(node: &ExplorerNode, buf: &'a mut MetaBuf) -> Option<&'a str> {
     buf.clear();
     match node {
@@ -5904,7 +5837,6 @@ fn explorer_node_meta<'a>(node: &ExplorerNode, buf: &'a mut MetaBuf) -> Option<&
         _ => None,
     }
 }
-
 
 fn explorer_label_width(node: &ExplorerNode) -> u16 {
     let name = match node {
@@ -6468,8 +6400,6 @@ fn paint_quiet_gutter(ui: &mut Ui<'_>, area: termrock::Rect) {
     reason = "header gutter, primary key, and muted titles share one pass"
 )]
 fn sorted_scan(table: &db::Table, grid: &GridView, index: usize, direction: SortDir) -> ResultGrid {
-
-
     let scan = table.row_count.min(2_000);
     let keep = grid.model.row_count();
     let mut rows = db::rows(table, 0, scan);
@@ -7556,13 +7486,6 @@ fn grouped(n: usize) -> String {
     out.chars().rev().collect()
 }
 
-
-
-
-
-
-
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct HeaderKeep {
     keep: [bool; 16],
@@ -7576,8 +7499,6 @@ impl HeaderKeep {
             len,
         }
     }
-
-
 
     fn kept(&self) -> &[bool] {
         self.keep.get(..self.len).unwrap_or(&[])
@@ -7601,8 +7522,6 @@ impl HeaderKeep {
         self.kept().iter().all(|keep| *keep)
     }
 }
-
-
 
 pub(crate) fn header_overflow(
     area_width: u16,
@@ -7642,7 +7561,6 @@ pub(crate) fn header_overflow(
     };
     while total(&keep_left, &keep_right) > area_width {
         let mut best: Option<(u8, bool, usize)> = None;
-
 
         for ((index, priority), keep) in left_priority
             .iter()
@@ -7688,8 +7606,6 @@ pub(crate) fn header_overflow(
     Some((keep_right, ellipsis))
 }
 
-
-
 fn workbench_header_widths(
     app: &TableProApp,
     capability: &str,
@@ -7708,7 +7624,6 @@ fn workbench_header_widths(
         _ => width(app.safe_mode.token()),
     };
 
-
     let badge_width = width(capability)
         .saturating_add(3)
         .saturating_add(decimal_digits(term_width))
@@ -7726,8 +7641,6 @@ fn workbench_header_widths(
         [badge_width, width("? help")],
     )
 }
-
-
 
 fn decimal_digits(value: u16) -> u16 {
     let mut digits = 1u16;
@@ -7825,7 +7738,6 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     if let Some((keep_right, ellipsis)) = overflow {
         let help = "? help";
         if keep_right.last().unwrap_or(false) {
-
             let padded = " ? help ";
             let help_x = area
                 .right()
@@ -8355,8 +8267,6 @@ fn help_footer_hints() -> Vec<Hint> {
 }
 
 fn picker_move_footer_hints() -> Vec<Hint> {
-
-
     vec![
         Hint::new("↑↓", "Move"),
         Hint::new("Enter", "Choose"),
@@ -8372,9 +8282,6 @@ fn picker_layer_footer_hints() -> Vec<Hint> {
         Hint::new("Esc", "Cancel"),
     ]
 }
-
-
-
 
 fn connection_status_label(app: &TableProApp) -> String {
     let mut text = String::with_capacity(
@@ -8393,16 +8300,10 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let empty_query = app.blank_sql() && query_editor_focused(ui, app);
     ui.fill(area, base);
 
-
-
     let status = footer_status(app);
     let (hints, badge) = footer_hints(app, explorer_focused, empty_query);
     footer::draw(ui, area, &hints, badge, status.as_ref(), base);
 }
-
-
-
-
 
 fn footer_status(app: &TableProApp) -> Option<footer::Status> {
     if let Some(notice) = &app.destructive_notice {
@@ -8431,7 +8332,6 @@ fn footer_status(app: &TableProApp) -> Option<footer::Status> {
     }
     None
 }
-
 
 fn footer_hints(
     app: &TableProApp,
@@ -8791,8 +8691,6 @@ impl TableProApp {
             text.clone_into(&mut draft.name);
         }
     }
-
-
 }
 
 impl App for TableProApp {
@@ -8805,7 +8703,6 @@ impl App for TableProApp {
         let (history_rows_response, history_action) = self.update_history_rows(cx);
         response |= history_rows_response;
         response |= self.update_history_detail(cx);
-
 
         if cx.update_cause() == UpdateCause::Tick {
             if self.query_safety.is_open() || cx.is_open(query_safety::ID) {
@@ -8932,7 +8829,6 @@ impl App for TableProApp {
                     response |= Response::changed();
                 }
                 c if c == EXPLAIN => {
-
                     if let Some(id) = self.query_id() {
                         cx.focus(id);
                     }
@@ -8956,7 +8852,6 @@ impl App for TableProApp {
                     response |= Response::changed();
                 }
                 c if c == EXPLAIN_ANALYZE => {
-
                     if let Some(id) = self.query_id() {
                         cx.focus(id);
                     }
@@ -9215,7 +9110,6 @@ impl App for TableProApp {
             response |= self.update_connection_filter(cx);
             let tree_response = self.update_connection_tree(cx);
 
-
             if !self.connection_filter_editing {
                 self.sync_connection_selection();
             }
@@ -9445,7 +9339,6 @@ impl App for TableProApp {
             } else {
                 let body = workbench_rows[1];
 
-
                 let narrow = body.width < 100;
                 let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
                 let user_collapsed = self.split_state.maximized() == Maximized::Second;
@@ -9458,7 +9351,6 @@ impl App for TableProApp {
                     self.draw_content(ui, content);
                     self.paint_collapsed_explorer(ui, body);
                 } else if narrow {
-
                     self.draw_explorer(ui, body);
                     if let Some(id) = self.query_id() {
                         ui.register_focus_only(id, Focusability::Focusable);

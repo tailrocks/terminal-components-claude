@@ -1,8 +1,3 @@
-
-
-
-
-
 use core::ops::Range;
 
 use ratatui_core::layout::Rect;
@@ -85,10 +80,6 @@ pub enum DrawerLine<'a> {
     Blank,
 }
 
-
-
-
-
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DrawerProjectionSource {
@@ -114,7 +105,6 @@ pub enum DrawerProjectionSource {
     LayoutGap,
 }
 
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DrawerProjectionRange {
     bytes: Range<usize>,
@@ -125,41 +115,31 @@ pub struct DrawerProjectionRange {
 }
 
 impl DrawerProjectionRange {
-
     #[must_use]
     pub fn bytes(&self) -> Range<usize> {
         self.bytes.clone()
     }
-
 
     #[must_use]
     pub fn columns(&self) -> Range<usize> {
         self.columns.clone()
     }
 
-
     #[must_use]
     pub const fn style(&self) -> Option<PaintStyle> {
         self.style
     }
-
 
     #[must_use]
     pub const fn source(&self) -> DrawerProjectionSource {
         self.source
     }
 
-
     #[must_use]
     pub fn source_bytes(&self) -> Option<Range<usize>> {
         self.source_bytes.clone()
     }
 }
-
-
-
-
-
 
 pub struct DrawerLineProjection<'line, 'text> {
     source: &'line DrawerLine<'text>,
@@ -169,24 +149,20 @@ pub struct DrawerLineProjection<'line, 'text> {
 }
 
 impl<'line, 'text> DrawerLineProjection<'line, 'text> {
-
     #[must_use]
     pub const fn source(&self) -> &'line DrawerLine<'text> {
         self.source
     }
-
 
     #[must_use]
     pub const fn origin_x(&self) -> u16 {
         self.origin_x
     }
 
-
     #[must_use]
     pub fn text(&self) -> &str {
         &self.text
     }
-
 
     #[must_use]
     pub fn ranges(&self) -> &[DrawerProjectionRange] {
@@ -194,11 +170,9 @@ impl<'line, 'text> DrawerLineProjection<'line, 'text> {
     }
 }
 
-
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DrawerProjectionError {
-
     BeforeOrigin,
 
     PartialGraphemeOverlap,
@@ -214,7 +188,6 @@ pub enum DrawerProjectionError {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum PaneChrome {
-
     Drawer,
 
     Detail,
@@ -234,15 +207,6 @@ pub struct AccountsDrawer<'a> {
     pub hint_overflow: &'a str,
     pub chrome: PaneChrome,
 }
-
-
-
-
-
-
-
-
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct AccountsDrawerLayout {
@@ -374,14 +338,6 @@ pub fn paint_accounts_drawer(ui: &mut Ui<'_>, area: Rect, page: &AccountsDrawer<
     }
     paint_hints(ui, area, page, &ink);
 }
-
-
-
-
-
-
-
-
 
 pub fn paint_accounts_drawer_layout(
     ui: &mut Ui<'_>,
@@ -544,21 +500,6 @@ pub fn paint_accounts_drawer_layout(
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub fn paint_accounts_drawer_lines_window(
     ui: &mut Ui<'_>,
     content_layout: Rect,
@@ -613,14 +554,6 @@ pub fn paint_accounts_drawer_lines_window(
     }
     Some(visible_start..end)
 }
-
-
-
-
-
-
-
-
 
 pub fn project_accounts_drawer_line<'line, 'text>(
     theme: &termrock_theme::Theme,
@@ -1089,9 +1022,6 @@ impl ProjectionSink {
                 });
             }
 
-
-
-
             for old in &glyphs {
                 if !emission_glyphs
                     .iter()
@@ -1154,8 +1084,6 @@ impl ProjectionSink {
             column = glyph.columns.end;
         }
 
-
-
         let mut range_index = 0usize;
         for (byte, grapheme) in crate::text::measure::graphemes(&text) {
             let end = byte
@@ -1210,10 +1138,6 @@ fn projected_style_at(
     if previous.columns.start == column {
         previous.style.unwrap_or_default().patch(emitted)
     } else {
-
-
-
-
         PaintStyle::new()
             .fg(Color::Reset)
             .bg(Color::Reset)
@@ -1439,7 +1363,6 @@ fn paint_meter<S: LineSink>(
     });
     let bar_x = content_x.saturating_add(LABEL_W);
     let fill = tone_color_tone(meter.tone);
-
 
     let style = PaintStyle::new()
         .fg(Color::Rgb(0, 0, 0))
