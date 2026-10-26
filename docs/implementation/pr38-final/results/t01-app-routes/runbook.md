@@ -13,7 +13,7 @@
 - Owner: /root/t01_app_routes.
 - Required selection: gpt-6-luna, max effort.
 - Review: independent Sol high review is pending.
-- Fragment SHA-256: 36c162bbf8d6b7cbcca2658db5dde11207f37075488315ceaba826704df6e1d6.
+- Fragment SHA-256: c63bc59a4d2312aceec26483a49eecbd854635fe559f5dc811cdfa1672b9ad0c.
 
 ## API inventory
 
@@ -87,6 +87,10 @@ W46–W63 component references appear where current app or route sources use the
 
 W62 AppShell definition ownership belongs to T10. T19 owns shell policy integration.
 
+W41 HintBar stays on StatusHints. W60 DerivedHintBar is a separate route-matrix requirement on StatusHints and ReadOnlyReport.
+
+Jackin presentation prelude and rain globs resolve to their own modules.
+
 ## SQL and performance
 
 The current TablePro comparator keeps NULL values last in ascending and descending order. It reverses only non-NULL comparisons.
@@ -122,4 +126,4 @@ APP-HISTORY-ROWS and APP-STALE-HISTORY-ROUTE-NULL remain open. /root/t01_history
 
 The stale NULL-sort claim must not override current SQL source. Historical rows must remain historical records.
 
-The fragment SHA-256 is 36c162bbf8d6b7cbcca2658db5dde11207f37075488315ceaba826704df6e1d6. Independent Sol high review remains pending.
+The fragment SHA-256 is c63bc59a4d2312aceec26483a49eecbd854635fe559f5dc811cdfa1672b9ad0c. Independent Sol high review remains pending.
