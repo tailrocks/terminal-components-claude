@@ -11,6 +11,8 @@ The historical product source is commit `1d6ee92adf6ccca38eeee64b1371cba1497e8fc
 The current inventory input is commit `542349e2f70ec9883d743594f906ac6c4e96ba5a`, tree `66507c4aae0555d65904b268d6c95e7f3e3d17d1`.
 Current production definitions match accepted T37 integration commit `43b5a322e0da46ab7282b5b820831eb70c91f4ed`.
 Historical workload definitions use source commit `1d6ee92adf6ccca38eeee64b1371cba1497e8fcd`.
+This correction starts at commit `35089472a77cbccb6fa40f5dcd08edb7eca910f9`.
+Its input fragment hash is `6e7d16140040ce17b7b90002242157dd62d6e2b7347f42e7adc3f4111efa4b09`.
 
 The five metadata records were generated from checkout commit `516198caac5e5b5fa0883fa1f209928c2e86c8ba`, tree `a10cd30dfafec83f7668f529bb03e27f1e5b8b4d`.
 Their exact artifact bytes are stored at commit `542349e2f70ec9883d743594f906ac6c4e96ba5a`.
@@ -35,17 +37,22 @@ git diff --check
 Each command exited `0`.
 The generator reused five accepted T37 Cargo metadata records.
 This T01 run did not invoke Cargo.
-Its structural gate joined 5,778 public item binding keys to export rows.
+Its structural gate joined 6,488 public item binding keys to export rows.
 Zero public item binding keys were missing.
-The gate found 6,016 unique export IDs and 4,453 unique item IDs.
+The gate found 6,634 unique export IDs and 4,468 unique item IDs.
 It resolved all 62 retirement members; 59 rows retire and three preserve compatibility.
 No retirement member remains unresolved.
 
-A separate SHA-256 audit rehashed all 209 source records.
-It checked item, export, wildcard provenance, and metadata artifact bindings.
-It exited `0`.
+The SHA-256 audit rehashed 206 current source files and three historical blobs from Git objects.
+It checked 11,190 item, export, and provenance bindings.
+It checked metadata artifact hashes and module import evidence.
+All 57 module import evidence rows match their source path, line, and hash.
+The audit exited `0`.
+An earlier inline audit exited `1` because it compared a file SHA with a commit ID.
+The corrected source audit exited `0`.
 
 The fragment records `functional_cases_selected: 0` and `behavior_evidence: NOT VERIFIED`.
+No runtime behavior is claimed.
 No Cargo build, functional test, doctest, fixture, deleted harness, or behavior lane ran.
 
 ## Inventory
@@ -55,12 +62,12 @@ No Cargo build, functional test, doctest, fixture, deleted harness, or behavior 
 | Manifest-unique production crates | 19 |
 | Workspace identities | 5 |
 | Source files and evidence records | 209 |
-| Public item records | 4,453 |
-| Unique export and index records | 6,016 |
-| Direct export records | 2,139 |
-| Trait implementation contracts and members in item records | 159 / 171 |
-| Trait contract and member export records | 314 / 378 |
-| Re-export index rows | 3,075 |
+| Public item records | 4,468 |
+| Unique export and index records | 6,634 |
+| Direct export records | 2,161 |
+| Trait implementation contracts and members in item records | 166 / 179 |
+| Trait contract and member export records | 365 / 437 |
+| Re-export index rows | 3,561 |
 | Public source modules | 109 |
 | Source-backed requirements | 826 |
 | Historical API dispositions | 497 |
@@ -68,6 +75,13 @@ No Cargo build, functional test, doctest, fixture, deleted harness, or behavior 
 | Historical performance records | 3 |
 | Associated constant items | 136 |
 | Retirement member rows | 62 |
+| Resolved module-import inherent items / trait implementations | 34 / 7 |
+| Unresolved trait receiver records, classified by source evidence | 46 |
+| Unresolved public receiver-owner joins | 0 |
+
+The 46 remaining trait receiver records stay in the fragment.
+They include 35 local types, five external types, three generic parameters, two built-in receivers, and one macro placeholder.
+No local or generic receiver counts as a missing public owner.
 
 The publisher inventories keep declaration, trait implementation, and export counts separate:
 
@@ -87,9 +101,16 @@ Associated constants use the value namespace.
 The inventory records `NavKeys::DEFAULT` under `NavKeys` at both current public type paths.
 It records no top-level `termrock_core::DEFAULT` export from that associated constant.
 
+Source-bounded private imports resolve all 22 inherent `Ui` methods to `termrock_runtime::ui::Ui`.
+Each method records its import source path, line, and hash.
+Each method has root, `author`, and `ui` public paths.
+The `NestedLayerSlotAuthor for Ui<'_>` implementation binds to the same canonical `Ui` type.
+`RowFn<T> for termrock_collections::DefaultRow` and `LabelOn for Chord` also join exact workspace type owners.
+
 The historical `termrock_runtime::ui::composition` row resolves through its cleanup attachment.
 Its current declaration is `crates/termrock-runtime/src/ui/mod.rs:2`.
 The inventory records the public module path and its re-export path.
+Historical `Ui::compose` record `487a176f` binds to `termrock_runtime::ui::Ui::compose` at `composition.rs:379`.
 
 Re-exports from external packages are source-bound and have no invented local owner.
 Twenty paths resolve to `ratatui-core 0.1.2` with lock checksum, requested features, target condition, and metadata evidence.
@@ -119,7 +140,7 @@ The fragment keeps each source hash and evidence record.
 It does not infer a source commit or line commit.
 T33 performance measurements remain `NOT RECORDED`.
 
-The correction artifact is `foundation-api.fragment.json` (SHA-256 `6e7d16140040ce17b7b90002242157dd62d6e2b7347f42e7adc3f4111efa4b09`).
-The generator is `build_fragment.py` (SHA-256 `05f11bf3a976262a2ce327d7714ea3ee4b8e3fb8eec005d7da92a719ec6556c7`).
+The fragment hash is `252eff0e2a82253e2c789faf038523fa2bac7f68bdfd323c4687272ec0414153`.
+The generator hash is `e2f16ad5414efa82ca5330f24884e73cba13fc92f16039d84ad7966d0ec40e99`.
 The independent Sol-high correction review remains `PENDING`.
 This fragment is not self-accepted.

@@ -1242,6 +1242,7 @@ for name, (manifest, owner, responsibility) in SUPPORT.items():
     add_pkg(name, manifest, "non_application_support_consumer_or_tool", owner, responsibility)
 
 module_declarations = {}
+module_imports = {}
 pending_use_exports = []
 all_impls = []
 for package_name, manifest_path, package_dir, crate_name, meta, scope, owner_task, package_id, version in package_manifest_rows:
@@ -1256,6 +1257,43 @@ for package_name, manifest_path, package_dir, crate_name, meta, scope, owner_tas
         current_file_modules[rel] = module_base
         for row in visibility_module_map(path, package_dir, crate_name, package_id, text, file_row["sha256"]):
             module_declarations.setdefault(row["key"], []).append(row)
+        module_scope_openings = set()
+        pairs = brace_pairs(text)
+        for module_match in re.finditer(r"(?m)^[ \t]*(?:pub(?:\([^)]*\))?\s+)?mod\s+[A-Za-z_]\w*\s*\{", text):
+            opening = text.find("{", module_match.start(), module_match.end())
+            if opening in pairs:
+                module_scope_openings.add(opening)
+        macro_ranges = macro_definition_rows(text)
+        use_pattern = re.compile(r"(?m)^[ \t]*(?:(pub(?:\([^)]*\))?)\s+)?use\b")
+        for use_match in use_pattern.finditer(text):
+            start = use_match.start()
+            if any(row["start"] < start < row["end"] for row in macro_ranges):
+                continue
+            enclosing = [opening for opening, closing in pairs.items() if opening < start < closing]
+            if any(opening not in module_scope_openings for opening in enclosing):
+                continue
+            statement, _ = split_use_statement(text, start)
+            expression = re.sub(r"^\s*(?:pub(?:\([^)]*\))?\s+)?use\s+", "", statement, count=1).rstrip(";").strip()
+            if not expression:
+                continue
+            module_path = current_module(rel, package_dir, crate_name, text, start)
+            cfg = effective_cfg_attrs(module_path, attributes_before(text, start), package_id)
+            import_visibility = use_match.group(1) or "private"
+            for source_path, alias, import_kind in parse_use_tree(expression, crate_name, module_path, package_id):
+                if alias == "_":
+                    continue
+                module_imports.setdefault((package_id, "::".join(module_path), alias), []).append({
+                    "package_id": package_id,
+                    "module_path": "::".join(module_path),
+                    "imported_path": source_path,
+                    "alias": alias,
+                    "import_kind": import_kind,
+                    "visibility": import_visibility,
+                    "source_path": rel,
+                    "line": line_number(text, start),
+                    "source_sha256": file_row["sha256"],
+                    "cfg_attributes": cfg,
+                })
 
 for package_name, manifest_path, package_dir, crate_name, meta, scope, owner_task, package_id, version in package_manifest_rows:
     rust_files = sorted((package_dir / "src").rglob("*.rs")) if (package_dir / "src").exists() else []
@@ -1478,17 +1516,174 @@ def path_exists(package_id, path):
     return (package_id, path) in item_index or (package_id, path) in module_index or (package_id, path) in export_path_index
 
 
+resolved_import_evidence = {}
+resolved_module_import_cache = {}
+
+
+def resolve_import_path(package_id, path, seen=None):
+    path = str(path or "").strip()
+    if not path:
+        return None, None, "empty_import_target", []
+    visited = set()
+    evidence = []
+    for _ in range(8):
+        if path in visited:
+            return None, None, "unresolved_import_cycle", evidence
+        visited.add(path)
+        canonical_id, canonical_path = canonical_type_path(package_id, path)
+        if (canonical_id, canonical_path) != (package_id, path) and path_exists(canonical_id, canonical_path):
+            return canonical_id, canonical_path, "canonical_reexport_target", evidence
+        if path.startswith(("core::", "std::", "alloc::")):
+            return None, path, "external_import_target", evidence
+        parts = path.split("::")
+        dependency_id = dependency_package_ids.get((package_id, parts[0]))
+        if dependency_id:
+            target_root = package_crate_names[dependency_id]
+            target_path = "::".join([target_root] + parts[1:])
+            canonical_id, canonical_path = canonical_type_path(dependency_id, target_path)
+            if (canonical_id, canonical_path) != (dependency_id, target_path) and path_exists(canonical_id, canonical_path):
+                return canonical_id, canonical_path, "canonical_dependency_reexport", evidence
+            if path_exists(dependency_id, target_path):
+                dependency_id, target_path = canonical_type_path(dependency_id, target_path)
+            return dependency_id, target_path, "dependency_import_target", evidence
+        if (package_id, parts[0]) in external_dependency_aliases:
+            return None, path, "external_dependency_import_target", evidence
+        if path_exists(package_id, path):
+            target_id, target_path = canonical_type_path(package_id, path)
+            resolution = "exact_import_target" if not evidence else "chained_module_import"
+            return target_id, target_path, resolution, evidence
+
+        matched = False
+        for split in range(len(parts) - 1, 0, -1):
+            module_path = "::".join(parts[:split])
+            alias = parts[split]
+            direct_rows = module_imports.get((package_id, module_path, alias), [])
+            if direct_rows:
+                candidates = [(row, row["imported_path"]) for row in direct_rows]
+            else:
+                rows = module_imports.get((package_id, module_path, "*"), [])
+                candidates = [
+                    (row, row["imported_path"].removesuffix("::*") + "::" + alias)
+                    for row in rows
+                ]
+            if not candidates:
+                continue
+            suffix = "::".join(parts[split + 1:])
+            resolved_candidates = []
+            for row, candidate_path in candidates:
+                if suffix:
+                    candidate_path += "::" + suffix
+                candidate_parts = candidate_path.split("::")
+                dependency_id = dependency_package_ids.get((package_id, candidate_parts[0]))
+                if dependency_id:
+                    candidate_path = "::".join([package_crate_names[dependency_id]] + candidate_parts[1:])
+                    candidate_id, canonical_path = canonical_type_path(dependency_id, candidate_path)
+                    if not path_exists(candidate_id, canonical_path):
+                        continue
+                else:
+                    if not path_exists(package_id, candidate_path):
+                        continue
+                    candidate_id, canonical_path = canonical_type_path(package_id, candidate_path)
+                resolved_candidates.append((candidate_id, canonical_path, row))
+            unique_targets = sorted({(target_id, target_path) for target_id, target_path, _ in resolved_candidates})
+            if not unique_targets:
+                if direct_rows:
+                    return None, None, "unresolved_import_target", evidence + direct_rows
+                continue
+            if len(unique_targets) != 1:
+                matching_rows = [row for _, _, row in resolved_candidates]
+                return None, None, "ambiguous_module_import", evidence + matching_rows
+            target_id, target_path = unique_targets[0]
+            matched_rows = [
+                row for candidate_id, candidate_path, row in resolved_candidates
+                if (candidate_id, candidate_path) == (target_id, target_path)
+            ]
+            path = target_path
+            evidence.extend(matched_rows)
+            matched = True
+            break
+        if not matched:
+            return None, None, "unresolved_import_target", evidence
+    return None, None, "unresolved_import_depth", evidence
+
+
+def resolve_module_import(package_id, module_path, alias, seen=None):
+    seen = frozenset(seen or ())
+    key = (package_id, module_path, alias)
+    if not seen and key in resolved_module_import_cache:
+        return resolved_module_import_cache[key]
+    if len(seen) >= 8:
+        return None, None, "unresolved_import_depth", []
+    if key in seen:
+        return None, None, "unresolved_import_cycle", []
+    direct_rows = module_imports.get(key, [])
+    rows = direct_rows or module_imports.get((package_id, module_path, "*"), [])
+    if not rows:
+        return None, None, "module_import_not_found", []
+
+    next_seen = seen | {key}
+    candidates = {}
+    unresolved_rows = []
+    for row in rows:
+        if row["import_kind"] == "wildcard":
+            target_path = row["imported_path"].removesuffix("::*") + "::" + alias
+        else:
+            target_path = row["imported_path"]
+        target_id, resolved_path, resolution, nested_evidence = resolve_import_path(
+            package_id, target_path, next_seen
+        )
+        if target_id and resolved_path:
+            candidates.setdefault((target_id, resolved_path), []).append((row, nested_evidence))
+        elif resolution.startswith("ambiguous"):
+            return None, None, resolution, nested_evidence
+        else:
+            unresolved_rows.append(row)
+
+    if len(candidates) == 1:
+        if unresolved_rows:
+            return None, None, "ambiguous_module_import", rows
+        (target_id, target_path), matches = next(iter(candidates.items()))
+        evidence = []
+        for row, nested in matches:
+            evidence.append(row)
+            evidence.extend(nested)
+        unique_evidence = {
+            (row["source_path"], row["line"], row["source_sha256"], row["imported_path"], row["alias"]): row
+            for row in evidence
+        }
+        result = (target_id, target_path, "module_import", list(unique_evidence.values()))
+        if not seen:
+            resolved_module_import_cache[key] = result
+        return result
+    if len(candidates) > 1:
+        result = (None, None, "ambiguous_module_import", rows)
+    else:
+        result = (None, None, "unresolved_module_import", rows)
+    if not seen:
+        resolved_module_import_cache[key] = result
+    return result
+
+
+def resolve_local_import_path(package_id, path, default_resolution):
+    target_id, target_path, resolution, evidence = resolve_import_path(package_id, path)
+    if target_id and target_path:
+        return target_id, target_path, resolution, evidence
+    if resolution.startswith("ambiguous"):
+        return package_id, path, resolution, evidence
+    return package_id, path, default_resolution, []
+
+
 def resolve_reference(package_id, raw_path, source_module):
     raw = str(raw_path or "").strip().replace(" ", "")
     if not raw:
         return None, None, "empty"
     crate_name = package_crate_names.get(package_id, "")
     if raw.startswith("crate::"):
-        return package_id, crate_name + raw[len("crate"):], "explicit"
+        return resolve_local_import_path(package_id, crate_name + raw[len("crate"):], "explicit")[:3]
     if raw == "crate":
         return package_id, crate_name, "explicit"
     if raw.startswith("self::"):
-        return package_id, source_module + raw[len("self"):], "explicit"
+        return resolve_local_import_path(package_id, source_module + raw[len("self"):], "explicit")[:3]
     if raw == "self":
         return package_id, source_module, "explicit"
     if raw.startswith("super::"):
@@ -1496,7 +1691,7 @@ def resolve_reference(package_id, raw_path, source_module):
         while raw.startswith("super::"):
             parent = parent[:-1]
             raw = raw[len("super::"):]
-        return package_id, "::".join(parent + [raw]), "explicit"
+        return resolve_local_import_path(package_id, "::".join(parent + [raw]), "explicit")[:3]
     if raw.startswith("::"):
         raw = raw[2:]
     parts = raw.split("::")
@@ -1510,7 +1705,20 @@ def resolve_reference(package_id, raw_path, source_module):
     if (package_id, parts[0]) in external_dependency_aliases:
         return None, raw, "external_dependency"
     if parts[0] == crate_name:
-        return package_id, raw, "qualified"
+        return resolve_local_import_path(package_id, raw, "qualified")[:3]
+    imported_id, imported_path, import_resolution, import_evidence = resolve_module_import(
+        package_id, source_module, parts[0]
+    )
+    if import_evidence:
+        resolved_import_evidence[(package_id, source_module, raw)] = import_evidence
+    if imported_id and imported_path:
+        suffix = "::".join(parts[1:])
+        resolved_path = imported_path + ("::" + suffix if suffix else "")
+        if path_exists(imported_id, resolved_path):
+            imported_id, resolved_path = canonical_type_path(imported_id, resolved_path)
+        return imported_id, resolved_path, "module_import"
+    if import_resolution.startswith("ambiguous"):
+        return package_id, source_module + "::" + raw, import_resolution
     candidates = []
     local_candidate = source_module + "::" + raw if source_module else crate_name + "::" + raw
     root_candidate = crate_name + "::" + raw
@@ -1596,6 +1804,81 @@ for _ in range(8):
         break
 
 
+def wildcard_members(export):
+    members = {}
+    visited = set()
+
+    def walk(package_id, module_path, visible_prefix):
+        marker = (package_id, module_path, visible_prefix)
+        if marker in visited:
+            return
+        visited.add(marker)
+        for item in items:
+            if item.get("package_id") != package_id or item.get("module_path") != module_path:
+                continue
+            if item.get("visibility") != "pub" or item.get("kind") in ("method", "field", "tuple_field", "enum_variant", "trait_method", "associated_type", "associated_const", "trait_impl", "trait_impl_method", "trait_impl_associated_type", "trait_impl_associated_const"):
+                continue
+            if item.get("impl_target") is not None:
+                continue
+            leaf = item["current_qualified_symbol"].split("::")[-1]
+            relative = "::".join(filter(None, (visible_prefix, leaf)))
+            members[relative] = (item.get("definition_package_id", package_id), item.get("definition_owner", item["current_qualified_symbol"]), item)
+            child_module = (package_id, item["current_qualified_symbol"])
+            module_rows = module_declarations.get(child_module, [])
+            if item.get("kind") == "mod" and any(row["visibility"] == "pub" for row in module_rows):
+                walk(package_id, item["current_qualified_symbol"], relative)
+        for child in exports:
+            if child.get("source_package_id") != package_id or child.get("source_module") != module_path:
+                continue
+            child_kind = child.get("kind")
+            target_package_id = child.get("definition_package_id") or package_id
+            target_path = child.get("definition_owner", "")
+            if child_kind == "wildcard_reexport":
+                walk(target_package_id, target_path.removesuffix("::*"), visible_prefix)
+                continue
+            leaf = child["current_qualified_symbol"].split("::")[-1]
+            relative = "::".join(filter(None, (visible_prefix, leaf)))
+            members[relative] = (target_package_id, target_path, child)
+            if (target_package_id, target_path) in module_index:
+                walk(target_package_id, target_path, relative)
+
+    walk(export["definition_package_id"], export["definition_owner"].removesuffix("::*"), "")
+    return [(name, *members[name]) for name in sorted(members)]
+
+
+for export in exports:
+    if export.get("import_kind") != "wildcard":
+        continue
+    raw_module = export.get("raw_source_path", "")
+    if raw_module.endswith("::*"):
+        raw_module = raw_module[:-3]
+    target_id, target_module, resolution = resolve_reference(
+        export["source_package_id"], raw_module,
+        export.get("source_module", package_crate_names[export["source_package_id"]]),
+    )
+    target_id, target_module = canonical_type_path(target_id, target_module)
+    export["definition_package_id"] = target_id
+    export["definition_owner"] = target_module + "::*"
+    export["definition_resolution"] = resolution
+    if resolution == "external_dependency":
+        external_owner = external_dependency_owner(export["source_package_id"], export.get("raw_source_path"))
+        if external_owner:
+            export["definition_external_dependency"] = external_owner
+            if external_owner["status"] == "workspace_dependency_outside_fragment":
+                export["definition_resolution"] = "workspace_dependency_outside_fragment"
+                export["definition_package_id"] = external_owner.get("package_id")
+
+for export in exports:
+    if export.get("kind") != "wildcard_reexport" or not export.get("is_external_api"):
+        continue
+    prefix = export["current_qualified_symbol"].removesuffix("::*")
+    for name, definition_package_id, definition_owner, _ in wildcard_members(export):
+        reexport_targets[(export["source_package_id"], prefix + "::" + name)] = (
+            definition_package_id, definition_owner
+        )
+resolved_module_import_cache.clear()
+
+
 def resolve_impl_target(item):
     raw_target = item.get("impl_target")
     if not raw_target:
@@ -1605,6 +1888,7 @@ def resolve_impl_target(item):
         target = target.lstrip("&").strip()
     module_path = item.get("impl_module_path") or item.get("module_path") or package_crate_names[item["package_id"]]
     source_package_id, resolved, resolution = resolve_reference(item["package_id"], target, module_path)
+    item["impl_target_import_evidence"] = resolved_import_evidence.get((item["package_id"], module_path, target), [])
     source_package_id, resolved = canonical_type_path(source_package_id, resolved)
     candidate = item_index.get((source_package_id, resolved))
     if candidate and candidate.get("kind") in ("struct", "enum", "trait", "type_alias", "union"):
@@ -1705,6 +1989,107 @@ def trait_impl_member_rows(impl_row):
 
 
 trait_impl_rows = []
+unresolved_trait_impls = []
+
+
+def impl_generic_names(generic_parameters):
+    value = str(generic_parameters or "").strip()
+    if value.startswith("<") and value.endswith(">"):
+        value = value[1:-1]
+    names = set()
+    for parameter in split_top_level(value):
+        match = re.match(r"\s*(?:const\s+)?('[A-Za-z_]\w*|[A-Za-z_]\w*)", parameter)
+        if match:
+            names.add(match.group(1))
+    return names
+
+
+def classify_unresolved_receiver(impl_row, target_resolution, target_id, target_path, import_evidence):
+    target = str(impl_row.get("target_type") or "").strip()
+    target_base = re.sub(r"<.*", "", target).strip()
+    target_base = re.sub(r"^(?:&(?:'[A-Za-z_]\w*)?\s*|\*const\s+|\*mut\s+)+", "", target_base)
+    target_base = target_base.strip()
+    leaf = target_base.split("::")[-1].strip()
+    source_path = impl_row["source_path"]
+    source_hash = impl_row["source_sha256"]
+    source_text_value = source_text(source_path)
+    module_path = "::".join(impl_row["module"])
+    source_line = line_number(source_text_value, impl_row["start"])
+    source_binding = {"path": source_path, "line": source_line, "sha256": source_hash}
+
+    if leaf in impl_generic_names(impl_row.get("generic_parameters")):
+        return "generic_parameter", {"kind": "impl_generic_parameter", "source": source_binding, "parameter": leaf}, []
+    if "$" in leaf:
+        return "macro_generated_placeholder", {"kind": "macro_metavariable", "source": source_binding, "placeholder": leaf}, []
+    if target_base.startswith(("[", "&[", "*const [", "*mut [")):
+        return "builtin_compound_receiver", {"kind": "receiver_syntax", "source": source_binding, "target_type": target}, []
+
+    alias = target.split("::", 1)[0]
+    imported_rows = module_imports.get((impl_row["package_id"], module_path, alias), [])
+    external_rows = []
+    for row in imported_rows:
+        imported_root = row["imported_path"].split("::", 1)[0]
+        if imported_root in ("core", "std", "alloc") or (impl_row["package_id"], imported_root) in external_dependency_aliases:
+            external_rows.append(row)
+    if target_resolution in ("external", "external_dependency") or external_rows:
+        evidence_rows = external_rows or import_evidence
+        return "external_type", {
+            "kind": "external_import_target",
+            "source": source_binding,
+            "imports": [
+                {"path": row["source_path"], "line": row["line"], "sha256": row["source_sha256"], "imported_path": row["imported_path"]}
+                for row in evidence_rows
+            ],
+        }, []
+
+    public_candidates = [
+        item for item in items
+        if item.get("kind") in ("struct", "enum", "union", "type_alias")
+        and item.get("is_external_api")
+        and item.get("current_qualified_symbol", "").split("::")[-1] == leaf
+        and (target_id is None or item.get("package_id") == target_id)
+    ]
+    if len(public_candidates) == 1:
+        candidate = public_candidates[0]
+        return "unresolved_public_canonical_owner", {
+            "kind": "unique_public_type_name_candidate",
+            "source": source_binding,
+            "candidate": {
+                "qualified_symbol": candidate["current_qualified_symbol"],
+                "package_id": candidate["package_id"],
+                "manifest_path": candidate["manifest_path"],
+                "source": {"path": candidate["source_path"], "line": candidate["line"], "sha256": candidate["source_sha256"]},
+            },
+        }, public_candidates
+
+    declaration = re.search(
+        r"(?m)^[ \t]*(pub(?:\([^)]*\))?\s+)?(?:struct|enum|union|type)\s+" + re.escape(leaf) + r"\b",
+        source_text_value,
+    )
+    if declaration:
+        visibility = (declaration.group(1) or "private").strip()
+        externally_reachable = (
+            visibility == "pub"
+            and impl_row.get("target_kind") == "lib"
+            and module_is_public(impl_row["module"], module_declarations, impl_row["package_id"])
+        )
+        evidence = {
+            "kind": "local_type_declaration",
+            "source": {"path": source_path, "line": line_number(source_text_value, declaration.start()), "sha256": source_hash},
+            "visibility": visibility,
+            "module_public": module_is_public(impl_row["module"], module_declarations, impl_row["package_id"]),
+        }
+        if externally_reachable:
+            return "unresolved_public_canonical_owner", evidence, public_candidates
+        return "local_unexported_type", evidence, []
+
+    return "unresolved_noncanonical_receiver", {
+        "kind": "no_public_type_candidate_or_local_declaration",
+        "source": source_binding,
+        "target_type": target,
+    }, []
+
+
 for impl_row in all_impls:
     if not impl_row.get("trait_type"):
         continue
@@ -1714,7 +2099,48 @@ for impl_row in all_impls:
     target_id, target_path = canonical_type_path(target_id, target_path)
     target_item = item_index.get((target_id, target_path))
     trait_id, trait_path, trait_resolution = trait_owner_path(impl_row["package_id"], impl_row["trait_type"], module_path)
+    receiver_import_evidence = resolved_import_evidence.get((impl_row["package_id"], module_path, raw_target), [])
     if not target_item:
+        impl_line = line_number(source_text(impl_row["source_path"]), impl_row["start"])
+        receiver_classification, receiver_classification_evidence, public_owner_candidates = classify_unresolved_receiver(
+            impl_row, target_resolution, target_id, target_path, receiver_import_evidence
+        )
+        unresolved_trait_impls.append({
+            "record_id": sha(json.dumps({
+                "package_id": impl_row["package_id"],
+                "source_path": impl_row["source_path"],
+                "line": impl_line,
+                "source_sha256": impl_row["source_sha256"],
+                "signature_sha256": sha(impl_row["header"].encode()),
+            }, sort_keys=True, separators=(",", ":")).encode()),
+            "package": impl_row["package"],
+            "package_id": impl_row["package_id"],
+            "module_path": module_path,
+            "target_type": impl_row["target_type"],
+            "target_type_resolution": target_resolution,
+            "target_type_owner": target_path,
+            "target_type_import_evidence": receiver_import_evidence,
+            "target_owner_classification": receiver_classification,
+            "target_owner_classification_evidence": receiver_classification_evidence,
+            "public_owner_candidates": [
+                {
+                    "qualified_symbol": candidate["current_qualified_symbol"],
+                    "package_id": candidate["package_id"],
+                    "manifest_path": candidate["manifest_path"],
+                    "source": {"path": candidate["source_path"], "line": candidate["line"], "sha256": candidate["source_sha256"]},
+                }
+                for candidate in public_owner_candidates
+            ],
+            "closure_requirement_id": None,
+            "block_final": receiver_classification == "unresolved_public_canonical_owner",
+            "implemented_trait": impl_row["trait_type"],
+            "trait_resolution": trait_resolution,
+            "source_path": impl_row["source_path"],
+            "line": impl_line,
+            "source_sha256": impl_row["source_sha256"],
+            "signature": impl_row["header"],
+            "evidence_state": "NOT VERIFIED",
+        })
         continue
     impl_line = line_number(source_text(impl_row["source_path"]), impl_row["start"])
     impl_attrs = effective_cfg_attrs(impl_row["module"], attributes_before(source_text(impl_row["source_path"]), impl_row["start"]), impl_row["package_id"])
@@ -1744,6 +2170,7 @@ for impl_row in all_impls:
         "source_sha256": impl_row["source_sha256"],
         "signature_sha256": sha(impl_row["header"].encode()),
         "target_resolution": target_resolution,
+        "target_type_import_evidence": receiver_import_evidence,
         "trait_resolution": trait_resolution,
         "is_external_api": False,
         "evidence_state": "NOT VERIFIED",
@@ -1785,6 +2212,7 @@ for impl_row in all_impls:
             "visibility": "trait_impl_contract",
             "trait_resolution": trait_resolution,
             "target_resolution": target_resolution,
+            "target_type_import_evidence": receiver_import_evidence,
             "evidence_state": "NOT VERIFIED",
         }
         items.append(item)
@@ -1827,70 +2255,6 @@ def item_public_bindings(item):
 def item_public_paths(item):
     return sorted({row["qualified_path"] for row in item_public_bindings(item)})
 
-
-def wildcard_members(export):
-    target_id = export.get("definition_package_id")
-    target_module = export.get("definition_owner", "").removesuffix("::*")
-    if not target_id or not target_module:
-        return []
-    members = {}
-    visited = set()
-
-    def walk(package_id, module_path, visible_prefix):
-        marker = (package_id, module_path, visible_prefix)
-        if marker in visited:
-            return
-        visited.add(marker)
-        for item in items:
-            if item.get("package_id") != package_id or item.get("module_path") != module_path:
-                continue
-            if item.get("visibility") != "pub" or item.get("kind") in ("method", "field", "tuple_field", "enum_variant", "trait_method", "associated_type", "associated_const", "trait_impl", "trait_impl_method", "trait_impl_associated_type", "trait_impl_associated_const"):
-                continue
-            if item.get("impl_target") is not None:
-                continue
-            leaf = item["current_qualified_symbol"].split("::")[-1]
-            relative = "::".join(filter(None, (visible_prefix, leaf)))
-            members[relative] = (item.get("definition_package_id", package_id), item.get("definition_owner", item["current_qualified_symbol"]), item)
-            child_module = (package_id, item["current_qualified_symbol"])
-            module_rows = module_declarations.get(child_module, [])
-            if item.get("kind") == "mod" and any(row["visibility"] == "pub" for row in module_rows):
-                walk(package_id, item["current_qualified_symbol"], relative)
-        for child in exports:
-            if child.get("source_package_id") != package_id or child.get("source_module") != module_path:
-                continue
-            child_kind = child.get("kind")
-            target_package_id = child.get("definition_package_id") or package_id
-            target_path = child.get("definition_owner", "")
-            if child_kind == "wildcard_reexport":
-                walk(target_package_id, target_path.removesuffix("::*"), visible_prefix)
-                continue
-            leaf = child["current_qualified_symbol"].split("::")[-1]
-            relative = "::".join(filter(None, (visible_prefix, leaf)))
-            members[relative] = (target_package_id, target_path, child)
-            if (target_package_id, target_path) in module_index:
-                walk(target_package_id, target_path, relative)
-
-    walk(target_id, target_module, "")
-    return [(name, *members[name]) for name in sorted(members)]
-
-
-for export in exports:
-    if export.get("import_kind") == "wildcard":
-        raw_module = export.get("raw_source_path", "")
-        if raw_module.endswith("::*"):
-            raw_module = raw_module[:-3]
-        target_id, target_module, resolution = resolve_reference(export["source_package_id"], raw_module, export.get("source_module", package_crate_names[export["source_package_id"]]))
-        target_id, target_module = canonical_type_path(target_id, target_module)
-        export["definition_package_id"] = target_id
-        export["definition_owner"] = target_module + "::*"
-        export["definition_resolution"] = resolution
-        if resolution == "external_dependency":
-            external_owner = external_dependency_owner(export["source_package_id"], export.get("raw_source_path"))
-            if external_owner:
-                export["definition_external_dependency"] = external_owner
-                if external_owner["status"] == "workspace_dependency_outside_fragment":
-                    export["definition_resolution"] = "workspace_dependency_outside_fragment"
-                    export["definition_package_id"] = external_owner.get("package_id")
 
 for _ in range(8):
     additions = []
@@ -2688,6 +3052,27 @@ for followup in deferred.get("open_shared_followups", []):
     if "shared docs owner" in followup.lower():
         continue
 
+for row in unresolved_trait_impls:
+    if row["target_owner_classification"] != "unresolved_public_canonical_owner":
+        continue
+    requirement_id = "T01-TRAIT-OWNER-" + row["record_id"][:16]
+    row["closure_requirement_id"] = requirement_id
+    requirements.append(make_requirement(
+        requirement_id,
+        row["source_path"],
+        row["line"],
+        row["source_sha256"],
+        "Trait implementation receiver has a public type candidate, but its canonical owner is unresolved.",
+        "Bind this trait implementation to its exact public receiver owner.",
+        "UNRESOLVED",
+        owner_for_path(row["source_path"], row["target_type"]),
+        "Source inventory has a public type candidate without a unique receiver binding.",
+        decision={"kind": "T01 source inventory closure", "source_record_id": row["record_id"]},
+        cases=["Record the exact public receiver and trait owner paths."],
+        current_symbol=row["signature"],
+        evidence_source={"path": row["source_path"], "line": row["line"], "sha256": row["source_sha256"]},
+    ))
+
 open_requirements = [
     {
         "id": row["id"],
@@ -2984,10 +3369,11 @@ actual_public_export_keys = {
 missing_public_binding_exports = sorted(expected_public_binding_keys - actual_public_export_keys)
 if missing_public_binding_exports:
     raise RuntimeError("current public item bindings are missing export inventory rows; update the migration inventory before accepting T01")
-associated_const_by_source = {
-    (item.get("source_path"), item.get("line"), item.get("source_sha256"))
-    for item in items if item.get("kind") == "associated_const"
-}
+associated_const_by_source = {}
+for item in items:
+    if item.get("kind") == "associated_const":
+        key = (item.get("source_path"), item.get("line"), item.get("source_sha256"))
+        associated_const_by_source.setdefault(key, set()).add((item.get("definition_owner"), item["current_qualified_symbol"].split("::")[-1]))
 associated_const_wildcard_exports = [
     row for row in exports
     if row.get("kind") == "wildcard_member"
@@ -2996,6 +3382,8 @@ associated_const_wildcard_exports = [
         (row["definition_source"]["path"], row["definition_source"].get("line"), row["definition_source"].get("sha256"))
         in associated_const_by_source
     )
+    and (row.get("definition_owner"), row["current_qualified_symbol"].split("::")[-1])
+        in associated_const_by_source[(row["definition_source"]["path"], row["definition_source"].get("line"), row["definition_source"].get("sha256"))]
 ]
 if associated_const_wildcard_exports:
     raise RuntimeError("an associated constant was exported as a module wildcard member")
@@ -3015,6 +3403,25 @@ if associated_const_path_mismatches:
 
 source_records_by_path = {row["path"]: row for row in all_sources}
 missing_current_source_bindings = []
+module_import_evidence_bindings = 0
+
+
+def validate_module_import_evidence(row, symbol):
+    global module_import_evidence_bindings
+    for evidence in row.get("impl_target_import_evidence", row.get("target_type_import_evidence", [])):
+        source = source_records_by_path.get(evidence.get("source_path"))
+        if (
+            not source
+            or source.get("sha256") != evidence.get("source_sha256")
+            or not isinstance(evidence.get("line"), int)
+            or evidence["line"] < 1
+            or evidence["line"] > source.get("lines", 0)
+        ):
+            missing_current_source_bindings.append({"qualified_symbol": symbol, "source_path": evidence.get("source_path"), "line": evidence.get("line")})
+        else:
+            module_import_evidence_bindings += 1
+
+
 for row in items + exports:
     source = source_records_by_path.get(row.get("source_path"))
     if not source or source.get("sha256") != row.get("source_sha256") or not row.get("line"):
@@ -3024,6 +3431,9 @@ for row in items + exports:
         source = source_records_by_path.get(evidence.get("path"))
         if not source or source.get("sha256") != evidence.get("sha256") or not evidence.get("line"):
             missing_current_source_bindings.append({"qualified_symbol": row.get("current_qualified_symbol"), "source_path": evidence.get("path"), "line": evidence.get("line")})
+    validate_module_import_evidence(row, row.get("current_qualified_symbol"))
+for row in unresolved_trait_impls:
+    validate_module_import_evidence({"target_type_import_evidence": row.get("target_type_import_evidence", [])}, row.get("target_type"))
 if missing_current_source_bindings:
     raise RuntimeError("a current public source row is missing exact source path/line/hash evidence")
 
@@ -3047,8 +3457,26 @@ unresolved_module_attachments = [row for row in attachment_dispositions if row.g
 if unresolved_module_attachments:
     raise RuntimeError("a retained module attachment has no unique current source binding")
 
+recognized_trait_impl_receiver_kinds = {
+    "generic_parameter",
+    "macro_generated_placeholder",
+    "builtin_compound_receiver",
+    "external_type",
+    "local_unexported_type",
+    "unresolved_noncanonical_receiver",
+    "unresolved_public_canonical_owner",
+}
+unclassified_trait_impl_receivers = [
+    row for row in unresolved_trait_impls
+    if row.get("target_owner_classification") not in recognized_trait_impl_receiver_kinds
+]
+unresolved_public_trait_impl_owners = [
+    row for row in unresolved_trait_impls
+    if row.get("target_owner_classification") == "unresolved_public_canonical_owner"
+]
+
 structural_audit = {
-    "status": "PASS",
+    "status": "PASS" if not unclassified_trait_impl_receivers and not unresolved_public_trait_impl_owners else "OPEN",
     "evidence_kind": "source, Cargo metadata, and migration record structure only",
     "functional_behavior": "NOT VERIFIED",
     "checks": {
@@ -3058,6 +3486,10 @@ structural_audit = {
         "export_ids_unique": len(exports),
         "item_record_ids_unique": len(items),
         "current_source_rows_exact_path_line_hash": len(items) + len(exports) + sum(len(row.get("source_provenance", [])) for row in exports),
+        "module_import_evidence_source_bindings": module_import_evidence_bindings,
+        "module_import_resolved_inherent_items": sum(1 for row in items if row.get("impl_owner_resolution") == "module_import"),
+        "module_import_resolved_trait_impls": sum(1 for row in items if row.get("kind") == "trait_impl" and row.get("target_resolution") == "module_import"),
+        "unresolved_trait_impl_records": len(unresolved_trait_impls),
         "historical_dispositions_with_source_and_evidence": len(historical_api_dispositions),
         "module_attachment_dispositions_resolved": len(attachment_dispositions),
         "unresolved_module_attachment_dispositions": len(unresolved_module_attachments),
@@ -3065,6 +3497,11 @@ structural_audit = {
         "retired_requirements_with_approved_absence_and_decision": len(retired_requirements),
         "retired_api_member_rows": len(retired_api_member_dispositions),
         "retired_api_members_unresolved": len(unresolved_retired_api_members),
+        "unresolved_trait_impl_owner_classifications": len({row.get("target_owner_classification") for row in unresolved_trait_impls}),
+        "unresolved_trait_impl_owner_classification_rows": len(unresolved_trait_impls),
+        "unclassified_trait_impl_owner_rows": len(unclassified_trait_impl_receivers),
+        "unresolved_public_trait_impl_owner_joins": len(unresolved_public_trait_impl_owners),
+        "unresolved_trait_impl_owner_requirement_ids": [row.get("closure_requirement_id") for row in unresolved_public_trait_impl_owners if row.get("closure_requirement_id")],
         "associated_constant_items": sum(1 for item in items if item.get("kind") == "associated_const"),
         "associated_constant_wildcard_exports": len(associated_const_wildcard_exports),
         "associated_constant_path_mismatches": len(associated_const_path_mismatches),
@@ -3116,6 +3553,7 @@ result = {
     "cfg_provenance_records": [{"id": record_id, "provenance": cfg_provenance_records[record_id]} for record_id in sorted(cfg_provenance_records)],
     "requirements": requirements,
     "historical_api_dispositions": historical_api_dispositions,
+    "unresolved_trait_impls": unresolved_trait_impls,
     "performance_workloads": performance_workloads,
     "duplicate_relationships": duplicate_relationships,
     "open_requirements": open_requirements,
@@ -3134,13 +3572,22 @@ result = {
         "limits": ["Each recorded member has a separate current-source disposition.", "T37 selected zero behavior cases. Product behavior remains NOT VERIFIED."],
     },
     "structural_inventory_gate": {
-        "condition": "A current public source export missing from this inventory blocks T01 structural acceptance until its migration row is updated.",
+        "condition": "A missing current public export or unresolved public trait receiver owner blocks T01 until its source binding is resolved.",
+        "result": "PASS" if not unclassified_trait_impl_receivers and not unresolved_public_trait_impl_owners else "OPEN",
         "evidence_kind": "metadata and source inventory only",
         "functional_test": False,
         "unreviewed_api_removal_allowed": False,
         "source_binding_reconciliation": {"expected_public_item_binding_keys": len(expected_public_binding_keys), "missing_keys": len(missing_public_binding_exports), "result": "PASS"},
         "retired_api_migration_reconciliation": {"retired_requirement_rows": len(retired_requirements), "rows_without_source_scoped_decision_or_absence": 0, "result": "PASS"},
         "retired_member_reconciliation": {"member_rows": len(retired_api_member_dispositions), "unresolved_members": len(unresolved_retired_api_members), "result": "PASS" if not unresolved_retired_api_members else "OPEN"},
+        "trait_impl_owner_reconciliation": {
+            "unresolved_records": len(unresolved_trait_impls),
+            "classified_records": sum(1 for row in unresolved_trait_impls if row.get("target_owner_classification")),
+            "public_owner_joins": len(unresolved_public_trait_impl_owners),
+            "unclassified_records": len(unclassified_trait_impl_receivers),
+            "closure_requirement_ids": [row["closure_requirement_id"] for row in unresolved_public_trait_impl_owners if row.get("closure_requirement_id")],
+            "result": "PASS" if not unresolved_public_trait_impl_owners and not unclassified_trait_impl_receivers else "OPEN",
+        },
     },
     "structural_audit": structural_audit,
     "commands": [
@@ -3186,6 +3633,10 @@ result = {
         "reexport_index_rows": sum(1 for row in exports if row["kind"] in ("reexport", "reexport_alias", "wildcard_reexport", "wildcard_member", "reachable_item")),
         "trait_impl_contract_items": sum(1 for row in items if row["kind"] == "trait_impl"),
         "trait_impl_member_items": sum(1 for row in items if row["kind"].startswith("trait_impl_")),
+        "module_import_resolved_inherent_items": sum(1 for row in items if row.get("impl_owner_resolution") == "module_import"),
+        "module_import_resolved_trait_impls": sum(1 for row in items if row.get("kind") == "trait_impl" and row.get("target_resolution") == "module_import"),
+        "unresolved_trait_impl_records": len(unresolved_trait_impls),
+        "unresolved_public_trait_impl_owner_joins": sum(1 for row in unresolved_trait_impls if row.get("target_owner_classification") == "unresolved_public_canonical_owner"),
     },
 }
 OUT.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
