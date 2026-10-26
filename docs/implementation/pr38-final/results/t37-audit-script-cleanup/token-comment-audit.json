@@ -180,10 +180,11 @@
   },
   "commands": [
     {
-      "command": "python3 - <<'PY' (AST, token, comment, input/output CLI-help comparison)",
+      "command": "python3 - <<'PY'",
       "exit_code": 0,
       "selected_tests": 0,
-      "evidence_path": "docs/implementation/pr38-final/results/t37-audit-script-cleanup/token-comment-audit.json"
+      "evidence_path": "docs/implementation/pr38-final/results/t37-audit-script-cleanup/token-comment-audit.json",
+      "stdin_program": "Inline AST, tokenizer, comment, compile, and baseline/output CLI-help assertions; detailed assertions and results are recorded in this JSON."
     },
     {
       "command": "git diff --check",

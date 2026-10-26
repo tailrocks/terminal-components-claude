@@ -22,13 +22,14 @@
   ],
   "commands": [
     {
-      "command": "python3 -",
+      "command": "python3 - <<'PY'",
       "operation": "Inline AST, tokenizer, comment, compile, and input/output --help comparison.",
       "exit_code": 0,
       "selected_tests": 0,
       "passed_tests": 0,
       "failed_tests": 0,
-      "evidence_path": "docs/implementation/pr38-final/results/t37-audit-script-cleanup/token-comment-audit.json"
+      "evidence_path": "docs/implementation/pr38-final/results/t37-audit-script-cleanup/token-comment-audit.json",
+      "stdin_program": "Inline AST, tokenizer, comment, compile, and baseline/output CLI-help assertions; result fields are in token-comment-audit.json."
     },
     {
       "command": "git diff --check",
