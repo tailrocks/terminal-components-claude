@@ -54,7 +54,7 @@ The source locations below identify removed caller prose. The ledger records ret
 
 ### Pointer-held Form reveal
 
-- **C14 (G343):** Suppress automatic Form reveal only while a child pointer gesture is live. Start the hold on press; clear it on release, drag-end, or cancellation. Clear it when the field is missing, hidden, or disabled. Clear stale `PRESSED` state when no fresh press arrived.
+- **C14 (G343):** Suppress automatic Form reveal only while a child pointer gesture is live. Start the hold on press; clear it on release, drag-end, or cancellation. Clear it when the field is missing, hidden, or disabled. Otherwise, without a fresh press, clear `pointer_hold` when the held field state lacks `PRESSED`.
 
 ### Isolated List focus loss
 
@@ -83,7 +83,7 @@ The source locations below identify removed caller prose. The ledger records ret
 ### Safe values and fixed body limits
 
 - **C23 (G210):** Pass only a star count for a plain secret value. Treat provider paths and environment names as public display references, not resolved secrets.
-- **C24 (G228, G276–G278, G280–G284):** The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`, requires one cell, and enforces each column width. Visible role rows cannot exceed the source count.
+- **C24 (G228, G276–G278, G280–G284):** The live Editor role view carries at most 29 visible rows and the full source count. Only `paint_editor_environment_body` and `paint_editor_roles_body` require 120 columns and 40 rows. Env text clips by terminal-cell width. The current Roles gate accepts printable ASCII or `·`; each accepted character occupies one terminal cell (`width(text) == text.chars().count()`) and fits its column. Visible role rows cannot exceed the source count.
 - **C25 (G285–G287):** Whole-page Env painting requires empty sections, mounts, and add-mount content; validates all rows before paint; and owns page chrome. The fixed Editor Env body reserves rows 6–36 and leaves row 37 for its footer; it clips text by terminal-cell width. The fixed Editor Roles body supports at most 29 rows and accepts only supported fixed-column text. These fixed bodies validate before painting and do not scroll, drop rows, paint controls, or own input.
 - **C26 (G288, G289, G291, G293):** Agents bodies support six rows and two notes; Trust bodies support four rows and two notes. Validate capacities before painting. Body-only painters clip page-relative bands, paint no chrome, and impose no minimum page height. Whole-page Agents and Trust painters require empty sections, mounts, and add-mount content; they validate the full layout and own page chrome. Agents bodies do not handle input or focus; Trust bodies also leave counts and save previews to callers.
 - **C27 (G292):** The Mounts painter borrows rows, clips to the body band, and owns no page chrome, actions, hints, input, or focus.
