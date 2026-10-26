@@ -227,10 +227,10 @@
         "RETIRE",
         "UNRESOLVED"
       ],
-      "retire_rule": "RETIRE is valid only when the exact qualified public path and source API identity are bound to the fixed product source, the exact removal scope is absent from fixed candidate 542349e2f70ec9883d743594f906ac6c4e96ba5a, and an independent decision artifact matches the same symbol, source input, reviewer, artifact hash, and cleanup scope. A matching decision ID or absent index row alone is not sufficient.",
+      "retire_rule": "Every RETIRE requires a specific conflict or replacement and a matching independent decision bound to the source record and removal scope. For an API retirement, also bind the exact qualified public path and source API identity to the fixed product source, verify that exact removal scope is absent from fixed candidate 542349e2f70ec9883d743594f906ac6c4e96ba5a, and require the independent decision artifact to match the same symbol, source input, reviewer, artifact hash, and cleanup scope. A matching decision ID or absent index row alone is not sufficient.",
       "unresolved_rule": "Every unresolved row names a task and blocks final completion.",
       "input_fields": {
-        "foundation": "requirements.id, named_owner_task, disposition, source, proposed_required_cases, evidence_state; historical_api_dispositions preserve source_api_identity, cleanup_attachment record/path/hash, current_binding and resolution status. Each RETIRE also records exact candidate-542 absence and independently reviewed T37 decision binding.",
+        "foundation": "requirements.id, named_owner_task, disposition, source, proposed_required_cases, evidence_state; historical_api_dispositions preserve source_api_identity, cleanup_attachment record/path/hash, current_binding, resolution status, and a specific conflict/replacement plus decision for RETIRE. API RETIRE rows also record exact candidate-542 absence and independently reviewed T37 decision binding.",
         "components": "Requirements use requirement_id, named_owner_task, disposition, current_source, proposed_required_cases, and evidence; index every requirement and proposed case ID to its component WID and named task.",
         "applications": "Requirements use id, task, source_refs, proposed_required_cases, case_status, and evidence; every route, API, requirement, and proposed case reference resolves to a declared record and named task.",
         "history": "Migration items use item_id, historical_source, original_claim, current_sources, owner_task, disposition, disposition_reason, required_case, evidence, and block_final. Historical coverage rows use row_id and current_mapping. Validate each required_case, route association, owner task, and migration item reference against declared route/component/API/task indexes."
@@ -346,7 +346,7 @@
       "Verify every component, API, application, route, historical, migration, requirement, case, and named-owner cross-link resolves to its declared record.",
       "Verify all required behavior cases are present as proposed/not-approved and remain NOT VERIFIED.",
       "Verify all historical JSONL rows, lane/disposition totals, stable IDs, and source-row hashes.",
-      "Verify RETIRE decisions bind the exact historical API, candidate-542 absence, removal scope, T37 artifact hash, source input, and independent reviewer.",
+      "Verify every RETIRE has a specific conflict/replacement and matching independent decision; for API RETIRE rows, also verify historical API identity, candidate-542 absence, removal scope, T37 artifact hash, source input, and independent reviewer.",
       "Run the five accepted in-memory missing-export controls and record each expected/actual blocker."
     ],
     "limits": [
