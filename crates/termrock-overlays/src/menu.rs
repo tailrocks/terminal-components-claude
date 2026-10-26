@@ -397,6 +397,7 @@ pub struct ContextMenu<'a> {
     separator_inset: u16,
     skip_disabled: bool,
     clear_on_leave: bool,
+    item_bindings: bool,
 }
 
 impl fmt::Debug for ContextMenu<'_> {
@@ -411,6 +412,7 @@ impl fmt::Debug for ContextMenu<'_> {
             .field("retained_cursor", &self.retained_cursor)
             .field("skip_disabled", &self.skip_disabled)
             .field("clear_on_leave", &self.clear_on_leave)
+            .field("item_bindings", &self.item_bindings)
             .finish_non_exhaustive()
     }
 }
@@ -443,6 +445,7 @@ impl<'a> ContextMenu<'a> {
             separator_inset: 0,
             skip_disabled: true,
             clear_on_leave: false,
+            item_bindings: true,
         }
     }
 
@@ -495,6 +498,16 @@ impl<'a> ContextMenu<'a> {
     #[must_use]
     pub const fn chord_case(mut self, case: ChordCase) -> Self {
         self.chord_case = case;
+        self
+    }
+
+    /// Controls whether enabled menu items publish and accept their own key bindings.
+    ///
+    /// Defaults to `true`. When disabled, item chords remain display metadata,
+    /// while pointer and native menu-command activation continue to work.
+    #[must_use]
+    pub const fn item_bindings(mut self, enabled: bool) -> Self {
+        self.item_bindings = enabled;
         self
     }
 
@@ -583,12 +596,19 @@ impl<'a> ContextMenu<'a> {
             let label_width = width(item.label);
             let row_width = if let Some(hint) = item.hint {
                 label_width.saturating_add(width(hint)).saturating_add(3)
-            } else if let Some(chord) = effective(item.action, item.chord) {
-                label_width
-                    .saturating_add(width(ChordText::with_case(chord, self.chord_case).as_str()))
-                    .saturating_add(3)
             } else {
-                label_width
+                let chord = if self.item_bindings {
+                    effective(item.action, item.chord)
+                } else {
+                    item.chord
+                };
+                chord.map_or(label_width, |chord| {
+                    label_width
+                        .saturating_add(width(
+                            ChordText::with_case(chord, self.chord_case).as_str(),
+                        ))
+                        .saturating_add(3)
+                })
             };
             row_width.saturating_add(u16::from(item.submenu.is_some()))
         });
@@ -715,21 +735,29 @@ impl<'a> ContextMenu<'a> {
         false
     }
 
-    fn activate(&self, st: &mut MenuState) -> Option<MenuAction> {
-        let item = self.items.get(st.cursor).filter(|item| !item.disabled)?;
+    fn selection_at(&self, index: usize) -> Option<MenuSelection> {
+        let item = self.items.get(index).filter(|item| !item.disabled)?;
         Some(if item.submenu.is_some() {
-            MenuAction::Submenu(ItemKey::index(st.cursor))
+            (MenuAction::Submenu(ItemKey::index(index)), None)
         } else {
-            MenuAction::Chosen(item.action)
+            (MenuAction::Chosen(item.action), Some(index))
         })
     }
 
-    fn command(&self, st: &mut MenuState, command: MenuCmd) -> Response<MenuAction> {
+    fn activate(&self, st: &mut MenuState) -> Option<MenuSelection> {
+        self.selection_at(st.cursor)
+    }
+
+    fn command_with_selection(
+        &self,
+        st: &mut MenuState,
+        command: MenuCmd,
+    ) -> Response<MenuSelection> {
         match command {
-            MenuCmd::Prev => moved(self.step(st, -1)),
-            MenuCmd::Next => moved(self.step(st, 1)),
-            MenuCmd::First => set_cursor(st, self.navigation_cursor(true)),
-            MenuCmd::Last => set_cursor(st, self.navigation_cursor(false)),
+            MenuCmd::Prev => no_selection(moved(self.step(st, -1))),
+            MenuCmd::Next => no_selection(moved(self.step(st, 1))),
+            MenuCmd::First => no_selection(set_cursor(st, self.navigation_cursor(true))),
+            MenuCmd::Last => no_selection(set_cursor(st, self.navigation_cursor(false))),
             MenuCmd::Activate => self
                 .activate(st)
                 .map_or_else(Response::consumed, Response::action),
@@ -737,7 +765,7 @@ impl<'a> ContextMenu<'a> {
         }
     }
 
-    fn switch_menu(&self, delta: isize) -> Response<MenuAction> {
+    fn switch_menu(&self, delta: isize) -> Response<MenuSelection> {
         let Some((index, count)) = self.bar_navigation else {
             return Response::ignored();
         };
@@ -745,29 +773,34 @@ impl<'a> ContextMenu<'a> {
             .wrapping_add_signed(delta)
             .checked_rem(count)
             .unwrap_or_default();
-        Response::action(MenuAction::Opened(next))
+        Response::action((MenuAction::Opened(next), None))
     }
 
-    fn binding_response(&self, st: &mut MenuState, action: ActionKey) -> Response<MenuAction> {
+    fn binding_response(&self, st: &mut MenuState, action: ActionKey) -> Response<MenuSelection> {
         if self.bar_navigation.is_some()
             && let Some(command) = Binding::command(BAR_BINDINGS, action)
         {
             return match command {
                 MenuCmd::PrevMenu => self.switch_menu(-1),
                 MenuCmd::NextMenu => self.switch_menu(1),
-                command => self.command(st, command),
+                command => self.command_with_selection(st, command),
             };
         }
         Binding::command(CONTEXT_BINDINGS, action).map_or_else(
             || {
-                self.items
-                    .iter()
-                    .find(|item| !item.disabled && item.action == action)
-                    .map_or_else(Response::ignored, |item| {
-                        Response::action(MenuAction::Chosen(item.action))
-                    })
+                if self.item_bindings {
+                    self.items
+                        .iter()
+                        .enumerate()
+                        .find(|(_, item)| !item.disabled && item.action == action)
+                        .map_or_else(Response::ignored, |(index, item)| {
+                            Response::action((MenuAction::Chosen(item.action), Some(index)))
+                        })
+                } else {
+                    Response::ignored()
+                }
             },
-            |command| self.command(st, command),
+            |command| self.command_with_selection(st, command),
         )
     }
 
@@ -791,7 +824,7 @@ impl<'a> ContextMenu<'a> {
         st.highlight_hidden = false;
     }
 
-    fn pointer(&self, st: &mut MenuState, index: usize, phase: Phase) -> Response<MenuAction> {
+    fn pointer(&self, st: &mut MenuState, index: usize, phase: Phase) -> Response<MenuSelection> {
         if !self.enabled_at(index) {
             if phase == Phase::Move {
                 st.pointed = Some(index);
@@ -805,7 +838,7 @@ impl<'a> ContextMenu<'a> {
                 st.cursor = index;
                 st.pointed = None;
                 st.highlight_hidden = false;
-                self.activate(st)
+                self.selection_at(index)
                     .map_or_else(Response::consumed, Response::action)
             }
             Phase::Move => {
@@ -817,13 +850,27 @@ impl<'a> ContextMenu<'a> {
                     return Response::consumed();
                 }
                 st.cursor = index;
-                Response::changed()
+                no_selection(Response::changed())
             }
             _ => Response::consumed(),
         }
     }
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut MenuState) -> Response<MenuAction> {
+        self.update_with_selection(cx, st).0
+    }
+
+    /// Updates this menu and returns the row that produced its final chosen action.
+    ///
+    /// The second value is `Some(index)` if and only if the response action is
+    /// `MenuAction::Chosen`. The index belongs to this exact menu items slice and
+    /// is valid only with this response. Submenu, lifecycle, navigation, and
+    /// ignored responses return `None`.
+    pub fn update_with_selection(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut MenuState,
+    ) -> (Response<MenuAction>, Option<usize>) {
         if !self.skip_disabled && !st.initialized {
             st.cursor = self.initial_cursor();
             st.initialized = true;
@@ -837,7 +884,10 @@ impl<'a> ContextMenu<'a> {
         if cx.is_open(self.id) {
             let Some(anchor) = self.resolve_anchor(cx) else {
                 cx.close_layer(self.id, None);
-                return Response::action(MenuAction::Closed(DismissReason::Programmatic));
+                return (
+                    Response::action(MenuAction::Closed(DismissReason::Programmatic)),
+                    None,
+                );
             };
             cx.resize_layer(self.id, self.measured_size(cx));
             cx.reanchor_layer(self.id, anchor);
@@ -848,7 +898,7 @@ impl<'a> ContextMenu<'a> {
                 Intent::Layer(LayerEvent::Dismissed(reason)) => {
                     self.clear_pointer_state(st);
                     st.initialized = false;
-                    Response::action(MenuAction::Closed(reason))
+                    Response::action((MenuAction::Closed(reason), None))
                 }
                 Intent::Layer(LayerEvent::Opened) => {
                     if !self.skip_disabled {
@@ -865,7 +915,7 @@ impl<'a> ContextMenu<'a> {
                 }
                 Intent::Cancel => {
                     cx.close_layer(self.id, None);
-                    Response::action(MenuAction::Closed(DismissReason::Esc))
+                    Response::action((MenuAction::Closed(DismissReason::Esc), None))
                 }
                 Intent::Binding(action) => {
                     if st.highlight_hidden && cx.activation_key().is_some() {
@@ -891,16 +941,16 @@ impl<'a> ContextMenu<'a> {
                 Intent::Pointer { .. } => Response::consumed(),
                 _ => Response::ignored(),
             };
-            if let Some(action) = response.action_ref().copied() {
+            if let Some((action, selection)) = response.action_ref().copied() {
                 if let MenuAction::Chosen(key) = action {
                     cx.close_layer(self.id, Some(key));
                 }
-                acc.action(action);
+                acc.action((action, selection));
             } else {
                 acc.fold(&response.erase());
             }
         }
-        acc.finish(self.id)
+        finish_with_selection(acc, self.id)
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &MenuState) -> Rect {
@@ -951,7 +1001,7 @@ impl<'a> ContextMenu<'a> {
                 live,
                 self.items
                     .iter()
-                    .filter(|item| !item.disabled)
+                    .filter(|item| self.item_bindings && !item.disabled)
                     .map(|item| (item.action, item.chord)),
             );
             ui.register_decor(self.id, PartRef::of(Part::BORDER), area);
@@ -1088,7 +1138,11 @@ impl<'a> ContextMenu<'a> {
             }
         }
         let label = shift(row, 2);
-        let effective_chord = ui.effective_chord(self.id, item.action, item.chord);
+        let effective_chord = if self.item_bindings {
+            ui.effective_chord(self.id, item.action, item.chord)
+        } else {
+            item.chord
+        };
         let chord_text = effective_chord.map(|chord| ChordText::with_case(chord, self.chord_case));
         let hint = item
             .hint
@@ -1297,6 +1351,7 @@ impl<'a> MenuBar<'a> {
             separator_inset: 0,
             skip_disabled: true,
             clear_on_leave: false,
+            item_bindings: true,
         })
     }
 
@@ -1566,6 +1621,7 @@ impl<'a> MenuBar<'a> {
                 separator_inset: 0,
                 skip_disabled: true,
                 clear_on_leave: false,
+                item_bindings: true,
             };
             let _ = ui.layer(self.id, |ui, layer| dropdown.draw(ui, layer, st));
         }
@@ -1609,6 +1665,21 @@ fn pressed_target(ui: &Ui<'_>, owner: Id, part: Part, index: usize) -> bool {
 
 fn admits_hint(label: &str, hint_width: u16, row_width: u16) -> bool {
     width(label).saturating_add(hint_width).saturating_add(5) <= row_width
+}
+
+type MenuSelection = (MenuAction, Option<usize>);
+
+fn no_selection(response: Response<MenuAction>) -> Response<MenuSelection> {
+    response.map_action(|action| (action, None))
+}
+
+fn finish_with_selection(acc: Acc<MenuSelection>, id: Id) -> (Response<MenuAction>, Option<usize>) {
+    let response = acc.finish(id);
+    let selection = match response.action_ref() {
+        Some((MenuAction::Chosen(_), Some(index))) => Some(*index),
+        _ => None,
+    };
+    (response.map_action(|(action, _)| action), selection)
 }
 
 fn moved(changed: bool) -> Response<MenuAction> {
@@ -2528,7 +2599,7 @@ mod tests {
         };
         assert_eq!(
             menu.activate(&mut state),
-            Some(MenuAction::Submenu(ItemKey::index(3)))
+            Some((MenuAction::Submenu(ItemKey::index(3)), None))
         );
     }
 
@@ -2802,6 +2873,443 @@ mod tests {
             let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 2, 0));
             assert_eq!(runtime.app().state.open, Some(0), "pointer at {color:?}");
         }
+    }
+
+    const RECEIPT_MENU: Id = Id::root("menu.selection-receipt.runtime");
+    const RECEIPT_DUPLICATE_ITEMS: [MenuItem<'static>; 2] =
+        [MenuItem::new(OPEN, "First"), MenuItem::new(OPEN, "Second")];
+    const RECEIPT_DIRECT_ITEMS: [MenuItem<'static>; 2] =
+        [MenuItem::new(OPEN, "First"), MenuItem::new(CLOSE, "Second")];
+    const RECEIPT_DIRECT_DUPLICATES: [MenuItem<'static>; 3] = [
+        MenuItem::new(OPEN, "Unavailable").disabled(true),
+        MenuItem::new(OPEN, "First enabled"),
+        MenuItem::new(OPEN, "Later enabled"),
+    ];
+    const RECEIPT_DISPLAY_ITEMS: [MenuItem<'static>; 2] = [
+        MenuItem::new(OPEN, "Open").chord(Chord::key(KeyCode::F(12))),
+        MenuItem::new(CLOSE, "P")
+            .chord(Chord::key(KeyCode::Char('p')))
+            .hint("Ctrl+V"),
+    ];
+
+    struct ReceiptMenuApp {
+        items: &'static [MenuItem<'static>],
+        item_bindings: bool,
+        capture_receipt: bool,
+        layered: bool,
+        opened_once: bool,
+        state: MenuState,
+        selection: Option<usize>,
+        action: Option<MenuAction>,
+        response: Option<Response<MenuAction>>,
+        observations: Vec<(Option<MenuAction>, Option<usize>)>,
+        measured_width: Option<u16>,
+        keymap: KeyMap,
+    }
+
+    impl ReceiptMenuApp {
+        fn menu(&self) -> ContextMenu<'static> {
+            ContextMenu::at(RECEIPT_MENU, self.items, Position::new(0, 0))
+                .item_bindings(self.item_bindings)
+        }
+    }
+
+    impl App for ReceiptMenuApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let menu = self.menu();
+            if self.layered
+                && !self.opened_once
+                && let Some(layer) = menu.try_layer(cx)
+            {
+                cx.open_layer(RECEIPT_MENU, layer);
+                self.opened_once = true;
+            }
+            self.measured_width = match menu.measured_size(cx) {
+                crate::layer::LayerSize::Fixed(width, _) => Some(width),
+                _ => None,
+            };
+            let response = if self.capture_receipt {
+                let (response, selection) = menu.update_with_selection(cx, &mut self.state);
+                self.selection = selection;
+                response
+            } else {
+                self.selection = None;
+                menu.update(cx, &mut self.state)
+            };
+            self.action = response.action_ref().copied();
+            self.response = Some(response.clone());
+            self.observations.push((self.action, self.selection));
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let menu = self.menu();
+            if self.layered {
+                let _ = ui.layer(RECEIPT_MENU, |ui, area| {
+                    menu.draw(ui, area, &self.state);
+                });
+            } else {
+                menu.draw(ui, Rect::new(0, 0, 40, 8), &self.state);
+            }
+        }
+
+        fn keymap(&self) -> &KeyMap {
+            &self.keymap
+        }
+    }
+
+    fn receipt_runtime(
+        items: &'static [MenuItem<'static>],
+        item_bindings: bool,
+        capture_receipt: bool,
+        layered: bool,
+        state: MenuState,
+        keymap: KeyMap,
+    ) -> (Runtime<ReceiptMenuApp>, Buffer) {
+        let area = Rect::new(0, 0, 40, 8);
+        let mut buffer = Buffer::empty(area);
+        let mut runtime = Runtime::new(
+            ReceiptMenuApp {
+                items,
+                item_bindings,
+                capture_receipt,
+                layered,
+                opened_once: layered,
+                state,
+                selection: None,
+                action: None,
+                response: None,
+                observations: Vec::new(),
+                measured_width: None,
+                keymap,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        if layered {
+            runtime.app_mut().opened_once = false;
+            let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        }
+        (runtime, buffer)
+    }
+
+    fn receipt_mouse(kind: MouseKind, x: u16, y: u16) -> Input {
+        Input::Mouse(Mouse {
+            kind,
+            pos: Position::new(x, y),
+            mods: KeyModifiers::NONE,
+        })
+    }
+
+    #[test]
+    fn repeated_action_tokens_return_the_actual_pointer_and_keyboard_rows() {
+        assert!(
+            ContextMenu::at(RECEIPT_MENU, &RECEIPT_DUPLICATE_ITEMS, Position::new(0, 0))
+                .item_bindings
+        );
+
+        let (mut pointer_runtime, _) = receipt_runtime(
+            &RECEIPT_DUPLICATE_ITEMS,
+            false,
+            true,
+            false,
+            MenuState::default(),
+            KeyMap::new(),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut pointer_runtime,
+            receipt_mouse(MouseKind::Down, 4, 2),
+        );
+        let _ =
+            crate::runtime::stub::deliver(&mut pointer_runtime, receipt_mouse(MouseKind::Up, 4, 2));
+        assert_eq!(pointer_runtime.app().action, Some(MenuAction::Chosen(OPEN)));
+        assert_eq!(pointer_runtime.app().selection, Some(1));
+        assert!(
+            !pointer_runtime
+                .diagnostics()
+                .iter()
+                .any(|diagnostic| matches!(
+                    diagnostic,
+                    crate::diagnostics::Diagnostic::DuplicateBindingAction { owner, .. }
+                        if *owner == RECEIPT_MENU
+                )),
+            "selection-only duplicate action tokens publish no item bindings"
+        );
+
+        let (mut keyboard_runtime, _) = receipt_runtime(
+            &RECEIPT_DUPLICATE_ITEMS,
+            false,
+            true,
+            false,
+            MenuState::default(),
+            KeyMap::new(),
+        );
+        let _ =
+            crate::runtime::stub::deliver(&mut keyboard_runtime, Input::Key(key(KeyCode::Down)));
+        assert_eq!(keyboard_runtime.app().state.cursor(), 1);
+        let _ =
+            crate::runtime::stub::deliver(&mut keyboard_runtime, Input::Key(key(KeyCode::Enter)));
+        assert_eq!(
+            keyboard_runtime.app().action,
+            Some(MenuAction::Chosen(OPEN))
+        );
+        assert_eq!(keyboard_runtime.app().selection, Some(1));
+        assert!(
+            !keyboard_runtime
+                .diagnostics()
+                .iter()
+                .any(|diagnostic| matches!(
+                    diagnostic,
+                    crate::diagnostics::Diagnostic::DuplicateBindingAction { owner, .. }
+                        if *owner == RECEIPT_MENU
+                )),
+            "native navigation and activation remain available without item bindings"
+        );
+    }
+
+    #[test]
+    fn existing_update_preserves_the_receipt_updates_full_response() {
+        let (mut existing, _) = receipt_runtime(
+            &RECEIPT_DUPLICATE_ITEMS,
+            false,
+            false,
+            false,
+            MenuState::default(),
+            KeyMap::new(),
+        );
+        let (mut with_selection, _) = receipt_runtime(
+            &RECEIPT_DUPLICATE_ITEMS,
+            false,
+            true,
+            false,
+            MenuState::default(),
+            KeyMap::new(),
+        );
+
+        let _ = crate::runtime::stub::deliver(&mut existing, Input::Key(key(KeyCode::Down)));
+        let _ = crate::runtime::stub::deliver(&mut existing, Input::Key(key(KeyCode::Enter)));
+        let _ = crate::runtime::stub::deliver(&mut with_selection, Input::Key(key(KeyCode::Down)));
+        let _ = crate::runtime::stub::deliver(&mut with_selection, Input::Key(key(KeyCode::Enter)));
+
+        assert_eq!(existing.app().response, with_selection.app().response);
+        assert_eq!(existing.app().state, with_selection.app().state);
+        assert_eq!(existing.app().action, Some(MenuAction::Chosen(OPEN)));
+        assert_eq!(existing.app().selection, None);
+        assert_eq!(with_selection.app().selection, Some(1));
+        let response = with_selection.app().response.as_ref().unwrap();
+        assert_eq!(response.id(), Some(RECEIPT_MENU));
+        assert!(response.is_consumed());
+        assert!(response.is_changed());
+    }
+
+    #[test]
+    fn direct_binding_receipt_uses_first_enabled_match_without_moving_cursor() {
+        let menu = ContextMenu::at(
+            RECEIPT_MENU,
+            &RECEIPT_DIRECT_DUPLICATES,
+            Position::new(0, 0),
+        );
+        let mut state = MenuState {
+            cursor: 2,
+            ..MenuState::default()
+        };
+        let response = menu.binding_response(&mut state, OPEN);
+        assert_eq!(
+            response.action_ref(),
+            Some(&(MenuAction::Chosen(OPEN), Some(1)))
+        );
+        assert_eq!(
+            state.cursor(),
+            2,
+            "direct binding leaves navigation cursor alone"
+        );
+
+        let keymap = KeyMap::new().bind_component(RECEIPT_MENU, OPEN, Chord::key(KeyCode::F(4)));
+        let (mut runtime, _) = receipt_runtime(
+            &RECEIPT_DIRECT_ITEMS,
+            true,
+            true,
+            false,
+            MenuState {
+                cursor: 1,
+                ..MenuState::default()
+            },
+            keymap,
+        );
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::F(4))));
+        assert_eq!(runtime.app().action, Some(MenuAction::Chosen(OPEN)));
+        assert_eq!(runtime.app().selection, Some(0));
+        assert_eq!(runtime.app().state.cursor(), 1);
+    }
+
+    #[test]
+    fn item_binding_opt_out_keeps_native_input_and_explicit_display_metadata() {
+        let keymap = KeyMap::new()
+            .bind_component(RECEIPT_MENU, OPEN, Chord::key(KeyCode::Char('z')))
+            .bind_component(RECEIPT_MENU, CLOSE, Chord::key(KeyCode::Char('x')));
+        let (mut runtime, mut buffer) = receipt_runtime(
+            &RECEIPT_DISPLAY_ITEMS,
+            false,
+            true,
+            false,
+            MenuState::default(),
+            keymap,
+        );
+        assert_eq!(runtime.app().measured_width, Some(16));
+        assert!(row_text(&buffer, 1).contains("F12"));
+        assert!(row_text(&buffer, 2).contains("Ctrl+V"));
+        assert!(!row_text(&buffer, 1).contains(" z"));
+        assert!(!row_text(&buffer, 2).contains(" x"));
+
+        let menu = ContextMenu::at(RECEIPT_MENU, &RECEIPT_DISPLAY_ITEMS, Position::new(0, 0))
+            .item_bindings(false);
+        let effective_lookups = std::cell::Cell::new(0);
+        assert_eq!(
+            menu.natural_width(|_, _| {
+                effective_lookups.set(effective_lookups.get() + 1);
+                Some(Chord::key(KeyCode::Char('z')))
+            }),
+            16
+        );
+        assert_eq!(effective_lookups.get(), 0);
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('z'))));
+        assert_eq!(
+            runtime.app().action,
+            None,
+            "remapped item token is not accepted"
+        );
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Enter)));
+        assert_eq!(runtime.app().action, Some(MenuAction::Chosen(OPEN)));
+        assert_eq!(runtime.app().selection, Some(0));
+        runtime
+            .draw_buffer(Rect::new(0, 0, 40, 8), &mut buffer)
+            .commit_presented();
+        assert!(row_text(&buffer, 1).contains("F12"));
+        assert!(row_text(&buffer, 2).contains("Ctrl+V"));
+    }
+
+    #[test]
+    fn chosen_receipt_follows_action_accumulation_and_not_dismissal() {
+        let menu = ContextMenu::at(RECEIPT_MENU, &RECEIPT_DUPLICATE_ITEMS, Position::new(0, 0));
+        let mut state = MenuState::default();
+        let mut acc = Acc::new();
+        acc.action((MenuAction::Chosen(OPEN), Some(0)));
+        assert!(menu.step(&mut state, 1));
+        acc.fold(&Response::<()>::changed());
+        let (response, selection) = finish_with_selection(acc, RECEIPT_MENU);
+        assert_eq!(
+            state.cursor(),
+            1,
+            "later navigation still updates the cursor"
+        );
+        assert_eq!(response.action_ref(), Some(&MenuAction::Chosen(OPEN)));
+        assert_eq!(
+            selection,
+            Some(0),
+            "actionless navigation keeps the choice pair"
+        );
+
+        let mut acc = Acc::new();
+        acc.action((MenuAction::Chosen(OPEN), Some(0)));
+        acc.action((MenuAction::Chosen(CLOSE), Some(1)));
+        let (response, selection) = finish_with_selection(acc, RECEIPT_MENU);
+        assert_eq!(response.action_ref(), Some(&MenuAction::Chosen(CLOSE)));
+        assert_eq!(
+            selection,
+            Some(1),
+            "a later chosen action replaces both values"
+        );
+
+        let mut acc = Acc::new();
+        acc.action((MenuAction::Chosen(OPEN), Some(1)));
+        acc.action((MenuAction::Closed(DismissReason::Esc), None));
+        let (response, selection) = finish_with_selection(acc, RECEIPT_MENU);
+        assert_eq!(
+            response.action_ref(),
+            Some(&MenuAction::Closed(DismissReason::Esc))
+        );
+        assert_eq!(
+            selection, None,
+            "dismissal replaces and clears the old receipt"
+        );
+    }
+
+    #[test]
+    fn dismissal_and_later_no_choice_updates_return_no_stale_receipt() {
+        let (mut runtime, _) = receipt_runtime(
+            &RECEIPT_DUPLICATE_ITEMS,
+            false,
+            true,
+            false,
+            MenuState::default(),
+            KeyMap::new(),
+        );
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Enter)));
+        assert_eq!(runtime.app().selection, Some(0));
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        assert_eq!(runtime.app().selection, None);
+        assert_eq!(runtime.app().action, None);
+
+        let (mut layered, _) = receipt_runtime(
+            &RECEIPT_DUPLICATE_ITEMS,
+            false,
+            true,
+            true,
+            MenuState::default(),
+            KeyMap::new(),
+        );
+        assert!(layered.is_open(RECEIPT_MENU));
+        layered.app_mut().observations.clear();
+        let _ = crate::runtime::stub::deliver(&mut layered, Input::Key(key(KeyCode::Esc)));
+        let escape_observations = &layered.app().observations;
+        let actions = escape_observations
+            .iter()
+            .copied()
+            .filter(|(action, _)| action.is_some())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            actions,
+            vec![(Some(MenuAction::Closed(DismissReason::Esc)), None)]
+        );
+        assert!(
+            escape_observations
+                .iter()
+                .all(|(_, selection)| selection.is_none())
+        );
+        assert_eq!(layered.app().selection, None);
+        assert!(!layered.is_open(RECEIPT_MENU));
+
+        let after_escape = layered.app().observations.len();
+        let _ = crate::runtime::stub::deliver(&mut layered, Input::Tick);
+        assert_eq!(layered.app().action, None);
+        assert_eq!(layered.app().selection, None);
+        let later_observations = &layered.app().observations[after_escape..];
+        assert!(!later_observations.is_empty());
+        assert!(
+            later_observations
+                .iter()
+                .all(|observation| *observation == (None, None))
+        );
+    }
+
+    #[test]
+    fn default_item_bindings_still_report_duplicate_actions() {
+        let (runtime, _) = receipt_runtime(
+            &RECEIPT_DUPLICATE_ITEMS,
+            true,
+            true,
+            false,
+            MenuState::default(),
+            KeyMap::new(),
+        );
+        assert!(runtime.diagnostics().iter().any(|diagnostic| matches!(
+            diagnostic,
+            crate::diagnostics::Diagnostic::DuplicateBindingAction { owner, action }
+                if *owner == RECEIPT_MENU && *action == OPEN
+        )));
     }
 
     #[test]
