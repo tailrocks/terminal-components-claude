@@ -1,5 +1,3 @@
-//! Public consumer example for Picker row ink defaults and owner precedence.
-
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use termrock::{
@@ -73,11 +71,9 @@ fn render(theme: Theme, cursor: CursorStyle) -> Result<(), Box<dyn std::error::E
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Both cursor policies consume live rows through the same public component.
     render(Theme::junie(), CursorStyle::Bar)?;
     render(Theme::junie(), CursorStyle::Fill)?;
 
-    // An authored same-value base remains authoritative when focused.
     let owner_theme = Theme::junie().define_family(Family::PICKER, |family| {
         family
             .part(Part::ICON)

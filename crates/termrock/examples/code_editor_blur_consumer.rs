@@ -1,5 +1,3 @@
-//! Default-feature facade consumer for editor focus-out behavior.
-
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use termrock::composition::{self, Group};
