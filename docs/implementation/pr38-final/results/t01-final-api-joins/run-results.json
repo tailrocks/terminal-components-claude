@@ -1,0 +1,98 @@
+{
+  "schema": "termrock.pr38.t01.final_api_join_run_results.v1",
+  "task_id": "T01",
+  "status": "PASS_STRUCTURAL_ONLY_REVIEW_PENDING",
+  "fixed_input": {
+    "commit": "c83f7bc0a0957922a98a94bfe38ad8a8a400df9d",
+    "tree": "efc4514015917bb1de1a2106f1ceb14645206107"
+  },
+  "definition_input": {
+    "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+    "tree": "66507c4aae0555d65904b268d6c95e7f3e3d17d1"
+  },
+  "product_source": {
+    "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "behavior": "NOT VERIFIED"
+  },
+  "artifact": {
+    "path": "docs/implementation/pr38-final/results/t01-final-api-joins/api-join-supplement.json",
+    "sha256": "196d8caeba09d2676b5f1e24adf895a1675596b1378bc7b6eeaf5be0172e6f3a"
+  },
+  "commands": [
+    {
+      "argv": [
+        "python3",
+        "docs/implementation/pr38-final/results/t01-final-api-joins/build_join_supplement.py"
+      ],
+      "cwd": "/Users/donbeave/Downloads/termrock-t01-final-api-joins",
+      "exit_code": 0,
+      "output": "wrote docs/implementation/pr38-final/results/t01-final-api-joins/api-join-supplement.json"
+    },
+    {
+      "argv": [
+        "python3",
+        "docs/implementation/pr38-final/results/t01-final-api-joins/validate_join_supplement.py"
+      ],
+      "cwd": "/Users/donbeave/Downloads/termrock-t01-final-api-joins",
+      "exit_code": 0,
+      "output": {
+        "status": "PASS_STRUCTURAL_ONLY",
+        "w44_locators_resolved": 37,
+        "w44_default_supplements": 1,
+        "extension_rows": 30,
+        "extension_null_api_ids_completed": 9,
+        "trait_member_api_rows": 24,
+        "inspector_body_disposition": "UNRESOLVED_T07_PRODUCT_GAP_RECORDED",
+        "join_ids_unique": 69,
+        "functional_cases": 0,
+        "functional_status": "NOT VERIFIED"
+      }
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--quiet",
+        "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+        "c83f7bc0a0957922a98a94bfe38ad8a8a400df9d",
+        "--",
+        "crates"
+      ],
+      "cwd": "/Users/donbeave/Downloads/termrock-t01-final-api-joins",
+      "exit_code": 0,
+      "purpose": "Confirm product source bytes match the accepted definition input."
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--cached",
+        "--check",
+        "--",
+        "docs/implementation/pr38-final/results/t01-final-api-joins"
+      ],
+      "cwd": "/Users/donbeave/Downloads/termrock-t01-final-api-joins",
+      "exit_code": 0,
+      "purpose": "Check staged owned artifacts for whitespace errors."
+    }
+  ],
+  "counts": {
+    "w44_declarations": 37,
+    "w44_resolved": 37,
+    "derived_default_supplemental_rows": 1,
+    "extensions_total": 30,
+    "extension_api_ids_joined_from_foundation": 9,
+    "extension_api_ids_already_present": 21,
+    "trait_member_api_rows": 24,
+    "join_ids_unique": 69,
+    "inspector_body_dispositions": 1,
+    "functional_cases": 0
+  },
+  "limits": [
+    "No Cargo command, build, product test, harness edit, fixture edit, doctest edit, or source edit was run.",
+    "Structural preflight does not prove runtime behavior or rustc all-feature visibility.",
+    "InspectorBody remains an unresolved T07 product gap and blocks final goal acceptance.",
+    "Independent review is pending."
+  ],
+  "independent_review": "PENDING"
+}
