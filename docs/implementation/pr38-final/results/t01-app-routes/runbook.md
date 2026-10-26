@@ -13,7 +13,7 @@
 - Owner: /root/t01_app_routes.
 - Required selection: gpt-6-luna, max effort.
 - Review: independent Sol high review is pending.
-- Fragment SHA-256: 399a24aecbad697689942d5bd9b3560ca2c0bc0ce5021aac55a7b3f0b1b046e3.
+- Fragment SHA-256: 36c162bbf8d6b7cbcca2658db5dde11207f37075488315ceaba826704df6e1d6.
 
 ## API inventory
 
@@ -85,6 +85,8 @@ T07 owns Jackin page assembly that currently sits in termrock-feedback.
 
 W46–W63 component references appear where current app or route sources use them. They link to definition owners and named tasks.
 
+W62 AppShell definition ownership belongs to T10. T19 owns shell policy integration.
+
 ## SQL and performance
 
 The current TablePro comparator keeps NULL values last in ascending and descending order. It reverses only non-NULL comparisons.
@@ -111,6 +113,7 @@ The generator read immutable blobs with git show. It did not run Cargo, tests, b
 | python3 -m json.tool docs/implementation/pr38-final/results/t01-app-routes/fragment.json >/dev/null | Exit 0. |
 | Read-only Python structural validator | Exit 0. It checked package keys, exports, 54 route keys, app journeys, and 189 case records. |
 | Read-only Git source audit | Exit 0. It checked 288 blobs, 9,481 references, and 1,355 source spans. |
+| Read-only W62 owner crosswalk check | Exit 0. It assigned T10 to definition ownership and T19 to shell policy behavior. |
 | Cargo, builds, tests, benchmarks, PTY probes, and cleanup | Not run. Behavior remains NOT VERIFIED. |
 
 ## Open work
@@ -119,4 +122,4 @@ APP-HISTORY-ROWS and APP-STALE-HISTORY-ROUTE-NULL remain open. /root/t01_history
 
 The stale NULL-sort claim must not override current SQL source. Historical rows must remain historical records.
 
-The fragment SHA-256 is 399a24aecbad697689942d5bd9b3560ca2c0bc0ce5021aac55a7b3f0b1b046e3. Independent Sol high review remains pending.
+The fragment SHA-256 is 36c162bbf8d6b7cbcca2658db5dde11207f37075488315ceaba826704df6e1d6. Independent Sol high review remains pending.
