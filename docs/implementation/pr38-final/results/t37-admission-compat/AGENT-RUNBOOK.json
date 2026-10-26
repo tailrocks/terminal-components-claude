@@ -55,7 +55,7 @@
     "receipt_to_relative_stem": "crates/termrock-e2e/src/lib.rs:2415,2643",
     "relative_stem_to_checkpoint_mapping": "crates/termrock-e2e/src/lib.rs:3647-3648",
     "validation_and_path_checks_changed": false,
-    "qualified_file_use": "crates/termrock-e2e/src/lib.rs:3752 uses fs::File::open",
+    "qualified_file_use": "crates/termrock-e2e/src/lib.rs:3762 uses fs::File::open at source commit 1e3368870974d28499e556225f35d8050224476f",
     "removed_imports": [
       "File",
       "Read"

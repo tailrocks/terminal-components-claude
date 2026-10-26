@@ -1325,5 +1325,46 @@
       "bench": false,
       "doctest": false
     }
+  ],
+  "final_combined_source": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "final_metadata_summary": {
+    "root_packages": 47,
+    "root_targets": 68,
+    "target_kinds": {
+      "lib": 42,
+      "bin": 14,
+      "example": 12
+    },
+    "separate_test_targets": 0,
+    "separate_bench_targets": 0,
+    "effective_test_enabled_targets": 0,
+    "effective_bench_enabled_targets": 0,
+    "library_doctests_enabled": 0,
+    "package_autotests_false": 47,
+    "package_autobenches_false": 47,
+    "selected_behavior_cases": 0,
+    "behavior_status": "NOT VERIFIED"
+  },
+  "final_check_artifact": "metadata-final.json",
+  "evidence_source_checked": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "current_integrated_source": "865073462331552897822d65ede8d673f9c870d7",
+  "current_evidence_head_before_metadata_commit": "865073462331552897822d65ede8d673f9c870d7",
+  "subsequent_accepted_source_change": {
+    "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+    "decision": "T37-EXPECTED-CACHE-01",
+    "summary": "Remove only private LoadedExpectedCheckpoint cache fields/initializers; keep validation, errors, and order byte/behavior-identical per accepted review.",
+    "final_locked_e2e_check_pending": true
+  },
+  "accepted_source_updates_since_check": [
+    {
+      "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+      "decision": "T37-EXPECTED-CACHE-01",
+      "check_impact": "E2E locked check must rerun after final source input."
+    },
+    {
+      "commit": "865073462331552897822d65ede8d673f9c870d7",
+      "decision": "T37-FMT-0904",
+      "check_impact": "Formatting check must rerun after pending listener-helper source unit."
+    }
   ]
 }

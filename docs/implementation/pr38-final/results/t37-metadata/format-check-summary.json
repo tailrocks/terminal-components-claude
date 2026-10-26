@@ -1,0 +1,47 @@
+{
+  "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo fmt --all -- --check",
+  "source_head": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "exit_status": 1,
+  "log": "docs/implementation/pr38-final/results/t37-metadata/format-check-final.log.gz",
+  "log_sha256": "b48a9855e94b3ac1528495875df6a78a217fb9b6e1507d3257c8547dc8ecb97d",
+  "unique_affected_paths": 202,
+  "diff_blocks": 1792,
+  "changed_blank_lines": 3940,
+  "changed_nonblank_lines": 66,
+  "paths_with_nonblank_changes": [
+    "crates/holla-sim/src/task_run.rs",
+    "crates/holla-ui/src/app.rs",
+    "crates/termrock-core/src/selection.rs",
+    "crates/termrock-feedback/src/hintbar.rs",
+    "crates/termrock-feedback/src/settings_page.rs",
+    "crates/termrock-navigation/src/tabs.rs",
+    "crates/termrock-runtime/src/keymap.rs",
+    "crates/termrock-runtime/src/ui/cx.rs",
+    "crates/termrock-theme/src/lib.rs",
+    "crates/termrock-viewport/src/viewport.rs"
+  ],
+  "paths_with_nonblank_changes_also_modified_since_product_baseline": [
+    "crates/holla-sim/src/task_run.rs",
+    "crates/holla-ui/src/app.rs",
+    "crates/termrock-core/src/selection.rs",
+    "crates/termrock-feedback/src/hintbar.rs",
+    "crates/termrock-feedback/src/settings_page.rs",
+    "crates/termrock-navigation/src/tabs.rs",
+    "crates/termrock-runtime/src/keymap.rs",
+    "crates/termrock-runtime/src/ui/cx.rs",
+    "crates/termrock-theme/src/lib.rs",
+    "crates/termrock-viewport/src/viewport.rs"
+  ],
+  "path_list": "docs/implementation/pr38-final/results/t37-metadata/format-check-affected-paths.txt",
+  "path_list_sha256": "ab5517c9ec853ff081d4ec465048a7588e53ebb6a211a61bda8892b760f25a7c",
+  "source_changes_since_product_baseline_path_count": 804,
+  "summary": "Formatting output is not blank-line-only. No source formatting changes were made by the metadata owner.",
+  "log_sha256_represents": "decompressed exact original cargo fmt output",
+  "compressed_log_sha256": "5de1c0d57a35f157a9e595162f3d791f45eb438c9741ffd6b9034150fb2fd909",
+  "compression": "gzip, mtime=0; decompression verified byte-identical to original log",
+  "decompression_verification": {
+    "command": "set -o pipefail; gzip -dc docs/implementation/pr38-final/results/t37-metadata/format-check-final.log.gz | shasum -a 256",
+    "exit_status": 0,
+    "stdout_sha256": "b48a9855e94b3ac1528495875df6a78a217fb9b6e1507d3257c8547dc8ecb97d"
+  }
+}

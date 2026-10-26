@@ -1,0 +1,147 @@
+{
+  "source_head": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "scope_description": "Active Cargo manifests/locks, root and retained standalone Nextest configs, .velnor config, generated GitHub workflows and Velnor task manifest. Excludes immutable/historical JSON, policy guard files, documentation, source, target output, and archived evidence.",
+  "scope_file_count": 63,
+  "scope_path_list": [
+    ".config/nextest.toml",
+    ".github/velnor/task-execution-manifest-v1.json",
+    ".github/workflows/cache-prune.yml",
+    ".github/workflows/ci.yml",
+    ".velnor/config.toml",
+    "Cargo.lock",
+    "Cargo.toml",
+    "crates/holla-catalog/Cargo.toml",
+    "crates/holla-domain/Cargo.toml",
+    "crates/holla-plan/Cargo.toml",
+    "crates/holla-sim/Cargo.toml",
+    "crates/holla-ui/Cargo.toml",
+    "crates/holla/Cargo.toml",
+    "crates/jackin-preview-app/Cargo.toml",
+    "crates/jackin-preview-capsule-ui/Cargo.toml",
+    "crates/jackin-preview-domain/Cargo.toml",
+    "crates/jackin-preview-host-ui/Cargo.toml",
+    "crates/jackin-preview-presentation/Cargo.toml",
+    "crates/jackin-preview-sim/Cargo.toml",
+    "crates/jackin-preview/Cargo.toml",
+    "crates/showcase-data/Cargo.toml",
+    "crates/showcase-demos/Cargo.toml",
+    "crates/showcase-ui/Cargo.toml",
+    "crates/showcase/Cargo.toml",
+    "crates/tablepro-demo/Cargo.toml",
+    "crates/tablepro-domain/Cargo.toml",
+    "crates/tablepro-sql/Cargo.toml",
+    "crates/tablepro-ui/Cargo.toml",
+    "crates/tablepro/Cargo.toml",
+    "crates/termrock-collections/Cargo.toml",
+    "crates/termrock-consumer-example/Cargo.toml",
+    "crates/termrock-controls/Cargo.toml",
+    "crates/termrock-core/Cargo.toml",
+    "crates/termrock-e2e/Cargo.lock",
+    "crates/termrock-e2e/Cargo.toml",
+    "crates/termrock-editors/Cargo.toml",
+    "crates/termrock-feedback/Cargo.toml",
+    "crates/termrock-fields/Cargo.toml",
+    "crates/termrock-forms/Cargo.toml",
+    "crates/termrock-grid/Cargo.toml",
+    "crates/termrock-layout/Cargo.toml",
+    "crates/termrock-navigation/Cargo.toml",
+    "crates/termrock-overlays/Cargo.toml",
+    "crates/termrock-render/Cargo.toml",
+    "crates/termrock-runtime/Cargo.toml",
+    "crates/termrock-session/Cargo.toml",
+    "crates/termrock-shell/Cargo.toml",
+    "crates/termrock-terminal/Cargo.toml",
+    "crates/termrock-text/Cargo.toml",
+    "crates/termrock-theme/Cargo.toml",
+    "crates/termrock-viewport/Cargo.toml",
+    "crates/termrock-visibility-publisher/Cargo.toml",
+    "crates/termrock-visibility-tests/Cargo.lock",
+    "crates/termrock-visibility-tests/Cargo.toml",
+    "crates/termrock-xtask/Cargo.toml",
+    "crates/termrock/Cargo.toml",
+    "crates/visual-harness/Cargo.toml",
+    "external-consumer-demo/.config/nextest.toml",
+    "external-consumer-demo/Cargo.lock",
+    "external-consumer-demo/Cargo.toml",
+    "tools/refactor-proof/Cargo.toml",
+    "tools/termrock-visibility-publisher/Cargo.lock",
+    "tools/termrock-visibility-publisher/Cargo.toml"
+  ],
+  "checks": [
+    {
+      "pattern": "termrock-conformance",
+      "exit_status": 1,
+      "match_lines": [],
+      "match_count": 0,
+      "zero_matches": true
+    },
+    {
+      "pattern": "termrock-test-support",
+      "exit_status": 1,
+      "match_lines": [],
+      "match_count": 0,
+      "zero_matches": true
+    },
+    {
+      "pattern": "workbench-tabs-privacy",
+      "exit_status": 1,
+      "match_lines": [],
+      "match_count": 0,
+      "zero_matches": true
+    },
+    {
+      "pattern": "paint-style-pilot",
+      "exit_status": 1,
+      "match_lines": [],
+      "match_count": 0,
+      "zero_matches": true
+    },
+    {
+      "pattern": "frozen-cli-frame-support",
+      "exit_status": 1,
+      "match_lines": [],
+      "match_count": 0,
+      "zero_matches": true
+    },
+    {
+      "pattern": "visual_baseline",
+      "exit_status": 1,
+      "match_lines": [],
+      "match_count": 0,
+      "zero_matches": true
+    },
+    {
+      "pattern": "tools/test-inventory/profiles.json",
+      "exit_status": 1,
+      "match_lines": [],
+      "match_count": 0,
+      "zero_matches": true
+    },
+    {
+      "pattern": "pulldown-cmark",
+      "exit_status": 1,
+      "match_lines": [],
+      "match_count": 0,
+      "zero_matches": true
+    }
+  ],
+  "all_zero_matches": true,
+  "intentional_retained_references": [
+    "tools/acceptance_policy.json retains forbidden package names as policy guards.",
+    "tools/test-inventory/historical.json retains legacy case labels as a historical obligations catalog."
+  ],
+  "current_integrated_source": "865073462331552897822d65ede8d673f9c870d7",
+  "current_evidence_head_before_metadata_commit": "865073462331552897822d65ede8d673f9c870d7",
+  "accepted_source_updates_since_check": [
+    {
+      "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+      "decision": "T37-EXPECTED-CACHE-01",
+      "check_impact": "E2E locked check must rerun after final source input."
+    },
+    {
+      "commit": "865073462331552897822d65ede8d673f9c870d7",
+      "decision": "T37-FMT-0904",
+      "check_impact": "Formatting check must rerun after pending listener-helper source unit."
+    }
+  ]
+}

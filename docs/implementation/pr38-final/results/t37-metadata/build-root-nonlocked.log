@@ -1,0 +1,45 @@
+rust build guard: allowed; checked 1 filesystem(s)
+warning: associated function `capture` is never used
+   --> crates/holla-sim/src/listeners.rs:397:19
+    |
+396 | impl PortConflict {
+    | ----------------- associated function in this implementation
+397 |     pub(crate) fn capture(world: &World, port: u16, activity: &Activity) -> Self {
+    |                   ^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `holla-sim` (lib) generated 1 warning
+    Checking refactor-proof v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/tools/refactor-proof)
+    Checking termrock-forms v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-forms)
+    Checking jackin-preview-domain v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/jackin-preview-domain)
+    Checking showcase-data v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/showcase-data)
+    Checking tablepro-domain v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/tablepro-domain)
+    Checking holla-ui v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/holla-ui)
+    Checking termrock-consumer-example v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-consumer-example)
+    Checking termrock-shell v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-shell)
+    Checking termrock v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock)
+error[E0599]: no method named `draw_scene` found for struct `Runtime<A>` in the current scope
+  --> crates/termrock-forms/examples/form_lanes.rs:91:10
+   |
+90 | /     Runtime::new(EmptyApp, Theme::junie())
+91 | |         .draw_scene(area, &mut buffer, |ui, area| {
+   | |         -^^^^^^^^^^ method not found in `Runtime<EmptyApp>`
+   | |_________|
+   |
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `termrock-forms` (example "form_lanes") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error[E0599]: no method named `draw_scene` found for struct `Runtime<A>` in the current scope
+  --> crates/termrock-forms/examples/form_intrinsic_content.rs:62:10
+   |
+61 | /     Runtime::new(EmptyApp, Theme::junie())
+62 | |         .draw_scene(area, &mut buffer, |ui, area| {
+   | |         -^^^^^^^^^^ method not found in `Runtime<EmptyApp>`
+   | |_________|
+   |
+
+error: could not compile `termrock-forms` (example "form_intrinsic_content") due to 1 previous error
+mbx[cache]: 0 hits, 2 misses, 16 not looked up; 0 B downloaded, 0 B uploaded, 1.6 MiB stored locally
+mbx[savings]: the checkouts are gone. their 16.9 TiB logical has gone to join them.

@@ -14,7 +14,7 @@
     "reviewer": "/root/t00_independent_review",
     "review_level": "Sol high",
     "status": "Approved to restore only Runtime::draw_scene under the testing feature.",
-    "basis": "The fixed caller map identifies two active form examples that call Runtime::draw_scene. The coordinator reports that the baseline all-target, all-feature build passed and the combined revision had 101 missing-method errors. This fragment did not rerun either build.",
+    "basis": "The fixed caller map identifies two active form examples that call Runtime::draw_scene. The coordinator reports that the baseline all-target, all-feature build passed. The combined check exited 101 and reported missing-method errors in both examples. This fragment did not rerun either build.",
     "metadata_owner_action": "The metadata owner will restore the forms development edge and testing CI input."
   },
   "change": {

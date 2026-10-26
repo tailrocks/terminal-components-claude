@@ -1,0 +1,226 @@
+{
+  "final_combined_source": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "commands": [
+    {
+      "workdir": ".",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "exit_status": 0,
+      "stderr": "rust build guard: allowed; checked 1 filesystem(s)"
+    },
+    {
+      "workdir": "crates/termrock-e2e",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "exit_status": 0,
+      "stderr": "rust build guard: allowed; checked 1 filesystem(s)"
+    },
+    {
+      "workdir": "crates/termrock-visibility-tests",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "exit_status": 0,
+      "stderr": "rust build guard: allowed; checked 1 filesystem(s)"
+    },
+    {
+      "workdir": "external-consumer-demo",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "exit_status": 0,
+      "stderr": "rust build guard: allowed; checked 1 filesystem(s)"
+    },
+    {
+      "workdir": "tools/termrock-visibility-publisher",
+      "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml",
+      "exit_status": 0,
+      "stderr": "rust build guard: allowed; checked 1 filesystem(s)"
+    }
+  ],
+  "workspace_results": [
+    {
+      "workdir": ".",
+      "packages": 47,
+      "target_count": 68,
+      "target_kind_counts": {
+        "lib": 42,
+        "example": 12,
+        "bin": 14
+      },
+      "test_kind_count": 0,
+      "bench_kind_count": 0,
+      "effective_test_true": 0,
+      "effective_bench_true": 0,
+      "library_count": 42,
+      "library_doctest_true": 0,
+      "package_autotests_false_count": 47,
+      "package_autobenches_false_count": 47,
+      "package_autotest_setting_missing_count": 0,
+      "package_autobench_setting_missing_count": 0
+    },
+    {
+      "workdir": "crates/termrock-e2e",
+      "packages": 1,
+      "target_count": 3,
+      "target_kind_counts": {
+        "lib": 1,
+        "bin": 1,
+        "custom-build": 1
+      },
+      "test_kind_count": 0,
+      "bench_kind_count": 0,
+      "effective_test_true": 0,
+      "effective_bench_true": 0,
+      "library_count": 1,
+      "library_doctest_true": 0,
+      "package_autotests_false_count": 1,
+      "package_autobenches_false_count": 1,
+      "package_autotest_setting_missing_count": 0,
+      "package_autobench_setting_missing_count": 0
+    },
+    {
+      "workdir": "crates/termrock-visibility-tests",
+      "packages": 1,
+      "target_count": 3,
+      "target_kind_counts": {
+        "lib": 1,
+        "bin": 2
+      },
+      "test_kind_count": 0,
+      "bench_kind_count": 0,
+      "effective_test_true": 0,
+      "effective_bench_true": 0,
+      "library_count": 1,
+      "library_doctest_true": 0,
+      "package_autotests_false_count": 1,
+      "package_autobenches_false_count": 1,
+      "package_autotest_setting_missing_count": 0,
+      "package_autobench_setting_missing_count": 0
+    },
+    {
+      "workdir": "external-consumer-demo",
+      "packages": 1,
+      "target_count": 2,
+      "target_kind_counts": {
+        "lib": 1,
+        "bin": 1
+      },
+      "test_kind_count": 0,
+      "bench_kind_count": 0,
+      "effective_test_true": 0,
+      "effective_bench_true": 0,
+      "library_count": 1,
+      "library_doctest_true": 0,
+      "package_autotests_false_count": 1,
+      "package_autobenches_false_count": 1,
+      "package_autotest_setting_missing_count": 0,
+      "package_autobench_setting_missing_count": 0
+    },
+    {
+      "workdir": "tools/termrock-visibility-publisher",
+      "packages": 1,
+      "target_count": 1,
+      "target_kind_counts": {
+        "lib": 1
+      },
+      "test_kind_count": 0,
+      "bench_kind_count": 0,
+      "effective_test_true": 0,
+      "effective_bench_true": 0,
+      "library_count": 1,
+      "library_doctest_true": 0,
+      "package_autotests_false_count": 1,
+      "package_autobenches_false_count": 1,
+      "package_autotest_setting_missing_count": 0,
+      "package_autobench_setting_missing_count": 0
+    }
+  ],
+  "source_head_pre_metadata_cleanup_lock_sha256": {
+    "Cargo.lock": "722145d6e1d713be9096727af7e83b5775c99b62095100c4fa8cc9a2b41bf36c",
+    "crates/termrock-e2e/Cargo.lock": "1282e5bcb6f5ec415699f2733a402170ef2c6b9de7992543eab57271de929e16",
+    "crates/termrock-visibility-tests/Cargo.lock": "351d06eb34428503b7a6bd84cf039ac922d8b362361a79efab4433c0069176c3",
+    "external-consumer-demo/Cargo.lock": "fd277a435a18eb9f8021124c7674a3ed34d812db55ffde3a38c55ac0b76386d9",
+    "tools/termrock-visibility-publisher/Cargo.lock": "2e8981bf82d278c60e4f9f7e26c5ca3853b094f5a9b8a1144a09e27e70e35337"
+  },
+  "lock_sha256_before_final_metadata_commands": {
+    "Cargo.lock": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+    "crates/termrock-e2e/Cargo.lock": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+    "crates/termrock-visibility-tests/Cargo.lock": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+    "external-consumer-demo/Cargo.lock": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+    "tools/termrock-visibility-publisher/Cargo.lock": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d"
+  },
+  "lock_sha256_after_final_metadata_commands": {
+    "Cargo.lock": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+    "crates/termrock-e2e/Cargo.lock": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+    "crates/termrock-visibility-tests/Cargo.lock": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8",
+    "external-consumer-demo/Cargo.lock": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b",
+    "tools/termrock-visibility-publisher/Cargo.lock": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d"
+  },
+  "final_metadata_commands_left_locks_unchanged": true,
+  "denied_probe": {
+    "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --locked --format-version 1 --no-deps --manifest-path Cargo.toml",
+    "workdir": ".",
+    "exit_status": 125,
+    "result": "Denied by guard before Cargo; source-input lock SHA was unchanged around the probe. No bypass.",
+    "lock_sha256_before_after": {
+      "Cargo.lock": "722145d6e1d713be9096727af7e83b5775c99b62095100c4fa8cc9a2b41bf36c"
+    }
+  },
+  "lock_update_probe": {
+    "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo update --workspace --offline",
+    "workdirs": [
+      ".",
+      "crates/termrock-e2e",
+      "crates/termrock-visibility-tests",
+      "external-consumer-demo",
+      "tools/termrock-visibility-publisher"
+    ],
+    "exit_status": 125,
+    "result": "Denied by guard; Cargo did not perform this update. Guard-permitted non-locked Cargo checks resolved the pruned lock graphs; final acceptance checks used --locked.",
+    "lock_sha256_before_after": {
+      "Cargo.lock": {
+        "before": "722145d6e1d713be9096727af7e83b5775c99b62095100c4fa8cc9a2b41bf36c",
+        "after": "722145d6e1d713be9096727af7e83b5775c99b62095100c4fa8cc9a2b41bf36c",
+        "unchanged": true
+      },
+      "crates/termrock-e2e/Cargo.lock": {
+        "before": "1282e5bcb6f5ec415699f2733a402170ef2c6b9de7992543eab57271de929e16",
+        "after": "1282e5bcb6f5ec415699f2733a402170ef2c6b9de7992543eab57271de929e16",
+        "unchanged": true
+      },
+      "crates/termrock-visibility-tests/Cargo.lock": {
+        "before": "351d06eb34428503b7a6bd84cf039ac922d8b362361a79efab4433c0069176c3",
+        "after": "351d06eb34428503b7a6bd84cf039ac922d8b362361a79efab4433c0069176c3",
+        "unchanged": true
+      },
+      "external-consumer-demo/Cargo.lock": {
+        "before": "fd277a435a18eb9f8021124c7674a3ed34d812db55ffde3a38c55ac0b76386d9",
+        "after": "fd277a435a18eb9f8021124c7674a3ed34d812db55ffde3a38c55ac0b76386d9",
+        "unchanged": true
+      },
+      "tools/termrock-visibility-publisher/Cargo.lock": {
+        "before": "2e8981bf82d278c60e4f9f7e26c5ca3853b094f5a9b8a1144a09e27e70e35337",
+        "after": "2e8981bf82d278c60e4f9f7e26c5ca3853b094f5a9b8a1144a09e27e70e35337",
+        "unchanged": true
+      }
+    }
+  },
+  "evidence_source_checked": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "current_integrated_source": "865073462331552897822d65ede8d673f9c870d7",
+  "current_evidence_head_before_metadata_commit": "865073462331552897822d65ede8d673f9c870d7",
+  "subsequent_accepted_source_change": {
+    "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+    "decision": "T37-EXPECTED-CACHE-01",
+    "summary": "Remove only private LoadedExpectedCheckpoint cache fields/initializers; keep validation, errors, and order byte/behavior-identical per accepted review.",
+    "final_locked_e2e_check_pending": true
+  },
+  "metadata_command_source": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "metadata_graph_unchanged_by_followup": true,
+  "accepted_source_updates_since_check": [
+    {
+      "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+      "decision": "T37-EXPECTED-CACHE-01",
+      "check_impact": "E2E locked check must rerun after final source input."
+    },
+    {
+      "commit": "865073462331552897822d65ede8d673f9c870d7",
+      "decision": "T37-FMT-0904",
+      "check_impact": "Formatting check must rerun after pending listener-helper source unit."
+    }
+  ]
+}

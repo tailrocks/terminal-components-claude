@@ -2,81 +2,91 @@
 
 ## Status
 
-This work has a structural manifest pass only. The final source fragment from the tools owner is not in this worktree. The root lock and four active standalone locks still need updates. CI output generation and the integrated build check are pending. This file does not claim a build pass or product behavior proof.
+Metadata, lockfile, generated-workflow, and guarded build checks were completed on accepted combined source `55c75d292f5288b07f4a779575a42431259e21c4`. This is structural and build evidence only; zero-case behavior is **NOT VERIFIED**. No tests or Nextest runs were executed.
+
+T37-EXPECTED-CACHE-01 and the exact 202-path Rust formatter correction are independently accepted and integrated. The current source is `865073462331552897822d65ede8d673f9c870d7`. A final source unit removes the unused `PortConflict::capture` helper; its independent review/integration is pending. The generator output and locked build checks below are bound to source `55c75` and predate the accepted source updates. Per coordinator direction, regenerate through pinned Velnor and rerun final formatting and locked build checks once on the accepted combined source after the listener-helper unit is integrated, rather than at intermediate heads. This result is not a T37 self-approval.
 
 ## Input and ownership
 
-- Fixed input: `d402f893d159ac26da5db4d18c13510afdbce12f`.
-- Original fixed source: `c817b99e9e43abbbf3519d56b2f5ee86924243d8`.
+- Original source input: `c817b99e9e43abbbf3519d56b2f5ee86924243d8`.
 - Product source baseline: `1d6ee92adf6ccca38eeee64b1371cba1497e8fcd`.
 - Accepted documentation baseline: `5bcc79b971ae30ee244b8fef841c6fbafdb918d0`.
-- This worktree owns Cargo manifests and locks, `.velnor`, `.config`, generator inputs, CI output generation, inventory JSON, acceptance policy JSON, component ownership JSON, and `docs/implementation/pr38-final/results/t37-metadata/**`.
-- Foundation source fragments: `7368d4fc5a71e46cae5ee92963bcf3a6943953e9` and `2fee2c277d1213fc5fad5d81eb77479600182b69`.
-- Component source fragments: `96fe6a2a1430967831777da2da6402206c4716ff` and `f03e22c14a5817272cd5643094e974f9c25f1b6a`.
-- Application source fragments: `4f502be854a4d4c7a7585344bd9915b2a26fae79` and `fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a`.
-- The approved selection-binding source change is `4627a1c6f5c65a5f7527922051131080f65288cb`; Sol high review accepted it. It is not integrated into this metadata worktree.
-- The tools source worktree is still active. Its deletion proposal SHA-256 is `b61d0374d87c1a17cd639f796562b614b8b19fe0d78d605ef49fb7f570032772`. Later inventory/schema proposal evidence SHA-256 is `c4f5ce52766a1d82782bbd6670e49297271307af9a292a2a2408debc1038bc13`. These are proposal inputs, not commit IDs or a combined-source build result.
-- Do not self-approve this result.
+- Initial metadata input: `d402f893d159ac26da5db4d18c13510afdbce12f`.
+- Source used for the recorded metadata, generator, and locked build checks: `55c75d292f5288b07f4a779575a42431259e21c4`.
+- T37-EXPECTED-CACHE-01 source: `ed9d246ae51515e88bce0b0bc2a8545fb32efcd1`; exact 202-path formatter source: `865073462331552897822d65ede8d673f9c870d7`. These source edits do not alter the manifest graph, but the generated task digests and final checks must be refreshed after the pending listener-helper source unit.
+- Accepted source inputs include the foundation, component, application, selection-binding, tools, runtime-compatibility, admission-compatibility, and facade-comment fragments recorded in the sibling T37 result records. The final tools source head is `7fee71b6bd5091ce670d36644273ed1ffda1481d`.
+- This metadata owner changes Cargo manifests and locks, Velnor/Nextest inputs, generated output through its producer, and `results/t37-metadata/**`. The two exact compatibility-evidence JSON string corrections were separately authorized by the coordinator and are included in this evidence unit.
 
-Metadata commits:
+## Metadata cleanup and retained targets
 
-- Cleanup: `bb0ea4d7a156f2f5d48d7b0d544281876f2ef4f5`.
-- Evidence: `545b0cca194823fa73f3fbaca86ff60c6085f690`.
-- Pending-source status correction: `5ccb1a25cee50b9a6f8e60278257e57271e6d4c0`.
-- Corrected SHA references: `ef4753617fcc1e93cd43201b8d7b35f6dd80f88d`.
-- Retained feature branch scan: `572212bf7b32813eb4ab3ddd3dde6df7b01370b6`.
+- Retired workspace packages `termrock-test-support` and `termrock-conformance`, their test targets, dependency edges, and test-only workspace dependency keys. Preserved their immutable performance baseline and conformance component baseline byte-identically.
+- Removed only the approved manual API workbench/probe packages and their generated discovery exclusions, the frozen helper package, and its lock. Did not infer retirement for other nested packages.
+- Removed test-only development dependencies whose only remaining uses were in deleted suites. The exact manifests and removed dependency names are in `dependency-retirement-map.json`. Retained normal dependencies and development dependencies used by production/examples, including shell example dependencies and the e2e admission binary's `tuiscotti` dependency.
+- Kept `visual-harness` and its four production app binaries; removed only its `visual_baseline` test target and test-only dependencies. Kept e2e `admit_expected_generation`; kept visibility `capture-command` and `nextest-result-reader`; removed the obsolete visibility `fixture` target and unused `tempfile` dependency.
+- Removed the root inventory runner's exclusive `profiles.json`. Kept `historical.json` byte-identically as historical obligations and `required.json` byte-identically as an unapproved proposal. No inventory runner or test replacement was added.
+- Removed the visibility-tools nested Nextest config because it had no retained test target consumer. Root `.config/nextest.toml` retains its active `ci` profile. The external-consumer profile remains and Velnor reports that it shadows the root profile for that standalone consumer.
+- Restored `crates/termrock-forms/Cargo.toml`'s development edge `termrock-runtime = { workspace = true, features = ["testing"] }` under T37-BUILD-COMPAT-01. The retained `form_lanes` and `form_intrinsic_content` examples call the restored, testing-gated `Runtime::draw_scene` method.
+- Retained target identities, names, paths, crate types, required features, and documentation flags. All 47 workspace packages set `autotests = false` and `autobenches = false`; all 68 retained root targets have effective `test = false` and `bench = false`; all 42 libraries have effective `doctest = false`. The root target kinds are 42 libraries, 14 binaries, and 12 examples. There are zero separate test or bench targets. No `harness = false` was used.
+- Four retained standalone workspaces also passed metadata inspection: e2e (1 package/3 targets), visibility tools (1/3), external consumer (1/2), and visibility publisher (1/1). All have `autotests = false` and `autobenches = false`, with zero enabled test/bench/doctest behavior targets.
 
-## Metadata changes
+See `dependency-retirement-map.json`, `retirement-input-hashes.json`, `target-survivor-map.json`, and `metadata-final.json` for exact paths, identity rows, and structural counts.
 
-- Removed `termrock-test-support` and `termrock-conformance` from workspace membership, default membership where applicable, and workspace dependencies. Their package manifests are retired.
-- Removed their test-only dependency edges. Removed test-only development dependencies from the retained component packages, `visual-harness`, `termrock-e2e`, the publisher packages, `refactor-proof`, the visibility tools, and the external consumer package. Kept `termrock-shell`'s `ratatui` and facade development dependencies because its retained example uses them.
-- Removed the orphan root workspace dependency entries listed in `dependency-retirement-map.json`. The remaining root workspace dependency keys have retained manifest consumers.
-- Removed the ten explicit facade test targets. Kept all twelve examples. Set `autotests = false` and `autobenches = false` on all retained packages. Set `test = false` and `bench = false` on retained libraries, binaries, and examples. Set `doctest = false` only on library targets. No `harness = false` setting was added.
-- Kept the visual-harness package and its four production binaries. Removed its `visual_baseline` test target and test-only development dependencies.
-- Kept the e2e `admit_expected_generation` binary and its normal `tuiscotti` dependency. Kept the visibility `capture-command` and `nextest-result-reader` binaries. Removed the visibility `fixture` target table and `tempfile` dependency; the fixture source still exists in the fixed source input and must disappear with the reviewed tools source fragment.
-- Retired the exact workbench-tabs-privacy and paint-style-pilot package manifests and locks, the frozen helper package and lock, and the qualified-capture harness lock. The qualified-capture harness manifest was absent from the fixed input. The workbench retirement uses the accepted application deletion map for the two fixture bins, README, and no-retained-consumer result. It does not infer retirement for other nested packages.
-- Removed only `tools/test-inventory/profiles.json`. Kept `historical.json` byte-identical as a historical obligations catalog and `required.json` byte-identical as a pending, unapproved proposal.
-- Reduced `.config/nextest.toml` to the active `ci` profile. Generated tasks use `--profile ci`; the profile remains required. The generated Nextest commands retain `--no-tests fail`.
-- Removed the retired package paths from `.velnor` discovery exclusions. The global `testing` configuration remains unchanged pending the conditional high review.
-- Did not change `tools/acceptance_policy.json` or `component-ownership.json`. The forbidden package names remain policy guards. The W01–W45 ownership map remains byte-identical.
-- Removed stale Cargo manifest comments that cited the deleted doc-inventory test, reach harness, and public-only test. Root lint rationale comments remain unchanged pending the docs owner's accepted transfer.
+The metadata-only structural reference scan covers 63 active manifests, locks, configs, generated workflows, and the Velnor task manifest. It finds no retired package, target, or dependency references. Historical/policy evidence is excluded from that scan and its retained references are labeled in `structural-reference-scan.json`.
 
-See `dependency-retirement-map.json`, `retirement-input-hashes.json`, `preservation-hashes.json`, and `target-survivor-map.json` for exact paths and hashes.
+## Lockfiles
 
-## High-review decisions
+The guard denied `cargo update --workspace --offline` with status 125; no bypass was used. Guard-permitted non-locked Cargo resolution refreshed the pruned graphs, then every final compile check used `--locked`. The unsupported guarded `cargo metadata --locked --format-version 1 --no-deps --manifest-path Cargo.toml` probe was also denied with status 125 before Cargo; it left the root lock unchanged. The permitted guarded no-deps metadata command passed in the root and all four standalone workspaces.
 
-- `T37-TARGETS-01` sets the target flags above. Production and example target identities, paths, crate types, required features, and documentation settings stay fixed.
-- `T37-PROBE-01` retires only the reviewed workbench-tabs-privacy and paint-style-pilot probe packages. The workbench decision uses the two deleted fixture bins, README, and no-retained-consumer evidence. Other nested packages are not inferred from directory names.
-- `T37-PROBE-02` retires the viewport testing hooks and facade testing re-exports. Existing compatibility feature edges remain. Required work bounds remain assigned to T17/T33.
-- `T37-INVENTORY-01` retires only `profiles.json` and its capture/verify lane. This metadata commit removes the profile file. The historical catalog and pending proposal remain unchanged. The inventory runner deletion is pending the tools source closure. No replacement is added before T38.
-- `T37-DOC-INVENTORY-01` approves retirement of the xtask documentation-inventory helper and its `pulldown-cmark` dependency. This metadata commit removes the dependency edge. The source deletion is pending the tools source closure. `serde_json`, ownership checks, and the xtask CLI remain.
-- `E2E-01` keeps the `admit_expected_generation` CLI and its production publication path. `T37-E2E-SCHEMA-02` keeps all twelve schema files and the active registry/profile data byte-identical. The preservation hashes record all twelve schemas and three related data files.
-- `T37-FROZEN-01`, `T37-QUALIFIED-01`, and `CAPTURE-01` approve retirement of their runnable helper closures. This metadata commit removes the frozen manifest and the frozen/qualified lock files. The remaining source deletions are pending the tools source closure. Qualified-capture pins, proof outputs, licenses, and repair provenance stay with the tools source owner.
-- `T37-CI-TESTING-01` remains conditional. Root approved `T37-SELECTION-BINDING-01`, and its source commit passed independent Sol high review. The source commit and final combined-source scan are pending integration. Keep the global testing configuration until the approved change is integrated and the scan confirms no retained non-test branch. Do not treat an empty suite as a pass.
+| Lockfile | Entries before → after | Removed entries | Added entries | SHA-256 after |
+|---|---:|---:|---:|---|
+| `Cargo.lock` | 477 → 387 | 90 | 0 | `b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba` |
+| `crates/termrock-e2e/Cargo.lock` | 264 → 233 | 31 | 0 | `406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5` |
+| `crates/termrock-visibility-tests/Cargo.lock` | 41 → 30 | 11 | 0 | `34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8` |
+| `external-consumer-demo/Cargo.lock` | 207 → 207 | 0 | 0 | `3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b` |
+| `tools/termrock-visibility-publisher/Cargo.lock` | 175 → 150 | 25 | 0 | `e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d` |
 
-## Structural evidence
+Package versions and sources for every retained lock entry are unchanged; lock changes prune dependency closure only. The external-consumer lock's entry count stays constant while its dependency graph changes. `lockfiles-final.json` contains the full removed-package lists and before/after hashes.
 
-- Fixed-input root metadata had 49 packages, 44 libraries, 14 binaries, 12 examples, and 18 separate test targets. The metadata cleanup removed the two retired packages and those 18 separate test targets.
-- The post-cleanup root metadata has 47 packages, 42 libraries, 14 binaries, and 12 examples. All 68 retained non-test targets match the fixed-input identity map by package, target name, kind, path, crate types, required features, and doc value.
-- The structural scan found zero target-flag errors, zero orphan workspace dependency keys, and zero changes to retained package feature tables.
-- Standalone no-deps metadata passed for e2e, visibility tools, external-consumer-demo, and tools visibility publisher.
-- The fixed Velnor output has 235 default/testing task pairs. It has 211 identical pairs and 24 feature-flag differences across `termrock-core`, `termrock-runtime`, `termrock-shell`, `termrock-theme`, `termrock-viewport`, and `termrock`. Preserve the configuration until the final combined-source proof shows that all non-test feature branches are gone and the retained aliases add no production dependency or backend choice. Keep default build, Clippy, doc, and format tasks. Keep `--no-tests fail`. Keep T05/T32 and F03/T03 open.
-- A read-only fixed-input scan found one testing-gated item: `TextViewport::selection_binding_chords` at `crates/termrock-viewport/src/viewport.rs:1566`. Sol high review found four callers in conformance tests scheduled for removal and no established production caller. Root approved `T37-SELECTION-BINDING-01`; the reviewed source commit `4627a1c6f5c65a5f7527922051131080f65288cb` removes only this inspection method and cfg while preserving `SELECTION_BINDINGS`, actions, chords, registration, and selection/input behavior. The source commit is not integrated here. Keep the global Velnor testing configuration until it is integrated and the final combined-source scan finds no non-test testing branch or build-script environment use. No `CARGO_FEATURE_TESTING` build-script use was found.
+## Velnor and generated output
 
-## Commands and lock state
+Generation used `mise exec -- velnor-actions generate` twice; both runs exited 0 and were byte-idempotent. Velnor 0.1.48 generated the workflow and task manifest. No generated workflow was hand-edited.
 
-- `/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --format-version 1 --no-deps --manifest-path Cargo.toml` passed with status 0.
-- The same guarded no-deps metadata command passed with status 0 from each retained standalone workspace directory: `crates/termrock-e2e`, `crates/termrock-visibility-tests`, `external-consumer-demo`, and `tools/termrock-visibility-publisher`.
-- `/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo metadata --locked --format-version 1 --no-deps --manifest-path Cargo.toml` was denied by the guard with status 125. Do not bypass this guard.
-- `git diff --check` passed.
-- Root `Cargo.lock` was `722145d6e1d713be9096727af7e83b5775c99b62095100c4fa8cc9a2b41bf36c` before and after the denied probe. The no-deps metadata command did not update it. The active standalone lock hashes before cleanup are in `lockfiles-before.json`.
-- No tests, Cargo build, lock update, or Velnor generation ran in this worktree. The final lock update, generated output, and build check must run after the reviewed tools closure is in the combined input.
+- `.github/workflows/ci.yml` SHA-256: `b2a2747b49052bbec9c565d1436e4d19c6f7aadb6cb3dd3fa18376127ca83107`.
+- `.github/velnor/task-execution-manifest-v1.json` SHA-256: `2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305`.
+- The workflow preamble through `jobs:` is byte-identical to the prior generated workflow (SHA-256 `2592a3fb0162fae984f0bff0752e81841a6c1cbf999fac2218a7b318e399e261`), and all 13 unique action/local-action references are unchanged, including the pinned external action SHAs. Only generated task/job membership changes.
+- The prior generated manifest had 470 tasks: 94 each for build, Clippy, doc, fmt, and Nextest. The final manifest has 360 tasks: 90 each for build, Clippy, doc, and fmt; it has zero Nextest run tasks. It covers 45 discovered packages; the root has 47 members, with e2e and visibility tools intentionally excluded from discovery and checked as standalone workspaces.
+- The final 180 default/testing task pairs include 162 identical argv/environment pairs and 18 feature-flag differences across `termrock-core`, `termrock-runtime`, `termrock-shell`, `termrock-theme`, `termrock-viewport`, and `termrock`. All 180 default-task argv/environment records match the prior generated output.
+- `rust-visual-harness` and `rust-visual-harness-testing` remain generated jobs. The Velnor testing matrix retains `default` and `testing`, `test_runner = "cargo_nextest"`, and `run_ignored = "default"`. Previously generated eligible Nextest tasks all carried `--no-tests fail`; the final generated set has no eligible Nextest task, so the lane is **ABSENT / NOT VERIFIED**, not green. The policy remains in the generator input for future approved targets.
+- `.velnor/config.toml` changes only its discovery exclusions for retired paths; the feature matrix and runner settings are unchanged. `mise.toml`, `mise.lock`, and `rust-toolchain.toml` are byte-identical to the fixed input.
 
-## Required integrated completion
+Exact task differences and input/output hashes are in `generator-final.json`. The root Nextest `ci` profile is unchanged; visual-only profiles and their stale test-lane comments were removed with the retired visual suite. No replacement gate was added.
 
-1. Add the reviewed tools source fragment to the combined input. Recheck all manifest dependency removals against retained source and examples. Preserve immutable files and recorded hashes.
-2. Regenerate root and active standalone locks with the guarded, scoped Cargo update command. Record removed lock entries and before/after hashes.
-3. Resolve `T37-CI-TESTING-01` only from final combined-source evidence. If any meaningful non-test feature branch remains, keep the testing configuration and request a narrower decision.
-4. Run `mise exec -- velnor-actions generate`. Review the complete generated diff and record workflow/task-manifest hashes. Do not hand-edit generated YAML.
-5. Run `git diff --check`, the allowed guarded no-deps metadata command, and the guarded `cargo check --locked --workspace --all-targets --all-features` command. Compare failures with the accepted baseline at `c01a2553`; name the pre-existing owner for any retained failure. Do not run legacy tests.
-6. Record `zero-case behavior: NOT VERIFIED`. T37 structural and build checks do not prove product behavior. T38 and later reviewed test plans remain open.
+## Preservation and comments
+
+- All twelve e2e schemas, `cases/registry.json`, and `profile.json` match the fixed input byte-for-byte. The oracle descriptor, historical/pending inventory JSON, policy/ownership maps, and the immutable performance/component baseline files also match their fixed-input hashes. See `final-preservation-checks.json` and `preservation-hashes.json`.
+- `cases/deferred-obligations.json` was source-retired under the accepted E2E-01/tools closure (`697a0353e5c84485b5dc36aa8058a4c71a1c236e`, `8bd63d96ab6be07f14b570e434df3d376fc8020b`). Its input hash remains recorded as provenance. The removed rows do not close the listed behavior obligations; zero-case behavior stays **NOT VERIFIED**.
+- `profile.json` keeps `readiness_timeout_ms = 8000` and `input_pacing_ms = 120`. T37-PROFILE-FORMAT-01 retains both as required `u64` fields under `deny_unknown_fields` when admission parses `PROFILE_JSON` (`crates/termrock-e2e/src/lib.rs:799-800`, parse at line 3345). They validate retained profile format/admission data; they make no executor or timing guarantee. Their compiler warning is retained without fake reads, serde changes, or lint allowances.
+- Root `[workspace.lints.rust]` and `[workspace.lints.clippy]` tables, including explanatory safety comments, are byte-identical to the fixed input. No blanket lint allowance or weakened unsafe-code lint was added.
+- Stale manifest comments tied to the removed doc-inventory test, public-only test, and retired testing package were removed. Other retained manifest/API comments were kept. Generated file headers and pinned workflow action references remain producer-owned.
+
+## Checks and open findings
+
+All Cargo commands used `/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo ...`. Disk preflight reported `free_bytes=2136941903872 status=ok` before final metadata inspection.
+
+`metadata-output-hashes.json` binds the manifest/lock/config/generated-output graph used for these checks (`metadata_graph_sha256 = 9a39580c733b65fe02ac28a691188838daef4957235bd658fc305d1d5bdaf2a5`). `metadata-final.json` records the five permitted no-deps metadata commands and target flags. `build-final.json` records exact final command, source, metadata graph, exit status, and log hash for every locked check.
+
+| Check | Command | Workdir | Status | Log |
+|---|---|---|---:|---|
+| Root compile | `cargo check --locked --workspace --all-targets --all-features` | `.` | 0 | `build-root-locked-final.log` |
+| e2e compile | `cargo check --locked --all-targets --all-features` | `crates/termrock-e2e` | 0 | `build-e2e-locked-final.log` |
+| visibility tools compile | same | `crates/termrock-visibility-tests` | 0 | `build-visibility-locked-final.log` |
+| consumer compile | same | `external-consumer-demo` | 0 | `build-consumer-locked-final.log` |
+| publisher compile | same | `tools/termrock-visibility-publisher` | 0 | `build-publisher-locked-final.log` |
+| whitespace check | `git diff --check` | `.` | 0 | clean |
+| formatting | `cargo fmt --all -- --check` | `.` | 1 | `format-check-final.log` |
+
+The root locked check compiled the 47-member workspace and all targets/features successfully on source `55c75`. The e2e and root checks emitted warnings. The `Profile` warning is intentionally retained by T37-PROFILE-FORMAT-01. T37-EXPECTED-CACHE-01 independently accepted and integrated dropping only the four private `LoadedExpectedCheckpoint` cached fields/initializers while preserving all file/hash/frame/provenance/PNG/decode/dimension/alpha/tree validation, errors, and order; the final locked e2e check is pending. The old root log reports `PortConflict::capture` as unused at `crates/holla-sim/src/listeners.rs:397`; a source-only removal unit is pending independent review and integration.
+
+The pre-correction formatting check on source `55c75` affected 202 Rust paths, with 1,792 diff blocks, 3,940 blank-line edits, and 66 nonblank edits in ten paths. It was not blank-line-only. The exact path list is `format-check-affected-paths.txt` (SHA-256 `ab5517c9ec853ff081d4ec465048a7588e53ebb6a211a61bda8892b760f25a7c`); full pre-correction output is preserved as `format-check-final.log.gz`. Its decompressed SHA-256 is `b48a9855e94b3ac1528495875df6a78a217fb9b6e1507d3257c8547dc8ecb97d` and compressed SHA-256 is `5de1c0d57a35f157a9e595162f3d791f45eb438c9741ffd6b9034150fb2fd909`. `set -o pipefail; gzip -dc docs/implementation/pr38-final/results/t37-metadata/format-check-final.log.gz | shasum -a 256` exited 0 and returned the original SHA. The exact formatter correction is now accepted and integrated; the final formatter check is pending the listener-helper source unit. This metadata owner made no `.rs` formatting changes.
+
+No tests, doctests, benches, or Nextest runs were executed. There are zero selected behavior cases; all product behavior remains **NOT VERIFIED**. Structural and build evidence does not prove product behavior. T05/T32 and later reviewed test-plan work remain open. Independent Sol-high review of this metadata/evidence commit is required.

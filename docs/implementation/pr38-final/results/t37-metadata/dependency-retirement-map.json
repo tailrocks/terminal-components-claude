@@ -560,5 +560,43 @@
       "added_dependencies": {},
       "manifest_retired": false
     }
+  ],
+  "final_combined_source": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "final_effective_manifest_overrides": [
+    {
+      "manifest": "crates/termrock-forms/Cargo.toml",
+      "package": "termrock-forms",
+      "action": "restore the original development dependency termrock-runtime = { workspace = true, features = [\"testing\"] }",
+      "decision": "T37-BUILD-COMPAT-01",
+      "reason": "Two retained form examples still call Runtime::draw_scene under the testing feature; preserve feature-gated compatibility and generated default/testing lanes."
+    }
+  ],
+  "source_evidence": {
+    "tools_final_source": "7fee71b6bd5091ce670d36644273ed1ffda1481d",
+    "component_selection_helper": "4627a1c6f5c65a5f7527922051131080f65288cb",
+    "runtime_compat": "34cbad0123c13612f06cf18a882465e8f108d607",
+    "admission_compat": "1e3368870974d28499e556225f35d8050224476f",
+    "facade_comments": "55c75d292f5288b07f4a779575a42431259e21c4"
+  },
+  "evidence_source_checked": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "current_integrated_source": "865073462331552897822d65ede8d673f9c870d7",
+  "current_evidence_head_before_metadata_commit": "865073462331552897822d65ede8d673f9c870d7",
+  "subsequent_accepted_source_change": {
+    "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+    "decision": "T37-EXPECTED-CACHE-01",
+    "summary": "Remove only private LoadedExpectedCheckpoint cache fields/initializers; keep validation, errors, and order byte/behavior-identical per accepted review.",
+    "final_locked_e2e_check_pending": true
+  },
+  "accepted_source_updates_since_check": [
+    {
+      "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+      "decision": "T37-EXPECTED-CACHE-01",
+      "check_impact": "E2E locked check must rerun after final source input."
+    },
+    {
+      "commit": "865073462331552897822d65ede8d673f9c870d7",
+      "decision": "T37-FMT-0904",
+      "check_impact": "Formatting check must rerun after pending listener-helper source unit."
+    }
   ]
 }

@@ -1,0 +1,269 @@
+{
+  "source_head": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "files": [
+    {
+      "path": ".config/nextest.toml",
+      "sha256": "450aea5663b792140076ea139cb53cc0965d24a5e3e04d0386457f964ec3a28e"
+    },
+    {
+      "path": ".github/velnor/task-execution-manifest-v1.json",
+      "sha256": "2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "b2a2747b49052bbec9c565d1436e4d19c6f7aadb6cb3dd3fa18376127ca83107"
+    },
+    {
+      "path": ".velnor/config.toml",
+      "sha256": "3bd8343278328708afb79c14740179bcd4018763f4e323d32e08ceaf93b3ff20"
+    },
+    {
+      "path": "Cargo.lock",
+      "sha256": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba"
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "f73b5d0ece57b053923d143df1100d6e53bd11f75ff78a710d11040783618d0e"
+    },
+    {
+      "path": "crates/holla-catalog/Cargo.toml",
+      "sha256": "0dd8651001e9f90e4e5d1e61bb069c24d119eab88e05f914f90565a1de346ecf"
+    },
+    {
+      "path": "crates/holla-domain/Cargo.toml",
+      "sha256": "f08e0648a9e8fec9f842687be05878f1dee7cb3d9fd4a1b0b085a0e8fc8f5a28"
+    },
+    {
+      "path": "crates/holla-plan/Cargo.toml",
+      "sha256": "061ff824333d3abe6ff6096a5c78636456492e2f25039edc54a1af9aee5f1409"
+    },
+    {
+      "path": "crates/holla-sim/Cargo.toml",
+      "sha256": "0d390cfc8492b8e101e5c43a60a91984d74992c4145f292b62c04f082a828d7f"
+    },
+    {
+      "path": "crates/holla-ui/Cargo.toml",
+      "sha256": "b88225c3b527bb780bbfd031eb4ed187fc78a765d8e595b7ecba31f7fa2bdf30"
+    },
+    {
+      "path": "crates/holla/Cargo.toml",
+      "sha256": "7a6fca57d036ae48773fd280fdcc429b8b1ed6406c61b56e3e038cd916a49f9f"
+    },
+    {
+      "path": "crates/jackin-preview-app/Cargo.toml",
+      "sha256": "8d3f9c95818bee9a723ce79d10b031f07136f36f16a6d18c92ec9a533a4a75de"
+    },
+    {
+      "path": "crates/jackin-preview-capsule-ui/Cargo.toml",
+      "sha256": "39f7689595b84bbbe2f9872e2ddc72c089a61515bc894694342311df3c7f41fd"
+    },
+    {
+      "path": "crates/jackin-preview-domain/Cargo.toml",
+      "sha256": "a60001043ef98abf8a8dd5a259571d0db7208874c57cfc2edcc063726cbc64b7"
+    },
+    {
+      "path": "crates/jackin-preview-host-ui/Cargo.toml",
+      "sha256": "b86a579e199ce20b603141bb119b9028816e06518b5a03300e9bd6de550f14ea"
+    },
+    {
+      "path": "crates/jackin-preview-presentation/Cargo.toml",
+      "sha256": "7e063458d6a6912fe6c67a7f5c9368d172a1e4c9ad2e5ff41bedfed26b6fb1a8"
+    },
+    {
+      "path": "crates/jackin-preview-sim/Cargo.toml",
+      "sha256": "25c401e6095c75b9172c1d7c0e105beeb7a7e514832d44d0e6781a5f6f9c039f"
+    },
+    {
+      "path": "crates/jackin-preview/Cargo.toml",
+      "sha256": "f9681d33179f8d9167a9bb28e3b05114a0c99cb14dc6dde30f95f5a049ee5048"
+    },
+    {
+      "path": "crates/showcase-data/Cargo.toml",
+      "sha256": "3be73327b636a7b01d1bcc722ae660bb173aef3ba901efe335b1b88733c254a6"
+    },
+    {
+      "path": "crates/showcase-demos/Cargo.toml",
+      "sha256": "309925e7f08649a9fc5b5011a0e03c6cbb81847dcaac7b417066e472c5e4ca44"
+    },
+    {
+      "path": "crates/showcase-ui/Cargo.toml",
+      "sha256": "45f83780a062e7a6799552be3b2d6c7f9dc7a1542fa4685e1723c1f2e8481a13"
+    },
+    {
+      "path": "crates/showcase/Cargo.toml",
+      "sha256": "7373827a8fb874e85fabc32e2015dc23539661e5e0709b256e0ddfc319406350"
+    },
+    {
+      "path": "crates/tablepro-demo/Cargo.toml",
+      "sha256": "97a282a11a125a1c64e11be06cdf801b1f68451fa297be751d7468e796068773"
+    },
+    {
+      "path": "crates/tablepro-domain/Cargo.toml",
+      "sha256": "7d9756aa60c51c0dc0a878d3f86a5dd91e0aeeb22b209cb547e580764b6d705c"
+    },
+    {
+      "path": "crates/tablepro-sql/Cargo.toml",
+      "sha256": "96d34bf7c0ec079a92f14dc7320e360539de404f2e37c12532d92a124df372cf"
+    },
+    {
+      "path": "crates/tablepro-ui/Cargo.toml",
+      "sha256": "0f5e199c7e3d4eb74480b863c1aa3802397df5454516dfc2ae7f273c61b78c81"
+    },
+    {
+      "path": "crates/tablepro/Cargo.toml",
+      "sha256": "23cab57aa20be6a9518c4aa031aeb0863af2a6640a8d3aee85ea8b8f41410083"
+    },
+    {
+      "path": "crates/termrock-collections/Cargo.toml",
+      "sha256": "722dedf832d590099052e9785a010d03930b4bb6490371db84808809d4bbf9f3"
+    },
+    {
+      "path": "crates/termrock-consumer-example/Cargo.toml",
+      "sha256": "e2694c031c6976fde008f45e708e0215950b898fc0864c212dc2e8ae56435457"
+    },
+    {
+      "path": "crates/termrock-controls/Cargo.toml",
+      "sha256": "4675fb2f1410f89924ec1beb8eb06fffd99f6b442d6120afa22e9714b79423eb"
+    },
+    {
+      "path": "crates/termrock-core/Cargo.toml",
+      "sha256": "3e24db9d294b9294e79bafcfa28a0712ee9882d1efb021bca872354e2377a8aa"
+    },
+    {
+      "path": "crates/termrock-e2e/Cargo.lock",
+      "sha256": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5"
+    },
+    {
+      "path": "crates/termrock-e2e/Cargo.toml",
+      "sha256": "41a346d0f18d832d750bdda889eaea22b7887fe24097db2baed3062fe149faae"
+    },
+    {
+      "path": "crates/termrock-editors/Cargo.toml",
+      "sha256": "54e9542053cbed351286cccf41183b76b02c03deb8aa014584673ba37dedf24f"
+    },
+    {
+      "path": "crates/termrock-feedback/Cargo.toml",
+      "sha256": "c86097f491ff682e918156d677a67b02a2b35b7d65da9c4311fdb807b0ad5821"
+    },
+    {
+      "path": "crates/termrock-fields/Cargo.toml",
+      "sha256": "7fa4af88f611706ec2400b078ad37a85d0ae45fe9862701f10b345ffa788c2b6"
+    },
+    {
+      "path": "crates/termrock-forms/Cargo.toml",
+      "sha256": "339b9160070a403140a4dc9a44a075b33e9068905ef198beade9480d7e86ebbf"
+    },
+    {
+      "path": "crates/termrock-grid/Cargo.toml",
+      "sha256": "b31f5285b0ffafe9c56d56d340b796a86b67f652f67d12d308077134d14de5eb"
+    },
+    {
+      "path": "crates/termrock-layout/Cargo.toml",
+      "sha256": "448f9342f505564d0fa731d8b313cbf71aa80c7daa720e9be62fb54372debce1"
+    },
+    {
+      "path": "crates/termrock-navigation/Cargo.toml",
+      "sha256": "d75f71617ab8fa9b612178e544dee32b90c3e7dc10732958842289618299ca1c"
+    },
+    {
+      "path": "crates/termrock-overlays/Cargo.toml",
+      "sha256": "e4b5c53d78ade64f9a2597c37657e3db43d4af9c120f9f17acdb956b27c2df1c"
+    },
+    {
+      "path": "crates/termrock-render/Cargo.toml",
+      "sha256": "ed221cd08513f8696cc23dcd2c7905603726a05188ffdadeecc77a6269e66741"
+    },
+    {
+      "path": "crates/termrock-runtime/Cargo.toml",
+      "sha256": "b9669d455d23188c711b7c37c93d7ea335342bcf745399451b28521352289281"
+    },
+    {
+      "path": "crates/termrock-session/Cargo.toml",
+      "sha256": "6f786262d2adeb5139e432428235b9059f3d6b1fcd04817636058123ac9ae7b4"
+    },
+    {
+      "path": "crates/termrock-shell/Cargo.toml",
+      "sha256": "c8f3216d2bbded95ed41e9d62ebd54b180414d5d44acef2960679a8538cb4b76"
+    },
+    {
+      "path": "crates/termrock-terminal/Cargo.toml",
+      "sha256": "2e6c6fb420fea5b8e819c5aaa3e334d456f3a48211415de353575cdc13faa740"
+    },
+    {
+      "path": "crates/termrock-text/Cargo.toml",
+      "sha256": "e9b72cbcd7e5dc616327faf3abc024a9858b72405887e6e7fc68db225993acba"
+    },
+    {
+      "path": "crates/termrock-theme/Cargo.toml",
+      "sha256": "410542734ba640fe1b6f33427947caf08208b8d0e495adde76e0924949ea6c00"
+    },
+    {
+      "path": "crates/termrock-viewport/Cargo.toml",
+      "sha256": "f5459eeddc95c228429536c991fed035c8c4b4179b07e156f1c155a27b8f2f9b"
+    },
+    {
+      "path": "crates/termrock-visibility-publisher/Cargo.toml",
+      "sha256": "357e0b54cf812303ff639ab31bb3fda4e2344f5e0953468fd95f6b19a8502248"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/Cargo.lock",
+      "sha256": "34d3f9b1aa926b8209fec670122325720bb548e8f697cc9e1a280b03bdb46de8"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/Cargo.toml",
+      "sha256": "8ee8242deaca9c1ec2d72baa24175b7f2b1d601b825dcd4379706e6d06cc1282"
+    },
+    {
+      "path": "crates/termrock-xtask/Cargo.toml",
+      "sha256": "15c0b5dbbe333b234b2c759c4239c9711441c7b358ea8c1b00978f299f9d03b7"
+    },
+    {
+      "path": "crates/termrock/Cargo.toml",
+      "sha256": "30b858780e00d8df464a3b8fbb3886f9b5f1811f2abc844792d602d30d72d2f0"
+    },
+    {
+      "path": "crates/visual-harness/Cargo.toml",
+      "sha256": "c09a6d81144c136f74200aabc805e95f2662e0049707d8503f1f433f852057f4"
+    },
+    {
+      "path": "external-consumer-demo/.config/nextest.toml",
+      "sha256": "609ed6f5dc4a62cb9c3b70250412037eda3f8ff66af29d5eeb2a1f79ef8fd9a1"
+    },
+    {
+      "path": "external-consumer-demo/Cargo.lock",
+      "sha256": "3d97fd71235062fb1ae6a833aed92a76d8d918050116fb75ed1b4560766c2d5b"
+    },
+    {
+      "path": "external-consumer-demo/Cargo.toml",
+      "sha256": "fa260425fd0d23249c716845e88f078c5f1c3a830b6c1e2baeaa7a959ca91685"
+    },
+    {
+      "path": "tools/refactor-proof/Cargo.toml",
+      "sha256": "7d7ea55e3403d50366e68ecc1dc2ef60b8ad30615dd511902568e0cdb5b0feb7"
+    },
+    {
+      "path": "tools/termrock-visibility-publisher/Cargo.lock",
+      "sha256": "e58bcfca71d427b6eb7604cf1db7cadd0ba3847d7b5b97e8579d47cc6331ba2d"
+    },
+    {
+      "path": "tools/termrock-visibility-publisher/Cargo.toml",
+      "sha256": "f0cb6d6c93e8c27dea556968c8e64bdb46316d01c429a45e0ea1fcc2da1f74d2"
+    }
+  ],
+  "file_count": 62,
+  "metadata_graph_sha256": "9a39580c733b65fe02ac28a691188838daef4957235bd658fc305d1d5bdaf2a5",
+  "current_integrated_source": "865073462331552897822d65ede8d673f9c870d7",
+  "current_evidence_head_before_metadata_commit": "865073462331552897822d65ede8d673f9c870d7",
+  "accepted_source_updates_since_check": [
+    {
+      "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+      "decision": "T37-EXPECTED-CACHE-01",
+      "check_impact": "E2E locked check must rerun after final source input."
+    },
+    {
+      "commit": "865073462331552897822d65ede8d673f9c870d7",
+      "decision": "T37-FMT-0904",
+      "check_impact": "Formatting check must rerun after pending listener-helper source unit."
+    }
+  ]
+}

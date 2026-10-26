@@ -112,8 +112,16 @@
     {
       "path": "crates/termrock-e2e/cases/deferred-obligations.json",
       "input_sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
-      "current_sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
-      "byte_identical": true
+      "current_sha256": null,
+      "byte_identical": false,
+      "status": "source-retired under accepted E2E-01/tools closure",
+      "source_retirement": {
+        "commits": [
+          "697a0353e5c84485b5dc36aa8058a4c71a1c236e",
+          "8bd63d96ab6be07f14b570e434df3d376fc8020b"
+        ],
+        "reason": "Legacy parity-burndown/test-lane input retired with the accepted tools source closure. This does not close the listed behavior obligations; zero-case behavior remains NOT VERIFIED."
+      }
     },
     {
       "path": "crates/termrock-e2e/cases/registry.json",
@@ -128,5 +136,8 @@
       "byte_identical": true
     }
   ],
-  "e2e_schema_count": 12
+  "e2e_schema_count": 12,
+  "active_schema_count": 12,
+  "active_registry_and_profile_byte_identical": true,
+  "deferred_obligations_status": "Source-retired under accepted E2E-01/tools closure; historical hash is retained as provenance, behavior obligations remain open."
 }

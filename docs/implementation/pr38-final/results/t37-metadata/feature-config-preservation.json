@@ -1,7 +1,11 @@
 {
   "fixed_input": "d402f893d159ac26da5db4d18c13510afdbce12f",
-  "generator_output": "fixed input `.github/velnor/task-execution-manifest-v1.json` (not regenerated yet)",
-  "configuration_preserved_pending_final_source_proof": true,
+  "generator_output": {
+    "path": ".github/velnor/task-execution-manifest-v1.json",
+    "sha256": "2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305",
+    "source_head": "55c75d292f5288b07f4a779575a42431259e21c4",
+    "generator": "Velnor Actions 0.1.48; generated twice successfully; byte-identical output"
+  },
   "configurations": {
     "default": [
       "default"
@@ -11,12 +15,54 @@
       "testing"
     ]
   },
-  "pair_counts": {
+  "packages_with_testing_feature": [
+    {
+      "package": "termrock-core",
+      "path": "crates/termrock-core/Cargo.toml",
+      "testing_feature": []
+    },
+    {
+      "package": "termrock-runtime",
+      "path": "crates/termrock-runtime/Cargo.toml",
+      "testing_feature": [
+        "termrock-core/testing",
+        "termrock-theme/testing"
+      ]
+    },
+    {
+      "package": "termrock-shell",
+      "path": "crates/termrock-shell/Cargo.toml",
+      "testing_feature": []
+    },
+    {
+      "package": "termrock-theme",
+      "path": "crates/termrock-theme/Cargo.toml",
+      "testing_feature": []
+    },
+    {
+      "package": "termrock-viewport",
+      "path": "crates/termrock-viewport/Cargo.toml",
+      "testing_feature": []
+    },
+    {
+      "package": "termrock",
+      "path": "crates/termrock/Cargo.toml",
+      "testing_feature": [
+        "termrock-runtime/testing",
+        "termrock-viewport/testing"
+      ]
+    }
+  ],
+  "retained_manifest_feature_tables_changed": [],
+  "high_decision": "T37-BUILD-COMPAT-01 and T37-CI-TESTING-02 require preserving the original default/testing matrix, cargo_nextest runner policy, run_ignored=default, and no-tests=fail behavior for each eligible generated Nextest task. No replacement CI gate was created.",
+  "initial_generator_output": "fixed input `.github/velnor/task-execution-manifest-v1.json` (not regenerated yet)",
+  "initial_configuration_preserved_pending_final_source_proof": true,
+  "initial_pair_counts": {
     "pairs_total": 235,
     "identical_argv_env": 211,
     "different_argv_env": 24
   },
-  "different_pairs": [
+  "initial_different_pairs": [
     {
       "default_task": "stack/rust/crates/termrock-core/build/default",
       "testing_task": "stack/rust/crates/termrock-core/build/testing",
@@ -1230,47 +1276,129 @@
       ]
     }
   ],
-  "packages_with_testing_feature": [
+  "configuration_preserved": true,
+  "final_source_conditioned_branch_scan": {
+    "source": "55c75d292f5288b07f4a779575a42431259e21c4",
+    "retained_non_test_testing_branch": {
+      "path": "crates/termrock-runtime/src/runtime.rs",
+      "line": 2331,
+      "item": "Runtime::draw_scene",
+      "attribute": "#[cfg(feature = \"testing\")]",
+      "callers": [
+        "crates/termrock-forms/examples/form_lanes.rs:91",
+        "crates/termrock-forms/examples/form_intrinsic_content.rs:62"
+      ]
+    },
+    "build_script_CARGO_FEATURE_TESTING_matches": 0,
+    "selection_binding_helper": "retired by accepted T37-SELECTION-BINDING-01; preserve SELECTION_BINDINGS and selection/input behavior",
+    "configuration_action": "keep original global testing configuration; the restored Runtime::draw_scene branch is required by retained examples",
+    "high_review": "T37-BUILD-COMPAT-01; T37-CI-TESTING-02",
+    "cache_cleanup_source": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+    "source_scan_still_applies_after": "Source updates were isolated to expected-checkpoint cache fields and formatting; no testing feature branch or manifest feature table changed."
+  },
+  "final_generated_task_summary": {
+    "task_count_before": 470,
+    "task_count_after": 360,
+    "tasks_after_by_kind": {
+      "build": 90,
+      "clippy": 90,
+      "doc": 90,
+      "fmt": 90,
+      "nextest": 0
+    },
+    "default_testing_pairs_after": 180,
+    "identical_argv_env_pairs_after": 162,
+    "different_argv_env_pairs_after": 18,
+    "default_task_argv_env_unchanged_count": 180,
+    "default_task_count_compared": 180,
+    "nextest_run_tasks_after": 0,
+    "no_tests_fail_tasks_after": 0,
+    "nextest_status": "ABSENT / NOT VERIFIED because no eligible target remains; the no-tests=fail runner policy is preserved for future eligible targets."
+  },
+  "final_testing_pair_differences": [
     {
       "package": "termrock-core",
-      "path": "crates/termrock-core/Cargo.toml",
-      "testing_feature": []
+      "task_kind": "build"
+    },
+    {
+      "package": "termrock-core",
+      "task_kind": "clippy"
+    },
+    {
+      "package": "termrock-core",
+      "task_kind": "doc"
     },
     {
       "package": "termrock-runtime",
-      "path": "crates/termrock-runtime/Cargo.toml",
-      "testing_feature": [
-        "termrock-core/testing",
-        "termrock-theme/testing"
-      ]
+      "task_kind": "build"
+    },
+    {
+      "package": "termrock-runtime",
+      "task_kind": "clippy"
+    },
+    {
+      "package": "termrock-runtime",
+      "task_kind": "doc"
     },
     {
       "package": "termrock-shell",
-      "path": "crates/termrock-shell/Cargo.toml",
-      "testing_feature": []
+      "task_kind": "build"
+    },
+    {
+      "package": "termrock-shell",
+      "task_kind": "clippy"
+    },
+    {
+      "package": "termrock-shell",
+      "task_kind": "doc"
     },
     {
       "package": "termrock-theme",
-      "path": "crates/termrock-theme/Cargo.toml",
-      "testing_feature": []
+      "task_kind": "build"
+    },
+    {
+      "package": "termrock-theme",
+      "task_kind": "clippy"
+    },
+    {
+      "package": "termrock-theme",
+      "task_kind": "doc"
     },
     {
       "package": "termrock-viewport",
-      "path": "crates/termrock-viewport/Cargo.toml",
-      "testing_feature": []
+      "task_kind": "build"
+    },
+    {
+      "package": "termrock-viewport",
+      "task_kind": "clippy"
+    },
+    {
+      "package": "termrock-viewport",
+      "task_kind": "doc"
     },
     {
       "package": "termrock",
-      "path": "crates/termrock/Cargo.toml",
-      "testing_feature": [
-        "termrock-runtime/testing",
-        "termrock-viewport/testing"
-      ]
+      "task_kind": "build"
+    },
+    {
+      "package": "termrock",
+      "task_kind": "clippy"
+    },
+    {
+      "package": "termrock",
+      "task_kind": "doc"
     }
   ],
-  "retained_manifest_feature_tables_changed": [],
-  "high_decision": "T37-CI-TESTING-01 conditional: may retire the global testing configuration only after final combined-source proof that testing-conditioned non-test branches are removed and retained aliases add no production dependency/backend activation.",
-  "source_conditioned_branch_scan": {
+  "evidence_source_checked": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "current_integrated_source": "865073462331552897822d65ede8d673f9c870d7",
+  "current_evidence_head_before_metadata_commit": "865073462331552897822d65ede8d673f9c870d7",
+  "subsequent_accepted_source_change": {
+    "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+    "decision": "T37-EXPECTED-CACHE-01",
+    "summary": "Remove only private LoadedExpectedCheckpoint cache fields/initializers; keep validation, errors, and order byte/behavior-identical per accepted review.",
+    "final_locked_e2e_check_pending": true
+  },
+  "initial_source_conditioned_branch_scan": {
     "fixed_input": "d402f893d159ac26da5db4d18c13510afdbce12f",
     "scope": "Rust and TOML source outside documentation, immutable evidence, and target outputs; tools source closure is not integrated",
     "matches": [
@@ -1292,9 +1420,25 @@
       "callers": "Four callers are in conformance tests scheduled for retirement; no production consumer is established.",
       "requested_decision": "T37-SELECTION-BINDING-01 approved: retire only TextViewport::selection_binding_chords and its cfg; preserve SELECTION_BINDINGS, actions, chords, registration, and selection/input behavior.",
       "configuration_action": "keep the global Velnor testing configuration unchanged until the reviewed source commit is integrated and the final combined-source scan finds no retained non-test testing branch or build-script environment use",
-      "decision_status": "approved and implemented in the reviewed source commit; not yet integrated into this metadata worktree or the final combined input",
+      "decision_status": "historical; selection helper retirement is integrated in source 55c75, while runtime draw_scene was restored by T37-BUILD-COMPAT-01",
       "source_commit": "4627a1c6f5c65a5f7527922051131080f65288cb",
       "source_review_status": "accepted by independent Sol high review"
+    },
+    "status": "Historical scan of fixed d402 input; superseded by final branch map and later T37-BUILD-COMPAT-01 decision."
+  },
+  "final_combined_source": "55c75d292f5288b07f4a779575a42431259e21c4",
+  "regeneration_pending_after_final_source_edits": "Regenerate through pinned Velnor after format/listener source corrections are accepted; current generator output is bound to source 55c75.",
+  "accepted_source_updates_since_check": [
+    {
+      "commit": "ed9d246ae51515e88bce0b0bc2a8545fb32efcd1",
+      "decision": "T37-EXPECTED-CACHE-01",
+      "check_impact": "E2E locked check must rerun after final source input."
+    },
+    {
+      "commit": "865073462331552897822d65ede8d673f9c870d7",
+      "decision": "T37-FMT-0904",
+      "check_impact": "Formatting check must rerun after pending listener-helper source unit."
     }
-  }
+  ],
+  "current_source_after_accepted_updates": "865073462331552897822d65ede8d673f9c870d7"
 }

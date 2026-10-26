@@ -1,0 +1,19 @@
+rust build guard: allowed; checked 1 filesystem(s)
+    Checking termrock-runtime v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-runtime)
+    Checking termrock-controls v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-controls)
+    Checking termrock-shell v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-shell)
+    Checking termrock-viewport v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-viewport)
+    Checking termrock-fields v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-fields)
+    Checking termrock-feedback v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-feedback)
+    Checking termrock-terminal v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-terminal)
+    Checking termrock-session v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-session)
+    Checking termrock-navigation v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-navigation)
+    Checking termrock-overlays v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-overlays)
+    Checking termrock-grid v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-grid)
+    Checking termrock-editors v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-editors)
+    Checking termrock-forms v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock-forms)
+    Checking termrock v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/crates/termrock)
+    Checking external-consumer-demo v0.1.0 (/Users/donbeave/Downloads/termrock-t37-metadata/external-consumer-demo)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.04s
+mbx[cache]: 0 hits, 16 misses; 0 B downloaded, 0 B uploaded, 7.1 MiB stored locally
+mbx[savings]: your deleted worktrees left 16.9 TiB logical behind. left. past tense.
