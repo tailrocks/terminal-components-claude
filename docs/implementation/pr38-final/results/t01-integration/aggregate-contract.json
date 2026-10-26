@@ -1,0 +1,334 @@
+{
+  "schema": "termrock.pr38.t01.aggregate-contract.v1",
+  "task_id": "T01",
+  "status": "CONTRACT_DRAFT",
+  "fixed_input": {
+    "commit": "542349e2f70ec9883d743594f906ac6c4e96ba5a",
+    "tree": "66507c4aae0555d65904b268d6c95e7f3e3d17d1"
+  },
+  "product_source": {
+    "commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+    "behavior": "NOT VERIFIED"
+  },
+  "final_manifest": {
+    "path": "docs/implementation/pr38-final/requirements.json",
+    "schema": "termrock.pr38.t01.requirements.v1",
+    "required_fields": [
+      "task_id",
+      "status",
+      "fixed_input",
+      "product_source",
+      "fragments",
+      "historical_coverage",
+      "indexes",
+      "migration_items",
+      "performance_workloads",
+      "unresolved_requirements",
+      "verification"
+    ],
+    "status_rule": "The manifest and all data remain review-pending until exact fragment commits and aggregate review are accepted."
+  },
+  "fragments": [
+    {
+      "id": "foundation-api",
+      "owner": "/root/t01_foundation_api",
+      "path": "docs/implementation/pr38-final/results/t01-foundation-api/foundation-api.fragment.json",
+      "schema": "termrock.pr38.t01.fragment.v1",
+      "required_bindings": [
+        "output_commit",
+        "artifact_sha256",
+        "counts",
+        "sources",
+        "crates",
+        "exports",
+        "items",
+        "requirements",
+        "historical_api_dispositions",
+        "performance_workloads",
+        "open_requirements",
+        "limits"
+      ],
+      "status": "CORRECTION"
+    },
+    {
+      "id": "components-api",
+      "owner": "/root/t01_components_api",
+      "path": "docs/implementation/pr38-final/results/t01-components-api/fragment.json",
+      "schema": "termrock.pr38.t01.fragment.v1",
+      "required_bindings": [
+        "output_commit",
+        "artifact_sha256",
+        "counts",
+        "sources",
+        "components",
+        "exports",
+        "items",
+        "aliases_and_adapters",
+        "requirements",
+        "historical_migration_dispositions",
+        "open_requirements",
+        "limits"
+      ],
+      "status": "BUILDING"
+    },
+    {
+      "id": "app-routes",
+      "owner": "/root/t01_app_routes",
+      "path": "docs/implementation/pr38-final/results/t01-app-routes/fragment.json",
+      "schema": "termrock.pr38.t01.fragment.v1",
+      "required_bindings": [
+        "output_commit",
+        "artifact_sha256",
+        "sources",
+        "routes",
+        "applications",
+        "requirements",
+        "performance_workloads",
+        "open_requirements",
+        "limits"
+      ],
+      "status": "CORRECTION"
+    },
+    {
+      "id": "history-requirements",
+      "owner": "/root/t01_history_requirements",
+      "path": "docs/implementation/pr38-final/results/t01-history-requirements/fragment.json",
+      "schema": "termrock.pr38.t01.fragment.v1",
+      "required_bindings": [
+        "output_commit",
+        "artifact_sha256",
+        "historical_coverage",
+        "migration_items",
+        "performance_workloads",
+        "unresolved_requirements",
+        "limits"
+      ],
+      "status": "BUILDING"
+    }
+  ],
+  "identity_rules": [
+    "Every fragment must identify the fixed input commit 542349e2f70ec9883d743594f906ac6c4e96ba5a and source boundary 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd.",
+    "Every artifact path must resolve in the candidate and its SHA-256 must match the exact reviewed output commit.",
+    "Every source record must preserve repository-relative path, source commit, SHA-256, and exact line or line-range identity.",
+    "Every public API row must distinguish its canonical fully qualified public path from its actual definition owner and preserve cfg attributes and features.",
+    "Every package and manifest must retain a unique workspace identity; equal package names in separate workspaces remain separate records.",
+    "Every component WID must preserve its ID and name, actual definition source, task owner, and each public re-export path as a separate destination record.",
+    "Every historical row must preserve its original row identity and source bytes. It is a requirement or provenance record, not an active test.",
+    "Foundation package rows include package_id, manifest_path, normalized_package_identity, and metadata source identity; publisher packages with equal names remain distinct by workspace package ID.",
+    "Historical API rows separate source_api_identity, cleanup_attachment, and current_binding, and report explicit resolution status instead of inferring a current owner from a leaf symbol."
+  ],
+  "indexes": {
+    "components": {
+      "source": "components-api.components",
+      "key": "wid",
+      "required_values": [
+        "wid",
+        "name",
+        "kind",
+        "actual_definition_owner",
+        "definition",
+        "all_reexports",
+        "cfg",
+        "named_owner_task",
+        "required_cases",
+        "status",
+        "evidence"
+      ],
+      "preservation": "W01-W45 remain present without ID reuse. Add all required omitted component IDs from the accepted source fragment."
+    },
+    "routes": {
+      "source": "app-routes.routes",
+      "key": "reference_identity",
+      "expected_count": 54,
+      "required_values": [
+        "reference_identity",
+        "reference_factory",
+        "current_entry",
+        "current_factory",
+        "input_state_dispatch",
+        "actual_draw_path",
+        "current_page_owner",
+        "route_owner",
+        "shared_components",
+        "required_case_ids",
+        "required_case_status",
+        "required_behaviors",
+        "requirement_id",
+        "evidence",
+        "source_refs",
+        "live_page_object_exists",
+        "planned_content_owner"
+      ],
+      "preservation": "Keep target tag, live Page object, dispatch path, factory, definition owner, and planned content owner separate.",
+      "owner_task_binding": "Join route.requirement_id to the app-routes requirements array by id; preserve current route owner and planned content owner as separate fields."
+    },
+    "public_exports": {
+      "source": "all fragment export and item records",
+      "key": [
+        "canonical_public_path",
+        "definition_owner"
+      ],
+      "required_values": [
+        "canonical_public_path",
+        "definition_owner",
+        "source_path",
+        "source_line",
+        "source_sha256",
+        "cfg_attributes",
+        "cfg_features",
+        "fragment_id",
+        "record_pointer"
+      ],
+      "preservation": "Deduplicate the index without flattening nested module paths. Preserve every distinct path and all source provenance.",
+      "input_fields": {
+        "foundation": "Items retain package_id, source package, definition package, canonical definition_owner, public_qualified_paths, exact source path/line/hash, and cfg attributes/features; export rows retain canonical destination paths and source-package identity.",
+        "components": "items.qualified_symbol, items.definition_symbol, items.source, items.line_start, items.sha256, cfg, reachability_paths; exports.expanded_public_paths and expanded_symbols",
+        "applications": "items.declared_public_types_aliases_states_actions, exports public_root_modules/public_root_reexports, route/API source refs where exported"
+      }
+    },
+    "requirements": {
+      "source": "all fragment requirements and history migration items",
+      "key": "requirement_id",
+      "required_values": [
+        "requirement_id",
+        "disposition",
+        "current_source",
+        "named_owner_task",
+        "proposed_required_cases",
+        "evidence_state"
+      ],
+      "dispositions": [
+        "KEEP",
+        "ADAPT",
+        "RETIRE",
+        "UNRESOLVED"
+      ],
+      "retire_rule": "RETIRE requires a specific conflict or replacement plus a matching independent decision whose source, artifact, symbol scope, and cleanup scope agree.",
+      "unresolved_rule": "Every unresolved row names a task and blocks final completion.",
+      "input_fields": {
+        "foundation": "requirements.id, named_owner_task, disposition, source, proposed_required_cases, evidence_state; historical_api_dispositions preserve source_api_identity, cleanup_attachment record/path/hash, current_binding and resolution status.",
+        "components": "requirements.requirement_id, named_owner_task, disposition, current_source, proposed_required_cases, evidence",
+        "applications": "requirements.id, task, source_refs, proposed_required_cases, case_status, evidence",
+        "history": "migration item ID, disposition, current source refs, named owner task, proposed cases, evidence"
+      }
+    },
+    "historical_coverage": {
+      "manifest_source": "history-requirements.fragment.json",
+      "data_path": "docs/implementation/pr38-final/results/t01-history-requirements/historical-coverage.jsonl",
+      "row_schema": "termrock.pr38.t01.historical-coverage-row.v1",
+      "expected_rows": 4511,
+      "required_row_values": [
+        "row_id",
+        "source_path",
+        "source_line",
+        "source_text",
+        "source_line_sha256",
+        "lane",
+        "disposition",
+        "current_source_refs",
+        "named_owner_task",
+        "proposed_required_cases",
+        "evidence"
+      ],
+      "rule": "Validate every JSONL row, exact data hash, stable key, source identity, lane and disposition total. Do not copy all rows into requirements.json."
+    }
+  },
+  "ownership_compatibility": {
+    "component_ownership_path": "component-ownership.json",
+    "policy_path": "tools/acceptance_policy.json",
+    "policy_contract": {
+      "consumer": "tools/acceptance_architecture.py",
+      "keys_and_types": "Preserve the six existing keys and their JSON types. Keep full API inventory detail in requirements.json."
+    },
+    "previous_proposal_rule": "Preserve the original proposal owner values, source path, and hash inside requirements.json. Current component ownership fields name actual definition owners and keep re-exports separate."
+  },
+  "migration_document_rule": {
+    "path": "docs/contracts/migration.md",
+    "requirements_link": "../implementation/pr38-final/requirements.json",
+    "claim_rule": "All commit-pinned test links are historical. Do not describe removed tests or conformance targets as current.",
+    "behavior": "NOT VERIFIED",
+    "required_historical_items": {
+      "migration_contract_rows": 16,
+      "historical_architecture_locators": 33,
+      "additional_application_and_review_decision_obligations": "All rows emitted by the accepted history fragment; retain their distinct IDs."
+    }
+  },
+  "missing_export_control": {
+    "plan_id": "T01-INVENTORY-NEGATIVE-01",
+    "review_status": "ACCEPTED_SCOPED_PLAN",
+    "reviewer": "/root/t01_inventory_review",
+    "selected_model": "gpt-6.1-sol",
+    "selected_effort": "high",
+    "backend_attestation": "NOT PROVIDED",
+    "controls": [
+      {
+        "case": "retained-export-omitted",
+        "mutation": "Remove one Button/W02 canonical public path from a copied export index; keep the linked requirement disposition KEEP.",
+        "expected": "The validator reports that the required current public path is absent and exits nonzero."
+      },
+      {
+        "case": "unapproved-retirement",
+        "mutation": "Change only the copied Button/W02 row to RETIRE without a matching source-bound independent decision.",
+        "expected": "The validator continues to reject the missing Button path."
+      },
+      {
+        "case": "wrong-scope-retirement",
+        "mutation": "Attach the accepted runtime::stub T37 decision to Button/W02.",
+        "expected": "The validator rejects the mismatch between the decision's symbol/removal scope and Button."
+      },
+      {
+        "case": "historical-retired-api-kept",
+        "mutation": "Change the copied runtime::stub row to KEEP although the fixed product source has no current export.",
+        "expected": "The validator reports the missing required current export."
+      },
+      {
+        "case": "exact-retirement-disposition",
+        "mutation": "Restore the copied runtime::stub row to its exact source-bound RETIRE disposition and T37-FOUNDATION-TESTING-03 decision.",
+        "expected": "The validator discharges only the runtime::stub expectation."
+      }
+    ],
+    "decision_artifact": {
+      "path": "docs/implementation/pr38-final/results/t37-foundations/deferred-testing-surfaces.json",
+      "sha256": "638c72dc94b04ca2fd0bf4b0fd4b6b78b5e97e89017325a5e7607152970d09e8",
+      "decision_id": "T37-FOUNDATION-TESTING-03",
+      "source_input": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "reviewer": "/root/t00_independent_review"
+    },
+    "mutation_scope": "In-memory copies only. Keep product source, original migration rows, and all source-bound artifacts byte-identical."
+  },
+  "verification_contract": {
+    "checker_path": "docs/implementation/pr38-final/results/t01-integration/validate_t01_inventory.py",
+    "checks": [
+      "Verify each fragment commit and artifact SHA against the manifest.",
+      "Verify each source record against its exact Git commit, path, SHA-256, and line range.",
+      "Verify every WID, route identity, canonical public path, and requirement identifier appears exactly once in its expected index.",
+      "Verify definition owners and every re-export destination resolve to source-bound inventory rows.",
+      "Verify all required behavior cases are present as proposed/not-approved and remain NOT VERIFIED.",
+      "Verify all historical JSONL rows, lane/disposition totals, stable IDs, and source-row hashes.",
+      "Verify RETIRE decisions match the source symbol, T37 decision scope, artifact hash, and approved cleanup.",
+      "Run the five accepted in-memory missing-export controls and record each expected/actual blocker."
+    ],
+    "limits": [
+      "This checker validates static inventory data and source identities only.",
+      "No product source, tests, harnesses, fixtures, doctests, Cargo commands, or test plans are changed or executed.",
+      "Selected behavior cases remain zero; product behavior remains NOT VERIFIED.",
+      "The checker does not claim rustc-resolved feature reachability or prove behavior."
+    ],
+    "negative_control_record_path": "docs/implementation/pr38-final/results/t01-integration/missing-export-control.json",
+    "validation_output_path": "docs/implementation/pr38-final/results/t01-integration/validation.json"
+  },
+  "contract_review": {
+    "reviewer_id": "/root/t01_inventory_review",
+    "required_model": "gpt-6.1-sol",
+    "required_effort": "high",
+    "fork_turns": "none",
+    "backend_attestation": "NOT PROVIDED",
+    "scope": "Aggregate schema, join/index contract, source-binding rules, disposition rules, and accepted in-memory negative-control specification only.",
+    "status": "PENDING",
+    "limits": [
+      "This review does not accept any worker fragment or the final requirements.json.",
+      "This review does not approve a T38 plan or product behavior.",
+      "Selected behavior cases remain zero and product behavior remains NOT VERIFIED."
+    ]
+  }
+}
