@@ -1,6 +1,6 @@
 {
   "schema": "termrock-run-state-v1",
-  "updated_at": "2026-10-26T01:06:18Z",
+  "updated_at": "2026-10-26T01:40:35Z",
   "plan": {
     "root": "/Users/donbeave/Downloads/terminal-components-claude/docs/implementation/pr38-final",
     "source_root": "/Users/donbeave/Downloads/termrock-pr38-plan",
@@ -119,7 +119,7 @@
       "path": "/Users/donbeave/Downloads/terminal-components-claude",
       "branch": "parity/termrock-visual-baseline",
       "starting_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "current_sha": "b2016ce9190c7875796565faf68855da10a61933",
+      "current_sha": "f2e41217c07b775205bddf29721fc86f92baa8dd",
       "pending_upstream_refresh": null,
       "code_input_sha": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
       "completed_upstream_refreshes": [
@@ -155,7 +155,7 @@
       ],
       "last_reviewed_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "product_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "t37_role": "Accepted source, metadata, and documentation units are still pending coordinated integration and overall independent T37 acceptance; no product behavior proof."
+      "t37_role": "C cohort output 8f355 awaits exact review on its shared docs branch. Global crosswalk is REVIEW/PENDING. Reviewed-source history integration and overall T37 acceptance remain open."
     },
     "reference": {
       "path": "/Users/donbeave/Downloads/termrock-pr26-reference-20261026",
@@ -253,39 +253,19 @@
           "effort": "max",
           "path": "/Users/donbeave/Downloads/termrock-t37-shared",
           "branch": "pr38/T37-shared",
-          "head_sha": "fe032a24154819a579c591e1cf87230558d286ee",
+          "head_sha": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
           "product_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
           "status": "DOCS_COHORT_REVIEW_PENDING",
-          "ownership": "Shared manifests/locks, tool pins only when cleanup requires, .config, .velnor and generated CI inputs/output through the generator, test inventory/policy metadata, component ownership, maintained README/SAFETY/docs outside immutable audit/visibility and imported T00 package; only results/t37-shared/** in the imported package.",
+          "ownership": "Maintained documentation and semantic API prose; cohort C evidence; canonical checkpoint. Metadata/config/manifest ownership is released to /root/t37_metadata. Crosswalk producer/output ownership is released to /root/t37_crosswalk. No source or test edits.",
           "reviewer_id": "/root/t00_independent_review",
           "reviewer_model": "gpt-6.1-sol",
           "reviewer_effort": "high",
           "review_decision": "REVIEW_PENDING",
-          "review_target_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+          "review_target_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
           "pending_followup": true,
-          "preliminary_review_findings_pending": [
-            {
-              "source": "/root; exact cohort review at fe032 pending",
-              "path": "docs/contracts/authoring.md",
-              "location": "line 106",
-              "finding": "Clarify that explicit key capture is a separate flow; ordinary keys route chrome then page. Do not state that keys are offered only after page yield."
-            },
-            {
-              "source": "/root; exact cohort review at fe032 pending",
-              "path": "docs/contracts/authoring.md",
-              "location": "line 111",
-              "finding": "Error composition overwrites remaining hint priorities after dirty-pin selection. Remove the promise that pinned dirty hints survive errors; preserve the open T19-FOOTER-PIN-01 policy conflict."
-            },
-            {
-              "source": "/root; exact cohort review at fe032 pending",
-              "path": "docs/contracts/foundation-support.md",
-              "source_map_records": [
-                335,
-                343
-              ],
-              "finding": "Role and ColorTokens do not have non_exhaustive. Describe future exhaustive-match/complete-literal maintenance as compatibility guidance; do not claim compiler restrictions or forbid legal struct literals. Built-in tokens allow partial customization."
-            }
-          ]
+          "preliminary_review_findings_pending": [],
+          "previous_reviewed_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+          "review_note": "SUPPORT-R1–R6 corrections are recorded in the committed cohort runbook; exact review of 8f355 is active."
         },
         {
           "agent_id": "/root/t37_metadata",
@@ -472,8 +452,8 @@
         "classification_rule": "Reconcile each surviving target against the baseline inventory and subtract retired manual probes, visual harnesses, and frozen helpers; baseline target counts alone do not classify production targets.",
         "evidence_limit": "Structural target metadata only. Zero retained test cases do not verify behavior."
       },
-      "integration_head_at_checkpoint": "b2016ce9190c7875796565faf68855da10a61933",
-      "shared_branch_head": "fe032a24154819a579c591e1cf87230558d286ee",
+      "integration_head_at_checkpoint": "f2e41217c07b775205bddf29721fc86f92baa8dd",
+      "shared_branch_head": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
       "shared_docs_cohort": {
         "agent_id": "/root/t00_import_rules",
         "model": "gpt-6-luna",
@@ -483,22 +463,39 @@
         "input_commit": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
         "fixed_source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
         "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "output_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+        "previous_reviewed_output_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+        "output_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+        "output_parent": "34c06c17cab2b6f78734b496f65e6038013b117d",
         "status": "REVIEW_PENDING",
         "reviewer_id": "/root/t00_independent_review",
         "reviewer_model": "gpt-6.1-sol",
         "reviewer_effort": "high",
         "groups": 496,
         "evidence_path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
-        "evidence_sha256": "379c33052a244411fef78fcaa79864013c53cdf3ed27c02d929568f316a37136",
+        "evidence_sha256": "54ab6a27b7a012a33f489fb9c92f74cf201dbd5e10a84998c6dbff458df2e21e",
         "builder_path": "docs/implementation/pr38-final/results/t37-api-support/build_disposition.py",
-        "builder_sha256": "7cdbdaaedcdaf4424efeb62259ff56fd131f37e3652b9a972c58c949bfce4106",
+        "builder_sha256": "dcf4af58f524c73854ec42bfd10124faae9d0db5dd17135ba62aff9c8d05e69d",
         "guide_path": "docs/contracts/foundation-support.md",
-        "guide_sha256": "a50b4cef7a6215a77729ac15b59dee2e963933c4b483c01a47a70613651d115f",
+        "guide_sha256": "b9d5fef965070fff796adf70d1ac4da89a8bf7ba8afdf978af10cf633fe8ea53",
+        "runbook_path": "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json",
+        "runbook_sha256": "0d7de0f4ba64d746efefe3081a1276fd070c61763c4f3a6ef37d67c089e549bd",
+        "record_counts": {
+          "required_caller_contract": 244,
+          "descriptive_api_reference": 170,
+          "retired_test_only_provenance": 55,
+          "internal_implementation_description": 9,
+          "historical_or_internal_description": 5,
+          "unresolved_source_contract_conflict": 9,
+          "retained_public_compatibility_data": 4
+        },
+        "review_corrections": "SUPPORT-R1–R6 applied; exact-output independent review pending.",
+        "source_inventory_integration": "PENDING_INTEGRATION",
+        "selected_tests": 0,
+        "behavior": "NOT VERIFIED",
         "limits": [
-          "Exact cohort review is pending.",
-          "Global 1,122-group reconciliation is not yet committed.",
-          "Product behavior remains NOT VERIFIED."
+          "No Cargo or tests ran.",
+          "The foundation source inventory and removal records are not local in this worktree; their immutable hashes remain recorded.",
+          "C acceptance does not complete global T37."
         ]
       }
     }
@@ -519,7 +516,7 @@
         "results/t00-review/**"
       ],
       "t00_scope_released": true,
-      "continuation_scope": "Canonical run-state and results/t37-shared/** records; no source edits in integration.",
+      "continuation_scope": "Canonical run-state and owned maintained-doc/API-prose records; no source edits in integration.",
       "t37_worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
       "branch": "pr38/T37-shared",
       "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8"
@@ -741,9 +738,13 @@
         "helper-owned docs/contracts/foundation-runtime.md",
         "helper-owned docs/contracts/facade-examples.md and results/t37-api-values/**, results/t37-api-runtime/**, results/t37-example-comments/**",
         "all Cargo/config/generator/policy metadata paths",
-        "no source/test edits"
+        "no source/test edits",
+        "docs/implementation/pr38-final/results/t37-shared/build_foundation_api_prose_crosswalk.py",
+        "docs/implementation/pr38-final/results/t37-shared/api-prose-crosswalk.json",
+        "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
+        "docs/implementation/pr38-final/results/t37-api-crosswalk-integration/**"
       ],
-      "head_sha": "fe032a24154819a579c591e1cf87230558d286ee",
+      "head_sha": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
       "review_status": "REVIEW_PENDING",
       "current_owned_paths": [
         "docs/contracts/authoring.md",
@@ -754,6 +755,12 @@
         "crates/termrock-xtask/RULES.md",
         "docs/implementation/pr38-final/results/t37-api-support/**",
         "docs/implementation/pr38-final/results/t37-shared/**"
+      ],
+      "review_target_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+      "released_paths": [
+        "shared manifests, locks, config, generator, and policy metadata (owned by /root/t37_metadata)",
+        "crosswalk producer/output/integration files (owned by /root/t37_crosswalk)",
+        "helper-owned value/runtime/component caller-contract guides and result directories"
       ]
     },
     {
@@ -819,17 +826,18 @@
     },
     {
       "id": "/root/t00_import_rules",
-      "role": "T37 shared metadata/docs/build implementer and canonical checkpoint owner",
+      "role": "T37 shared maintained-docs/API-prose implementer and canonical checkpoint owner",
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "ACTIVE_DOCS_COHORT_REVIEW_AND_GLOBAL_CROSSWALK",
+      "status": "ACTIVE_COHORT_C_REVIEW_AND_GLOBAL_CROSSWALK",
       "completed_task": "T00 ACCEPT at ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "current_input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
       "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
       "branch": "pr38/T37-shared",
-      "current_output_commit": "fe032a24154819a579c591e1cf87230558d286ee",
-      "current_scope": "T37 cohort C 496-group transfer, global 1,122-group crosswalk, maintained docs, and sole canonical checkpoint owner; exact cohort C review pending."
+      "current_output_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+      "current_scope": "Committed 496-group C correction; exact high review pending. Own maintained docs, remaining C/global crosswalk reconciliation, and canonical run-state. Product behavior remains NOT VERIFIED.",
+      "current_output_parent": "34c06c17cab2b6f78734b496f65e6038013b117d"
     },
     {
       "id": "/root/t00_independent_review",
@@ -842,8 +850,8 @@
       "review_target_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "previous_reviewed_sha": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
       "decision": "ACCEPT",
-      "current_review_target_sha": "fe032a24154819a579c591e1cf87230558d286ee",
-      "current_review_scope": "T37 safety transfer commit; later full deletion and build review.",
+      "current_review_target_sha": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+      "current_review_scope": "Exact high review of corrected T37 cohort C (496 groups), output 8f355; global T37 acceptance remains separate.",
       "current_scope": "Exact high review of T37 support/docs cohort C; overall T37 acceptance remains separate and pending."
     },
     {
@@ -930,10 +938,10 @@
       "status": "ACTIVE_DISK_CLEANUP_ONLY",
       "worktree": null,
       "initial_free_bytes": 1998809899008,
-      "latest_reported_free_bytes": 2152155762688,
+      "latest_reported_free_bytes": 2141758271488,
       "stop_at_free_bytes": 2500000000000,
       "scope": "DISK_POLICY cleanup and monitoring only; no project/task work.",
-      "latest_check": "2026-10-26 01:06 UTC; read-only probe, no safe target, no deletion."
+      "latest_check": "2026-10-26 01:40 UTC; read-only probe; no new safe target; no deletion."
     },
     {
       "id": "/root/t37_metadata",
@@ -1002,9 +1010,10 @@
       "model": "gpt-6.1-sol",
       "effort": "high",
       "assignment": "explicit",
-      "status": "COMPLETED_SCOPED_ACCEPT",
+      "status": "ACTIVE_COMPONENT_CONTRACTS_REVIEW",
       "reviewed_output_sha": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
-      "decision": "ACCEPT"
+      "decision": "ACCEPT",
+      "current_scope": "Review bounded component caller-contract transfer output 932d36c18c3dc5dbce350e27290a732e0b8957bf; no source edits."
     },
     {
       "id": "/root/t37_apps_review",
@@ -1012,9 +1021,56 @@
       "model": "gpt-6.1-sol",
       "effort": "high",
       "assignment": "explicit",
-      "status": "COMPLETED_SCOPED_ACCEPT",
+      "status": "ACTIVE_PROVENANCE_REVIEW; PRIOR_METADATA_ACCEPT",
       "reviewed_output_sha": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
-      "decision": "ACCEPT"
+      "decision": "ACCEPT",
+      "current_scope": "Compare original reviewed Git refs with cherry-picked imports; prepare a tree-preserving history plan. No source or tree changes authorized yet."
+    },
+    {
+      "id": "/root/t37_crosswalk",
+      "role": "T37 global foundation API prose crosswalk producer",
+      "model": "gpt-6-luna",
+      "effort": "max",
+      "assignment": "explicit",
+      "status": "ACCEPTED_PRODUCER_UNIT; GLOBAL_CONTENT_REVIEW_PENDING",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-crosswalk",
+      "branch": "pr38/T37-crosswalk",
+      "input_sha": "fe032a24154819a579c591e1cf87230558d286ee",
+      "output_commit": "ae32524b29baf638d8790ec0f7b320dfd05ee0f1",
+      "shared_integration_commit": "34c06c17cab2b6f78734b496f65e6038013b117d",
+      "output_sha256": "5e56acd5bdcd0e00109ff9594da81a1ed062c72d482a2557690b147e0348e059",
+      "reviewer_id": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "review_decision": "ACCEPT_PRODUCER_LOGIC_AND_INPUT_PRESERVATION",
+      "limits": [
+        "This does not accept the global semantic map.",
+        "C remains REVIEW/PENDING.",
+        "No product behavior is verified."
+      ]
+    },
+    {
+      "id": "/root/t37_component_contracts",
+      "role": "T37 component caller-contract prose transfer implementer",
+      "model": "gpt-6-luna",
+      "effort": "max",
+      "assignment": "explicit",
+      "status": "IMPLEMENTATION_COMPLETE_REVIEW_PENDING",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-component-contracts",
+      "input_sha": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
+      "output_commit": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
+      "exclusive_paths": [
+        "docs/contracts/component-caller-contracts.md",
+        "docs/implementation/pr38-final/results/t37-component-api-transfer/**"
+      ],
+      "reviewer_id": "/root/t37_components_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "review_decision": "PENDING",
+      "limits": [
+        "No source, Cargo, or test edits.",
+        "Behavior remains NOT VERIFIED."
+      ]
     }
   ],
   "model_selection_limits": [
@@ -1434,19 +1490,14 @@
     },
     "t37_api_prose_crosswalk": {
       "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
-      "path": "results/t37-shared/api-prose-crosswalk.json",
-      "sha256": "6ad476ef79ffcc9a0b4629573ffbac4e42f02bbdd7771ec302a6aba28556b555",
+      "path": "docs/implementation/pr38-final/results/t37-shared/foundation-api-prose-crosswalk.json",
+      "sha256": "5e56acd5bdcd0e00109ff9594da81a1ed062c72d482a2557690b147e0348e059",
       "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
-      "output_commit": "bee6e47d4ef077a1a14a78353019a41c273c7d38",
-      "status": "committed; exact Sol high review pending",
-      "validation": {
-        "markdown_files": 13,
-        "broken_local_links": 0,
-        "json_parse_exit_code": 0,
-        "git_diff_check_exit_code": 0,
-        "tests_added_or_run": 0,
-        "behavior": "NOT VERIFIED"
-      }
+      "producer_commit": "ae32524b29baf638d8790ec0f7b320dfd05ee0f1",
+      "producer_reviewer": "/root/t00_independent_review",
+      "producer_decision": "ACCEPTED_PRODUCER_LOGIC_AND_INPUT_PRESERVATION",
+      "shared_commit": "34c06c17cab2b6f78734b496f65e6038013b117d",
+      "status": "Global 1,122-group crosswalk is REVIEW/PENDING. Cohort C exact review and final semantic review remain open."
     },
     "t37_disk_cleanup": {
       "worktree": "/Users/donbeave/Downloads/terminal-components-claude",
@@ -1464,15 +1515,31 @@
       "status": "304-group cohort; independent Sol-high ACCEPT; behavior NOT VERIFIED."
     },
     "t37_api_support": {
-      "path": "results/t37-api-support/foundation-support-disposition.json",
-      "sha256": "379c33052a244411fef78fcaa79864013c53cdf3ed27c02d929568f316a37136",
-      "commit": "fe032a24154819a579c591e1cf87230558d286ee",
-      "status": "496-group cohort; exact independent review pending; do not count as accepted."
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
+      "path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+      "sha256": "54ab6a27b7a012a33f489fb9c92f74cf201dbd5e10a84998c6dbff458df2e21e",
+      "runbook_path": "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json",
+      "runbook_sha256": "0d7de0f4ba64d746efefe3081a1276fd070c61763c4f3a6ef37d67c089e549bd",
+      "builder_path": "docs/implementation/pr38-final/results/t37-api-support/build_disposition.py",
+      "builder_sha256": "dcf4af58f524c73854ec42bfd10124faae9d0db5dd17135ba62aff9c8d05e69d",
+      "source_input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "product_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "output_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+      "previous_corrected_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+      "status": "SUPPORT-R1–R6 corrections committed; exact independent high review pending. 496 groups, source inventory integration pending, behavior NOT VERIFIED."
     },
     "t37_metadata_final_evidence": {
       "path": "results/t37-metadata/final-verification-953fbd/final-verification.json",
       "commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
       "status": "Independent Sol-high ACCEPT; five locked checks at 560f and affected E2E check/format at 953f; no behavior tests."
+    },
+    "t37_component_api_transfer": {
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-component-contracts",
+      "path": "docs/implementation/pr38-final/results/t37-component-api-transfer/transfer.json",
+      "output_commit": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
+      "implementer": "/root/t37_component_contracts",
+      "reviewer": "/root/t37_components_review",
+      "status": "Implementation complete; exact independent high review pending."
     }
   },
   "review": {
@@ -1501,13 +1568,13 @@
   },
   "blockers": [
     "T02, T03, and T04 remain blocked until T38 passes independent review; T01 and T38 have not started.",
-    "T37 cohort C documentation commit fe032a24154819a579c591e1cf87230558d286ee is under exact-head Sol-high review; coordinator reported early findings and the final review is pending.",
-    "The accepted values (322 groups) and runtime (304 groups) cohorts plus the reviewed support cohort must be merged into a single auditable 1,122-group crosswalk; global review remains pending.",
-    "Accepted source, metadata, and documentation worktrees are not yet at one integrated candidate commit; the coordinator must perform the exact integration and arrange final independent T37 review.",
-    "The final metadata evidence has scoped ACCEPT at cfe0587ad034d9f0fd18694934f071f6f50c7dc5; this does not establish overall T37 acceptance.",
+    "T37 cohort C correction 8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2 is committed and awaits exact high review; do not mark the cohort accepted yet.",
+    "The global 1,122-group crosswalk remains REVIEW/PENDING until all cohort output and coordinator-bound review records are exact and independently accepted.",
+    "Reviewed source commits are not all ancestors of the current candidate. The provenance reviewer is preparing a tree-preserving multi-parent history plan; no history-only integration runs until its exact head list and tree-equality proof are approved.",
+    "Accepted source, metadata, and documentation worktrees are not yet at one integrated candidate commit; overall T37 review remains pending.",
+    "The component caller-contract transfer output 932d36c is awaiting independent Sol-high review.",
     "The generated Nextest lane has zero run tasks and is ABSENT / NOT VERIFIED. No T37 replacement gate or test was added.",
-    "No product behavior cases ran; product behavior remains NOT VERIFIED.",
-    "Pending cohort-C documentation corrections: key-capture versus normal routing, Footer danger-priority normalization and T19 conflict, and accurate Role/ColorTokens future compatibility wording without non_exhaustive claims."
+    "No product behavior cases ran; product behavior remains NOT VERIFIED."
   ],
   "root_instruction_patch": {
     "patch_path": "AGENTS.patch",
@@ -1529,8 +1596,11 @@
     "T37-docs-api-prose-crosswalk-initial": "bee6e47d4ef077a1a14a78353019a41c273c7d38",
     "T37-docs-api-values": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
     "T37-docs-api-runtime": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
-    "T37-docs-api-support": "fe032a24154819a579c591e1cf87230558d286ee",
-    "T37-metadata-final-evidence": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5"
+    "T37-docs-api-support": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+    "T37-metadata-final-evidence": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
+    "T37-docs-api-support-initial": "fe032a24154819a579c591e1cf87230558d286ee",
+    "T37-docs-api-crosswalk-producer": "ae32524b29baf638d8790ec0f7b320dfd05ee0f1",
+    "T37-docs-api-crosswalk-shared": "34c06c17cab2b6f78734b496f65e6038013b117d"
   },
   "task_units": {
     "T00_overall": "ACCEPTED",
@@ -1747,6 +1817,24 @@
       "evidence_sha256": "59c8c45df5272bbe5ac85c8c50e73922ac2ed6ebb560e51a99553d5181c12357",
       "required_corrections": [],
       "limits": [
+        "Product behavior remains NOT VERIFIED."
+      ]
+    },
+    {
+      "scope": "T37 cohort C SUPPORT-R1–R6 corrected documentation and 496-group disposition output.",
+      "decision": "PENDING_EXACT_OUTPUT_REVIEW",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "reviewed_input_sha": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
+      "previous_correction_output_sha": "fe032a24154819a579c591e1cf87230558d286ee",
+      "artifact_path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+      "artifact_sha256": "54ab6a27b7a012a33f489fb9c92f74cf201dbd5e10a84998c6dbff458df2e21e",
+      "runbook_path": "docs/implementation/pr38-final/results/t37-api-support/agent-runbook.json",
+      "runbook_sha256": "0d7de0f4ba64d746efefe3081a1276fd070c61763c4f3a6ef37d67c089e549bd",
+      "limits": [
+        "No Cargo or tests ran.",
+        "The source-inventory link remains pending integration.",
         "Product behavior remains NOT VERIFIED."
       ]
     }
@@ -2118,9 +2206,11 @@
       "model": "gpt-6.1-sol",
       "effort": "high",
       "decision": "REVIEW_PENDING",
-      "output_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+      "output_commit": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
       "groups": 496,
-      "scope": "Shell/theme/collections/terminal semantic prose cohort; exact-head review active. Do not treat as accepted."
+      "scope": "496-group shell/theme/collections/terminal semantic prose cohort; SUPPORT-R1–R6 corrections applied; exact high review pending. Source inventory link remains pending integration; behavior NOT VERIFIED.",
+      "previous_output_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+      "evidence_sha256": "54ab6a27b7a012a33f489fb9c92f74cf201dbd5e10a84998c6dbff458df2e21e"
     },
     {
       "id": "T37-METADATA-FINAL-EVIDENCE",
@@ -2131,6 +2221,25 @@
       "output_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
       "source_commit": "953fbd76ac47019b0161d86a9a462d04f51b0c7f",
       "scope": "Metadata evidence review. Five locked checks passed at 560f; affected E2E locked check and formatter passed at 953f; no tests; behavior NOT VERIFIED."
+    },
+    {
+      "id": "T37-API-CROSSWALK-PRODUCER",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "ACCEPT_PRODUCER_LOGIC_AND_INPUT_PRESERVATION",
+      "output_commit": "ae32524b29baf638d8790ec0f7b320dfd05ee0f1",
+      "shared_commit": "34c06c17cab2b6f78734b496f65e6038013b117d",
+      "scope": "Coordinator-bound accepted cohort decisions and dynamic inventory integration state; this does not accept the global semantic map."
+    },
+    {
+      "id": "T37-COMPONENT-CALLER-PROSE",
+      "reviewer_id": "/root/t37_components_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "REVIEW_PENDING",
+      "output_commit": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
+      "scope": "Bounded missing component caller clauses only; no source edits or behavior verification."
     }
   ],
   "disk_policy_t37": {
@@ -2144,8 +2253,8 @@
     "target_free_bytes": 2500000000000,
     "status": "CLEANUP_ACTIVE_BELOW_TARGET; latest scan found no safe target; continue monitoring only until 2.5 TB.",
     "authority": "/Users/donbeave/.agents/DISK_POLICY.md",
-    "latest_reported_free_bytes": 2152155762688,
-    "latest_check": "2026-10-26 01:06 UTC; read-only probe; no newly safe target; no deletion.",
+    "latest_reported_free_bytes": 2141758271488,
+    "latest_check": "2026-10-26 01:40 UTC; child read-only probe; no new safe target; no deletion; continue to 2.5 TB.",
     "evidence_path": "results/t37-shared/disk-cleanup.json"
   },
   "t37_post_cleanup_build": {
@@ -2400,7 +2509,7 @@
       "audited_files": [
         {
           "path": "results/t37-shared/build_foundation_api_prose_crosswalk.py",
-          "sha256": "9aacaa1d87b9c1810ccfedd3d8635405689e301b8cd293c007bc538cfb34d025",
+          "sha256": "3a10ec4421b1595229da9b0f8e892ef7893c40bb654dd161576b3672200adceb",
           "non_shebang_comment_tokens": [],
           "docstring_nodes": [],
           "check": "Python tokenize and AST inspection",
@@ -2408,7 +2517,7 @@
         },
         {
           "path": "results/t37-api-support/build_disposition.py",
-          "sha256": "7cdbdaaedcdaf4424efeb62259ff56fd131f37e3652b9a972c58c949bfce4106",
+          "sha256": "dcf4af58f524c73854ec42bfd10124faae9d0db5dd17135ba62aff9c8d05e69d",
           "non_shebang_comment_tokens": [],
           "docstring_nodes": [],
           "check": "Python tokenize and AST inspection",
