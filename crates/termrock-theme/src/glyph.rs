@@ -107,6 +107,7 @@ impl GlyphRole {
 pub struct GlyphSet {
     glyphs: [&'static str; 41],
     primary_key: &'static str,
+    more_titles: &'static str,
     dot_on: &'static str,
     dot_off: &'static str,
     switch_off: &'static str,
@@ -125,6 +126,7 @@ impl GlyphSet {
         GlyphSet {
             glyphs,
             primary_key: "⚷",
+            more_titles: "»",
             dot_on: "●",
             dot_off: "○",
             switch_off: "○",
@@ -180,6 +182,16 @@ impl GlyphSet {
 
     pub const fn set_rule_active(&mut self, s: line::Set<'static>) {
         self.rule_active = s;
+    }
+
+    /// Glyph for a Toolbar's hidden-item button when its style has no glyph.
+    pub const fn more_titles(&self) -> &'static str {
+        self.more_titles
+    }
+
+    /// Set the fallback glyph for a Toolbar's hidden-item button.
+    pub const fn set_more_titles(&mut self, glyph: &'static str) {
+        self.more_titles = glyph;
     }
 
     pub fn scrollbar(&self) -> scrollbar::Set<'static> {
@@ -242,6 +254,20 @@ mod tests {
             assert_eq!(g.get(r), "y", "{r:?}");
         }
         assert_eq!(g.scrollbar().thumb, "y");
+    }
+
+    #[test]
+    fn more_titles_is_an_additive_named_glyph_slot() {
+        let mut glyphs = crate::theme::Theme::junie().design.glyphs;
+        assert_eq!(glyphs.more_titles(), "»");
+        assert_eq!(glyphs.get(GlyphRole::MoreRows), "↓");
+        assert_eq!(glyphs.get(GlyphRole::OverflowRight), "›");
+
+        glyphs.set_more_titles("…");
+        let cloned = glyphs.clone();
+        assert_eq!(cloned.more_titles(), "…");
+        assert_eq!(cloned.get(GlyphRole::MoreRows), "↓");
+        assert_eq!(cloned.get(GlyphRole::OverflowRight), "›");
     }
 
     #[test]

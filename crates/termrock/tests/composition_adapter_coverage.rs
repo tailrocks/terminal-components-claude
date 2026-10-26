@@ -240,6 +240,15 @@ const NOT_COMPONENTS: &[&str] = &[
     "ShellSlots",
     "SplitBlock",
     "SplitBlockError",
+    "ToolItem",
+    "ToolbarAction",
+    "ToolbarActionEvent",
+    "ToolbarActions",
+    "ToolbarError",
+    "ToolbarReferenceState",
+    "ToolbarState",
+    "ToolbarTip",
+    "ToolbarTooltipPolicy",
 ];
 
 /// The public names the facade re-exports from the component crates.
@@ -364,7 +373,7 @@ fn a_new_component_without_an_adapter_fails_the_coverage_gate() {
         );
     }
 
-    for name in ["List", "Panel", "Tabs"] {
+    for name in ["List", "Panel", "Tabs", "Toolbar"] {
         assert!(exported.contains(name), "{name} must be facade-exported");
         assert!(
             !not_components.contains(name),
@@ -449,4 +458,10 @@ fn every_adapter_builds_a_placeable_child() {
 
     let panel = Panel::new(ID);
     let _ = composition::panel(&panel, composition::button(&button));
+
+    let toolbar = Toolbar::new(ID, vec![ToolItem::new("Run")]);
+    let toolbar_state = ToolbarState::default();
+    let _ = termrock::ToolbarReferenceState::ALL;
+    let toolbar_child = composition::toolbar(&toolbar, &toolbar_state);
+    let _ = composition::Group::column([toolbar_child]);
 }

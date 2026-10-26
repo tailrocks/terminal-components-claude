@@ -9,6 +9,7 @@
 //! surfaces) report the space they are offered, so the composition gives
 //! them the whole resolved area. That is documented per adapter.
 
+use crate::blocks::{Toolbar, ToolbarState};
 use ratatui_core::layout::Rect;
 use termrock_collections::{KeyFn, ScrollState};
 use termrock_controls::{
@@ -109,6 +110,7 @@ pub const PUBLIC_COMPONENTS: &[&str] = &[
     // termrock blocks
     "AppShell",
     "MasterDetail",
+    "Toolbar",
 ];
 
 /// Build a composition child from a measurement callback and a drawing
@@ -122,6 +124,19 @@ where
         content: ChildContent::Leaf(Box::new(Leaf::new(measure, draw))),
         policy: ChildPolicy::default(),
     }
+}
+
+/// Adapt the shared Toolbar for composition placement.
+///
+/// Measurement and drawing delegate to the Toolbar; the adapter adds no
+/// input, focus, or item-layout policy.
+pub fn toolbar<'a>(component: &'a Toolbar, state: &'a ToolbarState) -> Child<'a> {
+    leaf(
+        move |ui, constraints| component.measure(ui, constraints),
+        move |ui, area| {
+            component.draw(ui, area, state);
+        },
+    )
 }
 
 /// Build a component-backed child that owns nested composition children.
