@@ -74,6 +74,81 @@
       "cwd": "/Users/donbeave/Downloads/termrock-t01-final-api-joins",
       "exit_code": 0,
       "purpose": "Check staged owned artifacts for whitespace errors."
+    },
+    {
+      "argv": [
+        "python3",
+        "-"
+      ],
+      "cwd": "/Users/donbeave/Downloads/termrock-t01-final-api-joins",
+      "exit_code": 0,
+      "purpose": "Regenerate the supplement with its fixed candidate input pinned while the checkout contains the documentation commit.",
+      "output": {
+        "builder": "docs/implementation/pr38-final/results/t01-final-api-joins/build_join_supplement.py",
+        "artifact_sha256_before": "196d8caeba09d2676b5f1e24adf895a1675596b1378bc7b6eeaf5be0172e6f3a",
+        "artifact_sha256_after": "196d8caeba09d2676b5f1e24adf895a1675596b1378bc7b6eeaf5be0172e6f3a",
+        "unchanged": true
+      }
+    },
+    {
+      "argv": [
+        "python3",
+        "-"
+      ],
+      "cwd": "/Users/donbeave/Downloads/termrock-t01-final-api-joins",
+      "exit_code": 0,
+      "purpose": "Compare executable tokens and ASTs after stripping documentation; check Python comments and docstrings.",
+      "output": {
+        "build_join_supplement.py": {
+          "executable_tokens": "UNCHANGED",
+          "ast_without_docstrings": "UNCHANGED",
+          "comments": 0,
+          "docstrings": 0,
+          "syntax": "PASS"
+        },
+        "validate_join_supplement.py": {
+          "executable_tokens": "UNCHANGED",
+          "ast_without_docstrings": "UNCHANGED",
+          "comments": 0,
+          "docstrings": 0,
+          "syntax": "PASS"
+        },
+        "shebang_directives_preserved": true
+      }
+    },
+    {
+      "argv": [
+        "python3",
+        "docs/implementation/pr38-final/results/t01-final-api-joins/validate_join_supplement.py"
+      ],
+      "cwd": "/Users/donbeave/Downloads/termrock-t01-final-api-joins",
+      "exit_code": 0,
+      "phase": "post-cleanup",
+      "output": {
+        "status": "PASS_STRUCTURAL_ONLY",
+        "w44_locators_resolved": 37,
+        "w44_default_supplements": 1,
+        "extension_rows": 30,
+        "extension_null_api_ids_completed": 9,
+        "trait_member_api_rows": 24,
+        "inspector_body_disposition": "UNRESOLVED_T07_PRODUCT_GAP_RECORDED",
+        "join_ids_unique": 69,
+        "functional_cases": 0,
+        "functional_status": "NOT VERIFIED"
+      }
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "docs/implementation/pr38-final/results/t01-final-api-joins"
+      ],
+      "cwd": "/Users/donbeave/Downloads/termrock-t01-final-api-joins",
+      "exit_code": 0,
+      "phase": "post-cleanup",
+      "purpose": "Check working-tree owned artifacts for whitespace errors."
     }
   ],
   "counts": {
@@ -94,5 +169,12 @@
     "InspectorBody remains an unresolved T07 product gap and blocks final goal acceptance.",
     "Independent review is pending."
   ],
-  "independent_review": "PENDING"
+  "independent_review": "PENDING",
+  "post_review_cleanup": {
+    "module_docstrings_removed": 2,
+    "non_directive_comments_removed": 7,
+    "shebang_directives_preserved": 2,
+    "rationale_moved_to": "README.md",
+    "artifact_sha256_unchanged": true
+  }
 }

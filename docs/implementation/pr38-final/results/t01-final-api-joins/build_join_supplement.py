@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-"""Build source-bound T01 API joins from accepted fragments."""
-
 from __future__ import annotations
 
 import hashlib
@@ -240,7 +238,6 @@ def build() -> dict:
             row["purposes"].append(purpose)
         return data
 
-    # Pin every API declaration file and its manifest at the fixed candidate.
     record_source(DEFINITION_INPUT, METADATA_PATH, "accepted T37 package and workspace identity")
     paths = {row["source_path"] for row in foundation["items"] if row.get("source_path") == "crates/termrock-terminal/src/terminal_view.rs"}
     paths.update(row["definition"]["path"] for row in component["extension_points"])
@@ -259,7 +256,6 @@ def build() -> dict:
         if sha(manifest_data) != package["manifest_sha256"]:
             raise ValueError(f"manifest hash differs from accepted package identity: {package['manifest_path']}")
 
-    # W44: join each component locator to one foundation item and one direct export.
     w44_index, w44 = next((i, row) for i, row in enumerate(component["components"]) if row["wid"] == "W44")
     requirement_index, w44_requirement = next(
         (i, row) for i, row in enumerate(component["requirements"]) if row.get("requirement_id") == "T01-COMP-W44"
@@ -387,7 +383,6 @@ def build() -> dict:
     if len(w44_joins) != 37:
         raise ValueError(f"expected 37 W44 joins, found {len(w44_joins)}")
 
-    # Resolve the seven public type paths and their associated item expansions.
     type_rows = {
         row["current_qualified_symbol"].rsplit("::", 1)[-1]: row
         for _, row in w44_api_by_symbol.values()
@@ -529,7 +524,6 @@ def build() -> dict:
     if "TerminalViewState" not in draw_item["signature"]:
         raise ValueError("TerminalView::draw signature no longer carries TerminalViewState")
 
-    # Derived Default has source evidence but no explicit trait implementation row.
     state_source = terminal_text.splitlines()
     derive_line = state_item["line"] - 1
     if not state_source[derive_line - 1].startswith("#[derive("):
@@ -604,7 +598,6 @@ def build() -> dict:
         "case_id": w44_requirement["case_ids"][0],
     }
 
-    # Extension API joins: retain all 30 IDs and path evidence.
     extension_joins = []
     for extension_index, extension in enumerate(component["extension_points"]):
         path = extension["definition"]["path"]
@@ -864,7 +857,6 @@ def build() -> dict:
     if sum(row["producer_ref"]["producer_api_id"] is None for row in extension_joins) != 9:
         raise ValueError("the nine null extension API IDs changed")
 
-    # InspectorBody remains a source-backed product gap with no retirement decision.
     inspector_index, inspector = next(
         (i, row) for i, row in enumerate(component["application_specific_apis"]) if row.get("name") == "InspectorBody"
     )
@@ -982,7 +974,6 @@ def build() -> dict:
         },
     }
 
-    # Source-level public module and facade edges retained for all W44 rows.
     public_edges = [
         {"path": terminal_lib_file, "line": 2, "sha256": sha(git_bytes(FIXED_INPUT, terminal_lib_file)), "statement": "pub mod terminal_view;"},
         {"path": terminal_lib_file, "line": 4, "sha256": sha(git_bytes(FIXED_INPUT, terminal_lib_file)), "statement": "pub use terminal_view::*;"},

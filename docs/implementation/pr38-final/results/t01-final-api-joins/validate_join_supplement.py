@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-"""Validate source, identity, and pointer closure for the T01 join supplement."""
-
 from __future__ import annotations
 
 import hashlib
