@@ -199,6 +199,10 @@ impl SplitPaneState {
             which
         };
     }
+
+    fn clear_grab_offset(&mut self) -> bool {
+        self.grab_offset.take().is_some()
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -618,6 +622,81 @@ impl<'a> SplitPane<'a> {
         self.update_for_owner(cx, st, self.id, true)
     }
 
+    /// Move the first-pane boundary by a number of terminal cells.
+    ///
+    /// A positive `delta` moves the boundary right for a horizontal split or
+    /// down for a vertical split. A negative value moves it left or up. The
+    /// resize uses the same precise-ratio, initial-cell, and minimum-size
+    /// handling as keyboard and pointer resizing. Requests that reach a
+    /// configured minimum or the available layout limit are clamped there. A
+    /// clamped request can update the retained precise ratio without moving
+    /// the visible boundary; callers that require a full step must compare
+    /// the resolved pane geometry before and after this call.
+    ///
+    /// A zero delta, empty or undersized area, disabled or fixed sizing/share
+    /// policy, non-resizable split, or maximized state returns a consumed
+    /// response owned by this split and does not change `state`. This method
+    /// does not alter pointer capture or the stored pointer grab offset.
+    pub fn resize_by_cells(
+        &self,
+        state: &mut SplitPaneState,
+        area: Rect,
+        delta: i16,
+    ) -> Response<SplitAction> {
+        let extent = match self.axis {
+            SplitAxis::Horizontal => area.width,
+            SplitAxis::Vertical => area.height,
+        };
+        let usable = extent.saturating_sub(self.gap);
+        if delta == 0
+            || area.is_empty()
+            || usable == 0
+            || u32::from(usable) < u32::from(self.min_first) + u32::from(self.min_second)
+            || self.disabled
+            || self.fixed_sizing
+            || self.fixed_first_share.is_some()
+            || self.fixed_second_share.is_some()
+            || !self.resizable
+            || state.maximized != Maximized::None
+        {
+            return Response::consumed().for_id(self.id);
+        }
+
+        let mut acc = Acc::<SplitAction>::new();
+        let bounded_delta = if delta > 0 {
+            let (first, _) = self.panes(*state, area);
+            let current_first = match self.axis {
+                SplitAxis::Horizontal => first.width,
+                SplitAxis::Vertical => first.height,
+            };
+            let remaining_usable = usable.saturating_sub(current_first);
+            delta.min(i16::try_from(remaining_usable).unwrap_or(i16::MAX))
+        } else {
+            delta
+        };
+        if bounded_delta == 0 {
+            return Response::consumed().for_id(self.id);
+        }
+        self.nudge(state, area, bounded_delta, &mut acc);
+        acc.finish(self.id)
+    }
+
+    /// Clear this split's stored pointer grab offset.
+    ///
+    /// This changes only `state.grab_offset`. It does not release runtime
+    /// pointer capture, clear a runtime press, cancel a gesture while this seam
+    /// stays registered, change focus, or alter layout state. Callers that hide
+    /// or remove this seam must also release capture owned by this split and
+    /// publish the target's disappearance or ineligibility before accepting
+    /// another input.
+    pub fn clear_drag_state(&self, state: &mut SplitPaneState) -> Response<()> {
+        if state.clear_grab_offset() {
+            Response::changed().for_id(self.id)
+        } else {
+            Response::ignored().for_id(self.id)
+        }
+    }
+
     pub(crate) fn update_from_owner(
         &self,
         cx: &mut Cx<'_>,
@@ -638,7 +717,7 @@ impl<'a> SplitPane<'a> {
             if cx.capture_owner() == Some(self.id) {
                 cx.release_capture();
             }
-            st.grab_offset = None;
+            let _ = st.clear_grab_offset();
             return Response::ignored();
         }
         let area = cx
@@ -684,7 +763,7 @@ impl<'a> SplitPane<'a> {
                     if cx.capture_owner() == Some(self.id) {
                         cx.release_capture();
                     }
-                    st.grab_offset = None;
+                    let _ = st.clear_grab_offset();
                 }
                 _ => {}
             }
@@ -774,7 +853,7 @@ impl<'a> SplitPane<'a> {
                 if cx.capture_owner() == Some(self.id) {
                     cx.release_capture();
                 }
-                st.grab_offset = None;
+                let _ = st.clear_grab_offset();
                 acc.consumed();
             }
             Phase::DoubleClick => {
@@ -990,11 +1069,12 @@ mod tests {
     use crate::runtime::stub::{SCREEN, Stub};
     use crate::theme::{ColorLevel, Role, Theme};
     use termrock_core::event::MouseKind;
-    use termrock_core::response::Response;
+    use termrock_core::response::{Invalidate, Response};
     use termrock_runtime::{App, Cx};
 
     const ID: Id = Id::root("split.tests");
     const EDITOR_ID: Id = Id::root("split.tests.editor");
+    const OTHER_ID: Id = Id::root("split.tests.other");
 
     const AREA: Rect = Rect {
         x: 0,
@@ -1149,6 +1229,383 @@ mod tests {
     impl DragProbe {
         fn first_height(state: &SplitPaneState, area: Rect) -> u16 {
             Self::split().panes(*state, area).0.height
+        }
+    }
+
+    struct ResizeProbe {
+        axis: SplitAxis,
+        state: SplitPaneState,
+        first: Cell<Rect>,
+        second: Cell<Rect>,
+    }
+
+    impl ResizeProbe {
+        fn new(axis: SplitAxis, state: SplitPaneState) -> Self {
+            ResizeProbe {
+                axis,
+                state,
+                first: Cell::new(Rect::ZERO),
+                second: Cell::new(Rect::ZERO),
+            }
+        }
+
+        fn split(axis: SplitAxis) -> SplitPane<'static> {
+            SplitPane::new(ID, axis)
+                .gap(1)
+                .min_first(4)
+                .min_second(6)
+                .resizable(true)
+                .focusability(Focusability::ClickOnly)
+                .keyboard_navigation(false)
+                .hit_padding(1)
+        }
+
+        fn boundary(area: Rect, axis: SplitAxis) -> u16 {
+            match axis {
+                SplitAxis::Horizontal => area.right(),
+                SplitAxis::Vertical => area.bottom(),
+            }
+        }
+
+        fn extent(area: Rect, axis: SplitAxis) -> u16 {
+            match axis {
+                SplitAxis::Horizontal => area.width,
+                SplitAxis::Vertical => area.height,
+            }
+        }
+    }
+
+    impl App for ResizeProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            Self::split(self.axis).update(cx, &mut self.state).erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let area = ui.full();
+            Self::split(self.axis).draw(ui, area, &self.state, |_, first, second| {
+                self.first.set(first);
+                self.second.set(second);
+            });
+        }
+    }
+
+    fn pointer_derived_resize_runtime(axis: SplitAxis) -> (Runtime<ResizeProbe>, Buffer, Rect) {
+        let area = Rect::new(0, 0, 40, 35);
+        let mut runtime = Runtime::new(
+            ResizeProbe::new(axis, SplitPaneState::new(38)),
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        let seam = ResizeProbe::split(axis).seam(runtime.app().state, area);
+        let start = Position::new(seam.x, seam.y);
+        let target = match axis {
+            SplitAxis::Horizontal => Position::new(start.x.saturating_add(1), start.y),
+            SplitAxis::Vertical => Position::new(start.x, start.y.saturating_add(1)),
+        };
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(MouseKind::Down, start.x, start.y),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(MouseKind::Drag, target.x, target.y),
+        );
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        assert_eq!(runtime.capture_owner(), Some(ID));
+        assert_eq!(runtime.app().state.grab_offset, Some(0));
+        assert_ne!(
+            runtime.app().state.basis_points() % BASIS_POINTS_PER_PERCENT,
+            0
+        );
+        (runtime, buffer, area)
+    }
+
+    fn state_with_grab() -> SplitPaneState {
+        let mut state = SplitPaneState::new_with_initial_cells(38);
+        state.grab_offset = Some(-2);
+        state
+    }
+
+    fn assert_clear_drag_state_changes_only_the_offset(
+        split: SplitPane<'_>,
+        mut state: SplitPaneState,
+    ) {
+        assert!(state.grab_offset.is_some());
+        let mut expected = state;
+        expected.grab_offset = None;
+
+        let response = split.clear_drag_state(&mut state);
+
+        assert_eq!(state, expected, "clear changed durable split state");
+        assert_eq!(response.id(), Some(split.id()));
+        assert!(response.is_consumed());
+        assert!(response.is_changed());
+        assert_eq!(response.invalidate(), Invalidate::Paint);
+        assert!(response.action_ref().is_none());
+    }
+
+    fn assert_resize_noop(split: SplitPane<'_>, mut state: SplitPaneState, area: Rect, delta: i16) {
+        let before = state;
+        let response = split.resize_by_cells(&mut state, area, delta);
+        assert_eq!(state, before, "a guarded resize changed complete state");
+        assert_eq!(response.id(), Some(ID));
+        assert!(response.is_consumed());
+        assert_eq!(response.action_ref(), None);
+    }
+
+    #[test]
+    fn cell_resize_moves_a_pointer_derived_precise_boundary_on_both_axes() {
+        for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
+            let (mut runtime, mut buffer, area) = pointer_derived_resize_runtime(axis);
+            let baseline = runtime.app().state;
+            for delta in [-1, 1] {
+                runtime.app_mut().state = baseline;
+                runtime.draw_buffer(area, &mut buffer).commit_presented();
+                let before = runtime.app().first.get();
+                let mut resized = baseline;
+                let response = ResizeProbe::split(axis).resize_by_cells(&mut resized, area, delta);
+
+                assert_eq!(response.id(), Some(ID));
+                assert_eq!(
+                    response.action_ref().copied(),
+                    Some(SplitAction::Resized(resized.percent()))
+                );
+                assert_eq!(resized.grab_offset, baseline.grab_offset);
+
+                runtime.app_mut().state = resized;
+                runtime.draw_buffer(area, &mut buffer).commit_presented();
+                let after = runtime.app().first.get();
+                assert_eq!(
+                    i32::from(ResizeProbe::boundary(after, axis))
+                        - i32::from(ResizeProbe::boundary(before, axis)),
+                    i32::from(delta),
+                    "{axis:?} cell delta did not move the drawn first-pane boundary"
+                );
+                assert_eq!(runtime.capture_owner(), Some(ID));
+            }
+        }
+    }
+
+    #[test]
+    fn cell_resize_noop_guards_preserve_all_state_and_return_the_split_owner() {
+        let area = Rect::new(0, 0, 40, 35);
+        assert_resize_noop(
+            ResizeProbe::split(SplitAxis::Horizontal),
+            state_with_grab(),
+            area,
+            0,
+        );
+        assert_resize_noop(
+            ResizeProbe::split(SplitAxis::Horizontal),
+            state_with_grab(),
+            Rect::ZERO,
+            1,
+        );
+        assert_resize_noop(
+            ResizeProbe::split(SplitAxis::Horizontal),
+            state_with_grab(),
+            Rect::new(0, 0, 10, 35),
+            1,
+        );
+        assert_resize_noop(
+            SplitPane::new(ID, SplitAxis::Horizontal),
+            state_with_grab(),
+            area,
+            1,
+        );
+        assert_resize_noop(
+            SplitPane::new(ID, SplitAxis::Horizontal)
+                .resizable(true)
+                .disabled(true),
+            state_with_grab(),
+            area,
+            1,
+        );
+        assert_resize_noop(
+            SplitPane::new(ID, SplitAxis::Horizontal)
+                .fixed_sizing()
+                .resizable(true),
+            state_with_grab(),
+            area,
+            1,
+        );
+        assert_resize_noop(
+            SplitPane::new(ID, SplitAxis::Horizontal)
+                .resizable(true)
+                .fixed_second_share(40, 4, 6),
+            state_with_grab(),
+            area,
+            1,
+        );
+
+        let mut maximized = state_with_grab();
+        maximized.toggle_max(Maximized::First);
+        assert_resize_noop(
+            ResizeProbe::split(SplitAxis::Horizontal),
+            maximized,
+            area,
+            1,
+        );
+    }
+
+    #[test]
+    fn guarded_cell_resize_preserves_live_capture_and_grab_offset() {
+        let (mut runtime, _buffer, area) = pointer_derived_resize_runtime(SplitAxis::Horizontal);
+        let before = runtime.app().state;
+        let response = ResizeProbe::split(SplitAxis::Horizontal).resize_by_cells(
+            &mut runtime.app_mut().state,
+            area,
+            0,
+        );
+
+        assert_eq!(runtime.app().state, before);
+        assert_eq!(runtime.app().state.grab_offset, Some(0));
+        assert_eq!(runtime.capture_owner(), Some(ID));
+        assert_eq!(response.id(), Some(ID));
+        assert_eq!(response.action_ref(), None);
+    }
+
+    #[test]
+    fn cell_resize_clamps_to_minima_on_both_axes() {
+        let area = Rect::new(0, 0, 40, 35);
+        for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
+            for (percent, delta, clamp_first) in [(5, -100, true), (95, 100, false)] {
+                let mut runtime = Runtime::new(
+                    ResizeProbe::new(axis, SplitPaneState::new(percent)),
+                    Theme::junie(),
+                );
+                let _ = runtime.initialize();
+                let mut buffer = Buffer::empty(area);
+                runtime.draw_buffer(area, &mut buffer).commit_presented();
+                let mut resized = runtime.app().state;
+                let response = ResizeProbe::split(axis).resize_by_cells(&mut resized, area, delta);
+                assert_eq!(response.id(), Some(ID));
+                assert_eq!(
+                    response.action_ref().copied(),
+                    Some(SplitAction::Resized(resized.percent()))
+                );
+                runtime.app_mut().state = resized;
+                runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+                let first = runtime.app().first.get();
+                let second = runtime.app().second.get();
+                let first_extent = ResizeProbe::extent(first, axis);
+                let second_extent = ResizeProbe::extent(second, axis);
+                assert!(first_extent >= 4, "{axis:?} first pane fell below min");
+                assert!(second_extent >= 6, "{axis:?} second pane fell below min");
+                if clamp_first {
+                    assert_eq!(first_extent, 4, "{axis:?} first pane did not clamp");
+                } else {
+                    assert_eq!(second_extent, 6, "{axis:?} second pane did not clamp");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn cell_resize_transitions_an_initial_cell_split_to_precise_layout() {
+        let split = SplitPane::new(ID, SplitAxis::Horizontal)
+            .gap(1)
+            .min_first(4)
+            .min_second(6)
+            .resizable(true)
+            .initial_first_cells(12);
+        let area = Rect::new(0, 0, 40, 35);
+        let mut state = SplitPaneState::new_with_initial_cells(50);
+        let before = split.panes(state, area).0.width;
+        assert_eq!(before, 12);
+
+        let response = split.resize_by_cells(&mut state, area, 2);
+
+        assert_eq!(response.id(), Some(ID));
+        assert_eq!(
+            response.action_ref().copied(),
+            Some(SplitAction::Resized(state.percent()))
+        );
+        assert!(!state.initial_cells_active);
+        assert_eq!(split.panes(state, area).0.width, before + 2);
+    }
+
+    #[test]
+    fn cell_resize_preserves_direction_for_signed_extremes_on_large_both_axes() {
+        for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
+            let area = match axis {
+                SplitAxis::Horizontal => Rect::new(0, 0, u16::MAX, 1),
+                SplitAxis::Vertical => Rect::new(0, 0, 1, u16::MAX),
+            };
+            let split = ResizeProbe::split(axis);
+            for (percent, delta) in [(90, i16::MIN), (90, i16::MAX), (95, i16::MAX)] {
+                let mut state = SplitPaneState::new(percent);
+                let before_state = state;
+                let (before_first, _) = split.panes(state, area);
+                let before_extent = ResizeProbe::extent(before_first, axis);
+                if percent == 95 && delta == i16::MAX {
+                    assert!(
+                        i32::from(before_extent) + i32::from(delta) > i32::from(u16::MAX),
+                        "{axis:?} fixture must exceed the u16 target range"
+                    );
+                }
+
+                let response = split.resize_by_cells(&mut state, area, delta);
+                let (after_first, after_second) = split.panes(state, area);
+                let after_extent = ResizeProbe::extent(after_first, axis);
+                let after_second_extent = ResizeProbe::extent(after_second, axis);
+
+                assert_eq!(response.id(), Some(ID));
+                assert!(response.is_consumed());
+                assert!(after_extent >= 4, "{axis:?} first pane fell below min");
+                assert!(
+                    after_second_extent >= 6,
+                    "{axis:?} second pane fell below min"
+                );
+                if delta < 0 {
+                    assert!(
+                        i32::from(before_extent) - i32::from(after_extent) >= i32::from(i16::MAX),
+                        "{axis:?} i16::MIN did not retain its full negative range"
+                    );
+                } else if percent == 95 {
+                    assert!(
+                        after_extent >= before_extent,
+                        "{axis:?} positive maximum request reversed the boundary"
+                    );
+                } else {
+                    assert!(
+                        after_extent > before_extent,
+                        "{axis:?} positive maximum request did not move forward"
+                    );
+                }
+
+                if state != before_state {
+                    assert_eq!(
+                        response.action_ref().copied(),
+                        Some(SplitAction::Resized(state.percent()))
+                    );
+                } else {
+                    assert_eq!(response.action_ref(), None);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn cell_resize_rejects_overflowing_minima_without_mutation_on_both_axes() {
+        for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
+            let area = match axis {
+                SplitAxis::Horizontal => Rect::new(0, 0, u16::MAX, 1),
+                SplitAxis::Vertical => Rect::new(0, 0, 1, u16::MAX),
+            };
+            let split = SplitPane::new(ID, axis)
+                .gap(0)
+                .min_first(u16::MAX)
+                .min_second(1)
+                .resizable(true)
+                .initial_first_cells(20);
+
+            assert_resize_noop(split, state_with_grab(), area, 1);
         }
     }
 
@@ -1600,5 +2057,155 @@ mod tests {
                 "a slot on {part:?} changes cells, and `## Overrides` says it does not"
             );
         }
+    }
+
+    #[test]
+    fn clear_drag_state_preserves_pointer_derived_layout_and_runtime_owners() {
+        let area = Rect::new(0, 0, 40, 35);
+        let mut runtime = Runtime::new(
+            DragProbe {
+                state: SplitPaneState::new(38),
+                actions: Vec::new(),
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.set_focus(Some(EDITOR_ID));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        let seam = runtime
+            .area_of_part(ID, PartRef::of(Part::SEAM))
+            .unwrap_or(Rect::ZERO);
+        assert!(
+            seam.width > 0 && seam.height > 1,
+            "the padded seam was not registered"
+        );
+        let press = Position::new(seam.x.saturating_add(seam.width / 2), seam.y);
+        assert!(
+            seam.contains(press),
+            "the top padded cell must be inside the registered seam"
+        );
+        let first_height_before = DragProbe::first_height(&runtime.app().state, area);
+        let first_edge = area.y.saturating_add(first_height_before);
+        assert_ne!(
+            press.y, first_edge,
+            "the press must have a nonzero grab offset"
+        );
+        let drag = Position::new(press.x, press.y.saturating_add(1));
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(MouseKind::Down, press.x, press.y),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(MouseKind::Drag, drag.x, drag.y),
+        );
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        let before = runtime.app().state;
+        assert_eq!(
+            before.grab_offset,
+            Some(i32::from(press.y) - i32::from(first_edge))
+        );
+        assert_eq!(
+            DragProbe::first_height(&before, area),
+            first_height_before.saturating_add(1)
+        );
+        assert_ne!(before.basis_points() % BASIS_POINTS_PER_PERCENT, 0);
+        assert_eq!(runtime.capture_owner(), Some(ID));
+        assert_eq!(runtime.focus(), Some(EDITOR_ID));
+
+        let mut expected = before;
+        expected.grab_offset = None;
+        let response = DragProbe::split().clear_drag_state(&mut runtime.app_mut().state);
+
+        assert_eq!(runtime.app().state, expected);
+        assert_eq!(response.id(), Some(ID));
+        assert!(response.is_consumed());
+        assert!(response.is_changed());
+        assert_eq!(response.invalidate(), Invalidate::Paint);
+        assert!(response.action_ref().is_none());
+        assert_eq!(runtime.capture_owner(), Some(ID));
+        assert_eq!(runtime.focus(), Some(EDITOR_ID));
+
+        let clean_before = runtime.app().state;
+        let response = DragProbe::split().clear_drag_state(&mut runtime.app_mut().state);
+        assert_eq!(runtime.app().state, clean_before);
+        assert_eq!(response.id(), Some(ID));
+        assert!(!response.is_consumed());
+        assert!(!response.is_changed());
+        assert_eq!(response.invalidate(), Invalidate::None);
+        assert!(response.action_ref().is_none());
+        assert_eq!(runtime.capture_owner(), Some(ID));
+        assert_eq!(runtime.focus(), Some(EDITOR_ID));
+
+        let mut other_state = state_with_grab();
+        let mut other_expected = other_state;
+        other_expected.grab_offset = None;
+        let response =
+            SplitPane::new(OTHER_ID, SplitAxis::Horizontal).clear_drag_state(&mut other_state);
+        assert_eq!(other_state, other_expected);
+        assert_eq!(response.id(), Some(OTHER_ID));
+        assert!(response.is_consumed());
+        assert!(response.is_changed());
+        assert_eq!(runtime.capture_owner(), Some(ID));
+        assert_eq!(runtime.focus(), Some(EDITOR_ID));
+    }
+
+    #[test]
+    fn clear_drag_state_is_not_guarded_by_split_layout_policy() {
+        let state = state_with_grab();
+        let mut maximized = state;
+        maximized.toggle_max(Maximized::Second);
+
+        for (split, state) in [
+            (
+                SplitPane::new(ID, SplitAxis::Horizontal).resizable(true),
+                state,
+            ),
+            (
+                SplitPane::new(ID, SplitAxis::Vertical).resizable(true),
+                state,
+            ),
+            (
+                SplitPane::new(ID, SplitAxis::Horizontal).disabled(true),
+                state,
+            ),
+            (
+                SplitPane::new(ID, SplitAxis::Horizontal).fixed_sizing(),
+                state,
+            ),
+            (
+                SplitPane::new(ID, SplitAxis::Horizontal).fixed_second_share(40, 4, 6),
+                state,
+            ),
+            (SplitPane::new(ID, SplitAxis::Horizontal), state),
+            (
+                SplitPane::new(ID, SplitAxis::Horizontal).resizable(true),
+                maximized,
+            ),
+        ] {
+            assert_clear_drag_state_changes_only_the_offset(split, state);
+        }
+    }
+
+    #[test]
+    fn clear_drag_state_on_an_already_clean_state_is_an_owner_tagged_noop() {
+        let split = SplitPane::new(OTHER_ID, SplitAxis::Vertical);
+        let mut state = SplitPaneState::new_with_initial_cells(41);
+        state.toggle_max(Maximized::First);
+        let before = state;
+
+        let response = split.clear_drag_state(&mut state);
+
+        assert_eq!(state, before);
+        assert_eq!(response.id(), Some(OTHER_ID));
+        assert!(!response.is_consumed());
+        assert!(!response.is_changed());
+        assert_eq!(response.invalidate(), Invalidate::None);
+        assert!(response.action_ref().is_none());
     }
 }
