@@ -1,6 +1,6 @@
 {
   "schema": "termrock-run-state-v1",
-  "updated_at": "2026-10-26T01:48:43Z",
+  "updated_at": "2026-10-26T01:51:49Z",
   "plan": {
     "root": "/Users/donbeave/Downloads/terminal-components-claude/docs/implementation/pr38-final",
     "source_root": "/Users/donbeave/Downloads/termrock-pr38-plan",
@@ -119,7 +119,7 @@
       "path": "/Users/donbeave/Downloads/terminal-components-claude",
       "branch": "parity/termrock-visual-baseline",
       "starting_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "current_sha": "37b1850dce5ebcc3a5d2cae68ff86ee0cd0105a7",
+      "current_sha": "aac56e2f0502684010f95b470efa21ca22a9a3e4",
       "pending_upstream_refresh": null,
       "code_input_sha": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
       "completed_upstream_refreshes": [
@@ -155,13 +155,31 @@
       ],
       "last_reviewed_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "product_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "t37_role": "C cohort correction ee8a awaits exact high review on its separate docs branch. Global prose crosswalk remains REVIEW/PENDING. Reviewed-source history integration is planned but not executed; overall T37 acceptance remains open.",
+      "t37_role": "C output ee8 awaits exact review. Component contract 932 awaits review. After accepted content merges, execute only the independently reviewed eight-tip history plan; it is not yet run. Overall T37 remains open.",
       "pending_source_history_plan": {
         "status": "REVIEWED_PLAN_READY_PENDING_EXECUTION_AFTER_ACCEPTED_CONTENT_MERGES",
         "reviewer_id": "/root/t37_apps_review",
         "reviewer_model": "gpt-6.1-sol",
         "reviewer_effort": "high",
-        "method": "After content merges, perform one history-only `git merge --strategy=ours` for the exact tip antichain. Require tree equality before and after and verify all eight tips are ancestors. Then verify required blobs from a fresh `git clone --no-local --single-branch --no-tags`.",
+        "prerequisites": [
+          {
+            "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
+            "required_content_head": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+            "status": "C correction committed; exact independent high review pending"
+          },
+          {
+            "worktree": "/Users/donbeave/Downloads/termrock-t37-component-contracts",
+            "required_content_head": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
+            "status": "implementation committed; exact independent high review pending"
+          }
+        ],
+        "method": [
+          "Wait for independent acceptance and normal content integration of the shared docs and component-contract aggregates.",
+          "Record the resulting integration commit and tree ID.",
+          "Perform one history-only merge with `git merge --no-ff --strategy=ours` for the exact eight tips below. Use strategy `ours`; never use `-X ours`.",
+          "Require the tree ID before and after the history merge to match. Verify `git merge-base --is-ancestor` for each retained tip.",
+          "Verify required exact Git blobs from a fresh local clone made with `--no-local --single-branch --no-tags`, so existing worker refs cannot conceal missing objects. Run read-only `git show` checks; write no output."
+        ],
         "tips": [
           "66728b43068c1ca54deba2a9cbd4d9a9973af182",
           "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
@@ -172,17 +190,24 @@
           "34cbad0123c13612f06cf18a882465e8f108d607",
           "bf1b52a7fe9274593e2dfaf0332b367fb860dfef"
         ],
-        "exclusions": [
-          "PR26 reference commit 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
-          "unrelated historical refs"
-        ],
+        "exact_tip_note": "The eight worker heads preserve the original reviewed commits and producer dependencies. Foundation head 34cbad0123c13612f06cf18a882465e8f108d607 retains the original 2fee2c277d1213fc5fad5d81eb77479600182b69 inventory/raw archive in its ancestry.",
         "execution_status": "NOT EXECUTED",
+        "resulting_integration_commit": null,
+        "resulting_integration_tree": null,
         "tree_equality": "PENDING",
         "ancestor_checks": "PENDING",
         "fresh_clone_blob_check": "PENDING",
+        "protected_refs": [
+          "visual-baseline annotated unsigned tag",
+          "PR26 reference commit 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948"
+        ],
+        "excluded_refs": [
+          "PR26 merge",
+          "unrelated historical refs"
+        ],
         "limits": [
-          "Do not use `-Xours`.",
-          "This plan preserves reviewed commit history; it does not alter source-tree contents or establish product behavior."
+          "No merges, source changes, external actions, or pushes have occurred for this plan.",
+          "History reachability does not alter the source tree or establish product behavior."
         ]
       }
     },
@@ -482,7 +507,7 @@
         "classification_rule": "Reconcile each surviving target against the baseline inventory and subtract retired manual probes, visual harnesses, and frozen helpers; baseline target counts alone do not classify production targets.",
         "evidence_limit": "Structural target metadata only. Zero retained test cases do not verify behavior."
       },
-      "integration_head_at_checkpoint": "37b1850dce5ebcc3a5d2cae68ff86ee0cd0105a7",
+      "integration_head_at_checkpoint": "aac56e2f0502684010f95b470efa21ca22a9a3e4",
       "shared_branch_head": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
       "shared_docs_cohort": {
         "agent_id": "/root/t00_import_rules",
@@ -534,7 +559,25 @@
         "reviewer_id": "/root/t37_apps_review",
         "reviewer_model": "gpt-6.1-sol",
         "reviewer_effort": "high",
-        "method": "After content merges, perform one history-only `git merge --strategy=ours` for the exact tip antichain. Require tree equality before and after and verify all eight tips are ancestors. Then verify required blobs from a fresh `git clone --no-local --single-branch --no-tags`.",
+        "prerequisites": [
+          {
+            "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
+            "required_content_head": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+            "status": "C correction committed; exact independent high review pending"
+          },
+          {
+            "worktree": "/Users/donbeave/Downloads/termrock-t37-component-contracts",
+            "required_content_head": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
+            "status": "implementation committed; exact independent high review pending"
+          }
+        ],
+        "method": [
+          "Wait for independent acceptance and normal content integration of the shared docs and component-contract aggregates.",
+          "Record the resulting integration commit and tree ID.",
+          "Perform one history-only merge with `git merge --no-ff --strategy=ours` for the exact eight tips below. Use strategy `ours`; never use `-X ours`.",
+          "Require the tree ID before and after the history merge to match. Verify `git merge-base --is-ancestor` for each retained tip.",
+          "Verify required exact Git blobs from a fresh local clone made with `--no-local --single-branch --no-tags`, so existing worker refs cannot conceal missing objects. Run read-only `git show` checks; write no output."
+        ],
         "tips": [
           "66728b43068c1ca54deba2a9cbd4d9a9973af182",
           "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
@@ -545,17 +588,24 @@
           "34cbad0123c13612f06cf18a882465e8f108d607",
           "bf1b52a7fe9274593e2dfaf0332b367fb860dfef"
         ],
-        "exclusions": [
-          "PR26 reference commit 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
-          "unrelated historical refs"
-        ],
+        "exact_tip_note": "The eight worker heads preserve the original reviewed commits and producer dependencies. Foundation head 34cbad0123c13612f06cf18a882465e8f108d607 retains the original 2fee2c277d1213fc5fad5d81eb77479600182b69 inventory/raw archive in its ancestry.",
         "execution_status": "NOT EXECUTED",
+        "resulting_integration_commit": null,
+        "resulting_integration_tree": null,
         "tree_equality": "PENDING",
         "ancestor_checks": "PENDING",
         "fresh_clone_blob_check": "PENDING",
+        "protected_refs": [
+          "visual-baseline annotated unsigned tag",
+          "PR26 reference commit 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948"
+        ],
+        "excluded_refs": [
+          "PR26 merge",
+          "unrelated historical refs"
+        ],
         "limits": [
-          "Do not use `-Xours`.",
-          "This plan preserves reviewed commit history; it does not alter source-tree contents or establish product behavior."
+          "No merges, source changes, external actions, or pushes have occurred for this plan.",
+          "History reachability does not alter the source tree or establish product behavior."
         ]
       }
     }
@@ -1001,10 +1051,10 @@
       "status": "ACTIVE_DISK_CLEANUP_ONLY",
       "worktree": null,
       "initial_free_bytes": 1998809899008,
-      "latest_reported_free_bytes": 2140794982400,
+      "latest_reported_free_bytes": 2143195320320,
       "stop_at_free_bytes": 2500000000000,
       "scope": "DISK_POLICY cleanup and monitoring only; no project/task work.",
-      "latest_check": "2026-10-26 01:48 UTC; read-only probe; no new safe target; no deletion."
+      "latest_check": "2026-10-26T01:51:49Z; read-only probe; no new safe target; no deletion."
     },
     {
       "id": "/root/t37_metadata",
@@ -1088,7 +1138,58 @@
       "reviewed_output_sha": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
       "decision": "ACCEPT",
       "current_scope": "Exact eight-tip history-only integration plan reviewed; coordinator may execute after accepted content merges, with tree/ancestor/fresh-clone gates. No integration was executed.",
-      "source_history_plan_review": "Tree-preserving eight-tip strategy=ours plan complete. Execution, tree-equality checks, ancestor checks, and fresh-clone blob checks remain pending."
+      "source_history_plan_review": "Tree-preserving eight-tip strategy=ours plan complete. Execution, tree-equality checks, ancestor checks, and fresh-clone blob checks remain pending.",
+      "provenance_plan": {
+        "status": "REVIEWED_PLAN_READY_PENDING_EXECUTION_AFTER_ACCEPTED_CONTENT_MERGES",
+        "prerequisites": [
+          {
+            "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
+            "required_content_head": "ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9",
+            "status": "C correction committed; exact independent high review pending"
+          },
+          {
+            "worktree": "/Users/donbeave/Downloads/termrock-t37-component-contracts",
+            "required_content_head": "932d36c18c3dc5dbce350e27290a732e0b8957bf",
+            "status": "implementation committed; exact independent high review pending"
+          }
+        ],
+        "method": [
+          "Wait for independent acceptance and normal content integration of the shared docs and component-contract aggregates.",
+          "Record the resulting integration commit and tree ID.",
+          "Perform one history-only merge with `git merge --no-ff --strategy=ours` for the exact eight tips below. Use strategy `ours`; never use `-X ours`.",
+          "Require the tree ID before and after the history merge to match. Verify `git merge-base --is-ancestor` for each retained tip.",
+          "Verify required exact Git blobs from a fresh local clone made with `--no-local --single-branch --no-tags`, so existing worker refs cannot conceal missing objects. Run read-only `git show` checks; write no output."
+        ],
+        "tips": [
+          "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+          "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+          "fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a",
+          "cb1a928cb7863597ded56adbd33c77e45713f780",
+          "ae32524b29baf638d8790ec0f7b320dfd05ee0f1",
+          "1dd1cf4d9ac1edfe79afabddd22104ca0c821d46",
+          "34cbad0123c13612f06cf18a882465e8f108d607",
+          "bf1b52a7fe9274593e2dfaf0332b367fb860dfef"
+        ],
+        "exact_tip_note": "The eight worker heads preserve the original reviewed commits and producer dependencies. Foundation head 34cbad0123c13612f06cf18a882465e8f108d607 retains the original 2fee2c277d1213fc5fad5d81eb77479600182b69 inventory/raw archive in its ancestry.",
+        "execution_status": "NOT EXECUTED",
+        "resulting_integration_commit": null,
+        "resulting_integration_tree": null,
+        "tree_equality": "PENDING",
+        "ancestor_checks": "PENDING",
+        "fresh_clone_blob_check": "PENDING",
+        "protected_refs": [
+          "visual-baseline annotated unsigned tag",
+          "PR26 reference commit 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948"
+        ],
+        "excluded_refs": [
+          "PR26 merge",
+          "unrelated historical refs"
+        ],
+        "limits": [
+          "No merges, source changes, external actions, or pushes have occurred for this plan.",
+          "History reachability does not alter the source tree or establish product behavior."
+        ]
+      }
     },
     {
       "id": "/root/t37_crosswalk",
@@ -1611,7 +1712,6 @@
       "reviewer_id": "/root/t37_apps_review",
       "reviewer_model": "gpt-6.1-sol",
       "reviewer_effort": "high",
-      "method": "One history-only strategy=ours merge, unchanged tree and ancestor checks, then fresh --no-local --single-branch --no-tags clone blob check.",
       "tips": [
         "66728b43068c1ca54deba2a9cbd4d9a9973af182",
         "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
@@ -1623,9 +1723,19 @@
         "bf1b52a7fe9274593e2dfaf0332b367fb860dfef"
       ],
       "execution_status": "NOT EXECUTED",
-      "excluded": [
-        "PR26 reference",
-        "unrelated historical refs"
+      "method": [
+        "Wait for independent acceptance and normal content integration of the shared docs and component-contract aggregates.",
+        "Record the resulting integration commit and tree ID.",
+        "Perform one history-only merge with `git merge --no-ff --strategy=ours` for the exact eight tips below. Use strategy `ours`; never use `-X ours`.",
+        "Require the tree ID before and after the history merge to match. Verify `git merge-base --is-ancestor` for each retained tip.",
+        "Verify required exact Git blobs from a fresh local clone made with `--no-local --single-branch --no-tags`, so existing worker refs cannot conceal missing objects. Run read-only `git show` checks; write no output."
+      ],
+      "tree_equality": "PENDING",
+      "ancestor_checks": "PENDING",
+      "fresh_clone_blob_check": "PENDING",
+      "limits": [
+        "No merges, source changes, external actions, or pushes have occurred for this plan.",
+        "History reachability does not alter the source tree or establish product behavior."
       ]
     }
   },
@@ -1657,11 +1767,11 @@
     "T02, T03, and T04 remain blocked until T38 passes independent review; T01 and T38 have not started.",
     "T37 cohort C follow-up ee8a18a77f1a6e7340d0dfe81bbba16f4e87ddf9 awaits exact high review after the CORRECTION at 8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2. Do not mark the cohort accepted yet.",
     "The global 1,122-group crosswalk remains REVIEW/PENDING until all cohort output and coordinator-bound review records are exact and independently accepted.",
-    "The provenance reviewer completed a tree-preserving eight-tip history plan. Execution is pending accepted content merges; tree equality, ancestor checks, and fresh-clone blob verification have not run.",
     "Accepted source, metadata, and documentation worktrees are not yet at one integrated candidate commit; overall T37 review remains pending.",
     "The component caller-contract transfer output 932d36c is awaiting independent Sol-high review.",
     "The generated Nextest lane has zero run tasks and is ABSENT / NOT VERIFIED. No T37 replacement gate or test was added.",
-    "No product behavior cases ran; product behavior remains NOT VERIFIED."
+    "No product behavior cases ran; product behavior remains NOT VERIFIED.",
+    "The independently reviewed eight-tip history plan is pending accepted content merges; the history-only merge, tree-equality check, ancestry checks, and fresh-clone blob verification are NOT EXECUTED."
   ],
   "root_instruction_patch": {
     "patch_path": "AGENTS.patch",
@@ -1689,7 +1799,8 @@
     "T37-docs-api-crosswalk-producer": "ae32524b29baf638d8790ec0f7b320dfd05ee0f1",
     "T37-docs-api-crosswalk-shared": "34c06c17cab2b6f78734b496f65e6038013b117d",
     "T37-docs-api-support-pre-R4-followup": "8f35593f474b4f5d4fb1b1ba7eeeb4cf566dd2b2",
-    "T37-reviewed-source-history-integration-plan": "NOT_EXECUTED"
+    "T37-reviewed-source-history-integration-plan": "NOT_EXECUTED",
+    "T37-run-state-correction-and-history-plan": "aac56e2f0502684010f95b470efa21ca22a9a3e4"
   },
   "task_units": {
     "T00_overall": "ACCEPTED",
@@ -2371,8 +2482,8 @@
     "target_free_bytes": 2500000000000,
     "status": "CLEANUP_ACTIVE_BELOW_TARGET; latest scan found no safe target; continue monitoring only until 2.5 TB.",
     "authority": "/Users/donbeave/.agents/DISK_POLICY.md",
-    "latest_reported_free_bytes": 2140794982400,
-    "latest_check": "2026-10-26 01:48 UTC; child read-only probe; no new safe target; no deletion; continue to 2.5 TB.",
+    "latest_reported_free_bytes": 2143195320320,
+    "latest_check": "2026-10-26 01:51 UTC; child read-only probe; no new safe target; no deletion; continue to 2.5 TB.",
     "evidence_path": "results/t37-shared/disk-cleanup.json"
   },
   "t37_post_cleanup_build": {
