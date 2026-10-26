@@ -10,8 +10,8 @@ use crate::field_control::FieldControl;
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
 use crate::input::{
-    BlurPolicy, EditCapabilities, EditMenuRequest, EditPhase, EditorDraft, ErrorState, TextAction,
-    TextCmd, TextEditCommand, TextTarget, byte_at_col, discard_error,
+    BlurPolicy, EditCapabilities, EditMenuRequest, EditPhase, EditorDraft, ErrorState, FocusSelect,
+    TextAction, TextCmd, TextEditCommand, TextTarget, byte_at_col, discard_error,
 };
 use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
@@ -23,6 +23,7 @@ use crate::text::{EditAction, EditOutcome, Extend, Motion, width};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
+use termrock_core::EditEntry;
 use termrock_runtime::author::VerticalWindow;
 use termrock_runtime::layer::LayerOpening;
 use termrock_runtime::rowui::CellUi;
@@ -125,8 +126,18 @@ impl TextAreaGeometry {
 }
 
 const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Binding<TextCmd> {
+    b_with_action(chord, cmd, label, label, visible)
+}
+
+const fn b_with_action(
+    chord: Chord,
+    cmd: TextCmd,
+    action: &'static str,
+    label: &'static str,
+    visible: bool,
+) -> Binding<TextCmd> {
     Binding {
-        action: ActionKey::custom(label),
+        action: ActionKey::custom(action),
         chord: Some(chord),
         cmd,
         label,
@@ -135,7 +146,29 @@ const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Bi
     }
 }
 
-const BINDINGS: &[Binding<TextCmd>] = &[
+// Alternate labels keep the preexisting ActionKey identities for remaps.
+const ESCAPE_CANCEL: Binding<TextCmd> = b_with_action(
+    Chord::key(KeyCode::Esc),
+    TextCmd::Cancel,
+    "Done",
+    "Cancel",
+    true,
+);
+const ENTER_BEGIN: Binding<TextCmd> = b_with_action(
+    Chord::key(KeyCode::Enter),
+    TextCmd::Newline,
+    "New line",
+    "Begin editing",
+    true,
+);
+const SELECT_ALL: Binding<TextCmd> = b(
+    Chord::with(KeyCode::Char('l'), CTRL),
+    TextCmd::SelectAll,
+    "Select all",
+    false,
+);
+
+const BASE_BINDINGS: [Binding<TextCmd>; 34] = [
     b(Chord::key(KeyCode::Esc), TextCmd::Commit, "Done", true),
     b(
         Chord::key(KeyCode::Enter),
@@ -317,12 +350,7 @@ const BINDINGS: &[Binding<TextCmd>] = &[
         "Delete word (Ctrl+W)",
         false,
     ),
-    b(
-        Chord::with(KeyCode::Char('l'), CTRL),
-        TextCmd::SelectAll,
-        "Select all",
-        false,
-    ),
+    SELECT_ALL,
     b(
         Chord::with(KeyCode::Char('b'), ALT),
         TextCmd::Move(Motion::WordLeft, Extend::No),
@@ -337,10 +365,26 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     ),
 ];
 
+const fn replace_escape(
+    mut bindings: [Binding<TextCmd>; 34],
+    escape: Binding<TextCmd>,
+) -> [Binding<TextCmd>; 34] {
+    bindings[0] = escape;
+    bindings
+}
+
+const BINDINGS: &[Binding<TextCmd>] = &BASE_BINDINGS;
+const CANCEL_BINDINGS_ARRAY: [Binding<TextCmd>; 34] = replace_escape(BASE_BINDINGS, ESCAPE_CANCEL);
+const CANCEL_BINDINGS: &[Binding<TextCmd>] = &CANCEL_BINDINGS_ARRAY;
+// Select All is the only idle TypeToEdit binding that starts an edit session.
+const TYPE_TO_EDIT_IDLE_BINDINGS: &[Binding<TextCmd>] = &[SELECT_ALL];
+const EXPLICIT_IDLE_BINDINGS: &[Binding<TextCmd>] = &[ENTER_BEGIN, SELECT_ALL];
+
 #[derive(Default)]
 pub struct TextAreaState {
     draft: EditorDraft,
     phase: EditPhase,
+    session_entry: Option<EditEntry>,
     scroll: ScrollState,
     error: Option<ErrorState>,
     redacted_snapshot: bool,
@@ -355,6 +399,7 @@ impl Clone for TextAreaState {
         TextAreaState {
             draft: self.draft.clone_snapshot(),
             phase: self.phase,
+            session_entry: self.session_entry,
             scroll: self.scroll,
             error: self.error.as_ref().map(ErrorState::clone_snapshot),
             redacted_snapshot: self.is_sensitive(),
@@ -371,6 +416,7 @@ impl PartialEq for TextAreaState {
         if self.is_sensitive() || other.is_sensitive() {
             self.is_sensitive() == other.is_sensitive()
                 && self.phase == other.phase
+                && self.session_entry == other.session_entry
                 && self.scroll == other.scroll
                 && self.pointer_anchor == other.pointer_anchor
                 && self.focus_continuation == other.focus_continuation
@@ -379,6 +425,7 @@ impl PartialEq for TextAreaState {
         } else {
             self.draft.same(&other.draft)
                 && self.phase == other.phase
+                && self.session_entry == other.session_entry
                 && self.scroll == other.scroll
                 && self.pointer_anchor == other.pointer_anchor
                 && self.focus_continuation == other.focus_continuation
@@ -399,6 +446,7 @@ impl fmt::Debug for TextAreaState {
             .field("draft", &"[redacted]")
             .field("draft_len", &self.draft.text().len())
             .field("phase", &self.phase)
+            .field("session_entry", &self.session_entry)
             .field("scroll", &self.scroll)
             .field("error", &self.error.as_ref().map(|_| "[redacted]"))
             .field("redacted_snapshot", &self.redacted_snapshot)
@@ -460,6 +508,7 @@ impl TextAreaState {
         self.sensitivity = Some(sensitive);
         if changed {
             self.phase = EditPhase::Idle;
+            self.session_entry = None;
             self.redacted_snapshot = false;
             if sensitive && pending_error {
                 self.redact_error();
@@ -499,12 +548,18 @@ impl TextAreaState {
     }
 
     pub fn begin(&mut self, current: &str) {
+        let _ = self.begin_with_entry(current, EditEntry::Immediate);
+    }
+
+    fn begin_with_entry(&mut self, current: &str, entry: EditEntry) -> bool {
         if self.is_editing() {
-            return;
+            return false;
         }
         self.redacted_snapshot = false;
         self.draft.begin_multi(current);
         self.phase = EditPhase::Editing;
+        self.session_entry = Some(entry);
+        true
     }
 
     pub fn commit(&mut self, value: &mut String, v: &impl Validate) -> Result<(), FieldError> {
@@ -525,12 +580,14 @@ impl TextAreaState {
             value.set(self.draft.text(), self.is_sensitive());
         }
         self.phase = EditPhase::Idle;
+        self.session_entry = None;
         self.redacted_snapshot = false;
         self.draft.zeroize();
     }
 
     pub fn cancel(&mut self) {
         self.phase = EditPhase::Idle;
+        self.session_entry = None;
         self.redacted_snapshot = false;
         self.draft.zeroize();
         if self.is_sensitive() {
@@ -606,6 +663,9 @@ pub struct TextArea<'a> {
     placeholder: Option<&'a str>,
     validate: Option<&'a dyn Validate>,
     blur: BlurPolicy,
+    edit_entry: EditEntry,
+    focus_select: FocusSelect,
+    esc_reverts: bool,
     secret: Option<SecretPolicy>,
     read_only: bool,
     disabled: bool,
@@ -621,6 +681,9 @@ impl fmt::Debug for TextArea<'_> {
             .field("value", &self.value.map(|_| "[redacted]"))
             .field("placeholder", &self.placeholder)
             .field("blur", &self.blur)
+            .field("edit_entry", &self.edit_entry)
+            .field("focus_select", &self.focus_select)
+            .field("esc_reverts", &self.esc_reverts)
             .field("secret", &self.secret)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
@@ -651,6 +714,9 @@ impl<'a> TextArea<'a> {
             placeholder: None,
             validate: None,
             blur: BlurPolicy::Commit,
+            edit_entry: EditEntry::Immediate,
+            focus_select: FocusSelect::CaretEnd,
+            esc_reverts: false,
             secret: None,
             read_only: false,
             disabled: false,
@@ -680,6 +746,38 @@ impl<'a> TextArea<'a> {
     #[must_use]
     pub const fn blur(mut self, p: BlurPolicy) -> Self {
         self.blur = p;
+        self
+    }
+
+    /// Choose when a fresh TextArea edit session begins.
+    ///
+    /// The default begins on focus. `TypeToEdit` begins on a character or
+    /// paste. Select All begins an idle session in every mode. `Explicit`
+    /// also allows Enter to begin without inserting a newline; contextual Paste
+    /// is unavailable until that session is active.
+    #[must_use]
+    pub const fn edit_entry(mut self, policy: EditEntry) -> Self {
+        self.edit_entry = policy;
+        self
+    }
+
+    /// Choose the initial selection for a new non-pointer edit session.
+    ///
+    /// Pointer placement controls its own caret. A retained draft keeps its
+    /// current caret and selection.
+    #[must_use]
+    pub const fn focus_select(mut self, policy: FocusSelect) -> Self {
+        self.focus_select = policy;
+        self
+    }
+
+    /// Cancel an active non-explicit edit session when Escape is pressed.
+    ///
+    /// Sessions begun with `EditEntry::Explicit` commit on Escape for legacy
+    /// compatibility, even when this option is enabled.
+    #[must_use]
+    pub const fn esc_reverts(mut self, enabled: bool) -> Self {
+        self.esc_reverts = enabled;
         self
     }
 
@@ -772,6 +870,9 @@ impl<'a> TextArea<'a> {
             placeholder: self.placeholder,
             validate: self.validate,
             blur: self.blur,
+            edit_entry: self.edit_entry,
+            focus_select: self.focus_select,
+            esc_reverts: self.esc_reverts,
             secret: self.secret,
             read_only: self.read_only,
             disabled: self.disabled || inherited,
@@ -786,6 +887,41 @@ impl<'a> TextArea<'a> {
 
     fn validator(&self) -> Dyn<'_> {
         Dyn(self.validate.unwrap_or(&NoValidate))
+    }
+
+    fn begin_keyboard_session(&self, st: &mut TextAreaState, current: &str) -> bool {
+        if !st.begin_with_entry(current, self.edit_entry) {
+            return false;
+        }
+        match self.focus_select {
+            FocusSelect::CaretStart => {
+                let _ = st.apply(EditAction::Move(Motion::DocStart, Extend::No));
+            }
+            FocusSelect::CaretEnd => {}
+            FocusSelect::SelectAll => {
+                let _ = st.apply(EditAction::SelectAll);
+            }
+        }
+        true
+    }
+
+    /// Shared table selection for key dispatch and visible hint publication.
+    fn effective_bindings(
+        &self,
+        editing: bool,
+        session_entry: Option<EditEntry>,
+    ) -> &'static [Binding<TextCmd>] {
+        if !editing {
+            match self.edit_entry {
+                EditEntry::Immediate => BINDINGS,
+                EditEntry::TypeToEdit => TYPE_TO_EDIT_IDLE_BINDINGS,
+                EditEntry::Explicit => EXPLICIT_IDLE_BINDINGS,
+            }
+        } else if self.esc_reverts && session_entry != Some(EditEntry::Explicit) {
+            CANCEL_BINDINGS
+        } else {
+            BINDINGS
+        }
     }
 
     const fn body_rows(&self, area: Rect) -> u16 {
@@ -877,9 +1013,20 @@ impl<'a> TextArea<'a> {
                 acc.fold(&bar);
             }
             match it {
-                Intent::FocusIn { .. } => {
-                    if editable {
-                        st.begin(value.expose());
+                Intent::FocusIn { via } => {
+                    if editable && self.edit_entry == EditEntry::Immediate {
+                        if matches!(
+                            via,
+                            crate::intent::FocusVia::Keyboard
+                                | crate::intent::FocusVia::Programmatic
+                                | crate::intent::FocusVia::Restore
+                        ) {
+                            self.begin_keyboard_session(st, value.expose());
+                        } else {
+                            // Pointer focus keeps its placement for the press
+                            // intent that follows.
+                            let _ = st.begin_with_entry(value.expose(), self.edit_entry);
+                        }
                     }
                 }
                 Intent::FocusOut { to } => {
@@ -905,11 +1052,24 @@ impl<'a> TextArea<'a> {
                     }
                 }
                 Intent::Binding(action) if editable => {
-                    if let Some(cmd) = Binding::command(BINDINGS, action) {
-                        if !st.is_editing() && cmd != TextCmd::Commit {
-                            st.begin(value.expose());
-                        }
+                    let bindings = self.effective_bindings(st.is_editing(), st.session_entry);
+                    if let Some(cmd) = Binding::command(bindings, action) {
                         if st.is_editing() {
+                            self.edit_command(st, value, cmd, page, &mut acc);
+                        } else if cmd == TextCmd::SelectAll {
+                            self.begin_keyboard_session(st, value.expose());
+                            self.edit_command(st, value, cmd, page, &mut acc);
+                        } else if self.edit_entry == EditEntry::Explicit && cmd == TextCmd::Newline
+                        {
+                            // The first Enter opens an Explicit session. A
+                            // later Enter inserts a newline as usual.
+                            self.begin_keyboard_session(st, value.expose());
+                            acc.changed();
+                        } else if self.edit_entry == EditEntry::Immediate && cmd != TextCmd::Commit
+                        {
+                            // Keep the historical Immediate behavior after
+                            // a session was committed while focus remains.
+                            self.begin_keyboard_session(st, value.expose());
                             self.edit_command(st, value, cmd, page, &mut acc);
                         }
                     }
@@ -936,17 +1096,31 @@ impl<'a> TextArea<'a> {
                     acc.consumed();
                 }
                 Intent::Key(k) if editable => {
-                    if !st.is_editing() {
-                        st.begin(value.expose());
+                    let character = k.bare_char();
+                    let should_begin = !st.is_editing()
+                        && match self.edit_entry {
+                            EditEntry::Immediate => true,
+                            EditEntry::TypeToEdit => character.is_some(),
+                            EditEntry::Explicit => false,
+                        };
+                    if should_begin {
+                        self.begin_keyboard_session(st, value.expose());
                     }
-                    if let Some(c) = k.bare_char()
+                    if st.is_editing()
+                        && let Some(c) = character
                         && st.apply(EditAction::Insert(c)).changed()
                     {
                         self.live_validate(st);
                         acc.action(TextAction::Changed);
                     }
                 }
-                Intent::Paste(s) if editable && st.is_editing() => {
+                Intent::Paste(s)
+                    if editable
+                        && (st.is_editing() || self.edit_entry == EditEntry::TypeToEdit) =>
+                {
+                    if !st.is_editing() {
+                        self.begin_keyboard_session(st, value.expose());
+                    }
                     if st.apply(EditAction::Paste(s)).changed() {
                         self.live_validate(st);
                         acc.action(TextAction::Changed);
@@ -966,7 +1140,7 @@ impl<'a> TextArea<'a> {
                         geometry.document_point(pos, displayed_scroll, displayed_hscroll)
                     }) {
                         if !st.is_editing() {
-                            st.begin(value.expose());
+                            let _ = st.begin_with_entry(value.expose(), self.edit_entry);
                         }
                         st.pointer_anchor = Some(st.draft.pointer_select(
                             line.min(st.draft.line_count().saturating_sub(1)),
@@ -1014,7 +1188,7 @@ impl<'a> TextArea<'a> {
                         geometry.document_point(pos, displayed_scroll, displayed_hscroll)
                     }) {
                         if !st.is_editing() {
-                            st.begin(value.expose());
+                            let _ = st.begin_with_entry(value.expose(), self.edit_entry);
                         }
                         let changed = st
                             .draft
@@ -1067,8 +1241,8 @@ impl<'a> TextArea<'a> {
                     BlurPolicy::Cancel => acc.action(TextAction::Cancelled),
                     BlurPolicy::Keep => {}
                 }
-                if restored && editable {
-                    st.begin(value.expose());
+                if restored && editable && self.edit_entry == EditEntry::Immediate {
+                    self.begin_keyboard_session(st, value.expose());
                 }
             }
             let _ = crate::edit::acknowledge_continuation_result(cx, self.id, opening);
@@ -1082,7 +1256,7 @@ impl<'a> TextArea<'a> {
         st: &TextAreaState,
         value: &T,
     ) -> EditCapabilities {
-        crate::edit::capabilities(
+        let mut capabilities = crate::edit::capabilities(
             &st.draft,
             value.expose(),
             st.is_editing(),
@@ -1090,7 +1264,11 @@ impl<'a> TextArea<'a> {
             self.editable(),
             self.secret.is_some() || st.is_sensitive(),
             value.is_sensitive(),
-        )
+        );
+        if self.edit_entry == EditEntry::Explicit && !st.is_editing() {
+            capabilities.can_paste = false;
+        }
+        capabilities
     }
 
     /// Return the focused caret's source row inside this TextArea's logical
@@ -1115,16 +1293,25 @@ impl<'a> TextArea<'a> {
         value: &mut T,
         command: TextEditCommand,
     ) -> bool {
+        // The shared editor can mutate an inactive draft, so Explicit Paste
+        // must stop before sensitivity synchronization or execution.
+        if command == TextEditCommand::Paste
+            && self.edit_entry == EditEntry::Explicit
+            && !st.is_editing()
+        {
+            return false;
+        }
         st.set_sensitive(self.secret.is_some() || value.is_sensitive());
         if command == TextEditCommand::SelectAll && !st.is_editing() && !self.disabled {
-            st.begin(value.expose());
+            self.begin_keyboard_session(st, value.expose());
         }
         if command == TextEditCommand::Paste
             && self.editable()
+            && self.edit_entry != EditEntry::Explicit
             && !st.is_editing()
             && cx.clipboard_text().is_some()
         {
-            st.begin(value.expose());
+            self.begin_keyboard_session(st, value.expose());
         }
         let capabilities = self.edit_capabilities(st, value);
         let applied = crate::edit::execute(cx, &mut st.draft, capabilities, command);
@@ -1284,7 +1471,14 @@ impl<'a> TextArea<'a> {
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
         let geometry = TextAreaGeometry::new(window, inner);
         ui.register_editor(self.id, body, focusability, declared);
-        ui.publish_bindings(self.id, live, BINDINGS);
+        if !editing && self.edit_entry == EditEntry::TypeToEdit && self.editable() {
+            ui.publish_focused_paste_target(self.id);
+        }
+        ui.publish_bindings(
+            self.id,
+            live,
+            self.effective_bindings(st.is_editing(), st.session_entry),
+        );
 
         for row in content.rows() {
             let gutter_cell = cell_at(row, content.x);
@@ -1546,8 +1740,9 @@ impl Validate for Dyn<'_> {
 impl Bindings for TextArea<'_> {
     type Cmd = TextCmd;
 
-    fn bindings(&self, _s: BindingState) -> &'static [Binding<TextCmd>] {
-        BINDINGS
+    fn bindings(&self, state: BindingState) -> &'static [Binding<TextCmd>] {
+        let editing = state.flags.contains(StateFlags::EDITING);
+        self.effective_bindings(editing, editing.then_some(self.edit_entry))
     }
 }
 

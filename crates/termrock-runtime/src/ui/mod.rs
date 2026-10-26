@@ -71,6 +71,7 @@ pub struct FrameState {
     pub(crate) cursors: Vec<CursorRequest>,
     pub(crate) retained_cursor_request: Option<RetainedCursorRequest>,
     pub(crate) typing: Vec<crate::runtime::typing::TypingDeclaration>,
+    pub(crate) focused_paste_targets: Vec<crate::runtime::typing::FocusedPasteDeclaration>,
     pub(crate) typing_bindings: BindingRegistry,
     pub(crate) typing_resolved: crate::runtime::typing::TypingResolved,
     pub(crate) layout: Vec<(Id, LayoutFacts)>,
@@ -192,6 +193,7 @@ impl FrameState {
         self.cursors.clear();
         self.retained_cursor_request = None;
         self.typing.clear();
+        self.focused_paste_targets.clear();
         self.typing_bindings.reset();
         self.typing_resolved = crate::runtime::typing::TypingResolved::default();
         self.layout.clear();
@@ -985,6 +987,45 @@ impl<'f> Ui<'f> {
             self.frame
                 .diagnostics
                 .push(Diagnostic::DuplicateBindingAction { owner, action });
+        }
+    }
+
+    /// Declare `owner` as an opt-in recipient for a whole paste while it has
+    /// focus, including before it enters an editing session.
+    ///
+    /// This declaration does not establish typing ownership, editing state,
+    /// fallback routing, or a cursor. The runtime accepts it only for the
+    /// focused, visible editor in the active layer, and rejects disabled or
+    /// read-only owners. Inert and reference drawing contexts cannot publish
+    /// the declaration. Call this after registering the matching editor; a
+    /// declaration without a visible registration in this layer is ignored.
+    pub fn publish_focused_paste_target(&mut self, owner: Id) {
+        let registered_here = self
+            .frame
+            .ring
+            .entry(owner)
+            .is_some_and(|entry| entry.layer == self.layer && !entry.area.is_empty())
+            && self.frame.registry.layer_of(owner) == Some(self.layer)
+            && self
+                .frame
+                .registry
+                .area_of(owner)
+                .is_some_and(|area| !area.is_empty());
+        if self.registrations_suppressed() || !registered_here {
+            return;
+        }
+        if !self
+            .frame
+            .focused_paste_targets
+            .iter()
+            .any(|declaration| declaration.owner == owner && declaration.layer == self.layer)
+        {
+            self.frame.focused_paste_targets.push(
+                crate::runtime::typing::FocusedPasteDeclaration {
+                    owner,
+                    layer: self.layer,
+                },
+            );
         }
     }
 

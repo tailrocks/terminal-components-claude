@@ -2251,7 +2251,9 @@ impl<A: App> Runtime<A> {
                 let consumed = crate::test_clock_enabled()
                     && crate::parse_test_clock_step(s)
                         .is_some_and(|step_ms| self.app.accept_paused_clock_step(step_ms));
-                if !consumed && let Some(owner) = self.last.typing.owner {
+                if !consumed
+                    && let Some(owner) = self.last.typing.owner.or(self.last.typing.paste_owner)
+                {
                     self.intents.paste(owner, s.as_str());
                 }
             }
