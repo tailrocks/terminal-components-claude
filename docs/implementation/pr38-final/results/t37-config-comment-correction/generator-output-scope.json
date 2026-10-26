@@ -1,0 +1,367 @@
+{
+  "basis": {
+    "fixed_input_commit": "383ad59b44baf95232005551b4d70f136bef3fea",
+    "comparison_head": "ee2b0de1c76dc599c0f588201cb63e1845bcd8ac",
+    "generator": "Velnor Actions 0.1.48",
+    "run1_log": "docs/implementation/pr38-final/results/t37-config-comment-cleanup/generator-run1.log",
+    "run1_log_sha256": "585394b575476c9a49a5be5ff05dee3c34d1621e389041effa408de518f18e4f",
+    "run2_log": "docs/implementation/pr38-final/results/t37-config-comment-cleanup/generator-run2.log",
+    "run2_log_sha256": "585394b575476c9a49a5be5ff05dee3c34d1621e389041effa408de518f18e4f"
+  },
+  "logged_output_path_count_per_run": 15,
+  "run1_and_run2_logged_path_lists_identical": true,
+  "selected_operational_snapshot_count": 12,
+  "ancillary_reported_output_count": 3,
+  "interpretation": "The accepted run comparisons contain per-run content snapshots for the 12 selected operational paths. The three ancillary paths below are supported by fixed-input-to-ee2 Git entry identity only; this record does not claim per-run content snapshots for those paths.",
+  "all_15_tracked_entries_same_between_fixed_input_and_ee2_head": true,
+  "outputs": [
+    {
+      "path": ".github/AGENTS.md",
+      "classification": "ancillary_reported_output",
+      "fixed_input": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "7254133d7d4fc3c8f48f4fa60a4d3f4e7174c939",
+        "sha256": "25b5ff4e1477d51f53124358c309b50fe40b4477726458c9012342416f4821bf",
+        "byte_length": 2740
+      },
+      "ee2_head": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "7254133d7d4fc3c8f48f4fa60a4d3f4e7174c939",
+        "sha256": "25b5ff4e1477d51f53124358c309b50fe40b4477726458c9012342416f4821bf",
+        "byte_length": 2740
+      },
+      "fixed_input_entry_equal_ee2_head": true,
+      "git_identity_observation_only": true
+    },
+    {
+      "path": ".github/CLAUDE.md",
+      "classification": "ancillary_reported_output",
+      "fixed_input": {
+        "mode": "120000",
+        "kind": "blob",
+        "git_blob": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+        "sha256": "a54ff182c7e8acf56acfd6e4b9c3ff41e2c41a31c9b211b2deb9df75d9a478f9",
+        "byte_length": 9
+      },
+      "ee2_head": {
+        "mode": "120000",
+        "kind": "blob",
+        "git_blob": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+        "sha256": "a54ff182c7e8acf56acfd6e4b9c3ff41e2c41a31c9b211b2deb9df75d9a478f9",
+        "byte_length": 9
+      },
+      "fixed_input_entry_equal_ee2_head": true,
+      "git_identity_observation_only": true
+    },
+    {
+      "path": ".github/actions/declared-task-0/action.yml",
+      "classification": "selected_operational_snapshot",
+      "fixed_input": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "f5f25e10aece955d609f85fba65e802f0a165e7d",
+        "sha256": "43faca40310e5a9b464aa0d9a91fe46a2a2079f149950ed8876465312a2c339b",
+        "byte_length": 5242
+      },
+      "ee2_head": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "f5f25e10aece955d609f85fba65e802f0a165e7d",
+        "sha256": "43faca40310e5a9b464aa0d9a91fe46a2a2079f149950ed8876465312a2c339b",
+        "byte_length": 5242
+      },
+      "fixed_input_entry_equal_ee2_head": true,
+      "prior_per_run_snapshot": {
+        "run1_before_sha256": "43faca40310e5a9b464aa0d9a91fe46a2a2079f149950ed8876465312a2c339b",
+        "run1_after_sha256": "43faca40310e5a9b464aa0d9a91fe46a2a2079f149950ed8876465312a2c339b",
+        "identical": true
+      }
+    },
+    {
+      "path": ".github/actions/u26/action.yml",
+      "classification": "selected_operational_snapshot",
+      "fixed_input": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "a9c967b569da832c684cfc2aa58eb5f428270707",
+        "sha256": "ca82c237b186f8e634323281a890c79ce2efba7a99f556f7ce21715f6b28f598",
+        "byte_length": 1575
+      },
+      "ee2_head": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "a9c967b569da832c684cfc2aa58eb5f428270707",
+        "sha256": "ca82c237b186f8e634323281a890c79ce2efba7a99f556f7ce21715f6b28f598",
+        "byte_length": 1575
+      },
+      "fixed_input_entry_equal_ee2_head": true,
+      "prior_per_run_snapshot": {
+        "run1_before_sha256": "ca82c237b186f8e634323281a890c79ce2efba7a99f556f7ce21715f6b28f598",
+        "run1_after_sha256": "ca82c237b186f8e634323281a890c79ce2efba7a99f556f7ce21715f6b28f598",
+        "identical": true
+      }
+    },
+    {
+      "path": ".github/actions/velnor-tool-seed/action.yml",
+      "classification": "selected_operational_snapshot",
+      "fixed_input": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "27f47bcc51d520bc9d34dcfaa8c9e0ef3c25828e",
+        "sha256": "3b8d2d48bb2ae123f103a0492b9bfb25f937b4a35cc1dd103f0df70c525550ec",
+        "byte_length": 5910
+      },
+      "ee2_head": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "27f47bcc51d520bc9d34dcfaa8c9e0ef3c25828e",
+        "sha256": "3b8d2d48bb2ae123f103a0492b9bfb25f937b4a35cc1dd103f0df70c525550ec",
+        "byte_length": 5910
+      },
+      "fixed_input_entry_equal_ee2_head": true,
+      "prior_per_run_snapshot": {
+        "run1_before_sha256": "3b8d2d48bb2ae123f103a0492b9bfb25f937b4a35cc1dd103f0df70c525550ec",
+        "run1_after_sha256": "3b8d2d48bb2ae123f103a0492b9bfb25f937b4a35cc1dd103f0df70c525550ec",
+        "identical": true
+      }
+    },
+    {
+      "path": ".github/actions/velnor-tools-cache-restore/action.yml",
+      "classification": "selected_operational_snapshot",
+      "fixed_input": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "08b885c9eecfc4f3dc2aba5173c638ec62a8e515",
+        "sha256": "6a18a64f0759bc82d9160992f0464931d16671759ee1ab51b5fd3f42dbf15f6a",
+        "byte_length": 13202
+      },
+      "ee2_head": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "08b885c9eecfc4f3dc2aba5173c638ec62a8e515",
+        "sha256": "6a18a64f0759bc82d9160992f0464931d16671759ee1ab51b5fd3f42dbf15f6a",
+        "byte_length": 13202
+      },
+      "fixed_input_entry_equal_ee2_head": true,
+      "prior_per_run_snapshot": {
+        "run1_before_sha256": "6a18a64f0759bc82d9160992f0464931d16671759ee1ab51b5fd3f42dbf15f6a",
+        "run1_after_sha256": "6a18a64f0759bc82d9160992f0464931d16671759ee1ab51b5fd3f42dbf15f6a",
+        "identical": true
+      }
+    },
+    {
+      "path": ".github/actions/velnor-tools-prelude-u26/action.yml",
+      "classification": "selected_operational_snapshot",
+      "fixed_input": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "581a70f42e6831384681cd24d0950a4fbb755de4",
+        "sha256": "b315cc3438d0a4386f66ea4ebe0924ba59a742a30a977655403b836bfe1947b6",
+        "byte_length": 903
+      },
+      "ee2_head": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "581a70f42e6831384681cd24d0950a4fbb755de4",
+        "sha256": "b315cc3438d0a4386f66ea4ebe0924ba59a742a30a977655403b836bfe1947b6",
+        "byte_length": 903
+      },
+      "fixed_input_entry_equal_ee2_head": true,
+      "prior_per_run_snapshot": {
+        "run1_before_sha256": "b315cc3438d0a4386f66ea4ebe0924ba59a742a30a977655403b836bfe1947b6",
+        "run1_after_sha256": "b315cc3438d0a4386f66ea4ebe0924ba59a742a30a977655403b836bfe1947b6",
+        "identical": true
+      }
+    },
+    {
+      "path": ".github/actions/velnor-verify-jactionlint/action.yml",
+      "classification": "selected_operational_snapshot",
+      "fixed_input": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "84a0d00ecfa2b3f4eebe870f8088431428986210",
+        "sha256": "5ae30b6d8a77c65e36085240e1e47717e05be4d2908bb41a0a8932d6a4b70a95",
+        "byte_length": 5520
+      },
+      "ee2_head": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "84a0d00ecfa2b3f4eebe870f8088431428986210",
+        "sha256": "5ae30b6d8a77c65e36085240e1e47717e05be4d2908bb41a0a8932d6a4b70a95",
+        "byte_length": 5520
+      },
+      "fixed_input_entry_equal_ee2_head": true,
+      "prior_per_run_snapshot": {
+        "run1_before_sha256": "5ae30b6d8a77c65e36085240e1e47717e05be4d2908bb41a0a8932d6a4b70a95",
+        "run1_after_sha256": "5ae30b6d8a77c65e36085240e1e47717e05be4d2908bb41a0a8932d6a4b70a95",
+        "identical": true
+      }
+    },
+    {
+      "path": ".github/actions/velnor-verify-restored-rust/action.yml",
+      "classification": "selected_operational_snapshot",
+      "fixed_input": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "762e4bdc78051398c06e835e27f41b43cacbb267",
+        "sha256": "092b03114863b0db00d8d20724baa459c893db36bd924eb261bccbc45e11188d",
+        "byte_length": 19157
+      },
+      "ee2_head": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "762e4bdc78051398c06e835e27f41b43cacbb267",
+        "sha256": "092b03114863b0db00d8d20724baa459c893db36bd924eb261bccbc45e11188d",
+        "byte_length": 19157
+      },
+      "fixed_input_entry_equal_ee2_head": true,
+      "prior_per_run_snapshot": {
+        "run1_before_sha256": "092b03114863b0db00d8d20724baa459c893db36bd924eb261bccbc45e11188d",
+        "run1_after_sha256": "092b03114863b0db00d8d20724baa459c893db36bd924eb261bccbc45e11188d",
+        "identical": true
+      }
+    },
+    {
+      "path": ".github/actions/velnor-verify-rust-manifest/action.yml",
+      "classification": "selected_operational_snapshot",
+      "fixed_input": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "cdc690683e334ff564f5427c8d22be545557b29f",
+        "sha256": "89c91123284e68216284c6e560d37919810817fbb9bd75705ccd2b1c87af0f93",
+        "byte_length": 18949
+      },
+      "ee2_head": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "cdc690683e334ff564f5427c8d22be545557b29f",
+        "sha256": "89c91123284e68216284c6e560d37919810817fbb9bd75705ccd2b1c87af0f93",
+        "byte_length": 18949
+      },
+      "fixed_input_entry_equal_ee2_head": true,
+      "prior_per_run_snapshot": {
+        "run1_before_sha256": "89c91123284e68216284c6e560d37919810817fbb9bd75705ccd2b1c87af0f93",
+        "run1_after_sha256": "89c91123284e68216284c6e560d37919810817fbb9bd75705ccd2b1c87af0f93",
+        "identical": true
+      }
+    },
+    {
+      "path": ".github/jactionlint.yaml",
+      "classification": "ancillary_reported_output",
+      "fixed_input": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "bce8b64379161e5bbb7e9dfd84e1c9a91341384d",
+        "sha256": "e9086c6b716c729746234e44b5080b843ecdbebb834f8b627c0c48a678ede071",
+        "byte_length": 146
+      },
+      "ee2_head": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "bce8b64379161e5bbb7e9dfd84e1c9a91341384d",
+        "sha256": "e9086c6b716c729746234e44b5080b843ecdbebb834f8b627c0c48a678ede071",
+        "byte_length": 146
+      },
+      "fixed_input_entry_equal_ee2_head": true,
+      "git_identity_observation_only": true
+    },
+    {
+      "path": ".github/scripts/velnor-tools-cache-identity.sh",
+      "classification": "selected_operational_snapshot",
+      "fixed_input": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "b0b3fb1ebabc599dad940465e58c231565d42fb0",
+        "sha256": "aeff536ec404aa179aa1745fa0e7347470e75003a49fe51747aeec28f7202837",
+        "byte_length": 5548
+      },
+      "ee2_head": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "b0b3fb1ebabc599dad940465e58c231565d42fb0",
+        "sha256": "aeff536ec404aa179aa1745fa0e7347470e75003a49fe51747aeec28f7202837",
+        "byte_length": 5548
+      },
+      "fixed_input_entry_equal_ee2_head": true,
+      "prior_per_run_snapshot": {
+        "run1_before_sha256": "aeff536ec404aa179aa1745fa0e7347470e75003a49fe51747aeec28f7202837",
+        "run1_after_sha256": "aeff536ec404aa179aa1745fa0e7347470e75003a49fe51747aeec28f7202837",
+        "identical": true
+      }
+    },
+    {
+      "path": ".github/velnor/task-execution-manifest-v1.json",
+      "classification": "selected_operational_snapshot",
+      "fixed_input": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "f374299546858a292d49bb76af210523b704a599",
+        "sha256": "2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305",
+        "byte_length": 452413
+      },
+      "ee2_head": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "f374299546858a292d49bb76af210523b704a599",
+        "sha256": "2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305",
+        "byte_length": 452413
+      },
+      "fixed_input_entry_equal_ee2_head": true,
+      "prior_per_run_snapshot": {
+        "run1_before_sha256": "2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305",
+        "run1_after_sha256": "2c72c5bc66b5bed549e4322389ef099ee9d1e749ed4b055e3eb2f45eaf7b8305",
+        "identical": true
+      }
+    },
+    {
+      "path": ".github/workflows/cache-prune.yml",
+      "classification": "selected_operational_snapshot",
+      "fixed_input": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "5fcab017f0388a7aa6ce18ae5d8694d2bf34eff0",
+        "sha256": "b47d134eec443811f89d9c78d35a825fd2abe9178f3a3166b11f3b6085383d94",
+        "byte_length": 1620
+      },
+      "ee2_head": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "5fcab017f0388a7aa6ce18ae5d8694d2bf34eff0",
+        "sha256": "b47d134eec443811f89d9c78d35a825fd2abe9178f3a3166b11f3b6085383d94",
+        "byte_length": 1620
+      },
+      "fixed_input_entry_equal_ee2_head": true,
+      "prior_per_run_snapshot": {
+        "run1_before_sha256": "b47d134eec443811f89d9c78d35a825fd2abe9178f3a3166b11f3b6085383d94",
+        "run1_after_sha256": "b47d134eec443811f89d9c78d35a825fd2abe9178f3a3166b11f3b6085383d94",
+        "identical": true
+      }
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "classification": "selected_operational_snapshot",
+      "fixed_input": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "942a394ab895677d2a066b5ab35c6ed4f84f9506",
+        "sha256": "b2a2747b49052bbec9c565d1436e4d19c6f7aadb6cb3dd3fa18376127ca83107",
+        "byte_length": 292069
+      },
+      "ee2_head": {
+        "mode": "100644",
+        "kind": "blob",
+        "git_blob": "942a394ab895677d2a066b5ab35c6ed4f84f9506",
+        "sha256": "b2a2747b49052bbec9c565d1436e4d19c6f7aadb6cb3dd3fa18376127ca83107",
+        "byte_length": 292069
+      },
+      "fixed_input_entry_equal_ee2_head": true,
+      "prior_per_run_snapshot": {
+        "run1_before_sha256": "b2a2747b49052bbec9c565d1436e4d19c6f7aadb6cb3dd3fa18376127ca83107",
+        "run1_after_sha256": "b2a2747b49052bbec9c565d1436e4d19c6f7aadb6cb3dd3fa18376127ca83107",
+        "identical": true
+      }
+    }
+  ]
+}

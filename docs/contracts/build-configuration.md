@@ -15,24 +15,29 @@ lint waiver or a change to a lint level.
 ## Formatting and generated workflows
 
 [`rustfmt.toml`](../../rustfmt.toml) selects `style_edition = "2024"`. The
-workspace's Velnor input is
-[`velnor-workflow.toml`](../../.github-gen/velnor-workflow.toml), and
-[`mise.toml`](../../mise.toml) pins Velnor Actions 0.1.48. The generated-file
-ownership and regeneration rules are in [`.github/AGENTS.md`](../../.github/AGENTS.md).
-Change declared inputs and use the pinned generator. Do not hand-edit managed
-workflow output. The current generated task manifest contains 90 formatting
-tasks across its default and testing configurations. The removed comment named
-this file as Velnor's `explicit_fmt` trigger. This generation check confirms the
-output; it does not isolate the trigger logic.
+The current Velnor Actions repository configuration is
+[`.velnor/config.toml`](../../.velnor/config.toml). The retained
+[`velnor-workflow.toml`](../../.github-gen/velnor-workflow.toml) is a historical
+file and the source of the R-43 note below; it is not the current Velnor Actions
+input. [`mise.toml`](../../mise.toml) pins Velnor Actions 0.1.48. The
+generated-file ownership and regeneration rules are in
+[`.github/AGENTS.md`](../../.github/AGENTS.md). Change declared inputs and use
+the pinned generator. Do not hand-edit managed workflow output. The current
+generated task manifest contains 90 formatting tasks across its default and
+testing configurations. The removed `rustfmt.toml` comment identified that
+file's presence as Velnor's `explicit_fmt` trigger. The generation check confirms
+the output; it does not isolate the trigger logic.
 
-At fixed input `383ad59b44baf95232005551b4d70f136bef3fea`, the removed Velnor
-input comment recorded a D19 guard and an R-43 blocked status. It reported one
-reusable unit workflow per crate, 99 callers, and an 8.24 MiB template against
-a 5 MiB limit. It named generator chunking or split workflow lanes as possible
-ways to address the reported size. Repository search found no separate active
-R-43 ledger entry. This preserves the source-pinned report; it does not establish
-the current status of that report. T37's generation check records the current
-generator output separately.
+At fixed input `383ad59b44baf95232005551b4d70f136bef3fea`, comments in the
+retained historical file labeled it `Generator inputs for velnor-workflow`
+with a D19 guard and marked recovery ledger R-43 as blocked. They reported that
+the generator emitted one reusable unit workflow expanded per crate; with 44
+members, the template exceeded GitHub's 5 MiB ceiling (99 callers = 8.24 MiB).
+They said to regenerate when the generator chunks units or the workspace
+splits lanes. Repository search found no separate active R-43 ledger entry.
+These statements preserve the source-pinned rationale and do not establish
+current generator behavior, size, or status. T37's generation evidence records
+the current output separately.
 
 The removed `rustfmt.toml` comment compared 565 legacy diffs with 223 diffs
 under style edition 2024 when that setting was introduced. Those counts are

@@ -1,0 +1,31 @@
+{
+  "correction": "T37 config-comment guide/evidence correction",
+  "prior_commit": "ee2b0de1c76dc599c0f588201cb63e1845bcd8ac",
+  "fixed_input_commit": "383ad59b44baf95232005551b4d70f136bef3fea",
+  "guide_path": "docs/contracts/build-configuration.md",
+  "guide_sha256": "95053bdb8b956328e477af3115c7a90e9bbf4ccad931e545f143f939a119dc6d",
+  "guide_diff_against_prior_commit_sha256": "9dd08c687422b2521d61f389e73cc870098a734e518efec8de5fb3b9a3d6afb5",
+  "review_decisions": [
+    {
+      "reviewer": "/root/t37_acceptance_review",
+      "decision": "T37-CONSUMER-BOUNDARY-01",
+      "effect": "The guide preserves the facade-only direct dependency rule, the 19 allowed production leaf dependencies, and the application/test-tool boundary under T06/T30."
+    },
+    {
+      "reviewer": "/root/t37_acceptance_review",
+      "decision": "T37-RECOVERED-NEXTEST-01",
+      "effect": "The guide describes the retained R-43 note as source-pinned historical context; recovered-nextest.toml remains an exact historical exception."
+    },
+    {
+      "reviewer": "/root/t37_acceptance_review",
+      "decision": "Guide current Velnor input correction",
+      "effect": "The current repository configuration is .velnor/config.toml; .github-gen/velnor-workflow.toml is retained historical material and source of the R-43 note."
+    }
+  ],
+  "r43_source_pinned_summary": "At fixed input, comments in the retained file labeled it Generator inputs for velnor-workflow (D19 guard), marked recovery ledger R-43 blocked, reported one reusable unit workflow expanded per crate and 44 members exceeding the 5 MiB template ceiling (99 callers = 8.24 MiB), and said to regenerate when the generator chunks units or the workspace splits lanes. No separate active R-43 ledger entry was found. This is not a current generator behavior, size, or status claim.",
+  "generator_output_scope_record": "docs/implementation/pr38-final/results/t37-config-comment-correction/generator-output-scope.json",
+  "prior_accepted_records_preserved": true,
+  "config_generator_and_build_inputs_changed": false,
+  "generator_or_cargo_rerun_for_this_correction": false,
+  "checks": "JSON and link/hash/diff checks only; no product tests or behavior cases."
+}
