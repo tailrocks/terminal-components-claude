@@ -27,7 +27,7 @@
   "fragment_inputs": [
     {
       "owner": "/root/t01_foundation_api",
-      "path": "docs/implementation/pr38-final/results/t01-foundation-api/fragment.json",
+      "path": "docs/implementation/pr38-final/results/t01-foundation-api/foundation-api.fragment.json",
       "worktree": "/Users/donbeave/Downloads/termrock-t01-foundation",
       "branch": "pr38/T01-foundation",
       "schema": "termrock.pr38.t01.fragment.v1",
