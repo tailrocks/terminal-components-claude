@@ -2,26 +2,51 @@
 
 ## Scope and inputs
 
-This fragment is owned by the foundation API worker in `/Users/donbeave/Downloads/termrock-t01-foundation`, branch `pr38/T01-foundation`. It inventories ten foundational libraries and nine non-application support, tool, and consumer packages. The facade, component-family packages, and four application families remain in their assigned fragments. This worker assigned no W IDs.
+This fragment is owned by the foundation API worker in `/Users/donbeave/Downloads/termrock-t01-foundation`, branch `pr38/T01-foundation`.
+It covers ten foundation libraries and nine support, tool, and consumer packages.
+It excludes the facade, component families, Showcase, and four applications.
+The fragment assigns no W IDs.
 
-The fixed source input is commit `542349e2f70ec9883d743594f906ac6c4e96ba5a`, tree `66507c4aae0555d65904b268d6c95e7f3e3d17d1`. Product manifests and source match accepted T37 integration commit `43b5a322e0da46ab7282b5b820831eb70c91f4ed`; metadata evidence comes from commit `516198caac5e5b5fa0883fa1f209928c2e86c8ba`.
+The historical product source is commit `1d6ee92adf6ccca38eeee64b1371cba1497e8fcd`.
+The current inventory input is commit `542349e2f70ec9883d743594f906ac6c4e96ba5a`, tree `66507c4aae0555d65904b268d6c95e7f3e3d17d1`.
+Current production definitions match accepted T37 integration commit `43b5a322e0da46ab7282b5b820831eb70c91f4ed`.
+Historical workload definitions use source commit `1d6ee92adf6ccca38eeee64b1371cba1497e8fcd`.
 
-The five metadata records carry distinct `workspace_id` values. The 19 crate rows are keyed by workspace, Cargo package ID, and manifest path, so `crates/termrock-visibility-publisher` and `tools/termrock-visibility-publisher` remain separate despite sharing a package name.
+The five metadata records were generated from checkout commit `516198caac5e5b5fa0883fa1f209928c2e86c8ba`, tree `a10cd30dfafec83f7668f529bb03e27f1e5b8b4d`.
+Their exact artifact bytes are stored at commit `542349e2f70ec9883d743594f906ac6c4e96ba5a`.
+The five artifact paths are absent from the `516198caac5e5b5fa0883fa1f209928c2e86c8ba` tree.
+The generator checks each absence with `git ls-tree` and each artifact hash against commit `542349e2f70ec9883d743594f906ac6c4e96ba5a`.
+Source, workspace, and crate records keep the artifact commit separate from the execution source commit.
+
+The 19 crate rows use workspace, Cargo package ID, and manifest path as identity.
+The publisher packages remain separate, although both use the same package name.
 
 ## Rebuild and structural checks
 
-From the worktree root, run:
+Run these commands from the worktree root:
 
 ```sh
 python3 -m py_compile docs/implementation/pr38-final/results/t01-foundation-api/build_fragment.py
 python3 docs/implementation/pr38-final/results/t01-foundation-api/build_fragment.py
+python3 -m json.tool docs/implementation/pr38-final/results/t01-foundation-api/foundation-api.fragment.json > /dev/null
+git diff --check
 ```
 
-Both commands exited `0`. The generator reuses five accepted T37 Cargo metadata records; this T01 run did not invoke Cargo. Its built-in structural gate passed: 6,266 public item binding keys joined to export rows, zero were missing, all 6,504 export IDs and 4,453 item IDs were unique, 22 `RETIRE` requirements had reviewed absence evidence, and all 20 third-party export rows had no owned definition package.
+Each command exited `0`.
+The generator reused five accepted T37 Cargo metadata records.
+This T01 run did not invoke Cargo.
+Its structural gate joined 5,778 public item binding keys to export rows.
+Zero public item binding keys were missing.
+The gate found 6,016 unique export IDs and 4,453 unique item IDs.
+It resolved all 62 retirement members; 59 rows retire and three preserve compatibility.
+No retirement member remains unresolved.
 
-An independent source audit exited `0`. It rehashed and line-counted all 209 source records, using Git objects for the two immutable historical workload files that are absent from the current tree. It checked source path, line, and SHA bindings for items, exports, and multi-source wildcard provenance; workspace/package identities; unique export keys; cfg provenance references; and the three runtime stub retirement rows.
+A separate SHA-256 audit rehashed all 209 source records.
+It checked item, export, wildcard provenance, and metadata artifact bindings.
+It exited `0`.
 
-The fragment reports `functional_cases_selected: 0` and `behavior_evidence: NOT VERIFIED`. No Cargo build, functional test, doctest, fixture, deleted harness, or behavior lane ran.
+The fragment records `functional_cases_selected: 0` and `behavior_evidence: NOT VERIFIED`.
+No Cargo build, functional test, doctest, fixture, deleted harness, or behavior lane ran.
 
 ## Inventory
 
@@ -31,36 +56,70 @@ The fragment reports `functional_cases_selected: 0` and `behavior_evidence: NOT 
 | Workspace identities | 5 |
 | Source files and evidence records | 209 |
 | Public item records | 4,453 |
-| Unique export/index records | 6,504 |
+| Unique export and index records | 6,016 |
 | Direct export records | 2,139 |
-| Trait implementation contracts / members in item records | 159 / 171 |
-| Trait implementation contract / member export records | 348 / 416 |
-| Re-export index rows | 3,491 |
+| Trait implementation contracts and members in item records | 159 / 171 |
+| Trait contract and member export records | 314 / 378 |
+| Re-export index rows | 3,075 |
 | Public source modules | 109 |
-| Source-backed requirements | 788 |
+| Source-backed requirements | 826 |
 | Historical API dispositions | 497 |
 | Blocking open requirements | 40 |
 | Historical performance records | 3 |
+| Associated constant items | 136 |
+| Retirement member rows | 62 |
 
-The publisher inventories separate declaration, trait-implementation, and export categories:
+The publisher inventories keep declaration, trait implementation, and export counts separate:
 
-| Manifest | Public definitions | Trait contracts / members | Direct exports | Trait contract / member export rows | Public modules |
+| Manifest | Public definitions | Trait contracts / members | Direct exports | Trait contract / member exports | Public modules |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | `crates/termrock-visibility-publisher/Cargo.toml` | 274 | 14 / 10 | 52 | 9 / 6 | 3 |
 | `tools/termrock-visibility-publisher/Cargo.toml` | 186 | 10 / 7 | 52 | 9 / 6 | 3 |
 
-Each item has an `api_record_id`; each public export has an `export_id` and an `export_key` containing workspace, source package, canonical public path, definition package, definition owner, and Rust namespace. Definition ownership and re-export ownership remain separate. Alternative source declarations for the same key retain their exact source path, line, hash, signatures, and cfg provenance. `cfg_provenance_records` stores deduplicated cfg source records referenced by ID.
+Each item has an `api_record_id`.
+Each export has an `export_id` and an `export_key` with source and definition ownership.
+Definition ownership and re-export ownership remain separate.
+Alternative declarations retain source path, line, hash, signature, and cfg provenance.
+`cfg_provenance_records` stores deduplicated cfg records referenced by ID.
 
-Re-exports from external packages are source-bound but do not receive invented local owners. Twenty re-export paths resolve to `ratatui-core 0.1.2`, including the Cargo.lock checksum, requested features, target condition, and metadata/manifest evidence. External type definitions and the enabled dependency feature closure were not inventoried.
+Inherent implementation items stay under their owner type during module glob expansion.
+Associated constants use the value namespace.
+The inventory records `NavKeys::DEFAULT` under `NavKeys` at both current public type paths.
+It records no top-level `termrock_core::DEFAULT` export from that associated constant.
 
-The corrected foundational definition bindings include `ScrollRegion` at `crates/termrock-runtime/src/scroll_region.rs:44`, `AppShell` at `crates/termrock-shell/src/shell.rs:26`, and `TextReport` at `crates/termrock-shell/src/report.rs:68`. The component fragment owns their W IDs and facade links. `PropsList` is owned by `termrock-controls`, outside this fragment.
+The historical `termrock_runtime::ui::composition` row resolves through its cleanup attachment.
+Its current declaration is `crates/termrock-runtime/src/ui/mod.rs:2`.
+The inventory records the public module path and its re-export path.
 
-T37’s three `runtime-stub-harness` retirement rows carry decision `T37-FOUNDATION-TESTING-03`, exact source identity at `c817b99e9e43abbbf3519d56b2f5ee86924243d8` (`runtime.rs:3301` or `lib.rs:55`), and explicit absence at the fixed T01 input. The separate `Cx::record` retirement row also uses decision 03. No current API item is created for retired testing helpers.
+Re-exports from external packages are source-bound and have no invented local owner.
+Twenty paths resolve to `ratatui-core 0.1.2` with lock checksum, requested features, target condition, and metadata evidence.
+External definitions and enabled dependency feature closure were not inventoried.
+
+The corrected foundation bindings include `ScrollRegion` at `crates/termrock-runtime/src/scroll_region.rs:44`.
+They also include `AppShell` at `crates/termrock-shell/src/shell.rs:26` and `TextReport` at `crates/termrock-shell/src/report.rs:68`.
+The component fragment owns their W IDs and facade links.
+`PropsList` belongs to `termrock-controls`, outside this fragment.
+
+T37-FOUNDATION-TESTING-03 remains bound to historical input commit `c817b99e9e43abbbf3519d56b2f5ee86924243d8`.
+The generator records each runtime stub member, each re-export path, and `Cx::record` separately.
+Their current input is commit `542349e2f70ec9883d743594f906ac6c4e96ba5a`.
+`Runtime::draw_scene` is a separate `KEEP` row under `T37-BUILD-COMPAT-01`.
+The current `runtime.rs:2327` method remains feature-gated.
+No current API item is created for retired testing helpers.
 
 ## Limits and review state
 
-The current public-binding check is structural metadata and source reconciliation. A missing current export key fails the generator until its migration inventory is updated. It does not establish compiler reachability, cfg behavior, external dependency availability, or runtime behavior. Three public API macro invocations are represented from source templates; compiler macro expansion was not run.
+The public binding check uses source and metadata records.
+A missing current export key fails the generator until its migration inventory changes.
+The check does not prove compiler reachability, cfg behavior, dependency availability, or runtime behavior.
+Three public API macro invocations use source templates; compiler macro expansion did not run.
 
-For 433 historical T37 source records, the source record supplies a file hash but no commit. The fragment preserves that hash and its exact T37 evidence record, marks the commit as not supplied, and does not infer one. T33 performance measurements remain `NOT RECORDED`.
+For 433 historical T37 source records, the source record supplies no commit.
+The fragment keeps each source hash and evidence record.
+It does not infer a source commit or line commit.
+T33 performance measurements remain `NOT RECORDED`.
 
-The correction artifact is `foundation-api.fragment.json` (SHA-256 `3ba2da120c3053527e76f606e13da134f5f9b04f929702a9b4675e70a8c1138e`). The generator is `build_fragment.py` (SHA-256 `37e21945a3db69f1392fa24f850080d9dbd2d6e94eec186a49a85f935241e9d8`). The required independent Sol-high correction review remains `PENDING`; this fragment is not self-accepted.
+The correction artifact is `foundation-api.fragment.json` (SHA-256 `6e7d16140040ce17b7b90002242157dd62d6e2b7347f42e7adc3f4111efa4b09`).
+The generator is `build_fragment.py` (SHA-256 `05f11bf3a976262a2ce327d7714ea3ee4b8e3fb8eec005d7da92a719ec6556c7`).
+The independent Sol-high correction review remains `PENDING`.
+This fragment is not self-accepted.

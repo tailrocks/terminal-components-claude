@@ -9,13 +9,16 @@ from pathlib import Path
 
 ROOT = Path.cwd()
 OUT = ROOT / "docs/implementation/pr38-final/results/t01-foundation-api/foundation-api.fragment.json"
-INPUT = "542349e2f70ec9883d743594f906ac6c4e96ba5a"
-PRODUCT = "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
-META_HEAD = "516198caac5e5b5fa0883fa1f209928c2e86c8ba"
+HISTORICAL_PRODUCT = "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+INVENTORY_INPUT = "542349e2f70ec9883d743594f906ac6c4e96ba5a"
+HISTORICAL_WORKLOAD_SOURCE = "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd"
+META_ARTIFACT_COMMIT = INVENTORY_INPUT
+META_EXECUTION_SOURCE_COMMIT = "516198caac5e5b5fa0883fa1f209928c2e86c8ba"
 T37_CANDIDATE = "a94b93128ab71d2f1be43733a1b68d21792820ff"
 T37_INTEGRATION = "43b5a322e0da46ab7282b5b820831eb70c91f4ed"
 T37_TREE = "e8aa68881a4ad4d4b4e3d9b34045153240e33ce3"
-METADATA_TREE = "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d"
+METADATA_EXECUTION_TREE = "a10cd30dfafec83f7668f529bb03e27f1e5b8b4d"
+METADATA_ARTIFACT_TREE = "66507c4aae0555d65904b268d6c95e7f3e3d17d1"
 FOUNDATION = {
     "termrock-core": ("crates/termrock-core/Cargo.toml", "T09", "Identity; framework keys, events, intents, responses; validation errors; diagnostics; neutral policy values."),
     "termrock-layout": ("crates/termrock-layout/Cargo.toml", "T10", "Constraints, size, tracks, columns, split geometry, and composition plans."),
@@ -86,8 +89,37 @@ def relative_meta_path(path):
 metadata = {}
 metadata_workspace = {}
 metadata_documents = {}
+metadata_artifact_hashes = {}
+metadata_artifact_absence_checks = []
+metadata_artifact_absence_commands = []
 for meta_file in META_FILES:
-    data = json.loads((ROOT / meta_file).read_text())
+    absence_argv = ["git", "ls-tree", "-r", "--name-only", META_EXECUTION_SOURCE_COMMIT, "--", meta_file]
+    absence_check = subprocess.run(absence_argv, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if absence_check.returncode != 0 or absence_check.stdout.strip():
+        raise RuntimeError("metadata artifact path is present at the execution source or could not be checked: " + meta_file)
+    metadata_artifact_absence_checks.append({
+        "path": meta_file,
+        "execution_source_commit": META_EXECUTION_SOURCE_COMMIT,
+        "execution_source_tree": METADATA_EXECUTION_TREE,
+        "artifact_commit": META_ARTIFACT_COMMIT,
+        "matched_paths": [],
+    })
+    metadata_artifact_absence_commands.append({
+        "tool": "git",
+        "argv": absence_argv,
+        "cwd": str(ROOT),
+        "exit_code": absence_check.returncode,
+        "stdout": absence_check.stdout.decode("utf-8", "replace").strip(),
+        "source_commit": META_EXECUTION_SOURCE_COMMIT,
+        "artifact_commit": META_ARTIFACT_COMMIT,
+        "purpose": "Confirm the metadata artifact path is absent from its execution source commit.",
+    })
+    raw = (ROOT / meta_file).read_bytes()
+    artifact_raw = run(["git", "show", META_ARTIFACT_COMMIT + ":" + meta_file])
+    if sha(raw) != sha(artifact_raw):
+        raise RuntimeError("metadata artifact bytes differ from the fixed artifact commit: " + meta_file)
+    metadata_artifact_hashes[meta_file] = sha(artifact_raw)
+    data = json.loads(raw)
     metadata_documents[meta_file] = data
     for package in data.get("packages", []):
         rel = relative_meta_path(package["manifest_path"])
@@ -118,7 +150,7 @@ current_file_modules = {}
 package_source_records = {}
 
 
-def source_record(path, commit=INPUT, kind="rust"):
+def source_record(path, commit=INVENTORY_INPUT, kind="rust"):
     path = str(path).replace("\\", "/")
     if path in source_by_path:
         return source_by_path[path]
@@ -780,7 +812,7 @@ def add_macro_api_items(package_name, crate_name, package_id, file_path, source_
                 start = definition["open"] + 1 + match.start()
                 raw = text[start:end_header(text, start, "fn")].strip().rstrip("{").strip()
                 signature = raw.replace("$name", type_name)
-                add_generated(owner + "::" + name, "method", signature, line_number(text, start), name, template_line=line_number(text, start))
+                add_generated(owner + "::" + name, "method", signature, line_number(text, start), name, direct=False, template_line=line_number(text, start))
 
             const_matches = re.finditer(r"(?m)^.*?\bpub\s+const\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*:\s*([^=;]+?)(?:\s*=\s*([^;]+))?;", template)
             for match in const_matches:
@@ -796,7 +828,7 @@ def add_macro_api_items(package_name, crate_name, package_id, file_path, source_
                             expression = value_expr.replace("$name", type_name).replace("$c", name).replace("$v", value)
                             signature += " = " + compact(expression)
                         signature += ";"
-                        add_generated(owner + "::" + name, "associated_const", signature, constant["line"], name, template_line=template_const_line)
+                        add_generated(owner + "::" + name, "associated_const", signature, constant["line"], name, direct=False, template_line=template_const_line)
                 else:
                     name = const_token
                     signature = "pub const " + name + ": " + type_expr.replace("$name", type_name).strip()
@@ -807,7 +839,7 @@ def add_macro_api_items(package_name, crate_name, package_id, file_path, source_
                         else:
                             signature += " = " + compact(value_expr.replace("$name", type_name))
                     signature += ";"
-                    add_generated(owner + "::" + name, "associated_const", signature, invocation_source["line"], name, template_line=template_const_line)
+                    add_generated(owner + "::" + name, "associated_const", signature, invocation_source["line"], name, direct=False, template_line=template_const_line)
 
         macro_attrs = macro_attr_rows(text, definition["start"])
         if "macro_export" in " ".join(macro_attrs):
@@ -1059,7 +1091,12 @@ def make_definition(package_name, crate_name, package_id, file_path, source_hash
     if container and container["kind"] in ("impl", "trait") and kind not in ("struct", "enum", "trait", "union", "mod", "use"):
         qualified = "::".join(current_module + [container["name"], name])
         definition_owner = "::".join(current_module + [container["name"]])
-        output_kind = "method" if kind == "fn" else kind
+        output_kind = (
+            "method" if kind == "fn" else
+            "associated_const" if container["kind"] == "impl" and kind == "const" else
+            "associated_type" if container["kind"] == "impl" and kind == "type" else
+            kind
+        )
     else:
         qualified = "::".join(current_module + [name])
         definition_owner = qualified
@@ -1152,7 +1189,13 @@ def add_pkg(name, manifest_path, scope, owner_task, responsibility):
     name_crate = package_name.replace("-", "_")
     manifest_row = source_record(manifest_path, kind="cargo_manifest")
     meta_path = metadata_workspace[(package_name, manifest_path)]
-    meta_row = source_record(meta_path, commit=META_HEAD, kind="cargo_metadata_evidence")
+    meta_row = source_record(meta_path, commit=META_ARTIFACT_COMMIT, kind="cargo_metadata_evidence")
+    meta_row.update({
+        "artifact_commit": META_ARTIFACT_COMMIT,
+        "artifact_sha256": metadata_artifact_hashes[meta_path],
+        "execution_source_commit": META_EXECUTION_SOURCE_COMMIT,
+        "execution_source_tree": METADATA_EXECUTION_TREE,
+    })
     workspace_kind = "root_workspace_member" if meta_path.endswith("metadata-root-final.json") else "standalone_workspace"
     workspace_root = normalized_workspace_root(meta_path)
     workspace_id = workspace_identity(meta_path)
@@ -1180,7 +1223,7 @@ def add_pkg(name, manifest_path, scope, owner_task, responsibility):
         "workspace_kind": workspace_kind,
         "workspace_id": workspace_id,
         "workspace_root": workspace_root,
-        "metadata_evidence": {"path": meta_path, "commit": META_HEAD, "sha256": meta_row["sha256"], "workspace_id": workspace_id, "workspace_root": workspace_root},
+        "metadata_evidence": {"path": meta_path, "commit": META_ARTIFACT_COMMIT, "artifact_commit": META_ARTIFACT_COMMIT, "sha256": meta_row["sha256"], "workspace_id": workspace_id, "workspace_root": workspace_root, "execution_source_commit": META_EXECUTION_SOURCE_COMMIT, "execution_source_tree": METADATA_EXECUTION_TREE},
         "targets": target_rows,
         "features": meta.get("features", {}),
         "description": package.get("description"),
@@ -1276,7 +1319,7 @@ for package_name, manifest_path, package_dir, crate_name, meta, scope, owner_tas
                 continue
             name = ident_match.group(1)
             direct = make_definition(package_name, crate_name, package_id, rel, file_hash, text, start, kind, name, module_path, container, target_name, target_kind, attrs)
-            direct["is_direct_module_export"] = module_is_public(module_path, module_declarations, package_id)
+            direct["is_direct_module_export"] = module_is_public(module_path, module_declarations, package_id) and not (container and container["kind"] == "impl")
             declarations.append(direct)
             items.append(direct)
             if kind in ("struct", "enum", "union"):
@@ -1763,7 +1806,7 @@ def item_public_bindings(item):
         elif item.get("trait_impl_owner"):
             suffix = item["current_qualified_symbol"][len(item["trait_impl_owner"]):]
     result = {}
-    if item.get("is_direct_module_export"):
+    if item.get("is_direct_module_export") and item.get("impl_target") is None:
         result[(item["package_id"], item["current_qualified_symbol"])] = None
     owner_item = item_index.get((owner_id, owner))
     if owner_item and owner_item is not item:
@@ -1802,6 +1845,8 @@ def wildcard_members(export):
             if item.get("package_id") != package_id or item.get("module_path") != module_path:
                 continue
             if item.get("visibility") != "pub" or item.get("kind") in ("method", "field", "tuple_field", "enum_variant", "trait_method", "associated_type", "associated_const", "trait_impl", "trait_impl_method", "trait_impl_associated_type", "trait_impl_associated_const"):
+                continue
+            if item.get("impl_target") is not None:
                 continue
             leaf = item["current_qualified_symbol"].split("::")[-1]
             relative = "::".join(filter(None, (visible_prefix, leaf)))
@@ -1907,7 +1952,7 @@ for item in items:
         "trait_impl_member" if item.get("kind", "").startswith("trait_impl_") else
         "field" if item.get("kind") in ("field", "tuple_field") else
         "enum_variant" if item.get("kind") == "enum_variant" else
-        "type" if item.get("kind") in ("struct", "enum", "union", "trait", "type_alias") else
+        "type" if item.get("kind") in ("struct", "enum", "union", "trait", "type_alias", "associated_type") else
         "value"
     )
     item["public_bindings"] = item_public_bindings(item)
@@ -2022,7 +2067,7 @@ for item in items:
         "trait_impl_member" if item.get("kind", "").startswith("trait_impl_") else
         "field" if item.get("kind") in ("field", "tuple_field") else
         "enum_variant" if item.get("kind") == "enum_variant" else
-        "type" if item.get("kind") in ("struct", "enum", "union", "trait", "type_alias") else
+        "type" if item.get("kind") in ("struct", "enum", "union", "trait", "type_alias", "associated_type") else
         "value"
     )
     item_id_fields = [item.get("workspace_id"), item.get("package_id"), item.get("current_qualified_symbol"), item.get("definition_package_id"), item.get("definition_owner"), item.get("namespace"), item.get("kind"), item.get("source_path"), item.get("line"), item.get("source_sha256"), item.get("signature_sha256")]
@@ -2132,10 +2177,10 @@ def current_item_resolution(path, name, qualified=None, signature=None):
         if len(candidates) == 1:
             return candidates[0], unique_status, candidates
         if signature and candidates:
-            expected = compact(signature).replace("pub(crate) ", "").replace("pub ", "")
+            expected = compact(signature).replace("pub(crate) ", "").replace("pub ", "").rstrip("{;, ")
             signature_matches = [
                 item for item in candidates
-                if compact(item.get("signature", "")).replace("pub(crate) ", "").replace("pub ", "").startswith(expected)
+                if compact(item.get("signature", "")).replace("pub(crate) ", "").replace("pub ", "").rstrip("{;, ").startswith(expected)
             ]
             if len(signature_matches) == 1:
                 return signature_matches[0], "signature_disambiguated_" + unique_status, signature_matches
@@ -2151,6 +2196,9 @@ def current_item_resolution(path, name, qualified=None, signature=None):
             suffix = "::" + qualified
             suffix_matches = [item for item in items if item.get("source_path") == path and item["current_qualified_symbol"].endswith(suffix)]
             if suffix_matches:
+                declared_paths = [item for item in suffix_matches if " as " not in item["current_qualified_symbol"]]
+                if declared_paths and " as " not in qualified:
+                    suffix_matches = declared_paths
                 return choose(suffix_matches, "qualified_source_suffix", "ambiguous_qualified_source_suffix")
             return None, "qualified_source_symbol_not_found", []
     choices = [item for item in items if item.get("source_path") == path and item["current_qualified_symbol"].split("::")[-1] == name]
@@ -2159,6 +2207,111 @@ def current_item_resolution(path, name, qualified=None, signature=None):
 
 def current_item_for(path, name, qualified=None):
     return current_item_resolution(path, name, qualified)[0]
+
+
+def current_source_binding(path, name, qualified, cleanup_attachment, signature=None):
+    item, resolution, candidates = current_item_resolution(path, name, qualified, signature)
+    if item:
+        return item, resolution, candidates
+    if not isinstance(cleanup_attachment, dict):
+        if resolution.startswith("ambiguous"):
+            return None, "ambiguous_current_source_binding", candidates
+        return item, resolution, candidates
+
+    scope = cleanup_attachment.get("scope_evidence") or {}
+    declarations = scope.get("module_declarations") or []
+    attachment_path = cleanup_attachment.get("attachment_path")
+    if attachment_path and declarations:
+        source_package = package_for_source(path)
+        if not source_package:
+            raise RuntimeError("module attachment has no source package: " + path)
+        verified_declarations = []
+        for declaration in declarations:
+            module = declaration.get("module")
+            declaration_path = declaration.get("path")
+            line = declaration.get("line_number")
+            rows = [
+                row for row in module_declarations.get((source_package["package_id"], module), [])
+                if row.get("source_path") == declaration_path
+                and row.get("line") == line
+                and row.get("path") == module
+            ]
+            if len(rows) != 1:
+                raise RuntimeError("module attachment declaration is missing or ambiguous: " + str(module))
+            row = rows[0]
+            source = source_by_path.get(declaration_path)
+            lines = source_text(declaration_path).splitlines()
+            if (
+                not source
+                or source.get("sha256") != row.get("source_sha256")
+                or line is None
+                or line < 1
+                or line > len(lines)
+                or lines[line - 1].strip() != declaration.get("declaration_line", "").strip()
+            ):
+                raise RuntimeError("module attachment source binding differs from current source: " + str(module))
+            verified_declarations.append((declaration, row))
+
+        target_module = scope.get("module")
+        target_rows = [pair for pair in verified_declarations if pair[0].get("module") == target_module]
+        if len(target_rows) != 1 or target_rows[0][0].get("path") != attachment_path:
+            raise RuntimeError("module attachment target does not match its declaration chain: " + str(target_module))
+        declaration, row = target_rows[0]
+        attached_item, attached_resolution, attached_candidates = current_item_resolution(
+            attachment_path, name, target_module
+        )
+        if attached_resolution.startswith("ambiguous"):
+            raise RuntimeError("module attachment resolves to multiple API items: " + str(target_module))
+        if attached_item:
+            if (
+                attached_item.get("kind") != "mod"
+                or attached_item.get("source_path") != attachment_path
+                or attached_item.get("line") != declaration.get("line_number")
+                or attached_item.get("source_sha256") != row.get("source_sha256")
+            ):
+                raise RuntimeError("module attachment item does not match its declaration evidence: " + str(target_module))
+            return attached_item, "cleanup_attachment_module_item", [attached_item]
+
+        module_public = any(
+            export.get("kind") == "public_module"
+            and export.get("current_qualified_symbol") == target_module
+            and export.get("source_path") == attachment_path
+            for export in exports
+        )
+        binding = {
+            "current_qualified_symbol": target_module,
+            "definition_owner": target_module,
+            "package_id": source_package["package_id"],
+            "manifest_path": source_package["manifest_path"],
+            "workspace_id": source_package["workspace_id"],
+            "definition_package_id": source_package["package_id"],
+            "definition_workspace_id": source_package["workspace_id"],
+            "architecture_owner_task": source_package["architecture_owner_task"],
+            "source_path": attachment_path,
+            "line": declaration["line_number"],
+            "source_sha256": row["source_sha256"],
+            "namespace": "module",
+            "kind": "mod",
+            "visibility": row["visibility"],
+            "is_external_api": module_public,
+            "public_qualified_paths": [target_module] if module_public else [],
+            "evidence_state": "NOT VERIFIED",
+        }
+        return binding, "cleanup_attachment_module_declaration", [binding]
+
+    if attachment_path:
+        attached_item, attached_resolution, attached_candidates = current_item_resolution(
+            attachment_path, name, cleanup_attachment.get("symbol") or qualified
+        )
+        if attached_resolution.startswith("ambiguous"):
+            raise RuntimeError("cleanup attachment resolves to multiple current items: " + str(qualified or name))
+        if attached_item:
+            return attached_item, "cleanup_attachment_item", attached_candidates
+        if cleanup_attachment.get("status") == "retained_production_item":
+            return None, "retained_attachment_unresolved", attached_candidates
+    if resolution.startswith("ambiguous"):
+        return None, "ambiguous_current_source_binding", candidates
+    return item, resolution, candidates
 
 
 def source_symbol(record, path):
@@ -2180,6 +2333,15 @@ def source_symbol(record, path):
         if isinstance(record.get(key), str):
             return record[key].split("::")[-1], record.get("declaration_line") or record.get("attached_item_signature")
     return None, None
+
+
+def expand_retired_path(value):
+    value = value.split(" (", 1)[0].removesuffix(" re-export").strip()
+    match = re.match(r"^(.*)::\{([^{}]+)\}$", value)
+    if not match:
+        return [value]
+    base, members = match.groups()
+    return [base + "::" + member.strip() for member in members.split(",") if member.strip()]
 
 
 def make_requirement(requirement_id, path, source_line, source_sha, source_fact, clause, disposition, owner_task, reason, decision=None, destination=None, cases=None, current_symbol=None, evidence_source=None, api_binding_context=None):
@@ -2246,6 +2408,8 @@ def api_binding_context(path, line, source_sha, source_commit, source_symbol_val
             "definition_package_id": current_item.get("definition_package_id"),
             "definition_workspace_id": current_item.get("definition_workspace_id"),
             "architecture_owner_task": current_item.get("architecture_owner_task"),
+            "public_qualified_paths": current_item.get("public_qualified_paths", []),
+            "is_public_api": bool(current_item.get("public_qualified_paths") or current_item.get("is_external_api")),
             "source": {"path": current_item.get("source_path"), "line": current_item.get("line"), "sha256": current_item.get("source_sha256")},
             "evidence_state": "NOT VERIFIED",
         }
@@ -2304,7 +2468,9 @@ for filename in disposition_files:
         qualified = attached.get("name") if isinstance(attached, dict) else None
         if not qualified and isinstance(record.get("cleanup_attachment"), dict):
             qualified = record["cleanup_attachment"].get("symbol")
-        item, binding_resolution, binding_candidates = current_item_resolution(path, name, qualified, signature) if name else (None, "no_symbol", [])
+        item, binding_resolution, binding_candidates = current_source_binding(
+            path, name, qualified, record.get("cleanup_attachment"), signature
+        ) if name else (None, "no_symbol", [])
         symbol = item["current_qualified_symbol"] if item else None
         historical_symbol = qualified if isinstance(qualified, str) and "::" in qualified else (item["current_qualified_symbol"] if item else name)
         required = record.get("required_clause")
@@ -2380,9 +2546,11 @@ for filename in disposition_files:
                 "source_api_identity": context["source_api_identity"],
                 "attached_symbol": historical_symbol,
                 "semantic_disposition": semantic,
-                "current_symbol_present": bool(item),
+                "current_symbol_present": True if item else None,
+                "current_symbol_presence_basis": "source item or attachment declaration resolved" if item else "no unique source binding; absence not established",
                 "current_binding_resolution": binding_resolution,
                 "current_binding": context["current_binding"],
+                "current_binding_candidates": context["current_binding_candidates"],
                 "cleanup_attachment": context["cleanup_attachment"],
                 "cleanup_attachment_evidence": context["cleanup_attachment_evidence"],
                 "source_scoped_decision_id": context["source_scoped_decision_id"],
@@ -2405,6 +2573,12 @@ for filename in disposition_files:
 removed = json.loads((ROOT / "docs/implementation/pr38-final/results/t37-foundations/source-removal.json").read_text())
 deferred = json.loads((ROOT / "docs/implementation/pr38-final/results/t37-foundations/deferred-testing-surfaces.json").read_text())
 decision_map = deferred["review_decisions"]
+retired_api_member_dispositions = []
+compatibility_decisions = {
+    "termrock_runtime::author::PartStyle::note": ("T37-FOUNDATION-TESTING-02", "T37 kept this public method and removed its testing recorder call."),
+    "termrock_runtime::PartStyle::note": ("T37-FOUNDATION-TESTING-02", "T37 kept this public method and removed its testing recorder call."),
+    "termrock_runtime::runtime::Runtime::draw_scene": ("T37-BUILD-COMPAT-01", "T37 retained this feature-gated method for two Form examples."),
+}
 for group in deferred["groups"]:
     group_id = group["id"]
     public_paths = group.get("public_paths", [])
@@ -2414,65 +2588,86 @@ for group in deferred["groups"]:
         decision_id = "T37-FOUNDATION-TESTING-02"
     elif group_id in ("cx-event-record-probes", "runtime-stub-harness"):
         decision_id = "T37-FOUNDATION-TESTING-03"
-    for public_path in public_paths:
-        if group_id == "part-style-note-compatibility":
-            disposition = "KEEP"
-            reason = "T37 kept the public method and normal call sites. Only its testing recorder call was removed."
+    for grouped_path in public_paths:
+        for public_path in expand_retired_path(grouped_path):
+            source_scope = group.get("input_scope_lines") or {}
+            path = next(iter(source_scope), "docs/implementation/pr38-final/results/t37-foundations/deferred-testing-surfaces.json")
+            source_line = next(iter(source_scope.get(path, [])), None)
+            if group_id == "runtime-stub-harness":
+                if "runtime::stub::" in public_path:
+                    path, source_line = "crates/termrock-runtime/src/runtime.rs", 3301
+                else:
+                    path, source_line = "crates/termrock-runtime/src/lib.rs", 55
             decision = decision_map[decision_id]
-        else:
-            current_match = [item for item in items if item["current_qualified_symbol"] == public_path or item["current_qualified_symbol"].startswith(public_path + "::")]
-            if current_match:
-                continue
-            disposition = "RETIRE"
-            reason = status + " T37 source inventory has no current production caller for this testing-only surface."
-            decision = decision_map[decision_id]
-        source_path = (group.get("input_scope_lines") or {})
-        path = next(iter(source_path), "docs/implementation/pr38-final/results/t37-foundations/deferred-testing-surfaces.json")
-        source_line = next(iter(source_path.get(path, [])), None)
-        if group_id == "runtime-stub-harness":
-            if "runtime::stub::" in public_path:
-                path, source_line = "crates/termrock-runtime/src/runtime.rs", 3301
+            selected_decision_id = decision_id
+            compatibility = compatibility_decisions.get(public_path)
+            if compatibility:
+                selected_decision_id, reason = compatibility
+                if selected_decision_id == "T37-BUILD-COMPAT-01":
+                    decision = {"reviewer": "/root/t00_independent_review", "decision": "ACCEPTED_COMPATIBILITY", "input_commit": decision_map[decision_id]["input_commit"]}
+            source_commit = decision.get("input_commit")
+            historical_result = subprocess.run(["git", "show", source_commit + ":" + path], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE) if source_commit and path else None
+            historical_bytes = historical_result.stdout if historical_result and historical_result.returncode == 0 else None
+            historical_lines = historical_bytes.decode("utf-8").splitlines() if historical_bytes else []
+            historical_line_text = historical_lines[source_line - 1] if historical_bytes and source_line and source_line <= len(historical_lines) else None
+            if historical_bytes is None or historical_line_text is None:
+                raise RuntimeError("historical retirement anchor is missing: " + group_id + " " + public_path)
+            source_package = package_for_source(path)
+            current_item, current_resolution, current_candidates = current_item_resolution(path, public_path.split("::")[-1], public_path)
+            if current_resolution.startswith("ambiguous"):
+                raise RuntimeError("retired API member has an ambiguous current binding: " + public_path)
+            if compatibility:
+                disposition = "KEEP"
+            elif current_item:
+                disposition = "UNRESOLVED"
+                reason = "The current source inventory contains this member without an accepted compatibility decision."
             else:
-                path, source_line = "crates/termrock-runtime/src/lib.rs", 55
-        source_commit = decision.get("input_commit")
-        historical_result = subprocess.run(["git", "show", source_commit + ":" + path], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE) if source_commit and path else None
-        historical_bytes = historical_result.stdout if historical_result and historical_result.returncode == 0 else None
-        historical_lines = historical_bytes.decode("utf-8").splitlines() if historical_bytes else []
-        historical_line_text = historical_lines[source_line - 1] if historical_bytes and source_line and source_line <= len(historical_lines) else None
-        source_package = package_for_source(path)
-        current_item, current_resolution, _ = current_item_resolution(path, public_path.split("::")[-1], public_path)
-        evidence_path = "docs/implementation/pr38-final/results/t37-foundations/deferred-testing-surfaces.json"
-        evidence_sha = sha((ROOT / evidence_path).read_bytes())
-        retired_context = {
-            "source_api_identity": {"qualified_symbol": public_path, "path": path, "line": source_line, "line_role": "exact API declaration or T37 input-scope anchor, according to the linked decision record", "commit": source_commit, "commit_resolution": "explicit in the independent review decision", "sha256": sha(historical_bytes) if historical_bytes else None, "text_sha256": sha(historical_line_text.encode()) if historical_line_text else None, "package_id": source_package["package_id"] if source_package else None, "manifest_path": source_package["manifest_path"] if source_package else None, "workspace_id": source_package["workspace_id"] if source_package else None, "normalized_package_identity": source_package["normalized_package_identity"] if source_package else None},
-            "current_input_commit": INPUT,
-            "current_input_absence": current_item is None,
-            "cleanup_attachment": None,
-            "cleanup_attachment_evidence": {"path": evidence_path, "record_id": group_id, "sha256": evidence_sha},
-            "current_binding_resolution": current_resolution if current_item else "absent_by_approved_t37_removal",
-            "current_binding": None,
-            "source_scoped_decision_id": decision_id,
-            "decision_artifact": {"path": evidence_path, "record_id": group_id, "sha256": evidence_sha},
-        }
-        if current_item:
-            retired_context["current_binding"] = {
-                "qualified_symbol": current_item["current_qualified_symbol"],
-                "definition_owner": current_item.get("definition_owner"),
-                "package_id": current_item.get("package_id"),
-                "manifest_path": current_item.get("manifest_path"),
-                "source": {"path": current_item.get("source_path"), "line": current_item.get("line"), "sha256": current_item.get("source_sha256")},
-                "evidence_state": "NOT VERIFIED",
+                disposition = "RETIRE"
+                reason = status + " T37 decision retires this exact testing-only member."
+            evidence_path = "docs/implementation/pr38-final/results/t37-foundations/deferred-testing-surfaces.json"
+            evidence_sha = sha((ROOT / evidence_path).read_bytes())
+            current_absence = True if disposition == "RETIRE" else False if current_item else None
+            retired_context = {
+                "source_api_identity": {"qualified_symbol": public_path, "path": path, "line": source_line, "line_role": "T37 input-scope anchor; group evidence names this member.", "commit": source_commit, "commit_resolution": "explicit in the independent review decision", "sha256": sha(historical_bytes), "text_sha256": sha(historical_line_text.encode()), "package_id": source_package["package_id"] if source_package else None, "manifest_path": source_package["manifest_path"] if source_package else None, "workspace_id": source_package["workspace_id"] if source_package else None, "normalized_package_identity": source_package["normalized_package_identity"] if source_package else None},
+                "current_input_commit": INVENTORY_INPUT,
+                "current_input_absence": current_absence,
+                "cleanup_attachment": None,
+                "cleanup_attachment_evidence": {"path": evidence_path, "record_id": group_id, "sha256": evidence_sha},
+                "current_binding_resolution": current_resolution if current_item else "absent_by_approved_t37_removal" if disposition == "RETIRE" else "no_current_binding_established",
+                "current_binding": None,
+                "source_scoped_decision_id": selected_decision_id,
+                "decision_artifact": {"path": "docs/implementation/pr38-final/results/t37-metadata/dependency-retirement-map.json", "record_id": selected_decision_id, "sha256": sha((ROOT / "docs/implementation/pr38-final/results/t37-metadata/dependency-retirement-map.json").read_bytes())} if selected_decision_id == "T37-BUILD-COMPAT-01" else {"path": evidence_path, "record_id": group_id, "sha256": evidence_sha},
             }
-        requirements.append(make_requirement(
-            "T37-RETIRED-" + group_id + "-" + public_path.replace("::", "-"), path, source_line, None,
-            "T37 recorded this testing-only public path and its retained or removed callers.",
-            "Keep this path retired after T37, or preserve the explicitly accepted compatibility path.",
-            disposition, owner_for_path(path, public_path), reason,
-            {"decision_id": decision_id, "reviewer": decision.get("reviewer"), "reviewer_model": "gpt-6.1-sol", "reviewer_effort": "high", "decision": decision.get("decision"), "input_commit": decision.get("input_commit")},
-            None, ["Check metadata and the source inventory for this exact qualified path."], current_item["current_qualified_symbol"] if current_item else None,
-            {"path": "docs/implementation/pr38-final/results/t37-foundations/deferred-testing-surfaces.json", "group_id": group_id},
-            retired_context,
-        ))
+            if current_item:
+                retired_context["current_binding"] = {
+                    "qualified_symbol": current_item["current_qualified_symbol"],
+                    "definition_owner": current_item.get("definition_owner"),
+                    "package_id": current_item.get("package_id"),
+                    "manifest_path": current_item.get("manifest_path"),
+                    "namespace": current_item.get("namespace"),
+                    "source": {"path": current_item.get("source_path"), "line": current_item.get("line"), "sha256": current_item.get("source_sha256")},
+                    "evidence_state": "NOT VERIFIED",
+                }
+            member = {
+                "group_id": group_id,
+                "qualified_symbol": public_path,
+                "disposition": disposition,
+                "current_input_absence": current_absence,
+                "current_binding_resolution": retired_context["current_binding_resolution"],
+                "source_scoped_decision_id": selected_decision_id,
+            }
+            retired_api_member_dispositions.append(member)
+            clause = "Preserve this accepted compatibility member." if disposition == "KEEP" else "Retire this exact testing-only member after T37."
+            requirements.append(make_requirement(
+                "T37-RETIRED-" + group_id + "-" + public_path.replace("::", "-"), path, source_line, sha(historical_bytes),
+                "T37 recorded this testing-only member and its retained or removed callers.",
+                clause,
+                disposition, owner_for_path(path, public_path), reason,
+                {"decision_id": selected_decision_id, "reviewer": decision.get("reviewer"), "reviewer_model": "gpt-6.1-sol", "reviewer_effort": "high", "decision": decision.get("decision"), "input_commit": decision.get("input_commit")},
+                None, ["Check this exact qualified path in the current source inventory."], current_item["current_qualified_symbol"] if current_item else None,
+                {"path": "docs/implementation/pr38-final/results/t37-foundations/deferred-testing-surfaces.json", "group_id": group_id},
+                retired_context,
+            ))
 
 draw_scene = current_item_for("crates/termrock-runtime/src/runtime.rs", "draw_scene")
 if draw_scene:
@@ -2571,26 +2766,40 @@ for open_requirement in open_requirements:
 
 
 def historical_source(path):
-    result = subprocess.run(["git", "show", PRODUCT + ":" + path], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result = subprocess.run(["git", "show", HISTORICAL_WORKLOAD_SOURCE + ":" + path], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode != 0:
         return None
     return result.stdout
 
 
 current_head = run(["git", "rev-parse", "HEAD"]).decode().strip()
-input_ancestor = subprocess.run(["git", "merge-base", "--is-ancestor", INPUT, "HEAD"], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+input_ancestor = subprocess.run(["git", "merge-base", "--is-ancestor", INVENTORY_INPUT, "HEAD"], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 if input_ancestor.returncode != 0:
     raise RuntimeError("fixed inventory input is not an ancestor of HEAD")
-product_source_diff_argv = ["git", "diff", "--exit-code", T37_INTEGRATION, "--", "Cargo.toml", "crates", "tools/refactor-proof", "external-consumer-demo"]
-product_source_diff = subprocess.run(product_source_diff_argv, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-if product_source_diff.returncode != 0:
-    raise RuntimeError("production source differs from accepted T37 tree")
-input_tree = run(["git", "rev-parse", INPUT + "^{tree}"]).decode().strip()
+product_source_paths = ["Cargo.toml", "crates", "tools/refactor-proof", "external-consumer-demo"]
+current_source_diff_argv = ["git", "diff", "--exit-code", INVENTORY_INPUT, "--", *product_source_paths]
+current_source_diff = subprocess.run(current_source_diff_argv, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+if current_source_diff.returncode != 0:
+    raise RuntimeError("production source differs from the fixed inventory input")
+t37_source_diff_argv = ["git", "diff", "--exit-code", T37_INTEGRATION, "--", *product_source_paths]
+t37_source_diff = subprocess.run(t37_source_diff_argv, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+if t37_source_diff.returncode != 0:
+    raise RuntimeError("production source differs from accepted T37 integration")
+input_tree = run(["git", "rev-parse", INVENTORY_INPUT + "^{tree}"]).decode().strip()
+metadata_execution_tree = run(["git", "rev-parse", META_EXECUTION_SOURCE_COMMIT + "^{tree}"]).decode().strip()
+metadata_artifact_tree = run(["git", "rev-parse", META_ARTIFACT_COMMIT + "^{tree}"]).decode().strip()
+if input_tree != METADATA_ARTIFACT_TREE or metadata_artifact_tree != METADATA_ARTIFACT_TREE:
+    raise RuntimeError("fixed metadata artifact tree does not match the fixed source input")
+if metadata_execution_tree != METADATA_EXECUTION_TREE:
+    raise RuntimeError("fixed metadata execution tree does not match its accepted source checkout")
 identity_commands = [
     {"tool": "git", "argv": ["git", "rev-parse", "HEAD"], "cwd": str(ROOT), "exit_code": 0, "stdout": current_head, "purpose": "Confirm fixed inventory input commit."},
-    {"tool": "git", "argv": ["git", "merge-base", "--is-ancestor", INPUT, "HEAD"], "cwd": str(ROOT), "exit_code": input_ancestor.returncode, "source_commit": INPUT, "purpose": "Confirm fixed input remains in current history."},
-    {"tool": "git", "argv": product_source_diff_argv, "cwd": str(ROOT), "exit_code": product_source_diff.returncode, "source_commit": T37_INTEGRATION, "purpose": "Confirm product manifests and source match accepted T37 integration."},
-    {"tool": "git", "argv": ["git", "rev-parse", INPUT + "^{tree}"], "cwd": str(ROOT), "exit_code": 0, "stdout": input_tree, "purpose": "Record fixed input tree identity."},
+    {"tool": "git", "argv": ["git", "merge-base", "--is-ancestor", INVENTORY_INPUT, "HEAD"], "cwd": str(ROOT), "exit_code": input_ancestor.returncode, "source_commit": INVENTORY_INPUT, "purpose": "Confirm fixed inventory input remains in current history."},
+    {"tool": "git", "argv": current_source_diff_argv, "cwd": str(ROOT), "exit_code": current_source_diff.returncode, "source_commit": INVENTORY_INPUT, "purpose": "Confirm current production source matches the fixed inventory input."},
+    {"tool": "git", "argv": t37_source_diff_argv, "cwd": str(ROOT), "exit_code": t37_source_diff.returncode, "source_commit": T37_INTEGRATION, "purpose": "Confirm product source matches accepted T37 integration."},
+    {"tool": "git", "argv": ["git", "rev-parse", INVENTORY_INPUT + "^{tree}"], "cwd": str(ROOT), "exit_code": 0, "stdout": input_tree, "purpose": "Record fixed inventory input tree identity."},
+    {"tool": "git", "argv": ["git", "rev-parse", META_EXECUTION_SOURCE_COMMIT + "^{tree}"], "cwd": str(ROOT), "exit_code": 0, "stdout": metadata_execution_tree, "source_commit": META_EXECUTION_SOURCE_COMMIT, "purpose": "Record metadata execution source tree identity."},
+    {"tool": "git", "argv": ["git", "rev-parse", META_ARTIFACT_COMMIT + "^{tree}"], "cwd": str(ROOT), "exit_code": 0, "stdout": metadata_artifact_tree, "source_commit": META_ARTIFACT_COMMIT, "purpose": "Record metadata artifact tree identity."},
 ]
 
 performance_workloads = []
@@ -2601,8 +2810,8 @@ for path in ["crates/termrock-test-support/tests/perf.rs", "crates/termrock-test
     text = raw.decode("utf-8", "replace")
     source_row = {
         "path": path,
-        "commit": PRODUCT,
-        "git_blob_oid": run(["git", "rev-parse", PRODUCT + ":" + path]).decode().strip(),
+        "commit": HISTORICAL_WORKLOAD_SOURCE,
+        "git_blob_oid": run(["git", "rev-parse", HISTORICAL_WORKLOAD_SOURCE + ":" + path]).decode().strip(),
         "sha256": sha(raw),
         "lines": len(text.splitlines()),
         "status": "historical immutable workload or baseline source; not executed",
@@ -2671,15 +2880,6 @@ retired_names = [
     "termrock_theme::resolve::StyleCache::stats",
 ]
 current_symbol_names = {item["current_qualified_symbol"] for item in items}
-def expand_retired_path(value):
-    value = value.split(" (", 1)[0].removesuffix(" re-export").strip()
-    match = re.match(r"^(.*)::\{([^{}]+)\}$", value)
-    if not match:
-        return [value]
-    base, members = match.groups()
-    return [base + "::" + member.strip() for member in members.split(",") if member.strip()]
-
-
 deferred_public_paths = [path for group in deferred["groups"] for path in group.get("public_paths", [])]
 retired_public_symbols = sorted({symbol for path in deferred_public_paths for symbol in expand_retired_path(path) if "::" in symbol})
 retired_current_matches = sorted(set(retired_public_symbols) & current_symbol_names)
@@ -2704,7 +2904,9 @@ for workspace in metadata_structure["workspaces"]:
         "argv": ["rust-build-guard", "--", "mise", "exec", "--", "cargo", "metadata", "--format-version", "1", "--no-deps", "--manifest-path", "Cargo.toml"],
         "cwd": str(metadata_base / workspace["workdir"]),
         "exit_code": workspace["exit_status"],
-        "source_commit": META_HEAD,
+        "source_commit": META_EXECUTION_SOURCE_COMMIT,
+        "artifact_commit": META_ARTIFACT_COMMIT,
+        "artifact_tree": METADATA_ARTIFACT_TREE,
         "stdout_path": workspace["stdout_path"],
         "stdout_sha256": workspace["stdout_sha256"],
         "stderr_path": workspace["stderr_path"],
@@ -2718,10 +2920,10 @@ for workload in performance_workloads:
     source = workload["source"]
     historical_commands.append({
         "tool": "git",
-        "argv": ["git", "show", PRODUCT + ":" + source["path"]],
+        "argv": ["git", "show", HISTORICAL_WORKLOAD_SOURCE + ":" + source["path"]],
         "cwd": str(ROOT),
         "exit_code": 0,
-        "source_commit": PRODUCT,
+        "source_commit": HISTORICAL_WORKLOAD_SOURCE,
         "source_path": source["path"],
         "source_blob_oid": source.get("git_blob_oid"),
         "stdout_sha256": source["sha256"],
@@ -2729,10 +2931,10 @@ for workload in performance_workloads:
     })
     historical_oid_commands.append({
         "tool": "git",
-        "argv": ["git", "rev-parse", PRODUCT + ":" + source["path"]],
+        "argv": ["git", "rev-parse", HISTORICAL_WORKLOAD_SOURCE + ":" + source["path"]],
         "cwd": str(ROOT),
         "exit_code": 0,
-        "source_commit": PRODUCT,
+        "source_commit": HISTORICAL_WORKLOAD_SOURCE,
         "source_path": source["path"],
         "stdout": source.get("git_blob_oid"),
         "purpose": "Record immutable historical source blob identity.",
@@ -2782,6 +2984,34 @@ actual_public_export_keys = {
 missing_public_binding_exports = sorted(expected_public_binding_keys - actual_public_export_keys)
 if missing_public_binding_exports:
     raise RuntimeError("current public item bindings are missing export inventory rows; update the migration inventory before accepting T01")
+associated_const_by_source = {
+    (item.get("source_path"), item.get("line"), item.get("source_sha256"))
+    for item in items if item.get("kind") == "associated_const"
+}
+associated_const_wildcard_exports = [
+    row for row in exports
+    if row.get("kind") == "wildcard_member"
+    and (row.get("definition_source") or {}).get("path")
+    and (
+        (row["definition_source"]["path"], row["definition_source"].get("line"), row["definition_source"].get("sha256"))
+        in associated_const_by_source
+    )
+]
+if associated_const_wildcard_exports:
+    raise RuntimeError("an associated constant was exported as a module wildcard member")
+associated_const_path_mismatches = []
+for item in items:
+    if item.get("kind") != "associated_const":
+        continue
+    owner = item_index.get((item.get("definition_package_id"), item.get("definition_owner")))
+    if not owner:
+        continue
+    suffix = item["current_qualified_symbol"][len(item["definition_owner"]):]
+    expected_paths = {path + suffix for path in owner.get("public_qualified_paths", [])}
+    if set(item.get("public_qualified_paths", [])) != expected_paths or item.get("namespace") != "value":
+        associated_const_path_mismatches.append(item["current_qualified_symbol"])
+if associated_const_path_mismatches:
+    raise RuntimeError("an associated constant has a public path outside its owner type")
 
 source_records_by_path = {row["path"]: row for row in all_sources}
 missing_current_source_bindings = []
@@ -2807,10 +3037,15 @@ if any(row.get("definition_package_id") is not None for row in exports if row.ge
 if any(not row.get("named_owner_task") or row.get("evidence_state") != "NOT VERIFIED" for row in requirements):
     raise RuntimeError("a requirement is missing its owner task or evidence state")
 retired_requirements = [row for row in requirements if row.get("disposition") == "RETIRE"]
-if any(not row.get("source_scoped_decision_id") or not row.get("decision_artifact", {}).get("sha256") or row.get("current_binding") for row in retired_requirements):
+if any(not row.get("source_scoped_decision_id") or not row.get("decision_artifact", {}).get("sha256") or row.get("current_binding") or row.get("current_input_absence") is not True for row in retired_requirements):
     raise RuntimeError("a retired API row is missing reviewed absence evidence")
+unresolved_retired_api_members = [row for row in retired_api_member_dispositions if row.get("disposition") == "UNRESOLVED"]
 if any(not row.get("source_api_identity", {}).get("path") or not row.get("source_api_identity", {}).get("sha256") or not row.get("cleanup_attachment_evidence", {}).get("sha256") for row in historical_api_dispositions):
     raise RuntimeError("a historical API disposition is missing its source or attachment evidence")
+attachment_dispositions = [row for row in historical_api_dispositions if (row.get("cleanup_attachment") or {}).get("attachment_path")]
+unresolved_module_attachments = [row for row in attachment_dispositions if row.get("current_binding_resolution") not in ("cleanup_attachment_module_item", "cleanup_attachment_module_declaration")]
+if unresolved_module_attachments:
+    raise RuntimeError("a retained module attachment has no unique current source binding")
 
 structural_audit = {
     "status": "PASS",
@@ -2824,8 +3059,15 @@ structural_audit = {
         "item_record_ids_unique": len(items),
         "current_source_rows_exact_path_line_hash": len(items) + len(exports) + sum(len(row.get("source_provenance", [])) for row in exports),
         "historical_dispositions_with_source_and_evidence": len(historical_api_dispositions),
+        "module_attachment_dispositions_resolved": len(attachment_dispositions),
+        "unresolved_module_attachment_dispositions": len(unresolved_module_attachments),
         "historical_source_commits_not_supplied_by_t37_record": sum(1 for row in historical_api_dispositions if not row.get("source_api_identity", {}).get("commit")),
         "retired_requirements_with_approved_absence_and_decision": len(retired_requirements),
+        "retired_api_member_rows": len(retired_api_member_dispositions),
+        "retired_api_members_unresolved": len(unresolved_retired_api_members),
+        "associated_constant_items": sum(1 for item in items if item.get("kind") == "associated_const"),
+        "associated_constant_wildcard_exports": len(associated_const_wildcard_exports),
+        "associated_constant_path_mismatches": len(associated_const_path_mismatches),
         "third_party_exports_with_unowned_definition_package": sum(1 for row in exports if row.get("definition_resolution") == "external_dependency"),
     },
 }
@@ -2834,17 +3076,24 @@ result = {
     "schema": "termrock.pr38.t01.fragment.v1",
     "task_id": "T01",
     "fragment_id": "foundation-api",
-    "input_commit": INPUT,
+    "input_commit": INVENTORY_INPUT,
     "input_tree": input_tree,
-    "product_source_commit": PRODUCT,
-    "metadata_evidence_source_commit": META_HEAD,
+    "product_source_commit": HISTORICAL_PRODUCT,
+    "current_source_commit": INVENTORY_INPUT,
+    "historical_workload_source_commit": HISTORICAL_WORKLOAD_SOURCE,
+    "metadata_artifact_absence_checks": metadata_artifact_absence_checks,
+    "metadata_evidence_source_commit": META_ARTIFACT_COMMIT,
+    "metadata_evidence_artifact_commit": META_ARTIFACT_COMMIT,
+    "metadata_execution_source_commit": META_EXECUTION_SOURCE_COMMIT,
     "preflight_basis": {
         "t37_status": "ACCEPTED_PREFLIGHT",
         "accepted_candidate": T37_CANDIDATE,
         "normal_integration_commit": T37_INTEGRATION,
         "identical_tree": T37_TREE,
-        "metadata_evidence_commit": META_HEAD,
-        "metadata_evidence_tree": METADATA_TREE,
+        "metadata_evidence_commit": META_ARTIFACT_COMMIT,
+        "metadata_evidence_tree": METADATA_ARTIFACT_TREE,
+        "metadata_execution_source_commit": META_EXECUTION_SOURCE_COMMIT,
+        "metadata_execution_source_tree": METADATA_EXECUTION_TREE,
         "production_source_matches_t37_tree": True,
         "production_behavior": "NOT VERIFIED",
     },
@@ -2857,7 +3106,7 @@ result = {
         "wid_policy": "This fragment assigns no W IDs. The component worker owns all W ID assignment.",
     },
     "metadata_workspaces": [
-        {"workspace_id": workspace_identity(path), "workspace_root": normalized_workspace_root(path), "evidence_path": path, "source_commit": META_HEAD, "sha256": source_record(path, commit=META_HEAD, kind="cargo_metadata_evidence")["sha256"], "packages": len(json.loads((ROOT / path).read_text()).get("packages", []))}
+        {"workspace_id": workspace_identity(path), "workspace_root": normalized_workspace_root(path), "evidence_path": path, "source_commit": META_ARTIFACT_COMMIT, "artifact_commit": META_ARTIFACT_COMMIT, "execution_source_commit": META_EXECUTION_SOURCE_COMMIT, "execution_source_tree": METADATA_EXECUTION_TREE, "sha256": source_record(path, commit=META_ARTIFACT_COMMIT, kind="cargo_metadata_evidence")["sha256"], "artifact_sha256": metadata_artifact_hashes[path], "packages": len(json.loads((ROOT / path).read_text()).get("packages", []))}
         for path in META_FILES
     ],
     "crates": crates,
@@ -2873,12 +3122,16 @@ result = {
     "retired_testing_api_inventory": {
         "groups": removed["retired_testing_api_group_ids"],
         "review_decisions": decision_map,
+        "member_dispositions": retired_api_member_dispositions,
+        "retired_member_count": sum(1 for row in retired_api_member_dispositions if row["disposition"] == "RETIRE"),
+        "preserved_member_count": sum(1 for row in retired_api_member_dispositions if row["disposition"] == "KEEP"),
+        "unresolved_member_count": len(unresolved_retired_api_members),
         "current_export_symbol_matches": retired_current_matches,
         "accepted_compatibility_matches": sorted(set(retired_current_matches) & accepted_compatibility_matches),
         "unexpected_current_matches": unexpected_retired_current_matches,
         "normal_draw_scene_preserved": bool(draw_scene),
         "source_paths": removed["removed_source_items"],
-        "limits": ["The removed helpers are historical migration requirements. They do not appear as current API items.", "T37 selected zero behavior cases. Product behavior remains NOT VERIFIED."],
+        "limits": ["Each recorded member has a separate current-source disposition.", "T37 selected zero behavior cases. Product behavior remains NOT VERIFIED."],
     },
     "structural_inventory_gate": {
         "condition": "A current public source export missing from this inventory blocks T01 structural acceptance until its migration row is updated.",
@@ -2887,11 +3140,13 @@ result = {
         "unreviewed_api_removal_allowed": False,
         "source_binding_reconciliation": {"expected_public_item_binding_keys": len(expected_public_binding_keys), "missing_keys": len(missing_public_binding_exports), "result": "PASS"},
         "retired_api_migration_reconciliation": {"retired_requirement_rows": len(retired_requirements), "rows_without_source_scoped_decision_or_absence": 0, "result": "PASS"},
+        "retired_member_reconciliation": {"member_rows": len(retired_api_member_dispositions), "unresolved_members": len(unresolved_retired_api_members), "result": "PASS" if not unresolved_retired_api_members else "OPEN"},
     },
     "structural_audit": structural_audit,
     "commands": [
         {"tool": "python3", "argv": ["python3", "docs/implementation/pr38-final/results/t01-foundation-api/build_fragment.py"], "cwd": str(ROOT), "exit_code": 0, "source_path": "docs/implementation/pr38-final/results/t01-foundation-api/build_fragment.py", "source_sha256": sha((ROOT / "docs/implementation/pr38-final/results/t01-foundation-api/build_fragment.py").read_bytes()), "output_path": str(OUT.relative_to(ROOT)), "purpose": "Read current source, consume accepted metadata, and write the static API fragment."},
         *identity_commands,
+        *metadata_artifact_absence_commands,
         *metadata_commands,
         *historical_commands,
         *historical_oid_commands,
@@ -2922,6 +3177,8 @@ result = {
         "performance_records": len(performance_workloads),
         "retired_testing_api_current_matches": len(retired_current_matches),
         "unexpected_retired_testing_api_current_matches": len(unexpected_retired_current_matches),
+        "retired_testing_api_member_rows": len(retired_api_member_dispositions),
+        "associated_constant_items": sum(1 for item in items if item.get("kind") == "associated_const"),
         "direct_exports": sum(1 for row in exports if row["kind"] == "public_definition"),
         "trait_impl_contract_exports": sum(1 for row in exports if row["kind"] == "trait_impl_contract"),
         "trait_impl_member_exports": sum(1 for row in exports if row["kind"] == "trait_impl_member"),
