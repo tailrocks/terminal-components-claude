@@ -419,7 +419,7 @@ fn notices_uses_its_existing_placeholder_without_changing_public_catalogs() {
     assert_eq!(index, 33);
     assert_eq!(NAV_ENTRIES.len(), 54);
     assert_eq!(NAV_ENTRIES[index].id, PageId::Overview);
-    assert_eq!(PageId::ALL.len(), 24);
+    assert_eq!(PageId::ALL.len(), 25);
     assert_eq!(h.app().page(), PageId::Overview);
     assert!(format!("{:?}", h.app()).contains("nav_target: Placeholder(33)"));
     assert!(h.text().contains("Notices"));

@@ -371,6 +371,12 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
                 h.text()
             );
         }
+        PageId::Toolbars => {
+            assert!(h.text().contains("Query toolbar"));
+            assert!(h.text().contains("Narrow toolbar"));
+            assert!(h.text().contains("Formatting toolbar"));
+            assert!(h.text().contains("Last"));
+        }
         PageId::TaskRunner => {
             press(h, KeyCode::Char('r'));
             assert!(h.text().contains("Pipeline · running"));
@@ -721,7 +727,7 @@ fn launches_and_renders_shell() {
     assert!(text.contains("Playground"));
     assert!(text.contains("Tokens and principles behind every component"));
     assert_eq!(NAV_ENTRIES.len(), 54);
-    assert_eq!(PageId::ALL.len(), 24);
+    assert_eq!(PageId::ALL.len(), 25);
     assert_eq!(PageId::from_name("Dialog kinds"), Some(PageId::DialogKinds));
 }
 

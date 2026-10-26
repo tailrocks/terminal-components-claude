@@ -379,6 +379,7 @@ pub mod tables;
 pub mod taskrunner;
 pub mod terminal;
 pub mod textareas;
+pub mod toolbars;
 pub mod trees;
 
 #[cfg(test)]

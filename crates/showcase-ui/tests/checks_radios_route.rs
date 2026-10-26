@@ -32,6 +32,8 @@ fn checks_radios_keeps_placeholder_identity_while_showing_live_controls() {
         .expect("Checks & radios remains in the navigation catalog");
     assert_eq!(entry, 12);
     assert_eq!(NAV_ENTRIES.len(), 54);
+    assert_eq!(NAV_ENTRIES[13].label, "Toolbars");
+    assert_eq!(NAV_ENTRIES[13].id, PageId::Toolbars);
     assert_eq!(h.app().page(), PageId::Overview);
     assert!(
         format!("{:?}", h.app()).contains("nav_target: Placeholder(12)"),
@@ -76,8 +78,11 @@ fn checks_radios_aliases_and_every_other_catalog_target_keep_their_identity() {
             entry.label
         );
     }
-    assert_eq!(placeholder_count, 29, "only Checks & radios gains a body");
-    assert_eq!(PageId::ALL.len(), 24);
+    assert_eq!(
+        placeholder_count, 28,
+        "Checks & radios and Toolbars gain bodies"
+    );
+    assert_eq!(PageId::ALL.len(), 25);
     assert_eq!(NAV_ENTRIES.len(), 54);
 }
 
@@ -337,7 +342,7 @@ fn live_state_survives_route_away_and_back_and_help_keeps_modal_ownership() {
         termrock::PartRef::item(termrock::Part::TAB, termrock::ItemKey::index(0)),
     );
     let _ = h.key(KeyCode::Char(']'));
-    assert!(format!("{:?}", h.app()).contains("nav_target: Placeholder(13)"));
+    assert!(format!("{:?}", h.app()).contains("nav_target: Live(Toolbars)"));
     let _ = h.key(KeyCode::Char('['));
     let debug = format!("{:?}", h.app());
     assert!(debug.contains("nav_target: Placeholder(12)"));

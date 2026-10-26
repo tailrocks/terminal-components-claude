@@ -41,6 +41,7 @@ use showcase_demos::pages::{
     taskrunner::TaskRunnerPage,
     terminal::TerminalPage,
     textareas::TextAreasPage,
+    toolbars::ToolbarsPage,
     trees::TreesPage,
 };
 
@@ -113,10 +114,11 @@ pub enum PageId {
     Settings,
     TaskRunner,
     CellEditors,
+    Toolbars,
 }
 
 impl PageId {
-    pub const ALL: [Self; 24] = [
+    pub const ALL: [Self; 25] = [
         Self::Overview,
         Self::Buttons,
         Self::Inputs,
@@ -141,6 +143,7 @@ impl PageId {
         Self::Settings,
         Self::TaskRunner,
         Self::CellEditors,
+        Self::Toolbars,
     ];
 
     pub const fn title(self) -> &'static str {
@@ -169,6 +172,7 @@ impl PageId {
             Self::Settings => "Settings",
             Self::TaskRunner => "Task runner",
             Self::CellEditors => "Cell editors",
+            Self::Toolbars => "Toolbars",
         }
     }
 
@@ -198,6 +202,7 @@ impl PageId {
             Self::Settings => "settings",
             Self::TaskRunner => "taskrunner",
             Self::CellEditors => "celleditors",
+            Self::Toolbars => "toolbars",
         }
     }
 
@@ -354,7 +359,7 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        id: PageId::Toolbars,
         label: "Toolbars",
         section: "Inputs & forms",
         icon: "•",
@@ -1246,6 +1251,7 @@ fn page(kind: PageId) -> Box<dyn Page> {
         PageId::Settings => Box::new(SettingsPage::new()),
         PageId::TaskRunner => Box::new(TaskRunnerPage::new()),
         PageId::CellEditors => Box::new(CellEditorsPage::new()),
+        PageId::Toolbars => Box::new(ToolbarsPage::new()),
     }
 }
 
@@ -2887,7 +2893,7 @@ impl TuiApp for App {
                 CHECKS_RADIOS_ENTRY | EMPTY_ERROR_ENTRY | NOTICES_ENTRY | DIFF_ENTRY
                 | MASTER_DETAIL_ENTRY,
             ) => page_hints,
-            NavTarget::Live(PageId::Pickers | PageId::DialogKinds) => page_hints,
+            NavTarget::Live(PageId::Pickers | PageId::DialogKinds | PageId::Toolbars) => page_hints,
             NavTarget::Live(_) | NavTarget::Placeholder(_) => &[][..],
         };
         let (footer_hints, tab_hint) = if self.overlay_open {
@@ -3443,7 +3449,7 @@ mod navigation_identity_contract {
                 .iter()
                 .filter(|target| matches!(target, NavTarget::Live(_)))
                 .count(),
-            24
+            25
         );
         assert_eq!(
             targets
@@ -3457,7 +3463,7 @@ mod navigation_identity_contract {
                 .iter()
                 .filter(|target| matches!(target, NavTarget::Placeholder(_)))
                 .count(),
-            29
+            28
         );
     }
 
