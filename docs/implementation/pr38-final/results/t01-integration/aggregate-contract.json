@@ -209,7 +209,7 @@
         "foundation": "requirements.id, named_owner_task, disposition, source, proposed_required_cases, evidence_state; historical_api_dispositions preserve source_api_identity, cleanup_attachment record/path/hash, current_binding and resolution status.",
         "components": "requirements.requirement_id, named_owner_task, disposition, current_source, proposed_required_cases, evidence",
         "applications": "requirements.id, task, source_refs, proposed_required_cases, case_status, evidence",
-        "history": "migration item ID, disposition, current source refs, named owner task, proposed cases, evidence"
+        "history": "Migration items use item_id, historical_source, original_claim, current_sources, owner_task, disposition, disposition_reason, required_case, evidence, and block_final. Historical coverage rows use row_id and current_mapping."
       }
     },
     "historical_coverage": {
@@ -219,18 +219,27 @@
       "expected_rows": 4511,
       "required_row_values": [
         "row_id",
-        "source_path",
-        "source_line",
-        "source_text",
-        "source_line_sha256",
-        "lane",
+        "historical_source",
+        "historical_claim",
+        "category",
+        "semantic_category",
+        "current_mapping",
+        "owner_task",
+        "route_associations",
         "disposition",
-        "current_source_refs",
-        "named_owner_task",
-        "proposed_required_cases",
-        "evidence"
+        "disposition_reason",
+        "proposed_case",
+        "case_status",
+        "evidence",
+        "selected_behavior_cases",
+        "block_final"
       ],
-      "rule": "Validate every JSONL row, exact data hash, stable key, source identity, lane and disposition total. Do not copy all rows into requirements.json."
+      "rule": "Validate every JSONL row, exact data hash, stable key, source identity, lane and disposition total. Do not copy all rows into requirements.json.",
+      "source_binding": {
+        "historical_source": "Commit, repository-relative path, physical line, raw line text, line SHA-256, full file SHA-256, and preserved T00 location.",
+        "historical_claim": "Original symbol/claim, reason, exact raw text, catalogue locator/span hash, and claim kind.",
+        "join_key": "Stable row_id. Preserve each original allowlist line, including duplicate source text at different line numbers."
+      }
     }
   },
   "ownership_compatibility": {
@@ -250,7 +259,7 @@
     "required_historical_items": {
       "migration_contract_rows": 16,
       "historical_architecture_locators": 33,
-      "additional_application_and_review_decision_obligations": "All rows emitted by the accepted history fragment; retain their distinct IDs."
+      "additional_application_and_review_decision_obligations": "All migration item records emitted by the accepted history fragment; keep each item ID distinct."
     }
   },
   "missing_export_control": {
