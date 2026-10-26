@@ -1,0 +1,128 @@
+{
+  "task_id": "T37-ORPHAN-CAPTURE-01",
+  "input_commit": "0904de5143cfa57a0e87e9b415e9fe972e6783cb",
+  "output_commit": "c0cbb25e1d4b46b06453c9a20b1200318c3d4489",
+  "model": "gpt-6-luna",
+  "effort": "max",
+  "agent_id": "/root/t37_apps",
+  "changed_paths": [
+    "crates/holla-sim/src/listeners.rs",
+    "docs/implementation/pr38-final/results/t37-port-conflict-orphan/token-audit.json"
+  ],
+  "decision": {
+    "id": "T37-ORPHAN-CAPTURE-01",
+    "approved_by": "/root/t00_independent_review (Sol high)",
+    "scope": "Delete only pub(crate) PortConflict::capture and the empty impl PortConflict block.",
+    "source_change_review": "REVIEW"
+  },
+  "requirements": [
+    {
+      "requirement": "Remove the retired crate-private capture constructor and empty impl only.",
+      "status": "pass",
+      "evidence_path": "docs/implementation/pr38-final/results/t37-port-conflict-orphan/token-audit.json"
+    },
+    {
+      "requirement": "Keep PortConflict, PortConflictError, validate_port_conflict, conversions, diagnostics, and modeled listener behavior unchanged.",
+      "status": "pass",
+      "evidence_path": "docs/implementation/pr38-final/results/t37-port-conflict-orphan/token-audit.json"
+    },
+    {
+      "requirement": "Preserve all other non-comment tokens, literals, attributes, comments, and diagnostics.",
+      "status": "pass",
+      "evidence_path": "docs/implementation/pr38-final/results/t37-port-conflict-orphan/token-audit.json"
+    },
+    {
+      "requirement": "Add or run no test, harness, fixture, or replacement API.",
+      "status": "pass",
+      "evidence_path": "docs/implementation/pr38-final/results/t37-port-conflict-orphan/token-audit.json"
+    }
+  ],
+  "design_decisions": [
+    "Input listeners.rs is byte-identical to the accepted formatted file at 865073462331552897822d65ede8d673f9c870d7; both have SHA-256 1fea0aa51376f547444a62ab7150e741de1f008fb95d429e9c8b51e6856b7372.",
+    "The only historical call was in PortConflictCase::port_conflict_case, removed by T37 app cleanup commit 4f502be854a4d4c7a7585344bd9915b2a26fae79. The fixed input has no caller.",
+    "The public PortConflict type and validator remain, with no current production constructor. T01 must record this. T27 must prove a supported producer/consumer path or use a separately approved API migration.",
+    "No behavior fix, public API change, diagnostic change, or test edit was made."
+  ],
+  "commands": [
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-port-conflict-orphan/token-audit.json"
+    },
+    {
+      "command": "git diff --cached --check",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-port-conflict-orphan/token-audit.json"
+    },
+    {
+      "command": "mise exec -- rustfmt --emit stdout --config skip_children=true --edition 2024 crates/holla-sim/src/listeners.rs >/dev/null",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-port-conflict-orphan/token-audit.json"
+    },
+    {
+      "command": "if rg -n 'PortConflict::capture|PortConflictCase|port_conflict_case' crates/holla-sim/src; then exit 1; else echo 'no scoped caller or retired helper'; fi",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-port-conflict-orphan/token-audit.json"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\nimport hashlib, importlib.util, json, subprocess\nfrom pathlib import Path\nbase='0904de5143cfa57a0e87e9b415e9fe972e6783cb'; path='crates/holla-sim/src/listeners.rs'\nmodpath='/Users/donbeave/Downloads/termrock-t37-apps/docs/implementation/pr38-final/results/t37-apps/audit.py'\nspec=importlib.util.spec_from_file_location('t37_source_audit',modpath); audit=importlib.util.module_from_spec(spec); spec.loader.exec_module(audit)\nold=subprocess.check_output(['git','show',f'{base}:{path}']); new=Path(path).read_bytes(); text=old.decode('utf-8')\nstart=text.index('impl PortConflict {'); end=text.index('#[derive(Debug, Clone, Copy, PartialEq, Eq)]\\npub enum PortConflictError',start)\nexpected=(text[:start]+text[end:]).encode('utf-8')\nassert new==expected, 'output has changes beyond removing the authorized impl block'\nold_tokens,_=audit.lex(old); new_tokens,_=audit.lex(new)\nremoved=[t.text for t in old_tokens if t.start>=start and t.end<=end]\nkept=[t.text for t in old_tokens if not (t.start>=start and t.end<=end)]\nnew_values=[t.text for t in new_tokens]\nassert kept==new_values, 'non-comment tokens differ beyond the listed impl removal'\nold_literals=[t.text for t in old_tokens if t.kind=='literal']; new_literals=[t.text for t in new_tokens if t.kind=='literal']\nassert old_literals==new_literals\nhash_json=lambda x: hashlib.sha256(json.dumps(x,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()\nrecord={\n 'input_commit':base,'path':path,\n 'input_file_sha256':hashlib.sha256(old).hexdigest(),'output_file_sha256':hashlib.sha256(new).hexdigest(),\n 'removed_item':{'kind':'impl','name':'PortConflict','input_lines':[353,361],\n   'input_source_sha256':hashlib.sha256(text[start:end].encode()).hexdigest(),\n   'non_comment_tokens':removed,'non_comment_token_count':len(removed),'non_comment_token_sha256':hash_json(removed)},\n 'input_token_sha256':hash_json([t.text for t in old_tokens]),'output_token_sha256':hash_json(new_values),\n 'expected_output_byte_equal':True,'output_tokens_equal_input_after_one_listed_removal':True,\n 'input_literal_sha256':hash_json(old_literals),'output_literal_sha256':hash_json(new_literals),'literal_stream_equal':True,\n 'retained_public_items':['PortConflict','PortConflictError','validate_port_conflict'],\n 'retained_diagnostics_unchanged':True\n}\nout='docs/implementation/pr38-final/results/t37-port-conflict-orphan/token-audit.json'\nPath(out).write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\\n')\nprint(json.dumps({'input_sha256':record['input_file_sha256'],'output_sha256':record['output_file_sha256'],'removed_token_count':len(removed),'removed_token_sha256':record['removed_item']['non_comment_token_sha256'],'literal_stream_equal':True,'exact_byte_projection':True},sort_keys=True))\nPY",
+      "exit_code": 0,
+      "selected_tests": 0,
+      "passed_tests": 0,
+      "failed_tests": 0,
+      "evidence_path": "docs/implementation/pr38-final/results/t37-port-conflict-orphan/token-audit.json"
+    }
+  ],
+  "approved_test_plan_id": null,
+  "test_plan_reviewer": null,
+  "test_edit_scope": [],
+  "red_evidence": null,
+  "green_evidence": null,
+  "environment": {
+    "worktree": "/Users/donbeave/Downloads/termrock-t37-format",
+    "branch": "pr38/T37-format",
+    "rust_toolchain": "1.99.1",
+    "selected_tests": 0,
+    "test_status": "NOT VERIFIED",
+    "input_file_sha256": "1fea0aa51376f547444a62ab7150e741de1f008fb95d429e9c8b51e6856b7372",
+    "output_file_sha256": "f87802391355c5a4156acf5b57d25b0286c9d77d9b1a948e96652dbb275be293"
+  },
+  "limits": [
+    "No Cargo metadata, check, or tests ran. The coordinator deferred Cargo until combined metadata cleanup.",
+    "No behavior was verified. Zero selected tests is NOT VERIFIED.",
+    "The accepted high decision authorizes only the internal capture removal. Independent source review is still pending.",
+    "T01 and T27 must record and resolve the retained public type and validator that have no current production constructor."
+  ],
+  "result_paths": [
+    "docs/implementation/pr38-final/results/t37-port-conflict-orphan/token-audit.json",
+    "docs/implementation/pr38-final/results/t37-port-conflict-orphan/runbook.json"
+  ],
+  "review_state": "REVIEW",
+  "corrective_events": [
+    {
+      "check": "Rust-aware token-order audit",
+      "initial_exit_code": 1,
+      "finding": "The preliminary assertion used the first matching token text in a file that has repeated tokens.",
+      "correction": "Compared token positions inside the exact removed source span. The byte projection and token/literal checks then passed.",
+      "final_exit_code": 0
+    }
+  ],
+  "caller_audit": {
+    "fixed_input_search": "No PortConflict::capture call, PortConflictCase, or port_conflict_case occurs under crates/holla-sim/src at input 0904de5143cfa57a0e87e9b415e9fe972e6783cb.",
+    "historical_call": "T00 source 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd had one call in PortConflictCase::port_conflict_case. T37 app cleanup 4f502be854a4d4c7a7585344bd9915b2a26fae79 removed that helper.",
+    "current_constructor": "No current construction expression remains under crates. PortConflict fields are private.",
+    "follow_up": "T01 records the public type and validator without a production constructor. T27 must prove a supported producer/consumer path or use a separately approved API migration."
+  }
+}
