@@ -4450,9 +4450,11 @@ termrock-viewport::viewport::TextViewport::draw | Historical page/title associat
 termrock-viewport::viewport::TextViewport::draw_projected_routed | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock-viewport::viewport::TextViewport::draw_projected_window | A registered executable Scrolling-page window-mode log must cover this draw entry point; native viewport tests do not establish one. | review
 termrock-viewport::viewport::TextViewport::draw_projected_window_routed | A registered executable Scrolling-page window-mode log must cover this draw entry point; native viewport tests do not establish one. | review
+termrock-viewport::viewport::TextViewport::draw_projected_window_routed_with_view | No showcase consumer uses this additive draw-time view result yet; Panels integration remains a separate pending scope. | review
 termrock-viewport::viewport::TextViewport::draw_routed | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock-viewport::viewport::TextViewport::draw_window | A registered executable Scrolling-page window-mode log must cover this draw entry point; native viewport tests do not establish one. | review
 termrock-viewport::viewport::TextViewport::draw_window_routed | A registered executable Scrolling-page window-mode log must cover this draw entry point; native viewport tests do not establish one. | review
+termrock-viewport::viewport::TextViewport::draw_window_routed_with_view | No showcase consumer uses this additive draw-time view result yet; Panels integration remains a separate pending scope. | review
 termrock-viewport::viewport::TextViewport::horizontal_pan | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock-viewport::viewport::TextViewport::layout_revision | Present in the current source inventory; behavior evidence has not yet been reviewed. | review
 termrock-viewport::viewport::TextViewport::selection_binding_chords | Present in the current source inventory; behavior evidence has not yet been reviewed. | review

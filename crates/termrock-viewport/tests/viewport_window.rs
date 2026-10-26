@@ -68,8 +68,12 @@ struct WindowSpec {
 
 impl WindowSpec {
     fn window(self) -> VerticalWindow {
-        VerticalWindow::new(self.area, self.logical_rows, self.first_source_row)
-            .expect("test window maps within its logical rows")
+        if self.area.is_empty() {
+            VerticalWindow::full(self.area)
+        } else {
+            VerticalWindow::new(self.area, self.logical_rows, self.first_source_row)
+                .expect("test window maps within its logical rows")
+        }
     }
 }
 
@@ -105,10 +109,13 @@ struct WindowPage {
     reserve_gutter: bool,
     layout_revision: u64,
     routed: bool,
+    return_view: bool,
+    fit_window_to_viewport: bool,
     revision: u64,
     projected: ProjectedText,
     seen_facts: Cell<Option<LayoutFacts>>,
     seen_return: Cell<Option<Rect>>,
+    seen_view: Cell<Option<Option<ScrollState>>>,
     route_key: Cell<Option<ScrollRouteKey>>,
     seen_capture: Cell<Option<Id>>,
     pending_event_mutation: Cell<Option<PendingEventMutation>>,
@@ -136,10 +143,13 @@ impl WindowPage {
             reserve_gutter: false,
             layout_revision: 3,
             routed: false,
+            return_view: false,
+            fit_window_to_viewport: false,
             revision: 11,
             projected: projection(),
             seen_facts: Cell::new(None),
             seen_return: Cell::new(None),
+            seen_view: Cell::new(None),
             route_key: Cell::new(None),
             seen_capture: Cell::new(None),
             pending_event_mutation: Cell::new(None),
@@ -191,6 +201,7 @@ impl WindowPage {
             self.window
         };
         let viewport = self.viewport();
+        let mut projected_view = None;
         let (text, route_key) = match (self.draw_api, self.routed, self.source) {
             (DrawApi::Legacy, false, TextSource::Borrowed) => (
                 viewport.draw(ui, spec.area, &self.state, &borrowed_lines()),
@@ -202,6 +213,17 @@ impl WindowPage {
             ),
             (DrawApi::Legacy, true, TextSource::Borrowed) => {
                 viewport.draw_routed(ui, spec.area, &self.state, &borrowed_lines(), self.revision)
+            }
+            (DrawApi::Window, true, TextSource::Borrowed) if self.return_view => {
+                let (text, key, view) = viewport.draw_window_routed_with_view(
+                    ui,
+                    spec.window(),
+                    &self.state,
+                    &borrowed_lines(),
+                    self.revision,
+                );
+                projected_view = Some(view);
+                (text, key)
             }
             (DrawApi::Window, true, TextSource::Borrowed) => viewport.draw_window_routed(
                 ui,
@@ -225,6 +247,17 @@ impl WindowPage {
                 &self.projected,
                 self.revision,
             ),
+            (DrawApi::Window, true, TextSource::Projected) if self.return_view => {
+                let (text, key, view) = viewport.draw_projected_window_routed_with_view(
+                    ui,
+                    spec.window(),
+                    &self.state,
+                    &self.projected,
+                    self.revision,
+                );
+                projected_view = Some(view);
+                (text, key)
+            }
             (DrawApi::Window, true, TextSource::Projected) => viewport
                 .draw_projected_window_routed(
                     ui,
@@ -235,12 +268,21 @@ impl WindowPage {
                 ),
         };
         self.seen_return.set(Some(text));
+        self.seen_view.set(projected_view);
         self.route_key.set(route_key);
     }
 }
 
 impl App for WindowPage {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.fit_window_to_viewport {
+            let height = cx.viewport().height.saturating_sub(2);
+            self.window = WindowSpec {
+                area: Rect::new(2, 1, 18, height),
+                logical_rows: usize::from(height),
+                first_source_row: 0,
+            };
+        }
         let committed_facts = cx.layout(OWNER);
         self.seen_facts.set(committed_facts);
         let committed_track = cx.area_of_part(OWNER, PartRef::of(Part::TRACK));
@@ -365,6 +407,14 @@ fn projection_with_width(width: usize) -> ProjectedText {
     projected
 }
 
+fn projection_with_row_count(rows: usize) -> ProjectedText {
+    let mut projected = ProjectedText::default();
+    for _ in 0..rows {
+        projected.push_line([("row", None, Modifier::empty())]);
+    }
+    projected
+}
+
 fn bar_only_page(width: usize) -> Harness<WindowPage> {
     let mut app = WindowPage::new(WindowSpec {
         area: Rect::new(2, 4, 18, 1),
@@ -484,6 +534,277 @@ fn full_window_methods_match_all_legacy_wrapper_pairs() {
             }
         }
     }
+}
+
+#[test]
+fn routed_window_view_matches_legacy_draw_for_both_sources_and_follow_modes() {
+    let spec = WindowSpec {
+        area: Rect::new(2, 2, 18, 3),
+        logical_rows: 8,
+        first_source_row: 2,
+    };
+    for source in [TextSource::Borrowed, TextSource::Projected] {
+        for follow in [false, true] {
+            let make = |return_view| {
+                let mut app = WindowPage::new(spec);
+                app.routed = true;
+                app.return_view = return_view;
+                app.source = source;
+                app.state.set_follow(follow);
+                page_with_app(app)
+            };
+            let mut legacy = make(false);
+            let mut with_view = make(true);
+
+            let state_before_draw = with_view.app().state.clone();
+            legacy.draw();
+            with_view.draw();
+            assert_eq!(
+                with_view.app().state,
+                state_before_draw,
+                "drawing exposes a projection without mutating caller state"
+            );
+            assert_eq!(legacy.buffer(), with_view.buffer());
+            assert_eq!(
+                legacy.app().seen_return.get(),
+                with_view.app().seen_return.get()
+            );
+            assert_eq!(legacy.app().seen_view.get(), None);
+            assert_eq!(legacy.area_of(OWNER), with_view.area_of(OWNER));
+            assert_eq!(legacy.cursor(), with_view.cursor());
+            assert_eq!(
+                legacy.app().seen_facts.get(),
+                with_view.app().seen_facts.get()
+            );
+            assert_eq!(
+                legacy.app().route_key.get().is_some(),
+                with_view.app().route_key.get().is_some()
+            );
+            for part in [
+                Part::CONTAINER,
+                Part::TEXT,
+                Part::GUTTER,
+                Part::TRACK,
+                Part::THUMB,
+            ] {
+                assert_eq!(
+                    legacy.area_of_part(OWNER, PartRef::of(part)),
+                    with_view.area_of_part(OWNER, PartRef::of(part)),
+                    "part {part:?}, source={source:?}, follow={follow}"
+                );
+            }
+            for part in [HORIZONTAL_TRACK, HORIZONTAL_THUMB] {
+                assert_eq!(
+                    legacy.area_of_part(OWNER, PartRef::of(part)),
+                    with_view.area_of_part(OWNER, PartRef::of(part))
+                );
+            }
+
+            let mut expected = *legacy.app().state.scroll();
+            expected.apply_layout(spec.logical_rows, LINES.len());
+            if follow {
+                expected.jump_end();
+            }
+            assert_eq!(with_view.app().seen_view.get(), Some(Some(expected)));
+            assert_eq!(expected.viewport_len(), 8);
+            assert_eq!(expected.content_len(), 20);
+            assert_eq!(
+                expected.offset(),
+                if follow {
+                    expected.max_offset()
+                } else {
+                    legacy
+                        .app()
+                        .state
+                        .scroll()
+                        .offset()
+                        .min(expected.max_offset())
+                }
+            );
+
+            let _ = legacy.wheel(Axis::V, 2, 3, 2);
+            let _ = with_view.wheel(Axis::V, 2, 3, 2);
+            assert_eq!(legacy.app().state, with_view.app().state);
+            assert_eq!(legacy.app().parent, with_view.app().parent);
+            assert_eq!(
+                legacy.app().parent_route_calls.get(),
+                with_view.app().parent_route_calls.get()
+            );
+            assert_eq!(
+                legacy.app().seen_capture.get(),
+                with_view.app().seen_capture.get()
+            );
+
+            let legacy_track = legacy.area_of_part(OWNER, PartRef::of(Part::TRACK));
+            let projected_track = with_view.area_of_part(OWNER, PartRef::of(Part::TRACK));
+            assert_eq!(legacy_track, projected_track);
+            if let Some(track) = legacy_track {
+                let y = track.y.saturating_add(track.height / 2);
+                let _ = legacy.click(track.x, y);
+                let _ = with_view.click(track.x, y);
+                assert_eq!(legacy.app().state, with_view.app().state);
+            }
+
+            let _ = legacy.mouse(MouseKind::Down, 3, 2);
+            let _ = with_view.mouse(MouseKind::Down, 3, 2);
+            assert_eq!(legacy.app().seen_capture.get(), Some(OWNER));
+            assert_eq!(with_view.app().seen_capture.get(), Some(OWNER));
+            let _ = legacy.mouse(MouseKind::Drag, 9, 2);
+            let _ = with_view.mouse(MouseKind::Drag, 9, 2);
+            assert!(legacy.app().state.selection().is_some());
+            assert_eq!(legacy.app().state, with_view.app().state);
+            let held_legacy_state = legacy.app().state.clone();
+            let held_view_state = with_view.app().state.clone();
+            let held_legacy_parent = legacy.app().parent;
+            let held_view_parent = with_view.app().parent;
+            let held_legacy_source = legacy.app().projected.clone();
+            let held_view_source = with_view.app().projected.clone();
+            legacy.draw();
+            with_view.draw();
+            assert_eq!(legacy.app().state, held_legacy_state);
+            assert_eq!(with_view.app().state, held_view_state);
+            assert_eq!(legacy.app().parent, held_legacy_parent);
+            assert_eq!(with_view.app().parent, held_view_parent);
+            assert_eq!(legacy.app().projected, held_legacy_source);
+            assert_eq!(with_view.app().projected, held_view_source);
+            assert_eq!(legacy.app().state, with_view.app().state);
+            assert_eq!(legacy.app().parent, with_view.app().parent);
+            assert_eq!(
+                legacy.app().state.selection(),
+                with_view.app().state.selection()
+            );
+
+            let _ = legacy.mouse(MouseKind::Drag, 10, 2);
+            let _ = with_view.mouse(MouseKind::Drag, 10, 2);
+            assert_eq!(legacy.app().seen_capture.get(), Some(OWNER));
+            assert_eq!(with_view.app().seen_capture.get(), Some(OWNER));
+            assert_eq!(legacy.app().state, with_view.app().state);
+            let _ = legacy.mouse(MouseKind::Up, 9, 2);
+            let _ = with_view.mouse(MouseKind::Up, 9, 2);
+            assert_eq!(legacy.app().seen_capture.get(), None);
+            assert_eq!(with_view.app().seen_capture.get(), None);
+            let mut legacy_copy = String::new();
+            let mut view_copy = String::new();
+            let legacy_copied = match source {
+                TextSource::Borrowed => legacy
+                    .app()
+                    .state
+                    .copy_into(&borrowed_lines(), &mut legacy_copy),
+                TextSource::Projected => legacy
+                    .app()
+                    .state
+                    .copy_from_projected(&legacy.app().projected, &mut legacy_copy),
+            };
+            let view_copied = match source {
+                TextSource::Borrowed => with_view
+                    .app()
+                    .state
+                    .copy_into(&borrowed_lines(), &mut view_copy),
+                TextSource::Projected => with_view
+                    .app()
+                    .state
+                    .copy_from_projected(&with_view.app().projected, &mut view_copy),
+            };
+            assert!(legacy_copied);
+            assert!(view_copied);
+            assert_eq!(legacy_copy, view_copy);
+        }
+    }
+}
+
+#[test]
+fn routed_window_view_projects_resize_and_content_shrink_without_mutating_state() {
+    let mut app = WindowPage::new(full_spec(BODY));
+    app.routed = true;
+    app.return_view = true;
+    app.fit_window_to_viewport = true;
+    app.state.set_follow(false);
+    let mut h = Harness::new(app, Theme::junie(), SCREEN.width, 10).with_auto_draw(false);
+    let _ = h.tick();
+    h.draw();
+    let initial = h
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("first nonempty draw returns its projected view");
+    assert_eq!(initial.viewport_len(), 8);
+    assert_eq!(initial.content_len(), 20);
+
+    let _ = h.wheel(Axis::V, 20, 3, 2);
+    assert_eq!(h.app().state.scroll().offset(), 12);
+    let _ = h.resize(SCREEN.width, SCREEN.height);
+    let before_resized_draw = h.app().state.clone();
+    h.draw();
+    let resized = h
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("resized nonempty draw returns its projected view");
+    assert_eq!(resized.viewport_len(), 14);
+    assert_eq!(resized.content_len(), 20);
+    assert_eq!(
+        resized.offset(),
+        6,
+        "the draw-time view clamps to the larger viewport"
+    );
+    assert_eq!(
+        h.app().state,
+        before_resized_draw,
+        "drawing the resized layout does not reconcile caller state"
+    );
+
+    h.app_mut().source = TextSource::Projected;
+    h.app_mut().projected = projection_with_row_count(5);
+    let revision = h.app().revision.saturating_add(1);
+    let layout_revision = h.app().layout_revision.saturating_add(1);
+    h.app_mut().revision = revision;
+    h.app_mut().layout_revision = layout_revision;
+    let before_shrink_draw = h.app().state.clone();
+    h.draw();
+    let shrunk = h
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("content shrink remains a nonempty draw");
+    assert_eq!(shrunk.viewport_len(), 14);
+    assert_eq!(shrunk.content_len(), 5);
+    assert_eq!(
+        shrunk.offset(),
+        0,
+        "the projected view clamps after content shrink"
+    );
+    assert_eq!(h.app().state, before_shrink_draw);
+}
+
+#[test]
+fn routed_window_view_distinguishes_empty_body_from_zero_text_width() {
+    let mut empty = WindowPage::new(WindowSpec {
+        area: Rect::new(2, 2, 0, 4),
+        logical_rows: 8,
+        first_source_row: 0,
+    });
+    empty.routed = true;
+    empty.return_view = true;
+    let empty = page_with_app(empty);
+    assert_eq!(empty.app().seen_view.get(), Some(None));
+
+    let mut zero_width = WindowPage::new(full_spec(Rect::new(2, 2, 1, 4)));
+    zero_width.routed = true;
+    zero_width.return_view = true;
+    zero_width.reserve_gutter = true;
+    let zero_width = page_with_app(zero_width);
+    let projected = zero_width
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("a nonempty body returns a view even when its text width is zero");
+    assert_eq!(projected.viewport_len(), 4);
+    assert_eq!(projected.content_len(), 20);
+    assert_eq!(zero_width.app().route_key.get(), None);
 }
 
 #[test]

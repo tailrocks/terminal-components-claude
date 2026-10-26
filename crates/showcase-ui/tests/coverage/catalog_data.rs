@@ -4510,9 +4510,13 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("termrock-viewport::viewport::TextViewport::draw_projected_routed"),
     Capability::function("termrock-viewport::viewport::TextViewport::draw_projected_window"),
     Capability::function("termrock-viewport::viewport::TextViewport::draw_projected_window_routed"),
+    Capability::function(
+        "termrock-viewport::viewport::TextViewport::draw_projected_window_routed_with_view",
+    ),
     Capability::function("termrock-viewport::viewport::TextViewport::draw_routed"),
     Capability::function("termrock-viewport::viewport::TextViewport::draw_window"),
     Capability::function("termrock-viewport::viewport::TextViewport::draw_window_routed"),
+    Capability::function("termrock-viewport::viewport::TextViewport::draw_window_routed_with_view"),
     Capability::builder("termrock-viewport::viewport::TextViewport::horizontal_pan"),
     Capability::function("termrock-viewport::viewport::TextViewport::id"),
     Capability::builder("termrock-viewport::viewport::TextViewport::layout_revision"),

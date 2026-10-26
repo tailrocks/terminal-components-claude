@@ -3197,6 +3197,32 @@ impl<'a> TextViewport<'a> {
         )
     }
 
+    /// Draw a visible logical window as an opt-in wheel target and return the
+    /// exact vertical view used by this draw.
+    ///
+    /// The returned view includes the current logical layout clamp and follow
+    /// behavior. It is an owned snapshot; drawing does not mutate `st`. The
+    /// route key remains frame-local and must be linked to a containing parent.
+    /// The view is `None` only when the visible body is empty; a nonempty body
+    /// with no text columns still returns its projected view.
+    pub fn draw_window_routed_with_view(
+        &self,
+        ui: &mut Ui<'_>,
+        window: VerticalWindow,
+        st: &ViewportState,
+        lines: &[ViewportLine<'_>],
+        source_revision: u64,
+    ) -> (Rect, Option<ScrollRouteKey>, Option<ScrollState>) {
+        self.draw_lines_with_view(
+            ui,
+            window,
+            FadePolicy::LogicalWindow,
+            st,
+            LineSet::Borrowed(lines),
+            Some(source_revision),
+        )
+    }
+
     /// Projected-text form of [`TextViewport::draw_routed`].
     pub fn draw_projected_routed(
         &self,
@@ -3240,6 +3266,25 @@ impl<'a> TextViewport<'a> {
         )
     }
 
+    /// Projected-text form of [`TextViewport::draw_window_routed_with_view`].
+    pub fn draw_projected_window_routed_with_view(
+        &self,
+        ui: &mut Ui<'_>,
+        window: VerticalWindow,
+        st: &ViewportState,
+        lines: &ProjectedText,
+        source_revision: u64,
+    ) -> (Rect, Option<ScrollRouteKey>, Option<ScrollState>) {
+        self.draw_lines_with_view(
+            ui,
+            window,
+            FadePolicy::LogicalWindow,
+            st,
+            LineSet::Projected(lines),
+            Some(source_revision),
+        )
+    }
+
     fn draw_lines(
         &self,
         ui: &mut Ui<'_>,
@@ -3249,9 +3294,23 @@ impl<'a> TextViewport<'a> {
         lines: LineSet<'_>,
         source_revision: Option<u64>,
     ) -> (Rect, Option<ScrollRouteKey>) {
+        let (text, route_key, _) =
+            self.draw_lines_with_view(ui, body_window, fade_policy, st, lines, source_revision);
+        (text, route_key)
+    }
+
+    fn draw_lines_with_view(
+        &self,
+        ui: &mut Ui<'_>,
+        body_window: VerticalWindow,
+        fade_policy: FadePolicy,
+        st: &ViewportState,
+        lines: LineSet<'_>,
+        source_revision: Option<u64>,
+    ) -> (Rect, Option<ScrollRouteKey>, Option<ScrollState>) {
         let area = body_window.visible_body();
         if area.is_empty() {
-            return (area, None);
+            return (area, None, None);
         }
         let ov = self.overrides();
         let id = self.id;
@@ -3498,7 +3557,7 @@ impl<'a> TextViewport<'a> {
         if !geometry.horizontal_track.is_empty() {
             self.paint_horizontal_bar(ui, geometry.horizontal_track, &horizontal, live, &ov);
         }
-        (text, route_key)
+        (text, route_key, Some(view))
     }
 
     fn paint_horizontal_bar(
@@ -7291,6 +7350,85 @@ mod tests {
         let warm = first.snapshot();
         assert_eq!(warm.indexed_lines, 0);
         assert!(warm.visible_rows > 0);
+    }
+
+    #[cfg(feature = "testing")]
+    #[test]
+    fn routed_window_view_keeps_borrowed_and_projected_cold_warm_work_unchanged() {
+        fn snapshots(
+            projected_source: bool,
+            with_view: bool,
+        ) -> (ViewportWorkSnapshot, ViewportWorkSnapshot) {
+            let probe = ViewportWorkProbe::default();
+            let viewport = TextViewport::new(ID).wrap(true).work_probe(&probe);
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(SCREEN);
+            let lines = [ViewportLine::Plain("abcdefgh"); 7];
+            let mut projected = ProjectedText::default();
+            for _ in 0..lines.len() {
+                projected.push_line([("abcdefgh", None, Modifier::empty())]);
+            }
+            let window = VerticalWindow::new(Rect::new(2, 2, 8, 4), 8, 2)
+                .expect("the native test window is inside its logical body");
+            let state = ViewportState::default();
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    match (projected_source, with_view) {
+                        (false, false) => {
+                            let _ = viewport.draw_window_routed(ui, window, &state, &lines, 1);
+                        }
+                        (false, true) => {
+                            let _ = viewport
+                                .draw_window_routed_with_view(ui, window, &state, &lines, 1);
+                        }
+                        (true, false) => {
+                            let _ = viewport
+                                .draw_projected_window_routed(ui, window, &state, &projected, 1);
+                        }
+                        (true, true) => {
+                            let _ = viewport.draw_projected_window_routed_with_view(
+                                ui, window, &state, &projected, 1,
+                            );
+                        }
+                    }
+                })
+                .commit_presented();
+            let cold = probe.snapshot();
+            probe.reset();
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    match (projected_source, with_view) {
+                        (false, false) => {
+                            let _ = viewport.draw_window_routed(ui, window, &state, &lines, 1);
+                        }
+                        (false, true) => {
+                            let _ = viewport
+                                .draw_window_routed_with_view(ui, window, &state, &lines, 1);
+                        }
+                        (true, false) => {
+                            let _ = viewport
+                                .draw_projected_window_routed(ui, window, &state, &projected, 1);
+                        }
+                        (true, true) => {
+                            let _ = viewport.draw_projected_window_routed_with_view(
+                                ui, window, &state, &projected, 1,
+                            );
+                        }
+                    }
+                })
+                .commit_presented();
+            (cold, probe.snapshot())
+        }
+
+        for projected_source in [false, true] {
+            let legacy = snapshots(projected_source, false);
+            let with_view = snapshots(projected_source, true);
+            assert_eq!(with_view, legacy, "projected source={projected_source}");
+            assert_eq!(legacy.0.indexed_lines, 7);
+            assert_eq!(legacy.1.indexed_lines, 0);
+            assert!(legacy.0.visible_rows > 0);
+            assert!(legacy.1.visible_rows > 0);
+        }
     }
 
     #[cfg(feature = "testing")]
