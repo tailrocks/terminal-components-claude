@@ -1,5 +1,3 @@
-
-
 use termrock::feedback::{
     ManagerFrame, ManagerFrameLayout, ManagerLeaf, paint_manager_frame_with_layout,
 };
@@ -21,11 +19,6 @@ pub(super) struct Presentation {
     layout: ManagerFrameLayout,
     rows: Vec<PresentedRow>,
 }
-
-
-
-
-
 
 pub(super) fn prepare(app: &App, ui: &Ui<'_>, screen: Rect) -> Option<Presentation> {
     if !(screen.width < 120
@@ -60,8 +53,6 @@ pub(super) fn prepare(app: &App, ui: &Ui<'_>, screen: Rect) -> Option<Presentati
             leaf: leaf_for(app, workspace),
         });
     }
-
-
 
     let frame_owner_was_presented = ui.area(crate::MANAGER_LIST) == Some(layout.rows_area());
     let pressed_row = frame_owner_was_presented
@@ -147,7 +138,6 @@ fn leaf_for(app: &App, workspace: &crate::domain::workspace::Workspace) -> LeafM
     }
 }
 
-
 pub(super) fn register(app: &App, ui: &mut Ui<'_>, presentation: &Presentation) {
     let area = presentation.layout.rows_area();
     if ui.is_inert() || area.is_empty() {
@@ -187,8 +177,6 @@ pub(super) fn register(app: &App, ui: &mut Ui<'_>, presentation: &Presentation) 
     );
 }
 
-
-
 pub(super) fn register_rows(ui: &mut Ui<'_>, presentation: &Presentation) {
     if ui.is_inert() {
         return;
@@ -203,8 +191,6 @@ pub(super) fn register_rows(ui: &mut Ui<'_>, presentation: &Presentation) {
 }
 
 pub(super) fn paint(app: &App, ui: &mut Ui<'_>, presentation: &Presentation) {
-
-
     let menus = ["File", "Go", "Help"];
 
     let unassigned = app.manager_instances(None).count();
@@ -332,8 +318,6 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>, presentation: &Presentation) {
         },
     );
 }
-
-
 
 fn fit_with_ellipsis(text: &str, budget: u16) -> String {
     let budget = usize::from(budget);

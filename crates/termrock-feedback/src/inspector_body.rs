@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 
@@ -39,7 +33,6 @@ pub enum InspectLine {
         spans: Vec<InspectSpan>,
     },
 
-
     Text {
         text: String,
         tone: InspectTone,
@@ -59,12 +52,6 @@ pub enum InspectLine {
     },
     Blank,
 }
-
-
-
-
-
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct InspectorBodyWidths {
@@ -189,11 +176,6 @@ pub fn paint_inspector_body(ui: &mut Ui<'_>, area: Rect, lines: &[InspectLine]) 
     }
 }
 
-
-
-
-
-
 pub fn inspector_body_row_count(lines: &[InspectLine], widths: InspectorBodyWidths) -> usize {
     layout(
         lines,
@@ -203,21 +185,6 @@ pub fn inspector_body_row_count(lines: &[InspectLine], widths: InspectorBodyWidt
     )
     .len()
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub fn paint_inspector_body_lines_window(
     ui: &mut Ui<'_>,
@@ -695,8 +662,6 @@ fn wrap_spans(spans: &[InspectSpan], limit: u16) -> Vec<Vec<InspectSpan>> {
     for part in hang_wrap(&text, limit, false) {
         let mut pieces = Vec::new();
         for ch in part.chars() {
-
-
             if let Some(found) = source[at..].iter().position(|(src, _)| *src == ch) {
                 at = at.saturating_add(found);
             }

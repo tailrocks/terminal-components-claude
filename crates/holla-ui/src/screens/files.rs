@@ -131,9 +131,6 @@ enum SettleIntentKind {
     Other,
 }
 
-
-
-
 fn settle_intents(cx: &Cx<'_>, owner: Id) -> SettleIntentKind {
     let mut saw_intent = false;
     let mut has_other = false;
@@ -165,8 +162,6 @@ fn update_list_during_settle(
     if let Some(response) = widget.update_focus_out(cx, selection) {
         response
     } else {
-
-
         widget.update(cx, selection, rows).erase()
     }
 }
@@ -199,7 +194,6 @@ fn preview_viewport() -> TextViewport<'static> {
         .horizontal_pan(true)
         .reserve_gutter(false)
 }
-
 
 pub(crate) struct State {
     snapshot: FilesSnapshot,
@@ -238,8 +232,6 @@ impl State {
         state
     }
 
-
-
     pub(crate) fn selected_path(&self) -> Option<&str> {
         self.selection.cursor().and_then(|key| {
             self.rows
@@ -249,24 +241,11 @@ impl State {
         })
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
     pub(crate) fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if self.preview.as_ref().is_some_and(|preview| preview.visible) {
             let Some(preview) = self.preview.as_mut() else {
                 return Response::ignored();
             };
-
 
             let mut response = Response::ignored();
             if cx.update_cause() == termrock::UpdateCause::Settle {
@@ -284,9 +263,6 @@ impl State {
         }
 
         if self.preview.is_some() {
-
-
-
             if settle_intents(cx, PREVIEW) == SettleIntentKind::Other {
                 cx.diagnostic(termrock::Diagnostic::UndeliveredIntent { owner: PREVIEW });
                 return Response::ignored();
@@ -422,8 +398,6 @@ impl State {
             self.remembered.insert(self.directory.clone(), path);
         }
     }
-
-
 
     fn reload(&mut self, preferred: Option<String>) {
         self.activation_error = None;

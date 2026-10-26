@@ -34,7 +34,6 @@ pub fn overlay_chrome<R>(
         let container = (!backdrop_chrome)
             .then(|| ov.style(ui, id, family, Variant::DEFAULT, Part::CONTAINER, live));
         if backdrop_chrome {
-
             let container_patch = ov.part_patch(Part::CONTAINER);
             let detailed = ui.style_defaults_with_explicit(
                 family,

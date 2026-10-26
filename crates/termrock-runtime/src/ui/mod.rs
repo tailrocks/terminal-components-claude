@@ -82,8 +82,6 @@ pub struct FrameState {
     pub(crate) screen: Rect,
     pub(crate) inert_floor: LayerId,
     pub(crate) top: LayerId,
-
-
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -101,8 +99,6 @@ pub(crate) enum CursorRetentionMode {
     FocusedOwner,
     VisibleOwner,
 }
-
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct ReferenceState(u8);
@@ -202,8 +198,6 @@ impl FrameState {
         self.screen = screen;
         self.inert_floor = LayerId::PAGE;
         self.top = LayerId::PAGE;
-
-
     }
 
     fn role_index(&self, pos: Position) -> Option<usize> {
@@ -1444,7 +1438,6 @@ impl<'f> Ui<'f> {
                 }
             }
             if let Some(cell) = self.buffer().cell_mut(src) {
-
                 let kept_fg = cell.fg;
                 let kept_bg = cell.bg;
                 cell.reset();
@@ -1483,7 +1476,6 @@ impl<'f> Ui<'f> {
                     if let Some(page_cell) = page_cell
                         && let Some(d) = self.frame.layers.active_mut().get_mut(i)
                     {
-
                         d.materialize_underlay(pos, &page_cell, page_roles);
                     }
                 }
@@ -1675,7 +1667,6 @@ impl<'f> Ui<'f> {
 
     pub(crate) fn composite(&mut self, i: usize) {
         if let Some(d) = self.frame.layers.active().get(i) {
-
             let content_dim = matches!(d.spec.backdrop, crate::layer::Backdrop::Dim { .. })
                 && matches!(
                     self.theme_ref().capability.color,

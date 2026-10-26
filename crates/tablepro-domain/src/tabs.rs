@@ -290,9 +290,6 @@ impl QueryTab {
         outcome
     }
 
-
-
-
     pub fn execute_with_duration(
         &mut self,
         catalog: &Catalog,
@@ -326,14 +323,6 @@ impl QueryTab {
     pub fn explain(&mut self, catalog: &Catalog) -> Result<(), String> {
         self.explain_statement(catalog, false).map(|_| ())
     }
-
-
-
-
-
-
-
-
 
     pub fn explain_statement(
         &mut self,
@@ -394,7 +383,6 @@ impl QueryTab {
         self.editor_state.editor().text() != self.saved_text
     }
 
-
     pub fn sync_query_text(&mut self) {
         self.editor_state
             .editor()
@@ -402,20 +390,17 @@ impl QueryTab {
             .clone_into(&mut self.query);
     }
 
-
     pub fn replace_query(&mut self, query: impl Into<String>) {
         let query = query.into();
         *self.editor_state = CompletingCodeEditorState::new(&query);
         self.query = query;
     }
 
-
     pub fn commit_query_edit(&mut self) {
         self.editor_state.editor_mut().commit();
         self.sync_query_text();
     }
 }
-
 
 pub fn highlight_sql(src: &str) -> Vec<(core::ops::Range<usize>, SyntaxRole)> {
     sql::tokenize(src)
@@ -435,7 +420,6 @@ pub fn highlight_sql(src: &str) -> Vec<(core::ops::Range<usize>, SyntaxRole)> {
         })
         .collect()
 }
-
 
 pub fn segment_sql(src: &str) -> Vec<core::ops::Range<usize>> {
     sql::split_statements(src)

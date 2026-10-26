@@ -16,7 +16,6 @@ pub const TONE_ERROR: Tone = Role::Danger;
 pub struct JobKey(pub &'static str);
 
 impl JobKey {
-
     pub const fn new(name: &'static str) -> Self {
         Self(name)
     }
@@ -49,7 +48,6 @@ impl<P> Default for StatusLine<P> {
 }
 
 impl<P> StatusLine<P> {
-
     pub const DEFAULT_TTL_MS: u64 = 5_000;
 
     pub const fn new() -> Self {
@@ -159,7 +157,6 @@ impl<P> StatusLine<P> {
 }
 
 impl<P: Default> StatusLine<P> {
-
     pub fn set(&mut self, text: impl Into<String>, tone: Tone) {
         self.set_with(text, tone, P::default())
     }

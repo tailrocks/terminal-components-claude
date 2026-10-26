@@ -19,11 +19,6 @@ pub fn expand_home(path: &str) -> String {
     path.replacen('~', HOME, 1)
 }
 
-
-
-
-
-
 pub fn files_for_cwd(cwd: &str) -> crate::files::FilesSnapshot {
     use crate::files::{FileEntry, FilesSnapshot};
 
@@ -214,11 +209,6 @@ pub fn world_for(scenario: Scenario) -> World {
     w
 }
 
-
-
-
-
-
 pub fn nextest_args_world() -> World {
     let mut world = world_for(Scenario::RustDirty);
     if let Some(mise) = &mut world.mise {
@@ -235,17 +225,6 @@ pub fn nextest_args_world() -> World {
     }
     world
 }
-
-
-
-
-
-
-
-
-
-
-
 
 fn tool(name: &str, version: &str, state: ToolState) -> MiseTool {
     MiseTool {

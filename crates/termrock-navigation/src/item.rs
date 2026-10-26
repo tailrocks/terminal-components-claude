@@ -141,15 +141,11 @@ impl ItemColumns {
             group = group.max(width(item.group.unwrap_or("")));
         }
 
-
         label_need = label_need.max(6);
         let cap = u16::try_from(u32::from(row_width).saturating_mul(45) / 100)
             .unwrap_or(u16::MAX)
             .max(6);
         let label_cap = label_need.min(cap);
-
-
-
 
         let (label, detail_col) = solve_label(
             row_width,
@@ -230,11 +226,6 @@ impl ItemColumns {
         }
         let meta_room = cells.rect(4).width;
 
-
-
-
-
-
         let gap_track = if self.tag > 0 || self.group > 0 {
             self.metadata_gap
         } else {
@@ -263,12 +254,6 @@ impl ItemColumns {
             if !meta.authored_modifiers().contains(Modifier::BOLD) {
                 meta.remove_modifier(Modifier::BOLD);
             }
-
-
-
-
-
-
 
             if width(item.detail) > room {
                 let budget = room.saturating_sub(1);
@@ -349,10 +334,6 @@ impl<T: AsItem> RowFn<T> for ItemRow {
             row.meta_with_defaults(tag, picker_ink(FgStep::Secondary));
         }
         if !item.detail.is_empty() {
-
-
-
-
             let budget = row.remaining_width().saturating_sub(2);
             let line = termrock_text::truncate(item.detail, budget);
             row.meta(&line);
@@ -364,21 +345,13 @@ impl<T: AsItem> RowFn<T> for ItemRow {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum ItemLabelOverflow {
-
     End,
 
     #[default]
     Middle,
 }
-
-
-
-
-
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct SemanticItemRow {
@@ -451,8 +424,6 @@ impl<T: AsItem> RowFn<T> for SemanticItemRow {
             let mut budget = row
                 .remaining_width()
                 .saturating_sub(self.minimum_label_width);
-
-
 
             for (slot, text) in [
                 (2usize, item.group.unwrap_or("")),

@@ -1,6 +1,3 @@
-
-
-
 use termrock::author::PaintStyle;
 use termrock::{Color, Modifier, Position, Rect, Style, Ui};
 
@@ -143,20 +140,15 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         return;
     }
 
-
-
     if app.settings.tab == 1 && mounts_frame_approved(app, full) {
         paint_mounts_page(ui, full);
         return;
     }
 
-
-
     if app.settings.tab == 0 && general_frame_approved(app, full) {
         paint_general_page(ui, full);
         return;
     }
-
 
     paint_str(ui, 1, 0, " jackin❯ ", BRAND_FG, ACCENT, true);
     paint_str(ui, 12, 0, " File ", SECONDARY, BLACK, false);
@@ -182,7 +174,6 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         paint_str(ui, 109, 0, "2 running", SECONDARY, BLACK, false);
     }
 
-
     let active_index = (app.settings.tab as usize).min(TABS.len().saturating_sub(1));
     for (i, &(name, x, _width)) in TABS.iter().enumerate() {
         if i == active_index {
@@ -194,7 +185,6 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
             paint_str(ui, x, 3, &label, SECONDARY, BLACK, false);
         }
     }
-
 
     let (active_x, active_w) = TABS
         .get(active_index)
@@ -208,7 +198,6 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         }
     }
 
-
     match app.settings.tab {
         0 => paint_general_body(app, ui, full),
         1 => paint_mounts_body(ui, full),
@@ -218,13 +207,10 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         _ => paint_general_body(app, ui, full),
     }
 
-
     if app.settings_save_preview {
         paint_save_preview(app, ui, full);
     }
 }
-
-
 
 fn mounts_frame_approved(app: &App, full: Rect) -> bool {
     let sized = (full.width == 80 && full.height == 24) || (full.width == 120 && full.height == 40);
@@ -368,8 +354,6 @@ fn paint_mounts_page(ui: &mut Ui<'_>, full: Rect) {
     );
 }
 
-
-
 fn general_frame_approved(app: &App, full: Rect) -> bool {
     let sized = (full.width == 80 && full.height == 24) || (full.width == 120 && full.height == 40);
     sized
@@ -511,7 +495,6 @@ fn paint_general_body(app: &App, ui: &mut Ui<'_>, full: Rect) {
 }
 
 fn paint_mounts_body(ui: &mut Ui<'_>, full: Rect) {
-
     let content_end = full.y.saturating_add(11);
     let native_trust = full.bottom().saturating_sub(7);
     if content_end > native_trust {
@@ -534,7 +517,6 @@ fn paint_mounts_body_legacy(ui: &mut Ui<'_>) {
     paint_str(ui, 61, 6, "Isolation", MUTED, BLACK, false);
     paint_str(ui, 72, 6, "Kind", MUTED, BLACK, false);
     paint_str(ui, 80, 6, "Source", MUTED, BLACK, false);
-
 
     paint_str(ui, 2, 7, "▎›", ACCENT, BADGE_BG, true);
     paint_str(
@@ -560,7 +542,6 @@ fn paint_mounts_body_legacy(ui: &mut Ui<'_>) {
         true,
     );
 
-
     paint_str(
         ui,
         4,
@@ -584,7 +565,6 @@ fn paint_mounts_body_legacy(ui: &mut Ui<'_>) {
         false,
     );
 
-
     paint_str(
         ui,
         4,
@@ -607,7 +587,6 @@ fn paint_mounts_body_legacy(ui: &mut Ui<'_>) {
         BLACK,
         false,
     );
-
 
     paint_str(ui, 8, 10, "+ Add mount", SECONDARY, BLACK, false);
 }
@@ -1237,8 +1216,6 @@ fn trust_source_kind(source: &str) -> termrock::feedback::SettingsTrustSourceKin
 }
 
 fn trust_role_label(app: &App, source: &str) -> String {
-
-
     let count = if source == "git@corp:infra/roles" {
         2
     } else {
@@ -1278,13 +1255,6 @@ fn paint_agents_body(ui: &mut Ui<'_>, full: Rect) {
     let _ = result;
 }
 
-
-
-
-
-
-
-
 fn agents_body_clear_precedes_native_controls(full: Rect) -> bool {
     full.y.saturating_add(17) <= full.bottom().saturating_sub(7)
 }
@@ -1310,17 +1280,14 @@ fn paint_agents_body_legacy(ui: &mut Ui<'_>) {
         false,
     );
 
-
     paint_str(ui, 2, 8, "▎›", ACCENT, BADGE_BG, true);
     paint_str(ui, 6, 8, " Claude Code   ", WHITE, BADGE_BG, true);
     paint_str(ui, 21, 8, "sync        ", SECONDARY, BADGE_BG, true);
     paint_str(ui, 34, 8, "★ Claude · Personal", SECONDARY, BADGE_BG, true);
 
-
     paint_str(ui, 6, 9, " Codex         ", WHITE, BLACK, false);
     paint_str(ui, 21, 9, "api key     ", SECONDARY, BLACK, false);
     paint_str(ui, 34, 9, "★ Codex · Primary", MUTED, BLACK, false);
-
 
     paint_str(ui, 6, 10, " Amp           ", WHITE, BLACK, false);
     paint_str(ui, 21, 10, "sync        ", SECONDARY, BLACK, false);
@@ -1334,7 +1301,6 @@ fn paint_agents_body_legacy(ui: &mut Ui<'_>) {
         false,
     );
 
-
     paint_str(ui, 6, 11, " Kimi Code     ", WHITE, BLACK, false);
     paint_str(ui, 21, 11, "ignore      ", SECONDARY, BLACK, false);
     paint_str(
@@ -1347,7 +1313,6 @@ fn paint_agents_body_legacy(ui: &mut Ui<'_>) {
         false,
     );
 
-
     paint_str(ui, 6, 12, " OpenCode      ", WHITE, BLACK, false);
     paint_str(ui, 21, 12, "sync        ", SECONDARY, BLACK, false);
     paint_str(
@@ -1359,7 +1324,6 @@ fn paint_agents_body_legacy(ui: &mut Ui<'_>) {
         BLACK,
         false,
     );
-
 
     paint_str(ui, 6, 13, " Grok Build    ", WHITE, BLACK, false);
     paint_str(ui, 21, 13, "api key     ", SECONDARY, BLACK, false);
@@ -1385,9 +1349,6 @@ fn paint_trust_body(app: &App, ui: &mut Ui<'_>, full: Rect) {
     let _ = result;
 }
 
-
-
-
 fn trust_body_clear_precedes_native_controls(full: Rect) -> bool {
     full.y.saturating_add(14) <= full.bottom().saturating_sub(7)
 }
@@ -1404,7 +1365,6 @@ fn paint_trust_body_legacy(ui: &mut Ui<'_>) {
         false,
     );
 
-
     paint_str(ui, 2, 7, "▎›", ACCENT, BADGE_BG, true);
     paint_str(
         ui,
@@ -1420,7 +1380,6 @@ fn paint_trust_body_legacy(ui: &mut Ui<'_>) {
     paint_str(ui, 70, 7, "4", SECONDARY, BADGE_BG, true);
     paint_str(ui, 72, 7, "roles", SECONDARY, BADGE_BG, true);
 
-
     paint_str(
         ui,
         6,
@@ -1434,7 +1393,6 @@ fn paint_trust_body_legacy(ui: &mut Ui<'_>) {
     paint_str(ui, 55, 8, "[ ] untrusted", AMBER, BLACK, false);
     paint_str(ui, 70, 8, "1 role", DARK_MUTED, BLACK, false);
 
-
     paint_str(
         ui,
         6,
@@ -1447,7 +1405,6 @@ fn paint_trust_body_legacy(ui: &mut Ui<'_>) {
     paint_str(ui, 49, 9, "path ", MUTED, BLACK, false);
     paint_str(ui, 54, 9, " [✓] trusted    ", WHITE, BLACK, false);
     paint_str(ui, 70, 9, "1 role", DARK_MUTED, BLACK, false);
-
 
     paint_str(
         ui,
@@ -1480,7 +1437,6 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect) {
         Style::default().fg(MUTED).bg(bg),
     );
 
-
     let field = Style::default().fg(Color::Reset).bg(bg);
     for row in 4..10 {
         ui.fill(
@@ -1488,7 +1444,6 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect) {
             field,
         );
     }
-
 
     paint_str(
         ui,
@@ -1511,7 +1466,6 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect) {
     );
     paint_str(ui, x.saturating_add(63), y, " ─╮", border, bg, false);
 
-
     for row in 1..card_h.saturating_sub(1) {
         paint_cell(ui, x, y.saturating_add(row), "│", border, bg, false);
         paint_cell(
@@ -1524,7 +1478,6 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect) {
             false,
         );
     }
-
 
     paint_styled(
         ui,
@@ -1624,7 +1577,6 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect) {
         );
     }
 
-
     paint_styled(
         ui,
         x.saturating_add(47),
@@ -1686,7 +1638,6 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect) {
         true,
         false,
     );
-
 
     paint_str(
         ui,

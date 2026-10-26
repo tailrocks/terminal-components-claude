@@ -90,7 +90,6 @@ impl CaptureSlot {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SecondaryOutside {
-
     #[default]
     Reopen,
 
@@ -101,7 +100,6 @@ pub enum SecondaryOutside {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SecondaryRoute {
-
     Nothing,
 
     Target(Hit),
@@ -212,7 +210,6 @@ pub(crate) fn backdrop_at(hits: &Registry, pos: Position) -> Option<(Id, Option<
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BarInput {
-
     Press,
 
     Drag,

@@ -252,7 +252,6 @@ impl Ui<'_> {
                 entries[count_entries] = (bg, 1);
                 count_entries += 1;
             } else {
-
                 let counts = &mut self.core.majority_bg_counts;
                 counts.clear();
                 for (order, (color, count)) in entries[..count_entries].iter().enumerate() {
@@ -289,7 +288,6 @@ impl Ui<'_> {
                 && let Some(layer) = self.frame.layers.active_mut().get_mut(index)
                 && layer.has_underlay(pos)
             {
-
                 layer.defer_fade(pos, container, keep, outer);
                 continue;
             }
@@ -445,7 +443,6 @@ impl Ui<'_> {
                     self.mark(pos, Some(PaintStyle::new().bg(bg)));
                 }
                 Target::Layer(index) => {
-
                     let ink = self
                         .page
                         .cell(pos)

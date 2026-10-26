@@ -64,17 +64,6 @@ impl ProjectedText {
         self.lines.push(start..self.runs.len());
     }
 
-
-
-
-
-
-
-
-
-
-
-
     pub fn push_styled_line<I, S>(&mut self, runs: I)
     where
         I: IntoIterator<Item = (S, PaintStyle)>,
@@ -103,8 +92,6 @@ impl ProjectedText {
             paint,
         });
     }
-
-
 
     pub fn widest_cols(&self) -> usize {
         (0..self.lines.len())
@@ -318,12 +305,8 @@ const BINDINGS: &[Binding<ViewportCmd>] = &[
     ),
 ];
 
-
-
 pub const HORIZONTAL_PAN_LEFT: crate::ActionKey =
     crate::ActionKey::custom("viewport.horizontal-pan-left");
-
-
 
 pub const HORIZONTAL_PAN_RIGHT: crate::ActionKey =
     crate::ActionKey::custom("viewport.horizontal-pan-right");
@@ -393,7 +376,6 @@ enum SelectionCmd {
     DocumentEnd,
     Clear,
 }
-
 
 pub const SELECTION_LEFT: crate::ActionKey = crate::ActionKey::custom("viewport.selection-left");
 
@@ -588,7 +570,6 @@ struct VCell {
     w: u16,
     tab: bool,
 
-
     joined: Option<Box<str>>,
 }
 
@@ -638,9 +619,6 @@ fn run_style(line: LineRef<'_>, ix: usize) -> (Option<Role>, Modifier, Option<Pa
 fn run_paint_style(base: PaintStyle, run: PaintStyle, selected: bool) -> PaintStyle {
     let composed = base.patch(run);
     if selected {
-
-
-
         composed.with_fg_from(base).with_bg_from(base)
     } else {
         composed
@@ -848,7 +826,6 @@ struct ViewportLayout {
 }
 
 impl ViewportLayout {
-
     fn ensure_with_widest<'a>(
         &mut self,
         lines: impl Into<LineSet<'a>>,
@@ -1280,16 +1257,9 @@ impl ViewportState {
         &self.scroll
     }
 
-
-
-
     pub const fn horizontal_offset(&self) -> usize {
         self.horizontal.offset()
     }
-
-
-
-
 
     pub fn reset_scroll_offsets(&mut self) {
         self.scroll.jump_start();
@@ -1313,11 +1283,9 @@ impl ViewportState {
         };
     }
 
-
     pub const fn follow_cursor(&self) -> FollowCursor {
         self.follow
     }
-
 
     pub const fn set_follow_cursor(&mut self, follow: FollowCursor) {
         self.follow = follow;
@@ -1473,9 +1441,7 @@ pub struct TextViewport<'a> {
     horizontal_pan: bool,
     layout_revision: u64,
 
-
     reserve_gutter: bool,
-
 
     scroll_gap: u16,
     caret_when_unfocused: bool,
@@ -1557,12 +1523,6 @@ impl<'a> TextViewport<'a> {
         }
     }
 
-
-
-
-
-
-
     pub const fn id(&self) -> Id {
         self.id
     }
@@ -1573,19 +1533,11 @@ impl<'a> TextViewport<'a> {
         self
     }
 
-
-
-
-
-
-
     #[must_use]
     pub const fn horizontal_pan(mut self, enabled: bool) -> Self {
         self.horizontal_pan = enabled;
         self
     }
-
-
 
     #[must_use]
     pub const fn layout_revision(mut self, revision: u64) -> Self {
@@ -1593,14 +1545,11 @@ impl<'a> TextViewport<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn reserve_gutter(mut self, yes: bool) -> Self {
         self.reserve_gutter = yes;
         self
     }
-
 
     #[must_use]
     pub const fn scroll_gap(mut self, cols: u16) -> Self {
@@ -1608,26 +1557,17 @@ impl<'a> TextViewport<'a> {
         self
     }
 
-
-
-
-
     #[must_use]
     pub const fn caret_when_unfocused(mut self, enabled: bool) -> Self {
         self.caret_when_unfocused = enabled;
         self
     }
 
-
     #[must_use]
     pub const fn bar_cursor(mut self, yes: bool) -> Self {
         self.bar_cursor = yes;
         self
     }
-
-
-
-
 
     #[must_use]
     pub const fn click_selects_word(mut self, yes: bool) -> Self {
@@ -1792,7 +1732,6 @@ impl<'a> TextViewport<'a> {
             .area_of_part(self.id, PartRef::of(Part::TEXT))
             .unwrap_or(logical_text);
 
-
         let pointer_text = Rect {
             x: hit_text.x,
             y: logical_text.y,
@@ -1802,7 +1741,10 @@ impl<'a> TextViewport<'a> {
         let (total, widest) = {
             let viewport_layout = cx.cache::<ViewportLayout>(self.id);
             viewport_layout.ensure_with_widest(lines, key, self.pan_active());
-            (viewport_layout.total(), viewport_layout.widest_cols().unwrap_or(0))
+            (
+                viewport_layout.total(),
+                viewport_layout.widest_cols().unwrap_or(0),
+            )
         };
         let dimensions = if self.pan_active() {
             self.pan_dimensions(area, total, widest)
@@ -1869,11 +1811,6 @@ impl<'a> TextViewport<'a> {
         self.update_lines(cx, st, LineSet::Projected(lines), None)
     }
 
-
-
-
-
-
     pub fn update_routed(
         &self,
         cx: &mut Cx<'_>,
@@ -1883,7 +1820,6 @@ impl<'a> TextViewport<'a> {
     ) -> Response<ViewportAction> {
         self.update_source_lines(cx, st, LineSet::Borrowed(lines), source_revision)
     }
-
 
     pub fn update_projected_routed(
         &self,
@@ -1895,8 +1831,6 @@ impl<'a> TextViewport<'a> {
         self.update_source_lines(cx, st, LineSet::Projected(lines), source_revision)
     }
 
-
-
     pub fn service_routed_wheel(
         &self,
         cx: &mut Cx<'_>,
@@ -1906,7 +1840,6 @@ impl<'a> TextViewport<'a> {
     ) -> Response<ViewportAction> {
         self.service_source_wheel(cx, st, LineSet::Borrowed(lines), source_revision)
     }
-
 
     pub fn service_projected_routed_wheel(
         &self,
@@ -1947,9 +1880,6 @@ impl<'a> TextViewport<'a> {
                     return routed;
                 }
                 if route_wheel_count > 1 {
-
-
-
                     let other_intents = Self::without_route_wheel_intent(intents, attempt);
                     if other_intents.clone().next().is_some() {
                         return self.update_lines_with(
@@ -1962,8 +1892,6 @@ impl<'a> TextViewport<'a> {
                     }
                     return Response::ignored().for_id(self.id);
                 }
-
-
 
                 return self.update_lines_with(cx, st, lines, Some(source_revision), intents);
             }
@@ -2806,11 +2734,6 @@ impl<'a> TextViewport<'a> {
             .0
     }
 
-
-
-
-
-
     pub fn draw_routed(
         &self,
         ui: &mut Ui<'_>,
@@ -2827,7 +2750,6 @@ impl<'a> TextViewport<'a> {
             Some(source_revision),
         )
     }
-
 
     pub fn draw_projected_routed(
         &self,
@@ -2978,7 +2900,6 @@ impl<'a> TextViewport<'a> {
                 }
             }
 
-
             route_key = ui.register_routed_scroll(
                 id,
                 text,
@@ -3095,8 +3016,6 @@ impl<'a> TextViewport<'a> {
             self.paint_horizontal_bar(ui, horizontal_track, &horizontal, live, &ov);
         }
 
-
-
         let mut faded = text;
         let extra = self
             .scroll_gap
@@ -3164,12 +3083,6 @@ impl<'a> TextViewport<'a> {
             );
         }
     }
-
-
-
-
-
-
 
     pub fn paint_horizontal_overflow(
         &self,

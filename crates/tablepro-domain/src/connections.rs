@@ -168,11 +168,6 @@ pub struct ConnectionDraft {
 }
 
 impl ConnectionDraft {
-
-
-
-
-
     pub fn new() -> Self {
         Self {
             host: "localhost".into(),

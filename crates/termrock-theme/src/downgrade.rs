@@ -85,7 +85,6 @@ pub(crate) fn rgb_of(c: Color) -> Option<(u8, u8, u8)> {
 
 fn baseline_ansi256(rgb: (u8, u8, u8)) -> Option<u8> {
     match rgb {
-
         (0xff, 0x6b, 0x6b) | (0xf0, 0x5d, 0x5d) => Some(203),
 
         (0x3f, 0xb9, 0x50) => Some(71),
@@ -462,7 +461,6 @@ fn mono_rules() -> [MonoRule; 15] {
         (
             Part::LABEL,
             StateFlags::DISABLED,
-
             p().set_fg(Role::DisabledFg)
                 .remove(Modifier::all())
                 .add(Modifier::DIM),

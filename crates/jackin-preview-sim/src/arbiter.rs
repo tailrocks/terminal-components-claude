@@ -61,8 +61,6 @@ impl Arbiter {
         }
     }
 
-
-
     pub fn running(&self) -> Result<usize, DiscoveryError> {
         self.discovery
     }
@@ -115,6 +113,4 @@ impl Arbiter {
             }
         }
     }
-
-
 }

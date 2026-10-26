@@ -238,11 +238,6 @@ impl<'a> Select<'a, &'a str, ByIndex, DefaultRow> {
             .draw(ui, area, st, items)
     }
 
-
-
-
-
-
     pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
         if !ui.is_inert() {
             ui.register_focus_only(self.id, self.form_focusability(inherited_disabled));

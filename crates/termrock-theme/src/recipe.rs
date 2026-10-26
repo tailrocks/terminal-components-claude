@@ -241,7 +241,6 @@ pub fn merge_states(
             (Some(_), None) => true,
             (None, Some(_)) => false,
             (Some(a), Some(b)) => match (a.when, b.when) {
-
                 (StateFlags::HOVERED, StateFlags::DISABLED) => true,
                 (StateFlags::DISABLED, StateFlags::HOVERED) => false,
                 _ => a.specificity() <= b.specificity(),
@@ -296,7 +295,6 @@ impl Recipe {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 #[non_exhaustive]
 pub enum ManagerPresentationProfile {
-
     #[default]
     Standard,
 

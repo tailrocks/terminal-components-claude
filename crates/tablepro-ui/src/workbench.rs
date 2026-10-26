@@ -252,8 +252,6 @@ impl Workbench {
         self.close_tab_confirmed(tab.key())
     }
 
-
-
     pub fn close_tab_from_picker(&mut self, key: TabKey) -> bool {
         self.close_tab_confirmed(key)
     }
@@ -350,9 +348,6 @@ impl Workbench {
     pub fn execute_active(&mut self) -> Result<usize, String> {
         self.execute_active_inner(None)
     }
-
-
-
 
     pub fn execute_active_with_duration(&mut self, elapsed: Duration) -> Result<usize, String> {
         self.execute_active_inner(Some(elapsed))

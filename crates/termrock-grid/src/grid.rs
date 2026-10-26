@@ -249,8 +249,6 @@ pub trait GridModel {
         &[]
     }
 
-
-
     fn revision(&self) -> Option<u64> {
         None
     }
@@ -1240,8 +1238,6 @@ impl<'a> Grid<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn cell_tone_styles(mut self, styles: &'a [(Role, StylePatch)]) -> Self {
         self.cell_tone_styles = styles;
@@ -1526,9 +1522,6 @@ impl<'a> Grid<'a> {
         if offset != g.offset {
             g = self.place_columns(body, widths, offset, gutter_width, number_width);
         }
-
-
-
 
         while g.offset > 0 {
             let previous = self.place_columns(
@@ -3084,8 +3077,6 @@ impl Grid<'_> {
         } = row;
         let inherited = ui.surface_style().patch(inherited);
 
-
-
         ui.fill(geometry.gutter_row(y), inherited);
         let focused = flags.contains(StateFlags::FOCUSED);
         let checked = flags.contains(StateFlags::CHECKED);
@@ -3351,10 +3342,6 @@ impl Grid<'_> {
             let cs = self.cell_style(ui, cflags, cell_defaults);
             if cflags.contains(StateFlags::ACTIVE) && (!actions.is_empty() || cell.text.is_empty())
             {
-
-
-
-
                 ui.fill(rect, active_cell_style(ui, row_style, cs, decor.strike));
             }
             if !cs.explicit.is_empty() {
@@ -3372,7 +3359,6 @@ impl Grid<'_> {
             if cdecor.italic {
                 cell_delta = cell_delta.add(Modifier::ITALIC);
             }
-
 
             if decor.strike && !cs.explicit.remove.contains(Modifier::CROSSED_OUT) {
                 cell_delta = cell_delta.add(Modifier::CROSSED_OUT);
@@ -3442,8 +3428,6 @@ impl Grid<'_> {
                 paint_aligned(ui, text_rect, text, align, style);
             }
             if cflags.contains(StateFlags::ACTIVE) && !cs.explicit.is_empty() {
-
-
                 termrock_runtime::author::patch_style(ui, rect, cs.resolved.style, cs.explicit);
             }
             if !inert {
@@ -3721,9 +3705,6 @@ impl Grid<'_> {
             self.draw_row(ui, y, row, &row_paint);
         }
         if !inert {
-
-
-
             ui.scroll_edges(content, &scroll_view);
         }
         self.draw_actions(ui, bar, live);

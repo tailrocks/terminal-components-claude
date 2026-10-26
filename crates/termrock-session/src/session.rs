@@ -28,7 +28,6 @@ const SIZE_CHECK_INTERVAL: Duration = Duration::from_millis(50);
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum SessionCursorShape {
-
     #[default]
     Auto,
 
@@ -98,7 +97,6 @@ impl Default for StartupInput {
 }
 
 impl StartupInput {
-
     pub fn from_environment() -> Self {
         Self {
             delay: std::env::var("JUNIE_TUI_START_DELAY_MS")
@@ -213,7 +211,6 @@ struct PreviouslyConsumedKeyboardPop;
 
 impl Write for PreviouslyConsumedKeyboardPop {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-
         Ok(bytes.len())
     }
 
@@ -228,7 +225,6 @@ fn keyboard_leave_with(
     keyboard_pushed: &AtomicBool,
 ) -> io::Result<bool> {
     if keyboard.is_pushed() && !keyboard_pushed.load(Ordering::Relaxed) {
-
         let mut consumed = PreviouslyConsumedKeyboardPop;
         let _ = keyboard.leave(&mut consumed)?;
         return Ok(false);
@@ -289,7 +285,6 @@ fn restore_modes_with(
     keyboard_pushed: &AtomicBool,
 ) -> io::Result<()> {
     let mut first = if pop_keyboard {
-
         pop_owned_keyboard_with(out, keyboard_pushed)
     } else {
         Ok(())
@@ -566,7 +561,6 @@ fn run_with_cursor_shape_startup<A: App>(
     startup: StartupInput,
     cursor_shape: SessionCursorShape,
 ) -> io::Result<()> {
-
     let bridged = crate::esc_bridge::install().is_ok();
     prepare_startup_input(startup, std::thread::sleep, || {
         if crate::esc_bridge::installed() {
@@ -593,7 +587,6 @@ fn run_with_cursor_shape_startup<A: App>(
             if bridged {
                 crate::esc_bridge::probe_keyboard_enhancement().unwrap_or(false)
             } else {
-
                 ratatui_crossterm::crossterm::terminal::supports_keyboard_enhancement()
                     .unwrap_or(false)
             }
@@ -752,7 +745,6 @@ fn advance_runtime_for_session<A: App>(
             .next_deadline()
             .is_some_and(|deadline| deadline <= now)
     {
-
         runtime.advance_to(now).map_err(io::Error::other)?;
     }
     Ok(())

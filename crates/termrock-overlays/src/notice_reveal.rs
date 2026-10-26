@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use core::time::Duration;
 
 use ratatui_core::layout::{Position, Rect};
@@ -33,18 +25,6 @@ struct ActiveCut {
     ready: bool,
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug)]
 pub struct NoticeReveal {
     owner: Id,
@@ -54,7 +34,6 @@ pub struct NoticeReveal {
 }
 
 impl NoticeReveal {
-
     pub fn new(owner: Id) -> Self {
         Self {
             owner,
@@ -63,11 +42,6 @@ impl NoticeReveal {
             scroll: ScrollState::default(),
         }
     }
-
-
-
-
-
 
     pub fn update(&mut self, cx: &mut Cx<'_>, revision: u64) -> Response<()> {
         let now = cx.now();
@@ -119,28 +93,9 @@ impl NoticeReveal {
         response
     }
 
-
-
-
-
-
     pub fn reset(&mut self) {
         self.clear();
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     pub fn draw(
         &mut self,
@@ -179,8 +134,6 @@ impl NoticeReveal {
         let clip = ui.full();
         let active_part = self.active.map(|active| active.part);
         let hovered_part = ui.hovered_part(self.owner);
-
-
 
         let mut visible_targets = Vec::with_capacity(usize::from(visible_body.height));
         let mut resolved: Option<(NoticeCut<'_>, Rect)> = None;
@@ -305,8 +258,6 @@ fn pane_for_anchor(clip: Rect, anchor: Rect) -> Option<Rect> {
 fn wrapped_row_count(text: &str, width: u16) -> usize {
     visit_wrapped(text, width, |_, _, _| {})
 }
-
-
 
 fn visit_wrapped(text: &str, width: u16, mut visit: impl FnMut(usize, u16, &str)) -> usize {
     let width = width.max(1);

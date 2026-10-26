@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 
@@ -83,10 +78,6 @@ const RULE: Color = Color::Rgb(0x3a, 0x3a, 0x3a);
 const SEAM: Color = Color::Rgb(0x47, 0x47, 0x47);
 const SEAM_HEAVY: Color = Color::Rgb(0x80, 0x80, 0x80);
 const FADE_KEEP: f32 = 0.55;
-
-
-
-
 
 #[must_use]
 pub fn accounts_detail_summary_area(area: Rect) -> Option<Rect> {

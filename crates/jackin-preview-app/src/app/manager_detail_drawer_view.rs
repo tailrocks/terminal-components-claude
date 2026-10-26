@@ -1,14 +1,8 @@
-
-
-
 use termrock::{ColorLevel, FrameRead, Rect, StateFlags, Ui};
 
 use crate::scenario::{Motion, Scenario};
 
 use super::{ACCOUNTS, App, Route};
-
-
-
 
 fn approved(app: &App, ui: &mut Ui<'_>, screen: Rect) -> bool {
     let theme = ui.theme_ref();
@@ -45,7 +39,6 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>, screen: Rect) {
     if !approved(app, ui, screen) {
         return;
     }
-
 
     app.paint_pinned_detail_drawer(ui, screen, true);
 }

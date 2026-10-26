@@ -1136,7 +1136,6 @@ fn paint_launchers(ui: &mut Ui<'_>, inner: Rect) {
 
 fn paint_open(ui: &mut Ui<'_>, card: Rect) {
     if card.width > 2 {
-
         quick_button().draw(
             ui,
             Rect::new(

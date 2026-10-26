@@ -1,6 +1,3 @@
-
-
-
 use termrock::feedback::{SessionChrome, SessionHint, SessionMenu, paint_session_chrome};
 use termrock::{Rect, Ui};
 
@@ -8,8 +5,6 @@ use crate::scenario::{Motion, Scenario};
 use crate::screens::manager::ManagerRowKey;
 
 use super::{App, Route};
-
-
 
 pub(super) fn approved(app: &App, _ui: &Ui<'_>, screen: Rect) -> bool {
     screen.width >= 80
@@ -37,7 +32,6 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>, screen: Rect) {
     if !approved(app, ui, screen) {
         return;
     }
-
 
     let menus = [
         SessionMenu {

@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use std::cell::{Cell, RefCell};
 
 use tablepro_demo::db::ColType;
@@ -49,10 +42,6 @@ impl ResultGridView {
         frame.edit = edit;
         frame.scroll = None;
     }
-
-
-
-
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn draw(
@@ -143,7 +132,6 @@ impl ResultGridView {
         }
     }
 
-
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn paint_status(
         &self,
@@ -185,7 +173,6 @@ impl ResultGridView {
         if !viewport.status_text_fits(width(&status))
             && let Some((head, _)) = status.rsplit_once(" · ")
         {
-
             status = head.to_owned();
         }
         if let Some(chrome) = frame.chrome.as_ref() {
@@ -231,7 +218,6 @@ const GRID_FOCUS_BAR: termrock::grid::GridFocusPolicy = termrock::grid::GridFocu
     glyph: "▎",
 };
 
-
 const FOLLOW_REF: CellAction = CellAction::new(ActionKey::application("tablepro.follow-ref"));
 const FOLLOW_REFS: [CellAction; 1] = [FOLLOW_REF];
 #[derive(Clone, Copy)]
@@ -260,7 +246,6 @@ struct GridChrome {
 }
 
 impl GridChrome {
-
     fn content_chrome(&self) -> termrock::grid::GridContentChrome {
         termrock::grid::GridContentChrome {
             gutter: self.gutter,
@@ -428,8 +413,6 @@ fn install_grid_budgets(
         if !places.is_empty() && needed > avail {
             let room = avail.saturating_sub(used).saturating_sub(gap);
             if room >= 4 {
-
-
                 let arrow = foreign && room > 6;
                 let text = room.saturating_sub(if arrow { 2 } else { 0 });
                 budgets.push(ColBudget { kind, text, arrow });
@@ -451,7 +434,6 @@ fn install_grid_budgets(
         let arrow = foreign && natural > 6;
         budgets.push(ColBudget {
             kind,
-
 
             text: natural.saturating_sub(if arrow { 2 } else { 0 }),
             arrow,
@@ -620,10 +602,8 @@ fn column_natural_width(
         }
     }
     if column_is_filtered(filter, name) {
-
         natural = natural.saturating_add(3);
         if column_is_sorted(sort, col) {
-
             natural = natural.saturating_add(2);
         }
     }
@@ -713,7 +693,6 @@ fn install_scrolled_budgets(
         .enumerate()
         .map(|(index, (name, ty))| {
             let natural = column_natural_width(name, *ty, model, index, filter, sort);
-
 
             if wide == Some(index) && !matches!(ty, ColType::Int | ColType::Numeric) {
                 natural.saturating_add(2)
@@ -823,7 +802,6 @@ fn paint_scrolled_title(
         height: 1,
     };
     if filtered {
-
         ui.fill(cell, base);
         ui.fill(
             termrock::Rect {
@@ -857,7 +835,6 @@ fn paint_scrolled_title(
             style,
         );
         if editing {
-
             ui.fill(
                 termrock::Rect {
                     x: cell.x.saturating_add(place.width),
@@ -1201,7 +1178,6 @@ fn paint_row_numbers(
         let fade = visible.saturating_sub(row);
         let truecolor = ui.theme().capability.color == termrock::ColorLevel::TrueColor;
 
-
         let depth = if visible >= 12 {
             2
         } else if visible >= 4 {
@@ -1211,7 +1187,6 @@ fn paint_row_numbers(
         };
         let far = depth >= 1 && (fade == 1 || (origin > 0 && row == 0));
         let near = depth >= 2 && (fade == 2 || (origin > 0 && row == 1));
-
 
         let pad = if truecolor && far {
             gutter.patch(ui.paint_patch(

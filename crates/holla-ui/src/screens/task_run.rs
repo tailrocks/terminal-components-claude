@@ -19,13 +19,11 @@ pub(crate) enum Event {
     },
 }
 
-
 struct RetiredInputOwner {
     id: Id,
     input: TextInputState,
     answer: String,
 }
-
 
 pub(crate) struct TaskRunScreen {
     route_id: u64,
@@ -64,8 +62,6 @@ impl TaskRunScreen {
     pub(crate) const fn current_prompt_id(&self) -> Option<PromptId> {
         self.observed_prompt
     }
-
-
 
     pub(crate) fn current_input_id(&self) -> Option<Id> {
         self.observed_prompt
@@ -176,7 +172,6 @@ impl TaskRunScreen {
         (response, event)
     }
 
-
     pub(crate) fn poll_covered(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = self.poll_retired_inputs(cx);
         if let Some(id) = self.current_input_id() {
@@ -190,7 +185,6 @@ impl TaskRunScreen {
         response
     }
 
-
     pub(crate) fn retire(&mut self, cx: &mut Cx<'_>) {
         self.retain_current_input();
         self.observed_prompt = None;
@@ -199,7 +193,6 @@ impl TaskRunScreen {
         self.focus_pending = false;
         let _ = self.poll_retired_inputs(cx);
     }
-
 
     pub(crate) fn poll_retired(&mut self, cx: &mut Cx<'_>) -> (Response<()>, bool) {
         let response = self.poll_retired_inputs(cx);
@@ -221,7 +214,6 @@ impl TaskRunScreen {
     fn poll_retired_inputs(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
         self.retired_inputs.retain_mut(|owner| {
-
             let had_routed_intents = cx.intents(owner.id).next().is_some();
             let mut update = answer_input(owner.id).disabled(true).update(
                 cx,

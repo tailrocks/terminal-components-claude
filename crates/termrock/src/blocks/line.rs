@@ -1,19 +1,6 @@
-
-
-
-
-
-
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Style;
 use termrock_runtime::Ui;
-
-
-
-
-
-
 
 pub fn paint_row(ui: &mut Ui<'_>, area: Rect, segments: &[(&str, Style)]) -> u16 {
     if area.is_empty() {

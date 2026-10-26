@@ -28,16 +28,9 @@ use termrock_runtime::layer::{
 };
 use termrock_runtime::rowui::{RowFn, RowUi};
 
-
-
-
-
-
-
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TabNavProfile {
-
     Desktop,
 
     Vim,
@@ -50,46 +43,22 @@ pub enum TabsAction {
     New,
 }
 
-
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum TabCloseReveal {
-
-
     #[default]
     Always,
 
     Hover,
 }
 
-
-
-
-
-
-
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TabRule {
-
     Accent,
 
     Neutral,
 
-
-
-
-
     Auto,
-
-
-
-
-
 
     FocusOnly,
 }
@@ -122,13 +91,6 @@ impl TabRule {
         }
     }
 }
-
-
-
-
-
-
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct TabMarks {
@@ -178,12 +140,6 @@ impl TabMarks {
     }
 }
 
-
-
-
-
-
-
 #[derive(Clone, PartialEq, Eq, Default)]
 pub struct TabAffixes {
     prefix: Option<String>,
@@ -209,14 +165,12 @@ impl fmt::Debug for TabAffixes {
 }
 
 impl TabAffixes {
-
     #[must_use]
     pub fn prefix(mut self, text: impl Into<String>) -> Self {
         let text = text.into();
         self.prefix = (!text.is_empty()).then_some(text);
         self
     }
-
 
     #[must_use]
     pub fn suffix(mut self, text: impl Into<String>) -> Self {
@@ -225,19 +179,11 @@ impl TabAffixes {
         self
     }
 
-
-
-
-
-
-
     #[must_use]
     pub fn trailing_padding(mut self, cells: u16) -> Self {
         self.trailing_padding = cells;
         self
     }
-
-
 
     #[must_use]
     pub fn plate_separators(mut self, enabled: bool) -> Self {
@@ -313,21 +259,22 @@ const SHOW_HIDDEN_BINDINGS: &[Binding<TabsMenuCmd>] = &[Binding {
     visible: true,
 }];
 
-
-
-
-
-
-
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TabsKeyBindingsError {
+    NewGroupCommand {
+        index: usize,
+        found: TabsCmd,
+    },
 
-    NewGroupCommand { index: usize, found: TabsCmd },
+    CloseGroupCommand {
+        index: usize,
+        found: TabsCmd,
+    },
 
-    CloseGroupCommand { index: usize, found: TabsCmd },
-
-    DuplicateAction { action: crate::ActionKey },
+    DuplicateAction {
+        action: crate::ActionKey,
+    },
 
     ConflictingChord {
         first: crate::ActionKey,
@@ -704,7 +651,6 @@ pub struct TabsState {
 
     close_reveal_press: Option<ItemKey>,
 
-
     manual_window_active: Option<Option<ItemKey>>,
     menu: Option<TabsOpenMenu>,
 }
@@ -725,8 +671,6 @@ impl Eq for TabsState {}
 
 impl fmt::Debug for TabsState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-
-
         f.debug_struct("TabsState")
             .field("core", &self.core)
             .field("active", &self.active)
@@ -851,10 +795,6 @@ enum TabsWheelFrameKind {
     Planned,
 }
 
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct TabsWheelFrame {
     kind: TabsWheelFrameKind,
@@ -900,11 +840,6 @@ impl Default for TabsWheelFrame {
     }
 }
 
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct TabsGeometryFollow {
     active_key: ItemKey,
@@ -920,11 +855,6 @@ fn manual_window_owns_follow(
     frame_kind != TabsWheelFrameKind::Legacy && manual_window_active == Some(active)
 }
 
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct TabWindowReceipt {
     pub viewport_len: usize,
@@ -936,9 +866,6 @@ struct AffixSegment {
     index: usize,
     width: u16,
 }
-
-
-
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 struct OwnedTabAffixes {
@@ -984,7 +911,6 @@ impl OwnedTabAffixes {
     }
 }
 
-
 #[derive(Clone)]
 pub struct TabRowLayout {
     pub key: ItemKey,
@@ -994,12 +920,7 @@ pub struct TabRowLayout {
     pub logical_tab: Rect,
     pub visible_tab: Rect,
 
-
-
-
     pub logical_close: Option<Rect>,
-
-
 
     pub visible_close: Option<Rect>,
     logical_mark: Option<Rect>,
@@ -1086,7 +1007,6 @@ impl TabRowLayout {
     }
 }
 
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 struct OwnedTabMeasurement {
     key: ItemKey,
@@ -1098,7 +1018,6 @@ struct OwnedTabMeasurement {
 }
 
 impl OwnedTabMeasurement {
-
     fn new_with_natural_extent(
         key: ItemKey,
         mark: Option<TabItemMark>,
@@ -1133,10 +1052,6 @@ struct OwnedTabsWalk<'a> {
     previous: Option<TabWindowReceipt>,
 }
 
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct DefaultRowGeometry {
     key: ItemKey,
@@ -1155,7 +1070,6 @@ struct DefaultRowGeometry {
 }
 
 impl DefaultRowGeometry {
-
     fn into_tab_row(
         self,
         label_segments: Vec<String>,
@@ -1219,7 +1133,6 @@ struct DefaultRowWalk {
 }
 
 fn max_rows_for_width_budget(available: u16) -> usize {
-
     ((u32::from(available).saturating_add(1)) / 4) as usize
 }
 
@@ -1232,11 +1145,6 @@ fn positive_terminal_candidate_range(len: usize, max_rows: usize) -> core::ops::
     first..len
 }
 
-
-
-
-
-
 #[derive(Clone)]
 pub struct TabLayout {
     id: Id,
@@ -1247,10 +1155,7 @@ pub struct TabLayout {
     rule_area: Option<Rect>,
     rows: Vec<TabRowLayout>,
 
-
     owned_items: Option<Vec<OwnedTabMeasurement>>,
-
-
 
     terminal_first_index: Option<usize>,
     geometry_follow: Option<TabsGeometryFollow>,
@@ -1440,12 +1345,6 @@ impl TabLayout {
     pub const fn used_area(&self) -> Rect {
         self.used_area
     }
-
-
-
-
-
-
 
     pub fn part_bounds(&self, part: PartRef) -> Option<(Rect, Rect)> {
         match part.part {
@@ -1787,18 +1686,6 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self.id
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
     pub fn try_nav_profile(
         mut self,
         profile: Option<TabNavProfile>,
@@ -1876,21 +1763,11 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
-
-
-
-
-
     #[must_use]
     pub fn overflow_menu(mut self, enabled: bool) -> Self {
         self.overflow_menu = enabled;
         self
     }
-
-
-
-
-
 
     #[must_use]
     pub fn digit_jump(mut self, yes: bool) -> Self {
@@ -1898,35 +1775,11 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
-
-
-
-
-
-
     #[must_use]
     pub fn wrap(mut self, yes: bool) -> Self {
         self.wrap = yes;
         self
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     pub fn try_new_key_bindings(
         mut self,
@@ -1943,24 +1796,6 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     pub fn try_close_key_bindings(
         mut self,
         bindings: Option<&'static [Binding<TabsCmd>]>,
@@ -1970,23 +1805,11 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         Ok(self)
     }
 
-
-
-
-
-
-
     #[must_use]
     pub fn middle_click_closes(mut self, yes: bool) -> Self {
         self.middle_click_closes = yes;
         self
     }
-
-
-
-
-
-
 
     #[must_use]
     pub fn closable_keys(mut self, keys: &'a [ItemKey]) -> Self {
@@ -1994,35 +1817,17 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
-
-
-
-
-
-
     #[must_use]
     pub fn close_reveal(mut self, reveal: TabCloseReveal) -> Self {
         self.close_reveal = reveal;
         self
     }
 
-
-
-
-
-
-
-
     #[must_use]
     pub fn close_target_w(mut self, cells: u16) -> Self {
         self.close_target_w = Some(cells);
         self
     }
-
-
-
-
-
 
     #[must_use]
     pub fn close_danger_hover(mut self, danger: bool) -> Self {
@@ -2036,25 +1841,11 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
-
-
-
-
-
     #[must_use]
     pub fn rule(mut self, rule: TabRule) -> Self {
         self.rule = Some(rule);
         self
     }
-
-
-
-
-
-
-
-
-
 
     #[must_use]
     pub fn rule_focus_hidden(mut self, hidden: bool) -> Self {
@@ -2062,33 +1853,17 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
-
-
-
-
     #[must_use]
     pub fn passive(mut self, passive: bool) -> Self {
         self.passive = passive;
         self
     }
 
-
-
-
-
     #[must_use]
     pub fn passive_focused(mut self, focused: bool) -> Self {
         self.passive_focused = focused;
         self
     }
-
-
-
-
-
-
-
-
 
     #[must_use]
     pub fn item_marks(mut self, mapper: fn(&T) -> TabMarks) -> Self {
@@ -2114,23 +1889,9 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
-
-
-
-
-
-
-
     pub fn new_key_table(&self) -> &'static [Binding<TabsCmd>] {
         self.effective_key_groups().new
     }
-
-
-
-
-
-
-
 
     pub fn close_key_table(&self) -> &'static [Binding<TabsCmd>] {
         self.effective_key_groups().close
@@ -2149,8 +1910,6 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         let new_base_enabled = self.allow_new && self.new_key_bindings.is_none();
         let close_base_enabled = close_enabled && self.close_key_bindings.is_none();
         let base = if self.new_key_bindings.is_none() && self.close_key_bindings.is_none() {
-
-
             table_for_navigation_profile(
                 self.nav_profile,
                 close_enabled,
@@ -2251,9 +2010,6 @@ fn validate_tabs_key_bindings(
             }
         }
     }
-
-
-
 
     let base = table_for_navigation_profile(
         profile,
@@ -3089,10 +2845,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             }
         }
 
-
-
-
-
         let manual_window_owned =
             manual_window_owns_follow(frame.kind, st.manual_window_active, st.active);
         if !manual_window_owned && let Some(l) = layout {
@@ -3227,17 +2979,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             local.as_ref(),
         );
 
-
-
-
-
-
         if ownership.fg == Slot::Inherit {
             semantic.style = semantic
                 .style
                 .patch(ui.paint_patch(&StylePatch::new().set_fg(foreground)));
         }
-
 
         if !ownership.add.contains(Modifier::BOLD) {
             semantic.style = semantic
@@ -3865,10 +3611,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         );
                     }
                 } else {
-
-
-
-
                     ui.fill(close_glyph, ts.style);
                 }
             }
@@ -4192,26 +3934,11 @@ fn item_mark_glyph_area(area: Rect, glyph_width: u16) -> Rect {
 }
 
 impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
-
-
-
-
-
-
-
     #[must_use]
     pub fn planned_whole_rows(mut self, enabled: bool) -> Self {
         self.planned_whole_rows = enabled;
         self
     }
-
-
-
-
-
-
-
-
 
     #[must_use]
     pub fn item_affixes(mut self, mapper: fn(&T) -> TabAffixes) -> Self {
@@ -4279,17 +4006,6 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
     pub fn layout_default(
         &self,
         area: Rect,
@@ -4300,8 +4016,6 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
     ) -> TabLayout {
         let len = items.len();
         if area.is_empty() {
-
-
             let first_index = state
                 .first
                 .and_then(|first| self.index_of(items, first, Some(state.first_index)))
@@ -4357,10 +4071,6 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             })
             .unwrap_or(0)
             .min(len);
-
-
-
-
 
         let mut extent_scratch = Vec::new();
         let terminal_first_index =
@@ -4498,19 +4208,11 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 .is_some_and(|row| row.index == final_index && !row.visible_tab.is_empty())
         };
 
-
-
         let start_zero =
             self.walk_default_resolved(area, clip, items, 0, previous, extent_scratch, |_| {});
         if reaches_final(start_zero) {
             return Some(0);
         }
-
-
-
-
-
-
 
         let reserve_more = self.overflow_menu && self.more_lane_fits(area, clip, 1, previous);
         let positive_header = self.default_row_header_with_more(area, 1, previous, reserve_more);
@@ -4530,9 +4232,6 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         if terminal.is_some() || !self.planned_whole_rows || len <= 1 {
             return terminal;
         }
-
-
-
 
         let final_index = len - 1;
         let final_walk = self.walk_default_resolved(
@@ -5070,10 +4769,6 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         }
     }
 
-
-
-
-
     pub fn draw_layout(
         &self,
         ui: &mut Ui<'_>,
@@ -5138,8 +4833,6 @@ fn close_glyph_cell(tab: Rect) -> Rect {
     cell_at(tab, tab.right().saturating_sub(2))
 }
 
-
-
 fn paint_logical_text(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -5160,7 +4853,6 @@ fn paint_logical_text(
             continue;
         }
         let right = x.saturating_add(width);
-
 
         if x >= visible.x && right <= visible.right() && right <= area_right {
             ui.paint_str(Rect::new(x, area.y, width, 1), grapheme, style);
@@ -5257,21 +4949,12 @@ fn logical_label_extent(segments: &[String], content: Rect) -> u16 {
     last_nonblank_end.saturating_sub(content.x)
 }
 
-
-
-
 fn semantic_label_extent_with_scratch(
     segments: &[String],
     content: Rect,
     clip: Rect,
     cells: &mut Vec<bool>,
 ) -> u16 {
-
-
-
-
-
-
     let visible = content.intersection(clip);
     if visible.is_empty() {
         return 0;
@@ -5349,9 +5032,6 @@ fn painted_width(ui: &mut Ui<'_>, row: Rect) -> u16 {
 
 impl<T, K, R> Bindings for Tabs<'_, T, K, R> {
     type Cmd = TabsCmd;
-
-
-
 
     fn bindings(&self, _s: BindingState) -> &'static [Binding<TabsCmd>] {
         self.table()

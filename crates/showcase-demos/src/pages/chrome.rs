@@ -11,8 +11,6 @@ const SCROLL: Id = termrock::Id::root("showcase_ui::pages::chrome::chrome.scroll
 
 const BLURB: &str = "Brand lockup · menu bar with anchored menus · status bar planes and priorities · context menu · hint layers";
 
-
-
 const NATURAL_W: u16 = 91;
 
 const CARD_PAD: u16 = 2;
@@ -62,7 +60,6 @@ const BLUE: u32 = 0x79b8ff;
 
 const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
-
 const SESSIONS: [(&str, &str); 4] = [
     ("  1 Claude Code (Work)", "working"),
     ("  2 Codex (Primary)", "idle"),
@@ -89,8 +86,6 @@ fn ink(fg: u32, bg: u32) -> PaintStyle {
 fn bold(fg: u32, bg: u32) -> PaintStyle {
     ink(fg, bg).add_modifier(Modifier::BOLD)
 }
-
-
 
 struct Card {
     inner: u16,
@@ -129,13 +124,10 @@ impl Card {
         }
     }
 
-
     fn height(&self) -> u16 {
         3 + self.content_h
     }
 }
-
-
 
 fn notes_lines(width: u16) -> Vec<String> {
     let width = width.max(1);
@@ -145,7 +137,6 @@ fn notes_lines(width: u16) -> Vec<String> {
     lines
 }
 
-
 fn readout_lines(width: u16) -> Vec<String> {
     let mut lines = Vec::new();
     for line in READOUT {
@@ -153,8 +144,6 @@ fn readout_lines(width: u16) -> Vec<String> {
     }
     lines
 }
-
-
 
 struct Playground {
     width: u16,
@@ -192,8 +181,6 @@ impl Playground {
     }
 }
 
-
-
 struct Scroll {
     area: Rect,
     view: Rect,
@@ -203,7 +190,6 @@ struct Scroll {
 }
 
 impl Scroll {
-
     fn content_size(area: Rect) -> (u16, u16) {
         let natural = NATURAL_W.max(area.width);
         let wide = Playground::layout(natural);
@@ -286,7 +272,6 @@ fn paint_menu(ui: &mut Ui<'_>, view: Rect) {
         paint_at(ui, view, col, 0, text, label);
     }
 }
-
 
 fn paint_card(ui: &mut Ui<'_>, view: Rect, card: &Card, scrolls: bool) {
     let top = view.y.saturating_add(2);
@@ -380,7 +365,6 @@ fn paint_card(ui: &mut Ui<'_>, view: Rect, card: &Card, scrolls: bool) {
     );
 }
 
-
 fn paint_strip(ui: &mut Ui<'_>, view: Rect, row: u16, spinner: &str, content: u16) {
     fill_row(ui, view, row, view.width, ink(WHITE, SURFACE));
     paint_at(ui, view, 2, row, "payments-platform", bold(WHITE, SURFACE));
@@ -423,7 +407,6 @@ fn paint_strip(ui: &mut Ui<'_>, view: Rect, row: u16, spinner: &str, content: u1
         ink(MUTED, SURFACE),
     );
 }
-
 
 struct StatusItem {
     text: &'static str,
@@ -543,12 +526,9 @@ const STATUS_ITEMS: [StatusItem; 8] = [
     },
 ];
 
-
 const METER_TRACK: u16 = 10;
 const STATUS_GAP: u16 = 3;
 const STATUS_EDGE: u16 = 1;
-
-
 
 fn status_plan(width: u16) -> (Vec<(usize, u16)>, Option<u16>, usize) {
     let mut keep = [true; STATUS_ITEMS.len()];
@@ -677,7 +657,6 @@ fn status_plan(width: u16) -> (Vec<(usize, u16)>, Option<u16>, usize) {
     (result, more, placed)
 }
 
-
 fn status_caption(width: u16) -> String {
     let (placed, _, count) = status_plan(width);
     let mut groups = [0u16; 3];
@@ -697,7 +676,6 @@ fn status_caption(width: u16) -> String {
         groups[2]
     )
 }
-
 
 fn paint_meter(ui: &mut Ui<'_>, view: Rect, row: u16, x: u16, meter: Meter) {
     const TRACK: u16 = 11;
@@ -738,7 +716,6 @@ fn paint_meter(ui: &mut Ui<'_>, view: Rect, row: u16, x: u16, meter: Meter) {
     };
     paint_at(ui, view, x + TRACK + 4, row, tail, ink(tone, ELEVATED));
 }
-
 
 fn paint_status(ui: &mut Ui<'_>, view: Rect, row: u16, bar_width: u16) {
     fill_row(ui, view, row, bar_width, ink(WHITE, ELEVATED));
@@ -785,7 +762,6 @@ fn paint_status(ui: &mut Ui<'_>, view: Rect, row: u16, bar_width: u16) {
         paint_at(ui, view, x, row, "…", ink(MUTED, ELEVATED));
     }
 }
-
 
 fn paint_hints(ui: &mut Ui<'_>, view: Rect, row: u16) {
     let mut x = 1u16;
@@ -865,13 +841,6 @@ fn paint_playground(ui: &mut Ui<'_>, view: Rect, page: &Playground, spinner: &st
     paint_hints(ui, view, page.hint_row);
 }
 
-
-
-
-
-
-
-
 fn paint_scrollbars(ui: &mut Ui<'_>, scroll: &Scroll, content: &Playground) {
     if scroll.v_bar {
         let track = Rect {
@@ -919,7 +888,6 @@ fn paint_scrollbars(ui: &mut Ui<'_>, scroll: &Scroll, content: &Playground) {
         }
     }
 }
-
 
 fn thumb_len(track: u16, content: u16) -> u16 {
     if track == 0 || content == 0 {
@@ -977,8 +945,6 @@ impl Page for ChromePage {
             let page = Playground::layout(scroll.content.width);
             let spinner = SPINNER[self.frame % SPINNER.len()];
 
-
-
             paint_scrollbars(ui, &scroll, &page);
             paint_playground(
                 ui,
@@ -991,8 +957,6 @@ impl Page for ChromePage {
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
-
-
         &[("click", "Brand lockup")]
     }
 }

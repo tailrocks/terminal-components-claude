@@ -51,10 +51,8 @@ pub enum FilterListCmd {
     Cancel,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum SelectionPolicy {
-
     #[default]
     Preserve,
 
@@ -254,8 +252,6 @@ impl FilterListState {
         self.core.invalidate();
     }
 
-
-
     pub fn reset_query(&mut self, query: impl Into<String>) {
         self.query = query.into();
         self.query_input.cancel();
@@ -278,7 +274,6 @@ impl FilterListState {
     pub const fn matched_len(&self) -> usize {
         self.matches.len()
     }
-
 
     pub fn reset_selection_on_next_reconcile(&mut self) {
         self.reset_selection = true;
@@ -377,7 +372,6 @@ impl<'a, T, R> FilterList<'a, T, R> {
         self.cursor_style = style;
         self
     }
-
 
     #[must_use]
     pub const fn preserve_surface(mut self, preserve: bool) -> Self {
@@ -635,7 +629,6 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 false
             };
 
-
         if st.reset_selection || reset_for_query {
             st.core.clear_cursor();
         }
@@ -855,16 +848,12 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                     if previous.is_empty() {
                         acc.action(FilterListAction::Cancel);
                     } else {
-
-
-
                         st.query_input.begin("");
                         acc.action(FilterListAction::QueryChanged);
                     }
                 }
                 Some(TextAction::Committed) => {
                     self.item_action(st, items, FilterListCmd::Choose, &mut acc);
-
 
                     st.query_input.begin(&st.query);
                 }
@@ -1085,13 +1074,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &FilterListState, items: &[T]) -> Rect {
-
-
-
         if self.searchable && !area.is_empty() {
-
-
-
             self.query_input(st.query().is_empty())
                 .value(st.query())
                 .register_editor(ui, area, &st.query_input);
@@ -1113,10 +1096,6 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         let live = ui.state(self.id);
         if !self.searchable {
             ui.register_control(self.id, area, Focusability::Focusable);
-
-
-
-
 
             ui.publish_bindings(self.id, live, BINDINGS);
         }

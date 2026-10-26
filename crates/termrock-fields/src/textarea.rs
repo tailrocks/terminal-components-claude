@@ -32,11 +32,6 @@ const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const ALT: KeyModifiers = KeyModifiers::ALT;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
 
-
-
-
-
-
 #[derive(Clone, Copy, Debug)]
 struct TextAreaGeometry {
     window: VerticalWindow,
@@ -64,12 +59,6 @@ impl TextAreaGeometry {
             .saturating_add(usize::from(horizontal_scroll));
         Some((line, col))
     }
-
-
-
-
-
-
 
     fn captured_document_point(
         self,
@@ -117,9 +106,6 @@ impl TextAreaGeometry {
     }
 
     fn logical_inner_width(self) -> u16 {
-
-
-
         self.window.visible_body().width.saturating_sub(3)
     }
 }
@@ -421,7 +407,6 @@ impl TextAreaState {
     pub const fn is_editing(&self) -> bool {
         matches!(self.phase, EditPhase::Editing)
     }
-
 
     pub fn take_edit_menu_request(&mut self) -> Option<EditMenuRequest> {
         self.edit_menu_request.take()
@@ -753,11 +738,6 @@ impl<'a> TextArea<'a> {
         }
     }
 
-
-
-
-
-
     pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
         if !ui.is_inert() {
             ui.register_focus_only(self.id, self.form_focusability(inherited_disabled));
@@ -860,8 +840,6 @@ impl<'a> TextArea<'a> {
         };
         let scroll = self.scroll_region();
         let geometry = Self::prepared_geometry(cx, self.id);
-
-
 
         let displayed_scroll = st.scroll.offset();
         let displayed_hscroll = st.draft.hscroll();
@@ -1076,7 +1054,6 @@ impl<'a> TextArea<'a> {
         acc.finish(self.id)
     }
 
-
     pub fn edit_capabilities<T: TextTarget + ?Sized>(
         &self,
         st: &TextAreaState,
@@ -1093,11 +1070,6 @@ impl<'a> TextArea<'a> {
         )
     }
 
-
-
-
-
-
     pub fn caret_source_row(&self, st: &TextAreaState) -> Option<usize> {
         st.is_editing().then(|| {
             st.draft
@@ -1106,7 +1078,6 @@ impl<'a> TextArea<'a> {
                 .saturating_sub(st.scroll.offset())
         })
     }
-
 
     pub fn execute_edit_command<T: TextTarget + ?Sized>(
         &self,
@@ -1220,8 +1191,6 @@ impl<'a> TextArea<'a> {
         };
         self.draw_window(ui, VerticalWindow::full(body), st)
     }
-
-
 
     pub fn draw_window(&self, ui: &mut Ui<'_>, window: VerticalWindow, st: &TextAreaState) -> Rect {
         let body = window.visible_body();
@@ -1454,7 +1423,6 @@ impl<'a> TextArea<'a> {
             .draw(ui, area, st)
     }
 
-
     pub fn draw_in_form_window(
         &self,
         ui: &mut Ui<'_>,
@@ -1481,7 +1449,6 @@ impl<'a> TextArea<'a> {
             .secret(self.secret.unwrap_or_default())
             .draw(ui, area, st)
     }
-
 
     pub fn draw_secret_in_form_window(
         &self,

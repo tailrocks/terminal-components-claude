@@ -4,23 +4,19 @@ use termrock_core::keys::KeyCode;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum Stakes {
-
     #[default]
     Clean,
 
     Unsaved {
-
         changes: usize,
     },
 
     Running {
-
         what: String,
     },
 }
 
 impl Stakes {
-
     pub fn is_clean(&self) -> bool {
         *self == Self::Clean
     }
@@ -39,7 +35,6 @@ impl Stakes {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LeaveKey {
-
     Copy,
 
     Quit,
@@ -47,7 +42,6 @@ pub enum LeaveKey {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct KeyContext {
-
     pub text_focus: bool,
 
     pub dirty: bool,
@@ -57,7 +51,6 @@ pub struct KeyContext {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct QuitKeys {
-
     pub ctrl_c: bool,
 
     pub ctrl_q: bool,
@@ -74,7 +67,6 @@ impl Default for QuitKeys {
 }
 
 impl QuitKeys {
-
     pub const DEFAULT: Self = Self {
         ctrl_c: true,
         ctrl_q: true,
@@ -136,7 +128,6 @@ pub fn letters_allowed(cx: KeyContext) -> bool {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Leave<T> {
-
     Quit,
 
     To(T),
@@ -144,7 +135,6 @@ pub enum Leave<T> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Resolved<T> {
-
     Stay,
 
     Save(Leave<T>),
@@ -154,7 +144,6 @@ pub enum Resolved<T> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LeaveDialog {
-
     pub id: Id,
 
     pub kind: LeaveDialogKind,
@@ -166,7 +155,6 @@ pub struct LeaveDialog {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LeaveDialogKind {
-
     SaveDiscardCancel,
 
     DiscardOnly,
@@ -176,7 +164,6 @@ pub enum LeaveDialogKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DialogAnswer {
-
     First,
 
     Second,
@@ -186,7 +173,6 @@ pub enum DialogAnswer {
 
 #[derive(Debug, Clone)]
 pub struct LeaveGuard<T> {
-
     pub id: Id,
     pending: Option<(Leave<T>, bool)>,
 
@@ -194,7 +180,6 @@ pub struct LeaveGuard<T> {
 }
 
 impl<T: Clone> LeaveGuard<T> {
-
     pub fn new(id: Id) -> Self {
         Self {
             id,

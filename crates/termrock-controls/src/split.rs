@@ -29,10 +29,8 @@ pub enum SplitCmd {
     Reset,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum ResetPolicy {
-
     Initial,
 
     Percent(u8),
@@ -171,10 +169,6 @@ impl SplitPaneState {
         self.maximized
     }
 
-
-
-
-
     pub const fn basis_points(&self) -> u16 {
         self.basis_points
     }
@@ -299,8 +293,6 @@ impl<'a> SplitPane<'a> {
         self.axis
     }
 
-
-
     pub fn required_extent(&self, state: &SplitPaneState, first: u16, second: u16) -> u16 {
         let model = self.model(*state);
         let first = first.max(model.min_first);
@@ -325,9 +317,6 @@ impl<'a> SplitPane<'a> {
         }
         model.required_extent_with_basis_points(self.gap, state.basis_points, first, second)
     }
-
-
-
 
     pub fn pane_constraints(
         &self,
@@ -414,18 +403,11 @@ impl<'a> SplitPane<'a> {
         self
     }
 
-
-
-
-
-
     #[must_use]
     pub const fn preserve_drag_offset(mut self, preserve: bool) -> Self {
         self.preserve_drag_offset = preserve;
         self
     }
-
-
 
     #[must_use]
     pub const fn resize_step_cells(mut self, cells: u16) -> Self {
@@ -438,7 +420,6 @@ impl<'a> SplitPane<'a> {
         self
     }
 
-
     #[must_use]
     pub(crate) const fn fixed_first_share(mut self, percent: u8, min: u16, max: u16) -> Self {
         let percent = if percent > 100 { 100 } else { percent };
@@ -449,7 +430,6 @@ impl<'a> SplitPane<'a> {
         self
     }
 
-
     #[must_use]
     pub(crate) const fn fixed_sizing(mut self) -> Self {
         self.fixed_sizing = true;
@@ -457,9 +437,6 @@ impl<'a> SplitPane<'a> {
         self.seam = Some((0, SeamAlign::Offset(0)));
         self
     }
-
-
-
 
     #[doc(hidden)]
     #[must_use]
@@ -477,7 +454,6 @@ impl<'a> SplitPane<'a> {
         self.reset_policy = policy;
         self
     }
-
 
     #[must_use]
     pub(crate) const fn initial_first_cells(mut self, cells: u16) -> Self {
@@ -747,9 +723,6 @@ impl<'a> SplitPane<'a> {
                         SplitAxis::Horizontal => pos.x,
                         SplitAxis::Vertical => pos.y,
                     };
-
-
-
 
                     st.grab_offset = Some(
                         if self.hit_padding > 0 || self.seam.is_none() || self.preserve_drag_offset

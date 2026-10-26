@@ -233,7 +233,6 @@ impl WidgetIds {
             root,
             master: root.index(1),
 
-
             detail: props,
             props,
             open: root.index(4),

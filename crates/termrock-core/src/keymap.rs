@@ -15,7 +15,6 @@ pub enum Nav {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct NavKeys {
-
     pub arrows: bool,
 
     pub vim: bool,
@@ -26,7 +25,6 @@ pub struct NavKeys {
 }
 
 impl NavKeys {
-
     pub const DESKTOP: Self = Self {
         arrows: true,
         vim: false,

@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 
@@ -22,17 +17,10 @@ const CLOSE_INK: u32 = 0x00b3_b3b3;
 const FOCUS: u32 = 0x0048_e054;
 const BUTTON: u32 = 0x0027_272a;
 
-
 pub struct Fact<'a> {
     pub label: &'a str,
     pub value: &'a str,
 }
-
-
-
-
-
-
 
 pub fn paint_facts(ui: &mut Ui<'_>, body: Rect, facts: &[Fact<'_>], focus: usize) {
     let gutter_pad = ui.paint_patch(
@@ -103,7 +91,6 @@ pub fn paint_facts(ui: &mut Ui<'_>, body: Rect, facts: &[Fact<'_>], focus: usize
         let value_start = label_x.saturating_add(cols);
         let value_x = value_start.saturating_add(gap);
 
-
         let span = body.right().saturating_sub(value_start);
         let row_style = if focused { value_focus } else { value };
         ui.fill(Rect::new(value_start, y, span, 1), row_style);
@@ -114,9 +101,6 @@ pub fn paint_facts(ui: &mut Ui<'_>, body: Rect, facts: &[Fact<'_>], focus: usize
         );
     }
 }
-
-
-
 
 pub fn paint(ui: &mut Ui<'_>, facts: &[Fact<'_>]) {
     let screen = ui.full();

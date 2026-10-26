@@ -1,21 +1,7 @@
-
-
-
-
-
-
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Modifier, Style};
 use termrock_runtime::Ui;
 use termrock_theme::{FgStep, Theme};
-
-
-
-
-
-
-
 
 pub fn paint_section_header(ui: &mut Ui<'_>, area: Rect, title: &str, theme: &Theme) -> u16 {
     if area.is_empty() {

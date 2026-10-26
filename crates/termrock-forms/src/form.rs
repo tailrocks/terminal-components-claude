@@ -235,11 +235,6 @@ pub enum EnterPolicy {
     Never,
 }
 
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum FieldSizingPolicy {
     #[default]
@@ -637,7 +632,6 @@ impl FormState {
         self.reveal = None;
     }
 
-
     fn reconcile_fields_with_data<D: FormData + ?Sized>(
         &mut self,
         fields: &[FieldSpec<'_>],
@@ -1001,9 +995,6 @@ impl<'a> Form<'a> {
         self
     }
 
-
-
-
     #[must_use]
     pub const fn field_sizing(mut self, policy: FieldSizingPolicy) -> Self {
         self.sizing = policy;
@@ -1022,16 +1013,11 @@ impl<'a> Form<'a> {
         self
     }
 
-
-
-
     pub fn try_layout(mut self, layout: &'a FormLayout<'a>) -> Result<Self, FormLayoutError> {
         layout.validate(self.fields.iter().map(|field| field.id))?;
         self.layout = Some(layout);
         Ok(self)
     }
-
-
 
     pub fn validate_layout<D: FormData + ?Sized>(&self, data: &D) -> Result<(), FormLayoutError> {
         let Some(layout) = self.layout else {
@@ -1182,10 +1168,6 @@ impl<'a> Form<'a> {
             _ => {}
         }
     }
-
-
-
-
 
     fn sync_pointer_hold<D: FormData + ?Sized>(
         &self,
@@ -1762,8 +1744,6 @@ impl<'a> Form<'a> {
         st.reconcile_fields_with_data(self.fields, data);
         let pointer_held = self.sync_pointer_hold(cx, st, data);
 
-
-
         let area = cx
             .layout(self.id)
             .and_then(|facts| facts.logical_area)
@@ -2059,7 +2039,6 @@ impl<'a> Form<'a> {
             }
         }
         self.draw_actions(ui, area);
-
 
         ui.report_layout(
             self.id,
@@ -2506,8 +2485,6 @@ impl<'a> Form<'a> {
             ui.register_decor(field.id, PartRef::of(Part::HELP), row);
         }
 
-
-
         let body_start = 1usize.max(source_first_row);
         let source_body_end = if has_help {
             usize::from(logical_height.saturating_sub(1))
@@ -2539,13 +2516,6 @@ impl<'a> Form<'a> {
         (body, body_start.saturating_sub(1))
     }
 
-
-
-
-
-
-
-
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
         let rows = self
             .fields
@@ -2562,10 +2532,6 @@ impl<'a> Form<'a> {
         .fit(constraints)
     }
 
-
-
-
-
     pub fn measure_with_data<D: FormData + ?Sized>(
         &self,
         ui: &Ui<'_>,
@@ -2574,10 +2540,6 @@ impl<'a> Form<'a> {
     ) -> Size {
         self.measure_with_data_design(ui.design(), constraints, data)
     }
-
-
-
-
 
     pub(crate) fn measure_with_data_design<D: FormData + ?Sized>(
         &self,

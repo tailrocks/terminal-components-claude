@@ -143,10 +143,6 @@ impl World {
         self.discovery.iter().any(|d| !d.done && !d.failed)
     }
 
-
-
-
-
     pub fn settled(&self) -> bool {
         self.discovery.iter().all(|d| d.done || d.failed)
     }

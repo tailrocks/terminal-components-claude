@@ -190,9 +190,7 @@ impl<'a> HintBar<'a> {
     }
 
     fn derived_flags(&self) -> StateFlags {
-        {
-            self.status.flags()
-        }
+        { self.status.flags() }
     }
 
     fn hint(&self, i: usize) -> Option<KeyHint<'a>> {
@@ -330,8 +328,6 @@ impl<'a> HintBar<'a> {
         acc.glyph
     }
 
-
-
     fn fitting_stack(&self, budget: u16, keep_buf: &mut [usize; 32]) -> (usize, u16) {
         let n = self.layer.hints.len();
         if n == 0 {
@@ -387,7 +383,6 @@ impl<'a> HintBar<'a> {
         };
         (keep_len, used)
     }
-
 
     fn full_hint_width(&self) -> u16 {
         let count = self.layer.hints.len();

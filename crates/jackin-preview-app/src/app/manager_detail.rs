@@ -1,5 +1,3 @@
-
-
 use termrock::controls::MasterDetail;
 use termrock::{
     ActionKey, Binding, Button, Chord, Cx, FrameRead, Id, Intent, KeyCode, MasterDetailCmd,
@@ -138,7 +136,6 @@ pub(super) fn update(app: &mut App, cx: &mut Cx<'_>) -> Response<()> {
             }
         }
     }
-
 
     if app.manager_detail_state.drawer_open() {
         app.manager.set_detail_open(true);

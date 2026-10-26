@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier};
 
@@ -145,8 +140,6 @@ struct Seg {
 }
 
 pub fn paint_usage_overview(ui: &mut Ui<'_>, area: Rect, page: &UsageOverview<'_>) {
-
-
     if area.width < 40 || area.height < 16 {
         return;
     }

@@ -8,7 +8,6 @@ use termrock_runtime::ui::Ui;
 use crate::quit::Stakes;
 
 pub trait Page {
-
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()>;
 
     fn draw(&self, ui: &mut Ui<'_>);
@@ -72,7 +71,6 @@ pub struct PageLeaf<'a, P: Page>(&'a P);
 
 impl<P: Page> Measure for PageLeaf<'_, P> {
     fn measure(&self, _ui: &Ui<'_>, constraints: Constraints) -> Size {
-
         Size {
             min: (0, 0),
             preferred: constraints.max,

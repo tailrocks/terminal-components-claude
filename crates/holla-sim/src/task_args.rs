@@ -17,10 +17,6 @@ const NEXTTEST_SCHEMA_VERSION: u16 = 1;
 const FILTER_FIELD_ID: &str = "filter";
 const PROFILE_FIELD_ID: &str = "profile";
 
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TaskArgsProducer {
     task_id: String,
@@ -32,7 +28,6 @@ pub struct TaskArgsProducer {
 }
 
 impl TaskArgsProducer {
-
     pub fn nextest_fixture() -> Result<Self, SchemaError> {
         let schema = nextest_schema(NEXTTEST_SCHEMA_VERSION)?;
         Ok(Self {
@@ -45,30 +40,22 @@ impl TaskArgsProducer {
         })
     }
 
-
     pub fn task_id(&self) -> &str {
         &self.task_id
     }
-
 
     pub fn definition_path(&self) -> &str {
         &self.definition_path
     }
 
-
     pub fn schema(&self) -> &InputSchema {
         &self.schema
     }
-
 
     pub fn accept(&self, values: &[(&str, &str)]) -> Result<AcceptedInputs, InputError> {
         self.schema.accept(values)
     }
 }
-
-
-
-
 
 pub fn nextest_task_producer() -> Result<TaskArgsProducer, SchemaError> {
     TaskArgsProducer::nextest_fixture()
@@ -115,11 +102,6 @@ impl ProducerSnapshot {
             && self.adapter_version == producer.adapter_version
     }
 }
-
-
-
-
-
 
 pub fn task_args_producer_for(row: &Action) -> Result<Option<TaskArgsProducer>, SchemaError> {
     if row.id == NEXTTEST_ROW_ID || row.intent_id() == Some(NEXTTEST_ROW_ID) {
@@ -169,10 +151,6 @@ impl From<&World> for ContextSnapshot {
     }
 }
 
-
-
-
-
 pub struct TaskArgsSession {
     producer: ProducerSnapshot,
     task: TaskSnapshot,
@@ -181,7 +159,6 @@ pub struct TaskArgsSession {
     initially_trusted: bool,
     trust_approved: bool,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TaskArgsAcceptError {
@@ -201,7 +178,6 @@ impl fmt::Display for TaskArgsAcceptError {
 impl std::error::Error for TaskArgsAcceptError {}
 
 impl TaskArgsSession {
-
     pub fn begin(
         world: &World,
         row: &Action,
@@ -219,14 +195,9 @@ impl TaskArgsSession {
         })
     }
 
-
     pub fn definition_path(&self) -> &str {
         &self.task.definition_path
     }
-
-
-
-
 
     pub fn approve_trust(
         &mut self,
@@ -256,7 +227,6 @@ impl TaskArgsSession {
         self.trust_approved = true;
         Ok(current_action)
     }
-
 
     pub fn accept(
         &self,
@@ -450,7 +420,6 @@ fn normalized_task_action(
     Ok(normalized)
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Invocation {
     program: String,
@@ -461,10 +430,6 @@ pub struct Invocation {
 }
 
 impl Invocation {
-
-
-
-
     pub(crate) fn read_only(program: &str, argv: Vec<String>, workdir: &str, target: &str) -> Self {
         Self {
             program: program.to_owned(),
@@ -475,32 +440,26 @@ impl Invocation {
         }
     }
 
-
     pub fn program(&self) -> &str {
         &self.program
     }
-
 
     pub fn argv(&self) -> &[String] {
         &self.argv
     }
 
-
     pub fn workdir(&self) -> &str {
         &self.workdir
     }
-
 
     pub fn target(&self) -> &str {
         &self.target
     }
 
-
     pub fn risk(&self) -> Risk {
         self.risk
     }
 }
-
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct InvocationPlan {
@@ -513,17 +472,14 @@ pub struct InvocationPlan {
 }
 
 impl InvocationPlan {
-
     pub fn invocation(&self) -> &Invocation {
         &self.invocation
     }
-
 
     pub fn accepted_inputs(&self) -> &AcceptedInputs {
         &self.accepted
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SafeReviewFacts {
@@ -534,12 +490,10 @@ pub struct SafeReviewFacts {
     pub effect_revision: u64,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExecutionStatus {
     NothingExecuted,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SimulatedReport {
@@ -547,14 +501,6 @@ pub struct SimulatedReport {
     pub status: ExecutionStatus,
     pub notice: &'static str,
 }
-
-
-
-
-
-
-
-
 
 pub fn prepare_nextest_invocation(
     world: &World,
@@ -577,11 +523,6 @@ pub fn prepare_nextest_invocation(
     })
 }
 
-
-
-
-
-
 pub fn nextest_review_facts(
     world: &World,
     producer: &TaskArgsProducer,
@@ -596,13 +537,6 @@ pub fn nextest_review_facts(
         effect_revision: plan.context.effect_revision,
     })
 }
-
-
-
-
-
-
-
 
 pub fn simulate_nextest_invocation(
     world: &World,
@@ -704,7 +638,6 @@ fn map_intent_error(error: IntentError) -> TaskArgsError {
         IntentError::StaleTarget | IntentError::Unavailable => TaskArgsError::StaleAction,
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TaskArgsError {

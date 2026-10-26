@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use termrock::controls::{MasterDetail, MasterDetailLayout, MasterDetailMode, MasterDetailState};
 use termrock::feedback::{
     AccountRole, AccountRow, AccountsDetail, AccountsDrawer, DetailAlert, DetailInk, DetailLine,
@@ -22,26 +14,14 @@ use crate::sim::onepassword::OpSession;
 
 use super::{App, Route};
 
-
-
-
-
-
 const WIDE_MIN_WIDTH: u16 = 102;
 const WIDE_MIN_HEIGHT: u16 = 24;
 
-
-
-
-
 const LIST_PANE_W: u16 = 39;
-
 
 const PANEL_VALUE_AT: u16 = 22;
 
-
 const METER_BAR_W: u16 = 34;
-
 
 const REGISTRATION_POLICY: &str =
     "manual accounts allowed · 1Password, local folder or plain-text key";
@@ -507,10 +487,8 @@ fn inspector_widths(
     }
 }
 
-
 #[derive(Clone, PartialEq, Eq)]
 pub(super) enum Node {
-
     Overview,
 
     Provider(Provider),
@@ -521,7 +499,6 @@ pub(super) enum Node {
 
     AddAccount,
 }
-
 
 pub(super) struct TreeRow {
     pub(super) node: Node,
@@ -534,13 +511,11 @@ pub(super) struct TreeRow {
     pub(super) tail_tone: DetailTail,
 }
 
-
 pub(super) struct Tree {
     pub(super) rows: Vec<TreeRow>,
 }
 
 impl Tree {
-
     pub(super) fn account_at(&self, index: usize) -> Option<&str> {
         match self.rows.get(index)?.node {
             Node::Account(ref id) => Some(id.as_str()),
@@ -548,7 +523,6 @@ impl Tree {
         }
     }
 }
-
 
 pub(super) fn tree(app: &App) -> Tree {
     let mut rows = vec![TreeRow {
@@ -579,7 +553,6 @@ pub(super) fn tree(app: &App) -> Tree {
             rows.push(account_row(app, account));
         }
     }
-
 
     if !app.filter_active() {
         if app
@@ -668,7 +641,6 @@ fn account_row(app: &App, account: &Account) -> TreeRow {
     }
 }
 
-
 fn account_alert(account: &Account) -> Option<(&'static str, DetailAlert)> {
     if !account.enabled {
         return None;
@@ -681,7 +653,6 @@ fn account_alert(account: &Account) -> Option<(&'static str, DetailAlert)> {
     }
     None
 }
-
 
 fn account_tail(app: &App, account: &Account) -> Option<(String, DetailTail)> {
     if !account.enabled {
@@ -706,7 +677,6 @@ fn account_tail(app: &App, account: &Account) -> Option<(String, DetailTail)> {
     }
 }
 
-
 fn failed_tail(account: &Account) -> String {
     match account.issue.as_ref().map(|issue| issue.code) {
         Some(IssueCode::RateLimited) => "rate limited".to_owned(),
@@ -718,7 +688,6 @@ fn failed_tail(account: &Account) -> String {
     }
 }
 
-
 fn age_label(app: &App, account: &Account) -> String {
     let Some(last_good) = account.usage.freshness.last_good_secs else {
         return "unknown".to_owned();
@@ -726,7 +695,6 @@ fn age_label(app: &App, account: &Account) -> String {
     let ago = app.world.clock.ago(last_good);
     ago.trim_end_matches(" ago").to_owned()
 }
-
 
 fn quota_is_hidden(account: &Account) -> bool {
     account.lifecycle == Lifecycle::Unsupported
@@ -737,7 +705,6 @@ fn quota_is_hidden(account: &Account) -> bool {
                 .iter()
                 .all(|window| window.status == QuotaStatus::Unsupported))
 }
-
 
 pub(super) fn paint(app: &App, ui: &mut Ui<'_>, area: Rect) {
     let tree = tree(app);
@@ -751,8 +718,6 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>, area: Rect) {
     match responsive.mode {
         MasterDetailMode::Split => {
             if responsive.detail.is_empty() {
-
-
                 paint_wide(app, ui, area, &tree);
             } else {
                 paint_live_detail(app, ui, area, &tree, control, mode_area, responsive);
@@ -898,10 +863,6 @@ fn paint_live_detail(
     );
 }
 
-
-
-
-
 fn paint_filter_field(app: &App, ui: &mut Ui<'_>, area: Rect) {
     if !app.accounts.filtering {
         return;
@@ -922,7 +883,6 @@ fn paint_filter_field(app: &App, ui: &mut Ui<'_>, area: Rect) {
         .value(&app.accounts.filter_query)
         .draw(ui, field, &app.accounts.filter_input);
 }
-
 
 fn paint_wide(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
     let selection = selection(app, tree);
@@ -982,7 +942,6 @@ fn paint_wide(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
     }
     register_add_row(ui, area, tree, offset);
 }
-
 
 fn paint_narrow(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
     let selection = selection(app, tree);
@@ -1044,10 +1003,6 @@ fn paint_narrow(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
     termrock::feedback::paint_accounts_detail(ui, area, &page);
     register_add_row(ui, area, tree, offset);
 }
-
-
-
-
 
 fn register_add_row(ui: &mut Ui<'_>, area: Rect, tree: &Tree, offset: usize) {
     let Some(index) = tree
@@ -1119,11 +1074,6 @@ fn register_add_row_in(
     );
 }
 
-
-
-
-
-
 fn header_parts(
     app: &App,
     area: Rect,
@@ -1152,15 +1102,9 @@ fn header_parts(
     (crumb, status, value, note)
 }
 
-
 fn text_width(text: &str) -> usize {
     text.chars().count()
 }
-
-
-
-
-
 
 fn list_area(area: Rect, wide: bool, visible: usize) -> Rect {
     let width = if wide {
@@ -1176,11 +1120,6 @@ fn list_area(area: Rect, wide: bool, visible: usize) -> Rect {
     )
 }
 
-
-
-
-
-
 fn draw_list_owner(app: &App, ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1189,9 +1128,7 @@ fn draw_list_owner(app: &App, ui: &mut Ui<'_>, area: Rect) {
     termrock::List::new(crate::ACCOUNTS_LIST).draw(ui, area, &app.accounts.list, &rows);
 }
 
-
 struct Panel {
-
     title: String,
 
     meta: String,
@@ -1211,9 +1148,7 @@ struct Panel {
     buttons: Vec<(String, bool)>,
 }
 
-
 struct PanelField {
-
     label: String,
 
     parts: Vec<String>,
@@ -1221,9 +1156,7 @@ struct PanelField {
     ink: DrawerInk,
 }
 
-
 struct PanelMeter {
-
     label: String,
 
     readout: String,
@@ -1240,7 +1173,6 @@ struct PanelMeter {
 
     note: String,
 }
-
 
 fn panel_for(app: &App, selection: &Selection, room: usize, note_room: usize) -> Panel {
     match selection {
@@ -1329,7 +1261,6 @@ fn panel_for(app: &App, selection: &Selection, room: usize, note_room: usize) ->
     }
 }
 
-
 fn field(label: String, value: String, ink: DrawerInk, room: usize) -> PanelField {
     PanelField {
         label,
@@ -1337,7 +1268,6 @@ fn field(label: String, value: String, ink: DrawerInk, room: usize) -> PanelFiel
         ink,
     }
 }
-
 
 fn account_fields(app: &App, account: &Account) -> Vec<(String, String, DrawerInk)> {
     let mut fields: Vec<(String, String, DrawerInk)> = vec![
@@ -1446,7 +1376,6 @@ fn account_fields(app: &App, account: &Account) -> Vec<(String, String, DrawerIn
     fields
 }
 
-
 fn workspace_users(app: &App, account: &Account) -> Vec<String> {
     app.world
         .workspaces
@@ -1460,7 +1389,6 @@ fn workspace_users(app: &App, account: &Account) -> Vec<String> {
         .map(|workspace| workspace.name.clone())
         .collect()
 }
-
 
 fn account_meters(app: &App, account: &Account, note_room: usize) -> Vec<PanelMeter> {
     account
@@ -1495,7 +1423,6 @@ fn account_meters(app: &App, account: &Account, note_room: usize) -> Vec<PanelMe
         .collect()
 }
 
-
 fn meter_detail(app: &App, window: &crate::domain::usage::QuotaWindow) -> String {
     let mut parts: Vec<String> = Vec::new();
     if let (Some(used), Some(limit)) = (window.used, window.limit)
@@ -1520,7 +1447,6 @@ fn meter_detail(app: &App, window: &crate::domain::usage::QuotaWindow) -> String
     parts.join(" · ")
 }
 
-
 fn account_status(app: &App, account: &Account) -> Option<(String, DrawerInk)> {
     let issue = account.issue.as_ref()?;
     let ink = if issue.is_informational() || issue.code == IssueCode::QuotaUnsupported {
@@ -1542,7 +1468,6 @@ fn account_status(app: &App, account: &Account) -> Option<(String, DrawerInk)> {
     Some((text, ink))
 }
 
-
 fn provider_accounts(app: &App, provider: Provider) -> Vec<&Account> {
     app.world
         .accounts
@@ -1551,7 +1476,6 @@ fn provider_accounts(app: &App, provider: Provider) -> Vec<&Account> {
         .filter(|account| account.provider == provider)
         .collect()
 }
-
 
 fn registry_lines(app: &App, summary: &OverallSummary) -> Vec<InspectLine> {
     let mut lines = vec![
@@ -1709,7 +1633,6 @@ fn registry_lines(app: &App, summary: &OverallSummary) -> Vec<InspectLine> {
     lines
 }
 
-
 fn provider_lines(app: &App, provider: Provider, members: &[&Account]) -> Vec<InspectLine> {
     let mut lines = vec![
         InspectLine::Prop {
@@ -1768,9 +1691,6 @@ fn provider_lines(app: &App, provider: Provider, members: &[&Account]) -> Vec<In
     }
     lines
 }
-
-
-
 
 fn narrow_facts(
     app: &App,
@@ -1839,7 +1759,6 @@ fn narrow_facts(
     facts
 }
 
-
 fn narrow_heading(app: &App, selection: &Selection) -> (String, String) {
     let summary = OverallSummary::compute(&app.world.accounts.accounts);
     match selection {
@@ -1877,7 +1796,6 @@ fn narrow_heading(app: &App, selection: &Selection) -> (String, String) {
         }
     }
 }
-
 
 fn health_text(app: &App, summary: &OverallSummary) -> String {
     let _ = app;
@@ -2075,7 +1993,6 @@ fn thousands(value: usize) -> String {
     out
 }
 
-
 fn truncate(text: &str, width: usize) -> String {
     if text.chars().count() <= width {
         return text.to_owned();
@@ -2084,7 +2001,6 @@ fn truncate(text: &str, width: usize) -> String {
     cut.push('…');
     cut
 }
-
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Selection {
@@ -2111,7 +2027,6 @@ fn cursor_index(app: &App) -> Option<usize> {
     }
 }
 
-
 fn pane_names(tree: &Tree) -> Vec<String> {
     tree.rows
         .iter()
@@ -2126,14 +2041,12 @@ fn pane_names_for_width(tree: &Tree, pane_width: u16) -> Vec<String> {
         .collect()
 }
 
-
 fn detail_names(area_width: u16, tree: &Tree) -> Vec<String> {
     tree.rows
         .iter()
         .map(|row| truncate(&row.name, narrow_name_width(area_width, row)))
         .collect()
 }
-
 
 fn pane_rows<'a>(
     app: &App,
@@ -2161,7 +2074,6 @@ fn pane_rows<'a>(
         .collect()
 }
 
-
 fn detail_rows<'a>(
     app: &App,
     tree: &'a Tree,
@@ -2187,12 +2099,10 @@ fn detail_rows<'a>(
             tail_tone: row.tail_tone,
             selected: Some(index) == selected,
 
-
             faded: index == offset.saturating_add(shown).saturating_sub(1) && total > visible,
         })
         .collect()
 }
-
 
 fn pane_name_width(row: &TreeRow) -> usize {
     pane_name_width_for(row, LIST_PANE_W)
@@ -2208,7 +2118,6 @@ fn pane_name_width_for(row: &TreeRow, pane_width: u16) -> usize {
     usize::from(right.saturating_sub(name_x))
 }
 
-
 fn narrow_name_width(area_width: u16, row: &TreeRow) -> usize {
     let name_x = name_column(row);
     let tail =
@@ -2222,14 +2131,12 @@ fn narrow_name_width(area_width: u16, row: &TreeRow) -> usize {
     usize::from(right.saturating_sub(name_x))
 }
 
-
 fn name_column(row: &TreeRow) -> u16 {
     match row.role {
         AccountRole::Root | AccountRole::Group => 7,
         AccountRole::Item | AccountRole::Note => 9,
     }
 }
-
 
 fn visible_rows(area: Rect, wide: bool) -> usize {
     let rows = if wide {
@@ -2240,15 +2147,10 @@ fn visible_rows(area: Rect, wide: bool) -> usize {
     usize::from(rows.max(1))
 }
 
-
-
-
-
 fn list_offset(app: &App, total: usize, visible: usize) -> usize {
     let offset = app.accounts.list.scroll().offset();
     offset.min(total.saturating_sub(visible))
 }
-
 
 fn list_title(app: &App, selection: &Selection, summary: &str, area: Rect, wide: bool) -> String {
     let inner = if app.filter_active() {
@@ -2259,7 +2161,6 @@ fn list_title(app: &App, selection: &Selection, summary: &str, area: Rect, wide:
             Selection::Overview | Selection::Account(_) => "Accounts".to_owned(),
         }
     };
-
 
     let title_x = area.x.saturating_add(3);
     let summary_x = if wide {
@@ -2296,7 +2197,6 @@ fn list_title_for_box(app: &App, selection: &Selection, summary: &str, master_bo
     format!(" {inner} ")
 }
 
-
 fn list_summary(app: &App) -> String {
     let summary = OverallSummary::compute(&app.world.accounts.accounts);
     format!(
@@ -2306,7 +2206,6 @@ fn list_summary(app: &App) -> String {
         summary.counts.exhausted + summary.counts.failed
     )
 }
-
 
 fn crumb(app: &App, selection: &Selection) -> String {
     match selection {
@@ -2325,10 +2224,6 @@ fn crumb(app: &App, selection: &Selection) -> String {
     }
 }
 
-
-
-
-
 fn header_status(app: &App) -> String {
     let refreshing = app
         .world
@@ -2340,18 +2235,15 @@ fn header_status(app: &App) -> String {
     format!("⠋ refreshing {refreshing}")
 }
 
-
 fn warning_count(app: &App) -> usize {
     let summary = OverallSummary::compute(&app.world.accounts.accounts);
     summary.counts.warnings
 }
 
-
 fn danger_count(app: &App) -> usize {
     let summary = OverallSummary::compute(&app.world.accounts.accounts);
     summary.counts.exhausted + summary.counts.failed
 }
-
 
 fn credential_line(_app: &App, account: &Account) -> String {
     match &account.source {
@@ -2386,7 +2278,6 @@ fn credential_line(_app: &App, account: &Account) -> String {
     }
 }
 
-
 fn freshness_meta(app: &App, account: &Account) -> String {
     let phase = account.usage.freshness.phase;
     let age = account
@@ -2402,7 +2293,6 @@ fn freshness_meta(app: &App, account: &Account) -> String {
         Freshness::Failed => format!("failed · last good {age}"),
     }
 }
-
 
 fn validation_line(account: &Account) -> (String, String) {
     let material = if account.validation.level().is_some() {
@@ -2429,7 +2319,6 @@ fn validation_line(account: &Account) -> (String, String) {
     )
 }
 
-
 trait TailLabel {
     fn tail_label(&self, app: &App) -> Option<String>;
 }
@@ -2440,17 +2329,12 @@ impl TailLabel for Account {
     }
 }
 
-
-
-
-
 fn panel_value_room(area: Rect) -> usize {
     let content_x = area.x.saturating_add(LIST_PANE_W).saturating_add(3);
     let body_right = area.right().saturating_sub(3);
     let value_x = content_x.saturating_add(PANEL_VALUE_AT);
     usize::from(body_right.saturating_sub(value_x))
 }
-
 
 fn panel_note_room(area: Rect) -> usize {
     let content_x = area.x.saturating_add(LIST_PANE_W).saturating_add(3);
@@ -2461,7 +2345,6 @@ fn panel_note_room(area: Rect) -> usize {
         .saturating_add(4);
     usize::from(body_right.saturating_sub(note_x))
 }
-
 
 fn panel_lines<'a>(
     panel: &'a Panel,
@@ -2479,10 +2362,6 @@ fn panel_lines<'a>(
     lines
 }
 
-
-
-
-
 fn panel_content_lines<'a>(panel: &'a Panel) -> Vec<DrawerLine<'a>> {
     let mut lines = vec![
         DrawerLine::Title {
@@ -2495,7 +2374,6 @@ fn panel_content_lines<'a>(panel: &'a Panel) -> Vec<DrawerLine<'a>> {
         push_field(&mut lines, field);
     }
     if let Some((label, meta)) = &panel.quota {
-
         lines.push(DrawerLine::Blank);
         lines.push(DrawerLine::Heading { label, meta });
     }
@@ -2521,8 +2399,6 @@ fn panel_content_lines<'a>(panel: &'a Panel) -> Vec<DrawerLine<'a>> {
     lines
 }
 
-
-
 fn push_field<'a>(lines: &mut Vec<DrawerLine<'a>>, field: &'a PanelField) {
     for (index, part) in field.parts.iter().enumerate() {
         if index == 0 {
@@ -2540,10 +2416,6 @@ fn push_field<'a>(lines: &mut Vec<DrawerLine<'a>>, field: &'a PanelField) {
         }
     }
 }
-
-
-
-
 
 fn wrap_value(text: &str, room: usize) -> Vec<String> {
     let room = room.max(8);
@@ -2582,7 +2454,6 @@ fn wrap_value(text: &str, room: usize) -> Vec<String> {
     lines
 }
 
-
 fn hard_wrap(
     line: &mut String,
     used: &mut usize,
@@ -2603,10 +2474,6 @@ fn hard_wrap(
     }
 }
 
-
-
-
-
 fn hang_column(text: &str, room: usize) -> usize {
     let Some(at) = text.find("   ") else {
         return 0;
@@ -2618,10 +2485,6 @@ fn hang_column(text: &str, room: usize) -> usize {
     let column = text_width(&text[..text.len() - rest.len()]);
     if column * 2 > room { 0 } else { column }
 }
-
-
-
-
 
 fn fit_hints<'a>(hints: &[FilterHint<'a>], width: u16) -> (Vec<FilterHint<'a>>, String) {
     let room = usize::from(width.saturating_sub(1));
@@ -2658,7 +2521,6 @@ fn fit_hints<'a>(hints: &[FilterHint<'a>], width: u16) -> (Vec<FilterHint<'a>>, 
     )
 }
 
-
 fn kept_hints<'a>(hints: &[FilterHint<'a>], keep: &[usize]) -> Vec<FilterHint<'a>> {
     keep.iter()
         .map(|&index| FilterHint {
@@ -2668,11 +2530,9 @@ fn kept_hints<'a>(hints: &[FilterHint<'a>], keep: &[usize]) -> Vec<FilterHint<'a
         .collect()
 }
 
-
 fn hint_cost(hint: &FilterHint<'_>) -> usize {
     text_width(hint.key) + 1 + text_width(hint.action) + 2
 }
-
 
 fn hint_pinned(key: &str) -> bool {
     matches!(key, "Esc" | "?" | "F1")

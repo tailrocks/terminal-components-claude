@@ -155,7 +155,6 @@ pub struct LaunchRun {
 
     pub cancelled: bool,
 
-
     pub trace_label: String,
 }
 

@@ -1037,45 +1037,32 @@ impl App {
         let new_workspace = Chord::key(KeyCode::Char('n'));
         self.keymap.remove(KeyPhase::Capture, new_workspace);
         if self.route == Route::Manager {
-
             self.keymap
                 .add(KeyPhase::Capture, new_workspace, CMD_NEW_WORKSPACE);
         }
         let enter = Chord::key(KeyCode::Enter);
         self.keymap.remove(KeyPhase::Capture, enter);
         if self.accounts_drawer_enter() {
-
-
             self.keymap.add(KeyPhase::Capture, enter, CMD_EXIT_CONFIRM);
         } else if self.route == Route::Editor && self.editor_mounts_armed {
-
-
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_EDITOR_MOUNTS_CONFIRM);
         } else if self.route == Route::Editor && self.editor_roles_armed {
-
-
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_EDITOR_ROLES_CONFIRM);
         } else if self.route == Route::Settings && self.settings_mounts_armed {
-
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_SETTINGS_MOUNTS_CONFIRM);
         } else if self.route == Route::Settings && self.settings_env_armed {
-
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_SETTINGS_ENV_CONFIRM);
         } else if self.route == Route::Settings && self.settings_agents_armed {
-
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_SETTINGS_AGENTS_CONFIRM);
         } else if self.route == Route::Settings && self.settings_trust_armed {
-
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_SETTINGS_TRUST_CONFIRM);
         } else if self.add_form_key_host() && self.add_form_backtab && !self.add_form_required {
-
-
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_ADD_FORM_REQUIRED);
         }
@@ -1094,13 +1081,10 @@ impl App {
             && !self.editor.env_form_open
             && !self.editor.preview_open
         {
-
             self.keymap
                 .add(KeyPhase::Capture, field_tab, CMD_EDITOR_FIELD);
         }
         if self.add_form_key_host() && !self.add_form_required {
-
-
             self.keymap
                 .add(KeyPhase::Capture, backtab, CMD_ADD_FORM_BACKTAB);
             self.keymap
@@ -1114,7 +1098,6 @@ impl App {
         if self.route == Route::Editor {
             self.keymap.add(KeyPhase::Bubble, mounts, CMD_EDITOR_MOUNTS);
         } else if self.route == Route::Settings && self.settings.tab == 0 {
-
             self.keymap
                 .add(KeyPhase::Capture, mounts, CMD_SETTINGS_MOUNTS);
         }
@@ -1122,7 +1105,6 @@ impl App {
         self.keymap.remove(KeyPhase::Bubble, env_key);
         self.keymap.remove(KeyPhase::Capture, env_key);
         if self.route == Route::Settings && self.settings.tab == 0 {
-
             self.keymap
                 .add(KeyPhase::Capture, env_key, CMD_SETTINGS_ENV);
         } else {
@@ -1132,7 +1114,6 @@ impl App {
         self.keymap.remove(KeyPhase::Bubble, agents_key);
         self.keymap.remove(KeyPhase::Capture, agents_key);
         if self.route == Route::Settings && self.settings.tab == 0 {
-
             self.keymap
                 .add(KeyPhase::Capture, agents_key, CMD_SETTINGS_AGENTS);
         } else {
@@ -1143,7 +1124,6 @@ impl App {
         self.keymap.remove(KeyPhase::Bubble, trust_key);
         self.keymap.remove(KeyPhase::Capture, trust_key);
         if self.route == Route::Settings && self.settings.tab == 0 {
-
             self.keymap
                 .add(KeyPhase::Capture, trust_key, CMD_SETTINGS_TRUST);
         } else {
@@ -1179,11 +1159,9 @@ impl App {
             && !self.editor.preview_open
             && !self.editor_exit_open
         {
-
             self.keymap
                 .add(KeyPhase::Bubble, drawer, CMD_EDITOR_MOUNT_ISOLATION);
         }
-
 
         for (key, command, elsewhere) in [
             ('e', CMD_ACCOUNT_EDIT, Some(CMD_EDITOR_OPEN)),
@@ -1575,7 +1553,6 @@ impl App {
                     .as_deref()
                     .is_some_and(|status| status.starts_with("Save workspace")));
 
-
         let roles_have_complete_shared_controls =
             self.editor.tab != EditorTab::Roles || full.height > EDITOR_VIEW_ROLE_SAVE_ROW;
         self.route == Route::Editor
@@ -1943,8 +1920,6 @@ impl App {
     }
 
     fn capsule_command_palette() -> Picker<'static, Item<'static>> {
-
-
         Picker::new(CAPSULE_COMMAND_PALETTE)
             .title("Command palette")
             .placeholder("Type to filter commands…")
@@ -2380,11 +2355,8 @@ impl App {
         Dialog::info(COCKPIT_INFO_DIALOG, "Debug info")
             .width(66)
             .body_rows(8)
-
             .meta("read-only")
             .head_in_border()
-
-
             .align(termrock::ScreenAlign::GeometricCenter)
     }
 
@@ -2498,8 +2470,6 @@ impl App {
     }
 
     fn dirty_mounts_tab(&mut self) {
-
-
         if let Some(mount) = self.editor.pending.mounts.first_mut() {
             mount.readonly = true;
             mount.isolation = crate::domain::workspace::Isolation::Clone;
@@ -2809,7 +2779,6 @@ impl App {
         }
     }
 
-
     pub(super) fn overlay_open(&self) -> bool {
         self.status.is_some()
             || self.help_open
@@ -2826,14 +2795,9 @@ impl App {
             || self.manager.detail_open()
     }
 
-
-
-
-
     pub(crate) fn filter_active(&self) -> bool {
         !self.accounts.filter_query.trim().is_empty()
     }
-
 
     fn filter_field_open(&self) -> bool {
         self.accounts.filter_input.is_editing()
@@ -3087,8 +3051,6 @@ impl App {
             if let Some(outcome) = cx.focus_continuation_result(opening, ACCOUNTS_LIST)
                 && (!outcome.continued() || outcome.restored_focus() != Some(ACCOUNTS_LIST))
             {
-
-
                 let _ = cx.acknowledge_focus_continuation_result(opening, ACCOUNTS_LIST);
             }
             if cx.take_layer_completion(opening).is_some() {
@@ -3260,10 +3222,6 @@ impl App {
         self.restore_account_form_return();
         true
     }
-
-
-
-
 
     fn open_account_edit(&mut self, cx: &mut Cx<'_>) {
         let Some(id) = self.accounts.selected_id.clone() else {
@@ -3802,7 +3760,6 @@ impl App {
     fn capsule_prefix_key(&mut self, cx: &mut Cx<'_>, key: char) -> Response<()> {
         if key == 'm' {
             self.capsule_prefix = false;
-
 
             self.status = None;
             self.capture_active_capsule_tab_target();
@@ -4632,8 +4589,6 @@ impl App {
             result |= Response::changed();
         }
 
-
-
         if cx.is_open(ROLE_PICKER)
             && let Some(RolePickerPurpose::EditorDefault(target)) = self.role_picker_purpose
             && !self.editor_role_target_is_current(target)
@@ -4940,7 +4895,6 @@ impl App {
         if cx.activation_key() == Some(ActivationKey::Enter)
             && (self.launch_picker_enter(cx) || self.hard_launch_picker_enter(cx))
         {
-
             self.open_agent_picker(cx);
             return result | Response::changed();
         }
@@ -5013,8 +4967,6 @@ impl App {
                     matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. })
                 })
             {
-
-
                 host_result |= self.update_account_list_focus_transition(cx);
                 self.acknowledge_account_list_focus_results(cx);
             }
@@ -5165,8 +5117,6 @@ impl App {
         }
         self.acknowledge_account_list_focus_results(cx);
         if matches!(list_action, Some(ListAction::Chose(_))) && !self.filter_field_open() {
-
-
             if self.accounts.drawer_open {
                 accounts_page::close_drawer(&mut self.accounts_view, cx, self.screen);
             }
@@ -5174,12 +5124,8 @@ impl App {
             result |= Response::changed();
         }
 
-
         if self.filter_field_open() {
             if matches!(list_action, Some(ListAction::Chose(_))) {
-
-
-
                 self.accounts.filter_input.cancel();
                 cx.focus(ACCOUNTS_LIST);
                 result |= Response::changed();
@@ -5206,12 +5152,8 @@ impl App {
             }
             if committed {
                 if self.accounts.filter_query.trim().is_empty() {
-
-
                     self.accounts.filter_input.begin("");
                 } else {
-
-
                     self.accounts.filtering = true;
                     cx.focus(ACCOUNTS_LIST);
                 }
@@ -5388,8 +5330,6 @@ impl App {
             None => format!("Saved {title}"),
         });
     }
-
-
 
     fn save_account_edit(&mut self, id: String) {
         let provider = register_provider(self.accounts.provider_index);
@@ -6034,8 +5974,6 @@ impl App {
                 .intents(CAPSULE_INPUT)
                 .any(|intent| matches!(intent, Intent::Binding(_)));
         if pending_capsule_confirm {
-
-
             if self.capsule_split_vertical_frame(cx.theme(), cx.viewport()) {
                 cx.focus(CAPSULE_INPUT);
                 return result;
@@ -6363,8 +6301,6 @@ impl App {
                         );
                     }
                     None => {
-
-
                         let ids: Vec<String> = self
                             .world
                             .accounts
@@ -6506,8 +6442,6 @@ impl App {
                     self.capsule_prefix = false;
                     self.pending_capsule_action = Some(CapsuleAction::NewTab);
                     if self.capsule_split_vertical_host(cx.theme(), cx.viewport()) {
-
-
                         self.status = None;
                         cx.focus(CAPSULE_INPUT);
                     } else {
@@ -6531,8 +6465,6 @@ impl App {
                 Some(response.erase())
             }
             CMD_MENU_OPEN if self.route == Route::Manager => {
-
-
                 self.ensure_manager_rows();
                 if !self.manager_menu_host(cx.theme(), cx.viewport()) {
                     return None;
@@ -6734,12 +6666,7 @@ impl App {
             CMD_CAPSULE_SPLIT_BELOW if self.route == Route::Capsule && self.capsule_prefix => {
                 self.capsule_prefix = false;
                 if self.capsule_split_vertical_host(cx.theme(), cx.viewport()) {
-
-
-
                     self.pending_capsule_action = Some(CapsuleAction::Split(SplitDir::Vertical));
-
-
 
                     self.status = None;
                     cx.focus(CAPSULE_INPUT);
@@ -6761,7 +6688,6 @@ impl App {
                         Some(tab.focused)
                     };
                     self.capsule.zoomed = tab.zoomed.is_some();
-
 
                     let zoom_host = cx.viewport().width == 120
                         && cx.viewport().height == 40
@@ -6807,7 +6733,6 @@ impl App {
                 self.open_capsule_command_palette(cx)
             }
             CMD_PRELUDE_SPACE if self.route == Route::Capsule && self.capsule_prefix => {
-
                 self.open_capsule_command_palette(cx)
             }
             CMD_CONTAINER_INFO if self.route == Route::Capsule => {
@@ -6855,8 +6780,6 @@ impl App {
                     && !self.filter_field_open()
                     && !self.accounts.drawer_open =>
             {
-
-
                 self.move_accounts_cursor(true);
                 Some(Response::changed())
             }
@@ -6954,7 +6877,6 @@ impl App {
                 self.accounts.filtering = true;
                 self.accounts.drawer_open = false;
 
-
                 let query = self.accounts.filter_query.clone();
                 self.accounts.filter_input.begin(&query);
                 cx.focus(crate::screens::accounts::FILTER);
@@ -6970,7 +6892,6 @@ impl App {
                         .next()
                         .map(|account| account.id.clone());
                 }
-
 
                 if let Some(id) = self.accounts.selected_id.clone()
                     && let Some(index) = self.account_row_index(&id)
@@ -6991,14 +6912,10 @@ impl App {
             CMD_EXIT_CONFIRM
                 if self.launch_picker_enter(cx) || self.hard_launch_picker_enter(cx) =>
             {
-
-
                 self.open_agent_picker(cx);
                 Some(Response::changed())
             }
             CMD_EXIT_CONFIRM if self.accounts_drawer_enter() => {
-
-
                 self.accounts.drawer_open = true;
                 accounts_page::open_drawer(&mut self.accounts_view, cx, self.screen);
                 Some(Response::changed())
@@ -7115,7 +7032,6 @@ impl App {
                 Some(Response::changed())
             }
             CMD_SETTINGS_MOUNTS if self.route == Route::Settings && self.settings.tab == 0 => {
-
                 if cx.update_cause() == UpdateCause::Event {
                     self.settings_mounts_armed = true;
                 }
@@ -7131,7 +7047,6 @@ impl App {
                 Some(Response::changed())
             }
             CMD_SETTINGS_ENV if self.route == Route::Settings && self.settings.tab == 0 => {
-
                 if cx.update_cause() == UpdateCause::Event {
                     self.settings_env_armed = true;
                 }
@@ -7147,7 +7062,6 @@ impl App {
                 Some(Response::changed())
             }
             CMD_SETTINGS_AGENTS if self.route == Route::Settings && self.settings.tab == 0 => {
-
                 if cx.update_cause() == UpdateCause::Event {
                     self.settings_agents_armed = true;
                 }
@@ -7163,7 +7077,6 @@ impl App {
                 Some(Response::changed())
             }
             CMD_SETTINGS_TRUST if self.route == Route::Settings && self.settings.tab == 0 => {
-
                 if cx.update_cause() == UpdateCause::Event {
                     self.settings_trust_armed = true;
                 }
@@ -7770,7 +7683,6 @@ impl App {
     }
 
     fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect, frame_owns_list: bool) {
-
         if self.manager_detail_state.drawer_open() || self.manager.detail_open() {
             manager_detail::draw(self, ui, area, frame_owns_list);
             return;
@@ -7823,8 +7735,6 @@ impl App {
     ) {
         self.paint_pinned_split_inner(ui, area, mode, place_cursor, false);
     }
-
-
 
     fn paint_pinned_detail_drawer(&self, ui: &mut Ui<'_>, area: Rect, place_cursor: bool) {
         self.paint_pinned_split_inner(
@@ -7980,7 +7890,6 @@ impl App {
             .now_secs()
             .saturating_sub(self.world.last_refresh_secs)
             .max(0);
-
 
         let daemon_ago = if ago_secs == 0 {
             self.world.clock.ago(self.world.now_secs() - 3)
@@ -8636,7 +8545,6 @@ impl App {
         let mut fg = termrock::Color::Rgb(0x79, 0xb8, 0xff);
         let mut bg = termrock::Color::Rgb(0, 0, 0);
         if level == termrock::ColorLevel::Ansi256 {
-
             fg = termrock::Color::Indexed(111);
             bg = termrock::Color::Indexed(16);
         } else if level == termrock::ColorLevel::Ansi16 {
@@ -8674,8 +8582,6 @@ impl App {
             style,
         );
         if level == termrock::ColorLevel::Ansi256 {
-
-
             ui.recolor_fg(screen, |fg, bg| match (fg, bg) {
                 (termrock::Color::Indexed(233), termrock::Color::Indexed(78)) => {
                     Some(termrock::Color::Indexed(232))
@@ -8713,7 +8619,6 @@ impl App {
     }
 
     fn accounts_add_form_scene(&self) -> bool {
-
         self.route == Route::Accounts
             && self.world.scenario == Scenario::AccountsMixed
             && self.motion == Motion::Paused
@@ -8789,7 +8694,6 @@ impl App {
             self.draw_accounts_add_form_body(ui, body);
         });
         if self.add_form_required {
-
             let message_bg = ui.theme_ref().bg(termrock::Surface::Elevated);
             termrock::fields::paint_field_error(
                 ui,
@@ -8850,7 +8754,6 @@ impl App {
         let radio_active =
             ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent));
 
-
         ui.paint_str(
             Rect::new(body.x.saturating_add(2), body.y, 13, 1),
             "Display name ",
@@ -8861,7 +8764,6 @@ impl App {
             "*",
             secondary_bold,
         );
-
 
         let field_width = body.width.saturating_sub(2);
         ui.fill(
@@ -8881,7 +8783,6 @@ impl App {
             );
         }
 
-
         ui.paint_str(
             Rect::new(body.x.saturating_add(2), body.y.saturating_add(4), 15, 1),
             "Purpose label  ",
@@ -8892,7 +8793,6 @@ impl App {
             "optional",
             faint,
         );
-
 
         ui.fill(
             Rect::new(
@@ -8909,13 +8809,11 @@ impl App {
             field_text,
         );
 
-
         ui.paint_str(
             Rect::new(body.x.saturating_add(2), body.y.saturating_add(8), 8, 1),
             "Provider",
             secondary,
         );
-
 
         ui.fill(
             Rect::new(
@@ -8937,7 +8835,6 @@ impl App {
             field_text,
         );
 
-
         ui.paint_str(
             Rect::new(
                 body.x.saturating_add(2),
@@ -8949,13 +8846,11 @@ impl App {
             field_text,
         );
 
-
         ui.paint_str(
             Rect::new(body.x.saturating_add(2), body.y.saturating_add(14), 17, 1),
             "Credential source",
             secondary,
         );
-
 
         ui.paint_str(
             Rect::new(body.x.saturating_add(1), body.y.saturating_add(15), 3, 1),
@@ -8988,13 +8883,11 @@ impl App {
             primary_plain,
         );
 
-
         ui.paint_str(
             Rect::new(body.x.saturating_add(2), body.y.saturating_add(19), 19, 1),
             "1Password reference",
             secondary,
         );
-
 
         ui.paint_str(
             Rect::new(body.x.saturating_add(2), body.y.saturating_add(20), 10, 1),
@@ -9005,7 +8898,6 @@ impl App {
             ui,
             Rect::new(body.x.saturating_add(55), body.y.saturating_add(20), 10, 1),
         );
-
 
         ui.register_control(
             crate::screens::accounts::NAME,
@@ -9043,7 +8935,6 @@ impl App {
             termrock::Focusability::Focusable,
         );
     }
-
 
     fn accounts_drawer_enter(&self) -> bool {
         self.route == Route::Accounts
@@ -9102,8 +8993,6 @@ impl App {
         if !self.usage_overview_narrow_host(ui.theme_ref(), screen) {
             return;
         }
-
-
 
         ui.register_control(
             crate::screens::usage::TABS,
@@ -9590,8 +9479,6 @@ impl App {
     }
 
     fn capsule_split_vertical_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-
-
         screen.width >= 72
             && screen.height >= 20
             && (Self::junie_truecolor(theme)
@@ -9638,7 +9525,6 @@ impl App {
     }
 
     fn capsule_zoom_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-
         screen.width == 120
             && screen.height == 40
             && theme.capability.color == termrock::ColorLevel::TrueColor
@@ -9679,17 +9565,12 @@ impl App {
     }
 
     fn draw_capsule_zoom(&self, ui: &mut Ui<'_>, screen: Rect) {
-
-
-
         if self.capsule_zoom_frame(ui.theme_ref(), screen) {
             capsule_zoom_view::paint(ui);
         }
     }
 
     fn capsule_menu_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-
-
         screen.width == 80
             && screen.height == 24
             && theme.capability.color == termrock::ColorLevel::TrueColor
@@ -9717,8 +9598,6 @@ impl App {
     }
 
     fn capsule_menu_120_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-
-
         screen.width == 120
             && screen.height == 40
             && theme.capability.color == termrock::ColorLevel::TrueColor
@@ -9734,8 +9613,6 @@ impl App {
     }
 
     fn capsule_palette_120_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-
-
         screen.width == 120
             && screen.height == 40
             && theme.capability.color == termrock::ColorLevel::TrueColor
@@ -9755,7 +9632,6 @@ impl App {
             return;
         }
         capsule_menu_view::paint(ui);
-
 
         ui.set_undrawn_top_bar_cursor(CAPSULE_TAB_MENU, ui.full(), Position::new(3, 19));
     }
@@ -9799,12 +9675,6 @@ impl App {
             && !self.quit_open
             && !self.cancel_open
     }
-
-
-
-
-
-
 
     fn resting_capsule_hbar(inner: Rect, projected: &ProjectedText) -> bool {
         if inner.height <= 1 || inner.width < 2 {
@@ -9974,10 +9844,6 @@ impl App {
             let menu_frame = self.capsule_menu_120_frame(ui.theme_ref(), ui.full());
             let palette_frame = self.capsule_palette_120_frame(ui.theme_ref(), ui.full());
 
-
-
-
-
             let wide_picker = split_frame && ui.full().width == 120 && ui.full().height == 40;
             let shrink = menu_frame
                 || palette_frame
@@ -10007,9 +9873,6 @@ impl App {
             }
             let viewport = Self::capsule_viewport(pane_id);
             viewport.draw_projected(ui, viewport_area, &state, projected);
-
-
-
 
             let picker_bar = split_frame && !(ui.full().width == 120 && ui.full().height == 40);
             if ((menu_frame || palette_frame || picker_bar) && shrink || rest_bar)
@@ -10149,7 +10012,6 @@ impl App {
     fn draw_capsule_native_tabs(&self, ui: &mut Ui<'_>, area: Rect, items: &[CapsuleTab]) {
         let tabs = Self::capsule_native_tabs();
 
-
         let previous = ui.layout(CAPSULE_TABS).map(|facts| TabWindowReceipt {
             viewport_len: facts.viewport_len,
             content_len: facts.content_len,
@@ -10162,8 +10024,6 @@ impl App {
         self.draw_capsule_shell(ui, full);
         self.draw_layers(ui);
         if self.capsule_palette_open {
-
-
             finish_capsule_palette_chrome(ui);
         }
         self.draw_capsule_zoom(ui, full);
@@ -10175,8 +10035,6 @@ impl App {
             };
             capsule_split_view::paint(ui, title);
             if ui.theme_ref().capability.color == termrock::ColorLevel::Ansi256 {
-
-
                 ui.recolor_rgb(full, capsule_split_view::baseline_256);
             }
             if matches!(
@@ -10315,8 +10173,6 @@ impl App {
             .unwrap_or(termrock::Color::Reset);
         let overflow = style.fg(muted_fg);
         if keep_container {
-
-
             let shown = truncate_middle(&container, 28);
             let shown_w = termrock::width(&shown);
             let running = self
@@ -10340,7 +10196,6 @@ impl App {
             ui.paint_str(Rect::new(x, area.y, crumb_w, 1), &crumb, bold);
             x = x.saturating_add(crumb_w).saturating_add(sep);
 
-
             ui.paint_str(Rect::new(x.saturating_sub(1), area.y, 1, 1), " ", overflow);
             ui.paint_str(Rect::new(x, area.y, shown_w, 1), &shown, overflow);
             if let Some(text) = instances {
@@ -10360,8 +10215,6 @@ impl App {
             );
             ui.paint_str(Rect::new(crumb_x, area.y, crumb_w, 1), &crumb, bold);
         } else {
-
-
             ui.paint_str(
                 Rect::new(right.saturating_sub(1), area.y, 1, 1),
                 "…",
@@ -10382,8 +10235,6 @@ impl App {
         }
         self.paint_capsule_status_row(ui, area);
     }
-
-
 
     fn paint_capsule_status_row(&self, ui: &mut Ui<'_>, area: Rect) {
         const GAP: u16 = 3;
@@ -10435,7 +10286,6 @@ impl App {
         let priority = [10u8, 6, 8, 2, 9, 7];
         let group = [0u8, 0, 1, 1, 2, 2];
         let needed = |keep: &[bool; 6]| -> u16 {
-
             let mut groups = [(0u16, 0u16); 3];
             for ((&on, &g), &w) in keep.iter().zip(group.iter()).zip(widths.iter()) {
                 if on && let Some((group_w, group_n)) = groups.get_mut(g as usize) {
@@ -10759,8 +10609,6 @@ impl App {
         )
     }
 
-
-
     fn capsule_second_meter(&self) -> Option<(String, f64, u8, bool)> {
         let instance_id = self.active_running_instance_id()?;
         let daemon = self.world.daemons.get(&instance_id)?;
@@ -10884,8 +10732,6 @@ impl App {
                 Part::OVERFLOW,
                 termrock::StylePatch::new().set_fg(
                     if ui.theme_ref().capability.color == termrock::ColorLevel::Ansi16 {
-
-
                         termrock::Role::Custom(termrock::Color::Gray)
                     } else {
                         termrock::Role::Fg(termrock::FgStep::Faint)
@@ -11017,8 +10863,6 @@ impl App {
             let menu = self.capsule_tab_context(self.capsule_tab_menu_pos, &menu_title);
             menu.draw(ui, area, &self.capsule_tab_menu_state);
             if menu_120 {
-
-
                 retint_fg(
                     ui,
                     termrock::Color::from_u32(0x00d9_8a8a),
@@ -11026,8 +10870,6 @@ impl App {
                 );
             }
             if menu_80 {
-
-
                 capsule_menu_view::paint_at(ui, screen);
             }
         });
@@ -11038,7 +10880,6 @@ impl App {
                 &self.capsule_palette_state,
                 CAPSULE_COMMANDS,
             );
-
 
             ghost_covered_tab_rule(ui);
         });
@@ -11060,8 +10901,6 @@ impl App {
             let quit = Self::quit_dialog(&self.quit_body);
             quit.draw(ui, area, &self.quit_state, |_, _| {})
         });
-
-
 
         if !(self.launch_cockpit_scene()
             && self.cancel_open
@@ -11216,11 +11055,6 @@ impl App {
             && !self.accounts.form_open
             && !self.accounts.drawer_open
         {
-
-
-
-
-
             cx.focus(ACCOUNTS_LIST);
         }
         self.screen_junie = Self::junie_truecolor(cx.theme());
@@ -11247,8 +11081,6 @@ impl App {
                     })
                 })
             {
-
-
                 result |= Self::editor_save_button("Save workspace")
                     .update(cx)
                     .erase();
@@ -11264,8 +11096,6 @@ impl App {
                     matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. })
                 })
             {
-
-
                 result |= self.update_account_list_focus_transition(cx);
                 self.acknowledge_account_list_focus_results(cx);
             }
@@ -11302,9 +11132,6 @@ impl App {
             result |= self.sync_account_form_layer(cx);
             if cx.update_cause() == UpdateCause::Settle {
                 if self.account_form_owns_input(cx) {
-
-
-
                     result |= self.update_accounts(cx);
                 } else if (!self.account_form_closing.is_empty()
                     || (self.route == Route::Accounts
@@ -11314,8 +11141,6 @@ impl App {
                         matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. })
                     })
                 {
-
-
                     result |= self.update_account_list_focus_transition(cx);
                     self.acknowledge_account_list_focus_results(cx);
                 } else if self.route == Route::Usage
@@ -11328,9 +11153,6 @@ impl App {
                         .update(cx, &mut self.usage_tabs, &USAGE_TABS)
                         .erase();
                 } else if self.route == Route::Settings && matches!(command, CMD_SAVE) {
-
-
-
                     result |= Self::settings_trust_button(self.trusted).update(cx).erase();
                     result |= Self::settings_save_button().update(cx).erase();
                     result |= Self::settings_save_confirm_button().update(cx).erase();
@@ -11389,8 +11211,6 @@ impl App {
     }
 
     fn manager_menu_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-
-
         screen.width == 120
             && screen.height == 40
             && theme.capability.color == termrock::ColorLevel::TrueColor
@@ -11415,8 +11235,6 @@ impl App {
     }
 
     fn launch_picker_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-
-
         !self.manager_file_menu
             && !self.manager_inspect
             && !self.help_open
@@ -11441,8 +11259,6 @@ impl App {
     }
 
     fn launch_picker_semantic_scope(&self, screen: Rect) -> bool {
-
-
         !self.manager_file_menu
             && !self.manager_inspect
             && !self.help_open
@@ -11473,8 +11289,6 @@ impl App {
     }
 
     fn hard_launch_picker_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-
-
         !self.manager_file_menu
             && !self.manager_inspect
             && !self.help_open
@@ -11975,7 +11789,6 @@ fn retint_fg(ui: &mut Ui<'_>, from: termrock::Color, to: termrock::Color) {
 fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {
     use crate::sim::pty::Tone;
     match tone {
-
         Tone::Success => termrock::Role::Custom(termrock::Color::Rgb(0x3f, 0xb9, 0x50)),
         Tone::Error => termrock::Role::Danger,
         other => other.role(),
@@ -12094,8 +11907,6 @@ impl TuiApp for App {
                     capsule_split_view::apply_baseline_ladder(&mut theme);
                 }
                 if mono_chip {
-
-
                     if let Some(overlay) = theme.color.surfaces.get_mut(3) {
                         *overlay = termrock::Color::Indexed(8);
                     }
@@ -12124,7 +11935,6 @@ impl TuiApp for App {
             ui.with_surface(panel_surface, |ui| {
                 ui.with_area(inner, |ui| self.draw_header(ui, header));
             });
-
 
             manager_frame_view::register(self, ui, presentation);
             ui.with_surface(panel_surface, |ui| {
@@ -12176,7 +11986,6 @@ impl TuiApp for App {
             },
         );
 
-
         if self.launch_cockpit_scene() {
             launch_cockpit::paint(self, ui);
         } else if self.launch_failure_frame(full, ui.theme_ref()) {
@@ -12208,9 +12017,6 @@ impl TuiApp for App {
                 .first()
                 .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
         {
-
-
-
             let detail_tab = self.world.scenario == Scenario::Returning
                 && ui.state(ACCOUNTS).contains(termrock::StateFlags::FOCUSED)
                 && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
@@ -12269,8 +12075,6 @@ impl TuiApp for App {
                     .draw(ui, Rect::new(84, 24, 9, 1));
             }
         }
-
-
 
         if self.launch_cockpit_scene() && self.cockpit_info_open {
             let reduced = ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor;
@@ -12495,7 +12299,6 @@ impl TuiApp for App {
                 return self.route_changed();
             }
             if self.accounts.form_open {
-
                 if self.cancel_account_form(cx) {
                     self.status = Some("Cancelled account registration".into());
                     cx.focus(ACCOUNTS_LIST);
@@ -12757,7 +12560,6 @@ fn register_provider(index: u8) -> Provider {
     }
 }
 
-
 fn provider_index(provider: Provider) -> u8 {
     match provider {
         Provider::OpenAi => 1,
@@ -12804,7 +12606,6 @@ fn account_selection_status(account: &Account) -> String {
 }
 
 impl App {
-
     fn selected_account_id(&self) -> Option<String> {
         let tree = accounts_page::tree(self);
         let Some(ItemKey::Index(index)) = self.accounts.list.cursor() else {
@@ -12812,7 +12613,6 @@ impl App {
         };
         tree.account_at(index).map(str::to_owned)
     }
-
 
     fn account_row_index(&self, id: &str) -> Option<usize> {
         let tree = accounts_page::tree(self);

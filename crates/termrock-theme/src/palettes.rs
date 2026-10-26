@@ -66,10 +66,8 @@ const fn junie_256() -> ColorTokens {
         fg: [
             Color::Indexed(231),
             Color::Indexed(249),
-
             Color::Indexed(245),
             Color::Indexed(242),
-
             Color::Indexed(238),
         ],
         on_accent: Color::Indexed(232),
@@ -115,7 +113,6 @@ const fn junie_256() -> ColorTokens {
         tag_ink: Color::Indexed(245),
 
         syntax: SyntaxTokens {
-
             keyword: Color::Indexed(111),
             ident: Color::Indexed(231),
             string: Color::Indexed(116),
@@ -158,7 +155,6 @@ const fn junie_256() -> ColorTokens {
 }
 
 fn junie_16() -> ColorTokens {
-
     let mut tokens = super::Theme::from_tokens(super::builtin::junie::tokens())
         .downgrade(ColorLevel::Ansi16)
         .color;
@@ -190,7 +186,6 @@ const fn junie_mono() -> ColorTokens {
             Color::White,
             Color::Gray,
             Color::Gray,
-
             Color::Gray,
             Color::Black,
         ],
@@ -234,7 +229,6 @@ const fn junie_mono() -> ColorTokens {
         tag_ink: Color::Gray,
 
         syntax: SyntaxTokens {
-
             keyword: Color::Gray,
             ident: Color::White,
             string: Color::Gray,

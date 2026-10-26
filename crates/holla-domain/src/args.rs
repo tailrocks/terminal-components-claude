@@ -1,12 +1,10 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InputFieldId(String);
 
 impl InputFieldId {
-
     pub fn new(value: &str) -> Result<Self, SchemaError> {
         let mut bytes = value.bytes();
         let Some(first) = bytes.next() else {
@@ -22,12 +20,10 @@ impl InputFieldId {
         Ok(Self(value.to_owned()))
     }
 
-
     pub fn as_str(&self) -> &str {
         &self.0
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputSensitivity {
@@ -41,7 +37,6 @@ enum InputKind {
     Choice(Vec<String>),
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InputField {
     id: InputFieldId,
@@ -54,7 +49,6 @@ pub struct InputField {
 }
 
 impl InputField {
-
     pub fn text(id: &str, label: &str, required: bool) -> Result<Self, SchemaError> {
         Ok(Self {
             id: InputFieldId::new(id)?,
@@ -66,7 +60,6 @@ impl InputField {
             sensitivity: InputSensitivity::Public,
         })
     }
-
 
     pub fn choice(
         id: &str,
@@ -85,49 +78,40 @@ impl InputField {
         })
     }
 
-
     pub fn with_help(mut self, help: &str) -> Self {
         self.help = Some(help.to_owned());
         self
     }
-
 
     pub fn with_default(mut self, value: &str) -> Self {
         self.default = Some(value.to_owned());
         self
     }
 
-
     pub fn with_sensitivity(mut self, sensitivity: InputSensitivity) -> Self {
         self.sensitivity = sensitivity;
         self
     }
 
-
     pub fn id(&self) -> &InputFieldId {
         &self.id
     }
-
 
     pub fn label(&self) -> &str {
         &self.label
     }
 
-
     pub fn help(&self) -> Option<&str> {
         self.help.as_deref()
     }
-
 
     pub fn required(&self) -> bool {
         self.required
     }
 
-
     pub fn default_value(&self) -> Option<&str> {
         self.default.as_deref()
     }
-
 
     pub fn choices(&self) -> &[String] {
         match &self.kind {
@@ -136,12 +120,10 @@ impl InputField {
         }
     }
 
-
     pub fn sensitivity(&self) -> InputSensitivity {
         self.sensitivity
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InputSchema {
@@ -150,7 +132,6 @@ pub struct InputSchema {
 }
 
 impl InputSchema {
-
     pub fn new(version: u16, fields: Vec<InputField>) -> Result<Self, SchemaError> {
         if version == 0 {
             return Err(SchemaError::ZeroVersion);
@@ -199,24 +180,17 @@ impl InputSchema {
         Ok(Self { version, fields })
     }
 
-
     pub fn version(&self) -> u16 {
         self.version
     }
-
 
     pub fn fields(&self) -> &[InputField] {
         &self.fields
     }
 
-
     pub fn field(&self, id: &str) -> Option<&InputField> {
         self.fields.iter().find(|field| field.id.as_str() == id)
     }
-
-
-
-
 
     pub fn accept(&self, values: &[(&str, &str)]) -> Result<AcceptedInputs, InputError> {
         let mut supplied = BTreeMap::<InputFieldId, String>::new();
@@ -258,7 +232,6 @@ impl InputSchema {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AcceptedInputs {
     schema: InputSchema,
@@ -266,16 +239,13 @@ pub struct AcceptedInputs {
 }
 
 impl AcceptedInputs {
-
     pub fn schema(&self) -> &InputSchema {
         &self.schema
     }
 
-
     pub fn schema_version(&self) -> u16 {
         self.schema.version
     }
-
 
     pub fn value(&self, id: &str) -> Option<&str> {
         self.values
@@ -284,12 +254,10 @@ impl AcceptedInputs {
             .map(|(_, value)| value.as_str())
     }
 
-
     pub fn contains(&self, id: &str) -> bool {
         self.values.keys().any(|field_id| field_id.as_str() == id)
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SchemaError {
@@ -325,7 +293,6 @@ impl fmt::Display for SchemaError {
 }
 
 impl std::error::Error for SchemaError {}
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InputError {

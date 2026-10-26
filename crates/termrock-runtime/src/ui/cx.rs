@@ -245,7 +245,6 @@ fn next_callback_serial(serial: &mut u64) -> Option<u64> {
 }
 
 impl<'f> Cx<'f> {
-
     pub fn diagnostic(&mut self, diagnostic: crate::diagnostics::Diagnostic) {
         self.services.diagnostics.push(diagnostic);
     }
@@ -322,7 +321,6 @@ impl<'f> Cx<'f> {
         command: Option<ActionKey>,
         update_cause: UpdateCause,
     ) -> Self {
-
         let callback_serial = next_callback_serial(&mut services.callback_serial)
             .expect("runtime callback token exhausted");
         let update_token = UpdateToken::new(services.runtime_id, callback_serial);
@@ -944,8 +942,7 @@ impl<'f> Cx<'f> {
     pub fn quit(&mut self) {
         self.services.quit = true;
     }
-
-    }
+}
 
 impl FrameRead for Cx<'_> {
     fn state(&self, id: Id) -> StateFlags {

@@ -23,11 +23,6 @@ use termrock_feedback::keyhint::ChordText;
 
 const MENU_BAR_TITLE_VARIANT: Variant = Variant::custom("termrock.menu-bar-title");
 
-
-
-
-
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum MenuBarHoverScope {
     #[default]
@@ -69,16 +64,11 @@ impl<'a> MenuItem<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn hint(mut self, hint: &'a str) -> Self {
         self.hint = Some(hint);
         self
     }
-
-
-
-
 
     #[must_use]
     pub const fn reason(mut self, reason: &'a str) -> Self {
@@ -450,9 +440,6 @@ impl<'a> ContextMenu<'a> {
         Self::new(id, items, Anchor::Point(position))
     }
 
-
-
-
     #[must_use]
     pub const fn anchor_to_part(
         mut self,
@@ -471,20 +458,11 @@ impl<'a> ContextMenu<'a> {
         self
     }
 
-
-
-
-
     #[must_use]
     pub const fn keep_underlay(mut self) -> Self {
         self.keep_underlay = true;
         self
     }
-
-
-
-
-
 
     #[must_use]
     pub const fn separator_inset(mut self, cells: u16) -> Self {
@@ -498,24 +476,17 @@ impl<'a> ContextMenu<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn skip_disabled(mut self, skip: bool) -> Self {
         self.skip_disabled = skip;
         self
     }
 
-
-
-
     #[must_use]
     pub const fn clear_on_leave(mut self, clear: bool) -> Self {
         self.clear_on_leave = clear;
         self
     }
-
-
 
     #[must_use]
     pub const fn retain_cursor(mut self, owner: Id) -> Self {
@@ -556,9 +527,6 @@ impl<'a> ContextMenu<'a> {
             .initial_focus(self.id)
             .size(self.measured_size(cx))
     }
-
-
-
 
     pub fn try_layer(&self, cx: &Cx<'_>) -> Option<LayerSpec> {
         let anchor = self.resolve_anchor(cx)?;
@@ -1063,8 +1031,6 @@ impl<'a> ContextMenu<'a> {
             .ov
             .style(ui, self.id, Family::MENU, variant, Part::ROW, flags);
 
-
-
         let mut row_paint = style.style;
         if row_paint.as_style().fg.is_none()
             && let Some(fg) = ui.theme_ref().color.fg.first().copied()
@@ -1234,7 +1200,6 @@ impl<'a> MenuBar<'a> {
             hover_scope: MenuBarHoverScope::Bar,
         }
     }
-
 
     #[must_use]
     pub const fn hover_scope(mut self, scope: MenuBarHoverScope) -> Self {
@@ -1519,8 +1484,6 @@ impl<'a> MenuBar<'a> {
                 }
             };
             if self.hover_scope == MenuBarHoverScope::Title {
-
-
                 ui.fill(rect, style.style);
             }
             let label = shift(rect, 1);

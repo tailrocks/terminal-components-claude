@@ -142,7 +142,6 @@ pub trait App {
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WheelRouteResult {
-
     Ignored,
 
     Consumed,
@@ -372,7 +371,6 @@ impl PendingInput {
 pub struct PendingRoutedInput(RoutedInput);
 
 impl PendingRoutedInput {
-
     pub fn into_routed_input(self) -> RoutedInput {
         self.0
     }
@@ -529,7 +527,6 @@ pub struct Runtime<A: App> {
     painted_cursor: Option<Position>,
     painted_cursor_bar: bool,
     cache_snapshot: Option<std::sync::Arc<()>>,
-
 }
 
 impl<A: App> core::fmt::Debug for Runtime<A> {
@@ -645,7 +642,6 @@ impl<A: App> Runtime<A> {
             painted_cursor: None,
             painted_cursor_bar: false,
             cache_snapshot: None,
-
         }
     }
 
@@ -900,7 +896,6 @@ impl<A: App> Runtime<A> {
 
     fn focus_out_layer_is_live(&self, layer: Option<LayerId>) -> bool {
         match layer {
-
             None | Some(LayerId::PAGE) => true,
             Some(layer) => self
                 .services

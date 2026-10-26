@@ -376,10 +376,6 @@ impl<'a> Table<'a> {
                 let track_pos = usize::from(pos.x.saturating_sub(area.x.saturating_add(3)));
                 match phase {
                     Phase::Press if part.part == Part::THUMB => {
-
-
-
-
                         if cx.capture(bar_id, PartRef::of(Part::THUMB)) {
                             state.horizontal_scroll.press_track(
                                 track_pos,

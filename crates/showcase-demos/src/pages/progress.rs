@@ -12,7 +12,6 @@ const SECTION_CAPTION: &str = "the live widget";
 const SECTION_WIDE: u16 = 76;
 const BLURB: &str = "Determinate, indeterminate, an aggregate tally, capacity meters";
 
-
 const FULL_MIN_W: u16 = 60;
 const WIDE_MIN_W: u16 = 134;
 const NARROW_CONTENT_W: u16 = 94;
@@ -1315,7 +1314,6 @@ impl Page for ProgressPage {
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         frame(ui, area, self.title(), BLURB, |ui, body| {
-
             if compact_page(area) {
                 paint_narrow(ui, body, self.build, self.paused, self.frame);
                 return;

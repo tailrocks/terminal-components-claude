@@ -43,7 +43,6 @@ const DANGER_FG: u32 = 0xff6b6b;
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
 
-
 const CONTENT_MIN_W: u16 = 94;
 const RESULTS_H: u16 = 8;
 const SCROLL_ROOM: u16 = 2;

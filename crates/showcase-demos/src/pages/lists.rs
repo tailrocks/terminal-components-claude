@@ -45,8 +45,6 @@ const DISABLED: u32 = 0x4d4d4d;
 const WARNING: u32 = 0xf59e09;
 const SUCCESS: u32 = 0x3fb950;
 
-
-
 const READOUT: [&str; 2] = [
     "nav default · type-ahead on (TypeAhead, 1000 ms pause) · click ClickPolicy { activate: Double, edit_on: Double, check: BoxOnly }, check BoxOnly · wrap false · skip_disabled true",
     "toggle platform+click · scrollbar_gap 1 · track_click Page · reveal tooltip · a ListCmd::ToggleAll · ⌘A ListCmd::SelectAll",
