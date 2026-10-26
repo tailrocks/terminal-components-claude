@@ -1,6 +1,6 @@
 {
   "schema": "termrock-run-state-v1",
-  "updated_at": "2026-10-26",
+  "updated_at": "2026-10-26T01:06:18Z",
   "plan": {
     "root": "/Users/donbeave/Downloads/terminal-components-claude/docs/implementation/pr38-final",
     "source_root": "/Users/donbeave/Downloads/termrock-pr38-plan",
@@ -119,7 +119,7 @@
       "path": "/Users/donbeave/Downloads/terminal-components-claude",
       "branch": "parity/termrock-visual-baseline",
       "starting_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
-      "current_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "current_sha": "b2016ce9190c7875796565faf68855da10a61933",
       "pending_upstream_refresh": null,
       "code_input_sha": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
       "completed_upstream_refreshes": [
@@ -155,7 +155,7 @@
       ],
       "last_reviewed_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "product_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-      "t37_role": "Full checkout for the guarded baseline build; no product source edits."
+      "t37_role": "Accepted source, metadata, and documentation units are still pending coordinated integration and overall independent T37 acceptance; no product behavior proof."
     },
     "reference": {
       "path": "/Users/donbeave/Downloads/termrock-pr26-reference-20261026",
@@ -178,9 +178,18 @@
           "effort": "max",
           "path": "/Users/donbeave/Downloads/termrock-t37-foundations",
           "branch": "pr38/T37-foundations",
-          "head_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
-          "status": "ACTIVE_DIRTY_IN_PROGRESS",
-          "ownership": "crates/termrock-core, termrock-layout, termrock-theme, termrock-text, termrock-render, termrock-collections, termrock-runtime, termrock-session, termrock-shell, and termrock-terminal source/tests; excludes manifests, lockfiles, and generated files."
+          "head_sha": "34cbad0123c13612f06cf18a882465e8f108d607",
+          "status": "ACCEPTED_SOURCE_UNITS",
+          "ownership": "crates/termrock-core, termrock-layout, termrock-theme, termrock-text, termrock-render, termrock-collections, termrock-runtime, termrock-session, termrock-shell, and termrock-terminal source/tests; excludes manifests, lockfiles, and generated files.",
+          "reviewer_id": "/root/t00_independent_review",
+          "reviewer_model": "gpt-6.1-sol",
+          "reviewer_effort": "high",
+          "review_decision": "ACCEPT_SCOPED",
+          "reviewed_output_commits": [
+            "2fee2c277d1213fc5fad5d81eb77479600182b69",
+            "34cbad0123c13612f06cf18a882465e8f108d607"
+          ],
+          "pending_followup": false
         },
         {
           "agent_id": "/root/t37_components",
@@ -188,9 +197,21 @@
           "effort": "max",
           "path": "/Users/donbeave/Downloads/termrock-t37-components",
           "branch": "pr38/T37-components",
-          "head_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
-          "status": "ACTIVE",
-          "ownership": "Controls, fields, feedback, navigation, viewport, overlays, grid, editors, forms, and termrock facade source/tests; excludes manifests, lockfiles, and generated files."
+          "head_sha": "cb1a928cb7863597ded56adbd33c77e45713f780",
+          "status": "ACCEPTED_SOURCE_AND_EXAMPLE_COMMENT_UNITS",
+          "ownership": "Controls, fields, feedback, navigation, viewport, overlays, grid, editors, forms, and termrock facade source/tests; excludes manifests, lockfiles, and generated files.",
+          "reviewer_id": "/root/t00_independent_review",
+          "reviewer_model": "gpt-6.1-sol",
+          "reviewer_effort": "high",
+          "review_decision": "ACCEPT_SCOPED",
+          "review_scope": "Source cleanup accepted at 96fe6a2a; separate 21-token facade alias retirement accepted at f03e22c1. Integration and global metadata/build gates remain open.",
+          "reviewed_output_commits": [
+            "96fe6a2a1430967831777da2da6402206c4716ff",
+            "f03e22c14a5817272cd5643094e974f9c25f1b6a",
+            "4627a1c6f5c65a5f7527922051131080f65288cb",
+            "cb1a928cb7863597ded56adbd33c77e45713f780"
+          ],
+          "pending_followup": false
         },
         {
           "agent_id": "/root/t37_apps",
@@ -198,9 +219,18 @@
           "effort": "max",
           "path": "/Users/donbeave/Downloads/termrock-t37-apps",
           "branch": "pr38/T37-apps",
-          "head_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
-          "status": "ACTIVE",
-          "ownership": "holla-ui, jackin-preview-app, showcase-ui, tablepro-ui, and termrock-consumer-example source/tests; excludes manifests, lockfiles, and generated files."
+          "head_sha": "fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a",
+          "status": "ACCEPTED_SOURCE_UNIT",
+          "ownership": "holla-ui, jackin-preview-app, showcase-ui, tablepro-ui, and termrock-consumer-example source/tests; excludes manifests, lockfiles, and generated files.",
+          "reviewer_id": "/root/t37_apps_review",
+          "reviewer_model": "gpt-6.1-sol",
+          "reviewer_effort": "high",
+          "review_decision": "ACCEPT_SCOPED",
+          "reviewed_output_commits": [
+            "4f502be854a4d4c7a7585344bd9915b2a26fae79",
+            "fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a"
+          ],
+          "pending_followup": false
         },
         {
           "agent_id": "/root/t37_tools",
@@ -208,9 +238,14 @@
           "effort": "max",
           "path": "/Users/donbeave/Downloads/termrock-t37-tools",
           "branch": "pr38/T37-tools",
-          "head_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
-          "status": "ACTIVE",
-          "ownership": "Tools, scripts, root tests, external-consumer-demo, parity and tooling crate source/tests; excludes shared metadata, manifests, lockfiles, and generated files."
+          "head_sha": "bf1b52a7fe9274593e2dfaf0332b367fb860dfef",
+          "status": "ACCEPTED_SCOPED_SOURCE_AND_FORMAT_UNITS",
+          "ownership": "Tools, scripts, root tests, external-consumer-demo, parity and tooling crate source/tests; excludes shared metadata, manifests, lockfiles, and generated files.",
+          "reviewer_id": "/root/t00_independent_review",
+          "reviewer_model": "gpt-6.1-sol",
+          "reviewer_effort": "high",
+          "review_decision": "ACCEPT_SCOPED",
+          "pending_followup": false
         },
         {
           "agent_id": "/root/t00_import_rules",
@@ -218,31 +253,130 @@
           "effort": "max",
           "path": "/Users/donbeave/Downloads/termrock-t37-shared",
           "branch": "pr38/T37-shared",
-          "head_sha": "2f8b1b7e77ab0606082489cc491844ed67b53d3a",
+          "head_sha": "fe032a24154819a579c591e1cf87230558d286ee",
           "product_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-          "status": "ACTIVE",
-          "ownership": "Shared manifests/locks, tool pins only when cleanup requires, .config, .velnor and generated CI inputs/output through the generator, test inventory/policy metadata, component ownership, maintained README/SAFETY/docs outside immutable audit/visibility and imported T00 package; only results/t37-shared/** in the imported package."
+          "status": "DOCS_COHORT_REVIEW_PENDING",
+          "ownership": "Shared manifests/locks, tool pins only when cleanup requires, .config, .velnor and generated CI inputs/output through the generator, test inventory/policy metadata, component ownership, maintained README/SAFETY/docs outside immutable audit/visibility and imported T00 package; only results/t37-shared/** in the imported package.",
+          "reviewer_id": "/root/t00_independent_review",
+          "reviewer_model": "gpt-6.1-sol",
+          "reviewer_effort": "high",
+          "review_decision": "REVIEW_PENDING",
+          "review_target_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+          "pending_followup": true,
+          "preliminary_review_findings_pending": [
+            {
+              "source": "/root; exact cohort review at fe032 pending",
+              "path": "docs/contracts/authoring.md",
+              "location": "line 106",
+              "finding": "Clarify that explicit key capture is a separate flow; ordinary keys route chrome then page. Do not state that keys are offered only after page yield."
+            },
+            {
+              "source": "/root; exact cohort review at fe032 pending",
+              "path": "docs/contracts/authoring.md",
+              "location": "line 111",
+              "finding": "Error composition overwrites remaining hint priorities after dirty-pin selection. Remove the promise that pinned dirty hints survive errors; preserve the open T19-FOOTER-PIN-01 policy conflict."
+            },
+            {
+              "source": "/root; exact cohort review at fe032 pending",
+              "path": "docs/contracts/foundation-support.md",
+              "source_map_records": [
+                335,
+                343
+              ],
+              "finding": "Role and ColorTokens do not have non_exhaustive. Describe future exhaustive-match/complete-literal maintenance as compatibility guidance; do not claim compiler restrictions or forbid legal struct literals. Built-in tokens allow partial customization."
+            }
+          ]
+        },
+        {
+          "agent_id": "/root/t37_metadata",
+          "model": "gpt-6-luna",
+          "effort": "max",
+          "path": "/Users/donbeave/Downloads/termrock-t37-metadata",
+          "branch": "pr38/T37-metadata",
+          "head_sha": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
+          "product_source_sha": "953fbd76ac47019b0161d86a9a462d04f51b0c7f",
+          "status": "ACCEPTED_METADATA_EVIDENCE; GLOBAL_T37_PENDING",
+          "reviewer_id": "/root/t37_apps_review",
+          "reviewer_model": "gpt-6.1-sol",
+          "reviewer_effort": "high",
+          "review_decision": "ACCEPT",
+          "reviewed_output_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
+          "ownership": "Cargo manifests/locks, metadata, generated CI, and results/t37-metadata/**; no product source changes."
+        },
+        {
+          "agent_id": "/root/t37_api_values",
+          "model": "gpt-6-luna",
+          "effort": "max",
+          "path": "/Users/donbeave/Downloads/termrock-t37-api-values",
+          "branch": "pr38/T37-api-values",
+          "head_sha": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+          "status": "ACCEPTED_COHORT",
+          "reviewer_id": "/root/t37_components_review",
+          "reviewer_model": "gpt-6.1-sol",
+          "reviewer_effort": "high",
+          "review_decision": "ACCEPT",
+          "ownership": "docs/contracts/foundation-values.md and results/t37-api-values/**; 322 source groups."
+        },
+        {
+          "agent_id": "/root/t37_api_runtime",
+          "model": "gpt-6-luna",
+          "effort": "max",
+          "path": "/Users/donbeave/Downloads/termrock-t37-api-runtime",
+          "branch": "pr38/T37-api-runtime",
+          "head_sha": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+          "status": "ACCEPTED_COHORT",
+          "reviewer_id": "/root/t00_independent_review",
+          "reviewer_model": "gpt-6.1-sol",
+          "reviewer_effort": "high",
+          "review_decision": "ACCEPT",
+          "ownership": "docs/contracts/foundation-runtime.md and results/t37-api-runtime/**; 304 source groups."
         }
       ],
       "baseline_build": {
-        "status": "NOT_RUN",
-        "worktree": "/Users/donbeave/Downloads/terminal-components-claude",
+        "status": "ACCEPTED_COMPILE_ONLY_BASELINE",
+        "reviewer_id": "/root/t00_independent_review",
+        "reviewer_model": "gpt-6.1-sol",
+        "reviewer_effort": "high",
+        "review_decision": "ACCEPT",
+        "reviewed_evidence_commit": "265debfb988feb8cd04d57f246262f8881ac1213",
+        "integration_commit": "5bcc79b971ae30ee244b8fef841c6fbafdb918d0",
         "source_input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
-        "integration_checkpoint_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "command_head": "c01a2553f776b12a1a9920eea3ab2ac4f8f9a5f3",
+        "postflight_head": "58daa658503503eec4fc907c3590f978586f5068",
+        "evidence_path": "docs/implementation/pr38-final/results/t37-shared/baseline-build.json",
+        "log_path": "docs/implementation/pr38-final/results/t37-shared/baseline-cargo-check.log",
+        "log_sha256": "c59772b7fb28d1e3f7b58367b4122329b19a6b0a9ed9d3f6423378630f86ee1f",
         "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --locked --workspace --all-targets --all-features",
-        "scope": "Compile only; do not execute legacy tests. Capture command, source/tool/environment, counts, status, and log.",
-        "disk_policy": "Probe before build. Required cleanup child runs to 2.5 TB while cleanup and project work continue in parallel."
+        "exit_code": 0,
+        "tests_executed": 0,
+        "structural_metadata_counts": {
+          "packages": 49,
+          "targets": 417,
+          "test_flagged_targets": 401,
+          "selected_or_executed_test_count": 0
+        },
+        "behavior_status": "NOT VERIFIED",
+        "limits": [
+          "--all-targets compiled test targets but did not execute them.",
+          "The locked metadata form was denied by the guard; the permitted unlocked no-deps query passed and did not change Cargo.lock.",
+          "Post-cleanup build remains required."
+        ]
       },
       "safety_transfer": {
-        "commit": "2f8b1b7e77ab0606082489cc491844ed67b53d3a",
-        "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
-        "status": "PENDING_INDEPENDENT_SOL_HIGH_REVIEW_AND_INTEGRATION",
-        "review_target": "2f8b1b7e77ab0606082489cc491844ed67b53d3a",
+        "commit": "d92192664d0490e1b750029bf8c8a715217af4d4",
+        "reviewer_id": "/root/t00_independent_review",
+        "reviewer_model": "gpt-6.1-sol",
+        "reviewer_effort": "high",
+        "review_decision": "ACCEPT",
+        "integration_commit": "58daa658503503eec4fc907c3590f978586f5068",
+        "status": "ACCEPTED_INTEGRATED",
         "source_path": "crates/termrock-session/src/esc_bridge.rs",
-        "source_sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316",
         "production_rationales_mapped": 28,
-        "esc_bridge_api_groups_mapped": 10,
-        "changed_product_source": false
+        "api_prose_groups_mapped": 10,
+        "limits": [
+          "No behavior or unsafe-code correctness certification.",
+          "All 28 production rationale groups remain in source pending authorized cleanup after transfer review."
+        ]
       },
       "approved_test_plan_id": "N/A",
       "test_writing": "NOT_AUTHORIZED_DURING_T37",
@@ -263,8 +397,110 @@
           "effort": "high",
           "decision": "APPROVED",
           "scope": "Retire manual-api-contracts and paint-style-pilot as active positive/negative compile-test fixtures; preserve original hashes and PaintStyle privacy/builder requirements as historical/T01/T38 obligations; do not change PaintStyle API or add replacement probes."
+        },
+        {
+          "id": "T37-SAFETY-TRANSFER",
+          "reviewer_id": "/root/t00_independent_review",
+          "model": "gpt-6.1-sol",
+          "effort": "high",
+          "decision": "ACCEPT",
+          "output_commit": "d92192664d0490e1b750029bf8c8a715217af4d4",
+          "integration_commit": "58daa658503503eec4fc907c3590f978586f5068",
+          "scope": "All 28 production safety rationale mappings and hashes pass. The cfg(test) helper is historical. Nine production API prose groups plus one historical helper are recorded. F17/T20 risks remain open."
+        },
+        {
+          "id": "T37-BASELINE-BUILD",
+          "reviewer_id": "/root/t00_independent_review",
+          "model": "gpt-6.1-sol",
+          "effort": "high",
+          "decision": "ACCEPT",
+          "output_commit": "265debfb988feb8cd04d57f246262f8881ac1213",
+          "integration_commit": "5bcc79b971ae30ee244b8fef841c6fbafdb918d0",
+          "scope": "Guarded pre-cleanup workspace compile and structural metadata only; no tests executed and behavior remains NOT VERIFIED."
+        },
+        {
+          "id": "T37-PROBE-02",
+          "reviewer_id": "/root/t00_independent_review",
+          "model": "gpt-6.1-sol",
+          "effort": "high",
+          "decision": "APPROVED_RETIREMENT",
+          "scope": "Retire ViewportWorkProbe, ViewportWorkSnapshot, TextViewport::work_probe, private hooks, and viewport/facade testing re-exports. Preserve bounded-work obligations T17/T33. Do not add instrumentation before T38."
+        },
+        {
+          "id": "T37-E2E-01",
+          "reviewer_id": "/root/t00_independent_review",
+          "model": "gpt-6.1-sol",
+          "effort": "high",
+          "decision": "APPROVED_NARROW_RETIREMENT",
+          "scope": "Retain admit_expected_generation and its validation/serialization/publication closure plus semantically used metadata schemas. Retire run_case, run_tag_capture, two PTY preflights, tools/visibility/deferred.py, and exclusive test inputs. Preserve VIS-04 evidence and source-history links."
+        },
+        {
+          "id": "T37-FROZEN-01",
+          "reviewer_id": "/root/t00_independent_review",
+          "model": "gpt-6.1-sol",
+          "effort": "high",
+          "decision": "APPROVED_RETIREMENT",
+          "scope": "Retire tools/frozen_baseline.py as a legacy PTY Nextest runner and its exclusive closure. Preserve annotated unsigned visual-baseline tag object 2718a6b8127a522a3d351d0b4bdb7542fc8da542, peeled commit 4169783ae883788186d161af09ba9c481bd84e5c, oracle, snapshots, receipts, and decision evidence. No current visual gate or replacement runner is claimed."
+        },
+        {
+          "id": "T37-QUALIFIED-01",
+          "reviewer_id": "/root/t00_independent_review",
+          "model": "gpt-6.1-sol",
+          "effort": "high",
+          "decision": "APPROVED_RETIREMENT",
+          "scope": "Retire tools/qualified-capture acquisition/qualification harness and exclusive fixtures/tests. Preserve pins, proof outputs, receipts, source hashes, licenses, and repair provenance unchanged. Do not repin or claim current qualification."
+        },
+        {
+          "id": "T37-COMPONENTS-SOURCE",
+          "reviewer_id": "/root/t37_components_review",
+          "model": "gpt-6.1-sol",
+          "effort": "high",
+          "decision": "ACCEPT_SCOPED",
+          "input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+          "output_commit": "96fe6a2a1430967831777da2da6402206c4716ff",
+          "scope": "Component source cleanup only. Structural token/literal and deletion evidence passed; selected=0, runtime behavior NOT VERIFIED. Global metadata, CI generation, build, and API prose transfer remain open."
         }
-      ]
+      ],
+      "approved_test_plan_reason": "T37 is a preflight deletion/document/structural/build task. No tests or harnesses may be added before T38 review.",
+      "retained_target_policy": {
+        "decision_id": "T37-TARGETS-01",
+        "reviewer_id": "/root/t00_independent_review",
+        "reviewer_model": "gpt-6.1-sol",
+        "reviewer_effort": "high",
+        "decision": "APPROVED",
+        "scope": "Remove legacy [[test]] and [[bench]] entries. Set package autotests=false/autobenches=false. Set test=false/bench=false on retained lib/bin/example targets; set doctest=false only on libs. Preserve target identity, build/run/doc availability, crate types, required features, and all feature edges. Do not use harness=false.",
+        "classification_rule": "Reconcile each surviving target against the baseline inventory and subtract retired manual probes, visual harnesses, and frozen helpers; baseline target counts alone do not classify production targets.",
+        "evidence_limit": "Structural target metadata only. Zero retained test cases do not verify behavior."
+      },
+      "integration_head_at_checkpoint": "b2016ce9190c7875796565faf68855da10a61933",
+      "shared_branch_head": "fe032a24154819a579c591e1cf87230558d286ee",
+      "shared_docs_cohort": {
+        "agent_id": "/root/t00_import_rules",
+        "model": "gpt-6-luna",
+        "effort": "max",
+        "path": "/Users/donbeave/Downloads/termrock-t37-shared",
+        "branch": "pr38/T37-shared",
+        "input_commit": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
+        "fixed_source_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+        "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+        "output_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+        "status": "REVIEW_PENDING",
+        "reviewer_id": "/root/t00_independent_review",
+        "reviewer_model": "gpt-6.1-sol",
+        "reviewer_effort": "high",
+        "groups": 496,
+        "evidence_path": "docs/implementation/pr38-final/results/t37-api-support/foundation-support-disposition.json",
+        "evidence_sha256": "379c33052a244411fef78fcaa79864013c53cdf3ed27c02d929568f316a37136",
+        "builder_path": "docs/implementation/pr38-final/results/t37-api-support/build_disposition.py",
+        "builder_sha256": "7cdbdaaedcdaf4424efeb62259ff56fd131f37e3652b9a972c58c949bfce4106",
+        "guide_path": "docs/contracts/foundation-support.md",
+        "guide_sha256": "a50b4cef7a6215a77729ac15b59dee2e963933c4b483c01a47a70613651d115f",
+        "limits": [
+          "Exact cohort review is pending.",
+          "Global 1,122-group reconciliation is not yet committed.",
+          "Product behavior remains NOT VERIFIED."
+        ]
+      }
     }
   },
   "file_locks": [
@@ -312,7 +548,7 @@
       "worktree": "/Users/donbeave/Downloads/termrock-t37-foundations",
       "branch": "pr38/T37-foundations",
       "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
-      "state": "ACTIVE",
+      "state": "ACCEPTED_SCOPED_SOURCE_UNIT_QUEUED_FOR_INTEGRATION",
       "paths": [
         "crates/termrock-core/src/**",
         "crates/termrock-core/tests/**",
@@ -349,7 +585,7 @@
       "worktree": "/Users/donbeave/Downloads/termrock-t37-components",
       "branch": "pr38/T37-components",
       "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
-      "state": "ACTIVE",
+      "state": "ACCEPTED_SCOPED_SOURCE_UNITS_QUEUED_FOR_INTEGRATION",
       "paths": [
         "crates/termrock-controls/src/**",
         "crates/termrock-controls/tests/**",
@@ -385,7 +621,7 @@
       "worktree": "/Users/donbeave/Downloads/termrock-t37-apps",
       "branch": "pr38/T37-apps",
       "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
-      "state": "ACTIVE",
+      "state": "ACCEPTED_SCOPED_SOURCE_UNIT_QUEUED_FOR_INTEGRATION",
       "paths": [
         "crates/holla-ui/src/**",
         "crates/holla-ui/tests/**",
@@ -411,7 +647,7 @@
       "worktree": "/Users/donbeave/Downloads/termrock-t37-tools",
       "branch": "pr38/T37-tools",
       "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
-      "state": "ACTIVE",
+      "state": "ACCEPTED_SCOPED_SOURCE_AND_FORMAT_UNITS_QUEUED_FOR_INTEGRATION",
       "paths": [
         "tools/**",
         "scripts/**",
@@ -442,12 +678,12 @@
       ]
     },
     {
-      "id": "T37-shared-metadata-docs",
-      "owner": "/root/t00_import_rules",
-      "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
-      "branch": "pr38/T37-shared",
-      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
-      "state": "ACTIVE",
+      "id": "T37-shared-metadata",
+      "owner": "/root/t37_metadata",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-metadata",
+      "branch": "pr38/T37-metadata",
+      "input_sha": "d402f893d159ac26da5db4d18c13510afdbce12f",
+      "state": "ACCEPTED_METADATA_EVIDENCE; INTEGRATION_PENDING",
       "paths": [
         "**/Cargo.toml",
         "**/Cargo.lock",
@@ -464,18 +700,60 @@
         ".github-gen/**",
         "tools/acceptance_policy.json",
         "tools/test-inventory/*.json",
-        "component-ownership.json",
+        "component-ownership.json"
+      ],
+      "exclusions": [
         "README.md",
         "SAFETY.md",
-        "docs/**",
+        "docs/** except generated CI linkage only through metadata-owned generator inputs",
+        "docs/audits/**",
+        "docs/implementation/visibility/**",
+        "docs/implementation/pr38-final/** except metadata-owned result fragment",
+        "immutable historical evidence",
+        "no product source/test edits"
+      ],
+      "head_sha": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5"
+    },
+    {
+      "id": "T37-maintained-docs-checkpoint",
+      "owner": "/root/t00_import_rules",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
+      "branch": "pr38/T37-shared",
+      "input_sha": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
+      "state": "ACTIVE_COHORT_C_REVIEW_AND_GLOBAL_MAP",
+      "paths": [
+        "README.md",
+        "SAFETY.md",
+        "docs/contracts/**",
+        "docs/guides/**",
+        "docs/architecture/**",
+        "docs/handoff/**",
+        "docs/development.md",
+        "crates/termrock-e2e/README.md",
+        "crates/termrock-xtask/RULES.md",
+        "docs/implementation/pr38-final/results/t37-api-support/**",
         "docs/implementation/pr38-final/results/t37-shared/**"
       ],
       "exclusions": [
         "docs/audits/**",
         "docs/implementation/visibility/**",
-        "docs/implementation/pr38-final/** except results/t37-shared/**",
-        "immutable historical evidence",
-        "generated output is changed only through velnor-actions generator"
+        "helper-owned docs/contracts/foundation-values.md",
+        "helper-owned docs/contracts/foundation-runtime.md",
+        "helper-owned docs/contracts/facade-examples.md and results/t37-api-values/**, results/t37-api-runtime/**, results/t37-example-comments/**",
+        "all Cargo/config/generator/policy metadata paths",
+        "no source/test edits"
+      ],
+      "head_sha": "fe032a24154819a579c591e1cf87230558d286ee",
+      "review_status": "REVIEW_PENDING",
+      "current_owned_paths": [
+        "docs/contracts/authoring.md",
+        "docs/contracts/foundation-support.md",
+        "docs/contracts/theming.md",
+        "docs/development.md",
+        "crates/termrock-e2e/README.md",
+        "crates/termrock-xtask/RULES.md",
+        "docs/implementation/pr38-final/results/t37-api-support/**",
+        "docs/implementation/pr38-final/results/t37-shared/**"
       ]
     },
     {
@@ -509,9 +787,10 @@
       "state": "ACTIVE_DISK_CLEANUP_ONLY",
       "paths": [],
       "initial_free_bytes": 1998809899008,
-      "latest_reported_free_bytes": 2005682032640,
+      "latest_reported_free_bytes": 2131860193280,
       "stop_at_free_bytes": 2500000000000,
-      "permission": "DISK_POLICY cleanup only; no product or documentation changes."
+      "permission": "DISK_POLICY cleanup only; no product or documentation changes.",
+      "latest_check": "2026-10-26 01:02 UTC; no newly safe target; no deletion."
     }
   ],
   "agents": [
@@ -544,11 +823,13 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "ACTIVE",
+      "status": "ACTIVE_DOCS_COHORT_REVIEW_AND_GLOBAL_CROSSWALK",
       "completed_task": "T00 ACCEPT at ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "current_input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
       "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
-      "branch": "pr38/T37-shared"
+      "branch": "pr38/T37-shared",
+      "current_output_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+      "current_scope": "T37 cohort C 496-group transfer, global 1,122-group crosswalk, maintained docs, and sole canonical checkpoint owner; exact cohort C review pending."
     },
     {
       "id": "/root/t00_independent_review",
@@ -556,13 +837,14 @@
       "model": "gpt-6.1-sol",
       "effort": "high",
       "assignment": "explicit",
-      "status": "ACTIVE",
+      "status": "ACTIVE_REVIEW",
       "review_output_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "review_target_sha": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
       "previous_reviewed_sha": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
       "decision": "ACCEPT",
-      "current_review_target_sha": "2f8b1b7e77ab0606082489cc491844ed67b53d3a",
-      "current_review_scope": "T37 safety transfer commit; later full deletion and build review."
+      "current_review_target_sha": "fe032a24154819a579c591e1cf87230558d286ee",
+      "current_review_scope": "T37 safety transfer commit; later full deletion and build review.",
+      "current_scope": "Exact high review of T37 support/docs cohort C; overall T37 acceptance remains separate and pending."
     },
     {
       "id": "/root/t37_foundations",
@@ -570,10 +852,19 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "ACTIVE",
+      "status": "ACCEPTED_SOURCE_UNIT_AND_COMPATIBILITY_FOLLOWUP",
       "worktree": "/Users/donbeave/Downloads/termrock-t37-foundations",
       "branch": "pr38/T37-foundations",
-      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8"
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "output_commit": "2fee2c277d1213fc5fad5d81eb77479600182b69",
+      "output_commits": [
+        "2fee2c277d1213fc5fad5d81eb77479600182b69",
+        "34cbad0123c13612f06cf18a882465e8f108d607"
+      ],
+      "reviewer_id": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "review_decision": "ACCEPT_SCOPED"
     },
     {
       "id": "/root/t37_components",
@@ -581,10 +872,21 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "ACTIVE",
+      "status": "ACCEPTED_SCOPED_SOURCE_AND_EXAMPLE_COMMENT_UNITS",
       "worktree": "/Users/donbeave/Downloads/termrock-t37-components",
       "branch": "pr38/T37-components",
-      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8"
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "output_commits": [
+        "96fe6a2a1430967831777da2da6402206c4716ff",
+        "f03e22c14a5817272cd5643094e974f9c25f1b6a",
+        "4627a1c6f5c65a5f7527922051131080f65288cb",
+        "cb1a928cb7863597ded56adbd33c77e45713f780"
+      ],
+      "reviewer_id": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "current_scope": "Seven retained facade examples: 17 approved comment tokens; docs/contracts/facade-examples.md and results/t37-example-comments/**.",
+      "review_decision": "ACCEPT_SCOPED"
     },
     {
       "id": "/root/t37_apps",
@@ -592,10 +894,15 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "ACTIVE",
+      "status": "ACCEPTED_SCOPED_SOURCE_UNIT",
       "worktree": "/Users/donbeave/Downloads/termrock-t37-apps",
       "branch": "pr38/T37-apps",
-      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8"
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "output_commit": "fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a",
+      "reviewer_id": "/root/t37_apps_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "review_decision": "ACCEPT_SCOPED"
     },
     {
       "id": "/root/t37_tools",
@@ -603,10 +910,16 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "ACTIVE",
+      "status": "ACCEPTED_SCOPED_SOURCE_AND_FORMAT_UNITS",
       "worktree": "/Users/donbeave/Downloads/termrock-t37-tools",
       "branch": "pr38/T37-tools",
-      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8"
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "current_scope": "Fix the standalone termrock-e2e compile regression under tools-owned source scope after T37-BUILD-COMPAT-01 review; no tests.",
+      "output_commit": "bf1b52a7fe9274593e2dfaf0332b367fb860dfef",
+      "reviewer_id": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "review_decision": "ACCEPT_SCOPED"
     },
     {
       "id": "/root/t00_import_rules/t37_disk_cleanup",
@@ -614,16 +927,99 @@
       "model": "gpt-6-luna",
       "effort": "max",
       "assignment": "explicit",
-      "status": "ACTIVE",
+      "status": "ACTIVE_DISK_CLEANUP_ONLY",
       "worktree": null,
       "initial_free_bytes": 1998809899008,
-      "latest_reported_free_bytes": 2005682032640,
+      "latest_reported_free_bytes": 2152155762688,
       "stop_at_free_bytes": 2500000000000,
-      "scope": "DISK_POLICY cleanup only; no project/task work."
+      "scope": "DISK_POLICY cleanup and monitoring only; no project/task work.",
+      "latest_check": "2026-10-26 01:06 UTC; read-only probe, no safe target, no deletion."
+    },
+    {
+      "id": "/root/t37_metadata",
+      "role": "T37 shared manifest, lock, config, CI generator, and policy metadata implementer",
+      "model": "gpt-6-luna",
+      "effort": "max",
+      "assignment": "explicit",
+      "status": "ACCEPTED_METADATA_EVIDENCE; INTEGRATION_PENDING",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-metadata",
+      "branch": "pr38/T37-metadata",
+      "input_sha": "d402f893d159ac26da5db4d18c13510afdbce12f",
+      "review_required": {
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      "output_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
+      "reviewer_id": "/root/t37_apps_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "review_decision": "ACCEPT",
+      "product_source_sha": "953fbd76ac47019b0161d86a9a462d04f51b0c7f"
+    },
+    {
+      "id": "/root/t37_api_values",
+      "role": "T37 semantic API prose cohort: core/layout/text (322 source groups)",
+      "model": "gpt-6-luna",
+      "effort": "max",
+      "assignment": "explicit",
+      "status": "ACCEPTED_COHORT",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-api-values",
+      "branch": "pr38/T37-api-values",
+      "input_sha": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
+      "exclusive_paths": [
+        "docs/contracts/foundation-values.md",
+        "docs/implementation/pr38-final/results/t37-api-values/**"
+      ],
+      "output_commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+      "reviewer_id": "/root/t37_components_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "review_decision": "ACCEPT"
+    },
+    {
+      "id": "/root/t37_api_runtime",
+      "role": "T37 semantic API prose cohort: runtime/session (304 source groups)",
+      "model": "gpt-6-luna",
+      "effort": "max",
+      "assignment": "explicit",
+      "status": "ACCEPTED_COHORT",
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-api-runtime",
+      "branch": "pr38/T37-api-runtime",
+      "input_sha": "e164e7b5b17e9c2d78bf30cfbbfe6bdb36e7b7ab",
+      "exclusive_paths": [
+        "docs/contracts/foundation-runtime.md",
+        "docs/implementation/pr38-final/results/t37-api-runtime/**"
+      ],
+      "output_commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+      "reviewer_id": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "review_decision": "ACCEPT"
+    },
+    {
+      "id": "/root/t37_components_review",
+      "role": "Independent Sol-high review for T37 component/value cohort",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "assignment": "explicit",
+      "status": "COMPLETED_SCOPED_ACCEPT",
+      "reviewed_output_sha": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+      "decision": "ACCEPT"
+    },
+    {
+      "id": "/root/t37_apps_review",
+      "role": "Independent Sol-high T37 metadata evidence reviewer",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "assignment": "explicit",
+      "status": "COMPLETED_SCOPED_ACCEPT",
+      "reviewed_output_sha": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
+      "decision": "ACCEPT"
     }
   ],
   "model_selection_limits": [
-    "Agent records use explicit coordinator assignments; the worker runtime provides no independent model-identity attestation."
+    "Agent records use explicit coordinator assignments; the worker runtime provides no independent model-identity attestation.",
+    "Agent selections record explicitly requested model and effort; no independent runtime backend identity attestation is available."
   ],
   "task_states": {
     "T00": "ACCEPTED",
@@ -1027,7 +1423,57 @@
       "status": "ACCEPT at e4354e82ed7801acc69a9e3512300b634a38f7ae"
     },
     "completed_upstream_refresh_review": "/root/t00_independent_review; gpt-6.1-sol high; both approved refreshes merged normally, final source input 1d6ee92.",
-    "final_checkpoint_review": "results/t00-final-review.json"
+    "final_checkpoint_review": "results/t00-final-review.json",
+    "t37_baseline_build": {
+      "path": "results/t37-shared/baseline-build.json",
+      "sha256": "fd3e721bc98a08f05c5286892872806afe4ebc48eb57b85df4be9bfb29aba971",
+      "source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "reviewed_commit": "265debfb988feb8cd04d57f246262f8881ac1213",
+      "integration_commit": "5bcc79b971ae30ee244b8fef841c6fbafdb918d0",
+      "status": "independently accepted compile-only baseline; post-cleanup build remains open"
+    },
+    "t37_api_prose_crosswalk": {
+      "worktree": "/Users/donbeave/Downloads/termrock-t37-shared",
+      "path": "results/t37-shared/api-prose-crosswalk.json",
+      "sha256": "6ad476ef79ffcc9a0b4629573ffbac4e42f02bbdd7771ec302a6aba28556b555",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "output_commit": "bee6e47d4ef077a1a14a78353019a41c273c7d38",
+      "status": "committed; exact Sol high review pending",
+      "validation": {
+        "markdown_files": 13,
+        "broken_local_links": 0,
+        "json_parse_exit_code": 0,
+        "git_diff_check_exit_code": 0,
+        "tests_added_or_run": 0,
+        "behavior": "NOT VERIFIED"
+      }
+    },
+    "t37_disk_cleanup": {
+      "worktree": "/Users/donbeave/Downloads/terminal-components-claude",
+      "path": "results/t37-shared/disk-cleanup.json",
+      "status": "safe cleanup steps and read-only follow-up scans recorded; cleanup agent remains active below 2.5 TB"
+    },
+    "t37_api_values": {
+      "path": "results/t37-api-values/decisions.json",
+      "commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+      "status": "322-group cohort; independent Sol-high ACCEPT; behavior NOT VERIFIED."
+    },
+    "t37_api_runtime": {
+      "path": "results/t37-api-runtime/foundation-runtime-disposition.json",
+      "commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+      "status": "304-group cohort; independent Sol-high ACCEPT; behavior NOT VERIFIED."
+    },
+    "t37_api_support": {
+      "path": "results/t37-api-support/foundation-support-disposition.json",
+      "sha256": "379c33052a244411fef78fcaa79864013c53cdf3ed27c02d929568f316a37136",
+      "commit": "fe032a24154819a579c591e1cf87230558d286ee",
+      "status": "496-group cohort; exact independent review pending; do not count as accepted."
+    },
+    "t37_metadata_final_evidence": {
+      "path": "results/t37-metadata/final-verification-953fbd/final-verification.json",
+      "commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
+      "status": "Independent Sol-high ACCEPT; five locked checks at 560f and affected E2E check/format at 953f; no behavior tests."
+    }
   },
   "review": {
     "required_model": "gpt-6.1-sol",
@@ -1054,11 +1500,14 @@
     "decision": "ACCEPT"
   },
   "blockers": [
-    "T02, T03, and T04 remain blocked until T38 passes independent review.",
-    "The unaccepted fixture expectation change remains source history; it is not product behavior proof.",
-    "Classify tc-proof and visibility publisher/capture ownership before any related removal.",
-    "T37 must inventory all argparse descriptions derived from Python __doc__ and preserve identical help text before docstring removal.",
-    "T37 must preserve all production SAFETY comments until the safety-transfer commit is independently accepted and integrated."
+    "T02, T03, and T04 remain blocked until T38 passes independent review; T01 and T38 have not started.",
+    "T37 cohort C documentation commit fe032a24154819a579c591e1cf87230558d286ee is under exact-head Sol-high review; coordinator reported early findings and the final review is pending.",
+    "The accepted values (322 groups) and runtime (304 groups) cohorts plus the reviewed support cohort must be merged into a single auditable 1,122-group crosswalk; global review remains pending.",
+    "Accepted source, metadata, and documentation worktrees are not yet at one integrated candidate commit; the coordinator must perform the exact integration and arrange final independent T37 review.",
+    "The final metadata evidence has scoped ACCEPT at cfe0587ad034d9f0fd18694934f071f6f50c7dc5; this does not establish overall T37 acceptance.",
+    "The generated Nextest lane has zero run tasks and is ABSENT / NOT VERIFIED. No T37 replacement gate or test was added.",
+    "No product behavior cases ran; product behavior remains NOT VERIFIED.",
+    "Pending cohort-C documentation corrections: key-capture versus normal routing, Footer danger-priority normalization and T19 conflict, and accurate Role/ColorTokens future compatibility wording without non_exhaustive claims."
   ],
   "root_instruction_patch": {
     "patch_path": "AGENTS.patch",
@@ -1075,14 +1524,25 @@
     "T00-source-capture": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
     "T00-source-capture-initial": "5847dfd26c7064dac491e540bc69b0ac22e2fc18",
     "T00-source-capture-corrected": "e4354e82ed7801acc69a9e3512300b634a38f7ae",
-    "T00-final-checkpoint-reviewed": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed"
+    "T00-final-checkpoint-reviewed": "ce82fd3c2bda98990cdbb5da675df1b1816f64ed",
+    "T37-docs-api-prose-crosswalk": "bee6e47d4ef077a1a14a78353019a41c273c7d38",
+    "T37-docs-api-prose-crosswalk-initial": "bee6e47d4ef077a1a14a78353019a41c273c7d38",
+    "T37-docs-api-values": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+    "T37-docs-api-runtime": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+    "T37-docs-api-support": "fe032a24154819a579c591e1cf87230558d286ee",
+    "T37-metadata-final-evidence": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5"
   },
   "task_units": {
     "T00_overall": "ACCEPTED",
     "T00_import": "ACCEPTED",
     "T00_source_capture": "ACCEPTED",
     "T00_independent_review": "ACCEPT",
-    "T37_overall": "ACTIVE"
+    "T37_overall": "CORRECTION",
+    "T37_api_values": "ACCEPTED_SCOPED",
+    "T37_api_runtime": "ACCEPTED_SCOPED",
+    "T37_api_support": "REVIEW_PENDING",
+    "T37_metadata_evidence": "ACCEPTED_SCOPED",
+    "T37_integrated_acceptance": "PENDING"
   },
   "tool_limits": [
     {
@@ -1491,6 +1951,186 @@
       "effort": "high",
       "decision": "APPROVED_RETIREMENT",
       "scope": "manual-api-contracts and paint-style-pilot may retire as active compile fixtures; preserve hashes and PaintStyle privacy/builder obligations as immutable history/T01/T38; no API change or replacement probes."
+    },
+    {
+      "id": "T37-SAFETY-TRANSFER",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "ACCEPT",
+      "output_commit": "d92192664d0490e1b750029bf8c8a715217af4d4",
+      "integration_commit": "58daa658503503eec4fc907c3590f978586f5068",
+      "scope": "All 28 production safety rationale mappings and hashes pass. The cfg(test) helper is historical. Nine production API prose groups plus one historical helper are recorded. F17/T20 risks remain open."
+    },
+    {
+      "id": "T37-BASELINE-BUILD",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "ACCEPT",
+      "output_commit": "265debfb988feb8cd04d57f246262f8881ac1213",
+      "integration_commit": "5bcc79b971ae30ee244b8fef841c6fbafdb918d0",
+      "scope": "Guarded pre-cleanup workspace compile and structural metadata only; no tests executed and behavior remains NOT VERIFIED."
+    },
+    {
+      "id": "T37-PROBE-02",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "APPROVED_RETIREMENT",
+      "scope": "Retire ViewportWorkProbe, ViewportWorkSnapshot, TextViewport::work_probe, private hooks, and viewport/facade testing re-exports. Preserve bounded-work obligations T17/T33. Do not add instrumentation before T38."
+    },
+    {
+      "id": "T37-E2E-01",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "APPROVED_NARROW_RETIREMENT",
+      "scope": "Retain admit_expected_generation and its validation/serialization/publication closure plus semantically used metadata schemas. Retire run_case, run_tag_capture, two PTY preflights, tools/visibility/deferred.py, and exclusive test inputs. Preserve VIS-04 evidence and source-history links."
+    },
+    {
+      "id": "T37-FROZEN-01",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "APPROVED_RETIREMENT",
+      "scope": "Retire tools/frozen_baseline.py as a legacy PTY Nextest runner and its exclusive closure. Preserve annotated unsigned visual-baseline tag object 2718a6b8127a522a3d351d0b4bdb7542fc8da542, peeled commit 4169783ae883788186d161af09ba9c481bd84e5c, oracle, snapshots, receipts, and decision evidence. No current visual gate or replacement runner is claimed."
+    },
+    {
+      "id": "T37-QUALIFIED-01",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "APPROVED_RETIREMENT",
+      "scope": "Retire tools/qualified-capture acquisition/qualification harness and exclusive fixtures/tests. Preserve pins, proof outputs, receipts, source hashes, licenses, and repair provenance unchanged. Do not repin or claim current qualification."
+    },
+    {
+      "id": "T37-COMPONENTS-SOURCE",
+      "reviewer_id": "/root/t37_components_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "ACCEPT_SCOPED",
+      "input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "output_commit": "96fe6a2a1430967831777da2da6402206c4716ff",
+      "scope": "Component source cleanup only. Structural token/literal and deletion evidence passed; selected=0, runtime behavior NOT VERIFIED. Global metadata, CI generation, build, and API prose transfer remain open."
+    },
+    {
+      "id": "T37-COMPONENT-FACADE-FOLLOWUP",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "ACCEPT",
+      "parent_commit": "96fe6a2a1430967831777da2da6402206c4716ff",
+      "output_commit": "f03e22c14a5817272cd5643094e974f9c25f1b6a",
+      "scope": "Remove only the approved testing-feature facade re-export of ProjectedFrame, RenderModel, and StyledQuery; 21 tokens deleted; no tests or Cargo commands; behavior NOT VERIFIED."
+    },
+    {
+      "id": "T37-API-PROSE-TRANSFER",
+      "reviewer_id": "/root/t37_components_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "CORRECTION",
+      "output_commit": "bee6e47d4ef077a1a14a78353019a41c273c7d38",
+      "scope": "Earlier broad bee6 crosswalk received CORRECTION. The accepted values/runtime cohorts and pending support cohort now use per-group semantic mapping; global merge and exact review remain open.",
+      "status": "SUPERSEDED_BY_SCOPED_COHORT_REVIEWS",
+      "correction_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+      "followup_status": "SUPPORT_COHORT_REVIEW_PENDING; GLOBAL_CROSSWALK_PENDING"
+    },
+    {
+      "id": "T37-TARGETS-01",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "APPROVED",
+      "scope": "Remove legacy [[test]] and [[bench]] entries. Set package autotests=false/autobenches=false. Set test=false/bench=false on retained lib/bin/example targets; set doctest=false only on libs. Preserve target identity, build/run/doc availability, crate types, required features, and all feature edges. Do not use harness=false.",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "classification_rule": "Reconcile each surviving target against the baseline inventory and subtract retired manual probes, visual harnesses, and frozen helpers; baseline target counts alone do not classify production targets.",
+      "limits": [
+        "No test listing or empty-suite behavior proof.",
+        "Future tests require T38/task-plan approval."
+      ]
+    },
+    {
+      "id": "T37-BUILD-COMPAT-01",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "APPROVED_RESTORE_COMPATIBILITY",
+      "input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "review_target_sha": "0e8e7a7cd1e11d0633309f5da4c1d5e7056dfd6c",
+      "scope": "Restore only feature-testing Runtime::draw_scene from product input runtime.rs:3208-3219 and the termrock-forms original dev edge requesting testing. Preserve normal retained example pipeline; do not adapt it. Restore global testing CI configuration through the generator and no-tests-fail policy. No tests or product behavior proof."
+    },
+    {
+      "id": "T37-BUILD-ADMISSION-01",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "APPROVED_RESTORE_VALIDATION_HELPER",
+      "input_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "review_target_sha": "0e8e7a7cd1e11d0633309f5da4c1d5e7056dfd6c",
+      "scope": "Restore the exact checkpoint_substep helper from crates/termrock-e2e/src/lib.rs:8784-8792 and preserve validate_oracle_capture_receipt -> capture_relative_stem -> checkpoint_substep. Prune only compiler-confirmed unused File and Read imports; remaining File use is qualified. No runner or tests restored; no behavior proof."
+    },
+    {
+      "id": "T37-CI-TESTING-01",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "REVOKED_BY_T37-CI-TESTING-02",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "review_target_sha": "0e8e7a7cd1e11d0633309f5da4c1d5e7056dfd6c",
+      "scope": "Earlier condition allowing removal/disablement of the global testing lane is revoked; restore the original test runner and no-tests-fail configuration through the generator.",
+      "status": "FOLLOWUP_PENDING"
+    },
+    {
+      "id": "T37-CI-TESTING-02",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "APPROVED_RESTORE_ORIGINAL_TESTING_LANE_CONFIGURATION",
+      "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+      "review_target_sha": "0e8e7a7cd1e11d0633309f5da4c1d5e7056dfd6c",
+      "scope": "Preserve original testing config, test_runner=cargo_nextest, run_ignored, and generator no-tests-fail policy. Regenerate exact output. A zero-Nextest-task lane is ABSENT/NOT VERIFIED; add no replacement gate. Keep runner inputs for later approved targets.",
+      "status": "FOLLOWUP_PENDING"
+    },
+    {
+      "id": "T37-API-VALUES-COHORT",
+      "reviewer_id": "/root/t37_components_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "ACCEPT",
+      "output_commit": "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+      "groups": 322,
+      "scope": "Semantic per-group source prose disposition and maintained foundation-values guide; no behavior verification."
+    },
+    {
+      "id": "T37-API-RUNTIME-COHORT",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "ACCEPT",
+      "output_commit": "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+      "groups": 304,
+      "scope": "Semantic per-group source prose disposition and maintained foundation-runtime guide; open requirements remain; no behavior verification."
+    },
+    {
+      "id": "T37-API-SUPPORT-COHORT",
+      "reviewer_id": "/root/t00_independent_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "REVIEW_PENDING",
+      "output_commit": "fe032a24154819a579c591e1cf87230558d286ee",
+      "groups": 496,
+      "scope": "Shell/theme/collections/terminal semantic prose cohort; exact-head review active. Do not treat as accepted."
+    },
+    {
+      "id": "T37-METADATA-FINAL-EVIDENCE",
+      "reviewer_id": "/root/t37_apps_review",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "decision": "ACCEPT",
+      "output_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
+      "source_commit": "953fbd76ac47019b0161d86a9a462d04f51b0c7f",
+      "scope": "Metadata evidence review. Five locked checks passed at 560f; affected E2E locked check and formatter passed at 953f; no tests; behavior NOT VERIFIED."
     }
   ],
   "disk_policy_t37": {
@@ -1502,7 +2142,316 @@
     "cleanup_effort": "max",
     "latest_root_reported_free_bytes": 2005682032640,
     "target_free_bytes": 2500000000000,
-    "status": "CLEANUP_ACTIVE; do not stop above 2 TB; child must continue until 2.5 TB.",
-    "authority": "/Users/donbeave/.agents/DISK_POLICY.md"
+    "status": "CLEANUP_ACTIVE_BELOW_TARGET; latest scan found no safe target; continue monitoring only until 2.5 TB.",
+    "authority": "/Users/donbeave/.agents/DISK_POLICY.md",
+    "latest_reported_free_bytes": 2152155762688,
+    "latest_check": "2026-10-26 01:06 UTC; read-only probe; no newly safe target; no deletion.",
+    "evidence_path": "results/t37-shared/disk-cleanup.json"
+  },
+  "t37_post_cleanup_build": {
+    "status": "SCOPED_FINAL_CHECKS_PASS; INTEGRATED_T37_ACCEPTANCE_PENDING",
+    "candidate_source_head": "0e8e7a7cd1e11d0633309f5da4c1d5e7056dfd6c",
+    "candidate_scope_note": "Combined accepted source candidate before the facade-example comment correction; this is not the integration HEAD.",
+    "tests_executed": 0,
+    "selected_test_cases": 0,
+    "product_behavior": "NOT VERIFIED",
+    "attempts": [
+      {
+        "id": "T37-POST-CLEANUP-WORKSPACE-BUILD-01",
+        "worktree": "/Users/donbeave/Downloads/termrock-t37-metadata",
+        "workdir": ".",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --workspace --all-targets --all-features",
+        "exit_code": 101,
+        "failure": "Retained normal examples fail to compile: crates/termrock-forms/examples/form_intrinsic_content.rs:62 and crates/termrock-forms/examples/form_lanes.rs:91 call draw_scene on Runtime<EmptyApp>, which has no such method after T37 cleanup.",
+        "lockfile_sha256_before": "722145d6e1d713be9096727af7e83b5775c99b62095100c4fa8cc9a2b41bf36c",
+        "lockfile_sha256_after": "b7604fa542eeead232ee5503a6c1871ef74ca5aed4447bd4d782e975fd3c91ba",
+        "lockfile_changed_during_unlocked_resolution": true,
+        "evidence_path": "docs/implementation/pr38-final/results/t37-metadata/build-root-nonlocked.log",
+        "evidence_hash": "200ba7ea3bb6c75b534650e65d6e20e8e89c3563faabdcc0896105d2279e304d",
+        "review_status": "HIGH_REVIEW_CORRECTION_REQUIRED",
+        "correction_owner": "termrock-runtime source owner pending coordinator assignment; manifest/generator restoration belongs to /root/t37_metadata",
+        "limits": [
+          "Build-only; cargo check did not execute tests.",
+          "This failure does not establish runtime behavior.",
+          "No source or feature repair is included in the reviewed candidate yet."
+        ]
+      },
+      {
+        "id": "T37-POST-CLEANUP-E2E-BUILD-01",
+        "worktree": "/Users/donbeave/Downloads/termrock-t37-metadata",
+        "workdir": "crates/termrock-e2e",
+        "command": "/Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo check --all-targets --all-features",
+        "exit_code": 101,
+        "failure": "crates/termrock-e2e/src/lib.rs:3638 references missing checkpoint_substep; compiler also reports unused File at line 2 and Read at line 3.",
+        "lockfile_sha256_before": "1282e5bcb6f5ec415699f2733a402170ef2c6b9de7992543eab57271de929e16",
+        "lockfile_sha256_after": "406a25455aa28fb34d35a3b46aef6ef76b7af8ef52472a52c6e2edbc8c3cb3f5",
+        "lockfile_changed_during_unlocked_resolution": true,
+        "evidence_path": "docs/implementation/pr38-final/results/t37-metadata/build-e2e-nonlocked.log",
+        "evidence_hash": "b2338599df17ff0f75627dc3d0f013f03069a163737cf3f6b586711b0ef982af",
+        "review_status": "HIGH_REVIEW_CORRECTION_REQUIRED",
+        "correction_owner": "/root/t37_tools",
+        "limits": [
+          "Build-only; cargo check did not execute tests.",
+          "This failure does not establish product behavior.",
+          "Source correction and exact-head independent review are pending."
+        ],
+        "high_review_decision": "T37-BUILD-ADMISSION-01",
+        "correction_scope": "Restore the exact checkpoint_substep five-way mapping helper at source lines 8784-8792; keep validate_oracle_capture_receipt -> capture_relative_stem -> helper intact; remove only confirmed unused File/Read imports."
+      }
+    ],
+    "decision": {
+      "id": "T37-BUILD-COMPAT-01",
+      "reviewer_id": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "decision": "APPROVED_RESTORE_COMPATIBILITY",
+      "scope": "Restore only the original feature-testing Runtime::draw_scene method from product input 1d6, runtime.rs:3208-3219, and the original termrock-forms dev dependency edge requesting testing. Do not adapt the runtime pipeline because that can change output. Retain/restore the global testing CI configuration through its generator and the no-tests-fail policy. These retained examples are normal caller examples, not replacement tests.",
+      "source_input": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "candidate_review_target": "0e8e7a7cd1e11d0633309f5da4c1d5e7056dfd6c",
+      "correction_state": "SCOPED_SOURCE_AND_METADATA_FOLLOWUPS_ACCEPTED; CHECKS PASS; OVERALL T37 REVIEW PENDING",
+      "limits": [
+        "This decision authorizes a narrow compatibility restoration only.",
+        "No tests are authorized in T37.",
+        "Product behavior remains NOT VERIFIED.",
+        "T37 remains CORRECTION until exact followup commit review and build evidence pass."
+      ],
+      "followup_decisions": [
+        {
+          "id": "T37-BUILD-ADMISSION-01",
+          "reviewer_id": "/root/t00_independent_review",
+          "reviewer_model": "gpt-6.1-sol",
+          "reviewer_effort": "high",
+          "decision": "APPROVED_RESTORE_COMPATIBILITY",
+          "source_input": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+          "scope": "Restore the exact checkpoint_substep helper from termrock-e2e/src/lib.rs:8784-8792 in the fixed source. Preserve the retained admission validation chain validate_oracle_capture_receipt -> capture_relative_stem -> checkpoint_substep. Remove only compiler-confirmed unused File and Read imports (the remaining File use is qualified). Restore no runner or tests.",
+          "correction_owner": "/root/t37_tools",
+          "correction_state": "ACCEPTED_SCOPED; FINAL CHECKS PASS",
+          "limits": [
+            "The previous scoped tools ACCEPT is historical and does not cover this missed callee.",
+            "No runner or test target is restored.",
+            "No tests are authorized or executed in T37.",
+            "Product behavior remains NOT VERIFIED."
+          ],
+          "evidence": [
+            "High decision T37-BUILD-COMPAT-01 restores only Runtime::draw_scene from fixed 1d6 source runtime.rs:3208-3219 and the forms testing dev-edge.",
+            "High decision T37-BUILD-ADMISSION-01 restores only the exact checkpoint_substep helper from fixed 1d6 source lines 8784-8792 and removes compiler-confirmed unused imports."
+          ]
+        }
+      ]
+    },
+    "candidate_tree_sha256": "d361455af0a817d8e1d75c945a948d39e5ec6dd4",
+    "tool_versions": {
+      "rustc": "1.99.1",
+      "cargo": "1.99.1",
+      "mbx": "1.27.0"
+    },
+    "ci_testing_compatibility": {
+      "id": "T37-CI-TESTING-02",
+      "reviewer_id": "/root/t00_independent_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "decision": "APPROVED_RESTORE_ORIGINAL_TESTING_LANE_CONFIGURATION",
+      "state": "RESTORED_AND_GENERATED; ZERO NEXTTEST TASKS ABSENT / NOT VERIFIED",
+      "requirements": [
+        "Preserve original testing configuration.",
+        "Preserve test_runner = cargo_nextest.",
+        "Preserve run_ignored configuration.",
+        "Preserve generator no-tests-fail policy.",
+        "Regenerate exact managed output through the pinned generator after restoring inputs.",
+        "If removal or disabling of eligible test targets yields zero Nextest tasks, record the lane ABSENT/NOT VERIFIED; add no T37 replacement gate.",
+        "Retain existing runner input for later approved targets."
+      ],
+      "limits": [
+        "An empty or absent test lane is not product behavior proof.",
+        "Build-only CI cannot establish behavior.",
+        "Intermediate generated task output is not approved.",
+        "No tests are authorized or run in T37."
+      ]
+    },
+    "final_verification": {
+      "reviewer_id": "/root/t37_apps_review",
+      "reviewer_model": "gpt-6.1-sol",
+      "reviewer_effort": "high",
+      "decision": "ACCEPT",
+      "evidence_commit": "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
+      "source_baseline": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "metadata_head": "560f3dca487247b1068c45a0d2b469c8eabe3165",
+      "affected_e2e_head": "953fbd76ac47019b0161d86a9a462d04f51b0c7f",
+      "verification_paths": [
+        "results/t37-metadata/final-verification-560f/final-verification.json",
+        "results/t37-metadata/final-verification-953fbd/final-verification.json"
+      ],
+      "commands_summary": "Five guarded locked cargo checks passed at 560f; affected e2e locked check and standalone formatter passed at 953f. Pinned Velnor generator ran twice idempotently at 560f. No tests ran; selected behavior cases 0.",
+      "generator_tasks": 360,
+      "nextest_run_tasks": 0,
+      "nextest_lane": "ABSENT / NOT VERIFIED",
+      "limits": [
+        "Metadata/build evidence is scoped; final source/docs integration and overall independent T37 acceptance remain pending.",
+        "Product behavior remains NOT VERIFIED."
+      ]
+    }
+  },
+  "t37_exception_policy": {
+    "decision": "PRESERVE_HASHED_T00_HISTORY; APPLY_T37_COMMENT_POLICY_TO_NEW_PRODUCERS",
+    "frozen_t00_source_evidence": {
+      "source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+      "integration_input_commit": "381c88c2f1a26bb727ab9658e8b694bea5915aa6",
+      "artifact_index_path": "results/t00-source/artifact-index.json",
+      "artifact_index_sha256": "c859cd09b3ee1a21fe72d4caf3d623a8b675031d0684903d90a1b07ff26180de",
+      "artifact_count": 63,
+      "artifacts_sha256_description": "SHA-256 over the committed byte content of each listed file.",
+      "preservation": "These exact files are indexed in the accepted T00 source artifact. They remain historical evidence, not active test suites, replacement tests, or T37 producers. Preserve their bytes and index bindings.",
+      "archived_rust_sources": [
+        {
+          "path": "results/t00-source/source-deltas/31f-to-1d6/new/crates/showcase-ui/tests/navigation_contract.rs",
+          "sha256": "eaeeaecae11b3a692091ee7e82ab180e2147e186bc1eda093c0db660dbf46ce5"
+        },
+        {
+          "path": "results/t00-source/source-deltas/31f-to-1d6/old/crates/showcase-ui/tests/navigation_contract.rs",
+          "sha256": "5bb23aab81d2877eb8ec0341e32910409d58edec09c176ef8d9ea0b05909cd52"
+        },
+        {
+          "path": "results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/catalog.rs",
+          "sha256": "b852413adeb6c004bb8f93c0707b7f2c0d9ed40a519e94f581e4cf5a577bfc62"
+        },
+        {
+          "path": "results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/catalog_data.rs",
+          "sha256": "bcd2d23e2d7623f18718204dc787c5ef12aaaff5eaaf0b1bcde306bce3843846"
+        },
+        {
+          "path": "results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/declarations.rs",
+          "sha256": "8a2ec2bed3ada0737c1c4b6d1cd8707dfa33da2f2f4b64ff0591b79449e7f69a"
+        },
+        {
+          "path": "results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/declarations_data.rs",
+          "sha256": "4310f419cc5f207e491568fe3d6d0b5b03296779eb89c7279623c6d89b88d359"
+        },
+        {
+          "path": "results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/mod.rs",
+          "sha256": "7bfe173cb7c5b71bdd24b36aadd551dc2764ea4eb5a3f99ce691d685c277810d"
+        },
+        {
+          "path": "results/t00-source/source-deltas/e08-to-1d6/new/crates/showcase-ui/tests/coverage/scan.rs",
+          "sha256": "64dedbe91bb1ae8f04c631093d10e6bf149cd0cf3cbec6c6e1183348c25e9a51"
+        },
+        {
+          "path": "results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/catalog.rs",
+          "sha256": "b852413adeb6c004bb8f93c0707b7f2c0d9ed40a519e94f581e4cf5a577bfc62"
+        },
+        {
+          "path": "results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/catalog_data.rs",
+          "sha256": "bcd2d23e2d7623f18718204dc787c5ef12aaaff5eaaf0b1bcde306bce3843846"
+        },
+        {
+          "path": "results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/declarations.rs",
+          "sha256": "8a2ec2bed3ada0737c1c4b6d1cd8707dfa33da2f2f4b64ff0591b79449e7f69a"
+        },
+        {
+          "path": "results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/declarations_data.rs",
+          "sha256": "4310f419cc5f207e491568fe3d6d0b5b03296779eb89c7279623c6d89b88d359"
+        },
+        {
+          "path": "results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/mod.rs",
+          "sha256": "7bfe173cb7c5b71bdd24b36aadd551dc2764ea4eb5a3f99ce691d685c277810d"
+        },
+        {
+          "path": "results/t00-source/source-deltas/e08-to-1d6/old/crates/showcase-ui/src/coverage/scan.rs",
+          "sha256": "64dedbe91bb1ae8f04c631093d10e6bf149cd0cf3cbec6c6e1183348c25e9a51"
+        }
+      ],
+      "archived_capture_and_validation_scripts": [
+        {
+          "path": "results/t00-source/analyze_latest_test_delta.py",
+          "sha256": "92e4f5add9a772cbb094cdf0c24b63dfa77529b5d7f794afd79e54039822ca71"
+        },
+        {
+          "path": "results/t00-source/build_artifact_index.py",
+          "sha256": "e93313f5036acd43d7bcca7864838c5cac638ab35c87d333fc9b215b837e350d"
+        },
+        {
+          "path": "results/t00-source/capture_finding_deltas.py",
+          "sha256": "d85bc3f26e1350e22b1236936b8a5d85e20cbc473c96317068af6df71dc8e41e"
+        },
+        {
+          "path": "results/t00-source/capture_github_jobs.py",
+          "sha256": "6c1976f0cfba8a30049e7d89fffa6cb796049cf615dbbe11b920a3c2cfddb4c6"
+        },
+        {
+          "path": "results/t00-source/capture_source.py",
+          "sha256": "5266935aad68f4cc96d773536fd7fdc80d59b249e47d50bdfeaf00d443445597"
+        },
+        {
+          "path": "results/t00-source/derive_source_overlays.py",
+          "sha256": "4b5348fd5d7f265940e78411b594461d9c412638ffcc5b0d5112a905d3cfe664"
+        },
+        {
+          "path": "results/t00-source/scan_source_declarations.py",
+          "sha256": "4c3fc158b40a27281ea5b9b855969c8886d55fb920421587a7dfcf39ea465e1c"
+        },
+        {
+          "path": "results/t00-source/validate_source_records.py",
+          "sha256": "0c2490d52be4f4aa7b41ffe8369f6803f9f9ee63e405c373b02218ac0f99e301"
+        }
+      ]
+    },
+    "new_t37_python_producers": {
+      "scope": "The exact cohort builders and validators below; no blanket exception applies to documentation or scripts.",
+      "required_policy": "No comments or docstrings except a required shebang; explanatory text belongs in maintained Markdown or result records.",
+      "audited_files": [
+        {
+          "path": "results/t37-shared/build_foundation_api_prose_crosswalk.py",
+          "sha256": "9aacaa1d87b9c1810ccfedd3d8635405689e301b8cd293c007bc538cfb34d025",
+          "non_shebang_comment_tokens": [],
+          "docstring_nodes": [],
+          "check": "Python tokenize and AST inspection",
+          "result": "PASS"
+        },
+        {
+          "path": "results/t37-api-support/build_disposition.py",
+          "sha256": "7cdbdaaedcdaf4424efeb62259ff56fd131f37e3652b9a972c58c949bfce4106",
+          "non_shebang_comment_tokens": [],
+          "docstring_nodes": [],
+          "check": "Python tokenize and AST inspection",
+          "result": "PASS"
+        },
+        {
+          "path": "results/t37-api-values/build_decisions.py",
+          "sha256": "40fe5251a6683a6c394f49859635111d977979281c405e135e120472274f89cb",
+          "non_shebang_comment_tokens": [],
+          "docstring_nodes": [],
+          "check": "Python tokenize and AST inspection",
+          "result": "PASS"
+        },
+        {
+          "path": "results/t37-api-values/validate_decisions.py",
+          "sha256": "ae5b02e56271638c5adfa286c7f231be0c129b489d9260c6586e3c5a2ec107cc",
+          "non_shebang_comment_tokens": [],
+          "docstring_nodes": [],
+          "check": "Python tokenize and AST inspection",
+          "result": "PASS"
+        },
+        {
+          "path": "results/t37-api-values/rust_attachment.py",
+          "sha256": "8eb9ede1ec85d8c9554f9ca615ac5dab7e76a6b8fb6acbecdc60ab41693ff887",
+          "non_shebang_comment_tokens": [],
+          "docstring_nodes": [],
+          "check": "Python tokenize and AST inspection",
+          "result": "PASS"
+        },
+        {
+          "path": "results/t37-api-runtime/verify_runtime_disposition.py",
+          "sha256": "789045aa4550d0dcee37471ede4d5d79bcf551632a50b0963e3f588144ae2b5a",
+          "non_shebang_comment_tokens": [],
+          "docstring_nodes": [],
+          "check": "Python tokenize and AST inspection",
+          "result": "PASS"
+        }
+      ],
+      "audit_status": "PASS",
+      "limits": [
+        "The global crosswalk builder has not yet been written or audited.",
+        "This source-form check does not verify contract meaning."
+      ]
+    }
   }
 }
