@@ -401,10 +401,6 @@ pub(super) fn resolve_target(
 }
 
 pub(super) fn item_key_for_binding(binding: &SourceBinding) -> ItemKey {
-
-
-
-
     let encoded = format!(
         "jackin.capsule.tab/v1/{}/{}:{}:{}",
         binding.instance_id.len(),

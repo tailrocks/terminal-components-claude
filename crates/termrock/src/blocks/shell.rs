@@ -1,26 +1,13 @@
-
-
-
-
-
-
 pub use termrock_shell::{AppShell, AppShellSlots, Chrome, EmptyLeaf, Regions, ShellSlots};
 
 use termrock_runtime::author::CompositionLeaf;
 
-
-
-
 pub trait AppShellExt: Sized {
-
     fn with_slots<'a>(self) -> AppShellSlots<'a>;
-
 
     fn header_slot<'a>(self, leaf: &'a dyn CompositionLeaf) -> AppShellSlots<'a>;
 
-
     fn body_slot<'a>(self, leaf: &'a dyn CompositionLeaf) -> AppShellSlots<'a>;
-
 
     fn footer_slot<'a>(self, leaf: &'a dyn CompositionLeaf) -> AppShellSlots<'a>;
 }

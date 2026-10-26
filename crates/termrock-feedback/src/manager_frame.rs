@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 
@@ -51,7 +46,6 @@ pub struct ManagerFrame<'a> {
     pub warning: &'a str,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ManagerFrameLayout {
     area: Rect,
@@ -63,8 +57,6 @@ impl ManagerFrameLayout {
         Self { area, rows }
     }
 
-
-
     pub fn row_capacity(height: u16) -> usize {
         usize::from(height.saturating_sub(14))
     }
@@ -72,7 +64,6 @@ impl ManagerFrameLayout {
     pub const fn area(self) -> Rect {
         self.area
     }
-
 
     pub fn row_rect(self, index: usize) -> Option<Rect> {
         if index >= self.rows {

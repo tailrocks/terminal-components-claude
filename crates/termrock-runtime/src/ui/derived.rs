@@ -97,5 +97,4 @@ impl DerivedCache {
     pub(crate) fn clear(&mut self) {
         self.entries.clear();
     }
-
 }

@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use termrock::Theme;
 use termrock_consumer_example::RecipeBox;
 

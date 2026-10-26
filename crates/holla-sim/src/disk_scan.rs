@@ -1,23 +1,10 @@
-
-
-
-
-
-
 use crate::files::{FileEntry, FileKind, FilesError, FilesSnapshot};
 use std::collections::BTreeSet;
 use std::fmt;
 use std::sync::Arc;
 
-
-
-
-
-
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ScanRequest {
-
     pub root: String,
 
     pub include_hidden: bool,
@@ -32,7 +19,6 @@ pub struct ScanRequest {
 }
 
 impl ScanRequest {
-
     pub fn new(
         root: impl Into<String>,
         started_at: u64,
@@ -50,10 +36,8 @@ impl ScanRequest {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ScanNodeIssue {
-
     MetadataUnavailable,
 
     PermissionDenied,
@@ -63,10 +47,8 @@ pub enum ScanNodeIssue {
     ListingUnavailable,
 }
 
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct ScanSaturation {
-
     pub allocated_bytes: bool,
 
     pub apparent_bytes: bool,
@@ -74,15 +56,8 @@ pub struct ScanSaturation {
     pub entries: bool,
 }
 
-
-
-
-
-
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ScanNode {
-
     pub path: String,
 
     pub kind: FileKind,
@@ -92,7 +67,6 @@ pub struct ScanNode {
     pub apparent_bytes: Option<u64>,
 
     pub modified_at_secs: Option<i64>,
-
 
     pub entries: u64,
 
@@ -104,7 +78,6 @@ pub struct ScanNode {
 }
 
 impl ScanNode {
-
     pub fn find(&self, path: &str) -> Option<&ScanNode> {
         if self.path == path {
             return Some(self);
@@ -113,10 +86,8 @@ impl ScanNode {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ScanStatus {
-
     Scanning,
 
     Complete,
@@ -124,20 +95,13 @@ pub enum ScanStatus {
     Cancelled,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ScanSource {
-
     ModeledFilesSnapshot,
 }
 
-
-
-
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ScanError {
-
     InvalidRoot(String),
 
     RootNotFound(String),
@@ -149,7 +113,6 @@ pub enum ScanError {
     GenerationExhausted,
 
     StaleGeneration {
-
         requested: u64,
 
         current: Option<u64>,
@@ -189,7 +152,6 @@ impl fmt::Display for ScanError {
 
 impl std::error::Error for ScanError {}
 
-
 #[derive(Debug)]
 pub struct DiskScanController {
     next_generation: Option<u64>,
@@ -203,18 +165,12 @@ impl Default for DiskScanController {
 }
 
 impl DiskScanController {
-
     pub fn new() -> Self {
         Self {
             next_generation: Some(1),
             current: None,
         }
     }
-
-
-
-
-
 
     pub fn start(
         &mut self,
@@ -266,7 +222,6 @@ impl DiskScanController {
         Ok(generation)
     }
 
-
     pub fn report_at(
         &self,
         generation: u64,
@@ -291,10 +246,6 @@ impl DiskScanController {
         })
     }
 
-
-
-
-
     pub fn cancel(&mut self, generation: u64, simulation_time: u64) -> Result<(), ScanError> {
         let current = self.current.as_ref().map(|session| session.generation);
         let Some(session) = self.current.as_mut() else {
@@ -318,7 +269,6 @@ impl DiskScanController {
         Ok(())
     }
 
-
     pub fn current_generation(&self) -> Option<u64> {
         self.current.as_ref().map(|session| session.generation)
     }
@@ -335,7 +285,6 @@ impl DiskScanController {
     }
 }
 
-
 #[derive(Clone, Copy, Debug)]
 pub struct ScanReport<'a> {
     generation: u64,
@@ -347,36 +296,29 @@ pub struct ScanReport<'a> {
 }
 
 impl<'a> ScanReport<'a> {
-
     pub fn generation(&self) -> u64 {
         self.generation
     }
-
 
     pub fn root(&self) -> &'a ScanNode {
         self.root
     }
 
-
     pub fn reveal_order(&self) -> &'a [String] {
         self.reveal_order
     }
-
 
     pub fn revealed_count(&self) -> usize {
         self.revealed_count
     }
 
-
     pub fn status(&self) -> ScanStatus {
         self.status
     }
 
-
     pub fn source(&self) -> ScanSource {
         self.source
     }
-
 
     pub fn visible_paths(&self) -> &'a [String] {
         &self.reveal_order[..self.revealed_count]

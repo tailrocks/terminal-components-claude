@@ -591,16 +591,6 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
-
-
-
-
-
-
-
-
-
-
     #[must_use]
     pub const fn trailing_reserve(mut self, cells: u16) -> Self {
         self.trailing_reserve = if cells < 2 { 2 } else { cells };
@@ -685,17 +675,9 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         tree
     }
 
-
-
-
-
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Tree<'a, T, K, R2> {
         self.row_adapter(r)
     }
-
-
-
-
 
     pub fn row_adapter<R2: RowFn<T>>(self, r: R2) -> Tree<'a, T, K, R2> {
         Tree {

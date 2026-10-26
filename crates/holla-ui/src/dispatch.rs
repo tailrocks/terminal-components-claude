@@ -62,7 +62,6 @@ pub(crate) struct TaskArgsStart {
 }
 
 pub(crate) fn preview(world: &mut World, row: &Action) -> Destination {
-
     match port_args_producer_for(row) {
         Ok(Some(producer)) => return start_port_args(world, row, producer),
         Err(error) => return Destination::Notice(error.to_string()),
@@ -171,7 +170,6 @@ fn same_task_run_action(selected: &Action, current: &Action) -> bool {
 }
 
 fn task_run_destination(world: &World, selected: &Action, launch: bool) -> Option<Destination> {
-
     if selected.id != "task:dev" {
         return None;
     }
@@ -364,7 +362,6 @@ pub(crate) fn confirm_task_args(
 }
 
 pub(crate) fn confirm_preview(world: &mut World, row: &Action) -> Destination {
-
     match port_args_producer_for(row) {
         Ok(Some(producer)) => return start_port_args(world, row, producer),
         Err(error) => return Destination::Notice(error.to_string()),

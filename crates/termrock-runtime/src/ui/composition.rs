@@ -23,7 +23,6 @@ pub const MAX_COMPOSITION_DEPTH: usize = 128;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CompositionError {
-
     DepthExceeded { depth: usize, maximum: usize },
 }
 
@@ -44,7 +43,6 @@ enum Content<'a> {
 }
 
 impl<'a> ContentSlot<'a> {
-
     pub const fn new(component: &'a dyn CompositionLeaf, policy: ChildPolicy) -> Self {
         Self {
             content: Content::Leaf(component),
@@ -76,7 +74,6 @@ pub struct CompositionSlots<'a> {
 
 impl Drop for CompositionSlots<'_> {
     fn drop(&mut self) {
-
         let mut pending = Vec::new();
         for slot in self.children.drain(..) {
             if let Content::Group(group) = slot.content {
@@ -94,7 +91,6 @@ impl Drop for CompositionSlots<'_> {
 }
 
 impl<'a> CompositionSlots<'a> {
-
     pub fn row(children: impl IntoIterator<Item = ContentSlot<'a>>) -> Self {
         Self::new(Direction::Row, children)
     }
@@ -380,7 +376,6 @@ struct ResolvedNode {
 }
 
 impl Ui<'_> {
-
     pub fn compose(&mut self, slots: &CompositionSlots<'_>) -> Result<(), CompositionError> {
         slots.draw(self)
     }

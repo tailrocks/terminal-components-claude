@@ -308,7 +308,6 @@ pub enum CrossAlign {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum RefuseFeedback {
-
     #[default]
     Flash,
 

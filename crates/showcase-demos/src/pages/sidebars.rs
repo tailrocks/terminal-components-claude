@@ -576,7 +576,6 @@ fn content_height(content_w: u16, last: &str) -> u16 {
     };
     let fitted = body.saturating_add(2);
     if fitted > CARD_H {
-
         fitted.saturating_add(1)
     } else {
         CARD_H

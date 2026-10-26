@@ -98,7 +98,6 @@ pub mod keyboard {
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
     pub enum KeyboardProtocol {
-
         #[default]
         Auto,
 
@@ -108,7 +107,6 @@ pub mod keyboard {
     }
 
     impl KeyboardProtocol {
-
         pub const ENV: &'static str = "TERMROCK_KEYBOARD_PROTOCOL";
 
         pub const LEGACY_ENV: &'static str = "JUNIE_TUI_KEYBOARD_PROTOCOL";
@@ -148,14 +146,12 @@ pub mod keyboard {
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
     pub struct ProtocolState {
-
         pub enabled: bool,
 
         pub pushed: bool,
     }
 
     impl ProtocolState {
-
         pub fn enter(
             &mut self,
             policy: KeyboardProtocol,
@@ -263,7 +259,6 @@ pub mod keyboard {
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum AltKeys {
-
         Delivered,
 
         Refused,
@@ -274,7 +269,6 @@ pub mod keyboard {
     }
 
     impl AltKeys {
-
         pub const ENV: &'static str = "TERMROCK_ALT_KEYS";
 
         pub const OPTION_TYPES_TERM_PROGRAMS: [&'static str; 2] = ["Apple_Terminal", "iTerm.app"];
@@ -361,7 +355,6 @@ pub mod keyboard {
     pub fn set_alt_delivered(on: bool) {
         ALT.store(if on { 1 } else { 2 }, Ordering::SeqCst);
     }
-
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

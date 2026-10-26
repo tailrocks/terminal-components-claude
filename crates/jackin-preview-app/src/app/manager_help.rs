@@ -1,5 +1,3 @@
-
-
 use termrock::{HelpOverlay, HelpOverlayState, HelpSection, Id, Rect, Ui};
 
 pub(super) const ID: Id = Id::root("jackin.manager.help");
@@ -71,8 +69,6 @@ pub(super) fn draw(ui: &mut Ui<'_>, screen: Rect, state: &HelpOverlayState) {
     HelpOverlay::new(ID, "Manager", &sections).draw(ui, card_area(screen), state);
 }
 
-
-
 pub(super) fn dim_underlay(ui: &mut Ui<'_>, screen: Rect) {
     let card = card_area(screen);
     let footer_y = screen.bottom().saturating_sub(1);
@@ -108,7 +104,6 @@ pub(super) fn dim_underlay(ui: &mut Ui<'_>, screen: Rect) {
         });
     }
 }
-
 
 fn card_area(screen: Rect) -> Rect {
     let width = screen

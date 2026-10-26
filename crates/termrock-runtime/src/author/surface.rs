@@ -6,14 +6,12 @@ use crate::ui::Ui;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CellView {
-
     pub symbol: String,
 
     pub style: Style,
 }
 
 impl CellView {
-
     pub fn fg(&self) -> Color {
         self.style.fg.unwrap_or(Color::Reset)
     }
@@ -40,7 +38,6 @@ impl PartialEq for PaintSurface {
 }
 
 impl PaintSurface {
-
     pub fn new(area: Rect) -> Self {
         Self {
             area,

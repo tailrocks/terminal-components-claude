@@ -8,7 +8,6 @@ use crate::tokens::ColorLevel;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum InactiveSelection {
-
     #[default]
     Accent,
 
@@ -27,7 +26,6 @@ impl InactiveSelection {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum FocusBarPolicy {
-
     #[default]
     RowBlanked,
 
@@ -58,7 +56,6 @@ impl FocusBarPolicy {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum GutterCell {
-
     #[default]
     Inherit,
 
@@ -71,7 +68,6 @@ impl GutterCell {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum BackdropSelection {
-
     #[default]
     Neutral,
 
@@ -83,7 +79,6 @@ impl BackdropSelection {
 }
 
 impl Theme {
-
     #[must_use]
     pub fn gutter_symbol(&self, flags: StateFlags) -> &'static str {
         self.focus_bar_symbol(FocusBarPolicy::RowBlanked, flags)

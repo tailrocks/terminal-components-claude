@@ -1,18 +1,9 @@
-
-
-
-
-
-
-
 pub const MIN_WIDTH: u16 = 72;
 
 pub const MIN_HEIGHT: u16 = 20;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Band {
-
     Compact,
 
     Narrow,
@@ -23,7 +14,6 @@ pub enum Band {
 }
 
 impl Band {
-
     pub const fn of(width: u16) -> Self {
         match width {
             0..=79 => Self::Compact,
@@ -32,7 +22,6 @@ impl Band {
             _ => Self::Wide,
         }
     }
-
 
     pub const fn of_area(area: termrock::Rect) -> Self {
         Self::of(area.width)

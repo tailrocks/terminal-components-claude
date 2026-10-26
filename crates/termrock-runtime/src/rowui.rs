@@ -161,7 +161,6 @@ fn resolve_row_part_with_defaults(
     component_defaults: crate::theme::StyleDefaults<'_>,
 ) -> crate::theme::Resolved {
     if cursor_style == CursorStyle::Fill && part == Part::GUTTER {
-
         let explicit = ui.style_defaults_with_explicit(
             family,
             variant,
@@ -180,7 +179,6 @@ fn resolve_row_part_with_defaults(
             Some(&local),
         );
         if explicit.explicit.glyph == Slot::Inherit {
-
             resolved.glyph = Slot::Clear;
         }
         return resolved;
@@ -195,7 +193,6 @@ fn resolve_row_part_with_defaults(
             ui.style_defaults_with_explicit(family, variant, part, flags, defaults, patch.as_ref());
         if family == Family::PICKER
             && matches!(part, Part::ICON | Part::META)
-
             && resolved.explicit.bg != Slot::Inherit
             && resolved.explicit.fg == Slot::Inherit
             && let Some(preferred) = resolved.resolved.style.fg
@@ -223,7 +220,6 @@ fn resolve_row_part_with_defaults(
                 patch.as_ref(),
             );
             if explicit.explicit.glyph == Slot::Inherit {
-
                 return crate::theme::Resolved {
                     glyph: Slot::Clear,
                     ..resolved
@@ -246,7 +242,6 @@ pub struct MetaPaint {
 }
 
 impl MetaPaint {
-
     pub const fn needed_width(self) -> u16 {
         self.needed_width
     }
@@ -571,7 +566,6 @@ impl<'u> RowUi<'u> {
             );
             self.ui.fill(self.row, resolved.style);
         } else if style == CursorStyle::Fill {
-
             let mut defaults = StylePatch::new()
                 .set_fg(Role::Fg(FgStep::Primary))
                 .set_bg(Role::CurrentSurface)
@@ -1134,7 +1128,6 @@ impl<'u> RowUi<'u> {
         let style = self.style_of(Part::CELL);
         self.left = self.left.saturating_add(area.width);
         ColumnsUi {
-
             family: self.family,
             variant: self.variant,
             flags: self.flags,
@@ -1440,7 +1433,6 @@ impl Drop for CellUi<'_> {
 }
 
 pub struct ColumnsUi<'u> {
-
     family: Family,
     variant: Variant,
     flags: StateFlags,

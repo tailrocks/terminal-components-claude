@@ -5,7 +5,6 @@ use termrock_core::geometry::Headroom;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum FollowCursor {
-
     #[default]
     OnMove,
 
@@ -14,7 +13,6 @@ pub enum FollowCursor {
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum TrackClick {
-
     Jump,
 
     #[default]
@@ -335,7 +333,6 @@ impl ScrollState {
             return false;
         }
         let Some(grab) = self.grab else {
-
             if self.paging {
                 return false;
             }

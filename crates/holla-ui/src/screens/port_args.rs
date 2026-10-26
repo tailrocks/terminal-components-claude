@@ -89,7 +89,6 @@ pub(crate) enum Event {
     },
 }
 
-
 pub(crate) struct PortArgsEditor {
     action: Action,
     producer: PortArgsProducer,

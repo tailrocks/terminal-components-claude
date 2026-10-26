@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 
@@ -77,7 +71,6 @@ const MONO_RULES: &[MonoRule] = &[
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum SplitMode {
-
     Empty,
 
     Saved,
@@ -105,7 +98,6 @@ pub struct SplitWorkspace<'a> {
 
     pub expandable: bool,
 }
-
 
 #[derive(Clone, Copy)]
 pub struct SplitAlert<'a> {
@@ -293,18 +285,10 @@ fn leading_selection_style(ink: &Ink) -> PaintStyle {
     }
 }
 
-
-
-
-
-
-
-
 pub fn paint_manager_detail_drawer(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>) {
     paint_manager_split_inner(ui, area, frame, true);
     let ink = ink_from(ui, false);
     let rule_style = plain(ink.rule.on(InkBackground::Canvas), ink.canvas);
-
 
     let summary = format!(" {} running ", frame.running);
     let (line, badge_x) = box_top(&summary);
@@ -343,7 +327,6 @@ pub fn paint_manager_detail_drawer(ui: &mut Ui<'_>, area: Rect, frame: &ManagerS
         rule_style,
     );
 
-
     put(
         ui,
         area,
@@ -360,7 +343,6 @@ pub fn paint_manager_detail_drawer(ui: &mut Ui<'_>, area: Rect, frame: &ManagerS
         &format!("Current directory · {}", frame.workspace_name),
         bold(ink.primary.on(InkBackground::Card), ink.card),
     );
-
 
     let leading_selection = leading_selection_style(&ink);
     put(ui, area, 3, 3, " ", leading_selection);

@@ -791,7 +791,6 @@ pub fn visible(
         .collect()
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TagRow {
     pub title: String,
@@ -839,77 +838,49 @@ pub struct ParityDiscovery {
     pub suggested_len: usize,
 }
 
-
 pub fn first_use_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::FirstUse && w.now_ms() == 80
 }
-
-
-
-
-
-
-
-
-
-
 
 pub fn history_enabled() -> bool {
     std::env::var_os("HOLLA_NO_HISTORY").is_some_and(|value| value == "0")
 }
 
-
 pub fn monorepo_root_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::MonorepoRoot && w.now_ms() == 80
 }
-
 
 pub fn monorepo_child_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::MonorepoChild && w.now_ms() == 80
 }
 
-
 pub fn activities_multi_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::ActivitiesMulti && w.now_ms() == 80
 }
-
 
 pub fn docker_cleanup_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::DockerCleanup && w.now_ms() == 80
 }
 
-
 pub fn disk_cleanup_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::DiskCleanup && w.now_ms() == 80
 }
-
 
 pub fn remote_host_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::RemoteHost && w.now_ms() == 80
 }
 
-
 pub fn launch_failure_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::LaunchFailure && w.now_ms() == 80
 }
-
-
-
-
-
 
 pub fn launch_failure_activity_frame(w: &World, width: u16) -> bool {
     launch_failure_tag_frame(w) && (80..=160).contains(&width)
 }
 
-
 pub fn hard_cases_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::HardCases && w.now_ms() == 80
 }
-
-
-
-
 
 pub fn parity_discovery(w: &World) -> Option<ParityDiscovery> {
     if w.scenario != Scenario::ParityDiscovery || w.now_ms() < 80 {
@@ -1068,16 +1039,9 @@ pub fn parity_discovery(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-
-
-
 pub fn parity_discovery_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::ParityDiscovery && w.now_ms() == 80
 }
-
-
-
-
 
 pub fn parity_discovery_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     if !parity_discovery_tag_frame(w) {
@@ -1085,7 +1049,6 @@ pub fn parity_discovery_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     }
     let mut view = parity_discovery(w)?;
     if width < 120 {
-
         view.preview = vec![
             PreviewLine {
                 label: "Runs",
@@ -1122,14 +1085,9 @@ pub fn parity_discovery_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     Some(view)
 }
 
-
-
 pub fn parity_history_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::ParityHistory && !w.clock.running && w.now_ms() == 80
 }
-
-
-
 
 pub fn parity_history_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     if !parity_history_tag_frame(w) {
@@ -1142,7 +1100,6 @@ pub fn parity_history_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     }
     Some(view)
 }
-
 
 fn parity_history_rows() -> Option<ParityDiscovery> {
     let suggested = vec![
@@ -1246,7 +1203,6 @@ fn parity_history_rows() -> Option<ParityDiscovery> {
     })
 }
 
-
 fn wide_history_preview() -> Vec<PreviewLine> {
     vec![
         PreviewLine {
@@ -1318,7 +1274,6 @@ fn wide_history_preview() -> Vec<PreviewLine> {
     ]
 }
 
-
 pub fn parity_files_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::ParityFiles && !w.clock.running && w.now_ms() == 80
 }
@@ -1373,7 +1328,6 @@ fn parity_files_rows() -> ParityDiscovery {
         suggested_len: 0,
     }
 }
-
 
 fn wide_files_preview() -> Vec<PreviewLine> {
     vec![
@@ -1446,7 +1400,6 @@ fn wide_files_preview() -> Vec<PreviewLine> {
     ]
 }
 
-
 pub fn parity_files_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     if !parity_files_tag_frame(w) {
         return None;
@@ -1459,14 +1412,9 @@ pub fn parity_files_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     Some(view)
 }
 
-
-
 pub fn parity_browser_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::ParityBrowser && !w.clock.running && w.now_ms() == 80
 }
-
-
-
 
 pub fn parity_browser_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     if !parity_browser_tag_frame(w) {
@@ -1479,7 +1427,6 @@ pub fn parity_browser_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     }
     Some(view)
 }
-
 
 fn wide_browser_preview() -> Vec<PreviewLine> {
     vec![
@@ -1552,11 +1499,9 @@ fn wide_browser_preview() -> Vec<PreviewLine> {
     ]
 }
 
-
 pub fn parity_git_current_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::ParityGitCurrent && !w.clock.running && w.now_ms() == 80
 }
-
 
 fn parity_git_current_rows() -> Option<ParityDiscovery> {
     let suggested = vec![tag_row(
@@ -1632,7 +1577,6 @@ fn parity_git_current_rows() -> Option<ParityDiscovery> {
         suggested_len: suggested.len(),
     })
 }
-
 
 fn parity_git_current_wide() -> Option<ParityDiscovery> {
     let suggested = vec![tag_row(
@@ -1764,7 +1708,6 @@ fn parity_git_current_wide() -> Option<ParityDiscovery> {
     })
 }
 
-
 pub fn parity_git_current_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     if !parity_git_current_tag_frame(w) {
         return None;
@@ -1778,11 +1721,9 @@ pub fn parity_git_current_view(w: &World, width: u16) -> Option<ParityDiscovery>
     None
 }
 
-
 pub fn parity_git_batch_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::ParityGitBatch && !w.clock.running && w.now_ms() == 80
 }
-
 
 fn parity_git_batch_rows() -> Option<ParityDiscovery> {
     let suggested = vec![tag_row(
@@ -1858,7 +1799,6 @@ fn parity_git_batch_rows() -> Option<ParityDiscovery> {
         suggested_len: suggested.len(),
     })
 }
-
 
 fn parity_git_batch_wide() -> Option<ParityDiscovery> {
     let suggested = vec![tag_row(
@@ -1996,7 +1936,6 @@ fn parity_git_batch_wide() -> Option<ParityDiscovery> {
     })
 }
 
-
 pub fn parity_git_batch_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     if !parity_git_batch_tag_frame(w) {
         return None;
@@ -2010,11 +1949,9 @@ pub fn parity_git_batch_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     None
 }
 
-
 pub fn parity_task_sources_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::ParityTaskSources && !w.clock.running && w.now_ms() == 80
 }
-
 
 fn parity_task_sources_rows() -> Option<ParityDiscovery> {
     let suggested = vec![
@@ -2118,9 +2055,6 @@ fn parity_task_sources_rows() -> Option<ParityDiscovery> {
     })
 }
 
-
-
-
 pub fn parity_task_sources_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     if !parity_task_sources_tag_frame(w) {
         return None;
@@ -2131,11 +2065,9 @@ pub fn parity_task_sources_view(w: &World, width: u16) -> Option<ParityDiscovery
     None
 }
 
-
 pub fn parity_cargo_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::ParityCargo && !w.clock.running && w.now_ms() == 80
 }
-
 
 fn parity_cargo_rows() -> Option<ParityDiscovery> {
     let suggested = vec![
@@ -2238,7 +2170,6 @@ fn parity_cargo_rows() -> Option<ParityDiscovery> {
         suggested_len: suggested.len(),
     })
 }
-
 
 fn parity_cargo_wide() -> Option<ParityDiscovery> {
     let suggested = vec![
@@ -2390,7 +2321,6 @@ fn parity_cargo_wide() -> Option<ParityDiscovery> {
     })
 }
 
-
 pub fn parity_cargo_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     if !parity_cargo_tag_frame(w) {
         return None;
@@ -2506,7 +2436,6 @@ fn parity_browser_rows() -> Option<ParityDiscovery> {
     })
 }
 
-
 pub fn first_use_plate(w: &World, history: bool) -> Option<ParityDiscovery> {
     if history {
         first_use_history_tag(w)
@@ -2514,7 +2443,6 @@ pub fn first_use_plate(w: &World, history: bool) -> Option<ParityDiscovery> {
         first_use_tag(w)
     }
 }
-
 
 fn first_use_collapsed(w: &World) -> Option<ParityDiscovery> {
     if !first_use_tag_frame(w) {
@@ -2603,8 +2531,6 @@ fn first_use_collapsed(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-
-
 pub fn first_use_view(w: &World, width: u16, history: bool) -> Option<ParityDiscovery> {
     if !(80..120).contains(&width) {
         return None;
@@ -2615,7 +2541,6 @@ pub fn first_use_view(w: &World, width: u16, history: bool) -> Option<ParityDisc
         first_use_collapsed(w)
     }
 }
-
 
 pub fn first_use_tag(w: &World) -> Option<ParityDiscovery> {
     if !first_use_tag_frame(w) {
@@ -2751,7 +2676,6 @@ pub fn first_use_tag(w: &World) -> Option<ParityDiscovery> {
         suggested_len: suggested.len(),
     })
 }
-
 
 pub fn first_use_history_tag(w: &World) -> Option<ParityDiscovery> {
     if !first_use_tag_frame(w) {
@@ -2890,7 +2814,6 @@ pub fn first_use_history_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-
 fn first_use_history_list(w: &World) -> Option<ParityDiscovery> {
     let wide = first_use_history_tag(w)?;
     let preview = vec![
@@ -2922,7 +2845,6 @@ fn first_use_history_list(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-
 pub fn monorepo_root_plate(w: &World, history: bool) -> Option<ParityDiscovery> {
     if history {
         monorepo_root_history_tag(w)
@@ -2930,8 +2852,6 @@ pub fn monorepo_root_plate(w: &World, history: bool) -> Option<ParityDiscovery> 
         monorepo_root_tag(w)
     }
 }
-
-
 
 fn monorepo_root_collapsed(w: &World) -> Option<ParityDiscovery> {
     let wide = monorepo_root_tag(w)?;
@@ -2972,8 +2892,6 @@ fn monorepo_root_collapsed(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-
-
 fn monorepo_root_history_collapsed(w: &World) -> Option<ParityDiscovery> {
     let wide = monorepo_root_history_tag(w)?;
     let mut lines = wide.lines;
@@ -3012,8 +2930,6 @@ fn monorepo_root_history_collapsed(w: &World) -> Option<ParityDiscovery> {
         suggested_len: wide.suggested_len,
     })
 }
-
-
 
 pub fn monorepo_root_view(w: &World, width: u16, history: bool) -> Option<ParityDiscovery> {
     if !(80..120).contains(&width) {
@@ -3191,7 +3107,6 @@ pub fn monorepo_root_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-
 pub fn monorepo_root_history_tag(w: &World) -> Option<ParityDiscovery> {
     if !monorepo_root_tag_frame(w) {
         return None;
@@ -3368,7 +3283,6 @@ pub fn monorepo_root_history_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-
 pub fn activities_multi_plate(w: &World, history: bool) -> Option<ParityDiscovery> {
     if history {
         activities_multi_history_tag(w)
@@ -3376,8 +3290,6 @@ pub fn activities_multi_plate(w: &World, history: bool) -> Option<ParityDiscover
         activities_multi_tag(w)
     }
 }
-
-
 
 pub fn activities_multi_view(w: &World, width: u16, history: bool) -> Option<ParityDiscovery> {
     if !(80..120).contains(&width) {
@@ -3601,7 +3513,6 @@ pub fn activities_multi_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-
 pub fn activities_multi_history_tag(w: &World) -> Option<ParityDiscovery> {
     if !activities_multi_tag_frame(w) {
         return None;
@@ -3821,8 +3732,6 @@ pub fn activities_multi_history_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-
-
 fn activities_multi_history_collapsed(w: &World) -> Option<ParityDiscovery> {
     let wide = activities_multi_history_tag(w)?;
     let mut lines = wide.lines;
@@ -3861,7 +3770,6 @@ fn activities_multi_history_collapsed(w: &World) -> Option<ParityDiscovery> {
         suggested_len: wide.suggested_len,
     })
 }
-
 
 fn activities_multi_collapsed(w: &World) -> Option<ParityDiscovery> {
     let wide = activities_multi_tag(w)?;
@@ -3902,7 +3810,6 @@ fn activities_multi_collapsed(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-
 fn monorepo_child_list(w: &World) -> Option<ParityDiscovery> {
     let wide = monorepo_child_tag(w)?;
     let preview = vec![
@@ -3933,7 +3840,6 @@ fn monorepo_child_list(w: &World) -> Option<ParityDiscovery> {
         suggested_len: wide.suggested_len,
     })
 }
-
 
 pub fn monorepo_child_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     if (80..120).contains(&width) {
@@ -4133,8 +4039,6 @@ pub fn monorepo_child_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-
-
 pub fn remote_host_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     if !(80..120).contains(&width) {
         return None;
@@ -4151,7 +4055,6 @@ pub fn remote_host_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     }
     Some(plate)
 }
-
 
 pub fn remote_host_tag(w: &World) -> Option<ParityDiscovery> {
     if !remote_host_tag_frame(w) {
@@ -4336,7 +4239,6 @@ fn remote_host_list_plate(wide: ParityDiscovery) -> ParityDiscovery {
     }
 }
 
-
 pub fn hard_cases_tag(w: &World) -> Option<ParityDiscovery> {
     if !hard_cases_tag_frame(w) {
         return None;
@@ -4510,7 +4412,6 @@ pub fn hard_cases_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-
 fn docker_cleanup_list(w: &World, width: u16) -> Option<ParityDiscovery> {
     let wide = docker_cleanup_tag(w)?;
     let runs = if (80..100).contains(&width) {
@@ -4546,7 +4447,6 @@ fn docker_cleanup_list(w: &World, width: u16) -> Option<ParityDiscovery> {
         suggested_len: wide.suggested_len,
     })
 }
-
 
 pub fn docker_cleanup_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     if (80..120).contains(&width) {

@@ -17,10 +17,8 @@ pub enum PanelKind {
     Framed,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PanelWindowError {
-
     InvalidWindow,
 
     UnsupportedLegacySlot(Part),
@@ -227,13 +225,6 @@ impl<'a> Panel<'a> {
         .fit(c)
     }
 
-
-
-
-
-
-
-
     pub fn measure_with_body(
         &self,
         ui: &Ui<'_>,
@@ -295,14 +286,6 @@ impl<'a> Panel<'a> {
             ui.with_area(inner, |ui| body(ui, inner))
         })
     }
-
-
-
-
-
-
-
-
 
     pub fn draw_window<R>(
         &self,

@@ -6,9 +6,7 @@ use crate::{
     PropsList, PropsRow, PropsState, RowFn,
 };
 
-
 pub trait DialogSlotExt {
-
     fn dialog(
         &mut self,
         dialog: &Dialog<'_>,
@@ -27,7 +25,6 @@ impl DialogSlotExt for LayerSlot<'_, '_> {
         self.render_component(|ui, area| dialog.draw_body_slot(ui, area, state, body));
     }
 }
-
 
 pub trait FormDialogSlotExt {
     fn form_dialog<D: crate::forms::FormData + ?Sized>(
@@ -49,9 +46,7 @@ impl FormDialogSlotExt for LayerSlot<'_, '_> {
     }
 }
 
-
 pub trait PropsSlotExt {
-
     fn props_list(
         &mut self,
         component: &PropsList<'_>,
@@ -71,11 +66,7 @@ impl PropsSlotExt for LayerSlot<'_, '_> {
     }
 }
 
-
-
 pub trait PickerSlotExt {
-
-
     fn picker<T: AsItem, R: RowFn<T>>(
         &mut self,
         picker: Picker<'_, T, R>,

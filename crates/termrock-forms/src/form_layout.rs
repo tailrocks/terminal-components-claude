@@ -1,17 +1,10 @@
-
-
-
-
-
 use core::fmt;
 
 use termrock_core::id::Id;
 use termrock_layout::{Maximized, SplitAxis, SplitModel};
 
-
 #[derive(Clone, Copy, Debug)]
 pub enum FormRow {
-
     Field(Id),
 
     Pair {
@@ -53,7 +46,6 @@ impl FormRow {
     }
 }
 
-
 #[derive(Clone, Copy, Debug)]
 pub struct FormLane<'a> {
     pub id: Id,
@@ -72,8 +64,6 @@ impl<'a> FormLane<'a> {
     }
 }
 
-
-
 #[derive(Clone, Copy, Debug)]
 pub struct FormLayout<'a> {
     lanes: &'a [FormLane<'a>],
@@ -85,7 +75,6 @@ impl<'a> FormLayout<'a> {
     pub const fn new(lanes: &'a [FormLane<'a>]) -> Self {
         Self { lanes, split: None }
     }
-
 
     #[must_use]
     pub const fn split(mut self, model: SplitModel, gap: u16) -> Self {
@@ -101,7 +90,6 @@ impl<'a> FormLayout<'a> {
         self.split
     }
 }
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FormLayoutError {
@@ -147,8 +135,6 @@ impl fmt::Display for FormLayoutError {
 impl std::error::Error for FormLayoutError {}
 
 impl FormLayoutError {
-
-
     #[must_use]
     pub const fn field_id(self) -> Option<Id> {
         match self {

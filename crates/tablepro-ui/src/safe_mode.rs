@@ -49,7 +49,6 @@ impl SafeModePicker {
 }
 
 pub(crate) fn picker(visible: usize) -> Picker<'static, SafeRow> {
-
     let rows = u16::try_from(visible.clamp(1, 12)).unwrap_or(12);
     Picker::new(ID)
         .title("Safe Mode · this connection")

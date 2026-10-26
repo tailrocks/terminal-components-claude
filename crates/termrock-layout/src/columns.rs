@@ -10,7 +10,6 @@ pub struct ColumnSpec {
 }
 
 impl ColumnSpec {
-
     pub const fn new(min: u16, ideal: u16, max: u16, flex: u16, drop_priority: Option<u8>) -> Self {
         let max = if max < min { min } else { max };
         let ideal = if ideal < min {

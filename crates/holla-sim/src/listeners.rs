@@ -9,10 +9,8 @@ use crate::port_args::{PortArgsError, PortInvocationPlan, PortParseDisposition};
 use crate::task_args::{ExecutionStatus, Invocation, SimulatedReport};
 use crate::world::World;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ListenerModelError {
-
     InvalidPid,
 
     InvalidGeneration,
@@ -47,9 +45,6 @@ impl fmt::Display for ListenerModelError {
 
 impl std::error::Error for ListenerModelError {}
 
-
-
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct ListenerRecord {
     pid: NonZeroU32,
@@ -62,10 +57,6 @@ pub struct ListenerRecord {
 }
 
 impl ListenerRecord {
-
-
-
-
     pub fn new(
         pid: u32,
         synthetic_generation: u64,
@@ -158,9 +149,6 @@ impl From<&World> for WorldContext {
     }
 }
 
-
-
-
 #[derive(Debug)]
 pub struct ListenerModel {
     context: WorldContext,
@@ -169,10 +157,6 @@ pub struct ListenerModel {
 }
 
 impl ListenerModel {
-
-
-
-
     pub fn new(world: &World, records: Vec<ListenerRecord>) -> Result<Self, ListenerModelError> {
         let mut pids = HashSet::with_capacity(records.len());
         let mut instances = HashSet::with_capacity(records.len());
@@ -200,10 +184,8 @@ impl ListenerModel {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ListenerAvailability {
-
     Unavailable,
 
     KnownEmpty,
@@ -211,15 +193,10 @@ pub enum ListenerAvailability {
     Listeners,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ListenerProvenance {
-
     DeterministicHollaSimulation,
 }
-
-
-
 
 #[derive(Debug)]
 pub struct ListenerSuggestion {
@@ -250,7 +227,6 @@ impl From<&PortInvocationPlan> for PortRequestSnapshot {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListenerFacts {
     pid: u32,
@@ -265,46 +241,37 @@ pub struct ListenerFacts {
 }
 
 impl ListenerFacts {
-
     pub fn pid(&self) -> u32 {
         self.pid
     }
-
 
     pub fn synthetic_generation(&self) -> u64 {
         self.synthetic_generation
     }
 
-
     pub fn port(&self) -> u16 {
         self.port
     }
-
 
     pub fn name(&self) -> &str {
         &self.name
     }
 
-
     pub fn state(&self) -> &str {
         &self.state
     }
-
 
     pub fn cpu_percent(&self) -> u32 {
         self.cpu_percent
     }
 
-
     pub fn memory_mb(&self) -> u32 {
         self.memory_mb
     }
 
-
     pub fn provenance(&self) -> ListenerProvenance {
         self.provenance
     }
-
 
     pub fn execution_status(&self) -> ExecutionStatus {
         self.execution_status
@@ -327,7 +294,6 @@ impl From<&RecordSnapshot> for ListenerFacts {
     }
 }
 
-
 #[derive(Debug)]
 pub struct ModeledPortReport {
     simulation: SimulatedReport,
@@ -336,31 +302,25 @@ pub struct ModeledPortReport {
 }
 
 impl ModeledPortReport {
-
     pub fn simulation(&self) -> &SimulatedReport {
         &self.simulation
     }
-
 
     pub fn availability(&self) -> ListenerAvailability {
         self.availability
     }
 
-
     pub fn suggestions(&self) -> &[ListenerSuggestion] {
         &self.suggestions
     }
-
 
     pub fn provenance(&self) -> ListenerProvenance {
         ListenerProvenance::DeterministicHollaSimulation
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ModeledPortError {
-
     PortArgs(PortArgsError),
 
     ModelUnavailable,
@@ -383,9 +343,6 @@ impl fmt::Display for ModeledPortError {
 
 impl std::error::Error for ModeledPortError {}
 
-
-
-
 #[derive(Debug)]
 pub struct PortConflict {
     port: u16,
@@ -403,10 +360,8 @@ impl PortConflict {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PortConflictError {
-
     StaleContext,
 
     MissingActivity,
@@ -454,11 +409,6 @@ impl From<&Activity> for ActivitySnapshot {
         }
     }
 }
-
-
-
-
-
 
 pub fn validate_port_conflict(
     world: &World,

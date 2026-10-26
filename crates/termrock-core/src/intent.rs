@@ -122,7 +122,6 @@ impl fmt::Debug for LayerIntentToken {
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LayerIntentClaim {
-
     Claimed,
 
     AlreadyClaimed,
@@ -180,7 +179,6 @@ pub struct IntentQueue {
     used: usize,
     table: [Option<(u64, u16)>; TABLE],
     overflow: bool,
-
 }
 
 impl Default for IntentQueue {
@@ -197,7 +195,6 @@ impl IntentQueue {
             used: 0,
             table: [None; TABLE],
             overflow: false,
-
         }
     }
 
@@ -221,7 +218,6 @@ impl IntentQueue {
     }
 
     fn bucket_index(&self, owner: Id) -> Option<usize> {
-
         if self.overflow {
             return self.live().iter().position(|b| b.owner == owner);
         }

@@ -22,19 +22,13 @@ pub enum ButtonCmd {
     Activate,
 }
 
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ButtonFocusVisibility {
-
     #[default]
     Always,
 
     KeyboardOnly,
 }
-
-
-
-
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum BusyMarkerPolicy {
@@ -147,11 +141,6 @@ impl<'a> Button<'a> {
         self
     }
 
-
-
-
-
-
     #[must_use]
     pub const fn focusability(mut self, focusability: Focusability) -> Self {
         self.focusability = focusability;
@@ -228,10 +217,6 @@ impl<'a> Button<'a> {
             control.focusability
         }
     }
-
-
-
-
 
     pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
         if !ui.is_inert() {
@@ -401,7 +386,6 @@ impl<'a> Button<'a> {
             live = live.difference(StateFlags::PRESSED);
         }
 
-
         if !ui.is_inert() && !disabled && self.focusability != Focusability::ClickOnly {
             ui.publish_bindings(self.id, live, BINDINGS);
         }
@@ -420,13 +404,7 @@ impl<'a> Button<'a> {
         };
         let container = style(ui, Part::CONTAINER);
 
-
-
-
-
-
         ui.fill(area, container.style);
-
 
         let pad = match container.style.as_style().bg {
             Some(bg) => container

@@ -36,10 +36,6 @@ pub enum Scenario {
     ParityPlatformsLinux,
 }
 
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Screen {
     Finder,
@@ -226,10 +222,6 @@ impl Scenario {
             | Scenario::ParityPlatformsLinux => Screen::Finder,
         }
     }
-
-
-
-
 
     pub const fn boot_title(self) -> &'static str {
         match self {

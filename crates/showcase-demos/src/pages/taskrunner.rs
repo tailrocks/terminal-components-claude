@@ -29,8 +29,6 @@ struct RunStep {
     state: StepState,
 }
 
-
-
 #[derive(Clone, Copy)]
 struct Target {
     label: &'static str,
@@ -134,12 +132,8 @@ const TARGET_ROWS: &[Target] = &[
 
 const NAMES: &[&str] = &["compile", "lint", "typecheck", "unit", "integration", "e2e"];
 
-
-
 const TARGETS_W: u16 = 30;
 const PANEL_GAP: u16 = 2;
-
-
 
 fn panel_height() -> u16 {
     u16::try_from(TARGET_ROWS.len())
@@ -163,8 +157,6 @@ fn steps()
         .step(&step_state)
         .row(step_row)
 }
-
-
 
 fn paint_targets(ui: &mut Ui<'_>, inner: Rect) {
     let gutter = ink(0x11_11_11, 0x11_11_11);
@@ -399,8 +391,6 @@ impl Page for TaskRunnerPage {
                     ..body
                 };
 
-
-
                 let tree_width = TARGETS_W.min(content.width);
                 let tree_height = content.height.min(panel_height());
                 let tree_area = Rect {
@@ -510,14 +500,12 @@ impl Page for TaskRunnerPage {
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(STEPS).contains(StateFlags::FOCUSED) {
-
             &[("↑ ↓", "Move"), ("Enter", "Activate")]
         } else {
             &[("r", "Run pipeline"), ("Enter", "Activate")]
         }
     }
 }
-
 
 fn paint_log(ui: &mut Ui<'_>, row: Rect, message: &str, running: bool) {
     let title = ink(0xb3_b3b3, 0x11_11_11);

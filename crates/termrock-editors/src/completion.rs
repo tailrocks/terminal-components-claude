@@ -66,14 +66,11 @@ impl CompletionValue {
         self
     }
 
-
-
     #[must_use]
     pub fn menu_summary(mut self, summary: impl Into<String>) -> Self {
         self.menu_summary = Some(summary.into());
         self
     }
-
 
     pub fn full_detail(&self) -> &str {
         &self.detail
@@ -203,10 +200,6 @@ impl CompletingCodeEditorState {
         self.completion.is_open()
     }
 
-
-
-
-
     pub fn selected_completion(&self) -> Option<&CompletionValue> {
         selected_completion_by_key(
             self.completion.is_open(),
@@ -214,7 +207,6 @@ impl CompletingCodeEditorState {
             &self.items,
         )
     }
-
 
     pub const fn is_completion_details_open(&self) -> bool {
         self.completion.details_open()
@@ -263,26 +255,17 @@ impl<'a> CompletingCodeEditor<'a> {
         }
     }
 
-
-
-
-
     #[must_use]
     pub const fn selected_details(mut self) -> Self {
         self.selected_details = true;
         self
     }
 
-
-
-
-
     #[must_use]
     pub const fn commit_on_blur(mut self, commit: bool) -> Self {
         self.editor = self.editor.commit_on_blur(commit);
         self
     }
-
 
     pub fn open_find(
         &self,
@@ -296,7 +279,6 @@ impl<'a> CompletingCodeEditor<'a> {
         state.items.clear();
         self.editor.open_find(cx, &mut state.editor)
     }
-
 
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
         self.editor.measure(ui, constraints)

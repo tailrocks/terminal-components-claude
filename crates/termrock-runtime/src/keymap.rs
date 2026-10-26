@@ -581,7 +581,6 @@ struct DynamicBindingSet {
 }
 
 impl DynamicBindingRegistry {
-
     pub(crate) fn update_descriptors<I>(
         &mut self,
         owner: Id,
@@ -651,7 +650,6 @@ pub(crate) struct FocusedHints {
 }
 
 impl FocusedHints {
-
     pub(crate) fn invalidate(&mut self) {
         self.key = None;
     }
@@ -717,9 +715,7 @@ pub enum HintKey {
     Label(&'static str),
 }
 
-impl HintKey {
-
-}
+impl HintKey {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Hint {
@@ -779,7 +775,6 @@ impl HintLayer {
 }
 
 pub trait LabelOn {
-
     fn label_on(&self, platform: ClientPlatform) -> String;
 
     fn label(&self) -> String;

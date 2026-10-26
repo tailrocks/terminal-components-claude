@@ -929,8 +929,6 @@ fn paint_playground_body(ui: &mut Ui<'_>, area: Rect, page: &TreesPage) {
     );
     let inner = card_inner(project);
     if !inner.is_empty() {
-
-
         project_tree().draw(ui, inner, &page.state, TREE);
     }
     let offset = page.state.scroll().offset();

@@ -1,23 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use termrock::author::{CompositionLeaf, Constraints, Measure, Size};
 use termrock::blocks::{MasterDetail, MasterDetailAction, MasterDetailPolicy, MasterDetailState};
 use termrock::composition::{self, Group};
@@ -30,7 +10,6 @@ use termrock::{
 };
 
 use crate::recipes::{RECIPES, Recipe};
-
 
 pub const WORKSPACE: Id = Id::root("recipe-box.workspace");
 
@@ -48,15 +27,12 @@ pub const STATUS_BAR: Id = Id::root("recipe-box.status");
 
 pub const NOTE_ITEM: ItemKey = ItemKey::num(900);
 
-
 pub const MENU_SCALE: ActionKey = ActionKey::custom("recipe-box.menu.scale");
 
 pub const MENU_ABOUT: ActionKey = ActionKey::custom("recipe-box.menu.about");
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Note {
-
     Ready,
 
     Scaled,
@@ -67,7 +43,6 @@ pub enum Note {
 }
 
 impl Note {
-
     pub const fn text(self) -> &'static str {
         match self {
             Note::Ready => "Ready",
@@ -78,13 +53,8 @@ impl Note {
     }
 }
 
-
-
-
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Action {
-
     Focused(ItemKey),
 
     Chose(ItemKey),
@@ -127,7 +97,6 @@ fn recipe_course(recipe: &Recipe) -> &str {
     recipe.course
 }
 
-
 #[derive(Debug)]
 pub struct RecipeBox {
     recipes: Vec<Recipe>,
@@ -160,36 +129,29 @@ impl Default for RecipeBox {
 }
 
 impl RecipeBox {
-
     pub fn actions(&self) -> &[Action] {
         &self.actions
     }
-
 
     pub fn last_action(&self) -> Option<Action> {
         self.actions.last().copied()
     }
 
-
     pub fn selected(&self) -> Option<ItemKey> {
         self.selected
     }
-
 
     pub const fn servings(&self) -> u16 {
         self.servings
     }
 
-
     pub const fn cooked(&self) -> bool {
         self.cooked
     }
 
-
     pub const fn note(&self) -> Note {
         self.note
     }
-
 
     pub fn recipes(&self) -> &[Recipe] {
         &self.recipes
@@ -292,11 +254,9 @@ impl App for RecipeBox {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
 
-
         if cx.update_cause() == UpdateCause::Bootstrap {
             cx.focus(RECIPE_LIST);
         }
-
 
         let block = self.block();
         let block_response = block.update(cx, &mut self.layout);
@@ -340,7 +300,6 @@ impl App for RecipeBox {
             }
         }
         response |= nav_response.erase();
-
 
         if let Some(key) = self.list_state.cursor() {
             self.selected = Some(key);
@@ -437,7 +396,6 @@ impl RecipeBox {
     }
 }
 
-
 struct MenuLeaf<'a> {
     bar: &'a MenuBar<'a>,
     state: &'a MenuState,
@@ -454,7 +412,6 @@ impl CompositionLeaf for MenuLeaf<'_> {
         self.bar.draw(ui, logical, self.state);
     }
 }
-
 
 struct StatusLeaf<'a> {
     bar: &'a StatusBar<'a>,

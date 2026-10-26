@@ -1,8 +1,3 @@
-
-
-
-
-
 use std::fmt;
 
 use ratatui_core::layout::{Position, Rect};
@@ -45,7 +40,6 @@ pub struct SettingsMount<'a> {
     pub selected: bool,
 }
 
-
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 pub struct SettingsGeneralFacts<'a> {
@@ -57,7 +51,6 @@ pub struct SettingsGeneralFacts<'a> {
 }
 
 impl<'a> SettingsGeneralFacts<'a> {
-
     pub const fn new(
         default_agent: &'a str,
         workspace: &'a str,
@@ -96,10 +89,8 @@ pub struct SettingsPage<'a> {
     pub mounts: &'a [SettingsMount<'a>],
     pub add_mount: Option<&'a str>,
 
-
     pub cluster: Option<SettingsCluster<'a>>,
 }
-
 
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
@@ -112,7 +103,6 @@ pub struct SettingsEnvRow<'a> {
 }
 
 impl<'a> SettingsEnvRow<'a> {
-
     pub const fn new(key: &'a str, scope: &'a str, stars: usize, source: &'a str) -> Self {
         Self {
             key,
@@ -123,13 +113,11 @@ impl<'a> SettingsEnvRow<'a> {
         }
     }
 
-
     pub const fn selected(mut self, selected: bool) -> Self {
         self.selected = selected;
         self
     }
 }
-
 
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
@@ -141,7 +129,6 @@ pub struct SettingsEnvGroup<'a> {
 }
 
 impl<'a> SettingsEnvGroup<'a> {
-
     pub const fn new(title: &'a str, rows: &'a [SettingsEnvRow<'a>]) -> Self {
         Self {
             title,
@@ -151,19 +138,16 @@ impl<'a> SettingsEnvGroup<'a> {
         }
     }
 
-
     pub const fn right(mut self, right: &'a str) -> Self {
         self.right = Some(right);
         self
     }
-
 
     pub const fn add(mut self, label: &'a str) -> Self {
         self.add = Some(label);
         self
     }
 }
-
 
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
@@ -175,7 +159,6 @@ pub struct SettingsEnvRole<'a> {
 }
 
 impl<'a> SettingsEnvRole<'a> {
-
     pub const fn new(name: &'a str, rows: &'a [SettingsEnvRow<'a>]) -> Self {
         Self {
             name,
@@ -185,19 +168,16 @@ impl<'a> SettingsEnvRole<'a> {
         }
     }
 
-
     pub const fn right(mut self, right: &'a str) -> Self {
         self.right = Some(right);
         self
     }
-
 
     pub const fn add(mut self, label: &'a str) -> Self {
         self.add = Some(label);
         self
     }
 }
-
 
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
@@ -206,21 +186,15 @@ pub struct SettingsEnv<'a> {
     overrides: Option<SettingsEnvOverrides<'a>>,
 }
 
-
-
-
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum EditorEnvironmentValue<'a> {
-
     PlainMasked { stars: usize },
 
     OnePassword { display_path: &'a str },
 
     HostEnv { name: &'a str },
 }
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -231,7 +205,6 @@ pub struct EditorEnvironmentRow<'a> {
 }
 
 impl<'a> EditorEnvironmentRow<'a> {
-
     pub const fn new(key: &'a str, value: EditorEnvironmentValue<'a>) -> Self {
         Self {
             key,
@@ -240,13 +213,11 @@ impl<'a> EditorEnvironmentRow<'a> {
         }
     }
 
-
     pub const fn selected(mut self, selected: bool) -> Self {
         self.selected = selected;
         self
     }
 }
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -257,12 +228,10 @@ pub struct EditorEnvironmentRole<'a> {
 }
 
 impl<'a> EditorEnvironmentRole<'a> {
-
     pub const fn new(name: &'a str, right: &'a str, rows: &'a [EditorEnvironmentRow<'a>]) -> Self {
         Self { name, right, rows }
     }
 }
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -274,7 +243,6 @@ pub struct EditorEnvironmentBody<'a> {
 }
 
 impl<'a> EditorEnvironmentBody<'a> {
-
     pub const fn new(
         workspace_right: &'a str,
         workspace_rows: &'a [EditorEnvironmentRow<'a>],
@@ -290,18 +258,15 @@ impl<'a> EditorEnvironmentBody<'a> {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum EditorRolesMetaTone {
-
     Error,
 
     Warning,
 
     Muted,
 }
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -314,7 +279,6 @@ pub struct EditorRolesRow<'a> {
 }
 
 impl<'a> EditorRolesRow<'a> {
-
     pub const fn new(
         name: &'a str,
         allowed: bool,
@@ -332,7 +296,6 @@ impl<'a> EditorRolesRow<'a> {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct EditorRolesBody<'a> {
@@ -343,10 +306,6 @@ pub struct EditorRolesBody<'a> {
 }
 
 impl<'a> EditorRolesBody<'a> {
-
-
-
-
     pub const fn new(
         allowed_count: usize,
         total_roles: usize,
@@ -362,18 +321,15 @@ impl<'a> EditorRolesBody<'a> {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum SettingsTrustSourceKind {
-
     Git,
 
     Path,
 
     Unknown,
 }
-
 
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
@@ -385,7 +341,6 @@ pub struct SettingsAgentRow<'a> {
 }
 
 impl<'a> SettingsAgentRow<'a> {
-
     pub const fn new(name: &'a str, mode: &'a str, account: &'a str) -> Self {
         Self {
             name,
@@ -395,13 +350,11 @@ impl<'a> SettingsAgentRow<'a> {
         }
     }
 
-
     pub const fn selected(mut self, selected: bool) -> Self {
         self.selected = selected;
         self
     }
 }
-
 
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
@@ -414,7 +367,6 @@ pub struct SettingsAgents<'a> {
 }
 
 impl<'a> SettingsAgents<'a> {
-
     pub const fn new(
         title: &'a str,
         right: &'a str,
@@ -432,7 +384,6 @@ impl<'a> SettingsAgents<'a> {
     }
 }
 
-
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 pub struct SettingsTrustRow<'a> {
@@ -445,7 +396,6 @@ pub struct SettingsTrustRow<'a> {
 }
 
 impl<'a> SettingsTrustRow<'a> {
-
     pub const fn new(
         source: &'a str,
         kind: SettingsTrustSourceKind,
@@ -462,19 +412,16 @@ impl<'a> SettingsTrustRow<'a> {
         }
     }
 
-
     pub const fn dirty(mut self, dirty: bool) -> Self {
         self.dirty = dirty;
         self
     }
-
 
     pub const fn selected(mut self, selected: bool) -> Self {
         self.selected = selected;
         self
     }
 }
-
 
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
@@ -487,7 +434,6 @@ pub struct SettingsTrust<'a> {
 }
 
 impl<'a> SettingsTrust<'a> {
-
     pub const fn new(
         title: &'a str,
         right: &'a str,
@@ -503,23 +449,19 @@ impl<'a> SettingsTrust<'a> {
         }
     }
 
-
     pub const fn preview(mut self, preview: bool) -> Self {
         self.preview = preview;
         self
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum SettingsHintOverflowTone {
-
     Faint,
 
     Secondary,
 }
-
 
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
@@ -530,7 +472,6 @@ pub struct SettingsHintOverflow<'a> {
 }
 
 impl<'a> SettingsHintOverflow<'a> {
-
     pub const fn new(text: &'a str) -> Self {
         Self {
             text,
@@ -539,19 +480,16 @@ impl<'a> SettingsHintOverflow<'a> {
         }
     }
 
-
     pub const fn at(mut self, offset: u16) -> Self {
         self.at = Some(offset);
         self
     }
-
 
     pub const fn tone(mut self, tone: SettingsHintOverflowTone) -> Self {
         self.tone = tone;
         self
     }
 }
-
 
 #[derive(Clone, Copy, Debug, Default)]
 #[non_exhaustive]
@@ -564,7 +502,6 @@ pub struct SettingsPageChrome<'a> {
 }
 
 impl<'a> SettingsPageChrome<'a> {
-
     pub const fn new() -> Self {
         Self {
             tab_note: None,
@@ -575,30 +512,25 @@ impl<'a> SettingsPageChrome<'a> {
         }
     }
 
-
     pub const fn tab_note(mut self, note: &'a str) -> Self {
         self.tab_note = Some(note);
         self
     }
-
 
     pub const fn crumb_note(mut self, note: &'a str) -> Self {
         self.crumb_note = Some(note);
         self
     }
 
-
     pub const fn hint_offsets(mut self, offsets: &'a [u16]) -> Self {
         self.hint_offsets = Some(offsets);
         self
     }
 
-
     pub const fn overflow(mut self, overflow: SettingsHintOverflow<'a>) -> Self {
         self.overflow = Some(overflow);
         self
     }
-
 
     pub const fn hide_hints(mut self, hide: bool) -> Self {
         self.hide_hints = hide;
@@ -606,11 +538,9 @@ impl<'a> SettingsPageChrome<'a> {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum SettingsBodyPaintError {
-
     LegacyBodyNotEmpty,
 
     AreaTooNarrow { minimum: u16, actual: u16 },
@@ -674,14 +604,12 @@ struct SettingsEnvOverrides<'a> {
 }
 
 impl<'a> SettingsEnv<'a> {
-
     pub const fn new(groups: &'a [SettingsEnvGroup<'a>]) -> Self {
         Self {
             groups,
             overrides: None,
         }
     }
-
 
     pub const fn role_overrides(
         mut self,
@@ -700,16 +628,20 @@ impl<'a> SettingsEnv<'a> {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum SettingsEnvPaintError {
-
     LegacyBodyNotEmpty,
 
-    AreaTooNarrow { minimum: u16, actual: u16 },
+    AreaTooNarrow {
+        minimum: u16,
+        actual: u16,
+    },
 
-    AreaTooShort { minimum: u16, actual: u16 },
+    AreaTooShort {
+        minimum: u16,
+        actual: u16,
+    },
 
     ContentTooTall {
         required_lines: usize,
@@ -742,14 +674,18 @@ impl fmt::Display for SettingsEnvPaintError {
 
 impl std::error::Error for SettingsEnvPaintError {}
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum EditorEnvironmentPaintError {
+    AreaTooNarrow {
+        minimum: u16,
+        actual: u16,
+    },
 
-    AreaTooNarrow { minimum: u16, actual: u16 },
-
-    AreaTooShort { minimum: u16, actual: u16 },
+    AreaTooShort {
+        minimum: u16,
+        actual: u16,
+    },
 
     ContentTooTall {
         required_lines: usize,
@@ -779,11 +715,9 @@ impl fmt::Display for EditorEnvironmentPaintError {
 
 impl std::error::Error for EditorEnvironmentPaintError {}
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum EditorRolesPaintError {
-
     AreaTooNarrow { minimum: u16, actual: u16 },
 
     AreaTooShort { minimum: u16, actual: u16 },
@@ -889,13 +823,6 @@ pub fn paint_settings_page(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>)
     paint_settings_footer(ui, area, page, &ink);
 }
 
-
-
-
-
-
-
-
 pub fn paint_settings_page_with_env(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -935,19 +862,6 @@ pub fn paint_settings_page_with_env(
     paint_settings_footer(ui, area, page, &ink);
     Ok(())
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub fn paint_editor_environment_body(
     ui: &mut Ui<'_>,
@@ -990,19 +904,6 @@ pub fn paint_editor_environment_body(
     paint_editor_environment(ui, body_area, body);
     Ok(())
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub fn paint_editor_roles_body(
     ui: &mut Ui<'_>,
@@ -1310,7 +1211,6 @@ fn paint_editor_roles_metadata(
 }
 
 fn put_editor_roles(ui: &mut Ui<'_>, area: Rect, x: u16, y: u16, text: &str, style: PaintStyle) {
-
     let visible_area = area.intersection(ui.full());
     let width = area.right().saturating_sub(x);
     put_clipped(ui, visible_area, x, y, text, width, style);
@@ -1338,12 +1238,6 @@ const EDITOR_ROLES_BADGE: Color = Color::Rgb(0x17, 0x3f, 0x1c);
 const EDITOR_ROLES_AMBER: Color = Color::Rgb(0xf5, 0x9e, 0x09);
 const EDITOR_ROLES_ERROR: Color = Color::Rgb(0xf0, 0x5d, 0x5d);
 
-
-
-
-
-
-
 pub fn paint_settings_page_with_agents(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1370,12 +1264,6 @@ pub fn paint_settings_page_with_agents(
     paint_settings_body_footer(ui, area, page, chrome, false, &ink);
     Ok(())
 }
-
-
-
-
-
-
 
 pub fn paint_settings_agents_body(
     ui: &mut Ui<'_>,
@@ -1409,11 +1297,6 @@ pub fn paint_settings_agents_body(
     });
     Ok(())
 }
-
-
-
-
-
 
 pub fn paint_settings_general_body(ui: &mut Ui<'_>, area: Rect, facts: &SettingsGeneralFacts<'_>) {
     const SECONDARY: Color = Color::Rgb(0xb3, 0xb3, 0xb3);
@@ -1454,19 +1337,6 @@ pub fn paint_settings_general_body(ui: &mut Ui<'_>, area: Rect, facts: &Settings
     });
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub fn paint_settings_trust_body(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1500,12 +1370,6 @@ pub fn paint_settings_trust_body(
     Ok(())
 }
 
-
-
-
-
-
-
 pub fn paint_settings_mounts_body(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1532,12 +1396,6 @@ pub fn paint_settings_mounts_body(
         paint_mount_rows(ui, area, mounts, add_mount, &ink);
     });
 }
-
-
-
-
-
-
 
 pub fn paint_settings_page_with_trust(
     ui: &mut Ui<'_>,
@@ -2593,7 +2451,6 @@ fn narrow_cols() -> MountCols {
 
 fn wide_cols(area_width: u16) -> MountCols {
     let source_at = 80;
-
 
     let source_w = area_width.saturating_sub(3).saturating_sub(source_at);
     MountCols {

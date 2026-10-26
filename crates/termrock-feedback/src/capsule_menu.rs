@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier};
 
@@ -149,8 +145,6 @@ fn bold(fg: Color, bg: Color) -> PaintStyle {
 }
 
 fn put(ui: &mut Ui<'_>, area: Rect, x: u16, y: u16, text: &str, style: PaintStyle) {
-
-
     if y >= area.bottom() || text.is_empty() {
         return;
     }

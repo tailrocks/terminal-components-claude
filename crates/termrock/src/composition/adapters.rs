@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use ratatui_core::layout::Rect;
 use termrock_collections::{KeyFn, ScrollState};
 use termrock_controls::{
@@ -40,14 +29,7 @@ use termrock_layout::ChildPolicy;
 use termrock_runtime::author::CompositionLeaf;
 use termrock_shell::AppShell;
 
-
-
-
-
-
-
 pub const PUBLIC_COMPONENTS: &[&str] = &[
-
     "Brand",
     "Button",
     "Checkbox",
@@ -59,12 +41,10 @@ pub const PUBLIC_COMPONENTS: &[&str] = &[
     "SplitPane",
     "Toggle",
     "TooSmall",
-
     "Field",
     "Note",
     "TextArea",
     "TextInput",
-
     "HintBar",
     "KeyHint",
     "Meter",
@@ -72,7 +52,6 @@ pub const PUBLIC_COMPONENTS: &[&str] = &[
     "Spinner",
     "StatusBar",
     "TextSection",
-
     "ChipBar",
     "FilterList",
     "List",
@@ -80,10 +59,8 @@ pub const PUBLIC_COMPONENTS: &[&str] = &[
     "Steps",
     "Tabs",
     "Tree",
-
     "ScrollRegion",
     "TextViewport",
-
     "Completion",
     "ContextMenu",
     "Dialog",
@@ -93,25 +70,18 @@ pub const PUBLIC_COMPONENTS: &[&str] = &[
     "PickerChain",
     "Select",
     "SelectField",
-
     "Grid",
     "Table",
-
     "CodeEditor",
     "CompletingCodeEditor",
     "DiffView",
-
     "Form",
     "FormDialog",
     "Wizard",
-
     "TerminalView",
-
     "AppShell",
     "MasterDetail",
 ];
-
-
 
 fn leaf<'a, M, D>(measure: M, draw: D) -> Child<'a>
 where
@@ -123,7 +93,6 @@ where
         policy: ChildPolicy::default(),
     }
 }
-
 
 fn nested_leaf<'a, L>(leaf: L, depth: usize) -> Child<'a>
 where
@@ -145,18 +114,12 @@ where
     }
 }
 
-
-
-
-
-
 fn offered_size(constraints: Constraints) -> Size {
     Size {
         min: (0, 0),
         preferred: constraints.max,
     }
 }
-
 
 pub fn brand<'a, 'config>(component: &'a Brand<'config>) -> Child<'a>
 where
@@ -170,7 +133,6 @@ where
     )
 }
 
-
 pub fn checkbox<'a, 'config>(component: &'a Checkbox<'config>) -> Child<'a>
 where
     'config: 'a,
@@ -183,7 +145,6 @@ where
     )
 }
 
-
 pub fn toggle<'a, 'config>(component: &'a Toggle<'config>) -> Child<'a>
 where
     'config: 'a,
@@ -195,7 +156,6 @@ where
         },
     )
 }
-
 
 pub fn radio_group<'a, 'config, T, K, R>(
     component: &'a RadioGroup<'config, T, K, R>,
@@ -216,10 +176,6 @@ where
     )
 }
 
-
-
-
-
 pub fn radio_field<'a, 'config, T, K, R>(
     component: &'a RadioField<'config, T, K, R>,
     state: &'a RadioGroupState,
@@ -238,7 +194,6 @@ where
     )
 }
 
-
 pub fn empty<'a, 'config>(component: &'a Empty<'config>) -> Child<'a>
 where
     'config: 'a,
@@ -251,7 +206,6 @@ where
     )
 }
 
-
 pub fn too_small<'a, 'config>(component: &'a TooSmall<'config>) -> Child<'a>
 where
     'config: 'a,
@@ -263,11 +217,6 @@ where
         },
     )
 }
-
-
-
-
-
 
 pub fn split_pane<'a, 'config>(
     component: &'a SplitPane<'config>,
@@ -313,7 +262,6 @@ impl CompositionLeaf for SplitPaneLeaf<'_, '_> {
     }
 }
 
-
 pub fn field<'a, 'config, C>(component: &'a Field<'config, C>, state: &'a C::State) -> Child<'a>
 where
     'config: 'a,
@@ -327,7 +275,6 @@ where
     )
 }
 
-
 pub fn note<'a, 'config>(component: &'a Note<'config>) -> Child<'a>
 where
     'config: 'a,
@@ -339,7 +286,6 @@ where
         },
     )
 }
-
 
 pub fn text_area<'a, 'config>(
     component: &'a TextArea<'config>,
@@ -356,7 +302,6 @@ where
     )
 }
 
-
 pub fn text_input<'a, 'config>(
     component: &'a TextInput<'config>,
     state: &'a TextInputState,
@@ -372,7 +317,6 @@ where
     )
 }
 
-
 pub fn hint_bar<'a, 'config>(component: &'a HintBar<'config>) -> Child<'a>
 where
     'config: 'a,
@@ -384,7 +328,6 @@ where
         },
     )
 }
-
 
 pub fn key_hint<'a, 'config>(component: &'a KeyHint<'config>) -> Child<'a>
 where
@@ -398,7 +341,6 @@ where
     )
 }
 
-
 pub fn meter<'a, 'config>(component: &'a Meter<'config>) -> Child<'a>
 where
     'config: 'a,
@@ -410,7 +352,6 @@ where
         },
     )
 }
-
 
 pub fn progress_bar<'a, 'config>(component: &'a ProgressBar<'config>) -> Child<'a>
 where
@@ -424,7 +365,6 @@ where
     )
 }
 
-
 pub fn spinner<'a, 'config>(component: &'a Spinner<'config>) -> Child<'a>
 where
     'config: 'a,
@@ -436,7 +376,6 @@ where
         },
     )
 }
-
 
 pub fn status_bar<'a, 'config>(component: &'a StatusBar<'config>) -> Child<'a>
 where
@@ -450,7 +389,6 @@ where
     )
 }
 
-
 pub fn text_section<'a, 'config>(component: &'a TextSection<'config>) -> Child<'a>
 where
     'config: 'a,
@@ -462,7 +400,6 @@ where
         },
     )
 }
-
 
 pub fn chip_bar<'a, 'config, T, K, R>(
     component: &'a ChipBar<'config, T, K, R>,
@@ -483,7 +420,6 @@ where
     )
 }
 
-
 pub fn filter_list<'a, 'config, T, R>(
     component: &'a FilterList<'config, T, R>,
     state: &'a FilterListState,
@@ -501,7 +437,6 @@ where
         },
     )
 }
-
 
 pub fn list<'a, 'config, T, K, R>(
     component: &'a List<'config, T, K, R>,
@@ -521,11 +456,6 @@ where
         },
     )
 }
-
-
-
-
-
 
 pub fn app_shell<'a>(
     component: &'a AppShell,
@@ -575,11 +505,6 @@ impl CompositionLeaf for AppShellLeaf<'_> {
     }
 }
 
-
-
-
-
-
 pub fn scroll_region<'a, 'config>(
     component: &'a ScrollRegion<'config>,
     state: &'a ScrollState,
@@ -596,7 +521,6 @@ where
     )
 }
 
-
 pub fn text_viewport<'a, 'config>(
     component: &'a TextViewport<'config>,
     state: &'a ViewportState,
@@ -612,7 +536,6 @@ where
         },
     )
 }
-
 
 pub fn completion<'a, 'config, T, R>(
     component: &'a Completion<'config, T, R>,
@@ -632,7 +555,6 @@ where
     )
 }
 
-
 pub fn context_menu<'a, 'config>(
     component: &'a ContextMenu<'config>,
     state: &'a MenuState,
@@ -647,10 +569,6 @@ where
         },
     )
 }
-
-
-
-
 
 pub fn dialog<'a, 'config>(
     component: &'a Dialog<'config>,
@@ -691,7 +609,6 @@ impl CompositionLeaf for DialogLeaf<'_, '_> {
     }
 }
 
-
 pub fn help_overlay<'a, 'config>(
     component: &'a HelpOverlay<'config>,
     state: &'a HelpOverlayState,
@@ -707,7 +624,6 @@ where
     )
 }
 
-
 pub fn menu_bar<'a, 'config>(component: &'a MenuBar<'config>, state: &'a MenuState) -> Child<'a>
 where
     'config: 'a,
@@ -719,7 +635,6 @@ where
         },
     )
 }
-
 
 pub fn picker<'a, 'config, T, R>(
     component: &'a Picker<'config, T, R>,
@@ -739,7 +654,6 @@ where
     )
 }
 
-
 pub fn picker_chain<'a, 'config>(
     component: &'a PickerChain<'config>,
     state: &'a PickerChainState,
@@ -754,7 +668,6 @@ where
         },
     )
 }
-
 
 pub fn select_field<'a, 'config, T, K, R>(
     component: &'a SelectField<'config, T, K, R>,
@@ -774,7 +687,6 @@ where
     )
 }
 
-
 pub fn grid<'a, 'config, M>(
     component: &'a Grid<'config>,
     state: &'a GridState,
@@ -791,7 +703,6 @@ where
         },
     )
 }
-
 
 pub fn table<'a, 'config, M>(
     component: &'a Table<'config>,
@@ -810,7 +721,6 @@ where
     )
 }
 
-
 pub fn diff_view<'a, 'config>(
     component: &'a DiffView<'config>,
     state: &'a DiffViewState,
@@ -825,7 +735,6 @@ where
         },
     )
 }
-
 
 pub fn form<'a, 'config, D>(
     component: &'a Form<'config>,
@@ -844,7 +753,6 @@ where
     )
 }
 
-
 pub fn form_dialog<'a, 'config, D>(
     component: &'a FormDialog<'config>,
     state: &'a FormDialogState,
@@ -862,7 +770,6 @@ where
     )
 }
 
-
 pub fn wizard<'a, 'config, S>(
     component: &'a Wizard<'config>,
     state: &'a WizardState<S>,
@@ -877,7 +784,6 @@ where
         },
     )
 }
-
 
 pub fn terminal_view<'a, 'config>(
     component: &'a TerminalView<'config>,

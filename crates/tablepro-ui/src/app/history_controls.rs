@@ -110,7 +110,6 @@ impl HistoryControls {
                     inactive_buckets_safe = false;
                 }
                 IntentBucket::Empty | IntentBucket::FocusOnly => {
-
                     let mut retained_search = committed_search.clone();
                     response |= TextInput::new(search_id)
                         .placeholder("SQL terms · Enter applies, Esc cancels")

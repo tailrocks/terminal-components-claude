@@ -62,10 +62,8 @@ fn is_close_detail(action: ActionKey) -> bool {
     Binding::command(CLOSE_DETAIL, action) == Some(MasterDetailCmd::CloseDetail)
 }
 
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum MasterDetailMode {
-
     #[default]
     Split,
 
@@ -73,7 +71,6 @@ pub enum MasterDetailMode {
 
     Drawer,
 }
-
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct MasterDetailLayout {
@@ -83,7 +80,6 @@ pub struct MasterDetailLayout {
     pub summary: Rect,
     pub seam: Rect,
 }
-
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct MasterDetailState {
@@ -108,13 +104,11 @@ impl MasterDetailState {
         self.drawer_open
     }
 
-
     fn open_drawer(&mut self, cx: &mut Cx<'_>, detail: Id, return_focus: Id) {
         self.drawer_open = true;
         self.return_focus = Some(return_focus);
         cx.focus(detail);
     }
-
 
     fn close_drawer(&mut self, cx: &mut Cx<'_>, master: Id) {
         self.drawer_open = false;
@@ -130,8 +124,6 @@ impl MasterDetailState {
         }
     }
 }
-
-
 
 #[derive(Clone)]
 pub struct MasterDetail {
@@ -217,11 +209,9 @@ impl MasterDetail {
         self.detail
     }
 
-
     pub fn open_drawer(&self, state: &mut MasterDetailState, cx: &mut Cx<'_>) {
         state.open_drawer(cx, self.detail, self.master);
     }
-
 
     pub fn open_drawer_from(
         &self,
@@ -231,7 +221,6 @@ impl MasterDetail {
     ) {
         state.open_drawer(cx, self.detail, return_focus);
     }
-
 
     pub fn close_drawer(&self, state: &mut MasterDetailState, cx: &mut Cx<'_>) {
         state.close_drawer(cx, self.master);
@@ -245,8 +234,6 @@ impl MasterDetail {
         }
     }
 
-
-
     #[must_use]
     pub const fn master_share(mut self, percent: u8) -> Self {
         self.master_share = percent;
@@ -254,21 +241,12 @@ impl MasterDetail {
         self
     }
 
-
-
-
-
-
-
     #[must_use]
     pub const fn initial_master_cells(mut self, cells: u16) -> Self {
         self.initial_master_cells = Some(cells);
         self.split_sizing = SplitSizing::Resizable;
         self
     }
-
-
-
 
     #[must_use]
     pub const fn fixed_detail_share(mut self, percent: u8, min: u16, max: u16) -> Self {
@@ -283,10 +261,6 @@ impl MasterDetail {
         self
     }
 
-
-
-
-
     #[must_use]
     pub const fn fixed_master_share(mut self, percent: u8, min: u16, max: u16) -> Self {
         let percent = if percent > 100 { 100 } else { percent };
@@ -300,18 +274,11 @@ impl MasterDetail {
         self
     }
 
-
-
-
-
-
     #[must_use]
     pub const fn resizable(mut self) -> Self {
         self.split_sizing = SplitSizing::Resizable;
         self
     }
-
-
 
     #[must_use]
     pub const fn resize_step_cells(mut self, cells: u16) -> Self {
@@ -319,27 +286,17 @@ impl MasterDetail {
         self
     }
 
-
-
-
-
     #[must_use]
     pub const fn preserve_drag_offset(mut self, preserve: bool) -> Self {
         self.preserve_drag_offset = preserve;
         self
     }
 
-
-
-
     #[must_use]
     pub const fn resize_bindings(mut self, table: &'static [Binding<SplitCmd>]) -> Self {
         self.resize_bindings = Some(table);
         self
     }
-
-
-
 
     #[must_use]
     pub const fn reset_policy(mut self, policy: ResetPolicy) -> Self {
@@ -392,7 +349,6 @@ impl MasterDetail {
     pub const fn esc_returns_enabled(&self) -> bool {
         self.esc_returns
     }
-
 
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut MasterDetailState) -> Response<SplitAction> {
         let master_focused = cx
@@ -452,7 +408,6 @@ impl MasterDetail {
         response
     }
 
-
     pub fn layout(&self, area: Rect, state: &MasterDetailState) -> MasterDetailLayout {
         let mut layout = self.resolve_responsive_layout(area, state.drawer_open);
         if layout.mode == MasterDetailMode::Split {
@@ -465,11 +420,6 @@ impl MasterDetail {
         }
         layout
     }
-
-
-
-
-
 
     pub fn resolve_responsive_layout(&self, area: Rect, drawer_open: bool) -> MasterDetailLayout {
         if area.width >= self.collapse_below {
@@ -504,7 +454,6 @@ impl MasterDetail {
             ..MasterDetailLayout::default()
         }
     }
-
 
     pub fn draw<R>(
         &self,
@@ -563,10 +512,6 @@ impl MasterDetail {
             None => SplitPaneState::new(self.master_share),
         }
     }
-
-
-
-
 
     pub fn split_pane(&self) -> SplitPane<'static> {
         let mut split = SplitPane::new(self.id, SplitAxis::Horizontal)

@@ -796,8 +796,6 @@ pub struct Risk {
     pub reversible: &'static str,
 }
 
-
-
 pub fn fmt_rows_to(n: usize, out: &mut impl core::fmt::Write) -> core::fmt::Result {
     if n >= 1_000_000 {
         write!(out, "{:.1} M", n as f64 / 1e6)
@@ -999,10 +997,6 @@ pub fn cmp_values(a: &Value, b: &Value) -> std::cmp::Ordering {
         },
     }
 }
-
-
-
-
 
 pub fn cmp_values_nulls_last(a: &Value, b: &Value, ascending: bool) -> std::cmp::Ordering {
     use std::cmp::Ordering;

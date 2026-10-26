@@ -15,7 +15,6 @@ pub enum Input {
 #[non_exhaustive]
 #[derive(Clone, PartialEq, Eq)]
 pub enum RoutedInput {
-
     Input(Input),
 
     MiddleClick { pos: Position, mods: KeyModifiers },
@@ -41,7 +40,6 @@ impl fmt::Debug for RoutedInput {
 }
 
 impl RoutedInput {
-
     #[cfg(feature = "crossterm")]
     pub fn from_crossterm(ev: ratatui_crossterm::crossterm::event::Event) -> Option<Self> {
         use ratatui_crossterm::crossterm::event::{Event, MouseButton, MouseEvent, MouseEventKind};
@@ -148,7 +146,6 @@ impl Chord {
             return false;
         }
         match self.code {
-
             KeyCode::Char(_) | KeyCode::BackTab => {
                 self.mods.difference(KeyModifiers::SHIFT)
                     == other.mods.difference(KeyModifiers::SHIFT)
@@ -434,5 +431,4 @@ mod backend_keys {
             Self::from_bits_retain(value.bits())
         }
     }
-
 }
