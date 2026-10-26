@@ -1,8 +1,16 @@
 #![cfg(test)]
 use super::{App, Motion, Route, Scenario, dialogs};
-use crate::domain::mise::Trust;
-use termrock::{Dialog, FeedbackClock, KeyCode, SimulationMoment, Theme};
-use termrock_test_support::Harness;
+use crate::domain::{mise::Trust, ranking::Pin};
+use ratatui::layout::Position;
+use termrock::{
+    Color, ColorLevel, Dialog, FeedbackClock, KeyCode, Part, PartRef, SimulationMoment, Theme,
+};
+use termrock_test_support::{Baseline, Harness};
+
+const BORDER_BASELINE: Baseline = Baseline::new(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/baselines/app.txt"
+));
 fn fixture(
     scenario: Scenario,
     motion: Motion,
@@ -24,6 +32,57 @@ fn fixture(
         FeedbackClock::Simulation { initial },
     )
 }
+
+fn home_display_rows(world: &crate::sim::world::World) -> Vec<(String, String)> {
+    let recent_first = world.scenario.boot_title() == crate::screens::finder::RECENT;
+    crate::sim::catalogue::sections(world)
+        .into_iter()
+        .flat_map(|section| {
+            let name = if recent_first && section.name == "Suggested here" {
+                "Explore"
+            } else {
+                section.name
+            };
+            crate::sim::catalogue::visible(&section.actions, None, "", &world.memory, &world.cwd)
+                .into_iter()
+                .map(move |action| (name.to_owned(), action.id))
+        })
+        .collect()
+}
+
+fn home_visual_extent(rows: &[(String, String)]) -> usize {
+    let mut sections = 0usize;
+    let mut previous = None;
+    for (section, _) in rows {
+        if previous != Some(section.as_str()) {
+            sections = sections.saturating_add(1);
+            previous = Some(section.as_str());
+        }
+    }
+    rows.len()
+        .saturating_add(sections)
+        .saturating_add(sections.saturating_sub(1))
+}
+
+fn exposed_track_cells(
+    track: ratatui::layout::Rect,
+    thumb: ratatui::layout::Rect,
+) -> Vec<(u16, u16)> {
+    let mut cells = Vec::new();
+    for y in track.y..track.y.saturating_add(track.height) {
+        for x in track.x..track.x.saturating_add(track.width) {
+            let in_thumb = x >= thumb.x
+                && x < thumb.x.saturating_add(thumb.width)
+                && y >= thumb.y
+                && y < thumb.y.saturating_add(thumb.height);
+            if !in_thumb {
+                cells.push((x, y));
+            }
+        }
+    }
+    cells
+}
+
 fn find(h: &Harness<App>, needle: &str) -> (u16, u16) {
     let position = h.find(needle);
     assert!(position.is_some(), "missing fixture text: {needle}");
@@ -1394,4 +1453,218 @@ fn git_sync_run_per_child_results_and_honest_effect() {
     );
     assert_eq!(billing.primary_branch, "trunk");
     assert_eq!(Some(billing), billing_before.as_ref());
+}
+
+fn assert_hidden_port_fixture_retains_border_frame(scenario: Scenario) {
+    let mut world = crate::sim::fixtures::world_for(scenario);
+    world.seek(4_000);
+
+    let raw_before = crate::sim::catalogue::catalogue(&world);
+    let port_actions: Vec<_> = raw_before
+        .iter()
+        .filter(|action| action.id == "system.port")
+        .collect();
+    assert_eq!(
+        port_actions.len(),
+        1,
+        "canonical Port action in raw catalogue for {scenario:?}"
+    );
+    let port_command = port_actions
+        .first()
+        .map(|action| action.command.clone())
+        .unwrap_or_default();
+    let normal_rows = home_display_rows(&world);
+    assert_eq!(
+        normal_rows
+            .iter()
+            .filter(|(_, id)| id == "system.port")
+            .count(),
+        1,
+        "Port is normally visible for {scenario:?}"
+    );
+
+    let original_hides = world.memory.hides.len();
+    world.memory.hides.push(Pin {
+        path: world.cwd.clone(),
+        command: port_command.clone(),
+    });
+    assert_eq!(world.memory.hides.len(), original_hides.saturating_add(1));
+    let added_hide = world.memory.hides.last();
+    assert!(added_hide.is_some(), "local Port hide was inserted");
+    let Some(added_hide) = added_hide else { return };
+    assert_eq!(added_hide.path, world.cwd, "hide uses fixture cwd");
+    assert_eq!(
+        added_hide.command, port_command,
+        "hide uses canonical command"
+    );
+
+    let raw_after = crate::sim::catalogue::catalogue(&world);
+    assert_eq!(
+        raw_after, raw_before,
+        "raw catalogue remains unchanged for {scenario:?}"
+    );
+    assert_eq!(
+        raw_after
+            .iter()
+            .filter(|action| action.id == "system.port")
+            .count(),
+        1,
+        "local hide leaves Port in the raw catalogue for {scenario:?}"
+    );
+
+    let historical_rows = home_display_rows(&world);
+    let expected_rows: Vec<_> = normal_rows
+        .iter()
+        .filter(|(_, id)| id != "system.port")
+        .cloned()
+        .collect();
+    assert_eq!(
+        historical_rows, expected_rows,
+        "only Port is hidden for {scenario:?}"
+    );
+    assert_eq!(
+        normal_rows.len(),
+        historical_rows.len().saturating_add(1),
+        "one displayed action is hidden for {scenario:?}"
+    );
+    if scenario == Scenario::RustDirty {
+        assert_eq!(normal_rows.len(), 16, "normal RustDirty action count");
+        assert_eq!(
+            historical_rows.len(),
+            15,
+            "historical RustDirty action count"
+        );
+        assert_eq!(home_visual_extent(&historical_rows), 20);
+    }
+
+    let source_theme = Theme::junie();
+    let mut app = App::from_fixture_world(world, Motion::Paused, 4_000);
+    app.home.history = false;
+    let app = app.with_source_theme(source_theme.clone());
+    let frame = u64::try_from(app.fixture_time_ms());
+    assert!(frame.is_ok(), "fixture time must be nonnegative");
+    let initial = SimulationMoment::from_millis(frame.unwrap_or_default());
+    let mut h = Harness::new_with_feedback_clock(
+        app,
+        source_theme,
+        80,
+        24,
+        FeedbackClock::Simulation { initial },
+    )
+    .with_color(ColorLevel::Ansi256);
+
+    let rows = crate::screens::home::ROWS;
+    let rows_area = h.area_of(rows);
+    let track = h.area_of_part(rows, PartRef::of(Part::TRACK));
+    let thumb = h.area_of_part(rows, PartRef::of(Part::THUMB));
+    assert!(
+        rows_area.is_some(),
+        "native Home rows area for {scenario:?}"
+    );
+    assert!(track.is_some(), "native Home track for {scenario:?}");
+    assert!(thumb.is_some(), "native Home thumb for {scenario:?}");
+    let (Some(rows_area), Some(track), Some(thumb)) = (rows_area, track, thumb) else {
+        return;
+    };
+
+    assert_eq!(
+        (rows_area.x, rows_area.y, rows_area.width, rows_area.height),
+        (1, 6, 78, 15),
+        "native Home rows viewport for {scenario:?}"
+    );
+    assert_eq!(
+        (track.x, track.y, track.width, track.height),
+        (78, 6, 1, 15),
+        "native Home track for {scenario:?}"
+    );
+    assert_eq!(thumb.x, track.x, "thumb column for {scenario:?}");
+    assert_eq!(
+        thumb.y, track.y,
+        "initial zero-offset thumb for {scenario:?}"
+    );
+    assert_eq!(thumb.width, track.width, "thumb width for {scenario:?}");
+
+    let visual_extent = home_visual_extent(&historical_rows);
+    let viewport = usize::from(rows_area.height);
+    let track_len = usize::from(track.height);
+    assert!(visual_extent > 0, "nonempty Home model for {scenario:?}");
+    assert_eq!(viewport, track_len, "native viewport and track length");
+    let expected_thumb_len = viewport
+        .saturating_mul(track_len)
+        .checked_div(visual_extent)
+        .unwrap_or_default()
+        .max(1)
+        .min(track_len);
+    assert_eq!(
+        usize::from(thumb.height),
+        expected_thumb_len,
+        "ScrollState thumb from model extent for {scenario:?}"
+    );
+
+    let exposed = exposed_track_cells(track, thumb);
+    let expected_first_exposed_y = match scenario {
+        Scenario::RustDirty | Scenario::MonorepoChild => Some(17),
+        Scenario::MonorepoRoot | Scenario::ActivitiesMulti => Some(18),
+        _ => None,
+    };
+    assert!(expected_first_exposed_y.is_some(), "expected held case");
+    let expected_first_exposed_y = expected_first_exposed_y.unwrap_or_default();
+    let expected_exposed: Vec<_> = (expected_first_exposed_y..=20).map(|y| (78, y)).collect();
+    assert_eq!(
+        exposed, expected_exposed,
+        "model-derived track for {scenario:?}"
+    );
+
+    let current = h.buffer().clone();
+    let current_cursor = h.cursor();
+    assert_eq!(current_cursor, Some(Position { x: 3, y: 4 }));
+    for &(x, y) in &exposed {
+        let cell = current.cell((x, y));
+        assert!(cell.is_some(), "track cell ({x},{y}) exists");
+        let Some(cell) = cell else { continue };
+        assert_eq!(cell.symbol(), "┆", "track glyph at ({x},{y})");
+        assert_eq!(cell.fg, Color::Indexed(238), "track color at ({x},{y})");
+        assert_eq!(cell.bg, Color::Indexed(16), "track background at ({x},{y})");
+    }
+    for y in thumb.y..thumb.y.saturating_add(thumb.height) {
+        let cell = current.cell((thumb.x, y));
+        assert!(cell.is_some(), "thumb cell ({},{y}) exists", thumb.x);
+        let Some(cell) = cell else { continue };
+        assert_eq!(cell.symbol(), "┃", "thumb glyph at ({},{y})", thumb.x);
+        assert_eq!(
+            cell.fg,
+            Color::Indexed(245),
+            "thumb color at ({},{y})",
+            thumb.x
+        );
+    }
+
+    let mut historical_theme = h.runtime().theme().clone();
+    historical_theme.color.border_subtle = Color::Indexed(235);
+    h.runtime_mut().set_theme(historical_theme);
+    h.draw();
+    assert_eq!(h.cursor(), current_cursor, "cursor after palette replay");
+    h.snapshot()
+        .named(scenario.name())
+        .assert_against(&BORDER_BASELINE);
+}
+
+#[test]
+fn rust_dirty_hidden_port_retains_historical_border_frame() {
+    assert_hidden_port_fixture_retains_border_frame(Scenario::RustDirty);
+}
+
+#[test]
+fn monorepo_root_hidden_port_retains_historical_border_frame() {
+    assert_hidden_port_fixture_retains_border_frame(Scenario::MonorepoRoot);
+}
+
+#[test]
+fn monorepo_child_hidden_port_retains_historical_border_frame() {
+    assert_hidden_port_fixture_retains_border_frame(Scenario::MonorepoChild);
+}
+
+#[test]
+fn activities_multi_hidden_port_retains_historical_border_frame() {
+    assert_hidden_port_fixture_retains_border_frame(Scenario::ActivitiesMulti);
 }
