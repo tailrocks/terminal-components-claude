@@ -1,9 +1,10 @@
-use holla_ui::{App, Motion, Scenario};
+use holla_ui::{App, Motion, Scenario, domain::action::Scope, domain::ranking::Pin};
 use ratatui::{
     buffer::{Buffer, Cell},
     layout::{Position, Rect},
     style::{Color, Modifier},
 };
+use std::collections::BTreeSet;
 use termrock::{
     ColorLevel, Family, FeedbackClock, FgStep, Id, Part, PartRef, Role, SimulationMoment,
     StylePatch, Theme,
@@ -50,6 +51,227 @@ const BORDER_PALETTE_CASES: [Scenario; 4] = [
     Scenario::ActivitiesMulti,
 ];
 const HOME_ROWS: Id = Id::root("home.rows");
+const HOME_QUERY: Id = Id::root("home.query");
+
+const TRACKED_PORT_OWNER_KEYS: [&str; 11] = [
+    "monorepo-root 80 24 junie mono",
+    "monorepo-root 80 24 paper truecolor",
+    "monorepo-root 80 24 paper 256",
+    "monorepo-root 80 24 paper 16",
+    "monorepo-root 80 24 paper mono",
+    "activities-multi 80 24 junie truecolor",
+    "activities-multi 80 24 junie mono",
+    "activities-multi 80 24 paper truecolor",
+    "activities-multi 80 24 paper 256",
+    "activities-multi 80 24 paper 16",
+    "activities-multi 80 24 paper mono",
+];
+
+const EXISTING_CURRENT_A_OWNER_KEYS: [&str; 6] = [
+    "rust-dirty 80 24 junie 256",
+    "monorepo-root 80 24 junie 256",
+    "monorepo-child 80 24 junie 256",
+    "activities-multi 80 24 junie 256",
+    "monorepo-root 80 24 junie truecolor",
+    "monorepo-root 80 24 junie 16",
+];
+
+fn tracked_port_owner_key(
+    scenario: Scenario,
+    width: u16,
+    height: u16,
+    theme: &Theme,
+    color: ColorLevel,
+) -> Option<&'static str> {
+    if (width, height) != (80, 24) {
+        return None;
+    }
+
+    let junie = *theme == Theme::junie();
+    let paper = *theme == Theme::paper();
+    match scenario {
+        Scenario::MonorepoRoot if junie && color == ColorLevel::Mono => {
+            Some("monorepo-root 80 24 junie mono")
+        }
+        Scenario::MonorepoRoot if paper => match color {
+            ColorLevel::TrueColor => Some("monorepo-root 80 24 paper truecolor"),
+            ColorLevel::Ansi256 => Some("monorepo-root 80 24 paper 256"),
+            ColorLevel::Ansi16 => Some("monorepo-root 80 24 paper 16"),
+            ColorLevel::Mono => Some("monorepo-root 80 24 paper mono"),
+            _ => None,
+        },
+        Scenario::ActivitiesMulti if junie => match color {
+            ColorLevel::TrueColor => Some("activities-multi 80 24 junie truecolor"),
+            ColorLevel::Mono => Some("activities-multi 80 24 junie mono"),
+            _ => None,
+        },
+        Scenario::ActivitiesMulti if paper => match color {
+            ColorLevel::TrueColor => Some("activities-multi 80 24 paper truecolor"),
+            ColorLevel::Ansi256 => Some("activities-multi 80 24 paper 256"),
+            ColorLevel::Ansi16 => Some("activities-multi 80 24 paper 16"),
+            ColorLevel::Mono => Some("activities-multi 80 24 paper mono"),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+fn assert_tracked_port_owner_current_a(
+    scenario: Scenario,
+    theme: Theme,
+    color: ColorLevel,
+    expected_key: &str,
+) -> String {
+    let mut world = holla_ui::sim::fixtures::world_for(scenario);
+    world.seek(4_000);
+    assert_eq!(world.scenario, scenario, "{expected_key} model scenario");
+    assert_eq!(world.clock.now_ms, 4_000, "{expected_key} model time");
+
+    let raw = holla_ui::sim::catalogue::catalogue(&world);
+    assert_eq!(
+        raw.iter()
+            .filter(|action| action.id == "system.port")
+            .count(),
+        1,
+        "{expected_key} unique raw Port action"
+    );
+    let port = raw
+        .iter()
+        .find(|action| action.id == "system.port")
+        .expect("unique raw Port action is present");
+    assert_eq!(
+        port.scope,
+        Scope::Host,
+        "{expected_key} canonical Port scope"
+    );
+    assert_eq!(
+        port.workdir.as_str(),
+        world.cwd.as_str(),
+        "{expected_key} Port command uses the fixture cwd"
+    );
+    let local_port_pin = Pin {
+        path: world.cwd.clone(),
+        command: port.command.clone(),
+    };
+    assert_eq!(
+        local_port_pin.path, port.workdir,
+        "{expected_key} local Port pin path"
+    );
+    assert!(
+        !world
+            .memory
+            .hidden_at(&local_port_pin.path, &local_port_pin.command),
+        "{expected_key} actual local Port command is unhidden"
+    );
+
+    let rows = home_display_rows(&world);
+    assert_eq!(
+        rows.iter()
+            .filter(|(_, action_id)| action_id == "system.port")
+            .count(),
+        1,
+        "{expected_key} unique visible Port action"
+    );
+    let extent = home_visual_extent(&rows);
+    assert!(
+        extent > 15,
+        "{expected_key} model rows overflow the viewport"
+    );
+    let (first_section, first_action_id) = rows
+        .first()
+        .expect("nonempty Home model has a first action");
+    assert!(
+        !first_section.is_empty(),
+        "{expected_key} first section exists"
+    );
+
+    let ordinary = harness(scenario, theme.clone(), 80, 24, color);
+    assert_eq!(
+        ordinary.runtime().theme(),
+        &theme.for_level(color),
+        "{expected_key} runtime uses the source theme projection"
+    );
+    assert_eq!(
+        ordinary.app().fixture_time_ms(),
+        4_000,
+        "{expected_key} App fixture time"
+    );
+    assert_eq!(
+        ordinary.focus(),
+        Some(HOME_QUERY),
+        "{expected_key} query focus"
+    );
+    assert_eq!(
+        ordinary.cursor(),
+        Some(Position { x: 3, y: 4 }),
+        "{expected_key} cursor"
+    );
+    assert!(
+        ordinary.diagnostics().is_empty(),
+        "{expected_key} runtime diagnostics"
+    );
+
+    let frame = ordinary.buffer();
+    assert_eq!(*frame.area(), Rect::new(0, 0, 80, 24));
+    let mut complete_cells = 0_usize;
+    for y in 0..24 {
+        for x in 0..80 {
+            assert!(
+                frame.cell((x, y)).is_some(),
+                "{expected_key} cell ({x},{y})"
+            );
+            complete_cells = complete_cells.saturating_add(1);
+        }
+    }
+    assert_eq!(complete_cells, 1_920, "{expected_key} full frame cells");
+
+    let scene = ordinary.snapshot().named(scenario.name());
+    let actual_key = scene.key().to_owned();
+    assert_eq!(actual_key, expected_key, "named normal-A frame key");
+
+    let rows_area = ordinary
+        .area_of(HOME_ROWS)
+        .expect("native Home rows are registered");
+    let track = ordinary
+        .area_of_part(HOME_ROWS, PartRef::of(Part::TRACK))
+        .expect("native Home track is registered");
+    let thumb = ordinary
+        .area_of_part(HOME_ROWS, PartRef::of(Part::THUMB))
+        .expect("native Home thumb is registered");
+    assert_eq!(
+        rows_area,
+        Rect::new(1, 6, 78, 15),
+        "{expected_key} rows area"
+    );
+    assert_eq!(track, Rect::new(78, 6, 1, 15), "{expected_key} track area");
+    assert_eq!(thumb.x, track.x, "{expected_key} thumb column");
+    assert_eq!(thumb.y, track.y, "{expected_key} zero initial offset");
+    assert_eq!(thumb.width, track.width, "{expected_key} thumb width");
+    let expected_thumb_height =
+        (usize::from(rows_area.height).saturating_mul(usize::from(track.height)) / extent)
+            .max(1)
+            .min(usize::from(track.height));
+    assert_eq!(
+        usize::from(thumb.height),
+        expected_thumb_height,
+        "{expected_key} model-derived thumb height"
+    );
+
+    let first_row = ordinary
+        .area_of_part(
+            HOME_ROWS,
+            PartRef::item(Part::ROW, termrock::ItemKey::text(first_action_id)),
+        )
+        .expect("native first action row is registered");
+    assert_eq!(first_row.x, rows_area.x, "{expected_key} first row x");
+    assert_eq!(first_row.height, 1, "{expected_key} first row height");
+    assert_eq!(
+        first_row.y,
+        rows_area.y + 1,
+        "{expected_key} header precedes first row; offset is zero"
+    );
+    actual_key
+}
 
 fn is_border_palette_case(
     scenario: Scenario,
@@ -737,6 +959,24 @@ fn holla_visual_baseline() {
                         }
                         continue;
                     }
+                    if let Some(expected_key) =
+                        tracked_port_owner_key(scenario, width, height, &theme, color)
+                    {
+                        // The private tracked_port_owner unit test owns the actual B hide and
+                        // full-cell A/B comparison. This shared normal-A helper verifies the
+                        // named matrix input, public model projection and native geometry.
+                        assert_eq!(
+                            assert_tracked_port_owner_current_a(
+                                scenario,
+                                theme.clone(),
+                                color,
+                                expected_key,
+                            ),
+                            expected_key,
+                            "normal-A owner routing retains the exact key"
+                        );
+                        continue;
+                    }
                     let ordinary = harness(scenario, theme.clone(), width, height, color);
                     let scene = ordinary.snapshot().named(scenario.name());
                     if scenario == Scenario::MonorepoRoot
@@ -814,6 +1054,93 @@ fn holla_visual_baseline() {
             }
         }
     }
+}
+
+#[test]
+fn holla_tracked_port_normal_a_owner_matrix_is_exact() {
+    let mut matrix_inputs = 0_usize;
+    let mut selected_keys = BTreeSet::new();
+    for scenario in Scenario::ALL {
+        for (width, height) in SIZES {
+            for theme in [Theme::junie(), Theme::paper()] {
+                for color in COLORS {
+                    matrix_inputs = matrix_inputs.saturating_add(1);
+                    let key = tracked_port_owner_key(scenario, width, height, &theme, color);
+
+                    let has_specialized_owner =
+                        is_border_palette_case(scenario, width, height, &theme, color)
+                            || is_historical_ansi16_faint_case(
+                                scenario, width, height, &theme, color,
+                            )
+                            || historical_80_overflow_faint_color(
+                                scenario, width, height, &theme, color,
+                            )
+                            .is_some()
+                            || is_historical_overflow_faint_case(
+                                scenario, width, height, &theme, color,
+                            );
+                    assert!(
+                        key.is_none() || !has_specialized_owner,
+                        "tracked owner does not overlap a specialized or faint protocol: {scenario:?} {width}x{height} {theme:?} {color:?}"
+                    );
+
+                    let is_root_truecolor_relocation = scenario == Scenario::MonorepoRoot
+                        && (width, height) == (80, 24)
+                        && theme == Theme::junie()
+                        && color == ColorLevel::TrueColor;
+                    let is_root_ansi16_relocation = scenario == Scenario::MonorepoRoot
+                        && (width, height) == (80, 24)
+                        && theme == Theme::junie()
+                        && color == ColorLevel::Ansi16;
+                    assert!(
+                        key.is_none()
+                            || !(is_root_truecolor_relocation || is_root_ansi16_relocation),
+                        "tracked owner remains disjoint from the two relocated Root keys"
+                    );
+
+                    if let Some(expected_key) = key {
+                        assert!(
+                            !EXISTING_CURRENT_A_OWNER_KEYS.contains(&expected_key),
+                            "tracked key has a distinct existing owner: {expected_key}"
+                        );
+                        let actual_key = assert_tracked_port_owner_current_a(
+                            scenario,
+                            theme.clone(),
+                            color,
+                            expected_key,
+                        );
+                        assert!(
+                            selected_keys.insert(actual_key.clone()),
+                            "matrix selects each tracked key once: {actual_key}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(
+        matrix_inputs, 1_120,
+        "complete Scenario × size × theme × tier matrix"
+    );
+    assert_eq!(
+        selected_keys.len(),
+        TRACKED_PORT_OWNER_KEYS.len(),
+        "all eleven tracked owner keys are unique"
+    );
+    let expected_keys: BTreeSet<_> = TRACKED_PORT_OWNER_KEYS
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    assert_eq!(expected_keys.len(), TRACKED_PORT_OWNER_KEYS.len());
+    assert_eq!(selected_keys, expected_keys, "exact tracked owner key set");
+    let existing_owners: BTreeSet<_> = EXISTING_CURRENT_A_OWNER_KEYS
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    assert!(
+        selected_keys.is_disjoint(&existing_owners),
+        "tracked owner key set is disjoint from all six existing current-A owners"
+    );
 }
 
 #[test]
