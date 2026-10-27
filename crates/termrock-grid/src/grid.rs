@@ -5044,8 +5044,11 @@ mod tests {
             harness.app().state.cursor().map(|cursor| cursor.0),
             Some(ItemKey::num(10))
         );
-        let (x, y) = harness.find("Rose").expect("third row cell");
-        let _ = harness.click(x, y);
+        let rose = harness.find("Rose");
+        assert!(rose.is_some(), "third row cell");
+        if let Some((x, y)) = rose {
+            let _ = harness.click(x, y);
+        }
         assert_eq!(
             harness.app().state.cursor().map(|cursor| cursor.0),
             Some(ItemKey::num(30))
