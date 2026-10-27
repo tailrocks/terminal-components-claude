@@ -107,6 +107,16 @@ const HELP_SECTIONS: [HelpSection<'static>; 3] = [
     HelpSection::plain("Sidebar", HELP_SIDEBAR_ROWS),
     HelpSection::plain("Mouse", HELP_MOUSE_ROWS),
 ];
+const HELP_PART_PATCHES: &[(Part, termrock::StylePatch)] = &[
+    (
+        Part::BORDER,
+        termrock::StylePatch::new().set_fg(termrock::Role::BorderStrong),
+    ),
+    (
+        Part::DETAIL,
+        termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+    ),
+];
 
 const STATUS_LEFT: [StatusItem<'static>; 1] = [StatusItem::new("showcase")];
 const STATUS_RIGHT: [StatusItem<'static>; 2] = [
@@ -1759,7 +1769,9 @@ impl App {
     }
 
     fn help_overlay() -> HelpOverlay<'static> {
-        HelpOverlay::new(HELP, "Showcase", &HELP_SECTIONS).title("Keyboard & mouse")
+        HelpOverlay::new(HELP, "Showcase", &HELP_SECTIONS)
+            .title("Keyboard & mouse")
+            .patch_part(HELP_PART_PATCHES)
     }
 
     fn open_help(&mut self, cx: &mut Cx<'_>) {
