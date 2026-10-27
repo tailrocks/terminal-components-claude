@@ -7,8 +7,8 @@ use termrock::theme::CursorStyle;
 use termrock::{
     BlurPolicy, Chord, Color, Cx, Family, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
     KeyCode, KeyModifiers, NavList, NavListAction, NavListState, Part, Rect, Response, Role,
-    StateFlags, StylePatch, TextAction, TextCmd, TextInput, TextInputState, TypingPolicy, Ui,
-    Variant,
+    StateFlags, StylePatch, Surface, TextAction, TextCmd, TextInput, TextInputState, TypingPolicy,
+    Ui, Variant,
 };
 
 use crate::domain::action::{Action, Availability, Scope};
@@ -603,8 +603,16 @@ impl HomeState {
         ui.fill(Rect::new(area.x, area.y, area.width, 1), field);
         let rows_own_navigation = ui.state(ROWS).contains(StateFlags::FOCUSED)
             && catalogue::parity_discovery(world).is_some();
+        let first_use = world.scenario == crate::scenario::Scenario::FirstUse;
         let mut input = query_input(rows_own_navigation);
-        if catalogue::docker_cleanup_tag_frame(world) {
+        let docker_cleanup = catalogue::docker_cleanup_tag_frame(world);
+        if first_use && ui.is_covered_by_native_layer() {
+            input = input.patch_part(if docker_cleanup {
+                FIRST_USE_DOCKER_COVERED_QUERY_PARTS
+            } else {
+                FIRST_USE_COVERED_QUERY_PARTS
+            });
+        } else if docker_cleanup {
             input = input.patch_part(DOCKER_QUERY_PARTS);
         }
         input.value(&self.value).draw(
@@ -623,7 +631,6 @@ impl HomeState {
             &scope_label,
             scope_style,
         );
-        let first_use = world.scenario == crate::scenario::Scenario::FirstUse;
         let mut rows = self.rows(world);
         ActionColumns::apply(&mut rows, first_use);
         let (lead_area, rows_area, paints_recent_lead) =
@@ -763,7 +770,7 @@ impl HomeState {
                 |row, cells| {
                     let row_is_visible = !cells.area().intersection(clip).is_empty();
                     let collector = (collect_peek && row_is_visible).then_some(&peek);
-                    paint_action_with_peek(row, cells, collector, false);
+                    paint_action_with_peek(row, cells, collector, false, false);
                 },
                 false,
             )
@@ -869,6 +876,20 @@ const FIRST_USE_SELECTED_PARTS: &[(Part, StylePatch)] = &[
     (Part::ICON, FIRST_USE_SELECTED_ROW_PATCH),
 ];
 
+const FIRST_USE_NEUTRAL_ROW_PATCH: StylePatch = StylePatch::new()
+    .set_fg(Role::Fg(FgStep::Primary))
+    .set_bg(Role::Surface(Surface::Canvas));
+
+const FIRST_USE_NEUTRAL_PARTS: &[(Part, StylePatch)] = &[
+    (Part::CONTAINER, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::ROW, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::GUTTER, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::MARKER, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::ICON, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::LABEL, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::META, FIRST_USE_NEUTRAL_ROW_PATCH),
+];
+
 const FIRST_USE_SELECTED_LABEL_PATCH: StylePatch = StylePatch::new()
     .set_fg(Role::HighlightFg)
     .set_bg(Role::HighlightBg)
@@ -892,11 +913,12 @@ fn paint_first_use_row(
     key: ItemKey,
     row: &HomeRow,
 ) {
-    let selected = flags.contains(StateFlags::SELECTED);
+    let covered = ui.is_covered_by_native_layer();
+    let selected = flags.contains(StateFlags::SELECTED) && !covered;
     let author_style = if selected {
         PartStyle::new().part(FIRST_USE_SELECTED_PARTS)
     } else {
-        PartStyle::new()
+        PartStyle::new().part(FIRST_USE_NEUTRAL_PARTS)
     };
     let mut cells = RowUi::new_with_author_style(
         ui,
@@ -917,17 +939,24 @@ fn paint_first_use_row(
     }
     cells.begin_content();
     if row.action.is_some() {
-        paint_action_with_peek(row, &mut cells, None, true);
+        paint_action_with_peek(row, &mut cells, None, true, covered);
     } else if let Some(note) = row.note {
         cells.label_patched(note, &FIRST_USE_NOTE_PATCH);
     } else if let Some(chips) = row.chips {
-        cells.label_patched(&chips.join("   "), &FIRST_USE_CHIPS_PATCH);
+        cells.label_patched(&format!(" {}", chips.join("   ")), &FIRST_USE_CHIPS_PATCH);
     }
 }
 
 const TAG_GREY: StylePatch = StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)));
 const FIRST_USE_NOTE_PATCH: StylePatch = TAG_GREY.remove(termrock::Modifier::BOLD);
 const QUERY_PARTS: &[(Part, StylePatch)] = &[(Part::PLACEHOLDER, TAG_GREY)];
+const FIRST_USE_COVERED_QUERY_PARTS: &[(Part, StylePatch)] = &[
+    (Part::PLACEHOLDER, TAG_GREY),
+    (
+        Part::GUTTER,
+        StylePatch::new().set_fg(Role::Surface(Surface::Field)),
+    ),
+];
 
 const DOCKER_QUERY_PARTS: &[(Part, StylePatch)] = &[
     (Part::PLACEHOLDER, TAG_GREY),
@@ -936,6 +965,20 @@ const DOCKER_QUERY_PARTS: &[(Part, StylePatch)] = &[
         StylePatch::new()
             .add(termrock::Modifier::UNDERLINED)
             .set_underline(Role::Fg(FgStep::Secondary)),
+    ),
+];
+
+const FIRST_USE_DOCKER_COVERED_QUERY_PARTS: &[(Part, StylePatch)] = &[
+    (Part::PLACEHOLDER, TAG_GREY),
+    (
+        Part::TEXT,
+        StylePatch::new()
+            .add(termrock::Modifier::UNDERLINED)
+            .set_underline(Role::Fg(FgStep::Secondary)),
+    ),
+    (
+        Part::GUTTER,
+        StylePatch::new().set_fg(Role::Surface(Surface::Field)),
     ),
 ];
 
@@ -1089,7 +1132,7 @@ fn paint_empty_home_rows(ui: &mut Ui<'_>, area: Rect, query: &str, scope: Option
 }
 
 fn paint_action(row: &HomeRow, cells: &mut RowUi<'_>) {
-    paint_action_with_peek(row, cells, None, false);
+    paint_action_with_peek(row, cells, None, false, false);
 }
 
 fn paint_action_with_peek(
@@ -1097,8 +1140,9 @@ fn paint_action_with_peek(
     cells: &mut RowUi<'_>,
     peek: Option<&RefCell<Option<String>>>,
     first_use: bool,
+    covered: bool,
 ) {
-    let selected_first_use = first_use && cells.flags().contains(StateFlags::SELECTED);
+    let selected_first_use = first_use && !covered && cells.flags().contains(StateFlags::SELECTED);
     let candidate_eligible = peek.is_some()
         && cells.flags().contains(StateFlags::FOCUSED)
         && !cells.flags().contains(StateFlags::DISABLED)
@@ -1158,7 +1202,12 @@ fn paint_action_with_peek(
             } else {
                 kind_cell.tone(Role::Fg(FgStep::Muted));
             }
-            kind_cell.text_matched(kind, &[]);
+            let shown = if first_use {
+                fit_cells(kind, kind_cell.available_width())
+            } else {
+                kind.to_owned()
+            };
+            kind_cell.text_matched(&shown, &[]);
         }
         if !scope.is_empty() {
             let scope_tone = if action.scope == Scope::Here {
@@ -1172,7 +1221,12 @@ fn paint_action_with_peek(
             } else {
                 scope_cell.tone(scope_tone);
             }
-            scope_cell.text_matched(&scope, &[]);
+            let shown = if first_use {
+                fit_cells(&scope, scope_cell.available_width())
+            } else {
+                scope.clone()
+            };
+            scope_cell.text_matched(&shown, &[]);
         }
         let reason_cut = if !action.reason.is_empty() {
             let mut reason = columns.cell_part(3, Part::META);

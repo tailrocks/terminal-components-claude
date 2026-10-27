@@ -3681,7 +3681,12 @@ impl App {
                 HintBar::new(FOOTER, &home_hints)
                     .patch_part(PARITY_HINT_PARTS)
                     .draw(ui, footer);
-                ui.fill_keep_ink(footer, Color::Black);
+                let footer_base = ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .set_bg(Role::Surface(Surface::Canvas)),
+                );
+                ui.fill(footer, footer_base);
                 paint_help_footer_hints(ui, footer);
             } else {
                 let layer = help_footer_hints();
@@ -4502,6 +4507,7 @@ impl termrock::App for App {
                 self.route = Route::Home;
                 cx.focus(home::QUERY);
             }
+            self.refresh_query_bindings(cx);
             return Response::changed();
         }
         if self.route == Route::TaskRun {
