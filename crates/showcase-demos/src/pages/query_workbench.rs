@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use termrock::grid::{Column, ColumnKey, Table, TableColumn, TableState};
 use termrock::{
-    ActionKey, CodeAction, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, Cx,
+    ActionKey, Align, CodeAction, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, Cx,
     FrameRead, GridModel, Id, ItemKey, Maximized, Panel, PanelKind, Rect, ResetPolicy, Response,
     Role, SplitAxis, SplitFallback, SplitPane, SplitPaneState, StateFlags, StatusBar, StatusItem,
     Tabs, TabsAction, TabsState, ToolItem, Toolbar, ToolbarAction, ToolbarState, TreeAction, Ui,
@@ -120,6 +120,53 @@ const RESULT_COLUMNS: [TableColumn<'static>; 3] = [
     })
     .flexible(),
 ];
+
+const ORDERS_RESULT_COLUMNS: [TableColumn<'static>; 5] = [
+    TableColumn::new(Column {
+        min_width: 7,
+        max_width: 7,
+        ..Column::new(ColumnKey::num(0), "id")
+    }),
+    TableColumn::new(Column {
+        min_width: 16,
+        max_width: u16::MAX,
+        ..Column::new(ColumnKey::num(1), "customer")
+    })
+    .flexible(),
+    TableColumn::new(Column {
+        min_width: 10,
+        max_width: 10,
+        ..Column::new(ColumnKey::num(2), "status")
+    }),
+    TableColumn::new(Column {
+        align: Align::Right,
+        min_width: 10,
+        max_width: 10,
+        ..Column::new(ColumnKey::num(3), "total")
+    }),
+    TableColumn::new(Column {
+        min_width: 17,
+        max_width: 17,
+        ..Column::new(ColumnKey::num(4), "created_at")
+    }),
+];
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum ResultSchema {
+    #[default]
+    Generic,
+    Orders,
+}
+
+impl ResultSchema {
+    const fn columns(self) -> &'static [TableColumn<'static>] {
+        match self {
+            Self::Generic => &RESULT_COLUMNS,
+            Self::Orders => &ORDERS_RESULT_COLUMNS,
+        }
+    }
+}
+
 const SAMPLE_CUSTOMERS: [&str; 3] = ["Northwind", "Globex", "Initech"];
 const ORDER_STATUSES: [&str; 4] = ["pending", "pending", "paid", "shipped"];
 
@@ -152,63 +199,81 @@ impl QueryResultState {
     }
 
     fn model(&self) -> ResultModel {
-        let rows = match self {
-            Self::NotRun | Self::Empty => Vec::new(),
-            Self::Rows { table, count } => (0..*count)
-                .map(|index| {
-                    if table.eq_ignore_ascii_case("orders") {
+        let (schema, rows) = match self {
+            Self::NotRun | Self::Empty => (ResultSchema::Generic, Vec::new()),
+            Self::Rows { table, count } if table.eq_ignore_ascii_case("orders") => (
+                ResultSchema::Orders,
+                (0..*count).map(order_result_row).collect(),
+            ),
+            Self::Rows { count, .. } => (
+                ResultSchema::Generic,
+                (0..*count)
+                    .map(|index| {
                         let customer = SAMPLE_CUSTOMERS
                             .get(index % SAMPLE_CUSTOMERS.len())
                             .copied()
                             .unwrap_or("Sample");
-                        let status = ORDER_STATUSES
-                            .get(index % ORDER_STATUSES.len())
-                            .copied()
-                            .unwrap_or("pending");
-                        [
-                            (10_480_usize.saturating_sub(index.saturating_mul(7))).to_string(),
-                            format!("{customer} Example"),
-                            status.to_owned(),
-                        ]
-                    } else {
-                        let customer = SAMPLE_CUSTOMERS
-                            .get(index % SAMPLE_CUSTOMERS.len())
-                            .copied()
-                            .unwrap_or("Sample");
-                        [
+                        vec![
                             index.saturating_add(1).to_string(),
                             format!("{customer} Account"),
                             format!("2026-10-{:02}", 27_usize.saturating_sub(index % 26)),
                         ]
-                    }
-                })
-                .collect(),
-            Self::Plan => [
-                ["Limit".to_owned(), "0.42..2.10".to_owned(), "25".to_owned()],
-                [
-                    "Index Scan Backward on orders".to_owned(),
-                    "0.42..8 410".to_owned(),
-                    "1 204".to_owned(),
+                    })
+                    .collect(),
+            ),
+            Self::Plan => (
+                ResultSchema::Generic,
+                vec![
+                    vec!["Limit".to_owned(), "0.42..2.10".to_owned(), "25".to_owned()],
+                    vec![
+                        "Index Scan Backward on orders".to_owned(),
+                        "0.42..8 410".to_owned(),
+                        "1 204".to_owned(),
+                    ],
+                    vec![
+                        "Index condition".to_owned(),
+                        "status = 'pending'".to_owned(),
+                        String::new(),
+                    ],
+                    vec![
+                        "Using index".to_owned(),
+                        "orders_created_at_idx".to_owned(),
+                        String::new(),
+                    ],
                 ],
-                [
-                    "Index condition".to_owned(),
-                    "status = 'pending'".to_owned(),
-                    String::new(),
-                ],
-                [
-                    "Using index".to_owned(),
-                    "orders_created_at_idx".to_owned(),
-                    String::new(),
-                ],
-            ]
-            .into_iter()
-            .collect(),
-            Self::Error { message, detail } => {
-                vec![["ERROR".to_owned(), message.clone(), detail.clone()]]
-            }
+            ),
+            Self::Error { message, detail } => (
+                ResultSchema::Generic,
+                vec![vec!["ERROR".to_owned(), message.clone(), detail.clone()]],
+            ),
         };
-        ResultModel { rows }
+        ResultModel { schema, rows }
     }
+}
+
+fn order_result_row(index: usize) -> Vec<String> {
+    let customer = SAMPLE_CUSTOMERS
+        .get(index % SAMPLE_CUSTOMERS.len())
+        .copied()
+        .unwrap_or("Sample");
+    let status = ORDER_STATUSES
+        .get(index % ORDER_STATUSES.len())
+        .copied()
+        .unwrap_or("pending");
+
+    let total_whole = 40 + ((index % 900) * 37) % 900;
+    let total_fraction = ((index % 100) * 13) % 100;
+    let day = 17_usize.saturating_sub(index / 6);
+    let hour = 23_usize.saturating_sub(index % 24);
+    let minute = ((index % 60) * 7) % 60;
+
+    vec![
+        (10_480_usize.saturating_sub(index.saturating_mul(7))).to_string(),
+        format!("{customer} Example"),
+        status.to_owned(),
+        format!("{total_whole}.{total_fraction:02}"),
+        format!("2026-10-{day:02} {hour:02}:{minute:02}"),
+    ]
 }
 
 #[derive(Clone, Debug)]
@@ -253,7 +318,8 @@ struct PendingRun {
 
 #[derive(Clone, Debug, Default)]
 struct ResultModel {
-    rows: Vec<[String; 3]>,
+    schema: ResultSchema,
+    rows: Vec<Vec<String>>,
 }
 
 impl GridModel for ResultModel {
@@ -872,7 +938,7 @@ impl Page for QueryWorkbenchPage {
             }
 
             let model = self.active_result_model();
-            response |= Table::new(RESULTS, &RESULT_COLUMNS)
+            response |= Table::new(RESULTS, model.schema.columns())
                 .update(cx, &mut self.results, &model)
                 .erase();
         } else {
@@ -1013,7 +1079,7 @@ impl Page for QueryWorkbenchPage {
                                         .get(1)
                                         .copied()
                                         .unwrap_or(Rect::new(0, 0, 0, 0));
-                                    let _ = Table::new(RESULTS, &RESULT_COLUMNS).draw(
+                                    let _ = Table::new(RESULTS, model.schema.columns()).draw(
                                         ui,
                                         table_area,
                                         &self.results,
