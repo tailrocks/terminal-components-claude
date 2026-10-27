@@ -764,6 +764,7 @@ struct NavNode {
     key: ItemKey,
     query_match: bool,
     fade: u8,
+    inactive_layer: bool,
 }
 
 fn nav_nodes(state: &TreeState, viewport_height: u16) -> Vec<NavNode> {
@@ -791,6 +792,7 @@ fn nav_nodes_for_query(
                     key: nav_group_key(section_index),
                     query_match: true,
                     fade: 0,
+                    inactive_layer: false,
                 });
                 section_index = section_index.saturating_add(1);
             }
@@ -804,6 +806,7 @@ fn nav_nodes_for_query(
             key: nav_entry_key(index),
             query_match: true,
             fade: 0,
+            inactive_layer: false,
         });
     }
 
@@ -2350,24 +2353,37 @@ fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKe
     let canvas = shell_compat_style(ui.surface_style());
     let label_ink = fade_paint(canvas, fade);
     let group_ink = fade_paint(shell_text_style(ui, termrock::FgStep::Secondary), fade);
-    let selected_patch =
-        ui.paint_patch(&termrock::StylePatch::new().set_bg(termrock::Role::AccentTint));
+    let selected_background =
+        termrock::Color::from_u32(showcase_demos::pages::accent_tint_bg(ui.theme_ref()));
+    let selected_patch = ui.paint_patch(
+        &termrock::StylePatch::new().set_bg(termrock::Role::Custom(selected_background)),
+    );
     let selected_surface =
         shell_compat_style(canvas.patch(selected_patch)).add_modifier(termrock::Modifier::BOLD);
-    let selected_ink = shell_compat_style(
-        selected_surface
-            .patch(ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent))),
-    );
     let accent = ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent));
+    let selected_ink = if node.inactive_layer {
+        shell_compat_style(selected_surface.patch(ui.paint_patch(
+            &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Primary)),
+        )))
+        .remove_modifier(termrock::Modifier::BOLD)
+    } else {
+        shell_compat_style(selected_surface.patch(accent))
+    };
     let marker_surface = if selected { selected_surface } else { canvas };
-    let marker = fade_paint(shell_compat_style(marker_surface.patch(accent)), fade)
-        .add_modifier(termrock::Modifier::BOLD);
+    let marker = if selected && node.inactive_layer {
+        selected_ink
+    } else {
+        fade_paint(shell_compat_style(marker_surface.patch(accent)), fade)
+            .add_modifier(termrock::Modifier::BOLD)
+    };
 
     ui.fill(row, if selected { selected_surface } else { canvas });
-    if !focused && !selected {
-        let gutter = shell_compat_style(canvas.patch(
+    if !focused {
+        let gutter_surface = if selected { selected_surface } else { canvas };
+        let gutter = shell_compat_style(gutter_surface.patch(
             ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::CurrentSurface)),
-        ));
+        ))
+        .remove_modifier(termrock::Modifier::BOLD);
         ui.fill(Rect::new(row.x, row.y, 1, 1), gutter);
     }
     if focused {
@@ -2812,11 +2828,14 @@ impl TuiApp for App {
             self.nav_query.is_some(),
         );
         let presentation = NavTreePresentation::new(sidebar.tree, self.nav_query.as_ref());
-        let nodes = nav_nodes_for_query(
+        let mut nodes = nav_nodes_for_query(
             &self.nav_state,
             sidebar.tree.height,
             self.nav_query.as_ref(),
         );
+        for node in &mut nodes {
+            node.inactive_layer = self.overlay_open;
+        }
         let query_disclosure = self.nav_query.as_ref().and_then(|_| {
             cx.intents(NAV).find_map(|intent| match intent {
                 Intent::Pointer {
