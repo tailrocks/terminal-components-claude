@@ -751,23 +751,45 @@ impl CodeEditorState {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct HighlightCache {
     generation: u64,
     valid: bool,
+    /// Exact source snapshot prevents generation collisions across editor states.
+    source: String,
     spans: Vec<(Range<usize>, SyntaxRole)>,
     line_starts: Vec<usize>,
     /// Segmenter blocks for the current text generation. Segmenting the whole
     /// document every draw allocates, so the draw path reuses this list and
-    /// only rebuilds it when the text generation moves.
+    /// only rebuilds it when the text generation moves or the source changes.
+    /// Saturated generations rebuild every draw because edits cannot advance the counter.
     blocks: Vec<Range<usize>>,
     blocks_generation: u64,
     blocks_valid: bool,
 }
 
+impl fmt::Debug for HighlightCache {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("HighlightCache")
+            .field("generation", &self.generation)
+            .field("valid", &self.valid)
+            .field("source_len", &self.source.len())
+            .field("spans", &self.spans)
+            .field("line_starts", &self.line_starts)
+            .field("blocks", &self.blocks)
+            .field("blocks_generation", &self.blocks_generation)
+            .field("blocks_valid", &self.blocks_valid)
+            .finish()
+    }
+}
+
 impl HighlightCache {
     fn ensure(&mut self, generation: u64, text: &str, highlighter: Option<&dyn Highlighter>) {
-        if generation != u64::MAX && self.valid && self.generation == generation {
+        if generation != u64::MAX
+            && self.valid
+            && self.generation == generation
+            && self.source == text
+        {
             return;
         }
         self.spans.clear();
@@ -786,8 +808,11 @@ impl HighlightCache {
             }
             self.spans.sort_by_key(|(range, _)| range.start);
         }
+        self.source.clear();
+        self.source.push_str(text);
         self.generation = generation;
         self.valid = true;
+        self.blocks_valid = false;
     }
 }
 
@@ -1498,9 +1523,7 @@ impl<'a> CodeEditor<'a> {
         }
         let mut cache = core::mem::take(ui.cache::<HighlightCache>(self.id));
         cache.ensure(st.edit_generation, st.text(), self.highlighter);
-        if st.edit_generation != u64::MAX
-            && (!cache.blocks_valid || cache.blocks_generation != st.edit_generation)
-        {
+        if !cache.blocks_valid || cache.blocks_generation != st.edit_generation {
             cache.blocks = self.blocks(st);
             cache.blocks_generation = st.edit_generation;
             cache.blocks_valid = true;
@@ -2367,6 +2390,72 @@ mod tests {
         core::iter::once(0..text.len()).collect()
     }
 
+    fn draw_editor(
+        runtime: &mut Runtime<Stub>,
+        buffer: &mut Buffer,
+        editor: &CodeEditor<'_>,
+        state: &CodeEditorState,
+    ) -> Rect {
+        let area = buffer.area;
+        buffer.reset();
+        runtime
+            .draw_scene(area, buffer, |ui, rect| {
+                editor.draw(ui, rect, state);
+            })
+            .commit_presented();
+        let text_area = runtime
+            .area_of_part(ID, PartRef::of(Part::TEXT))
+            .expect("editor registers its text part");
+        assert_eq!(text_area.height, 4, "editor TEXT has four visible rows");
+        text_area
+    }
+
+    fn read_cells(buffer: &Buffer, y: u16, x_start: u16, x_end: u16) -> String {
+        (x_start..x_end)
+            .filter_map(|x| buffer.cell(Position::new(x, y)).map(|cell| cell.symbol()))
+            .collect()
+    }
+
+    fn assert_overflow_geometry(runtime: &Runtime<Stub>, text_area: Rect) {
+        let track = runtime
+            .area_of_part(ID, PartRef::of(Part::TRACK))
+            .expect("overflowing editor registers its track");
+        assert_eq!(text_area.right(), track.x);
+    }
+
+    fn assert_untracked_geometry(runtime: &Runtime<Stub>, screen_area: Rect, text_area: Rect) {
+        assert!(
+            runtime.area_of_part(ID, PartRef::of(Part::TRACK)).is_none(),
+            "non-overflowing editor has no track"
+        );
+        assert_eq!(text_area.right(), screen_area.right());
+        assert_eq!(
+            text_area.width,
+            screen_area.right().saturating_sub(text_area.x),
+            "TEXT uses all remaining screen width"
+        );
+    }
+
+    fn visible_row_y(text_area: Rect, visible_row: u16) -> u16 {
+        assert!(
+            visible_row < text_area.height,
+            "row is inside published TEXT"
+        );
+        text_area.y.saturating_add(visible_row)
+    }
+
+    fn line_number(buffer: &Buffer, text_area: Rect, visible_row: u16) -> String {
+        read_cells(buffer, visible_row_y(text_area, visible_row), 3, 5)
+    }
+
+    fn assert_text_row(buffer: &Buffer, text_area: Rect, visible_row: u16, expected: &str) {
+        assert!(expected.is_ascii(), "fixture rows use ASCII text");
+        let y = visible_row_y(text_area, visible_row);
+        let actual = read_cells(buffer, y, text_area.x, text_area.right());
+        let expected = format!("{expected:<width$}", width = usize::from(text_area.width));
+        assert_eq!(actual, expected, "visible TEXT row {visible_row}");
+    }
+
     fn send_key(runtime: &mut Runtime<EditorApp>, buffer: &mut Buffer, code: KeyCode) {
         let _ = crate::runtime::stub::deliver(runtime, key(code));
         runtime.draw_buffer(buffer.area, buffer).commit_presented();
@@ -3102,6 +3191,234 @@ mod tests {
                 .commit_presented();
         }
         assert_eq!(calls.get(), 2);
+    }
+
+    #[test]
+    fn shared_cache_tracks_equal_generation_documents_without_resetting_state() {
+        let highlighter_calls = Cell::new(0usize);
+        let segmenter_calls = Cell::new(0usize);
+        let highlighter = |text: &str| {
+            highlighter_calls.set(highlighter_calls.get().saturating_add(1));
+            if text.starts_with("Orders") {
+                text.match_indices("Orders")
+                    .map(|(start, word)| {
+                        (start..start.saturating_add(word.len()), SyntaxRole::Keyword)
+                    })
+                    .collect()
+            } else if text.starts_with("Customers") {
+                text.match_indices("Customers")
+                    .map(|(start, word)| {
+                        (start..start.saturating_add(word.len()), SyntaxRole::Comment)
+                    })
+                    .collect()
+            } else {
+                Vec::new()
+            }
+        };
+        let segmenter = |text: &str| {
+            segmenter_calls.set(segmenter_calls.get().saturating_add(1));
+            whole_document(text)
+        };
+        let editor = CodeEditor::new(ID, 5)
+            .highlighter(&highlighter)
+            .segmenter(&segmenter);
+        let area = Rect::new(0, 0, 40, 5);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+
+        let orders_text = "Orders row 1\nOrders row 2\nOrders row 3\nOrders row 4\nOrders row 5\nOrders row 6\nOrders row 7";
+        let mut orders = CodeEditorState::new(orders_text);
+        orders.scroll.set_content(7);
+        orders.scroll.set_viewport(4);
+        orders.scroll.scroll_to(2);
+        orders.jump_to(orders_text.find("Orders row 5").unwrap_or_default());
+        let orders_cursor = orders.cursor_pos();
+        let orders_offset = orders.scroll.offset();
+
+        let mut new_query = CodeEditorState::new("New query");
+        new_query.jump_to(4);
+        let new_cursor = new_query.cursor_pos();
+        let new_offset = new_query.scroll.offset();
+
+        let customers_text =
+            "Customers row 1\nCustomers row 2\nCustomers row 3\nCustomers row 4\nCustomers row 5";
+        let mut customers = CodeEditorState::new(customers_text);
+        customers.scroll.set_content(5);
+        customers.scroll.set_viewport(4);
+        customers.scroll.scroll_to(1);
+        customers.jump_to(customers_text.find("Customers row 3").unwrap_or_default());
+        let customers_cursor = customers.cursor_pos();
+        let customers_offset = customers.scroll.offset();
+
+        assert_eq!(orders.edit_generation, 0);
+        assert_eq!(new_query.edit_generation, 0);
+        assert_eq!(customers.edit_generation, 0);
+        assert_eq!(orders_cursor.line, 4);
+        assert_eq!(orders_offset, 2);
+        assert_eq!((new_cursor.line, new_cursor.col), (0, 4));
+        assert_eq!(new_offset, 0);
+        assert_eq!(customers_cursor.line, 2);
+        assert_eq!(customers_offset, 1);
+
+        let first_orders_text_area = draw_editor(&mut runtime, &mut buffer, &editor, &orders);
+        assert_overflow_geometry(&runtime, first_orders_text_area);
+        let orders_text_area = draw_editor(&mut runtime, &mut buffer, &editor, &orders);
+        assert_overflow_geometry(&runtime, orders_text_area);
+        assert_eq!(highlighter_calls.get(), 1);
+        assert_eq!(segmenter_calls.get(), 1);
+        assert_eq!(line_number(&buffer, orders_text_area, 0), " 3");
+        assert_text_row(&buffer, orders_text_area, 0, "Orders row 3");
+        assert_eq!(line_number(&buffer, orders_text_area, 1), " 4");
+        assert_text_row(&buffer, orders_text_area, 1, "Orders row 4");
+        assert_eq!(line_number(&buffer, orders_text_area, 2), " 5");
+        assert_text_row(&buffer, orders_text_area, 2, "Orders row 5");
+        assert_eq!(line_number(&buffer, orders_text_area, 3), " 6");
+        assert_text_row(&buffer, orders_text_area, 3, "Orders row 6");
+        assert!(
+            buffer
+                .cell(Position::new(6, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))
+        );
+        assert_eq!(orders.cursor_pos(), orders_cursor);
+        assert_eq!(orders.scroll.offset(), orders_offset);
+
+        let new_query_text_area = draw_editor(&mut runtime, &mut buffer, &editor, &new_query);
+        assert_untracked_geometry(&runtime, area, new_query_text_area);
+        assert_eq!(highlighter_calls.get(), 2);
+        assert_eq!(segmenter_calls.get(), 2);
+        assert_eq!(line_number(&buffer, new_query_text_area, 0), " 1");
+        assert_text_row(&buffer, new_query_text_area, 0, "New query");
+        assert!(
+            !buffer
+                .cell(Position::new(6, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))
+        );
+        assert_eq!(line_number(&buffer, new_query_text_area, 1), "  ");
+        assert_text_row(&buffer, new_query_text_area, 1, "");
+        assert_eq!(line_number(&buffer, new_query_text_area, 2), "  ");
+        assert_text_row(&buffer, new_query_text_area, 2, "");
+        assert_eq!(line_number(&buffer, new_query_text_area, 3), "  ");
+        assert_text_row(&buffer, new_query_text_area, 3, "");
+        assert_eq!(new_query.cursor_pos(), new_cursor);
+        assert_eq!(new_query.scroll.offset(), new_offset);
+
+        let customers_text_area = draw_editor(&mut runtime, &mut buffer, &editor, &customers);
+        assert_overflow_geometry(&runtime, customers_text_area);
+        assert_eq!(highlighter_calls.get(), 3);
+        assert_eq!(segmenter_calls.get(), 3);
+        assert_eq!(line_number(&buffer, customers_text_area, 0), " 2");
+        assert_text_row(&buffer, customers_text_area, 0, "Customers row 2");
+        assert_eq!(line_number(&buffer, customers_text_area, 1), " 3");
+        assert_text_row(&buffer, customers_text_area, 1, "Customers row 3");
+        assert_eq!(line_number(&buffer, customers_text_area, 2), " 4");
+        assert_text_row(&buffer, customers_text_area, 2, "Customers row 4");
+        assert!(
+            buffer
+                .cell(Position::new(6, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::ITALIC))
+        );
+        assert_eq!(line_number(&buffer, customers_text_area, 3), " 5");
+        assert_text_row(&buffer, customers_text_area, 3, "Customers row 5");
+        assert_eq!(customers.cursor_pos(), customers_cursor);
+        assert_eq!(customers.scroll.offset(), customers_offset);
+
+        let orders_text_area = draw_editor(&mut runtime, &mut buffer, &editor, &orders);
+        assert_overflow_geometry(&runtime, orders_text_area);
+        assert_eq!(highlighter_calls.get(), 4);
+        assert_eq!(segmenter_calls.get(), 4);
+        assert_eq!(line_number(&buffer, orders_text_area, 0), " 3");
+        assert_text_row(&buffer, orders_text_area, 0, "Orders row 3");
+        assert_eq!(line_number(&buffer, orders_text_area, 1), " 4");
+        assert_text_row(&buffer, orders_text_area, 1, "Orders row 4");
+        assert!(
+            buffer
+                .cell(Position::new(6, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))
+        );
+        assert_eq!(line_number(&buffer, orders_text_area, 2), " 5");
+        assert_text_row(&buffer, orders_text_area, 2, "Orders row 5");
+        assert_eq!(line_number(&buffer, orders_text_area, 3), " 6");
+        assert_text_row(&buffer, orders_text_area, 3, "Orders row 6");
+        assert_eq!(orders.cursor_pos(), orders_cursor);
+        assert_eq!(orders.scroll.offset(), orders_offset);
+    }
+
+    #[test]
+    fn equal_length_text_with_newlines_at_different_offsets_rebuilds_line_starts() {
+        let calls = Cell::new(0usize);
+        let highlighter = |text: &str| {
+            calls.set(calls.get().saturating_add(1));
+            vec![(0..text.len(), SyntaxRole::Keyword)]
+        };
+        let editor = CodeEditor::new(ID, 5).highlighter(&highlighter);
+        let first = CodeEditorState::new("a\nbc");
+        let second = CodeEditorState::new("ab\nc");
+        let area = Rect::new(0, 0, 40, 5);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+
+        assert_eq!(first.text().len(), second.text().len());
+        assert_eq!(first.edit_generation, second.edit_generation);
+        let first_text_area = draw_editor(&mut runtime, &mut buffer, &editor, &first);
+        assert_untracked_geometry(&runtime, area, first_text_area);
+        assert_eq!(line_number(&buffer, first_text_area, 0), " 1");
+        assert_text_row(&buffer, first_text_area, 0, "a");
+        assert_eq!(line_number(&buffer, first_text_area, 1), " 2");
+        assert_text_row(&buffer, first_text_area, 1, "bc");
+
+        let second_text_area = draw_editor(&mut runtime, &mut buffer, &editor, &second);
+        assert_untracked_geometry(&runtime, area, second_text_area);
+        assert_eq!(calls.get(), 2);
+        assert_eq!(line_number(&buffer, second_text_area, 0), " 1");
+        assert_text_row(&buffer, second_text_area, 0, "ab");
+        assert_eq!(line_number(&buffer, second_text_area, 1), " 2");
+        assert_text_row(&buffer, second_text_area, 1, "c");
+    }
+
+    #[test]
+    fn highlight_cache_debug_does_not_print_cached_source() {
+        let mut cache = HighlightCache::default();
+        cache.ensure(0, "customer SQL text", None);
+
+        let debug = format!("{cache:?}");
+
+        assert!(!debug.contains("customer SQL text"));
+        assert!(debug.contains("source_len"));
+    }
+
+    #[test]
+    fn saturated_source_switch_rebuilds_segmenter_blocks_each_draw() {
+        let calls = Cell::new(0usize);
+        let segmenter = |text: &str| {
+            calls.set(calls.get().saturating_add(1));
+            whole_document(text)
+        };
+        let editor = CodeEditor::new(ID, 5).segmenter(&segmenter);
+        let mut first = CodeEditorState::new("Orders\nFROM orders");
+        let second = CodeEditorState::new("Customers\nFROM customers");
+        let mut saturated = second;
+        saturated.edit_generation = u64::MAX;
+        let area = Rect::new(0, 0, 40, 5);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+
+        let first_text_area = draw_editor(&mut runtime, &mut buffer, &editor, &first);
+        assert_untracked_geometry(&runtime, area, first_text_area);
+        assert_eq!(calls.get(), 1);
+        first.edit_generation = u64::MAX;
+        let first_text_area = draw_editor(&mut runtime, &mut buffer, &editor, &first);
+        assert_untracked_geometry(&runtime, area, first_text_area);
+        assert_eq!(calls.get(), 2);
+        let saturated_text_area = draw_editor(&mut runtime, &mut buffer, &editor, &saturated);
+        assert_untracked_geometry(&runtime, area, saturated_text_area);
+        assert_eq!(calls.get(), 3);
+        assert_eq!(line_number(&buffer, saturated_text_area, 0), " 1");
+        assert_text_row(&buffer, saturated_text_area, 0, "Customers");
+        let saturated_text_area = draw_editor(&mut runtime, &mut buffer, &editor, &saturated);
+        assert_untracked_geometry(&runtime, area, saturated_text_area);
+        assert_eq!(calls.get(), 4);
+        assert_eq!(line_number(&buffer, saturated_text_area, 1), " 2");
+        assert_text_row(&buffer, saturated_text_area, 1, "FROM customers");
     }
 
     #[test]
