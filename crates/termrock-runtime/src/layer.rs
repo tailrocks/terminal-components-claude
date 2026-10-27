@@ -385,7 +385,6 @@ impl Dismiss {
     }
 
     /// Ported from the reference `Dismiss::allows`.
-
     pub const fn allows(self, reason: DismissReason) -> bool {
         match reason {
             DismissReason::Esc => self.esc,

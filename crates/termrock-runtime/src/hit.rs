@@ -1486,7 +1486,6 @@ impl Registry {
 
     /// Register a light-dismiss backdrop owned by `id` (ported from PR #26
     /// `src/core/hit.rs::register_backdrop`, commit f4867e9b5).
-
     pub fn register_backdrop(&mut self, id: Id, area: Rect, layer: LayerId, pass_through: bool) {
         self.register_backdrop_of(id, id, area, layer, pass_through);
     }
