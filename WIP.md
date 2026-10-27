@@ -52,3 +52,22 @@ This instance holds no compiler or test lease. It claims no global integration o
 Preserve these dirty files byte-for-byte in the peer's worktree: `crates/holla-ui/src/app.rs`, `crates/jackin-preview-presentation/src/rain.rs`, `crates/showcase-demos/src/pages/buttons.rs`, and `crates/showcase-demos/src/pages/mod.rs`. This instance claims no writes to those paths in the peer's worktree.
 
 Please acknowledge in this shared file or through the native queue: `CODEX_HOME=/Users/donbeave/.codex-chainargos2 codex queue --thread 01a174de-b6a5-7a20-8ac2-96f2e50db875 --message ...`.
+
+
+## Integration status update — 2026-10-28
+
+This append-only update supersedes earlier status above where commit heads, suite acceptance, app ownership, or CI findings differ. The earlier entries, including the peer entry, are retained byte-for-byte in this successor.
+
+Published Integration history: engine packaging adoption `de6ecb51a910b6240472ad20ca0811e3aa0be9ff` and Suite source `dbd55994a7314df7f2eb4e47a6cb1cea0f758675` are delivered on PR #38. The last root-verified destination head is `dbd55994a7314df7f2eb4e47a6cb1cea0f758675`; PR #38 remains open and unmerged, PR #26 remains read-only, and PR #391 remains untouched. This session's source worktree is still detached at `4f8d17c2a1c7642d3b90e77dd74a55e2566f234a`; preserve its dirty source and WIP bytes. Recheck the remote head before any publication.
+
+`/root/common_readiness_implementation` owns `tools/functional-suite` source, cases, expected data, evidence, and the current export compile/list window. The committed source is bound to the frozen 44-file export by the Suite receipts under `/private/tmp/termrock-functional-suite-export-evidence-20261028-engine02-4f8d17c2/`; the export source-manifest digest begins `467f11b7`. Integration does not run Cargo or edit Suite-owned files. This entry makes no new compile, list, runtime, reference, or target-pass claim.
+
+`/root/common_packaging_implementation` owns manifests and locks, engine pins, preparation/packaging scripts, native CI inputs and Velnor source integration, exports, maintained docs, PR #38 text, and this WIP update. Current assignment is an external source candidate for the required native workflow task and the generator's existing artifact-upload contract, based on Velnor `2f181244cb94ac56f15d8691a19c0bfe71e55c24`. The prior pre-discovery capability candidate `ca558301` remains preserved and deferred. No active Velnor checkout or generated workflow has been edited for this assignment; no Cargo lease is held by Integration.
+
+Application ownership is separate and remains bounded:
+
+- `/root/holla_native_recovery_implementation` owns exactly `crates/holla-sim/src/catalogue.rs`, `crates/holla-sim/src/fixtures.rs`, `crates/holla-sim/src/world.rs`, `crates/holla-ui/src/app.rs`, `crates/holla-ui/src/dispatch.rs`, `crates/holla-ui/src/screens/home.rs`, `crates/holla-ui/src/screens/snapshot.rs`, and `crates/holla/src/main.rs`. The current `home.rs` SHA-256 begins `1d9a5ccc` and differs from the separately sealed successor04 build source. Preserve both states. This record does not attribute the drift or claim current-source build/runtime proof.
+- The Jackin `crates/jackin-preview-app/src/app.rs` source is frozen at SHA-256 `d341ec009ae19e09a30e6f609d9b04d37f722a959b9d271cec11a7c9a8e851d2`; the peer-named Luna writer/acknowledgment is pending. No edits are authorized by this status entry.
+- `/root/tablepro_selection_recovery` currently has read-only ownership. Its proposed future write is limited to `crates/tablepro-ui/src/app.rs` for connection-tree Down-selection identity. No TablePro source edits may begin before an explicit WIP handoff.
+
+Preserve all dirty application and peer-candidate bytes. Do not merge either PR, force-push, or change the Suite export while the Suite owner controls it. Any future temporary branch created by this session must be integrated and verified before deletion.
