@@ -1,4 +1,5 @@
 //! Ported from PR #26 `src/core/keyboard.rs` (commit `f4867e9b5`), delivery
+//! observation and the label filter only.
 
 use std::sync::atomic::{AtomicU8, Ordering};
 

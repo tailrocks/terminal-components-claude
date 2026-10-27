@@ -1,4 +1,5 @@
 //! Row selection model (ported from PR #26 `src/core/selection.rs`,
+//! commit f4867e9b5).
 
 use std::collections::BTreeSet;
 

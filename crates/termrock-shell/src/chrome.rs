@@ -1,4 +1,4 @@
-//! Ported from PR #26 `src/shell/chrome.rs` (commit `f4867e9b5`). The source's
+//! Ported from PR #26 `src/shell/chrome.rs` (commit `f4867e9b5`).
 
 use ratatui_core::layout::Rect;
 

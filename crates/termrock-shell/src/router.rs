@@ -1,4 +1,4 @@
-//! Ported from PR #26 `src/shell/router.rs` (commit `f4867e9b5`). The parity
+//! Ported from PR #26 `src/shell/router.rs` (commit `f4867e9b5`).
 
 use termrock_core::event::{Chord, Input, Key, KeyCode};
 use termrock_core::keys::KeyModifiers;

@@ -1,4 +1,6 @@
 //! Ported from the PR #26 reference theme (`src/theme.rs` at
+//! f4867e9b5f8a08a3bb61ce80d644198a29f51984): `gutter_symbol`, `gutter`,
+//! `chosen_in`, `inactive_look`, `legible_mark`.
 
 use ratatui_core::style::{Color, Style};
 

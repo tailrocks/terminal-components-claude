@@ -1,4 +1,4 @@
-//! Ported from PR #26 `src/shell/status.rs` (commit `f4867e9b5`). The tone is
+//! Ported from PR #26 `src/shell/status.rs` (commit `f4867e9b5`).
 
 use termrock_core::event::{Input, MouseKind};
 use termrock_runtime::Moment;

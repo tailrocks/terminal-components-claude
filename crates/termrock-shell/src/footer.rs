@@ -1,4 +1,4 @@
-//! Ported from PR #26 `src/shell/footer.rs` (commit `f4867e9b5`). The parity
+//! Ported from PR #26 `src/shell/footer.rs` (commit `f4867e9b5`).
 
 use std::borrow::Cow;
 

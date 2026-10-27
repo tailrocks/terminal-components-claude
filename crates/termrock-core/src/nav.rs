@@ -1,4 +1,5 @@
 //! Cursor stepping arithmetic (ported from PR #26 `src/core/nav.rs`,
+//! commit f4867e9b5).
 
 pub fn step_index(cursor: usize, len: usize, delta: isize, wrap: bool) -> usize {
     if len == 0 {

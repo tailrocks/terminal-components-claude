@@ -1,4 +1,4 @@
-//! Ported from PR #26 `src/core/keyboard.rs` (commit `f4867e9b5`). The
+//! Ported from PR #26 `src/core/keyboard.rs` (commit `f4867e9b5`).
 
 pub mod keyboard {
     use std::ffi::OsString;

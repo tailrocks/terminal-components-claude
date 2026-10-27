@@ -1,4 +1,5 @@
 //! Pointer and caret cursor shapes (ported from PR #26 `src/core/shape.rs`,
+//! commit f4867e9b5).
 
 use std::io::Write;
 

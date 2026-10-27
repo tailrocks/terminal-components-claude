@@ -1,4 +1,4 @@
-//! Ported from PR #26 `src/ui/leave.rs` (commit `f4867e9b5`). The parity
+//! Ported from PR #26 `src/ui/leave.rs` (commit `f4867e9b5`).
 
 use termrock_core::event::Key;
 use termrock_core::id::Id;

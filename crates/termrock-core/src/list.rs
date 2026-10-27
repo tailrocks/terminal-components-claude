@@ -1,4 +1,5 @@
 //! List cursor and type-ahead routing (ported from PR #26
+//! `src/core/list.rs`, commit f4867e9b5).
 
 use std::cell::Cell;
 

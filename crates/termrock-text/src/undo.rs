@@ -1,4 +1,5 @@
 //! Undo / redo stack (ported from PR #26 `src/core/edit.rs`,
+//! `UndoStack` at lines 278-365, commit f4867e9b5).
 
 use crate::buffer::TextBuffer;
 

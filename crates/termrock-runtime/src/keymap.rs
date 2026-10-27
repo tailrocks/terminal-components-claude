@@ -775,6 +775,7 @@ impl HintLayer {
 }
 
 /// Ported from PR #26 `KeyBinding::label_on` (src/core/keymap.rs:298,
+/// commit `f4867e9b5`).
 
 pub trait LabelOn {
     fn label_on(&self, platform: ClientPlatform) -> String;

@@ -1,4 +1,5 @@
 //! Navigation keys (ported from PR #26 `src/core/keymap.rs`, the `Nav` /
+//! `NavKeys` vocabulary, commit f4867e9b5).
 
 use crate::event::Key;
 use crate::keys::{KeyCode, KeyModifiers};

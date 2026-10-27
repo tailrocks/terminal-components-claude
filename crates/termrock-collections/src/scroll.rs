@@ -4,7 +4,7 @@ use crate::response::Response;
 use termrock_core::geometry::Headroom;
 
 /// How a view follows its cursor (ported from PR #26 `src/core/scroll.rs`,
-
+/// commit f4867e9b5).
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum FollowCursor {
     #[default]
@@ -14,7 +14,7 @@ pub enum FollowCursor {
 }
 
 /// What clicking a scrollbar track away from the thumb does (ported from
-
+/// PR #26 `src/core/scroll.rs`, commit f4867e9b5).
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum TrackClick {
     Jump,
@@ -173,8 +173,9 @@ impl ScrollState {
         self.exact = true;
     }
 
+    /// A span at least
     /// as long as the viewport aligns its start with the top (ported from
-
+    /// PR #26 `src/core/scroll.rs::reveal_span`).
     pub fn reveal_span(&mut self, start: usize, len: usize) -> bool {
         if self.viewport_len == 0 {
             return false;
@@ -199,6 +200,9 @@ impl ScrollState {
         self.offset != before
     }
 
+    /// With
+    /// [`FollowCursor::OnMove`], repeating the same cursor in the same
+    /// viewport is a no-op, so a repaint never snaps a wheeled view back
     /// (ported from PR #26 `src/core/scroll.rs::follow`).
     pub fn follow(&mut self, cursor: usize) -> bool {
         let key = (cursor, self.viewport_len);
@@ -315,8 +319,10 @@ impl ScrollState {
         self.offset != before
     }
 
+    /// Press the track with an explicit [`TrackClick`] policy: `Jump` puts
+    /// the thumb under the pointer, `Page` moves one viewport toward the
     /// pointer and starts a paging drag (ported from PR #26
-
+    /// `src/core/scroll.rs::press_track_with`).
     pub fn press_track_with(&mut self, pos: usize, track_len: usize, click: TrackClick) -> bool {
         if click == TrackClick::Jump || !self.overflows() || track_len == 0 {
             return self.press_track(pos, track_len);

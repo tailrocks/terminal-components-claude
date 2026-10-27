@@ -585,7 +585,8 @@ fn open_probe_endpoint_path(path: &[u8]) -> io::Result<OwnedFd> {
     }
     let flags = libc::O_RDWR | libc::O_NONBLOCK | libc::O_CLOEXEC | libc::O_NOCTTY;
     // SAFETY: `path` was validated as an absolute NUL-terminated path. The
-
+    // flags create an independent nonblocking descriptor without acquiring a
+    // controlling tty.
     let fd = unsafe { libc::open(path.as_ptr().cast(), flags) };
     if fd < 0 {
         return Err(io::Error::last_os_error());
@@ -1011,7 +1012,7 @@ fn open_pty() -> io::Result<(OwnedFd, OwnedFd)> {
     let mut master = 0;
     let mut slave = 0;
     // SAFETY: openpty writes the two fds. Null name, termios, and size keep
-
+    // the implementation defaults.
     let rc = unsafe {
         libc::openpty(
             &mut master,
@@ -1088,23 +1089,3 @@ fn replace_stdin(fd: RawFd) -> io::Result<()> {
     }
     Ok(())
 }
-
-// SAFETY: `fd` is open and `dup` returns a new descriptor on success.
-
-// SAFETY: `dup` returned a new descriptor owned by this function.
-
-// SAFETY: `fstat` initializes each value for the supplied open descriptor.
-
-// SAFETY: `fstat` initializes each value for the supplied open descriptor.
-
-// SAFETY: F_GETFD only inspects this descriptor number.
-
-// SAFETY: F_GETFL only reads the open PTY descriptor's status flags.
-
-// SAFETY: F_GETFL only observes this independently opened endpoint.
-
-// SAFETY: F_GETFL only reads the bridge-owned PTY descriptor.
-
-// SAFETY: F_GETFL only reads the bridge-owned PTY descriptor.
-
-// SAFETY: F_GETFL only reads the bridge-owned PTY descriptor.

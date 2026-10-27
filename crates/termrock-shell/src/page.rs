@@ -1,4 +1,4 @@
-//! Ported from PR #26 `src/shell/page.rs` (commit `f4867e9b5`). The parity
+//! Ported from PR #26 `src/shell/page.rs` (commit `f4867e9b5`).
 
 use ratatui_core::layout::Rect;
 use termrock_runtime::author::{CompositionLeaf, Constraints, Measure, Size, composition_leaf};

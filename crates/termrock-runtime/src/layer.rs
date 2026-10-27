@@ -307,6 +307,7 @@ pub enum CrossAlign {
 }
 
 /// Ported from the PR #26 reference popup vocabulary
+/// (`src/ui/popup.rs` at f4867e9b5f8a08a3bb61ce80d644198a29f51984).
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum RefuseFeedback {
@@ -383,7 +384,7 @@ impl Dismiss {
         self
     }
 
-    /// Ported from the reference `Dismiss::allows`. Programmatic dismissal is
+    /// Ported from the reference `Dismiss::allows`.
 
     pub const fn allows(self, reason: DismissReason) -> bool {
         match reason {
