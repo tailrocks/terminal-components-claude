@@ -9,6 +9,7 @@ use std::process::Command;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use tui_test::Backend;
 use tui_test::api::{
     AutomaticRecording, Operation, OperationResult, RawOutputCaptureOptions, RunOptions, Timeouts,
@@ -31,6 +32,16 @@ const CURSOR_STAGE_B: &[u8] =
     b"\x1b[H\x1b[2KCV3-BLINK-OFF\x1b[6 q\x1b]12;#654321\x07\x1b[?25l\x1b[4;9H";
 
 type AppResult<T> = Result<T, Box<dyn Error>>;
+
+fn sha256(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    let mut result = String::with_capacity(64);
+    for byte in digest {
+        use std::fmt::Write as _;
+        let _ = write!(&mut result, "{byte:02x}");
+    }
+    result
+}
 
 pub fn run(args: Vec<OsString>) -> AppResult<()> {
     let mut out = None;
