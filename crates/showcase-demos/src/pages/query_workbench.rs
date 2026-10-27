@@ -2,21 +2,25 @@ use std::time::Duration;
 
 use termrock::grid::{Column, ColumnKey, Table, TableColumn, TableState};
 use termrock::{
-    ActionKey, CodeEditor, CodeEditorState, Cx, FrameRead, GridModel, Id, ItemKey, Panel,
-    PanelKind, Rect, ResetPolicy, Response, Role, SplitAxis, SplitFallback, SplitPane,
+    ActionKey, CodeEditor, CodeEditorState, Cx, FrameRead, GridModel, Id, ItemKey, Maximized,
+    Panel, PanelKind, Rect, ResetPolicy, Response, Role, SplitAxis, SplitFallback, SplitPane,
     SplitPaneState, StateFlags, StatusBar, StatusItem, Tabs, TabsAction, TabsState, ToolItem,
-    Toolbar, ToolbarAction, ToolbarState, Ui, UpdateCause, layout,
+    Toolbar, ToolbarAction, ToolbarState, TreeAction, Ui, UpdateCause, layout,
 };
 
+mod explorer;
 mod options;
 
 use super::{Page, PageStatus, PageUpdate, frame};
+use explorer::{ExplorerState, SampleTable};
 use options::{Change as OptionChange, ResultFixture, Settings as WorkbenchOptions};
 
 const TABS: Id = Id::root("showcase_ui::pages::query_workbench.tabs");
 const TOOLBAR: Id = Id::root("showcase_ui::pages::query_workbench.toolbar");
 const EDITOR_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.editor_panel");
 const RESULTS_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.results_panel");
+const EXPLORER_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.explorer_panel");
+const EXPLORER_SPLIT: Id = Id::root("showcase_ui::pages::query_workbench.explorer_split");
 const SPLIT: Id = Id::root("showcase_ui::pages::query_workbench.split");
 const EDITOR: Id = Id::root("showcase_ui::pages::query_workbench.editor");
 const RESULTS: Id = Id::root("showcase_ui::pages::query_workbench.results");
@@ -36,7 +40,16 @@ pub const EDITOR_PANEL_ID: Id = EDITOR_PANEL;
 /// Native owner ID for the results panel.
 pub const RESULTS_PANEL_ID: Id = RESULTS_PANEL;
 
-const RUN_CAPTURE_OWNERS: [Id; 5] = [TABS, TOOLBAR, SPLIT, EDITOR, RESULTS];
+const RUN_CAPTURE_OWNERS: [Id; 8] = [
+    EXPLORER_SPLIT,
+    explorer::FILTER,
+    explorer::TREE,
+    TABS,
+    TOOLBAR,
+    SPLIT,
+    EDITOR,
+    RESULTS,
+];
 /// Application action key for running the active query.
 pub const RUN_QUERY: ActionKey = ActionKey::application("showcase.query_workbench.run");
 
@@ -68,6 +81,18 @@ const EDITOR_HINTS: &[(&str, &str)] = &[
     ("Esc", "Done editing"),
 ];
 const RESULTS_HINTS: &[(&str, &str)] = &[("↑ ↓", "Move rows"), ("← →", "Move columns")];
+const EXPLORER_SPLIT_HINTS: &[(&str, &str)] = &[
+    ("← →", "Resize panes"),
+    ("Home", "Reset Explorer share"),
+    ("Ctrl+R", "Run query"),
+];
+const FILTER_HINTS: &[(&str, &str)] = &[("Ctrl+R", "Run query"), ("Esc", "Cancel filter")];
+const TREE_HINTS: &[(&str, &str)] = &[
+    ("↑ ↓", "Move objects"),
+    ("← →", "Expand or collapse"),
+    ("Enter", "Open table"),
+    ("Ctrl+R", "Run query"),
+];
 const SPLIT_HINTS: &[(&str, &str)] = &[
     ("↑ ↓", "Resize panes"),
     ("Home", "Reset editor share"),
@@ -203,6 +228,7 @@ struct Document {
     title: String,
     editor: CodeEditorState,
     result: ResultView,
+    source_table: Option<SampleTable>,
 }
 
 impl Document {
@@ -212,7 +238,14 @@ impl Document {
             title,
             editor: CodeEditorState::new(sql),
             result: ResultView::NotRun,
+            source_table: None,
         }
+    }
+
+    fn for_sample_table(key: ItemKey, title: String, sql: &str, source_table: SampleTable) -> Self {
+        let mut document = Self::new(key, title, sql);
+        document.source_table = Some(source_table);
+        document
     }
 }
 
@@ -271,6 +304,8 @@ pub struct QueryWorkbenchPage {
     run: Option<PendingRun>,
     status: String,
     options: WorkbenchOptions,
+    explorer: ExplorerState,
+    explorer_split: SplitPaneState,
     split: SplitPaneState,
     options_state: termrock::FormDialogState,
     options_open: bool,
@@ -282,7 +317,12 @@ impl QueryWorkbenchPage {
     pub fn new() -> Self {
         let orders_key = ItemKey::text("query.workbench.orders");
         let customers_key = ItemKey::text("query.workbench.customers");
-        let mut orders = Document::new(orders_key, "orders.sql".to_owned(), FIRST_QUERY);
+        let mut orders = Document::for_sample_table(
+            orders_key,
+            "orders.sql".to_owned(),
+            FIRST_QUERY,
+            SampleTable::Orders,
+        );
         orders.result = ResultView::Rows {
             table: "orders".to_owned(),
             count: 25,
@@ -293,7 +333,12 @@ impl QueryWorkbenchPage {
         Self {
             documents: vec![
                 orders,
-                Document::new(customers_key, "customers.sql".to_owned(), SECOND_QUERY),
+                Document::for_sample_table(
+                    customers_key,
+                    "customers.sql".to_owned(),
+                    SECOND_QUERY,
+                    SampleTable::Customers,
+                ),
             ],
             next_document_id: 2,
             tabs,
@@ -302,6 +347,8 @@ impl QueryWorkbenchPage {
             run: None,
             status: "Ready · sample data only".to_owned(),
             options: WorkbenchOptions::default(),
+            explorer: ExplorerState::new(),
+            explorer_split: SplitPaneState::new(32),
             split: SplitPaneState::new(40),
             options_state: termrock::FormDialogState::default(),
             options_open: false,
@@ -362,21 +409,82 @@ impl QueryWorkbenchPage {
         if !self.options.allow_new() {
             return false;
         }
-        let document_id = self.next_document_id;
-        let Some(next_document_id) = document_id.checked_add(1) else {
+        let title = format!("Query {}", self.next_document_id);
+        if self.append_document(title, "", None) {
+            true
+        } else {
             self.status = "Cannot open another query tab.".to_owned();
+            false
+        }
+    }
+
+    fn open_sample_table(&mut self, table: SampleTable) -> bool {
+        if let Some(index) = self
+            .documents
+            .iter()
+            .position(|document| document.source_table == Some(table))
+        {
+            let Some(key) = self.documents.get(index).map(|document| document.key) else {
+                return false;
+            };
+            self.tabs.set_active(index, key);
+            return true;
+        }
+
+        let title = format!("{}.sql", table.name());
+        let sql = format!("SELECT * FROM {} LIMIT 100;\n", table.name());
+        self.append_document(title, &sql, Some(table))
+    }
+
+    fn append_document(
+        &mut self,
+        title: String,
+        sql: &str,
+        source_table: Option<SampleTable>,
+    ) -> bool {
+        let Some(key) = self.allocate_document_key() else {
             return false;
         };
-        self.next_document_id = next_document_id;
-
-        let key = ItemKey::num(document_id);
-        let title = format!("Query {document_id}");
-        self.documents.push(Document::new(key, title, ""));
+        let document = match source_table {
+            Some(table) => Document::for_sample_table(key, title, sql, table),
+            None => Document::new(key, title, sql),
+        };
+        self.documents.push(document);
         self.tabs.set_active(self.documents.len() - 1, key);
         if self.run.is_none() {
             self.status = "Ready · sample data only".to_owned();
         }
         true
+    }
+
+    fn allocate_document_key(&mut self) -> Option<ItemKey> {
+        let document_id = self.next_document_id;
+        let next_document_id = document_id.checked_add(1)?;
+        self.next_document_id = next_document_id;
+        Some(ItemKey::num(document_id))
+    }
+
+    #[cfg(test)]
+    fn apply_explorer_action(&mut self, action: TreeAction, explorer: &ExplorerState) -> bool {
+        let TreeAction::Activated(key) = action else {
+            return false;
+        };
+        let Some(table) = explorer.sample_table_for(key) else {
+            return false;
+        };
+        self.apply_sample_table(table)
+    }
+
+    fn apply_sample_table(&mut self, table: SampleTable) -> bool {
+        let opened = self.open_sample_table(table);
+        if self.run.is_none() {
+            self.status = if opened {
+                format!("Opened {} from Explorer.", table.name())
+            } else {
+                "Cannot open another query tab.".to_owned()
+            };
+        }
+        opened
     }
 
     fn active_index(&self) -> Option<usize> {
@@ -420,6 +528,33 @@ impl QueryWorkbenchPage {
         )
     }
 
+    fn explorer_results_split(&self) -> SplitPane<'static> {
+        SplitPane::new(EXPLORER_SPLIT, SplitAxis::Horizontal)
+            .min_first(22)
+            .min_second(40)
+            .gap(1)
+            .resizable(true)
+            .reset_policy(ResetPolicy::Percent(self.options.explorer_share()))
+            .undersized_fallback(SplitFallback::second_only())
+    }
+
+    fn set_explorer_visible(&mut self, visible: bool) {
+        let maximized = self.explorer_split.maximized();
+        if visible == (maximized == Maximized::Second) {
+            self.explorer_split.toggle_max(Maximized::Second);
+        }
+    }
+
+    fn explorer_is_effectively_visible(&self, cx: &Cx<'_>) -> bool {
+        let area = cx.area(EXPLORER_SPLIT).unwrap_or(Rect::ZERO);
+        self.options.show_explorer()
+            && self
+                .explorer_results_split()
+                .resolved_for(&self.explorer_split, area)
+                .effective_maximized(&self.explorer_split)
+                != Maximized::Second
+    }
+
     fn editor_results_split(&self) -> SplitPane<'static> {
         SplitPane::new(SPLIT, SplitAxis::Vertical)
             .min_first(5)
@@ -450,9 +585,25 @@ impl QueryWorkbenchPage {
     }
 
     fn apply_option_change(&mut self, change: OptionChange) {
-        if change == OptionChange::EditorShare {
-            self.split.set_percent(self.options.editor_share());
-            return;
+        match change {
+            OptionChange::EditorShare => {
+                self.split.set_percent(self.options.editor_share());
+                return;
+            }
+            OptionChange::ExplorerShare => {
+                self.explorer_split
+                    .set_percent(self.options.explorer_share());
+                return;
+            }
+            OptionChange::ShowExplorer(visible) => {
+                self.set_explorer_visible(visible);
+                return;
+            }
+            OptionChange::Result(_) => {}
+            OptionChange::AllowNew
+            | OptionChange::CloseReveal
+            | OptionChange::ReadOnly
+            | OptionChange::Environment => return,
         }
         let OptionChange::Result(fixture) = change else {
             return;
@@ -687,6 +838,10 @@ impl Page for QueryWorkbenchPage {
         } else if !options_were_close_pending {
             self.options_open = false;
             response |= self
+                .explorer_results_split()
+                .update(cx, &mut self.explorer_split)
+                .erase();
+            response |= self
                 .editor_results_split()
                 .update(cx, &mut self.split)
                 .erase();
@@ -740,6 +895,29 @@ impl Page for QueryWorkbenchPage {
             self.options_open = false;
         }
 
+        let explorer_controls_allowed = !options_were_open
+            && !options_were_close_pending
+            && !self.options_open
+            && !self.options_close_pending
+            && !cx.is_open(OPTIONS_DIALOG)
+            && self.explorer_is_effectively_visible(cx);
+        if explorer_controls_allowed {
+            let update = self.explorer.update(cx);
+            response |= update.response;
+            if update.filter_action.is_some() {
+                response |= Response::changed();
+            }
+            if let Some(TreeAction::Activated(key)) = update.tree_action
+                && let Some(table) = self.explorer.sample_table_for(key)
+            {
+                let _ = self.apply_sample_table(table);
+                response |= Response::changed();
+                status = Some(PageStatus(self.status.clone()));
+            }
+        } else {
+            response |= self.explorer.inactive_update(cx);
+        }
+
         if let Some(next_status) = self.advance_run(cx) {
             status = Some(next_status);
             response |= Response::changed();
@@ -764,29 +942,9 @@ impl Page for QueryWorkbenchPage {
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         let title_width = termrock::width(self.title());
         frame(ui, area, self.title(), "", |ui, body| {
-            let rows = layout::rows(
-                body,
-                &[
-                    layout::Track::Fixed(1),
-                    layout::Track::Fixed(1),
-                    layout::Track::Flex(1),
-                    layout::Track::Fixed(1),
-                ],
-            );
-            let tabs_area = rows.first().copied().unwrap_or(Rect::new(0, 0, 0, 0));
-            let toolbar_area = rows.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
-            let work_area = rows.get(2).copied().unwrap_or(Rect::new(0, 0, 0, 0));
-            let status_area = rows.get(3).copied().unwrap_or(Rect::new(0, 0, 0, 0));
-
-            Tabs::new(TABS)
-                .key(|document: &Document| document.key)
-                .allow_new(self.options.allow_new())
-                .close_reveal(self.options.close_reveal())
-                .closable(true)
-                .draw(ui, tabs_area, &self.tabs, &self.documents);
-
-            let _ = self.toolbar().draw(ui, toolbar_area, &self.toolbar);
-
+            let rows = layout::rows(body, &[layout::Track::Flex(1), layout::Track::Fixed(1)]);
+            let work_area = rows.first().copied().unwrap_or(Rect::new(0, 0, 0, 0));
+            let status_area = rows.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
             let model = self.active_result_model();
             let summary = self
                 .active_index()
@@ -795,49 +953,91 @@ impl Page for QueryWorkbenchPage {
                     || "No query is open.".to_owned(),
                     |document| document.result.summary(),
                 );
-            self.editor_results_split().draw(
+
+            self.explorer_results_split().draw(
                 ui,
                 work_area,
-                &self.split,
-                |ui, editor_area, results_area| {
-                    if let Some(document) = self
-                        .active_index()
-                        .and_then(|index| self.documents.get(index))
-                    {
-                        Panel::new(EDITOR_PANEL)
-                            .kind(PanelKind::Framed)
-                            .title(&document.title)
-                            .draw(ui, editor_area, |ui, inner| {
-                                let _ = CodeEditor::new(EDITOR, inner.height)
-                                    .fill_height(true)
-                                    .placeholder("Write a query against the sample data")
-                                    .read_only(self.options.read_only())
-                                    .draw(ui, inner, &document.editor);
-                            });
-                    }
-
-                    Panel::new(RESULTS_PANEL)
+                &self.explorer_split,
+                |ui, explorer_area, main_area| {
+                    Panel::new(EXPLORER_PANEL)
                         .kind(PanelKind::Framed)
-                        .title("Results")
-                        .draw(ui, results_area, |ui, inner| {
-                            let result_rows = layout::rows(
-                                inner,
-                                &[layout::Track::Fixed(1), layout::Track::Flex(1)],
-                            );
-                            if let Some(summary_area) = result_rows.first()
-                                && !summary_area.is_empty()
-                            {
-                                let _ = ui.paint_str(*summary_area, &summary, ui.surface_style());
-                            }
-                            let table_area =
-                                result_rows.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
-                            let _ = Table::new(RESULTS, &RESULT_COLUMNS).draw(
-                                ui,
-                                table_area,
-                                &self.results,
-                                &model,
-                            );
+                        .title("Explorer")
+                        .draw(ui, explorer_area, |ui, inner| {
+                            self.explorer.draw(ui, inner);
                         });
+
+                    let main_rows = layout::rows(
+                        main_area,
+                        &[
+                            layout::Track::Fixed(1),
+                            layout::Track::Fixed(1),
+                            layout::Track::Flex(1),
+                        ],
+                    );
+                    let tabs_area = main_rows.first().copied().unwrap_or(Rect::new(0, 0, 0, 0));
+                    let toolbar_area = main_rows.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
+                    let editor_results_area =
+                        main_rows.get(2).copied().unwrap_or(Rect::new(0, 0, 0, 0));
+
+                    Tabs::new(TABS)
+                        .key(|document: &Document| document.key)
+                        .allow_new(self.options.allow_new())
+                        .close_reveal(self.options.close_reveal())
+                        .closable(true)
+                        .draw(ui, tabs_area, &self.tabs, &self.documents);
+                    let _ = self.toolbar().draw(ui, toolbar_area, &self.toolbar);
+
+                    self.editor_results_split().draw(
+                        ui,
+                        editor_results_area,
+                        &self.split,
+                        |ui, editor_area, results_area| {
+                            if let Some(document) = self
+                                .active_index()
+                                .and_then(|index| self.documents.get(index))
+                            {
+                                Panel::new(EDITOR_PANEL)
+                                    .kind(PanelKind::Framed)
+                                    .title(&document.title)
+                                    .draw(ui, editor_area, |ui, inner| {
+                                        let _ = CodeEditor::new(EDITOR, inner.height)
+                                            .fill_height(true)
+                                            .placeholder("Write a query against the sample data")
+                                            .read_only(self.options.read_only())
+                                            .draw(ui, inner, &document.editor);
+                                    });
+                            }
+
+                            Panel::new(RESULTS_PANEL)
+                                .kind(PanelKind::Framed)
+                                .title("Results")
+                                .draw(ui, results_area, |ui, inner| {
+                                    let result_rows = layout::rows(
+                                        inner,
+                                        &[layout::Track::Fixed(1), layout::Track::Flex(1)],
+                                    );
+                                    if let Some(summary_area) = result_rows.first()
+                                        && !summary_area.is_empty()
+                                    {
+                                        let _ = ui.paint_str(
+                                            *summary_area,
+                                            &summary,
+                                            ui.surface_style(),
+                                        );
+                                    }
+                                    let table_area = result_rows
+                                        .get(1)
+                                        .copied()
+                                        .unwrap_or(Rect::new(0, 0, 0, 0));
+                                    let _ = Table::new(RESULTS, &RESULT_COLUMNS).draw(
+                                        ui,
+                                        table_area,
+                                        &self.results,
+                                        &model,
+                                    );
+                                });
+                        },
+                    );
                 },
             );
 
@@ -889,6 +1089,15 @@ impl Page for QueryWorkbenchPage {
         if ui.state(TOOLBAR).contains(StateFlags::FOCUSED) {
             return TOOLBAR_HINTS;
         }
+        if ui.state(EXPLORER_SPLIT).contains(StateFlags::FOCUSED) {
+            return EXPLORER_SPLIT_HINTS;
+        }
+        if ui.state(explorer::FILTER).contains(StateFlags::FOCUSED) {
+            return FILTER_HINTS;
+        }
+        if ui.state(explorer::TREE).contains(StateFlags::FOCUSED) {
+            return TREE_HINTS;
+        }
         if ui.state(SPLIT).contains(StateFlags::FOCUSED) {
             return SPLIT_HINTS;
         }
@@ -901,10 +1110,13 @@ impl Page for QueryWorkbenchPage {
         &[]
     }
 
-    fn editing(&self, _ui: &Ui<'_>) -> bool {
-        self.active_index()
-            .and_then(|index| self.documents.get(index))
-            .is_some_and(|document| document.editor.is_editing())
+    fn editing(&self, ui: &Ui<'_>) -> bool {
+        (self.explorer.is_filter_editing()
+            && ui.state(explorer::FILTER).contains(StateFlags::FOCUSED))
+            || self
+                .active_index()
+                .and_then(|index| self.documents.get(index))
+                .is_some_and(|document| document.editor.is_editing())
     }
 }
 
@@ -968,14 +1180,15 @@ fn from_table(sql: &str) -> Option<&str> {
 #[cfg(test)]
 mod tests {
     use super::{
-        EDITOR_ID, FIRST_QUERY, OPTIONS_DIALOG, QueryResultState, QueryWorkbenchPage, RESULTS_ID,
-        RUN_QUERY, ResultView, TABS_ID, TOOLBAR, TOOLBAR_ID, evaluate_query, options,
+        Document, EDITOR_ID, FIRST_QUERY, OPTIONS_DIALOG, PendingRun, QueryResultState,
+        QueryWorkbenchPage, RESULTS_ID, RUN_QUERY, ResultView, SampleTable, TABS_ID, TOOLBAR,
+        TOOLBAR_ID, evaluate_query, options,
     };
     use crate::pages::Page;
     use ratatui::layout::Rect;
     use termrock::{
         ActionKey, App as TermrockApp, Chord, Cx, GridModel, Id, ItemKey, KeyCode, KeyMap,
-        KeyModifiers, KeyPhase, Part, PartRef, Response, TabsAction, Theme, Ui,
+        KeyModifiers, KeyPhase, Part, PartRef, Response, TabsAction, Theme, TreeAction, Ui,
     };
     use termrock_test_support::Harness;
 
@@ -988,10 +1201,14 @@ mod tests {
         area: Rect,
         keymap: KeyMap,
         last_command: Option<(ActionKey, bool)>,
+        open_options_before_update: bool,
     }
 
     impl TermrockApp for Host {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if std::mem::take(&mut self.open_options_before_update) {
+                self.page.open_options(cx);
+            }
             let command = cx.command();
             let mut response = self.page.update(cx).response;
             if let Some(action) = command {
@@ -1026,6 +1243,7 @@ mod tests {
                 area: Rect::new(0, 0, 14, 18),
                 keymap: host_keymap(),
                 last_command: None,
+                open_options_before_update: false,
             },
             Theme::junie(),
             14,
@@ -1040,6 +1258,7 @@ mod tests {
                 area: Rect::new(0, 0, 160, 40),
                 keymap: host_keymap(),
                 last_command: None,
+                open_options_before_update: false,
             },
             Theme::junie(),
             160,
@@ -1092,6 +1311,8 @@ mod tests {
         assert_eq!(page.document_count(), 2);
         assert_eq!(keys.len(), 2);
         assert_eq!(page.tabs_state().active(), Some(keys[0]));
+        assert_eq!(page.documents[0].source_table, Some(SampleTable::Orders));
+        assert_eq!(page.documents[1].source_table, Some(SampleTable::Customers));
         assert_eq!(page.active_sql(), Some(super::FIRST_QUERY));
         assert_eq!(
             page.active_editor().map(|editor| editor.text()),
@@ -1143,6 +1364,7 @@ mod tests {
         assert_eq!(page.document_count(), 3);
         assert_eq!(page.tabs_state().active(), Some(first_new_key));
         assert_eq!(page.documents[2].title, "Query 2");
+        assert_eq!(page.documents[2].source_table, None);
         assert_eq!(page.active_sql(), Some(""));
         assert!(matches!(
             page.active_result_state(),
@@ -1310,6 +1532,8 @@ mod tests {
             (options::ENVIRONMENT_KEY, 4),
             (options::EDITOR_SHARE_KEY, 0),
             (options::EDITOR_SHARE_KEY, 3),
+            (options::SHOW_EXPLORER_KEY, 2),
+            (options::EXPLORER_SHARE_KEY, 3),
             ("queryworkbench.unknown", 1),
         ] {
             Page::set_option(&mut h.app_mut().page, key, value);
@@ -1338,6 +1562,11 @@ mod tests {
             (options::RESULT_KEY, 2),
             (options::RESULT_KEY, 3),
             (options::RESULT_KEY, 0),
+            (options::SHOW_EXPLORER_KEY, 0),
+            (options::EXPLORER_SHARE_KEY, 1),
+            (options::SHOW_EXPLORER_KEY, 1),
+            (options::EXPLORER_SHARE_KEY, 2),
+            (options::EXPLORER_SHARE_KEY, 0),
         ] {
             Page::set_option(&mut h.app_mut().page, key, value);
             assert_eq!(Page::option_value(&h.app().page, key), Some(value), "{key}");
@@ -1425,5 +1654,339 @@ mod tests {
             })
         );
         assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+
+    fn document_snapshot(
+        page: &QueryWorkbenchPage,
+    ) -> Vec<(ItemKey, String, String, ResultView, Option<SampleTable>)> {
+        page.documents
+            .iter()
+            .map(|document| {
+                (
+                    document.key,
+                    document.title.clone(),
+                    document.editor.text().to_owned(),
+                    document.result.clone(),
+                    document.source_table,
+                )
+            })
+            .collect()
+    }
+
+    fn document_snapshot_from(
+        documents: &[Document],
+    ) -> Vec<(ItemKey, String, String, ResultView, Option<SampleTable>)> {
+        documents
+            .iter()
+            .map(|document| {
+                (
+                    document.key,
+                    document.title.clone(),
+                    document.editor.text().to_owned(),
+                    document.result.clone(),
+                    document.source_table,
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn explorer_activation_reuses_source_identity_and_ignores_duplicate_titles() {
+        let mut page = QueryWorkbenchPage::new();
+        let explorer = super::explorer::ExplorerState::new();
+        let orders_key = ItemKey::text("query.workbench.orders");
+        page.documents[0]
+            .editor
+            .set_text("SELECT edited FROM orders;");
+        page.documents[0].result = ResultView::Plan;
+        let next_document_id = page.next_document_id;
+
+        assert!(page.apply_explorer_action(
+            TreeAction::Activated(SampleTable::Orders.key()),
+            &explorer,
+        ));
+        assert_eq!(page.tabs.active(), Some(orders_key));
+        assert_eq!(
+            page.documents[0].editor.text(),
+            "SELECT edited FROM orders;"
+        );
+        assert_eq!(page.documents[0].result, ResultView::Plan);
+        assert_eq!(page.next_document_id, next_document_id);
+        assert_eq!(page.status, "Opened orders from Explorer.");
+
+        assert!(page.clear_active());
+        assert_eq!(page.documents[0].editor.text(), "");
+        assert_eq!(page.documents[0].source_table, Some(SampleTable::Orders));
+        assert!(page.apply_explorer_action(
+            TreeAction::Activated(SampleTable::Orders.key()),
+            &explorer,
+        ));
+        assert_eq!(page.tabs.active(), Some(orders_key));
+        assert_eq!(page.documents[0].editor.text(), "");
+        assert_eq!(page.documents[0].result, ResultView::Plan);
+        assert_eq!(page.next_document_id, next_document_id);
+
+        page.documents.push(Document::new(
+            ItemKey::num(99),
+            "products.sql".to_owned(),
+            "SELECT edited FROM products;",
+        ));
+        let count_before_open = page.document_count();
+        assert!(page.apply_explorer_action(
+            TreeAction::Activated(SampleTable::Products.key()),
+            &explorer,
+        ));
+        assert_eq!(page.document_count(), count_before_open + 1);
+        assert_eq!(
+            page.documents.last().map(|document| document.key),
+            Some(ItemKey::num(2))
+        );
+        assert_eq!(
+            page.documents
+                .last()
+                .map(|document| document.title.as_str()),
+            Some("products.sql")
+        );
+        assert_eq!(
+            page.documents.last().map(|document| document.editor.text()),
+            Some("SELECT * FROM products LIMIT 100;\n")
+        );
+    }
+
+    #[test]
+    fn explorer_open_ignores_allow_new_and_preserves_pending_run_owner_and_status() {
+        let mut page = QueryWorkbenchPage::new();
+        Page::set_option(&mut page, options::ALLOW_NEW_KEY, 0);
+        let orders_key = ItemKey::text("query.workbench.orders");
+        page.documents[0]
+            .editor
+            .set_text("SELECT id FROM customers LIMIT 25;");
+        page.run = Some(PendingRun {
+            owner: orders_key,
+            explain: false,
+            remaining_ticks: 4,
+        });
+        page.status = "Running query · 4 native ticks remaining".to_owned();
+        let run_status = page.status.clone();
+        let explorer = super::explorer::ExplorerState::new();
+
+        assert!(!page.new_document());
+        assert!(page.apply_explorer_action(
+            TreeAction::Activated(SampleTable::Products.key()),
+            &explorer,
+        ));
+        assert_eq!(page.tabs.active(), Some(ItemKey::num(2)));
+        assert_eq!(
+            page.run
+                .as_ref()
+                .map(|run| (run.owner, run.remaining_ticks)),
+            Some((orders_key, 4))
+        );
+        assert_eq!(
+            page.status, run_status,
+            "opening Explorer does not replace a running status"
+        );
+        assert_eq!(page.documents[0].source_table, Some(SampleTable::Orders));
+        assert_eq!(page.documents[2].source_table, Some(SampleTable::Products));
+
+        let mut harness = Harness::new(
+            Host {
+                page,
+                area: Rect::new(0, 0, 160, 40),
+                keymap: host_keymap(),
+                last_command: None,
+                open_options_before_update: false,
+            },
+            Theme::junie(),
+            160,
+            40,
+        );
+        harness.ticks(4);
+        assert!(!harness.app().page.is_running());
+        assert_eq!(
+            harness.app().page.documents[0].result,
+            ResultView::Rows {
+                table: "customers".to_owned(),
+                count: 25
+            }
+        );
+        assert_eq!(harness.app().page.documents[2].result, ResultView::NotRun);
+        assert_eq!(harness.app().page.tabs.active(), Some(ItemKey::num(2)));
+    }
+
+    #[test]
+    fn explorer_activation_is_inert_for_unknown_rows_and_reports_allocator_exhaustion() {
+        let mut page = QueryWorkbenchPage::new();
+        let explorer = super::explorer::ExplorerState::new();
+        let documents = page.documents.clone();
+        let tabs = page.tabs.clone();
+        assert!(!page.apply_explorer_action(
+            TreeAction::Activated(ItemKey::text("query.workbench.unknown")),
+            &explorer,
+        ));
+        for key in [
+            ItemKey::text("query.workbench.explorer.schema.public"),
+            ItemKey::text("query.workbench.explorer.schema.analytics"),
+            ItemKey::text("query.workbench.explorer.schema.audit"),
+            ItemKey::text("query.workbench.explorer.collection.views"),
+            ItemKey::text("query.workbench.explorer.collection.functions"),
+        ] {
+            assert!(!page.apply_explorer_action(TreeAction::Activated(key), &explorer));
+        }
+        assert_eq!(document_snapshot(&page), document_snapshot_from(&documents));
+        assert_eq!(page.tabs, tabs);
+
+        page.next_document_id = u64::MAX;
+        let documents = page.documents.clone();
+        let tabs = page.tabs.clone();
+        let active_tab = page.tabs.active();
+        assert!(!page.apply_explorer_action(
+            TreeAction::Activated(SampleTable::Products.key()),
+            &explorer,
+        ));
+        assert_eq!(document_snapshot(&page), document_snapshot_from(&documents));
+        assert_eq!(page.tabs, tabs);
+        assert_eq!(page.tabs.active(), active_tab);
+        assert_eq!(page.next_document_id, u64::MAX);
+        assert_eq!(page.status, "Cannot open another query tab.");
+    }
+
+    #[test]
+    fn direct_page_option_hide_commits_filter_and_drains_hidden_tree_focus() {
+        let mut filter = native_harness();
+        assert!(filter.tab_to(super::explorer::FILTER));
+        let _ = filter.paste("  orders  ");
+        assert!(filter.app().page.explorer.is_filter_editing());
+        assert_eq!(filter.app().page.explorer.filter_value(), "");
+        assert_eq!(filter.app().page.explorer.normalized_query(), "orders");
+
+        Page::set_option(&mut filter.app_mut().page, "queryworkbench.explorer", 0);
+        filter.draw();
+        assert!(
+            filter.diagnostics().is_empty(),
+            "direct hidden Filter draw: {:?}",
+            filter.diagnostics()
+        );
+        assert_ne!(
+            filter.focus(),
+            Some(super::explorer::FILTER),
+            "native draw releases focused Filter after direct hide"
+        );
+        assert!(
+            !filter.app().page.explorer.is_filter_editing(),
+            "the native FocusOut commits before another input or tick"
+        );
+        assert_eq!(
+            filter.app().page.explorer.filter_value(),
+            "  orders  ",
+            "direct hide draw commits the current filter draft"
+        );
+        let mut filter_focus_released = false;
+        for tick in 0..3 {
+            let _ = filter.tick();
+            assert!(
+                filter.diagnostics().is_empty(),
+                "hidden Filter lifecycle tick {tick}: {:?}",
+                filter.diagnostics()
+            );
+            if filter.focus() != Some(super::explorer::FILTER) {
+                filter_focus_released = true;
+                break;
+            }
+        }
+        assert!(filter_focus_released, "native hide settles Filter FocusOut");
+        assert!(
+            !filter.app().page.explorer.is_filter_editing(),
+            "the native FocusOut commits and ends the hidden filter edit"
+        );
+        assert_eq!(filter.app().page.explorer.filter_value(), "  orders  ");
+        assert_eq!(filter.app().page.explorer.normalized_query(), "orders");
+        assert!(filter.area_of(super::EXPLORER_PANEL).is_none());
+        assert_ne!(filter.focus(), Some(super::explorer::FILTER));
+        assert_ne!(filter.focus(), Some(super::explorer::TREE));
+        let committed_filter = filter.app().page.explorer.filter_value().to_owned();
+        let _ = filter.key(KeyCode::Char('x'));
+        let _ = filter.paste("hidden input");
+        let _ = filter.tick();
+        assert_eq!(
+            filter.app().page.explorer.filter_value(),
+            committed_filter,
+            "ordinary input does not reach a hidden Filter"
+        );
+        assert!(
+            filter.diagnostics().is_empty(),
+            "{:?}",
+            filter.diagnostics()
+        );
+
+        let mut tree = native_harness();
+        assert!(tree.tab_to(super::explorer::TREE));
+        Page::set_option(&mut tree.app_mut().page, "queryworkbench.explorer", 0);
+        tree.draw();
+        assert!(
+            tree.diagnostics().is_empty(),
+            "direct hidden Tree draw: {:?}",
+            tree.diagnostics()
+        );
+        assert_ne!(
+            tree.focus(),
+            Some(super::explorer::TREE),
+            "native draw releases focused Tree after direct hide"
+        );
+        let mut tree_focus_released = false;
+        for tick in 0..3 {
+            let _ = tree.tick();
+            assert!(
+                tree.diagnostics().is_empty(),
+                "hidden Tree lifecycle tick {tick}: {:?}",
+                tree.diagnostics()
+            );
+            if tree.focus() != Some(super::explorer::TREE) {
+                tree_focus_released = true;
+                break;
+            }
+        }
+        assert!(tree_focus_released, "native hide settles Tree FocusOut");
+        assert_ne!(tree.focus(), Some(super::explorer::TREE));
+        assert!(tree.area_of(super::EXPLORER_PANEL).is_none());
+        assert!(tree.diagnostics().is_empty(), "{:?}", tree.diagnostics());
+    }
+
+    #[test]
+    fn options_modal_drains_filter_and_tree_focus_lifecycle_without_editing() {
+        let mut filter = native_harness();
+        assert!(filter.tab_to(super::explorer::FILTER));
+        let _ = filter.paste("orders");
+        assert_eq!(filter.focus(), Some(super::explorer::FILTER));
+        assert!(filter.app().page.explorer.is_filter_editing());
+        filter.app_mut().open_options_before_update = true;
+        let _ = filter.tick();
+        assert!(filter.is_open(OPTIONS_DIALOG));
+        assert_ne!(filter.focus(), Some(super::explorer::FILTER));
+        assert!(
+            !filter.app().page.explorer.is_filter_editing(),
+            "modal FocusOut commits the native filter draft"
+        );
+        assert_eq!(filter.app().page.explorer.filter_value(), "orders");
+        assert!(
+            filter.diagnostics().is_empty(),
+            "direct modal open from Filter focus: {:?}",
+            filter.diagnostics()
+        );
+
+        let _ = filter.key(KeyCode::Esc);
+        assert!(!filter.is_open(OPTIONS_DIALOG));
+        let mut tree = native_harness();
+        assert!(tree.tab_to(super::explorer::TREE));
+        assert_eq!(tree.focus(), Some(super::explorer::TREE));
+        tree.app_mut().open_options_before_update = true;
+        let _ = tree.tick();
+        assert!(tree.is_open(OPTIONS_DIALOG));
+        assert_ne!(tree.focus(), Some(super::explorer::TREE));
+        assert!(
+            tree.diagnostics().is_empty(),
+            "direct modal open from Tree focus: {:?}",
+            tree.diagnostics()
+        );
     }
 }

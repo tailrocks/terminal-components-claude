@@ -21,6 +21,12 @@ const READ_ONLY: Id = OPTIONS_FORM.part(Part::FIELD).index(2);
 const RESULT_FIXTURE: Id = OPTIONS_FORM.part(Part::FIELD).index(3);
 const ENVIRONMENT: Id = OPTIONS_FORM.part(Part::FIELD).index(4);
 const EDITOR_SHARE: Id = OPTIONS_FORM.part(Part::FIELD).index(6);
+const SHOW_EXPLORER: Id = OPTIONS_FORM.part(Part::FIELD).index(7);
+const EXPLORER_SHARE: Id = OPTIONS_FORM.part(Part::FIELD).index(8);
+const EXPLORER_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.explorer_panel");
+const EXPLORER_SPLIT: Id = Id::root("showcase_ui::pages::query_workbench.explorer_split");
+const EXPLORER_FILTER: Id = Id::root("showcase_ui::pages::query_workbench.explorer_filter");
+const EXPLORER_TREE: Id = Id::root("showcase_ui::pages::query_workbench.explorer_tree");
 const CLOSE_OPTIONS: Id = OPTIONS_FORM.part(Part::ACTIONS).index(0);
 
 const RESULTS_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.results_panel");
@@ -323,8 +329,22 @@ fn press_ctrl_r(h: &mut Harness<App>) {
 
 fn click_toolbar_options(h: &mut Harness<App>) {
     let options = PartRef::item(Part::ROW, ItemKey::index(4));
-    assert!(h.area_of_part(TOOLBAR, options).is_some());
-    let _ = h.click_part(TOOLBAR, options);
+    if h.area_of_part(TOOLBAR, options).is_some() {
+        let _ = h.click_part(TOOLBAR, options);
+    } else {
+        assert!(
+            h.area_of_part(TOOLBAR, PartRef::of(Part::OVERFLOW))
+                .is_some(),
+            "native Toolbar overflow exposes the hidden Options command"
+        );
+        assert!(h.tab_to(TOOLBAR));
+        let _ = h.key(KeyCode::End);
+        let _ = h.key(KeyCode::Enter);
+        let menu = TOOLBAR.sub("more-menu");
+        assert!(h.is_open(menu), "native More menu opens");
+        let _ = h.key(KeyCode::End);
+        let _ = h.key(KeyCode::Enter);
+    }
     assert!(h.is_open(OPTIONS));
 }
 
@@ -334,6 +354,7 @@ fn choose_select_index(h: &mut Harness<App>, id: Id, down: usize) {
         "select {id:?} is reachable in the Options dialog"
     );
     let _ = h.key(KeyCode::Enter);
+    let _ = h.key(KeyCode::Home);
     for _ in 0..down {
         let _ = h.key(KeyCode::Down);
     }
@@ -356,20 +377,48 @@ fn assert_environment_status(h: &Harness<App>, label: &str, expected_fg: termroc
         "the selected label is fully visible"
     );
     let (x, y) = h.find(label).expect("selected environment is visible");
-    let toolbar = h.area_of(TOOLBAR).expect("toolbar publishes its bounds");
+    let tabs = h.area_of(TABS).expect("native Tabs publish their area");
+    let toolbar = h
+        .area_of(TOOLBAR)
+        .expect("native Toolbar publishes its area");
+    assert_eq!(tabs.height, 1, "Tabs keep their native header row");
+    assert_eq!(toolbar.height, 1, "Toolbar keeps its native row");
     assert_eq!(
-        y,
-        toolbar.y.saturating_sub(3),
-        "environment status occupies the page header row"
+        toolbar.y,
+        tabs.y.saturating_add(tabs.height),
+        "Toolbar follows Tabs in the page body"
     );
-    let header_left = toolbar
+    let header_bounds = if let Some(outer) = h.area_of(EXPLORER_SPLIT) {
+        assert_eq!(outer.y, tabs.y, "visible work area starts at Tabs");
+        outer
+    } else {
+        assert!(
+            h.area_of_part(EXPLORER_SPLIT, PartRef::of(Part::SEAM))
+                .is_none(),
+            "hidden Explorer has no interactive seam"
+        );
+        tabs
+    };
+    let header_y = tabs
+        .y
+        .checked_sub(2)
+        .expect("the page-frame header is two rows above body Tabs");
+    let header_area = Rect::new(header_bounds.x, header_y, header_bounds.width, 1);
+    let status_start = header_area
         .x
         .saturating_add(termrock::width("Query workbench"))
         .saturating_add(2);
-    let header_right = toolbar.x.saturating_add(toolbar.width);
     assert!(
-        x >= header_left && x.saturating_add(termrock::width(label)) <= header_right,
-        "the complete environment label fits inside the header status bounds"
+        x >= status_start,
+        "environment status starts after the Query workbench title prefix"
+    );
+    assert_eq!(
+        y, header_area.y,
+        "environment label occupies its native header status row"
+    );
+    assert!(
+        rect_is_inside(Rect::new(x, y, termrock::width(label), 1), header_area),
+        "the complete environment label fits inside page header bounds {header_area:?}"
     );
     assert_eq!(
         h.cell(x, y).fg,
@@ -908,32 +957,36 @@ fn query_workbench_native_editor_exit_keys_preserve_visible_query_line_coordinat
         .reachable()
         .map(|entry| entry.id)
         .collect::<Vec<_>>();
-    let toolbar_index = published_focus_order
+    const PAGE_OWNER_ORDER: [Id; 8] = [
+        EXPLORER_SPLIT,
+        EXPLORER_FILTER,
+        EXPLORER_TREE,
+        TABS,
+        TOOLBAR,
+        SPLIT,
+        EDITOR,
+        RESULTS,
+    ];
+    let page_owner_order = published_focus_order
         .iter()
-        .position(|id| *id == TOOLBAR)
-        .expect("the toolbar is reachable in the published native focus ring");
-    let split_index = published_focus_order
-        .iter()
-        .position(|id| *id == SPLIT)
-        .expect("the native split seam is reachable in the published focus ring");
-    let editor_index = published_focus_order
-        .iter()
-        .position(|id| *id == EDITOR)
-        .expect("the editor is reachable in the published native focus ring");
+        .copied()
+        .filter(|owner| PAGE_OWNER_ORDER.contains(owner))
+        .collect::<Vec<_>>();
     assert_eq!(
-        published_focus_order.get(toolbar_index + 1),
-        Some(&SPLIT),
-        "the published Draw focus order places the native split after the toolbar: {published_focus_order:?}"
+        page_owner_order, PAGE_OWNER_ORDER,
+        "native Query Workbench owners keep Explorer-first, then complete-main order"
     );
-    assert_eq!(
-        published_focus_order.get(split_index + 1),
-        Some(&EDITOR),
-        "the published Draw focus order places the editor after the split: {published_focus_order:?}"
-    );
-    assert_eq!(
-        published_focus_order.get(editor_index + 1),
-        Some(&RESULTS),
-        "the published Draw focus order places Results after the editor: {published_focus_order:?}"
+    let navigation_index = published_focus_order
+        .iter()
+        .position(|owner| *owner == NAV)
+        .expect("the showcase App keeps NAV registered in the whole native ring");
+    let explorer_index = published_focus_order
+        .iter()
+        .position(|owner| *owner == EXPLORER_SPLIT)
+        .expect("the page Explorer split is in the whole native ring");
+    assert!(
+        navigation_index < explorer_index,
+        "the full ring retains App navigation before page owners: {published_focus_order:?}"
     );
 
     let visible_query_lines = [
@@ -1240,14 +1293,6 @@ fn editor_share_and_close_stay_reachable_with_the_semantic_note_at_supported_siz
         );
         assert_eq!(h.focus(), Some(CLOSE_OPTIONS), "{width}x{height}");
         let close_view = h.text();
-        assert!(
-            h.text().contains("Sample environments"),
-            "{width}x{height}: the semantic environment note remains in the form"
-        );
-        assert!(
-            h.text().contains("Production: sample data only"),
-            "{width}x{height}: the Production role remains documented"
-        );
         for line in semantic_note_lines {
             assert!(
                 environment_view.contains(line)
@@ -1560,12 +1605,12 @@ fn result_fixture_choices_apply_once_and_run_selection_preserves_the_current_res
     assert!(h.text().contains("Enter SQL, then choose Run."));
 
     click_toolbar_options(&mut h);
-    choose_select_index(&mut h, RESULT_FIXTURE, 1);
+    choose_select_index(&mut h, RESULT_FIXTURE, 2);
     let _ = h.key(KeyCode::Esc);
     assert!(h.text().contains("relation \"ordrs\" does not exist"));
 
     click_toolbar_options(&mut h);
-    choose_select_index(&mut h, RESULT_FIXTURE, 1);
+    choose_select_index(&mut h, RESULT_FIXTURE, 3);
     let _ = h.key(KeyCode::Esc);
     assert_plan_fixture_visible(&h, "selected Plan fixture");
 
@@ -1806,4 +1851,591 @@ fn options_modal_has_no_native_diagnostics_at_supported_viewport_sizes() {
             h.diagnostics()
         );
     }
+}
+
+fn toggle_show_explorer(h: &mut Harness<App>) {
+    click_toolbar_options(h);
+    assert!(
+        h.tab_to(SHOW_EXPLORER),
+        "Show Explorer is reachable in Options"
+    );
+    let _ = h.key(KeyCode::Char(' '));
+    let _ = h.key(KeyCode::Esc);
+    let _ = h.tick();
+}
+
+fn set_explorer_share(h: &mut Harness<App>, index: usize) {
+    click_toolbar_options(h);
+    choose_select_index(h, EXPLORER_SHARE, index);
+    let _ = h.key(KeyCode::Esc);
+    let _ = h.tick();
+}
+
+fn assert_explorer_layout(
+    h: &Harness<App>,
+    explorer_visible: bool,
+    context: &str,
+    retained_outer: Option<Rect>,
+) -> Rect {
+    let main = h
+        .area_of(SPLIT)
+        .expect("the Editor and Results split remains in the second pane");
+    let outer = if explorer_visible {
+        let published = h
+            .area_of(EXPLORER_SPLIT)
+            .expect("the visible native horizontal split publishes its root area");
+        if let Some(retained) = retained_outer {
+            assert_eq!(
+                published, retained,
+                "{context}: visible split keeps its previously published outer area"
+            );
+        }
+        published
+    } else {
+        retained_outer.unwrap_or(main)
+    };
+    let tabs = h.area_of(TABS).expect("Tabs remain in the main pane");
+    let toolbar = h
+        .area_of(TOOLBAR)
+        .expect("Toolbar remains in the main pane");
+
+    for (name, area) in [
+        ("Tabs", tabs),
+        ("Toolbar", toolbar),
+        ("Editor/Results", main),
+    ] {
+        assert_eq!(
+            area.x, main.x,
+            "{context}: {name} starts at the full main-pane edge"
+        );
+        assert_eq!(
+            area.width, main.width,
+            "{context}: {name} uses the full main-pane width"
+        );
+    }
+
+    if explorer_visible {
+        let explorer = h
+            .area_of(EXPLORER_PANEL)
+            .expect("Explorer is visible in the first pane");
+        let seam = h
+            .area_of_part(EXPLORER_SPLIT, PartRef::of(Part::SEAM))
+            .expect("the visible horizontal split publishes its native seam");
+        assert!(
+            rect_is_inside(explorer, outer),
+            "{context}: Explorer is inside outer split"
+        );
+        assert_eq!(explorer.x, outer.x, "{context}: Explorer starts first");
+        assert_eq!(
+            explorer.y, outer.y,
+            "{context}: Explorer fills workbench height"
+        );
+        assert_eq!(
+            explorer.height, outer.height,
+            "{context}: Explorer fills workbench height"
+        );
+        assert!(
+            explorer.width >= 22,
+            "{context}: Explorer meets its native minimum"
+        );
+        assert_eq!(
+            explorer.x.saturating_add(explorer.width),
+            seam.x,
+            "{context}: Explorer ends at the native seam"
+        );
+        assert_eq!(
+            seam.x.saturating_add(seam.width),
+            main.x,
+            "{context}: the complete main pane follows the native seam"
+        );
+        assert_eq!(
+            main.x.saturating_add(main.width),
+            outer.x.saturating_add(outer.width),
+            "{context}: the complete main pane reaches the outer right edge"
+        );
+        assert!(
+            h.area_of(EXPLORER_FILTER).is_some(),
+            "{context}: Filter is published"
+        );
+        assert!(
+            h.area_of(EXPLORER_TREE).is_some(),
+            "{context}: Tree is published"
+        );
+    } else {
+        assert_eq!(
+            tabs.y, outer.y,
+            "{context}: Tabs start at the retained outer work area"
+        );
+        assert_eq!(tabs.height, 1, "{context}: Tabs keep their native row");
+        assert_eq!(
+            toolbar.y,
+            tabs.y.saturating_add(tabs.height),
+            "{context}: Toolbar follows Tabs"
+        );
+        assert_eq!(toolbar.height, 1, "{context}: Toolbar keeps its native row");
+        assert_eq!(
+            main.y,
+            toolbar.y.saturating_add(toolbar.height),
+            "{context}: Editor/Results follows Toolbar"
+        );
+        assert_eq!(
+            main.y.saturating_add(main.height),
+            outer.y.saturating_add(outer.height),
+            "{context}: Editor/Results reaches the retained outer bottom"
+        );
+        assert!(
+            h.area_of(EXPLORER_PANEL).is_none(),
+            "{context}: native Split hides Explorer"
+        );
+        assert!(
+            h.area_of(EXPLORER_FILTER).is_none(),
+            "{context}: hidden Filter has no area"
+        );
+        assert!(
+            h.area_of(EXPLORER_TREE).is_none(),
+            "{context}: hidden Tree has no area"
+        );
+        assert_eq!(
+            main.x, outer.x,
+            "{context}: second-only mode starts the main pane at the outer edge"
+        );
+        assert_eq!(
+            main.width, outer.width,
+            "{context}: second-only mode gives the complete outer width to the main pane"
+        );
+        assert!(
+            h.area_of_part(EXPLORER_SPLIT, PartRef::of(Part::SEAM))
+                .is_none(),
+            "{context}: hidden Explorer has no interactive seam"
+        );
+        for owner in [EXPLORER_SPLIT, EXPLORER_FILTER, EXPLORER_TREE] {
+            assert!(
+                !h.ring().reachable().any(|entry| entry.id == owner),
+                "{context}: hidden Explorer owner {owner:?} is absent from the focus ring"
+            );
+        }
+    }
+    outer
+}
+
+fn assert_explorer_share(h: &Harness<App>, percent: u8, context: &str) {
+    let outer = h
+        .area_of(EXPLORER_SPLIT)
+        .expect("the Explorer split publishes its root");
+    let explorer = h
+        .area_of(EXPLORER_PANEL)
+        .expect("Explorer is visible for share geometry proof");
+    let available = outer.width.saturating_sub(1);
+    let actual_scaled = u32::from(explorer.width) * 100;
+    let expected_scaled = u32::from(available) * u32::from(percent);
+    assert!(
+        actual_scaled.abs_diff(expected_scaled) <= 100,
+        "{context}: Explorer width {} follows its {percent}% preset over {available} usable columns",
+        explorer.width
+    );
+}
+
+fn assert_main_width(h: &Harness<App>, expected: u16, context: &str) {
+    let main = h
+        .area_of(SPLIT)
+        .expect("the inner split publishes the complete main area");
+    let toolbar = h.area_of(TOOLBAR).expect("Toolbar is in the main area");
+    assert_eq!(main.width, expected, "{context}: main width");
+    assert_eq!(toolbar.width, expected, "{context}: Toolbar width");
+}
+
+fn assert_toolbar_commands_reachable(h: &mut Harness<App>, expected_width: u16, context: &str) {
+    let toolbar = h
+        .area_of(TOOLBAR)
+        .expect("Toolbar publishes its native bounds");
+    assert_eq!(
+        toolbar.width, expected_width,
+        "{context}: Toolbar receives the full main-pane width"
+    );
+    assert!(
+        h.tab_to(TOOLBAR),
+        "{context}: Toolbar is keyboard reachable"
+    );
+
+    let labels = ["Run", "Explain", "Stop", "Clear", "Options"];
+    let hidden = labels
+        .iter()
+        .enumerate()
+        .filter_map(|(index, label)| {
+            h.area_of_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(index)))
+                .is_none()
+                .then_some(*label)
+        })
+        .collect::<Vec<_>>();
+
+    if hidden.is_empty() {
+        for (index, label) in labels.into_iter().enumerate() {
+            let row = h
+                .area_of_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(index)))
+                .expect("every command is a published native Toolbar row");
+            assert!(
+                rect_is_inside(row, toolbar),
+                "{context}: {label} row is in Toolbar"
+            );
+        }
+    } else {
+        let _ = h.key(KeyCode::End);
+        assert!(
+            h.area_of_part(TOOLBAR, PartRef::of(Part::OVERFLOW))
+                .is_some(),
+            "{context}: hidden commands are offered through native More overflow"
+        );
+        let _ = h.key(KeyCode::Enter);
+        let menu = TOOLBAR.sub("more-menu");
+        assert!(
+            h.is_open(menu),
+            "{context}: More opens the native command menu"
+        );
+        let contents = h.text();
+        for label in hidden {
+            assert!(
+                contents.contains(label),
+                "{context}: hidden {label} remains available in native overflow"
+            );
+        }
+        let _ = h.key(KeyCode::Esc);
+        assert!(
+            !h.is_open(menu),
+            "{context}: native More menu closes cleanly"
+        );
+    }
+    assert!(
+        h.diagnostics().is_empty(),
+        "{context}: {:?}",
+        h.diagnostics()
+    );
+}
+
+#[test]
+fn explorer_split_options_use_native_second_only_at_compact_widths_and_preserve_main_commands() {
+    let mut wide = Harness::new(
+        App::for_page_name("queryworkbench"),
+        Theme::junie(),
+        120,
+        40,
+    );
+    let outer = assert_explorer_layout(&wide, true, "fitting workbench", None);
+    assert_eq!(
+        outer.width, 94,
+        "the fitting workbench uses the measured outer width"
+    );
+    assert_explorer_share(&wide, 32, "32% default");
+    assert_main_width(&wide, 64, "32% Explorer share");
+    assert_toolbar_commands_reachable(&mut wide, 64, "64-cell main pane");
+
+    for (index, percent, main_width) in [(1, 24, 71), (2, 40, 56), (0, 32, 64)] {
+        set_explorer_share(&mut wide, index);
+        assert_explorer_layout(&wide, true, "selected fitting Explorer share", Some(outer));
+        assert_explorer_share(&wide, percent, "selected Explorer preset");
+        assert_main_width(&wide, main_width, "selected Explorer preset");
+        assert_toolbar_commands_reachable(&mut wide, main_width, "selected main width");
+    }
+
+    let seam = wide
+        .area_of_part(EXPLORER_SPLIT, PartRef::of(Part::SEAM))
+        .expect("the outer seam is available for native dragging");
+    let start = (seam.x, seam.y.saturating_add(seam.height / 2));
+    let before_drag = wide
+        .area_of(EXPLORER_PANEL)
+        .expect("Explorer is visible before dragging")
+        .width;
+    let _ = wide.drag(start, (start.0.saturating_add(5), start.1));
+    let after_drag = wide
+        .area_of(EXPLORER_PANEL)
+        .expect("Explorer stays visible after native dragging")
+        .width;
+    assert!(
+        after_drag > before_drag,
+        "dragging the outer seam grows Explorer"
+    );
+    toggle_show_explorer(&mut wide);
+    assert_explorer_layout(&wide, false, "explicitly hidden Explorer", Some(outer));
+    toggle_show_explorer(&mut wide);
+    assert_explorer_layout(&wide, true, "Explorer restored after hiding", Some(outer));
+    assert_eq!(
+        wide.area_of(EXPLORER_PANEL).map(|area| area.width),
+        Some(after_drag),
+        "hide and show preserve the resized outer ratio"
+    );
+
+    for (width, height, expected_outer) in [(80, 24, 59), (72, 20, 51)] {
+        let mut h = Harness::new(
+            App::for_page_name("queryworkbench"),
+            Theme::junie(),
+            width,
+            height,
+        );
+        let context = format!("{width}x{height} compact workbench");
+        let main = h
+            .area_of(SPLIT)
+            .expect("the second-only Editor/Results split publishes its native area");
+        let tabs = h
+            .area_of(TABS)
+            .expect("compact Tabs publish their native area");
+        let outer = Rect::new(
+            main.x,
+            tabs.y,
+            main.width,
+            main.y.saturating_add(main.height).saturating_sub(tabs.y),
+        );
+        assert_explorer_layout(&h, false, &context, Some(outer));
+        assert_eq!(
+            outer.width, expected_outer,
+            "{context}: native workbench width"
+        );
+        assert_toolbar_commands_reachable(&mut h, expected_outer, "compact main toolbar");
+
+        toggle_show_explorer(&mut h);
+        assert_explorer_layout(&h, false, "explicitly hidden at compact width", Some(outer));
+        toggle_show_explorer(&mut h);
+        assert_explorer_layout(
+            &h,
+            false,
+            "show request remains native-fallback hidden",
+            Some(outer),
+        );
+        assert!(h.diagnostics().is_empty(), "{width}: {:?}", h.diagnostics());
+    }
+
+    let mut minimum = Harness::new(App::for_page_name("queryworkbench"), Theme::junie(), 84, 40);
+    let outer = assert_explorer_layout(&minimum, true, "exact outer minimum", None);
+    assert_eq!(
+        outer.width, 63,
+        "the native horizontal split reaches its exact 22+1+40 minimum"
+    );
+    assert_eq!(
+        minimum.area_of(EXPLORER_PANEL).map(|area| area.width),
+        Some(22),
+        "the exact-minimum first pane preserves its 22-cell minimum"
+    );
+    assert_main_width(&minimum, 40, "exact 40-cell second pane");
+    assert_toolbar_commands_reachable(&mut minimum, 40, "40-cell main pane");
+    assert!(wide.diagnostics().is_empty(), "{:?}", wide.diagnostics());
+}
+
+#[test]
+fn explorer_filter_draft_survives_hide_show_and_ctrl_r_uses_native_explorer_owners() {
+    let mut h = harness();
+    let outer = assert_explorer_layout(&h, true, "initial Explorer layout", None);
+    assert!(h.tab_to(EXPLORER_FILTER));
+    let _ = h.paste("orders");
+    let customers = PartRef::item(
+        Part::ROW,
+        ItemKey::text("query.workbench.explorer.table.customers"),
+    );
+    assert!(h.area_of_part(EXPLORER_TREE, customers).is_none());
+
+    click_toolbar_options(&mut h);
+    assert!(h.tab_to(SHOW_EXPLORER));
+    let _ = h.key(KeyCode::Char(' '));
+    let _ = h.key(KeyCode::Esc);
+    let _ = h.tick();
+    assert_explorer_layout(
+        &h,
+        false,
+        "hidden during an edited filter draft",
+        Some(outer),
+    );
+    assert_ne!(
+        h.focus(),
+        Some(EXPLORER_FILTER),
+        "hidden filter releases native focus"
+    );
+    assert_ne!(
+        h.focus(),
+        Some(EXPLORER_TREE),
+        "hidden tree releases native focus"
+    );
+
+    toggle_show_explorer(&mut h);
+    assert_explorer_layout(
+        &h,
+        true,
+        "shown after retaining the filter draft",
+        Some(outer),
+    );
+    assert!(
+        h.area_of_part(EXPLORER_TREE, customers).is_none(),
+        "the restored native query still filters Customers"
+    );
+    assert!(
+        h.area_of_part(
+            EXPLORER_TREE,
+            PartRef::item(
+                Part::ROW,
+                ItemKey::text("query.workbench.explorer.table.orders"),
+            )
+        )
+        .is_some()
+    );
+
+    for owner in [EXPLORER_SPLIT, EXPLORER_FILTER, EXPLORER_TREE] {
+        let mut focused = harness();
+        assert!(
+            focused.tab_to(owner),
+            "native Explorer owner {owner:?} is reachable"
+        );
+        press_ctrl_r(&mut focused);
+        assert!(
+            focused
+                .text()
+                .contains("Running query · 6 native ticks remaining"),
+            "Ctrl+R is captured from {owner:?}"
+        );
+        assert!(
+            focused.diagnostics().is_empty(),
+            "{owner:?}: {:?}",
+            focused.diagnostics()
+        );
+    }
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn explorer_lazy_load_ticks_through_hidden_and_modal_states_and_keeps_inert_rows_inert() {
+    let mut h = harness();
+    set_explorer_share(&mut h, 2);
+    let outer = assert_explorer_layout(&h, true, "initial Explorer layout", None);
+    assert_explorer_share(&h, 40, "lazy-load metadata viewport");
+    let tree_area = h.area_of(EXPLORER_TREE);
+    let analytics = PartRef::item(
+        Part::ROW,
+        ItemKey::text("query.workbench.explorer.schema.analytics"),
+    );
+    let analytics_icon = PartRef::item(
+        Part::ICON,
+        ItemKey::text("query.workbench.explorer.schema.analytics"),
+    );
+    let row_before = h.area_of_part(EXPLORER_TREE, analytics);
+    let icon_before = h.area_of_part(EXPLORER_TREE, analytics_icon);
+    let focus_before = h.focus();
+    let diagnostics_before = format!("{:?}", h.diagnostics());
+    let rendered_before = row_before.map(|area| visible_line_text(&h, area));
+    assert!(
+        h.diagnostics().is_empty(),
+        "before Analytics click: tree={tree_area:?}, ROW={row_before:?}, ICON={icon_before:?}, focus={focus_before:?}, diagnostics={diagnostics_before}, row={rendered_before:?}"
+    );
+
+    let click_response = h.click_part(EXPLORER_TREE, analytics);
+    let row_after = h.area_of_part(EXPLORER_TREE, analytics);
+    let icon_after = h.area_of_part(EXPLORER_TREE, analytics_icon);
+    let focus_after = h.focus();
+    let diagnostics_after = format!("{:?}", h.diagnostics());
+    let rendered_after = row_after.map(|area| visible_line_text(&h, area));
+    assert!(
+        h.text().contains("Loading…"),
+        "expanding Analytics starts a lazy load: tree={tree_area:?}, ROW={row_before:?}->{row_after:?}, ICON={icon_before:?}->{icon_after:?}, focus={focus_before:?}->{focus_after:?}, diagnostics={diagnostics_before}->{diagnostics_after}, row={rendered_before:?}->{rendered_after:?}, changed={} ",
+        click_response.is_changed()
+    );
+    assert!(
+        h.diagnostics().is_empty(),
+        "immediately after Analytics click: tree={tree_area:?}, ROW={row_after:?}, ICON={icon_after:?}, focus={focus_after:?}, diagnostics={diagnostics_after}, row={rendered_after:?}"
+    );
+
+    toggle_show_explorer(&mut h);
+    assert_explorer_layout(&h, false, "load at hidden tick one", Some(outer));
+    let _ = h.tick();
+    assert_explorer_layout(&h, false, "load at hidden tick two", Some(outer));
+
+    click_toolbar_options(&mut h);
+    h.ticks(3);
+    assert!(h.is_open(OPTIONS), "Options remains open during load ticks");
+    assert!(
+        !h.text().contains("events"),
+        "the lazy row is not visible before its sixth native tick"
+    );
+    assert!(h.tab_to(SHOW_EXPLORER));
+    let _ = h.key(KeyCode::Char(' '));
+    let _ = h.key(KeyCode::Esc);
+    assert!(
+        h.area_of(EXPLORER_TREE).is_some(),
+        "Explorer becomes visible after Options closes"
+    );
+
+    let events = PartRef::item(
+        Part::ROW,
+        ItemKey::text("query.workbench.explorer.table.analytics.events"),
+    );
+    assert!(
+        h.area_of_part(EXPLORER_TREE, events).is_none(),
+        "showing Explorer does not advance the pending load"
+    );
+    let _ = h.tick();
+    assert_explorer_layout(
+        &h,
+        true,
+        "load completes on its sixth hidden/modal tick",
+        Some(outer),
+    );
+    assert!(
+        h.area_of_part(EXPLORER_TREE, events).is_some(),
+        "Analytics events appear on the sixth tick"
+    );
+    let restored_icon = h
+        .area_of_part(EXPLORER_TREE, analytics_icon)
+        .expect("the loaded schema keeps its native icon cell");
+    assert_eq!(
+        h.cell(restored_icon.x, restored_icon.y).symbol(),
+        "S",
+        "the ordinary schema icon returns after the sixth tick"
+    );
+
+    let _ = h.click_part(EXPLORER_TREE, events);
+    let _ = h.key(KeyCode::Enter);
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, ItemKey::num(2)))
+            .is_none(),
+        "loaded analytics.events remains inert"
+    );
+
+    assert!(h.tab_to(EXPLORER_TREE));
+    let _ = h.key(KeyCode::Char('*'));
+    h.ticks(6);
+    for (key, label) in [
+        (
+            ItemKey::text("query.workbench.explorer.view.active_customers"),
+            "active_customers",
+        ),
+        (
+            ItemKey::text("query.workbench.explorer.function.refresh_totals"),
+            "refresh_totals()",
+        ),
+        (
+            ItemKey::text("query.workbench.explorer.note.audit_empty"),
+            "No objects",
+        ),
+    ] {
+        let row = PartRef::item(Part::ROW, key);
+        assert!(h.text().contains(label), "Expand All loads inert {label}");
+        assert!(
+            h.area_of_part(EXPLORER_TREE, row).is_some(),
+            "{label} has a native row"
+        );
+        let _ = h.click_part(EXPLORER_TREE, row);
+        let _ = h.key(KeyCode::Enter);
+        assert!(
+            h.area_of_part(TABS, PartRef::item(Part::TAB, ItemKey::num(2)))
+                .is_none(),
+            "loaded {label} remains inert"
+        );
+    }
+
+    let products = PartRef::item(
+        Part::ROW,
+        ItemKey::text("query.workbench.explorer.table.products"),
+    );
+    let _ = h.click_part(EXPLORER_TREE, products);
+    let _ = h.key(KeyCode::Enter);
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, ItemKey::num(2)))
+            .is_some()
+    );
+    assert!(h.text().contains("Opened products from Explorer."));
+    assert!(h.text().contains("SELECT * FROM products LIMIT 100;"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
