@@ -13,7 +13,7 @@ serde = "=1.0.229"
 serde_json = "=1.0.154"
 sha2 = "=0.11.1"
 tui-test-rs = { version = "=0.1.1", features = ["recording-raster", "recording-font-jetbrains-mono-styles"] }
-tuiscotti = { version = "=0.3.0", git = "https://github.com/tailrocks/tuiscotti", rev = "742426d085166b70dc2f01c550c7076cc6128979" }
+tuiscotti = { version = "=0.3.0", git = "https://github.com/tailrocks/tuiscotti", rev = "ac5f70d14d1967f551261d599a4cd857ec9fa2d7" }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
