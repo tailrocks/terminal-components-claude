@@ -18,10 +18,17 @@ const BALANCED: u8 = 50;
 const BASIS_POINTS_PER_PERCENT: u16 = 100;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SplitFallbackPolicy {
+    Weighted,
+    SecondOnly,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SplitFallback {
     first_weight: u16,
     second_weight: u16,
     gap: u16,
+    policy: SplitFallbackPolicy,
 }
 
 impl SplitFallback {
@@ -30,6 +37,16 @@ impl SplitFallback {
             first_weight: if first_weight == 0 { 1 } else { first_weight },
             second_weight: if second_weight == 0 { 1 } else { second_weight },
             gap: 1,
+            policy: SplitFallbackPolicy::Weighted,
+        }
+    }
+
+    pub const fn second_only() -> Self {
+        SplitFallback {
+            first_weight: 1,
+            second_weight: 1,
+            gap: 0,
+            policy: SplitFallbackPolicy::SecondOnly,
         }
     }
 
@@ -37,6 +54,10 @@ impl SplitFallback {
     pub const fn gap(mut self, gap: u16) -> Self {
         self.gap = gap;
         self
+    }
+
+    const fn is_second_only(self) -> bool {
+        matches!(self.policy, SplitFallbackPolicy::SecondOnly)
     }
 }
 
@@ -328,6 +349,19 @@ impl<'a> SplitPane<'a> {
         self.axis
     }
 
+    pub const fn effective_maximized(&self, state: &SplitPaneState) -> Maximized {
+        match state.maximized {
+            Maximized::None => match self.resolved_fallback {
+                Some(SplitFallback {
+                    policy: SplitFallbackPolicy::SecondOnly,
+                    ..
+                }) => Maximized::Second,
+                _ => Maximized::None,
+            },
+            maximized => maximized,
+        }
+    }
+
     pub fn resolved_for(&self, state: &SplitPaneState, area: Rect) -> Self {
         let Some(fallback) = self.undersized_fallback else {
             return self.clone();
@@ -345,13 +379,19 @@ impl<'a> SplitPane<'a> {
         }
 
         let mut resolved = self.clone();
-        resolved.axis = match self.axis {
-            SplitAxis::Horizontal => SplitAxis::Vertical,
-            SplitAxis::Vertical => SplitAxis::Horizontal,
-        };
+        if !fallback.is_second_only() {
+            resolved.axis = match self.axis {
+                SplitAxis::Horizontal => SplitAxis::Vertical,
+                SplitAxis::Vertical => SplitAxis::Horizontal,
+            };
+        }
         resolved.undersized_fallback = None;
         resolved.resolved_fallback = Some(fallback);
-        resolved.gap = fallback.gap;
+        resolved.gap = if fallback.is_second_only() {
+            0
+        } else {
+            fallback.gap
+        };
         resolved.min_first = 0;
         resolved.min_second = 0;
         resolved.seam = None;
@@ -366,7 +406,18 @@ impl<'a> SplitPane<'a> {
 
     pub fn required_extent(&self, state: &SplitPaneState, first: u16, second: u16) -> u16 {
         if let Some(fallback) = self.resolved_fallback {
-            return required_extent_with_weights(fallback, state.maximized, first, second);
+            if fallback.is_second_only() {
+                return match self.effective_maximized(state) {
+                    Maximized::First => first,
+                    Maximized::Second | Maximized::None => second,
+                };
+            }
+            return required_extent_with_weights(
+                fallback,
+                self.effective_maximized(state),
+                first,
+                second,
+            );
         }
         let model = self.model(*state);
         let first = first.max(model.min_first);
@@ -575,10 +626,10 @@ impl<'a> SplitPane<'a> {
 
     const fn model(&self, st: SplitPaneState) -> SplitModel {
         let mut m = SplitModel::new(self.axis, st.percent, self.min_first, self.min_second);
-        m.maximized = if self.fixed_sizing {
+        m.maximized = if self.fixed_sizing && self.resolved_fallback.is_none() {
             Maximized::None
         } else {
-            st.maximized
+            self.effective_maximized(&st)
         };
         m
     }
@@ -594,13 +645,15 @@ impl<'a> SplitPane<'a> {
                 SplitAxis::Horizontal => area.width,
                 SplitAxis::Vertical => area.height,
             };
-            let usable = extent.saturating_sub(fallback.gap);
-            let total = u64::from(fallback.first_weight) + u64::from(fallback.second_weight);
-            let first =
-                (u64::from(usable) * u64::from(fallback.first_weight)).div_ceil(total) as u16;
-            return self
-                .model(st)
-                .layout_with_first_extent(area, fallback.gap, first);
+            let gap = self.gap;
+            let usable = extent.saturating_sub(gap);
+            let first = if fallback.is_second_only() {
+                0
+            } else {
+                let total = u64::from(fallback.first_weight) + u64::from(fallback.second_weight);
+                (u64::from(usable) * u64::from(fallback.first_weight)).div_ceil(total) as u16
+            };
+            return self.model(st).layout_with_first_extent(area, gap, first);
         }
         let model = self.model(st);
         match (self.fixed_first_share, self.fixed_second_share) {
