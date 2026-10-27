@@ -3394,6 +3394,7 @@ mod root_100_nonoverflow_port_owner {
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum OwnerViewport {
+        W80H24,
         W100H30,
         W120H40,
         W160H50,
@@ -3402,6 +3403,7 @@ mod root_100_nonoverflow_port_owner {
     impl OwnerViewport {
         fn size(self) -> (u16, u16) {
             match self {
+                Self::W80H24 => (80, 24),
                 Self::W100H30 => (100, 30),
                 Self::W120H40 => (120, 40),
                 Self::W160H50 => (160, 50),
@@ -3415,6 +3417,7 @@ mod root_100_nonoverflow_port_owner {
 
         fn rows_area(self) -> Rect {
             match self {
+                Self::W80H24 => Rect::new(1, 6, 78, 15),
                 Self::W100H30 => Rect::new(1, 6, 98, 21),
                 Self::W120H40 => Rect::new(1, 6, 118, 31),
                 Self::W160H50 => Rect::new(1, 6, 158, 41),
@@ -3684,6 +3687,177 @@ mod root_100_nonoverflow_port_owner {
         cases
     }
 
+    const NOTE_FREE_CONCEPT_SCENARIOS: [Scenario; 2] =
+        [Scenario::UpgradePlan, Scenario::RemoteHost];
+
+    const CONCEPT_VIEWPORTS: [OwnerViewport; 4] = [
+        OwnerViewport::W80H24,
+        OwnerViewport::W100H30,
+        OwnerViewport::W120H40,
+        OwnerViewport::W160H50,
+    ];
+
+    const CONCEPT_SOURCE_THEMES: [OwnerSourceTheme; 2] =
+        [OwnerSourceTheme::Junie, OwnerSourceTheme::Paper];
+
+    const CONCEPT_COLOR_LEVELS: [ColorLevel; 4] = [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ];
+
+    fn concept_owner_cases(scenarios: &[Scenario]) -> Vec<OwnerCase> {
+        scenarios
+            .iter()
+            .copied()
+            .flat_map(|scenario| {
+                CONCEPT_VIEWPORTS.into_iter().flat_map(move |viewport| {
+                    CONCEPT_SOURCE_THEMES
+                        .into_iter()
+                        .flat_map(move |source_theme| {
+                            CONCEPT_COLOR_LEVELS
+                                .into_iter()
+                                .map(move |color| OwnerCase {
+                                    scenario,
+                                    viewport,
+                                    source_theme,
+                                    color,
+                                })
+                        })
+                })
+            })
+            .collect()
+    }
+
+    fn excluded_hard_cases_discovery_note_cases() -> Vec<OwnerCase> {
+        // HardCases remains an explicit review set until its failure note has a native paint oracle.
+        let cases = concept_owner_cases(&[Scenario::HardCases]);
+        assert_eq!(
+            cases.len(),
+            32,
+            "exact HardCases discovery-note review size"
+        );
+        let mut keys: Vec<_> = cases.iter().map(|case| case.key()).collect();
+        keys.sort();
+        keys.dedup();
+        assert_eq!(keys.len(), 32, "HardCases review keys are unique");
+        assert!(
+            cases
+                .iter()
+                .all(|case| case.scenario == Scenario::HardCases),
+            "HardCases review set contains only HardCases keys"
+        );
+        cases
+    }
+
+    fn docker_cleanup_review_cases() -> Vec<OwnerCase> {
+        // Membership only; Docker's cross-arm columns remain under review.
+        let cases = concept_owner_cases(&[Scenario::DockerCleanup]);
+        assert_eq!(cases.len(), 32, "exact DockerCleanup review-set size");
+        assert!(
+            cases.iter().all(|case| {
+                case.scenario == Scenario::DockerCleanup
+                    && CONCEPT_VIEWPORTS.contains(&case.viewport)
+                    && CONCEPT_SOURCE_THEMES.contains(&case.source_theme)
+                    && CONCEPT_COLOR_LEVELS.contains(&case.color)
+            }),
+            "DockerCleanup32 remains a separate finite review partition"
+        );
+        let mut keys: Vec<_> = cases.iter().map(|case| case.key()).collect();
+        keys.sort();
+        keys.dedup();
+        assert_eq!(keys.len(), 32, "DockerCleanup review keys are unique");
+
+        let prior_cases = concept_owner_cases(&NOTE_FREE_CONCEPT_SCENARIOS);
+        assert!(
+            cases.iter().all(|case| !prior_cases.contains(case)),
+            "DockerCleanup review keys are disjoint from the selected concept64 product"
+        );
+        assert!(
+            cases
+                .iter()
+                .all(|case| case.scenario == Scenario::DockerCleanup),
+            "DockerCleanup review keys are excluded from the selected product"
+        );
+        cases
+    }
+
+    fn note_free_concept_cases() -> Vec<OwnerCase> {
+        let cases = concept_owner_cases(&NOTE_FREE_CONCEPT_SCENARIOS);
+        assert_eq!(cases.len(), 64, "exact note-free concept owner size");
+        for scenario in NOTE_FREE_CONCEPT_SCENARIOS {
+            assert_eq!(
+                cases
+                    .iter()
+                    .filter(|case| case.scenario == scenario)
+                    .count(),
+                32,
+                "exact four-size theme-by-tier product for {}",
+                scenario.name()
+            );
+        }
+        assert!(
+            cases.iter().all(|case| {
+                NOTE_FREE_CONCEPT_SCENARIOS.contains(&case.scenario)
+                    && CONCEPT_VIEWPORTS.contains(&case.viewport)
+                    && CONCEPT_SOURCE_THEMES.contains(&case.source_theme)
+                    && CONCEPT_COLOR_LEVELS.contains(&case.color)
+            }),
+            "only the explicit UpgradePlan and RemoteHost product is selected"
+        );
+        let mut keys: Vec<_> = cases.iter().map(|case| case.key()).collect();
+        keys.sort();
+        keys.dedup();
+        assert_eq!(keys.len(), 64, "all note-free concept keys are unique");
+
+        let mut prior_cases = all_owner_cases(Scenario::MonorepoRoot);
+        prior_cases.extend(all_owner_cases(Scenario::MonorepoChild));
+        prior_cases.extend(all_owner_cases(Scenario::ActivitiesMulti));
+        assert!(
+            cases.iter().all(|case| !prior_cases.contains(case)),
+            "concept keys are disjoint from all existing Root, Child, and Activities keys"
+        );
+        let faint_cases = excluded_activities_faint_cases();
+        assert!(
+            cases.iter().all(|case| !faint_cases.contains(case)),
+            "concept keys are disjoint from all three Junie Ansi16 faint keys"
+        );
+
+        let docker_review = docker_cleanup_review_cases();
+        assert!(
+            cases.iter().all(|case| !docker_review.contains(case)),
+            "selected note-free concept64 keys exclude DockerCleanup32 review keys"
+        );
+        let mut split_union = cases.clone();
+        split_union.extend(docker_review.iter().copied());
+        assert_eq!(split_union.len(), 96, "64 plus 32 split size");
+        let mut split_keys: Vec<_> = split_union.iter().map(|case| case.key()).collect();
+        split_keys.sort();
+        split_keys.dedup();
+        assert_eq!(split_keys.len(), 96, "split union keys are unique");
+        let mut original_keys: Vec<_> = concept_owner_cases(&[
+            Scenario::DockerCleanup,
+            Scenario::UpgradePlan,
+            Scenario::RemoteHost,
+        ])
+        .iter()
+        .map(|case| case.key())
+        .collect();
+        original_keys.sort();
+        assert_eq!(
+            split_keys, original_keys,
+            "64 plus Docker review equals the original96 membership"
+        );
+
+        let hard_cases = excluded_hard_cases_discovery_note_cases();
+        assert!(
+            cases.iter().all(|case| !hard_cases.contains(case)),
+            "HardCases32 remain preserved for separate native discovery-note review"
+        );
+        cases
+    }
+
     #[derive(Clone, Debug, PartialEq, Eq)]
     enum VisualToken {
         Header(String),
@@ -3871,6 +4045,10 @@ mod root_100_nonoverflow_port_owner {
         assert!(crate::sim::catalogue::monorepo_child_tag(world).is_none());
         assert!(crate::sim::catalogue::monorepo_child_view(world, width).is_none());
         assert!(crate::sim::catalogue::docker_cleanup_view(world, width).is_none());
+        assert!(
+            !crate::sim::catalogue::remote_host_tag_frame(world),
+            "generic Home has no RemoteHost tick-40 tag frame"
+        );
         assert!(crate::sim::catalogue::remote_host_view(world, width).is_none());
         assert!(
             !crate::sim::catalogue::activities_multi_tag_frame(world),
@@ -4584,6 +4762,21 @@ mod root_100_nonoverflow_port_owner {
                 .expect("common blank suffix starts within rows area"),
         );
         let common_blank_suffix = suffix_rect(rows_area, common_blank_y);
+        if case.scenario == Scenario::RemoteHost && case.viewport == OwnerViewport::W80H24 {
+            assert_eq!(tokens_a.len(), 15, "RemoteHost W80 A model extent");
+            assert_eq!(tokens_b.len(), 14, "RemoteHost W80 B model extent");
+            assert_eq!(rows_area, Rect::new(1, 6, 78, 15), "RemoteHost W80 Rows");
+            assert_eq!(
+                blank_suffix,
+                Rect::new(1, 20, 78, 1),
+                "RemoteHost W80 B blank suffix"
+            );
+            assert_eq!(
+                common_blank_suffix,
+                Rect::new(1, 21, 78, 0),
+                "RemoteHost W80 common blank suffix has zero height"
+            );
+        }
         if case == OwnerCase::ROOT100_JUNIE_TRUECOLOR {
             assert_eq!(
                 case.key(),
@@ -4932,6 +5125,30 @@ mod root_100_nonoverflow_port_owner {
     fn activities_multi_junie_ansi16_faint_replay_preserves_held_frames() {
         for case in excluded_activities_faint_cases() {
             run_owner_case(case, false, OwnerReplay::JunieAnsi16Faint);
+        }
+    }
+
+    #[test]
+    fn docker_cleanup_32_nonoverflow_keys_remain_in_review_partition() {
+        let cases = docker_cleanup_review_cases();
+        let selected = note_free_concept_cases();
+        assert_eq!(
+            cases.len(),
+            32,
+            "DockerCleanup32 remains separately reviewable"
+        );
+        assert_eq!(selected.len(), 64, "selected concept64 matrix is exact");
+        assert!(
+            cases
+                .iter()
+                .all(|case| case.scenario == Scenario::DockerCleanup)
+        );
+    }
+
+    #[test]
+    fn note_free_concepts_64_nonoverflow_port_hide_preserves_held_frames() {
+        for case in note_free_concept_cases() {
+            run_owner_case(case, false, OwnerReplay::Ordinary);
         }
     }
 }
