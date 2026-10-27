@@ -81,6 +81,7 @@ pub struct FrameState {
     pub(crate) bindings: BindingRegistry,
     pub(crate) scoped_bubble_bindings: Vec<ScopedBubbleBinding>,
     pub(crate) diagnostics: Diagnostics,
+    pub(crate) tooltips: crate::Tooltips,
     pub(crate) roles: Vec<CellRoles>,
     pub(crate) screen: Rect,
     pub(crate) inert_floor: LayerId,
@@ -194,6 +195,7 @@ impl FrameState {
         self.layer_openings.clear();
         self.managed_tooltip_opening = None;
         self.managed_tooltip_drawn = false;
+        self.tooltips = crate::Tooltips::DEFAULT;
         self.cursors.clear();
         self.retained_cursor_request = None;
         self.typing.clear();
@@ -333,6 +335,11 @@ impl core::fmt::Debug for Ui<'_> {
 }
 
 impl<'f> Ui<'f> {
+    /// Return the ambient tooltip policy selected for this draw.
+    pub const fn tooltips(&self) -> crate::Tooltips {
+        self.frame.tooltips
+    }
+
     pub fn new(
         frame: &'f mut FrameState,
         page: &'f mut Buffer,

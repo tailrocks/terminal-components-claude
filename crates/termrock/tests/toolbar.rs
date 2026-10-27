@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::time::Duration;
 
 use ratatui::Terminal;
@@ -5,6 +6,7 @@ use ratatui::backend::TestBackend;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier};
 use termrock::core::keymap::NavKeys;
+use termrock::runtime::Tooltips;
 use termrock::theme::{ColorLevel, FgStep, Overlay, Role, StylePatch, Surface};
 use termrock::{
     App, Button, Cx, Id, Input, ItemKey, Key, KeyCode, KeyModifiers, Mouse, MouseKind, Part,
@@ -50,7 +52,10 @@ struct ToolbarHost {
     more_danger_hover: Option<bool>,
     more_padding: u16,
     more_tip: ToolbarTip,
-    tooltip_policy: ToolbarTooltipPolicy,
+    tooltip_policy: Option<ToolbarTooltipPolicy>,
+    ambient_tooltips: Tooltips,
+    last_update_hover_suppressed: Cell<Option<bool>>,
+    last_draw_hovered_part: Cell<Option<PartRef>>,
     more_surface: Option<Surface>,
     more_style_overlay: Option<&'static Overlay>,
     reference_probe: bool,
@@ -80,7 +85,10 @@ impl ToolbarHost {
             more_danger_hover: None,
             more_padding: 1,
             more_tip: ToolbarTip::default(),
-            tooltip_policy: ToolbarTooltipPolicy::DEFAULT,
+            tooltip_policy: None,
+            ambient_tooltips: Tooltips::DEFAULT,
+            last_update_hover_suppressed: Cell::new(None),
+            last_draw_hovered_part: Cell::new(None),
             more_surface: None,
             more_style_overlay: None,
             reference_probe: false,
@@ -113,9 +121,12 @@ impl ToolbarHost {
             Some(glyph) => toolbar.more_glyph(glyph),
             None => toolbar,
         };
+        let toolbar = toolbar.more_tip(self.more_tip.clone());
+        let toolbar = match self.tooltip_policy {
+            Some(policy) => toolbar.tooltip_policy(policy),
+            None => toolbar,
+        };
         toolbar
-            .more_tip(self.more_tip.clone())
-            .tooltip_policy(self.tooltip_policy)
             .try_item_keys(self.keys.clone())
             .expect("test keys match the configured items")
     }
@@ -137,7 +148,7 @@ impl ToolbarHost {
     }
 
     fn tooltip_policy(&mut self, policy: ToolbarTooltipPolicy) {
-        self.tooltip_policy = policy;
+        self.tooltip_policy = Some(policy);
     }
 
     fn draw_toolbar_scope(&self, ui: &mut Ui<'_>, toolbar: &Toolbar) {
@@ -181,7 +192,13 @@ impl ToolbarHost {
 }
 
 impl App for ToolbarHost {
+    fn tooltips(&self) -> Tooltips {
+        self.ambient_tooltips
+    }
+
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        self.last_update_hover_suppressed
+            .set(Some(cx.hover_suppressed()));
         let toolbar = self.toolbar();
         let response = toolbar.update(cx, &mut self.state);
         let events = response
@@ -201,6 +218,8 @@ impl App for ToolbarHost {
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
+        self.last_draw_hovered_part
+            .set(ui.hovered_part(self.toolbar_id));
         let toolbar = self
             .draw_toolbar_snapshot
             .clone()
@@ -232,9 +251,14 @@ impl App for ToolbarHost {
 
 struct MultiToolbarHost {
     toolbars: Vec<(Toolbar, ToolbarState, Rect)>,
+    tooltips: Tooltips,
 }
 
 impl App for MultiToolbarHost {
+    fn tooltips(&self) -> Tooltips {
+        self.tooltips
+    }
+
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.toolbars
             .iter_mut()
@@ -3115,7 +3139,7 @@ fn custom_zero_and_off_policies_are_scoped_to_each_toolbar() {
         vec![ToolItem::new("Run").tip("A deliberately long explanation")],
         vec![key],
     );
-    host.tooltip_policy = ToolbarTooltipPolicy::DEFAULT.delay_ms(25).max_width(12);
+    host.tooltip_policy = Some(ToolbarTooltipPolicy::DEFAULT.delay_ms(25).max_width(12));
     let (mut runtime, mut terminal) = runtime_for(host);
     render(&mut runtime, &mut terminal, SCREEN);
     hover_part(&mut runtime, &mut terminal, SCREEN, TOOLBAR, row_part(key));
@@ -3172,7 +3196,7 @@ fn custom_zero_and_off_policies_are_scoped_to_each_toolbar() {
         ],
         vec![shortcut_key],
     );
-    shortcut_host.tooltip_policy = ToolbarTooltipPolicy::DEFAULT.delay_ms(0).max_width(8);
+    shortcut_host.tooltip_policy = Some(ToolbarTooltipPolicy::DEFAULT.delay_ms(0).max_width(8));
     let (mut shortcut_runtime, mut shortcut_terminal) = runtime_for(shortcut_host);
     render(&mut shortcut_runtime, &mut shortcut_terminal, SCREEN);
     hover_part(
@@ -3190,6 +3214,55 @@ fn custom_zero_and_off_policies_are_scoped_to_each_toolbar() {
             .is_some_and(|area| area.width <= 10),
         "a wrapped display shortcut stays inside the configured width"
     );
+
+    let enabled_override_key = ItemKey::text("enabled-override-under-ambient-off");
+    let mut enabled_override = ToolbarHost::new(
+        vec![ToolItem::new("Run").tip("A long explicit explanation")],
+        vec![enabled_override_key],
+    );
+    enabled_override.ambient_tooltips = Tooltips::OFF;
+    let enabled_custom = ToolbarTooltipPolicy::OFF
+        .enabled(true)
+        .delay_ms(0)
+        .max_width(8);
+    enabled_override.tooltip_policy(enabled_custom);
+    let (mut enabled_runtime, mut enabled_terminal) = runtime_for(enabled_override);
+    render(&mut enabled_runtime, &mut enabled_terminal, SCREEN);
+    hover_part(
+        &mut enabled_runtime,
+        &mut enabled_terminal,
+        SCREEN,
+        TOOLBAR,
+        row_part(enabled_override_key),
+    );
+    render(&mut enabled_runtime, &mut enabled_terminal, SCREEN);
+    assert!(enabled_runtime.is_open(HOVER_TOOLTIP));
+    let enabled_area = enabled_runtime
+        .layer_area(HOVER_TOOLTIP)
+        .expect("explicit enabled override has geometry");
+    assert!(enabled_area.width <= 10);
+    assert!(enabled_area.height > 1);
+
+    let default_override_key = ItemKey::text("default-override-under-ambient-off");
+    let mut default_override = ToolbarHost::new(
+        vec![ToolItem::new("Save").tip("Explicit default policy")],
+        vec![default_override_key],
+    );
+    default_override.ambient_tooltips = Tooltips::OFF;
+    default_override.tooltip_policy(ToolbarTooltipPolicy::DEFAULT);
+    let (mut default_runtime, mut default_terminal) = runtime_for(default_override);
+    render(&mut default_runtime, &mut default_terminal, SCREEN);
+    hover_part(
+        &mut default_runtime,
+        &mut default_terminal,
+        SCREEN,
+        TOOLBAR,
+        row_part(default_override_key),
+    );
+    advance(&mut default_runtime, &mut default_terminal, SCREEN, 599);
+    assert!(!default_runtime.is_open(HOVER_TOOLTIP));
+    advance(&mut default_runtime, &mut default_terminal, SCREEN, 1);
+    assert!(default_runtime.is_open(HOVER_TOOLTIP));
 }
 
 #[test]
@@ -3330,7 +3403,7 @@ fn escape_suppresses_the_same_hover_until_native_leave() {
 fn opened_receipt_is_nonterminal_and_immediate_escape_suppresses_until_leave() {
     let row_key = ItemKey::text("opened-receipt-tooltip");
     let mut host = ToolbarHost::new(vec![ToolItem::new("Run").tip("Stable tip")], vec![row_key]);
-    host.tooltip_policy = ToolbarTooltipPolicy::DEFAULT.delay_ms(0);
+    host.tooltip_policy = Some(ToolbarTooltipPolicy::DEFAULT.delay_ms(0));
     let (mut runtime, mut terminal) = runtime_for(host);
     render(&mut runtime, &mut terminal, SCREEN);
 
@@ -3417,7 +3490,7 @@ fn immediate_source_press_before_opened_receipt_suppresses_until_leave() {
         vec![ToolItem::new("Run").tip("Press to run")],
         vec![row_key],
     );
-    host.tooltip_policy = ToolbarTooltipPolicy::DEFAULT.delay_ms(0);
+    host.tooltip_policy = Some(ToolbarTooltipPolicy::DEFAULT.delay_ms(0));
     let (mut runtime, mut terminal) = runtime_for(host);
     render(&mut runtime, &mut terminal, SCREEN);
 
@@ -3746,6 +3819,7 @@ fn each_toolbar_keeps_its_own_hover_deadline_and_tip_identity() {
     let third_id = THIRD_TOOLBAR;
     let make_toolbar = |id, label, tip| Toolbar::new(id, vec![ToolItem::new(label).tip(tip)]);
     let host = MultiToolbarHost {
+        tooltips: Tooltips::DEFAULT,
         toolbars: vec![
             (
                 make_toolbar(first_id, "First", "First owner's tip"),
@@ -3807,6 +3881,84 @@ fn each_toolbar_keeps_its_own_hover_deadline_and_tip_identity() {
 }
 
 #[test]
+fn inherited_toolbars_share_ambient_delay_and_width_policy() {
+    let first_id = TOOLBAR;
+    let second_id = OTHER_TOOLBAR;
+    let make_toolbar = |id, label, tip| Toolbar::new(id, vec![ToolItem::new(label).tip(tip)]);
+    let host = MultiToolbarHost {
+        tooltips: Tooltips::DEFAULT.delay_ms(25).max_width(8),
+        toolbars: vec![
+            (
+                make_toolbar(first_id, "First", "A long ambient explanation"),
+                ToolbarState::default(),
+                Rect::new(5, 1, 30, 1),
+            ),
+            (
+                make_toolbar(second_id, "Second", "Another long ambient explanation"),
+                ToolbarState::default(),
+                Rect::new(24, 4, 30, 1),
+            ),
+        ],
+    };
+    let (mut runtime, mut terminal) = runtime_for(host);
+    render(&mut runtime, &mut terminal, SCREEN);
+
+    hover_part(
+        &mut runtime,
+        &mut terminal,
+        SCREEN,
+        first_id,
+        row_part(ItemKey::index(0)),
+    );
+    advance(&mut runtime, &mut terminal, SCREEN, 24);
+    assert!(!runtime.is_open(first_id.sub("hover-tooltip")));
+    advance(&mut runtime, &mut terminal, SCREEN, 1);
+    assert!(runtime.is_open(first_id.sub("hover-tooltip")));
+    let first_area = runtime
+        .layer_area(first_id.sub("hover-tooltip"))
+        .expect("first inherited tooltip has geometry");
+    assert!(first_area.width <= 10);
+    assert!(
+        first_area.height > 1,
+        "the narrow ambient width wraps its text"
+    );
+
+    let second_source_area = runtime
+        .area_of_part(second_id, row_part(ItemKey::index(0)))
+        .expect("second source has published native geometry");
+    let second_hover_point = Position::new(
+        second_source_area
+            .x
+            .saturating_add(second_source_area.width / 2),
+        second_source_area.y,
+    );
+    assert!(second_source_area.contains(second_hover_point));
+    assert!(
+        !first_area.contains(second_hover_point),
+        "the second source center is outside the first tooltip"
+    );
+
+    hover_part(
+        &mut runtime,
+        &mut terminal,
+        SCREEN,
+        second_id,
+        row_part(ItemKey::index(0)),
+    );
+    assert_eq!(runtime.hover(), Some(second_id));
+    advance(&mut runtime, &mut terminal, SCREEN, 24);
+    assert!(!runtime.is_open(second_id.sub("hover-tooltip")));
+    advance(&mut runtime, &mut terminal, SCREEN, 1);
+    assert!(!runtime.is_open(first_id.sub("hover-tooltip")));
+    assert!(runtime.is_open(second_id.sub("hover-tooltip")));
+    let second_area = runtime
+        .layer_area(second_id.sub("hover-tooltip"))
+        .expect("second inherited tooltip has geometry");
+    assert!(second_area.width <= 10);
+    assert!(second_area.height > 1);
+}
+
+#[test]
 fn changed_tip_content_restarts_the_current_hover_interval() {
     let row_key = ItemKey::text("mutable-tip");
     let host = ToolbarHost::new(
@@ -3841,6 +3993,165 @@ fn changed_tip_content_restarts_the_current_hover_interval() {
     advance(&mut runtime, &mut terminal, SCREEN, 1);
     assert!(runtime.is_open(HOVER_TOOLTIP));
     assert!(screen_text(&terminal).contains("Replacement content"));
+}
+
+#[test]
+fn escape_dismissal_survives_policy_only_changes_until_pointer_leave() {
+    let row_key = ItemKey::text("escape-policy-change");
+    let mut host = ToolbarHost::new(
+        vec![ToolItem::new("Run").tip("Stable description")],
+        vec![row_key],
+    );
+    host.ambient_tooltips = Tooltips::DEFAULT.delay_ms(25).max_width(24);
+    let (mut runtime, mut terminal) = runtime_for(host);
+    render(&mut runtime, &mut terminal, SCREEN);
+    hover_part(
+        &mut runtime,
+        &mut terminal,
+        SCREEN,
+        TOOLBAR,
+        row_part(row_key),
+    );
+    advance(&mut runtime, &mut terminal, SCREEN, 25);
+    assert!(runtime.is_open(HOVER_TOOLTIP));
+
+    key(&mut runtime, &mut terminal, SCREEN, KeyCode::Esc);
+    assert!(!runtime.is_open(HOVER_TOOLTIP));
+    render(&mut runtime, &mut terminal, SCREEN);
+    runtime.app_mut().ambient_tooltips = Tooltips::DEFAULT.delay_ms(25).max_width(8);
+    render(&mut runtime, &mut terminal, SCREEN);
+    let _ = runtime
+        .handle(Input::Tick)
+        .expect("presented runtime accepts a tick");
+    render(&mut runtime, &mut terminal, SCREEN);
+
+    let source_area = runtime
+        .area_of_part(TOOLBAR, row_part(row_key))
+        .expect("source part retains its published geometry");
+    assert!(
+        source_area.width > 1,
+        "the source has multiple native cells"
+    );
+    let first_cell = Position::new(
+        source_area.x.saturating_add(source_area.width / 2),
+        source_area.y,
+    );
+    let second_cell = Position::new(source_area.x, source_area.y);
+    assert_ne!(first_cell, second_cell);
+
+    // Escape suppresses hover until pointer motion. Move to another cell in the
+    // same published source part so this checks dismissal identity after native
+    // hover suppression has cleared, without leaving the source.
+    mouse(
+        &mut runtime,
+        &mut terminal,
+        SCREEN,
+        MouseKind::Move,
+        second_cell,
+    );
+    render(&mut runtime, &mut terminal, SCREEN);
+    assert_eq!(runtime.hover(), Some(TOOLBAR));
+    assert_eq!(
+        runtime.app().last_update_hover_suppressed.get(),
+        Some(false),
+        "the source update is no longer under keyboard-hover suppression"
+    );
+    assert_eq!(
+        runtime.app().last_draw_hovered_part.get(),
+        Some(row_part(row_key)),
+        "native hover remains on the same source part"
+    );
+    assert!(!runtime.is_open(HOVER_TOOLTIP));
+    advance(&mut runtime, &mut terminal, SCREEN, 26);
+    assert!(
+        !runtime.is_open(HOVER_TOOLTIP),
+        "a policy-only change does not reopen after the full delay"
+    );
+    assert!(!screen_text(&terminal).contains("Stable description"));
+
+    mouse(
+        &mut runtime,
+        &mut terminal,
+        SCREEN,
+        MouseKind::Move,
+        Position::new(DEFAULT_NEXT_AREA.x, DEFAULT_NEXT_AREA.y),
+    );
+    hover_part(
+        &mut runtime,
+        &mut terminal,
+        SCREEN,
+        TOOLBAR,
+        row_part(row_key),
+    );
+    assert!(!runtime.is_open(HOVER_TOOLTIP));
+    advance(&mut runtime, &mut terminal, SCREEN, 25);
+    assert!(runtime.is_open(HOVER_TOOLTIP));
+    let area = runtime
+        .layer_area(HOVER_TOOLTIP)
+        .expect("new hover interval uses the changed policy");
+    assert!(area.width <= 10);
+}
+
+#[test]
+fn inherited_ambient_off_suppresses_delayed_tooltips() {
+    let row_key = ItemKey::text("ambient-off");
+    let mut host = ToolbarHost::new(
+        vec![ToolItem::new("Run").tip("Ambient OFF tooltip text")],
+        vec![row_key],
+    );
+    host.ambient_tooltips = Tooltips::OFF;
+    assert!(
+        host.tooltip_policy.is_none(),
+        "this Toolbar inherits policy"
+    );
+
+    let (mut runtime, mut terminal) = runtime_for(host);
+    render(&mut runtime, &mut terminal, SCREEN);
+    hover_part(
+        &mut runtime,
+        &mut terminal,
+        SCREEN,
+        TOOLBAR,
+        row_part(row_key),
+    );
+    advance(&mut runtime, &mut terminal, SCREEN, 601);
+    assert!(!runtime.is_open(HOVER_TOOLTIP));
+    assert!(!screen_text(&terminal).contains("Ambient OFF tooltip text"));
+}
+
+#[test]
+fn inherited_ambient_off_retires_an_open_tooltip() {
+    let row_key = ItemKey::text("ambient-off-open");
+    let mut host = ToolbarHost::new(
+        vec![ToolItem::new("Run").tip("Open inherited tooltip text")],
+        vec![row_key],
+    );
+    host.ambient_tooltips = Tooltips::DEFAULT.delay_ms(0);
+    assert!(
+        host.tooltip_policy.is_none(),
+        "this Toolbar inherits policy"
+    );
+
+    let (mut runtime, mut terminal) = runtime_for(host);
+    render(&mut runtime, &mut terminal, SCREEN);
+    hover_part(
+        &mut runtime,
+        &mut terminal,
+        SCREEN,
+        TOOLBAR,
+        row_part(row_key),
+    );
+    assert!(runtime.is_open(HOVER_TOOLTIP));
+    assert!(screen_text(&terminal).contains("Open inherited tooltip text"));
+
+    runtime.app_mut().ambient_tooltips = Tooltips::OFF;
+    ready_for_input(&mut runtime, &mut terminal, SCREEN);
+    let _ = runtime
+        .handle(Input::Tick)
+        .expect("presented runtime accepts a tick");
+    render(&mut runtime, &mut terminal, SCREEN);
+    assert!(!runtime.is_open(HOVER_TOOLTIP));
+    assert!(!screen_text(&terminal).contains("Open inherited tooltip text"));
 }
 
 #[test]

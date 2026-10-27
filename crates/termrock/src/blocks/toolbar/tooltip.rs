@@ -54,12 +54,15 @@ struct Candidate {
 }
 
 impl Candidate {
-    fn matches(&self, active: &Active) -> bool {
+    fn matches_identity(&self, active: &Active) -> bool {
         self.owner == active.owner
             && self.target == active.target
             && self.text == active.text
             && self.shortcut == active.shortcut
-            && self.policy == active.policy
+    }
+
+    fn matches(&self, active: &Active) -> bool {
+        self.matches_identity(active) && self.policy == active.policy
     }
 }
 
@@ -110,6 +113,11 @@ pub(super) struct TooltipConfig<'a> {
 }
 
 impl TooltipController {
+    #[cfg(test)]
+    pub(super) fn opening(&self) -> Option<LayerOpening> {
+        self.active.as_ref().and_then(|active| active.opening)
+    }
+
     pub(super) fn update(
         &mut self,
         cx: &mut Cx<'_>,
@@ -169,7 +177,7 @@ impl TooltipController {
             && self.dismissed.is_some()
             && candidate.as_ref().is_some_and(|candidate| {
                 self.active.as_ref().is_some_and(|active| {
-                    active.target == candidate.target && !candidate.matches(active)
+                    active.target == candidate.target && !candidate.matches_identity(active)
                 })
             })
         {
@@ -720,5 +728,41 @@ impl TooltipLayout {
                 );
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Active, Candidate, Target};
+    use ratatui_core::layout::Rect;
+    use termrock_core::id::{Id, ItemKey};
+    use termrock_runtime::Moment;
+
+    use crate::blocks::ToolbarTooltipPolicy;
+
+    fn candidate(policy: ToolbarTooltipPolicy, text: &str) -> Candidate {
+        Candidate {
+            owner: Id::root("toolbar.tooltip.matching"),
+            target: Target::Item(ItemKey::index(0)),
+            text: text.to_owned(),
+            shortcut: Some("Ctrl+R".to_owned()),
+            policy,
+            area: Rect::new(1, 2, 8, 1),
+            viewport: Rect::new(0, 0, 40, 12),
+        }
+    }
+
+    #[test]
+    fn policy_changes_reconcile_presentation_without_erasing_content_identity() {
+        let original = candidate(ToolbarTooltipPolicy::DEFAULT, "Run");
+        let active = Active::from_candidate(original, Moment::ZERO);
+        let resized = candidate(ToolbarTooltipPolicy::DEFAULT.max_width(12), "Run");
+
+        assert!(resized.matches_identity(&active));
+        assert!(!resized.matches(&active));
+
+        let changed_content =
+            candidate(ToolbarTooltipPolicy::DEFAULT.max_width(12), "Run the task");
+        assert!(!changed_content.matches_identity(&active));
     }
 }

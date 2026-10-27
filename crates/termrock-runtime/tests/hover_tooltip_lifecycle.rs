@@ -11,7 +11,7 @@ use termrock_core::response::Response;
 use termrock_core::{Id, Part, PartRef};
 use termrock_runtime::{
     Anchor, App, Cx, DismissReason, Focusability, LayerEvent, LayerId, LayerOpening, LayerSize,
-    LayerSpec, Runtime, Ui, UpdateCause,
+    LayerSpec, Runtime, Tooltips, Ui, UpdateCause,
 };
 use termrock_theme::Theme;
 
@@ -49,6 +49,9 @@ enum Drawer {
 }
 
 struct Probe {
+    tooltips: Tooltips,
+    last_cx_tooltips: Option<Tooltips>,
+    last_ui_tooltips: Cell<Option<Tooltips>>,
     source_visible: bool,
     source_part_visible: bool,
     sibling_part_visible: bool,
@@ -109,6 +112,9 @@ struct Probe {
 impl Default for Probe {
     fn default() -> Self {
         Self {
+            tooltips: Tooltips::DEFAULT,
+            last_cx_tooltips: None,
+            last_ui_tooltips: Cell::new(None),
             source_visible: true,
             source_part_visible: true,
             sibling_part_visible: true,
@@ -222,7 +228,12 @@ impl Probe {
 }
 
 impl App for Probe {
+    fn tooltips(&self) -> Tooltips {
+        self.tooltips
+    }
+
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        self.last_cx_tooltips = Some(cx.tooltips());
         self.hover_suppressed_samples.push(cx.hover_suppressed());
         if cx.update_cause() == UpdateCause::Bootstrap && self.open_underlay {
             let mut spec = LayerSpec::tooltip(UNDERLAY, Position::new(0, 0))
@@ -390,6 +401,7 @@ impl App for Probe {
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
+        self.last_ui_tooltips.set(Some(ui.tooltips()));
         if !self.draw_underlay_after_tip {
             self.draw_underlay(ui);
         }
@@ -506,6 +518,23 @@ fn open_managed(runtime: &mut Runtime<Probe>, buffer: &mut Buffer) {
     assert_eq!(runtime.top_layer(), opening.layer_id());
 }
 
+#[derive(Default)]
+struct DefaultPolicyProbe {
+    update_policy: Cell<Option<Tooltips>>,
+    draw_policy: Cell<Option<Tooltips>>,
+}
+
+impl App for DefaultPolicyProbe {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        self.update_policy.set(Some(cx.tooltips()));
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        self.draw_policy.set(Some(ui.tooltips()));
+    }
+}
+
 #[test]
 fn exact_token_open_refresh_and_same_id_replacement_reject_stale_tokens() {
     let (mut runtime, mut buffer) = ready(Probe::default());
@@ -534,6 +563,76 @@ fn exact_token_open_refresh_and_same_id_replacement_reject_stale_tokens() {
     assert_eq!(runtime.app().refresh_after_bad_sources, Some(true));
     assert_eq!(runtime.app().current_open_after_rejections, Some(true));
     assert!(runtime.is_open(TIP));
+}
+
+#[test]
+fn app_tooltip_hook_defaults_in_runtime_contexts() {
+    let mut runtime = Runtime::new(DefaultPolicyProbe::default(), Theme::junie());
+    let _ = runtime.initialize();
+    let mut buffer = Buffer::empty(SCREEN);
+    present(&mut runtime, &mut buffer);
+
+    assert_eq!(runtime.app().update_policy.get(), Some(Tooltips::DEFAULT));
+    assert_eq!(runtime.app().draw_policy.get(), Some(Tooltips::DEFAULT));
+}
+
+#[test]
+fn runtime_contexts_use_host_policy_and_projection_keeps_captured_policy() {
+    assert_eq!(Tooltips::default(), Tooltips::DEFAULT);
+    assert_eq!(Tooltips::DEFAULT.delay_ms, 600);
+    assert_eq!(Tooltips::DEFAULT.max_width, 48);
+    const {
+        assert!(!Tooltips::OFF.enabled);
+    }
+
+    let policy = Tooltips::DEFAULT.delay_ms(23).max_width(11);
+    let (mut runtime, mut live_buffer) = ready(Probe {
+        tooltips: policy,
+        ..Probe::default()
+    });
+    open_managed(&mut runtime, &mut live_buffer);
+    let current = runtime.app().opening.expect("current managed opening");
+    let snapshot = runtime.render_snapshot().expect("live frame is settled");
+
+    assert_eq!(runtime.app().last_cx_tooltips, Some(policy));
+    assert_eq!(runtime.app().last_ui_tooltips.get(), Some(policy));
+
+    runtime.app_mut().tooltips = Tooltips::OFF;
+    input_tick(&mut runtime, &mut live_buffer);
+    assert_eq!(runtime.app().last_cx_tooltips, Some(Tooltips::OFF));
+
+    let mut projection = Buffer::empty(SCREEN);
+    let mut projected_policy = None;
+    runtime
+        .draw_projection(SCREEN, &mut projection, &snapshot, |ui, _area| {
+            projected_policy = Some(ui.tooltips());
+        })
+        .commit_inspected();
+    assert_eq!(projected_policy, Some(policy));
+    assert!(runtime.is_open(TIP));
+    assert_eq!(runtime.app().opening, Some(current));
+
+    present(&mut runtime, &mut live_buffer);
+    assert_eq!(
+        runtime.app().last_ui_tooltips.get(),
+        Some(Tooltips::OFF),
+        "a later live draw keeps the current runtime policy"
+    );
+    assert!(runtime.is_open(TIP));
+    assert_eq!(runtime.app().opening, Some(current));
+}
+
+#[test]
+fn ambient_off_does_not_reject_low_level_managed_tooltip_requests() {
+    let (mut runtime, mut buffer) = ready(Probe {
+        tooltips: Tooltips::OFF,
+        ..Probe::default()
+    });
+    open_managed(&mut runtime, &mut buffer);
+
+    assert_eq!(runtime.app().last_cx_tooltips, Some(Tooltips::OFF));
+    assert!(runtime.is_open(TIP));
+    assert!(runtime.app().opening.is_some());
 }
 
 #[test]

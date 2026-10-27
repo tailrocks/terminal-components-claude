@@ -25,7 +25,7 @@ use termrock_overlays::{ContextMenu, MenuAction, MenuItem, MenuState};
 use termrock_runtime::focus::Focusability;
 use termrock_runtime::layer::{CrossAlign, LayerEvent, LayerOpening, Side};
 use termrock_runtime::{
-    Binding, Cx, FrameRead, LayoutFacts, Measure, ReferenceState, ReferenceTarget, Ui,
+    Binding, Cx, FrameRead, LayoutFacts, Measure, ReferenceState, ReferenceTarget, Tooltips, Ui,
 };
 use termrock_text::width;
 use termrock_theme::{
@@ -239,6 +239,26 @@ impl ToolbarTooltipPolicy {
 impl Default for ToolbarTooltipPolicy {
     fn default() -> Self {
         Self::DEFAULT
+    }
+}
+
+impl From<ToolbarTooltipPolicy> for Tooltips {
+    fn from(policy: ToolbarTooltipPolicy) -> Self {
+        Self {
+            enabled: policy.enabled,
+            delay_ms: policy.delay_ms,
+            max_width: policy.max_width,
+        }
+    }
+}
+
+impl From<Tooltips> for ToolbarTooltipPolicy {
+    fn from(policy: Tooltips) -> Self {
+        Self {
+            enabled: policy.enabled,
+            delay_ms: policy.delay_ms,
+            max_width: policy.max_width,
+        }
     }
 }
 
@@ -591,7 +611,7 @@ pub struct Toolbar {
     more_danger_hover: bool,
     more_padding: u16,
     more_tip: ToolbarTip,
-    tooltip_policy: ToolbarTooltipPolicy,
+    tooltip_policy: Option<ToolbarTooltipPolicy>,
 }
 
 impl Toolbar {
@@ -616,7 +636,7 @@ impl Toolbar {
             more_danger_hover: false,
             more_padding: 1,
             more_tip: ToolbarTip::default(),
-            tooltip_policy: ToolbarTooltipPolicy::DEFAULT,
+            tooltip_policy: None,
         }
     }
 
@@ -757,10 +777,14 @@ impl Toolbar {
         self
     }
 
-    /// Set this Toolbar's hover-tip policy.
+    /// Override the ambient hover-tip policy for this Toolbar.
+    ///
+    /// An explicit value replaces the application policy, including
+    /// [\`ToolbarTooltipPolicy::DEFAULT\`] and [\`ToolbarTooltipPolicy::OFF\`].
+    /// A newly created Toolbar inherits the policy from its runtime context.
     #[must_use]
     pub const fn tooltip_policy(mut self, policy: ToolbarTooltipPolicy) -> Self {
-        self.tooltip_policy = policy;
+        self.tooltip_policy = Some(policy);
         self
     }
 
@@ -769,9 +793,20 @@ impl Toolbar {
         &self.more_tip
     }
 
-    /// Configured hover-tip policy.
+    /// Configured per-Toolbar override, or [\`ToolbarTooltipPolicy::DEFAULT\`]
+    /// when this Toolbar inherits its runtime context's policy.
+    ///
+    /// The effective inherited policy is context-dependent. Use this getter
+    /// only to inspect the explicit override or the standalone default.
     pub const fn tooltip_policy_value(&self) -> ToolbarTooltipPolicy {
-        self.tooltip_policy
+        match self.tooltip_policy {
+            Some(policy) => policy,
+            None => ToolbarTooltipPolicy::DEFAULT,
+        }
+    }
+
+    fn effective_tooltip_policy(&self, ambient: Tooltips) -> ToolbarTooltipPolicy {
+        self.tooltip_policy.unwrap_or_else(|| ambient.into())
     }
 
     /// Root identity used for focus and native part registration.
@@ -817,6 +852,7 @@ impl Toolbar {
     /// validates it against the current item configuration; coordinates are
     /// never reinterpreted in update.
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut ToolbarState) -> Response<ToolbarActions> {
+        let tooltip_policy = self.effective_tooltip_policy(cx.tooltips());
         state.drain_retired_overflow_openings(cx);
 
         if state
@@ -1007,7 +1043,7 @@ impl Toolbar {
                 owner: self.id,
                 items: &self.items,
                 item_keys: &self.item_keys,
-                policy: self.tooltip_policy,
+                policy: tooltip_policy,
                 more_tip: &self.more_tip,
             },
             &published_layout,
@@ -1028,6 +1064,7 @@ impl Toolbar {
 
     /// Draw the Toolbar, publishing keyed rows and an optional native More part.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, state: &ToolbarState) -> Rect {
+        let tooltip_policy = self.effective_tooltip_policy(ui.tooltips());
         let runtime_state = ui.state(self.id);
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
@@ -1117,7 +1154,7 @@ impl Toolbar {
             ui.register_control(self.id, layout.area, focusability);
             for row in &layout.rows {
                 ui.register_part(self.id, PartRef::item(Part::ROW, row.key), row.area);
-                if self.tooltip_policy.enabled
+                if tooltip_policy.enabled
                     && self
                         .items
                         .get(row.index)
@@ -1129,7 +1166,7 @@ impl Toolbar {
             }
             if let Some(more) = layout.more {
                 ui.register_part(self.id, PartRef::of(Part::OVERFLOW), more);
-                if self.tooltip_policy.enabled && !self.more_tip.text.is_empty() {
+                if tooltip_policy.enabled && !self.more_tip.text.is_empty() {
                     ui.register_hover_part(self.id, PartRef::of(Part::OVERFLOW), more);
                 }
             }
@@ -1254,7 +1291,7 @@ impl Toolbar {
                 owner: self.id,
                 items: &self.items,
                 item_keys: &self.item_keys,
-                policy: self.tooltip_policy,
+                policy: tooltip_policy,
                 more_tip: &self.more_tip,
             },
             &live_rows,
@@ -1284,7 +1321,7 @@ impl Toolbar {
             item.tip = None;
         }
         reference.more_tip = ToolbarTip::new("");
-        reference.tooltip_policy = ToolbarTooltipPolicy::OFF;
+        reference.tooltip_policy = Some(ToolbarTooltipPolicy::OFF);
 
         let target_index =
             (!reference.items.is_empty()).then(|| 1.min(reference.items.len().saturating_sub(1)));
@@ -2008,9 +2045,70 @@ impl RowSource for VisibleStops<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::{ToolbarAction, ToolbarActionEvent, ToolbarActions};
-    use termrock_core::id::ItemKey;
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::{Position, Rect};
+    use termrock_core::event::{Input, KeyModifiers, Mouse, MouseKind};
+    use termrock_core::id::{Id, ItemKey};
+    use termrock_core::response::Response;
+    use termrock_runtime::{App, Cx, LayerOpening, Runtime, Tooltips, Ui};
+    use termrock_theme::Theme;
 
+    use super::{
+        ToolItem, Toolbar, ToolbarAction, ToolbarActionEvent, ToolbarActions, ToolbarState,
+    };
+
+    const TOOLBAR: Id = Id::root("toolbar.tooltip.policy.runtime-test");
+    const TOOLTIP: Id = TOOLBAR.sub("hover-tooltip");
+    const SCREEN: Rect = Rect::new(0, 0, 32, 8);
+
+    struct PolicyHost {
+        toolbar: Toolbar,
+        state: ToolbarState,
+        tooltips: Tooltips,
+        stale_probe: Option<LayerOpening>,
+        stale_close: Option<bool>,
+    }
+
+    impl App for PolicyHost {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let response = self.toolbar.update(cx, &mut self.state).erase();
+            if let Some(opening) = self.stale_probe.take() {
+                self.stale_close = Some(cx.close_hover_tooltip(opening));
+            }
+            response
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            self.toolbar.draw(ui, Rect::new(3, 1, 24, 1), &self.state);
+        }
+
+        fn tooltips(&self) -> Tooltips {
+            self.tooltips
+        }
+    }
+
+    fn present(runtime: &mut Runtime<PolicyHost>, buffer: &mut Buffer) {
+        for _ in 0..32 {
+            if runtime.needs_settle() {
+                let _ = runtime.settle();
+            }
+            if runtime.needs_present() {
+                runtime.draw_buffer(SCREEN, buffer).commit_presented();
+            }
+            if !runtime.needs_settle() && !runtime.needs_present() {
+                return;
+            }
+        }
+        panic!("toolbar tooltip policy fixture did not settle");
+    }
+
+    fn tick(runtime: &mut Runtime<PolicyHost>, buffer: &mut Buffer) {
+        present(runtime, buffer);
+        let _ = runtime
+            .handle(Input::Tick)
+            .expect("presented runtime accepts tick");
+        present(runtime, buffer);
+    }
     #[test]
     fn repeated_toggle_intents_propose_values_from_one_controlled_seed() {
         let key = ItemKey::text("wrap");
@@ -2080,6 +2178,62 @@ mod tests {
                     action: ToolbarAction::Toggled(1, true),
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn ambient_policy_replacement_retires_the_old_managed_opening_token() {
+        let host = PolicyHost {
+            toolbar: Toolbar::new(
+                TOOLBAR,
+                vec![ToolItem::new("Run").tip("A long explanation")],
+            ),
+            state: ToolbarState::default(),
+            tooltips: Tooltips::DEFAULT.delay_ms(0).max_width(20),
+            stale_probe: None,
+            stale_close: None,
+        };
+        let mut runtime = Runtime::new(host, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        present(&mut runtime, &mut buffer);
+
+        let _ = runtime
+            .handle(Input::Mouse(Mouse {
+                kind: MouseKind::Move,
+                pos: Position::new(4, 1),
+                mods: KeyModifiers::NONE,
+            }))
+            .expect("presented runtime accepts pointer movement");
+        present(&mut runtime, &mut buffer);
+        present(&mut runtime, &mut buffer);
+        assert!(runtime.is_open(TOOLTIP));
+
+        let old = runtime
+            .app()
+            .state
+            .tooltip
+            .opening()
+            .expect("first tooltip opening has an exact token");
+        runtime.app_mut().tooltips = Tooltips::DEFAULT.delay_ms(0).max_width(8);
+        tick(&mut runtime, &mut buffer);
+
+        let current = runtime
+            .app()
+            .state
+            .tooltip
+            .opening()
+            .expect("policy reconciliation keeps an exact active token");
+        assert_ne!(old, current);
+        assert!(runtime.is_open(TOOLTIP));
+
+        runtime.app_mut().stale_probe = Some(old);
+        tick(&mut runtime, &mut buffer);
+        assert_eq!(runtime.app().stale_close, Some(false));
+        assert_eq!(
+            runtime.app().state.tooltip.opening(),
+            Some(current),
+            "a stale owner token cannot close the replacement"
         );
     }
 }

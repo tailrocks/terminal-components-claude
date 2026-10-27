@@ -181,6 +181,7 @@ pub(crate) struct DeferredFocus {
 pub struct FrameServices {
     pub(crate) runtime_id: u64,
     pub(crate) viewport: Rect,
+    pub(crate) tooltips: crate::Tooltips,
     pub(crate) layers: LayerStack,
     pub(crate) managed_tooltip: Option<ManagedTooltip>,
     pub(crate) capture: CaptureSlot,
@@ -296,6 +297,11 @@ fn next_callback_serial(serial: &mut u64) -> Option<u64> {
 }
 
 impl<'f> Cx<'f> {
+    /// Return the ambient tooltip policy selected by the host runtime.
+    pub const fn tooltips(&self) -> crate::Tooltips {
+        self.services.tooltips
+    }
+
     /// Append a component-author diagnostic to the runtime's bounded diagnostic
     /// stream. Components cannot clear diagnostics emitted by other owners.
     pub fn diagnostic(&mut self, diagnostic: crate::diagnostics::Diagnostic) {

@@ -132,6 +132,15 @@ pub trait App {
         KeyMap::EMPTY_REF
     }
 
+    /// Select the ambient tooltip policy used by runtime-created contexts.
+    ///
+    /// The runtime samples this policy before each update callback. A published
+    /// draw uses the policy from that update, and render snapshots retain it for
+    /// later projections. Explicit widget policies take precedence.
+    fn tooltips(&self) -> crate::Tooltips {
+        crate::Tooltips::DEFAULT
+    }
+
     /// Default policy used by text editors when they receive focus or typing.
     fn edit_entry(&self) -> termrock_core::edit_entry::EditEntry {
         termrock_core::edit_entry::EditEntry::Immediate
@@ -370,6 +379,7 @@ pub struct RenderSnapshot {
     inert_floor: LayerId,
     top: LayerId,
     keymap: KeyMap,
+    tooltips: crate::Tooltips,
 }
 
 #[cfg(feature = "testing")]
@@ -733,6 +743,7 @@ impl<A: App> Runtime<A> {
         let mut core = UiCore::default();
         core.keymap.clone_from(app.keymap());
         let runtime_id = next_runtime_id();
+        let tooltips = app.tooltips();
         Runtime {
             app,
             theme,
@@ -742,6 +753,7 @@ impl<A: App> Runtime<A> {
             services: FrameServices {
                 runtime_id,
                 feedback: feedback::FeedbackState::new(clock),
+                tooltips,
                 ..FrameServices::default()
             },
             intents: IntentQueue::new(),
@@ -1864,6 +1876,7 @@ impl<A: App> Runtime<A> {
             self.services.focus_request = None;
             let events = core::mem::take(&mut self.layer_events_pending);
             self.services.events.extend(events);
+            self.services.tooltips = self.app.tooltips();
             let edit_entry = self.app.edit_entry();
             let r = {
                 let mut cx = Cx::new_with_cause(
@@ -2060,6 +2073,7 @@ impl<A: App> Runtime<A> {
             self.services.active_wheel_route = Some(attempt);
             self.services.wheel_route_ack.set(WheelRouteAck::Unset);
             let empty_intents = IntentQueue::new();
+            self.services.tooltips = self.app.tooltips();
             let edit_entry = self.app.edit_entry();
             let response = {
                 let mut cx = Cx::new_with_cause(
@@ -2492,6 +2506,7 @@ impl<A: App> Runtime<A> {
                         .run_update(None, UpdateCause::Event, activation_key)
                         .repaint();
                 } else {
+                    self.services.tooltips = self.app.tooltips();
                     let edit_entry = self.app.edit_entry();
                     let esc = {
                         let mut cx = Cx::new_with_cause(
@@ -2657,6 +2672,7 @@ impl<A: App> Runtime<A> {
         self.core.begin_cache_frame(self.generation);
         self.core.style_cache.clear();
         self.frame.reset(self.generation, area);
+        self.frame.tooltips = snapshot.map_or(self.services.tooltips, |value| value.tooltips);
         self.frame.managed_tooltip_opening = if snapshot.is_none() {
             self.services.managed_tooltip.and_then(|managed| {
                 self.services
@@ -3259,6 +3275,7 @@ impl<A: App> Runtime<A> {
             inert_floor: self.services.layers.inert_floor(),
             top: self.services.layers.top(),
             keymap: self.core.keymap.clone(),
+            tooltips: self.services.tooltips,
         })
     }
 

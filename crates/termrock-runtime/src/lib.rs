@@ -30,6 +30,7 @@ pub mod runtime;
 pub mod scroll_region;
 pub mod size_watch;
 pub mod support;
+pub mod tooltip;
 pub mod ui;
 
 pub use author::*;
@@ -49,6 +50,7 @@ pub use scroll_region::*;
 pub use size_watch::SizeWatch;
 pub use termrock_core::event::Chord;
 pub use termrock_core::intent::Intent;
+pub use tooltip::Tooltips;
 pub use ui::cx;
 pub use ui::*;
 
