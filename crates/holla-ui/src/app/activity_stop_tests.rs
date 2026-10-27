@@ -1144,6 +1144,561 @@ fn task_run_stop_button_also_works_without_an_open_prompt() -> TestResult {
 }
 
 #[test]
+fn task_run_stop_button_keyboard_space_without_prompt_preserves_resistant_grace() -> TestResult {
+    let mut app = trusted_app();
+    let (run_id, execution_id, route_id) = install_task_run(&mut app)?;
+    let activity_id = execution_id.activity_id();
+    let run = app.task_runs.get(run_id).ok_or("TaskRun is missing")?;
+    assert!(run.active_prompt().is_none());
+    let active_duration = run.duration_ms();
+    let output_before: Vec<_> = run
+        .output()
+        .iter()
+        .map(|line| line.text().to_owned())
+        .collect();
+    assert!(!output_before.is_empty(), "the fixture has authored output to freeze");
+
+    let mut harness = harness(app);
+    let stop_id = task_run_stop_id(route_id, run_id, activity_id, execution_id);
+    assert!(harness.area_of(stop_id).is_some(), "TaskRun Stop is visible");
+    assert!(
+        harness.tab_to(stop_id),
+        "real Tab traversal reaches TaskRun Stop without a prompt"
+    );
+    assert_eq!(harness.focus(), Some(stop_id));
+    let _ = harness.key(KeyCode::Char(' '));
+    assert_eq!(harness.app().world.now_ms(), 4_000);
+
+    let run = harness
+        .app()
+        .task_runs
+        .get(run_id)
+        .ok_or("TaskRun disappeared after keyboard Stop")?;
+    assert!(matches!(run.state(), TaskRunState::Cancelled));
+    assert!(run.active_prompt().is_none());
+    assert_eq!(run.duration_ms(), active_duration);
+    assert_eq!(
+        run.output()
+            .iter()
+            .map(|line| line.text().to_owned())
+            .collect::<Vec<_>>(),
+        output_before,
+        "keyboard Stop freezes authored output immediately"
+    );
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("exact supervisor generation disappeared")?;
+    assert_eq!(execution.id(), execution_id);
+    assert_eq!(
+        harness
+            .app()
+            .world
+            .activity_supervisor
+            .current_execution_id(activity_id),
+        Some(execution_id)
+    );
+    assert_eq!(
+        harness.app().activity_executions.get(&activity_id),
+        Some(&execution_id)
+    );
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::TermSent);
+    assert_eq!(execution.stop_requested_ms(), Some(4_000));
+    assert_eq!(execution.kill_deadline_ms(), Some(4_800));
+    assert_eq!(execution.reap_deadline_ms(), Some(4_960));
+    assert_eq!(
+        execution.milestones(),
+        &[ActivityStopMilestone::TermSent { at_ms: 4_000 }]
+    );
+    assert!(!harness.app().quit, "keyboard Stop does not quit the app");
+    assert_eq!(harness.app().world.effect_revision, 0);
+
+    harness.app_mut().world.seek(4_720);
+    assert_eq!(harness.app().world.now_ms(), 4_720);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("supervisor generation disappeared before KILL")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::TermSent);
+    assert!(execution.is_owned());
+    assert_eq!(
+        execution.milestones(),
+        &[ActivityStopMilestone::TermSent { at_ms: 4_000 }]
+    );
+
+    harness.app_mut().world.seek(4_800);
+    assert_eq!(harness.app().world.now_ms(), 4_800);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("supervisor generation disappeared at KILL")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::KillSent);
+    assert!(execution.is_owned());
+    assert_eq!(
+        execution.milestones(),
+        &[
+            ActivityStopMilestone::TermSent { at_ms: 4_000 },
+            ActivityStopMilestone::KillSent { at_ms: 4_800 },
+        ]
+    );
+
+    harness.app_mut().world.seek(4_880);
+    assert_eq!(harness.app().world.now_ms(), 4_880);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("supervisor generation disappeared before reap")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::KillSent);
+    assert!(execution.is_owned());
+    assert_eq!(
+        execution.milestones(),
+        &[
+            ActivityStopMilestone::TermSent { at_ms: 4_000 },
+            ActivityStopMilestone::KillSent { at_ms: 4_800 },
+        ]
+    );
+
+    harness.app_mut().world.seek(4_960);
+    assert_eq!(harness.app().world.now_ms(), 4_960);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("supervisor generation disappeared after reap")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Stopped);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::Reaped);
+    assert!(!execution.is_owned());
+    assert_eq!(
+        execution.milestones(),
+        &[
+            ActivityStopMilestone::TermSent { at_ms: 4_000 },
+            ActivityStopMilestone::KillSent { at_ms: 4_800 },
+            ActivityStopMilestone::Reaped { at_ms: 4_960 },
+        ]
+    );
+    let run = harness
+        .app()
+        .task_runs
+        .get(run_id)
+        .ok_or("TaskRun disappeared after reap")?;
+    assert!(matches!(run.state(), TaskRunState::Cancelled));
+    assert_eq!(run.duration_ms(), active_duration);
+    assert_eq!(
+        run.output()
+            .iter()
+            .map(|line| line.text().to_owned())
+            .collect::<Vec<_>>(),
+        output_before,
+        "reaping does not resume authored output"
+    );
+    assert!(!harness.app().quit);
+    assert_eq!(harness.app().world.effect_revision, 0);
+    Ok(())
+}
+
+#[test]
+fn task_run_text_input_consumes_space_but_enter_stops_waiting_prompt() -> TestResult {
+    let mut app = trusted_app();
+    let (run_id, execution_id, route_id) = install_task_run(&mut app)?;
+    let activity_id = execution_id.activity_id();
+    app.world.seek(4_100);
+    assert_eq!(app.world.now_ms(), 4_160);
+    app.advance_task_runs_to_world();
+    let run = app.task_runs.get(run_id).ok_or("TaskRun is missing")?;
+    assert_eq!(run.state(), TaskRunState::Waiting);
+    let prompt_id = run
+        .active_prompt()
+        .ok_or("the fixture is missing its waiting prompt")?
+        .id();
+    let active_duration = run.duration_ms();
+    let output_before: Vec<_> = run
+        .output()
+        .iter()
+        .map(|line| line.text().to_owned())
+        .collect();
+
+    let mut harness = harness(app);
+    let _ = harness.tick();
+    assert!(harness.text().contains("Execution: waiting"));
+    let stop_id = task_run_stop_id(route_id, run_id, activity_id, execution_id);
+    assert!(harness.area_of(stop_id).is_some(), "TaskRun Stop is visible");
+    assert!(
+        harness.tab_to(stop_id),
+        "real Tab traversal moves from the prompt to TaskRun Stop"
+    );
+    assert_eq!(harness.focus(), Some(stop_id));
+    let run = harness
+        .app()
+        .task_runs
+        .get(run_id)
+        .ok_or("TaskRun disappeared before Space")?;
+    assert_eq!(run.state(), TaskRunState::Waiting);
+    assert_eq!(run.active_prompt().map(|prompt| prompt.id()), Some(prompt_id));
+    let _ = harness.key(KeyCode::Char(' '));
+    assert_eq!(harness.app().world.now_ms(), 4_160);
+    let run = harness
+        .app()
+        .task_runs
+        .get(run_id)
+        .ok_or("TaskRun disappeared after text input")?;
+    assert_eq!(run.state(), TaskRunState::Waiting);
+    assert_eq!(
+        run.active_prompt().map(|prompt| prompt.id()),
+        Some(prompt_id),
+        "Space leaves the same prompt waiting"
+    );
+    assert_eq!(run.duration_ms(), active_duration);
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("exact supervisor generation disappeared after Space")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Running);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::NotRequested);
+    assert_eq!(execution.stop_requested_ms(), None);
+    assert!(execution.milestones().is_empty());
+    assert!(!harness.app().quit);
+    assert_eq!(harness.app().world.effect_revision, 0);
+    assert_eq!(harness.focus(), Some(stop_id));
+    let _ = harness.key(KeyCode::Enter);
+    assert_eq!(harness.app().world.now_ms(), 4_160);
+
+    let run = harness
+        .app()
+        .task_runs
+        .get(run_id)
+        .ok_or("TaskRun disappeared after keyboard Stop")?;
+    assert!(matches!(run.state(), TaskRunState::Cancelled));
+    assert!(run.active_prompt().is_none());
+    assert_eq!(run.duration_ms(), active_duration);
+    assert_eq!(
+        run.output()
+            .iter()
+            .map(|line| line.text().to_owned())
+            .collect::<Vec<_>>(),
+        output_before,
+        "keyboard Stop settles the prompt and freezes authored output immediately"
+    );
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("exact supervisor generation disappeared")?;
+    assert_eq!(execution.id(), execution_id);
+    assert_eq!(
+        harness
+            .app()
+            .world
+            .activity_supervisor
+            .current_execution_id(activity_id),
+        Some(execution_id)
+    );
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::TermSent);
+    assert_eq!(execution.stop_requested_ms(), Some(4_160));
+    assert_eq!(execution.kill_deadline_ms(), Some(4_960));
+    assert_eq!(execution.reap_deadline_ms(), Some(5_120));
+    assert_eq!(
+        execution.milestones(),
+        &[ActivityStopMilestone::TermSent { at_ms: 4_160 }]
+    );
+    assert!(!harness.app().quit, "keyboard Stop does not quit the app");
+    assert_eq!(harness.app().world.effect_revision, 0);
+
+    harness.app_mut().world.seek(4_880);
+    assert_eq!(harness.app().world.now_ms(), 4_880);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("supervisor generation disappeared before KILL")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::TermSent);
+    assert!(execution.is_owned());
+    assert_eq!(
+        execution.milestones(),
+        &[ActivityStopMilestone::TermSent { at_ms: 4_160 }]
+    );
+
+    harness.app_mut().world.seek(4_960);
+    assert_eq!(harness.app().world.now_ms(), 4_960);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("supervisor generation disappeared at KILL")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::KillSent);
+    assert!(execution.is_owned());
+    assert_eq!(
+        execution.milestones(),
+        &[
+            ActivityStopMilestone::TermSent { at_ms: 4_160 },
+            ActivityStopMilestone::KillSent { at_ms: 4_960 },
+        ]
+    );
+
+    harness.app_mut().world.seek(5_040);
+    assert_eq!(harness.app().world.now_ms(), 5_040);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("supervisor generation disappeared before reap")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::KillSent);
+    assert!(execution.is_owned());
+    assert_eq!(
+        execution.milestones(),
+        &[
+            ActivityStopMilestone::TermSent { at_ms: 4_160 },
+            ActivityStopMilestone::KillSent { at_ms: 4_960 },
+        ]
+    );
+
+    harness.app_mut().world.seek(5_120);
+    assert_eq!(harness.app().world.now_ms(), 5_120);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("supervisor generation disappeared after reap")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Stopped);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::Reaped);
+    assert!(!execution.is_owned());
+    assert_eq!(
+        execution.milestones(),
+        &[
+            ActivityStopMilestone::TermSent { at_ms: 4_160 },
+            ActivityStopMilestone::KillSent { at_ms: 4_960 },
+            ActivityStopMilestone::Reaped { at_ms: 5_120 },
+        ]
+    );
+    let run = harness
+        .app()
+        .task_runs
+        .get(run_id)
+        .ok_or("TaskRun disappeared after reap")?;
+    assert!(matches!(run.state(), TaskRunState::Cancelled));
+    assert_eq!(run.duration_ms(), active_duration);
+    assert_eq!(
+        run.output()
+            .iter()
+            .map(|line| line.text().to_owned())
+            .collect::<Vec<_>>(),
+        output_before,
+        "reaping does not resume authored output"
+    );
+    assert!(!harness.app().quit);
+    assert_eq!(harness.app().world.effect_revision, 0);
+    Ok(())
+}
+
+#[test]
+fn covered_task_run_stop_button_cannot_activate_from_keyboard() -> TestResult {
+    let mut app = trusted_app();
+    let (run_id, execution_id, route_id) = install_task_run(&mut app)?;
+    let activity_id = execution_id.activity_id();
+    let mut harness = harness(app);
+    let stop_id = task_run_stop_id(route_id, run_id, activity_id, execution_id);
+    assert!(harness.tab_to(stop_id), "Tab traversal reaches visible TaskRun Stop");
+    assert_eq!(harness.focus(), Some(stop_id));
+
+    let _ = harness.key(KeyCode::F(1));
+    assert!(harness.app().overlay.is_some(), "the Help dialog covers TaskRun");
+    assert!(harness.text().contains("Key reference"));
+    assert!(
+        harness.area_of(stop_id).is_none(),
+        "the covered TaskRun Stop has no published geometry"
+    );
+    assert!(
+        !harness.ring().contains(stop_id),
+        "the covered TaskRun Stop is absent from the published focus ring"
+    );
+    assert_ne!(harness.focus(), Some(stop_id));
+    assert!(
+        !harness.tab_to(stop_id),
+        "Tab traversal cannot focus TaskRun Stop through the Help dialog"
+    );
+    let _ = harness.key(KeyCode::Enter);
+
+    assert!(matches!(
+        harness
+            .app()
+            .task_runs
+            .get(run_id)
+            .ok_or("TaskRun disappeared while covered")?
+            .state(),
+        TaskRunState::Running
+    ));
+    assert_eq!(
+        harness
+            .app()
+            .world
+            .activity_supervisor
+            .current_execution_id(activity_id),
+        Some(execution_id)
+    );
+    assert_eq!(
+        harness
+            .app()
+            .world
+            .activity_supervisor
+            .execution(execution_id)
+            .map(|execution| {
+                (execution.phase(), execution.stop_phase(), execution.milestones().len())
+            }),
+        Some((ActivityExecutionPhase::Running, ActivityStopPhase::NotRequested, 0))
+    );
+    assert!(!harness.app().quit);
+    assert_eq!(harness.app().world.effect_revision, 0);
+    Ok(())
+}
+
+#[test]
+fn task_run_route_invalidation_blocks_stale_keyboard_stop_generation() -> TestResult {
+    let mut app = trusted_app();
+    let (run_id, old_execution_id, route_id) = install_task_run(&mut app)?;
+    let activity_id = old_execution_id.activity_id();
+    let snapshot = app
+        .task_run_owners
+        .get(&run_id)
+        .ok_or("TaskRun owner is missing")?
+        .activity
+        .clone();
+    let run = app.task_runs.get(run_id).ok_or("TaskRun is missing")?;
+    let active_duration = run.duration_ms();
+    let output_before: Vec<_> = run
+        .output()
+        .iter()
+        .map(|line| line.text().to_owned())
+        .collect();
+
+    let mut harness = harness(app);
+    let stale_stop_id = task_run_stop_id(route_id, run_id, activity_id, old_execution_id);
+    assert!(
+        harness.tab_to(stale_stop_id),
+        "real Tab traversal focuses the old TaskRun generation's Stop"
+    );
+    assert_eq!(harness.focus(), Some(stale_stop_id));
+
+    let replacement_id = {
+        let app = harness.app_mut();
+        app.world
+            .activity_supervisor
+            .observe_terminal_exit(old_execution_id, &snapshot)
+            .map_err(|error| error.to_string())?;
+        let replacement_id = app
+            .world
+            .activity_supervisor
+            .replace_stopped(
+                old_execution_id,
+                &snapshot,
+                ActivityExecutionStart::Running,
+                ActivityStopProfile::Resistant,
+            )
+            .map_err(|error| error.to_string())?;
+        app.activity_executions.insert(activity_id, replacement_id);
+        replacement_id
+    };
+    assert_ne!(replacement_id, old_execution_id);
+    harness.draw();
+    assert!(matches!(harness.app().route, Route::Home));
+    assert!(harness.app().task_run_screen.is_none());
+    assert_eq!(harness.focus(), Some(home::QUERY));
+    let _ = harness.key(KeyCode::Char(' '));
+
+    let run = harness
+        .app()
+        .task_runs
+        .get(run_id)
+        .ok_or("TaskRun disappeared after route invalidation")?;
+    assert!(matches!(run.state(), TaskRunState::Running));
+    assert!(run.active_prompt().is_none());
+    assert_eq!(run.duration_ms(), active_duration);
+    assert_eq!(
+        run.output()
+            .iter()
+            .map(|line| line.text().to_owned())
+            .collect::<Vec<_>>(),
+        output_before,
+        "stale keyboard input cannot change TaskRun output"
+    );
+    assert_eq!(
+        harness
+            .app()
+            .world
+            .activity_supervisor
+            .current_execution_id(activity_id),
+        Some(replacement_id)
+    );
+    assert_eq!(
+        harness.app().activity_executions.get(&activity_id),
+        Some(&replacement_id)
+    );
+    assert_eq!(
+        harness
+            .app()
+            .world
+            .activity_supervisor
+            .execution(replacement_id)
+            .map(|execution| {
+                (
+                    execution.phase(),
+                    execution.stop_phase(),
+                    execution.milestones().len(),
+                )
+            }),
+        Some((ActivityExecutionPhase::Running, ActivityStopPhase::NotRequested, 0))
+    );
+    assert_eq!(
+        harness
+            .app()
+            .world
+            .activity_supervisor
+            .execution(old_execution_id)
+            .map(|execution| {
+                (
+                    execution.phase(),
+                    execution.stop_phase(),
+                    execution.milestones().len(),
+                )
+            }),
+        Some((ActivityExecutionPhase::Stopped, ActivityStopPhase::NotRequested, 0))
+    );
+    assert!(!harness.app().quit);
+    assert_eq!(harness.app().world.effect_revision, 0);
+    Ok(())
+}
+
+#[test]
 fn parity_activity_stop_app_adopts_exact_setup_handles_without_task_runs() -> TestResult {
     let app = parity_activity_stop_app();
     assert!(matches!(app.route, Route::Activity));
@@ -1256,6 +1811,228 @@ fn parity_activity_stop_responsive_button_reaps_at_240_ms_and_freezes_output() -
             .map(|projection| projection.lines.clone()),
         Some(original_lines)
     );
+    assert_eq!(harness.app().world.effect_revision, 0);
+    Ok(())
+}
+
+#[test]
+fn activity_detail_stop_button_keyboard_space_reaps_responsive_execution() -> TestResult {
+    let app = parity_activity_stop_app();
+    let (snapshot, execution_id) = scenario_activity_execution(&app, 1)?;
+    let activity_id = snapshot.id;
+    let view_token = app
+        .activities
+        .current_view_token()
+        .ok_or("ordinary Activity view token is missing")?;
+    let original_lines = snapshot.lines.clone();
+    let mut harness = harness(app);
+    let stop_id = activity_stop_id(activity_id, view_token, execution_id);
+    assert!(harness.area_of(stop_id).is_some(), "detail Stop is visible");
+    assert!(
+        harness.tab_to(stop_id),
+        "real Tab traversal reaches Activity detail Stop"
+    );
+    assert_eq!(harness.focus(), Some(stop_id));
+    let _ = harness.key(KeyCode::Char(' '));
+
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("exact Activity supervisor generation disappeared")?;
+    assert_eq!(execution.id(), execution_id);
+    assert_eq!(
+        harness
+            .app()
+            .world
+            .activity_supervisor
+            .current_execution_id(activity_id),
+        Some(execution_id)
+    );
+    assert_eq!(
+        harness.app().activity_executions.get(&activity_id),
+        Some(&execution_id)
+    );
+    assert_eq!(execution.snapshot(), &snapshot);
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::TermSent);
+    assert_eq!(execution.stop_requested_ms(), Some(4_000));
+    assert_eq!(execution.kill_deadline_ms(), None);
+    assert_eq!(execution.reap_deadline_ms(), Some(4_240));
+    assert_eq!(
+        execution.milestones(),
+        &[ActivityStopMilestone::TermSent { at_ms: 4_000 }]
+    );
+    assert!(harness.app().task_runs.is_empty());
+    assert!(!harness.app().quit, "keyboard Stop does not quit the app");
+    assert_eq!(harness.app().world.effect_revision, 0);
+
+    harness.app_mut().world.seek(4_160);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("ordinary execution disappeared during grace")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Cancelling);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::TermSent);
+    assert_eq!(execution.snapshot().lines, original_lines);
+    assert_eq!(
+        harness
+            .app()
+            .activity_projections()
+            .get(&activity_id)
+            .map(|projection| projection.lines.clone()),
+        Some(original_lines.clone())
+    );
+
+    harness.app_mut().world.seek(4_240);
+    harness.draw();
+    let execution = harness
+        .app()
+        .world
+        .activity_supervisor
+        .execution(execution_id)
+        .ok_or("ordinary execution disappeared after reap")?;
+    assert_eq!(execution.phase(), ActivityExecutionPhase::Stopped);
+    assert_eq!(execution.stop_phase(), ActivityStopPhase::Reaped);
+    assert_eq!(
+        execution.milestones(),
+        &[
+            ActivityStopMilestone::TermSent { at_ms: 4_000 },
+            ActivityStopMilestone::Reaped { at_ms: 4_240 },
+        ]
+    );
+    assert_eq!(execution.snapshot(), &snapshot);
+    assert_eq!(execution.snapshot().lines, original_lines);
+    assert_eq!(
+        harness
+            .app()
+            .activity_projections()
+            .get(&activity_id)
+            .map(|projection| projection.lines.clone()),
+        Some(original_lines)
+    );
+    assert!(!harness.app().quit);
+    assert_eq!(harness.app().world.effect_revision, 0);
+    Ok(())
+}
+
+#[test]
+fn activity_detail_retired_generation_ignores_keyboard_activation() -> TestResult {
+    let app = parity_activity_stop_app();
+    let (snapshot, old_execution_id) = scenario_activity_execution(&app, 1)?;
+    let activity_id = snapshot.id;
+    let view_token = app
+        .activities
+        .current_view_token()
+        .ok_or("ordinary Activity view token is missing")?;
+    let mut harness = harness(app);
+    let stale_stop_id = activity_stop_id(activity_id, view_token, old_execution_id);
+    assert!(
+        harness.tab_to(stale_stop_id),
+        "real Tab traversal focuses the old Activity generation's Stop"
+    );
+    assert_eq!(harness.focus(), Some(stale_stop_id));
+
+    let replacement_id = {
+        let app = harness.app_mut();
+        app.world
+            .activity_supervisor
+            .observe_terminal_exit(old_execution_id, &snapshot)
+            .map_err(|error| error.to_string())?;
+        let replacement_id = app
+            .world
+            .activity_supervisor
+            .replace_stopped(
+                old_execution_id,
+                &snapshot,
+                ActivityExecutionStart::Running,
+                ActivityStopProfile::Responsive,
+            )
+            .map_err(|error| error.to_string())?;
+        app.activity_executions.insert(activity_id, replacement_id);
+        replacement_id
+    };
+    assert_ne!(replacement_id, old_execution_id);
+    let replacement_stop_id = activity_stop_id(activity_id, view_token, replacement_id);
+    assert_ne!(stale_stop_id, replacement_stop_id);
+    harness.draw();
+    assert!(harness.area_of(replacement_stop_id).is_some());
+    assert!(
+        harness.area_of(stale_stop_id).is_none(),
+        "the retired generation has no published Stop geometry"
+    );
+    assert!(
+        !harness.ring().contains(stale_stop_id),
+        "the retired generation is absent from the published focus ring"
+    );
+    assert_ne!(
+        harness.focus(),
+        Some(stale_stop_id),
+        "focus no longer targets the retired generation"
+    );
+    assert_ne!(
+        harness.focus(),
+        Some(replacement_stop_id),
+        "retirement does not transfer stale focus to replacement Stop"
+    );
+    let _ = harness.key(KeyCode::Enter);
+
+    assert!(matches!(harness.app().route, Route::Activity));
+    assert_eq!(
+        harness
+            .app()
+            .world
+            .activity_supervisor
+            .current_execution_id(activity_id),
+        Some(replacement_id)
+    );
+    assert_eq!(
+        harness.app().activity_executions.get(&activity_id),
+        Some(&replacement_id)
+    );
+    assert_eq!(
+        harness
+            .app()
+            .world
+            .activity_supervisor
+            .execution(replacement_id)
+            .map(|execution| {
+                (
+                    execution.phase(),
+                    execution.stop_phase(),
+                    execution.milestones().len(),
+                )
+            }),
+        Some((ActivityExecutionPhase::Running, ActivityStopPhase::NotRequested, 0))
+    );
+    assert_eq!(
+        harness
+            .app()
+            .world
+            .activity_supervisor
+            .execution(old_execution_id)
+            .map(|execution| {
+                (
+                    execution.phase(),
+                    execution.stop_phase(),
+                    execution.milestones().len(),
+                )
+            }),
+        Some((ActivityExecutionPhase::Stopped, ActivityStopPhase::NotRequested, 0))
+    );
+    assert_eq!(
+        harness
+            .app()
+            .activity_projections()
+            .get(&activity_id)
+            .map(|projection| projection.lines.clone()),
+        Some(snapshot.lines)
+    );
+    assert!(!harness.app().quit);
     assert_eq!(harness.app().world.effect_revision, 0);
     Ok(())
 }
