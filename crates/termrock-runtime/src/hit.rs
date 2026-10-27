@@ -10,12 +10,24 @@ use crate::layer::LayerId;
 
 static NEXT_SCROLL_REGISTRY_ID: AtomicU64 = AtomicU64::new(1);
 
-fn next_scroll_registry_id() -> u64 {
-    NEXT_SCROLL_REGISTRY_ID
+fn next_scroll_registry_id(counter: &AtomicU64) -> Option<u64> {
+    counter
         .try_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
             next.checked_add(1)
         })
-        .expect("scroll registry identity space exhausted")
+        .ok()
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct ScrollRegistryIdentity(Option<u64>);
+
+impl core::fmt::Debug for ScrollRegistryIdentity {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self.0 {
+            Some(identity) => core::fmt::Debug::fmt(&identity, f),
+            None => f.write_str("exhausted"),
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -268,7 +280,7 @@ pub struct Registry {
     pointer_order: Option<Vec<usize>>,
     routed_scrolls: Vec<Option<RoutedScroll>>,
     text_drag_regions: Vec<TextDragRegion>,
-    registry_id: u64,
+    registry_id: ScrollRegistryIdentity,
     generation: u32,
     route_epoch: u64,
     route_epoch_exhausted: bool,
@@ -279,19 +291,7 @@ pub struct Registry {
 
 impl Clone for Registry {
     fn clone(&self) -> Self {
-        Self {
-            regions: self.regions.clone(),
-            pointer_order: self.pointer_order.clone(),
-            routed_scrolls: self.routed_scrolls.clone(),
-            text_drag_regions: self.text_drag_regions.clone(),
-            registry_id: next_scroll_registry_id(),
-            generation: self.generation,
-            route_epoch: self.route_epoch,
-            route_epoch_exhausted: self.route_epoch_exhausted,
-            has_pointer_exclusions: self.has_pointer_exclusions,
-            bars: self.bars.clone(),
-            releases: self.releases.clone(),
-        }
+        self.clone_with_registry_id(&NEXT_SCROLL_REGISTRY_ID)
     }
 }
 
@@ -302,13 +302,33 @@ impl Default for Registry {
 }
 
 impl Registry {
+    fn clone_with_registry_id(&self, next: &AtomicU64) -> Self {
+        Self {
+            regions: self.regions.clone(),
+            pointer_order: self.pointer_order.clone(),
+            routed_scrolls: self.routed_scrolls.clone(),
+            text_drag_regions: self.text_drag_regions.clone(),
+            registry_id: ScrollRegistryIdentity(next_scroll_registry_id(next)),
+            generation: self.generation,
+            route_epoch: self.route_epoch,
+            route_epoch_exhausted: self.route_epoch_exhausted,
+            has_pointer_exclusions: self.has_pointer_exclusions,
+            bars: self.bars.clone(),
+            releases: self.releases.clone(),
+        }
+    }
+
     pub fn new(generation: u32) -> Self {
+        Self::new_with_registry_id(generation, &NEXT_SCROLL_REGISTRY_ID)
+    }
+
+    fn new_with_registry_id(generation: u32, next: &AtomicU64) -> Self {
         Registry {
             regions: Vec::new(),
             pointer_order: None,
             routed_scrolls: Vec::new(),
             text_drag_regions: Vec::new(),
-            registry_id: next_scroll_registry_id(),
+            registry_id: ScrollRegistryIdentity(next_scroll_registry_id(next)),
             generation,
             route_epoch: 1,
             route_epoch_exhausted: false,
@@ -576,6 +596,7 @@ impl Registry {
         source_revision: u64,
         policy: ScrollRoutePolicy,
     ) -> Option<ScrollRouteKey> {
+        let registry_id = self.registry_id.0?;
         if area.is_empty() || self.route_epoch_exhausted {
             return None;
         }
@@ -599,7 +620,7 @@ impl Registry {
             invalid: false,
         });
         Some(ScrollRouteKey {
-            registry_id: self.registry_id,
+            registry_id,
             registry_epoch: self.route_epoch,
             generation: self.generation,
             registration_index,
@@ -663,8 +684,9 @@ impl Registry {
     }
 
     fn valid_route_key(&self, key: ScrollRouteKey) -> Option<usize> {
+        let registry_id = self.registry_id.0?;
         (key.registry_epoch == self.route_epoch
-            && key.registry_id == self.registry_id
+            && key.registry_id == registry_id
             && key.generation == self.generation
             && !self.route_epoch_exhausted
             && self
@@ -703,6 +725,7 @@ impl Registry {
         &self,
         registration_index: usize,
     ) -> Option<(ScrollRouteKey, u64)> {
+        let registry_id = self.registry_id.0?;
         if self.route_epoch_exhausted {
             return None;
         }
@@ -713,7 +736,7 @@ impl Registry {
         }
         Some((
             ScrollRouteKey {
-                registry_id: self.registry_id,
+                registry_id,
                 registry_epoch: self.route_epoch,
                 generation: self.generation,
                 registration_index,
