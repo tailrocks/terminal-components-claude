@@ -159,6 +159,73 @@ const ACTIVITIES_FAINT_NORMAL_A_OWNER_KEYS: [&str; 3] = [
     "activities-multi 160 50 junie 16",
 ];
 
+const CONCEPT64_NORMAL_A_OWNER_KEYS: [&str; 64] = [
+    "upgrade-plan 80 24 junie truecolor",
+    "upgrade-plan 80 24 junie 256",
+    "upgrade-plan 80 24 junie 16",
+    "upgrade-plan 80 24 junie mono",
+    "upgrade-plan 80 24 paper truecolor",
+    "upgrade-plan 80 24 paper 256",
+    "upgrade-plan 80 24 paper 16",
+    "upgrade-plan 80 24 paper mono",
+    "upgrade-plan 100 30 junie truecolor",
+    "upgrade-plan 100 30 junie 256",
+    "upgrade-plan 100 30 junie 16",
+    "upgrade-plan 100 30 junie mono",
+    "upgrade-plan 100 30 paper truecolor",
+    "upgrade-plan 100 30 paper 256",
+    "upgrade-plan 100 30 paper 16",
+    "upgrade-plan 100 30 paper mono",
+    "upgrade-plan 120 40 junie truecolor",
+    "upgrade-plan 120 40 junie 256",
+    "upgrade-plan 120 40 junie 16",
+    "upgrade-plan 120 40 junie mono",
+    "upgrade-plan 120 40 paper truecolor",
+    "upgrade-plan 120 40 paper 256",
+    "upgrade-plan 120 40 paper 16",
+    "upgrade-plan 120 40 paper mono",
+    "upgrade-plan 160 50 junie truecolor",
+    "upgrade-plan 160 50 junie 256",
+    "upgrade-plan 160 50 junie 16",
+    "upgrade-plan 160 50 junie mono",
+    "upgrade-plan 160 50 paper truecolor",
+    "upgrade-plan 160 50 paper 256",
+    "upgrade-plan 160 50 paper 16",
+    "upgrade-plan 160 50 paper mono",
+    "remote-host 80 24 junie truecolor",
+    "remote-host 80 24 junie 256",
+    "remote-host 80 24 junie 16",
+    "remote-host 80 24 junie mono",
+    "remote-host 80 24 paper truecolor",
+    "remote-host 80 24 paper 256",
+    "remote-host 80 24 paper 16",
+    "remote-host 80 24 paper mono",
+    "remote-host 100 30 junie truecolor",
+    "remote-host 100 30 junie 256",
+    "remote-host 100 30 junie 16",
+    "remote-host 100 30 junie mono",
+    "remote-host 100 30 paper truecolor",
+    "remote-host 100 30 paper 256",
+    "remote-host 100 30 paper 16",
+    "remote-host 100 30 paper mono",
+    "remote-host 120 40 junie truecolor",
+    "remote-host 120 40 junie 256",
+    "remote-host 120 40 junie 16",
+    "remote-host 120 40 junie mono",
+    "remote-host 120 40 paper truecolor",
+    "remote-host 120 40 paper 256",
+    "remote-host 120 40 paper 16",
+    "remote-host 120 40 paper mono",
+    "remote-host 160 50 junie truecolor",
+    "remote-host 160 50 junie 256",
+    "remote-host 160 50 junie 16",
+    "remote-host 160 50 junie mono",
+    "remote-host 160 50 paper truecolor",
+    "remote-host 160 50 paper 256",
+    "remote-host 160 50 paper 16",
+    "remote-host 160 50 paper mono",
+];
+
 fn tracked_port_owner_key(
     scenario: Scenario,
     width: u16,
@@ -489,6 +556,21 @@ fn activities_faint_normal_a_owner_key(
         || !NONOVERFLOW_NORMAL_A_OWNER_VIEWPORTS.contains(&(width, height))
         || *theme != Theme::junie()
         || color != ColorLevel::Ansi16
+    {
+        return None;
+    }
+    normal_a_owner_key(scenario, width, height, theme, color)
+}
+
+fn concept64_normal_a_owner_key(
+    scenario: Scenario,
+    width: u16,
+    height: u16,
+    theme: &Theme,
+    color: ColorLevel,
+) -> Option<String> {
+    if !matches!(scenario, Scenario::UpgradePlan | Scenario::RemoteHost)
+        || !SIZES.contains(&(width, height))
     {
         return None;
     }
@@ -1610,6 +1692,29 @@ fn holla_visual_baseline() {
                         );
                         continue;
                     }
+                    if let Some(expected_key) =
+                        concept64_normal_a_owner_key(scenario, width, height, &theme, color)
+                    {
+                        let evidence = assert_nonoverflow_normal_a_owner(
+                            scenario,
+                            theme.clone(),
+                            color,
+                            width,
+                            height,
+                            &expected_key,
+                        );
+                        assert_eq!(
+                            evidence.key, expected_key,
+                            "normal-A concept64 route retains the exact key"
+                        );
+                        if scenario == Scenario::RemoteHost && (width, height) == (80, 24) {
+                            assert_eq!(
+                                evidence.visual_extent, 15,
+                                "RemoteHost 80x24 A model fills the exact fifteen-row viewport"
+                            );
+                        }
+                        continue;
+                    }
                     if is_historical_ansi16_faint_case(scenario, width, height, &theme, color) {
                         dispatch_historical_ansi16_faint_replay(scenario, width, height);
                         continue;
@@ -2556,6 +2661,172 @@ fn holla_activities_nonoverflow_normal_a_owner_matrix_is_exact() {
     assert!(selected_union.is_disjoint(&tracked_keys));
     assert!(selected_union.is_disjoint(&root_keys));
     assert!(selected_union.is_disjoint(&older_keys));
+}
+
+#[test]
+fn holla_concept64_normal_a_owner_matrix_is_exact() {
+    let junie = Theme::junie();
+    let paper = Theme::paper();
+    let mut changed_theme = junie.clone();
+    changed_theme.color.fg[0] = Color::Green;
+    for (scenario, width, height, theme, color) in [
+        (Scenario::UpgradePlan, 79, 24, &junie, ColorLevel::TrueColor),
+        (Scenario::RemoteHost, 80, 23, &junie, ColorLevel::TrueColor),
+        (Scenario::UpgradePlan, 100, 29, &junie, ColorLevel::Ansi256),
+        (
+            Scenario::RemoteHost,
+            120,
+            40,
+            &changed_theme,
+            ColorLevel::Ansi16,
+        ),
+        (
+            Scenario::DockerCleanup,
+            80,
+            24,
+            &junie,
+            ColorLevel::TrueColor,
+        ),
+        (Scenario::HardCases, 100, 30, &junie, ColorLevel::TrueColor),
+        (
+            Scenario::ActivitiesMulti,
+            100,
+            30,
+            &junie,
+            ColorLevel::TrueColor,
+        ),
+        (
+            Scenario::MonorepoChild,
+            100,
+            30,
+            &junie,
+            ColorLevel::TrueColor,
+        ),
+        (Scenario::MonorepoRoot, 120, 40, &paper, ColorLevel::Mono),
+    ] {
+        assert!(
+            concept64_normal_a_owner_key(scenario, width, height, theme, color).is_none(),
+            "concept64 selector rejects neighboring and excluded configuration: {scenario:?} {width}x{height} {theme:?} {color:?}"
+        );
+    }
+
+    let expected_keys: BTreeSet<_> = CONCEPT64_NORMAL_A_OWNER_KEYS
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    assert_eq!(expected_keys.len(), 64, "exact finite concept64 key list");
+
+    let child_keys: BTreeSet<_> = CHILD_NORMAL_A_OWNER_KEYS
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    let activities_keys: BTreeSet<_> = ACTIVITIES_ORDINARY_NORMAL_A_OWNER_KEYS
+        .iter()
+        .chain(ACTIVITIES_FAINT_NORMAL_A_OWNER_KEYS.iter())
+        .map(|key| (*key).to_owned())
+        .collect();
+    let tracked_keys: BTreeSet<_> = TRACKED_PORT_OWNER_KEYS
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    let root_keys: BTreeSet<_> = std::iter::once(ROOT100_NORMAL_A_OWNER_KEY.to_owned())
+        .chain(
+            REMAINING_ROOT_NORMAL_A_OWNER_KEYS
+                .iter()
+                .map(|key| (*key).to_owned()),
+        )
+        .collect();
+    let older_keys: BTreeSet<_> = EXISTING_CURRENT_A_OWNER_KEYS
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    assert!(expected_keys.is_disjoint(&child_keys));
+    assert!(expected_keys.is_disjoint(&activities_keys));
+    assert!(expected_keys.is_disjoint(&tracked_keys));
+    assert!(expected_keys.is_disjoint(&root_keys));
+    assert!(expected_keys.is_disjoint(&older_keys));
+
+    let mut matrix_inputs = 0_usize;
+    let mut selected_keys = BTreeSet::new();
+    for scenario in Scenario::ALL {
+        for (width, height) in SIZES {
+            for theme in [Theme::junie(), Theme::paper()] {
+                for color in COLORS {
+                    matrix_inputs = matrix_inputs.saturating_add(1);
+                    let key = concept64_normal_a_owner_key(scenario, width, height, &theme, color);
+                    let child_key =
+                        child_normal_a_owner_key(scenario, width, height, &theme, color);
+                    let ordinary_activities_key = activities_ordinary_normal_a_owner_key(
+                        scenario, width, height, &theme, color,
+                    );
+                    let faint_activities_key =
+                        activities_faint_normal_a_owner_key(scenario, width, height, &theme, color);
+                    let tracked_key =
+                        tracked_port_owner_key(scenario, width, height, &theme, color);
+                    let root_key = root_normal_a_owner_key(scenario, width, height, &theme, color);
+                    assert!(
+                        key.is_none()
+                            || (child_key.is_none()
+                                && ordinary_activities_key.is_none()
+                                && faint_activities_key.is_none()
+                                && tracked_key.is_none()
+                                && root_key.is_none()
+                                && !EXISTING_CURRENT_A_OWNER_KEYS
+                                    .iter()
+                                    .any(|owner| Some(*owner) == key.as_deref())),
+                        "concept64 selector is disjoint from Root, Child, Activities, tracked, and older owners"
+                    );
+                    if matches!(scenario, Scenario::DockerCleanup | Scenario::HardCases) {
+                        assert!(
+                            key.is_none(),
+                            "DockerCleanup32 and HardCases32 remain outside concept64 routing"
+                        );
+                    }
+
+                    if let Some(expected_key) = key {
+                        assert!(
+                            expected_keys.contains(&expected_key),
+                            "selected concept key belongs to the exact finite set: {expected_key}"
+                        );
+                        let evidence = assert_nonoverflow_normal_a_owner(
+                            scenario,
+                            theme.clone(),
+                            color,
+                            width,
+                            height,
+                            &expected_key,
+                        );
+                        assert_eq!(
+                            evidence.key, expected_key,
+                            "normal-A helper retains the exact concept64 key"
+                        );
+                        if scenario == Scenario::RemoteHost && (width, height) == (80, 24) {
+                            assert_eq!(
+                                evidence.visual_extent, 15,
+                                "RemoteHost 80x24 A model fills the exact fifteen-row viewport"
+                            );
+                        }
+                        assert!(
+                            selected_keys.insert(evidence.key),
+                            "matrix selects each concept64 key once"
+                        );
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(matrix_inputs, 1_120, "complete 1,120-input matrix");
+    assert_eq!(selected_keys.len(), 64, "exactly sixty-four concept keys");
+    assert_eq!(
+        selected_keys, expected_keys,
+        "exact concept64 normal-A key set"
+    );
+    assert!(selected_keys.is_disjoint(&child_keys));
+    assert!(selected_keys.is_disjoint(&activities_keys));
+    assert!(selected_keys.is_disjoint(&tracked_keys));
+    assert!(selected_keys.is_disjoint(&root_keys));
+    assert!(selected_keys.is_disjoint(&older_keys));
 }
 
 #[test]
