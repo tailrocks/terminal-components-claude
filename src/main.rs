@@ -26,10 +26,12 @@ use tuiscotti::sample::{Observation, Sample};
 mod raw_probes;
 mod source_manifest;
 
-const COLS: u16 = 120;
-const ROWS: u16 = 40;
-const FLOW_DENOMINATOR: usize = 4;
-const CHECKPOINT_DENOMINATOR: usize = 12;
+const DEFAULT_COLS: u16 = 120;
+const DEFAULT_ROWS: u16 = 40;
+const FIRST_FLOW_DENOMINATOR: usize = 4;
+const FIRST_CHECKPOINT_DENOMINATOR: usize = 12;
+const FIRST_PLUS_HELP_FLOW_DENOMINATOR: usize = 5;
+const FIRST_PLUS_HELP_CHECKPOINT_DENOMINATOR: usize = 18;
 const HELP_TIMEOUT_MS: u64 = 15_000;
 const EXIT_TIMEOUT_MS: u64 = 30_000;
 const QUIET_TIMEOUT: Duration = Duration::from_secs(15);
@@ -37,7 +39,21 @@ const QUIET_INTERVAL: Duration = Duration::from_millis(400);
 const ENGINE_COMMIT: &str = "438563a86a3c5d78e6da6e12511fa089c6f15c61";
 const TUISCOTTI_COMMIT: &str = "f40513120727f83c0c9713ae8d04eac70dfc955e";
 const ENGINE_PATH: &str = "/Users/donbeave/Downloads/tui-test-raw-capture-r7-20261027";
-const CHECKPOINTS: [&str; 3] = ["initial", "help", "restored"];
+const FIRST_CHECKPOINTS: [&str; 3] = ["initial", "help", "restored"];
+const SHOWCASE_HELP_CHECKPOINTS: [&str; 6] = [
+    "initial",
+    "help-start",
+    "help-scrolled",
+    "restored",
+    "help-reopened",
+    "restored-after-modal-q",
+];
+
+#[derive(Clone, Copy)]
+enum Journey {
+    First,
+    ShowcaseHelp80x24,
+}
 
 #[derive(Clone, Copy)]
 struct Case {
@@ -48,9 +64,13 @@ struct Case {
     help_key: &'static str,
     help_marker: &'static str,
     quit_key: &'static str,
+    cols: u16,
+    rows: u16,
+    checkpoint_labels: &'static [&'static str],
+    journey: Journey,
 }
 
-const CASES: [Case; FLOW_DENOMINATOR] = [
+const CASES: [Case; FIRST_FLOW_DENOMINATOR] = [
     Case {
         id: "first/showcase",
         binary: "showcase",
@@ -59,6 +79,10 @@ const CASES: [Case; FLOW_DENOMINATOR] = [
         help_key: "?",
         help_marker: "Keyboard & mouse",
         quit_key: "q",
+        cols: DEFAULT_COLS,
+        rows: DEFAULT_ROWS,
+        checkpoint_labels: &FIRST_CHECKPOINTS,
+        journey: Journey::First,
     },
     Case {
         id: "first/holla",
@@ -77,6 +101,10 @@ const CASES: [Case; FLOW_DENOMINATOR] = [
         help_key: "F1",
         help_marker: "Key reference",
         quit_key: "Ctrl+q",
+        cols: DEFAULT_COLS,
+        rows: DEFAULT_ROWS,
+        checkpoint_labels: &FIRST_CHECKPOINTS,
+        journey: Journey::First,
     },
     Case {
         id: "first/jackin",
@@ -95,6 +123,10 @@ const CASES: [Case; FLOW_DENOMINATOR] = [
         help_key: "?",
         help_marker: "Keyboard shortcuts",
         quit_key: "q",
+        cols: DEFAULT_COLS,
+        rows: DEFAULT_ROWS,
+        checkpoint_labels: &FIRST_CHECKPOINTS,
+        journey: Journey::First,
     },
     Case {
         id: "first/tablepro",
@@ -104,8 +136,26 @@ const CASES: [Case; FLOW_DENOMINATOR] = [
         help_key: "?",
         help_marker: "Keyboard shortcuts",
         quit_key: "q",
+        cols: DEFAULT_COLS,
+        rows: DEFAULT_ROWS,
+        checkpoint_labels: &FIRST_CHECKPOINTS,
+        journey: Journey::First,
     },
 ];
+
+const SHOWCASE_HELP_CASE: Case = Case {
+    id: "showcase-help/80x24-v1",
+    binary: "showcase",
+    args: &["--motion", "paused", "--frame", "0", "--color", "truecolor"],
+    initial_marker: "Overview",
+    help_key: "?",
+    help_marker: "Keyboard & mouse",
+    quit_key: "q",
+    cols: 80,
+    rows: 24,
+    checkpoint_labels: &SHOWCASE_HELP_CHECKPOINTS,
+    journey: Journey::ShowcaseHelp80x24,
+};
 
 #[derive(Debug)]
 struct Checkpoint {
@@ -187,14 +237,7 @@ fn run() -> AppResult<()> {
     let bin_dir = bin_dir.ok_or("--bin-dir is required")?;
     let out_dir = out_dir.ok_or("--out is required")?;
     let group = group.ok_or("--group is required")?;
-    if group == "all" {
-        return Err(
-            "--group all is incomplete: the full parity inventory is not implemented".into(),
-        );
-    }
-    if group != "first" {
-        return Err(format!("unsupported group {group:?}; expected first or all").into());
-    }
+    let (cases, flow_denominator, checkpoint_denominator) = cases_for_group(&group)?;
 
     let mode = std::env::var("TERMROCK_LIVE_MODE")
         .map_err(|_| "TERMROCK_LIVE_MODE is required; set capture or check explicitly")?;
@@ -215,15 +258,15 @@ fn run() -> AppResult<()> {
     };
     let start = Instant::now();
     let started_at = unix_ms();
-    let mut flow_results = Vec::with_capacity(FLOW_DENOMINATOR);
+    let mut flow_results = Vec::with_capacity(flow_denominator);
     let mut completed_flows = 0_usize;
     let mut passed_flows = 0_usize;
     let mut completed_checkpoints = 0_usize;
     let mut passed_checkpoints = 0_usize;
     let mut failed_flows = 0_usize;
-    for case in CASES {
+    for case in &cases {
         let result = run_case(
-            case,
+            *case,
             &bin_dir.join(case.binary),
             &root,
             &out_dir,
@@ -244,20 +287,20 @@ fn run() -> AppResult<()> {
     }
     let elapsed_ms = start.elapsed().as_millis() as u64;
     let run_status = if failed_flows > 0
-        || completed_flows != FLOW_DENOMINATOR
-        || completed_checkpoints != CHECKPOINT_DENOMINATOR
+        || completed_flows != flow_denominator
+        || completed_checkpoints != checkpoint_denominator
     {
         "failed"
     } else if mode == "capture" {
         "captured-unapproved"
-    } else if passed_flows == FLOW_DENOMINATOR && passed_checkpoints == CHECKPOINT_DENOMINATOR {
+    } else if passed_flows == flow_denominator && passed_checkpoints == checkpoint_denominator {
         "passed"
     } else {
         "failed"
     };
     let process_status = if failed_flows == 0
-        && completed_flows == FLOW_DENOMINATOR
-        && completed_checkpoints == CHECKPOINT_DENOMINATOR
+        && completed_flows == flow_denominator
+        && completed_checkpoints == checkpoint_denominator
     {
         "complete"
     } else {
@@ -272,16 +315,16 @@ fn run() -> AppResult<()> {
         "started_at_unix_ms": started_at,
         "finished_at_unix_ms": unix_ms(),
         "live_process_elapsed_ms": elapsed_ms,
-        "flow_denominator": FLOW_DENOMINATOR,
+        "flow_denominator": flow_denominator,
         "flows_completed": completed_flows,
-        "flow_percent": percent(completed_flows, FLOW_DENOMINATOR),
+        "flow_percent": percent(completed_flows, flow_denominator),
         "flows_passed": passed_flows,
-        "flow_pass_percent": percent(passed_flows, FLOW_DENOMINATOR),
-        "checkpoint_denominator": CHECKPOINT_DENOMINATOR,
+        "flow_pass_percent": percent(passed_flows, flow_denominator),
+        "checkpoint_denominator": checkpoint_denominator,
         "checkpoints_completed": completed_checkpoints,
-        "checkpoint_percent": percent(completed_checkpoints, CHECKPOINT_DENOMINATOR),
+        "checkpoint_percent": percent(completed_checkpoints, checkpoint_denominator),
         "checkpoints_passed": passed_checkpoints,
-        "checkpoint_pass_percent": percent(passed_checkpoints, CHECKPOINT_DENOMINATOR),
+        "checkpoint_pass_percent": percent(passed_checkpoints, checkpoint_denominator),
         "binary_source_manifest": source_manifest,
         "suite_dependency_sources": {
             "tuiscotti": TUISCOTTI_COMMIT,
@@ -307,6 +350,47 @@ fn run() -> AppResult<()> {
     Ok(())
 }
 
+fn cases_for_group(group: &str) -> AppResult<(Vec<Case>, usize, usize)> {
+    let (cases, flow_denominator, checkpoint_denominator) = match group {
+        "first" => (
+            CASES.to_vec(),
+            FIRST_FLOW_DENOMINATOR,
+            FIRST_CHECKPOINT_DENOMINATOR,
+        ),
+        "first-plus-help" => (
+            CASES
+                .iter()
+                .copied()
+                .chain(std::iter::once(SHOWCASE_HELP_CASE))
+                .collect(),
+            FIRST_PLUS_HELP_FLOW_DENOMINATOR,
+            FIRST_PLUS_HELP_CHECKPOINT_DENOMINATOR,
+        ),
+        "all" => {
+            return Err(
+                "--group all is incomplete: the full parity inventory is not implemented".into(),
+            );
+        }
+        other => {
+            return Err(format!(
+                "unsupported group {other:?}; expected first, first-plus-help, or all"
+            )
+            .into());
+        }
+    };
+    let actual_checkpoints: usize = cases.iter().map(|case| case.checkpoint_labels.len()).sum();
+    if cases.is_empty()
+        || cases.len() != flow_denominator
+        || actual_checkpoints != checkpoint_denominator
+    {
+        return Err(format!(
+            "group {group:?} selection does not match its frozen flow and checkpoint counts"
+        )
+        .into());
+    }
+    Ok((cases, flow_denominator, checkpoint_denominator))
+}
+
 fn run_case(
     case: Case,
     binary: &Path,
@@ -324,7 +408,7 @@ fn run_case(
     let session = Session::new(format!("termrock-live-{}", case.id.replace('/', "-")));
     let mut spawned = false;
     let mut child_exited = false;
-    let mut checkpoints = Vec::with_capacity(CHECKPOINTS.len());
+    let mut checkpoints = Vec::with_capacity(case.checkpoint_labels.len());
     let mut actions = Vec::new();
     let mut process_state = Value::Null;
     let work = (|| -> AppResult<()> {
@@ -343,8 +427,8 @@ fn run_case(
             program: String::new(),
             args: Vec::new(),
             profile: Profile::default(),
-            cols: COLS,
-            rows: ROWS,
+            cols: case.cols,
+            rows: case.rows,
             cwd: Some(cwd.to_string_lossy().into_owned()),
             env: Vec::new(),
             wait_ready: Some(false),
@@ -375,37 +459,55 @@ fn run_case(
         }
         checkpoints.push(capture_checkpoint(
             &session,
-            &sample_profile,
+            sample_profile,
             case,
-            "initial",
+            case.checkpoint_labels[0],
             &case_out,
         )?);
 
-        actions.push(json!({"event":"key_press","key":case.help_key,"at_unix_ms":unix_ms()}));
-        send_key(&session, case.help_key)?;
-        session
-            .get_by_text(case.help_marker)
-            .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
-        wait_visual_quiet(&session)?;
-        checkpoints.push(capture_checkpoint(
-            &session,
-            &sample_profile,
-            case,
-            "help",
-            &case_out,
-        )?);
+        match case.journey {
+            Journey::First => {
+                actions
+                    .push(json!({"event":"key_press","key":case.help_key,"at_unix_ms":unix_ms()}));
+                send_key(&session, case.help_key)?;
+                session
+                    .get_by_text(case.help_marker)
+                    .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
+                wait_visual_quiet(&session)?;
+                checkpoints.push(capture_checkpoint(
+                    &session,
+                    sample_profile,
+                    case,
+                    case.checkpoint_labels[1],
+                    &case_out,
+                )?);
 
-        actions.push(json!({"event":"key_press","key":"Escape","at_unix_ms":unix_ms()}));
-        send_key(&session, "Escape")?;
-        session
-            .get_by_text(case.help_marker)
-            .wait_hidden(Some(HELP_TIMEOUT_MS))?;
-        session
-            .get_by_text(case.initial_marker)
-            .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
-        wait_visual_quiet(&session)?;
-        let restored = capture_checkpoint(&session, &sample_profile, case, "restored", &case_out)?;
-        checkpoints.push(restored);
+                actions.push(json!({"event":"key_press","key":"Escape","at_unix_ms":unix_ms()}));
+                send_key(&session, "Escape")?;
+                session
+                    .get_by_text(case.help_marker)
+                    .wait_hidden(Some(HELP_TIMEOUT_MS))?;
+                session
+                    .get_by_text(case.initial_marker)
+                    .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
+                wait_visual_quiet(&session)?;
+                checkpoints.push(capture_checkpoint(
+                    &session,
+                    sample_profile,
+                    case,
+                    case.checkpoint_labels[2],
+                    &case_out,
+                )?);
+            }
+            Journey::ShowcaseHelp80x24 => run_showcase_help_steps(
+                &session,
+                sample_profile,
+                case,
+                &case_out,
+                &mut checkpoints,
+                &mut actions,
+            )?,
+        }
 
         actions.push(json!({"event":"key_press","key":case.quit_key,"at_unix_ms":unix_ms()}));
         send_key(&session, case.quit_key)?;
@@ -486,40 +588,35 @@ fn run_case(
                     let baseline_path = suite
                         .join("expected")
                         .join(format!("{}.tui.json", checkpoint.sample_id));
-                    if baseline_path.is_file() {
-                        if let Ok(bytes) = fs::read(baseline_path) {
-                            if let Ok(baseline) = Sample::from_bytes(&bytes) {
-                                if let Some(object) = check_value.as_object_mut() {
-                                    object.insert(
-                                        "first_difference".to_string(),
-                                        json!(first_difference(
-                                            &baseline.snapshot(),
-                                            &checkpoint.snapshot
-                                        )),
-                                    );
-                                    object.insert(
-                                        "changed_fields".to_string(),
-                                        json!(failure.changed_fields()),
-                                    );
-                                    object.insert(
-                                        "changed_cells".to_string(),
-                                        json!(
-                                            failure
-                                                .changed_cells()
-                                                .iter()
-                                                .map(|cell| json!({
-                                                    "col": cell.col(),
-                                                    "row": cell.row(),
-                                                    "fields": cell.fields(),
-                                                    "actual_text": cell.actual_text(),
-                                                    "baseline_text": cell.baseline_text(),
-                                                }))
-                                                .collect::<Vec<_>>()
-                                        ),
-                                    );
-                                }
-                            }
-                        }
+                    if baseline_path.is_file()
+                        && let Ok(bytes) = fs::read(baseline_path)
+                        && let Ok(baseline) = Sample::from_bytes(&bytes)
+                        && let Some(object) = check_value.as_object_mut()
+                    {
+                        object.insert(
+                            "first_difference".to_string(),
+                            json!(first_difference(baseline.snapshot(), &checkpoint.snapshot)),
+                        );
+                        object.insert(
+                            "changed_fields".to_string(),
+                            json!(failure.changed_fields()),
+                        );
+                        object.insert(
+                            "changed_cells".to_string(),
+                            json!(
+                                failure
+                                    .changed_cells()
+                                    .iter()
+                                    .map(|cell| json!({
+                                        "col": cell.col(),
+                                        "row": cell.row(),
+                                        "fields": cell.fields(),
+                                        "actual_text": cell.actual_text(),
+                                        "baseline_text": cell.baseline_text(),
+                                    }))
+                                    .collect::<Vec<_>>()
+                            ),
+                        );
                     }
                 }
                 let checkpoint_dir = case_out.join("checkpoints").join(&checkpoint.label);
@@ -619,7 +716,7 @@ fn run_case(
         "started_at_unix_ms":started_at,
         "finished_at_unix_ms":unix_ms(),
         "live_process_elapsed_ms":case_start.elapsed().as_millis() as u64,
-        "expected_checkpoints":CHECKPOINTS,
+        "expected_checkpoints":case.checkpoint_labels,
         "checkpoints_completed":checkpoints.len(),
         "checkpoints_passed":checkpoints_passed,
         "checkpoint_records":checkpoints.iter().map(|checkpoint| json!({
@@ -642,6 +739,108 @@ fn run_case(
     Ok(result)
 }
 
+fn run_showcase_help_steps(
+    session: &Session,
+    profile: &tuiscotti::render_profile::Profile,
+    case: Case,
+    case_out: &Path,
+    checkpoints: &mut Vec<Checkpoint>,
+    actions: &mut Vec<Value>,
+) -> AppResult<()> {
+    actions.push(json!({"event":"key_press","key":case.help_key,"at_unix_ms":unix_ms()}));
+    send_key(session, case.help_key)?;
+    session
+        .get_by_text(case.help_marker)
+        .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
+    wait_visual_quiet(session)?;
+    checkpoints.push(capture_checkpoint(
+        session,
+        profile,
+        case,
+        case.checkpoint_labels[1],
+        case_out,
+    )?);
+    let help_start_index = checkpoints.len() - 1;
+    session
+        .get_by_text("Mouse")
+        .wait_hidden(Some(HELP_TIMEOUT_MS))?;
+
+    actions.push(json!({"event":"key_press","key":"PageDown","at_unix_ms":unix_ms()}));
+    send_key(session, "PageDown")?;
+    session
+        .get_by_text("Mouse")
+        .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
+    session
+        .get_by_text(case.help_marker)
+        .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
+    wait_visual_quiet(session)?;
+    let help_scrolled =
+        capture_checkpoint(session, profile, case, case.checkpoint_labels[2], case_out)?;
+    let scrolled_text_changed = visible_text_changed(
+        &checkpoints[help_start_index].snapshot,
+        &help_scrolled.snapshot,
+    );
+    checkpoints.push(help_scrolled);
+    if !scrolled_text_changed {
+        return Err("PageDown did not change visible help text or range".into());
+    }
+
+    actions.push(json!({"event":"key_press","key":"Escape","at_unix_ms":unix_ms()}));
+    send_key(session, "Escape")?;
+    session
+        .get_by_text(case.help_marker)
+        .wait_hidden(Some(HELP_TIMEOUT_MS))?;
+    session
+        .get_by_text(case.initial_marker)
+        .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
+    wait_visual_quiet(session)?;
+    checkpoints.push(capture_checkpoint(
+        session,
+        profile,
+        case,
+        case.checkpoint_labels[3],
+        case_out,
+    )?);
+
+    actions.push(json!({"event":"key_press","key":case.help_key,"at_unix_ms":unix_ms()}));
+    send_key(session, case.help_key)?;
+    session
+        .get_by_text(case.help_marker)
+        .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
+    wait_visual_quiet(session)?;
+    let help_reopened =
+        capture_checkpoint(session, profile, case, case.checkpoint_labels[4], case_out)?;
+    let help_reopened_index = checkpoints.len();
+    checkpoints.push(help_reopened);
+    assert_same_checkpoint_state(
+        &checkpoints[help_start_index],
+        &checkpoints[help_reopened_index],
+        "reopened help did not return to the initial help state",
+    )?;
+
+    actions.push(json!({"event":"key_press","key":"q","at_unix_ms":unix_ms()}));
+    send_key(session, "q")?;
+    session
+        .get_by_text(case.help_marker)
+        .wait_hidden(Some(HELP_TIMEOUT_MS))?;
+    session
+        .get_by_text(case.initial_marker)
+        .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
+    session
+        .get_by_text("Quit the showcase?")
+        .wait_hidden(Some(HELP_TIMEOUT_MS))?;
+    ensure_child_active(session)?;
+    wait_visual_quiet(session)?;
+    checkpoints.push(capture_checkpoint(
+        session,
+        profile,
+        case,
+        case.checkpoint_labels[5],
+        case_out,
+    )?);
+    Ok(())
+}
+
 fn capture_checkpoint(
     session: &Session,
     profile: &tuiscotti::render_profile::Profile,
@@ -653,11 +852,13 @@ fn capture_checkpoint(
         session.capture_snapshot_with_raw_offset(SnapshotScope::ActiveScreen)?;
     let offset = offset.ok_or("processed PTY byte offset is unavailable or overflowed")?;
     let captured_at_unix_ms = unix_ms();
-    if snapshot.cols() != u32::from(COLS) || snapshot.rows() != u32::from(ROWS) {
+    if snapshot.cols() != u32::from(case.cols) || snapshot.rows() != u32::from(case.rows) {
         return Err(format!(
-            "snapshot dimensions are {}x{}, expected {COLS}x{ROWS}",
+            "snapshot dimensions are {}x{}, expected {}x{}",
             snapshot.cols(),
-            snapshot.rows()
+            snapshot.rows(),
+            case.cols,
+            case.rows
         )
         .into());
     }
@@ -688,6 +889,42 @@ fn capture_checkpoint(
     })
 }
 
+fn visible_text_changed(left: &TerminalSnapshot, right: &TerminalSnapshot) -> bool {
+    for row in 0..left.rows().min(right.rows()) {
+        for col in 0..left.cols().min(right.cols()) {
+            let Some(left_cell) = left.cell_at(col, row) else {
+                continue;
+            };
+            let Some(right_cell) = right.cell_at(col, row) else {
+                continue;
+            };
+            if left_cell.text() != right_cell.text() {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn assert_same_checkpoint_state(
+    left: &Checkpoint,
+    right: &Checkpoint,
+    message: &str,
+) -> AppResult<()> {
+    if let Some(difference) = first_difference(&left.snapshot, &right.snapshot) {
+        return Err(format!("{message}: {difference}").into());
+    }
+    let left_sample = Sample::from_bytes(&left.sample_bytes)?;
+    let right_sample = Sample::from_bytes(&right.sample_bytes)?;
+    if left_sample.render_contract() != right_sample.render_contract() {
+        return Err(format!("{message}: render contracts differ").into());
+    }
+    if left.png_sha256 != right.png_sha256 || left.rgba_sha256 != right.rgba_sha256 {
+        return Err(format!("{message}: rendered pixels differ").into());
+    }
+    Ok(())
+}
+
 fn compare_command(args: Vec<std::ffi::OsString>) -> AppResult<()> {
     let mut left = None;
     let mut right = None;
@@ -709,12 +946,37 @@ fn compare_command(args: Vec<std::ffi::OsString>) -> AppResult<()> {
     let left = left.ok_or("compare-runs requires --left")?;
     let right = right.ok_or("compare-runs requires --right")?;
     let out = out.ok_or("compare-runs requires --out")?;
-    verify_complete_capture_run(&left)?;
-    verify_complete_capture_run(&right)?;
-    let mut comparisons = Vec::with_capacity(CHECKPOINT_DENOMINATOR);
+    let left_run: Value = read_json(&left.join("run-result.json"))?;
+    let right_run: Value = read_json(&right.join("run-result.json"))?;
+    let group = left_run["group"]
+        .as_str()
+        .ok_or_else(|| format!("{} has no selected group", left.display()))?;
+    if right_run["group"] != group {
+        return Err(format!(
+            "comparison groups differ: left={group:?}, right={:?}",
+            right_run["group"]
+        )
+        .into());
+    }
+    let (cases, flow_denominator, checkpoint_denominator) = cases_for_group(group)?;
+    verify_complete_capture_run(
+        &left,
+        group,
+        &cases,
+        flow_denominator,
+        checkpoint_denominator,
+    )?;
+    verify_complete_capture_run(
+        &right,
+        group,
+        &cases,
+        flow_denominator,
+        checkpoint_denominator,
+    )?;
+    let mut comparisons = Vec::with_capacity(checkpoint_denominator);
     let mut differing = 0_usize;
-    for case in CASES {
-        for label in CHECKPOINTS {
+    for case in &cases {
+        for label in case.checkpoint_labels {
             let relative = PathBuf::from(case.id).join("checkpoints").join(label);
             let left_bytes = fs::read(left.join(&relative).join("sample.tui.json"))?;
             let right_bytes = fs::read(right.join(&relative).join("sample.tui.json"))?;
@@ -760,13 +1022,15 @@ fn compare_command(args: Vec<std::ffi::OsString>) -> AppResult<()> {
             }));
         }
     }
-    if comparisons.len() != CHECKPOINT_DENOMINATOR {
+    if comparisons.len() != checkpoint_denominator {
         return Err(format!("incomplete comparison: {} checkpoints", comparisons.len()).into());
     }
     let result = json!({
         "schema":"termrock-live-stability.v1",
         "status":if differing == 0 {"stable-unapproved"} else {"different"},
-        "denominator":CHECKPOINT_DENOMINATOR,
+        "group":group,
+        "flow_denominator":flow_denominator,
+        "denominator":checkpoint_denominator,
         "compared":comparisons.len(),
         "stable":comparisons.len()-differing,
         "different":differing,
@@ -788,16 +1052,25 @@ fn compare_command(args: Vec<std::ffi::OsString>) -> AppResult<()> {
     )
 }
 
-fn verify_complete_capture_run(path: &Path) -> AppResult<()> {
+fn verify_complete_capture_run(
+    path: &Path,
+    group: &str,
+    cases: &[Case],
+    flow_denominator: usize,
+    checkpoint_denominator: usize,
+) -> AppResult<()> {
     let result: Value = read_json(&path.join("run-result.json"))?;
     if result["status"] != "captured-unapproved"
         || result["mode"] != "capture"
         || result["process_status"] != "complete"
+        || result["group"] != group
     {
         return Err(format!("{} is not a complete capture-only run", path.display()).into());
     }
-    if result["flows_completed"] != FLOW_DENOMINATOR as u64
-        || result["checkpoints_completed"] != CHECKPOINT_DENOMINATOR as u64
+    if result["flow_denominator"] != flow_denominator as u64
+        || result["flows_completed"] != flow_denominator as u64
+        || result["checkpoint_denominator"] != checkpoint_denominator as u64
+        || result["checkpoints_completed"] != checkpoint_denominator as u64
     {
         return Err(format!(
             "{} has an incomplete flow or checkpoint count",
@@ -808,10 +1081,10 @@ fn verify_complete_capture_run(path: &Path) -> AppResult<()> {
     let flows = result["flows"]
         .as_array()
         .ok_or_else(|| format!("{} has no flow records", path.display()))?;
-    if flows.len() != FLOW_DENOMINATOR {
+    if flows.len() != flow_denominator {
         return Err(format!("{} has an incomplete flow record list", path.display()).into());
     }
-    for case in CASES {
+    for case in cases {
         let case_out = path.join(case.id);
         let flow = flows
             .iter()
@@ -819,8 +1092,9 @@ fn verify_complete_capture_run(path: &Path) -> AppResult<()> {
             .ok_or_else(|| format!("{} is missing flow {}", path.display(), case.id))?;
         if flow["status"] != "captured-unapproved"
             || flow["process_status"] != "complete"
-            || flow["checkpoints_completed"] != CHECKPOINTS.len() as u64
-            || flow["checkpoint_records"].as_array().map(Vec::len) != Some(CHECKPOINTS.len())
+            || flow["checkpoints_completed"] != case.checkpoint_labels.len() as u64
+            || flow["checkpoint_records"].as_array().map(Vec::len)
+                != Some(case.checkpoint_labels.len())
         {
             return Err(format!("{} has an incomplete flow {}", path.display(), case.id).into());
         }
@@ -841,9 +1115,7 @@ fn verify_complete_capture_run(path: &Path) -> AppResult<()> {
         let processed = raw_status["processed_output_offset"]
             .as_u64()
             .ok_or_else(|| format!("{} has no processed byte offset", case_out.display()))?;
-        if captured != processed
-            || u64::try_from(fs::metadata(case_out.join("raw.ansi"))?.len())? != captured
-        {
+        if captured != processed || fs::metadata(case_out.join("raw.ansi"))?.len() != captured {
             return Err(format!("{} raw byte counts do not match", case_out.display()).into());
         }
     }
@@ -1107,5 +1379,5 @@ fn unix_ms() -> u128 {
 }
 
 fn usage_error() -> String {
-    "usage: termrock-live-suite --bin-dir BIN --out OUT --group first | all\n       termrock-live-suite compare-runs --left A --right B --out RESULT.json\n       termrock-live-suite probe-raw-capture --out OUT\n       termrock-live-suite write-source-manifest --bin-dir BIN --source-dir REPO --source-commit SHA --source-tree SHA --build-log FILE --binary-sha256-file FILE".into()
+    "usage: termrock-live-suite --bin-dir BIN --out OUT --group first | first-plus-help | all\n       termrock-live-suite compare-runs --left A --right B --out RESULT.json\n       termrock-live-suite probe-raw-capture --out OUT\n       termrock-live-suite write-source-manifest --bin-dir BIN --source-dir REPO --source-commit SHA --source-tree SHA --build-log FILE --binary-sha256-file FILE".into()
 }

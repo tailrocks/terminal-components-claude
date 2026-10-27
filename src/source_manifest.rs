@@ -289,7 +289,7 @@ fn evidence_path(manifest: &Value, key: &str) -> Result<PathBuf, Box<dyn Error>>
     if !path.is_absolute() {
         return Err(format!("{key} path must be absolute: {raw}").into());
     }
-    Ok(canonical_file(path)?)
+    canonical_file(path)
 }
 
 fn parse_hash_file(path: &Path) -> Result<HashMap<String, String>, Box<dyn Error>> {
