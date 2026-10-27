@@ -12,8 +12,9 @@ base64 = "=0.23.1"
 serde = "=1.0.229"
 serde_json = "=1.0.154"
 sha2 = "=0.11.1"
+toml = "=0.9.12"
 tui-test-rs = { version = "=0.1.1", features = ["recording-raster", "recording-font-jetbrains-mono-styles"] }
-tuiscotti = { version = "=0.4.0", git = "https://github.com/tailrocks/tuiscotti", rev = "bc4b6ed693fd5a6ae260cab6ac464e9772e1a9bd" }
+tuiscotti = { version = "=0.4.0", git = "https://github.com/tailrocks/tuiscotti", rev = "5059387d4488aa68319ddbbd9d4748ac367513f4" }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

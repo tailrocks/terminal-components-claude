@@ -28,8 +28,8 @@ ENGINE_BUNDLE_TREE = "2dae292afaa4a47f84f234faecc69b680dce0325"
 ENGINE_RESULT_TREE = "43571813ce7ef7481c7032dfa110c62df7beb062"
 ENGINE_BUNDLE_SHA256 = "2448a1154019b120f697964c65f6da0bd7a7aa6530707d80763a78da66d64c3e"
 ENGINE_PATCH_SHA256 = "fad39f69c647ac2218efdf263a76ff569b8e7c715c0d13451e8b6a963362971d"
-TUISCOTTI_COMMIT = "bc4b6ed693fd5a6ae260cab6ac464e9772e1a9bd"
-SUITE_LOCK_SHA256 = "c836d046465dfaf7cad9c2496aada0441fe089122059699c7175e6a033ec99c7"
+TUISCOTTI_COMMIT = "5059387d4488aa68319ddbbd9d4748ac367513f4"
+SUITE_LOCK_SHA256 = "ada3c0689430e516e0c8cba0af7df93bfe34d65749cb769fca230f7f64d38b2a"
 ENGINE_PATCH_FILES = (
     "crates/tui-test/src/api.rs",
     "crates/tui-test/src/engine.rs",
@@ -724,7 +724,14 @@ def validate_manifest(manifest):
         validate_relative(directory, "manifest directory")
     if manifest["directories"] != implied_directories(manifest["files"]):
         fail("manifest directories do not match files and required case working directories")
-    for relative in (PIN_RELATIVE, BUNDLE_RELATIVE, LOCK_RELATIVE, "export.py"):
+    for relative in (
+        PIN_RELATIVE,
+        BUNDLE_RELATIVE,
+        LOCK_RELATIVE,
+        "export.py",
+        "cases.toml",
+        "terminal.toml",
+    ):
         if relative not in file_paths:
             fail(f"manifest is missing required file {relative}")
     data_digest, reference_digest = data_and_reference_digests(manifest["files"])
