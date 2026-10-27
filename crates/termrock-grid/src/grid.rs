@@ -2750,6 +2750,7 @@ impl Grid<'_> {
                             item: Some(row_key),
                         },
                     pos,
+                    mods,
                     ..
                 } => {
                     let Some(row) = Self::row_index(model, row_key, st.core.cursor_index()) else {
@@ -2768,10 +2769,15 @@ impl Grid<'_> {
                         st.type_ahead.reset();
                     }
                     match phase {
-                        Phase::Press => self.move_to(st, model, row, col, false, acc),
+                        Phase::Press => {
+                            let extend = matches!(self.nav, NavUnit::Row) && mods.contains(SHIFT);
+                            self.move_to(st, model, row, col, extend, acc);
+                        }
                         Phase::DoubleClick => {
                             if matches!(self.nav, NavUnit::Row) {
-                                if model.row_enabled(row) {
+                                if mods.contains(SHIFT) {
+                                    acc.consumed();
+                                } else if model.row_enabled(row) {
                                     acc.action(GridAction::Activated(row_key));
                                 } else {
                                     acc.consumed();
