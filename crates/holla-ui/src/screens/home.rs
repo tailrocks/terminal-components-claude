@@ -156,10 +156,42 @@ impl HomeState {
         self.editor.draft_text().unwrap_or(&self.value)
     }
 
-    pub(crate) fn clear_query(&mut self) {
+    pub(crate) fn clear_query(&mut self, world: &World) {
         self.value.clear();
         self.editor.cancel();
         self.editor.begin("");
+        self.reconcile_rows(world);
+    }
+
+    pub(crate) fn reconcile_rows(&mut self, world: &World) {
+        let rows = self.rows(world);
+        self.reconcile_selection(&rows);
+    }
+
+    fn reconcile_selection(&mut self, rows: &[HomeRow]) {
+        let selected = self
+            .rows
+            .cursor()
+            .and_then(|key| {
+                rows.iter()
+                    .enumerate()
+                    .find(|(_, row)| row_key(row) == key && row.action.is_some())
+            })
+            .or_else(|| {
+                rows.iter()
+                    .enumerate()
+                    .find(|(_, row)| row.action.is_some())
+            });
+        let current = selected.map(|(_, row)| row_key(row));
+        if let Some((index, row)) = selected {
+            let key = row_key(row);
+            if self.rows.cursor() != Some(key) {
+                self.rows.set_cursor(index, key);
+            }
+        }
+        if self.rows.current() != current {
+            self.rows.set_current(current);
+        }
     }
 
     pub(crate) fn rows(&self, world: &World) -> Vec<HomeRow> {
@@ -455,18 +487,7 @@ impl HomeState {
         } else {
             nav_list().update(cx, &mut self.rows, &rows)
         };
-        let current_key = self
-            .rows
-            .cursor()
-            .and_then(|key| {
-                rows.iter()
-                    .find(|row| row_key(row) == key && row.action.is_some())
-                    .map(row_key)
-            })
-            .or_else(|| rows.iter().find(|row| row.action.is_some()).map(row_key));
-        if self.rows.current() != current_key {
-            self.rows.set_current(current_key);
-        }
+        self.reconcile_selection(&rows);
         let query_preview = cx
             .intents(QUERY)
             .any(|intent| matches!(intent, Intent::Binding(action) if action == OPEN_PREVIEW));

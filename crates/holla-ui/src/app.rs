@@ -515,10 +515,6 @@ impl std::fmt::Debug for App {
     }
 }
 const BAR_LABELS: [&str; 3] = ["File", "Go", "Help"];
-const MENU_BAR_TITLE_PARTS: &[(Part, StylePatch)] = &[(
-    Part::TITLE,
-    StylePatch::new().remove(termrock::Modifier::BOLD),
-)];
 
 fn menu_bar() -> MenuBar<'static> {
     const FILE: &[MenuItem<'static>] = &[MenuItem::new(QUIT, "Quit").chord(Chord::with(
@@ -540,50 +536,12 @@ fn menu_bar() -> MenuBar<'static> {
     ];
 
     MenuBar::new(MENU, MENUS)
-        .patch_part(MENU_BAR_TITLE_PARTS)
         .chord_case(termrock::ChordCase::UppercaseAscii)
         .hover_scope(MenuBarHoverScope::Title)
 }
 
 fn brand() -> Brand<'static> {
     Brand::new(BRAND, "holla❯").clickable(true)
-}
-
-fn rest_tag_menu(world: &crate::sim::World) -> bool {
-    use crate::sim::catalogue::{
-        parity_browser_tag_frame, parity_cargo_tag_frame, parity_files_tag_frame,
-        parity_git_batch_tag_frame, parity_git_current_tag_frame, parity_history_tag_frame,
-    };
-    parity_git_current_tag_frame(world)
-        || parity_cargo_tag_frame(world)
-        || parity_git_batch_tag_frame(world)
-        || parity_files_tag_frame(world)
-        || parity_browser_tag_frame(world)
-        || parity_history_tag_frame(world)
-}
-
-fn paint_rest_menu_titles(ui: &mut Ui<'_>, menu_x: u16, y: u16) {
-    let plain = ui.paint_patch(
-        &StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Secondary))
-            .remove(termrock::Modifier::BOLD),
-    );
-    let gap = ui.paint_patch(
-        &StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Primary))
-            .remove(termrock::Modifier::BOLD),
-    );
-    let mut x = menu_x;
-    ui.paint_str(Rect::new(x, y, 1, 1), " ", gap);
-    x = x.saturating_add(1);
-    for label in BAR_LABELS {
-        let text = format!(" {label} ");
-        let width = termrock::width(&text);
-        ui.paint_str(Rect::new(x, y, width, 1), &text, plain);
-        x = x.saturating_add(width);
-        ui.paint_str(Rect::new(x, y, 1, 1), " ", gap);
-        x = x.saturating_add(1);
-    }
 }
 
 const MENU_CHROME_EDGE: u16 = 2;
@@ -1485,9 +1443,16 @@ impl App {
         let token_recipes = termrock::Theme::from_tokens(source_theme.color).recipes;
         let paper_recipes = termrock::Theme::paper().recipes;
         let junie_recipes = termrock::Theme::junie().recipes;
+        let mut holla_junie_recipes = junie_recipes.clone();
+        let menu_title = holla_junie_recipes
+            .get_mut(termrock::Family::MENU)
+            .variant_mut(termrock::Variant::custom("termrock.menu-bar-title"))
+            .entry(Part::TITLE);
+        menu_title.base = menu_title.base.remove(termrock::Modifier::BOLD);
         let recipes_are_known = source_theme.recipes == token_recipes
             || source_theme.recipes == paper_recipes
-            || source_theme.recipes == junie_recipes;
+            || source_theme.recipes == junie_recipes
+            || source_theme.recipes == holla_junie_recipes;
         let source_foreground = source_theme
             .resolve(
                 termrock::Family::HINTBAR,
@@ -1891,6 +1856,7 @@ impl App {
             Destination::DiskScan => self.open_disk_scan(cx, None),
             Destination::HostScope => {
                 self.home.scope = Some(Scope::Host);
+                self.home.reconcile_rows(&self.world);
                 self.route = Route::Home;
                 cx.focus(home::ROWS);
             }
@@ -2920,6 +2886,7 @@ impl App {
                             .and_then(|index| Scope::ORDER.get(index.saturating_add(1)).copied())
                     },
                 );
+                self.home.reconcile_rows(&self.world);
                 self.set_status(format!(
                     "Scope: {}",
                     self.home.scope.map_or("all", Scope::label)
@@ -2959,9 +2926,10 @@ impl App {
             PREVIOUS if self.route == Route::Home => cx.focus_prev(),
             QUERY_ESCAPE if self.route == Route::Home => {
                 if self.home.scope.take().is_some() {
+                    self.home.reconcile_rows(&self.world);
                     self.set_status("Scope: all".into());
                 } else {
-                    self.home.clear_query();
+                    self.home.clear_query(&self.world);
                 }
             }
             command if self.route == Route::Activity => {
@@ -3316,13 +3284,6 @@ impl App {
             .0
             .min(menu_room);
         menu.draw(ui, Rect::new(menu_x, header.y, menu_width, 1), &self.menu);
-
-        if (self.route == Route::Disk && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world))
-            || launch_failure_activity_open(&self.world, ui)
-            || rest_tag_menu(&self.world)
-        {
-            paint_rest_menu_titles(ui, menu_x, header.y);
-        }
         let menu_right = menu_x.saturating_add(menu_width).saturating_sub(1);
         let brand_right = lockup_x.saturating_add(brand_width);
         let used = menu_right.max(brand_right);
@@ -4427,10 +4388,11 @@ impl termrock::App for App {
             return Response::changed();
         }
         if self.home.scope.take().is_some() {
+            self.home.reconcile_rows(&self.world);
             return Response::changed();
         }
         if !self.home.query().is_empty() {
-            self.home.clear_query();
+            self.home.clear_query(&self.world);
             return Response::changed();
         }
         Response::ignored()
