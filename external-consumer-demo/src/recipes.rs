@@ -1,16 +1,7 @@
-
-
-
-
-
-
-
 use termrock::ItemKey;
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Fact {
-
     pub key: u64,
 
     pub label: &'static str,
@@ -18,10 +9,8 @@ pub struct Fact {
     pub value: &'static str,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Recipe {
-
     pub id: u64,
 
     pub name: &'static str,
@@ -32,12 +21,10 @@ pub struct Recipe {
 }
 
 impl Recipe {
-
     pub const fn key(&self) -> ItemKey {
         ItemKey::num(self.id)
     }
 }
-
 
 pub const RECIPES: &[Recipe] = &[
     Recipe {
