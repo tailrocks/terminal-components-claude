@@ -1758,7 +1758,12 @@ impl App {
     }
 
     fn help_overlay() -> HelpOverlay<'static> {
-        HelpOverlay::new(HELP, "Showcase", &HELP_SECTIONS)
+        HelpOverlay::new(HELP, "Showcase", &HELP_SECTIONS).title("Keyboard & mouse")
+    }
+
+    fn open_help(&mut self, cx: &mut Cx<'_>) {
+        self.help_state = HelpOverlayState::default();
+        cx.open_layer(HELP, Self::help_overlay().layer(cx));
     }
 
     fn inspector_dialog(viewport: Rect) -> Dialog<'static> {
@@ -1886,8 +1891,7 @@ impl App {
         });
         if help_clicked {
             if !cx.is_open(HELP) {
-                let layer = Self::help_overlay().layer(cx);
-                cx.open_layer(HELP, layer);
+                self.open_help(cx);
             }
             *response |= Response::changed();
         }
@@ -2695,7 +2699,7 @@ impl TuiApp for App {
             }
             Some(NEXT_PAGE | PREV_PAGE) => {}
             Some(HELP_COMMAND) if !cx.is_open(HELP) => {
-                cx.open_layer(HELP, Self::help_overlay().layer(cx));
+                self.open_help(cx);
             }
             Some(INSPECTOR_COMMAND) if cx.update_cause() == termrock::UpdateCause::Event => {
                 self.toggle_inspector(&mut response);
