@@ -584,6 +584,10 @@ impl<M: GridModel + ?Sized> GridModel for OrderedModel<'_, M> {
         self.source.row_key(self.order[row])
     }
 
+    fn row_enabled(&self, row: usize) -> bool {
+        self.source.row_enabled(self.order[row])
+    }
+
     fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>> {
         self.source.cell(self.order[row], col)
     }
@@ -627,6 +631,56 @@ fn parse_display_number(value: &str) -> Option<f64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct EligibilityRows;
+
+    impl GridModel for EligibilityRows {
+        fn row_count(&self) -> usize {
+            3
+        }
+
+        fn row_key(&self, row: usize) -> ItemKey {
+            [ItemKey::num(30), ItemKey::num(10), ItemKey::num(20)]
+                .get(row)
+                .copied()
+                .unwrap_or(ItemKey::index(row))
+        }
+
+        fn row_enabled(&self, row: usize) -> bool {
+            self.row_key(row) != ItemKey::num(20)
+        }
+
+        fn cell(&self, row: usize, column: usize) -> Option<CellRef<'_>> {
+            let text = match (row, column) {
+                (0, 0) => "charlie",
+                (1, 0) => "alpha",
+                (2, 0) => "bravo",
+                _ => return None,
+            };
+            Some(CellRef::new(text))
+        }
+    }
+
+    #[test]
+    fn ordered_model_maps_row_eligibility_through_sorted_source_indices() {
+        let columns = [TableColumn::new(Column {
+            sortable: true,
+            ..Column::new(ColumnKey::num(1), "Name")
+        })];
+        let table = Table::new(Id::root("table.eligibility"), &columns);
+        let model = EligibilityRows;
+        let order = table.ordered_rows(&model, Some((ColumnKey::num(1), SortDir::Asc)));
+        assert_eq!(order, vec![1, 2, 0]);
+
+        let ordered = OrderedModel {
+            source: &model,
+            order: &order,
+        };
+        assert!(ordered.row_enabled(0));
+        assert!(!ordered.row_enabled(1));
+        assert!(ordered.row_enabled(2));
+        assert_eq!(ordered.row_key(1), ItemKey::num(20));
+    }
 
     struct Rows;
 

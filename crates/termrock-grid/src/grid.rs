@@ -223,6 +223,16 @@ pub trait GridModel {
 
     fn row_key(&self, row: usize) -> ItemKey;
 
+    /// Returns whether a loaded row may be checked or activated.
+    ///
+    /// Cursor movement and cell inspection still include ineligible rows, and
+    /// cell editing follows the `GridEditor` and column policies. Future
+    /// type-ahead navigation can use this predicate to choose its targets.
+    /// Existing models keep all rows enabled by default.
+    fn row_enabled(&self, _row: usize) -> bool {
+        true
+    }
+
     fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>>;
 
     fn row_decor(&self, _row: usize) -> RowDecor<'_> {
@@ -2122,6 +2132,37 @@ impl Grid<'_> {
         st.col_offset = scroll_index;
     }
 
+    fn prune_checked_rows<M: GridModel + ?Sized>(&self, st: &mut GridState, model: &M) -> bool {
+        let len = model.row_count();
+        let checked = st.core.checked_mut();
+        if checked.is_empty() {
+            return false;
+        }
+
+        if matches!(checked, KeySet::AllExcept(_)) {
+            let mut dropped = false;
+            for row in 0..len {
+                if !model.row_enabled(row) {
+                    let key = model.row_key(row);
+                    if checked.contains(key) {
+                        checked.remove(key);
+                        dropped = true;
+                    }
+                }
+            }
+            dropped
+        } else {
+            let mut enabled_keys = Vec::with_capacity(len);
+            for row in 0..len {
+                if model.row_enabled(row) {
+                    enabled_keys.push(model.row_key(row));
+                }
+            }
+            enabled_keys.sort_unstable();
+            checked.retain(|key| enabled_keys.binary_search(&key).is_ok()) > 0
+        }
+    }
+
     fn toggle_row<M: GridModel + ?Sized>(
         &self,
         st: &mut GridState,
@@ -2129,7 +2170,7 @@ impl Grid<'_> {
         row: usize,
         acc: &mut Acc<GridAction>,
     ) {
-        if row >= model.row_count() {
+        if row >= model.row_count() || !model.row_enabled(row) {
             acc.consumed();
             return;
         }
@@ -2183,6 +2224,9 @@ impl Grid<'_> {
         }
 
         let outcome = st.core.reconcile_with(len, |i| model.row_key(i), |_| true);
+        if self.prune_checked_rows(st, model) {
+            acc.changed();
+        }
         if outcome != Reconciliation::Unchanged {
             if let Some(RangeAnchor::Cell(a, _)) = st.anchor
                 && Self::row_index(model, a, st.core.cursor_index()).is_none()
@@ -2398,12 +2442,19 @@ impl Grid<'_> {
                             if matches!(self.select_mode, SelectMode::None) {
                                 acc.consumed();
                             } else {
-                                let all =
-                                    (0..len).all(|i| st.core.checked().contains(model.row_key(i)));
+                                let all = (0..len).all(|i| {
+                                    !model.row_enabled(i)
+                                        || st.core.checked().contains(model.row_key(i))
+                                });
                                 if all {
                                     st.core.checked_mut().none();
                                 } else {
                                     st.core.checked_mut().all();
+                                    for i in 0..len {
+                                        if !model.row_enabled(i) {
+                                            st.core.checked_mut().remove(model.row_key(i));
+                                        }
+                                    }
                                 }
                                 acc.changed();
                             }
@@ -2412,7 +2463,11 @@ impl Grid<'_> {
                             if len == 0 || column_count == 0 {
                                 acc.consumed();
                             } else if matches!(self.nav, NavUnit::Row) {
-                                acc.action(GridAction::Activated(model.row_key(row)));
+                                if model.row_enabled(row) {
+                                    acc.action(GridAction::Activated(model.row_key(row)));
+                                } else {
+                                    acc.consumed();
+                                }
                             } else {
                                 pending.edit = Some(EditRequest {
                                     row,
@@ -2567,7 +2622,11 @@ impl Grid<'_> {
                         Phase::Press => self.move_to(st, model, row, col, false, acc),
                         Phase::DoubleClick => {
                             if matches!(self.nav, NavUnit::Row) {
-                                acc.action(GridAction::Activated(row_key));
+                                if model.row_enabled(row) {
+                                    acc.action(GridAction::Activated(row_key));
+                                } else {
+                                    acc.consumed();
+                                }
                             } else {
                                 pending.edit = Some(EditRequest {
                                     row,
@@ -2632,6 +2691,7 @@ impl Grid<'_> {
             ..
         }) = pending.edit
             && row < model.row_count()
+            && model.row_enabled(row)
         {
             acc.action(GridAction::Activated(model.row_key(row)));
         }
@@ -2682,7 +2742,7 @@ impl Grid<'_> {
             || !self.columns.get(col).is_some_and(|c| c.editable)
             || !model.is_editable(row, col)
         {
-            if cause == EditCause::Activate {
+            if cause == EditCause::Activate && model.row_enabled(row) {
                 acc.action(GridAction::Activated(key));
             }
             return;
@@ -3823,6 +3883,13 @@ mod tests {
 
     struct NumericCellModel;
 
+    #[test]
+    fn row_eligibility_defaults_to_true_for_trait_objects() {
+        let model = NumericCellModel;
+        let model: &dyn GridModel = &model;
+        assert!(model.row_enabled(0));
+    }
+
     impl GridModel for NumericCellModel {
         fn row_count(&self) -> usize {
             1
@@ -3903,6 +3970,7 @@ mod tests {
         locked: bool,
         reason: Option<&'static str>,
         cell_action: bool,
+        ineligible_rows: Vec<usize>,
         hole: Option<(usize, usize)>,
         strike: bool,
     }
@@ -3980,6 +4048,10 @@ mod tests {
                 strike: self.strike && row == 0,
                 ..RowDecor::default()
             }
+        }
+
+        fn row_enabled(&self, row: usize) -> bool {
+            row < self.rows.len() && !self.ineligible_rows.contains(&row)
         }
 
         fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>> {
@@ -4171,6 +4243,7 @@ mod tests {
         state: GridState,
         model: Model,
         editable: bool,
+        nav: NavUnit,
         actions: Vec<GridAction>,
         part_defaults: Vec<(Part, StylePatch)>,
         gutter: GridGutter,
@@ -4182,6 +4255,7 @@ mod tests {
                 state: GridState::default(),
                 model,
                 editable,
+                nav: NavUnit::Cell,
                 actions: Vec::new(),
                 part_defaults: Vec::new(),
                 gutter: GridGutter::Compact,
@@ -4193,6 +4267,7 @@ mod tests {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             let columns = columns();
             let grid = Grid::new(ID, &columns)
+                .nav(self.nav)
                 .part_defaults(&self.part_defaults)
                 .gutter(self.gutter)
                 .select_mode(SelectMode::Multi);
@@ -4209,6 +4284,7 @@ mod tests {
 
         fn draw(&self, ui: &mut Ui<'_>) {
             Grid::new(ID, &columns())
+                .nav(self.nav)
                 .part_defaults(&self.part_defaults)
                 .gutter(self.gutter)
                 .select_mode(SelectMode::Multi)
@@ -4235,12 +4311,347 @@ mod tests {
     }
 
     fn runtime(model: Model, editable: bool) -> (Runtime<GridApp>, Buffer) {
-        let mut runtime = Runtime::new(GridApp::new(model, editable), Theme::junie());
+        runtime_with_nav(model, editable, NavUnit::Cell)
+    }
+
+    fn runtime_with_nav(model: Model, editable: bool, nav: NavUnit) -> (Runtime<GridApp>, Buffer) {
+        let mut app = GridApp::new(model, editable);
+        app.nav = nav;
+        let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
         runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         (runtime, buffer)
+    }
+
+    #[test]
+    fn disabled_rows_remain_navigable_but_cannot_be_checked_or_activated() {
+        let mut model = Model::two();
+        model.ineligible_rows.push(1);
+        let (mut runtime, buffer) = runtime_with_nav(model, false, NavUnit::Row);
+        let visible = buffer
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect::<Vec<_>>()
+            .join("");
+        assert!(visible.contains("beta"), "{visible}");
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Down));
+        assert_eq!(
+            runtime.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(20))
+        );
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char(' ')));
+        assert!(
+            !runtime
+                .app()
+                .state
+                .selected_rows()
+                .contains(ItemKey::num(20))
+        );
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
+        assert!(
+            !runtime
+                .app()
+                .actions
+                .contains(&GridAction::Activated(ItemKey::num(20)))
+        );
+        assert_eq!(
+            runtime.app().model.cell(1, 0).map(|cell| cell.text),
+            Some("beta")
+        );
+    }
+
+    #[test]
+    fn select_all_skips_ineligible_rows() {
+        let mut model = Model::two();
+        model.ineligible_rows.push(1);
+        let (mut runtime, _) = runtime_with_nav(model, false, NavUnit::Row);
+        let select_all = crate::event::Input::Key(crate::event::Key {
+            code: KeyCode::Char('a'),
+            mods: KeyModifiers::CONTROL,
+        });
+        let _ = crate::runtime::stub::deliver(&mut runtime, select_all);
+        assert!(
+            runtime
+                .app()
+                .state
+                .selected_rows()
+                .contains(ItemKey::num(10))
+        );
+        assert!(
+            !runtime
+                .app()
+                .state
+                .selected_rows()
+                .contains(ItemKey::num(20))
+        );
+    }
+
+    #[test]
+    fn eligibility_changes_prune_checked_keys_without_moving_the_cursor() {
+        let (mut runtime, _) = runtime_with_nav(Model::two(), false, NavUnit::Row);
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char(' ')));
+        assert!(
+            runtime
+                .app()
+                .state
+                .selected_rows()
+                .contains(ItemKey::num(10))
+        );
+
+        runtime.app_mut().model.ineligible_rows.push(0);
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
+        assert!(
+            !runtime
+                .app()
+                .state
+                .selected_rows()
+                .contains(ItemKey::num(10))
+        );
+        assert_eq!(
+            runtime.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(10))
+        );
+    }
+
+    #[test]
+    fn all_except_selection_prunes_disabled_rows_and_keeps_them_unselected_when_reenabled() {
+        let (mut runtime, _) = runtime_with_nav(Model::two(), false, NavUnit::Row);
+        let select_all = crate::event::Input::Key(crate::event::Key {
+            code: KeyCode::Char('a'),
+            mods: KeyModifiers::CONTROL,
+        });
+        let _ = crate::runtime::stub::deliver(&mut runtime, select_all);
+        assert!(matches!(
+            runtime.app().state.selected_rows(),
+            KeySet::AllExcept(_)
+        ));
+        assert!(
+            runtime
+                .app()
+                .state
+                .selected_rows()
+                .contains(ItemKey::num(20))
+        );
+
+        runtime.app_mut().model.ineligible_rows.push(1);
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
+        assert!(
+            runtime
+                .app()
+                .state
+                .selected_rows()
+                .contains(ItemKey::num(10))
+        );
+        assert!(
+            !runtime
+                .app()
+                .state
+                .selected_rows()
+                .contains(ItemKey::num(20))
+        );
+
+        runtime.app_mut().model.ineligible_rows.clear();
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
+        assert!(
+            !runtime
+                .app()
+                .state
+                .selected_rows()
+                .contains(ItemKey::num(20))
+        );
+    }
+
+    #[test]
+    fn enabled_row_double_click_activates_in_row_mode() {
+        let (mut runtime, _) = runtime_with_nav(Model::two(), false, NavUnit::Row);
+        let name_header = PartRef::item(Part::HEADER, column_item_key(ColumnKey::num(1)));
+        let name_header_rect = runtime.area_of_part(ID, name_header).unwrap_or(Rect::ZERO);
+        assert!(!name_header_rect.is_empty());
+        let row_key = ItemKey::num(10);
+        let row_cell = PartRef::item(Part::CELL, row_key);
+        let row_rect = runtime.area_of_part(ID, row_cell).unwrap_or(Rect::ZERO);
+        assert!(!row_rect.is_empty());
+
+        // The row cell part supplies y; the Name header keeps x in the first column.
+        let x = name_header_rect
+            .x
+            .saturating_add(name_header_rect.width / 2);
+        let y = row_rect.y;
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, x, y));
+        assert_eq!(
+            runtime.app().state.cursor(),
+            Some((row_key, ColumnKey::num(1)))
+        );
+        assert_eq!(runtime.app().state.col_offset, 0);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, x, y));
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, x, y));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, x, y));
+
+        assert!(
+            runtime
+                .app()
+                .actions
+                .contains(&GridAction::Activated(ItemKey::num(10)))
+        );
+    }
+
+    struct PruneCountingModel {
+        row_enabled_calls: Cell<usize>,
+        row_key_calls: Cell<usize>,
+        cell_reads: Cell<usize>,
+        sentinel_queries: Cell<usize>,
+    }
+
+    impl GridModel for PruneCountingModel {
+        fn row_count(&self) -> usize {
+            4096
+        }
+
+        fn row_key(&self, row: usize) -> ItemKey {
+            self.row_key_calls
+                .set(self.row_key_calls.get().saturating_add(1));
+            ItemKey::num(row as u64 + 1)
+        }
+
+        fn row_enabled(&self, row: usize) -> bool {
+            self.row_enabled_calls
+                .set(self.row_enabled_calls.get().saturating_add(1));
+            if row >= self.row_count() {
+                self.sentinel_queries
+                    .set(self.sentinel_queries.get().saturating_add(1));
+                return false;
+            }
+            !row.is_multiple_of(4)
+        }
+
+        fn cell(&self, _row: usize, _column: usize) -> Option<CellRef<'_>> {
+            self.cell_reads.set(self.cell_reads.get().saturating_add(1));
+            Some(CellRef::new("row"))
+        }
+
+        fn total(&self) -> RowTotal {
+            RowTotal::Unknown
+        }
+
+        fn has_more(&self) -> bool {
+            true
+        }
+    }
+
+    #[test]
+    fn explicit_selection_pruning_has_bounded_loaded_lookups_without_cell_reads_or_sentinel_queries()
+     {
+        const LOADED: usize = 4096;
+        let model = PruneCountingModel {
+            row_enabled_calls: Cell::new(0),
+            row_key_calls: Cell::new(0),
+            cell_reads: Cell::new(0),
+            sentinel_queries: Cell::new(0),
+        };
+        let columns = columns();
+        let grid = Grid::new(ID, &columns);
+        let mut state = GridState::default();
+        for row in (0..LOADED).step_by(2) {
+            state
+                .core
+                .checked_mut()
+                .insert(ItemKey::num(row as u64 + 1));
+        }
+
+        assert_eq!(model.total(), RowTotal::Unknown);
+        assert!(model.has_more());
+        assert!(grid.prune_checked_rows(&mut state, &model));
+        assert_eq!(model.row_enabled_calls.get(), LOADED);
+        assert!(model.row_key_calls.get() <= LOADED);
+        assert_eq!(model.sentinel_queries.get(), 0);
+        assert_eq!(model.cell_reads.get(), 0);
+        assert_eq!(state.core.checked().len_in(LOADED), LOADED / 4);
+    }
+
+    #[test]
+    fn enabled_rows_activate_in_row_mode() {
+        let (mut runtime, _) = runtime_with_nav(Model::two(), false, NavUnit::Row);
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
+        assert!(
+            runtime
+                .app()
+                .actions
+                .contains(&GridAction::Activated(ItemKey::num(10)))
+        );
+    }
+
+    #[test]
+    fn disabled_but_editable_rows_follow_the_grid_editor_policy() {
+        let mut model = Model::two();
+        model.ineligible_rows.push(0);
+        let (mut runtime, _) = runtime(model, true);
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
+        assert!(runtime.app().state.is_editing());
+        assert_eq!(
+            runtime.app().state.edit_cell().map(|cell| cell.0),
+            Some(ItemKey::num(10))
+        );
+    }
+
+    #[test]
+    fn pointer_activation_rechecks_eligibility_at_release_for_the_pressed_row() {
+        let (mut runtime, _) = runtime_with_nav(Model::two(), false, NavUnit::Row);
+        let name_header = PartRef::item(Part::HEADER, column_item_key(ColumnKey::num(1)));
+        let name_header_rect = runtime.area_of_part(ID, name_header).unwrap_or(Rect::ZERO);
+        assert!(!name_header_rect.is_empty());
+        let row_key = ItemKey::num(10);
+        let row_index = 0;
+        let row_cell = PartRef::item(Part::CELL, row_key);
+        let row_rect = runtime.area_of_part(ID, row_cell).unwrap_or(Rect::ZERO);
+        assert!(!row_rect.is_empty());
+
+        // The row cell part supplies y; the Name header keeps x in the first column.
+        let x = name_header_rect
+            .x
+            .saturating_add(name_header_rect.width / 2);
+        let y = row_rect.y;
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, x, y));
+        assert_eq!(
+            runtime.app().state.cursor(),
+            Some((row_key, ColumnKey::num(1)))
+        );
+        assert_eq!(runtime.app().state.col_offset, 0);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, x, y));
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, x, y));
+        runtime.app_mut().model.ineligible_rows.push(row_index);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, x, y));
+
+        assert!(
+            !runtime
+                .app()
+                .actions
+                .contains(&GridAction::Activated(ItemKey::num(10)))
+        );
+        assert_eq!(
+            runtime.app().state.cursor(),
+            Some((row_key, ColumnKey::num(1)))
+        );
+        assert_eq!(runtime.app().state.col_offset, 0);
+    }
+
+    #[test]
+    fn geometric_cell_copy_keeps_ineligible_rows_in_the_range() {
+        let mut model = Model::two();
+        model.ineligible_rows.push(1);
+        let columns = columns();
+        let grid = Grid::new(ID, &columns);
+        let mut state = GridState {
+            anchor: Some(RangeAnchor::Cell(ItemKey::num(10), ColumnKey::num(1))),
+            ..GridState::default()
+        };
+        state.set_cursor(1, ItemKey::num(20), 1, ColumnKey::num(2));
+        assert_eq!(grid.copy_tsv(&state, &model, (1, 1)), "alpha\t1\nbeta\t2\n");
     }
 
     #[test]

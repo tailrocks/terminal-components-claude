@@ -613,6 +613,7 @@ fn duration_text(seconds: u32) -> String {
 #[derive(Debug)]
 struct TaskTableRow {
     id: u32,
+    row_enabled: bool,
     cells: [String; 7],
     tones: [Option<Role>; 7],
 }
@@ -623,6 +624,14 @@ struct TaskTableModel {
 }
 
 impl TaskTableModel {
+    fn set_row_enabled(&mut self, task_id: u32, enabled: bool) -> bool {
+        let Some(task) = self.rows.iter_mut().find(|task| task.id == task_id) else {
+            return false;
+        };
+        task.row_enabled = enabled;
+        true
+    }
+
     fn new() -> Self {
         let rows = TASKS
             .iter()
@@ -637,6 +646,7 @@ impl TaskTableModel {
                 };
                 TaskTableRow {
                     id: task.id,
+                    row_enabled: true,
                     cells: [
                         format!("#{:04}", task.id),
                         task.name.to_owned(),
@@ -677,6 +687,10 @@ impl GridModel for TaskTableModel {
         self.rows
             .get(row)
             .map_or(ItemKey::num(0), |task| ItemKey::num(u64::from(task.id)))
+    }
+
+    fn row_enabled(&self, row: usize) -> bool {
+        self.rows.get(row).is_some_and(|task| task.row_enabled)
     }
 
     fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>> {
@@ -911,6 +925,13 @@ impl TablesPage {
     pub fn new() -> Self {
         Self::default()
     }
+
+    /// Configures whether a task, identified by its stable task ID, may be checked or activated.
+    /// All tasks start eligible, independently of their displayed status.
+    /// Returns `false` when `task_id` is not present in the current task data.
+    pub fn set_task_row_enabled(&mut self, task_id: u32, enabled: bool) -> bool {
+        self.task_model.set_row_enabled(task_id, enabled)
+    }
 }
 
 impl Page for TablesPage {
@@ -1051,6 +1072,7 @@ mod tests {
     #[test]
     fn task_table_model_exposes_source_order_keys_and_formatted_cells() {
         let model = TaskTableModel::new();
+        assert!(model.rows.iter().all(|task| task.row_enabled));
         assert_eq!(model.row_count(), 24);
         assert_eq!(model.row_key(0), ItemKey::num(1040));
         assert_eq!(model.row_key(23), ItemKey::num(1063));
@@ -1126,6 +1148,54 @@ mod tests {
             h.app().status.as_deref(),
             Some("Selected Add rate limiting to auth endpoints")
         );
+    }
+
+    #[test]
+    fn configured_task_row_stays_readable_and_ineligible_after_sort() {
+        let mut h = Harness::new(Host::default(), Theme::junie(), 120, 40);
+        let disabled_id = 1042;
+        let disabled_name = TASKS
+            .iter()
+            .find(|task| task.id == disabled_id)
+            .expect("fixture task")
+            .name;
+        assert!(h.app_mut().page.set_task_row_enabled(disabled_id, false));
+        assert!(!h.app().page.task_model.row_enabled(2));
+        let _ = h.tick();
+        assert!(h.text().contains(disabled_name));
+
+        let (disabled_x, disabled_y) = h.find("#1042").expect("disabled task ID");
+        let _ = h.double_click(disabled_x, disabled_y);
+        assert_eq!(h.app().status, None);
+
+        let (_, before_y) = h.find("#1042").expect("disabled task ID before sort");
+        let (owner_x, owner_y) = h.find("Owner").expect("owner header");
+        let _ = h.click(owner_x, owner_y);
+        assert_eq!(
+            h.app().page.task_state.sort(),
+            Some((termrock::grid::ColumnKey::num(2), SortDir::Asc))
+        );
+        let (sorted_x, sorted_y) = h.find("#1042").expect("disabled task ID after sort");
+        assert_ne!(before_y, sorted_y);
+        assert!(h.text().contains(disabled_name));
+        let _ = h.double_click(sorted_x, sorted_y);
+        assert_eq!(h.app().status, None);
+
+        let (enabled_x, enabled_y) = h.find("#1041").expect("enabled task ID");
+        let _ = h.double_click(enabled_x, enabled_y);
+        assert_eq!(
+            h.app().status.as_deref(),
+            Some("Selected Migrate sessions table to UUID keys")
+        );
+    }
+
+    #[test]
+    fn task_row_configuration_uses_stable_ids_and_rejects_unknown_ids() {
+        let mut page = TablesPage::new();
+        assert!(page.set_task_row_enabled(1042, false));
+        assert!(!page.task_model.row_enabled(2));
+        assert!(page.task_model.row_enabled(1));
+        assert!(!page.set_task_row_enabled(9999, false));
     }
 
     #[test]
