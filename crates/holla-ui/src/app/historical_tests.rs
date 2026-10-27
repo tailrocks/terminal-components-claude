@@ -3269,12 +3269,139 @@ mod root_100_nonoverflow_port_owner {
     use termrock::{Family, StateFlags, Variant};
     use termrock_test_support::Scene;
 
-    const WIDTH: u16 = 100;
-    const HEIGHT: u16 = 30;
     const FRAME_MS: u64 = 4_000;
     const EXPECTED_KEY: &str = "monorepo-root 100 30 junie truecolor";
-    const EXPECTED_ROWS: Rect = Rect::new(1, 6, 98, 21);
     const PORT_ID: &str = "system.port";
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum RootViewport {
+        W100H30,
+        W120H40,
+        W160H50,
+    }
+
+    impl RootViewport {
+        fn size(self) -> (u16, u16) {
+            match self {
+                Self::W100H30 => (100, 30),
+                Self::W120H40 => (120, 40),
+                Self::W160H50 => (160, 50),
+            }
+        }
+
+        fn frame_area(self) -> Rect {
+            let (width, height) = self.size();
+            Rect::new(0, 0, width, height)
+        }
+
+        fn rows_area(self) -> Rect {
+            match self {
+                Self::W100H30 => Rect::new(1, 6, 98, 21),
+                Self::W120H40 => Rect::new(1, 6, 118, 31),
+                Self::W160H50 => Rect::new(1, 6, 158, 41),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum RootSourceTheme {
+        Junie,
+        Paper,
+    }
+
+    impl RootSourceTheme {
+        fn theme(self) -> Theme {
+            match self {
+                Self::Junie => Theme::junie(),
+                Self::Paper => Theme::paper(),
+            }
+        }
+
+        fn label(self) -> &'static str {
+            match self {
+                Self::Junie => "junie",
+                Self::Paper => "paper",
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    struct RootCase {
+        viewport: RootViewport,
+        source_theme: RootSourceTheme,
+        color: ColorLevel,
+    }
+
+    impl RootCase {
+        const ROOT100_JUNIE_TRUECOLOR: Self = Self {
+            viewport: RootViewport::W100H30,
+            source_theme: RootSourceTheme::Junie,
+            color: ColorLevel::TrueColor,
+        };
+
+        fn key(self) -> String {
+            let (width, height) = self.viewport.size();
+            let color = match self.color {
+                ColorLevel::TrueColor => "truecolor",
+                ColorLevel::Ansi256 => "256",
+                ColorLevel::Ansi16 => "16",
+                ColorLevel::Mono => "mono",
+                _ => "other",
+            };
+            format!(
+                "{} {width} {height} {} {color}",
+                Scenario::MonorepoRoot.name(),
+                self.source_theme.label()
+            )
+        }
+    }
+
+    fn remaining_root_cases() -> Vec<RootCase> {
+        let all_cases: Vec<_> = [
+            RootViewport::W100H30,
+            RootViewport::W120H40,
+            RootViewport::W160H50,
+        ]
+        .into_iter()
+        .flat_map(|viewport| {
+            [RootSourceTheme::Junie, RootSourceTheme::Paper]
+                .into_iter()
+                .flat_map(move |source_theme| {
+                    [
+                        ColorLevel::TrueColor,
+                        ColorLevel::Ansi256,
+                        ColorLevel::Ansi16,
+                        ColorLevel::Mono,
+                    ]
+                    .into_iter()
+                    .map(move |color| RootCase {
+                        viewport,
+                        source_theme,
+                        color,
+                    })
+                })
+        })
+        .collect();
+        assert_eq!(all_cases.len(), 24, "finite Root configuration size");
+
+        let mut keys: Vec<_> = all_cases.iter().map(|case| case.key()).collect();
+        keys.sort();
+        keys.dedup();
+        assert_eq!(keys.len(), 24, "finite Root keys are unique");
+
+        let cases: Vec<_> = all_cases
+            .into_iter()
+            .filter(|case| *case != RootCase::ROOT100_JUNIE_TRUECOLOR)
+            .collect();
+        assert_eq!(cases.len(), 23, "Root100 Junie TrueColor is already owned");
+        assert!(
+            cases
+                .iter()
+                .all(|case| *case != RootCase::ROOT100_JUNIE_TRUECOLOR),
+            "remaining Root matrix excludes the existing Root100 owner"
+        );
+        cases
+    }
 
     #[derive(Clone, Debug, PartialEq, Eq)]
     enum VisualToken {
@@ -3291,6 +3418,7 @@ mod root_100_nonoverflow_port_owner {
 
     #[derive(Clone, Copy)]
     struct FrameContract<'a> {
+        frame_area: Rect,
         rows_area: Rect,
         tokens_a: &'a [VisualToken],
         tokens_b: &'a [VisualToken],
@@ -3406,7 +3534,7 @@ mod root_100_nonoverflow_port_owner {
             .map(|(index, token)| PositionedToken {
                 token,
                 y: rows_area.y.saturating_add(
-                    u16::try_from(index).expect("Root100 token index fits the viewport"),
+                    u16::try_from(index).expect("Root token index fits the configured viewport"),
                 ),
             })
             .collect()
@@ -3439,7 +3567,8 @@ mod root_100_nonoverflow_port_owner {
         })
     }
 
-    fn assert_generic_home_renderer(world: &World) {
+    fn assert_generic_home_renderer(world: &World, case: RootCase) {
+        let width = case.viewport.size().0;
         assert_ne!(
             world.scenario.boot_title(),
             crate::screens::finder::RECENT,
@@ -3449,21 +3578,21 @@ mod root_100_nonoverflow_port_owner {
             !crate::sim::catalogue::docker_cleanup_tag_frame(world),
             "generic Home has no Docker cleanup query patch"
         );
-        assert!(crate::sim::catalogue::parity_files_view(world, WIDTH).is_none());
-        assert!(crate::sim::catalogue::first_use_view(world, WIDTH, false).is_none());
-        assert!(crate::sim::catalogue::monorepo_root_view(world, WIDTH, false).is_none());
-        assert!(crate::sim::catalogue::monorepo_child_view(world, WIDTH).is_none());
-        assert!(crate::sim::catalogue::docker_cleanup_view(world, WIDTH).is_none());
-        assert!(crate::sim::catalogue::remote_host_view(world, WIDTH).is_none());
-        assert!(crate::sim::catalogue::activities_multi_view(world, WIDTH, false).is_none());
-        assert!(crate::sim::catalogue::parity_discovery_view(world, WIDTH).is_none());
+        assert!(crate::sim::catalogue::parity_files_view(world, width).is_none());
+        assert!(crate::sim::catalogue::first_use_view(world, width, false).is_none());
+        assert!(crate::sim::catalogue::monorepo_root_view(world, width, false).is_none());
+        assert!(crate::sim::catalogue::monorepo_child_view(world, width).is_none());
+        assert!(crate::sim::catalogue::docker_cleanup_view(world, width).is_none());
+        assert!(crate::sim::catalogue::remote_host_view(world, width).is_none());
+        assert!(crate::sim::catalogue::activities_multi_view(world, width, false).is_none());
+        assert!(crate::sim::catalogue::parity_discovery_view(world, width).is_none());
         assert!(crate::sim::catalogue::parity_discovery(world).is_none());
-        assert!(crate::sim::catalogue::parity_history_view(world, WIDTH).is_none());
-        assert!(crate::sim::catalogue::parity_browser_view(world, WIDTH).is_none());
-        assert!(crate::sim::catalogue::parity_git_current_view(world, WIDTH).is_none());
-        assert!(crate::sim::catalogue::parity_git_batch_view(world, WIDTH).is_none());
-        assert!(crate::sim::catalogue::parity_task_sources_view(world, WIDTH).is_none());
-        assert!(crate::sim::catalogue::parity_cargo_view(world, WIDTH).is_none());
+        assert!(crate::sim::catalogue::parity_history_view(world, width).is_none());
+        assert!(crate::sim::catalogue::parity_browser_view(world, width).is_none());
+        assert!(crate::sim::catalogue::parity_git_current_view(world, width).is_none());
+        assert!(crate::sim::catalogue::parity_git_batch_view(world, width).is_none());
+        assert!(crate::sim::catalogue::parity_task_sources_view(world, width).is_none());
+        assert!(crate::sim::catalogue::parity_cargo_view(world, width).is_none());
         let special_plate = crate::sim::catalogue::first_use_plate(world, false)
             .or_else(|| crate::sim::catalogue::monorepo_root_plate(world, false))
             .or_else(|| crate::sim::catalogue::monorepo_child_tag(world))
@@ -3477,21 +3606,22 @@ mod root_100_nonoverflow_port_owner {
         assert!(crate::sim::catalogue::hard_cases_tag(world).is_none());
     }
 
-    fn harness(world: World) -> Harness<App> {
-        let source_theme = Theme::junie();
+    fn harness(world: World, case: RootCase) -> Harness<App> {
+        let source_theme = case.source_theme.theme();
+        let (width, height) = case.viewport.size();
         let mut app = App::from_fixture_world(world, Motion::Paused, FRAME_MS);
         app.home.history = false;
         let app = app.with_source_theme(source_theme.clone());
         Harness::new_with_feedback_clock(
             app,
             source_theme,
-            WIDTH,
-            HEIGHT,
+            width,
+            height,
             FeedbackClock::Simulation {
                 initial: SimulationMoment::from_millis(FRAME_MS),
             },
         )
-        .with_color(ColorLevel::TrueColor)
+        .with_color(case.color)
     }
 
     fn assert_arm_controls(
@@ -3499,10 +3629,11 @@ mod root_100_nonoverflow_port_owner {
         expected_memory: &crate::domain::ranking::Memory,
         rows: &[(String, String)],
         tokens: &[VisualToken],
+        case: RootCase,
         label: &str,
     ) {
-        let source_theme = Theme::junie();
-        let expected_runtime_theme = source_theme.for_level(ColorLevel::TrueColor);
+        let source_theme = case.source_theme.theme();
+        let expected_runtime_theme = source_theme.for_level(case.color);
         assert_eq!(
             harness.runtime().theme(),
             &expected_runtime_theme,
@@ -3595,12 +3726,12 @@ mod root_100_nonoverflow_port_owner {
         );
         assert_eq!(
             *harness.buffer().area(),
-            Rect::new(0, 0, WIDTH, HEIGHT),
+            case.viewport.frame_area(),
             "{label} frame"
         );
         assert_eq!(
             harness.area_of(crate::screens::home::ROWS),
-            Some(EXPECTED_ROWS),
+            Some(case.viewport.rows_area()),
             "{label} exact rows geometry"
         );
         assert!(
@@ -3616,7 +3747,7 @@ mod root_100_nonoverflow_port_owner {
             "{label} no scrollbar thumb"
         );
         assert!(
-            tokens.len() <= usize::from(EXPECTED_ROWS.height),
+            tokens.len() <= usize::from(case.viewport.rows_area().height),
             "{label} model does not overflow"
         );
         assert!(
@@ -3633,7 +3764,7 @@ mod root_100_nonoverflow_port_owner {
             "{label} no failed discovery note over trailing blank"
         );
 
-        let positions = positioned(tokens, EXPECTED_ROWS);
+        let positions = positioned(tokens, case.viewport.rows_area());
         for (_, action_id) in rows {
             let expected_y = action_position(&positions, action_id);
             assert!(
@@ -3646,7 +3777,7 @@ mod root_100_nonoverflow_port_owner {
                     crate::screens::home::ROWS,
                     PartRef::item(Part::ROW, termrock::ItemKey::text(action_id)),
                 ),
-                Some(row_rect(EXPECTED_ROWS, expected_y)),
+                Some(row_rect(case.viewport.rows_area(), expected_y)),
                 "{label} zero-offset row geometry for {action_id}"
             );
         }
@@ -3661,28 +3792,24 @@ mod root_100_nonoverflow_port_owner {
         }
     }
 
-    fn paint_port_scratch(action: &Action, columns: [u16; 4], row: Rect, theme: Theme) -> Buffer {
-        let mut scene = Scene::new(
-            "port-row-scratch",
-            theme,
-            ColorLevel::TrueColor,
-            WIDTH,
-            HEIGHT,
-        );
+    fn paint_port_scratch(
+        action: &Action,
+        columns: [u16; 4],
+        row: Rect,
+        theme: Theme,
+        case: RootCase,
+    ) -> Buffer {
+        let (width, height) = case.viewport.size();
+        let mut scene = Scene::new("port-row-scratch", theme, case.color, width, height);
         scene.draw(|ui, _| {
             crate::screens::home::paint_port_row_for_test(ui, row, action, columns);
         });
         scene.buffer().clone()
     }
 
-    fn paint_blank_scratch(row: Rect, theme: Theme) -> Buffer {
-        let mut scene = Scene::new(
-            "list-container-scratch",
-            theme,
-            ColorLevel::TrueColor,
-            WIDTH,
-            HEIGHT,
-        );
+    fn paint_blank_scratch(row: Rect, theme: Theme, case: RootCase) -> Buffer {
+        let (width, height) = case.viewport.size();
+        let mut scene = Scene::new("list-container-scratch", theme, case.color, width, height);
         scene.draw(|ui, _| {
             let style = ui
                 .style(
@@ -3732,8 +3859,8 @@ mod root_100_nonoverflow_port_owner {
 
     fn frame_contract_errors(a: &Buffer, b: &Buffer, contract: &FrameContract<'_>) -> Vec<String> {
         let mut errors = Vec::new();
-        if a.area() != b.area() || *a.area() != Rect::new(0, 0, WIDTH, HEIGHT) {
-            errors.push("A/B complete frame dimensions differ from Root100".to_owned());
+        if a.area() != b.area() || *a.area() != contract.frame_area {
+            errors.push("A/B complete frame dimensions differ from configured viewport".to_owned());
         }
 
         let expected_tokens_b: Vec<_> = contract
@@ -4007,8 +4134,7 @@ mod root_100_nonoverflow_port_owner {
         );
     }
 
-    #[test]
-    fn monorepo_root_100_junie_truecolor_port_hide_preserves_held_nonoverflow_frame() {
+    fn run_root_case(case: RootCase, check_root100_negative_controls: bool) {
         let mut world_a = crate::sim::fixtures::world_for(Scenario::MonorepoRoot);
         let mut world_b = crate::sim::fixtures::world_for(Scenario::MonorepoRoot);
         world_a.seek(FRAME_MS);
@@ -4061,8 +4187,8 @@ mod root_100_nonoverflow_port_owner {
             1,
             "Port remains in raw catalogue"
         );
-        assert_generic_home_renderer(&world_a);
-        assert_generic_home_renderer(&world_b);
+        assert_generic_home_renderer(&world_a, case);
+        assert_generic_home_renderer(&world_b, case);
 
         let rows_a = home_display_rows(&world_a);
         let rows_b = home_display_rows(&world_b);
@@ -4094,48 +4220,56 @@ mod root_100_nonoverflow_port_owner {
         assert_eq!(tokens_a.len(), tokens_b.len().saturating_add(1));
         assert_eq!(tokens_a.len(), 19, "A complete token model extent");
         assert_eq!(tokens_b.len(), 18, "B complete token model extent");
+        let rows_area = case.viewport.rows_area();
         assert!(
-            tokens_a.len() <= usize::from(EXPECTED_ROWS.height),
+            tokens_a.len() <= usize::from(rows_area.height),
             "A model does not overflow"
         );
         assert!(
-            tokens_b.len() < usize::from(EXPECTED_ROWS.height),
+            tokens_b.len() < usize::from(rows_area.height),
             "B has a blank tail"
         );
 
-        let port_y = port_position(&positioned(&tokens_a, EXPECTED_ROWS))
+        let port_y = port_position(&positioned(&tokens_a, rows_area))
             .expect("A model includes the actual Port token");
-        let blank_y = EXPECTED_ROWS
+        let blank_y = rows_area
             .y
             .saturating_add(u16::try_from(tokens_b.len()).expect("B model extent fits rows area"));
         assert_eq!(
             blank_y,
-            EXPECTED_ROWS.y.saturating_add(
+            rows_area.y.saturating_add(
                 u16::try_from(tokens_a.len().saturating_sub(1))
                     .expect("A final token index fits rows area")
             ),
             "B blank tail occupies A's final model token row"
         );
-        let port_row = row_rect(EXPECTED_ROWS, port_y);
-        let blank_suffix = suffix_rect(EXPECTED_ROWS, blank_y);
-        let common_blank_y = EXPECTED_ROWS.y.saturating_add(
+        let port_row = row_rect(rows_area, port_y);
+        let blank_suffix = suffix_rect(rows_area, blank_y);
+        let common_blank_y = rows_area.y.saturating_add(
             u16::try_from(tokens_a.len().max(tokens_b.len()))
                 .expect("common blank suffix starts within rows area"),
         );
-        let common_blank_suffix = suffix_rect(EXPECTED_ROWS, common_blank_y);
-        assert_eq!(blank_suffix, Rect::new(1, 24, 98, 3), "full B blank suffix");
-        assert_eq!(
-            common_blank_suffix,
-            Rect::new(1, 25, 98, 2),
-            "full common blank suffix"
-        );
+        let common_blank_suffix = suffix_rect(rows_area, common_blank_y);
+        if case == RootCase::ROOT100_JUNIE_TRUECOLOR {
+            assert_eq!(
+                case.key(),
+                EXPECTED_KEY,
+                "exact Root100 key remains the existing owner"
+            );
+            assert_eq!(blank_suffix, Rect::new(1, 24, 98, 3), "full B blank suffix");
+            assert_eq!(
+                common_blank_suffix,
+                Rect::new(1, 25, 98, 2),
+                "full common blank suffix"
+            );
+        }
 
-        let mut harness_a = harness(world_a);
-        let mut harness_b = harness(world_b);
+        let mut harness_a = harness(world_a, case);
+        let mut harness_b = harness(world_b, case);
         harness_a.draw();
         harness_b.draw();
-        assert_arm_controls(&harness_a, &memory_a, &rows_a, &tokens_a, "A");
-        assert_arm_controls(&harness_b, &memory_b, &rows_b, &tokens_b, "B");
+        assert_arm_controls(&harness_a, &memory_a, &rows_a, &tokens_a, case, "A");
+        assert_arm_controls(&harness_b, &memory_b, &rows_b, &tokens_b, case, "B");
         assert_eq!(
             harness_a.area_of_part(
                 crate::screens::home::ROWS,
@@ -4155,11 +4289,17 @@ mod root_100_nonoverflow_port_owner {
         );
 
         let runtime_theme = harness_a.runtime().theme().clone();
-        let port_paint =
-            paint_port_scratch(&port_action, columns_a, port_row, runtime_theme.clone());
-        let blank_paint = paint_blank_scratch(blank_suffix, runtime_theme);
+        let port_paint = paint_port_scratch(
+            &port_action,
+            columns_a,
+            port_row,
+            runtime_theme.clone(),
+            case,
+        );
+        let blank_paint = paint_blank_scratch(blank_suffix, runtime_theme, case);
         let contract = FrameContract {
-            rows_area: EXPECTED_ROWS,
+            frame_area: case.viewport.frame_area(),
+            rows_area,
             tokens_a: &tokens_a,
             tokens_b: &tokens_b,
             port_row,
@@ -4171,23 +4311,43 @@ mod root_100_nonoverflow_port_owner {
         let errors = frame_contract_errors(harness_a.buffer(), harness_b.buffer(), &contract);
         assert!(
             errors.is_empty(),
-            "Root100 held-owner locality errors: {errors:?}"
+            "Root held-owner locality errors for {}: {errors:?}",
+            case.key()
         );
 
-        assert_corruptions_rejected(
-            harness_a.buffer(),
-            harness_b.buffer(),
-            &contract,
-            port_y,
-            positioned(&tokens_a, EXPECTED_ROWS)
-                .iter()
-                .find(|positioned| !matches!(&positioned.token, VisualToken::Action(id) if id == PORT_ID))
-                .expect("A has a surviving visible token")
-                .y,
-        );
+        if check_root100_negative_controls {
+            assert_eq!(
+                case,
+                RootCase::ROOT100_JUNIE_TRUECOLOR,
+                "negative controls remain on the exact Root100 owner"
+            );
+            assert_corruptions_rejected(
+                harness_a.buffer(),
+                harness_b.buffer(),
+                &contract,
+                port_y,
+                positioned(&tokens_a, rows_area)
+                    .iter()
+                    .find(|positioned| !matches!(&positioned.token, VisualToken::Action(id) if id == PORT_ID))
+                    .expect("A has a surviving visible token")
+                    .y,
+            );
+        }
 
         let held = harness_b.snapshot().named(Scenario::MonorepoRoot.name());
-        assert_eq!(held.key(), EXPECTED_KEY, "exact named held baseline key");
+        assert_eq!(held.key(), case.key(), "exact named held baseline key");
         held.assert_against(&BORDER_BASELINE);
+    }
+
+    #[test]
+    fn monorepo_root_100_junie_truecolor_port_hide_preserves_held_nonoverflow_frame() {
+        run_root_case(RootCase::ROOT100_JUNIE_TRUECOLOR, true);
+    }
+
+    #[test]
+    fn monorepo_root_remaining_23_nonoverflow_port_hide_preserves_held_frames() {
+        for case in remaining_root_cases() {
+            run_root_case(case, false);
+        }
     }
 }
