@@ -173,7 +173,16 @@ const CASES: [Case; FIRST_FLOW_DENOMINATOR] = [
     Case {
         id: "first/showcase",
         binary: "showcase",
-        args: &["--motion", "paused", "--frame", "0", "--color", "truecolor"],
+        args: &[
+            "--page",
+            "overview",
+            "--motion",
+            "paused",
+            "--frame",
+            "0",
+            "--color",
+            "truecolor",
+        ],
         initial_marker: "Overview",
         help_key: "?",
         help_marker: "Keyboard & mouse",

@@ -6,7 +6,7 @@ The target has six real journeys: `first_showcase`, `first_holla`, `first_jackin
 
 ## Fixed journey inputs
 
-The first four journeys use a 120 by 40 PTY. Showcase help uses 80 by 24. All journeys start with a cleared child environment containing `LANG=C.UTF-8`, `LC_ALL=C.UTF-8`, `TZ=UTC`, `TERM=xterm-256color`, and `COLORTERM=truecolor`; `NO_COLOR` is absent. They use their existing paused-motion, frame-zero, TrueColor launch arguments and fixture directories. Jackin uses the returning scenario, Holla uses `first-use`, and TablePro does not connect to a server.
+The first four journeys use a 120 by 40 PTY. Showcase help uses 80 by 24. All journeys start with a cleared child environment containing `LANG=C.UTF-8`, `LC_ALL=C.UTF-8`, `TZ=UTC`, `TERM=xterm-256color`, and `COLORTERM=truecolor`; `NO_COLOR` is absent. They use their existing paused-motion, frame-zero, TrueColor launch arguments and fixture directories. The first Showcase journey also passes `--page overview`. Jackin uses the returning scenario, Holla uses `first-use`, and TablePro does not connect to a server.
 
 The first lane records active checkpoint labels `opened`, `help`, `returned`, and `exited`. The frozen Sample IDs keep their historical suffixes:
 
@@ -41,7 +41,7 @@ Create one authenticated export from the reviewed source commit. Keep the export
 
 Before each Cargo command, verify the sealed export and use the guarded mise command with a private command-scoped target directory outside the source and export. The workspace pins Rust 1.99.1, Mr. Boxington 1.28.0, mise 2026.10.21 or later, and cargo-nextest 0.9.150. The project Mise configuration places the selected Nextest install before ambient Cargo binaries. Keep `MISE_ENABLE_TOOLS` set to include the canonical ID `aqua:nextest-rs/nextest/cargo-nextest`.
 
-First list the selected tests and validate the names returned by nextest JSON. Stop before the run if the selected set is not exactly these four names: `first_showcase`, `first_holla`, `first_jackin`, `first_tablepro`.
+First list the selected tests and validate the names returned by nextest JSON. Use the default profile and two build jobs. Stop before the run if the selected set is not exactly these four names: `first_showcase`, `first_holla`, `first_jackin`, `first_tablepro`.
 
 ```sh
 (cd "$EXPORT" && \
@@ -49,7 +49,8 @@ First list the selected tests and validate the names returned by nextest JSON. S
   MISE_ENABLE_TOOLS=rust,mr-boxington,aqua:nextest-rs/nextest/cargo-nextest \
   MISE_AUTO_INSTALL=false MISE_LOCKFILE=false \
   /Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo \
-  nextest list --locked --test functional -E 'test(/^first_/)' --message-format json) || exit $?
+  nextest list --locked --test functional --profile default --build-jobs 2 \
+  -E 'test(/^first_/)' --message-format json) || exit $?
 ```
 
 Run the first lane from the same export for each branch. Use a fresh OUT root for every invocation. Set `TERMROCK_SUITE_EXPORT_SHA256` to the one fixed parent H used to build the target.
@@ -61,9 +62,11 @@ Run the first lane from the same export for each branch. Use a fresh OUT root fo
   MISE_ENABLE_TOOLS=rust,mr-boxington,aqua:nextest-rs/nextest/cargo-nextest \
   MISE_AUTO_INSTALL=false MISE_LOCKFILE=false \
   /Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo \
-  nextest run --locked --test functional -E 'test(/^first_/)' --no-fail-fast --retries 0) || exit $?
+  nextest run --locked --test functional --profile default --build-jobs 2 \
+  --test-threads 2 --no-tests=fail -E 'test(/^first_/)' \
+  --no-fail-fast --retries 0) || exit $?
 ```
 
-The Nextest profile uses `default-filter = "all()"`, zero retries, and no fail-fast behavior. Do not use `cargo test`, retries, ignored tests, xfails, capture mode, or baseline approval in CI. Keep the unfiltered target incomplete until the required inventories are implemented and run.
+The default Nextest profile uses `default-filter = "all()"`, zero retries, no fail-fast behavior, and a terminating timeout. On Unix, Nextest sends SIGTERM to the test process group after five periods of 60 seconds, then sends SIGKILL after a 10-second grace period. A timeout is a failure. This outer limit does not set a ten-second deadline for each cleanup call or prove that the PTY child exited, capture drained, or final evidence was written. Forced termination can prevent later evidence from being written. Record missing evidence as unreached and unverified. Do not use `cargo test`, retries, ignored tests, xfails, capture mode, or baseline approval in CI. Keep the unfiltered target incomplete until the required inventories are implemented and run.
 
 The stored first samples have independent approval for the finite first-lane profile only. The other 13 retained samples stay unchanged; the two retained journeys also capture their final exit screen, for which no approved frozen sample exists. Preserve those ordinary test failures and their evidence. The 16 first references and the remaining 13 files do not prove 31 completed checkpoints.
