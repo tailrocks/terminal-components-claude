@@ -2828,14 +2828,11 @@ impl TuiApp for App {
             self.nav_query.is_some(),
         );
         let presentation = NavTreePresentation::new(sidebar.tree, self.nav_query.as_ref());
-        let mut nodes = nav_nodes_for_query(
+        let nodes = nav_nodes_for_query(
             &self.nav_state,
             sidebar.tree.height,
             self.nav_query.as_ref(),
         );
-        for node in &mut nodes {
-            node.inactive_layer = self.overlay_open;
-        }
         let query_disclosure = self.nav_query.as_ref().and_then(|_| {
             cx.intents(NAV).find_map(|intent| match intent {
                 Intent::Pointer {
@@ -2965,11 +2962,14 @@ impl TuiApp for App {
         let sidebar =
             SidebarPresentation::new(shell.sidebar, panel_inner, gutter, self.nav_query.is_some());
         let presentation = NavTreePresentation::new(sidebar.tree, self.nav_query.as_ref());
-        let nodes = nav_nodes_for_query(
+        let mut nodes = nav_nodes_for_query(
             &self.nav_state,
             sidebar.tree.height,
             self.nav_query.as_ref(),
         );
+        for node in &mut nodes {
+            node.inactive_layer = self.overlay_open;
+        }
         let sidebar_surface = ui.theme().raise(ui.surface());
         ui.with_surface(sidebar_surface, |ui| {
             paint_sidebar_heading(ui, shell.sidebar, gutter, nav_focused);
