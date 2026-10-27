@@ -3478,6 +3478,12 @@ mod root_100_nonoverflow_port_owner {
             source_theme: OwnerSourceTheme::Junie,
             color: ColorLevel::TrueColor,
         };
+        const PARITY_BROWSER_W80_JUNIE_TRUECOLOR: Self = Self {
+            scenario: Scenario::ParityBrowser,
+            viewport: OwnerViewport::W80H24,
+            source_theme: OwnerSourceTheme::Junie,
+            color: ColorLevel::TrueColor,
+        };
 
         const HARD_CASES_NEGATIVE_CONTROLS: Self = Self {
             scenario: Scenario::HardCases,
@@ -3751,6 +3757,279 @@ mod root_100_nonoverflow_port_owner {
                 })
             })
             .collect()
+    }
+
+    const ORDINARY_PARITY_SCENARIOS: [Scenario; 16] = [
+        Scenario::ParityBrowser,
+        Scenario::ParityCargo,
+        Scenario::ParityCleanupResults,
+        Scenario::ParityCustomActions,
+        Scenario::ParityDeleteSafety,
+        Scenario::ParityDiskNavigation,
+        Scenario::ParityDocker,
+        Scenario::ParityExecutor,
+        Scenario::ParityGitBatch,
+        Scenario::ParityGitCurrent,
+        Scenario::ParityGradle,
+        Scenario::ParityHistory,
+        Scenario::ParityIdea,
+        Scenario::ParityInsights,
+        Scenario::ParityTaskInput,
+        Scenario::ParityTaskSources,
+    ];
+
+    const RECENT_PARITY_SCENARIOS: [Scenario; 6] = [
+        Scenario::ParityFiles,
+        Scenario::ParityDiskScan,
+        Scenario::ParityBrewServices,
+        Scenario::ParityUpgradeManagers,
+        Scenario::ParityPlatforms,
+        Scenario::ParityPlatformsLinux,
+    ];
+
+    const PRIOR_TRACKED_PORT_KEYS: [&str; 11] = [
+        "monorepo-root 80 24 junie mono",
+        "monorepo-root 80 24 paper truecolor",
+        "monorepo-root 80 24 paper 256",
+        "monorepo-root 80 24 paper 16",
+        "monorepo-root 80 24 paper mono",
+        "activities-multi 80 24 junie truecolor",
+        "activities-multi 80 24 junie mono",
+        "activities-multi 80 24 paper truecolor",
+        "activities-multi 80 24 paper 256",
+        "activities-multi 80 24 paper 16",
+        "activities-multi 80 24 paper mono",
+    ];
+
+    const PRIOR_EXISTING_OWNER_KEYS: [&str; 6] = [
+        "rust-dirty 80 24 junie 256",
+        "monorepo-root 80 24 junie 256",
+        "monorepo-child 80 24 junie 256",
+        "activities-multi 80 24 junie 256",
+        "monorepo-root 80 24 junie truecolor",
+        "monorepo-root 80 24 junie 16",
+    ];
+
+    fn is_ordinary_parity_scenario(scenario: Scenario) -> bool {
+        ORDINARY_PARITY_SCENARIOS.contains(&scenario)
+    }
+
+    fn ordinary_parity_owner_case(
+        scenario: Scenario,
+        viewport: OwnerViewport,
+        source_theme: OwnerSourceTheme,
+        color: ColorLevel,
+    ) -> Option<OwnerCase> {
+        if !ORDINARY_PARITY_SCENARIOS.contains(&scenario)
+            || !CONCEPT_VIEWPORTS.contains(&viewport)
+            || !CONCEPT_SOURCE_THEMES.contains(&source_theme)
+            || !CONCEPT_COLOR_LEVELS.contains(&color)
+        {
+            return None;
+        }
+        Some(OwnerCase {
+            scenario,
+            viewport,
+            source_theme,
+            color,
+        })
+    }
+
+    fn ordinary_parity_owner_cases() -> Vec<OwnerCase> {
+        let cases: Vec<_> = ORDINARY_PARITY_SCENARIOS
+            .into_iter()
+            .flat_map(|scenario| {
+                CONCEPT_VIEWPORTS.into_iter().flat_map(move |viewport| {
+                    CONCEPT_SOURCE_THEMES
+                        .into_iter()
+                        .flat_map(move |source_theme| {
+                            CONCEPT_COLOR_LEVELS
+                                .into_iter()
+                                .map(move |color| OwnerCase {
+                                    scenario,
+                                    viewport,
+                                    source_theme,
+                                    color,
+                                })
+                        })
+                })
+            })
+            .collect();
+        assert_eq!(cases.len(), 512, "exact ordinary parity owner product");
+        for scenario in ORDINARY_PARITY_SCENARIOS {
+            assert_eq!(
+                cases
+                    .iter()
+                    .filter(|case| case.scenario == scenario)
+                    .count(),
+                32,
+                "exact 32-case product for {}",
+                scenario.name()
+            );
+        }
+        let mut keys: Vec<_> = cases.iter().map(|case| case.key()).collect();
+        keys.sort();
+        keys.dedup();
+        assert_eq!(keys.len(), 512, "ordinary parity owner keys are unique");
+        cases
+    }
+
+    fn recent_parity_owner_cases() -> Vec<OwnerCase> {
+        let cases = concept_owner_cases(&RECENT_PARITY_SCENARIOS);
+        assert_eq!(cases.len(), 192, "exact six-scenario Recent exclusion");
+        assert!(
+            cases
+                .iter()
+                .all(|case| case.scenario.boot_title() == crate::screens::finder::RECENT),
+            "Recent exclusion registry contains only Recent-leading fixtures"
+        );
+        let mut keys: Vec<_> = cases.iter().map(|case| case.key()).collect();
+        keys.sort();
+        keys.dedup();
+        assert_eq!(keys.len(), 192, "Recent excluded owner keys are unique");
+        cases
+    }
+
+    fn ordinary_parity_manifest_keys() -> std::collections::BTreeSet<String> {
+        ORDINARY_PARITY_SCENARIOS
+            .into_iter()
+            .flat_map(|scenario| {
+                CONCEPT_VIEWPORTS.into_iter().flat_map(move |viewport| {
+                    CONCEPT_SOURCE_THEMES
+                        .into_iter()
+                        .flat_map(move |source_theme| {
+                            CONCEPT_COLOR_LEVELS.into_iter().map(move |color| {
+                                OwnerCase {
+                                    scenario,
+                                    viewport,
+                                    source_theme,
+                                    color,
+                                }
+                                .key()
+                            })
+                        })
+                })
+            })
+            .collect()
+    }
+
+    fn has_per_arm_action_oracle(case: OwnerCase) -> bool {
+        case.scenario == Scenario::DockerCleanup || is_ordinary_parity_scenario(case.scenario)
+    }
+
+    fn ordinary_parity_selected_is_exact(selected: Option<&str>) -> bool {
+        selected == Some("flow.disk")
+    }
+
+    fn ordinary_parity_memory_pin_is_exact(
+        memory_a: &crate::domain::ranking::Memory,
+        memory_b: &crate::domain::ranking::Memory,
+        actual_pin: &Pin,
+        actual_cwd: &str,
+        actual_command: &str,
+    ) -> bool {
+        if memory_a != &crate::domain::ranking::Memory::default() {
+            return false;
+        }
+        let expected_pin = Pin {
+            path: actual_cwd.to_owned(),
+            command: actual_command.to_owned(),
+        };
+        if actual_pin != &expected_pin || memory_a.hides.iter().any(|pin| pin == &expected_pin) {
+            return false;
+        }
+        let mut expected_memory_b = memory_a.clone();
+        expected_memory_b.hides.push(expected_pin);
+        memory_b == &expected_memory_b
+    }
+
+    fn ordinary_parity_discoveries_settled(discoveries: &[crate::sim::world::Discovery]) -> bool {
+        use crate::sim::world::Domain;
+
+        const SCHEDULE: [(Domain, i64); 7] = [
+            (Domain::Mise, 600),
+            (Domain::Git, 900),
+            (Domain::Ssh, 1_200),
+            (Domain::Github, 1_600),
+            (Domain::Docker, 2_400),
+            (Domain::Pg, 2_800),
+            (Domain::Disk, 3_200),
+        ];
+        discoveries.len() == SCHEDULE.len()
+            && discoveries
+                .iter()
+                .zip(SCHEDULE)
+                .all(|(discovery, (domain, at_ms))| {
+                    discovery.domain == domain
+                        && discovery.at_ms == at_ms
+                        && !discovery.fails
+                        && discovery.done
+                        && !discovery.failed
+                })
+    }
+
+    fn ordinary_parity_expected_model(
+        include_port: bool,
+    ) -> (Vec<(String, String)>, Vec<VisualToken>) {
+        let mut rows = vec![
+            ("Suggested here".to_owned(), "flow.disk".to_owned()),
+            ("Suggested here".to_owned(), "flow.monitor".to_owned()),
+            ("Suggested here".to_owned(), PORT_ID.to_owned()),
+        ];
+        if !include_port {
+            rows.retain(|(_, id)| id != PORT_ID);
+        }
+        let mut tokens = vec![
+            VisualToken::Header("Suggested here".to_owned()),
+            VisualToken::Action("flow.disk".to_owned()),
+            VisualToken::Action("flow.monitor".to_owned()),
+        ];
+        if include_port {
+            tokens.push(VisualToken::Action(PORT_ID.to_owned()));
+        }
+        (rows, tokens)
+    }
+
+    fn ordinary_parity_expected_columns(case: OwnerCase, include_port: bool) -> [u16; 4] {
+        assert!(is_ordinary_parity_scenario(case.scenario));
+        let scope = if case.scenario == Scenario::ParityTaskInput {
+            11
+        } else {
+            8
+        };
+        if include_port {
+            [24, 6, scope, 9]
+        } else {
+            [17, 4, scope, 9]
+        }
+    }
+
+    fn assert_ordinary_parity_model(
+        case: OwnerCase,
+        rows_a: &[(String, String)],
+        rows_b: &[(String, String)],
+        tokens_a: &[VisualToken],
+        tokens_b: &[VisualToken],
+    ) {
+        assert!(is_ordinary_parity_scenario(case.scenario));
+        let (expected_rows_a, expected_tokens_a) = ordinary_parity_expected_model(true);
+        let (expected_rows_b, expected_tokens_b) = ordinary_parity_expected_model(false);
+        assert_eq!(rows_a, expected_rows_a, "{} exact A rows", case.key());
+        assert_eq!(rows_b, expected_rows_b, "{} exact B rows", case.key());
+        assert_eq!(tokens_a, expected_tokens_a, "{} exact A tokens", case.key());
+        assert_eq!(tokens_b, expected_tokens_b, "{} exact B tokens", case.key());
+        assert_eq!(tokens_a.len(), 4, "{} A extent", case.key());
+        assert_eq!(tokens_b.len(), 3, "{} B extent", case.key());
+        assert!(
+            tokens_a
+                .iter()
+                .all(|token| !matches!(token, VisualToken::Gap))
+                && tokens_b
+                    .iter()
+                    .all(|token| !matches!(token, VisualToken::Gap)),
+            "{} has no section gaps",
+            case.key()
+        );
     }
 
     fn excluded_hard_cases_discovery_note_cases() -> Vec<OwnerCase> {
@@ -4325,6 +4604,30 @@ mod root_100_nonoverflow_port_owner {
             case.scenario,
             "{label} scenario"
         );
+        if is_ordinary_parity_scenario(case.scenario) {
+            assert_eq!(
+                harness.app().world.host,
+                crate::sim::fixtures::host_for(case.scenario),
+                "{label} exact fixture host and environment"
+            );
+            assert_eq!(
+                harness.app().world.cwd,
+                crate::sim::fixtures::cwd_for(case.scenario),
+                "{label} exact fixture cwd"
+            );
+            assert_eq!(harness.app().world.effect_revision, 0, "{label} no effects");
+            assert!(
+                ordinary_parity_discoveries_settled(&harness.app().world.discovery),
+                "{label} exact seven settled fixture discoveries"
+            );
+            if case.scenario == Scenario::ParityTaskInput {
+                assert_eq!(
+                    harness.app().world.host.env,
+                    crate::domain::host::Environment::Production,
+                    "{label} ParityTaskInput is Production"
+                );
+            }
+        }
         assert_eq!(
             harness.app().world.cwd.as_str(),
             expected.cwd,
@@ -4396,6 +4699,14 @@ mod root_100_nonoverflow_port_owner {
                 .contains(StateFlags::FOCUSED)
         );
         let selected = harness.app().home.selected(&harness.app().world);
+        if is_ordinary_parity_scenario(case.scenario) {
+            assert!(
+                ordinary_parity_selected_is_exact(
+                    selected.as_ref().map(|action| action.id.as_str())
+                ),
+                "{label} exact selected action is flow.disk"
+            );
+        }
         if let Some(selected_action) = selected.as_ref() {
             assert!(
                 rows.iter()
@@ -4671,7 +4982,8 @@ mod root_100_nonoverflow_port_owner {
                 errors.push("B action native paint coverage differs from model".to_owned());
             }
         } else if !contract.action_paints_a.is_empty() || !contract.action_paints_b.is_empty() {
-            errors.push("per-arm action paints exist outside DockerCleanup oracle".to_owned());
+            errors
+                .push("per-arm action paints exist outside a registered native oracle".to_owned());
         }
         let port_y = port_position(&positions_a);
         let expected_port_rect = port_y.map(|y| row_rect(contract.rows_area, y));
@@ -5597,6 +5909,449 @@ mod root_100_nonoverflow_port_owner {
         );
     }
 
+    #[derive(Clone, Copy, Debug)]
+    enum NativePaintCorruption {
+        Glyph,
+        Style,
+        Cell,
+    }
+
+    fn corrupt_native_action_paint(
+        paints: &[(String, Buffer)],
+        action_id: &str,
+        row: Rect,
+        corruption: NativePaintCorruption,
+    ) -> Vec<(String, Buffer)> {
+        let mut corrupted = paints.to_vec();
+        let Some((_, paint)) = corrupted
+            .iter_mut()
+            .find(|(id, _)| id.as_str() == action_id)
+        else {
+            panic!("native action paint exists for requested corruption");
+        };
+        let position = first_non_space(paint, row).expect("native action paint has visible text");
+        match corruption {
+            NativePaintCorruption::Glyph => {
+                if let Some(cell) = paint.cell_mut(position) {
+                    cell.set_symbol(if cell.symbol() == "X" { "Y" } else { "X" });
+                }
+            }
+            NativePaintCorruption::Style => flip_foreground(paint, position),
+            NativePaintCorruption::Cell =>
+            {
+                #[expect(
+                    deprecated,
+                    reason = "Verify native parity locality compares every field of a ratatui Cell"
+                )]
+                if let Some(cell) = paint.cell_mut(position) {
+                    cell.skip = !cell.skip;
+                }
+            }
+        }
+        corrupted
+    }
+
+    struct OrdinaryParityNegativeContext<'a> {
+        a: &'a Buffer,
+        b: &'a Buffer,
+        contract: FrameContract<'a>,
+        action: &'a Action,
+        columns: ArmColumnMaxima,
+        runtime_theme: &'a Theme,
+        case: OwnerCase,
+        memory_a: &'a crate::domain::ranking::Memory,
+        memory_b: &'a crate::domain::ranking::Memory,
+        actual_pin: &'a Pin,
+        actual_cwd: &'a str,
+        actual_command: &'a str,
+        discoveries: &'a [crate::sim::world::Discovery],
+    }
+
+    fn assert_ordinary_parity_corruptions_rejected(context: OrdinaryParityNegativeContext<'_>) {
+        let contract = &context.contract;
+        let action_id = context.action.id.as_str();
+        let positions_a = positioned(contract.tokens_a, contract.rows_area);
+        let positions_b = positioned(contract.tokens_b, contract.rows_area);
+        let y_a = action_position(&positions_a, action_id)
+            .expect("ordinary parity A model includes selected survivor action");
+        let y_b = action_position(&positions_b, action_id)
+            .expect("ordinary parity B model includes selected survivor action");
+        let row_a = row_rect(contract.rows_area, y_a);
+        let row_b = row_rect(contract.rows_area, y_b);
+
+        let mut wrong_title_columns = context.columns.b;
+        wrong_title_columns[0] = context.columns.a[0];
+        let mut wrong_title_paints = contract.action_paints_b.to_vec();
+        replace_action_paint(
+            &mut wrong_title_paints,
+            action_id,
+            paint_home_row_scratch(
+                context.action,
+                wrong_title_columns,
+                row_b,
+                context.runtime_theme.clone(),
+                context.case,
+            ),
+        );
+        let wrong_title_contract = FrameContract {
+            action_paints_b: &wrong_title_paints,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(context.a, context.b, &wrong_title_contract)
+                .iter()
+                .any(|error| error.contains("B action native paint") && error.contains(action_id)),
+            "B survivor paint with the A title maximum is rejected"
+        );
+
+        let mut wrong_kind_columns = context.columns.b;
+        wrong_kind_columns[1] = wrong_kind_columns[1].saturating_add(1);
+        let mut wrong_kind_paints = contract.action_paints_b.to_vec();
+        replace_action_paint(
+            &mut wrong_kind_paints,
+            action_id,
+            paint_home_row_scratch(
+                context.action,
+                wrong_kind_columns,
+                row_b,
+                context.runtime_theme.clone(),
+                context.case,
+            ),
+        );
+        let wrong_kind_contract = FrameContract {
+            action_paints_b: &wrong_kind_paints,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(context.a, context.b, &wrong_kind_contract)
+                .iter()
+                .any(|error| error.contains("B action native paint") && error.contains(action_id)),
+            "B survivor paint with the wrong kind-column boundary is rejected"
+        );
+
+        let reversed_contract = FrameContract {
+            action_paints_a: contract.action_paints_b,
+            action_paints_b: contract.action_paints_a,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(context.a, context.b, &reversed_contract)
+                .iter()
+                .any(|error| error.contains("native paint")),
+            "reversed A/B native paint oracle is rejected"
+        );
+
+        let wrong_model_y = y_b.saturating_add(1);
+        assert!(wrong_model_y < contract.rows_area.bottom());
+        let mut wrong_model_row = contract.action_paints_b.to_vec();
+        replace_action_paint(
+            &mut wrong_model_row,
+            action_id,
+            paint_home_row_scratch(
+                context.action,
+                context.columns.b,
+                row_rect(contract.rows_area, wrong_model_y),
+                context.runtime_theme.clone(),
+                context.case,
+            ),
+        );
+        let wrong_model_row_contract = FrameContract {
+            action_paints_b: &wrong_model_row,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(context.a, context.b, &wrong_model_row_contract)
+                .iter()
+                .any(|error| error.contains("B action native paint") && error.contains(action_id)),
+            "B survivor native paint at the wrong model row is rejected"
+        );
+
+        let mut omitted_b = contract.action_paints_b.to_vec();
+        omitted_b.retain(|(id, _)| id.as_str() != action_id);
+        let omitted_contract = FrameContract {
+            action_paints_b: &omitted_b,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(context.a, context.b, &omitted_contract)
+                .iter()
+                .any(|error| error.contains("B action native paint coverage differs from model")),
+            "omitted B native paint is rejected"
+        );
+
+        let mut duplicate_b = contract.action_paints_b.to_vec();
+        let duplicate = duplicate_b
+            .iter()
+            .find(|(id, _)| id.as_str() == action_id)
+            .expect("B native paint exists for duplicate control")
+            .clone();
+        duplicate_b.push(duplicate);
+        let duplicate_contract = FrameContract {
+            action_paints_b: &duplicate_b,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(context.a, context.b, &duplicate_contract)
+                .iter()
+                .any(|error| error.contains("B action native paint coverage differs from model")),
+            "duplicate B native paint is rejected"
+        );
+
+        let mut reordered_a = contract.action_paints_a.to_vec();
+        reordered_a.reverse();
+        let reordered_contract = FrameContract {
+            action_paints_a: &reordered_a,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(context.a, context.b, &reordered_contract)
+                .iter()
+                .any(|error| error.contains("A action native paint coverage differs from model")),
+            "reordered A native paints are rejected"
+        );
+
+        let glyph_a = corrupt_native_action_paint(
+            contract.action_paints_a,
+            action_id,
+            row_a,
+            NativePaintCorruption::Glyph,
+        );
+        let glyph_a_contract = FrameContract {
+            action_paints_a: &glyph_a,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(context.a, context.b, &glyph_a_contract)
+                .iter()
+                .any(|error| error.contains("A action native paint") && error.contains(action_id)),
+            "A-only native glyph corruption is rejected"
+        );
+
+        let glyph_b = corrupt_native_action_paint(
+            contract.action_paints_b,
+            action_id,
+            row_b,
+            NativePaintCorruption::Glyph,
+        );
+        let glyph_b_contract = FrameContract {
+            action_paints_b: &glyph_b,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(context.a, context.b, &glyph_b_contract)
+                .iter()
+                .any(|error| error.contains("B action native paint") && error.contains(action_id)),
+            "B-only native glyph corruption is rejected"
+        );
+
+        for corruption in [
+            NativePaintCorruption::Glyph,
+            NativePaintCorruption::Style,
+            NativePaintCorruption::Cell,
+        ] {
+            let shared_a =
+                corrupt_native_action_paint(contract.action_paints_a, action_id, row_a, corruption);
+            let shared_b =
+                corrupt_native_action_paint(contract.action_paints_b, action_id, row_b, corruption);
+            let shared_contract = FrameContract {
+                action_paints_a: &shared_a,
+                action_paints_b: &shared_b,
+                ..*contract
+            };
+            let errors = frame_contract_errors(context.a, context.b, &shared_contract);
+            assert!(
+                errors
+                    .iter()
+                    .any(|error| error.contains("A action native paint")),
+                "shared A native {corruption:?} corruption is rejected"
+            );
+            assert!(
+                errors
+                    .iter()
+                    .any(|error| error.contains("B action native paint")),
+                "shared B native {corruption:?} corruption is rejected"
+            );
+        }
+
+        let mut wrong_header_tokens = contract.tokens_b.to_vec();
+        let Some(VisualToken::Header(header)) = wrong_header_tokens.first_mut() else {
+            panic!("ordinary parity B model begins with a Header");
+        };
+        header.push_str(" changed");
+        let wrong_header_contract = FrameContract {
+            tokens_b: &wrong_header_tokens,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(context.a, context.b, &wrong_header_contract)
+                .iter()
+                .any(|error| error.contains("B model is not A minus only the actual Port action")),
+            "wrong B Header model is rejected"
+        );
+
+        let mut inserted_gap_tokens = contract.tokens_b.to_vec();
+        inserted_gap_tokens.insert(1, VisualToken::Gap);
+        let inserted_gap_contract = FrameContract {
+            tokens_b: &inserted_gap_tokens,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(context.a, context.b, &inserted_gap_contract)
+                .iter()
+                .any(|error| error.contains("B model is not A minus only the actual Port action")),
+            "inserted B Gap model is rejected"
+        );
+
+        let header_y = positions_a
+            .iter()
+            .find_map(|positioned| {
+                matches!(&positioned.token, VisualToken::Header(_)).then_some(positioned.y)
+            })
+            .expect("ordinary parity model includes a Header");
+        let mut wrong_header_frame = context.a.clone();
+        let header_position =
+            first_non_space(&wrong_header_frame, row_rect(contract.rows_area, header_y))
+                .expect("ordinary parity Header row has visible text");
+        if let Some(cell) = wrong_header_frame.cell_mut(header_position) {
+            cell.set_symbol("X");
+        }
+        assert!(
+            frame_contract_errors(&wrong_header_frame, context.b, contract)
+                .iter()
+                .any(|error| error.contains("surviving token full Cell differs")),
+            "Header Cell corruption is rejected"
+        );
+
+        let mut wrong_port_row_contract = *contract;
+        wrong_port_row_contract.port_row =
+            row_rect(contract.rows_area, contract.port_row.y.saturating_add(1));
+        assert!(
+            frame_contract_errors(context.a, context.b, &wrong_port_row_contract)
+                .iter()
+                .any(|error| error.contains("Port oracle row has the wrong model-derived y")),
+            "wrong Port row is rejected"
+        );
+
+        let mut wrong_port_paint = contract.port_paint.clone();
+        let port_position = first_non_space(&wrong_port_paint, contract.port_row)
+            .expect("native Port scratch row has visible text");
+        flip_foreground(&mut wrong_port_paint, port_position);
+        let wrong_port_contract = FrameContract {
+            port_paint: &wrong_port_paint,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(context.a, context.b, &wrong_port_contract)
+                .iter()
+                .any(|error| error.contains("Port native paint full Cell differs")),
+            "wrong Port Cell is rejected"
+        );
+
+        let mut wrong_blank_paint = contract.blank_paint.clone();
+        if let Some(cell) =
+            wrong_blank_paint.cell_mut((contract.blank_suffix.x, contract.blank_suffix.y))
+        {
+            cell.set_symbol("X");
+        }
+        let wrong_blank_contract = FrameContract {
+            blank_paint: &wrong_blank_paint,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(context.a, context.b, &wrong_blank_contract)
+                .iter()
+                .any(|error| error.contains("B LIST.CONTAINER blank suffix full Cell differs")),
+            "B blank suffix Cell corruption is rejected"
+        );
+
+        let common_y = contract.common_blank_suffix.y;
+        let mut wrong_common = context.b.clone();
+        if let Some(cell) = wrong_common.cell_mut((contract.common_blank_suffix.x, common_y)) {
+            cell.set_symbol("X");
+        }
+        assert!(
+            frame_contract_errors(context.a, &wrong_common, contract)
+                .iter()
+                .any(|error| error.contains("common blank suffix full Cell differs")),
+            "common blank suffix corruption is rejected"
+        );
+
+        let mut wrong_outside = context.b.clone();
+        if let Some(cell) = wrong_outside.cell_mut((0, 0)) {
+            cell.set_symbol("X");
+        }
+        assert!(
+            frame_contract_errors(context.a, &wrong_outside, contract)
+                .iter()
+                .any(|error| error.contains("full Cell differs outside Home rows")),
+            "outside-Rows Cell corruption is rejected"
+        );
+
+        assert!(
+            !ordinary_parity_selected_is_exact(Some("flow.monitor")),
+            "wrong selected action is rejected"
+        );
+        assert!(
+            !ordinary_parity_selected_is_exact(Some(PORT_ID)),
+            "selected Port is rejected"
+        );
+        let mut extra_memory = context.memory_b.clone();
+        extra_memory.hides.push(Pin {
+            path: context.actual_cwd.to_owned(),
+            command: "extra-memory-entry".to_owned(),
+        });
+        assert!(
+            !ordinary_parity_memory_pin_is_exact(
+                context.memory_a,
+                &extra_memory,
+                context.actual_pin,
+                context.actual_cwd,
+                context.actual_command,
+            ),
+            "extra Memory Pin is rejected"
+        );
+        let wrong_path_pin = Pin {
+            path: "/wrong/parity/cwd".to_owned(),
+            command: context.actual_command.to_owned(),
+        };
+        assert!(
+            !ordinary_parity_memory_pin_is_exact(
+                context.memory_a,
+                context.memory_b,
+                &wrong_path_pin,
+                context.actual_cwd,
+                context.actual_command,
+            ),
+            "wrong Port Pin path is rejected"
+        );
+        let wrong_command_pin = Pin {
+            path: context.actual_cwd.to_owned(),
+            command: "wrong-port-command".to_owned(),
+        };
+        assert!(
+            !ordinary_parity_memory_pin_is_exact(
+                context.memory_a,
+                context.memory_b,
+                &wrong_command_pin,
+                context.actual_cwd,
+                context.actual_command,
+            ),
+            "wrong Port Pin command is rejected"
+        );
+        let mut pending = context.discoveries.to_vec();
+        pending[0].done = false;
+        assert!(
+            !ordinary_parity_discoveries_settled(&pending),
+            "pending discovery is rejected"
+        );
+        let mut failed = context.discoveries.to_vec();
+        failed[0].failed = true;
+        assert!(
+            !ordinary_parity_discoveries_settled(&failed),
+            "failed discovery is rejected"
+        );
+    }
+
     fn run_owner_case(case: OwnerCase, check_negative_controls: bool, replay: OwnerReplay) {
         assert_eq!(
             replay == OwnerReplay::JunieAnsi16Faint,
@@ -5646,6 +6401,19 @@ mod root_100_nonoverflow_port_owner {
         world_b.memory.hides.push(port_pin.clone());
         assert_eq!(world_a.memory, memory_a, "A Memory unchanged");
         assert_eq!(world_b.memory, memory_b, "B adds only actual cwd-local Pin");
+        if is_ordinary_parity_scenario(case.scenario) {
+            assert!(
+                ordinary_parity_memory_pin_is_exact(
+                    &memory_a,
+                    &memory_b,
+                    &port_pin,
+                    raw_cwd.as_str(),
+                    &port_action.command,
+                ),
+                "{} exact default Memory plus actual cwd-local raw Port Pin",
+                case.key()
+            );
+        }
         assert_eq!(
             crate::sim::catalogue::catalogue(&world_b),
             raw_a,
@@ -5684,6 +6452,17 @@ mod root_100_nonoverflow_port_owner {
                 columns_b[1..],
                 "other ActionColumns maxima remain equal"
             );
+        } else if is_ordinary_parity_scenario(case.scenario) {
+            assert_eq!(
+                columns_a,
+                ordinary_parity_expected_columns(case, true),
+                "ordinary parity A ActionColumns maxima"
+            );
+            assert_eq!(
+                columns_b,
+                ordinary_parity_expected_columns(case, false),
+                "ordinary parity B ActionColumns maxima after actual Pin"
+            );
         } else {
             assert_eq!(
                 columns_a, columns_b,
@@ -5693,6 +6472,15 @@ mod root_100_nonoverflow_port_owner {
 
         let tokens_a = visual_tokens(&rows_a);
         let tokens_b = visual_tokens(&rows_b);
+        if is_ordinary_parity_scenario(case.scenario) {
+            assert_ordinary_parity_model(case, &rows_a, &rows_b, &tokens_a, &tokens_b);
+            assert_eq!(
+                case.viewport.rows_area(),
+                Rect::new(1, 6, case.viewport.size().0 - 2, case.viewport.size().1 - 9,),
+                "{} exact ordinary parity Rows geometry",
+                case.key()
+            );
+        }
         let expected_tokens_b: Vec<_> = tokens_a
             .iter()
             .filter(|token| !matches!(token, VisualToken::Action(id) if id == PORT_ID))
@@ -5746,6 +6534,16 @@ mod root_100_nonoverflow_port_owner {
                 .expect("common blank suffix starts within rows area"),
         );
         let common_blank_suffix = suffix_rect(rows_area, common_blank_y);
+        if is_ordinary_parity_scenario(case.scenario) {
+            assert_eq!(port_y, 9, "{} exact native Port row", case.key());
+            assert_eq!(blank_y, 9, "{} exact B blank suffix start", case.key());
+            assert_eq!(
+                common_blank_y,
+                10,
+                "{} exact common blank suffix start",
+                case.key()
+            );
+        }
         if case.scenario == Scenario::RemoteHost && case.viewport == OwnerViewport::W80H24 {
             assert_eq!(tokens_a.len(), 15, "RemoteHost W80 A model extent");
             assert_eq!(tokens_b.len(), 14, "RemoteHost W80 B model extent");
@@ -5794,6 +6592,10 @@ mod root_100_nonoverflow_port_owner {
                 selected_a, selected_b,
                 "non-Root A/B preserve fixture-derived selected action identity"
             );
+            if is_ordinary_parity_scenario(case.scenario) {
+                assert!(ordinary_parity_selected_is_exact(selected_a.as_deref()));
+                assert!(ordinary_parity_selected_is_exact(selected_b.as_deref()));
+            }
         }
         let normal_runtime_theme = case.source_theme.theme().for_level(case.color);
         assert_arm_controls(
@@ -5861,7 +6663,7 @@ mod root_100_nonoverflow_port_owner {
             runtime_theme.clone(),
             case,
         );
-        let action_paints_a = if case.scenario == Scenario::DockerCleanup {
+        let action_paints_a = if has_per_arm_action_oracle(case) {
             paint_action_rows_scratch(
                 &harness_a.app().world,
                 &tokens_a,
@@ -5873,7 +6675,7 @@ mod root_100_nonoverflow_port_owner {
         } else {
             Vec::new()
         };
-        let action_paints_b = if case.scenario == Scenario::DockerCleanup {
+        let action_paints_b = if has_per_arm_action_oracle(case) {
             paint_action_rows_scratch(
                 &harness_b.app().world,
                 &tokens_b,
@@ -5908,7 +6710,7 @@ mod root_100_nonoverflow_port_owner {
             discovery_note_paint: discovery_note_paint.as_ref(),
             tokens_a: &tokens_a,
             tokens_b: &tokens_b,
-            per_arm_action_oracle: case.scenario == Scenario::DockerCleanup,
+            per_arm_action_oracle: has_per_arm_action_oracle(case),
             action_paints_a: &action_paints_a,
             action_paints_b: &action_paints_b,
             port_row,
@@ -5961,6 +6763,30 @@ mod root_100_nonoverflow_port_owner {
                         harness_b.runtime().theme(),
                         case,
                     );
+                }
+                OwnerCase::PARITY_BROWSER_W80_JUNIE_TRUECOLOR => {
+                    let action = visible_actions(&harness_b.app().world)
+                        .into_iter()
+                        .find(|action| action.id == "flow.monitor")
+                        .expect("ParityBrowser B contains the native flow.monitor survivor");
+                    assert_ordinary_parity_corruptions_rejected(OrdinaryParityNegativeContext {
+                        a: harness_a.buffer(),
+                        b: harness_b.buffer(),
+                        contract,
+                        action: &action,
+                        columns: ArmColumnMaxima {
+                            a: columns_a,
+                            b: columns_b,
+                        },
+                        runtime_theme: harness_b.runtime().theme(),
+                        case,
+                        memory_a: &memory_a,
+                        memory_b: &memory_b,
+                        actual_pin: &port_pin,
+                        actual_cwd: raw_cwd.as_str(),
+                        actual_command: &port_action.command,
+                        discoveries: &harness_a.app().world.discovery,
+                    });
                 }
                 _ => panic!("negative controls are pinned to exact owner keys"),
             }
@@ -6121,7 +6947,7 @@ mod root_100_nonoverflow_port_owner {
                     replay_theme_a.clone(),
                     case,
                 );
-                let replay_action_paints_a = if case.scenario == Scenario::DockerCleanup {
+                let replay_action_paints_a = if has_per_arm_action_oracle(case) {
                     paint_action_rows_scratch(
                         &harness_a.app().world,
                         &tokens_a,
@@ -6133,7 +6959,7 @@ mod root_100_nonoverflow_port_owner {
                 } else {
                     Vec::new()
                 };
-                let replay_action_paints_b = if case.scenario == Scenario::DockerCleanup {
+                let replay_action_paints_b = if has_per_arm_action_oracle(case) {
                     paint_action_rows_scratch(
                         &harness_b.app().world,
                         &tokens_b,
@@ -6156,7 +6982,7 @@ mod root_100_nonoverflow_port_owner {
                     discovery_note_paint: None,
                     tokens_a: &tokens_a,
                     tokens_b: &tokens_b,
-                    per_arm_action_oracle: case.scenario == Scenario::DockerCleanup,
+                    per_arm_action_oracle: has_per_arm_action_oracle(case),
                     action_paints_a: &replay_action_paints_a,
                     action_paints_b: &replay_action_paints_b,
                     port_row,
@@ -6238,6 +7064,160 @@ mod root_100_nonoverflow_port_owner {
                 case == OwnerCase::DOCKER_W80_JUNIE_TRUECOLOR,
                 OwnerReplay::Ordinary,
             );
+        }
+    }
+
+    fn owner_case_keys(cases: &[OwnerCase]) -> std::collections::BTreeSet<String> {
+        cases.iter().map(|case| case.key()).collect()
+    }
+
+    fn assert_owner_keys_disjoint(
+        ordinary_keys: &std::collections::BTreeSet<String>,
+        other_keys: &std::collections::BTreeSet<String>,
+        label: &str,
+    ) {
+        assert!(
+            ordinary_keys.is_disjoint(other_keys),
+            "ordinary parity owner keys are disjoint from {label}"
+        );
+    }
+
+    #[test]
+    fn ordinary_parity512_owner_membership_is_exact() {
+        assert_eq!(ORDINARY_PARITY_SCENARIOS.len(), 16);
+        let cases = ordinary_parity_owner_cases();
+        assert_eq!(cases.len(), 512);
+        let expected_keys = owner_case_keys(&cases);
+        assert_eq!(expected_keys.len(), 512);
+        assert_eq!(expected_keys, ordinary_parity_manifest_keys());
+
+        let viewports = [
+            OwnerViewport::W80H24,
+            OwnerViewport::W100H30,
+            OwnerViewport::W120H40,
+            OwnerViewport::W160H50,
+        ];
+        let mut scanned = 0;
+        let mut selected = Vec::new();
+        for scenario in Scenario::ALL.iter().copied() {
+            for viewport in viewports {
+                for source_theme in CONCEPT_SOURCE_THEMES {
+                    for color in CONCEPT_COLOR_LEVELS {
+                        scanned += 1;
+                        let owner =
+                            ordinary_parity_owner_case(scenario, viewport, source_theme, color);
+                        assert_eq!(
+                            owner.is_some(),
+                            ORDINARY_PARITY_SCENARIOS.contains(&scenario),
+                            "ordinary parity selector boundary: {} {} {} {:?}",
+                            scenario.name(),
+                            viewport.size().0,
+                            source_theme.label(),
+                            color
+                        );
+                        if let Some(owner) = owner {
+                            selected.push(owner);
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(scanned, 1_120, "complete independent scenario/axis scan");
+        assert_eq!(owner_case_keys(&selected), expected_keys);
+
+        for scenario in [
+            Scenario::ParityFiles,
+            Scenario::ParityDiskScan,
+            Scenario::ParityBrewServices,
+            Scenario::ParityUpgradeManagers,
+            Scenario::ParityPlatforms,
+            Scenario::ParityPlatformsLinux,
+            Scenario::ParityDiscovery,
+            Scenario::ParityActivityStop,
+            Scenario::HardCases,
+        ] {
+            assert!(
+                ordinary_parity_owner_case(
+                    scenario,
+                    OwnerViewport::W100H30,
+                    OwnerSourceTheme::Junie,
+                    ColorLevel::TrueColor,
+                )
+                .is_none(),
+                "ordinary parity selector rejects {}",
+                scenario.name()
+            );
+        }
+        let recent = recent_parity_owner_cases();
+        assert_eq!(recent.len(), 192);
+        assert_owner_keys_disjoint(&expected_keys, &owner_case_keys(&recent), "Recent192");
+
+        let root = all_owner_cases(Scenario::MonorepoRoot);
+        let child = all_owner_cases(Scenario::MonorepoChild);
+        let activities_ordinary = remaining_activities_cases();
+        let activities_faint = excluded_activities_faint_cases();
+        let mut activities_union = activities_ordinary.clone();
+        activities_union.extend(activities_faint.iter().copied());
+        assert_eq!(activities_ordinary.len(), 21);
+        assert_eq!(activities_faint.len(), 3);
+        assert_eq!(activities_union.len(), 24);
+        assert_eq!(
+            owner_case_keys(&activities_union),
+            owner_case_keys(&all_owner_cases(Scenario::ActivitiesMulti))
+        );
+        let docker = docker_cleanup_owner_cases();
+        let concepts = note_free_concept_cases();
+        let hard_review = excluded_hard_cases_discovery_note_cases();
+        assert_owner_keys_disjoint(
+            &expected_keys,
+            &owner_case_keys(&hard_review),
+            "HardCases32 review set",
+        );
+        let hard = hard_cases_discovery_note_cases();
+        for (label, cases) in [
+            ("Root24", root),
+            ("Child24", child),
+            ("Activities24", activities_union),
+            ("Docker32", docker),
+            ("concept64", concepts),
+            ("HardCases32", hard),
+        ] {
+            assert_owner_keys_disjoint(&expected_keys, &owner_case_keys(&cases), label);
+        }
+        let tracked: std::collections::BTreeSet<String> = PRIOR_TRACKED_PORT_KEYS
+            .into_iter()
+            .map(str::to_owned)
+            .collect();
+        let older: std::collections::BTreeSet<String> = PRIOR_EXISTING_OWNER_KEYS
+            .into_iter()
+            .map(str::to_owned)
+            .collect();
+        assert_owner_keys_disjoint(&expected_keys, &tracked, "tracked-port11");
+        assert_owner_keys_disjoint(&expected_keys, &older, "existing-owner6");
+    }
+
+    #[test]
+    fn parity_browser32_nonoverflow_port_hide_smoke() {
+        let cases: Vec<_> = ordinary_parity_owner_cases()
+            .into_iter()
+            .filter(|case| case.scenario == Scenario::ParityBrowser)
+            .collect();
+        assert_eq!(cases.len(), 32, "exact ParityBrowser smoke product");
+        for case in cases {
+            run_owner_case(
+                case,
+                case == OwnerCase::PARITY_BROWSER_W80_JUNIE_TRUECOLOR,
+                OwnerReplay::Ordinary,
+            );
+        }
+    }
+
+    #[test]
+    fn ordinary_parity512_nonoverflow_port_hide_preserves_held_frames() {
+        let cases = ordinary_parity_owner_cases();
+        assert_eq!(cases.len(), 512, "exact ordinary parity owner product");
+        for case in cases {
+            run_owner_case(case, false, OwnerReplay::Ordinary);
         }
     }
 
