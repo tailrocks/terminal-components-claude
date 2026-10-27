@@ -1169,6 +1169,7 @@ termrock-controls::split::SplitPane | the showcase has no page that draws SplitP
 termrock-controls::split::SplitPane::axis | the showcase has no page that draws termrock-controls::split::SplitPane; SC3 adds one | SC3
 termrock-controls::split::SplitPane::disabled | the showcase has no page that draws termrock-controls::split::SplitPane; SC3 adds one | SC3
 termrock-controls::split::SplitPane::draw | the showcase has no page that draws termrock-controls::split::SplitPane; SC3 adds one | SC3
+termrock-controls::split::SplitPane::effective_maximized | Opt-in responsive Split fallback has no registered Showcase behavior proof; Query Workbench adoption and independent coverage review remain pending | review
 termrock-controls::split::SplitPane::fixed_second_share | the showcase has no page that draws termrock-controls::split::SplitPane; SC3 adds one | SC3
 termrock-controls::split::SplitPane::focusability | the showcase has no page that draws termrock-controls::split::SplitPane; SC3 adds one | SC3
 termrock-controls::split::SplitPane::gap | the showcase has no page that draws termrock-controls::split::SplitPane; SC3 adds one | SC3

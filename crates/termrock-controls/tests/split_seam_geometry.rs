@@ -116,6 +116,9 @@ impl App for Page {
         self.observed_area = cx.area(ID);
         self.observed_logical = cx.layout(ID).and_then(|facts| facts.logical_area);
         for _ in cx.intents(LEFT) {}
+        if self.register_second {
+            for _ in cx.intents(RIGHT) {}
+        }
         self.split().update(cx, &mut self.state).erase()
     }
     fn draw(&self, ui: &mut Ui<'_>) {
@@ -605,6 +608,138 @@ fn logical_facts_follow_successful_publication_only() {
                 );
             }),
     );
+}
+
+#[test]
+fn second_only_fallback_uses_full_second_without_split_affordances_on_both_axes() {
+    for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
+        let (threshold_area, undersized_area) = match axis {
+            SplitAxis::Horizontal => (Rect::new(7, 5, 63, 20), Rect::new(7, 5, 62, 20)),
+            SplitAxis::Vertical => (Rect::new(7, 5, 20, 63), Rect::new(7, 5, 20, 62)),
+        };
+        let config = |area| Page {
+            axis,
+            seam: Seam::Full,
+            area,
+            gap: 1,
+            min_first: 30,
+            min_second: 32,
+            fallback: Some(SplitFallback::second_only().gap(9)),
+            register_second: true,
+            ..Page::default()
+        };
+
+        let normal = Harness::new(config(threshold_area), Theme::junie(), 100, 80);
+        assert!(
+            seam(&normal).is_some(),
+            "extent 63 must keep the primary layout"
+        );
+        assert!(normal.runtime().ring().is_registered(ID));
+
+        let mut fallback = Harness::new(config(undersized_area), Theme::junie(), 100, 80);
+        assert_eq!(seam(&fallback), None);
+        assert!(!fallback.runtime().ring().is_registered(ID));
+        assert_eq!(fallback.runtime().area_of(LEFT), None);
+        assert_eq!(fallback.runtime().area_of(RIGHT), Some(undersized_area));
+        assert_eq!(fallback.runtime().capture_owner(), None);
+
+        let state = fallback.app().state;
+        let _ = fallback.key(KeyCode::Left);
+        assert_eq!(fallback.app().state, state);
+        assert_eq!(fallback.runtime().area_of(RIGHT), Some(undersized_area));
+        assert!(
+            fallback.runtime().diagnostics().is_empty(),
+            "axis={axis:?}, focus={:?}, LEFT={LEFT:?}, RIGHT={RIGHT:?}, diagnostics={:?}",
+            fallback.runtime().focus(),
+            fallback.runtime().diagnostics()
+        );
+    }
+}
+
+#[test]
+fn second_only_fallback_releases_capture_for_both_resize_paths_and_restores_fresh_drag() {
+    let mut h = harness(Page {
+        seam: Seam::Full,
+        preserve_drag_offset: true,
+        fallback: Some(SplitFallback::second_only()),
+        register_second: true,
+        use_full_area: true,
+        ..Page::default()
+    });
+    let initial = seam(&h).expect("normal allocation publishes a seam");
+    let _ = h.mouse(MouseKind::Down, initial.x + 1, initial.y + 3);
+    assert_eq!(h.runtime().capture_owner(), Some(ID));
+    let _ = h.mouse(MouseKind::Drag, initial.x + 6, initial.y + 3);
+    let mut durable = (h.app().state.percent(), h.app().state.basis_points());
+    assert_ne!(durable.1, 3_200);
+
+    // A parent can change only this pane's allocation without sending Resize.
+    let parent_area = Rect::new(1, 2, 50, 36);
+    h.app_mut().area = parent_area;
+    h.app_mut().use_full_area = false;
+    h.draw();
+    assert_eq!(h.runtime().capture_owner(), None);
+    assert_eq!(seam(&h), None);
+    assert!(!h.runtime().ring().is_registered(ID));
+    assert_eq!(h.runtime().area_of(LEFT), None);
+    assert_eq!(h.runtime().area_of(RIGHT), Some(parent_area));
+    assert_eq!(
+        (h.app().state.percent(), h.app().state.basis_points()),
+        durable
+    );
+    let _ = h.mouse(MouseKind::Drag, initial.x + 15, initial.y + 3);
+    let _ = h.mouse(MouseKind::Up, initial.x + 15, initial.y + 3);
+    assert_eq!(
+        (h.app().state.percent(), h.app().state.basis_points()),
+        durable
+    );
+
+    h.app_mut().area = BODY;
+    h.app_mut().use_full_area = true;
+    h.draw();
+    let restored = seam(&h).expect("restoring the allocation restores the seam");
+    let _ = h.mouse(MouseKind::Down, restored.x, restored.y + 3);
+    assert_eq!(h.runtime().capture_owner(), Some(ID));
+    let _ = h.mouse(MouseKind::Drag, restored.x + 4, restored.y + 3);
+    assert_eq!(
+        seam(&h).expect("fresh drag publishes a seam").x,
+        restored.x + 4,
+        "fresh drag must use the new press offset"
+    );
+    let _ = h.mouse(MouseKind::Up, restored.x + 4, restored.y + 3);
+    assert_eq!(h.runtime().capture_owner(), None);
+
+    let current = seam(&h).expect("normal allocation still publishes a seam");
+    let _ = h.mouse(MouseKind::Down, current.x + 1, current.y + 3);
+    assert_eq!(h.runtime().capture_owner(), Some(ID));
+    let _ = h.mouse(MouseKind::Drag, current.x + 6, current.y + 3);
+    durable = (h.app().state.percent(), h.app().state.basis_points());
+    let _ = h.resize(50, 40);
+
+    assert_eq!(h.runtime().capture_owner(), None);
+    assert_eq!(seam(&h), None);
+    assert!(!h.runtime().ring().is_registered(ID));
+    assert_eq!(h.runtime().area_of(LEFT), None);
+    assert_eq!(h.runtime().area_of(RIGHT), Some(Rect::new(0, 0, 50, 40)));
+    assert_eq!(
+        (h.app().state.percent(), h.app().state.basis_points()),
+        durable,
+        "Input::Resize into fallback preserves the durable primary ratio"
+    );
+
+    let _ = h.resize(120, 40);
+    let restored = seam(&h).expect("resizing out of fallback restores the seam");
+    let _ = h.mouse(MouseKind::Down, restored.x, restored.y + 3);
+    assert_eq!(h.runtime().capture_owner(), Some(ID));
+    let _ = h.mouse(MouseKind::Drag, restored.x + 4, restored.y + 3);
+    assert_eq!(
+        seam(&h).expect("fresh post-resize drag publishes a seam").x,
+        restored.x + 4,
+        "Input::Resize must not leave a stale grab offset"
+    );
+    let _ = h.mouse(MouseKind::Up, restored.x + 4, restored.y + 3);
+    assert_eq!(h.runtime().capture_owner(), None);
+    assert!(h.runtime().diagnostics().is_empty());
 }
 
 #[test]

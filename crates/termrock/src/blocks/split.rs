@@ -83,7 +83,7 @@ impl<'a> SplitBlock<'a> {
         } else {
             second.measure(ui, second_constraints)?
         };
-        let maximized = state.maximized();
+        let maximized = resolved.effective_maximized(state);
         let visible_first = maximized != Maximized::Second;
         let visible_second = maximized != Maximized::First;
         let first_min = axis_extent(first_natural.min, axis);

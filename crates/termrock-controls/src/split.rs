@@ -17,29 +17,51 @@ use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 const BALANCED: u8 = 50;
 const BASIS_POINTS_PER_PERCENT: u16 = 100;
 
-/// Temporary weighted layout on the opposite axis when the configured pane minima do not fit.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SplitFallbackPolicy {
+    Weighted,
+    SecondOnly,
+}
+
+/// Temporary responsive layout when the configured pane minima do not fit.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SplitFallback {
     first_weight: u16,
     second_weight: u16,
     gap: u16,
+    policy: SplitFallbackPolicy,
 }
 
 impl SplitFallback {
-    /// Construct a fallback, normalizing each zero weight to one and using a one-cell gap.
+    /// Construct a weighted fallback, normalizing each zero weight to one and using a one-cell gap.
     pub const fn new(first_weight: u16, second_weight: u16) -> Self {
         SplitFallback {
             first_weight: if first_weight == 0 { 1 } else { first_weight },
             second_weight: if second_weight == 0 { 1 } else { second_weight },
             gap: 1,
+            policy: SplitFallbackPolicy::Weighted,
         }
     }
 
-    /// Set the gap between the fallback panes.
+    /// Construct a fallback that gives the entire area to the second pane and keeps the configured axis.
+    pub const fn second_only() -> Self {
+        SplitFallback {
+            first_weight: 1,
+            second_weight: 1,
+            gap: 0,
+            policy: SplitFallbackPolicy::SecondOnly,
+        }
+    }
+
+    /// Set the weighted-fallback gap; the second-only policy always uses no gap.
     #[must_use]
     pub const fn gap(mut self, gap: u16) -> Self {
         self.gap = gap;
         self
+    }
+
+    const fn is_second_only(self) -> bool {
+        matches!(self.policy, SplitFallbackPolicy::SecondOnly)
     }
 }
 
@@ -338,10 +360,31 @@ impl<'a> SplitPane<'a> {
         self.axis
     }
 
-    /// Resolve the temporary opposite-axis layout for the supplied area.
+    /// Return the active pane selection represented by this configuration and state.
     ///
+    /// An unresolved pane reports only durable state. Call `resolved_for` first
+    /// when querying a responsive policy; a resolved second-only pane reports
+    /// `Second` unless durable state explicitly maximizes another pane.
+    pub const fn effective_maximized(&self, state: &SplitPaneState) -> Maximized {
+        match state.maximized {
+            Maximized::None => match self.resolved_fallback {
+                Some(SplitFallback {
+                    policy: SplitFallbackPolicy::SecondOnly,
+                    ..
+                }) => Maximized::Second,
+                _ => Maximized::None,
+            },
+            maximized => maximized,
+        }
+    }
+
+    /// Resolve the responsive layout for the supplied area.
+    ///
+    /// Weighted fallback switches to the opposite axis; second-only fallback
+    /// keeps the configured axis and gives the full area to the second pane.
     /// The returned pane owns a fixed configuration. It does not alter state,
-    /// publish geometry, or release capture.
+    /// publish geometry, or release capture. Query `effective_maximized` on the
+    /// returned pane to include a resolved second-only policy.
     pub fn resolved_for(&self, state: &SplitPaneState, area: Rect) -> Self {
         let Some(fallback) = self.undersized_fallback else {
             return self.clone();
@@ -359,13 +402,19 @@ impl<'a> SplitPane<'a> {
         }
 
         let mut resolved = self.clone();
-        resolved.axis = match self.axis {
-            SplitAxis::Horizontal => SplitAxis::Vertical,
-            SplitAxis::Vertical => SplitAxis::Horizontal,
-        };
+        if !fallback.is_second_only() {
+            resolved.axis = match self.axis {
+                SplitAxis::Horizontal => SplitAxis::Vertical,
+                SplitAxis::Vertical => SplitAxis::Horizontal,
+            };
+        }
         resolved.undersized_fallback = None;
         resolved.resolved_fallback = Some(fallback);
-        resolved.gap = fallback.gap;
+        resolved.gap = if fallback.is_second_only() {
+            0
+        } else {
+            fallback.gap
+        };
         resolved.min_first = 0;
         resolved.min_second = 0;
         resolved.seam = None;
@@ -382,7 +431,18 @@ impl<'a> SplitPane<'a> {
     /// along-axis sizes under the current sizing policy and configured minima.
     pub fn required_extent(&self, state: &SplitPaneState, first: u16, second: u16) -> u16 {
         if let Some(fallback) = self.resolved_fallback {
-            return required_extent_with_weights(fallback, state.maximized, first, second);
+            if fallback.is_second_only() {
+                return match self.effective_maximized(state) {
+                    Maximized::First => first,
+                    Maximized::Second | Maximized::None => second,
+                };
+            }
+            return required_extent_with_weights(
+                fallback,
+                self.effective_maximized(state),
+                first,
+                second,
+            );
         }
         let model = self.model(*state);
         let first = first.max(model.min_first);
@@ -574,7 +634,7 @@ impl<'a> SplitPane<'a> {
         self
     }
 
-    /// Use fixed weighted panes on the opposite axis while configured minima do not fit.
+    /// Use a temporary responsive fallback while configured minima do not fit.
     #[must_use]
     pub const fn undersized_fallback(mut self, fallback: SplitFallback) -> Self {
         self.undersized_fallback = Some(fallback);
@@ -608,10 +668,10 @@ impl<'a> SplitPane<'a> {
 
     const fn model(&self, st: SplitPaneState) -> SplitModel {
         let mut m = SplitModel::new(self.axis, st.percent, self.min_first, self.min_second);
-        m.maximized = if self.fixed_sizing {
+        m.maximized = if self.fixed_sizing && self.resolved_fallback.is_none() {
             Maximized::None
         } else {
-            st.maximized
+            self.effective_maximized(&st)
         };
         m
     }
@@ -627,13 +687,15 @@ impl<'a> SplitPane<'a> {
                 SplitAxis::Horizontal => area.width,
                 SplitAxis::Vertical => area.height,
             };
-            let usable = extent.saturating_sub(fallback.gap);
-            let total = u64::from(fallback.first_weight) + u64::from(fallback.second_weight);
-            let first =
-                (u64::from(usable) * u64::from(fallback.first_weight)).div_ceil(total) as u16;
-            return self
-                .model(st)
-                .layout_with_first_extent(area, fallback.gap, first);
+            let gap = self.gap;
+            let usable = extent.saturating_sub(gap);
+            let first = if fallback.is_second_only() {
+                0
+            } else {
+                let total = u64::from(fallback.first_weight) + u64::from(fallback.second_weight);
+                (u64::from(usable) * u64::from(fallback.first_weight)).div_ceil(total) as u16
+            };
+            return self.model(st).layout_with_first_extent(area, gap, first);
         }
         let model = self.model(st);
         match (self.fixed_first_share, self.fixed_second_share) {
@@ -2663,5 +2725,237 @@ mod tests {
             state,
             "draw changed durable split state"
         );
+    }
+
+    #[test]
+    fn second_only_fallback_uses_full_second_on_both_axes_and_preserves_state() {
+        let mut state = SplitPaneState::new_with_initial_cells(37);
+        state.grab_offset = Some(-2);
+        let before = state;
+        let fallback = SplitFallback::second_only().gap(9);
+        let weighted = SplitFallback::new(0, 0);
+        assert!(!weighted.is_second_only());
+        assert_eq!(weighted.first_weight, 1);
+        assert_eq!(weighted.second_weight, 1);
+        assert_eq!(weighted.gap, 1);
+
+        let cases = [
+            (
+                SplitAxis::Horizontal,
+                Rect::new(4, 5, 63, 11),
+                Rect::new(4, 5, 62, 11),
+                SplitAxis::Horizontal,
+            ),
+            (
+                SplitAxis::Vertical,
+                Rect::new(4, 5, 11, 63),
+                Rect::new(4, 5, 11, 62),
+                SplitAxis::Vertical,
+            ),
+        ];
+
+        for (primary_axis, threshold_area, undersized_area, effective_axis) in cases {
+            let split = SplitPane::new(ID, primary_axis)
+                .gap(1)
+                .min_first(30)
+                .min_second(32)
+                .resizable(true)
+                .seam_center(2)
+                .fixed_first_share(40, 4, 8)
+                .initial_first_cells(5)
+                .resize_bindings(HORIZONTAL)
+                .undersized_fallback(fallback);
+
+            let at_threshold = split.resolved_for(&state, threshold_area);
+            assert_eq!(at_threshold.axis(), primary_axis);
+            assert_eq!(at_threshold.resolved_fallback, None);
+            assert_eq!(at_threshold.effective_maximized(&state), Maximized::None);
+
+            let resolved = split.resolved_for(&state, undersized_area);
+            let resolved_again = resolved.resolved_for(&state, undersized_area);
+            assert_eq!(resolved.axis(), effective_axis);
+            assert_eq!(resolved_again.axis(), effective_axis);
+            assert_eq!(resolved.undersized_fallback, None);
+            assert_eq!(resolved.resolved_fallback, Some(fallback));
+            assert_eq!(resolved.gap, 0, "second-only ignores configured gaps");
+            assert_eq!(resolved.min_first, 0);
+            assert_eq!(resolved.min_second, 0);
+            assert!(resolved.seam.is_none());
+            assert!(!resolved.resizable);
+            assert_eq!(resolved.fixed_first_share, None);
+            assert_eq!(resolved.fixed_second_share, None);
+            assert_eq!(resolved.initial_first_cells, None);
+            assert_eq!(resolved.resize_bindings, None);
+            assert!(resolved.fixed_sizing);
+            assert!(resolved.table().is_empty());
+            assert_eq!(resolved.effective_maximized(&state), Maximized::Second);
+
+            let (first, second) = resolved.panes(state, undersized_area);
+            let (first_again, second_again) = resolved_again.panes(state, undersized_area);
+            assert!(first.is_empty());
+            assert_eq!(second, undersized_area);
+            assert_eq!((first_again, second_again), (first, second));
+            assert_eq!(state, before, "resolving changed durable SplitPaneState");
+        }
+    }
+
+    #[test]
+    fn effective_maximized_respects_resolution_and_explicit_state_changes() {
+        let split = SplitPane::new(ID, SplitAxis::Horizontal)
+            .gap(1)
+            .min_first(30)
+            .min_second(32)
+            .undersized_fallback(SplitFallback::second_only());
+        let state = SplitPaneState::new_with_initial_cells(37);
+        let area = Rect::new(4, 5, 62, 11);
+        let before = state;
+
+        assert_eq!(split.effective_maximized(&state), Maximized::None);
+        assert_eq!(
+            split
+                .resolved_for(&state, Rect::new(4, 5, 63, 11))
+                .effective_maximized(&state),
+            Maximized::None
+        );
+        let resolved = split.resolved_for(&state, area);
+        assert_eq!(resolved.axis(), SplitAxis::Horizontal);
+        assert_eq!(resolved.effective_maximized(&state), Maximized::Second);
+        assert_eq!(state, before);
+
+        let (first, second) = resolved.panes(state, area);
+        assert!(first.is_empty());
+        assert_eq!(second, area);
+
+        for maximized in [Maximized::First, Maximized::Second] {
+            let mut changed_state = state;
+            changed_state.toggle_max(maximized);
+            let changed_before = changed_state;
+
+            assert_eq!(split.effective_maximized(&changed_state), maximized);
+            let unresolved = split.resolved_for(&changed_state, area);
+            assert_eq!(unresolved.axis(), SplitAxis::Horizontal);
+            assert_eq!(unresolved.resolved_fallback, None);
+            assert_eq!(unresolved.effective_maximized(&changed_state), maximized);
+
+            assert_eq!(resolved.effective_maximized(&changed_state), maximized);
+            let changed_snapshot = resolved.resolved_for(&changed_state, area);
+            assert_eq!(changed_snapshot.axis(), SplitAxis::Horizontal);
+            let (first, second) = changed_snapshot.panes(changed_state, area);
+            match maximized {
+                Maximized::First => {
+                    assert_eq!(first, area);
+                    assert!(second.is_empty());
+                }
+                Maximized::Second => {
+                    assert!(first.is_empty());
+                    assert_eq!(second, area);
+                }
+                Maximized::None => unreachable!(),
+            }
+            assert_eq!(changed_state, changed_before);
+        }
+
+        let overflow = SplitPane::new(ID, SplitAxis::Horizontal)
+            .gap(u16::MAX)
+            .min_first(u16::MAX)
+            .min_second(u16::MAX)
+            .undersized_fallback(SplitFallback::second_only());
+        let overflow_resolved = overflow.resolved_for(&state, Rect::new(4, 5, u16::MAX, u16::MAX));
+        assert_eq!(overflow_resolved.axis(), SplitAxis::Horizontal);
+        assert_eq!(
+            overflow_resolved.effective_maximized(&state),
+            Maximized::Second
+        );
+        assert_eq!(state, before);
+    }
+
+    #[test]
+    fn effective_maximized_respects_explicit_state_changes_on_resolved_weighted_snapshot() {
+        let split = SplitPane::new(ID, SplitAxis::Horizontal)
+            .gap(1)
+            .min_first(30)
+            .min_second(32)
+            .undersized_fallback(SplitFallback::new(3, 2));
+        let state = SplitPaneState::new_with_initial_cells(37);
+        let before = state;
+        let area = Rect::new(4, 5, 62, 11);
+        let resolved = split.resolved_for(&state, area);
+
+        assert_eq!(resolved.axis(), SplitAxis::Vertical);
+        assert_eq!(resolved.effective_maximized(&state), Maximized::None);
+        for maximized in [Maximized::First, Maximized::Second] {
+            let mut changed_state = state;
+            changed_state.toggle_max(maximized);
+            let changed_before = changed_state;
+            assert_eq!(resolved.effective_maximized(&changed_state), maximized);
+
+            let (first, second) = resolved.panes(changed_state, area);
+            match maximized {
+                Maximized::First => {
+                    assert_eq!(first, area);
+                    assert!(second.is_empty());
+                    assert_eq!(resolved.required_extent(&changed_state, 4, 2), 4);
+                }
+                Maximized::Second => {
+                    assert!(first.is_empty());
+                    assert_eq!(second, area);
+                    assert_eq!(resolved.required_extent(&changed_state, 4, 2), 2);
+                }
+                Maximized::None => unreachable!(),
+            }
+            assert_eq!(changed_state, changed_before);
+        }
+        assert_eq!(state, before);
+    }
+
+    #[test]
+    fn second_only_preserves_ordinary_zero_cell_and_weighted_tiny_geometry() {
+        let state = SplitPaneState::default();
+        let ordinary = SplitPane::new(ID, SplitAxis::Horizontal)
+            .gap(1)
+            .min_first(1)
+            .min_second(1);
+        let ordinary_area = Rect::new(4, 5, 1, 7);
+        let (first, second) = ordinary.panes(state, ordinary_area);
+        assert_eq!(ordinary.effective_maximized(&state), Maximized::None);
+        assert_eq!(first, ordinary_area);
+        assert!(second.is_empty());
+        assert_eq!(ordinary.required_extent(&state, 1, 1), 3);
+
+        let weighted = SplitPane::new(ID, SplitAxis::Horizontal)
+            .min_first(20)
+            .min_second(20)
+            .undersized_fallback(SplitFallback::new(3, 2));
+        let area = Rect::new(4, 5, 1, 7);
+        let (first, second) = weighted.panes(state, area);
+        assert_eq!(first, Rect::new(4, 5, 1, 4));
+        assert_eq!(second, Rect::new(4, 10, 1, 2));
+
+        let weighted_zero_area = Rect::new(4, 5, 1, 1);
+        let weighted_resolved = weighted.resolved_for(&state, weighted_zero_area);
+        let (weighted_first, weighted_second) = weighted_resolved.panes(state, weighted_zero_area);
+        assert_eq!(weighted_resolved.axis(), SplitAxis::Vertical);
+        assert_eq!(
+            weighted_resolved.effective_maximized(&state),
+            Maximized::None
+        );
+        assert!(weighted_first.is_empty());
+        assert!(weighted_second.is_empty());
+        assert_eq!(weighted_resolved.required_extent(&state, 4, 2), 7);
+        assert_eq!(weighted_resolved.required_extent(&state, 4, 0), 7);
+        assert_eq!(weighted_resolved.required_extent(&state, 0, 2), 6);
+
+        for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
+            let tiny_area = Rect::new(4, 5, 1, 1);
+            let tiny = SplitPane::new(ID, axis)
+                .min_first(u16::MAX)
+                .min_second(u16::MAX)
+                .undersized_fallback(SplitFallback::second_only());
+            let resolved = tiny.resolved_for(&state, tiny_area);
+            let (first, second) = resolved.panes(state, tiny_area);
+            assert_eq!(resolved.axis(), axis);
+            assert!(first.is_empty());
+            assert_eq!(second, tiny_area);
+        }
     }
 }

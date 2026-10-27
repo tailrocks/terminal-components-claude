@@ -742,3 +742,185 @@ fn split_block_measures_wrapped_content_on_the_effective_fallback_axis() {
             .is_none()
     );
 }
+
+const SECOND_ONLY_SPLIT: Id = Id::root("consumer.second_only.split");
+const SECOND_ONLY_FIRST: [Id; 6] = [
+    Id::root("consumer.second_only.first.0"),
+    Id::root("consumer.second_only.first.1"),
+    Id::root("consumer.second_only.first.2"),
+    Id::root("consumer.second_only.first.3"),
+    Id::root("consumer.second_only.first.4"),
+    Id::root("consumer.second_only.first.5"),
+];
+const SECOND_ONLY_SECOND: Id = Id::root("consumer.second_only.second");
+
+struct SecondOnlyMeasurementConsumer {
+    axis: SplitAxis,
+    state: SplitPaneState,
+    first_natural: Cell<Size>,
+    second_natural: Cell<Size>,
+    measured: Cell<Size>,
+}
+
+impl SecondOnlyMeasurementConsumer {
+    fn pane(axis: SplitAxis) -> SplitPane<'static> {
+        SplitPane::new(SECOND_ONLY_SPLIT, axis)
+            .gap(2)
+            .min_first(30)
+            .min_second(32)
+            .undersized_fallback(SplitFallback::second_only())
+    }
+}
+
+impl App for SecondOnlyMeasurementConsumer {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        SplitBlock::new(Self::pane(self.axis))
+            .update(cx, &mut self.state)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut termrock::Ui<'_>) {
+        let first_buttons = SECOND_ONLY_FIRST
+            .map(|id| Button::new(id, "A deliberately long hidden first-pane action"));
+        let second_button = Button::new(SECOND_ONLY_SECOND, "OK");
+        let first = Group::column(first_buttons.iter().map(composition::button));
+        let second = Group::column([composition::button(&second_button)])
+            .spec(Composition::new().cross_align(termrock::layout::CrossAlign::Start));
+        let pane = Self::pane(self.axis);
+        let constraints = Constraints::loose(ui.full().width, ui.full().height);
+        let area = Rect::new(0, 0, constraints.max.0, constraints.max.1);
+        let resolved = pane.resolved_for(&self.state, area);
+        assert_eq!(resolved.axis(), self.axis);
+        let block = SplitBlock::new(pane).first(&first).second(&second);
+        let first_natural = first
+            .measure(ui, constraints)
+            .expect("hidden first group has a valid wrapped measurement");
+        let second_natural = second
+            .measure(ui, constraints)
+            .expect("visible second group has a valid wrapped measurement");
+        assert!(first_natural.min.0 > second_natural.min.0);
+        assert!(first_natural.preferred.0 > second_natural.preferred.0);
+        assert!(first_natural.min.1 > second_natural.min.1);
+        assert!(first_natural.preferred.1 > second_natural.preferred.1);
+        self.first_natural.set(first_natural);
+        self.second_natural.set(second_natural);
+
+        self.measured.set(
+            block
+                .measure(ui, &self.state, constraints)
+                .expect("second-only fallback has valid wrapped measurements"),
+        );
+        block
+            .show(ui, &self.state)
+            .expect("second-only groups fit within the supported composition depth");
+    }
+}
+
+#[test]
+fn split_block_second_only_measurement_excludes_hidden_first_minimum_and_preferred_demand() {
+    let area = Rect::new(0, 0, 20, 10);
+    let constraints = Constraints::loose(area.width, area.height);
+    for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
+        let mut runtime = Runtime::new(
+            SecondOnlyMeasurementConsumer {
+                axis,
+                state: SplitPaneState::new(38),
+                first_natural: Cell::new(Size::default()),
+                second_natural: Cell::new(Size::default()),
+                measured: Cell::new(Size::default()),
+            },
+            Theme::junie(),
+        );
+        let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+        render(&mut runtime, &mut terminal, area);
+
+        let app = runtime.app();
+        let first = app.first_natural.get();
+        let second = app.second_natural.get();
+        assert!(first.min.0 > second.min.0 && first.preferred.0 > second.preferred.0);
+        assert!(first.min.1 > second.min.1 && first.preferred.1 > second.preferred.1);
+        assert_eq!(app.measured.get(), second.fit(constraints));
+        assert_eq!(runtime.area_of(SECOND_ONLY_FIRST[0]), None);
+        assert!(runtime.area_of(SECOND_ONLY_SECOND).is_some());
+        assert!(
+            runtime
+                .area_of_part(
+                    SECOND_ONLY_SPLIT,
+                    termrock::PartRef::of(termrock::Part::SEAM),
+                )
+                .is_none()
+        );
+    }
+}
+
+const DEEP_SPLIT_ID: Id = Id::root("consumer.deep-split.split");
+const DEEP_SPLIT_VALID: Id = Id::root("consumer.deep-split.valid");
+
+struct DeepSplitMeasureConsumer {
+    invalid_first: bool,
+    state: SplitPaneState,
+    measure_error: Cell<Option<termrock::blocks::SplitBlockError>>,
+    show_error: Cell<Option<termrock::blocks::SplitBlockError>>,
+}
+
+impl App for DeepSplitMeasureConsumer {
+    fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut termrock::Ui<'_>) {
+        let mut deep = Group::wrap(std::iter::empty());
+        for _ in 0..8_000 {
+            deep = Group::row([deep.into_child()]);
+        }
+        let valid_button = Button::new(DEEP_SPLIT_VALID, "Visible second");
+        let valid = Group::column([composition::button(&valid_button)]);
+        let (first, second) = if self.invalid_first {
+            (&deep, &valid)
+        } else {
+            (&valid, &deep)
+        };
+        let pane = SplitPane::new(DEEP_SPLIT_ID, SplitAxis::Horizontal)
+            .min_first(30)
+            .min_second(32)
+            .undersized_fallback(SplitFallback::second_only());
+        let block = SplitBlock::new(pane).first(first).second(second);
+        let constraints = Constraints::loose(ui.full().width, ui.full().height);
+        self.measure_error
+            .set(block.measure(ui, &self.state, constraints).err());
+        self.show_error.set(block.show(ui, &self.state).err());
+    }
+}
+
+#[test]
+fn split_block_validates_hidden_and_visible_slots_before_measurement_or_seam_draw() {
+    let area = Rect::new(0, 0, 20, 10);
+    for invalid_first in [true, false] {
+        let mut runtime = Runtime::new(
+            DeepSplitMeasureConsumer {
+                invalid_first,
+                state: SplitPaneState::new(38),
+                measure_error: Cell::new(None),
+                show_error: Cell::new(None),
+            },
+            Theme::junie(),
+        );
+        let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+        render(&mut runtime, &mut terminal, area);
+
+        let expected_depth = termrock::blocks::SplitBlockError::Composition(
+            composition::CompositionError::DepthExceeded {
+                depth: 8_001,
+                maximum: 128,
+            },
+        );
+        assert_eq!(runtime.app().measure_error.get(), Some(expected_depth));
+        assert_eq!(runtime.app().show_error.get(), Some(expected_depth));
+        assert!(
+            runtime
+                .area_of_part(DEEP_SPLIT_ID, termrock::PartRef::of(termrock::Part::SEAM),)
+                .is_none(),
+            "invalid hidden or visible slot must prevent seam publication"
+        );
+    }
+}
