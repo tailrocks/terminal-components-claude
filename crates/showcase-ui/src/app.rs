@@ -3336,9 +3336,28 @@ impl App {
 }
 
 pub fn run() -> std::io::Result<()> {
-    let (nav, theme, paused, frame) = parse_args(std::env::args().skip(1))?;
+    let args = std::env::args().skip(1).collect::<Vec<_>>();
+    if args
+        .iter()
+        .any(|arg| matches!(arg.as_str(), "-h" | "--help"))
+    {
+        println!("{CLI_HELP}");
+        return Ok(());
+    }
+    let (nav, theme, paused, frame) = parse_args(args.into_iter())?;
     termrock::run(App::boot(nav, paused, frame), theme)
 }
+
+const CLI_HELP: &str = "Usage: showcase [OPTIONS]
+
+Options:
+      --theme <THEME>    Theme to use: junie or paper
+      --color <LEVEL>    Color level: truecolor/24bit, 256/ansi256, 16/ansi16, none/mono
+      --page <NAME>      Open a navigation entry by label, title, or page slug (for example, overview)
+      --motion <MODE>    Motion mode: full or paused
+      --frame <N>        Start at frame 0 through 10000; implies paused motion
+  -h, --help             Print help
+";
 
 fn parse_args(
     mut args: impl Iterator<Item = String>,
