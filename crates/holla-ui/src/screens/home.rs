@@ -81,7 +81,7 @@ struct ActionColumns {
 }
 
 impl ActionColumns {
-    fn apply(rows: &mut [HomeRow]) {
+    fn apply(rows: &mut [HomeRow], first_use: bool) {
         let columns = Self {
             title: rows
                 .iter()
@@ -92,21 +92,24 @@ impl ActionColumns {
             kind: rows
                 .iter()
                 .filter_map(|row| row.action.as_ref())
-                .map(|action| termrock::width(action_kind_label(action.kind)))
+                .map(|action| termrock::width(action_kind_label_for(action, first_use)))
                 .max()
                 .unwrap_or(4),
             scope: rows
                 .iter()
                 .filter_map(|row| row.action.as_ref())
-                .map(|action| termrock::width(&scope_text(action)))
+                .map(|action| termrock::width(&scope_text_for(action, first_use)))
                 .max()
                 .unwrap_or(4),
-            risk: rows
-                .iter()
-                .filter_map(|row| row.action.as_ref())
-                .map(|action| termrock::width(&risk_text(action)))
-                .max()
-                .unwrap_or(0),
+            risk: if first_use {
+                0
+            } else {
+                rows.iter()
+                    .filter_map(|row| row.action.as_ref())
+                    .map(|action| termrock::width(&risk_text(action)))
+                    .max()
+                    .unwrap_or(0)
+            },
         };
         for row in rows {
             row.columns = columns;
@@ -133,17 +136,20 @@ impl HomeState {
         self.editor.draft_text().unwrap_or(&self.value)
     }
 
-    pub(crate) fn clear_query(&mut self) {
+    pub(crate) fn clear_query(&mut self, world: &World) {
         self.value.clear();
         self.editor.cancel();
         self.editor.begin("");
+        if world.scenario == crate::scenario::Scenario::FirstUse {
+            self.reset_to_first_action(world);
+        }
     }
 
     pub(crate) fn rows(&self, world: &World) -> Vec<HomeRow> {
         let recent_first =
             self.query().trim().is_empty() && world.scenario.boot_title() == super::finder::RECENT;
         let searching = !self.query().trim().is_empty();
-        let sections = if searching {
+        let sections = if searching && world.scenario == crate::scenario::Scenario::FirstUse {
             vec![catalogue::Section {
                 name: "Search results",
                 actions: catalogue::home_actions_with_history(world, self.history),
@@ -214,6 +220,66 @@ impl HomeState {
             chord: Chord::with(KeyCode::Char(character), KeyModifiers::CONTROL),
             case: termrock::ChordCase::UppercaseAscii,
         };
+        if world.scenario == crate::scenario::Scenario::FirstUse {
+            let enter_label =
+                self.selected(world)
+                    .as_ref()
+                    .map_or("Run", |action| match action.id.as_str() {
+                        "disk.usage" => "Analyze",
+                        "scope.system" => "Scope",
+                        "system.resources" | "system.monitor" | "system.processes" => "Open",
+                        _ => "Run",
+                    });
+            let mut hints = vec![
+                Hint {
+                    key: HintKey::Label("Type"),
+                    label: "Search",
+                    priority: 50,
+                },
+                Hint {
+                    key: HintKey::Label("↑↓"),
+                    label: "Move",
+                    priority: 50,
+                },
+                Hint {
+                    key: key(KeyCode::Enter),
+                    label: enter_label,
+                    priority: 50,
+                },
+                Hint {
+                    key: HintKey::Chord(Chord::with(KeyCode::Enter, KeyModifiers::ALT)),
+                    label: "Alternatives…",
+                    priority: 50,
+                },
+                Hint {
+                    key: key(KeyCode::Tab),
+                    label: "Preview",
+                    priority: 50,
+                },
+                Hint {
+                    key: HintKey::Label("Ctrl+↑↓"),
+                    label: "Scope",
+                    priority: 50,
+                },
+            ];
+            hints.push(if self.query().is_empty() {
+                Hint {
+                    key: ctrl('g'),
+                    label: "Activities",
+                    priority: 50,
+                }
+            } else {
+                Hint {
+                    key: key(KeyCode::Esc),
+                    label: "Clear",
+                    priority: 50,
+                }
+            });
+            return HintLayer {
+                hints,
+                ..HintLayer::empty()
+            };
+        }
         let entries: &[(HintKey, &str)] = if rows_focused {
             &[
                 (key(KeyCode::Enter), "Run"),
@@ -355,11 +421,40 @@ impl HomeState {
 
     pub(crate) fn selected(&self, world: &World) -> Option<Action> {
         let rows = self.rows(world);
-        self.rows
-            .cursor()
+        self.selected_key(&rows)
             .and_then(|key| rows.iter().find(|row| row_key(row) == key))
             .and_then(|row| row.action.clone())
-            .or_else(|| rows.iter().find_map(|row| row.action.clone()))
+    }
+
+    fn selected_key(&self, rows: &[HomeRow]) -> Option<ItemKey> {
+        self.rows
+            .current()
+            .filter(|key| {
+                rows.iter()
+                    .any(|row| row_key(row) == *key && row.action.is_some())
+            })
+            .or_else(|| {
+                self.rows.cursor().filter(|key| {
+                    rows.iter()
+                        .any(|row| row_key(row) == *key && row.action.is_some())
+                })
+            })
+            .or_else(|| rows.iter().find(|row| row.action.is_some()).map(row_key))
+    }
+
+    fn reset_to_first_action(&mut self, world: &World) {
+        let rows = self.rows(world);
+        if let Some((index, row)) = rows
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.action.is_some())
+        {
+            let key = row_key(row);
+            self.rows.set_cursor(index, key);
+            self.rows.set_current(Some(key));
+        } else {
+            self.rows.set_current(None);
+        }
     }
 
     pub(crate) fn focus_first(&mut self, world: &World, cx: &mut Cx<'_>) {
@@ -377,6 +472,9 @@ impl HomeState {
     }
 
     pub(crate) fn subject(&self, world: &World, cx: &Cx<'_>) -> Option<Action> {
+        if world.scenario == crate::scenario::Scenario::FirstUse {
+            return self.selected(world);
+        }
         if cx.state(QUERY).contains(StateFlags::FOCUSED) {
             self.rows(world).into_iter().find_map(|row| row.action)
         } else if cx.state(ROWS).contains(StateFlags::FOCUSED) {
@@ -393,6 +491,8 @@ impl HomeState {
         home_area: Option<Rect>,
         viewport_width: u16,
     ) -> (Response<()>, Option<Action>) {
+        let previous_query = self.query().to_owned();
+        let first_use = world.scenario == crate::scenario::Scenario::FirstUse;
         let rows_own_navigation = cx.state(ROWS).contains(StateFlags::FOCUSED)
             && catalogue::parity_discovery(world).is_some();
         let mut text =
@@ -403,6 +503,16 @@ impl HomeState {
             self.editor.begin(&self.value);
         }
         let rows = self.rows(world);
+        if first_use && self.query() != previous_query {
+            if let Some((index, row)) = rows
+                .iter()
+                .enumerate()
+                .find(|(_, row)| row.action.is_some())
+            {
+                self.rows.set_cursor(index, row_key(row));
+            }
+            self.rows.set_current(None);
+        }
         let discovery = home_area.and_then(|area| {
             let (_, rows_area, _) = home_rows_layout(area, world, self.query());
             let layout = parity_action_layout(rows_area, viewport_width, !rows.is_empty())?;
@@ -417,7 +527,19 @@ impl HomeState {
         } else {
             nav_list().update(cx, &mut self.rows, &rows)
         };
-        let chosen = match navigation.take_action() {
+        let navigation_action = navigation.take_action();
+        if first_use {
+            let selected = self
+                .rows
+                .cursor()
+                .filter(|key| {
+                    rows.iter()
+                        .any(|row| row_key(row) == *key && row.action.is_some())
+                })
+                .or_else(|| rows.iter().find(|row| row.action.is_some()).map(row_key));
+            self.rows.set_current(selected);
+        }
+        let chosen = match navigation_action {
             Some(NavListAction::LeaveBackward) => {
                 cx.focus_prev();
                 None
@@ -439,7 +561,15 @@ impl HomeState {
                         .and_then(|row| row.action.clone())
                 }
             }
-            _ if submit => rows.iter().find_map(|row| row.action.clone()),
+            _ if submit => {
+                if first_use {
+                    self.selected_key(&rows)
+                        .and_then(|key| rows.iter().find(|row| row_key(row) == key))
+                        .and_then(|row| row.action.clone())
+                } else {
+                    rows.iter().find_map(|row| row.action.clone())
+                }
+            }
             _ => None,
         };
         (text.erase() | navigation.erase(), chosen)
@@ -488,11 +618,12 @@ impl HomeState {
             &scope_label,
             scope_style,
         );
+        let first_use = world.scenario == crate::scenario::Scenario::FirstUse;
         let mut rows = self.rows(world);
-        ActionColumns::apply(&mut rows);
+        ActionColumns::apply(&mut rows, first_use);
         let (lead_area, rows_area, paints_recent_lead) =
             home_rows_layout(area, world, self.query());
-        if world.scenario == crate::scenario::Scenario::FirstUse
+        if first_use
             && let Some(layout) = parity_action_layout(rows_area, ui.full().width, !rows.is_empty())
             && paint_first_use_action_card(ui, layout, &self.rows, &rows, world, self.history)
         {
@@ -626,7 +757,7 @@ impl HomeState {
             nav_list_with_row(|row, cells| {
                 let row_is_visible = !cells.area().intersection(clip).is_empty();
                 let collector = (collect_peek && row_is_visible).then_some(&peek);
-                paint_action_with_peek(row, cells, collector);
+                paint_action_with_peek(row, cells, collector, false);
             })
             .draw(ui, rows_area, &self.rows, &rows);
         }
@@ -695,9 +826,15 @@ fn paint_first_use_action_card(
         paint_empty_home_rows(ui, layout.master, "", None);
         return true;
     }
-    nav_list().draw(ui, layout.master, state, rows);
+    nav_list_with_row(|row, cells| paint_action_with_peek(row, cells, None, true)).draw(
+        ui,
+        layout.master,
+        state,
+        rows,
+    );
     let selected = state
-        .cursor()
+        .current()
+        .or_else(|| state.cursor())
         .and_then(|key| rows.iter().find(|row| row_key(row) == key))
         .and_then(|row| row.action.as_ref())
         .or_else(|| rows.iter().find_map(|row| row.action.as_ref()));
@@ -876,13 +1013,14 @@ fn paint_empty_home_rows(ui: &mut Ui<'_>, area: Rect, query: &str, scope: Option
 }
 
 fn paint_action(row: &HomeRow, cells: &mut RowUi<'_>) {
-    paint_action_with_peek(row, cells, None);
+    paint_action_with_peek(row, cells, None, false);
 }
 
 fn paint_action_with_peek(
     row: &HomeRow,
     cells: &mut RowUi<'_>,
     peek: Option<&RefCell<Option<String>>>,
+    first_use: bool,
 ) {
     let candidate_eligible = peek.is_some()
         && cells.flags().contains(StateFlags::FOCUSED)
@@ -896,8 +1034,8 @@ fn paint_action_with_peek(
         }
         return;
     };
-    let kind = action_kind_label(action.kind);
-    let scope = scope_text(action);
+    let kind = action_kind_label_for(action, first_use);
+    let scope = scope_text_for(action, first_use);
     let risk = risk_text(action);
 
     let content_width = cells.remaining_width().min(cells.container_width());
@@ -907,7 +1045,7 @@ fn paint_action_with_peek(
         .min((content_width.saturating_mul(36) / 100).max(14));
     let kind_width = row.columns.kind;
     let scope_width = row.columns.scope;
-    let risk_width = row.columns.risk;
+    let risk_width = if first_use { 0 } else { row.columns.risk };
     let specs = [
         ColumnSpec::new(
             title_width.max(1),
@@ -958,7 +1096,7 @@ fn paint_action_with_peek(
         } else {
             false
         };
-        if !risk.is_empty() {
+        if !first_use && !risk.is_empty() {
             let mut risk_cell = columns.cell_part(4, Part::META);
             if !matches!(action.availability, Availability::Ready) {
                 risk_cell
@@ -1013,6 +1151,27 @@ fn action_kind_label(kind: crate::domain::action::ActionKind) -> &'static str {
         ActionKind::Flow => "flow",
         ActionKind::Clone => "clone",
         ActionKind::System => "system",
+    }
+}
+
+fn action_kind_label_for(action: &Action, first_use: bool) -> &'static str {
+    if first_use {
+        match action.id.as_str() {
+            "system.resources" | "system.monitor" | "system.processes" => "system",
+            "disk.usage" => "disk",
+            "scope.system" => "explore",
+            _ => action_kind_label(action.kind),
+        }
+    } else {
+        action_kind_label(action.kind)
+    }
+}
+
+fn scope_text_for(action: &Action, first_use: bool) -> String {
+    if first_use {
+        action.scope.label().to_owned()
+    } else {
+        scope_text(action)
     }
 }
 

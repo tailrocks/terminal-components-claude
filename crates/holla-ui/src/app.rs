@@ -533,7 +533,8 @@ fn rest_tag_menu(world: &crate::sim::World) -> bool {
         parity_browser_tag_frame, parity_cargo_tag_frame, parity_files_tag_frame,
         parity_git_batch_tag_frame, parity_git_current_tag_frame, parity_history_tag_frame,
     };
-    parity_git_current_tag_frame(world)
+    world.scenario == Scenario::FirstUse
+        || parity_git_current_tag_frame(world)
         || parity_cargo_tag_frame(world)
         || parity_git_batch_tag_frame(world)
         || parity_files_tag_frame(world)
@@ -875,7 +876,7 @@ fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect, world: &World) {
         return;
     }
     ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let _ = paint_status_text(
+    let left_end = paint_status_text(
         ui,
         area,
         area.x.saturating_add(STATUS_EDGE),
@@ -884,47 +885,91 @@ fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect, world: &World) {
         true,
     );
     let size_x = paint_size_label(ui, area);
-    let Some(disk) = &world.disk else { return };
-    let percent = if disk.total_bytes == 0 {
-        0
+    let mut right_edge = size_x.saturating_sub(STATUS_GAP);
+    if let Some(disk) = &world.disk {
+        let percent = if disk.total_bytes == 0 {
+            0
+        } else {
+            let numerator = u128::from(disk.used_bytes)
+                .saturating_mul(100)
+                .saturating_add(u128::from(disk.total_bytes) / 2);
+            u32::try_from((numerator / u128::from(disk.total_bytes)).min(100)).unwrap_or(100)
+        };
+        let mark = format!("{percent}%{}", if percent >= 85 { " ▲" } else { "" });
+        let mark_w = termrock::width(&mark);
+        let bar_w = 11u16;
+        let meter_w = 1u16
+            .saturating_add(1)
+            .saturating_add(bar_w)
+            .saturating_add(1)
+            .saturating_add(mark_w);
+        let mut x = size_x.saturating_sub(STATUS_GAP).saturating_sub(meter_w);
+        right_edge = x.saturating_sub(STATUS_GAP);
+        x = paint_status_text(ui, area, x, "/", STATUS_GREY, false).saturating_add(1);
+        let filled =
+            u16::try_from(u32::from(bar_w).saturating_mul(percent).saturating_add(50) / 100)
+                .unwrap_or(bar_w)
+                .min(bar_w);
+        x = paint_status_text(
+            ui,
+            area,
+            x,
+            &"━".repeat(usize::from(filled)),
+            STATUS_AMBER,
+            false,
+        );
+        let rest = bar_w.saturating_sub(filled);
+        x = paint_status_text(
+            ui,
+            area,
+            x,
+            &"─".repeat(usize::from(rest)),
+            Color::Rgb(0x3a, 0x3a, 0x3a),
+            false,
+        )
+        .saturating_add(1);
+        let _ = paint_status_text(ui, area, x, &mark, STATUS_AMBER, false);
+    }
+    let pending: Vec<_> = world
+        .discovery
+        .iter()
+        .filter(|source| !source.done && !source.failed)
+        .map(|source| source.domain.label())
+        .collect();
+    let failed: Vec<_> = world
+        .discovery
+        .iter()
+        .filter(|source| source.failed)
+        .map(|source| source.domain.label())
+        .collect();
+    let done = world.discovery.iter().filter(|source| source.done).count();
+    let progress = if !pending.is_empty() {
+        let shown = pending
+            .iter()
+            .take(3)
+            .copied()
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!(
+            "discovering {}{} · {} of {}",
+            shown,
+            if pending.len() > 3 { ", …" } else { "" },
+            done,
+            world.discovery.len()
+        )
+    } else if !failed.is_empty() {
+        format!("! {} unavailable", failed.join(", "))
     } else {
-        let numerator = u128::from(disk.used_bytes)
-            .saturating_mul(100)
-            .saturating_add(u128::from(disk.total_bytes) / 2);
-        u32::try_from((numerator / u128::from(disk.total_bytes)).min(100)).unwrap_or(100)
+        "discovery complete".to_owned()
     };
-    let mark = format!("{percent}%{}", if percent >= 85 { " ▲" } else { "" });
-    let mark_w = termrock::width(&mark);
-    let bar_w = 11u16;
-    let meter_w = 1u16
-        .saturating_add(1)
-        .saturating_add(bar_w)
-        .saturating_add(1)
-        .saturating_add(mark_w);
-    let mut x = size_x.saturating_sub(STATUS_GAP).saturating_sub(meter_w);
-    x = paint_status_text(ui, area, x, "/", STATUS_GREY, false).saturating_add(1);
-    let filled = u16::try_from(u32::from(bar_w).saturating_mul(percent).saturating_add(50) / 100)
-        .unwrap_or(bar_w)
-        .min(bar_w);
-    x = paint_status_text(
-        ui,
-        area,
-        x,
-        &"━".repeat(usize::from(filled)),
-        STATUS_AMBER,
-        false,
-    );
-    let rest = bar_w.saturating_sub(filled);
-    x = paint_status_text(
-        ui,
-        area,
-        x,
-        &"─".repeat(usize::from(rest)),
-        Color::Rgb(0x3a, 0x3a, 0x3a),
-        false,
-    )
-    .saturating_add(1);
-    let _ = paint_status_text(ui, area, x, &mark, STATUS_AMBER, false);
+    let progress_start = left_end.saturating_add(STATUS_GAP);
+    let available = right_edge.saturating_sub(progress_start);
+    if available > 0 {
+        let progress = termrock::truncate(&progress, available);
+        let progress_width = termrock::width(&progress);
+        let x = progress_start.saturating_add(available.saturating_sub(progress_width) / 2);
+        let _ = paint_status_text(ui, area, x, &progress, STATUS_GREY, false);
+    }
 }
 
 fn paint_remote_host_status(ui: &mut Ui<'_>, area: Rect) {
@@ -2945,7 +2990,7 @@ impl App {
                 if self.home.scope.take().is_some() {
                     self.set_status("Scope: all".into());
                 } else {
-                    self.home.clear_query();
+                    self.home.clear_query(&self.world);
                 }
             }
             command if self.route == Route::Activity => {
@@ -3664,6 +3709,18 @@ impl App {
             paint_disk_cleanup_footer(ui, footer);
             return;
         }
+        if self.world.scenario == Scenario::FirstUse
+            && self.route == Route::Home
+            && self.overlay.is_none()
+            && !self.menu.is_open()
+        {
+            let home_hints = self.home.hints(
+                &self.world,
+                ui.state(home::ROWS).contains(termrock::StateFlags::FOCUSED),
+            );
+            HintBar::new(FOOTER, &home_hints).draw(ui, footer);
+            return;
+        }
         if let Some((confirm, status)) = tag_confirm
             && self.route == Route::Home
             && self.overlay.is_none()
@@ -4360,7 +4417,7 @@ impl termrock::App for App {
             return Response::changed();
         }
         if !self.home.query().is_empty() {
-            self.home.clear_query();
+            self.home.clear_query(&self.world);
             return Response::changed();
         }
         Response::ignored()
