@@ -17,6 +17,12 @@ publish = false
 # The empty `[workspace]` table detaches it from the workspace root above it.
 [workspace]
 
+# The optional consumer probe enables only the facade's explicitly forwarded
+# testing surface. The default consumer and rendering tests use production APIs.
+[features]
+default = []
+testing = ["termrock/testing"]
+
 # The only Termrock dependency is the public facade. No internal `termrock-*`
 # crate is reachable from here; tests/public_api_only.rs guards that.
 [dependencies]

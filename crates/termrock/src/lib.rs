@@ -58,6 +58,7 @@ pub mod shell {
 }
 pub mod blocks;
 pub mod composition;
+pub mod reference;
 pub mod author {
     pub use ratatui_core::buffer::{Buffer, Cell};
     pub use ratatui_core::layout::{Position, Rect};
@@ -93,6 +94,7 @@ pub use blocks::{
     ToolbarError, ToolbarMoreLook, ToolbarReferenceState, ToolbarState, ToolbarTip,
     ToolbarTooltipPolicy,
 };
+pub use reference::{ReferenceCase, ReferenceGrid, ReferenceSpecimen};
 pub use slots::{DialogSlotExt, FormDialogSlotExt, PickerSlotExt, PropsSlotExt};
 pub use termrock_runtime::ui::LayerSlot;
 pub use termrock_runtime::{

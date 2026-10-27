@@ -4681,3 +4681,35 @@ termrock::blocks::Toolbar::more_style_selector | Public More appearance selector
 termrock::blocks::ToolbarMoreLook | Public More appearance choice type; Showcase More-look proof remains pending. | review
 termrock::blocks::ToolbarMoreLook::Close | Public Close-style More appearance choice; Showcase More-look proof remains pending. | review
 termrock::blocks::ToolbarMoreLook::Title | Public Title-style More appearance choice; Showcase More-look proof remains pending. | review
+
+# Reference adapter API: external consumer proof is not Showcase proof.
+# The bounded scanner excludes traits and trait members, including ReferenceSpecimen.
+termrock::reference::ReferenceCase | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::Busy | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::Disabled | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::Editing | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::Empty | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::Error | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::Focused | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::FocusedHover | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::Hover | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::Loading | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::Narrow | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::Overflow | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::Pressed | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::Rest | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::Selected | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::from_slug | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::label | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceCase::slug | External ReferenceGallery exercises this case metadata, but Showcase has no behavior proof; legacy visual mapping remains under review. | review
+termrock::reference::ReferenceGrid | External ReferenceGallery exercises this grid operation, but Showcase has no route proof; borrowed API compatibility remains under review. | review
+termrock::reference::ReferenceGrid::column | External ReferenceGallery exercises this grid operation, but Showcase has no route proof; borrowed API compatibility remains under review. | review
+termrock::reference::ReferenceGrid::column_width | External ReferenceGallery exercises this grid operation, but Showcase has no route proof; borrowed API compatibility remains under review. | review
+termrock::reference::ReferenceGrid::draw | External ReferenceGallery exercises this grid operation, but Showcase has no route proof; borrowed API compatibility remains under review. | review
+termrock::reference::ReferenceGrid::draw_rows | External ReferenceGallery exercises this grid operation, but Showcase has no route proof; borrowed API compatibility remains under review. | review
+termrock::reference::ReferenceGrid::label_width | External ReferenceGallery exercises this grid operation, but Showcase has no route proof; borrowed API compatibility remains under review. | review
+termrock::reference::ReferenceGrid::measure | External ReferenceGallery exercises this grid operation, but Showcase has no route proof; borrowed API compatibility remains under review. | review
+termrock::reference::ReferenceGrid::row | External ReferenceGallery exercises this grid operation, but Showcase has no route proof; borrowed API compatibility remains under review. | review
+termrock::reference::ReferenceGrid::row_heights | External ReferenceGallery exercises this grid operation, but Showcase has no route proof; borrowed API compatibility remains under review. | review
+termrock::reference::ReferenceGrid::rows | External ReferenceGallery exercises this grid operation, but Showcase has no route proof; borrowed API compatibility remains under review. | review
+termrock::reference::ReferenceGrid::size | External ReferenceGallery exercises this grid operation, but Showcase has no route proof; borrowed API compatibility remains under review. | review
