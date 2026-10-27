@@ -476,6 +476,7 @@ impl<A: App> ProjectedFrame<'_, A> {
             &mut frame.scoped_bubble_bindings,
         );
         core::mem::swap(&mut output.last.typing_bindings, &mut frame.typing_bindings);
+        core::mem::swap(&mut output.last.type_aheads, &mut frame.type_aheads);
         output.last.typing = frame.typing_resolved;
         output.last.layout.clear();
         output.last.layout.append(&mut frame.layout);
@@ -629,6 +630,17 @@ struct WheelRouteGuard {
     capture: Option<Capture>,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct DeferredTypeAheadKey {
+    key: Key,
+    owner: Id,
+    owner_layer: LayerId,
+    owner_scope: ScopeId,
+    top_layer: LayerId,
+    layer_generation: u64,
+    trap: Option<ScopeId>,
+}
+
 pub struct Runtime<A: App> {
     app: A,
     theme: Theme,
@@ -654,6 +666,7 @@ pub struct Runtime<A: App> {
     keymap_conflict_typing: Vec<crate::keymap::BindingDescriptor>,
     keymap_conflicts: Vec<Diagnostic>,
     staged_focus: Option<(Option<Id>, FocusVia)>,
+    type_ahead_focus_changed: bool,
     layer_events_pending: Vec<RoutedLayerEvent>,
     focus_out_closed: Vec<Id>,
     completion_waiting: Vec<OpenLayer>,
@@ -774,6 +787,7 @@ impl<A: App> Runtime<A> {
             keymap_conflict_typing: Vec::new(),
             keymap_conflicts: Vec::new(),
             staged_focus: None,
+            type_ahead_focus_changed: false,
             layer_events_pending: Vec::new(),
             focus_out_closed: Vec::new(),
             completion_waiting: Vec::new(),
@@ -1052,6 +1066,7 @@ impl<A: App> Runtime<A> {
         }
         self.focus.set(to);
         self.last.snapshot.focus = to;
+        self.type_ahead_focus_changed = true;
 
         self.services.repaint = true;
 
@@ -1130,7 +1145,7 @@ impl<A: App> Runtime<A> {
         self.last_invalidate = Invalidate::Layout;
     }
 
-    fn enqueue_key(&mut self, k: Key) {
+    fn enqueue_key(&mut self, k: Key, deferred_type_ahead: Option<DeferredTypeAheadKey>) {
         self.prepare_keyboard_input();
         let current = self.focus.current();
         if !matches!(k.code, KeyCode::Tab | KeyCode::BackTab)
@@ -1170,9 +1185,86 @@ impl<A: App> Runtime<A> {
             self.stage_focus(prev, FocusVia::Keyboard);
             return;
         }
-        if let Some(owner) = current {
+        if let Some(owner) = current
+            && deferred_type_ahead.is_none()
+        {
             self.intents.key(owner, k);
         }
+    }
+
+    fn deferred_type_ahead_key(&self, key: Key) -> Option<DeferredTypeAheadKey> {
+        termrock_core::typeahead::TypeAhead::char_of(&key)?;
+        let owner = self.focus.current()?;
+        if self.last.snapshot.focus != Some(owner)
+            || self.last.typing.fallback.is_some()
+            || self.last.typing.owner == Some(owner)
+        {
+            return None;
+        }
+        let entry = self.last.ring.entry(owner)?;
+        if !self
+            .last
+            .type_aheads
+            .iter()
+            .any(|declaration| declaration.owner == owner && declaration.layer == entry.layer)
+        {
+            return None;
+        }
+        if entry.disabled
+            || entry.swallows_typing
+            || entry.area.is_empty()
+            || !self.last.ring.contains(owner)
+            || self.last.declared.iter().any(|(id, state)| {
+                *id == owner && state.contains(crate::response::StateFlags::EDITING)
+            })
+            || entry.layer < self.services.layers.inert_floor()
+        {
+            return None;
+        }
+
+        Some(DeferredTypeAheadKey {
+            key,
+            owner,
+            owner_layer: entry.layer,
+            owner_scope: entry.scope,
+            top_layer: self.services.layers.top(),
+            layer_generation: self.services.layers.next_generation(),
+            trap: self.last.ring.active_trap(),
+        })
+    }
+
+    fn deferred_type_ahead_is_current(
+        &self,
+        deferred: DeferredTypeAheadKey,
+        input_scope_changed: bool,
+    ) -> bool {
+        if input_scope_changed
+            || self.type_ahead_focus_changed
+            || self.focus.current() != Some(deferred.owner)
+            || self.last.snapshot.focus != Some(deferred.owner)
+            || self.services.layers.top() != deferred.top_layer
+            || self.services.layers.next_generation() != deferred.layer_generation
+            || self.last.ring.active_trap() != deferred.trap
+            || self.last.typing.fallback.is_some()
+            || self.last.typing.owner == Some(deferred.owner)
+        {
+            return false;
+        }
+
+        self.last.type_aheads.iter().any(|declaration| {
+            declaration.owner == deferred.owner && declaration.layer == deferred.owner_layer
+        }) && self.last.ring.contains(deferred.owner)
+            && self.last.ring.entry(deferred.owner).is_some_and(|entry| {
+                entry.layer == deferred.owner_layer
+                    && entry.scope == deferred.owner_scope
+                    && !entry.disabled
+                    && !entry.swallows_typing
+                    && !entry.area.is_empty()
+                    && entry.layer >= self.services.layers.inert_floor()
+            })
+            && !self.last.declared.iter().any(|(id, state)| {
+                *id == deferred.owner && state.contains(crate::response::StateFlags::EDITING)
+            })
     }
 
     fn prepare_keyboard_input(&mut self) {
@@ -2335,6 +2427,7 @@ impl<A: App> Runtime<A> {
     }
 
     fn handle_ready(&mut self, input: RoutedInput) -> Response<()> {
+        self.type_ahead_focus_changed = false;
         let activation_key = match &input {
             RoutedInput::Input(Input::Key(key)) if key.mods.is_empty() => match key.code {
                 KeyCode::Enter => Some(ActivationKey::Enter),
@@ -2359,7 +2452,11 @@ impl<A: App> Runtime<A> {
         self.services.wheel_route_invalidated = false;
         self.services.registry_gen = self.last.registry.generation();
         self.pump_layer_events();
+        let key_input_top_layer = self.services.layers.top();
+        let key_input_focus = self.focus.current();
         let mut key_input = None;
+        let mut deferred_type_ahead = None;
+        let mut capture_response = None;
         let mut wheel_route_attempt = None;
         let mut disabled_primary_refusal = false;
         let mut update_cause = UpdateCause::Event;
@@ -2390,6 +2487,7 @@ impl<A: App> Runtime<A> {
                         return self.finish(r);
                     }
                 }
+                let original_type_ahead = self.deferred_type_ahead_key(*k);
                 let swallows = self.swallows_typing() || self.last.typing.fallback.is_some();
                 let scoped = self
                     .last
@@ -2399,12 +2497,26 @@ impl<A: App> Runtime<A> {
                 if let Some(cmd) =
                     scoped.or_else(|| self.core.keymap.lookup(KeyPhase::Capture, k, swallows))
                 {
-                    let r = self.run_update(Some(cmd), UpdateCause::Event, activation_key);
-                    drop(input);
-                    return self.finish(r);
+                    let response = self.run_update(Some(cmd), UpdateCause::Event, activation_key);
+                    let Some(deferred) = original_type_ahead else {
+                        drop(input);
+                        return self.finish(response);
+                    };
+                    if response.is_consumed()
+                        || !self.deferred_type_ahead_is_current(deferred, false)
+                    {
+                        drop(input);
+                        return self.finish(response);
+                    }
+                    capture_response = Some(response);
+                    key_input = Some(*k);
+                    deferred_type_ahead = Some(deferred);
+                    self.enqueue_key(*k, deferred_type_ahead);
+                } else {
+                    key_input = Some(*k);
+                    deferred_type_ahead = original_type_ahead;
+                    self.enqueue_key(*k, deferred_type_ahead);
                 }
-                key_input = Some(*k);
-                self.enqueue_key(*k);
             }
             RoutedInput::Input(Input::Mouse(m)) => {
                 disabled_primary_refusal = self.enqueue_mouse(*m);
@@ -2429,11 +2541,14 @@ impl<A: App> Runtime<A> {
         // arrived. An update may open/close a layer or move focus; bubble
         // fallback for the same physical key must not then act on that new
         // scope.
-        let input_top_layer = self.services.layers.top();
+        let (input_top_layer, input_focus) = if capture_response.is_some() {
+            (key_input_top_layer, key_input_focus)
+        } else {
+            (self.services.layers.top(), self.focus.current())
+        };
         let input_pointer_layer = self.pointer_input_layer();
         let swallow_middle = matches!(&input, RoutedInput::MiddleClick { .. })
             && input_pointer_layer != LayerId::PAGE;
-        let input_focus = self.focus.current();
         let wheel_route_guard = wheel_route_attempt.map(|_| WheelRouteGuard {
             focus: self.focus.current(),
             top_layer: self.services.layers.top(),
@@ -2448,7 +2563,11 @@ impl<A: App> Runtime<A> {
                 .set(crate::ui::cx::WheelRouteAck::Unset);
             self.services.wheel_route_invalidated = false;
         }
-        let mut r = self.run_update(None, update_cause, activation_key);
+        let mut r = if let Some(capture_response) = capture_response {
+            capture_response | self.run_update(None, update_cause, activation_key)
+        } else {
+            self.run_update(None, update_cause, activation_key)
+        };
         if disabled_primary_refusal && !r.is_consumed() {
             r |= Response::consumed();
         }
@@ -2460,6 +2579,11 @@ impl<A: App> Runtime<A> {
         }
         let mut input_scope_changed =
             self.services.layers.top() != input_top_layer || self.focus.current() != input_focus;
+        if let Some(deferred) = deferred_type_ahead
+            && !self.deferred_type_ahead_is_current(deferred, input_scope_changed)
+        {
+            input_scope_changed = true;
+        }
 
         if let Some(k) = key_input
             && !r.is_consumed()
@@ -2468,6 +2592,9 @@ impl<A: App> Runtime<A> {
             for (owner, action, chord) in scoped_bindings {
                 if self.services.layers.top() != input_top_layer
                     || self.focus.current() != input_focus
+                    || deferred_type_ahead.is_some_and(|deferred| {
+                        !self.deferred_type_ahead_is_current(deferred, input_scope_changed)
+                    })
                 {
                     input_scope_changed = true;
                     break;
@@ -2483,6 +2610,9 @@ impl<A: App> Runtime<A> {
                 }
                 if self.services.layers.top() != input_top_layer
                     || self.focus.current() != input_focus
+                    || deferred_type_ahead.is_some_and(|deferred| {
+                        !self.deferred_type_ahead_is_current(deferred, input_scope_changed)
+                    })
                 {
                     input_scope_changed = true;
                     break;
@@ -2491,6 +2621,9 @@ impl<A: App> Runtime<A> {
             self.intents.clear();
             if !input_scope_changed
                 && !r.is_consumed()
+                && deferred_type_ahead.is_none_or(|deferred| {
+                    self.deferred_type_ahead_is_current(deferred, input_scope_changed)
+                })
                 && let Some(cmd) = self.core.keymap.lookup(KeyPhase::Bubble, &k, false)
             {
                 r |= self.run_update(Some(cmd), UpdateCause::Event, activation_key);
@@ -2529,6 +2662,14 @@ impl<A: App> Runtime<A> {
                     }
                 }
             }
+        }
+        if let Some(deferred) = deferred_type_ahead
+            && !r.is_consumed()
+            && self.deferred_type_ahead_is_current(deferred, input_scope_changed)
+        {
+            self.intents.clear();
+            self.intents.key(deferred.owner, deferred.key);
+            r |= self.run_update(None, UpdateCause::Event, activation_key);
         }
         drop(input);
         self.finish(r)
@@ -2785,6 +2926,7 @@ impl<A: App> Runtime<A> {
             &mut self.last.typing_bindings,
             &mut self.frame.typing_bindings,
         );
+        core::mem::swap(&mut self.last.type_aheads, &mut self.frame.type_aheads);
         self.last.typing = self.frame.typing_resolved;
     }
 
@@ -2891,6 +3033,9 @@ impl<A: App> Runtime<A> {
                 },
             );
             self.pending_focus = (pending_from.from != reconciled).then_some(pending_from);
+            if self.focus.current() != reconciled {
+                self.type_ahead_focus_changed = true;
+            }
             self.focus.set(reconciled);
 
             self.invalidate_prepared();
@@ -3471,6 +3616,7 @@ impl<A: App> Runtime<A> {
             });
             self.focus.set(id);
             self.last.snapshot.focus = id;
+            self.type_ahead_focus_changed = true;
         }
     }
 
@@ -3788,6 +3934,735 @@ mod tests {
     const SELECTIVE_LAYER: Id = Id::root("selective-layer");
 
     const PRECLAIM_FRAME_LAYER: Id = Id::root("runtime.preclaim-frame-layer");
+    const TYPE_AHEAD_A: Id = Id::root("runtime.deferred-type-ahead-a");
+    const TYPE_AHEAD_B: Id = Id::root("runtime.deferred-type-ahead-b");
+    const TYPE_AHEAD_MODAL: Id = Id::root("runtime.deferred-type-ahead-modal");
+    const TYPE_AHEAD_SHORTCUT: crate::ActionKey =
+        crate::ActionKey::custom("runtime.deferred-type-ahead.shortcut");
+    const TYPE_AHEAD_CAPTURE_ACTION: crate::ActionKey =
+        crate::ActionKey::custom("runtime.deferred-type-ahead.capture");
+    const TYPE_AHEAD_BUBBLE_ACTION: crate::ActionKey =
+        crate::ActionKey::custom("runtime.deferred-type-ahead.bubble");
+
+    #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+    enum TypeAheadShortcut {
+        #[default]
+        None,
+        Capture,
+        Bubble,
+        CaptureAndBubble,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum TypeAheadProbeEvent {
+        Key(Id, Key),
+        Binding(Id, crate::ActionKey),
+        Command(crate::ActionKey),
+        FocusIn(Id),
+        FocusOut(Id, Option<Id>),
+    }
+
+    static TYPE_AHEAD_BINDINGS: [crate::keymap::Binding<()>; 1] = [crate::keymap::Binding {
+        action: TYPE_AHEAD_SHORTCUT,
+        chord: Some(crate::event::Chord::key(KeyCode::Char('a'))),
+        cmd: (),
+        label: "Type-ahead shortcut",
+        priority: 0,
+        visible: false,
+    }];
+
+    static TYPE_AHEAD_CAPTURE_KEYMAP: std::sync::LazyLock<crate::keymap::KeyMap> =
+        std::sync::LazyLock::new(|| {
+            crate::keymap::KeyMap::new().bind(
+                KeyPhase::Capture,
+                crate::event::Chord::key(KeyCode::Char('a')),
+                TYPE_AHEAD_CAPTURE_ACTION,
+            )
+        });
+    static TYPE_AHEAD_BUBBLE_KEYMAP: std::sync::LazyLock<crate::keymap::KeyMap> =
+        std::sync::LazyLock::new(|| {
+            crate::keymap::KeyMap::new().bind(
+                KeyPhase::Bubble,
+                crate::event::Chord::key(KeyCode::Char('a')),
+                TYPE_AHEAD_BUBBLE_ACTION,
+            )
+        });
+    static TYPE_AHEAD_CAPTURE_AND_BUBBLE_KEYMAP: std::sync::LazyLock<crate::keymap::KeyMap> =
+        std::sync::LazyLock::new(|| {
+            crate::keymap::KeyMap::new()
+                .bind(
+                    KeyPhase::Capture,
+                    crate::event::Chord::key(KeyCode::Char('a')),
+                    TYPE_AHEAD_CAPTURE_ACTION,
+                )
+                .bind(
+                    KeyPhase::Bubble,
+                    crate::event::Chord::key(KeyCode::Char('a')),
+                    TYPE_AHEAD_BUBBLE_ACTION,
+                )
+        });
+
+    #[derive(Default)]
+    #[expect(
+        clippy::struct_excessive_bools,
+        reason = "the test fixture exposes independent routing and response cases"
+    )]
+    struct TypeAheadProbe {
+        publish: bool,
+        editor: bool,
+        mismatched_editor_flags: bool,
+        fallback_editor: bool,
+        read_only: bool,
+        disabled: bool,
+        focus_only: bool,
+        component_binding: bool,
+        scoped_binding: bool,
+        shortcut: TypeAheadShortcut,
+        consume_keys: bool,
+        consume_bindings: bool,
+        consume_commands: bool,
+        consume_empty_event_once: bool,
+        repaint_empty_event: bool,
+        focus_steps: std::collections::VecDeque<Id>,
+        record_focus_transitions: bool,
+        open_close_on_event: bool,
+        open_close_done: bool,
+        events: Vec<TypeAheadProbeEvent>,
+    }
+
+    impl App for TypeAheadProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let mut consumed = false;
+            let mut had_routed_intent = false;
+            let cause = cx.update_cause();
+
+            if cause == UpdateCause::Event
+                && let Some(command) = cx.command()
+            {
+                self.events.push(TypeAheadProbeEvent::Command(command));
+                consumed |= self.consume_commands;
+            }
+
+            for owner in [TYPE_AHEAD_A, TYPE_AHEAD_B] {
+                for intent in cx.intents(owner) {
+                    had_routed_intent = true;
+                    match intent {
+                        Intent::Key(key) => {
+                            self.events.push(TypeAheadProbeEvent::Key(owner, key));
+                            consumed |= self.consume_keys;
+                        }
+                        Intent::Binding(action) => {
+                            self.events
+                                .push(TypeAheadProbeEvent::Binding(owner, action));
+                            consumed |= self.consume_bindings;
+                        }
+                        Intent::FocusIn { .. } if self.record_focus_transitions => {
+                            self.events.push(TypeAheadProbeEvent::FocusIn(owner));
+                        }
+                        Intent::FocusOut { to } if self.record_focus_transitions => {
+                            self.events.push(TypeAheadProbeEvent::FocusOut(owner, to));
+                        }
+                        _ => (),
+                    }
+                }
+            }
+
+            if matches!(cause, UpdateCause::Event | UpdateCause::Settle)
+                && let Some(next) = self.focus_steps.pop_front()
+            {
+                cx.focus(next);
+            }
+
+            if cause == UpdateCause::Event && self.open_close_on_event && !self.open_close_done {
+                self.open_close_done = true;
+                cx.open_layer(TYPE_AHEAD_MODAL, LayerSpec::modal(TYPE_AHEAD_MODAL));
+                cx.close_layer(TYPE_AHEAD_MODAL, None);
+            }
+
+            if cause == UpdateCause::Event
+                && self.consume_empty_event_once
+                && cx.command().is_none()
+                && !had_routed_intent
+            {
+                self.consume_empty_event_once = false;
+                consumed = true;
+            }
+
+            if consumed {
+                Response::consumed()
+            } else if cause == UpdateCause::Event
+                && self.repaint_empty_event
+                && cx.command().is_none()
+                && !had_routed_intent
+            {
+                Response::ignored().repaint()
+            } else {
+                Response::ignored()
+            }
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            if self.editor {
+                ui.register_editor(
+                    TYPE_AHEAD_A,
+                    Rect::new(0, 0, 12, 1),
+                    Focusability::Focusable,
+                    StateFlags::EDITING,
+                );
+                ui.publish_typing_target::<()>(TYPE_AHEAD_A, &[], |_| true, false);
+            } else {
+                let focusability = if self.disabled {
+                    Focusability::Disabled
+                } else if self.read_only {
+                    Focusability::FocusableReadOnly
+                } else {
+                    Focusability::Focusable
+                };
+                if self.focus_only {
+                    ui.register_focus_only(TYPE_AHEAD_A, focusability);
+                } else {
+                    ui.register_control(TYPE_AHEAD_A, Rect::new(0, 0, 12, 1), focusability);
+                }
+            }
+            if self.fallback_editor {
+                ui.register_editor(
+                    TYPE_AHEAD_B,
+                    Rect::new(0, 1, 12, 1),
+                    Focusability::Focusable,
+                    StateFlags::EDITING,
+                );
+                ui.publish_typing_target::<()>(TYPE_AHEAD_B, &[], |_| true, false);
+            } else {
+                ui.register_control(
+                    TYPE_AHEAD_B,
+                    Rect::new(0, 1, 12, 1),
+                    Focusability::Focusable,
+                );
+            }
+
+            if self.publish {
+                let mut flags = StateFlags::FOCUSED;
+                if self.editor && !self.mismatched_editor_flags {
+                    flags |= StateFlags::EDITING;
+                }
+                if self.read_only {
+                    flags |= StateFlags::READ_ONLY;
+                }
+                ui.publish_type_ahead(TYPE_AHEAD_A, flags);
+                ui.publish_type_ahead(TYPE_AHEAD_A, flags);
+            }
+            if self.component_binding {
+                ui.publish_bindings(TYPE_AHEAD_A, StateFlags::FOCUSED, &TYPE_AHEAD_BINDINGS);
+            }
+            if self.scoped_binding {
+                ui.publish_scope_bindings(
+                    ScopeId::ROOT,
+                    TYPE_AHEAD_B,
+                    StateFlags::empty(),
+                    &TYPE_AHEAD_BINDINGS,
+                );
+            }
+        }
+
+        fn keymap(&self) -> &crate::keymap::KeyMap {
+            match self.shortcut {
+                TypeAheadShortcut::None => crate::keymap::KeyMap::EMPTY_REF,
+                TypeAheadShortcut::Capture => &TYPE_AHEAD_CAPTURE_KEYMAP,
+                TypeAheadShortcut::Bubble => &TYPE_AHEAD_BUBBLE_KEYMAP,
+                TypeAheadShortcut::CaptureAndBubble => &TYPE_AHEAD_CAPTURE_AND_BUBBLE_KEYMAP,
+            }
+        }
+    }
+
+    fn ready_type_ahead_probe(probe: TypeAheadProbe) -> Runtime<TypeAheadProbe> {
+        let mut runtime = Runtime::new(probe, Theme::junie());
+        let _ = runtime.initialize();
+        let _ = deliver(&mut runtime, Input::Tick);
+        runtime.set_focus(Some(TYPE_AHEAD_A));
+        let _ = deliver(&mut runtime, Input::Tick);
+        runtime
+    }
+
+    #[test]
+    fn deferred_type_ahead_runs_once_after_ignored_repaint_and_deduplicates_publication() {
+        let mut rt = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            repaint_empty_event: true,
+            ..TypeAheadProbe::default()
+        });
+        assert_eq!(rt.last.type_aheads.len(), 1);
+        rt.app.events.clear();
+
+        let response = deliver(&mut rt, key(KeyCode::Char('a')));
+
+        assert_eq!(
+            rt.app.events,
+            [TypeAheadProbeEvent::Key(
+                TYPE_AHEAD_A,
+                Key {
+                    code: KeyCode::Char('a'),
+                    mods: KeyModifiers::NONE,
+                },
+            )]
+        );
+        assert!(!response.is_consumed());
+        assert!(
+            response.is_changed(),
+            "repaint from the first update survives"
+        );
+    }
+
+    #[test]
+    fn ignored_capture_component_scoped_and_global_routes_end_in_one_original_key() {
+        let mut rt = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            component_binding: true,
+            scoped_binding: true,
+            shortcut: TypeAheadShortcut::CaptureAndBubble,
+            ..TypeAheadProbe::default()
+        });
+        rt.app.events.clear();
+
+        let _ = deliver(&mut rt, key(KeyCode::Char('a')));
+
+        assert_eq!(
+            rt.app.events,
+            [
+                TypeAheadProbeEvent::Command(TYPE_AHEAD_CAPTURE_ACTION),
+                TypeAheadProbeEvent::Binding(TYPE_AHEAD_A, TYPE_AHEAD_SHORTCUT),
+                TypeAheadProbeEvent::Binding(TYPE_AHEAD_B, TYPE_AHEAD_SHORTCUT),
+                TypeAheadProbeEvent::Command(TYPE_AHEAD_BUBBLE_ACTION),
+                TypeAheadProbeEvent::Key(
+                    TYPE_AHEAD_A,
+                    Key {
+                        code: KeyCode::Char('a'),
+                        mods: KeyModifiers::NONE,
+                    },
+                ),
+            ],
+            "one captured original candidate survives every ignored shortcut opportunity"
+        );
+    }
+
+    #[test]
+    fn ignored_capture_focus_excursion_cancels_the_original_candidate() {
+        let mut rt = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            shortcut: TypeAheadShortcut::Capture,
+            record_focus_transitions: true,
+            ..TypeAheadProbe::default()
+        });
+        rt.app.focus_steps = [TYPE_AHEAD_B, TYPE_AHEAD_A].into();
+        assert_eq!(rt.app.focus_steps.len(), 2);
+        rt.app.events.clear();
+
+        let _ = deliver(&mut rt, key(KeyCode::Char('a')));
+
+        assert_eq!(rt.focus.current(), Some(TYPE_AHEAD_A));
+        assert!(rt.app.focus_steps.is_empty());
+        assert_eq!(
+            rt.app.events,
+            [
+                TypeAheadProbeEvent::Command(TYPE_AHEAD_CAPTURE_ACTION),
+                TypeAheadProbeEvent::FocusOut(TYPE_AHEAD_A, Some(TYPE_AHEAD_B)),
+                TypeAheadProbeEvent::FocusIn(TYPE_AHEAD_B),
+                TypeAheadProbeEvent::FocusIn(TYPE_AHEAD_A),
+                TypeAheadProbeEvent::FocusOut(TYPE_AHEAD_B, Some(TYPE_AHEAD_A)),
+            ]
+        );
+    }
+
+    #[test]
+    fn repaint_before_consuming_final_original_key_is_preserved() {
+        let mut rt = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            repaint_empty_event: true,
+            consume_keys: true,
+            ..TypeAheadProbe::default()
+        });
+        rt.app.events.clear();
+
+        let response = deliver(&mut rt, key(KeyCode::Char('a')));
+
+        assert!(response.is_consumed());
+        assert!(response.is_changed(), "the earlier repaint remains folded");
+        assert_eq!(
+            rt.app.events,
+            [TypeAheadProbeEvent::Key(
+                TYPE_AHEAD_A,
+                Key {
+                    code: KeyCode::Char('a'),
+                    mods: KeyModifiers::NONE,
+                },
+            )]
+        );
+    }
+
+    #[test]
+    fn non_opted_in_ignored_capture_and_component_routing_keep_legacy_order() {
+        let mut capture = ready_type_ahead_probe(TypeAheadProbe {
+            shortcut: TypeAheadShortcut::Capture,
+            ..TypeAheadProbe::default()
+        });
+        capture.app.events.clear();
+        let _ = deliver(&mut capture, key(KeyCode::Char('a')));
+        assert_eq!(
+            capture.app.events,
+            [TypeAheadProbeEvent::Command(TYPE_AHEAD_CAPTURE_ACTION)],
+            "an ignored Capture without an original declaration keeps its early return"
+        );
+
+        let mut component = ready_type_ahead_probe(TypeAheadProbe {
+            component_binding: true,
+            shortcut: TypeAheadShortcut::Bubble,
+            ..TypeAheadProbe::default()
+        });
+        component.app.events.clear();
+        let _ = deliver(&mut component, key(KeyCode::Char('a')));
+        assert_eq!(
+            component.app.events,
+            [
+                TypeAheadProbeEvent::Binding(TYPE_AHEAD_A, TYPE_AHEAD_SHORTCUT),
+                TypeAheadProbeEvent::Command(TYPE_AHEAD_BUBBLE_ACTION),
+            ],
+            "an ignored component binding still precedes Bubble and never manufactures a key"
+        );
+    }
+
+    #[test]
+    fn capture_shortcut_consumption_precedes_type_ahead() {
+        let mut rt = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            shortcut: TypeAheadShortcut::Capture,
+            consume_commands: true,
+            ..TypeAheadProbe::default()
+        });
+        rt.app.events.clear();
+
+        let response = deliver(&mut rt, key(KeyCode::Char('a')));
+
+        assert!(response.is_consumed());
+        assert_eq!(
+            rt.app.events,
+            [TypeAheadProbeEvent::Command(TYPE_AHEAD_CAPTURE_ACTION)]
+        );
+    }
+
+    #[test]
+    fn component_binding_consumption_precedes_type_ahead() {
+        let mut rt = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            component_binding: true,
+            consume_bindings: true,
+            ..TypeAheadProbe::default()
+        });
+        rt.app.events.clear();
+
+        let response = deliver(&mut rt, key(KeyCode::Char('a')));
+
+        assert!(response.is_consumed());
+        assert_eq!(
+            rt.app.events,
+            [TypeAheadProbeEvent::Binding(
+                TYPE_AHEAD_A,
+                TYPE_AHEAD_SHORTCUT
+            )]
+        );
+    }
+
+    #[test]
+    fn scoped_bubble_consumption_precedes_type_ahead() {
+        let mut rt = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            scoped_binding: true,
+            consume_bindings: true,
+            ..TypeAheadProbe::default()
+        });
+        rt.app.events.clear();
+
+        let response = deliver(&mut rt, key(KeyCode::Char('a')));
+
+        assert!(response.is_consumed());
+        assert_eq!(
+            rt.app.events,
+            [TypeAheadProbeEvent::Binding(
+                TYPE_AHEAD_B,
+                TYPE_AHEAD_SHORTCUT
+            )]
+        );
+    }
+
+    #[test]
+    fn global_bubble_consumption_precedes_type_ahead() {
+        let mut rt = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            shortcut: TypeAheadShortcut::Bubble,
+            consume_commands: true,
+            ..TypeAheadProbe::default()
+        });
+        rt.app.events.clear();
+
+        let response = deliver(&mut rt, key(KeyCode::Char('a')));
+
+        assert!(response.is_consumed());
+        assert_eq!(
+            rt.app.events,
+            [TypeAheadProbeEvent::Command(TYPE_AHEAD_BUBBLE_ACTION)]
+        );
+    }
+
+    #[test]
+    fn type_ahead_keeps_legacy_raw_key_before_global_bubble_without_opt_in() {
+        let mut rt = ready_type_ahead_probe(TypeAheadProbe {
+            shortcut: TypeAheadShortcut::Bubble,
+            ..TypeAheadProbe::default()
+        });
+        rt.app.events.clear();
+
+        let _ = deliver(&mut rt, key(KeyCode::Char('a')));
+
+        assert_eq!(
+            rt.app.events,
+            [
+                TypeAheadProbeEvent::Key(
+                    TYPE_AHEAD_A,
+                    Key {
+                        code: KeyCode::Char('a'),
+                        mods: KeyModifiers::NONE,
+                    },
+                ),
+                TypeAheadProbeEvent::Command(TYPE_AHEAD_BUBBLE_ACTION),
+            ]
+        );
+    }
+
+    #[test]
+    fn type_ahead_publication_rejects_disabled_and_empty_focus_entries() {
+        let disabled = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            disabled: true,
+            ..TypeAheadProbe::default()
+        });
+        assert!(disabled.last.type_aheads.is_empty());
+
+        let empty = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            focus_only: true,
+            ..TypeAheadProbe::default()
+        });
+        assert!(empty.last.type_aheads.is_empty());
+    }
+
+    #[test]
+    fn deferred_type_ahead_allows_read_only_controls_and_preserves_focused_editor_typing() {
+        let mut read_only = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            read_only: true,
+            ..TypeAheadProbe::default()
+        });
+        assert_eq!(read_only.last.type_aheads.len(), 1);
+        read_only.app.events.clear();
+        let _ = deliver(&mut read_only, key(KeyCode::Char('a')));
+        assert_eq!(
+            read_only.app.events,
+            [TypeAheadProbeEvent::Key(
+                TYPE_AHEAD_A,
+                Key {
+                    code: KeyCode::Char('a'),
+                    mods: KeyModifiers::NONE,
+                },
+            )]
+        );
+
+        let mut editor = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            editor: true,
+            ..TypeAheadProbe::default()
+        });
+        assert_eq!(editor.last.typing.owner, Some(TYPE_AHEAD_A));
+        assert!(editor.last.typing.fallback.is_none());
+        assert!(editor.last.type_aheads.is_empty());
+        editor.app.events.clear();
+        let _ = deliver(&mut editor, key(KeyCode::Char('a')));
+        assert_eq!(
+            editor.app.events,
+            [TypeAheadProbeEvent::Key(
+                TYPE_AHEAD_A,
+                Key {
+                    code: KeyCode::Char('a'),
+                    mods: KeyModifiers::NONE,
+                },
+            )]
+        );
+
+        let mut mismatched_editor = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            editor: true,
+            mismatched_editor_flags: true,
+            ..TypeAheadProbe::default()
+        });
+        assert!(
+            mismatched_editor
+                .last
+                .declared
+                .iter()
+                .any(|(id, flags)| { *id == TYPE_AHEAD_A && flags.contains(StateFlags::EDITING) })
+        );
+        assert!(mismatched_editor.last.type_aheads.is_empty());
+        mismatched_editor.app.events.clear();
+        let _ = deliver(&mut mismatched_editor, key(KeyCode::Char('a')));
+        assert_eq!(
+            mismatched_editor.app.events,
+            [TypeAheadProbeEvent::Key(
+                TYPE_AHEAD_A,
+                Key {
+                    code: KeyCode::Char('a'),
+                    mods: KeyModifiers::NONE,
+                },
+            )],
+            "the registry's editor identity keeps typing raw even when the publisher omits EDITING"
+        );
+    }
+
+    #[test]
+    fn deferred_type_ahead_preserves_existing_typing_fallback_routing() {
+        let mut rt = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            fallback_editor: true,
+            ..TypeAheadProbe::default()
+        });
+        assert_eq!(rt.last.typing.fallback, Some(TYPE_AHEAD_B));
+        rt.app.events.clear();
+
+        let _ = deliver(&mut rt, key(KeyCode::Char('a')));
+
+        assert_eq!(
+            rt.app.events,
+            [TypeAheadProbeEvent::Key(
+                TYPE_AHEAD_B,
+                Key {
+                    code: KeyCode::Char('a'),
+                    mods: KeyModifiers::NONE,
+                },
+            )]
+        );
+    }
+
+    #[test]
+    fn deferred_type_ahead_rejects_focus_away_and_back() {
+        let mut rt = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            record_focus_transitions: true,
+            ..TypeAheadProbe::default()
+        });
+        rt.app.focus_steps = [TYPE_AHEAD_B, TYPE_AHEAD_A].into();
+        assert_eq!(rt.app.focus_steps.len(), 2);
+        rt.app.events.clear();
+
+        let _ = deliver(&mut rt, key(KeyCode::Char('a')));
+
+        assert_eq!(rt.focus.current(), Some(TYPE_AHEAD_A));
+        assert!(rt.app.focus_steps.is_empty());
+        assert_eq!(
+            rt.app.events,
+            [
+                TypeAheadProbeEvent::FocusOut(TYPE_AHEAD_A, Some(TYPE_AHEAD_B)),
+                TypeAheadProbeEvent::FocusIn(TYPE_AHEAD_B),
+                TypeAheadProbeEvent::FocusIn(TYPE_AHEAD_A),
+                TypeAheadProbeEvent::FocusOut(TYPE_AHEAD_B, Some(TYPE_AHEAD_A)),
+            ],
+            "the ready-time key drives two actual focus transitions away and back"
+        );
+    }
+
+    #[test]
+    fn deferred_type_ahead_rejects_a_layer_opened_and_closed_in_one_update() {
+        let mut rt = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            shortcut: TypeAheadShortcut::Capture,
+            ..TypeAheadProbe::default()
+        });
+        rt.app.open_close_on_event = true;
+        rt.app.events.clear();
+        let generation = rt.services.layers.next_generation();
+
+        let _ = deliver(&mut rt, key(KeyCode::Char('a')));
+
+        assert_eq!(rt.services.layers.top(), LayerId::PAGE);
+        assert_ne!(rt.services.layers.next_generation(), generation);
+        assert_eq!(
+            rt.app.events,
+            [TypeAheadProbeEvent::Command(TYPE_AHEAD_CAPTURE_ACTION)],
+            "the original candidate is cancelled after an ignored Capture open-close cycle"
+        );
+    }
+
+    #[test]
+    fn deferred_type_ahead_leaves_modified_punctuation_space_and_navigation_routes_unchanged() {
+        let mut rt = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            ..TypeAheadProbe::default()
+        });
+        rt.app.events.clear();
+        let keys = [
+            Key {
+                code: KeyCode::Char('a'),
+                mods: KeyModifiers::CONTROL,
+            },
+            Key {
+                code: KeyCode::Char('?'),
+                mods: KeyModifiers::NONE,
+            },
+            Key {
+                code: KeyCode::Char(' '),
+                mods: KeyModifiers::NONE,
+            },
+            Key {
+                code: KeyCode::Left,
+                mods: KeyModifiers::NONE,
+            },
+        ];
+        for key in keys {
+            let _ = deliver(&mut rt, Input::Key(key));
+        }
+        let _ = deliver(&mut rt, key(KeyCode::Tab));
+        assert_eq!(rt.focus.current(), Some(TYPE_AHEAD_B));
+        let _ = deliver(&mut rt, key(KeyCode::BackTab));
+        assert_eq!(rt.focus.current(), Some(TYPE_AHEAD_A));
+
+        assert_eq!(
+            rt.app.events,
+            keys.map(|key| TypeAheadProbeEvent::Key(TYPE_AHEAD_A, key))
+        );
+    }
+
+    #[test]
+    fn deferred_type_ahead_candidate_is_not_retained_across_tick_or_the_next_key() {
+        let mut rt = ready_type_ahead_probe(TypeAheadProbe {
+            publish: true,
+            consume_empty_event_once: true,
+            ..TypeAheadProbe::default()
+        });
+        rt.app.events.clear();
+
+        let response = deliver(&mut rt, key(KeyCode::Char('a')));
+        assert!(response.is_consumed());
+        assert!(rt.app.events.is_empty());
+        let _ = deliver(&mut rt, Input::Tick);
+        assert!(rt.app.events.is_empty());
+
+        let _ = deliver(&mut rt, key(KeyCode::Char('b')));
+        assert_eq!(
+            rt.app.events,
+            [TypeAheadProbeEvent::Key(
+                TYPE_AHEAD_A,
+                Key {
+                    code: KeyCode::Char('b'),
+                    mods: KeyModifiers::NONE,
+                },
+            )]
+        );
+    }
 
     #[test]
     fn draw_frame_admits_openings_from_the_selected_live_or_snapshot_layers() {

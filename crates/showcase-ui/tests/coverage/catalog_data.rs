@@ -3458,6 +3458,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("termrock-runtime::ui::Ui::publish_bindings"),
     Capability::function("termrock-runtime::ui::Ui::publish_dynamic_bindings"),
     Capability::function("termrock-runtime::ui::Ui::publish_focused_paste_target"),
+    Capability::function("termrock-runtime::ui::Ui::publish_type_ahead"),
     Capability::function("termrock-runtime::ui::Ui::publish_typing_target"),
     Capability::function("termrock-runtime::ui::Ui::raw"),
     Capability::function("termrock-runtime::ui::Ui::recolor_fg"),

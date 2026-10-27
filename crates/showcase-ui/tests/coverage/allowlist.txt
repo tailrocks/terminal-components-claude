@@ -886,6 +886,7 @@ termrock-runtime::ui::Ui::paint_style | the overview page draws termrock-runtime
 termrock-runtime::ui::Ui::pressed_part | the overview page draws termrock-runtime::ui::Ui but does not use pressed_part; SC2 adds the option or state that exercises it | SC2
 termrock-runtime::ui::Ui::publish_dynamic_bindings | the overview page draws termrock-runtime::ui::Ui but does not use publish_dynamic_bindings; SC2 adds the option or state that exercises it | SC2
 termrock-runtime::ui::Ui::publish_focused_paste_target | Current executable showcase proofs do not probe focused-paste routing; native runtime tests do not prove a showcase route | review
+termrock-runtime::ui::Ui::publish_type_ahead | Opt-in deferred character routing has no registered Showcase behavior proof; Grid consumer integration remains pending | review
 termrock-runtime::ui::Ui::publish_typing_target | the overview page draws termrock-runtime::ui::Ui but does not use publish_typing_target; SC2 adds the option or state that exercises it | SC2
 termrock-runtime::ui::Ui::raw | the overview page draws termrock-runtime::ui::Ui but does not use raw; SC2 adds the option or state that exercises it | SC2
 termrock-runtime::ui::Ui::recolor_fg | the overview page draws termrock-runtime::ui::Ui but does not use recolor_fg; SC2 adds the option or state that exercises it | SC2

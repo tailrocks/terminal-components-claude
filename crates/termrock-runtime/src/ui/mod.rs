@@ -62,6 +62,12 @@ impl CellRoles {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct TypeAheadDeclaration {
+    pub(crate) owner: Id,
+    pub(crate) layer: LayerId,
+}
+
 #[derive(Debug, Default)]
 pub struct FrameState {
     pub registry: Registry,
@@ -80,6 +86,7 @@ pub struct FrameState {
     pub(crate) declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
     pub(crate) scoped_bubble_bindings: Vec<ScopedBubbleBinding>,
+    pub(crate) type_aheads: Vec<TypeAheadDeclaration>,
     pub(crate) diagnostics: Diagnostics,
     pub(crate) tooltips: crate::Tooltips,
     pub(crate) roles: Vec<CellRoles>,
@@ -206,6 +213,7 @@ impl FrameState {
         self.declared.clear();
         self.bindings.reset();
         self.scoped_bubble_bindings.clear();
+        self.type_aheads.clear();
         self.diagnostics.clear();
         self.roles.clear();
         self.roles
@@ -983,6 +991,55 @@ impl<'f> Ui<'f> {
                 Err(error)
             }
         }
+    }
+
+    /// Offer otherwise-unhandled alphanumeric keys to a focused control after
+    /// the runtime's Capture, component, and Bubble shortcuts have run.
+    ///
+    /// Call this after registering `owner`. The runtime records the declaration
+    /// only for an enabled, reachable focus entry with nonempty geometry in this
+    /// layer. Inert and reference contexts, disabled controls, and native
+    /// editing controls cannot publish it, even if the supplied flags omit
+    /// `EDITING`. Read-only controls may opt in. The declaration
+    /// does not introduce a timeout or retain keys between input events.
+    pub fn publish_type_ahead(&mut self, owner: Id, flags: StateFlags) {
+        if self.registrations_suppressed()
+            || flags.intersects(StateFlags::DISABLED | StateFlags::EDITING)
+        {
+            return;
+        }
+
+        let registered_here = self.frame.ring.entry(owner).is_some_and(|entry| {
+            entry.layer == self.layer
+                && !entry.disabled
+                && !entry.swallows_typing
+                && !entry.area.is_empty()
+        }) && self.frame.ring.contains(owner)
+            && !self
+                .frame
+                .declared
+                .iter()
+                .any(|(id, state)| *id == owner && state.contains(StateFlags::EDITING))
+            && self.frame.registry.layer_of(owner) == Some(self.layer)
+            && self
+                .frame
+                .registry
+                .area_of(owner)
+                .is_some_and(|area| !area.is_empty());
+        if !registered_here
+            || self
+                .frame
+                .type_aheads
+                .iter()
+                .any(|declaration| declaration.owner == owner && declaration.layer == self.layer)
+        {
+            return;
+        }
+
+        self.frame.type_aheads.push(TypeAheadDeclaration {
+            owner,
+            layer: self.layer,
+        });
     }
 
     pub fn publish_typing_target<C: Copy + 'static>(
@@ -2029,7 +2086,10 @@ mod tests {
     use crate::hit::{Axes, Headroom, RegionKind};
     use crate::id::{Id, ItemKey, Part, PartRef};
     use crate::keymap::Binding;
-    use crate::layer::{DismissReason, LayerEvent, LayerId, LayerOpening, LayerSpec, LayerStack};
+    use crate::layer::{
+        Anchor, DismissReason, LayerEvent, LayerId, LayerOpening, LayerSpec, LayerStack,
+        ScreenAlign,
+    };
     use crate::response::StateFlags;
     use crate::rowui::RowUi;
     use crate::theme::{
@@ -2382,6 +2442,70 @@ mod tests {
                 "an inactive layer travels with the component's own state"
             );
         });
+    }
+
+    #[test]
+    fn type_ahead_publication_rejects_native_editors_even_with_mismatched_flags() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            ui.register_editor(OWNER, SCREEN, Focusability::Focusable, StateFlags::EDITING);
+            ui.publish_type_ahead(OWNER, StateFlags::FOCUSED);
+            assert!(ui.frame.type_aheads.is_empty());
+        });
+    }
+
+    #[test]
+    fn type_ahead_publication_rejects_inert_reference_and_out_of_trap_contexts() {
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            ui.register_control(OWNER, SCREEN, Focusability::Focusable);
+        }
+        frame.inert_floor = LayerId(1);
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            ui.publish_type_ahead(OWNER, StateFlags::FOCUSED);
+        }
+        assert!(frame.type_aheads.is_empty());
+
+        with_ui(&theme, |ui| {
+            ui.register_control(OWNER, SCREEN, Focusability::Focusable);
+            ui.reference(None, |ui| ui.publish_type_ahead(OWNER, StateFlags::FOCUSED));
+            assert!(ui.frame.type_aheads.is_empty());
+        });
+
+        with_ui(&theme, |ui| {
+            ui.register_control(OWNER, SCREEN, Focusability::Focusable);
+            ui.focus_scope(OTHER, crate::focus::ScopeMode::Trap, |ui| {
+                ui.publish_type_ahead(OWNER, StateFlags::FOCUSED);
+            });
+            assert!(ui.frame.type_aheads.is_empty());
+        });
+    }
+
+    #[test]
+    fn type_ahead_publication_rejects_registration_from_a_different_layer() {
+        let theme = Theme::junie();
+        let spec = LayerSpec::popover(GUARDED_LAYER, Anchor::Screen(ScreenAlign::Center));
+        let opening = opening_for_test(GUARDED_LAYER, spec, 25);
+        let mut frame = frame_for_opening(opening, spec);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let result = {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            ui.register_control(OWNER, SCREEN, Focusability::Focusable);
+            ui.layer(GUARDED_LAYER, |ui, _| {
+                ui.publish_type_ahead(OWNER, StateFlags::FOCUSED);
+            })
+        };
+        assert_eq!(result, Some(()));
+        assert!(frame.type_aheads.is_empty());
     }
 
     #[test]
