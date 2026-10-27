@@ -71,3 +71,12 @@ Application ownership is separate and remains bounded:
 - `/root/tablepro_selection_recovery` currently has read-only ownership. Its proposed future write is limited to `crates/tablepro-ui/src/app.rs` for connection-tree Down-selection identity. No TablePro source edits may begin before an explicit WIP handoff.
 
 Preserve all dirty application and peer-candidate bytes. Do not merge either PR, force-push, or change the Suite export while the Suite owner controls it. Any future temporary branch created by this session must be integrated and verified before deletion.
+
+
+## TablePro selection ownership handoff — 2026-10-28
+
+This append-only handoff supersedes the earlier read-only status for `/root/tablepro_selection_recovery` only after this entry is independently reviewed, published, and activated by root. Until all three steps occur, no TablePro source write is authorized.
+
+After activation, `/root/tablepro_selection_recovery` (Luna max) is the sole writer for exactly `crates/tablepro-ui/src/app.rs`, limited to connection-tree Down-selection identity. The bounded correction removes the separate visual `TreeState` and uses the single live selection state, initializing or resetting it on first-group selection. Preserve leaf-detail index, stable-key and filter reconciliation, and all other TablePro features.
+
+This handoff grants no writes to other TablePro files, app crates, manifests, locks, engine pins, exports, Suite sources/data, CI configuration, or the compiler lease. Preserve all existing edits and peer candidates.
