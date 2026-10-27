@@ -1346,11 +1346,6 @@ fn snapshot_text(snapshot: &TerminalSnapshot) -> String {
         .to_owned()
 }
 
-// The PR26 120x40 FirstUse snapshot places the Finder query at row 4.
-// Finder renders the master/detail body two rows below the query. Its 34%
-// detail share gives 40 columns at this width; with the two-column gap, the
-// master result list occupies x=0..77 and y=6..37. Keep row-absence checks in
-// this pane so a valid preview alternative is not treated as an unfiltered row.
 fn holla_result_list_text(snapshot: &TerminalSnapshot) -> String {
     let x_start = HOLLA_RESULT_LIST_X_START;
     let x_end = HOLLA_RESULT_LIST_X_END.min(snapshot.cols());
