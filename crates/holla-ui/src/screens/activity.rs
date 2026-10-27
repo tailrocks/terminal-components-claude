@@ -1,7 +1,8 @@
 use crate::domain::activity::{Activity, ActivityState};
 use crate::sim::{
     activity_supervisor::{
-        ActivityExecution, ActivityExecutionId, ActivityExecutionPhase, ActivityStopPhase,
+        ActivityExecution, ActivityExecutionId, ActivityExecutionPhase, ActivityStopMilestone,
+        ActivityStopPhase,
     },
     task_run::{TaskRun, TaskRunState},
     world::World,
@@ -16,7 +17,9 @@ use termrock::{
 pub(crate) struct ActivityProjection {
     pub(crate) execution_id: Option<ActivityExecutionId>,
     pub(crate) state_label: String,
+    /// Elapsed grace while stopping, or the TERM-to-reap duration after completion.
     pub(crate) stop_grace_ms: Option<u64>,
+    pub(crate) simulated_stop_history: Option<String>,
     pub(crate) stop_enabled: bool,
     pub(crate) lines: Vec<String>,
 }
@@ -229,10 +232,21 @@ impl Activities {
                     Rect::new(area.x, area.y.saturating_add(1), area.width.min(22), 1),
                 );
         }
-        let state_label = format!(
-            "{} · {}",
-            projection.state_label,
-            elapsed_label(activity, world.now_ms())
+        let state_label = projection.stop_grace_ms.map_or_else(
+            || {
+                format!(
+                    "{} · {}",
+                    projection.state_label,
+                    elapsed_label(activity, world.now_ms())
+                )
+            },
+            |grace_ms| {
+                format!(
+                    "{} · {} · SIMULATED stop grace {grace_ms} ms",
+                    projection.state_label,
+                    elapsed_label(activity, world.now_ms())
+                )
+            },
         );
         let count_label = format!("{} retained lines", projection.lines.len());
         Props::new(&[
@@ -249,6 +263,14 @@ impl Activities {
                 area.height.saturating_sub(2).min(3),
             ),
         );
+        if let Some(history) = projection.simulated_stop_history.as_deref() {
+            let history_style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)));
+            ui.paint_str(
+                Rect::new(area.x, area.y.saturating_add(5), area.width, 1),
+                &termrock::truncate(history, area.width),
+                history_style,
+            );
+        }
         let output = Rect::new(
             area.x,
             area.y.saturating_add(6),
@@ -313,6 +335,34 @@ fn stop_button_label(projection: &ActivityProjection) -> &'static str {
     }
 }
 
+fn format_simulated_stop_history(execution: &ActivityExecution) -> Option<String> {
+    let requested_at_ms = execution.stop_requested_ms()?;
+    let milestones = execution.milestones();
+    if milestones.is_empty() {
+        return None;
+    }
+    let history = milestones
+        .iter()
+        .map(|milestone| {
+            let elapsed_ms = milestone
+                .at_ms()
+                .saturating_sub(requested_at_ms)
+                .max(0);
+            match milestone {
+                ActivityStopMilestone::TermSent { .. } => format!("TERM +{elapsed_ms} ms"),
+                ActivityStopMilestone::KillSent { .. } => format!("KILL +{elapsed_ms} ms"),
+                ActivityStopMilestone::Reaped { .. } => format!("reap +{elapsed_ms} ms"),
+                ActivityStopMilestone::CancelledBeforeStart { .. } => {
+                    format!("queued cancellation before start +{elapsed_ms} ms")
+                }
+                _ => "simulated lifecycle event".to_owned(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" · ");
+    Some(format!("SIMULATED stop · {history}"))
+}
+
 pub(crate) fn project(
     activity: &Activity,
     execution: Option<&ActivityExecution>,
@@ -366,11 +416,25 @@ pub(crate) fn project(
         activity.state.label()
     }
     .to_owned();
-    let stop_grace_ms = execution
-        .filter(|value| value.phase() == ActivityExecutionPhase::Cancelling)
-        .and_then(ActivityExecution::stop_requested_ms)
-        .map(|started_ms| now_ms.saturating_sub(started_ms).max(0))
-        .and_then(|elapsed| u64::try_from(elapsed).ok());
+    let stop_grace_ms = execution.and_then(|value| match value.phase() {
+        ActivityExecutionPhase::Cancelling => value
+            .stop_requested_ms()
+            .map(|started_ms| now_ms.saturating_sub(started_ms).max(0))
+            .and_then(|elapsed| u64::try_from(elapsed).ok()),
+        ActivityExecutionPhase::Stopped if value.stop_phase() == ActivityStopPhase::Reaped => {
+            let term_at_ms = value.milestones().iter().find_map(|milestone| match milestone {
+                ActivityStopMilestone::TermSent { at_ms } => Some(*at_ms),
+                _ => None,
+            })?;
+            let reaped_at_ms = value.milestones().iter().find_map(|milestone| match milestone {
+                ActivityStopMilestone::Reaped { at_ms } => Some(*at_ms),
+                _ => None,
+            })?;
+            u64::try_from(reaped_at_ms.saturating_sub(term_at_ms).max(0)).ok()
+        }
+        _ => None,
+    });
+    let simulated_stop_history = execution.and_then(format_simulated_stop_history);
     let run_terminal = matches!(
         task_state,
         Some(TaskRunState::Completed | TaskRunState::Cancelled)
@@ -388,6 +452,7 @@ pub(crate) fn project(
         execution_id,
         state_label,
         stop_grace_ms,
+        simulated_stop_history,
         stop_enabled,
         lines,
     }
@@ -395,7 +460,7 @@ pub(crate) fn project(
 
 pub(crate) fn strip_status(projection: &ActivityProjection) -> Option<String> {
     projection.execution_id?;
-    if projection.stop_grace_ms.is_some() {
+    if projection.state_label == "stopping" {
         projection
             .stop_grace_ms
             .map(|elapsed| format!("Stopping · {elapsed} ms stop grace"))
@@ -505,6 +570,46 @@ mod tests {
         screen: Activities,
         world: World,
     }
+
+    struct HistoryFixture {
+        screen: Activities,
+        world: World,
+    }
+
+    impl HistoryFixture {
+        fn projections(&self) -> BTreeMap<u32, ActivityProjection> {
+            self.world
+                .activities
+                .iter()
+                .map(|activity| {
+                    let execution = self
+                        .world
+                        .activity_supervisor
+                        .current_execution_id(activity.id)
+                        .and_then(|id| self.world.activity_supervisor.execution(id))
+                        .filter(|execution| execution.snapshot() == activity);
+                    (
+                        activity.id,
+                        project(activity, execution, None, self.world.now_ms()),
+                    )
+                })
+                .collect()
+        }
+    }
+
+    impl App for HistoryFixture {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let projections = self.projections();
+            self.screen
+                .update(&self.world, &projections, false, cx)
+                .0
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let projections = self.projections();
+            self.screen.draw(&self.world, &projections, ui, ui.full());
+        }
+    }
     impl App for Fixture {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             let projections = self
@@ -567,6 +672,142 @@ mod tests {
         let before = harness.app().world.activities.clone();
         harness.draw();
         assert_eq!(harness.app().world.activities, before);
+    }
+
+    #[test]
+    fn coarse_advance_projects_all_simulated_resistant_milestones_and_final_grace() {
+        let activity = Activity::new(1, "resistant", "test", ActivityState::Running, 4_000);
+        let mut supervisor = ActivitySupervisor::new();
+        let execution_id = supervisor
+            .register(
+                &activity,
+                ActivityExecutionStart::Running,
+                ActivityStopProfile::Resistant,
+            )
+            .expect("resistant execution registers");
+        supervisor
+            .admit_stop(execution_id, &activity, 4_000)
+            .expect("resistant stop is admitted")
+            .commit();
+        supervisor.advance_to(4_960);
+        let execution = supervisor
+            .execution(execution_id)
+            .expect("resistant execution remains queryable");
+        let projection = project(&activity, Some(execution), None, 4_960);
+
+        assert_eq!(
+            projection.simulated_stop_history.as_deref(),
+            Some("SIMULATED stop · TERM +0 ms · KILL +800 ms · reap +960 ms")
+        );
+        assert_eq!(projection.stop_grace_ms, Some(960));
+        assert_eq!(projection.lines, activity.lines);
+        assert_eq!(execution.snapshot(), &activity);
+    }
+
+    #[test]
+    fn responsive_reaping_projects_the_completed_simulated_grace() {
+        let activity = Activity::new(2, "responsive", "test", ActivityState::Running, 4_000);
+        let mut supervisor = ActivitySupervisor::new();
+        let execution_id = supervisor
+            .register(
+                &activity,
+                ActivityExecutionStart::Running,
+                ActivityStopProfile::Responsive,
+            )
+            .expect("responsive execution registers");
+        supervisor
+            .admit_stop(execution_id, &activity, 4_000)
+            .expect("responsive stop is admitted")
+            .commit();
+        supervisor.advance_to(4_240);
+        let execution = supervisor
+            .execution(execution_id)
+            .expect("responsive execution remains queryable");
+        let projection = project(&activity, Some(execution), None, 4_240);
+
+        assert_eq!(
+            projection.simulated_stop_history.as_deref(),
+            Some("SIMULATED stop · TERM +0 ms · reap +240 ms")
+        );
+        assert_eq!(projection.stop_grace_ms, Some(240));
+    }
+
+    #[test]
+    fn queued_cancellation_projects_a_simulated_prestart_event_without_grace() {
+        let activity = Activity::new(3, "queued", "test", ActivityState::Running, 4_000);
+        let mut supervisor = ActivitySupervisor::new();
+        let execution_id = supervisor
+            .register(
+                &activity,
+                ActivityExecutionStart::Queued,
+                ActivityStopProfile::Resistant,
+            )
+            .expect("queued execution registers");
+        supervisor
+            .admit_stop(execution_id, &activity, 4_000)
+            .expect("queued stop is admitted")
+            .commit();
+        let execution = supervisor
+            .execution(execution_id)
+            .expect("queued execution remains queryable");
+        let projection = project(&activity, Some(execution), None, 4_000);
+
+        assert_eq!(
+            projection.simulated_stop_history.as_deref(),
+            Some("SIMULATED stop · queued cancellation before start +0 ms")
+        );
+        assert_eq!(projection.stop_grace_ms, None);
+    }
+
+    #[test]
+    fn activity_screen_renders_simulated_history_separately_from_authored_output() {
+        let mut world = fixtures::world_for(Scenario::ActivitiesMulti);
+        let activity_id = world
+            .activities
+            .iter()
+            .map(|activity| activity.id)
+            .max()
+            .unwrap_or_default()
+            .checked_add(1)
+            .expect("Activity ID remains available");
+        let stop_at_ms = world.now_ms();
+        let reap_at_ms = stop_at_ms.saturating_add(960);
+        let mut activity = Activity::new(
+            activity_id,
+            "resistant fixture",
+            "test",
+            ActivityState::Running,
+            stop_at_ms,
+        );
+        activity.lines = vec!["authored Activity output".to_owned()];
+        world.activities = vec![activity.clone()];
+        let execution_id = world
+            .activity_supervisor
+            .register(
+                &activity,
+                ActivityExecutionStart::Running,
+                ActivityStopProfile::Resistant,
+            )
+            .expect("resistant execution registers");
+        world
+            .activity_supervisor
+            .admit_stop(execution_id, &activity, stop_at_ms)
+            .expect("resistant stop is admitted")
+            .commit();
+        world.seek(u64::try_from(reap_at_ms).expect("reap time remains nonnegative"));
+        let mut screen = Activities::default();
+        screen.show(activity_id);
+        let harness = Harness::new(
+            HistoryFixture { screen, world },
+            Theme::junie(),
+            80,
+            20,
+        );
+        let frame = harness.text();
+
+        assert!(frame.contains("SIMULATED stop · TERM +0 ms · KILL +800 ms · reap +960 ms"));
+        assert!(frame.contains("authored Activity output"));
+        assert_eq!(frame.matches("SIMULATED stop ·").count(), 1);
     }
 
     #[test]

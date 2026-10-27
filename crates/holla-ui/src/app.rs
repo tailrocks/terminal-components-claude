@@ -2307,6 +2307,7 @@ impl App {
                         execution_id: None,
                         state_label: "unavailable".into(),
                         stop_grace_ms: None,
+                        simulated_stop_history: None,
                         stop_enabled: false,
                         lines: Vec::new(),
                     },
@@ -4458,3 +4459,7 @@ mod task_run_tests;
 #[cfg(test)]
 #[path = "app/activity_stop_tests.rs"]
 mod activity_stop_tests;
+
+#[cfg(test)]
+#[path = "app/simulated_stop_history_tests.rs"]
+mod simulated_stop_history_tests;

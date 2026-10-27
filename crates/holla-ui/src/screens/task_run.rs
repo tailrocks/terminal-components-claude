@@ -372,12 +372,37 @@ impl TaskRunScreen {
             run.duration_ms()
         );
         render_line(ui, area, 3, &duration, muted);
-        let execution = projection.stop_grace_ms.map_or_else(
-            || format!("Execution: {}", projection.state_label),
-            |elapsed| format!("Execution: stopping · stop grace {elapsed} ms"),
-        );
-        render_line(ui, area, 4, &execution, muted);
-        if let Some(id) = self.stop_owner_id() {
+        let execution = match (projection.state_label.as_str(), projection.stop_grace_ms) {
+            ("stopping", Some(elapsed)) => {
+                format!("Execution: stopping · SIMULATED stop grace {elapsed} ms")
+            }
+            ("stopped", Some(duration)) => {
+                format!("Execution: stopped · SIMULATED stop grace {duration} ms")
+            }
+            _ => format!("Execution: {}", projection.state_label),
+        };
+        let stop_owner_id = self.stop_owner_id();
+        let execution_width = if stop_owner_id.is_some() {
+            area.width.saturating_sub(22)
+        } else {
+            area.width
+        };
+        let execution_area = Rect::new(area.x, area.y, execution_width, area.height);
+        let execution = if termrock::width(&execution) <= execution_width {
+            execution
+        } else {
+            match (projection.state_label.as_str(), projection.stop_grace_ms) {
+                ("stopping", Some(elapsed)) => {
+                    format!("Execution: stopping · SIMULATED grace {elapsed} ms")
+                }
+                ("stopped", Some(duration)) => {
+                    format!("Execution: stopped · SIMULATED grace {duration} ms")
+                }
+                _ => execution,
+            }
+        };
+        render_line(ui, execution_area, 4, &execution, muted);
+        if let Some(id) = stop_owner_id {
             Button::new(
                 id,
                 if projection.stop_enabled {
@@ -403,7 +428,14 @@ impl TaskRunScreen {
         let input_area = Self::input_area_for(area, run.active_prompt().is_some());
         let reserved_rows = if input_area.is_some() { 4 } else { 0 };
         let output_end = area.height.saturating_sub(reserved_rows);
-        let mut row = 5;
+        if let Some(history) = projection.simulated_stop_history.as_deref() {
+            render_line(ui, area, 5, history, faint);
+        }
+        let mut row = if projection.simulated_stop_history.is_some() {
+            6
+        } else {
+            5
+        };
         for line in &projection.lines {
             if row >= output_end {
                 break;
@@ -492,4 +524,138 @@ fn has_only_focus_initialization_intents(cx: &Cx<'_>, id: Id) -> bool {
         _ => false,
     });
     saw_focus_in && only_lifecycle
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        domain::activity::ActivityState,
+        screens::activity,
+        sim::{
+            activity_supervisor::{
+                ActivityExecutionStart, ActivityStopProfile, ActivitySupervisor,
+            },
+            task_run::{TaskRunStore, TaskScriptId},
+        },
+    };
+    use termrock::{App, Cx, Response, Theme, Ui};
+    use termrock_test_support::Harness;
+
+    struct Fixture {
+        activity: Activity,
+        projection: ActivityProjection,
+        runs: TaskRunStore,
+        run_id: TaskRunId,
+        screen: TaskRunScreen,
+        now_ms: i64,
+    }
+
+    impl App for Fixture {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let Some(run) = self.runs.get(self.run_id) else {
+                return;
+            };
+            let area = ui.full();
+            self.screen.draw(
+                &self.activity,
+                &self.projection,
+                run,
+                self.now_ms,
+                ui,
+                area,
+            );
+        }
+    }
+
+    #[test]
+    fn simulated_reap_history_and_grace_stay_separate_from_frozen_task_run_duration() {
+        let mut runs = TaskRunStore::default();
+        let run_id = runs
+            .start(TaskScriptId::DevServerDemo, 4_000)
+            .expect("TaskRun starts");
+        let _ = runs.advance_to(4_100);
+        let before_output: Vec<_> = runs
+            .get(run_id)
+            .expect("TaskRun exists before cancellation")
+            .output()
+            .iter()
+            .map(|line| line.text().to_owned())
+            .collect();
+        let active_duration = runs
+            .get(run_id)
+            .expect("TaskRun exists before cancellation")
+            .duration_ms();
+        assert_eq!(active_duration, 100);
+        runs.cancel(run_id, 4_160).expect("TaskRun cancels");
+        let run = runs.get(run_id).expect("cancelled TaskRun remains stored");
+        assert_eq!(run.duration_ms(), active_duration);
+        assert_eq!(
+            run.output()
+                .iter()
+                .map(|line| line.text().to_owned())
+                .collect::<Vec<_>>(),
+            before_output
+        );
+
+        let mut activity = Activity::new(1, "dev", "test", ActivityState::Running, 4_000);
+        activity.lines = vec!["authored Activity output".to_owned()];
+        let mut supervisor = ActivitySupervisor::new();
+        let execution_id = supervisor
+            .register(
+                &activity,
+                ActivityExecutionStart::Running,
+                ActivityStopProfile::Resistant,
+            )
+            .expect("execution registers");
+        supervisor
+            .admit_stop(execution_id, &activity, 4_160)
+            .expect("stop is admitted")
+            .commit();
+        supervisor.advance_to(5_120);
+        let execution = supervisor
+            .execution(execution_id)
+            .expect("execution remains queryable after reaping");
+        let projection = activity::project(&activity, Some(execution), Some(run), 5_120);
+        assert_eq!(projection.stop_grace_ms, Some(960));
+        assert_eq!(
+            projection.simulated_stop_history.as_deref(),
+            Some("SIMULATED stop · TERM +0 ms · KILL +800 ms · reap +960 ms")
+        );
+        let mut authored_lines = activity.lines.clone();
+        authored_lines.extend(before_output);
+        assert_eq!(projection.lines, authored_lines);
+
+        let mut screen = TaskRunScreen::new(1, run_id, activity.id);
+        screen.bind_execution(execution_id);
+        let harness = Harness::new(
+            Fixture {
+                activity,
+                projection,
+                runs,
+                run_id,
+                screen,
+                now_ms: 5_120,
+            },
+            Theme::junie(),
+            80,
+            20,
+        );
+        assert!(harness.text().contains("TaskRun active duration: 100 ms"));
+        assert!(
+            harness
+                .text()
+                .contains("Execution: stopped · SIMULATED stop grace 960 ms")
+        );
+        assert!(
+            harness
+                .text()
+                .contains("SIMULATED stop · TERM +0 ms · KILL +800 ms · reap +960 ms")
+        );
+        assert_eq!(harness.text().matches("SIMULATED stop ·").count(), 1);
+    }
 }
