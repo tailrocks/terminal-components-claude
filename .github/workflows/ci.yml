@@ -763,7 +763,7 @@ jobs:
       - *s30
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-98b41aaa4d2386f62eed8a70b7d5752a7fe78d0077cace130c387f918abff870"}
+        with: {"digest": "b3-7376a0cdb33e4879780ea817bd52e91d1ee12430b6dbc60373c8e1e48e4ed93f"}
       - name: Format
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
@@ -771,15 +771,15 @@ jobs:
       - name: Clippy
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-6aa5f6d42cc118eea16d6ca9403ed3820326f52bc4a84730fd28ca5a31d96dd8"}
+        with: {"digest": "b3-82dbb3c3a2950d40a398ed680d671d6d74725dd5ad0a3eeb866d52be1f37c4cd"}
       - name: Unit and integration tests
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-41346ab26a49011f85840047e7b917ed496d5d5d5e929b2ce7bbab45b60cdf99"}
+        with: {"digest": "b3-eaafe8942480e5ff00ff0808e868772ca98a3374280e90597978a13103fe614c"}
       - name: Documentation
         background: true
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
-        with: {"digest": "b3-226b1951294d833457be3a15b547f3cbc16ff047b31a1a65e07fc762d877dffc"}
+        with: {"digest": "b3-f2fbc09e533bd1fc4ac7b0b5ac233cfe944f44c6d3032cc3e0f8544cb2fa25b5"}
       - name: Wait for parallel checks
         wait-all:
       - name: Upload crate reports
