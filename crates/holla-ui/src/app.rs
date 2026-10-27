@@ -310,8 +310,7 @@ const HELP_FOOTER_PARTS: &[(Part, StylePatch)] = &[
         Part::ACTION,
         StylePatch::new()
             .set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)))
-            .set_bg(Role::Custom(Color::Rgb(0x00, 0x00, 0x00)))
-            .add(termrock::Modifier::BOLD),
+            .set_bg(Role::Custom(Color::Rgb(0x00, 0x00, 0x00))),
     ),
 ];
 
