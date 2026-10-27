@@ -5,6 +5,6 @@
   "engine_result_tree": "43571813ce7ef7481c7032dfa110c62df7beb062",
   "patch_sha256": "fad39f69c647ac2218efdf263a76ff569b8e7c715c0d13451e8b6a963362971d",
   "schema": "termrock-live-suite-engine-pin.v2",
-  "suite_lock_sha256": "ea0e8d19a2bfcc958d2bff3e787633cdd8002bd5ae60e1c20233abb8a8c39eda",
-  "tuiscotti_commit": "ac5f70d14d1967f551261d599a4cd857ec9fa2d7"
+  "suite_lock_sha256": "c836d046465dfaf7cad9c2496aada0441fe089122059699c7175e6a033ec99c7",
+  "tuiscotti_commit": "bc4b6ed693fd5a6ae260cab6ac464e9772e1a9bd"
 }

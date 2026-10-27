@@ -1849,7 +1849,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "termrock-live-suite"
+name = "termrock-functional-suite"
 version = "0.1.0"
 dependencies = [
  "base64 0.23.1",
@@ -2053,8 +2053,8 @@ dependencies = [
 
 [[package]]
 name = "tuiscotti"
-version = "0.3.0"
-source = "git+https://github.com/tailrocks/tuiscotti?rev=ac5f70d14d1967f551261d599a4cd857ec9fa2d7#ac5f70d14d1967f551261d599a4cd857ec9fa2d7"
+version = "0.4.0"
+source = "git+https://github.com/tailrocks/tuiscotti?rev=bc4b6ed693fd5a6ae260cab6ac464e9772e1a9bd#bc4b6ed693fd5a6ae260cab6ac464e9772e1a9bd"
 dependencies = [
  "base64 0.23.1",
  "fs2",

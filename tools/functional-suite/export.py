@@ -28,8 +28,8 @@ ENGINE_BUNDLE_TREE = "2dae292afaa4a47f84f234faecc69b680dce0325"
 ENGINE_RESULT_TREE = "43571813ce7ef7481c7032dfa110c62df7beb062"
 ENGINE_BUNDLE_SHA256 = "2448a1154019b120f697964c65f6da0bd7a7aa6530707d80763a78da66d64c3e"
 ENGINE_PATCH_SHA256 = "fad39f69c647ac2218efdf263a76ff569b8e7c715c0d13451e8b6a963362971d"
-TUISCOTTI_COMMIT = "ac5f70d14d1967f551261d599a4cd857ec9fa2d7"
-SUITE_LOCK_SHA256 = "ea0e8d19a2bfcc958d2bff3e787633cdd8002bd5ae60e1c20233abb8a8c39eda"
+TUISCOTTI_COMMIT = "bc4b6ed693fd5a6ae260cab6ac464e9772e1a9bd"
+SUITE_LOCK_SHA256 = "c836d046465dfaf7cad9c2496aada0441fe089122059699c7175e6a033ec99c7"
 ENGINE_PATCH_FILES = (
     "crates/tui-test/src/api.rs",
     "crates/tui-test/src/engine.rs",
@@ -62,6 +62,11 @@ CASE_DIRECTORIES = (
     "data/first/tablepro",
     "data/showcase-help/80x24-v1",
     "data/holla-first-use/action-identity-v1",
+    "data/first30-v1/showcase.buttons",
+    "data/first30-v1/holla.first_use",
+    "data/first30-v1/holla.first_use.frame1",
+    "data/first30-v1/jackin.settings",
+    "data/first30-v1/tablepro.connections",
 )
 LOWER_HEX_40 = re.compile(r"^[0-9a-f]{40}$")
 LOWER_HEX_64 = re.compile(r"^[0-9a-f]{64}$")
