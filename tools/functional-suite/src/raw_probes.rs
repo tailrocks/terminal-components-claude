@@ -287,11 +287,13 @@ fn run_cursor_blink_probe(out: &Path) -> AppResult<Value> {
             "stage_a":{
                 "marker":"CV3-BLINK-ON",
                 "cursor":{"col":6,"row":2,"visible":true,"shape":"bar","color":[18,52,86],"blink":true},
+                "observed_cursor":{"full_grid":{"col":snapshot_a.cursor().col(),"row":snapshot_a.cursor().row()},"viewport_origin":snapshot_a.viewport_origin(),"cursor_local":snapshot_a.cursor_local()},
                 "assertion_failures":failures_a,
             },
             "stage_b":{
                 "marker":"CV3-BLINK-OFF",
                 "cursor":{"col":8,"row":3,"visible":false,"shape":"bar","color":[101,67,33],"blink":false},
+                "observed_cursor":{"full_grid":{"col":snapshot_b.cursor().col(),"row":snapshot_b.cursor().row()},"viewport_origin":snapshot_b.viewport_origin(),"cursor_local":snapshot_b.cursor_local()},
                 "assertion_failures":failures_b,
             },
             "assertion_failures":assertion_failures,
@@ -375,11 +377,13 @@ fn verify_cursor_stage(
         failures.push(format!("{marker} is not on row 0"));
     }
     let cursor = snapshot.cursor();
-    if cursor.col() != col || cursor.row() != row {
+    let cursor_local = snapshot.cursor_local();
+    if cursor_local != Some((col, row)) {
         failures.push(format!(
-            "cursor position is ({}, {}), expected ({col}, {row})",
+            "capture-local cursor position is {cursor_local:?}, expected Some(({col}, {row})); full-grid position is ({}, {}), viewport origin is {}",
             cursor.col(),
-            cursor.row()
+            cursor.row(),
+            snapshot.viewport_origin()
         ));
     }
     if !cursor.in_capture() {
