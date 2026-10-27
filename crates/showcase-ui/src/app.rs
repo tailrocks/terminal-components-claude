@@ -2347,7 +2347,7 @@ fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKe
     if row.is_empty() {
         return;
     }
-    let focused = flags.contains(StateFlags::FOCUSED);
+    let focused = flags.contains(StateFlags::FOCUSED) && !node.inactive_layer;
     let selected = flags.contains(StateFlags::SELECTED);
     let fade = node.fade;
     let canvas = shell_compat_style(ui.surface_style());
