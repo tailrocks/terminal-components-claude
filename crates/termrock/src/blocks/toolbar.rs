@@ -32,8 +32,10 @@ use termrock_theme::{
     Family, FgStep, GlyphRole, Resolved, Role, Slot, StyleDefaults, StylePatch, Variant,
 };
 
+mod compat;
 mod tooltip;
 use self::tooltip::{TooltipConfig, TooltipController};
+pub use compat::{IconButton, IconButtonTip, IconLook};
 
 const ACTIVATE_ENTER: ActionKey = ActionKey::custom("termrock.toolbar.activate.enter");
 const ACTIVATE_SPACE: ActionKey = ActionKey::custom("termrock.toolbar.activate.space");
@@ -715,6 +717,29 @@ impl Toolbar {
     #[must_use]
     pub fn more_glyph(mut self, glyph: &str) -> Self {
         self.more_glyph = Some(glyph.to_owned());
+        self
+    }
+
+    /// Replace all five More appearance settings from historical button data.
+    ///
+    /// The Toolbar keeps its native owner and overflow part. The template's `id`
+    /// and `part` fields remain value metadata and do not change that identity.
+    #[must_use]
+    pub fn more_button(mut self, button: IconButton) -> Self {
+        self.more_glyph = button.glyph;
+        self.more_look = Some(match button.look {
+            IconLook::Close => ToolbarMoreLook::Close,
+            IconLook::Title => ToolbarMoreLook::Title,
+        });
+        self.more_padding = button.pad;
+        self.more_danger_hover = button.danger_hover;
+        self.more_tip = match button.tip {
+            Some(tip) => ToolbarTip {
+                text: tip.text,
+                shortcut: tip.shortcut,
+            },
+            None => ToolbarTip::default(),
+        };
         self
     }
 
@@ -2240,5 +2265,138 @@ mod tests {
                 "a stale owner token cannot close the replacement"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod more_button_compat_tests {
+    use super::*;
+
+    const TOOLBAR_ID: Id = Id::root("termrock.toolbar.compat-test");
+    const TEMPLATE_ID: Id = Id::root("termrock.toolbar.compat-template");
+
+    fn template_button(
+        glyph: Option<&str>,
+        look: IconLook,
+        pad: u16,
+        danger_hover: bool,
+        tip: Option<IconButtonTip>,
+    ) -> IconButton {
+        let mut button = IconButton::close(TEMPLATE_ID);
+        button.glyph = glyph.map(str::to_owned);
+        button.look = look;
+        button.pad = pad;
+        button.danger_hover = danger_hover;
+        button.tip = tip;
+        button.part = Some((
+            TEMPLATE_ID,
+            PartRef::item(Part::ROW, ItemKey::text("template-row")),
+        ));
+        button
+    }
+
+    #[test]
+    fn more_button_replaces_all_five_settings_and_keeps_toolbar_identity() {
+        let tip = IconButtonTip {
+            text: "custom actions".to_owned(),
+            shortcut: Some("Ctrl+M".to_owned()),
+        };
+        let button = template_button(Some("界"), IconLook::Title, 3, true, Some(tip));
+        let toolbar = Toolbar::new(TOOLBAR_ID, vec![])
+            .more_glyph("previous glyph")
+            .more_look(ToolbarMoreLook::Close)
+            .more_padding(8)
+            .more_danger_hover(false)
+            .more_tip(ToolbarTip::new("previous tip").shortcut("P"))
+            .more_button(button);
+
+        assert_eq!(toolbar.id, TOOLBAR_ID);
+        assert_eq!(toolbar.more_glyph.as_deref(), Some("界"));
+        assert_eq!(toolbar.more_look, Some(ToolbarMoreLook::Title));
+        assert_eq!(toolbar.more_padding, 3);
+        assert!(toolbar.more_danger_hover);
+        assert_eq!(
+            toolbar.more_tip,
+            ToolbarTip::new("custom actions").shortcut("Ctrl+M")
+        );
+    }
+
+    #[test]
+    fn absent_and_empty_template_values_have_distinct_native_results() {
+        let absent = Toolbar::new(TOOLBAR_ID, vec![])
+            .more_glyph("previous glyph")
+            .more_tip(ToolbarTip::new("previous tip"))
+            .more_button(IconButton::close(TEMPLATE_ID));
+        assert_eq!(absent.more_glyph, None);
+        assert_eq!(absent.more_look, Some(ToolbarMoreLook::Close));
+        assert_eq!(absent.more_padding, IconButton::DEFAULT_PAD);
+        assert!(!absent.more_danger_hover);
+        assert_eq!(absent.more_tip, ToolbarTip::default());
+
+        let empty = Toolbar::new(TOOLBAR_ID, vec![]).more_button(template_button(
+            Some(""),
+            IconLook::Close,
+            1,
+            false,
+            Some(IconButtonTip::default()),
+        ));
+        assert_eq!(empty.more_glyph.as_deref(), Some(""));
+        assert_eq!(
+            empty.more_tip,
+            ToolbarTip {
+                text: String::new(),
+                shortcut: None,
+            }
+        );
+    }
+
+    #[test]
+    fn repeated_template_calls_replace_settings_and_native_builders_afterward_win() {
+        let first = template_button(
+            Some("first"),
+            IconLook::Title,
+            6,
+            true,
+            Some(IconButtonTip::new("first tip")),
+        );
+        let replaced = Toolbar::new(TOOLBAR_ID, vec![])
+            .more_glyph("initial")
+            .more_look(ToolbarMoreLook::Title)
+            .more_padding(9)
+            .more_danger_hover(true)
+            .more_tip(ToolbarTip::new("initial tip"))
+            .more_button(first)
+            .more_button(IconButton::close(TEMPLATE_ID));
+        assert_eq!(replaced.more_glyph, None);
+        assert_eq!(replaced.more_look, Some(ToolbarMoreLook::Close));
+        assert_eq!(replaced.more_padding, IconButton::DEFAULT_PAD);
+        assert!(!replaced.more_danger_hover);
+        assert_eq!(replaced.more_tip, ToolbarTip::default());
+
+        let final_tip = ToolbarTip::new("modern final").shortcut("M");
+        let modern_after_template = Toolbar::new(TOOLBAR_ID, vec![])
+            .more_button(template_button(
+                Some("template"),
+                IconLook::Close,
+                2,
+                true,
+                Some(IconButtonTip::new("template tip")),
+            ))
+            .more_glyph("modern final")
+            .more_look(ToolbarMoreLook::Title)
+            .more_padding(4)
+            .more_danger_hover(false)
+            .more_tip(final_tip.clone());
+        assert_eq!(
+            modern_after_template.more_glyph.as_deref(),
+            Some("modern final")
+        );
+        assert_eq!(
+            modern_after_template.more_look,
+            Some(ToolbarMoreLook::Title)
+        );
+        assert_eq!(modern_after_template.more_padding, 4);
+        assert!(!modern_after_template.more_danger_hover);
+        assert_eq!(modern_after_template.more_tip, final_tip);
     }
 }

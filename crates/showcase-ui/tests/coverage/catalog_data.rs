@@ -4655,6 +4655,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("termrock::blocks::Toolbar::id"),
     Capability::function("termrock::blocks::Toolbar::items"),
     Capability::function("termrock::blocks::Toolbar::item_keys"),
+    Capability::builder("termrock::blocks::Toolbar::more_button"),
     Capability::builder("termrock::blocks::Toolbar::more_danger_hover"),
     Capability::builder("termrock::blocks::Toolbar::more_glyph"),
     Capability::builder("termrock::blocks::Toolbar::more_look"),

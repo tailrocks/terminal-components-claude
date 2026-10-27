@@ -27,9 +27,9 @@ const COMPONENT_CRATES: &[&str] = &[
 
 /// The public names of the component crates that are not components.
 ///
-/// Every name listed here is a state, an action, a policy, a data row, an
-/// error/result support type, a type alias of a component, or a measurement
-/// type. A name that is not on this list and is not a known component fails
+/// Every name listed here is a state, an action, a policy, data-only
+/// configuration, a data row, error/result support, a component alias, or a
+/// measurement type. A name not listed here and not a known component fails
 /// the coverage test.
 const NOT_COMPONENTS: &[&str] = &[
     // termrock_controls
@@ -228,7 +228,11 @@ const NOT_COMPONENTS: &[&str] = &[
     "TerminalInteraction",
     "TerminalSelection",
     "TerminalViewState",
+    // These values configure Toolbar; they do not expose standalone controls.
     // termrock blocks
+    "IconButton",
+    "IconButtonTip",
+    "IconLook",
     "AppShellExt",
     "AppShellSlots",
     "Chrome",
@@ -374,6 +378,18 @@ fn a_new_component_without_an_adapter_fails_the_coverage_gate() {
         assert!(
             !adapters.contains(name),
             "{name} must not be a standalone adapter"
+        );
+    }
+
+    for name in ["IconButton", "IconButtonTip", "IconLook"] {
+        assert!(exported.contains(name), "{name} must be facade-exported");
+        assert!(
+            not_components.contains(name),
+            "{name} is data-only configuration"
+        );
+        assert!(
+            !adapters.contains(name),
+            "{name} must not be a standalone composition adapter"
         );
     }
 

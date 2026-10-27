@@ -9,10 +9,10 @@ use termrock::core::keymap::NavKeys;
 use termrock::runtime::Tooltips;
 use termrock::theme::{ColorLevel, FgStep, Overlay, Role, StylePatch, Surface};
 use termrock::{
-    App, Button, Cx, Id, Input, ItemKey, Key, KeyCode, KeyModifiers, Mouse, MouseKind, Part,
-    PartRef, Response, Runtime, Theme, ToolItem, Toolbar, ToolbarAction, ToolbarActionEvent,
-    ToolbarError, ToolbarMoreLook, ToolbarReferenceState, ToolbarState, ToolbarTip,
-    ToolbarTooltipPolicy, Ui,
+    App, Button, Cx, IconButton, IconButtonTip as Tip, IconLook, Id, Input, ItemKey, Key, KeyCode,
+    KeyModifiers, Mouse, MouseKind, Part, PartRef, Response, Runtime, Theme, ToolItem, Toolbar,
+    ToolbarAction, ToolbarActionEvent, ToolbarError, ToolbarMoreLook, ToolbarReferenceState,
+    ToolbarState, ToolbarTip, ToolbarTooltipPolicy, Ui,
 };
 
 const TOOLBAR: Id = Id::root("termrock.tests.toolbar.root");
@@ -48,6 +48,7 @@ struct ToolbarHost {
     skip_disabled: bool,
     overflow_mode: OverflowFixtureMode,
     more_glyph: Option<String>,
+    compat_more_button: Option<IconButton>,
     more_look: Option<ToolbarMoreLook>,
     more_danger_hover: Option<bool>,
     more_padding: u16,
@@ -81,6 +82,7 @@ impl ToolbarHost {
             skip_disabled: true,
             overflow_mode: OverflowFixtureMode::NoOverflowFixture,
             more_glyph: None,
+            compat_more_button: None,
             more_look: None,
             more_danger_hover: None,
             more_padding: 1,
@@ -122,6 +124,10 @@ impl ToolbarHost {
             None => toolbar,
         };
         let toolbar = toolbar.more_tip(self.more_tip.clone());
+        let toolbar = match self.compat_more_button.as_ref() {
+            Some(button) => toolbar.more_button(button.clone()),
+            None => toolbar,
+        };
         let toolbar = match self.tooltip_policy {
             Some(policy) => toolbar.tooltip_policy(policy),
             None => toolbar,
@@ -707,6 +713,14 @@ fn more_snapshot(
     host.more_danger_hover = danger_hover;
     host.more_surface = surface;
     host.more_style_overlay = overlay;
+    more_snapshot_with_host(host, theme, interaction)
+}
+
+fn more_snapshot_with_host(
+    host: ToolbarHost,
+    theme: Theme,
+    interaction: MoreInteraction,
+) -> MoreSnapshot {
     let (mut runtime, mut terminal) = runtime_for_theme(host, theme);
     render(&mut runtime, &mut terminal, SCREEN);
 
@@ -2792,6 +2806,249 @@ fn unpresented_prepared_frame_cannot_authorize_opening_from_its_new_snapshot() {
 }
 
 #[test]
+fn icon_button_compatibility_values_preserve_the_public_builder_contract() {
+    assert_eq!(IconLook::default(), IconLook::Close);
+    assert_eq!(
+        Tip::default(),
+        Tip {
+            text: String::new(),
+            shortcut: None,
+        }
+    );
+
+    let close = IconButton::close(TOOLBAR);
+    assert_eq!(close.id, TOOLBAR);
+    assert_eq!(close.glyph, None);
+    assert_eq!(close.look, IconLook::Close);
+    assert_eq!(close.pad, IconButton::DEFAULT_PAD);
+    assert!(!close.danger_hover);
+    assert_eq!(close.tip, None);
+    assert_eq!(close.part, None);
+
+    let title = IconButton::new(TOOLBAR, "×");
+    assert_eq!(title.glyph.as_deref(), Some("×"));
+    assert_eq!(title.look, IconLook::Title);
+
+    let dynamic_number = 7;
+    let dynamic_suffix = format!("menu-{dynamic_number}");
+    let mut value = IconButton {
+        tip: Some(Tip {
+            text: format!("tip-{dynamic_suffix}"),
+            shortcut: Some(format!("Alt-{dynamic_suffix}")),
+        }),
+        ..IconButton::new(OTHER_TOOLBAR, &format!("glyph-{dynamic_suffix}"))
+    };
+    value.look = IconLook::Title;
+    value.pad = 3;
+    value.danger_hover = true;
+    let part = PartRef::item(Part::ROW, ItemKey::text("compatibility-part"));
+    value.part = Some((OTHER_TOOLBAR, part));
+    assert_eq!(value.glyph.as_deref(), Some("glyph-menu-7"));
+    assert_eq!(
+        value.tip.as_ref().map(|tip| tip.text.as_str()),
+        Some("tip-menu-7")
+    );
+    assert_eq!(value.clone(), value);
+    let adapted_dynamic = Toolbar::new(TOOLBAR, vec![]).more_button(value.clone());
+    assert_eq!(
+        adapted_dynamic.more_tip_value(),
+        &ToolbarTip::new("tip-menu-7").shortcut("Alt-menu-7")
+    );
+
+    let replacement = value.with_glyph("replacement");
+    assert_eq!(replacement.glyph.as_deref(), Some("replacement"));
+    assert_eq!(replacement.id, value.id);
+    assert_eq!(replacement.part, value.part);
+    assert_eq!(replacement.tip, value.tip);
+    assert_eq!(replacement.look, value.look);
+    assert_eq!(replacement.pad, value.pad);
+    assert_eq!(replacement.danger_hover, value.danger_hover);
+
+    let reidentified = value.with_id(TOOLBAR);
+    assert_eq!(reidentified.id, TOOLBAR);
+    assert_eq!(reidentified.part, None);
+    assert_eq!(reidentified.glyph, value.glyph);
+    assert_eq!(reidentified.tip, value.tip);
+    assert_eq!(reidentified.look, value.look);
+    assert_eq!(reidentified.pad, value.pad);
+    assert_eq!(reidentified.danger_hover, value.danger_hover);
+
+    let configured = Toolbar::new(TOOLBAR, vec![]).more_button(
+        IconButton::new(OTHER_TOOLBAR, "⋯")
+            .plate(4)
+            .danger_hover(true)
+            .tip(Tip::new("More actions").shortcut("Ctrl+M")),
+    );
+    assert_eq!(
+        configured.more_tip_value(),
+        &ToolbarTip::new("More actions").shortcut("Ctrl+M")
+    );
+}
+
+#[test]
+fn icon_button_plate_uses_saturating_symmetric_padding() {
+    for (plate, expected_pad) in [(0, 0), (1, 0), (2, 0), (3, 1), (4, 1), (u16::MAX, 32_767)] {
+        assert_eq!(
+            IconButton::close(TOOLBAR).plate(plate).pad,
+            expected_pad,
+            "plate {plate}"
+        );
+    }
+    assert_eq!(IconButton::close(TOOLBAR).pad(5).pad, 5);
+}
+
+#[test]
+fn template_more_button_matches_native_looks_danger_and_interaction_states() {
+    let items = vec![
+        ToolItem::new("Visible"),
+        ToolItem::new("Hidden One"),
+        ToolItem::new("Hidden Two"),
+    ];
+    let item_keys = keys(&["visible", "hidden-one", "hidden-two"]);
+    let glyph = "界";
+    let tip_text = "More actions";
+    let shortcut = "Ctrl+M";
+
+    for look in [ToolbarMoreLook::Close, ToolbarMoreLook::Title] {
+        for danger_hover in [false, true] {
+            let make_host = |use_template: bool| {
+                let mut host = ToolbarHost::new(items.clone(), item_keys.clone());
+                host.toolbar_area = Rect::new(5, 1, 16, 1);
+                host.use_default_overflow();
+                if use_template {
+                    host.more_glyph = Some("ignored".to_owned());
+                    host.more_look = Some(match look {
+                        ToolbarMoreLook::Close => ToolbarMoreLook::Title,
+                        ToolbarMoreLook::Title => ToolbarMoreLook::Close,
+                    });
+                    host.more_danger_hover = Some(!danger_hover);
+                    host.more_padding = 0;
+                    host.more_tip = ToolbarTip::new("ignored").shortcut("ignored");
+                    let mut button = IconButton::new(OTHER_TOOLBAR, glyph)
+                        .pad(2)
+                        .danger_hover(danger_hover)
+                        .tip(Tip::new(tip_text).shortcut(shortcut));
+                    button.look = match look {
+                        ToolbarMoreLook::Close => IconLook::Close,
+                        ToolbarMoreLook::Title => IconLook::Title,
+                    };
+                    button.part = Some((OTHER_TOOLBAR, PartRef::item(Part::ROW, item_keys[1])));
+                    host.compat_more_button = Some(button);
+                } else {
+                    host.more_glyph = Some(glyph.to_owned());
+                    host.more_look = Some(look);
+                    host.more_danger_hover = Some(danger_hover);
+                    host.more_padding = 2;
+                    host.more_tip = ToolbarTip::new(tip_text).shortcut(shortcut);
+                }
+                host
+            };
+
+            for interaction in [
+                MoreInteraction::Rest,
+                MoreInteraction::Hover,
+                MoreInteraction::Pressed,
+                MoreInteraction::Focused,
+            ] {
+                let native = more_snapshot_with_host(make_host(false), Theme::junie(), interaction);
+                let adapted = more_snapshot_with_host(make_host(true), Theme::junie(), interaction);
+                assert_eq!(
+                    adapted, native,
+                    "look {look:?}, danger {danger_hover}, interaction {interaction:?}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn template_more_button_keeps_native_owner_and_menu_activation() {
+    let items = vec![
+        ToolItem::new("Visible"),
+        ToolItem::new("Hidden One"),
+        ToolItem::new("Hidden Two"),
+        ToolItem::new("Hidden Three"),
+    ];
+    let item_keys = keys(&["visible", "hidden-one", "hidden-two", "hidden-three"]);
+    let make_host = |use_template: bool| {
+        let mut host = ToolbarHost::new(items.clone(), item_keys.clone());
+        host.toolbar_area = Rect::new(5, 1, 16, 1);
+        host.use_default_overflow();
+        if use_template {
+            host.more_glyph = Some("ignored".to_owned());
+            host.more_look = Some(ToolbarMoreLook::Close);
+            host.more_danger_hover = Some(false);
+            host.more_padding = 0;
+            host.more_tip = ToolbarTip::new("ignored");
+            let mut button = IconButton::new(OTHER_TOOLBAR, "界")
+                .pad(2)
+                .danger_hover(true)
+                .tip(Tip::new("More commands").shortcut("Ctrl+M"));
+            button.look = IconLook::Title;
+            button.part = Some((OTHER_TOOLBAR, PartRef::item(Part::ROW, item_keys[1])));
+            host.compat_more_button = Some(button);
+        } else {
+            host.more_glyph = Some("界".to_owned());
+            host.more_look = Some(ToolbarMoreLook::Title);
+            host.more_danger_hover = Some(true);
+            host.more_padding = 2;
+            host.more_tip = ToolbarTip::new("More commands").shortcut("Ctrl+M");
+        }
+        host
+    };
+    let run = |host: ToolbarHost| {
+        let (mut runtime, mut terminal) = runtime_for(host);
+        render(&mut runtime, &mut terminal, SCREEN);
+        let area = runtime
+            .area_of_part(TOOLBAR, PartRef::of(Part::OVERFLOW))
+            .expect("Toolbar owns the native More overflow part");
+        let foreign_more = runtime.area_of_part(OTHER_TOOLBAR, PartRef::of(Part::OVERFLOW));
+        let foreign_row =
+            runtime.area_of_part(OTHER_TOOLBAR, PartRef::item(Part::ROW, item_keys[1]));
+        let hidden = runtime.app().state.hidden_keys();
+        click(
+            &mut runtime,
+            &mut terminal,
+            SCREEN,
+            Position::new(area.x.saturating_add(1), area.y),
+        );
+        assert!(runtime.is_open(OVERFLOW_MENU));
+        key(&mut runtime, &mut terminal, SCREEN, KeyCode::End);
+        key(&mut runtime, &mut terminal, SCREEN, KeyCode::Enter);
+        render(&mut runtime, &mut terminal, SCREEN);
+        let trace = (
+            area,
+            hidden,
+            runtime.app().events.clone(),
+            runtime.focus(),
+            runtime.is_open(OVERFLOW_MENU),
+        );
+        (trace, foreign_more, foreign_row)
+    };
+
+    let native = run(make_host(false));
+    let adapted = run(make_host(true));
+    assert_eq!(adapted.0, native.0);
+    assert_eq!(adapted.0.1, item_keys[1..].to_vec());
+    assert_eq!(
+        adapted.0.2,
+        vec![ToolbarActionEvent {
+            key: item_keys[3],
+            action: ToolbarAction::Activated(3),
+        }]
+    );
+    assert_eq!(adapted.0.3, Some(TOOLBAR));
+    assert!(!adapted.0.4);
+    assert_eq!(adapted.1, None, "template id does not own the More part");
+    assert_eq!(
+        adapted.2, None,
+        "template part metadata is retained but ignored"
+    );
+    assert_eq!(adapted.1, native.1);
+    assert_eq!(adapted.2, native.2);
+}
+
+#[test]
 fn more_tip_and_hover_policy_defaults_and_overrides_are_owned_configuration() {
     let toolbar = Toolbar::new(TOOLBAR, vec![]).more_glyph("…");
     assert_eq!(
@@ -3350,6 +3607,100 @@ fn more_tip_uses_default_or_structured_override_only_when_more_is_published() {
     assert!(custom_runtime.is_open(HOVER_TOOLTIP));
     assert!(screen_text(&custom_terminal).contains("More commands"));
     assert!(screen_text(&custom_terminal).contains("M"));
+}
+
+#[test]
+fn template_more_button_tooltips_match_native_fallback_shortcut_and_empty_suppression() {
+    let items = vec![
+        ToolItem::new("One"),
+        ToolItem::new("Two"),
+        ToolItem::new("Three"),
+    ];
+    let item_keys = keys(&["tip-one", "tip-two", "tip-three"]);
+    let run = |template: bool, tip: Option<(&str, Option<&str>)>| {
+        let mut host = ToolbarHost::new(items.clone(), item_keys.clone());
+        host.toolbar_area = Rect::new(5, 1, 12, 1);
+        host.use_default_overflow();
+
+        // Seed conflicting native values so the adapter must replace its tip
+        // as part of the same complete More customization.
+        host.more_glyph = Some("old glyph".to_owned());
+        host.more_look = Some(ToolbarMoreLook::Close);
+        host.more_danger_hover = Some(true);
+        host.more_padding = 4;
+        host.more_tip = ToolbarTip::new("old tip").shortcut("Old");
+
+        if template {
+            let mut button = IconButton::new(OTHER_TOOLBAR, "⋯")
+                .pad(1)
+                .danger_hover(false);
+            button.look = IconLook::Title;
+            button.tip = tip.map(|(text, shortcut)| {
+                let value = Tip::new(text);
+                if let Some(shortcut) = shortcut {
+                    value.shortcut(shortcut)
+                } else {
+                    value
+                }
+            });
+            host.compat_more_button = Some(button);
+        } else {
+            host.more_glyph = Some("⋯".to_owned());
+            host.more_look = Some(ToolbarMoreLook::Title);
+            host.more_danger_hover = Some(false);
+            host.more_padding = 1;
+            host.more_tip = tip.map_or_else(ToolbarTip::default, |(text, shortcut)| {
+                let value = ToolbarTip::new(text);
+                if let Some(shortcut) = shortcut {
+                    value.shortcut(shortcut)
+                } else {
+                    value
+                }
+            });
+        }
+
+        let (mut runtime, mut terminal) = runtime_for(host);
+        render(&mut runtime, &mut terminal, SCREEN);
+        assert!(
+            runtime
+                .area_of_part(TOOLBAR, PartRef::of(Part::OVERFLOW))
+                .is_some()
+        );
+        hover_part(
+            &mut runtime,
+            &mut terminal,
+            SCREEN,
+            TOOLBAR,
+            PartRef::of(Part::OVERFLOW),
+        );
+        advance(&mut runtime, &mut terminal, SCREEN, 600);
+        (runtime.is_open(HOVER_TOOLTIP), screen_text(&terminal))
+    };
+
+    for (tip, expected_text, expected_shortcut, visible) in [
+        (None, Some("Show hidden"), None, true),
+        (
+            Some(("More commands", Some("Ctrl+M"))),
+            Some("More commands"),
+            Some("Ctrl+M"),
+            true,
+        ),
+        (Some(("", None)), None, None, false),
+    ] {
+        let native = run(false, tip);
+        let adapted = run(true, tip);
+        assert_eq!(adapted, native, "tip {tip:?}");
+        assert_eq!(native.0, visible, "tip {tip:?}");
+        if let Some(text) = expected_text {
+            assert!(native.1.contains(text), "tip {tip:?}");
+        } else {
+            assert!(!native.1.contains("Show hidden"));
+            assert!(!native.1.contains("old tip"));
+        }
+        if let Some(shortcut) = expected_shortcut {
+            assert!(native.1.contains(shortcut), "tip {tip:?}");
+        }
+    }
 }
 
 #[test]

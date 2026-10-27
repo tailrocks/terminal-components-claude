@@ -88,11 +88,11 @@ pub use termrock_core::id;
 pub use termrock_core::id::{Id, ItemKey, Part, PartRef, Revision};
 
 pub use blocks::{
-    AppShell, AppShellExt, AppShellSlots, Chrome, EmptyLeaf, MasterDetail, MasterDetailAction,
-    MasterDetailError, MasterDetailPolicy, MasterDetailState, Regions, ShellSlots, SplitBlock,
-    SplitBlockError, ToolItem, Toolbar, ToolbarAction, ToolbarActionEvent, ToolbarActions,
-    ToolbarError, ToolbarMoreLook, ToolbarReferenceState, ToolbarState, ToolbarTip,
-    ToolbarTooltipPolicy,
+    AppShell, AppShellExt, AppShellSlots, Chrome, EmptyLeaf, IconButton, IconButtonTip, IconLook,
+    MasterDetail, MasterDetailAction, MasterDetailError, MasterDetailPolicy, MasterDetailState,
+    Regions, ShellSlots, SplitBlock, SplitBlockError, ToolItem, Toolbar, ToolbarAction,
+    ToolbarActionEvent, ToolbarActions, ToolbarError, ToolbarMoreLook, ToolbarReferenceState,
+    ToolbarState, ToolbarTip, ToolbarTooltipPolicy,
 };
 pub use reference::{ReferenceCase, ReferenceGrid, ReferenceSpecimen};
 pub use slots::{DialogSlotExt, FormDialogSlotExt, PickerSlotExt, PropsSlotExt};

@@ -19,6 +19,7 @@ pub use split::{SplitBlock, SplitBlockError};
 pub use status::{StatusSeg, StatusTone, paint_status};
 pub use tabs::{Tab, paint_tabs};
 pub use toolbar::{
-    ToolItem, Toolbar, ToolbarAction, ToolbarActionEvent, ToolbarActions, ToolbarError,
-    ToolbarMoreLook, ToolbarReferenceState, ToolbarState, ToolbarTip, ToolbarTooltipPolicy,
+    IconButton, IconButtonTip, IconLook, ToolItem, Toolbar, ToolbarAction, ToolbarActionEvent,
+    ToolbarActions, ToolbarError, ToolbarMoreLook, ToolbarReferenceState, ToolbarState, ToolbarTip,
+    ToolbarTooltipPolicy,
 };

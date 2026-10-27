@@ -4560,6 +4560,7 @@ termrock::blocks::Toolbar::gap | Toolbars page exercises this API family, but no
 termrock::blocks::Toolbar::id | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
 termrock::blocks::Toolbar::items | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
 termrock::blocks::Toolbar::item_keys | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
+termrock::blocks::Toolbar::more_button | Narrow candidate host tests cover the More adapter; no item-bound Showcase BehaviorProof exists, and full historical Toolbar compatibility review remains open. | review
 termrock::blocks::Toolbar::more_glyph | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
 termrock::blocks::Toolbar::more_padding | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
 termrock::blocks::Toolbar::more_tip | Toolbars page exercises this API family, but no item-bound BehaviorProof covers this entry; review remains pending. | review
