@@ -51,6 +51,7 @@ const BRAND: Id = Id::root("holla.brand");
 const MENU: Id = Id::root("holla.menu");
 const STRIP: Id = Id::root("holla.activities");
 const FOOTER: Id = Id::root("holla.footer");
+const HELP_LAYER: Id = Id::root("holla.help");
 const PARITY_BROWSER_STATUS: Id = Id::root("holla.status.parity-browser");
 const PARITY_FILES_STATUS: Id = Id::root("holla.status.parity-files");
 const HELP: ActionKey = ActionKey::application("holla.help");
@@ -164,6 +165,190 @@ const GLOBAL: &[Binding<ActionKey>] = &[
         visible: true,
     },
 ];
+
+const HELP_FINDER_ROWS: &[(&str, &str)] = &[
+    (
+        "Type",
+        "search actions and resources together · @parent @children @system @all narrow the scope",
+    ),
+    ("↑↓", "move · PgUp PgDn Home End"),
+    (
+        "Enter",
+        "primary action · destructive rows open a review instead",
+    ),
+    (
+        "Alt+Enter",
+        "alternatives · run, copy, insert, arguments, pin, alias, hide, why",
+    ),
+    ("Tab", "preview › tab strip › finder"),
+    (
+        "Ctrl+↑ / Ctrl+↓",
+        "scope outward (parent, system) / inward (children)",
+    ),
+    ("Esc", "clear query › scope back to here › back a page"),
+    (
+        "Aliases",
+        "gp pull · du disk usage · test the test task here · d then u · dc docker cleanup",
+    ),
+];
+const HELP_PAGE_ROWS: &[(&str, &str)] = &[
+    (
+        "Disk",
+        "↑↓ move · Space select · a all · Enter drill · c cleanup plan · p details",
+    ),
+    (
+        "Plan review",
+        "Space include or exclude · u undo · Enter step facts · c confirm",
+    ),
+    (
+        "Gates",
+        "Gate 1 reviews facts and the full sequence · Gate 2 types the target-bound phrase",
+    ),
+];
+const HELP_ACTIVITY_ROWS: &[(&str, &str)] = &[
+    ("↑↓ PgUp PgDn", "scroll · f follow tail · y copy selection"),
+    ("s", "stop · r restart · x close tab"),
+    (
+        "Enter / i",
+        "attach to an interactive program · Ctrl+] detaches",
+    ),
+    ("1–9", "show or hide a merged log stream"),
+    ("Esc", "back to Here · the activity keeps running"),
+];
+const HELP_PLAN_ROWS: &[(&str, &str)] = &[
+    ("↑↓", "select a step · Enter maximise its output · f follow"),
+    ("r", "retry the failed step · k skip an optional failure"),
+    ("Ctrl+C", "cancel the remaining work"),
+    ("Esc", "back to Here · the plan keeps running"),
+];
+const HELP_MOUSE_ROWS: &[(&str, &str)] = &[
+    ("Click", "select"),
+    ("Double-click", "run"),
+    ("Right-click", "alternatives"),
+    ("Wheel", "scroll under the pointer"),
+];
+const HELP_EVERYWHERE_ROWS: &[(&str, &str)] = &[
+    ("F1 ?", "This reference"),
+    ("F10 Ctrl+F2", "Menu bar"),
+    ("Ctrl+PgDn", "Next page"),
+    ("Ctrl+PgUp", "Previous page"),
+    ("Tab", "Next control"),
+    ("Shift+Tab", "Previous control"),
+    ("Esc", "Back"),
+    ("Ctrl+Q", "Quit"),
+    ("Ctrl+C", "Copy, else quit"),
+    ("Alt+1–9", "Show that tab"),
+];
+static HELP_HOME_SECTIONS: [termrock::HelpSection<'static>; 4] = [
+    termrock::HelpSection::plain("Finder", HELP_FINDER_ROWS),
+    termrock::HelpSection::plain("Pages", HELP_PAGE_ROWS),
+    termrock::HelpSection::plain("Mouse", HELP_MOUSE_ROWS),
+    termrock::HelpSection::plain("Everywhere", HELP_EVERYWHERE_ROWS),
+];
+static HELP_ACTIVITY_SECTIONS: [termrock::HelpSection<'static>; 3] = [
+    termrock::HelpSection::plain("Activity", HELP_ACTIVITY_ROWS),
+    termrock::HelpSection::plain("Mouse", HELP_MOUSE_ROWS),
+    termrock::HelpSection::plain("Everywhere", HELP_EVERYWHERE_ROWS),
+];
+static HELP_PLAN_SECTIONS: [termrock::HelpSection<'static>; 3] = [
+    termrock::HelpSection::plain("Plan", HELP_PLAN_ROWS),
+    termrock::HelpSection::plain("Mouse", HELP_MOUSE_ROWS),
+    termrock::HelpSection::plain("Everywhere", HELP_EVERYWHERE_ROWS),
+];
+static HELP_PAGE_SECTIONS: [termrock::HelpSection<'static>; 3] = [
+    termrock::HelpSection::plain("Pages", HELP_PAGE_ROWS),
+    termrock::HelpSection::plain("Mouse", HELP_MOUSE_ROWS),
+    termrock::HelpSection::plain("Everywhere", HELP_EVERYWHERE_ROWS),
+];
+
+const HELP_OVERLAY_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::CONTAINER,
+        StylePatch::new().set_bg(Role::Custom(Color::Rgb(0x18, 0x18, 0x1b))),
+    ),
+    (
+        Part::BORDER,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0x4d, 0x4d, 0x4d)))
+            .set_bg(Role::Custom(Color::Rgb(0x18, 0x18, 0x1b)))
+            .remove(termrock::Modifier::BOLD),
+    ),
+    (
+        Part::TITLE,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0xff, 0xff, 0xff)))
+            .set_bg(Role::Custom(Color::Rgb(0x18, 0x18, 0x1b)))
+            .add(termrock::Modifier::BOLD)
+            .remove(termrock::Modifier::UNDERLINED),
+    ),
+    (
+        Part::DETAIL,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0x73, 0x73, 0x73)))
+            .set_bg(Role::Custom(Color::Rgb(0x18, 0x18, 0x1b)))
+            .remove(termrock::Modifier::BOLD),
+    ),
+];
+const HELP_FOOTER_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::CONTAINER,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0xff, 0xff, 0xff)))
+            .set_bg(Role::Custom(Color::Rgb(0x00, 0x00, 0x00))),
+    ),
+    (
+        Part::KEY,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0xff, 0xff, 0xff)))
+            .set_bg(Role::Custom(Color::Rgb(0x00, 0x00, 0x00)))
+            .add(termrock::Modifier::BOLD),
+    ),
+    (
+        Part::ACTION,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)))
+            .set_bg(Role::Custom(Color::Rgb(0x00, 0x00, 0x00)))
+            .remove(termrock::Modifier::BOLD),
+    ),
+];
+
+fn help_sections(route: Route) -> &'static [termrock::HelpSection<'static>] {
+    match route {
+        Route::Home => &HELP_HOME_SECTIONS,
+        Route::Plan => &HELP_PLAN_SECTIONS,
+        Route::Activity | Route::TaskRun => &HELP_ACTIVITY_SECTIONS,
+        Route::Disk
+        | Route::Files
+        | Route::Cleanup
+        | Route::Review
+        | Route::Snapshot
+        | Route::DiskScan => &HELP_PAGE_SECTIONS,
+    }
+}
+
+fn help_overlay(route: Route, scope: &str) -> termrock::HelpOverlay<'_> {
+    termrock::HelpOverlay::new(HELP_LAYER, scope, help_sections(route))
+        .title("Key reference")
+        .patch_part(HELP_OVERLAY_PARTS)
+}
+
+fn help_footer_hints() -> HintLayer {
+    HintLayer {
+        hints: vec![
+            Hint {
+                key: HintKey::Label("↑↓"),
+                label: "Scroll",
+                priority: 50,
+            },
+            Hint {
+                key: HintKey::Label("Esc"),
+                label: "Close",
+                priority: 50,
+            },
+        ],
+        ..HintLayer::empty()
+    }
+}
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Route {
     Home,
@@ -228,6 +413,11 @@ struct PendingPortReview {
 
 enum Overlay {
     Dialog(Box<ProductDialog>),
+    Help {
+        state: termrock::HelpOverlayState,
+        route: Route,
+        scope: String,
+    },
     Args(Box<TaskArgsEditor>),
     PortArgs(Box<PortArgsEditor>),
     Clone(ClonePicker),
@@ -1428,6 +1618,47 @@ impl App {
         dialog.open(cx);
         self.overlay = Some(Overlay::Dialog(Box::new(dialog)));
     }
+    fn help_scope(&self) -> String {
+        match self.route {
+            Route::Home => "Here".to_owned(),
+            Route::Plan => self
+                .plan
+                .as_ref()
+                .map_or_else(|| "Plan".to_owned(), |plan| plan.plan().title().to_owned()),
+            Route::Activity => self
+                .activities
+                .current(&self.world)
+                .map_or_else(|| "Activity".to_owned(), |activity| activity.name.clone()),
+            Route::TaskRun => self
+                .task_run_screen
+                .as_ref()
+                .and_then(|screen| self.task_run_owners.get(&screen.run_id()))
+                .map_or_else(
+                    || "Task run".to_owned(),
+                    |owner| owner.activity.name.clone(),
+                ),
+            Route::Disk => "Disk".to_owned(),
+            Route::Files => "Files".to_owned(),
+            Route::Cleanup => "Cleanup".to_owned(),
+            Route::Review => "Plan review".to_owned(),
+            Route::Snapshot => "System snapshot".to_owned(),
+            Route::DiskScan => "Disk scan".to_owned(),
+        }
+    }
+    fn open_help(&mut self, cx: &mut Cx<'_>) {
+        if cx.is_open(HELP_LAYER) {
+            return;
+        }
+        let route = self.route;
+        let scope = self.help_scope();
+        let layer = help_overlay(route, &scope).layer(cx);
+        cx.open_layer(HELP_LAYER, layer);
+        self.overlay = Some(Overlay::Help {
+            state: termrock::HelpOverlayState::default(),
+            route,
+            scope,
+        });
+    }
     fn poll_pending_port_review(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let Some((opening, route, origin_focus)) = self
             .pending_port_review
@@ -2550,7 +2781,7 @@ impl App {
 
     fn command(&mut self, command: ActionKey, cx: &mut Cx<'_>) {
         match command {
-            HELP => self.open_dialog(dialogs::Intent::Help, cx),
+            HELP => self.open_help(cx),
             TOP_FILES => self.open_dialog(dialogs::Intent::TopFiles, cx),
             CLEANUP_REVIEW => self.open_dialog(dialogs::Intent::CleanupReview, cx),
             FOLDER_BROWSER => {
@@ -2778,6 +3009,15 @@ impl App {
                     }
                 }
                 (response, closed)
+            }
+            Overlay::Help {
+                state,
+                route,
+                scope,
+            } => {
+                let response = help_overlay(*route, scope).update(cx, state);
+                let closed = matches!(response.action_ref(), Some(termrock::HelpAction::Closed(_)));
+                (response.erase(), closed)
             }
             Overlay::PortArgs(editor) => {
                 let (response, event) = editor.update(cx, &self.world);
@@ -3243,6 +3483,13 @@ impl App {
     }
 
     fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect, peek: Option<&str>) {
+        if matches!(self.overlay, Some(Overlay::Help { .. })) {
+            let layer = help_footer_hints();
+            HintBar::new(FOOTER, &layer)
+                .patch_part(HELP_FOOTER_PARTS)
+                .draw(ui, footer);
+            return;
+        }
         if launch_failure_activity_open(&self.world, ui)
             && self.route == Route::Activity
             && self.overlay.is_none()
@@ -3384,6 +3631,7 @@ impl App {
         let hints = HintLayer::from_bindings(GLOBAL);
         let editing = match &self.overlay {
             Some(Overlay::Dialog(dialog)) => dialog.is_editing(),
+            Some(Overlay::Help { .. }) => false,
             Some(Overlay::Args(_) | Overlay::PortArgs(_)) => true,
             Some(Overlay::Gate(gate)) => gate.is_editing(),
             Some(Overlay::Clone(_) | Overlay::Actions(_) | Overlay::DiskSelection(_)) => false,
@@ -3579,6 +3827,11 @@ impl App {
         let retired = match self.retired_overlay.take() {
             None => Response::ignored(),
             Some(Overlay::Dialog(mut dialog)) => dialog.poll(cx).0,
+            Some(Overlay::Help {
+                mut state,
+                route,
+                scope,
+            }) => help_overlay(route, &scope).update(cx, &mut state).erase(),
             Some(Overlay::Args(mut editor)) => editor.poll(cx),
             Some(Overlay::PortArgs(mut editor)) => editor.poll(cx),
             Some(Overlay::Gate(mut gate)) => gate.poll(cx).0,
@@ -3701,6 +3954,11 @@ impl App {
                 .as_mut()
                 .map_or_else(Response::ignored, |overlay| match overlay {
                     Overlay::Dialog(dialog) => dialog.poll(cx).0,
+                    Overlay::Help {
+                        state,
+                        route,
+                        scope,
+                    } => help_overlay(*route, scope).update(cx, state).erase(),
                     Overlay::Args(editor) => editor.poll(cx),
                     Overlay::PortArgs(editor) => editor.poll(cx),
                     Overlay::Gate(gate) => gate.poll(cx).0,
@@ -3948,6 +4206,14 @@ impl termrock::App for App {
         if let Some(overlay) = &self.overlay {
             match overlay {
                 Overlay::Dialog(dialog) => dialog.draw(ui),
+                Overlay::Help {
+                    state,
+                    route,
+                    scope,
+                } => {
+                    let help = help_overlay(*route, scope);
+                    ui.layer(HELP_LAYER, |ui, area| help.draw(ui, area, state));
+                }
                 Overlay::Args(editor) => editor.draw(ui),
                 Overlay::PortArgs(editor) => editor.draw(ui),
                 Overlay::Clone(picker) => picker.draw(ui),
