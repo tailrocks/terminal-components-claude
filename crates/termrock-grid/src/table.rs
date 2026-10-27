@@ -1,11 +1,12 @@
 use core::cmp::Ordering;
 use core::ops::Range;
+use std::time::Duration;
 
 use ratatui_core::layout::Rect;
 
 use crate::grid::{
     CellAction, CellRef, Column, ColumnKey, Grid, GridAction, GridGutter, GridModel,
-    GridSortIndicator, GridState, NavUnit, SortDir,
+    GridSortIndicator, GridState, NavUnit, SortDir, TypeAheadColumn,
 };
 use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
@@ -124,6 +125,9 @@ pub struct Table<'a> {
     columns: &'a [TableColumn<'a>],
     sort_indicator: GridSortIndicator,
     tone_styles: &'a [(Role, StylePatch)],
+    type_ahead: bool,
+    type_ahead_column: TypeAheadColumn,
+    type_ahead_timeout: Duration,
 }
 
 impl<'a> Table<'a> {
@@ -133,6 +137,9 @@ impl<'a> Table<'a> {
             columns,
             sort_indicator: GridSortIndicator::ActiveOnly,
             tone_styles: &[],
+            type_ahead: false,
+            type_ahead_column: TypeAheadColumn::Cursor,
+            type_ahead_timeout: termrock_core::typeahead::TypeAhead::DEFAULT_TIMEOUT,
         }
     }
 
@@ -145,6 +152,40 @@ impl<'a> Table<'a> {
     #[must_use]
     pub const fn tone_styles(mut self, styles: &'a [(Role, StylePatch)]) -> Self {
         self.tone_styles = styles;
+        self
+    }
+
+    /// Enables prefix search with unmodified alphanumeric keys.
+    #[must_use]
+    pub const fn type_ahead(mut self, enabled: bool) -> Self {
+        self.type_ahead = enabled;
+        self
+    }
+
+    /// Selects a logical column by position, or the cursor column when `None`.
+    #[must_use]
+    pub const fn type_ahead_column(mut self, column: Option<usize>) -> Self {
+        self.type_ahead_column = match column {
+            Some(index) => TypeAheadColumn::Index(index),
+            None => TypeAheadColumn::Cursor,
+        };
+        self
+    }
+
+    /// Selects a logical column by stable key, or the cursor column when `None`.
+    #[must_use]
+    pub const fn type_ahead_column_key(mut self, key: Option<ColumnKey>) -> Self {
+        self.type_ahead_column = match key {
+            Some(key) => TypeAheadColumn::Key(key),
+            None => TypeAheadColumn::Cursor,
+        };
+        self
+    }
+
+    /// Sets the prefix timeout measured from the most recent typed character.
+    #[must_use]
+    pub const fn type_ahead_timeout(mut self, timeout: Duration) -> Self {
+        self.type_ahead_timeout = timeout;
         self
     }
 
@@ -283,7 +324,14 @@ impl<'a> Table<'a> {
     where
         'a: 'b,
     {
-        Grid::new(self.id, columns)
+        let grid = Grid::new(self.id, columns);
+        let grid = match self.type_ahead_column {
+            TypeAheadColumn::Cursor => grid.type_ahead_column(None),
+            TypeAheadColumn::Index(index) => grid.type_ahead_column(Some(index)),
+            TypeAheadColumn::Key(key) => grid.type_ahead_column_key(Some(key)),
+        };
+        grid.type_ahead(self.type_ahead)
+            .type_ahead_timeout(self.type_ahead_timeout)
             .nav(NavUnit::Row)
             .gutter(GridGutter::Detailed {
                 row_numbers: false,
@@ -680,6 +728,244 @@ mod tests {
         assert!(!ordered.row_enabled(1));
         assert!(ordered.row_enabled(2));
         assert_eq!(ordered.row_key(1), ItemKey::num(20));
+    }
+
+    #[derive(Clone)]
+    struct TypeAheadRows {
+        rows: Vec<(ItemKey, [&'static str; 3])>,
+        disabled: Vec<ItemKey>,
+    }
+
+    impl GridModel for TypeAheadRows {
+        fn row_count(&self) -> usize {
+            self.rows.len()
+        }
+
+        fn row_key(&self, row: usize) -> ItemKey {
+            self.rows
+                .get(row)
+                .map_or(ItemKey::index(row), |entry| entry.0)
+        }
+
+        fn row_enabled(&self, row: usize) -> bool {
+            !self.disabled.contains(&self.row_key(row))
+        }
+
+        fn cell(&self, row: usize, column: usize) -> Option<CellRef<'_>> {
+            self.rows
+                .get(row)
+                .and_then(|entry| entry.1.get(column))
+                .copied()
+                .map(CellRef::new)
+        }
+    }
+
+    fn type_ahead_columns() -> [TableColumn<'static>; 3] {
+        [
+            TableColumn::new(Column {
+                sortable: true,
+                ..Column::new(ColumnKey::num(1), "ID")
+            }),
+            TableColumn::new(Column {
+                sortable: true,
+                ..Column::new(ColumnKey::num(2), "Task")
+            }),
+            TableColumn::new(Column::new(ColumnKey::num(3), "Search")),
+        ]
+        .map(|mut column| {
+            column.column.min_width = 10;
+            column.column.max_width = 10;
+            column
+        })
+    }
+
+    #[derive(Clone, Copy)]
+    enum TypeAheadSelector {
+        Cursor,
+        Index(usize),
+        Key(ColumnKey),
+    }
+
+    const TYPE_AHEAD_TABLE_ID: Id = Id::root("table.type-ahead");
+
+    struct TypeAheadTableApp {
+        columns: [TableColumn<'static>; 3],
+        model: TypeAheadRows,
+        state: TableState,
+        selector: TypeAheadSelector,
+    }
+
+    impl TypeAheadTableApp {
+        fn table<'a>(
+            columns: &'a [TableColumn<'static>; 3],
+            selector: TypeAheadSelector,
+        ) -> Table<'a> {
+            let table = Table::new(TYPE_AHEAD_TABLE_ID, columns).type_ahead(true);
+            match selector {
+                TypeAheadSelector::Cursor => table.type_ahead_column(None),
+                TypeAheadSelector::Index(index) => table.type_ahead_column(Some(index)),
+                TypeAheadSelector::Key(key) => table.type_ahead_column_key(Some(key)),
+            }
+        }
+    }
+
+    impl crate::runtime::App for TypeAheadTableApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == crate::runtime::UpdateCause::Bootstrap {
+                cx.focus(TYPE_AHEAD_TABLE_ID);
+            }
+            Self::table(&self.columns, self.selector)
+                .update(cx, &mut self.state, &self.model)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            Self::table(&self.columns, self.selector).draw(ui, ui.full(), &self.state, &self.model);
+        }
+    }
+
+    fn type_ahead_table_app(
+        model: TypeAheadRows,
+        selector: TypeAheadSelector,
+    ) -> TypeAheadTableApp {
+        TypeAheadTableApp {
+            columns: type_ahead_columns(),
+            model,
+            state: TableState::default(),
+            selector,
+        }
+    }
+
+    #[test]
+    fn table_type_ahead_is_default_off_and_selector_builders_are_last_writer_wins() {
+        let columns = type_ahead_columns();
+        let default = Table::new(TYPE_AHEAD_TABLE_ID, &columns);
+        assert!(!default.type_ahead);
+        assert_eq!(
+            default.type_ahead_timeout,
+            termrock_core::typeahead::TypeAhead::DEFAULT_TIMEOUT
+        );
+        let timed = default.type_ahead_timeout(Duration::from_millis(250));
+        assert_eq!(timed.type_ahead_timeout, Duration::from_millis(250));
+
+        let keyed = Table::new(TYPE_AHEAD_TABLE_ID, &columns)
+            .type_ahead_column(Some(1))
+            .type_ahead_column_key(Some(ColumnKey::num(2)));
+        assert_eq!(
+            keyed.type_ahead_column,
+            TypeAheadColumn::Key(ColumnKey::num(2))
+        );
+        let positional = Table::new(TYPE_AHEAD_TABLE_ID, &columns)
+            .type_ahead_column_key(Some(ColumnKey::num(2)))
+            .type_ahead_column(Some(2));
+        assert_eq!(positional.type_ahead_column, TypeAheadColumn::Index(2));
+        let cursor = Table::new(TYPE_AHEAD_TABLE_ID, &columns)
+            .type_ahead_column_key(Some(ColumnKey::num(3)))
+            .type_ahead_column(None);
+        assert_eq!(cursor.type_ahead_column, TypeAheadColumn::Cursor);
+    }
+
+    #[test]
+    fn table_type_ahead_none_searches_cursor_column_and_keeps_cursor_column() {
+        use crate::event::KeyCode;
+        use termrock_test_support::Harness;
+        use termrock_theme::Theme;
+
+        let model = TypeAheadRows {
+            rows: vec![
+                (ItemKey::num(10), ["alpha", "beta", "beta"]),
+                (ItemKey::num(20), ["beta", "alpha", "alpha"]),
+            ],
+            disabled: Vec::new(),
+        };
+        let app = type_ahead_table_app(model.clone(), TypeAheadSelector::Cursor);
+        let mut cursor_search = Harness::new(app, Theme::junie(), 40, 10);
+        let _ = cursor_search.tick();
+        assert_eq!(
+            cursor_search.app().state.cursor(),
+            Some((ItemKey::num(10), ColumnKey::num(1)))
+        );
+        let _ = cursor_search.key(KeyCode::Char('b'));
+        assert_eq!(
+            cursor_search.app().state.cursor(),
+            Some((ItemKey::num(20), ColumnKey::num(1)))
+        );
+
+        let app = type_ahead_table_app(model, TypeAheadSelector::Index(1));
+        let mut task_search = Harness::new(app, Theme::junie(), 40, 10);
+        let _ = task_search.tick();
+        let _ = task_search.key(KeyCode::Char('b'));
+        assert_eq!(
+            task_search.app().state.cursor(),
+            Some((ItemKey::num(10), ColumnKey::num(1)))
+        );
+    }
+
+    #[test]
+    fn table_type_ahead_uses_sorted_display_order_and_skips_disabled_rows() {
+        use crate::event::KeyCode;
+        use termrock_test_support::Harness;
+        use termrock_theme::Theme;
+
+        let model = TypeAheadRows {
+            rows: vec![
+                (ItemKey::num(30), ["30", "charlie", "charlie"]),
+                (ItemKey::num(10), ["10", "alpha", "alpha"]),
+                (ItemKey::num(20), ["20", "banana", "banana"]),
+                (ItemKey::num(40), ["40", "bravo", "bravo"]),
+            ],
+            disabled: vec![ItemKey::num(20)],
+        };
+        let app = type_ahead_table_app(model, TypeAheadSelector::Key(ColumnKey::num(2)));
+        let mut harness = Harness::new(app, Theme::junie(), 40, 10);
+        let _ = harness.tick();
+        let (x, y) = harness.find("Task").expect("sortable task header");
+        let _ = harness.click(x, y);
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(30))
+        );
+        assert_eq!(
+            harness.app().state.sort(),
+            Some((ColumnKey::num(2), SortDir::Asc))
+        );
+
+        let _ = harness.key(KeyCode::Char('b'));
+        assert_eq!(
+            harness.app().state.cursor(),
+            Some((ItemKey::num(40), ColumnKey::num(1)))
+        );
+    }
+
+    #[test]
+    fn table_type_ahead_searches_a_logical_column_while_it_is_offscreen() {
+        use crate::event::KeyCode;
+        use termrock_test_support::Harness;
+        use termrock_theme::Theme;
+
+        let model = TypeAheadRows {
+            rows: vec![
+                (ItemKey::num(10), ["10", "x", "alpha"]),
+                (ItemKey::num(20), ["20", "y", "bravo"]),
+            ],
+            disabled: Vec::new(),
+        };
+        let app = type_ahead_table_app(model, TypeAheadSelector::Index(2));
+        let table = TypeAheadTableApp::table(&app.columns, app.selector);
+        let (_, horizontal, _, visible, offset) =
+            table.grid_columns(Rect::new(0, 0, 18, 8), &app.state, &app.model);
+        assert!(horizontal);
+        assert!(visible < app.columns.len());
+        assert_eq!(offset, 0);
+
+        let mut harness = Harness::new(app, Theme::junie(), 18, 8);
+        let _ = harness.tick();
+        let _ = harness.key(KeyCode::Char('b'));
+        assert_eq!(
+            harness.app().state.cursor(),
+            Some((ItemKey::num(20), ColumnKey::num(1)))
+        );
+        assert_eq!(harness.app().state.grid_state().col_offset(), 0);
     }
 
     struct Rows;

@@ -705,7 +705,10 @@ impl GridModel for TaskTableModel {
 }
 
 fn task_table() -> Table<'static> {
-    Table::new(TASK_TABLE_ID, &TASK_COLUMNS).tone_styles(&TASK_TONE_STYLES)
+    Table::new(TASK_TABLE_ID, &TASK_COLUMNS)
+        .tone_styles(&TASK_TONE_STYLES)
+        .type_ahead(true)
+        .type_ahead_column_key(Some(ColumnKey::num(1)))
 }
 
 fn draw_tasks(ui: &mut Ui<'_>, card: Rect, state: &TableState, model: &TaskTableModel) {
@@ -1196,6 +1199,18 @@ mod tests {
         assert!(!page.task_model.row_enabled(2));
         assert!(page.task_model.row_enabled(1));
         assert!(!page.set_task_row_enabled(9999, false));
+    }
+
+    #[test]
+    fn task_table_search_uses_the_stable_task_column_key() {
+        let mut h = Harness::new(Host::default(), Theme::junie(), 120, 40);
+        let _ = h.tick();
+        let _ = h.type_str("rep");
+        assert_eq!(
+            h.app().page.task_state.cursor(),
+            Some((ItemKey::num(1044), termrock::grid::ColumnKey::num(0)))
+        );
+        assert!(h.text().contains("Replace deprecated Vue mixins"));
     }
 
     #[test]

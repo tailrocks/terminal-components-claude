@@ -1,7 +1,9 @@
 use core::fmt;
+use std::time::Duration;
 
 use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
+use termrock_core::typeahead::TypeAhead;
 
 use super::{Acc, PartStyle, SlotFn};
 use crate::action::ActionKey;
@@ -226,8 +228,8 @@ pub trait GridModel {
     /// Returns whether a loaded row may be checked or activated.
     ///
     /// Cursor movement and cell inspection still include ineligible rows, and
-    /// cell editing follows the `GridEditor` and column policies. Future
-    /// type-ahead navigation can use this predicate to choose its targets.
+    /// cell editing follows the `GridEditor` and column policies. Type-ahead
+    /// search skips ineligible rows before reading their search cells.
     /// Existing models keep all rows enabled by default.
     fn row_enabled(&self, _row: usize) -> bool {
         true
@@ -264,6 +266,23 @@ pub trait GridModel {
     fn revision(&self) -> Option<u64> {
         None
     }
+}
+
+/// Checks row eligibility before reading that row's search cell.
+fn find_type_ahead_row<M: GridModel + ?Sized>(
+    prefix: &str,
+    len: usize,
+    from: usize,
+    search_column: usize,
+    model: &M,
+) -> Option<usize> {
+    TypeAhead::find_indexed(
+        prefix,
+        len,
+        from,
+        |row| model.cell(row, search_column).map_or("", |cell| cell.text),
+        |row| model.row_enabled(row),
+    )
 }
 
 pub trait GridEditor: GridModel {
@@ -682,6 +701,21 @@ pub enum GridOverflowIndicator {
     Ellipsis,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub(crate) enum TypeAheadColumn {
+    #[default]
+    Cursor,
+    Index(usize),
+    Key(ColumnKey),
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct TypeAheadConfig {
+    column: TypeAheadColumn,
+    identity: Option<ColumnKey>,
+    timeout: Duration,
+}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct GridState {
     sampled_widths: [Option<SampledWidth>; GRID_MAX_COLUMNS],
@@ -702,6 +736,9 @@ pub struct GridState {
     edit: Option<(ItemKey, ColumnKey)>,
 
     editor: TextInputState,
+
+    type_ahead: TypeAhead,
+    type_ahead_config: Option<TypeAheadConfig>,
 
     sort: Option<(ColumnKey, SortDir)>,
 }
@@ -733,6 +770,8 @@ impl Default for GridState {
             pending_column: None,
             edit: None,
             editor,
+            type_ahead: TypeAhead::default(),
+            type_ahead_config: None,
             sort: None,
         }
     }
@@ -741,6 +780,7 @@ impl Default for GridState {
 impl GridState {
     pub(crate) fn invalidate_model(&mut self) {
         self.core.invalidate();
+        self.type_ahead.reset();
     }
 
     pub(crate) fn set_sort(&mut self, sort: Option<(ColumnKey, SortDir)>) {
@@ -846,6 +886,9 @@ impl GridState {
 impl Reconcile for GridState {
     fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation {
         let r = self.core.reconcile(len, &key);
+        if r != Reconciliation::Unchanged {
+            self.type_ahead.reset();
+        }
         if let Some(RangeAnchor::Cell(a, _)) = self.anchor
             && !(0..len).any(|i| key(i) == a)
         {
@@ -861,6 +904,7 @@ impl Reconcile for GridState {
 
     fn invalidate(&mut self) {
         self.core.invalidate();
+        self.type_ahead.reset();
     }
 }
 
@@ -1016,6 +1060,9 @@ pub struct Grid<'a> {
     cell_tone_styles: &'a [(Role, StylePatch)],
     overflow_indicator: GridOverflowIndicator,
     disabled: bool,
+    type_ahead: bool,
+    type_ahead_column: TypeAheadColumn,
+    type_ahead_timeout: Duration,
     fetch_on_activate: bool,
     fetch_label: &'a str,
     fetch_glyph: GlyphRole,
@@ -1079,6 +1126,9 @@ impl<'a> Grid<'a> {
             cell_tone_styles: &[],
             overflow_indicator: GridOverflowIndicator::Count,
             disabled: false,
+            type_ahead: false,
+            type_ahead_column: TypeAheadColumn::Cursor,
+            type_ahead_timeout: TypeAhead::DEFAULT_TIMEOUT,
             fetch_on_activate: false,
             fetch_label: "more",
             fetch_glyph: GlyphRole::MoreRows,
@@ -1168,6 +1218,40 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
+        self
+    }
+
+    /// Enables prefix search with unmodified alphanumeric keys.
+    #[must_use]
+    pub const fn type_ahead(mut self, enabled: bool) -> Self {
+        self.type_ahead = enabled;
+        self
+    }
+
+    /// Selects a logical column by position, or the cursor column when `None`.
+    #[must_use]
+    pub const fn type_ahead_column(mut self, column: Option<usize>) -> Self {
+        self.type_ahead_column = match column {
+            Some(index) => TypeAheadColumn::Index(index),
+            None => TypeAheadColumn::Cursor,
+        };
+        self
+    }
+
+    /// Selects a logical column by stable key, or the cursor column when `None`.
+    #[must_use]
+    pub const fn type_ahead_column_key(mut self, key: Option<ColumnKey>) -> Self {
+        self.type_ahead_column = match key {
+            Some(key) => TypeAheadColumn::Key(key),
+            None => TypeAheadColumn::Cursor,
+        };
+        self
+    }
+
+    /// Sets the prefix timeout measured from the most recent typed character.
+    #[must_use]
+    pub const fn type_ahead_timeout(mut self, timeout: Duration) -> Self {
+        self.type_ahead_timeout = timeout;
         self
     }
 
@@ -1325,6 +1409,77 @@ impl<'a> Grid<'a> {
 
     fn column_count(&self) -> usize {
         self.columns.len().min(GRID_MAX_COLUMNS)
+    }
+
+    fn sync_type_ahead(&self, state: &mut GridState) {
+        if !self.type_ahead || self.disabled {
+            state.type_ahead = TypeAhead::default();
+            state.type_ahead_config = None;
+            return;
+        }
+        let identity = match self.type_ahead_column {
+            TypeAheadColumn::Cursor => self.col_key(self.cursor_col(state)),
+            TypeAheadColumn::Index(index) => self.col_key(index),
+            TypeAheadColumn::Key(key) => self.col_index(key).map(|_| key),
+        };
+        let config = TypeAheadConfig {
+            column: self.type_ahead_column,
+            identity,
+            timeout: self.type_ahead_timeout,
+        };
+        if state.type_ahead_config != Some(config) {
+            state.type_ahead = TypeAhead::with_timeout(self.type_ahead_timeout);
+            state.type_ahead_config = Some(config);
+        }
+    }
+
+    fn type_ahead_column_index(&self, state: &GridState) -> Option<usize> {
+        match self.type_ahead_column {
+            TypeAheadColumn::Cursor => {
+                let column = self.cursor_col(state);
+                (column < self.column_count()).then_some(column)
+            }
+            TypeAheadColumn::Index(column) => (column < self.column_count()).then_some(column),
+            TypeAheadColumn::Key(key) => self.col_index(key),
+        }
+    }
+
+    fn type_ahead_key<M: GridModel + ?Sized>(
+        &self,
+        cx: &Cx<'_>,
+        state: &mut GridState,
+        model: &M,
+        key: crate::event::Key,
+        len: usize,
+        acc: &mut Acc<GridAction>,
+    ) {
+        if !self.type_ahead || state.is_editing() {
+            return;
+        }
+        let Some(character) = TypeAhead::char_of(&key) else {
+            return;
+        };
+        let Some(search_column) = self.type_ahead_column_index(state) else {
+            state.type_ahead.reset();
+            acc.consumed();
+            return;
+        };
+        let from = if state.on_fetch_row() || len == 0 {
+            0
+        } else {
+            state.core.cursor_index().min(len.saturating_sub(1))
+        };
+        let found = {
+            let prefix = state
+                .type_ahead
+                .feed_at_duration(character, cx.now().as_duration());
+            find_type_ahead_row(prefix, len, from, search_column, model)
+        };
+        if let Some(row) = found {
+            let cursor_column = self.cursor_col(state);
+            self.move_to(state, model, row, cursor_column, false, acc);
+        }
+        acc.consumed();
     }
 
     fn assert_distinct_column_keys(&self) {
@@ -2040,6 +2195,7 @@ impl Grid<'_> {
         if st.is_editing() {
             return Err(GridCursorError::Editing);
         }
+        st.type_ahead.reset();
         self.move_to(st, model, row_index, col_index, false, &mut Acc::new());
         st.core
             .scroll_mut()
@@ -2220,6 +2376,7 @@ impl Grid<'_> {
         if st.core.cursor().is_some_and(|key| {
             st.core.cursor_index() >= len || model.row_key(st.core.cursor_index()) != key
         }) {
+            st.type_ahead.reset();
             st.core.invalidate();
         }
 
@@ -2228,6 +2385,7 @@ impl Grid<'_> {
             acc.changed();
         }
         if outcome != Reconciliation::Unchanged {
+            st.type_ahead.reset();
             if let Some(RangeAnchor::Cell(a, _)) = st.anchor
                 && Self::row_index(model, a, st.core.cursor_index()).is_none()
             {
@@ -2267,6 +2425,7 @@ impl Grid<'_> {
             st.col = self.col_key(0);
             st.col_index = 0;
         } else if st.col.is_some_and(|key| self.col_index(key).is_none()) {
+            st.type_ahead.reset();
             st.col_index = st.col_index.min(column_count.saturating_sub(1));
             st.col = self.col_key(st.col_index);
             st.anchor = None;
@@ -2308,6 +2467,7 @@ impl Grid<'_> {
         for it in cx.intents(self.id) {
             match it {
                 Intent::Binding(action) => {
+                    st.type_ahead.reset();
                     let row = st.fetch_row.map_or_else(
                         || st.core.cursor_index().min(len.saturating_sub(1)),
                         |f| f.boundary,
@@ -2532,6 +2692,9 @@ impl Grid<'_> {
                             column.sortable && column_item_key(column.key) == header_key
                         })
                     });
+                    if matches!(phase, Phase::Click | Phase::DoubleClick) && col.is_some() {
+                        st.type_ahead.reset();
+                    }
                     match (phase, col.and_then(|i| self.col_key(i))) {
                         (Phase::Click | Phase::DoubleClick, Some(key)) => {
                             let dir = match st.sort {
@@ -2554,6 +2717,7 @@ impl Grid<'_> {
                     ..
                 } => {
                     if let Some(row) = Self::row_index(model, key, st.core.cursor_index()) {
+                        st.type_ahead.reset();
                         self.move_to(st, model, row, self.cursor_col(st), false, acc);
                         self.toggle_row(st, model, row, acc);
                     } else {
@@ -2618,6 +2782,9 @@ impl Grid<'_> {
                         continue;
                     }
                     let col = hit.unwrap_or_else(|| self.cursor_col(st));
+                    if matches!(phase, Phase::Press | Phase::DoubleClick) {
+                        st.type_ahead.reset();
+                    }
                     match phase {
                         Phase::Press => self.move_to(st, model, row, col, false, acc),
                         Phase::DoubleClick => {
@@ -2648,6 +2815,7 @@ impl Grid<'_> {
                         },
                     ..
                 } => {
+                    st.type_ahead.reset();
                     if self.fetch_on_activate {
                         if st.is_editing() || !model.has_more() {
                             acc.consumed();
@@ -2658,6 +2826,8 @@ impl Grid<'_> {
                     acc.action(GridAction::FetchMore);
                 }
                 Intent::Pointer { .. } => acc.consumed(),
+                Intent::FocusOut { to } if to != Some(self.id) => st.type_ahead.reset(),
+                Intent::Key(key) => self.type_ahead_key(cx, st, model, key, len, acc),
                 _ => {}
             }
         }
@@ -2677,6 +2847,7 @@ impl Grid<'_> {
         model: &M,
     ) -> Response<GridAction> {
         self.assert_distinct_column_keys();
+        self.sync_type_ahead(st);
         if self.disabled {
             for _ in cx.intents(self.id) {}
             for _ in cx.intents(self.editor_id()) {}
@@ -2705,6 +2876,7 @@ impl Grid<'_> {
         model: &mut M,
     ) -> Response<GridAction> {
         self.assert_distinct_column_keys();
+        self.sync_type_ahead(st);
         if self.disabled {
             for _ in cx.intents(self.id) {}
             for _ in cx.intents(self.editor_id()) {}
@@ -2735,6 +2907,7 @@ impl Grid<'_> {
         acc: &mut Acc<GridAction>,
     ) {
         let EditRequest { row, col, cause } = request;
+        st.type_ahead.reset();
         let key = model.row_key(row);
         let Some(ck) = self.col_key(col) else { return };
         st.editor.set_error(None);
@@ -3600,6 +3773,9 @@ impl Grid<'_> {
                     &BINDINGS
                 },
             );
+            if self.type_ahead && !self.disabled && !st.is_editing() {
+                ui.publish_type_ahead(self.id, live);
+            }
         }
         let container = self.ov.style(
             ui,
@@ -3832,7 +4008,7 @@ impl Bindings for Grid<'_> {
 
 #[cfg(test)]
 mod tests {
-    use core::cell::Cell;
+    use core::cell::{Cell, RefCell};
 
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::{Position, Rect};
@@ -3843,8 +4019,10 @@ mod tests {
     use crate::runtime::{App, Runtime, UpdateCause};
     use crate::theme::Theme;
     use crate::validate::FieldError;
+    use termrock_test_support::Harness;
 
     const ID: Id = Id::root("grid.tests");
+    const PEER_ID: Id = Id::root("grid.tests.type_ahead.peer");
     const AREA: Rect = Rect::new(0, 0, 30, 6);
     const CALLBACK_ID: Id = Id::root("grid.tests.callback_padding");
     const CELL_ACTION: ActionKey = ActionKey::custom("follow");
@@ -4106,6 +4284,116 @@ mod tests {
         }
     }
 
+    struct CountedTypeAheadModel {
+        rows: [(&'static str, &'static str, bool); 4],
+        // Geometry also calls `cell`; these counters record only labels read
+        // immediately after the type-ahead eligibility callback.
+        search_cell_reads: Cell<[usize; 4]>,
+        eligibility_reads: Cell<[usize; 4]>,
+        eligible_row: Cell<Option<usize>>,
+        sentinel_reads: Cell<usize>,
+        total_reads: Cell<usize>,
+    }
+
+    impl Default for CountedTypeAheadModel {
+        fn default() -> Self {
+            Self {
+                rows: [
+                    ("first", "alpha", true),
+                    ("blocked", "beta", false),
+                    ("match", "bravo", true),
+                    ("later", "blue", true),
+                ],
+                search_cell_reads: Cell::new([0; 4]),
+                eligibility_reads: Cell::new([0; 4]),
+                eligible_row: Cell::new(None),
+                sentinel_reads: Cell::new(0),
+                total_reads: Cell::new(0),
+            }
+        }
+    }
+
+    impl CountedTypeAheadModel {
+        fn reset_reads(&self) {
+            self.search_cell_reads.set([0; 4]);
+            self.eligibility_reads.set([0; 4]);
+            self.eligible_row.set(None);
+            self.sentinel_reads.set(0);
+            self.total_reads.set(0);
+        }
+    }
+
+    impl GridModel for CountedTypeAheadModel {
+        fn row_count(&self) -> usize {
+            self.rows.len()
+        }
+
+        fn row_key(&self, row: usize) -> ItemKey {
+            ItemKey::num(row as u64 + 1)
+        }
+
+        fn row_enabled(&self, row: usize) -> bool {
+            let mut reads = self.eligibility_reads.get();
+            if let Some(reads_at_row) = reads.get_mut(row) {
+                *reads_at_row = reads_at_row.saturating_add(1);
+                self.eligibility_reads.set(reads);
+            }
+            let enabled = self.rows.get(row).is_some_and(|(_, _, enabled)| *enabled);
+            self.eligible_row.set(enabled.then_some(row));
+            enabled
+        }
+
+        fn cell(&self, row: usize, column: usize) -> Option<CellRef<'_>> {
+            if row >= self.rows.len() {
+                self.sentinel_reads
+                    .set(self.sentinel_reads.get().saturating_add(1));
+                return None;
+            }
+            if column == 1 && self.eligible_row.get() == Some(row) {
+                let mut reads = self.search_cell_reads.get();
+                if let Some(reads_at_row) = reads.get_mut(row) {
+                    *reads_at_row = reads_at_row.saturating_add(1);
+                    self.search_cell_reads.set(reads);
+                }
+                self.eligible_row.set(None);
+            }
+            let (first, second, _) = self.rows[row];
+            match column {
+                0 => Some(CellRef::new(first)),
+                1 => Some(CellRef::new(second)),
+                _ => None,
+            }
+        }
+
+        fn total(&self) -> RowTotal {
+            self.total_reads
+                .set(self.total_reads.get().saturating_add(1));
+            RowTotal::Unknown
+        }
+
+        fn has_more(&self) -> bool {
+            true
+        }
+    }
+
+    impl GridEditor for CountedTypeAheadModel {
+        fn edit_intent(&self, _row: usize, _col: usize) -> EditIntent<'_> {
+            EditIntent::Refuse {
+                reason: "read only",
+            }
+        }
+
+        fn apply_cycle(&mut self, _row: usize, _col: usize) {}
+
+        fn commit_cell(&mut self, _row: usize, _col: usize, _text: &str) -> Result<(), FieldError> {
+            Ok(())
+        }
+
+        fn is_editable(&self, _row: usize, _col: usize) -> bool {
+            false
+        }
+    }
+
     #[derive(Default)]
     struct RaggedModel {
         second_present: Cell<bool>,
@@ -4263,6 +4551,191 @@ mod tests {
         }
     }
 
+    const TYPE_AHEAD_BUBBLE: ActionKey = ActionKey::custom("grid.tests.type_ahead_bubble");
+    static TYPE_AHEAD_BUBBLE_KEYMAP: std::sync::LazyLock<crate::keymap::KeyMap> =
+        std::sync::LazyLock::new(|| {
+            crate::keymap::KeyMap::new().bind(
+                crate::keymap::KeyPhase::Bubble,
+                Chord::key(KeyCode::Char('x')),
+                TYPE_AHEAD_BUBBLE,
+            )
+        });
+
+    struct TypeAheadGridApp<M: GridEditor> {
+        state: GridState,
+        model: M,
+        columns: Vec<Column<'static>>,
+        enabled: bool,
+        selector: TypeAheadColumn,
+        timeout: Duration,
+        fetch_on_activate: bool,
+        editable: bool,
+        bubble_hits: usize,
+        actions: Vec<GridAction>,
+        peer: Option<termrock_controls::Button<'static>>,
+    }
+
+    impl<M: GridEditor> TypeAheadGridApp<M> {
+        fn grid<'a>(
+            columns: &'a [Column<'static>],
+            enabled: bool,
+            selector: TypeAheadColumn,
+            timeout: Duration,
+            fetch_on_activate: bool,
+        ) -> Grid<'a> {
+            let grid = Grid::new(ID, columns)
+                .type_ahead(enabled)
+                .type_ahead_timeout(timeout)
+                .fetch_on_activate(fetch_on_activate);
+            match selector {
+                TypeAheadColumn::Cursor => grid.type_ahead_column(None),
+                TypeAheadColumn::Index(index) => grid.type_ahead_column(Some(index)),
+                TypeAheadColumn::Key(key) => grid.type_ahead_column_key(Some(key)),
+            }
+        }
+    }
+
+    impl<M: GridEditor> App for TypeAheadGridApp<M> {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.command() == Some(TYPE_AHEAD_BUBBLE) {
+                self.bubble_hits = self.bubble_hits.saturating_add(1);
+                return Response::consumed();
+            }
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                cx.focus(ID);
+            }
+            let grid = Self::grid(
+                &self.columns,
+                self.enabled,
+                self.selector,
+                self.timeout,
+                self.fetch_on_activate,
+            );
+            let mut response = if self.editable {
+                grid.update_editable(cx, &mut self.state, &mut self.model)
+            } else {
+                grid.update(cx, &mut self.state, &self.model)
+            };
+            if let Some(action) = response.take_action() {
+                self.actions.push(action);
+            }
+            if let Some(peer) = &self.peer {
+                let _ = peer.update(cx);
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let area = ui.full();
+            let grid_area = if self.peer.is_some() {
+                Rect::new(area.x, area.y, area.width, area.height.saturating_sub(1))
+            } else {
+                area
+            };
+            Self::grid(
+                &self.columns,
+                self.enabled,
+                self.selector,
+                self.timeout,
+                self.fetch_on_activate,
+            )
+            .draw(ui, grid_area, &self.state, &self.model);
+            if let Some(peer) = &self.peer {
+                let peer_area = Rect::new(
+                    area.x,
+                    area.y.saturating_add(grid_area.height),
+                    area.width,
+                    area.height.saturating_sub(grid_area.height),
+                );
+                peer.draw(ui, peer_area);
+            }
+        }
+
+        fn keymap(&self) -> &crate::keymap::KeyMap {
+            &TYPE_AHEAD_BUBBLE_KEYMAP
+        }
+    }
+
+    fn type_ahead_app<M: GridEditor>(model: M) -> TypeAheadGridApp<M> {
+        TypeAheadGridApp {
+            state: GridState::default(),
+            model,
+            columns: columns().to_vec(),
+            enabled: true,
+            selector: TypeAheadColumn::Cursor,
+            timeout: TypeAhead::DEFAULT_TIMEOUT,
+            fetch_on_activate: false,
+            editable: false,
+            bubble_hits: 0,
+            actions: Vec::new(),
+            peer: None,
+        }
+    }
+
+    fn type_ahead_harness<M: GridEditor>(model: M) -> Harness<TypeAheadGridApp<M>> {
+        Harness::new(type_ahead_app(model), Theme::junie(), 40, 10)
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
+    enum TypeAheadRead {
+        Eligible(usize),
+        Cell(usize, usize),
+        Total,
+        HasMore,
+    }
+
+    struct TypeAheadTraceModel {
+        reads: RefCell<Vec<TypeAheadRead>>,
+    }
+
+    impl TypeAheadTraceModel {
+        const ROWS: [(&'static str, bool); 4] = [
+            ("beta", true),
+            ("blocked", false),
+            ("bravo", true),
+            ("bravo later", true),
+        ];
+
+        fn new() -> Self {
+            Self {
+                reads: RefCell::new(Vec::new()),
+            }
+        }
+    }
+
+    impl GridModel for TypeAheadTraceModel {
+        fn row_count(&self) -> usize {
+            Self::ROWS.len()
+        }
+
+        fn row_key(&self, row: usize) -> ItemKey {
+            ItemKey::index(row)
+        }
+
+        fn row_enabled(&self, row: usize) -> bool {
+            self.reads.borrow_mut().push(TypeAheadRead::Eligible(row));
+            Self::ROWS.get(row).is_some_and(|(_, enabled)| *enabled)
+        }
+
+        fn cell(&self, row: usize, column: usize) -> Option<CellRef<'_>> {
+            // Log out-of-range reads too, so a sentinel-boundary access is visible.
+            self.reads
+                .borrow_mut()
+                .push(TypeAheadRead::Cell(row, column));
+            Self::ROWS.get(row).map(|(label, _)| CellRef::new(label))
+        }
+
+        fn total(&self) -> RowTotal {
+            self.reads.borrow_mut().push(TypeAheadRead::Total);
+            RowTotal::Unknown
+        }
+
+        fn has_more(&self) -> bool {
+            self.reads.borrow_mut().push(TypeAheadRead::HasMore);
+            true
+        }
+    }
+
     impl App for GridApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             let columns = columns();
@@ -4323,6 +4796,533 @@ mod tests {
         runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         (runtime, buffer)
+    }
+
+    #[test]
+    fn type_ahead_is_default_off_and_selector_builders_are_last_writer_wins() {
+        let columns = columns();
+        let default_grid = Grid::new(ID, &columns);
+        assert!(!default_grid.type_ahead);
+        assert_eq!(default_grid.type_ahead_timeout, TypeAhead::DEFAULT_TIMEOUT);
+
+        let keyed = Grid::new(ID, &columns)
+            .type_ahead_column(Some(1))
+            .type_ahead_column_key(Some(ColumnKey::num(1)));
+        assert_eq!(
+            keyed.type_ahead_column,
+            TypeAheadColumn::Key(ColumnKey::num(1))
+        );
+        let cursor = Grid::new(ID, &columns)
+            .type_ahead_column_key(Some(ColumnKey::num(2)))
+            .type_ahead_column(None);
+        assert_eq!(cursor.type_ahead_column, TypeAheadColumn::Cursor);
+        let positional = Grid::new(ID, &columns)
+            .type_ahead_column_key(Some(ColumnKey::num(1)))
+            .type_ahead_column(Some(1));
+        assert_eq!(positional.type_ahead_column, TypeAheadColumn::Index(1));
+
+        let mut app = type_ahead_app(Model::two());
+        app.enabled = false;
+        let mut harness = Harness::new(app, Theme::junie(), 40, 10);
+        let _ = harness.tick();
+        let before = harness.app().state.clone();
+        let _ = harness.key(KeyCode::Char('b'));
+        assert_eq!(harness.app().state, before);
+    }
+
+    #[test]
+    fn type_ahead_search_helper_traces_lazy_eligible_cell_access() {
+        let model = TypeAheadTraceModel::new();
+        let found = find_type_ahead_row("br", model.row_count(), 0, 1, &model);
+        assert_eq!(found, Some(2));
+        assert_eq!(
+            model.reads.borrow().as_slice(),
+            &[
+                TypeAheadRead::Eligible(0),
+                TypeAheadRead::Cell(0, 1),
+                TypeAheadRead::Eligible(1),
+                TypeAheadRead::Eligible(2),
+                TypeAheadRead::Cell(2, 1),
+            ]
+        );
+
+        model.reads.borrow_mut().clear();
+        let missing = find_type_ahead_row("zz", model.row_count(), 0, 1, &model);
+        assert_eq!(missing, None);
+        // Search begins after `from` and wraps; repeated-letter cycling uses this order.
+        assert_eq!(
+            model.reads.borrow().as_slice(),
+            &[
+                TypeAheadRead::Eligible(1),
+                TypeAheadRead::Eligible(2),
+                TypeAheadRead::Cell(2, 1),
+                TypeAheadRead::Eligible(3),
+                TypeAheadRead::Cell(3, 1),
+                TypeAheadRead::Eligible(0),
+                TypeAheadRead::Cell(0, 1),
+            ]
+        );
+    }
+
+    #[test]
+    fn type_ahead_uses_default_positional_and_stable_key_columns_without_moving_the_column() {
+        let mut default = type_ahead_harness(Model::two());
+        let _ = default.key(KeyCode::Char('b'));
+        assert_eq!(
+            default.app().state.cursor(),
+            Some((ItemKey::num(20), ColumnKey::num(1)))
+        );
+
+        let mut positional_app = type_ahead_app(Model::two());
+        positional_app.selector = TypeAheadColumn::Index(1);
+        let mut positional = Harness::new(positional_app, Theme::junie(), 40, 10);
+        let _ = positional.key(KeyCode::Char('2'));
+        assert_eq!(
+            positional.app().state.cursor(),
+            Some((ItemKey::num(20), ColumnKey::num(1)))
+        );
+
+        let mut keyed_app = type_ahead_app(Model::two());
+        keyed_app.columns = vec![
+            Column::new(ColumnKey::num(2), "Value"),
+            Column::new(ColumnKey::num(1), "Name"),
+        ];
+        keyed_app.model.rows = vec![
+            (ItemKey::num(10), ["1", "alpha"]),
+            (ItemKey::num(20), ["2", "beta"]),
+        ];
+        keyed_app.selector = TypeAheadColumn::Key(ColumnKey::num(1));
+        let mut keyed = Harness::new(keyed_app, Theme::junie(), 40, 10);
+        let _ = keyed.key(KeyCode::Char('b'));
+        assert_eq!(
+            keyed.app().state.cursor(),
+            Some((ItemKey::num(20), ColumnKey::num(2)))
+        );
+
+        let mut absent_app = type_ahead_app(Model::two());
+        absent_app.selector = TypeAheadColumn::Key(ColumnKey::num(99));
+        let mut absent = Harness::new(absent_app, Theme::junie(), 40, 10);
+        let response = absent.key(KeyCode::Char('b'));
+        assert!(response.is_consumed());
+        assert_eq!(
+            absent.app().state.cursor(),
+            Some((ItemKey::num(10), ColumnKey::num(1)))
+        );
+    }
+
+    #[test]
+    fn type_ahead_stable_key_survives_column_reorder_during_active_prefix() {
+        let model = Model {
+            rows: vec![
+                (ItemKey::num(10), ["Beta", "one"]),
+                (ItemKey::num(20), ["Bravo", "two"]),
+                (ItemKey::num(30), ["Rose", "three"]),
+            ],
+            ..Model::default()
+        };
+        let mut app = type_ahead_app(model);
+        app.selector = TypeAheadColumn::Key(ColumnKey::num(1));
+        let mut harness = Harness::new(app, Theme::junie(), 40, 10);
+        let _ = harness.key(KeyCode::Char('b'));
+        assert_eq!(
+            harness.app().state.cursor(),
+            Some((ItemKey::num(10), ColumnKey::num(1)))
+        );
+
+        harness.app_mut().columns.swap(0, 1);
+        for (_, cells) in &mut harness.app_mut().model.rows {
+            cells.swap(0, 1);
+        }
+        let _ = harness.key(KeyCode::Char('r'));
+        assert_eq!(
+            harness.app().state.cursor(),
+            Some((ItemKey::num(20), ColumnKey::num(1)))
+        );
+    }
+
+    #[test]
+    fn type_ahead_configuration_change_starts_a_fresh_prefix() {
+        let mut app = type_ahead_app(Model::two());
+        app.selector = TypeAheadColumn::Index(0);
+        let mut harness = Harness::new(app, Theme::junie(), 40, 10);
+        let _ = harness.key(KeyCode::Char('b'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(20))
+        );
+
+        harness.app_mut().selector = TypeAheadColumn::Index(1);
+        let _ = harness.key(KeyCode::Char('1'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(10))
+        );
+    }
+
+    #[test]
+    fn type_ahead_resets_when_a_positional_column_identity_changes() {
+        let model = Model {
+            rows: vec![
+                (ItemKey::num(10), ["alpha", "bravo"]),
+                (ItemKey::num(20), ["echo", "echo"]),
+            ],
+            ..Model::default()
+        };
+        let mut app = type_ahead_app(model);
+        app.selector = TypeAheadColumn::Index(1);
+        let mut harness = Harness::new(app, Theme::junie(), 40, 10);
+        let _ = harness.key(KeyCode::Char('b'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(10))
+        );
+
+        harness.app_mut().columns[1].key = ColumnKey::num(9);
+        let _ = harness.key(KeyCode::Char('e'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(20))
+        );
+    }
+
+    #[test]
+    fn type_ahead_resets_when_the_cursor_row_identity_is_removed() {
+        let mut app = type_ahead_app(Model::two());
+        app.selector = TypeAheadColumn::Index(0);
+        let mut harness = Harness::new(app, Theme::junie(), 40, 10);
+        let _ = harness.key(KeyCode::Char('b'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(20))
+        );
+
+        harness.app_mut().model.rows[1] = (ItemKey::num(30), ["echo", "3"]);
+        let _ = harness.key(KeyCode::Char('e'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(30))
+        );
+    }
+
+    #[test]
+    fn type_ahead_resets_on_disable_and_pointer_reposition() {
+        let model = Model {
+            rows: vec![
+                (ItemKey::num(10), ["bravo", "1"]),
+                (ItemKey::num(20), ["echo", "2"]),
+            ],
+            ..Model::default()
+        };
+        let mut harness = type_ahead_harness(model);
+        let _ = harness.key(KeyCode::Char('b'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(10))
+        );
+
+        harness.app_mut().enabled = false;
+        let _ = harness.key(KeyCode::Enter);
+        harness.app_mut().enabled = true;
+        let _ = harness.tick();
+        let _ = harness.key(KeyCode::Char('e'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(20))
+        );
+
+        let model = Model {
+            rows: vec![
+                (ItemKey::num(10), ["Beta", "1"]),
+                (ItemKey::num(20), ["Bravo", "2"]),
+                (ItemKey::num(30), ["Rose", "3"]),
+            ],
+            ..Model::default()
+        };
+        let mut harness = type_ahead_harness(model);
+        let _ = harness.key(KeyCode::Char('b'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(10))
+        );
+        let (x, y) = harness.find("Rose").expect("third row cell");
+        let _ = harness.click(x, y);
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(30))
+        );
+        let _ = harness.key(KeyCode::Char('r'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(30)),
+            "a stale `br` prefix would wrap to Bravo on the second row"
+        );
+    }
+
+    #[test]
+    fn type_ahead_resets_on_focus_loss() {
+        let model = Model {
+            rows: vec![
+                (ItemKey::num(10), ["Beta", "1"]),
+                (ItemKey::num(20), ["Bravo", "2"]),
+                (ItemKey::num(30), ["Rose", "3"]),
+            ],
+            ..Model::default()
+        };
+        let mut app = type_ahead_app(model);
+        app.peer = Some(termrock_controls::Button::new(PEER_ID, "Focus peer"));
+        let mut harness = Harness::new(app, Theme::junie(), 40, 10);
+        let _ = harness.key(KeyCode::Char('b'));
+        assert_eq!(harness.focus(), Some(ID));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(10))
+        );
+
+        let _ = harness.key(KeyCode::Tab);
+        assert_eq!(harness.focus(), Some(PEER_ID));
+        assert!(harness.tab_to(ID), "the Grid can receive focus again");
+        assert_eq!(harness.focus(), Some(ID));
+        let _ = harness.key(KeyCode::Char('r'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(30)),
+            "a stale `br` prefix would wrap to Bravo on the second row"
+        );
+    }
+
+    #[test]
+    fn type_ahead_cycles_repeated_letters_wraps_matches_mixed_case_and_leaves_misses_in_place() {
+        let model = Model {
+            rows: vec![
+                (ItemKey::num(10), ["Beta", "1"]),
+                (ItemKey::num(20), ["Bravo", "2"]),
+                (ItemKey::num(30), ["Charlie", "3"]),
+            ],
+            ..Model::default()
+        };
+        let mut cycling = type_ahead_harness(model);
+
+        let _ = cycling.key(KeyCode::Char('B'));
+        assert_eq!(
+            cycling.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(10))
+        );
+        let _ = cycling.key(KeyCode::Char('b'));
+        assert_eq!(
+            cycling.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(20))
+        );
+        let _ = cycling.key(KeyCode::Char('B'));
+        assert_eq!(
+            cycling.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(10))
+        );
+
+        let prefix_model = Model {
+            rows: vec![
+                (ItemKey::num(10), ["Beta", "1"]),
+                (ItemKey::num(20), ["Bravo", "2"]),
+                (ItemKey::num(30), ["Charlie", "3"]),
+            ],
+            ..Model::default()
+        };
+        let mut prefix = type_ahead_harness(prefix_model);
+        let _ = prefix.key(KeyCode::Char('B'));
+        assert_eq!(
+            prefix.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(10))
+        );
+        let _ = prefix.key(KeyCode::Char('r'));
+        assert_eq!(
+            prefix.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(20))
+        );
+        let _ = prefix.key(KeyCode::Char('z'));
+        assert_eq!(
+            prefix.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(20))
+        );
+
+        let _ = prefix.key(KeyCode::Down);
+        assert_eq!(
+            prefix.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(30))
+        );
+        let _ = prefix.key(KeyCode::Char('b'));
+        assert_eq!(
+            prefix.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(10))
+        );
+    }
+
+    #[test]
+    fn type_ahead_timeout_uses_harness_clock_and_expires_from_the_last_character() {
+        let model = Model {
+            rows: vec![
+                (ItemKey::num(10), ["Alpha", "1"]),
+                (ItemKey::num(20), ["Bravo", "2"]),
+                (ItemKey::num(30), ["Charlie", "3"]),
+            ],
+            ..Model::default()
+        };
+        let mut app = type_ahead_app(model);
+        app.timeout = Duration::from_millis(500);
+        let mut harness = Harness::new(app, Theme::junie(), 40, 10);
+
+        let _ = harness.key(KeyCode::Char('b'));
+        let _ = harness.advance(Duration::from_millis(500));
+        let _ = harness.key(KeyCode::Char('r'));
+        let _ = harness.advance(Duration::from_millis(500));
+        let _ = harness.key(KeyCode::Char('c'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(20))
+        );
+
+        let _ = harness.advance(Duration::from_millis(500) + Duration::from_nanos(1));
+        let _ = harness.key(KeyCode::Char('c'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(30))
+        );
+    }
+
+    #[test]
+    fn grid_and_app_shortcuts_run_before_type_ahead() {
+        let mut local = type_ahead_harness(Model::two());
+        let _ = local.key(KeyCode::Char('j'));
+        assert_eq!(
+            local.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(20))
+        );
+
+        let model = Model {
+            rows: vec![
+                (ItemKey::num(10), ["alpha", "1"]),
+                (ItemKey::num(20), ["xray", "2"]),
+            ],
+            ..Model::default()
+        };
+        let mut bubble = type_ahead_harness(model);
+        let _ = bubble.key(KeyCode::Char('x'));
+        assert_eq!(bubble.app().bubble_hits, 1);
+        assert_eq!(
+            bubble.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(10))
+        );
+    }
+
+    #[test]
+    fn active_cell_editor_keeps_input_and_commit_cancel_outside_type_ahead() {
+        let model = Model {
+            rows: vec![
+                (ItemKey::num(10), ["alpha", "1"]),
+                (ItemKey::num(20), ["beta", "2"]),
+                (ItemKey::num(30), ["charlie", "3"]),
+            ],
+            ..Model::default()
+        };
+        let mut app = type_ahead_app(model);
+        app.editable = true;
+        let mut harness = Harness::new(app, Theme::junie(), 40, 10);
+
+        let _ = harness.key(KeyCode::F(2));
+        assert!(harness.app().state.is_editing());
+        let _ = harness.key(KeyCode::Char('b'));
+        assert!(
+            harness
+                .app()
+                .state
+                .edit_draft()
+                .is_some_and(|draft| draft.contains('b'))
+        );
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(10))
+        );
+        let _ = harness.key(KeyCode::Enter);
+        assert!(!harness.app().state.is_editing());
+        assert_eq!(harness.app().model.commits.len(), 1);
+
+        let _ = harness.key(KeyCode::Char('c'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(30))
+        );
+        let _ = harness.key(KeyCode::F(2));
+        assert!(harness.app().state.is_editing());
+        let _ = harness.key(KeyCode::Char('q'));
+        let _ = harness.key(KeyCode::Esc);
+        assert!(!harness.app().state.is_editing());
+        assert_eq!(harness.app().model.commits.len(), 1);
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(30))
+        );
+    }
+
+    #[test]
+    fn entering_and_leaving_cell_edit_starts_a_fresh_type_ahead_prefix() {
+        let model = Model {
+            rows: vec![
+                (ItemKey::num(10), ["beta", "1"]),
+                (ItemKey::num(20), ["echo", "2"]),
+            ],
+            ..Model::default()
+        };
+        let mut app = type_ahead_app(model);
+        app.editable = true;
+        let mut harness = Harness::new(app, Theme::junie(), 40, 10);
+        let _ = harness.key(KeyCode::Char('b'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(10))
+        );
+
+        let _ = harness.key(KeyCode::F(2));
+        assert!(harness.app().state.is_editing());
+        let _ = harness.key(KeyCode::Char('e'));
+        let _ = harness.key(KeyCode::Enter);
+        assert!(!harness.app().state.is_editing());
+        let _ = harness.key(KeyCode::Char('e'));
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(20))
+        );
+    }
+
+    #[test]
+    fn type_ahead_reads_only_loaded_eligible_search_cells_and_stops_at_first_match() {
+        let model = CountedTypeAheadModel::default();
+        let mut app = type_ahead_app(model);
+        app.selector = TypeAheadColumn::Index(1);
+        app.fetch_on_activate = true;
+        let mut harness = Harness::new(app, Theme::junie(), 40, 10);
+        for _ in 0..4 {
+            let _ = harness.key(KeyCode::Down);
+        }
+        assert!(harness.app().state.on_fetch_row());
+        harness = harness.with_auto_draw(false);
+        harness.app().model.reset_reads();
+
+        let response = harness.key(KeyCode::Char('b'));
+        assert!(response.is_consumed());
+        assert_eq!(
+            harness.app().state.cursor().map(|cursor| cursor.0),
+            Some(ItemKey::num(3))
+        );
+        assert_eq!(harness.app().model.search_cell_reads.get(), [1, 0, 1, 0]);
+        assert_eq!(harness.app().model.eligibility_reads.get(), [1, 1, 1, 0]);
+        assert_eq!(harness.app().model.sentinel_reads.get(), 0);
+        assert_eq!(harness.app().model.total_reads.get(), 0);
+        assert!(!harness.app().actions.contains(&GridAction::FetchMore));
+        assert!(
+            !harness
+                .app()
+                .actions
+                .iter()
+                .any(|action| matches!(action, GridAction::Activated(_)))
+        );
     }
 
     #[test]

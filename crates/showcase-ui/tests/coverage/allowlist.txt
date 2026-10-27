@@ -505,6 +505,10 @@ termrock-grid::grid::Grid::sample_column_widths | the grid page draws termrock-g
 termrock-grid::grid::Grid::select_mode | the grid page draws termrock-grid::grid::Grid but does not use select_mode; SC2 adds the option or state that exercises it | SC2
 termrock-grid::grid::Grid::slot | the grid page draws termrock-grid::grid::Grid but does not use slot; SC2 adds the option or state that exercises it | SC2
 termrock-grid::grid::Grid::sort_indicator | the grid page draws termrock-grid::grid::Grid but does not use sort_indicator; SC2 adds the option or state that exercises it | SC2
+termrock-grid::grid::Grid::type_ahead | Grid/Table type-ahead builders have no registered Showcase behavior proof; independent coverage review remains pending | review
+termrock-grid::grid::Grid::type_ahead_column | Grid/Table type-ahead builders have no registered Showcase behavior proof; independent coverage review remains pending | review
+termrock-grid::grid::Grid::type_ahead_column_key | Grid/Table type-ahead builders have no registered Showcase behavior proof; independent coverage review remains pending | review
+termrock-grid::grid::Grid::type_ahead_timeout | Grid/Table type-ahead builders have no registered Showcase behavior proof; independent coverage review remains pending | review
 termrock-grid::grid::GridAction::CellAction | the grid page shows termrock-grid::grid::GridAction in one state only; SC2 adds the states table that switches it | SC2
 termrock-grid::grid::GridAction::Copy | the grid page shows termrock-grid::grid::GridAction in one state only; SC2 adds the states table that switches it | SC2
 termrock-grid::grid::GridAction::EditRequested | the grid page shows termrock-grid::grid::GridAction in one state only; SC2 adds the states table that switches it | SC2
@@ -527,6 +531,10 @@ termrock-grid::grid::GridState::set_scroll_reveal | the grid page draws termrock
 termrock-grid::grid::GridState::visible_rows | the grid page draws termrock-grid::grid::GridState but does not use visible_rows; SC2 adds the option or state that exercises it | SC2
 termrock-grid::grid::SortDir::Desc | the tables page shows termrock-grid::grid::SortDir in one state only; SC2 adds the states table that switches it | SC2
 termrock-grid::table::Table::sort_indicator | the tables page draws termrock-grid::table::Table but does not use sort_indicator; SC2 adds the option or state that exercises it | SC2
+termrock-grid::table::Table::type_ahead | Grid/Table type-ahead builders have no registered Showcase behavior proof; independent coverage review remains pending | review
+termrock-grid::table::Table::type_ahead_column | Grid/Table type-ahead builders have no registered Showcase behavior proof; independent coverage review remains pending | review
+termrock-grid::table::Table::type_ahead_column_key | Grid/Table type-ahead builders have no registered Showcase behavior proof; independent coverage review remains pending | review
+termrock-grid::table::Table::type_ahead_timeout | Grid/Table type-ahead builders have no registered Showcase behavior proof; independent coverage review remains pending | review
 termrock-grid::table::TableAction::SortChanged | the tables page shows termrock-grid::table::TableAction in one state only; SC2 adds the states table that switches it | SC2
 termrock-grid::table::TableSort::Text | the tables page shows termrock-grid::table::TableSort in one state only; SC2 adds the states table that switches it | SC2
 termrock-grid::table::TableState::cursor | the tables page draws termrock-grid::table::TableState but does not use cursor; SC2 adds the option or state that exercises it | SC2
@@ -886,7 +894,7 @@ termrock-runtime::ui::Ui::paint_style | the overview page draws termrock-runtime
 termrock-runtime::ui::Ui::pressed_part | the overview page draws termrock-runtime::ui::Ui but does not use pressed_part; SC2 adds the option or state that exercises it | SC2
 termrock-runtime::ui::Ui::publish_dynamic_bindings | the overview page draws termrock-runtime::ui::Ui but does not use publish_dynamic_bindings; SC2 adds the option or state that exercises it | SC2
 termrock-runtime::ui::Ui::publish_focused_paste_target | Current executable showcase proofs do not probe focused-paste routing; native runtime tests do not prove a showcase route | review
-termrock-runtime::ui::Ui::publish_type_ahead | Opt-in deferred character routing has no registered Showcase behavior proof; Grid consumer integration remains pending | review
+termrock-runtime::ui::Ui::publish_type_ahead | Opt-in deferred character routing has no registered Showcase behavior proof; independent coverage review remains pending | review
 termrock-runtime::ui::Ui::publish_typing_target | the overview page draws termrock-runtime::ui::Ui but does not use publish_typing_target; SC2 adds the option or state that exercises it | SC2
 termrock-runtime::ui::Ui::raw | the overview page draws termrock-runtime::ui::Ui but does not use raw; SC2 adds the option or state that exercises it | SC2
 termrock-runtime::ui::Ui::recolor_fg | the overview page draws termrock-runtime::ui::Ui but does not use recolor_fg; SC2 adds the option or state that exercises it | SC2
@@ -1993,9 +2001,9 @@ termrock-core::typeahead::TypeAhead | Legacy generated permanent decision retain
 termrock-core::typeahead::TypeAhead::char_of | Legacy generated permanent decision retained for independent review: char_of belongs to the data type termrock-core::typeahead::TypeAhead, which has no rendering of its own; the showcase shows the widget that carries it | review
 termrock-core::typeahead::TypeAhead::feed | Legacy generated permanent decision retained for independent review: feed belongs to the data type termrock-core::typeahead::TypeAhead, which has no rendering of its own; the showcase shows the widget that carries it | review
 termrock-core::typeahead::TypeAhead::feed_at | Legacy generated permanent decision retained for independent review: feed_at belongs to the data type termrock-core::typeahead::TypeAhead, which has no rendering of its own; the showcase shows the widget that carries it | review
-termrock-core::typeahead::TypeAhead::feed_at_duration | The runtime-owned elapsed-clock adapter has no registered Showcase behavior proof; Grid type-ahead integration and an opt-in clock-boundary demonstration remain pending | review
+termrock-core::typeahead::TypeAhead::feed_at_duration | The runtime-owned elapsed-clock adapter has no registered Showcase behavior proof; an opt-in clock-boundary demonstration remains pending | review
 termrock-core::typeahead::TypeAhead::find | Legacy generated permanent decision retained for independent review: find belongs to the data type termrock-core::typeahead::TypeAhead, which has no rendering of its own; the showcase shows the widget that carries it | review
-termrock-core::typeahead::TypeAhead::find_indexed | No Showcase consumer yet proves the eligible lazy-read contract; Grid type-ahead integration and an opt-in skipped-row read-count demonstration remain pending | review
+termrock-core::typeahead::TypeAhead::find_indexed | No registered Showcase consumer proves the eligible lazy-read contract; an opt-in skipped-row read-count demonstration remains pending | review
 termrock-core::typeahead::TypeAhead::reset | Legacy generated permanent decision retained for independent review: reset belongs to the data type termrock-core::typeahead::TypeAhead, which has no rendering of its own; the showcase shows the widget that carries it | review
 termrock-core::validate::FieldError | Historical page/title association retained as a lead only; no behavioral proof is inferred. | review
 termrock-core::validate::NoValidate | Legacy generated permanent decision retained for independent review: NoValidate is a data type with no rendering of its own; the showcase shows the widget that carries it | review
