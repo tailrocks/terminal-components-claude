@@ -1,11 +1,13 @@
 use showcase_ui::{App, NAV_ENTRIES, PageId};
-use termrock::{Id, ItemKey, KeyCode, KeyModifiers, Part, PartRef, Rect, Theme};
+use termrock::{Id, ItemKey, KeyCode, KeyModifiers, MouseKind, Part, PartRef, Rect, Theme, layout};
 use termrock_test_support::Harness;
 
 const TABS: Id = Id::root("showcase_ui::pages::query_workbench.tabs");
 const TOOLBAR: Id = Id::root("showcase_ui::pages::query_workbench.toolbar");
 const EDITOR: Id = Id::root("showcase_ui::pages::query_workbench.editor");
+const EDITOR_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.editor_panel");
 const RESULTS: Id = Id::root("showcase_ui::pages::query_workbench.results");
+const SPLIT: Id = Id::root("showcase_ui::pages::query_workbench.split");
 const NAV: Id = Id::root("showcase_ui::app::navigation");
 const HELP: Id = Id::root("showcase_ui::app::help");
 const HEADER_HELP: Id = Id::root("showcase_ui::app::header.help");
@@ -18,6 +20,7 @@ const CLOSE_REVEAL: Id = OPTIONS_FORM.part(Part::FIELD).index(1);
 const READ_ONLY: Id = OPTIONS_FORM.part(Part::FIELD).index(2);
 const RESULT_FIXTURE: Id = OPTIONS_FORM.part(Part::FIELD).index(3);
 const ENVIRONMENT: Id = OPTIONS_FORM.part(Part::FIELD).index(4);
+const EDITOR_SHARE: Id = OPTIONS_FORM.part(Part::FIELD).index(6);
 const CLOSE_OPTIONS: Id = OPTIONS_FORM.part(Part::ACTIONS).index(0);
 
 const RESULTS_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.results_panel");
@@ -53,6 +56,84 @@ fn query_workbench_summary_area(h: &Harness<App>) -> Rect {
     );
     assert_eq!(summary.y.saturating_add(1), table.y);
     summary
+}
+
+fn assert_vertical_editor_results(
+    h: &Harness<App>,
+    editor_share: u8,
+    context: &str,
+) -> (Rect, Rect, Rect) {
+    let split = h
+        .area_of(SPLIT)
+        .expect("the native Editor and Results split publishes its root area");
+    let editor = h
+        .area_of(EDITOR_PANEL)
+        .expect("the Editor panel publishes its native area");
+    let results = h
+        .area_of(RESULTS_PANEL)
+        .expect("the Results panel publishes its native area");
+    let seam = h
+        .area_of_part(SPLIT, PartRef::of(Part::SEAM))
+        .expect("the vertical split publishes its native seam");
+
+    assert!(
+        rect_is_inside(editor, split),
+        "{context}: {editor:?} inside {split:?}"
+    );
+    assert!(
+        rect_is_inside(results, split),
+        "{context}: {results:?} inside {split:?}"
+    );
+    assert_eq!(
+        editor.x, split.x,
+        "{context}: Editor spans the full split width"
+    );
+    assert_eq!(
+        results.x, split.x,
+        "{context}: Results spans the full split width"
+    );
+    assert_eq!(
+        editor.width, split.width,
+        "{context}: Editor has full split width"
+    );
+    assert_eq!(
+        results.width, split.width,
+        "{context}: Results has full split width"
+    );
+    assert_eq!(seam.x, split.x, "{context}: seam spans the split width");
+    assert_eq!(
+        seam.width, split.width,
+        "{context}: seam spans the split width"
+    );
+    assert_eq!(seam.height, 1, "{context}: native gap is one row");
+    assert_eq!(
+        editor.y.saturating_add(editor.height),
+        seam.y,
+        "{context}: Editor ends at the native seam"
+    );
+    assert_eq!(
+        seam.y.saturating_add(seam.height),
+        results.y,
+        "{context}: Results starts below the native seam"
+    );
+    assert!(
+        editor.height >= 5,
+        "{context}: Editor meets its five-row minimum"
+    );
+    assert!(
+        results.height >= 6,
+        "{context}: Results meets its six-row minimum"
+    );
+
+    let available = split.height.saturating_sub(seam.height);
+    let actual_scaled = u32::from(editor.height) * 100;
+    let expected_scaled = u32::from(available) * u32::from(editor_share);
+    assert!(
+        actual_scaled.abs_diff(expected_scaled) <= 100,
+        "{context}: Editor height {} follows the unclamped {editor_share}% preset over {available} usable rows",
+        editor.height
+    );
+    (split, editor, results)
 }
 
 fn prefix_with_cell_width(text: &str, max_width: u16) -> String {
@@ -366,6 +447,7 @@ fn query_workbench_is_a_live_route_with_native_tabs_editor_toolbar_and_results()
     assert!(h.area_of(TABS).is_some());
     assert!(h.area_of(TOOLBAR).is_some());
     assert!(h.area_of(EDITOR).is_some());
+    assert_vertical_editor_results(&h, 40, "initial 120x40 layout");
     assert!(h.text().contains("orders.sql"));
     assert!(h.text().contains("Pending orders, newest first"));
     assert_orders_summary_visible(&h, "initial Orders sample");
@@ -674,7 +756,7 @@ fn query_tabs_keep_their_editors_and_runs_follow_the_stable_owner_key() {
 
 #[test]
 fn ctrl_r_capture_requires_a_focused_page_control_and_the_base_page_layer() {
-    for owner in [TABS, TOOLBAR, EDITOR] {
+    for owner in [TABS, TOOLBAR, SPLIT, EDITOR] {
         let mut h = harness();
         assert!(h.tab_to(owner), "page owner {owner:?} is focusable");
         press_ctrl_r(&mut h);
@@ -830,14 +912,23 @@ fn query_workbench_native_editor_exit_keys_preserve_visible_query_line_coordinat
         .iter()
         .position(|id| *id == TOOLBAR)
         .expect("the toolbar is reachable in the published native focus ring");
+    let split_index = published_focus_order
+        .iter()
+        .position(|id| *id == SPLIT)
+        .expect("the native split seam is reachable in the published focus ring");
     let editor_index = published_focus_order
         .iter()
         .position(|id| *id == EDITOR)
         .expect("the editor is reachable in the published native focus ring");
     assert_eq!(
         published_focus_order.get(toolbar_index + 1),
+        Some(&SPLIT),
+        "the published Draw focus order places the native split after the toolbar: {published_focus_order:?}"
+    );
+    assert_eq!(
+        published_focus_order.get(split_index + 1),
         Some(&EDITOR),
-        "the published Draw focus order places the editor after the toolbar: {published_focus_order:?}"
+        "the published Draw focus order places the editor after the split: {published_focus_order:?}"
     );
     assert_eq!(
         published_focus_order.get(editor_index + 1),
@@ -928,19 +1019,36 @@ fn query_workbench_native_editor_exit_keys_preserve_visible_query_line_coordinat
     let _ = h.key_mod(KeyCode::F(6), KeyModifiers::SHIFT);
     assert_eq!(
         h.focus(),
-        Some(TOOLBAR),
-        "Shift+F6 from the focused editor uses its previous-owner binding"
+        Some(SPLIT),
+        "Shift+F6 from Editor reaches the native split owner"
     );
-    assert_no_diagnostics(&h, "Shift+F6 from Editor to Toolbar");
+    assert_no_diagnostics(&h, "Shift+F6 from Editor to Split");
+    assert_visible_query_unchanged(&h);
+
+    let _ = h.key(KeyCode::BackTab);
+    assert_eq!(
+        h.focus(),
+        Some(TOOLBAR),
+        "native BackTab from the split reaches the previous published owner"
+    );
+    assert_no_diagnostics(&h, "BackTab from Split to Toolbar");
     assert_visible_query_unchanged(&h);
 
     let _ = h.key(KeyCode::Tab);
     assert_eq!(
         h.focus(),
-        Some(EDITOR),
-        "native Tab from Toolbar returns to Editor"
+        Some(SPLIT),
+        "native Tab reaches the split from Toolbar"
     );
-    assert_no_diagnostics(&h, "Tab from Toolbar to Editor");
+    assert_no_diagnostics(&h, "Tab from Toolbar to Split");
+    assert_visible_query_unchanged(&h);
+    let _ = h.key(KeyCode::Tab);
+    assert_eq!(
+        h.focus(),
+        Some(EDITOR),
+        "native Tab reaches Editor from the split"
+    );
+    assert_no_diagnostics(&h, "Tab from Split to Editor");
     assert_visible_query_unchanged(&h);
 
     let _ = h.key(KeyCode::Esc);
@@ -962,6 +1070,394 @@ fn query_workbench_native_editor_exit_keys_preserve_visible_query_line_coordinat
 }
 
 #[test]
+fn editor_share_presets_allocate_full_width_vertical_panes() {
+    let mut h = harness();
+    assert_vertical_editor_results(&h, 40, "historical 40% default");
+
+    click_toolbar_options(&mut h);
+    choose_select_index(&mut h, EDITOR_SHARE, 1);
+    let _ = h.key(KeyCode::Esc);
+    assert_vertical_editor_results(&h, 25, "historical 25% preset");
+
+    click_toolbar_options(&mut h);
+    choose_select_last(&mut h, EDITOR_SHARE);
+    let _ = h.key(KeyCode::Esc);
+    assert_vertical_editor_results(&h, 60, "historical 60% preset");
+    assert_orders_summary_visible(&h, "Results remain visible at the 60% editor preset");
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn split_keyboard_and_pointer_resize_restore_the_selected_preset_and_keep_child_arrows() {
+    let mut h = harness();
+    click_toolbar_options(&mut h);
+    choose_select_index(&mut h, EDITOR_SHARE, 1);
+    let _ = h.key(KeyCode::Esc);
+    let (_, initial_editor, _) = assert_vertical_editor_results(&h, 25, "selected 25% preset");
+
+    assert!(h.tab_to(SPLIT), "the native seam is keyboard reachable");
+    assert!(h.text().contains("Resize panes"));
+    assert!(h.text().contains("Reset editor share"));
+    let _ = h.key(KeyCode::Down);
+    let (_, keyboard_editor, _) = {
+        let split = h.area_of(SPLIT).expect("the split root remains published");
+        let editor = h.area_of(EDITOR_PANEL).expect("Editor remains published");
+        let results = h.area_of(RESULTS_PANEL).expect("Results remains published");
+        (split, editor, results)
+    };
+    assert!(
+        keyboard_editor.height > initial_editor.height,
+        "Down grows the first pane while Split owns focus"
+    );
+
+    let seam = h
+        .area_of_part(SPLIT, PartRef::of(Part::SEAM))
+        .expect("the native seam remains published");
+    let x = seam.x.saturating_add(seam.width / 2);
+    let _ = h.drag((x, seam.y), (x, seam.y.saturating_add(3)));
+    let after_drag = h
+        .area_of(EDITOR_PANEL)
+        .expect("Editor remains published after a pointer resize");
+    assert!(
+        after_drag.height > keyboard_editor.height,
+        "dragging the native seam grows the first pane"
+    );
+
+    assert!(h.tab_to(SPLIT));
+    let _ = h.key(KeyCode::Home);
+    assert_vertical_editor_results(&h, 25, "Home restores the selected 25% preset");
+
+    let editor_height = h
+        .area_of(EDITOR_PANEL)
+        .expect("Editor remains published")
+        .height;
+    assert!(h.tab_to(EDITOR));
+    let _ = h.key(KeyCode::Down);
+    assert_eq!(
+        h.area_of(EDITOR_PANEL)
+            .expect("Editor remains published")
+            .height,
+        editor_height,
+        "Editor keeps its arrow-key behavior"
+    );
+    let results_area = h
+        .area_of(RESULTS)
+        .expect("Results publishes its table area");
+    let (id_x, id_y) = find_ascii_in_rect(&h, results_area, "10480")
+        .expect("the first visible result cell is inside the published Results geometry");
+    assert!(rect_is_inside(Rect::new(id_x, id_y, 5, 1), results_area));
+    let _ = termrock_test_support::harness_typed_input::click_cell(&mut h, id_x, id_y);
+    assert_eq!(
+        h.focus(),
+        Some(RESULTS),
+        "clicking the visible first Results cell moves focus out of Editor"
+    );
+    let _ = h.key(KeyCode::Down);
+    assert_eq!(
+        h.area_of(EDITOR_PANEL)
+            .expect("Editor remains published")
+            .height,
+        editor_height,
+        "Results keeps its row-navigation behavior"
+    );
+    assert_eq!(h.focus(), Some(RESULTS));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn editor_share_presets_change_only_split_geometry_and_unrelated_options_keep_manual_ratio() {
+    let mut h = harness();
+    click_toolbar_options(&mut h);
+    choose_select_last(&mut h, RESULT_FIXTURE);
+    let _ = h.key(KeyCode::Esc);
+    assert_plan_fixture_visible(&h, "Plan fixture before resizing");
+
+    assert!(h.tab_to(SPLIT));
+    let _ = h.key(KeyCode::Down);
+    let manual_height = h
+        .area_of(EDITOR_PANEL)
+        .expect("Editor publishes its resized area")
+        .height;
+    click_toolbar_options(&mut h);
+    choose_select_index(&mut h, ENVIRONMENT, 1);
+    let _ = h.key(KeyCode::Esc);
+    assert_eq!(
+        h.area_of(EDITOR_PANEL)
+            .expect("Editor remains published after Environment change")
+            .height,
+        manual_height,
+        "an unrelated setting keeps the manual live split ratio"
+    );
+    assert_environment_status(
+        &h,
+        "Staging: sample data only",
+        Theme::junie().color.warning,
+    );
+    assert_plan_fixture_visible(&h, "Environment change preserves the active Plan result");
+    assert!(h.text().contains("orders.sql"));
+    assert!(h.text().contains("Pending orders, newest first"));
+
+    click_toolbar_options(&mut h);
+    choose_select_index(&mut h, EDITOR_SHARE, 1);
+    let _ = h.key(KeyCode::Esc);
+    assert_vertical_editor_results(&h, 25, "Editor % preset updates the native split state");
+    assert_plan_fixture_visible(&h, "Editor % change preserves the active Plan result");
+    assert!(h.text().contains("orders.sql"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn editor_share_and_close_stay_reachable_with_the_semantic_note_at_supported_sizes() {
+    let semantic_note_lines = [
+        "Sample environments",
+        "Production: sample data only",
+        "Staging: sample data only",
+        "Development: sample data only",
+        "Local: sample data only",
+    ];
+    for (width, height) in [(120, 40), (80, 24), (72, 20)] {
+        let mut h = Harness::new(
+            App::for_page_name("queryworkbench"),
+            Theme::junie(),
+            width,
+            height,
+        );
+        click_toolbar_options(&mut h);
+        assert!(
+            h.tab_to(ENVIRONMENT),
+            "{width}x{height}: Environment is reachable through native form scrolling"
+        );
+        let environment_view = h.text();
+        assert!(
+            h.tab_to(EDITOR_SHARE),
+            "{width}x{height}: Editor % is reachable through native form scrolling"
+        );
+        assert!(h.text().contains("Editor %"), "{width}x{height}");
+        let editor_share_view = h.text();
+        assert!(
+            h.tab_to(CLOSE_OPTIONS),
+            "{width}x{height}: Close is reachable through native form scrolling"
+        );
+        assert_eq!(h.focus(), Some(CLOSE_OPTIONS), "{width}x{height}");
+        let close_view = h.text();
+        assert!(
+            h.text().contains("Sample environments"),
+            "{width}x{height}: the semantic environment note remains in the form"
+        );
+        assert!(
+            h.text().contains("Production: sample data only"),
+            "{width}x{height}: the Production role remains documented"
+        );
+        for line in semantic_note_lines {
+            assert!(
+                environment_view.contains(line)
+                    || editor_share_view.contains(line)
+                    || close_view.contains(line),
+                "{width}x{height}: a focused, native-scrolled form view reveals semantic note line {line:?}"
+            );
+        }
+
+        assert!(h.tab_to(EDITOR_SHARE));
+        let _ = h.key(KeyCode::Enter);
+        assert!(h.is_open(EDITOR_SHARE), "{width}x{height}: Select opens");
+        let _ = h.key(KeyCode::Esc);
+        assert!(
+            h.is_open(OPTIONS),
+            "{width}x{height}: first Escape closes Select only"
+        );
+        assert_eq!(h.focus(), Some(EDITOR_SHARE), "{width}x{height}");
+        let _ = h.key(KeyCode::Esc);
+        assert!(
+            !h.is_open(OPTIONS),
+            "{width}x{height}: second Escape closes Options"
+        );
+        assert_eq!(
+            h.focus(),
+            Some(TOOLBAR),
+            "{width}x{height}: modal focus restores"
+        );
+        assert!(
+            h.diagnostics().is_empty(),
+            "{width}x{height}: {:?}",
+            h.diagnostics()
+        );
+    }
+}
+
+#[test]
+fn compact_split_releases_an_active_drag_and_restores_the_live_ratio() {
+    let mut h = harness();
+    assert!(h.tab_to(SPLIT));
+    let _ = h.key(KeyCode::Down);
+    let seam = h
+        .area_of_part(SPLIT, PartRef::of(Part::SEAM))
+        .expect("the 120x40 seam is published");
+    let x = seam.x.saturating_add(seam.width / 2);
+    let _ = h.mouse(MouseKind::Down, x, seam.y);
+    assert_eq!(h.runtime().capture_owner(), Some(SPLIT));
+    let _ = h.mouse(MouseKind::Drag, x, seam.y.saturating_add(2));
+    assert_eq!(h.runtime().capture_owner(), Some(SPLIT));
+    let live_height = h
+        .area_of(EDITOR_PANEL)
+        .expect("Editor publishes its active-drag area")
+        .height;
+
+    let _ = h.resize(72, 20);
+    assert_eq!(
+        h.runtime().capture_owner(),
+        None,
+        "fallback releases split capture"
+    );
+    assert!(h.text().contains("orders.sql"));
+    assert!(h.text().contains("Results"));
+    assert_orders_summary_visible(&h, "compact 72x20 fallback");
+    assert!(
+        h.area_of_part(SPLIT, PartRef::of(Part::SEAM)).is_none(),
+        "fallback publishes no interactive seam"
+    );
+    assert!(
+        !h.ring().reachable().any(|entry| entry.id == SPLIT),
+        "fallback removes Split from the focus ring"
+    );
+    let compact_split = h
+        .area_of(SPLIT)
+        .expect("the fallback publishes its split root");
+    let compact_editor = h
+        .area_of(EDITOR_PANEL)
+        .expect("fallback keeps the Editor panel");
+    let compact_results = h
+        .area_of(RESULTS_PANEL)
+        .expect("fallback keeps the Results panel");
+    assert!(rect_is_inside(compact_editor, compact_split));
+    assert!(rect_is_inside(compact_results, compact_split));
+    assert_eq!(compact_editor.y, compact_results.y);
+    assert_eq!(compact_editor.height, compact_split.height);
+    assert_eq!(compact_results.height, compact_split.height);
+    assert_eq!(compact_editor.x, compact_split.x);
+    assert_eq!(
+        compact_editor
+            .x
+            .saturating_add(compact_editor.width)
+            .saturating_add(1),
+        compact_results.x,
+        "the native 3:2 fallback keeps one column between panels"
+    );
+    assert_eq!(
+        compact_editor
+            .width
+            .saturating_add(1)
+            .saturating_add(compact_results.width),
+        compact_split.width
+    );
+    assert!(compact_editor.width > 0 && compact_results.width > 0);
+    let expected_fallback = layout::columns(
+        compact_split,
+        &[layout::Track::Flex(3), layout::Track::Flex(2)],
+        1,
+    );
+    assert_eq!(
+        expected_fallback,
+        vec![compact_editor, compact_results],
+        "the compact native fallback matches the expected 3:2 flex allocation"
+    );
+
+    let stale_x = x.min(
+        compact_split
+            .x
+            .saturating_add(compact_split.width.saturating_sub(1)),
+    );
+    let stale_y = compact_split.y;
+    let _ = h.mouse(MouseKind::Drag, stale_x, stale_y);
+    assert_eq!(h.runtime().capture_owner(), None);
+
+    let _ = h.resize(120, 40);
+    assert_eq!(h.runtime().capture_owner(), None);
+    assert!(
+        h.area_of_part(SPLIT, PartRef::of(Part::SEAM)).is_some(),
+        "the primary vertical seam returns at 120x40"
+    );
+    assert_eq!(
+        h.area_of(EDITOR_PANEL).expect("Editor is restored").height,
+        live_height,
+        "the native split restores the precise live ratio after collapse"
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn preset_modal_and_resizes_keep_the_six_tick_run_with_its_original_document_owner() {
+    let mut h = harness();
+    assert!(h.tab_to(EDITOR));
+    press_ctrl_r(&mut h);
+    assert!(
+        h.text()
+            .contains("Running query · 6 native ticks remaining")
+    );
+    h.ticks(2);
+    assert!(
+        h.text()
+            .contains("Running query · 4 native ticks remaining")
+    );
+    click_tab(&mut h, customers_key());
+
+    click_toolbar_options(&mut h);
+    choose_select_index(&mut h, EDITOR_SHARE, 1);
+    assert!(
+        h.text()
+            .contains("Running query · 4 native ticks remaining")
+    );
+    press_ctrl_r(&mut h);
+    assert!(
+        h.text()
+            .contains("Running query · 4 native ticks remaining")
+    );
+
+    let _ = h.resize(72, 20);
+    assert!(h.is_open(OPTIONS));
+    let _ = h.key(KeyCode::Esc);
+    assert!(!h.is_open(OPTIONS), "Escape closes Options at compact size");
+    assert!(
+        h.text()
+            .contains("Running query · 4 native ticks remaining"),
+        "closing Options leaves the original four-tick run active"
+    );
+    click_toolbar_options(&mut h);
+    assert!(h.is_open(OPTIONS), "Options reopens at compact size");
+    let _ = h.resize(120, 40);
+    assert!(
+        h.is_open(OPTIONS),
+        "Options remains open after restoring size"
+    );
+    assert!(
+        h.text()
+            .contains("Running query · 4 native ticks remaining")
+    );
+    let _ = h.tick();
+    assert!(
+        h.text()
+            .contains("Running query · 3 native ticks remaining")
+    );
+    h.ticks(2);
+    assert!(
+        h.text()
+            .contains("Running query · 1 native ticks remaining")
+    );
+    let _ = h.tick();
+    assert!(
+        h.is_open(OPTIONS),
+        "the Options modal stays open through completion"
+    );
+    assert!(!h.text().contains("Running query ·"));
+
+    let _ = h.key(KeyCode::Esc);
+    click_tab(&mut h, orders_key());
+    assert!(h.text().contains("25 rows from orders"));
+    click_tab(&mut h, customers_key());
+    assert!(h.text().contains("Not run yet · choose Run."));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
 fn options_dialog_has_the_historical_defaults_and_restores_native_focus() {
     let mut h = harness();
     click_toolbar_options(&mut h);
@@ -971,6 +1467,8 @@ fn options_dialog_has_the_historical_defaults_and_restores_native_focus() {
     assert!(h.text().contains("always"));
     assert!(h.text().contains("run"));
     assert!(h.text().contains("production"));
+    assert!(h.text().contains("Editor %"));
+    assert!(h.text().contains("40"));
     assert!(h.text().contains("Sample environments"));
 
     let _ = h.key(KeyCode::Enter);

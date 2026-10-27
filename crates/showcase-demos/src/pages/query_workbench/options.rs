@@ -11,18 +11,21 @@ const READ_ONLY: Id = FORM_ID.part(Part::FIELD).index(2);
 const RESULT: Id = FORM_ID.part(Part::FIELD).index(3);
 const ENVIRONMENT: Id = FORM_ID.part(Part::FIELD).index(4);
 const ENVIRONMENT_NOTE: Id = FORM_ID.part(Part::FIELD).index(5);
+const EDITOR_SHARE: Id = FORM_ID.part(Part::FIELD).index(6);
 
 pub(super) const ALLOW_NEW_KEY: &str = "queryworkbench.allow_new";
 pub(super) const CLOSE_REVEAL_KEY: &str = "queryworkbench.close_reveal";
 pub(super) const READ_ONLY_KEY: &str = "queryworkbench.read_only";
 pub(super) const RESULT_KEY: &str = "queryworkbench.result";
 pub(super) const ENVIRONMENT_KEY: &str = "queryworkbench.env";
+pub(super) const EDITOR_SHARE_KEY: &str = "queryworkbench.editor_share";
 
 const CLOSE: ActionKey = ActionKey::CANCEL;
 const ACTIONS: &[Action<'static>] = &[Action::quiet(CLOSE, "Close")];
 const CLOSE_REVEAL_OPTIONS: &[&str] = &["always", "hover"];
 const RESULT_OPTIONS: &[&str] = &["run", "empty", "error", "plan"];
 const ENVIRONMENT_OPTIONS: &[&str] = &["production", "staging", "development", "local"];
+const EDITOR_SHARE_OPTIONS: &[&str] = &["40", "25", "60"];
 const ENVIRONMENT_ROWS: [(&str, Role); 5] = [
     ("Sample environments", Role::Info),
     ("Production: sample data only", Role::Danger),
@@ -60,6 +63,12 @@ const FIELDS: &[FieldSpec<'static>] = &[
     )
     .help("Sample labels only; this does not grant database permissions."),
     FieldSpec::new(ENVIRONMENT_NOTE, "", FieldKind::Note),
+    FieldSpec::new(
+        EDITOR_SHARE,
+        "Editor %",
+        FieldKind::Select(termrock::Select::new(EDITOR_SHARE)),
+    )
+    .help("Choose the editor pane height percentage; Home resets to this preset."),
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -77,6 +86,31 @@ enum CloseReveal {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum EditorShare {
+    Forty,
+    TwentyFive,
+    Sixty,
+}
+
+impl EditorShare {
+    const fn index(self) -> usize {
+        match self {
+            Self::Forty => 0,
+            Self::TwentyFive => 1,
+            Self::Sixty => 2,
+        }
+    }
+
+    const fn percent(self) -> u8 {
+        match self {
+            Self::Forty => 40,
+            Self::TwentyFive => 25,
+            Self::Sixty => 60,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Environment {
     Production,
     Staging,
@@ -91,6 +125,7 @@ pub(super) struct Settings {
     read_only: bool,
     result: ResultFixture,
     environment: Environment,
+    editor_share: EditorShare,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -100,6 +135,7 @@ pub(super) enum Change {
     ReadOnly,
     Result(ResultFixture),
     Environment,
+    EditorShare,
 }
 
 impl Default for Settings {
@@ -110,6 +146,7 @@ impl Default for Settings {
             read_only: false,
             result: ResultFixture::Run,
             environment: Environment::Production,
+            editor_share: EditorShare::Forty,
         }
     }
 }
@@ -121,6 +158,10 @@ impl Settings {
 
     pub(super) const fn read_only(&self) -> bool {
         self.read_only
+    }
+
+    pub(super) const fn editor_share(&self) -> u8 {
+        self.editor_share.percent()
     }
 
     pub(super) const fn environment_status(&self) -> (&'static str, Role) {
@@ -159,6 +200,7 @@ impl Settings {
                 Environment::Development => 2,
                 Environment::Local => 3,
             }),
+            EDITOR_SHARE_KEY => Some(self.editor_share.index()),
             _ => None,
         }
     }
@@ -221,6 +263,19 @@ impl Settings {
                 self.environment = next;
                 Change::Environment
             }
+            EDITOR_SHARE_KEY => {
+                let next = match value {
+                    0 => EditorShare::Forty,
+                    1 => EditorShare::TwentyFive,
+                    2 => EditorShare::Sixty,
+                    _ => return None,
+                };
+                if self.editor_share == next {
+                    return None;
+                }
+                self.editor_share = next;
+                Change::EditorShare
+            }
             _ => return None,
         };
         Some(change)
@@ -233,6 +288,7 @@ impl Settings {
             read_only: self.read_only,
             result: self.option_value(RESULT_KEY).unwrap_or(0),
             environment: self.option_value(ENVIRONMENT_KEY).unwrap_or(0),
+            editor_share: self.option_value(EDITOR_SHARE_KEY).unwrap_or(0),
             environment_rows: ENVIRONMENT_ROWS,
         }
     }
@@ -244,6 +300,7 @@ pub(super) struct DialogData {
     read_only: bool,
     result: usize,
     environment: usize,
+    editor_share: usize,
     environment_rows: [(&'static str, Role); 5],
 }
 
@@ -255,6 +312,7 @@ impl DialogData {
             READ_ONLY => Some((READ_ONLY_KEY, if self.read_only { 1 } else { 0 })),
             RESULT => Some((RESULT_KEY, self.result)),
             ENVIRONMENT => Some((ENVIRONMENT_KEY, self.environment)),
+            EDITOR_SHARE => Some((EDITOR_SHARE_KEY, self.editor_share)),
             _ => None,
         }
     }
@@ -269,6 +327,7 @@ impl FormData for DialogData {
             RESULT => FieldRef::Choice(self.result),
             ENVIRONMENT => FieldRef::Choice(self.environment),
             ENVIRONMENT_NOTE => FieldRef::Note(&self.environment_rows),
+            EDITOR_SHARE => FieldRef::Choice(self.editor_share),
             _ => FieldRef::Text(""),
         }
     }
@@ -280,6 +339,7 @@ impl FormData for DialogData {
             READ_ONLY => FieldMut::Flag(&mut self.read_only),
             RESULT => FieldMut::Choice(&mut self.result),
             ENVIRONMENT => FieldMut::Choice(&mut self.environment),
+            EDITOR_SHARE => FieldMut::Choice(&mut self.editor_share),
             _ => FieldMut::ReadOnly,
         }
     }
@@ -289,6 +349,7 @@ impl FormData for DialogData {
             CLOSE_REVEAL => CLOSE_REVEAL_OPTIONS,
             RESULT => RESULT_OPTIONS,
             ENVIRONMENT => ENVIRONMENT_OPTIONS,
+            EDITOR_SHARE => EDITOR_SHARE_OPTIONS,
             _ => &[],
         }
     }
@@ -298,6 +359,7 @@ impl FormData for DialogData {
             CLOSE_REVEAL => CLOSE_REVEAL_OPTIONS,
             RESULT => RESULT_OPTIONS,
             ENVIRONMENT => ENVIRONMENT_OPTIONS,
+            EDITOR_SHARE => EDITOR_SHARE_OPTIONS,
             _ => &[],
         };
         (self.value_mut(id), options)
@@ -326,7 +388,13 @@ mod tests {
         assert_eq!(settings.option_value(READ_ONLY_KEY), Some(0));
         assert_eq!(settings.option_value(RESULT_KEY), Some(0));
         assert_eq!(settings.option_value(ENVIRONMENT_KEY), Some(0));
+        assert_eq!(settings.option_value(EDITOR_SHARE_KEY), Some(0));
+        assert_eq!(EDITOR_SHARE_OPTIONS, &["40", "25", "60"]);
         assert_eq!(settings.option_value("queryworkbench.explorer"), None);
+        assert_eq!(
+            settings.dialog_data().option_for(EDITOR_SHARE),
+            Some((EDITOR_SHARE_KEY, 0))
+        );
 
         let defaults = settings.clone();
         for (key, value) in [
@@ -340,6 +408,8 @@ mod tests {
             (RESULT_KEY, 4),
             (ENVIRONMENT_KEY, 0),
             (ENVIRONMENT_KEY, 4),
+            (EDITOR_SHARE_KEY, 0),
+            (EDITOR_SHARE_KEY, 3),
             ("queryworkbench.explorer", 1),
         ] {
             assert_eq!(settings.set_option(key, value), None, "{key}={value}");
@@ -348,5 +418,42 @@ mod tests {
                 "{key}={value} leaves all settings intact"
             );
         }
+    }
+    #[test]
+    fn editor_share_indices_keep_the_historical_presets_and_change_once() {
+        let mut settings = Settings::default();
+        assert_eq!(settings.editor_share(), 40);
+        assert_eq!(settings.set_option(EDITOR_SHARE_KEY, 0), None);
+        assert_eq!(
+            settings.set_option(EDITOR_SHARE_KEY, 1),
+            Some(Change::EditorShare)
+        );
+        assert_eq!(settings.editor_share(), 25);
+        assert_eq!(settings.option_value(EDITOR_SHARE_KEY), Some(1));
+        assert_eq!(
+            settings.dialog_data().option_for(EDITOR_SHARE),
+            Some((EDITOR_SHARE_KEY, 1))
+        );
+        assert_eq!(settings.set_option(EDITOR_SHARE_KEY, 1), None);
+        assert_eq!(
+            settings.set_option(EDITOR_SHARE_KEY, 2),
+            Some(Change::EditorShare)
+        );
+        assert_eq!(settings.editor_share(), 60);
+        assert_eq!(settings.option_value(EDITOR_SHARE_KEY), Some(2));
+        assert_eq!(
+            settings.dialog_data().option_for(EDITOR_SHARE),
+            Some((EDITOR_SHARE_KEY, 2))
+        );
+        assert_eq!(settings.set_option(EDITOR_SHARE_KEY, 2), None);
+        assert_eq!(
+            settings.set_option(EDITOR_SHARE_KEY, 0),
+            Some(Change::EditorShare)
+        );
+        assert_eq!(settings.editor_share(), 40);
+        assert_eq!(
+            settings.dialog_data().option_for(EDITOR_SHARE),
+            Some((EDITOR_SHARE_KEY, 0))
+        );
     }
 }

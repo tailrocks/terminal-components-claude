@@ -3,8 +3,9 @@ use std::time::Duration;
 use termrock::grid::{Column, ColumnKey, Table, TableColumn, TableState};
 use termrock::{
     ActionKey, CodeEditor, CodeEditorState, Cx, FrameRead, GridModel, Id, ItemKey, Panel,
-    PanelKind, Rect, Response, Role, StateFlags, StatusBar, StatusItem, Tabs, TabsAction,
-    TabsState, ToolItem, Toolbar, ToolbarAction, ToolbarState, Ui, UpdateCause, layout,
+    PanelKind, Rect, ResetPolicy, Response, Role, SplitAxis, SplitFallback, SplitPane,
+    SplitPaneState, StateFlags, StatusBar, StatusItem, Tabs, TabsAction, TabsState, ToolItem,
+    Toolbar, ToolbarAction, ToolbarState, Ui, UpdateCause, layout,
 };
 
 mod options;
@@ -16,6 +17,7 @@ const TABS: Id = Id::root("showcase_ui::pages::query_workbench.tabs");
 const TOOLBAR: Id = Id::root("showcase_ui::pages::query_workbench.toolbar");
 const EDITOR_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.editor_panel");
 const RESULTS_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.results_panel");
+const SPLIT: Id = Id::root("showcase_ui::pages::query_workbench.split");
 const EDITOR: Id = Id::root("showcase_ui::pages::query_workbench.editor");
 const RESULTS: Id = Id::root("showcase_ui::pages::query_workbench.results");
 const OPTIONS_DIALOG: Id = options::DIALOG_ID;
@@ -34,7 +36,7 @@ pub const EDITOR_PANEL_ID: Id = EDITOR_PANEL;
 /// Native owner ID for the results panel.
 pub const RESULTS_PANEL_ID: Id = RESULTS_PANEL;
 
-const RUN_CAPTURE_OWNERS: [Id; 4] = [TABS, TOOLBAR, EDITOR, RESULTS];
+const RUN_CAPTURE_OWNERS: [Id; 5] = [TABS, TOOLBAR, SPLIT, EDITOR, RESULTS];
 /// Application action key for running the active query.
 pub const RUN_QUERY: ActionKey = ActionKey::application("showcase.query_workbench.run");
 
@@ -66,6 +68,11 @@ const EDITOR_HINTS: &[(&str, &str)] = &[
     ("Esc", "Done editing"),
 ];
 const RESULTS_HINTS: &[(&str, &str)] = &[("↑ ↓", "Move rows"), ("← →", "Move columns")];
+const SPLIT_HINTS: &[(&str, &str)] = &[
+    ("↑ ↓", "Resize panes"),
+    ("Home", "Reset editor share"),
+    ("Ctrl+R", "Run query"),
+];
 
 const RESULT_COLUMNS: [TableColumn<'static>; 3] = [
     TableColumn::new(Column {
@@ -264,6 +271,7 @@ pub struct QueryWorkbenchPage {
     run: Option<PendingRun>,
     status: String,
     options: WorkbenchOptions,
+    split: SplitPaneState,
     options_state: termrock::FormDialogState,
     options_open: bool,
     options_close_pending: bool,
@@ -294,6 +302,7 @@ impl QueryWorkbenchPage {
             run: None,
             status: "Ready · sample data only".to_owned(),
             options: WorkbenchOptions::default(),
+            split: SplitPaneState::new(40),
             options_state: termrock::FormDialogState::default(),
             options_open: false,
             options_close_pending: false,
@@ -411,6 +420,16 @@ impl QueryWorkbenchPage {
         )
     }
 
+    fn editor_results_split(&self) -> SplitPane<'static> {
+        SplitPane::new(SPLIT, SplitAxis::Vertical)
+            .min_first(5)
+            .min_second(6)
+            .gap(1)
+            .resizable(true)
+            .reset_policy(ResetPolicy::Percent(self.options.editor_share()))
+            .undersized_fallback(SplitFallback::new(3, 2).gap(1))
+    }
+
     fn open_options(&mut self, cx: &mut Cx<'_>) {
         if cx.is_open(OPTIONS_DIALOG) {
             self.options_open = true;
@@ -431,6 +450,10 @@ impl QueryWorkbenchPage {
     }
 
     fn apply_option_change(&mut self, change: OptionChange) {
+        if change == OptionChange::EditorShare {
+            self.split.set_percent(self.options.editor_share());
+            return;
+        }
         let OptionChange::Result(fixture) = change else {
             return;
         };
@@ -663,6 +686,10 @@ impl Page for QueryWorkbenchPage {
             }
         } else if !options_were_close_pending {
             self.options_open = false;
+            response |= self
+                .editor_results_split()
+                .update(cx, &mut self.split)
+                .erase();
             let tabs = Tabs::new(TABS)
                 .key(|document: &Document| document.key)
                 .allow_new(self.options.allow_new())
@@ -760,29 +787,6 @@ impl Page for QueryWorkbenchPage {
 
             let _ = self.toolbar().draw(ui, toolbar_area, &self.toolbar);
 
-            let columns = layout::columns(
-                work_area,
-                &[layout::Track::Flex(3), layout::Track::Flex(2)],
-                1,
-            );
-            let editor_area = columns.first().copied().unwrap_or(Rect::new(0, 0, 0, 0));
-            let results_area = columns.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
-            if let Some(document) = self
-                .active_index()
-                .and_then(|index| self.documents.get(index))
-            {
-                Panel::new(EDITOR_PANEL)
-                    .kind(PanelKind::Framed)
-                    .title(&document.title)
-                    .draw(ui, editor_area, |ui, inner| {
-                        let _ = CodeEditor::new(EDITOR, inner.height)
-                            .fill_height(true)
-                            .placeholder("Write a query against the sample data")
-                            .read_only(self.options.read_only())
-                            .draw(ui, inner, &document.editor);
-                    });
-            }
-
             let model = self.active_result_model();
             let summary = self
                 .active_index()
@@ -791,25 +795,51 @@ impl Page for QueryWorkbenchPage {
                     || "No query is open.".to_owned(),
                     |document| document.result.summary(),
                 );
-            Panel::new(RESULTS_PANEL)
-                .kind(PanelKind::Framed)
-                .title("Results")
-                .draw(ui, results_area, |ui, inner| {
-                    let result_rows =
-                        layout::rows(inner, &[layout::Track::Fixed(1), layout::Track::Flex(1)]);
-                    if let Some(summary_area) = result_rows.first()
-                        && !summary_area.is_empty()
+            self.editor_results_split().draw(
+                ui,
+                work_area,
+                &self.split,
+                |ui, editor_area, results_area| {
+                    if let Some(document) = self
+                        .active_index()
+                        .and_then(|index| self.documents.get(index))
                     {
-                        let _ = ui.paint_str(*summary_area, &summary, ui.surface_style());
+                        Panel::new(EDITOR_PANEL)
+                            .kind(PanelKind::Framed)
+                            .title(&document.title)
+                            .draw(ui, editor_area, |ui, inner| {
+                                let _ = CodeEditor::new(EDITOR, inner.height)
+                                    .fill_height(true)
+                                    .placeholder("Write a query against the sample data")
+                                    .read_only(self.options.read_only())
+                                    .draw(ui, inner, &document.editor);
+                            });
                     }
-                    let table_area = result_rows.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
-                    let _ = Table::new(RESULTS, &RESULT_COLUMNS).draw(
-                        ui,
-                        table_area,
-                        &self.results,
-                        &model,
-                    );
-                });
+
+                    Panel::new(RESULTS_PANEL)
+                        .kind(PanelKind::Framed)
+                        .title("Results")
+                        .draw(ui, results_area, |ui, inner| {
+                            let result_rows = layout::rows(
+                                inner,
+                                &[layout::Track::Fixed(1), layout::Track::Flex(1)],
+                            );
+                            if let Some(summary_area) = result_rows.first()
+                                && !summary_area.is_empty()
+                            {
+                                let _ = ui.paint_str(*summary_area, &summary, ui.surface_style());
+                            }
+                            let table_area =
+                                result_rows.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
+                            let _ = Table::new(RESULTS, &RESULT_COLUMNS).draw(
+                                ui,
+                                table_area,
+                                &self.results,
+                                &model,
+                            );
+                        });
+                },
+            );
 
             if !status_area.is_empty() {
                 let _ = ui.paint_str(status_area, &self.status, ui.surface_style());
@@ -858,6 +888,9 @@ impl Page for QueryWorkbenchPage {
         }
         if ui.state(TOOLBAR).contains(StateFlags::FOCUSED) {
             return TOOLBAR_HINTS;
+        }
+        if ui.state(SPLIT).contains(StateFlags::FOCUSED) {
+            return SPLIT_HINTS;
         }
         if ui.state(EDITOR).contains(StateFlags::FOCUSED) {
             return EDITOR_HINTS;
@@ -1275,6 +1308,8 @@ mod tests {
             (options::RESULT_KEY, 4),
             (options::ENVIRONMENT_KEY, 0),
             (options::ENVIRONMENT_KEY, 4),
+            (options::EDITOR_SHARE_KEY, 0),
+            (options::EDITOR_SHARE_KEY, 3),
             ("queryworkbench.unknown", 1),
         ] {
             Page::set_option(&mut h.app_mut().page, key, value);
@@ -1296,6 +1331,9 @@ mod tests {
             (options::CLOSE_REVEAL_KEY, 1),
             (options::READ_ONLY_KEY, 1),
             (options::ENVIRONMENT_KEY, 1),
+            (options::EDITOR_SHARE_KEY, 1),
+            (options::EDITOR_SHARE_KEY, 2),
+            (options::EDITOR_SHARE_KEY, 0),
             (options::RESULT_KEY, 1),
             (options::RESULT_KEY, 2),
             (options::RESULT_KEY, 3),
