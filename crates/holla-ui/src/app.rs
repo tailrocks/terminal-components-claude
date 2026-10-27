@@ -83,6 +83,8 @@ const RESULTS: ActionKey = ActionKey::application("holla.results");
 const QUERY_ESCAPE: ActionKey = ActionKey::application("holla.query-escape");
 const PREVIOUS: ActionKey = ActionKey::application("holla.previous");
 const INTERRUPT: ActionKey = ActionKey::application("holla.interrupt");
+const SNAPSHOT_FOCUS_NEXT: ActionKey = ActionKey::application("holla.snapshot.focus-next");
+const SNAPSHOT_FOCUS_PREVIOUS: ActionKey = ActionKey::application("holla.snapshot.focus-previous");
 const ACTIVITY_SHORTCUTS: &[(char, ActionKey)] = &[
     ('1', ActionKey::application("holla.activity-1")),
     ('2', ActionKey::application("holla.activity-2")),
@@ -919,7 +921,13 @@ fn paint_parity_history_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect, world: &World, motion: Motion) {
+fn paint_first_use_status(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    world: &World,
+    motion: Motion,
+    center: Option<&str>,
+) {
     if area.is_empty() {
         return;
     }
@@ -977,6 +985,17 @@ fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect, world: &World, motion: Mo
         )
         .saturating_add(1);
         let _ = paint_status_text(ui, area, x, &mark, STATUS_AMBER, false);
+    }
+    if let Some(center) = center {
+        let progress_start = left_end.saturating_add(STATUS_GAP);
+        let available = right_edge.saturating_sub(progress_start);
+        if available > 0 {
+            let center = termrock::truncate(center, available);
+            let center_width = termrock::width(&center);
+            let x = progress_start.saturating_add(available.saturating_sub(center_width) / 2);
+            let _ = paint_status_text(ui, area, x, &center, STATUS_GREY, false);
+        }
+        return;
     }
     let pending: Vec<_> = world
         .discovery
@@ -1710,6 +1729,21 @@ impl App {
         keymap = keymap
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Down), RESULTS)
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Up), PREVIOUS)
+            .bind(
+                KeyPhase::Bubble,
+                Chord::key(KeyCode::Tab),
+                SNAPSHOT_FOCUS_NEXT,
+            )
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(KeyCode::BackTab, termrock::KeyModifiers::SHIFT),
+                SNAPSHOT_FOCUS_PREVIOUS,
+            )
+            .bind(
+                KeyPhase::Bubble,
+                Chord::key(KeyCode::BackTab),
+                SNAPSHOT_FOCUS_PREVIOUS,
+            )
             .bind(
                 KeyPhase::Capture,
                 Chord::with(KeyCode::Char('c'), termrock::KeyModifiers::CONTROL),
@@ -2845,6 +2879,8 @@ impl App {
         self.route = Route::Snapshot;
         cx.focus(if kind == snapshot::Kind::Processes {
             snapshot::PROCESSES
+        } else if self.world.scenario == Scenario::FirstUse {
+            snapshot::RESOURCES_BODY
         } else {
             MENU
         });
@@ -3073,6 +3109,20 @@ impl App {
             }
             RESULTS if self.route == Route::Home => self.home.focus_first(&self.world, cx),
             PREVIOUS if self.route == Route::Home => cx.focus_prev(),
+            SNAPSHOT_FOCUS_NEXT
+                if self.route == Route::Snapshot
+                    && self.world.scenario == Scenario::FirstUse
+                    && self.snapshot_kind == snapshot::Kind::Resources =>
+            {
+                cx.focus_next();
+            }
+            SNAPSHOT_FOCUS_PREVIOUS
+                if self.route == Route::Snapshot
+                    && self.world.scenario == Scenario::FirstUse
+                    && self.snapshot_kind == snapshot::Kind::Resources =>
+            {
+                cx.focus_prev();
+            }
             QUERY_ESCAPE if self.route == Route::Home => {
                 if self.home.scope.take().is_some() {
                     self.set_status("Scope: all".into());
@@ -3499,12 +3549,35 @@ impl App {
                     paint_activities_multi_chips(ui, area);
                 }
             }
+        } else if self.world.scenario == Scenario::FirstUse
+            && self.route == Route::Snapshot
+            && self.snapshot_kind == snapshot::Kind::Resources
+        {
+            let parent = self
+                .snapshot_return
+                .map_or("Here", |location| match location.route {
+                    Route::Home => "Here",
+                    Route::Plan => "Plan",
+                    Route::Activity => "Activity",
+                    Route::Disk => "Disk",
+                    Route::Files => "Files",
+                    Route::Cleanup => "Cleanup",
+                    Route::Review => "Review",
+                    Route::Snapshot => "System resources",
+                    Route::DiskScan => "Disk scan",
+                    Route::TaskRun => "Task run",
+                });
+            let crumb = format!("{parent} › System resources");
+            paint_resource_band(ui, area, &crumb, self.world.activities.is_empty());
         }
         let status = Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1);
         if self.world.scenario == Scenario::ParityDiscovery {
             self.paint_parity_status(ui, status);
         } else if self.world.scenario == Scenario::FirstUse {
-            paint_first_use_status(ui, status, &self.world, self.motion);
+            let center = (self.route == Route::Snapshot
+                && self.snapshot_kind == snapshot::Kind::Resources)
+                .then_some("snapshot · read-only");
+            paint_first_use_status(ui, status, &self.world, self.motion, center);
         } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
             paint_monorepo_status(ui, status);
         } else if crate::sim::catalogue::activities_multi_tag_frame(&self.world) {
@@ -3829,6 +3902,21 @@ impl App {
                 .draw(ui, footer);
             return;
         }
+        if self.world.scenario == Scenario::FirstUse
+            && self.route == Route::Snapshot
+            && self.snapshot_kind == snapshot::Kind::Resources
+            && self.overlay.is_none()
+            && !self.menu.is_open()
+        {
+            let monitor_focused = ui
+                .state(snapshot::MONITOR_BUTTON)
+                .contains(termrock::StateFlags::FOCUSED);
+            let hints = self.snapshot.hints(&self.world, monitor_focused);
+            HintBar::new(FOOTER, &hints)
+                .patch_part(PARITY_HINT_PARTS)
+                .draw(ui, footer);
+            return;
+        }
         if let Some((confirm, status)) = tag_confirm
             && self.route == Route::Home
             && self.overlay.is_none()
@@ -4000,6 +4088,34 @@ impl App {
         self.set_status(report);
     }
 
+    fn snapshot_event(&mut self, event: snapshot::Event, cx: &mut Cx<'_>) {
+        match event {
+            snapshot::Event::Copy(text) => self.copy_osc52(&text),
+            snapshot::Event::OpenMonitor => {
+                if self.route != Route::Snapshot
+                    || self.snapshot_kind != snapshot::Kind::Resources
+                    || !self
+                        .world
+                        .system
+                        .as_ref()
+                        .is_some_and(|system| system.btm_installed)
+                {
+                    self.set_status("btm is not available on this host".to_owned());
+                    return;
+                }
+                let Some(action) = crate::sim::catalogue::catalogue(&self.world)
+                    .into_iter()
+                    .find(|action| action.id == "system.monitor")
+                else {
+                    self.set_status("btm action is no longer available".to_owned());
+                    return;
+                };
+                let destination = dispatch::invoke(&mut self.world, &action);
+                self.destination(destination, cx);
+            }
+        }
+    }
+
     fn osc52_report(value: &str, osc52: bool, limit: usize) -> String {
         if !osc52 {
             return "Not copied · this terminal does not accept OSC 52 · no system clipboard is wired"
@@ -4147,9 +4263,9 @@ impl App {
             && self.port_args_opening.is_none()
             && !brand.activated()
             && !(cx.update_cause() == termrock::UpdateCause::Event && cx.command().is_some());
-        let snapshot_response = self
-            .snapshot
-            .update(&self.world, cx, snapshot_input_allowed);
+        let (snapshot_response, snapshot_event) =
+            self.snapshot
+                .update(&self.world, self.snapshot_kind, cx, snapshot_input_allowed);
         let task_run_input_allowed = self.route == Route::TaskRun
             && !too_small(viewport)
             && cx.top_layer() == termrock::LayerId::PAGE
@@ -4271,8 +4387,12 @@ impl App {
             | Route::DiskScan
             | Route::Files
             | Route::Cleanup
-            | Route::Review
-            | Route::Snapshot => {}
+            | Route::Review => {}
+            Route::Snapshot => {
+                if let Some(event) = snapshot_event {
+                    self.snapshot_event(event, cx);
+                }
+            }
             Route::TaskRun => {}
         }
         controls | menu.erase() | brand.erase() | strip
@@ -4391,7 +4511,20 @@ impl termrock::App for App {
                 None
             }
             Route::Snapshot => {
-                snapshot::draw(&self.world, self.snapshot_kind, &self.snapshot, ui, body);
+                let snapshot_area = if self.world.scenario == Scenario::FirstUse
+                    && self.snapshot_kind == snapshot::Kind::Resources
+                {
+                    home_area
+                } else {
+                    body
+                };
+                snapshot::draw(
+                    &self.world,
+                    self.snapshot_kind,
+                    &self.snapshot,
+                    ui,
+                    snapshot_area,
+                );
                 None
             }
             Route::DiskScan => {
@@ -4614,6 +4747,58 @@ fn paint_here_band(ui: &mut Ui<'_>, area: Rect, covered: bool) {
     if rest > 0 {
         ui.paint_str(
             Rect::new(x.saturating_add(tab_w), under, rest, 1),
+            &"─".repeat(usize::from(rest)),
+            rule,
+        );
+    }
+}
+
+fn paint_resource_band(ui: &mut Ui<'_>, area: Rect, crumb: &str, show_crumb: bool) {
+    let width = area.width.saturating_sub(2);
+    if width == 0 || area.height < 4 {
+        return;
+    }
+    let x = area.x.saturating_add(1);
+    let crumb_y = area.y.saturating_add(1);
+    if show_crumb {
+        let crumb_style = ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Muted))
+                .remove(termrock::Modifier::BOLD),
+        );
+        ui.paint_str(
+            Rect::new(x, crumb_y, width, 1),
+            &termrock::truncate(crumb, width),
+            crumb_style,
+        );
+    }
+
+    let y = area.y.saturating_add(2);
+    let label = format!(" {crumb} ");
+    let tab_width = termrock::width(&label).min(width);
+    let tab = Rect::new(x, y, tab_width, 1);
+    let plate = ui.paint_patch(
+        &StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::Surface(Surface::Overlay))
+            .add(termrock::Modifier::BOLD),
+    );
+    ui.fill(tab, plate);
+    ui.paint_str(tab, &termrock::truncate(&label, tab_width), plate);
+
+    let accent = ui.paint_patch(&StylePatch::new().set_fg(Role::Accent));
+    let rule =
+        ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x3a, 0x3a, 0x3a))));
+    let under = y.saturating_add(1);
+    ui.paint_str(
+        Rect::new(x, under, tab_width, 1),
+        &"━".repeat(usize::from(tab_width)),
+        accent,
+    );
+    let rest = width.saturating_sub(tab_width);
+    if rest > 0 {
+        ui.paint_str(
+            Rect::new(x.saturating_add(tab_width), under, rest, 1),
             &"─".repeat(usize::from(rest)),
             rule,
         );
