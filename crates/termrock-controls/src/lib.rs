@@ -55,5 +55,5 @@ pub use props::{
     Props, PropsAction, PropsCmd, PropsList, PropsPresentation, PropsRow, PropsState, PropsValue,
 };
 pub use radio_field::RadioField;
-pub use split::{ResetPolicy, SplitAction, SplitCmd, SplitPane, SplitPaneState};
+pub use split::{ResetPolicy, SplitAction, SplitCmd, SplitFallback, SplitPane, SplitPaneState};
 pub use too_small::TooSmall;

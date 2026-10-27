@@ -58,6 +58,7 @@ pub mod shell {
 }
 pub mod blocks;
 pub mod composition;
+pub mod reference;
 pub mod author {
     pub use ratatui_core::buffer::{Buffer, Cell};
     pub use ratatui_core::layout::{Position, Rect};
@@ -93,6 +94,7 @@ pub use blocks::{
     ToolbarError, ToolbarMoreLook, ToolbarReferenceState, ToolbarState, ToolbarTip,
     ToolbarTooltipPolicy,
 };
+pub use reference::{ReferenceCase, ReferenceGrid, ReferenceSpecimen};
 pub use slots::{DialogSlotExt, FormDialogSlotExt, PickerSlotExt, PropsSlotExt};
 pub use termrock_runtime::ui::LayerSlot;
 pub use termrock_runtime::{
@@ -163,7 +165,7 @@ pub use termrock_controls::{
     MasterDetailCmd, MasterDetailLayout, MasterDetailMode, Panel, PanelKind, PanelWindowError,
     Props, PropsAction, PropsCmd, PropsList, PropsRow, PropsState, PropsValue, RadioField,
     RadioGroup, RadioGroupAction, RadioGroupState, RadioNavigation, ResetPolicy, SplitAction,
-    SplitCmd, SplitPane, SplitPaneState, Toggle, TooSmall,
+    SplitCmd, SplitFallback, SplitPane, SplitPaneState, Toggle, TooSmall,
 };
 
 pub use termrock_fields::{

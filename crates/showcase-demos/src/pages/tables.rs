@@ -613,6 +613,7 @@ fn duration_text(seconds: u32) -> String {
 #[derive(Debug)]
 struct TaskTableRow {
     id: u32,
+    row_enabled: bool,
     cells: [String; 7],
     tones: [Option<Role>; 7],
 }
@@ -623,6 +624,14 @@ struct TaskTableModel {
 }
 
 impl TaskTableModel {
+    fn set_row_enabled(&mut self, task_id: u32, enabled: bool) -> bool {
+        let Some(task) = self.rows.iter_mut().find(|task| task.id == task_id) else {
+            return false;
+        };
+        task.row_enabled = enabled;
+        true
+    }
+
     fn new() -> Self {
         let rows = TASKS
             .iter()
@@ -637,6 +646,7 @@ impl TaskTableModel {
                 };
                 TaskTableRow {
                     id: task.id,
+                    row_enabled: true,
                     cells: [
                         format!("#{:04}", task.id),
                         task.name.to_owned(),
@@ -679,6 +689,10 @@ impl GridModel for TaskTableModel {
             .map_or(ItemKey::num(0), |task| ItemKey::num(u64::from(task.id)))
     }
 
+    fn row_enabled(&self, row: usize) -> bool {
+        self.rows.get(row).is_some_and(|task| task.row_enabled)
+    }
+
     fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>> {
         let task = self.rows.get(row)?;
         let text = task.cells.get(col)?;
@@ -691,7 +705,10 @@ impl GridModel for TaskTableModel {
 }
 
 fn task_table() -> Table<'static> {
-    Table::new(TASK_TABLE_ID, &TASK_COLUMNS).tone_styles(&TASK_TONE_STYLES)
+    Table::new(TASK_TABLE_ID, &TASK_COLUMNS)
+        .tone_styles(&TASK_TONE_STYLES)
+        .type_ahead(true)
+        .type_ahead_column_key(Some(ColumnKey::num(1)))
 }
 
 fn draw_tasks(ui: &mut Ui<'_>, card: Rect, state: &TableState, model: &TaskTableModel) {
@@ -910,6 +927,10 @@ pub struct TablesPage {
 impl TablesPage {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn set_task_row_enabled(&mut self, task_id: u32, enabled: bool) -> bool {
+        self.task_model.set_row_enabled(task_id, enabled)
     }
 }
 

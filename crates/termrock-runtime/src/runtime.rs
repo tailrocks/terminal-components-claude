@@ -503,6 +503,17 @@ struct WheelRouteGuard {
     capture: Option<Capture>,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct DeferredTypeAheadKey {
+    key: Key,
+    owner: Id,
+    owner_layer: LayerId,
+    owner_scope: ScopeId,
+    top_layer: LayerId,
+    layer_generation: u64,
+    trap: Option<ScopeId>,
+}
+
 pub struct Runtime<A: App> {
     app: A,
     theme: Theme,
@@ -528,6 +539,7 @@ pub struct Runtime<A: App> {
     keymap_conflict_typing: Vec<crate::keymap::BindingDescriptor>,
     keymap_conflicts: Vec<Diagnostic>,
     staged_focus: Option<(Option<Id>, FocusVia)>,
+    type_ahead_focus_changed: bool,
     layer_events_pending: Vec<RoutedLayerEvent>,
     focus_out_closed: Vec<Id>,
     completion_waiting: Vec<OpenLayer>,
@@ -646,6 +658,7 @@ impl<A: App> Runtime<A> {
             keymap_conflict_typing: Vec::new(),
             keymap_conflicts: Vec::new(),
             staged_focus: None,
+            type_ahead_focus_changed: false,
             layer_events_pending: Vec::new(),
             focus_out_closed: Vec::new(),
             completion_waiting: Vec::new(),
@@ -918,6 +931,7 @@ impl<A: App> Runtime<A> {
         }
         self.focus.set(to);
         self.last.snapshot.focus = to;
+        self.type_ahead_focus_changed = true;
 
         self.services.repaint = true;
 
@@ -995,7 +1009,7 @@ impl<A: App> Runtime<A> {
         self.last_invalidate = Invalidate::Layout;
     }
 
-    fn enqueue_key(&mut self, k: Key) {
+    fn enqueue_key(&mut self, k: Key, deferred_type_ahead: Option<DeferredTypeAheadKey>) {
         self.prepare_keyboard_input();
         let current = self.focus.current();
         if !matches!(k.code, KeyCode::Tab | KeyCode::BackTab)
@@ -1035,9 +1049,86 @@ impl<A: App> Runtime<A> {
             self.stage_focus(prev, FocusVia::Keyboard);
             return;
         }
-        if let Some(owner) = current {
+        if let Some(owner) = current
+            && deferred_type_ahead.is_none()
+        {
             self.intents.key(owner, k);
         }
+    }
+
+    fn deferred_type_ahead_key(&self, key: Key) -> Option<DeferredTypeAheadKey> {
+        termrock_core::typeahead::TypeAhead::char_of(&key)?;
+        let owner = self.focus.current()?;
+        if self.last.snapshot.focus != Some(owner)
+            || self.last.typing.fallback.is_some()
+            || self.last.typing.owner == Some(owner)
+        {
+            return None;
+        }
+        let entry = self.last.ring.entry(owner)?;
+        if !self
+            .last
+            .type_aheads
+            .iter()
+            .any(|declaration| declaration.owner == owner && declaration.layer == entry.layer)
+        {
+            return None;
+        }
+        if entry.disabled
+            || entry.swallows_typing
+            || entry.area.is_empty()
+            || !self.last.ring.contains(owner)
+            || self.last.declared.iter().any(|(id, state)| {
+                *id == owner && state.contains(crate::response::StateFlags::EDITING)
+            })
+            || entry.layer < self.services.layers.inert_floor()
+        {
+            return None;
+        }
+
+        Some(DeferredTypeAheadKey {
+            key,
+            owner,
+            owner_layer: entry.layer,
+            owner_scope: entry.scope,
+            top_layer: self.services.layers.top(),
+            layer_generation: self.services.layers.next_generation(),
+            trap: self.last.ring.active_trap(),
+        })
+    }
+
+    fn deferred_type_ahead_is_current(
+        &self,
+        deferred: DeferredTypeAheadKey,
+        input_scope_changed: bool,
+    ) -> bool {
+        if input_scope_changed
+            || self.type_ahead_focus_changed
+            || self.focus.current() != Some(deferred.owner)
+            || self.last.snapshot.focus != Some(deferred.owner)
+            || self.services.layers.top() != deferred.top_layer
+            || self.services.layers.next_generation() != deferred.layer_generation
+            || self.last.ring.active_trap() != deferred.trap
+            || self.last.typing.fallback.is_some()
+            || self.last.typing.owner == Some(deferred.owner)
+        {
+            return false;
+        }
+
+        self.last.type_aheads.iter().any(|declaration| {
+            declaration.owner == deferred.owner && declaration.layer == deferred.owner_layer
+        }) && self.last.ring.contains(deferred.owner)
+            && self.last.ring.entry(deferred.owner).is_some_and(|entry| {
+                entry.layer == deferred.owner_layer
+                    && entry.scope == deferred.owner_scope
+                    && !entry.disabled
+                    && !entry.swallows_typing
+                    && !entry.area.is_empty()
+                    && entry.layer >= self.services.layers.inert_floor()
+            })
+            && !self.last.declared.iter().any(|(id, state)| {
+                *id == deferred.owner && state.contains(crate::response::StateFlags::EDITING)
+            })
     }
 
     fn prepare_keyboard_input(&mut self) {
@@ -2189,6 +2280,7 @@ impl<A: App> Runtime<A> {
     }
 
     fn handle_ready(&mut self, input: RoutedInput) -> Response<()> {
+        self.type_ahead_focus_changed = false;
         let activation_key = match &input {
             RoutedInput::Input(Input::Key(key)) if key.mods.is_empty() => match key.code {
                 KeyCode::Enter => Some(ActivationKey::Enter),
@@ -2213,7 +2305,11 @@ impl<A: App> Runtime<A> {
         self.services.wheel_route_invalidated = false;
         self.services.registry_gen = self.last.registry.generation();
         self.pump_layer_events();
+        let key_input_top_layer = self.services.layers.top();
+        let key_input_focus = self.focus.current();
         let mut key_input = None;
+        let mut deferred_type_ahead = None;
+        let mut capture_response = None;
         let mut wheel_route_attempt = None;
         let mut disabled_primary_refusal = false;
         let mut update_cause = UpdateCause::Event;
@@ -2244,6 +2340,7 @@ impl<A: App> Runtime<A> {
                         return self.finish(r);
                     }
                 }
+                let original_type_ahead = self.deferred_type_ahead_key(*k);
                 let swallows = self.swallows_typing() || self.last.typing.fallback.is_some();
                 let scoped = self
                     .last
@@ -2253,12 +2350,26 @@ impl<A: App> Runtime<A> {
                 if let Some(cmd) =
                     scoped.or_else(|| self.core.keymap.lookup(KeyPhase::Capture, k, swallows))
                 {
-                    let r = self.run_update(Some(cmd), UpdateCause::Event, activation_key);
-                    drop(input);
-                    return self.finish(r);
+                    let response = self.run_update(Some(cmd), UpdateCause::Event, activation_key);
+                    let Some(deferred) = original_type_ahead else {
+                        drop(input);
+                        return self.finish(response);
+                    };
+                    if response.is_consumed()
+                        || !self.deferred_type_ahead_is_current(deferred, false)
+                    {
+                        drop(input);
+                        return self.finish(response);
+                    }
+                    capture_response = Some(response);
+                    key_input = Some(*k);
+                    deferred_type_ahead = Some(deferred);
+                    self.enqueue_key(*k, deferred_type_ahead);
+                } else {
+                    key_input = Some(*k);
+                    deferred_type_ahead = original_type_ahead;
+                    self.enqueue_key(*k, deferred_type_ahead);
                 }
-                key_input = Some(*k);
-                self.enqueue_key(*k);
             }
             RoutedInput::Input(Input::Mouse(m)) => {
                 disabled_primary_refusal = self.enqueue_mouse(*m);
@@ -2280,11 +2391,14 @@ impl<A: App> Runtime<A> {
             _ => {}
         }
 
-        let input_top_layer = self.services.layers.top();
+        let (input_top_layer, input_focus) = if capture_response.is_some() {
+            (key_input_top_layer, key_input_focus)
+        } else {
+            (self.services.layers.top(), self.focus.current())
+        };
         let input_pointer_layer = self.pointer_input_layer();
         let swallow_middle = matches!(&input, RoutedInput::MiddleClick { .. })
             && input_pointer_layer != LayerId::PAGE;
-        let input_focus = self.focus.current();
         let wheel_route_guard = wheel_route_attempt.map(|_| WheelRouteGuard {
             focus: self.focus.current(),
             top_layer: self.services.layers.top(),
@@ -2299,7 +2413,11 @@ impl<A: App> Runtime<A> {
                 .set(crate::ui::cx::WheelRouteAck::Unset);
             self.services.wheel_route_invalidated = false;
         }
-        let mut r = self.run_update(None, update_cause, activation_key);
+        let mut r = if let Some(capture_response) = capture_response {
+            capture_response | self.run_update(None, update_cause, activation_key)
+        } else {
+            self.run_update(None, update_cause, activation_key)
+        };
         if disabled_primary_refusal && !r.is_consumed() {
             r |= Response::consumed();
         }
@@ -2311,6 +2429,11 @@ impl<A: App> Runtime<A> {
         }
         let mut input_scope_changed =
             self.services.layers.top() != input_top_layer || self.focus.current() != input_focus;
+        if let Some(deferred) = deferred_type_ahead
+            && !self.deferred_type_ahead_is_current(deferred, input_scope_changed)
+        {
+            input_scope_changed = true;
+        }
 
         if let Some(k) = key_input
             && !r.is_consumed()
@@ -2319,6 +2442,9 @@ impl<A: App> Runtime<A> {
             for (owner, action, chord) in scoped_bindings {
                 if self.services.layers.top() != input_top_layer
                     || self.focus.current() != input_focus
+                    || deferred_type_ahead.is_some_and(|deferred| {
+                        !self.deferred_type_ahead_is_current(deferred, input_scope_changed)
+                    })
                 {
                     input_scope_changed = true;
                     break;
@@ -2334,6 +2460,9 @@ impl<A: App> Runtime<A> {
                 }
                 if self.services.layers.top() != input_top_layer
                     || self.focus.current() != input_focus
+                    || deferred_type_ahead.is_some_and(|deferred| {
+                        !self.deferred_type_ahead_is_current(deferred, input_scope_changed)
+                    })
                 {
                     input_scope_changed = true;
                     break;
@@ -2342,6 +2471,9 @@ impl<A: App> Runtime<A> {
             self.intents.clear();
             if !input_scope_changed
                 && !r.is_consumed()
+                && deferred_type_ahead.is_none_or(|deferred| {
+                    self.deferred_type_ahead_is_current(deferred, input_scope_changed)
+                })
                 && let Some(cmd) = self.core.keymap.lookup(KeyPhase::Bubble, &k, false)
             {
                 r |= self.run_update(Some(cmd), UpdateCause::Event, activation_key);
@@ -2380,6 +2512,14 @@ impl<A: App> Runtime<A> {
                     }
                 }
             }
+        }
+        if let Some(deferred) = deferred_type_ahead
+            && !r.is_consumed()
+            && self.deferred_type_ahead_is_current(deferred, input_scope_changed)
+        {
+            self.intents.clear();
+            self.intents.key(deferred.owner, deferred.key);
+            r |= self.run_update(None, UpdateCause::Event, activation_key);
         }
         drop(input);
         self.finish(r)
@@ -2636,6 +2776,7 @@ impl<A: App> Runtime<A> {
             &mut self.last.typing_bindings,
             &mut self.frame.typing_bindings,
         );
+        core::mem::swap(&mut self.last.type_aheads, &mut self.frame.type_aheads);
         self.last.typing = self.frame.typing_resolved;
     }
 
@@ -2742,6 +2883,9 @@ impl<A: App> Runtime<A> {
                 },
             );
             self.pending_focus = (pending_from.from != reconciled).then_some(pending_from);
+            if self.focus.current() != reconciled {
+                self.type_ahead_focus_changed = true;
+            }
             self.focus.set(reconciled);
 
             self.invalidate_prepared();

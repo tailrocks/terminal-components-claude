@@ -742,10 +742,12 @@ impl CodeEditorState {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct HighlightCache {
     generation: u64,
     valid: bool,
+
+    source: String,
     spans: Vec<(Range<usize>, SyntaxRole)>,
     line_starts: Vec<usize>,
 
@@ -754,9 +756,28 @@ struct HighlightCache {
     blocks_valid: bool,
 }
 
+impl fmt::Debug for HighlightCache {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("HighlightCache")
+            .field("generation", &self.generation)
+            .field("valid", &self.valid)
+            .field("source_len", &self.source.len())
+            .field("spans", &self.spans)
+            .field("line_starts", &self.line_starts)
+            .field("blocks", &self.blocks)
+            .field("blocks_generation", &self.blocks_generation)
+            .field("blocks_valid", &self.blocks_valid)
+            .finish()
+    }
+}
+
 impl HighlightCache {
     fn ensure(&mut self, generation: u64, text: &str, highlighter: Option<&dyn Highlighter>) {
-        if generation != u64::MAX && self.valid && self.generation == generation {
+        if generation != u64::MAX
+            && self.valid
+            && self.generation == generation
+            && self.source == text
+        {
             return;
         }
         self.spans.clear();
@@ -775,8 +796,11 @@ impl HighlightCache {
             }
             self.spans.sort_by_key(|(range, _)| range.start);
         }
+        self.source.clear();
+        self.source.push_str(text);
         self.generation = generation;
         self.valid = true;
+        self.blocks_valid = false;
     }
 }
 
@@ -1463,9 +1487,7 @@ impl<'a> CodeEditor<'a> {
         }
         let mut cache = core::mem::take(ui.cache::<HighlightCache>(self.id));
         cache.ensure(st.edit_generation, st.text(), self.highlighter);
-        if st.edit_generation != u64::MAX
-            && (!cache.blocks_valid || cache.blocks_generation != st.edit_generation)
-        {
+        if !cache.blocks_valid || cache.blocks_generation != st.edit_generation {
             cache.blocks = self.blocks(st);
             cache.blocks_generation = st.edit_generation;
             cache.blocks_valid = true;

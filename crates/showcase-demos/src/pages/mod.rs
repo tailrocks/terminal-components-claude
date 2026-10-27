@@ -1,6 +1,7 @@
 use termrock::{
-    Color, Family, FgStep, FrameRead, Id, Modifier, Panel, PanelKind, PanelWindowError, Part, Rect,
-    Response, Role, StateFlags, StylePatch, Surface, Ui, Variant, author::VerticalWindow, width,
+    ActionKey, Color, Family, FgStep, FrameRead, Id, Modifier, Panel, PanelKind, PanelWindowError,
+    Part, Rect, Response, Role, StateFlags, StylePatch, Surface, Ui, Variant,
+    author::VerticalWindow, width,
 };
 
 pub struct PageStatus(pub String);
@@ -22,6 +23,14 @@ impl From<Response<()>> for PageUpdate {
 pub trait Page: Send {
     fn title(&self) -> &'static str;
     fn update(&mut self, cx: &mut termrock::Cx<'_>) -> PageUpdate;
+    fn option_value(&self, _key: &str) -> Option<usize> {
+        None
+    }
+    fn set_option(&mut self, _key: &str, _value: usize) {}
+
+    fn global_capture_owners(&self, _action: ActionKey) -> &'static [Id] {
+        &[]
+    }
     fn command(
         &mut self,
         _cx: &mut termrock::Cx<'_>,
@@ -341,6 +350,7 @@ pub mod overview;
 pub mod panels;
 pub mod pickers;
 pub mod progress;
+pub mod query_workbench;
 pub mod scrolling;
 pub mod selectable;
 pub mod settings;

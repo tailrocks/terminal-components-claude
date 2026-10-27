@@ -735,6 +735,10 @@ impl Default for LayerStack {
 }
 
 impl LayerStack {
+    pub(crate) const fn next_generation(&self) -> u64 {
+        self.next_generation
+    }
+
     pub(crate) fn top(&self) -> LayerId {
         self.open.last().map_or(LayerId::PAGE, |l| l.layer)
     }

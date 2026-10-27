@@ -17,6 +17,29 @@ use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 const BALANCED: u8 = 50;
 const BASIS_POINTS_PER_PERCENT: u16 = 100;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SplitFallback {
+    first_weight: u16,
+    second_weight: u16,
+    gap: u16,
+}
+
+impl SplitFallback {
+    pub const fn new(first_weight: u16, second_weight: u16) -> Self {
+        SplitFallback {
+            first_weight: if first_weight == 0 { 1 } else { first_weight },
+            second_weight: if second_weight == 0 { 1 } else { second_weight },
+            gap: 1,
+        }
+    }
+
+    #[must_use]
+    pub const fn gap(mut self, gap: u16) -> Self {
+        self.gap = gap;
+        self
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SplitAction {
     Resized(u8),
@@ -207,6 +230,7 @@ enum SeamAlign {
     Offset(u16),
 }
 
+#[derive(Clone)]
 pub struct SplitPane<'a> {
     id: Id,
     axis: SplitAxis,
@@ -223,6 +247,8 @@ pub struct SplitPane<'a> {
     fixed_first_share: Option<(u8, u16, u16)>,
     fixed_second_share: Option<(u8, u16, u16)>,
     initial_first_cells: Option<u16>,
+    undersized_fallback: Option<SplitFallback>,
+    resolved_fallback: Option<SplitFallback>,
     fixed_sizing: bool,
     resize_step_cells: u16,
     resize_bindings: Option<&'static [Binding<SplitCmd>]>,
@@ -248,6 +274,9 @@ impl fmt::Debug for SplitPane<'_> {
             .field("preserve_drag_offset", &self.preserve_drag_offset)
             .field("fixed_first_share", &self.fixed_first_share)
             .field("fixed_second_share", &self.fixed_second_share);
+        debug
+            .field("undersized_fallback", &self.undersized_fallback)
+            .field("resolved_fallback", &self.resolved_fallback);
         if self.initial_first_cells.is_some() {
             debug.field("initial_first_cells", &self.initial_first_cells);
         }
@@ -281,6 +310,8 @@ impl<'a> SplitPane<'a> {
             fixed_first_share: None,
             fixed_second_share: None,
             initial_first_cells: None,
+            undersized_fallback: None,
+            resolved_fallback: None,
             fixed_sizing: false,
             resize_step_cells: 1,
             resize_bindings: None,
@@ -297,7 +328,46 @@ impl<'a> SplitPane<'a> {
         self.axis
     }
 
+    pub fn resolved_for(&self, state: &SplitPaneState, area: Rect) -> Self {
+        let Some(fallback) = self.undersized_fallback else {
+            return self.clone();
+        };
+        if state.maximized != Maximized::None {
+            return self.clone();
+        }
+        let extent = match self.axis {
+            SplitAxis::Horizontal => area.width,
+            SplitAxis::Vertical => area.height,
+        };
+        let required = u32::from(self.min_first) + u32::from(self.gap) + u32::from(self.min_second);
+        if u32::from(extent) >= required {
+            return self.clone();
+        }
+
+        let mut resolved = self.clone();
+        resolved.axis = match self.axis {
+            SplitAxis::Horizontal => SplitAxis::Vertical,
+            SplitAxis::Vertical => SplitAxis::Horizontal,
+        };
+        resolved.undersized_fallback = None;
+        resolved.resolved_fallback = Some(fallback);
+        resolved.gap = fallback.gap;
+        resolved.min_first = 0;
+        resolved.min_second = 0;
+        resolved.seam = None;
+        resolved.resizable = false;
+        resolved.fixed_first_share = None;
+        resolved.fixed_second_share = None;
+        resolved.initial_first_cells = None;
+        resolved.resize_bindings = None;
+        resolved.fixed_sizing = true;
+        resolved
+    }
+
     pub fn required_extent(&self, state: &SplitPaneState, first: u16, second: u16) -> u16 {
+        if let Some(fallback) = self.resolved_fallback {
+            return required_extent_with_weights(fallback, state.maximized, first, second);
+        }
         let model = self.model(*state);
         let first = first.max(model.min_first);
         let second = second.max(model.min_second);
@@ -327,8 +397,22 @@ impl<'a> SplitPane<'a> {
         state: &SplitPaneState,
         constraints: Constraints,
     ) -> (Constraints, Constraints) {
+        if self.undersized_fallback.is_some() {
+            let root = Rect::new(0, 0, constraints.max.0, constraints.max.1);
+            return self
+                .resolved_for(state, root)
+                .pane_constraints_resolved(state, constraints);
+        }
+        self.pane_constraints_resolved(state, constraints)
+    }
+
+    pub(crate) fn pane_constraints_resolved(
+        &self,
+        state: &SplitPaneState,
+        constraints: Constraints,
+    ) -> (Constraints, Constraints) {
         let root = Rect::new(0, 0, constraints.max.0, constraints.max.1);
-        let (first, second) = self.panes(*state, root);
+        let (first, second) = self.panes_resolved(*state, root);
         (
             Constraints::loose(first.width, first.height),
             Constraints::loose(second.width, second.height),
@@ -460,6 +544,12 @@ impl<'a> SplitPane<'a> {
     }
 
     #[must_use]
+    pub const fn undersized_fallback(mut self, fallback: SplitFallback) -> Self {
+        self.undersized_fallback = Some(fallback);
+        self
+    }
+
+    #[must_use]
     pub(crate) const fn initial_first_cells(mut self, cells: u16) -> Self {
         self.initial_first_cells = Some(cells);
         self
@@ -494,6 +584,24 @@ impl<'a> SplitPane<'a> {
     }
 
     pub(crate) fn panes(&self, st: SplitPaneState, area: Rect) -> (Rect, Rect) {
+        let resolved = self.resolved_for(&st, area);
+        resolved.panes_resolved(st, area)
+    }
+
+    fn panes_resolved(&self, st: SplitPaneState, area: Rect) -> (Rect, Rect) {
+        if let Some(fallback) = self.resolved_fallback {
+            let extent = match self.axis {
+                SplitAxis::Horizontal => area.width,
+                SplitAxis::Vertical => area.height,
+            };
+            let usable = extent.saturating_sub(fallback.gap);
+            let total = u64::from(fallback.first_weight) + u64::from(fallback.second_weight);
+            let first =
+                (u64::from(usable) * u64::from(fallback.first_weight)).div_ceil(total) as u16;
+            return self
+                .model(st)
+                .layout_with_first_extent(area, fallback.gap, first);
+        }
         let model = self.model(st);
         match (self.fixed_first_share, self.fixed_second_share) {
             (Some((percent, min, max)), _) => {
@@ -513,7 +621,15 @@ impl<'a> SplitPane<'a> {
     }
 
     pub(crate) fn seam(&self, st: SplitPaneState, area: Rect) -> Rect {
-        let (first, second) = self.panes(st, area);
+        let resolved = self.resolved_for(&st, area);
+        resolved.seam_resolved(st, area)
+    }
+
+    fn seam_resolved(&self, st: SplitPaneState, area: Rect) -> Rect {
+        if self.resolved_fallback.is_some() {
+            return Rect::new(area.x, area.y, 0, 0);
+        }
+        let (first, second) = self.panes_resolved(st, area);
         let thickness = if first.is_empty() || second.is_empty() {
             0
         } else {
@@ -604,6 +720,16 @@ impl<'a> SplitPane<'a> {
         area: Rect,
         delta: i16,
     ) -> Response<SplitAction> {
+        let resolved = self.resolved_for(state, area);
+        resolved.resize_by_cells_resolved(state, area, delta)
+    }
+
+    fn resize_by_cells_resolved(
+        &self,
+        state: &mut SplitPaneState,
+        area: Rect,
+        delta: i16,
+    ) -> Response<SplitAction> {
         let extent = match self.axis {
             SplitAxis::Horizontal => area.width,
             SplitAxis::Vertical => area.height,
@@ -625,7 +751,7 @@ impl<'a> SplitPane<'a> {
 
         let mut acc = Acc::<SplitAction>::new();
         let bounded_delta = if delta > 0 {
-            let (first, _) = self.panes(*state, area);
+            let (first, _) = self.panes_resolved(*state, area);
             let current_first = match self.axis {
                 SplitAxis::Horizontal => first.width,
                 SplitAxis::Vertical => first.height,
@@ -666,6 +792,25 @@ impl<'a> SplitPane<'a> {
         owner: Id,
         allow_pointer: bool,
     ) -> Response<SplitAction> {
+        if self.undersized_fallback.is_some() && cx.capture_owner() != Some(self.id) {
+            let _ = st.clear_grab_offset();
+        }
+        let area = cx
+            .layout(self.id)
+            .and_then(|facts| facts.logical_area)
+            .unwrap_or(Rect::ZERO);
+        let resolved = self.resolved_for(st, area);
+        resolved.update_for_owner_resolved(cx, st, owner, allow_pointer, area)
+    }
+
+    fn update_for_owner_resolved(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut SplitPaneState,
+        owner: Id,
+        allow_pointer: bool,
+        area: Rect,
+    ) -> Response<SplitAction> {
         if self.fixed_sizing {
             if cx.capture_owner() == Some(self.id) {
                 cx.release_capture();
@@ -673,10 +818,6 @@ impl<'a> SplitPane<'a> {
             let _ = st.clear_grab_offset();
             return Response::ignored();
         }
-        let area = cx
-            .layout(self.id)
-            .and_then(|facts| facts.logical_area)
-            .unwrap_or(Rect::ZERO);
         let table = self.table();
         let mut acc = Acc::<SplitAction>::new();
         let step = i16::try_from(self.resize_step_cells).unwrap_or(i16::MAX);
@@ -726,7 +867,7 @@ impl<'a> SplitPane<'a> {
 
     fn nudge(&self, st: &mut SplitPaneState, area: Rect, delta: i16, acc: &mut Acc<SplitAction>) {
         if st.initial_cells_active && self.initial_first_cells.is_some() {
-            let (first, _) = self.panes(*st, area);
+            let (first, _) = self.panes_resolved(*st, area);
             let current = match self.axis {
                 SplitAxis::Horizontal => first.width,
                 SplitAxis::Vertical => first.height,
@@ -770,7 +911,7 @@ impl<'a> SplitPane<'a> {
             Phase::Press | Phase::DragStart => {
                 let _ = cx.capture(self.id, PartRef::of(Part::SEAM));
                 if st.grab_offset.is_none() {
-                    let (first, _) = self.panes(*st, area);
+                    let (first, _) = self.panes_resolved(*st, area);
                     let edge = match self.axis {
                         SplitAxis::Horizontal => first.right(),
                         SplitAxis::Vertical => first.bottom(),
@@ -850,6 +991,17 @@ impl<'a> SplitPane<'a> {
         st: &SplitPaneState,
         body: impl FnOnce(&mut Ui<'_>, Rect, Rect) -> R,
     ) -> R {
+        let resolved = self.resolved_for(st, area);
+        resolved.draw_resolved(ui, area, st, body)
+    }
+
+    fn draw_resolved<R>(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &SplitPaneState,
+        body: impl FnOnce(&mut Ui<'_>, Rect, Rect) -> R,
+    ) -> R {
         ui.report_layout(
             self.id,
             LayoutFacts::new(0, 0, area.height, area.width).with_logical_area(area),
@@ -863,8 +1015,12 @@ impl<'a> SplitPane<'a> {
             };
             return ui.with_area(empty, |ui| body(ui, empty, empty));
         }
-        let (first, second) = self.panes(*st, area);
-        let seam = self.seam(*st, area);
+        let (first, second) = self.panes_resolved(*st, area);
+        if self.resolved_fallback.is_some() {
+            ui.register_decor(self.id, PartRef::of(Part::CONTAINER), area);
+            return ui.with_area(area, |ui| body(ui, first, second));
+        }
+        let seam = self.seam_resolved(*st, area);
         let seam = if self.seam.is_some() {
             seam.intersection(ui.full())
         } else {
@@ -951,11 +1107,18 @@ impl<'a> SplitPane<'a> {
     }
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
-        let along = self
-            .min_first
-            .saturating_add(self.min_second)
-            .saturating_add(self.gap);
-        let min = match self.axis {
+        let state = SplitPaneState::default();
+        let area = Rect::new(0, 0, c.max.0, c.max.1);
+        let resolved = self.resolved_for(&state, area);
+        let along = if resolved.resolved_fallback.is_some() {
+            resolved.required_extent(&state, 0, 0)
+        } else {
+            u32::from(resolved.min_first)
+                .saturating_add(u32::from(resolved.min_second))
+                .saturating_add(u32::from(resolved.gap))
+                .min(u32::from(u16::MAX)) as u16
+        };
+        let min = match resolved.axis() {
             SplitAxis::Horizontal => (along, 1),
             SplitAxis::Vertical => (1, along),
         };
@@ -965,6 +1128,34 @@ impl<'a> SplitPane<'a> {
         }
         .fit(c)
     }
+}
+
+fn required_extent_with_weights(
+    fallback: SplitFallback,
+    maximized: Maximized,
+    first: u16,
+    second: u16,
+) -> u16 {
+    match maximized {
+        Maximized::First => return first,
+        Maximized::Second => return second,
+        Maximized::None => {}
+    }
+
+    let first_weight = u64::from(fallback.first_weight);
+    let second_weight = u64::from(fallback.second_weight);
+    let total = first_weight + second_weight;
+    let first_usable = if first == 0 {
+        0
+    } else {
+        (u64::from(first - 1) * total / first_weight) + 1
+    };
+    let second_product = u64::from(second) * total;
+    let second_usable = second_product.div_ceil(second_weight);
+    first_usable
+        .max(second_usable)
+        .saturating_add(u64::from(fallback.gap))
+        .min(u64::from(u16::MAX)) as u16
 }
 
 const fn clamp_percent(percent: u8) -> u8 {

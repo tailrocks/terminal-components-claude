@@ -1,7 +1,9 @@
 use core::fmt;
+use std::time::Duration;
 
 use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
+use termrock_core::typeahead::TypeAhead;
 
 use super::{Acc, PartStyle, SlotFn};
 use crate::action::ActionKey;
@@ -223,6 +225,10 @@ pub trait GridModel {
 
     fn row_key(&self, row: usize) -> ItemKey;
 
+    fn row_enabled(&self, _row: usize) -> bool {
+        true
+    }
+
     fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>>;
 
     fn row_decor(&self, _row: usize) -> RowDecor<'_> {
@@ -252,6 +258,22 @@ pub trait GridModel {
     fn revision(&self) -> Option<u64> {
         None
     }
+}
+
+fn find_type_ahead_row<M: GridModel + ?Sized>(
+    prefix: &str,
+    len: usize,
+    from: usize,
+    search_column: usize,
+    model: &M,
+) -> Option<usize> {
+    TypeAhead::find_indexed(
+        prefix,
+        len,
+        from,
+        |row| model.cell(row, search_column).map_or("", |cell| cell.text),
+        |row| model.row_enabled(row),
+    )
 }
 
 pub trait GridEditor: GridModel {
@@ -670,6 +692,21 @@ pub enum GridOverflowIndicator {
     Ellipsis,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub(crate) enum TypeAheadColumn {
+    #[default]
+    Cursor,
+    Index(usize),
+    Key(ColumnKey),
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct TypeAheadConfig {
+    column: TypeAheadColumn,
+    identity: Option<ColumnKey>,
+    timeout: Duration,
+}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct GridState {
     sampled_widths: [Option<SampledWidth>; GRID_MAX_COLUMNS],
@@ -690,6 +727,9 @@ pub struct GridState {
     edit: Option<(ItemKey, ColumnKey)>,
 
     editor: TextInputState,
+
+    type_ahead: TypeAhead,
+    type_ahead_config: Option<TypeAheadConfig>,
 
     sort: Option<(ColumnKey, SortDir)>,
 }
@@ -721,6 +761,8 @@ impl Default for GridState {
             pending_column: None,
             edit: None,
             editor,
+            type_ahead: TypeAhead::default(),
+            type_ahead_config: None,
             sort: None,
         }
     }
@@ -729,6 +771,7 @@ impl Default for GridState {
 impl GridState {
     pub(crate) fn invalidate_model(&mut self) {
         self.core.invalidate();
+        self.type_ahead.reset();
     }
 
     pub(crate) fn set_sort(&mut self, sort: Option<(ColumnKey, SortDir)>) {
@@ -834,6 +877,9 @@ impl GridState {
 impl Reconcile for GridState {
     fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation {
         let r = self.core.reconcile(len, &key);
+        if r != Reconciliation::Unchanged {
+            self.type_ahead.reset();
+        }
         if let Some(RangeAnchor::Cell(a, _)) = self.anchor
             && !(0..len).any(|i| key(i) == a)
         {
@@ -849,6 +895,7 @@ impl Reconcile for GridState {
 
     fn invalidate(&mut self) {
         self.core.invalidate();
+        self.type_ahead.reset();
     }
 }
 
@@ -1004,6 +1051,9 @@ pub struct Grid<'a> {
     cell_tone_styles: &'a [(Role, StylePatch)],
     overflow_indicator: GridOverflowIndicator,
     disabled: bool,
+    type_ahead: bool,
+    type_ahead_column: TypeAheadColumn,
+    type_ahead_timeout: Duration,
     fetch_on_activate: bool,
     fetch_label: &'a str,
     fetch_glyph: GlyphRole,
@@ -1067,6 +1117,9 @@ impl<'a> Grid<'a> {
             cell_tone_styles: &[],
             overflow_indicator: GridOverflowIndicator::Count,
             disabled: false,
+            type_ahead: false,
+            type_ahead_column: TypeAheadColumn::Cursor,
+            type_ahead_timeout: TypeAhead::DEFAULT_TIMEOUT,
             fetch_on_activate: false,
             fetch_label: "more",
             fetch_glyph: GlyphRole::MoreRows,
@@ -1156,6 +1209,36 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
+        self
+    }
+
+    #[must_use]
+    pub const fn type_ahead(mut self, enabled: bool) -> Self {
+        self.type_ahead = enabled;
+        self
+    }
+
+    #[must_use]
+    pub const fn type_ahead_column(mut self, column: Option<usize>) -> Self {
+        self.type_ahead_column = match column {
+            Some(index) => TypeAheadColumn::Index(index),
+            None => TypeAheadColumn::Cursor,
+        };
+        self
+    }
+
+    #[must_use]
+    pub const fn type_ahead_column_key(mut self, key: Option<ColumnKey>) -> Self {
+        self.type_ahead_column = match key {
+            Some(key) => TypeAheadColumn::Key(key),
+            None => TypeAheadColumn::Cursor,
+        };
+        self
+    }
+
+    #[must_use]
+    pub const fn type_ahead_timeout(mut self, timeout: Duration) -> Self {
+        self.type_ahead_timeout = timeout;
         self
     }
 
@@ -1311,6 +1394,77 @@ impl<'a> Grid<'a> {
 
     fn column_count(&self) -> usize {
         self.columns.len().min(GRID_MAX_COLUMNS)
+    }
+
+    fn sync_type_ahead(&self, state: &mut GridState) {
+        if !self.type_ahead || self.disabled {
+            state.type_ahead = TypeAhead::default();
+            state.type_ahead_config = None;
+            return;
+        }
+        let identity = match self.type_ahead_column {
+            TypeAheadColumn::Cursor => self.col_key(self.cursor_col(state)),
+            TypeAheadColumn::Index(index) => self.col_key(index),
+            TypeAheadColumn::Key(key) => self.col_index(key).map(|_| key),
+        };
+        let config = TypeAheadConfig {
+            column: self.type_ahead_column,
+            identity,
+            timeout: self.type_ahead_timeout,
+        };
+        if state.type_ahead_config != Some(config) {
+            state.type_ahead = TypeAhead::with_timeout(self.type_ahead_timeout);
+            state.type_ahead_config = Some(config);
+        }
+    }
+
+    fn type_ahead_column_index(&self, state: &GridState) -> Option<usize> {
+        match self.type_ahead_column {
+            TypeAheadColumn::Cursor => {
+                let column = self.cursor_col(state);
+                (column < self.column_count()).then_some(column)
+            }
+            TypeAheadColumn::Index(column) => (column < self.column_count()).then_some(column),
+            TypeAheadColumn::Key(key) => self.col_index(key),
+        }
+    }
+
+    fn type_ahead_key<M: GridModel + ?Sized>(
+        &self,
+        cx: &Cx<'_>,
+        state: &mut GridState,
+        model: &M,
+        key: crate::event::Key,
+        len: usize,
+        acc: &mut Acc<GridAction>,
+    ) {
+        if !self.type_ahead || state.is_editing() {
+            return;
+        }
+        let Some(character) = TypeAhead::char_of(&key) else {
+            return;
+        };
+        let Some(search_column) = self.type_ahead_column_index(state) else {
+            state.type_ahead.reset();
+            acc.consumed();
+            return;
+        };
+        let from = if state.on_fetch_row() || len == 0 {
+            0
+        } else {
+            state.core.cursor_index().min(len.saturating_sub(1))
+        };
+        let found = {
+            let prefix = state
+                .type_ahead
+                .feed_at_duration(character, cx.now().as_duration());
+            find_type_ahead_row(prefix, len, from, search_column, model)
+        };
+        if let Some(row) = found {
+            let cursor_column = self.cursor_col(state);
+            self.move_to(state, model, row, cursor_column, false, acc);
+        }
+        acc.consumed();
     }
 
     fn assert_distinct_column_keys(&self) {
@@ -2023,6 +2177,7 @@ impl Grid<'_> {
         if st.is_editing() {
             return Err(GridCursorError::Editing);
         }
+        st.type_ahead.reset();
         self.move_to(st, model, row_index, col_index, false, &mut Acc::new());
         st.core
             .scroll_mut()
@@ -2115,6 +2270,37 @@ impl Grid<'_> {
         st.col_offset = scroll_index;
     }
 
+    fn prune_checked_rows<M: GridModel + ?Sized>(&self, st: &mut GridState, model: &M) -> bool {
+        let len = model.row_count();
+        let checked = st.core.checked_mut();
+        if checked.is_empty() {
+            return false;
+        }
+
+        if matches!(checked, KeySet::AllExcept(_)) {
+            let mut dropped = false;
+            for row in 0..len {
+                if !model.row_enabled(row) {
+                    let key = model.row_key(row);
+                    if checked.contains(key) {
+                        checked.remove(key);
+                        dropped = true;
+                    }
+                }
+            }
+            dropped
+        } else {
+            let mut enabled_keys = Vec::with_capacity(len);
+            for row in 0..len {
+                if model.row_enabled(row) {
+                    enabled_keys.push(model.row_key(row));
+                }
+            }
+            enabled_keys.sort_unstable();
+            checked.retain(|key| enabled_keys.binary_search(&key).is_ok()) > 0
+        }
+    }
+
     fn toggle_row<M: GridModel + ?Sized>(
         &self,
         st: &mut GridState,
@@ -2122,7 +2308,7 @@ impl Grid<'_> {
         row: usize,
         acc: &mut Acc<GridAction>,
     ) {
-        if row >= model.row_count() {
+        if row >= model.row_count() || !model.row_enabled(row) {
             acc.consumed();
             return;
         }
@@ -2172,11 +2358,16 @@ impl Grid<'_> {
         if st.core.cursor().is_some_and(|key| {
             st.core.cursor_index() >= len || model.row_key(st.core.cursor_index()) != key
         }) {
+            st.type_ahead.reset();
             st.core.invalidate();
         }
 
         let outcome = st.core.reconcile_with(len, |i| model.row_key(i), |_| true);
+        if self.prune_checked_rows(st, model) {
+            acc.changed();
+        }
         if outcome != Reconciliation::Unchanged {
+            st.type_ahead.reset();
             if let Some(RangeAnchor::Cell(a, _)) = st.anchor
                 && Self::row_index(model, a, st.core.cursor_index()).is_none()
             {
@@ -2216,6 +2407,7 @@ impl Grid<'_> {
             st.col = self.col_key(0);
             st.col_index = 0;
         } else if st.col.is_some_and(|key| self.col_index(key).is_none()) {
+            st.type_ahead.reset();
             st.col_index = st.col_index.min(column_count.saturating_sub(1));
             st.col = self.col_key(st.col_index);
             st.anchor = None;
@@ -2257,6 +2449,7 @@ impl Grid<'_> {
         for it in cx.intents(self.id) {
             match it {
                 Intent::Binding(action) => {
+                    st.type_ahead.reset();
                     let row = st.fetch_row.map_or_else(
                         || st.core.cursor_index().min(len.saturating_sub(1)),
                         |f| f.boundary,
@@ -2391,12 +2584,19 @@ impl Grid<'_> {
                             if matches!(self.select_mode, SelectMode::None) {
                                 acc.consumed();
                             } else {
-                                let all =
-                                    (0..len).all(|i| st.core.checked().contains(model.row_key(i)));
+                                let all = (0..len).all(|i| {
+                                    !model.row_enabled(i)
+                                        || st.core.checked().contains(model.row_key(i))
+                                });
                                 if all {
                                     st.core.checked_mut().none();
                                 } else {
                                     st.core.checked_mut().all();
+                                    for i in 0..len {
+                                        if !model.row_enabled(i) {
+                                            st.core.checked_mut().remove(model.row_key(i));
+                                        }
+                                    }
                                 }
                                 acc.changed();
                             }
@@ -2405,7 +2605,11 @@ impl Grid<'_> {
                             if len == 0 || column_count == 0 {
                                 acc.consumed();
                             } else if matches!(self.nav, NavUnit::Row) {
-                                acc.action(GridAction::Activated(model.row_key(row)));
+                                if model.row_enabled(row) {
+                                    acc.action(GridAction::Activated(model.row_key(row)));
+                                } else {
+                                    acc.consumed();
+                                }
                             } else {
                                 pending.edit = Some(EditRequest {
                                     row,
@@ -2470,6 +2674,9 @@ impl Grid<'_> {
                             column.sortable && column_item_key(column.key) == header_key
                         })
                     });
+                    if matches!(phase, Phase::Click | Phase::DoubleClick) && col.is_some() {
+                        st.type_ahead.reset();
+                    }
                     match (phase, col.and_then(|i| self.col_key(i))) {
                         (Phase::Click | Phase::DoubleClick, Some(key)) => {
                             let dir = match st.sort {
@@ -2492,6 +2699,7 @@ impl Grid<'_> {
                     ..
                 } => {
                     if let Some(row) = Self::row_index(model, key, st.core.cursor_index()) {
+                        st.type_ahead.reset();
                         self.move_to(st, model, row, self.cursor_col(st), false, acc);
                         self.toggle_row(st, model, row, acc);
                     } else {
@@ -2556,11 +2764,18 @@ impl Grid<'_> {
                         continue;
                     }
                     let col = hit.unwrap_or_else(|| self.cursor_col(st));
+                    if matches!(phase, Phase::Press | Phase::DoubleClick) {
+                        st.type_ahead.reset();
+                    }
                     match phase {
                         Phase::Press => self.move_to(st, model, row, col, false, acc),
                         Phase::DoubleClick => {
                             if matches!(self.nav, NavUnit::Row) {
-                                acc.action(GridAction::Activated(row_key));
+                                if model.row_enabled(row) {
+                                    acc.action(GridAction::Activated(row_key));
+                                } else {
+                                    acc.consumed();
+                                }
                             } else {
                                 pending.edit = Some(EditRequest {
                                     row,
@@ -2582,6 +2797,7 @@ impl Grid<'_> {
                         },
                     ..
                 } => {
+                    st.type_ahead.reset();
                     if self.fetch_on_activate {
                         if st.is_editing() || !model.has_more() {
                             acc.consumed();
@@ -2592,6 +2808,8 @@ impl Grid<'_> {
                     acc.action(GridAction::FetchMore);
                 }
                 Intent::Pointer { .. } => acc.consumed(),
+                Intent::FocusOut { to } if to != Some(self.id) => st.type_ahead.reset(),
+                Intent::Key(key) => self.type_ahead_key(cx, st, model, key, len, acc),
                 _ => {}
             }
         }
@@ -2611,6 +2829,7 @@ impl Grid<'_> {
         model: &M,
     ) -> Response<GridAction> {
         self.assert_distinct_column_keys();
+        self.sync_type_ahead(st);
         if self.disabled {
             for _ in cx.intents(self.id) {}
             for _ in cx.intents(self.editor_id()) {}
@@ -2625,6 +2844,7 @@ impl Grid<'_> {
             ..
         }) = pending.edit
             && row < model.row_count()
+            && model.row_enabled(row)
         {
             acc.action(GridAction::Activated(model.row_key(row)));
         }
@@ -2638,6 +2858,7 @@ impl Grid<'_> {
         model: &mut M,
     ) -> Response<GridAction> {
         self.assert_distinct_column_keys();
+        self.sync_type_ahead(st);
         if self.disabled {
             for _ in cx.intents(self.id) {}
             for _ in cx.intents(self.editor_id()) {}
@@ -2668,6 +2889,7 @@ impl Grid<'_> {
         acc: &mut Acc<GridAction>,
     ) {
         let EditRequest { row, col, cause } = request;
+        st.type_ahead.reset();
         let key = model.row_key(row);
         let Some(ck) = self.col_key(col) else { return };
         st.editor.set_error(None);
@@ -2675,7 +2897,7 @@ impl Grid<'_> {
             || !self.columns.get(col).is_some_and(|c| c.editable)
             || !model.is_editable(row, col)
         {
-            if cause == EditCause::Activate {
+            if cause == EditCause::Activate && model.row_enabled(row) {
                 acc.action(GridAction::Activated(key));
             }
             return;
@@ -3524,6 +3746,9 @@ impl Grid<'_> {
                     &BINDINGS
                 },
             );
+            if self.type_ahead && !self.disabled && !st.is_editing() {
+                ui.publish_type_ahead(self.id, live);
+            }
         }
         let container = self.ov.style(
             ui,

@@ -18,12 +18,9 @@ publish = false
 [workspace]
 
 # The only Termrock dependency is the public facade. No internal `termrock-*`
-# crate is reachable from here; tests/public_api_only.rs guards that.
+# crate is reachable from here.
 [dependencies]
 termrock = { path = "../crates/termrock" }
 
-# The test harness drives the consumer through the public production render
-# path (`prepare` / `draw_prepared` / `acknowledge_presented`) on Ratatui's
-# public test backend.
 [lib]
 doctest = false

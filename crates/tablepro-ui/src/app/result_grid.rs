@@ -471,6 +471,10 @@ impl GridModel for PaintedGrid<'_> {
         GridModel::row_key(self.inner, row)
     }
 
+    fn row_enabled(&self, row: usize) -> bool {
+        GridModel::row_enabled(self.inner, row)
+    }
+
     fn cell(&self, row: usize, col: usize) -> Option<termrock::CellRef<'_>> {
         GridModel::cell(self.inner, row, col)
     }

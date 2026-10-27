@@ -6,10 +6,26 @@ use std::time::{Duration, Instant};
 use crate::event::Key;
 use crate::keys::{KeyCode, KeyModifiers};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ClockMark {
+    Instant(Instant),
+    Elapsed(Duration),
+}
+
+impl ClockMark {
+    fn duration_since(self, earlier: Self) -> Option<Duration> {
+        match (earlier, self) {
+            (Self::Instant(earlier), Self::Instant(now)) => Some(now.duration_since(earlier)),
+            (Self::Elapsed(earlier), Self::Elapsed(now)) => Some(now.saturating_sub(earlier)),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeAhead {
     buf: String,
-    last: Option<Instant>,
+    last: Option<ClockMark>,
 
     pub timeout: Duration,
 }
@@ -47,9 +63,18 @@ impl TypeAhead {
     }
 
     pub fn feed_at(&mut self, c: char, now: Instant) -> &str {
+        self.feed_at_clock(c, ClockMark::Instant(now))
+    }
+
+    pub fn feed_at_duration(&mut self, c: char, now: Duration) -> &str {
+        self.feed_at_clock(c, ClockMark::Elapsed(now))
+    }
+
+    fn feed_at_clock(&mut self, c: char, now: ClockMark) -> &str {
         if self
             .last
-            .is_none_or(|t| now.duration_since(t) > self.timeout)
+            .and_then(|last| now.duration_since(last))
+            .is_none_or(|elapsed| elapsed > self.timeout)
         {
             self.buf.clear();
         }
@@ -85,5 +110,39 @@ impl TypeAhead {
         (0..n)
             .map(|k| (start + k) % n)
             .find(|&i| eligible(i) && all[i].to_lowercase().starts_with(&needle))
+    }
+
+    pub fn find_indexed<'a>(
+        prefix: &str,
+        len: usize,
+        from: usize,
+        mut label: impl FnMut(usize) -> &'a str,
+        mut eligible: impl FnMut(usize) -> bool,
+    ) -> Option<usize> {
+        if len == 0 || prefix.is_empty() {
+            return None;
+        }
+        let mut chars = prefix.chars();
+        let first = chars.next()?;
+        let repeated = chars.all(|c| c == first);
+        let repeated_cycle = repeated && prefix.chars().count() > 1;
+        let needle = if repeated_cycle {
+            first.to_string()
+        } else {
+            prefix.to_owned()
+        };
+        let from = from % len;
+        let mut index = if repeated_cycle {
+            if from == len - 1 { 0 } else { from + 1 }
+        } else {
+            from
+        };
+        for _ in 0..len {
+            if eligible(index) && label(index).to_lowercase().starts_with(&needle) {
+                return Some(index);
+            }
+            index = if index == len - 1 { 0 } else { index + 1 };
+        }
+        None
     }
 }

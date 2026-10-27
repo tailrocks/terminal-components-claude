@@ -1,11 +1,12 @@
 use core::cmp::Ordering;
 use core::ops::Range;
+use std::time::Duration;
 
 use ratatui_core::layout::Rect;
 
 use crate::grid::{
     CellAction, CellRef, Column, ColumnKey, Grid, GridAction, GridGutter, GridModel,
-    GridSortIndicator, GridState, NavUnit, SortDir,
+    GridSortIndicator, GridState, NavUnit, SortDir, TypeAheadColumn,
 };
 use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
@@ -124,6 +125,9 @@ pub struct Table<'a> {
     columns: &'a [TableColumn<'a>],
     sort_indicator: GridSortIndicator,
     tone_styles: &'a [(Role, StylePatch)],
+    type_ahead: bool,
+    type_ahead_column: TypeAheadColumn,
+    type_ahead_timeout: Duration,
 }
 
 impl<'a> Table<'a> {
@@ -133,6 +137,9 @@ impl<'a> Table<'a> {
             columns,
             sort_indicator: GridSortIndicator::ActiveOnly,
             tone_styles: &[],
+            type_ahead: false,
+            type_ahead_column: TypeAheadColumn::Cursor,
+            type_ahead_timeout: termrock_core::typeahead::TypeAhead::DEFAULT_TIMEOUT,
         }
     }
 
@@ -145,6 +152,36 @@ impl<'a> Table<'a> {
     #[must_use]
     pub const fn tone_styles(mut self, styles: &'a [(Role, StylePatch)]) -> Self {
         self.tone_styles = styles;
+        self
+    }
+
+    #[must_use]
+    pub const fn type_ahead(mut self, enabled: bool) -> Self {
+        self.type_ahead = enabled;
+        self
+    }
+
+    #[must_use]
+    pub const fn type_ahead_column(mut self, column: Option<usize>) -> Self {
+        self.type_ahead_column = match column {
+            Some(index) => TypeAheadColumn::Index(index),
+            None => TypeAheadColumn::Cursor,
+        };
+        self
+    }
+
+    #[must_use]
+    pub const fn type_ahead_column_key(mut self, key: Option<ColumnKey>) -> Self {
+        self.type_ahead_column = match key {
+            Some(key) => TypeAheadColumn::Key(key),
+            None => TypeAheadColumn::Cursor,
+        };
+        self
+    }
+
+    #[must_use]
+    pub const fn type_ahead_timeout(mut self, timeout: Duration) -> Self {
+        self.type_ahead_timeout = timeout;
         self
     }
 
@@ -283,7 +320,14 @@ impl<'a> Table<'a> {
     where
         'a: 'b,
     {
-        Grid::new(self.id, columns)
+        let grid = Grid::new(self.id, columns);
+        let grid = match self.type_ahead_column {
+            TypeAheadColumn::Cursor => grid.type_ahead_column(None),
+            TypeAheadColumn::Index(index) => grid.type_ahead_column(Some(index)),
+            TypeAheadColumn::Key(key) => grid.type_ahead_column_key(Some(key)),
+        };
+        grid.type_ahead(self.type_ahead)
+            .type_ahead_timeout(self.type_ahead_timeout)
             .nav(NavUnit::Row)
             .gutter(GridGutter::Detailed {
                 row_numbers: false,
@@ -578,6 +622,10 @@ impl<M: GridModel + ?Sized> GridModel for OrderedModel<'_, M> {
 
     fn row_key(&self, row: usize) -> ItemKey {
         self.source.row_key(self.order[row])
+    }
+
+    fn row_enabled(&self, row: usize) -> bool {
+        self.source.row_enabled(self.order[row])
     }
 
     fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>> {

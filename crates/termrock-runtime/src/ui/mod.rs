@@ -62,6 +62,12 @@ impl CellRoles {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct TypeAheadDeclaration {
+    pub(crate) owner: Id,
+    pub(crate) layer: LayerId,
+}
+
 #[derive(Debug, Default)]
 pub struct FrameState {
     pub registry: Registry,
@@ -80,6 +86,7 @@ pub struct FrameState {
     pub(crate) declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
     pub(crate) scoped_bubble_bindings: Vec<ScopedBubbleBinding>,
+    pub(crate) type_aheads: Vec<TypeAheadDeclaration>,
     pub(crate) diagnostics: Diagnostics,
     pub(crate) tooltips: crate::Tooltips,
     pub(crate) roles: Vec<CellRoles>,
@@ -199,6 +206,7 @@ impl FrameState {
         self.declared.clear();
         self.bindings.reset();
         self.scoped_bubble_bindings.clear();
+        self.type_aheads.clear();
         self.diagnostics.clear();
         self.roles.clear();
         self.roles
@@ -904,6 +912,46 @@ impl<'f> Ui<'f> {
                 Err(error)
             }
         }
+    }
+
+    pub fn publish_type_ahead(&mut self, owner: Id, flags: StateFlags) {
+        if self.registrations_suppressed()
+            || flags.intersects(StateFlags::DISABLED | StateFlags::EDITING)
+        {
+            return;
+        }
+
+        let registered_here = self.frame.ring.entry(owner).is_some_and(|entry| {
+            entry.layer == self.layer
+                && !entry.disabled
+                && !entry.swallows_typing
+                && !entry.area.is_empty()
+        }) && self.frame.ring.contains(owner)
+            && !self
+                .frame
+                .declared
+                .iter()
+                .any(|(id, state)| *id == owner && state.contains(StateFlags::EDITING))
+            && self.frame.registry.layer_of(owner) == Some(self.layer)
+            && self
+                .frame
+                .registry
+                .area_of(owner)
+                .is_some_and(|area| !area.is_empty());
+        if !registered_here
+            || self
+                .frame
+                .type_aheads
+                .iter()
+                .any(|declaration| declaration.owner == owner && declaration.layer == self.layer)
+        {
+            return;
+        }
+
+        self.frame.type_aheads.push(TypeAheadDeclaration {
+            owner,
+            layer: self.layer,
+        });
     }
 
     pub fn publish_typing_target<C: Copy + 'static>(

@@ -92,6 +92,7 @@ pub struct LastFrame {
     pub(crate) declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
     pub(crate) scoped_bubble_bindings: Vec<ScopedBubbleBinding>,
+    pub(crate) type_aheads: Vec<super::TypeAheadDeclaration>,
     pub(crate) typing_bindings: BindingRegistry,
     pub(crate) typing: crate::runtime::typing::TypingResolved,
     pub(crate) snapshot: Snapshot,
