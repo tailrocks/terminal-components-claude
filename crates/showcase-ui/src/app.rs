@@ -3341,7 +3341,9 @@ pub fn run() -> std::io::Result<()> {
         .iter()
         .any(|arg| matches!(arg.as_str(), "-h" | "--help"))
     {
-        println!("{CLI_HELP}");
+        let mut stdout = std::io::stdout().lock();
+        std::io::Write::write_all(&mut stdout, CLI_HELP.as_bytes())?;
+        std::io::Write::flush(&mut stdout)?;
         return Ok(());
     }
     let (nav, theme, paused, frame) = parse_args(args.into_iter())?;
