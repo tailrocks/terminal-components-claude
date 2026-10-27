@@ -10,12 +10,24 @@ use crate::layer::LayerId;
 
 static NEXT_SCROLL_REGISTRY_ID: AtomicU64 = AtomicU64::new(1);
 
-fn next_scroll_registry_id() -> u64 {
-    NEXT_SCROLL_REGISTRY_ID
+fn next_scroll_registry_id(counter: &AtomicU64) -> Option<u64> {
+    counter
         .try_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
             next.checked_add(1)
         })
-        .expect("scroll registry identity space exhausted")
+        .ok()
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct ScrollRegistryIdentity(Option<u64>);
+
+impl core::fmt::Debug for ScrollRegistryIdentity {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self.0 {
+            Some(identity) => core::fmt::Debug::fmt(&identity, f),
+            None => f.write_str("exhausted"),
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -274,7 +286,7 @@ pub struct Registry {
     pointer_order: Option<Vec<usize>>,
     routed_scrolls: Vec<Option<RoutedScroll>>,
     text_drag_regions: Vec<TextDragRegion>,
-    registry_id: u64,
+    registry_id: ScrollRegistryIdentity,
     generation: u32,
     route_epoch: u64,
     route_epoch_exhausted: bool,
@@ -285,19 +297,7 @@ pub struct Registry {
 
 impl Clone for Registry {
     fn clone(&self) -> Self {
-        Self {
-            regions: self.regions.clone(),
-            pointer_order: self.pointer_order.clone(),
-            routed_scrolls: self.routed_scrolls.clone(),
-            text_drag_regions: self.text_drag_regions.clone(),
-            registry_id: next_scroll_registry_id(),
-            generation: self.generation,
-            route_epoch: self.route_epoch,
-            route_epoch_exhausted: self.route_epoch_exhausted,
-            has_pointer_exclusions: self.has_pointer_exclusions,
-            bars: self.bars.clone(),
-            releases: self.releases.clone(),
-        }
+        self.clone_with_registry_id(&NEXT_SCROLL_REGISTRY_ID)
     }
 }
 
@@ -308,13 +308,33 @@ impl Default for Registry {
 }
 
 impl Registry {
+    fn clone_with_registry_id(&self, next: &AtomicU64) -> Self {
+        Self {
+            regions: self.regions.clone(),
+            pointer_order: self.pointer_order.clone(),
+            routed_scrolls: self.routed_scrolls.clone(),
+            text_drag_regions: self.text_drag_regions.clone(),
+            registry_id: ScrollRegistryIdentity(next_scroll_registry_id(next)),
+            generation: self.generation,
+            route_epoch: self.route_epoch,
+            route_epoch_exhausted: self.route_epoch_exhausted,
+            has_pointer_exclusions: self.has_pointer_exclusions,
+            bars: self.bars.clone(),
+            releases: self.releases.clone(),
+        }
+    }
+
     pub fn new(generation: u32) -> Self {
+        Self::new_with_registry_id(generation, &NEXT_SCROLL_REGISTRY_ID)
+    }
+
+    fn new_with_registry_id(generation: u32, next: &AtomicU64) -> Self {
         Registry {
             regions: Vec::new(),
             pointer_order: None,
             routed_scrolls: Vec::new(),
             text_drag_regions: Vec::new(),
-            registry_id: next_scroll_registry_id(),
+            registry_id: ScrollRegistryIdentity(next_scroll_registry_id(next)),
             generation,
             route_epoch: 1,
             route_epoch_exhausted: false,
@@ -602,6 +622,7 @@ impl Registry {
         source_revision: u64,
         policy: ScrollRoutePolicy,
     ) -> Option<ScrollRouteKey> {
+        let registry_id = self.registry_id.0?;
         if area.is_empty() || self.route_epoch_exhausted {
             return None;
         }
@@ -625,7 +646,7 @@ impl Registry {
             invalid: false,
         });
         Some(ScrollRouteKey {
-            registry_id: self.registry_id,
+            registry_id,
             registry_epoch: self.route_epoch,
             generation: self.generation,
             registration_index,
@@ -693,8 +714,9 @@ impl Registry {
     }
 
     fn valid_route_key(&self, key: ScrollRouteKey) -> Option<usize> {
+        let registry_id = self.registry_id.0?;
         (key.registry_epoch == self.route_epoch
-            && key.registry_id == self.registry_id
+            && key.registry_id == registry_id
             && key.generation == self.generation
             && !self.route_epoch_exhausted
             && self
@@ -733,6 +755,7 @@ impl Registry {
         &self,
         registration_index: usize,
     ) -> Option<(ScrollRouteKey, u64)> {
+        let registry_id = self.registry_id.0?;
         if self.route_epoch_exhausted {
             return None;
         }
@@ -743,7 +766,7 @@ impl Registry {
         }
         Some((
             ScrollRouteKey {
-                registry_id: self.registry_id,
+                registry_id,
                 registry_epoch: self.route_epoch,
                 generation: self.generation,
                 registration_index,
@@ -1548,6 +1571,262 @@ mod tests {
     const A: Id = Id::root("a");
     const B: Id = Id::root("b");
     const C: Id = Id::root("c");
+
+    #[test]
+    fn scroll_registry_identity_allocation_stops_permanently_at_max() {
+        let counter = AtomicU64::new(1);
+        assert_eq!(next_scroll_registry_id(&counter), Some(1));
+        assert_eq!(next_scroll_registry_id(&counter), Some(2));
+
+        let counter = AtomicU64::new(u64::MAX - 1);
+        assert_eq!(next_scroll_registry_id(&counter), Some(u64::MAX - 1));
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
+        assert_eq!(next_scroll_registry_id(&counter), None);
+        assert_eq!(next_scroll_registry_id(&counter), None);
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
+    }
+
+    #[test]
+    fn concurrent_scroll_registry_identity_exhaustion_keeps_unique_successes() {
+        let counter = AtomicU64::new(u64::MAX - 2);
+        let results = std::thread::scope(|scope| {
+            let handles: Vec<_> = (0..8)
+                .map(|_| scope.spawn(|| next_scroll_registry_id(&counter)))
+                .collect();
+            handles
+                .into_iter()
+                .map(|handle| handle.join().expect("identity allocation worker completes"))
+                .collect::<Vec<_>>()
+        });
+        assert_eq!(results.len(), 8);
+        assert_eq!(results.iter().filter(|result| result.is_none()).count(), 6);
+        let mut issued: Vec<_> = results.into_iter().flatten().collect();
+        issued.sort_unstable();
+
+        assert_eq!(issued, [u64::MAX - 2, u64::MAX - 1]);
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
+        assert_eq!(next_scroll_registry_id(&counter), None);
+    }
+
+    #[test]
+    fn exhausted_scroll_registry_identity_disables_only_routed_wheel_capability() {
+        let counter = AtomicU64::new(u64::MAX - 2);
+        let outer = Rect::new(0, 0, 20, 20);
+        let inner = Rect::new(2, 2, 10, 10);
+        let pos = Position::new(4, 4);
+        let mut previous = Registry::new_with_registry_id(7, &counter);
+        let previous_key = previous
+            .register_hit_stack_wheel(
+                A,
+                PartRef::of(Part::LABEL),
+                outer,
+                LayerId::PAGE,
+                Axes::V,
+                3,
+            )
+            .expect("the last two allocated registries remain usable");
+        let mut source = Registry::new_with_registry_id(7, &counter);
+        let parent = source
+            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
+            .expect("the final allocated registry remains usable");
+        let child = source
+            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
+            .expect("the final allocated registry remains usable");
+        assert!(source.link_scroll_parent(child, parent));
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
+        assert!(previous.route_key_is_eligible(previous_key, Axis::V, pos, LayerId::PAGE));
+        assert!(source.route_key_is_eligible(child, Axis::V, pos, LayerId::PAGE));
+        assert_eq!(source.routed_scroll_source_revision(child), Some(11));
+        assert_eq!(
+            source.next_scroll_route_parent(child, Axis::V, pos, LayerId::PAGE),
+            Some((parent, 7))
+        );
+
+        let mut clone = source.clone_with_registry_id(&counter);
+        assert_eq!(clone.registry_id.0, None);
+        assert_eq!(clone.regions, source.regions);
+        assert_eq!(clone.routed_scrolls, source.routed_scrolls);
+        assert_eq!(clone.generation, source.generation);
+        assert_eq!(clone.route_epoch, source.route_epoch);
+        assert_eq!(clone.route_epoch_exhausted, source.route_epoch_exhausted);
+        assert_eq!(clone.routed_scroll_info(0), None);
+        assert_eq!(clone.routed_scroll_source_revision(child), None);
+        assert_eq!(clone.routed_scroll_policy(child), None);
+        assert!(!clone.route_key_is_eligible(child, Axis::V, pos, LayerId::PAGE));
+        assert!(!clone.link_scroll_parent(child, parent));
+        assert_eq!(
+            clone.next_scroll_route_target(child, Axis::V, pos, LayerId::PAGE, &[]),
+            None
+        );
+        for key in [previous_key, parent, child] {
+            assert_eq!(clone.valid_route_key(key), None);
+        }
+
+        let before_routed_rejection = (clone.regions.len(), clone.routed_scrolls.len());
+        assert_eq!(
+            clone.register_routed_scroll(
+                C,
+                inner,
+                LayerId::PAGE,
+                Axes::V,
+                Headroom::default(),
+                19,
+            ),
+            None
+        );
+        assert_eq!(
+            (clone.regions.len(), clone.routed_scrolls.len()),
+            before_routed_rejection,
+            "routed rejection does not add an ordinary scroll registration"
+        );
+
+        let control_area = Rect::new(30, 1, 4, 4);
+        let part_area = Rect::new(40, 1, 4, 4);
+        let scroll_area = Rect::new(50, 1, 4, 4);
+        let ordinary_control = Id::root("exhausted.ordinary-control");
+        let ordinary_part = Id::root("exhausted.ordinary-part");
+        let ordinary_scroll = Id::root("exhausted.ordinary-scroll");
+        let part = PartRef::of(Part::SEAM);
+        clone.register_control(ordinary_control, control_area, LayerId::PAGE);
+        clone.register_part(ordinary_part, part, part_area, LayerId::PAGE);
+        clone.register_scroll(
+            ordinary_scroll,
+            scroll_area,
+            LayerId::PAGE,
+            Axes::V,
+            Headroom::default(),
+        );
+        assert_eq!(
+            clone.hit(Position::new(31, 2)).map(|hit| hit.owner),
+            Some(ordinary_control)
+        );
+        assert_eq!(
+            clone.hit(Position::new(41, 2)).map(|hit| (hit.owner, hit.kind)),
+            Some((ordinary_part, RegionKind::Part))
+        );
+        assert_eq!(
+            clone
+                .hit_scroll(Position::new(51, 2), Axis::V)
+                .map(|hit| hit.owner),
+            Some(ordinary_scroll)
+        );
+
+        let mut other = Registry::new_with_registry_id(7, &counter);
+        assert_eq!(other.registry_id.0, None);
+        assert_eq!(
+            other.register_routed_scroll(
+                C,
+                inner,
+                LayerId::PAGE,
+                Axes::V,
+                Headroom::default(),
+                19,
+            ),
+            None
+        );
+        assert!(other.regions.is_empty());
+        for key in [previous_key, parent, child] {
+            assert_eq!(other.valid_route_key(key), None);
+        }
+
+        clone.reset(8);
+        assert_eq!(clone.registry_id.0, None);
+        assert_eq!(
+            clone.register_routed_scroll(
+                C,
+                inner,
+                LayerId::PAGE,
+                Axes::V,
+                Headroom::default(),
+                19,
+            ),
+            None
+        );
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
+
+        source.reset(8);
+        assert_eq!(source.registry_id.0, Some(u64::MAX - 1));
+        assert_eq!(source.valid_route_key(parent), None);
+        let fresh = source
+            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 23)
+            .expect("reset preserves an already allocated identity");
+        assert_eq!(fresh.registry_id, u64::MAX - 1);
+        assert!(source.route_key_is_eligible(fresh, Axis::V, pos, LayerId::PAGE));
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
+    }
+
+    #[test]
+    fn scroll_registry_identity_exhaustion_does_not_change_epoch_exhaustion() {
+        let counter = AtomicU64::new(100);
+        let mut registry = Registry::new_with_registry_id(3, &counter);
+        registry.route_epoch = u64::MAX;
+        registry.reset(4);
+        assert!(registry.route_epoch_exhausted);
+        assert_eq!(registry.route_epoch, u64::MAX);
+        assert!(registry
+            .register_hit_stack_wheel(
+                A,
+                PartRef::of(Part::LABEL),
+                Rect::new(0, 0, 2, 2),
+                LayerId::PAGE,
+                Axes::V,
+                7,
+            )
+            .is_none());
+
+        let mut clone = registry.clone_with_registry_id(&counter);
+        assert_eq!(clone.registry_id.0, Some(101));
+        assert!(clone.route_epoch_exhausted);
+        assert_eq!(clone.route_epoch, u64::MAX);
+        assert!(clone
+            .register_hit_stack_wheel(
+                A,
+                PartRef::of(Part::LABEL),
+                Rect::new(0, 0, 2, 2),
+                LayerId::PAGE,
+                Axes::V,
+                7,
+            )
+            .is_none());
+    }
+
+    #[test]
+    fn allocated_scroll_route_keys_keep_numeric_debug_and_hash_identity() {
+        let counter = AtomicU64::new(1);
+        let area = Rect::new(0, 0, 8, 6);
+        let mut source = Registry::new_with_registry_id(3, &counter);
+        let key = source
+            .register_hit_stack_wheel(
+                A,
+                PartRef::of(Part::LABEL),
+                area,
+                LayerId::PAGE,
+                Axes::V,
+                7,
+            )
+            .expect("the allocated registry creates a key");
+        let same_key = source
+            .routed_scroll_info(0)
+            .expect("the route remains live")
+            .0;
+        assert_eq!(key, same_key);
+        assert!(format!("{source:?}").contains("registry_id: 1,"));
+        assert_eq!(format!("{key:?}"), "ScrollRouteKey { .. }");
+
+        let clone = source.clone_with_registry_id(&counter);
+        let clone_key = clone
+            .routed_scroll_info(0)
+            .expect("the clone has a fresh identity")
+            .0;
+        assert_ne!(key, clone_key);
+        assert!(format!("{clone:?}").contains("registry_id: 2,"));
+        let keys = std::collections::HashSet::from([key, same_key, clone_key]);
+        assert_eq!(keys.len(), 2);
+
+        let exhausted_counter = AtomicU64::new(u64::MAX);
+        let exhausted = Registry::new_with_registry_id(3, &exhausted_counter);
+        assert!(format!("{exhausted:?}").contains("registry_id: exhausted,"));
+    }
 
     #[test]
     fn last_registration_wins() {
