@@ -809,9 +809,423 @@ fn row_cols<'a>(line: impl Into<LineRef<'a>>, w: u16, wrap: bool, row: usize) ->
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+struct WordRow {
+    ownership_start: usize,
+    ownership_end: usize,
+    painted_start: usize,
+    painted_end: usize,
+    display_end_source: usize,
+    display_cols: usize,
+    replacement: Option<WordReplacement>,
+    soft_break_start: Option<usize>,
+    trailing_omitted: bool,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct WordReplacement {
+    source_start: usize,
+    source_end: usize,
+    display_start: usize,
+}
+
+#[derive(Debug, Default)]
+struct WordLine {
+    rows: Vec<WordRow>,
+}
+
+impl WordLine {
+    fn row_for_source(&self, col: usize) -> usize {
+        let last = self.rows.len().saturating_sub(1);
+        if self
+            .rows
+            .get(last)
+            .is_some_and(|row| row.trailing_omitted && col >= row.ownership_start)
+        {
+            return last;
+        }
+        for (index, row) in self.rows.iter().enumerate() {
+            if index > 0 && row.soft_break_start == Some(col) {
+                return index - 1;
+            }
+            if col >= row.ownership_start && col < row.ownership_end {
+                return index;
+            }
+        }
+        last
+    }
+}
+
+#[derive(Clone, Copy)]
+struct WordCell {
+    start: usize,
+    end: usize,
+    width: usize,
+}
+
+#[derive(Clone, Copy)]
+struct WordSeparator {
+    start: usize,
+    end: usize,
+    width: usize,
+}
+
+#[derive(Clone, Copy)]
+struct WordToken {
+    start: usize,
+    end: usize,
+    width: usize,
+    has_cells: bool,
+    separator: Option<WordSeparator>,
+}
+
+struct WordRowBuilder {
+    ownership_start: usize,
+    anchor: usize,
+    painted_start: Option<usize>,
+    painted_end: usize,
+    display_cols: usize,
+    replacement: Option<WordReplacement>,
+    soft_break_start: Option<usize>,
+}
+
+impl WordRowBuilder {
+    fn new(ownership_start: usize, anchor: usize, soft_break_start: Option<usize>) -> Self {
+        WordRowBuilder {
+            ownership_start,
+            anchor,
+            painted_start: None,
+            painted_end: anchor,
+            display_cols: 0,
+            replacement: None,
+            soft_break_start,
+        }
+    }
+
+    fn append(&mut self, cell: WordCell, width: usize) {
+        let display_width = if cell.width > width { 1 } else { cell.width };
+        if cell.width > width {
+            self.replacement = Some(WordReplacement {
+                source_start: cell.start,
+                source_end: cell.end,
+                display_start: self.display_cols,
+            });
+        }
+        self.painted_start.get_or_insert(cell.start);
+        self.painted_end = cell.end;
+        self.display_cols = self.display_cols.saturating_add(display_width);
+    }
+
+    fn append_separator_range(&mut self, start: usize, end: usize, width: usize) {
+        if width == 0 {
+            return;
+        }
+        self.painted_start.get_or_insert(start);
+        self.painted_end = end;
+        self.display_cols = self.display_cols.saturating_add(width);
+    }
+
+    fn finish(self, ownership_end: usize, display_end_source: usize) -> WordRow {
+        WordRow {
+            ownership_start: self.ownership_start,
+            ownership_end,
+            painted_start: self.painted_start.unwrap_or(self.anchor),
+            painted_end: self.painted_start.map_or(self.anchor, |_| self.painted_end),
+            display_end_source,
+            display_cols: self.display_cols,
+            replacement: self.replacement,
+            soft_break_start: self.soft_break_start,
+            trailing_omitted: false,
+        }
+    }
+}
+
+impl WordRow {
+    fn source_to_display(self, col: usize) -> usize {
+        if col <= self.painted_start {
+            return 0;
+        }
+        if col >= self.painted_end {
+            return self.display_cols;
+        }
+        let Some(replacement) = self.replacement else {
+            return col
+                .saturating_sub(self.painted_start)
+                .min(self.display_cols);
+        };
+        if col < replacement.source_start {
+            return col
+                .saturating_sub(self.painted_start)
+                .min(self.display_cols);
+        }
+        if col < replacement.source_end {
+            return replacement.display_start;
+        }
+        let removed = replacement
+            .source_end
+            .saturating_sub(replacement.source_start)
+            .saturating_sub(1);
+        col.saturating_sub(self.painted_start)
+            .saturating_sub(removed)
+            .min(self.display_cols)
+    }
+
+    fn display_to_source(self, col: usize) -> usize {
+        if col >= self.display_cols {
+            return self.display_end_source;
+        }
+        let Some(replacement) = self.replacement else {
+            return self.painted_start.saturating_add(col).min(self.painted_end);
+        };
+        if col < replacement.display_start {
+            return self.painted_start.saturating_add(col).min(self.painted_end);
+        }
+        if col == replacement.display_start {
+            return replacement.source_start;
+        }
+        let added = replacement
+            .source_end
+            .saturating_sub(replacement.source_start)
+            .saturating_sub(1);
+        self.painted_start
+            .saturating_add(col)
+            .saturating_add(added)
+            .min(self.painted_end)
+    }
+}
+
+fn begin_word_token(
+    token_index: usize,
+    token: WordToken,
+    limit: usize,
+    rows: &mut Vec<WordRowBuilder>,
+    row_width: &mut usize,
+) -> bool {
+    if token_index > 0
+        && let Some(separator) = token.separator
+    {
+        let mut appended_start = None;
+        let mut appended_end = separator.start;
+        let mut appended_width = 0usize;
+        for separator_index in 0..separator.width {
+            let start = separator.start.saturating_add(separator_index);
+            let end = start.saturating_add(1);
+            let next_word_width = if separator_index.saturating_add(1) == separator.width {
+                token.width
+            } else {
+                0
+            };
+            if *row_width > 0 && row_width.saturating_add(1).saturating_add(next_word_width) > limit
+            {
+                if appended_width > 0
+                    && let Some(row) = rows.last_mut()
+                {
+                    row.append_separator_range(
+                        appended_start.unwrap_or(separator.start),
+                        appended_end,
+                        appended_width,
+                    );
+                }
+                rows.push(WordRowBuilder::new(start, end, Some(start)));
+                *row_width = 0;
+                appended_start = None;
+                appended_width = 0;
+            } else if *row_width > 0 {
+                appended_start.get_or_insert(start);
+                appended_end = end;
+                appended_width = appended_width.saturating_add(1);
+                *row_width = row_width.saturating_add(1);
+            }
+        }
+        if appended_width > 0
+            && let Some(row) = rows.last_mut()
+        {
+            row.append_separator_range(
+                appended_start.unwrap_or(separator.start),
+                appended_end,
+                appended_width,
+            );
+        }
+    }
+
+    if token.width > limit && *row_width > 0 {
+        rows.push(WordRowBuilder::new(token.start, token.start, None));
+        *row_width = 0;
+    }
+    token.width > limit
+}
+
+fn build_word_rows(line: LineRef<'_>, width: u16) -> WordLine {
+    if width == 0 {
+        let total = line_cols(line);
+        return WordLine {
+            rows: vec![WordRow {
+                ownership_end: total,
+                painted_end: total,
+                display_end_source: total,
+                ..WordRow::default()
+            }],
+        };
+    }
+
+    let mut tokens = vec![WordToken {
+        start: 0,
+        end: 0,
+        width: 0,
+        has_cells: false,
+        separator: None,
+    }];
+    let mut pending_separator: Option<WordSeparator> = None;
+    let mut total = 0usize;
+    walk_line(line, |cell| {
+        let start = total;
+        let end = start.saturating_add(usize::from(cell.w));
+        let source_width = usize::from(cell.w);
+        if !cell.tab && cell_text(line, &cell) == " " {
+            if let Some(separator) = pending_separator.as_mut() {
+                separator.end = end;
+                separator.width = separator.width.saturating_add(source_width);
+            } else {
+                if let Some(token) = tokens.last_mut() {
+                    token.end = start;
+                }
+                pending_separator = Some(WordSeparator {
+                    start,
+                    end,
+                    width: source_width,
+                });
+            }
+        } else if let Some(separator) = pending_separator.take() {
+            tokens.push(WordToken {
+                start,
+                end,
+                width: source_width,
+                has_cells: true,
+                separator: Some(separator),
+            });
+        } else if let Some(token) = tokens.last_mut() {
+            if !token.has_cells {
+                token.start = start;
+            }
+            token.end = end;
+            token.width = token.width.saturating_add(source_width);
+            token.has_cells = true;
+        }
+        total = end;
+        ControlFlow::Continue(())
+    });
+    if let Some(separator) = pending_separator {
+        tokens.push(WordToken {
+            start: total,
+            end: total,
+            width: 0,
+            has_cells: false,
+            separator: Some(separator),
+        });
+    }
+
+    let limit = usize::from(width);
+    let mut rows = vec![WordRowBuilder::new(0, 0, None)];
+    let mut row_width = 0usize;
+    let mut token_index = 0usize;
+    let mut active_token = None;
+    let mut active_overlong = false;
+    let mut col = 0usize;
+    walk_line(line, |cell| {
+        if active_token.is_none() {
+            while let Some(token) = tokens.get(token_index).copied() {
+                if token.start > col {
+                    break;
+                }
+                if token.has_cells {
+                    active_overlong =
+                        begin_word_token(token_index, token, limit, &mut rows, &mut row_width);
+                    active_token = Some(token);
+                    break;
+                }
+                begin_word_token(token_index, token, limit, &mut rows, &mut row_width);
+                token_index = token_index.saturating_add(1);
+            }
+        }
+
+        let end = col.saturating_add(usize::from(cell.w));
+        if let Some(token) = active_token
+            && col >= token.start
+            && col < token.end
+        {
+            let source = WordCell {
+                start: col,
+                end,
+                width: usize::from(cell.w),
+            };
+            let display_width = if active_overlong && source.width > limit {
+                1
+            } else {
+                source.width
+            };
+            if active_overlong && row_width > 0 && row_width.saturating_add(display_width) > limit {
+                rows.push(WordRowBuilder::new(source.start, source.start, None));
+                row_width = 0;
+            }
+            if let Some(row) = rows.last_mut() {
+                row.append(source, limit);
+            }
+            row_width = row_width.saturating_add(display_width);
+            if end >= token.end {
+                active_token = None;
+                token_index = token_index.saturating_add(1);
+            }
+        }
+        col = end;
+        ControlFlow::Continue(())
+    });
+
+    while let Some(token) = tokens.get(token_index).copied() {
+        if token.start > total {
+            break;
+        }
+        debug_assert!(!token.has_cells, "unvisited non-empty word token");
+        begin_word_token(token_index, token, limit, &mut rows, &mut row_width);
+        token_index = token_index.saturating_add(1);
+    }
+
+    let trailing_separator = tokens
+        .last()
+        .and_then(|token| token.separator)
+        .filter(|separator| separator.end == total);
+    let trailing_omitted = trailing_separator.is_some_and(|_| {
+        rows.last()
+            .is_none_or(|row| row.painted_start.is_none() || row.painted_end < total)
+    });
+    if trailing_omitted && let Some(row) = rows.last_mut() {
+        row.soft_break_start = None;
+    }
+
+    let row_count = rows.len();
+    let mut finished = Vec::with_capacity(row_count);
+    let mut rows = rows.into_iter().peekable();
+    while let Some(row) = rows.next() {
+        let ownership_end = rows.peek().map_or(total, |next| next.ownership_start);
+        let display_end_source = if finished.len() + 1 == row_count && trailing_omitted {
+            total
+        } else {
+            row.painted_start.map_or(row.anchor, |_| row.painted_end)
+        };
+        finished.push(row.finish(ownership_end, display_end_source));
+    }
+    if let Some(last) = finished.last_mut() {
+        last.trailing_omitted = trailing_omitted;
+        if trailing_omitted {
+            last.display_end_source = total;
+        }
+    }
+    WordLine { rows: finished }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 struct LayoutKey {
     width: u16,
     wrap: bool,
+    word_wrap: bool,
     generation: u32,
     layout_revision: u64,
     source_revision: Option<u64>,
@@ -827,6 +1241,7 @@ struct SelectionLayout {
 struct ViewportLayout {
     key: LayoutKey,
     prefix: Vec<usize>,
+    word_lines: Vec<WordLine>,
     lines: usize,
     widest_cols: usize,
     widest_valid: bool,
@@ -856,6 +1271,7 @@ impl ViewportLayout {
         if !append {
             self.key = key;
             self.prefix.clear();
+            self.word_lines.clear();
             self.lines = 0;
             self.widest_cols = 0;
             self.widest_valid = false;
@@ -895,7 +1311,14 @@ impl ViewportLayout {
         let mut indexed = 0usize;
         for index in self.lines..lines.len() {
             let Some(line) = lines.get(index) else { break };
-            let r = line_rows(line, key.width, true);
+            let r = if key.word_wrap {
+                let word_line = build_word_rows(line, key.width);
+                let rows = word_line.rows.len();
+                self.word_lines.push(word_line);
+                rows
+            } else {
+                line_rows(line, key.width, true)
+            };
             acc = acc.saturating_add(r);
             self.prefix.push(acc);
             indexed = indexed.saturating_add(1);
@@ -939,6 +1362,17 @@ impl ViewportLayout {
             return line.min(self.lines);
         }
         self.prefix.get(line).copied().unwrap_or(0)
+    }
+
+    fn word_line(&self, line: usize) -> Option<&WordLine> {
+        self.key
+            .word_wrap
+            .then(|| self.word_lines.get(line))
+            .flatten()
+    }
+
+    fn word_row(&self, line: usize, row: usize) -> Option<WordRow> {
+        self.word_line(line)?.rows.get(row).copied()
     }
 }
 
@@ -1150,6 +1584,10 @@ fn visual_row_for_position(
     pos: CellPos,
 ) -> Option<usize> {
     let line = lines.get(pos.line)?;
+    if key.word_wrap {
+        let row = layout.word_line(pos.line)?.row_for_source(pos.col);
+        return Some(layout.line_start(pos.line).saturating_add(row));
+    }
     let rows = line_rows(line, key.width, key.wrap).max(1);
     for row in 0..rows {
         let (start, end) = row_cols(line, key.width, key.wrap, row);
@@ -1445,6 +1883,7 @@ fn shift(p: &mut CellPos, dropped: usize) {
 pub struct TextViewport<'a> {
     id: Id,
     wrap: bool,
+    word_wrap: bool,
     horizontal_pan: bool,
     layout_revision: u64,
 
@@ -1465,6 +1904,7 @@ impl fmt::Debug for TextViewport<'_> {
         f.debug_struct("TextViewport")
             .field("id", &self.id)
             .field("wrap", &self.wrap)
+            .field("word_wrap", &self.word_wrap)
             .field("horizontal_pan", &self.horizontal_pan)
             .field("layout_revision", &self.layout_revision)
             .field("reserve_gutter", &self.reserve_gutter)
@@ -1502,6 +1942,7 @@ struct PreparedGeometry {
 
 #[derive(Clone, Copy, Debug, Default)]
 struct RowPosition {
+    key: LayoutKey,
     line: usize,
     wrapped_row: usize,
     horizontal_offset: usize,
@@ -1522,6 +1963,7 @@ impl<'a> TextViewport<'a> {
         TextViewport {
             id,
             wrap: false,
+            word_wrap: false,
             horizontal_pan: false,
             layout_revision: 0,
             reserve_gutter: true,
@@ -1546,6 +1988,12 @@ impl<'a> TextViewport<'a> {
     #[must_use]
     pub const fn wrap(mut self, yes: bool) -> Self {
         self.wrap = yes;
+        self
+    }
+
+    #[must_use]
+    pub const fn wrap_words(mut self, enabled: bool) -> Self {
+        self.word_wrap = enabled;
         self
     }
 
@@ -1702,6 +2150,7 @@ impl<'a> TextViewport<'a> {
         LayoutKey {
             width,
             wrap: self.wrap,
+            word_wrap: self.wrap && self.word_wrap,
             generation: st.generation,
             layout_revision: self.layout_revision,
             source_revision,
@@ -1892,8 +2341,15 @@ impl<'a> TextViewport<'a> {
         let visual = offset.checked_add(source_row)?;
         let (li, row) = layout.row_start(lines, visual);
         let line = lines.get(li)?;
-        let (start, end) = row_cols(line, key.width, self.wrap, row);
         let dx = usize::from(pos.x.checked_sub(hit_text.x)?);
+        if key.word_wrap {
+            let row = layout.word_row(li, row)?;
+            return Some(CellPos {
+                line: li,
+                col: row.display_to_source(dx),
+            });
+        }
+        let (start, end) = row_cols(line, key.width, self.wrap, row);
         let last = end.min(line_cols(line));
         let col = if self.pan_active() {
             start.saturating_add(horizontal_offset).saturating_add(dx)
@@ -3311,6 +3767,7 @@ impl<'a> TextViewport<'a> {
                     text,
                     lines,
                     RowPosition {
+                        key: geometry.key,
                         line: first_line,
                         wrapped_row: first_row,
                         horizontal_offset: if self.pan_active() {
@@ -3495,12 +3952,30 @@ impl<'a> TextViewport<'a> {
         let mut li = from.line;
         let mut row = from.wrapped_row;
         let text_w = text.width;
-        let mut rows_here = lines.get(li).map_or(0, |l| line_rows(l, text_w, self.wrap));
+        let mut rows_here = lines.get(li).map_or(0, |line| {
+            if from.key.word_wrap {
+                let layout = ui.cache::<ViewportLayout>(self.id);
+                layout.word_line(li).map_or(0, |word| word.rows.len())
+            } else {
+                line_rows(line, text_w, self.wrap)
+            }
+        });
 
         for y in text.rows() {
             let Some(line) = lines.get(li) else { break };
 
-            let cols = if self.pan_active() {
+            let word_row = if from.key.word_wrap {
+                let layout = ui.cache::<ViewportLayout>(self.id);
+                let Some(word_row) = layout.word_row(li, row) else {
+                    break;
+                };
+                Some(word_row)
+            } else {
+                None
+            };
+            let cols = if let Some(word_row) = word_row {
+                (word_row.painted_start, word_row.painted_end)
+            } else if self.pan_active() {
                 (
                     from.horizontal_offset,
                     from.horizontal_offset.saturating_add(usize::from(text_w)),
@@ -3508,12 +3983,24 @@ impl<'a> TextViewport<'a> {
             } else {
                 row_cols(line, text_w, self.wrap, row)
             };
-            paint_row(ui, y, line, li, cols, sel, styles);
-            row = row.saturating_add(1);
-            if row >= rows_here {
+            if let Some(word_row) = word_row {
+                paint_word_row(ui, y, line, li, sel, styles, word_row);
+            } else {
+                paint_legacy_row(ui, y, line, li, cols, sel, styles);
+            }
+            if row.saturating_add(1) >= rows_here {
                 row = 0;
                 li = li.saturating_add(1);
-                rows_here = lines.get(li).map_or(0, |l| line_rows(l, text_w, self.wrap));
+                rows_here = lines.get(li).map_or(0, |line| {
+                    if from.key.word_wrap {
+                        let layout = ui.cache::<ViewportLayout>(self.id);
+                        layout.word_line(li).map_or(0, |word| word.rows.len())
+                    } else {
+                        line_rows(line, text_w, self.wrap)
+                    }
+                });
+            } else {
+                row = row.saturating_add(1);
             }
         }
     }
@@ -3580,16 +4067,34 @@ impl<'a> TextViewport<'a> {
             return;
         };
         let before = line_start.unwrap_or(c.line);
-        let mut within = 0usize;
-        if self.wrap {
-            for i in 0..line_rows(at, width, true) {
-                let (a, b) = row_cols(at, width, true, i);
-                if c.col >= a && c.col < b {
-                    within = i;
-                    break;
+        let (within, caret_col) = if geometry.key.word_wrap {
+            let mapping = {
+                let layout = ui.cache::<ViewportLayout>(self.id);
+                layout.word_line(c.line).and_then(|word_line| {
+                    let row = word_line.row_for_source(c.col);
+                    word_line
+                        .rows
+                        .get(row)
+                        .copied()
+                        .map(|word_row| (row, word_row.source_to_display(c.col)))
+                })
+            };
+            let Some(mapping) = mapping else { return };
+            mapping
+        } else {
+            let mut within = 0usize;
+            if self.wrap {
+                for i in 0..line_rows(at, width, true) {
+                    let (a, b) = row_cols(at, width, true, i);
+                    if c.col >= a && c.col < b {
+                        within = i;
+                        break;
+                    }
                 }
             }
-        }
+            let (start, _) = row_cols(at, width, self.wrap, within);
+            (within, c.col.saturating_sub(start))
+        };
         let visual = before.saturating_add(within);
         let Some(source_row) = visual.checked_sub(offset) else {
             return;
@@ -3597,8 +4102,6 @@ impl<'a> TextViewport<'a> {
         let Some(y) = text_window.physical_row_for_source(source_row) else {
             return;
         };
-        let (start, _) = row_cols(at, width, self.wrap, within);
-        let caret_col = c.col.saturating_sub(start);
         if caret_col < horizontal_offset {
             return;
         }
@@ -3644,7 +4147,40 @@ struct Run {
     joined: Option<Box<str>>,
 }
 
-fn paint_row(
+fn paint_replacement(
+    ui: &mut Ui<'_>,
+    line: LineRef<'_>,
+    span: usize,
+    rect: Rect,
+    x: &mut u16,
+    styles: (PaintStyle, PaintStyle),
+    selected: bool,
+) {
+    if *x >= rect.right() {
+        return;
+    }
+    let (role, add, paint) = run_style(line, span);
+    let base = if selected { styles.1 } else { styles.0 };
+    let area = Rect {
+        x: *x,
+        y: rect.y,
+        width: rect.right().saturating_sub(*x),
+        height: 1,
+    };
+    let width = if let Some(paint) = paint {
+        ui.paint_str(area, "…", run_paint_style(base, paint, selected))
+    } else {
+        let replacement = Span {
+            text: "…",
+            role: if selected { None } else { role },
+            add,
+        };
+        ui.paint_spans(area, &[replacement], base)
+    };
+    *x = x.saturating_add(width);
+}
+
+fn paint_legacy_row(
     ui: &mut Ui<'_>,
     rect: Rect,
     line: LineRef<'_>,
@@ -3728,6 +4264,150 @@ fn paint_row(
             let p = CellPos { line: line_ix, col };
             p >= a && p < b
         });
+        if c.tab {
+            flush(ui, run.take(), &mut x);
+            let base = if is_sel { styles.1 } else { styles.0 };
+            let paint = run_style(line, c.span)
+                .2
+                .map_or(base, |paint| run_paint_style(base, paint, is_sel));
+            ui.fill(
+                Rect {
+                    x,
+                    y: rect.y,
+                    width: 1,
+                    height: 1,
+                },
+                paint,
+            );
+            x = x.saturating_add(1);
+        } else if c.joined.is_some() {
+            flush(ui, run.take(), &mut x);
+            run = Some(Run {
+                span: c.span,
+                sel: is_sel,
+                a: c.at,
+                b: c.at.saturating_add(c.len),
+                joined: c.joined,
+            });
+        } else {
+            let end = c.at.saturating_add(c.len);
+            match run.take() {
+                Some(r)
+                    if r.joined.is_none() && r.span == c.span && r.sel == is_sel && r.b == c.at =>
+                {
+                    run = Some(Run { b: end, ..r });
+                }
+                other => {
+                    flush(ui, other, &mut x);
+                    run = Some(Run {
+                        span: c.span,
+                        sel: is_sel,
+                        a: c.at,
+                        b: end,
+                        joined: None,
+                    });
+                }
+            }
+        }
+        col = next;
+        ControlFlow::Continue(())
+    });
+    flush(ui, run.take(), &mut x);
+}
+
+fn paint_word_row(
+    ui: &mut Ui<'_>,
+    rect: Rect,
+    line: LineRef<'_>,
+    line_ix: usize,
+    sel: Option<(CellPos, CellPos)>,
+    styles: (PaintStyle, PaintStyle),
+    word_row: WordRow,
+) {
+    let (from, to) = (word_row.painted_start, word_row.painted_end);
+    let right = rect.right();
+    let mut x = rect.x;
+    let mut col = 0usize;
+    let mut run: Option<Run> = None;
+    let flush = |ui: &mut Ui<'_>, r: Option<Run>, x: &mut u16| {
+        let Some(r) = r else { return };
+        let text = r
+            .joined
+            .as_deref()
+            .or_else(|| run_text(line, r.span).get(r.a..r.b))
+            .unwrap_or("");
+        if text.is_empty() || *x >= right {
+            return;
+        }
+        let (role, add, paint) = run_style(line, r.span);
+        let base = if r.sel { styles.1 } else { styles.0 };
+        let area = Rect {
+            x: *x,
+            y: rect.y,
+            width: right.saturating_sub(*x),
+            height: 1,
+        };
+        let w = if let Some(paint) = paint {
+            ui.paint_str(area, text, run_paint_style(base, paint, r.sel))
+        } else {
+            let sp = Span {
+                text,
+                role: if r.sel { None } else { role },
+                add,
+            };
+            ui.paint_spans(area, &[sp], base)
+        };
+        *x = x.saturating_add(w);
+    };
+    walk_line(line, |c| {
+        if col >= to || x >= right {
+            return ControlFlow::Break(());
+        }
+        let next = col.saturating_add(usize::from(c.w));
+        if next <= from {
+            col = next;
+            return ControlFlow::Continue(());
+        }
+        if col < from {
+            flush(ui, run.take(), &mut x);
+            let blank = next
+                .saturating_sub(from)
+                .min(usize::from(right.saturating_sub(x)));
+            let is_sel = sel.is_some_and(|(a, b)| {
+                let p = CellPos { line: line_ix, col };
+                p >= a && p < b
+            });
+            if blank > 0 {
+                ui.fill(
+                    Rect {
+                        x,
+                        y: rect.y,
+                        width: blank.min(usize::from(u16::MAX)) as u16,
+                        height: 1,
+                    },
+                    if is_sel { styles.1 } else { styles.0 },
+                );
+                x = x.saturating_add(blank.min(usize::from(u16::MAX)) as u16);
+            }
+            col = next;
+            return ControlFlow::Continue(());
+        }
+        if next > to {
+            return ControlFlow::Break(());
+        }
+        let is_sel = sel.is_some_and(|(a, b)| {
+            let p = CellPos { line: line_ix, col };
+            p >= a && p < b
+        });
+        let replacement = word_row.replacement.filter(|replacement| {
+            replacement.source_start == col && replacement.source_end == next
+        });
+        if replacement.is_some() {
+            flush(ui, run.take(), &mut x);
+            paint_replacement(ui, line, c.span, rect, &mut x, styles, is_sel);
+            col = next;
+            return ControlFlow::Continue(());
+        }
         if c.tab {
             flush(ui, run.take(), &mut x);
             let base = if is_sel { styles.1 } else { styles.0 };
