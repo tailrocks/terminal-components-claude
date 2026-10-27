@@ -228,6 +228,9 @@ const HELP_MOUSE_ROWS: &[(&str, &str)] = &[
     ("Wheel", "scroll under the pointer"),
 ];
 const HELP_EVERYWHERE_ROWS: &[(&str, &str)] = &[
+    ("Alt+0", "Here"),
+    ("Ctrl+W", "Close tab"),
+    ("Ctrl+G", "Activities"),
     ("F1 ?", "This reference"),
     ("F10 Ctrl+F2", "Menu bar"),
     ("Ctrl+PgDn", "Next page"),
@@ -308,7 +311,7 @@ const HELP_FOOTER_PARTS: &[(Part, StylePatch)] = &[
         StylePatch::new()
             .set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)))
             .set_bg(Role::Custom(Color::Rgb(0x00, 0x00, 0x00)))
-            .remove(termrock::Modifier::BOLD),
+            .add(termrock::Modifier::BOLD),
     ),
 ];
 
@@ -3949,23 +3952,26 @@ impl App {
             | disk_scan_response
             | task_run_response;
         if too_small(cx.viewport()) {
-            let overlay = self
-                .overlay
-                .as_mut()
-                .map_or_else(Response::ignored, |overlay| match overlay {
-                    Overlay::Dialog(dialog) => dialog.poll(cx).0,
-                    Overlay::Help {
-                        state,
-                        route,
-                        scope,
-                    } => help_overlay(*route, scope).update(cx, state).erase(),
-                    Overlay::Args(editor) => editor.poll(cx),
-                    Overlay::PortArgs(editor) => editor.poll(cx),
-                    Overlay::Gate(gate) => gate.poll(cx).0,
-                    Overlay::Clone(picker) => picker.update(cx).0,
-                    Overlay::Actions(picker) => picker.update(cx).0,
-                    Overlay::DiskSelection(selection) => selection.poll(cx),
-                });
+            let overlay = if matches!(self.overlay.as_ref(), Some(Overlay::Help { .. })) {
+                self.update_overlay(cx)
+            } else {
+                self.overlay
+                    .as_mut()
+                    .map_or_else(Response::ignored, |overlay| match overlay {
+                        Overlay::Dialog(dialog) => dialog.poll(cx).0,
+                        Overlay::Help {
+                            state,
+                            route,
+                            scope,
+                        } => help_overlay(*route, scope).update(cx, state).erase(),
+                        Overlay::Args(editor) => editor.poll(cx),
+                        Overlay::PortArgs(editor) => editor.poll(cx),
+                        Overlay::Gate(gate) => gate.poll(cx).0,
+                        Overlay::Clone(picker) => picker.update(cx).0,
+                        Overlay::Actions(picker) => picker.update(cx).0,
+                        Overlay::DiskSelection(selection) => selection.poll(cx),
+                    })
+            };
             if cx.update_cause() == termrock::UpdateCause::Event && cx.command() == Some(INTERRUPT)
             {
                 self.quit = true;
