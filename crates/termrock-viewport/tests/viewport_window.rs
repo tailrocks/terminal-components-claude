@@ -13,7 +13,7 @@ use core::cell::Cell;
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
-use termrock_collections::ScrollState;
+use termrock_collections::{FollowCursor, ScrollState};
 use termrock_runtime::Color;
 use termrock_runtime::author::VerticalWindow;
 use termrock_runtime::hit::ScrollRouteKey;
@@ -105,6 +105,8 @@ struct WindowPage {
     clip: Option<Rect>,
     source: TextSource,
     wrap: bool,
+    word_wrap: Option<bool>,
+    word_wrap_first: bool,
     pan: bool,
     reserve_gutter: bool,
     layout_revision: u64,
@@ -139,6 +141,8 @@ impl WindowPage {
             clip: None,
             source: TextSource::Borrowed,
             wrap: false,
+            word_wrap: None,
+            word_wrap_first: false,
             pan: false,
             reserve_gutter: false,
             layout_revision: 3,
@@ -161,11 +165,21 @@ impl WindowPage {
     }
 
     fn viewport(&self) -> TextViewport<'static> {
-        TextViewport::new(OWNER)
-            .reserve_gutter(self.reserve_gutter)
-            .wrap(self.wrap)
+        let viewport = TextViewport::new(OWNER).reserve_gutter(self.reserve_gutter);
+        let viewport = match (self.word_wrap, self.word_wrap_first) {
+            (None, _) => viewport.wrap(self.wrap),
+            (Some(true), true) => viewport.wrap_words(true).wrap(self.wrap),
+            (Some(false), true) => viewport.wrap_words(false).wrap(self.wrap),
+            (Some(true), false) => viewport.wrap(self.wrap).wrap_words(true),
+            (Some(false), false) => viewport.wrap(self.wrap).wrap_words(false),
+        };
+        viewport
             .horizontal_pan(self.pan)
             .layout_revision(self.layout_revision)
+    }
+
+    fn bump_source_revision(&mut self) {
+        self.revision = self.revision.saturating_add(1);
     }
 
     fn update_viewport(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -411,6 +425,38 @@ fn projection_with_row_count(rows: usize) -> ProjectedText {
     let mut projected = ProjectedText::default();
     for _ in 0..rows {
         projected.push_line([("row", None, Modifier::empty())]);
+    }
+    projected
+}
+
+fn word_projection(first_modifier: Modifier) -> ProjectedText {
+    let mut projected = ProjectedText::default();
+    projected.push_line([
+        ("ab", None, first_modifier),
+        (" cd", None, Modifier::ITALIC),
+    ]);
+    projected.push_line([("  ab  cd ", None, Modifier::UNDERLINED)]);
+    projected.push_line([
+        ("e", None, Modifier::BOLD),
+        ("\u{301}", None, Modifier::ITALIC),
+        (" xy", None, Modifier::empty()),
+    ]);
+    projected.push_line([("wide界", None, Modifier::BOLD)]);
+    projected.push_line([("tab\tz", None, Modifier::empty())]);
+    projected.push_line([("abcd ", None, Modifier::empty())]);
+    projected
+}
+
+fn single_projected_line(text: &str, modifier: Modifier) -> ProjectedText {
+    let mut projected = ProjectedText::default();
+    projected.push_line([(text, None, modifier)]);
+    projected
+}
+
+fn projected_from_lines(lines: &[&str]) -> ProjectedText {
+    let mut projected = ProjectedText::default();
+    for line in lines {
+        projected.push_line([(*line, None, Modifier::empty())]);
     }
     projected
 }
@@ -850,6 +896,1181 @@ fn gutter_consuming_text_width_preserves_the_legacy_empty_rect_origin_and_height
 
 fn page_with_app(app: WindowPage) -> Harness<WindowPage> {
     Harness::new(app, Theme::junie(), SCREEN.width, SCREEN.height)
+}
+
+#[test]
+fn wrap_words_default_off_matches_fresh_hosts_through_routes_pan_and_copy() {
+    for source in [TextSource::Borrowed, TextSource::Projected] {
+        for routed in [false, true] {
+            let make = |word_wrap, word_wrap_first| {
+                let mut app = WindowPage::new(full_spec(BODY));
+                app.source = source;
+                app.routed = routed;
+                app.return_view = routed;
+                app.pan = true;
+                app.word_wrap = word_wrap;
+                app.word_wrap_first = word_wrap_first;
+                page_with_app(app)
+            };
+            let mut hosts = [
+                make(None, false),
+                make(Some(false), false),
+                make(Some(true), true),
+                make(Some(true), false),
+            ];
+            for host in &mut hosts {
+                let _ = host.tick();
+                host.draw();
+            }
+            let baseline = &hosts[0];
+            for (index, host) in hosts.iter().enumerate().skip(1) {
+                assert_eq!(
+                    baseline.buffer(),
+                    host.buffer(),
+                    "full cells, source={source:?}, routed={routed}, variant={index}"
+                );
+                assert_eq!(
+                    baseline.app().seen_return.get(),
+                    host.app().seen_return.get()
+                );
+                assert_eq!(baseline.area_of(OWNER), host.area_of(OWNER));
+                assert_eq!(baseline.app().seen_facts.get(), host.app().seen_facts.get());
+                assert_eq!(
+                    baseline.app().route_key.get().is_some(),
+                    host.app().route_key.get().is_some()
+                );
+                assert_eq!(
+                    baseline.app().seen_route_revisions.get(),
+                    host.app().seen_route_revisions.get()
+                );
+                assert_eq!(baseline.app().seen_view.get(), host.app().seen_view.get());
+                assert_eq!(baseline.cursor(), host.cursor());
+                assert_eq!(baseline.app().state, host.app().state);
+                assert_eq!(baseline.app().parent, host.app().parent);
+                for part in [
+                    Part::CONTAINER,
+                    Part::TEXT,
+                    Part::GUTTER,
+                    Part::TRACK,
+                    Part::THUMB,
+                    HORIZONTAL_TRACK,
+                    HORIZONTAL_THUMB,
+                ] {
+                    assert_eq!(
+                        baseline.area_of_part(OWNER, PartRef::of(part)),
+                        host.area_of_part(OWNER, PartRef::of(part)),
+                        "part {part:?}, source={source:?}, routed={routed}, variant={index}"
+                    );
+                }
+            }
+
+            for host in &mut hosts {
+                let _ = host.wheel(Axis::H, 1, 4, 2);
+                let _ = host.drag((3, 2), (8, 2));
+                let _ = host.wheel(Axis::V, 2, 4, 2);
+            }
+            for host in hosts.iter().skip(1) {
+                assert_eq!(hosts[0].buffer(), host.buffer());
+                assert_eq!(hosts[0].app().state, host.app().state);
+                assert_eq!(hosts[0].app().parent, host.app().parent);
+                assert_eq!(
+                    hosts[0].app().route_key.get().is_some(),
+                    host.app().route_key.get().is_some()
+                );
+                assert_eq!(
+                    hosts[0].app().seen_route_revisions.get(),
+                    host.app().seen_route_revisions.get()
+                );
+                assert_eq!(
+                    hosts[0].app().seen_return.get(),
+                    host.app().seen_return.get()
+                );
+                assert_eq!(hosts[0].area_of(OWNER), host.area_of(OWNER));
+                assert_eq!(hosts[0].app().seen_facts.get(), host.app().seen_facts.get());
+                assert_eq!(hosts[0].app().seen_view.get(), host.app().seen_view.get());
+                assert_eq!(hosts[0].cursor(), host.cursor());
+                for part in [
+                    Part::CONTAINER,
+                    Part::TEXT,
+                    Part::GUTTER,
+                    Part::TRACK,
+                    Part::THUMB,
+                    HORIZONTAL_TRACK,
+                    HORIZONTAL_THUMB,
+                ] {
+                    assert_eq!(
+                        hosts[0].area_of_part(OWNER, PartRef::of(part)),
+                        host.area_of_part(OWNER, PartRef::of(part)),
+                        "post-input part {part:?}, source={source:?}, routed={routed}"
+                    );
+                }
+                assert_eq!(hosts[0].app().state.scroll(), host.app().state.scroll());
+                assert_eq!(
+                    hosts[0].app().state.horizontal_offset(),
+                    host.app().state.horizontal_offset()
+                );
+                let mut baseline_copy = String::new();
+                let mut host_copy = String::new();
+                let baseline_copied = match source {
+                    TextSource::Borrowed => hosts[0]
+                        .app()
+                        .state
+                        .copy_into(&borrowed_lines(), &mut baseline_copy),
+                    TextSource::Projected => hosts[0]
+                        .app()
+                        .state
+                        .copy_from_projected(&hosts[0].app().projected, &mut baseline_copy),
+                };
+                let host_copied = match source {
+                    TextSource::Borrowed => host
+                        .app()
+                        .state
+                        .copy_into(&borrowed_lines(), &mut host_copy),
+                    TextSource::Projected => host
+                        .app()
+                        .state
+                        .copy_from_projected(&host.app().projected, &mut host_copy),
+                };
+                assert_eq!(baseline_copied, host_copied);
+                assert_eq!(baseline_copy, host_copy);
+            }
+            assert!(hosts[0].app().state.horizontal_offset() > 0);
+        }
+    }
+}
+
+#[test]
+fn word_wrap_default_off_matches_wrapped_fresh_hosts_for_borrowed_and_projected_sources() {
+    for source in [TextSource::Borrowed, TextSource::Projected] {
+        for routed in [false, true] {
+            let make = |word_wrap, word_wrap_first| {
+                let mut app = WindowPage::new(full_spec(BODY));
+                app.source = source;
+                app.wrap = true;
+                app.word_wrap = word_wrap;
+                app.word_wrap_first = word_wrap_first;
+                app.pan = true;
+                app.routed = routed;
+                app.return_view = routed;
+                app.state.set_follow_cursor(FollowCursor::OnMove);
+                app.state.select(CellPos::new(0, 0), CellPos::new(0, 2));
+                page_with_app(app)
+            };
+            let mut hosts = [
+                make(None, false),
+                make(Some(false), true),
+                make(Some(false), false),
+            ];
+            for host in &mut hosts {
+                let _ = host.tick();
+                host.draw();
+            }
+            for host in hosts.iter().skip(1) {
+                assert_eq!(hosts[0].buffer(), host.buffer());
+                assert_eq!(hosts[0].area_of(OWNER), host.area_of(OWNER));
+                assert_eq!(
+                    hosts[0].app().seen_return.get(),
+                    host.app().seen_return.get()
+                );
+                assert_eq!(hosts[0].app().seen_facts.get(), host.app().seen_facts.get());
+                assert_eq!(hosts[0].app().seen_view.get(), host.app().seen_view.get());
+                assert_eq!(
+                    hosts[0].app().route_key.get().is_some(),
+                    host.app().route_key.get().is_some()
+                );
+                assert_eq!(
+                    hosts[0].app().seen_route_revisions.get(),
+                    host.app().seen_route_revisions.get()
+                );
+                assert_eq!(hosts[0].app().state, host.app().state);
+                assert_eq!(hosts[0].app().parent, host.app().parent);
+                assert_eq!(hosts[0].cursor(), host.cursor());
+                for part in [
+                    Part::CONTAINER,
+                    Part::TEXT,
+                    Part::GUTTER,
+                    Part::TRACK,
+                    Part::THUMB,
+                    HORIZONTAL_TRACK,
+                    HORIZONTAL_THUMB,
+                ] {
+                    assert_eq!(
+                        hosts[0].area_of_part(OWNER, PartRef::of(part)),
+                        host.area_of_part(OWNER, PartRef::of(part)),
+                        "part {part:?}, source={source:?}, routed={routed}"
+                    );
+                }
+            }
+
+            for host in &mut hosts {
+                let _ = host.wheel(Axis::H, 2, 4, 2);
+                let _ = host.wheel(Axis::V, 2, 4, 2);
+            }
+            assert_eq!(hosts[0].app().state.horizontal_offset(), 0);
+            for host in hosts.iter().skip(1) {
+                assert_eq!(hosts[0].buffer(), host.buffer());
+                assert_eq!(hosts[0].app().state, host.app().state);
+                assert_eq!(hosts[0].app().parent, host.app().parent);
+                assert_eq!(
+                    hosts[0].app().seen_return.get(),
+                    host.app().seen_return.get()
+                );
+                assert_eq!(hosts[0].area_of(OWNER), host.area_of(OWNER));
+                assert_eq!(hosts[0].app().seen_facts.get(), host.app().seen_facts.get());
+                assert_eq!(hosts[0].app().seen_view.get(), host.app().seen_view.get());
+                assert_eq!(
+                    hosts[0].app().seen_route_revisions.get(),
+                    host.app().seen_route_revisions.get()
+                );
+                assert_eq!(
+                    hosts[0].app().route_key.get().is_some(),
+                    host.app().route_key.get().is_some()
+                );
+                assert_eq!(hosts[0].cursor(), host.cursor());
+                for part in [
+                    Part::CONTAINER,
+                    Part::TEXT,
+                    Part::GUTTER,
+                    Part::TRACK,
+                    Part::THUMB,
+                    HORIZONTAL_TRACK,
+                    HORIZONTAL_THUMB,
+                ] {
+                    assert_eq!(
+                        hosts[0].area_of_part(OWNER, PartRef::of(part)),
+                        host.area_of_part(OWNER, PartRef::of(part))
+                    );
+                }
+                let mut expected = String::new();
+                let mut actual = String::new();
+                let expected_copied = match source {
+                    TextSource::Borrowed => hosts[0]
+                        .app()
+                        .state
+                        .copy_into(&borrowed_lines(), &mut expected),
+                    TextSource::Projected => hosts[0]
+                        .app()
+                        .state
+                        .copy_from_projected(&hosts[0].app().projected, &mut expected),
+                };
+                let actual_copied = match source {
+                    TextSource::Borrowed => {
+                        host.app().state.copy_into(&borrowed_lines(), &mut actual)
+                    }
+                    TextSource::Projected => host
+                        .app()
+                        .state
+                        .copy_from_projected(&host.app().projected, &mut actual),
+                };
+                assert_eq!(expected_copied, actual_copied);
+                assert_eq!(expected, actual);
+            }
+        }
+    }
+}
+
+#[test]
+fn word_wrapped_borrowed_host_clips_nonzero_rows_and_preserves_pointer_state() {
+    let clipped_spec = WindowSpec {
+        area: Rect::new(2, 2, 8, 4),
+        logical_rows: 12,
+        first_source_row: 2,
+    };
+    let full_spec = WindowSpec {
+        area: Rect::new(2, 0, 8, 12),
+        logical_rows: 12,
+        first_source_row: 0,
+    };
+    let make = |spec| {
+        let mut app = WindowPage::new(spec);
+        app.source = TextSource::Borrowed;
+        app.wrap = true;
+        app.word_wrap = Some(true);
+        app.routed = true;
+        app.return_view = true;
+        app.state.set_follow_cursor(FollowCursor::OnMove);
+        page_with_app(app)
+    };
+    let source_before = borrowed_lines();
+    let mut clipped = make(clipped_spec);
+    let mut full = make(full_spec);
+    let _ = clipped.tick();
+    let _ = full.tick();
+    clipped.draw();
+    full.draw();
+
+    assert_eq!(
+        clipped
+            .app()
+            .seen_facts
+            .get()
+            .and_then(|facts| facts.vertical_window),
+        Some(clipped_spec.window())
+    );
+    assert!(clipped.app().route_key.get().is_some());
+    assert!(full.app().route_key.get().is_some());
+    for row in 0..clipped_spec.area.height {
+        for x in clipped_spec.area.x..clipped_spec.area.right() {
+            assert_eq!(
+                clipped.cell(x, clipped_spec.area.y.saturating_add(row)),
+                full.cell(x, row.saturating_add(2)),
+                "borrowed word row {row} differs at column {x}"
+            );
+        }
+    }
+
+    let _ = clipped.mouse(MouseKind::Down, 2, 2);
+    let _ = full.mouse(MouseKind::Down, 2, 2);
+    assert_eq!(clipped.app().seen_capture.get(), Some(OWNER));
+    assert_eq!(full.app().seen_capture.get(), Some(OWNER));
+    let _ = clipped.mouse(MouseKind::Drag, 7, 2);
+    let _ = full.mouse(MouseKind::Drag, 7, 2);
+    assert_eq!(
+        clipped.app().state.selection(),
+        full.app().state.selection()
+    );
+    assert!(clipped.app().state.selection().is_some());
+    let held_state = clipped.app().state.clone();
+    let held_parent = clipped.app().parent;
+    clipped.draw();
+    assert_eq!(clipped.app().state, held_state);
+    assert_eq!(clipped.app().parent, held_parent);
+    assert_eq!(clipped.app().seen_capture.get(), Some(OWNER));
+    assert_eq!(borrowed_lines(), source_before);
+
+    let mut clipped_copy = String::new();
+    let mut full_copy = String::new();
+    assert!(
+        clipped
+            .app()
+            .state
+            .copy_into(&source_before, &mut clipped_copy)
+    );
+    assert!(full.app().state.copy_into(&source_before, &mut full_copy));
+    assert_eq!(clipped_copy, full_copy);
+    let _ = clipped.mouse(MouseKind::Up, 7, 2);
+    let _ = full.mouse(MouseKind::Up, 7, 2);
+    assert_eq!(clipped.app().seen_capture.get(), None);
+    assert_eq!(full.app().seen_capture.get(), None);
+}
+
+#[test]
+fn word_wrapped_borrowed_host_resizes_then_clamps_end_page_and_follow_modes() {
+    let mut app = WindowPage::new(full_spec(Rect::new(2, 1, 18, 8)));
+    app.source = TextSource::Borrowed;
+    app.wrap = true;
+    app.word_wrap = Some(true);
+    app.routed = true;
+    app.return_view = true;
+    app.fit_window_to_viewport = true;
+    app.state.set_follow_cursor(FollowCursor::OnMove);
+    let mut host = Harness::new(app, Theme::junie(), SCREEN.width, 10).with_auto_draw(false);
+    let _ = host.tick();
+    host.draw();
+    let first = host
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("first word-wrapped reveal returns a view");
+    assert_eq!(first.offset(), 0);
+    assert_eq!(first.viewport_len(), 8);
+    let source_before_resize = borrowed_lines();
+
+    let _ = host.resize(SCREEN.width, SCREEN.height);
+    let _ = host.tick();
+    host.draw();
+    let resized = host
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("resized word-wrapped reveal returns a view");
+    assert_eq!(resized.viewport_len(), 14);
+    assert_eq!(host.app().state.scroll().viewport_len(), 14);
+    let state_before_stable_draw = host.app().state.clone();
+    let parent_before_stable_draw = host.app().parent;
+    host.draw();
+    assert_eq!(
+        host.app().state,
+        state_before_stable_draw,
+        "a stable draw after resize does not mutate caller state"
+    );
+    assert_eq!(host.app().parent, parent_before_stable_draw);
+    assert_eq!(borrowed_lines(), source_before_resize);
+
+    let _ = host.mouse(MouseKind::Down, 2, 1);
+    assert_eq!(host.app().seen_capture.get(), Some(OWNER));
+    let _ = host.mouse(MouseKind::Drag, 8, 1);
+    assert!(
+        host.app().state.selection().is_some(),
+        "a pointer range immediately after resize must map to current word rows"
+    );
+    let mut copied = String::new();
+    assert!(
+        host.app()
+            .state
+            .copy_into(&source_before_resize, &mut copied)
+    );
+    assert!(!copied.is_empty());
+    let state_with_selection = host.app().state.clone();
+    host.draw();
+    assert_eq!(host.app().state, state_with_selection);
+    assert_eq!(host.app().seen_capture.get(), Some(OWNER));
+    let _ = host.mouse(MouseKind::Up, 8, 1);
+    assert_eq!(host.app().seen_capture.get(), None);
+
+    assert!(host.tab_to(OWNER));
+    let _ = host.key(KeyCode::End);
+    host.draw();
+    let ended = host
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("End keeps a projected word view");
+    assert_eq!(ended.offset(), ended.max_offset());
+    let _ = host.key(KeyCode::PageDown);
+    host.draw();
+    let paged = host
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("PageDown keeps a projected word view");
+    assert_eq!(paged.offset(), paged.max_offset(), "PageDown clamps at End");
+
+    host.app_mut().state.reset_scroll_offsets();
+    host.app_mut().state.set_follow_cursor(FollowCursor::OnMove);
+    host.draw();
+    let on_move = host
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("OnMove keeps a projected word view");
+    assert_eq!(on_move.offset(), 0);
+    host.app_mut().state.set_follow_cursor(FollowCursor::Always);
+    host.draw();
+    let always = host
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("Always keeps a projected word view");
+    assert_eq!(always.offset(), always.max_offset());
+}
+
+#[test]
+fn word_wrapped_retention_shifts_selection_caret_and_copy_with_projected_source() {
+    let mut app = WindowPage::new(full_spec(Rect::new(2, 2, 10, 8)));
+    app.source = TextSource::Projected;
+    app.projected = projected_from_lines(&["old words", "one two", "three four"]);
+    app.wrap = true;
+    app.word_wrap = Some(true);
+    app.routed = true;
+    app.return_view = true;
+    app.state.set_follow_cursor(FollowCursor::OnMove);
+    app.state.select(CellPos::new(1, 4), CellPos::new(2, 5));
+    app.state.set_caret(Some(CellPos::new(2, 2)));
+    let mut host = page_with_app(app);
+    let _ = host.tick();
+    host.draw();
+
+    host.app_mut().state.retained(1);
+    host.app_mut().projected = projected_from_lines(&["one two", "three four"]);
+    host.app_mut().bump_source_revision();
+    let _ = host.tick();
+    let source_after_retention = host.app().projected.clone();
+    host.draw();
+
+    assert_eq!(
+        host.app().state.selection(),
+        Some((CellPos::new(0, 4), CellPos::new(1, 5)))
+    );
+    assert_eq!(host.app().state.caret(), Some(CellPos::new(1, 2)));
+    assert_eq!(host.app().projected, source_after_retention);
+    let mut copied = String::new();
+    assert!(
+        host.app()
+            .state
+            .copy_from_projected(&host.app().projected, &mut copied)
+    );
+    assert_eq!(copied, "two\nthree");
+}
+
+#[test]
+fn word_wrapped_window_draws_projects_clips_and_maps_pointer_selection_copy() {
+    let clipped_spec = WindowSpec {
+        area: Rect::new(2, 2, 4, 4),
+        logical_rows: 10,
+        first_source_row: 0,
+    };
+    let make = |spec| {
+        let mut app = WindowPage::new(spec);
+        app.source = TextSource::Projected;
+        app.projected = word_projection(Modifier::BOLD);
+        app.wrap = true;
+        app.word_wrap = Some(true);
+        app.routed = true;
+        app.return_view = true;
+        app.state.set_caret(Some(CellPos::new(0, 2)));
+        page_with_app(app)
+    };
+    let mut clipped = make(clipped_spec);
+    let mut full = make(full_spec(Rect::new(2, 0, 4, 10)));
+    let _ = clipped.tick();
+    let _ = full.tick();
+    let clipped_state = clipped.app().state.clone();
+    let clipped_source = clipped.app().projected.clone();
+    clipped.draw();
+    full.draw();
+
+    assert_eq!(
+        clipped.app().state,
+        clipped_state,
+        "draw exposes a word-row projection without mutating caller state"
+    );
+    assert_eq!(
+        clipped.app().projected,
+        clipped_source,
+        "draw leaves projected source text unchanged"
+    );
+    assert!(clipped.app().route_key.get().is_some());
+    let projected = clipped
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("routed word draw returns its projected view");
+    assert_eq!(projected.viewport_len(), clipped_spec.logical_rows);
+    assert!(projected.content_len() > projected.viewport_len());
+    assert_eq!(
+        clipped.app().seen_return.get(),
+        clipped.area_of_part(OWNER, PartRef::of(Part::TEXT))
+    );
+    assert_eq!(clipped.area_of(OWNER), Some(clipped_spec.area));
+    assert_eq!(
+        clipped
+            .app()
+            .seen_facts
+            .get()
+            .and_then(|facts| facts.vertical_window),
+        Some(clipped_spec.window())
+    );
+    for (visible, logical) in (clipped_spec.area.y..clipped_spec.area.bottom()).zip(0..4) {
+        for x in clipped_spec.area.x..clipped_spec.area.right() {
+            assert_eq!(
+                clipped.cell(x, visible).symbol(),
+                full.cell(x, logical).symbol(),
+                "clipped word cell at ({x}, {visible})"
+            );
+            assert_eq!(
+                clipped.cell(x, visible).fg,
+                full.cell(x, logical).fg,
+                "clipped word style at ({x}, {visible})"
+            );
+            assert_eq!(
+                clipped.cell(x, visible).modifier,
+                full.cell(x, logical).modifier,
+                "clipped word modifier at ({x}, {visible})"
+            );
+        }
+    }
+
+    assert_eq!(clipped.cell(2, 2).symbol(), "a");
+    assert_eq!(clipped.cell(2, 3).symbol(), "c");
+    assert!(clipped.cell(2, 2).modifier.contains(Modifier::BOLD));
+    assert!(clipped.cell(2, 3).modifier.contains(Modifier::ITALIC));
+    assert_eq!(
+        full.cell(2, 4).symbol(),
+        "e\u{301}",
+        "a grapheme spanning projected runs stays one painted source cell"
+    );
+    assert!(
+        full.cell(2, 4).modifier.contains(Modifier::BOLD),
+        "the joined grapheme keeps the first scalar's source style"
+    );
+    assert!(
+        (0..10).any(|y| full.cell(2, y).symbol() == "t" && full.cell(3, y).symbol() == "a"),
+        "tab-expanded source text remains on the native display path"
+    );
+    assert!(clipped.tab_to(OWNER));
+    assert_eq!(
+        clipped.cursor(),
+        Some(Position::new(4, 2)),
+        "source column 2 keeps preceding-row affinity in the blank remainder"
+    );
+
+    let mut blank_click = make(clipped_spec);
+    let _ = blank_click.tick();
+    blank_click.draw();
+    let _ = blank_click.click(4, 2);
+    assert_eq!(blank_click.app().state.caret(), Some(CellPos::new(0, 2)));
+
+    let mut forward_drag = make(clipped_spec);
+    let _ = forward_drag.tick();
+    forward_drag.draw();
+    let _ = forward_drag.drag((4, 2), (4, 3));
+    assert_eq!(
+        forward_drag.app().state.selection(),
+        Some((CellPos::new(0, 2), CellPos::new(0, 5))),
+        "the first-row blank remainder maps the soft-break start to the preceding row"
+    );
+    let mut forward = String::new();
+    assert!(
+        forward_drag
+            .app()
+            .state
+            .copy_from_projected(&forward_drag.app().projected, &mut forward)
+    );
+    assert_eq!(forward, " cd", "copy retains the omitted source separator");
+
+    let mut reverse_drag = make(clipped_spec);
+    let _ = reverse_drag.tick();
+    reverse_drag.draw();
+    let _ = reverse_drag.drag((4, 3), (4, 2));
+    assert_eq!(
+        reverse_drag.app().state.selection(),
+        Some((CellPos::new(0, 2), CellPos::new(0, 5))),
+        "selection reports normalized source endpoints for a reverse drag"
+    );
+    let mut reverse = String::new();
+    assert!(
+        reverse_drag
+            .app()
+            .state
+            .copy_from_projected(&reverse_drag.app().projected, &mut reverse)
+    );
+    assert_eq!(reverse, forward);
+
+    let before_scroll = clipped.app().state.scroll().offset();
+    let first_scroll = clipped.wheel(Axis::V, 100, 3, 2);
+    assert!(first_scroll.is_consumed() && first_scroll.is_changed());
+    assert!(
+        clipped.app().state.scroll().offset() > before_scroll,
+        "wheel input scrolls through cached word rows"
+    );
+    let child_at_boundary = clipped.app().state.scroll().offset();
+    let parent_at_boundary = clipped.app().parent.offset();
+    let parent_calls_at_boundary = clipped.app().parent_route_calls.get();
+    let boundary_scroll = clipped.wheel(Axis::V, 100, 3, 2);
+    assert!(
+        boundary_scroll.is_consumed() && !boundary_scroll.is_changed(),
+        "an overflowing child consumes a boundary wheel quietly"
+    );
+    assert_eq!(
+        clipped.app().state.scroll().offset(),
+        child_at_boundary,
+        "a consumed boundary wheel leaves the child offset unchanged"
+    );
+    assert_eq!(clipped.app().parent.offset(), parent_at_boundary);
+    assert_eq!(
+        clipped.app().parent_route_calls.get(),
+        parent_calls_at_boundary,
+        "a consumed boundary wheel does not fall back to the parent"
+    );
+    assert!(
+        clipped.app().state.follow(),
+        "scrolling to the word-row end activates follow"
+    );
+    clipped.draw();
+    let followed = clipped
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("followed draw retains projected view");
+    assert_eq!(followed.offset(), followed.max_offset());
+
+    let mut fallback_app = WindowPage::new(WindowSpec {
+        area: clipped_spec.area,
+        logical_rows: 10,
+        first_source_row: 0,
+    });
+    fallback_app.source = TextSource::Projected;
+    fallback_app.projected = single_projected_line("ab cd", Modifier::empty());
+    fallback_app.wrap = true;
+    fallback_app.word_wrap = Some(true);
+    fallback_app.routed = true;
+    fallback_app.return_view = true;
+    let mut ignored_child = page_with_app(fallback_app).with_auto_draw(false);
+    let _ = ignored_child.tick();
+    ignored_child.draw();
+    let route_key_before_fallback = ignored_child
+        .app()
+        .route_key
+        .get()
+        .expect("the projected word child registers a route");
+    let ignored_view = ignored_child
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("the non-overflow child publishes its projected word rows");
+    assert_eq!(ignored_view.content_len(), 2);
+    assert_eq!(ignored_view.viewport_len(), 10);
+    assert_eq!(ignored_child.app().state.scroll().content_len(), 2);
+    assert_eq!(ignored_child.app().state.scroll().offset(), 0);
+    let child_area_before_fallback = ignored_child
+        .area_of(OWNER)
+        .expect("the routed word child has an owner area");
+    let child_text_area_before_fallback = ignored_child
+        .app()
+        .seen_return
+        .get()
+        .expect("the routed word child reports its text area");
+    assert_eq!(
+        ignored_child.area_of_part(OWNER, PartRef::of(Part::TEXT)),
+        Some(child_text_area_before_fallback)
+    );
+    let registered_revision = ignored_child.app().revision;
+    let layout_revision = ignored_child.app().layout_revision;
+    let parent_before_fallback = ignored_child.app().parent.offset();
+    let child_before_fallback = ignored_child.app().state.scroll().offset();
+    let parent_calls_before_fallback = ignored_child.app().parent_route_calls.get();
+    let fallback_response = ignored_child.wheel(Axis::V, 1, 3, 2);
+    assert!(fallback_response.is_consumed() && fallback_response.is_changed());
+    assert_eq!(ignored_child.app().revision, registered_revision);
+    assert_eq!(ignored_child.app().layout_revision, layout_revision);
+    assert_eq!(
+        ignored_child.app().route_key.get(),
+        Some(route_key_before_fallback),
+        "without redraw, the frame-local route key remains the same through its event"
+    );
+    assert_eq!(
+        ignored_child.app().seen_route_revisions.get(),
+        Some((registered_revision, registered_revision)),
+        "the fallback uses the stable registered source revision"
+    );
+    assert_eq!(
+        ignored_child.app().state.scroll().offset(),
+        child_before_fallback
+    );
+    assert_eq!(child_before_fallback, 0);
+    assert!(ignored_child.app().parent.offset() > parent_before_fallback);
+    assert_eq!(
+        ignored_child.app().parent_route_calls.get(),
+        parent_calls_before_fallback + 1,
+        "the linked parent handles a non-overflowing child's ignored wheel"
+    );
+
+    ignored_child.draw();
+    assert!(
+        ignored_child.app().route_key.get().is_some(),
+        "an explicit next-frame draw registers a current route key"
+    );
+    assert_eq!(
+        ignored_child.area_of(OWNER),
+        Some(child_area_before_fallback)
+    );
+    assert_eq!(
+        ignored_child.app().seen_return.get(),
+        Some(child_text_area_before_fallback)
+    );
+    assert_eq!(
+        ignored_child.area_of_part(OWNER, PartRef::of(Part::TEXT)),
+        Some(child_text_area_before_fallback)
+    );
+    let refreshed_view = ignored_child
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("the next frame still publishes the non-overflow word view");
+    assert_eq!(refreshed_view.content_len(), 2);
+    assert_eq!(refreshed_view.viewport_len(), 10);
+    assert_eq!(ignored_child.app().state.scroll().content_len(), 2);
+    assert_eq!(ignored_child.app().state.scroll().offset(), 0);
+    assert_eq!(ignored_child.app().revision, registered_revision);
+    assert_eq!(ignored_child.app().layout_revision, layout_revision);
+
+    let keyboard_spec = WindowSpec {
+        area: clipped_spec.area,
+        logical_rows: 8,
+        first_source_row: clipped_spec.first_source_row,
+    };
+    let mut keyboard = make(keyboard_spec);
+    keyboard.app_mut().state.set_caret(Some(CellPos::new(3, 4)));
+    let _ = keyboard.tick();
+    keyboard.draw();
+    let keyboard_view = keyboard
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("the keyboard host publishes its word-row view");
+    assert_eq!(keyboard_view.content_len(), 13);
+    assert_eq!(keyboard_view.viewport_len(), 8);
+    assert_eq!(keyboard_view.max_offset(), 5);
+    assert_eq!(keyboard.app().state.caret(), Some(CellPos::new(3, 4)));
+    assert_eq!(keyboard.app().state.scroll().offset(), 0);
+    assert!(keyboard.tab_to(OWNER));
+    assert_eq!(
+        keyboard.cursor(),
+        None,
+        "the word-row caret begins beyond the clipped source window"
+    );
+    for _ in 0..5 {
+        let _ = keyboard.key(KeyCode::Down);
+    }
+    assert_eq!(keyboard.app().state.caret(), Some(CellPos::new(3, 4)));
+    assert_eq!(keyboard.app().state.scroll().offset(), 5);
+    assert_eq!(
+        keyboard.cursor(),
+        Some(Position::new(3, 4)),
+        "the same source caret is projected into the clipped word window"
+    );
+}
+
+#[test]
+fn word_wrapped_host_keeps_trailing_empty_row_and_source_copy() {
+    let spec = WindowSpec {
+        area: Rect::new(2, 2, 5, 4),
+        logical_rows: 4,
+        first_source_row: 0,
+    };
+    let mut app = WindowPage::new(spec);
+    app.source = TextSource::Projected;
+    app.projected = single_projected_line("abcd ", Modifier::BOLD);
+    app.wrap = true;
+    app.word_wrap = Some(true);
+    app.state.set_caret(Some(CellPos::new(0, 5)));
+    let mut host = page_with_app(app);
+    let _ = host.tick();
+    host.draw();
+
+    assert_eq!(host.app().seen_return.get(), Some(Rect::new(2, 2, 4, 4)));
+    assert_eq!(host.cell(2, 2).symbol(), "a");
+    assert_eq!(host.cell(2, 3).symbol(), " ");
+    assert!(host.tab_to(OWNER));
+    assert_eq!(
+        host.cursor(),
+        Some(Position::new(2, 3)),
+        "a trailing source separator retains its empty visual row"
+    );
+
+    let make_host = |caret| {
+        let mut app = WindowPage::new(spec);
+        app.source = TextSource::Projected;
+        app.projected = single_projected_line("abcd ", Modifier::BOLD);
+        app.wrap = true;
+        app.word_wrap = Some(true);
+        app.state.set_caret(caret);
+        page_with_app(app)
+    };
+    let mut click_host = make_host(Some(CellPos::new(0, 0)));
+    let _ = click_host.tick();
+    click_host.draw();
+    let _ = click_host.click(3, 3);
+    assert_eq!(
+        click_host.app().state.caret(),
+        Some(CellPos::new(0, 0)),
+        "a plain click preserves the producer-owned caret"
+    );
+
+    let mut drag_host = make_host(None);
+    let _ = drag_host.tick();
+    drag_host.draw();
+    let _ = drag_host.drag((2, 2), (2, 3));
+    assert_eq!(
+        drag_host.app().state.selection(),
+        Some((CellPos::new(0, 0), CellPos::new(0, 5)))
+    );
+    let mut copied = String::new();
+    assert!(
+        drag_host
+            .app()
+            .state
+            .copy_from_projected(&drag_host.app().projected, &mut copied)
+    );
+    assert_eq!(
+        copied, "abcd",
+        "copy trims selected line-ending whitespace while preserving its source range"
+    );
+}
+
+#[test]
+fn word_wrap_cache_transitions_keep_projection_and_refresh_styles() {
+    let spec = WindowSpec {
+        area: Rect::new(2, 2, 5, 4),
+        logical_rows: 20,
+        first_source_row: 0,
+    };
+    let mut app = WindowPage::new(spec);
+    app.source = TextSource::Projected;
+    app.projected = single_projected_line("ab cd", Modifier::BOLD);
+    app.wrap = true;
+    app.word_wrap = Some(true);
+    app.routed = true;
+    app.return_view = true;
+    let mut host = page_with_app(app);
+    let _ = host.tick();
+    let original_state = host.app().state.clone();
+    host.draw();
+    let original_view = host
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("initial opt-in draw returns a view");
+    assert_eq!(
+        original_view.content_len(),
+        2,
+        "ab cd has two word rows at text width four"
+    );
+    assert_eq!(host.app().seen_return.get(), Some(Rect::new(2, 2, 4, 4)));
+    assert_eq!(host.cell(2, 2).symbol(), "a");
+    assert!(host.cell(2, 2).modifier.contains(Modifier::BOLD));
+
+    host.app_mut().projected = single_projected_line("ab cd", Modifier::UNDERLINED);
+    let _ = host.tick();
+    host.draw();
+    assert_eq!(host.app().state, original_state);
+    assert_eq!(host.app().seen_view.get().flatten(), Some(original_view));
+    assert!(
+        host.cell(2, 2).modifier.contains(Modifier::UNDERLINED),
+        "a same-geometry cache hit paints the current projected style"
+    );
+
+    let stable_layout_revision = host.app().layout_revision;
+    let stable_source_revision = host.app().revision;
+    host.app_mut().window.area.width = 3;
+    assert_eq!(host.app().layout_revision, stable_layout_revision);
+    assert_eq!(host.app().revision, stable_source_revision);
+    let _ = host.tick();
+    host.draw();
+    let narrow_word_view = host
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("width transition retains a projected view");
+    assert_eq!(
+        narrow_word_view.content_len(),
+        2,
+        "whole words remain atomic after width changes"
+    );
+    assert_eq!(host.app().seen_return.get(), Some(Rect::new(2, 2, 2, 4)));
+    assert_eq!(narrow_word_view.viewport_len(), spec.logical_rows);
+
+    host.app_mut().projected = single_projected_line("a bcd", Modifier::UNDERLINED);
+    host.app_mut().bump_source_revision();
+    let _ = host.tick();
+    host.draw();
+    assert_eq!(host.cell(2, 2).symbol(), "a");
+    assert!(!host.cell(3, 2).modifier.contains(Modifier::UNDERLINED));
+    let revised_word_view = host
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("same-length source revision keeps a projected view");
+    assert_eq!(revised_word_view.content_len(), 3);
+    assert_eq!(
+        revised_word_view.viewport_len(),
+        spec.logical_rows,
+        "the projected view reflects current word-row totals"
+    );
+
+    let stable_source_revision = host.app().revision;
+    host.app_mut().word_wrap = None;
+    assert_eq!(host.app().layout_revision, stable_layout_revision);
+    assert_eq!(host.app().revision, stable_source_revision);
+    let _ = host.tick();
+    host.draw();
+    let hard_wrap_view = host
+        .app()
+        .seen_view
+        .get()
+        .flatten()
+        .expect("mode transition retains a projected view");
+    assert_eq!(hard_wrap_view.content_len(), 3);
+    assert!(
+        host.cell(3, 2).modifier.contains(Modifier::UNDERLINED),
+        "native hard wrapping includes the source separator on the first row"
+    );
+
+    host.app_mut().projected = single_projected_line("界 x", Modifier::BOLD);
+    host.app_mut().bump_source_revision();
+    let _ = host.tick();
+    host.draw();
+
+    host.app_mut().window.area.width = 2;
+    let _ = host.tick();
+    host.draw();
+    assert_eq!(host.app().seen_return.get(), Some(Rect::new(2, 2, 1, 4)));
+    host.app_mut().word_wrap = Some(true);
+    let _ = host.tick();
+    host.draw();
+    assert_eq!(
+        host.cell(2, 2).symbol(),
+        "…",
+        "width-one paint replaces the native overwide grapheme"
+    );
+    assert!(host.cell(2, 2).modifier.contains(Modifier::BOLD));
+
+    let replacement_host = |caret| {
+        let mut app = WindowPage::new(WindowSpec {
+            area: Rect::new(2, 2, 2, 4),
+            logical_rows: 20,
+            first_source_row: 0,
+        });
+        app.source = TextSource::Projected;
+        app.projected = single_projected_line("界 x", Modifier::BOLD);
+        app.wrap = true;
+        app.word_wrap = Some(true);
+        app.routed = true;
+        app.return_view = true;
+        app.state.set_caret(caret);
+        page_with_app(app)
+    };
+
+    let mut replacement_click = replacement_host(Some(CellPos::new(0, 0)));
+    let _ = replacement_click.tick();
+    replacement_click.draw();
+    assert_eq!(replacement_click.cell(2, 2).symbol(), "…");
+    assert!(
+        replacement_click
+            .cell(2, 2)
+            .modifier
+            .contains(Modifier::BOLD)
+    );
+    assert_eq!(
+        replacement_click.app().seen_return.get(),
+        Some(Rect::new(2, 2, 1, 4))
+    );
+    assert!(replacement_click.tab_to(OWNER));
+    assert_eq!(replacement_click.cursor(), Some(Position::new(2, 2)));
+    let _ = replacement_click.click(2, 2);
+    assert_eq!(
+        replacement_click.app().state.caret(),
+        Some(CellPos::new(0, 0)),
+        "the real pointer maps the replacement cell to its original source start"
+    );
+
+    let mut following_click = replacement_host(Some(CellPos::new(0, 2)));
+    let _ = following_click.tick();
+    following_click.draw();
+    assert!(following_click.tab_to(OWNER));
+    assert_eq!(
+        following_click.cursor(),
+        None,
+        "the caret at the replacement's source end maps to its clipped right edge"
+    );
+    let _ = following_click.click(2, 3);
+    assert_eq!(
+        following_click.app().state.caret(),
+        Some(CellPos::new(0, 2)),
+        "a plain click preserves the producer-owned caret at the source end"
+    );
+    following_click
+        .app_mut()
+        .state
+        .set_caret(Some(CellPos::new(0, 3)));
+    following_click.draw();
+    assert!(following_click.tab_to(OWNER));
+    assert_eq!(following_click.cursor(), Some(Position::new(2, 3)));
+
+    let mut replacement_drag = replacement_host(None);
+    let _ = replacement_drag.tick();
+    replacement_drag.draw();
+    let _ = replacement_drag.drag((2, 2), (2, 3));
+    assert_eq!(
+        replacement_drag.app().state.selection(),
+        Some((CellPos::new(0, 0), CellPos::new(0, 3))),
+        "a real drag across the replacement maps both ends to source columns"
+    );
+    let mut pointer_copy = String::new();
+    assert!(
+        replacement_drag
+            .app()
+            .state
+            .copy_from_projected(&replacement_drag.app().projected, &mut pointer_copy)
+    );
+    assert_eq!(
+        pointer_copy, "界",
+        "copy trims the selected trailing separator"
+    );
+
+    replacement_drag
+        .app_mut()
+        .state
+        .select(CellPos::new(0, 0), CellPos::new(0, 2));
+    let mut copied = String::new();
+    assert!(
+        replacement_drag
+            .app()
+            .state
+            .copy_from_projected(&replacement_drag.app().projected, &mut copied)
+    );
+    assert_eq!(
+        copied, "界",
+        "selection and logical copy retain the original overwide source"
+    );
+    replacement_drag
+        .app_mut()
+        .state
+        .select(CellPos::new(0, 0), CellPos::new(0, 4));
+    let mut full_source_copy = String::new();
+    assert!(
+        replacement_drag
+            .app()
+            .state
+            .copy_from_projected(&replacement_drag.app().projected, &mut full_source_copy)
+    );
+    assert_eq!(
+        full_source_copy, "界 x",
+        "an omitted soft-break separator remains in a full source copy"
+    );
+}
+
+#[test]
+fn wrap_words_preserves_wrap_and_horizontal_pan_precedence_in_both_orders() {
+    let make = |pan, word_wrap_first| {
+        let mut app = WindowPage::new(full_spec(BODY));
+        app.wrap = true;
+        app.word_wrap = Some(true);
+        app.word_wrap_first = word_wrap_first;
+        app.pan = pan;
+        page_with_app(app)
+    };
+    let mut pan_disabled = make(false, false);
+    let mut preference_before_wrap = make(true, true);
+    let mut preference_after_wrap = make(true, false);
+    for host in [
+        &mut pan_disabled,
+        &mut preference_before_wrap,
+        &mut preference_after_wrap,
+    ] {
+        let _ = host.tick();
+        host.draw();
+    }
+    assert_eq!(pan_disabled.buffer(), preference_before_wrap.buffer());
+    assert_eq!(pan_disabled.buffer(), preference_after_wrap.buffer());
+    assert_eq!(
+        pan_disabled.app().seen_facts.get(),
+        preference_before_wrap.app().seen_facts.get()
+    );
+    assert_eq!(
+        pan_disabled.area_of_part(OWNER, PartRef::of(HORIZONTAL_TRACK)),
+        None,
+        "word wrapping keeps horizontal panning inactive when wrapping is enabled"
+    );
+    assert_eq!(
+        preference_before_wrap.area_of_part(OWNER, PartRef::of(HORIZONTAL_TRACK)),
+        None
+    );
+    assert_eq!(
+        preference_after_wrap.area_of_part(OWNER, PartRef::of(HORIZONTAL_TRACK)),
+        None
+    );
+    let _ = preference_before_wrap.wheel(Axis::H, 2, 4, 2);
+    let _ = preference_after_wrap.wheel(Axis::H, 2, 4, 2);
+    assert_eq!(preference_before_wrap.app().state.horizontal_offset(), 0);
+    assert_eq!(preference_after_wrap.app().state.horizontal_offset(), 0);
+    assert_eq!(preference_before_wrap.app().state, pan_disabled.app().state);
+    assert_eq!(preference_after_wrap.app().state, pan_disabled.app().state);
 }
 
 #[test]

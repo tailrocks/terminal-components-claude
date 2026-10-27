@@ -4561,6 +4561,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("termrock-viewport::viewport::TextViewport::update_routed"),
     Capability::builder("termrock-viewport::viewport::TextViewport::work_probe"),
     Capability::builder("termrock-viewport::viewport::TextViewport::wrap"),
+    Capability::builder("termrock-viewport::viewport::TextViewport::wrap_words"),
     Capability::ty("termrock-viewport::viewport::ViewportAction"),
     Capability::variant("termrock-viewport::viewport::ViewportAction::Copy"),
     Capability::variant("termrock-viewport::viewport::ViewportAction::FollowChanged"),

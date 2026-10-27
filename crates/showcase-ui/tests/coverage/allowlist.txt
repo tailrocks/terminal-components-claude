@@ -1120,6 +1120,7 @@ termrock-viewport::viewport::TextViewport::scroll_gap | the scrolling page draws
 termrock-viewport::viewport::TextViewport::slot | the scrolling page draws termrock-viewport::viewport::TextViewport but does not use slot; SC2 adds the option or state that exercises it | SC2
 termrock-viewport::viewport::TextViewport::update_projected | the scrolling page draws termrock-viewport::viewport::TextViewport but does not use update_projected; SC2 adds the option or state that exercises it | SC2
 termrock-viewport::viewport::TextViewport::work_probe | the scrolling page draws termrock-viewport::viewport::TextViewport but does not use work_probe; SC2 adds the option or state that exercises it | SC2
+termrock-viewport::viewport::TextViewport::wrap_words | Present in the current source inventory; opt-in word-wrap behavior has no published real-host evidence yet and remains pending review. | review
 termrock-viewport::viewport::ViewportLine::Spans | the scrolling page shows termrock-viewport::viewport::ViewportLine in one state only; SC2 adds the states table that switches it | SC2
 termrock-viewport::viewport::ViewportState::caret | the scrolling page draws termrock-viewport::viewport::ViewportState but does not use caret; SC2 adds the option or state that exercises it | SC2
 termrock-viewport::viewport::ViewportState::clear_selection | the scrolling page draws termrock-viewport::viewport::ViewportState but does not use clear_selection; SC2 adds the option or state that exercises it | SC2
