@@ -77,6 +77,32 @@ const EXISTING_CURRENT_A_OWNER_KEYS: [&str; 6] = [
 ];
 
 const ROOT100_NORMAL_A_OWNER_KEY: &str = "monorepo-root 100 30 junie truecolor";
+const ROOT_NORMAL_A_OWNER_VIEWPORTS: [(u16, u16); 3] = [(100, 30), (120, 40), (160, 50)];
+const REMAINING_ROOT_NORMAL_A_OWNER_KEYS: [&str; 23] = [
+    "monorepo-root 100 30 junie 256",
+    "monorepo-root 100 30 junie 16",
+    "monorepo-root 100 30 junie mono",
+    "monorepo-root 100 30 paper truecolor",
+    "monorepo-root 100 30 paper 256",
+    "monorepo-root 100 30 paper 16",
+    "monorepo-root 100 30 paper mono",
+    "monorepo-root 120 40 junie truecolor",
+    "monorepo-root 120 40 junie 256",
+    "monorepo-root 120 40 junie 16",
+    "monorepo-root 120 40 junie mono",
+    "monorepo-root 120 40 paper truecolor",
+    "monorepo-root 120 40 paper 256",
+    "monorepo-root 120 40 paper 16",
+    "monorepo-root 120 40 paper mono",
+    "monorepo-root 160 50 junie truecolor",
+    "monorepo-root 160 50 junie 256",
+    "monorepo-root 160 50 junie 16",
+    "monorepo-root 160 50 junie mono",
+    "monorepo-root 160 50 paper truecolor",
+    "monorepo-root 160 50 paper 256",
+    "monorepo-root 160 50 paper 16",
+    "monorepo-root 160 50 paper mono",
+];
 
 fn tracked_port_owner_key(
     scenario: Scenario,
@@ -293,6 +319,51 @@ fn root100_normal_a_owner_key(
     }
 }
 
+fn root_normal_a_owner_key(
+    scenario: Scenario,
+    width: u16,
+    height: u16,
+    theme: &Theme,
+    color: ColorLevel,
+) -> Option<String> {
+    if scenario != Scenario::MonorepoRoot
+        || !ROOT_NORMAL_A_OWNER_VIEWPORTS.contains(&(width, height))
+    {
+        return None;
+    }
+
+    let theme_name = if *theme == Theme::junie() {
+        "junie"
+    } else if *theme == Theme::paper() {
+        "paper"
+    } else {
+        return None;
+    };
+    let color_name = match color {
+        ColorLevel::TrueColor => "truecolor",
+        ColorLevel::Ansi256 => "256",
+        ColorLevel::Ansi16 => "16",
+        ColorLevel::Mono => "mono",
+        _ => return None,
+    };
+
+    Some(format!(
+        "{} {width} {height} {theme_name} {color_name}",
+        scenario.name()
+    ))
+}
+
+fn remaining_root_normal_a_owner_key(
+    scenario: Scenario,
+    width: u16,
+    height: u16,
+    theme: &Theme,
+    color: ColorLevel,
+) -> Option<String> {
+    let key = root_normal_a_owner_key(scenario, width, height, theme, color)?;
+    (key != ROOT100_NORMAL_A_OWNER_KEY).then_some(key)
+}
+
 fn root100_normal_a_action_rects(
     rows: &[(String, String)],
     rows_area: Rect,
@@ -326,14 +397,55 @@ fn assert_root100_normal_a_owner(
     color: ColorLevel,
     expected_key: &str,
 ) -> String {
-    assert_eq!(scenario, Scenario::MonorepoRoot);
     assert_eq!(expected_key, ROOT100_NORMAL_A_OWNER_KEY);
+    assert_root_normal_a_owner(scenario, theme, color, 100, 30, expected_key)
+}
+
+fn assert_remaining_root_normal_a_owner(
+    scenario: Scenario,
+    theme: Theme,
+    color: ColorLevel,
+    width: u16,
+    height: u16,
+    expected_key: &str,
+) -> String {
+    assert_ne!(expected_key, ROOT100_NORMAL_A_OWNER_KEY);
+    assert_root_normal_a_owner(scenario, theme, color, width, height, expected_key)
+}
+
+fn assert_root_normal_a_owner(
+    scenario: Scenario,
+    theme: Theme,
+    color: ColorLevel,
+    width: u16,
+    height: u16,
+    expected_key: &str,
+) -> String {
+    assert_eq!(scenario, Scenario::MonorepoRoot);
+    assert_eq!(
+        root_normal_a_owner_key(scenario, width, height, &theme, color).as_deref(),
+        Some(expected_key),
+        "{expected_key} exact normal-A configuration key"
+    );
+    let frame_area = Rect::new(0, 0, width, height);
+    let rows_area_expected = Rect::new(1, 6, width.saturating_sub(2), height.saturating_sub(9));
+    let expected_port_row = Rect::new(1, 24, width.saturating_sub(2), 1);
+    let expected_frame_cells = usize::from(width).saturating_mul(usize::from(height));
 
     let mut world = holla_ui::sim::fixtures::world_for(scenario);
     world.seek(4_000);
-    assert_eq!(world.scenario, scenario, "pre-App fixture scenario");
-    assert_eq!(world.clock.now_ms, 4_000, "pre-App fixture time");
-    assert!(world.clock.running, "pre-App fixture clock is running");
+    assert_eq!(
+        world.scenario, scenario,
+        "{expected_key} pre-App fixture scenario"
+    );
+    assert_eq!(
+        world.clock.now_ms, 4_000,
+        "{expected_key} pre-App fixture time"
+    );
+    assert!(
+        world.clock.running,
+        "{expected_key} pre-App fixture clock is running"
+    );
 
     let raw = holla_ui::sim::catalogue::catalogue(&world);
     assert_eq!(
@@ -341,49 +453,66 @@ fn assert_root100_normal_a_owner(
             .filter(|action| action.id == "system.port")
             .count(),
         1,
-        "unique raw Port action"
+        "{expected_key} unique raw Port action"
     );
     let port = raw
         .iter()
         .find(|action| action.id == "system.port")
         .expect("unique raw Port action is present");
-    assert_eq!(port.scope, Scope::Host, "canonical Port host scope");
+    assert_eq!(
+        port.scope,
+        Scope::Host,
+        "{expected_key} canonical Port host scope"
+    );
     assert_eq!(
         port.workdir.as_str(),
         world.cwd.as_str(),
-        "Port workdir is the fixture cwd"
+        "{expected_key} Port workdir is the fixture cwd"
     );
     let local_port_pin = Pin {
         path: world.cwd.clone(),
         command: port.command.clone(),
     };
-    assert_eq!(local_port_pin.path, port.workdir, "local Port pin path");
+    assert_eq!(
+        local_port_pin.path, port.workdir,
+        "{expected_key} local Port pin path"
+    );
     assert!(
         !world
             .memory
             .hidden_at(&local_port_pin.path, &local_port_pin.command),
-        "actual local Port command is unhidden"
+        "{expected_key} actual local Port command is unhidden"
     );
 
     let rows = home_display_rows(&world);
-    assert_eq!(rows.len(), 16, "Root100 visible action count");
+    assert_eq!(rows.len(), 16, "{expected_key} visible action count");
     assert_eq!(
         rows.iter()
             .filter(|(_, action_id)| action_id == "system.port")
             .count(),
         1,
-        "unique visible Port action"
+        "{expected_key} unique visible Port action"
     );
     let visual_extent = home_visual_extent(&rows);
-    assert_eq!(visual_extent, 19, "Root100 section and action token count");
+    assert_eq!(
+        visual_extent, 19,
+        "{expected_key} section and action token count"
+    );
     let first_section = rows
         .first()
         .map(|(section, _)| section.as_str())
         .expect("nonempty Home model has a first action");
-    assert!(!first_section.is_empty(), "first model section exists");
+    assert!(
+        !first_section.is_empty(),
+        "{expected_key} first model section exists"
+    );
 
-    let action_rects = root100_normal_a_action_rects(&rows, Rect::new(1, 6, 98, 21));
-    assert_eq!(action_rects.len(), 16, "every modeled action has a row");
+    let action_rects = root100_normal_a_action_rects(&rows, rows_area_expected);
+    assert_eq!(
+        action_rects.len(),
+        16,
+        "{expected_key} every modeled action has a row"
+    );
     let unique_action_ids: BTreeSet<_> = action_rects
         .iter()
         .map(|(action_id, _)| action_id.as_str())
@@ -391,7 +520,7 @@ fn assert_root100_normal_a_owner(
     assert_eq!(
         unique_action_ids.len(),
         rows.len(),
-        "modeled action IDs are unique"
+        "{expected_key} modeled action IDs are unique"
     );
     let modeled_port_row = action_rects
         .iter()
@@ -399,64 +528,80 @@ fn assert_root100_normal_a_owner(
         .map(|(_, row)| *row);
     assert_eq!(
         modeled_port_row,
-        Some(Rect::new(1, 24, 98, 1)),
-        "Port row follows its modeled section position"
+        Some(expected_port_row),
+        "{expected_key} Port row follows its modeled section position"
     );
 
-    let mut ordinary = harness(scenario, theme.clone(), 100, 30, color);
+    let mut ordinary = harness(scenario, theme.clone(), width, height, color);
     ordinary.draw();
     assert_eq!(
         ordinary.runtime().theme(),
         &theme.for_level(color),
-        "normal-A runtime theme projection"
+        "{expected_key} runtime theme projection"
     );
     assert_eq!(
         ordinary.runtime().clock_ms(),
         0,
-        "normal-A elapsed runtime clock remains unadvanced"
+        "{expected_key} elapsed runtime clock remains unadvanced"
     );
-    assert_eq!(ordinary.app().fixture_time_ms(), 4_000, "normal-A App time");
-    assert_eq!(ordinary.focus(), Some(HOME_QUERY), "normal-A query focus");
+    assert_eq!(
+        ordinary.app().fixture_time_ms(),
+        4_000,
+        "{expected_key} App time"
+    );
+    assert_eq!(
+        ordinary.focus(),
+        Some(HOME_QUERY),
+        "{expected_key} query focus"
+    );
     assert_eq!(
         ordinary.cursor(),
         Some(Position { x: 3, y: 4 }),
-        "normal-A query cursor"
+        "{expected_key} query cursor"
     );
-    assert!(ordinary.diagnostics().is_empty(), "normal-A diagnostics");
-    assert!(ordinary.hover().is_none(), "normal-A hover");
+    assert!(
+        ordinary.diagnostics().is_empty(),
+        "{expected_key} diagnostics"
+    );
+    assert!(ordinary.hover().is_none(), "{expected_key} hover");
     let rows_state = ordinary.state_of(HOME_ROWS);
     assert!(
         !rows_state.contains(StateFlags::HOVERED),
-        "Rows are not hovered"
+        "{expected_key} Rows are not hovered"
     );
     assert!(
         !rows_state.contains(StateFlags::PRESSED),
-        "Rows are not pressed"
+        "{expected_key} Rows are not pressed"
     );
     assert!(
         !rows_state.contains(StateFlags::FOCUSED),
-        "Rows are not focused"
+        "{expected_key} Rows are not focused"
     );
 
     let frame = ordinary.buffer();
-    assert_eq!(
-        *frame.area(),
-        Rect::new(0, 0, 100, 30),
-        "Root100 frame area"
-    );
+    assert_eq!(*frame.area(), frame_area, "{expected_key} frame area");
     let mut complete_cells = 0_usize;
-    for y in 0..30 {
-        for x in 0..100 {
-            assert!(frame.cell((x, y)).is_some(), "Root100 cell ({x},{y})");
+    for y in 0..height {
+        for x in 0..width {
+            assert!(
+                frame.cell((x, y)).is_some(),
+                "{expected_key} cell ({x},{y})"
+            );
             complete_cells = complete_cells.saturating_add(1);
         }
     }
-    assert_eq!(complete_cells, 3_000, "all Root100 frame cells exist");
+    assert_eq!(
+        complete_cells, expected_frame_cells,
+        "{expected_key} all frame cells exist"
+    );
     let ordinary_text = ordinary.text();
-    assert!(ordinary_text.contains("holla❯"), "Root100 brand is visible");
+    assert!(
+        ordinary_text.contains("holla❯"),
+        "{expected_key} brand is visible"
+    );
     assert!(
         ordinary_text.contains(scenario.boot_title()),
-        "Root100 fixture title is visible"
+        "{expected_key} fixture title is visible"
     );
 
     let actual_key = ordinary.snapshot().named(scenario.name()).key().to_owned();
@@ -464,18 +609,21 @@ fn assert_root100_normal_a_owner(
     let rows_area = ordinary
         .area_of(HOME_ROWS)
         .expect("native Home Rows are registered");
-    assert_eq!(rows_area, Rect::new(1, 6, 98, 21), "Root100 Rows area");
+    assert_eq!(
+        rows_area, rows_area_expected,
+        "{expected_key} exact Rows area"
+    );
     assert!(
         ordinary
             .area_of_part(HOME_ROWS, PartRef::of(Part::TRACK))
             .is_none(),
-        "Root100 has no track"
+        "{expected_key} has no track"
     );
     assert!(
         ordinary
             .area_of_part(HOME_ROWS, PartRef::of(Part::THUMB))
             .is_none(),
-        "Root100 has no thumb"
+        "{expected_key} has no thumb"
     );
     for (action_id, expected_row) in &action_rects {
         assert_eq!(
@@ -484,7 +632,7 @@ fn assert_root100_normal_a_owner(
                 PartRef::item(Part::ROW, termrock::ItemKey::text(action_id)),
             ),
             Some(*expected_row),
-            "native action row follows section-derived position: {action_id}"
+            "{expected_key} native action row follows section-derived position: {action_id}"
         );
     }
     let native_port_row = ordinary
@@ -496,13 +644,13 @@ fn assert_root100_normal_a_owner(
     assert_eq!(
         Some(native_port_row),
         modeled_port_row,
-        "native Port row is exactly (1,24,98,1)"
+        "{expected_key} native Port row follows its model-derived position"
     );
     assert!(
         ordinary
             .row(native_port_row.y)
             .contains(port.title.as_str()),
-        "native Port row renders the model title"
+        "{expected_key} native Port row renders the model title"
     );
 
     actual_key
@@ -1230,6 +1378,25 @@ fn holla_visual_baseline() {
                         );
                         continue;
                     }
+                    if let Some(expected_key) =
+                        remaining_root_normal_a_owner_key(scenario, width, height, &theme, color)
+                    {
+                        // The private `root_100_nonoverflow_port_owner` RootCase family owns B,
+                        // full-cell locality, and painter checks for these remaining Root configs.
+                        let actual_key = assert_remaining_root_normal_a_owner(
+                            scenario,
+                            theme.clone(),
+                            color,
+                            width,
+                            height,
+                            &expected_key,
+                        );
+                        assert_eq!(
+                            actual_key, expected_key,
+                            "normal-A remaining Root route retains the exact key"
+                        );
+                        continue;
+                    }
                     let ordinary = harness(scenario, theme.clone(), width, height, color);
                     let scene = ordinary.snapshot().named(scenario.name());
                     if scenario == Scenario::MonorepoRoot
@@ -1527,6 +1694,167 @@ fn holla_root100_normal_a_owner_selector_is_exact() {
         selected_keys,
         BTreeSet::from([ROOT100_NORMAL_A_OWNER_KEY.to_owned()]),
         "exact Root100 normal-A owner key set"
+    );
+}
+
+#[test]
+fn holla_remaining_root_normal_a_owner_matrix_is_exact() {
+    let junie = Theme::junie();
+    let paper = Theme::paper();
+    for (scenario, width, height, theme, color) in [
+        (
+            Scenario::MonorepoRoot,
+            99,
+            30,
+            &junie,
+            ColorLevel::TrueColor,
+        ),
+        (
+            Scenario::MonorepoRoot,
+            100,
+            29,
+            &junie,
+            ColorLevel::TrueColor,
+        ),
+        (
+            Scenario::MonorepoRoot,
+            101,
+            30,
+            &junie,
+            ColorLevel::TrueColor,
+        ),
+        (
+            Scenario::MonorepoRoot,
+            100,
+            31,
+            &junie,
+            ColorLevel::TrueColor,
+        ),
+        (Scenario::MonorepoRoot, 120, 39, &paper, ColorLevel::Ansi256),
+        (
+            Scenario::MonorepoChild,
+            120,
+            40,
+            &junie,
+            ColorLevel::TrueColor,
+        ),
+    ] {
+        assert!(
+            remaining_root_normal_a_owner_key(scenario, width, height, theme, color).is_none(),
+            "neighboring config is not a remaining Root owner: {scenario:?} {width}x{height} {theme:?} {color:?}"
+        );
+    }
+    assert!(
+        remaining_root_normal_a_owner_key(
+            Scenario::MonorepoRoot,
+            100,
+            30,
+            &junie,
+            ColorLevel::TrueColor,
+        )
+        .is_none(),
+        "the exact Root100 owner remains on its existing selector"
+    );
+
+    let expected_keys: BTreeSet<_> = REMAINING_ROOT_NORMAL_A_OWNER_KEYS
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    assert_eq!(
+        expected_keys.len(),
+        REMAINING_ROOT_NORMAL_A_OWNER_KEYS.len()
+    );
+
+    let mut matrix_inputs = 0_usize;
+    let mut selected_keys = BTreeSet::new();
+    for scenario in Scenario::ALL {
+        for (width, height) in SIZES {
+            for theme in [Theme::junie(), Theme::paper()] {
+                for color in COLORS {
+                    matrix_inputs = matrix_inputs.saturating_add(1);
+                    let key =
+                        remaining_root_normal_a_owner_key(scenario, width, height, &theme, color);
+                    let root100_key =
+                        root100_normal_a_owner_key(scenario, width, height, &theme, color);
+                    let tracked_key =
+                        tracked_port_owner_key(scenario, width, height, &theme, color);
+                    let has_specialized_owner =
+                        is_border_palette_case(scenario, width, height, &theme, color)
+                            || is_historical_ansi16_faint_case(
+                                scenario, width, height, &theme, color,
+                            )
+                            || historical_80_overflow_faint_color(
+                                scenario, width, height, &theme, color,
+                            )
+                            .is_some()
+                            || is_historical_overflow_faint_case(
+                                scenario, width, height, &theme, color,
+                            );
+                    assert!(
+                        key.is_none() || root100_key.is_none(),
+                        "remaining Root owner excludes Root100: {scenario:?} {width}x{height} {theme:?} {color:?}"
+                    );
+                    assert!(
+                        key.is_none() || tracked_key.is_none(),
+                        "remaining Root owner excludes all eleven tracked routes: {scenario:?} {width}x{height} {theme:?} {color:?}"
+                    );
+                    assert!(
+                        key.as_ref().is_none_or(|key| {
+                            !EXISTING_CURRENT_A_OWNER_KEYS.contains(&key.as_str())
+                        }),
+                        "remaining Root owner excludes all six older routes: {scenario:?} {width}x{height} {theme:?} {color:?}"
+                    );
+                    assert!(
+                        key.is_none() || !has_specialized_owner,
+                        "remaining Root owner excludes specialized and faint protocols: {scenario:?} {width}x{height} {theme:?} {color:?}"
+                    );
+
+                    if let Some(owner_key) = key {
+                        assert!(
+                            expected_keys.contains(&owner_key),
+                            "selected key belongs to independent finite key set: {owner_key}"
+                        );
+                        assert!(
+                            !TRACKED_PORT_OWNER_KEYS.contains(&owner_key.as_str()),
+                            "remaining Root key is distinct from all eleven tracked keys"
+                        );
+                        assert!(
+                            !EXISTING_CURRENT_A_OWNER_KEYS.contains(&owner_key.as_str()),
+                            "remaining Root key is distinct from all six older keys"
+                        );
+                        let actual_key = assert_remaining_root_normal_a_owner(
+                            scenario,
+                            theme.clone(),
+                            color,
+                            width,
+                            height,
+                            &owner_key,
+                        );
+                        assert_eq!(
+                            actual_key, owner_key,
+                            "normal-A helper retains the exact remaining Root key"
+                        );
+                        assert!(
+                            selected_keys.insert(actual_key.clone()),
+                            "matrix selects each remaining Root key once: {actual_key}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(
+        matrix_inputs, 1_120,
+        "complete Scenario × size × theme × tier matrix"
+    );
+    assert_eq!(
+        selected_keys.len(),
+        REMAINING_ROOT_NORMAL_A_OWNER_KEYS.len(),
+        "all twenty-three remaining Root owner keys are unique"
+    );
+    assert_eq!(
+        selected_keys, expected_keys,
+        "exact remaining Root normal-A owner key set"
     );
 }
 
