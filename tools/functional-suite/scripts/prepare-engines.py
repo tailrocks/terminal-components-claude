@@ -121,6 +121,16 @@ def verify_tui_test(repository: Path, pin: dict, patch_path: Path) -> None:
         )
         if actual_blob != expected_blob:
             fail(f"tui-test base preimage mismatch for {relative}: {actual_blob}")
+    package_manifest = require_inside(
+        repository,
+        repository / "crates/tui-test/Cargo.toml",
+        "tui-test package manifest",
+    )
+    workspace_manifest = require_inside(repository, repository / "Cargo.toml", "tui-test workspace manifest")
+    if sha256(package_manifest) != pin["package_manifest_sha256"]:
+        fail(f"tui-test package manifest hash mismatch: {package_manifest}")
+    if sha256(workspace_manifest) != pin["workspace_manifest_sha256"]:
+        fail(f"tui-test workspace manifest hash mismatch: {workspace_manifest}")
     current_status = status_lines(repository)
 
     if not current_status:
@@ -176,6 +186,16 @@ def verify_tuiscotti(repository: Path, pin: dict, patch_path: Path) -> None:
         actual_hash = hashlib.sha256(result.stdout).hexdigest()
         if actual_hash != expected_hash:
             fail(f"tuiscotti base preimage mismatch for {relative}: {actual_hash}")
+    package_manifest = require_inside(
+        repository,
+        repository / "crates/tuiscotti/Cargo.toml",
+        "tuiscotti package manifest",
+    )
+    workspace_manifest = require_inside(repository, repository / "Cargo.toml", "tuiscotti workspace manifest")
+    if sha256(package_manifest) != pin["package_manifest_sha256"]:
+        fail(f"tuiscotti package manifest hash mismatch: {package_manifest}")
+    if sha256(workspace_manifest) != pin["workspace_manifest_sha256"]:
+        fail(f"tuiscotti workspace manifest hash mismatch: {workspace_manifest}")
 
     current_status = status_lines(repository)
     if not current_status:
@@ -223,7 +243,7 @@ def main() -> None:
 
     pins_path = SUITE_ROOT / "engine-pins.json"
     pins = json.loads(pins_path.read_text(encoding="utf-8"))
-    tui_test = pins["tui_test_rs"]
+    tui_test = pins["tuiscotti_tui_test"]
     patch_path = require_inside(SUITE_ROOT, SUITE_ROOT / tui_test["patch_file"], "patch path")
     if sha256(patch_path) != tui_test["patch_sha256"]:
         fail(f"tui-test patch hash mismatch: {patch_path}")
@@ -244,7 +264,7 @@ def main() -> None:
     ensure_checkout(tui_test["repository"], tui_test["base_commit"], tui_test_path)
     verify_tui_test(tui_test_path, tui_test, patch_path)
 
-    print("prepared pinned tui-test-rs and patched tuiscotti engine sources")
+    print("prepared pinned tuiscotti-tui-test 0.2.0 and tuiscotti 0.4.0 engine sources")
 
 
 if __name__ == "__main__":

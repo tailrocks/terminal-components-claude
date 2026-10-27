@@ -1857,8 +1857,8 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "toml",
- "tui-test-rs",
  "tuiscotti",
+ "tuiscotti-tui-test",
 ]
 
 [[package]]
@@ -2023,8 +2023,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "tui-test-rs"
-version = "0.1.1"
+name = "tuiscotti"
+version = "0.4.0"
+dependencies = [
+ "base64 0.23.1",
+ "fs2",
+ "image",
+ "ratatui",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
+ "tuiscotti-tui-test",
+]
+
+[[package]]
+name = "tuiscotti-tui-test"
+version = "0.2.0"
 dependencies = [
  "alacritty_terminal",
  "anyhow",
@@ -2049,20 +2063,6 @@ dependencies = [
  "unicode-properties",
  "unicode-width",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "tuiscotti"
-version = "0.3.0"
-dependencies = [
- "base64 0.23.1",
- "fs2",
- "image",
- "ratatui",
- "serde",
- "serde_json",
- "sha2 0.11.1",
- "tui-test-rs",
 ]
 
 [[package]]

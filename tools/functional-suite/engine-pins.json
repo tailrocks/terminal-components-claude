@@ -13,7 +13,7 @@
     "export_helper": "tools/functional-suite/scripts/export-source.py",
     "generator": "Velnor Actions 0.1.48",
     "integration_target": "functional",
-    "lockfile_sha256": "1be4117d0a1b71c876dc38967032409f7548a26ae6c2168819873fa2df550ff8",
+    "lockfile_sha256": "88822e5c44bf9660fb3586a8a8c52eed861fb46386b8cb99f40bdde88a9d9d76",
     "required_setup": "python3 <exported-suite>/scripts/prepare-engines.py",
     "runtime_directories": [
       "TERMROCK_PARITY_BIN_DIR",
@@ -22,9 +22,33 @@
     "status": "pending",
     "suite_manifest_path": "tools/functional-suite/Cargo.toml"
   },
-  "schema_version": 1,
-  "tui_test_rs": {
-    "base_commit": "3887a75dee4463ce0122c37eb278ab7ebb71aeaf",
+  "schema_version": 2,
+  "tuiscotti": {
+    "checkout": "complete_non_sparse_tracked_tree",
+    "commit": "4b3a5e49ea2e5dbaa913534ced91aa9e45337d67",
+    "pixel_gap_patch_file": "engine-patches/tuiscotti-ac5f70d-to-pixel-gap.patch",
+    "pixel_gap_patch_sha256": "ed4c9ac1d03b6aac8347e7018311aebad100d37a1a8fea400378ee434038955d",
+    "pixel_gap_review_artifact": "/private/tmp/pr38-tuiscotti-pixel-gap-review-20261028-ac5f70d",
+    "pixel_gap_review_status": "approved_source_on_ac5f70d; exact_4b3a5e49_patch_apply_check_and_postimages_verified; new_base_source_review_pending",
+    "preimage_sha256": {
+      "crates/tuiscotti/docs/check.md": "942547de7dde6cf55381b98b5add5cd2d2c814a48a25e9ab9b08d55211acde6f",
+      "crates/tuiscotti/docs/report.md": "2ec26a547a229d22253f46d3bc302931855203db41dcc852245d023a72e75a15",
+      "crates/tuiscotti/src/check.rs": "46ec68cc48f41f7a8c77f1c1dfb06b88d21e0d07c55792e7a3824d2a742ccd3e",
+      "crates/tuiscotti/src/report.rs": "8951da08666d25b5fff24ee1521a4b0a9b041872b35d1ec3492a72af03ee5fc0"
+    },
+    "repository": "https://github.com/tailrocks/tuiscotti.git",
+    "source_sha256": {
+      "crates/tuiscotti/docs/check.md": "5a815750b8e6afe35ac81d4444a5e8c57f4c06d9853a196b8150612f35b8aff7",
+      "crates/tuiscotti/docs/report.md": "6925ecd1a32d9396107a6f4047b9bd9f2a5a1561ce0bb05daf749a1560d16845",
+      "crates/tuiscotti/src/check.rs": "0967287b8344e1157b9d7154d4d93375e02f3cc378a6ca371ca16e5b85d07475",
+      "crates/tuiscotti/src/report.rs": "4b5e256a601a75ded80d684795e200d93148ddaea7d736dc5d6294955a80d6bb"
+    },
+    "package_version": "0.4.0",
+    "package_manifest_sha256": "d32333492569332ed1f0fec33ea626a1fff6195dc5d40ec5196870f956bebd48",
+    "workspace_manifest_sha256": "f07be9c5f17be78f5cf7f40e8ff7b72442b02ceb70d9e6b8cb48cb2eb3336a5f"
+  },
+  "tuiscotti_tui_test": {
+    "base_commit": "59a8ded6d8f419f93aaf2c0edcf8253a6e6c7496",
     "checkout": "complete_non_sparse_tracked_tree",
     "draft_manifest_sha256": "c892539e25095f65b4e3509c3272d5f00ae1ae036f8d1e2d83e4b55142441d15",
     "draft_packet": "tui-test-capture-v7",
@@ -43,7 +67,7 @@
       "crates/tui-test/src/terminal/emu.rs": "d6141ed3aafe5126edabecc73b23e39880deb1e8",
       "crates/tui-test/src/terminal/pty.rs": "b96f08bf3dbb59cff539170b89c45f1ef80f9772"
     },
-    "repository": "https://github.com/microsoft/tui-test.git",
+    "repository": "https://github.com/tailrocks/tui-test.git",
     "review_packet": "tui-test-capture-fork-v7",
     "source_sha256": {
       "crates/tui-test/src/engine.rs": "6069be1efd3cf2348963d5340cdcc55d82020845e1d98d395f339f0283a1e5a9",
@@ -57,27 +81,12 @@
       "crates/tui-test/src/terminal/alacritty.rs": "3fd191f86333c86094fb1b5377506cc0db11cd4fd78ede6b1b86bac7d0c5cebe",
       "crates/tui-test/src/terminal/emu.rs": "5e419a3df9448600dc1a741c5081155cb6a284636af0a78fddc715c9a430b8e9",
       "crates/tui-test/src/terminal/pty.rs": "22be21b2219882d35cc0b82264be1accd7dcff9edd745f3116d56fb61f194309"
-    }
-  },
-  "tuiscotti": {
-    "checkout": "complete_non_sparse_tracked_tree",
-    "commit": "ac5f70d14d1967f551261d599a4cd857ec9fa2d7",
-    "pixel_gap_patch_file": "engine-patches/tuiscotti-ac5f70d-to-pixel-gap.patch",
-    "pixel_gap_patch_sha256": "ed4c9ac1d03b6aac8347e7018311aebad100d37a1a8fea400378ee434038955d",
-    "pixel_gap_review_artifact": "/private/tmp/pr38-tuiscotti-pixel-gap-review-20261028-ac5f70d",
-    "pixel_gap_review_status": "approved_source_only_no_runtime_proof",
-    "preimage_sha256": {
-      "crates/tuiscotti/docs/check.md": "942547de7dde6cf55381b98b5add5cd2d2c814a48a25e9ab9b08d55211acde6f",
-      "crates/tuiscotti/docs/report.md": "e88675d0670c640ba58745806cb38c66b63e128db4a7174f817d07e6add9bdb0",
-      "crates/tuiscotti/src/check.rs": "46ec68cc48f41f7a8c77f1c1dfb06b88d21e0d07c55792e7a3824d2a742ccd3e",
-      "crates/tuiscotti/src/report.rs": "7811ab59fa89faf2f0c55ea5cbfc39b449fcb498252f6ce453cc3b960c0ca764"
     },
-    "repository": "https://github.com/tailrocks/tuiscotti.git",
-    "source_sha256": {
-      "crates/tuiscotti/docs/check.md": "5a815750b8e6afe35ac81d4444a5e8c57f4c06d9853a196b8150612f35b8aff7",
-      "crates/tuiscotti/docs/report.md": "691569dbcfb20cf0f80de552be13b55eac3b945746dcae60040aeb60acc05ab0",
-      "crates/tuiscotti/src/check.rs": "0967287b8344e1157b9d7154d4d93375e02f3cc378a6ca371ca16e5b85d07475",
-      "crates/tuiscotti/src/report.rs": "9508161dd251cfdc05c0d6e00127b912a586d6312281e83191c23bfeea3e077f"
-    }
+    "package_name": "tuiscotti-tui-test",
+    "package_version": "0.2.0",
+    "library_name": "tui_test",
+    "registry_archive_sha256": "0e1e3dcd3f914c6b71af120cfac0d82aade62c1b145c58b409685f277980b76a",
+    "package_manifest_sha256": "3b8f4766bd4d0933cdb1b157332783f003749f6a7d694643876ccbc78deff031",
+    "workspace_manifest_sha256": "fc36917b2b254863923b1d921a80dbedf9a605714831e350dac9d2c1e75e2c35"
   }
 }
