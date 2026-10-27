@@ -103,6 +103,61 @@ const REMAINING_ROOT_NORMAL_A_OWNER_KEYS: [&str; 23] = [
     "monorepo-root 160 50 paper 16",
     "monorepo-root 160 50 paper mono",
 ];
+const NONOVERFLOW_NORMAL_A_OWNER_VIEWPORTS: [(u16, u16); 3] = [(100, 30), (120, 40), (160, 50)];
+const CHILD_NORMAL_A_OWNER_KEYS: [&str; 24] = [
+    "monorepo-child 100 30 junie truecolor",
+    "monorepo-child 100 30 junie 256",
+    "monorepo-child 100 30 junie 16",
+    "monorepo-child 100 30 junie mono",
+    "monorepo-child 100 30 paper truecolor",
+    "monorepo-child 100 30 paper 256",
+    "monorepo-child 100 30 paper 16",
+    "monorepo-child 100 30 paper mono",
+    "monorepo-child 120 40 junie truecolor",
+    "monorepo-child 120 40 junie 256",
+    "monorepo-child 120 40 junie 16",
+    "monorepo-child 120 40 junie mono",
+    "monorepo-child 120 40 paper truecolor",
+    "monorepo-child 120 40 paper 256",
+    "monorepo-child 120 40 paper 16",
+    "monorepo-child 120 40 paper mono",
+    "monorepo-child 160 50 junie truecolor",
+    "monorepo-child 160 50 junie 256",
+    "monorepo-child 160 50 junie 16",
+    "monorepo-child 160 50 junie mono",
+    "monorepo-child 160 50 paper truecolor",
+    "monorepo-child 160 50 paper 256",
+    "monorepo-child 160 50 paper 16",
+    "monorepo-child 160 50 paper mono",
+];
+const ACTIVITIES_ORDINARY_NORMAL_A_OWNER_KEYS: [&str; 21] = [
+    "activities-multi 100 30 junie truecolor",
+    "activities-multi 100 30 junie 256",
+    "activities-multi 100 30 junie mono",
+    "activities-multi 100 30 paper truecolor",
+    "activities-multi 100 30 paper 256",
+    "activities-multi 100 30 paper 16",
+    "activities-multi 100 30 paper mono",
+    "activities-multi 120 40 junie truecolor",
+    "activities-multi 120 40 junie 256",
+    "activities-multi 120 40 junie mono",
+    "activities-multi 120 40 paper truecolor",
+    "activities-multi 120 40 paper 256",
+    "activities-multi 120 40 paper 16",
+    "activities-multi 120 40 paper mono",
+    "activities-multi 160 50 junie truecolor",
+    "activities-multi 160 50 junie 256",
+    "activities-multi 160 50 junie mono",
+    "activities-multi 160 50 paper truecolor",
+    "activities-multi 160 50 paper 256",
+    "activities-multi 160 50 paper 16",
+    "activities-multi 160 50 paper mono",
+];
+const ACTIVITIES_FAINT_NORMAL_A_OWNER_KEYS: [&str; 3] = [
+    "activities-multi 100 30 junie 16",
+    "activities-multi 120 40 junie 16",
+    "activities-multi 160 50 junie 16",
+];
 
 fn tracked_port_owner_key(
     scenario: Scenario,
@@ -364,10 +419,83 @@ fn remaining_root_normal_a_owner_key(
     (key != ROOT100_NORMAL_A_OWNER_KEY).then_some(key)
 }
 
-fn root100_normal_a_action_rects(
-    rows: &[(String, String)],
-    rows_area: Rect,
-) -> Vec<(String, Rect)> {
+fn normal_a_owner_key(
+    scenario: Scenario,
+    width: u16,
+    height: u16,
+    theme: &Theme,
+    color: ColorLevel,
+) -> Option<String> {
+    let theme_name = if *theme == Theme::junie() {
+        "junie"
+    } else if *theme == Theme::paper() {
+        "paper"
+    } else {
+        return None;
+    };
+    let color_name = match color {
+        ColorLevel::TrueColor => "truecolor",
+        ColorLevel::Ansi256 => "256",
+        ColorLevel::Ansi16 => "16",
+        ColorLevel::Mono => "mono",
+        _ => return None,
+    };
+
+    Some(format!(
+        "{} {width} {height} {theme_name} {color_name}",
+        scenario.name()
+    ))
+}
+
+fn child_normal_a_owner_key(
+    scenario: Scenario,
+    width: u16,
+    height: u16,
+    theme: &Theme,
+    color: ColorLevel,
+) -> Option<String> {
+    if scenario != Scenario::MonorepoChild
+        || !NONOVERFLOW_NORMAL_A_OWNER_VIEWPORTS.contains(&(width, height))
+    {
+        return None;
+    }
+    normal_a_owner_key(scenario, width, height, theme, color)
+}
+
+fn activities_ordinary_normal_a_owner_key(
+    scenario: Scenario,
+    width: u16,
+    height: u16,
+    theme: &Theme,
+    color: ColorLevel,
+) -> Option<String> {
+    if scenario != Scenario::ActivitiesMulti
+        || !NONOVERFLOW_NORMAL_A_OWNER_VIEWPORTS.contains(&(width, height))
+        || (*theme == Theme::junie() && color == ColorLevel::Ansi16)
+    {
+        return None;
+    }
+    normal_a_owner_key(scenario, width, height, theme, color)
+}
+
+fn activities_faint_normal_a_owner_key(
+    scenario: Scenario,
+    width: u16,
+    height: u16,
+    theme: &Theme,
+    color: ColorLevel,
+) -> Option<String> {
+    if scenario != Scenario::ActivitiesMulti
+        || !NONOVERFLOW_NORMAL_A_OWNER_VIEWPORTS.contains(&(width, height))
+        || *theme != Theme::junie()
+        || color != ColorLevel::Ansi16
+    {
+        return None;
+    }
+    normal_a_owner_key(scenario, width, height, theme, color)
+}
+
+fn home_model_action_rects(rows: &[(String, String)], rows_area: Rect) -> Vec<(String, Rect)> {
     let mut action_rects = Vec::with_capacity(rows.len());
     let mut y = rows_area.y;
     let mut previous_section = None;
@@ -389,6 +517,13 @@ fn root100_normal_a_action_rects(
     }
 
     action_rects
+}
+
+struct NormalAOwnerEvidence {
+    key: String,
+    action_count: usize,
+    visual_extent: usize,
+    port_row: Rect,
 }
 
 fn assert_root100_normal_a_owner(
@@ -427,9 +562,38 @@ fn assert_root_normal_a_owner(
         Some(expected_key),
         "{expected_key} exact normal-A configuration key"
     );
+    let evidence = assert_normal_a_owner(scenario, theme, color, width, height, expected_key);
+    assert_eq!(
+        evidence.action_count, 16,
+        "{expected_key} Root visible action count"
+    );
+    assert_eq!(
+        evidence.visual_extent, 19,
+        "{expected_key} Root section and action token count"
+    );
+    assert_eq!(
+        evidence.port_row,
+        Rect::new(1, 24, width.saturating_sub(2), 1),
+        "{expected_key} Root Port row remains at its fixed model position"
+    );
+    evidence.key
+}
+
+fn assert_normal_a_owner(
+    scenario: Scenario,
+    theme: Theme,
+    color: ColorLevel,
+    width: u16,
+    height: u16,
+    expected_key: &str,
+) -> NormalAOwnerEvidence {
+    assert_eq!(
+        normal_a_owner_key(scenario, width, height, &theme, color).as_deref(),
+        Some(expected_key),
+        "{expected_key} exact normal-A configuration key"
+    );
     let frame_area = Rect::new(0, 0, width, height);
     let rows_area_expected = Rect::new(1, 6, width.saturating_sub(2), height.saturating_sub(9));
-    let expected_port_row = Rect::new(1, 24, width.saturating_sub(2), 1);
     let expected_frame_cells = usize::from(width).saturating_mul(usize::from(height));
 
     let mut world = holla_ui::sim::fixtures::world_for(scenario);
@@ -485,7 +649,6 @@ fn assert_root_normal_a_owner(
     );
 
     let rows = home_display_rows(&world);
-    assert_eq!(rows.len(), 16, "{expected_key} visible action count");
     assert_eq!(
         rows.iter()
             .filter(|(_, action_id)| action_id == "system.port")
@@ -494,10 +657,6 @@ fn assert_root_normal_a_owner(
         "{expected_key} unique visible Port action"
     );
     let visual_extent = home_visual_extent(&rows);
-    assert_eq!(
-        visual_extent, 19,
-        "{expected_key} section and action token count"
-    );
     let first_section = rows
         .first()
         .map(|(section, _)| section.as_str())
@@ -507,10 +666,10 @@ fn assert_root_normal_a_owner(
         "{expected_key} first model section exists"
     );
 
-    let action_rects = root100_normal_a_action_rects(&rows, rows_area_expected);
+    let action_rects = home_model_action_rects(&rows, rows_area_expected);
     assert_eq!(
         action_rects.len(),
-        16,
+        rows.len(),
         "{expected_key} every modeled action has a row"
     );
     let unique_action_ids: BTreeSet<_> = action_rects
@@ -525,12 +684,8 @@ fn assert_root_normal_a_owner(
     let modeled_port_row = action_rects
         .iter()
         .find(|(action_id, _)| action_id == "system.port")
-        .map(|(_, row)| *row);
-    assert_eq!(
-        modeled_port_row,
-        Some(expected_port_row),
-        "{expected_key} Port row follows its modeled section position"
-    );
+        .map(|(_, row)| *row)
+        .expect("visible Port row is modeled");
 
     let mut ordinary = harness(scenario, theme.clone(), width, height, color);
     ordinary.draw();
@@ -613,47 +768,99 @@ fn assert_root_normal_a_owner(
         rows_area, rows_area_expected,
         "{expected_key} exact Rows area"
     );
-    assert!(
-        ordinary
-            .area_of_part(HOME_ROWS, PartRef::of(Part::TRACK))
-            .is_none(),
-        "{expected_key} has no track"
-    );
-    assert!(
-        ordinary
-            .area_of_part(HOME_ROWS, PartRef::of(Part::THUMB))
-            .is_none(),
-        "{expected_key} has no thumb"
-    );
-    for (action_id, expected_row) in &action_rects {
+    let track = ordinary.area_of_part(HOME_ROWS, PartRef::of(Part::TRACK));
+    let thumb = ordinary.area_of_part(HOME_ROWS, PartRef::of(Part::THUMB));
+    if visual_extent <= usize::from(rows_area.height) {
+        assert_eq!(track, None, "{expected_key} nonoverflow model has no track");
+        assert_eq!(thumb, None, "{expected_key} nonoverflow model has no thumb");
+    } else {
+        let expected_track = Rect::new(width.saturating_sub(2), rows_area.y, 1, rows_area.height);
         assert_eq!(
-            ordinary.area_of_part(
-                HOME_ROWS,
-                PartRef::item(Part::ROW, termrock::ItemKey::text(action_id)),
-            ),
-            Some(*expected_row),
+            track,
+            Some(expected_track),
+            "{expected_key} overflow track follows the model rows area"
+        );
+        let actual_track = track.expect("overflow model registers its track");
+        let actual_thumb = thumb.expect("overflow model registers its thumb");
+        let expected_thumb_height = (usize::from(rows_area.height)
+            .saturating_mul(usize::from(actual_track.height))
+            / visual_extent)
+            .max(1)
+            .min(usize::from(actual_track.height));
+        assert_eq!(
+            actual_thumb.x, actual_track.x,
+            "{expected_key} thumb column"
+        );
+        assert_eq!(
+            actual_thumb.y, actual_track.y,
+            "{expected_key} initial thumb offset"
+        );
+        assert_eq!(
+            actual_thumb.width, actual_track.width,
+            "{expected_key} thumb width"
+        );
+        assert_eq!(
+            usize::from(actual_thumb.height),
+            expected_thumb_height,
+            "{expected_key} model-derived thumb height"
+        );
+    }
+    for (action_id, expected_row) in &action_rects {
+        let expected_visible = expected_row.y >= rows_area.y
+            && expected_row.y < rows_area.y.saturating_add(rows_area.height);
+        let actual_row = ordinary.area_of_part(
+            HOME_ROWS,
+            PartRef::item(Part::ROW, termrock::ItemKey::text(action_id)),
+        );
+        assert_eq!(
+            actual_row,
+            expected_visible.then_some(*expected_row),
             "{expected_key} native action row follows section-derived position: {action_id}"
         );
     }
-    let native_port_row = ordinary
-        .area_of_part(
-            HOME_ROWS,
-            PartRef::item(Part::ROW, termrock::ItemKey::text("system.port")),
-        )
-        .expect("native Port row is registered");
+    let expected_port_visible = modeled_port_row.y >= rows_area.y
+        && modeled_port_row.y < rows_area.y.saturating_add(rows_area.height);
+    let native_port_row = ordinary.area_of_part(
+        HOME_ROWS,
+        PartRef::item(Part::ROW, termrock::ItemKey::text("system.port")),
+    );
     assert_eq!(
-        Some(native_port_row),
-        modeled_port_row,
+        native_port_row,
+        expected_port_visible.then_some(modeled_port_row),
         "{expected_key} native Port row follows its model-derived position"
     );
-    assert!(
-        ordinary
-            .row(native_port_row.y)
-            .contains(port.title.as_str()),
-        "{expected_key} native Port row renders the model title"
-    );
+    if let Some(native_port_row) = native_port_row {
+        assert!(
+            ordinary
+                .row(native_port_row.y)
+                .contains(port.title.as_str()),
+            "{expected_key} native Port row renders the model title"
+        );
+    }
 
-    actual_key
+    NormalAOwnerEvidence {
+        key: actual_key,
+        action_count: rows.len(),
+        visual_extent,
+        port_row: modeled_port_row,
+    }
+}
+
+fn assert_nonoverflow_normal_a_owner(
+    scenario: Scenario,
+    theme: Theme,
+    color: ColorLevel,
+    width: u16,
+    height: u16,
+    expected_key: &str,
+) -> NormalAOwnerEvidence {
+    let evidence = assert_normal_a_owner(scenario, theme, color, width, height, expected_key);
+    let rows_height = height.saturating_sub(9);
+    assert!(
+        evidence.visual_extent <= usize::from(rows_height),
+        "{expected_key} selected owner remains nonoverflow"
+    );
+    evidence
 }
 
 fn is_border_palette_case(
@@ -1052,7 +1259,12 @@ fn assert_foreground_only_replay(
     );
 }
 
-fn assert_historical_ansi16_faint_replay(scenario: Scenario, width: u16, height: u16) {
+fn assert_historical_ansi16_faint_replay(
+    scenario: Scenario,
+    width: u16,
+    height: u16,
+    assert_held_baseline: bool,
+) {
     let mut harness = harness(scenario, Theme::junie(), width, height, ColorLevel::Ansi16);
     let current = harness.buffer().clone();
     let current_cursor = harness.cursor();
@@ -1081,10 +1293,17 @@ fn assert_historical_ansi16_faint_replay(scenario: Scenario, width: u16, height:
         assert_eq!(cell.bg, Color::Black, "background at ({x}, {y})");
     }
 
-    let mut historical_theme = harness.runtime().theme().clone();
+    let source_runtime_theme = harness.runtime().theme().clone();
+    let mut historical_theme = source_runtime_theme.clone();
     historical_theme.color.fg[3] = Color::DarkGray;
+    let expected_historical_theme = historical_theme.clone();
     harness.runtime_mut().set_theme(historical_theme);
     harness.draw();
+    assert_eq!(
+        harness.runtime().theme(),
+        &expected_historical_theme,
+        "native faint replay applies only the expected runtime theme change"
+    );
     let historical = harness.buffer().clone();
     assert_eq!(harness.cursor(), current_cursor);
     assert_foreground_only_replay(
@@ -1094,10 +1313,25 @@ fn assert_historical_ansi16_faint_replay(scenario: Scenario, width: u16, height:
         Color::Gray,
         Color::DarkGray,
     );
-    harness
-        .snapshot()
-        .named(scenario.name())
-        .assert_against(&BASELINE);
+    if assert_held_baseline {
+        harness
+            .snapshot()
+            .named(scenario.name())
+            .assert_against(&BASELINE);
+    }
+}
+
+fn dispatch_historical_ansi16_faint_replay(scenario: Scenario, width: u16, height: u16) {
+    // The exact three wide Activities A digests transfer to the private B owner.
+    let private_activities_faint_owner = activities_faint_normal_a_owner_key(
+        scenario,
+        width,
+        height,
+        &Theme::junie(),
+        ColorLevel::Ansi16,
+    )
+    .is_some();
+    assert_historical_ansi16_faint_replay(scenario, width, height, !private_activities_faint_owner);
 }
 
 fn expected_overflow_faint(theme: &Theme, color: ColorLevel) -> Option<Color> {
@@ -1324,8 +1558,60 @@ fn holla_visual_baseline() {
                         assert_current_model_border_palette_locality(scenario);
                         continue;
                     }
+                    if let Some(expected_key) =
+                        child_normal_a_owner_key(scenario, width, height, &theme, color)
+                    {
+                        let evidence = assert_nonoverflow_normal_a_owner(
+                            scenario,
+                            theme.clone(),
+                            color,
+                            width,
+                            height,
+                            &expected_key,
+                        );
+                        assert_eq!(
+                            evidence.key, expected_key,
+                            "normal-A Child route retains the exact key"
+                        );
+                        continue;
+                    }
+                    if let Some(expected_key) =
+                        activities_faint_normal_a_owner_key(scenario, width, height, &theme, color)
+                    {
+                        let evidence = assert_nonoverflow_normal_a_owner(
+                            scenario,
+                            theme.clone(),
+                            color,
+                            width,
+                            height,
+                            &expected_key,
+                        );
+                        assert_eq!(
+                            evidence.key, expected_key,
+                            "normal-A Activities faint route retains the exact key"
+                        );
+                        dispatch_historical_ansi16_faint_replay(scenario, width, height);
+                        continue;
+                    }
+                    if let Some(expected_key) = activities_ordinary_normal_a_owner_key(
+                        scenario, width, height, &theme, color,
+                    ) {
+                        let evidence = assert_nonoverflow_normal_a_owner(
+                            scenario,
+                            theme.clone(),
+                            color,
+                            width,
+                            height,
+                            &expected_key,
+                        );
+                        assert_eq!(
+                            evidence.key, expected_key,
+                            "normal-A Activities route retains the exact key"
+                        );
+                        continue;
+                    }
                     if is_historical_ansi16_faint_case(scenario, width, height, &theme, color) {
-                        assert_historical_ansi16_faint_replay(scenario, width, height);
+                        dispatch_historical_ansi16_faint_replay(scenario, width, height);
                         continue;
                     }
                     if historical_80_overflow_faint_color(scenario, width, height, &theme, color)
@@ -1859,6 +2145,420 @@ fn holla_remaining_root_normal_a_owner_matrix_is_exact() {
 }
 
 #[test]
+fn holla_child_nonoverflow_normal_a_owner_matrix_is_exact() {
+    let junie = Theme::junie();
+    let paper = Theme::paper();
+    for (scenario, width, height, theme, color) in [
+        (
+            Scenario::MonorepoChild,
+            99,
+            30,
+            &junie,
+            ColorLevel::TrueColor,
+        ),
+        (
+            Scenario::MonorepoChild,
+            100,
+            29,
+            &junie,
+            ColorLevel::TrueColor,
+        ),
+        (
+            Scenario::MonorepoChild,
+            101,
+            30,
+            &paper,
+            ColorLevel::TrueColor,
+        ),
+        (
+            Scenario::MonorepoChild,
+            100,
+            31,
+            &junie,
+            ColorLevel::Ansi256,
+        ),
+        (
+            Scenario::MonorepoRoot,
+            100,
+            30,
+            &junie,
+            ColorLevel::TrueColor,
+        ),
+        (Scenario::HardCases, 100, 30, &junie, ColorLevel::TrueColor),
+    ] {
+        assert!(
+            child_normal_a_owner_key(scenario, width, height, theme, color).is_none(),
+            "neighboring or separately owned configuration is rejected: {scenario:?} {width}x{height} {theme:?} {color:?}"
+        );
+    }
+
+    let expected_keys: BTreeSet<_> = CHILD_NORMAL_A_OWNER_KEYS
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    assert_eq!(expected_keys.len(), CHILD_NORMAL_A_OWNER_KEYS.len());
+
+    let mut matrix_inputs = 0_usize;
+    let mut selected_keys = BTreeSet::new();
+    for scenario in Scenario::ALL {
+        for (width, height) in SIZES {
+            for theme in [Theme::junie(), Theme::paper()] {
+                for color in COLORS {
+                    matrix_inputs = matrix_inputs.saturating_add(1);
+                    let key = child_normal_a_owner_key(scenario, width, height, &theme, color);
+                    let tracked_key =
+                        tracked_port_owner_key(scenario, width, height, &theme, color);
+                    let root_key = root_normal_a_owner_key(scenario, width, height, &theme, color);
+                    let activities_key = activities_ordinary_normal_a_owner_key(
+                        scenario, width, height, &theme, color,
+                    );
+                    let faint_key =
+                        activities_faint_normal_a_owner_key(scenario, width, height, &theme, color);
+                    assert!(
+                        key.is_none() || tracked_key.is_none(),
+                        "Child owner excludes tracked Port keys"
+                    );
+                    assert!(
+                        key.is_none() || root_key.is_none(),
+                        "Child owner excludes all Root normal-A keys"
+                    );
+                    assert!(
+                        key.as_ref().is_none_or(|key| {
+                            !EXISTING_CURRENT_A_OWNER_KEYS.contains(&key.as_str())
+                        }),
+                        "Child owner excludes all six older owners"
+                    );
+                    assert!(
+                        key.is_none() || (activities_key.is_none() && faint_key.is_none()),
+                        "Child owner is disjoint from both Activities families"
+                    );
+                    assert!(
+                        key.is_none()
+                            || (!is_border_palette_case(scenario, width, height, &theme, color)
+                                && !is_historical_ansi16_faint_case(
+                                    scenario, width, height, &theme, color
+                                )
+                                && historical_80_overflow_faint_color(
+                                    scenario, width, height, &theme, color
+                                )
+                                .is_none()
+                                && !is_historical_overflow_faint_case(
+                                    scenario, width, height, &theme, color
+                                )),
+                        "Child owner excludes specialized replay protocols"
+                    );
+                    if scenario == Scenario::HardCases {
+                        assert!(key.is_none(), "HardCases remains outside Child ownership");
+                    }
+
+                    if let Some(expected_key) = key {
+                        assert!(
+                            expected_keys.contains(&expected_key),
+                            "selected Child key is in the exact finite set: {expected_key}"
+                        );
+                        let evidence = assert_nonoverflow_normal_a_owner(
+                            scenario,
+                            theme.clone(),
+                            color,
+                            width,
+                            height,
+                            &expected_key,
+                        );
+                        assert_eq!(
+                            evidence.key, expected_key,
+                            "normal-A helper retains the exact Child key"
+                        );
+                        assert!(
+                            selected_keys.insert(evidence.key.clone()),
+                            "matrix selects each Child key once: {}",
+                            evidence.key
+                        );
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(matrix_inputs, 1_120, "complete 1,120-input matrix");
+    assert_eq!(selected_keys.len(), 24, "exactly twenty-four Child keys");
+    assert_eq!(selected_keys, expected_keys, "exact Child normal-A key set");
+    let tracked_keys: BTreeSet<_> = TRACKED_PORT_OWNER_KEYS
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    let root_keys: BTreeSet<_> = std::iter::once(ROOT100_NORMAL_A_OWNER_KEY.to_owned())
+        .chain(
+            REMAINING_ROOT_NORMAL_A_OWNER_KEYS
+                .iter()
+                .map(|key| (*key).to_owned()),
+        )
+        .collect();
+    let older_keys: BTreeSet<_> = EXISTING_CURRENT_A_OWNER_KEYS
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    assert!(selected_keys.is_disjoint(&tracked_keys));
+    assert!(selected_keys.is_disjoint(&root_keys));
+    assert!(selected_keys.is_disjoint(&older_keys));
+}
+
+#[test]
+fn holla_activities_nonoverflow_normal_a_owner_matrix_is_exact() {
+    let junie = Theme::junie();
+    let paper = Theme::paper();
+    for (scenario, width, height, theme, color) in [
+        (
+            Scenario::ActivitiesMulti,
+            99,
+            30,
+            &junie,
+            ColorLevel::TrueColor,
+        ),
+        (
+            Scenario::ActivitiesMulti,
+            100,
+            29,
+            &junie,
+            ColorLevel::TrueColor,
+        ),
+        (
+            Scenario::ActivitiesMulti,
+            101,
+            30,
+            &paper,
+            ColorLevel::TrueColor,
+        ),
+        (
+            Scenario::ActivitiesMulti,
+            100,
+            31,
+            &junie,
+            ColorLevel::Ansi256,
+        ),
+        (
+            Scenario::ActivitiesMulti,
+            80,
+            24,
+            &junie,
+            ColorLevel::TrueColor,
+        ),
+        (
+            Scenario::MonorepoChild,
+            100,
+            30,
+            &junie,
+            ColorLevel::TrueColor,
+        ),
+        (Scenario::HardCases, 100, 30, &junie, ColorLevel::TrueColor),
+    ] {
+        assert!(
+            activities_ordinary_normal_a_owner_key(scenario, width, height, theme, color).is_none(),
+            "neighboring or separately owned ordinary Activities key is rejected: {scenario:?} {width}x{height} {theme:?} {color:?}"
+        );
+    }
+    for (scenario, width, height, theme, color) in [
+        (
+            Scenario::ActivitiesMulti,
+            99,
+            30,
+            &junie,
+            ColorLevel::Ansi16,
+        ),
+        (
+            Scenario::ActivitiesMulti,
+            100,
+            29,
+            &junie,
+            ColorLevel::Ansi16,
+        ),
+        (
+            Scenario::ActivitiesMulti,
+            100,
+            30,
+            &paper,
+            ColorLevel::Ansi16,
+        ),
+        (
+            Scenario::ActivitiesMulti,
+            100,
+            30,
+            &junie,
+            ColorLevel::Ansi256,
+        ),
+        (
+            Scenario::ActivitiesMulti,
+            80,
+            24,
+            &junie,
+            ColorLevel::Ansi16,
+        ),
+        (Scenario::MonorepoChild, 100, 30, &junie, ColorLevel::Ansi16),
+        (Scenario::HardCases, 100, 30, &junie, ColorLevel::Ansi16),
+    ] {
+        assert!(
+            activities_faint_normal_a_owner_key(scenario, width, height, theme, color).is_none(),
+            "neighboring or separately owned faint Activities key is rejected: {scenario:?} {width}x{height} {theme:?} {color:?}"
+        );
+    }
+
+    let expected_ordinary: BTreeSet<_> = ACTIVITIES_ORDINARY_NORMAL_A_OWNER_KEYS
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    let expected_faint: BTreeSet<_> = ACTIVITIES_FAINT_NORMAL_A_OWNER_KEYS
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    let expected_union: BTreeSet<_> = expected_ordinary.union(&expected_faint).cloned().collect();
+    assert_eq!(expected_ordinary.len(), 21);
+    assert_eq!(expected_faint.len(), 3);
+    assert_eq!(expected_union.len(), 24);
+
+    let mut matrix_inputs = 0_usize;
+    let mut ordinary_keys = BTreeSet::new();
+    let mut faint_keys = BTreeSet::new();
+    for scenario in Scenario::ALL {
+        for (width, height) in SIZES {
+            for theme in [Theme::junie(), Theme::paper()] {
+                for color in COLORS {
+                    matrix_inputs = matrix_inputs.saturating_add(1);
+                    let ordinary_key = activities_ordinary_normal_a_owner_key(
+                        scenario, width, height, &theme, color,
+                    );
+                    let faint_key =
+                        activities_faint_normal_a_owner_key(scenario, width, height, &theme, color);
+                    assert!(
+                        ordinary_key.is_none() || faint_key.is_none(),
+                        "ordinary and faint Activities selectors are disjoint"
+                    );
+                    assert!(
+                        ordinary_key.is_none()
+                            || !is_historical_ansi16_faint_case(
+                                scenario, width, height, &theme, color
+                            ),
+                        "ordinary Activities selector excludes historical ANSI16 faint cases"
+                    );
+                    assert!(
+                        faint_key.is_none()
+                            || is_historical_ansi16_faint_case(
+                                scenario, width, height, &theme, color
+                            ),
+                        "faint owner is within the historical native replay family"
+                    );
+                    let tracked_key =
+                        tracked_port_owner_key(scenario, width, height, &theme, color);
+                    let root_key = root_normal_a_owner_key(scenario, width, height, &theme, color);
+                    let has_other_specialized_owner =
+                        is_border_palette_case(scenario, width, height, &theme, color)
+                            || historical_80_overflow_faint_color(
+                                scenario, width, height, &theme, color,
+                            )
+                            .is_some()
+                            || is_historical_overflow_faint_case(
+                                scenario, width, height, &theme, color,
+                            );
+                    for key in [ordinary_key.as_ref(), faint_key.as_ref()]
+                        .into_iter()
+                        .flatten()
+                    {
+                        assert!(tracked_key.is_none(), "Activities excludes tracked keys");
+                        assert!(root_key.is_none(), "Activities excludes Root keys");
+                        assert!(
+                            !EXISTING_CURRENT_A_OWNER_KEYS.contains(&key.as_str()),
+                            "Activities excludes six older owner keys"
+                        );
+                        assert!(
+                            !has_other_specialized_owner,
+                            "Activities excludes other specialized replay protocols"
+                        );
+                    }
+                    if scenario == Scenario::HardCases {
+                        assert!(
+                            ordinary_key.is_none() && faint_key.is_none(),
+                            "HardCases remains outside Activities ownership"
+                        );
+                    }
+
+                    if let Some(expected_key) = ordinary_key {
+                        assert!(
+                            expected_ordinary.contains(&expected_key),
+                            "ordinary Activities key belongs to exact finite set: {expected_key}"
+                        );
+                        let evidence = assert_nonoverflow_normal_a_owner(
+                            scenario,
+                            theme.clone(),
+                            color,
+                            width,
+                            height,
+                            &expected_key,
+                        );
+                        assert_eq!(
+                            evidence.key, expected_key,
+                            "normal-A helper retains exact ordinary Activities key"
+                        );
+                        assert!(ordinary_keys.insert(evidence.key));
+                    }
+                    if let Some(expected_key) = faint_key {
+                        assert!(
+                            expected_faint.contains(&expected_key),
+                            "faint Activities key belongs to exact finite set: {expected_key}"
+                        );
+                        let evidence = assert_nonoverflow_normal_a_owner(
+                            scenario,
+                            theme.clone(),
+                            color,
+                            width,
+                            height,
+                            &expected_key,
+                        );
+                        assert_eq!(
+                            evidence.key, expected_key,
+                            "normal-A helper retains exact faint Activities key"
+                        );
+                        dispatch_historical_ansi16_faint_replay(scenario, width, height);
+                        assert!(faint_keys.insert(evidence.key));
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(matrix_inputs, 1_120, "complete 1,120-input matrix");
+    assert_eq!(
+        ordinary_keys, expected_ordinary,
+        "exact ordinary Activities keys"
+    );
+    assert_eq!(faint_keys, expected_faint, "exact faint Activities keys");
+    let selected_union: BTreeSet<_> = ordinary_keys.union(&faint_keys).cloned().collect();
+    assert_eq!(
+        selected_union, expected_union,
+        "Activities union is exactly 24 keys"
+    );
+
+    let child_keys: BTreeSet<_> = CHILD_NORMAL_A_OWNER_KEYS
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    let tracked_keys: BTreeSet<_> = TRACKED_PORT_OWNER_KEYS
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    let root_keys: BTreeSet<_> = std::iter::once(ROOT100_NORMAL_A_OWNER_KEY.to_owned())
+        .chain(
+            REMAINING_ROOT_NORMAL_A_OWNER_KEYS
+                .iter()
+                .map(|key| (*key).to_owned()),
+        )
+        .collect();
+    let older_keys: BTreeSet<_> = EXISTING_CURRENT_A_OWNER_KEYS
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    assert!(selected_union.is_disjoint(&child_keys));
+    assert!(selected_union.is_disjoint(&tracked_keys));
+    assert!(selected_union.is_disjoint(&root_keys));
+    assert!(selected_union.is_disjoint(&older_keys));
+}
+
+#[test]
 fn holla_current_model_border_subtle_palette_is_local_for_four_scenarios() {
     // The four held digests are preserved by the matching historical fixtures:
     // rust_dirty_hidden_port_retains_historical_border_frame,
@@ -1875,7 +2575,7 @@ fn holla_current_model_border_subtle_palette_is_local_for_four_scenarios() {
 fn holla_historical_faint_replays_match_the_seventeen_reviewed_frames() {
     for scenario in [Scenario::ActivitiesMulti, Scenario::LaunchFailure] {
         for (width, height) in SIZES {
-            assert_historical_ansi16_faint_replay(scenario, width, height);
+            dispatch_historical_ansi16_faint_replay(scenario, width, height);
         }
     }
     for theme in [Theme::junie(), Theme::paper()] {
@@ -1950,6 +2650,73 @@ fn holla_historical_faint_replay_selectors_are_exact() {
         &junie,
         ColorLevel::Ansi16
     ));
+
+    for (width, height) in [(100, 30), (120, 40), (160, 50)] {
+        assert!(
+            activities_faint_normal_a_owner_key(
+                Scenario::ActivitiesMulti,
+                width,
+                height,
+                &junie,
+                ColorLevel::Ansi16,
+            )
+            .is_some()
+        );
+        assert!(
+            activities_ordinary_normal_a_owner_key(
+                Scenario::ActivitiesMulti,
+                width,
+                height,
+                &junie,
+                ColorLevel::Ansi16,
+            )
+            .is_none()
+        );
+    }
+    for (scenario, width, height, theme, color) in [
+        (
+            Scenario::ActivitiesMulti,
+            99,
+            30,
+            &junie,
+            ColorLevel::Ansi16,
+        ),
+        (
+            Scenario::ActivitiesMulti,
+            100,
+            29,
+            &junie,
+            ColorLevel::Ansi16,
+        ),
+        (
+            Scenario::ActivitiesMulti,
+            100,
+            30,
+            &paper,
+            ColorLevel::Ansi16,
+        ),
+        (
+            Scenario::ActivitiesMulti,
+            100,
+            30,
+            &junie,
+            ColorLevel::Ansi256,
+        ),
+        (
+            Scenario::ActivitiesMulti,
+            80,
+            24,
+            &junie,
+            ColorLevel::Ansi16,
+        ),
+        (Scenario::MonorepoChild, 100, 30, &junie, ColorLevel::Ansi16),
+        (Scenario::HardCases, 100, 30, &junie, ColorLevel::Ansi16),
+    ] {
+        assert!(
+            activities_faint_normal_a_owner_key(scenario, width, height, theme, color).is_none(),
+            "faint Activities owner rejects its neighboring configuration"
+        );
+    }
 
     for theme in [&junie, &paper] {
         for color in COLORS {
