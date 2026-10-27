@@ -68,6 +68,10 @@ const HELP_COMMAND: ActionKey = ActionKey::application("showcase.help");
 const INSPECTOR_COMMAND: ActionKey = ActionKey::application("showcase.inspector");
 const NEXT_PAGE: ActionKey = ActionKey::application("showcase.page.next");
 const PREV_PAGE: ActionKey = ActionKey::application("showcase.page.previous");
+const NAV_PANEL_PARTS: [(Part, termrock::StylePatch); 1] = [(
+    Part::DETAIL,
+    termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+)];
 const HELP_SHELL_ROWS: &[(&str, &str)] = &[
     ("F1 ?", "This reference"),
     ("F10 Ctrl+F2", "Menu bar"),
@@ -2143,7 +2147,7 @@ fn header_styles(ui: &mut Ui<'_>) -> (PaintStyle, PaintStyle, PaintStyle, PaintS
         Part::DETAIL,
         StateFlags::empty(),
     );
-    let muted = shell_text_style(ui, termrock::FgStep::Muted);
+    let muted = secondary;
     let faint = shell_text_style(ui, termrock::FgStep::Faint);
     let marker = shell_part_style(
         ui,
@@ -2344,21 +2348,28 @@ fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKe
     let selected = flags.contains(StateFlags::SELECTED);
     let fade = node.fade;
     let canvas = shell_compat_style(ui.surface_style());
-    let secondary = fade_paint(shell_text_style(ui, termrock::FgStep::Secondary), fade);
-    let group_ink = fade_paint(shell_text_style(ui, termrock::FgStep::Faint), fade);
-    let selected_patch = ui.paint_patch(
-        &termrock::StylePatch::new()
-            .set_bg(termrock::Role::SelectionBg)
-            .set_fg(termrock::Role::SelectionFg),
+    let label_ink = fade_paint(canvas, fade);
+    let group_ink = fade_paint(shell_text_style(ui, termrock::FgStep::Secondary), fade);
+    let selected_patch =
+        ui.paint_patch(&termrock::StylePatch::new().set_bg(termrock::Role::AccentTint));
+    let selected_surface =
+        shell_compat_style(canvas.patch(selected_patch)).add_modifier(termrock::Modifier::BOLD);
+    let selected_ink = shell_compat_style(
+        selected_surface
+            .patch(ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent))),
     );
-    let selected_surface = shell_compat_style(canvas.patch(selected_patch));
-    let selected_ink = selected_surface.add_modifier(termrock::Modifier::BOLD);
     let accent = ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent));
     let marker_surface = if selected { selected_surface } else { canvas };
     let marker = fade_paint(shell_compat_style(marker_surface.patch(accent)), fade)
         .add_modifier(termrock::Modifier::BOLD);
 
     ui.fill(row, if selected { selected_surface } else { canvas });
+    if !focused && !selected {
+        let gutter = shell_compat_style(canvas.patch(
+            ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::CurrentSurface)),
+        ));
+        ui.fill(Rect::new(row.x, row.y, 1, 1), gutter);
+    }
     if focused {
         ui.glyph(Rect::new(row.x, row.y, 1, 1), GlyphRole::FocusBar, marker);
     }
@@ -2378,11 +2389,11 @@ fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKe
     let room = row.right().saturating_sub(label_x).saturating_sub(1);
     let text = clip_label(node.label, room);
     let label = if node.parent {
-        group_ink
+        label_ink
     } else if selected {
         selected_ink
     } else {
-        secondary
+        label_ink
     };
     if room > 0 {
         ui.fill(Rect::new(label_x, row.y, room, 1), label);
@@ -2927,7 +2938,8 @@ impl TuiApp for App {
         let panel = Panel::new(NAV)
             .title("")
             .meta(&route_count)
-            .focused(nav_focused);
+            .focused(nav_focused)
+            .patch_part(&NAV_PANEL_PARTS);
         let panel_inner = panel.inner(ui, shell.sidebar);
         panel.draw(ui, shell.sidebar, |_, _| ());
         let gutter = ui.design().space.gutter;
