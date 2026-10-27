@@ -98,7 +98,7 @@ The selected group is process-complete only when every child exits with code zer
 
 ## First plus Showcase Help 80x24
 
-The `first-plus-help` group runs the same first four cases first. Their case IDs, sample IDs, output paths, working directories, arguments, and actions stay the same. The old approved references stay unchanged. New exit references need separate approval before check mode can use them. The group then runs `showcase-help/80x24-v1`. This selected group has five flows and twenty-three checkpoints. It does not replace the first group or the full inventory.
+The `first-plus-help` group runs the same first four cases first. Their case IDs, sample IDs, output paths, working directories, arguments, and actions stay the same. The first group uses its 16 approved PR26 frozen samples, including four exit frames. The six `showcase-help/80x24-v1` samples and seven `holla-first-use` samples remain unchanged. The runner never writes approved samples. The group then runs `showcase-help/80x24-v1`. This selected group has five flows and twenty-three checkpoints. It does not replace the first group or the full inventory.
 
 The added Showcase case uses an 80 by 24 PTY and the same cleared environment, locale, terminal colors, paused motion, and frame zero as the other cases. It uses the same Showcase binary arguments and the fixed working directory `data/showcase-help/80x24-v1` on both branches. Its sequence is:
 

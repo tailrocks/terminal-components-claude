@@ -335,8 +335,8 @@ def data_and_reference_digests(files):
         for entry in files
         if entry["path"].startswith("expected/") and entry["path"].endswith(".tui.json")
     ]
-    if len(reference_files) != 25:
-        fail(f"expected 25 frozen references, found {len(reference_files)}")
+    if len(reference_files) != 29:
+        fail(f"expected 29 frozen references, found {len(reference_files)}")
     return aggregate_digest(data_files), aggregate_digest(reference_files)
 
 
