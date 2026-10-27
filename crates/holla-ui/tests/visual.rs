@@ -226,6 +226,38 @@ const CONCEPT64_NORMAL_A_OWNER_KEYS: [&str; 64] = [
     "remote-host 160 50 paper mono",
 ];
 
+const DOCKER32_NORMAL_A_OWNER_SCENARIOS: [Scenario; 1] = [Scenario::DockerCleanup];
+const HARD32_NORMAL_A_OWNER_SCENARIOS: [Scenario; 1] = [Scenario::HardCases];
+const ORDINARY512_PARITY_NORMAL_A_OWNER_SCENARIOS: [Scenario; 16] = [
+    Scenario::ParityBrowser,
+    Scenario::ParityCargo,
+    Scenario::ParityCleanupResults,
+    Scenario::ParityCustomActions,
+    Scenario::ParityDeleteSafety,
+    Scenario::ParityDiskNavigation,
+    Scenario::ParityDocker,
+    Scenario::ParityExecutor,
+    Scenario::ParityGitBatch,
+    Scenario::ParityGitCurrent,
+    Scenario::ParityGradle,
+    Scenario::ParityHistory,
+    Scenario::ParityIdea,
+    Scenario::ParityInsights,
+    Scenario::ParityTaskInput,
+    Scenario::ParityTaskSources,
+];
+// Recent192 remains REVIEW until its separate native y=9 helper is admitted.
+const RECENT192_PARITY_REVIEW_SCENARIOS: [Scenario; 6] = [
+    Scenario::ParityBrewServices,
+    Scenario::ParityDiskScan,
+    Scenario::ParityFiles,
+    Scenario::ParityPlatforms,
+    Scenario::ParityPlatformsLinux,
+    Scenario::ParityUpgradeManagers,
+];
+const PARITY_REVIEW_ONLY_SCENARIOS: [Scenario; 2] =
+    [Scenario::ParityActivityStop, Scenario::ParityDiscovery];
+
 fn tracked_port_owner_key(
     scenario: Scenario,
     width: u16,
@@ -577,6 +609,63 @@ fn concept64_normal_a_owner_key(
     normal_a_owner_key(scenario, width, height, theme, color)
 }
 
+fn docker32_normal_a_owner_key(
+    scenario: Scenario,
+    width: u16,
+    height: u16,
+    theme: &Theme,
+    color: ColorLevel,
+) -> Option<String> {
+    if !DOCKER32_NORMAL_A_OWNER_SCENARIOS.contains(&scenario) || !SIZES.contains(&(width, height)) {
+        return None;
+    }
+    normal_a_owner_key(scenario, width, height, theme, color)
+}
+
+fn hard32_normal_a_owner_key(
+    scenario: Scenario,
+    width: u16,
+    height: u16,
+    theme: &Theme,
+    color: ColorLevel,
+) -> Option<String> {
+    if !HARD32_NORMAL_A_OWNER_SCENARIOS.contains(&scenario) || !SIZES.contains(&(width, height)) {
+        return None;
+    }
+    normal_a_owner_key(scenario, width, height, theme, color)
+}
+
+fn ordinary512_normal_a_owner_key(
+    scenario: Scenario,
+    width: u16,
+    height: u16,
+    theme: &Theme,
+    color: ColorLevel,
+) -> Option<String> {
+    if !ORDINARY512_PARITY_NORMAL_A_OWNER_SCENARIOS.contains(&scenario)
+        || !SIZES.contains(&(width, height))
+    {
+        return None;
+    }
+    normal_a_owner_key(scenario, width, height, theme, color)
+}
+
+fn normal_a_owner_keys_for_scenarios(scenarios: &[Scenario]) -> BTreeSet<String> {
+    let mut keys = BTreeSet::new();
+    for scenario in scenarios {
+        for (width, height) in SIZES {
+            for theme in [Theme::junie(), Theme::paper()] {
+                for color in COLORS {
+                    if let Some(key) = normal_a_owner_key(*scenario, width, height, &theme, color) {
+                        assert!(keys.insert(key), "finite normal-A key is unique");
+                    }
+                }
+            }
+        }
+    }
+    keys
+}
+
 fn home_model_action_rects(rows: &[(String, String)], rows_area: Rect) -> Vec<(String, Rect)> {
     let mut action_rects = Vec::with_capacity(rows.len());
     let mut y = rows_area.y;
@@ -850,6 +939,13 @@ fn assert_normal_a_owner(
         rows_area, rows_area_expected,
         "{expected_key} exact Rows area"
     );
+    if scenario == Scenario::HardCases {
+        let warning_row = ordinary.row(rows_area.bottom().saturating_sub(1));
+        assert!(
+            warning_row.contains("▲ docker: discovery failed"),
+            "{expected_key} valid Warning note remains visible on the last Rows row: {warning_row:?}"
+        );
+    }
     let track = ordinary.area_of_part(HOME_ROWS, PartRef::of(Part::TRACK));
     let thumb = ordinary.area_of_part(HOME_ROWS, PartRef::of(Part::THUMB));
     if visual_extent <= usize::from(rows_area.height) {
@@ -1636,6 +1732,31 @@ fn holla_visual_baseline() {
         for (width, height) in SIZES {
             for theme in [Theme::junie(), Theme::paper()] {
                 for color in COLORS {
+                    let new_normal_a_owner_key =
+                        docker32_normal_a_owner_key(scenario, width, height, &theme, color)
+                            .or_else(|| {
+                                hard32_normal_a_owner_key(scenario, width, height, &theme, color)
+                            })
+                            .or_else(|| {
+                                ordinary512_normal_a_owner_key(
+                                    scenario, width, height, &theme, color,
+                                )
+                            });
+                    if let Some(expected_key) = new_normal_a_owner_key {
+                        let evidence = assert_nonoverflow_normal_a_owner(
+                            scenario,
+                            theme.clone(),
+                            color,
+                            width,
+                            height,
+                            &expected_key,
+                        );
+                        assert_eq!(
+                            evidence.key, expected_key,
+                            "normal-A Docker32, Hard32, or ordinary512 route retains its exact key"
+                        );
+                        continue;
+                    }
                     if is_border_palette_case(scenario, width, height, &theme, color) {
                         assert_current_model_border_palette_locality(scenario);
                         continue;
@@ -2827,6 +2948,395 @@ fn holla_concept64_normal_a_owner_matrix_is_exact() {
     assert!(selected_keys.is_disjoint(&tracked_keys));
     assert!(selected_keys.is_disjoint(&root_keys));
     assert!(selected_keys.is_disjoint(&older_keys));
+}
+
+fn has_existing_visual_route(
+    scenario: Scenario,
+    width: u16,
+    height: u16,
+    theme: &Theme,
+    color: ColorLevel,
+) -> bool {
+    is_border_palette_case(scenario, width, height, theme, color)
+        || child_normal_a_owner_key(scenario, width, height, theme, color).is_some()
+        || activities_faint_normal_a_owner_key(scenario, width, height, theme, color).is_some()
+        || activities_ordinary_normal_a_owner_key(scenario, width, height, theme, color).is_some()
+        || concept64_normal_a_owner_key(scenario, width, height, theme, color).is_some()
+        || is_historical_ansi16_faint_case(scenario, width, height, theme, color)
+        || historical_80_overflow_faint_color(scenario, width, height, theme, color).is_some()
+        || is_historical_overflow_faint_case(scenario, width, height, theme, color)
+        || tracked_port_owner_key(scenario, width, height, theme, color).is_some()
+        || root100_normal_a_owner_key(scenario, width, height, theme, color).is_some()
+        || remaining_root_normal_a_owner_key(scenario, width, height, theme, color).is_some()
+        || (scenario == Scenario::MonorepoRoot
+            && (width, height) == (80, 24)
+            && *theme == Theme::junie()
+            && matches!(color, ColorLevel::TrueColor | ColorLevel::Ansi16))
+}
+
+#[test]
+fn holla_remaining_ordinary576_normal_a_owner_matrix_is_exact() {
+    let junie = Theme::junie();
+    let _paper = Theme::paper();
+    let mut custom = Theme::junie();
+    custom.color.border_subtle = Color::Magenta;
+
+    assert!(
+        docker32_normal_a_owner_key(
+            Scenario::DockerCleanup,
+            79,
+            24,
+            &junie,
+            ColorLevel::TrueColor
+        )
+        .is_none()
+    );
+    assert!(
+        docker32_normal_a_owner_key(
+            Scenario::DockerCleanup,
+            80,
+            23,
+            &junie,
+            ColorLevel::TrueColor
+        )
+        .is_none()
+    );
+    assert!(
+        docker32_normal_a_owner_key(Scenario::HardCases, 80, 24, &junie, ColorLevel::TrueColor)
+            .is_none()
+    );
+    assert!(
+        docker32_normal_a_owner_key(
+            Scenario::DockerCleanup,
+            80,
+            24,
+            &custom,
+            ColorLevel::TrueColor
+        )
+        .is_none()
+    );
+
+    assert!(
+        hard32_normal_a_owner_key(Scenario::HardCases, 79, 24, &junie, ColorLevel::TrueColor)
+            .is_none()
+    );
+    assert!(
+        hard32_normal_a_owner_key(Scenario::HardCases, 80, 23, &junie, ColorLevel::TrueColor)
+            .is_none()
+    );
+    assert!(
+        hard32_normal_a_owner_key(
+            Scenario::DockerCleanup,
+            80,
+            24,
+            &junie,
+            ColorLevel::TrueColor
+        )
+        .is_none()
+    );
+    assert!(
+        hard32_normal_a_owner_key(Scenario::HardCases, 80, 24, &custom, ColorLevel::TrueColor)
+            .is_none()
+    );
+
+    for scenario in [
+        Scenario::ParityActivityStop,
+        Scenario::ParityDiscovery,
+        Scenario::ParityFiles,
+        Scenario::ParityPlatforms,
+        Scenario::DockerCleanup,
+        Scenario::HardCases,
+    ] {
+        assert!(
+            ordinary512_normal_a_owner_key(scenario, 80, 24, &junie, ColorLevel::TrueColor,)
+                .is_none(),
+            "excluded ordinary512 neighbor: {scenario:?}"
+        );
+    }
+    assert!(
+        ordinary512_normal_a_owner_key(
+            Scenario::ParityBrowser,
+            79,
+            24,
+            &junie,
+            ColorLevel::TrueColor
+        )
+        .is_none()
+    );
+    assert!(
+        ordinary512_normal_a_owner_key(
+            Scenario::ParityBrowser,
+            80,
+            24,
+            &custom,
+            ColorLevel::TrueColor
+        )
+        .is_none()
+    );
+
+    let expected_docker = normal_a_owner_keys_for_scenarios(&DOCKER32_NORMAL_A_OWNER_SCENARIOS);
+    let expected_hard = normal_a_owner_keys_for_scenarios(&HARD32_NORMAL_A_OWNER_SCENARIOS);
+    let expected_ordinary =
+        normal_a_owner_keys_for_scenarios(&ORDINARY512_PARITY_NORMAL_A_OWNER_SCENARIOS);
+    let expected_recent = normal_a_owner_keys_for_scenarios(&RECENT192_PARITY_REVIEW_SCENARIOS);
+    assert_eq!(expected_docker.len(), 32, "exact Docker32 product");
+    assert_eq!(expected_hard.len(), 32, "exact Hard32 product");
+    assert_eq!(expected_ordinary.len(), 512, "exact ordinary512 product");
+    assert_eq!(
+        expected_recent.len(),
+        192,
+        "exact Recent192 exclusion product"
+    );
+
+    let parity_scenarios: BTreeSet<_> = Scenario::PARITY.into_iter().map(Scenario::name).collect();
+    let mut parity_partition: BTreeSet<_> = ORDINARY512_PARITY_NORMAL_A_OWNER_SCENARIOS
+        .into_iter()
+        .map(Scenario::name)
+        .collect();
+    parity_partition.extend(
+        RECENT192_PARITY_REVIEW_SCENARIOS
+            .into_iter()
+            .map(Scenario::name),
+    );
+    parity_partition.extend(PARITY_REVIEW_ONLY_SCENARIOS.into_iter().map(Scenario::name));
+    assert_eq!(
+        parity_partition.len(),
+        24,
+        "all parity scenarios partition once"
+    );
+    assert_eq!(parity_partition, parity_scenarios, "exact parity partition");
+
+    let mut published_owner_keys: BTreeSet<_> = TRACKED_PORT_OWNER_KEYS
+        .iter()
+        .chain(EXISTING_CURRENT_A_OWNER_KEYS.iter())
+        .map(|key| (*key).to_owned())
+        .collect();
+    published_owner_keys.extend(
+        std::iter::once(ROOT100_NORMAL_A_OWNER_KEY.to_owned()).chain(
+            REMAINING_ROOT_NORMAL_A_OWNER_KEYS
+                .iter()
+                .map(|key| (*key).to_owned()),
+        ),
+    );
+    published_owner_keys.extend(
+        CHILD_NORMAL_A_OWNER_KEYS
+            .iter()
+            .map(|key| (*key).to_owned()),
+    );
+    published_owner_keys.extend(
+        ACTIVITIES_ORDINARY_NORMAL_A_OWNER_KEYS
+            .iter()
+            .chain(ACTIVITIES_FAINT_NORMAL_A_OWNER_KEYS.iter())
+            .map(|key| (*key).to_owned()),
+    );
+    published_owner_keys.extend(
+        CONCEPT64_NORMAL_A_OWNER_KEYS
+            .iter()
+            .map(|key| (*key).to_owned()),
+    );
+
+    let mut matrix_inputs = 0_usize;
+    let mut docker_keys = BTreeSet::new();
+    let mut hard_keys = BTreeSet::new();
+    let mut ordinary_keys = BTreeSet::new();
+    let mut recent_keys = BTreeSet::new();
+    let mut prior_dispatch_keys = BTreeSet::new();
+    let mut faint_replay_keys = BTreeSet::new();
+    let mut replay_dispatch_keys = BTreeSet::new();
+    let mut border_palette_keys = BTreeSet::new();
+    for scenario in Scenario::ALL {
+        for (width, height) in SIZES {
+            for theme in [Theme::junie(), Theme::paper()] {
+                for color in COLORS {
+                    matrix_inputs = matrix_inputs.saturating_add(1);
+                    let docker_key =
+                        docker32_normal_a_owner_key(scenario, width, height, &theme, color);
+                    let hard_key =
+                        hard32_normal_a_owner_key(scenario, width, height, &theme, color);
+                    let ordinary_key =
+                        ordinary512_normal_a_owner_key(scenario, width, height, &theme, color);
+                    let selected_count = [
+                        docker_key.is_some(),
+                        hard_key.is_some(),
+                        ordinary_key.is_some(),
+                    ]
+                    .into_iter()
+                    .filter(|selected| *selected)
+                    .count();
+                    assert!(
+                        selected_count <= 1,
+                        "Docker32, Hard32, and ordinary512 selectors are disjoint: {scenario:?} {width}x{height} {theme:?} {color:?}"
+                    );
+
+                    let recent_key = if RECENT192_PARITY_REVIEW_SCENARIOS.contains(&scenario)
+                        && SIZES.contains(&(width, height))
+                    {
+                        normal_a_owner_key(scenario, width, height, &theme, color)
+                    } else {
+                        None
+                    };
+                    if let Some(key) = recent_key {
+                        assert!(recent_keys.insert(key), "Recent192 key is unique");
+                        assert_eq!(selected_count, 0, "Recent192 remains review-only");
+                    }
+
+                    let key = normal_a_owner_key(scenario, width, height, &theme, color);
+                    let existing_route =
+                        has_existing_visual_route(scenario, width, height, &theme, color);
+                    if existing_route && let Some(key) = key.as_ref() {
+                        prior_dispatch_keys.insert(key.clone());
+                    }
+                    if is_border_palette_case(scenario, width, height, &theme, color)
+                        && let Some(key) = key.as_ref()
+                    {
+                        border_palette_keys.insert(key.clone());
+                    }
+                    let activities_faint_owner =
+                        activities_faint_normal_a_owner_key(scenario, width, height, &theme, color);
+                    let historical_ansi16 =
+                        is_historical_ansi16_faint_case(scenario, width, height, &theme, color);
+                    let historical_80 =
+                        historical_80_overflow_faint_color(scenario, width, height, &theme, color)
+                            .is_some();
+                    let historical_overflow =
+                        is_historical_overflow_faint_case(scenario, width, height, &theme, color);
+                    if (historical_ansi16 || historical_80 || historical_overflow)
+                        && let Some(key) = key.as_ref()
+                    {
+                        replay_dispatch_keys.insert(key.clone());
+                    }
+                    let is_wide_activities_owner = activities_faint_owner.is_some();
+                    let is_paper_mono_80_replay = scenario == Scenario::ParityDiscovery
+                        && (width, height) == (80, 24)
+                        && theme == Theme::paper()
+                        && color == ColorLevel::Mono;
+                    if ((historical_ansi16 && !is_wide_activities_owner)
+                        || historical_80
+                        || (historical_overflow && !is_paper_mono_80_replay))
+                        && let Some(key) = key.as_ref()
+                    {
+                        faint_replay_keys.insert(key.clone());
+                    }
+
+                    if let Some(expected_key) = docker_key {
+                        assert!(expected_docker.contains(&expected_key));
+                        assert!(
+                            !existing_route,
+                            "Docker32 reaches normal-A before legacy dispatch"
+                        );
+                        assert!(!published_owner_keys.contains(&expected_key));
+                        assert!(!recent_keys.contains(&expected_key));
+                        assert!(!replay_dispatch_keys.contains(&expected_key));
+                        let evidence = assert_nonoverflow_normal_a_owner(
+                            scenario,
+                            theme.clone(),
+                            color,
+                            width,
+                            height,
+                            &expected_key,
+                        );
+                        assert_eq!(evidence.key, expected_key, "Docker32 helper key");
+                        assert!(docker_keys.insert(expected_key), "Docker32 key is unique");
+                        continue;
+                    }
+                    if let Some(expected_key) = hard_key {
+                        assert!(expected_hard.contains(&expected_key));
+                        assert!(
+                            !existing_route,
+                            "Hard32 reaches normal-A before legacy dispatch"
+                        );
+                        assert!(!published_owner_keys.contains(&expected_key));
+                        assert!(!recent_keys.contains(&expected_key));
+                        assert!(!replay_dispatch_keys.contains(&expected_key));
+                        let evidence = assert_nonoverflow_normal_a_owner(
+                            scenario,
+                            theme.clone(),
+                            color,
+                            width,
+                            height,
+                            &expected_key,
+                        );
+                        assert_eq!(evidence.key, expected_key, "Hard32 helper key");
+                        assert!(hard_keys.insert(expected_key), "Hard32 key is unique");
+                        continue;
+                    }
+                    if let Some(expected_key) = ordinary_key {
+                        assert!(expected_ordinary.contains(&expected_key));
+                        assert!(
+                            !existing_route,
+                            "ordinary512 reaches normal-A before legacy dispatch"
+                        );
+                        assert!(!published_owner_keys.contains(&expected_key));
+                        assert!(!recent_keys.contains(&expected_key));
+                        assert!(!replay_dispatch_keys.contains(&expected_key));
+                        let evidence = assert_nonoverflow_normal_a_owner(
+                            scenario,
+                            theme.clone(),
+                            color,
+                            width,
+                            height,
+                            &expected_key,
+                        );
+                        assert_eq!(evidence.key, expected_key, "ordinary512 helper key");
+                        assert!(
+                            ordinary_keys.insert(expected_key),
+                            "ordinary512 key is unique"
+                        );
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+
+    let selected_keys: BTreeSet<_> = docker_keys
+        .union(&hard_keys)
+        .cloned()
+        .chain(ordinary_keys.iter().cloned())
+        .collect();
+    let expected_selected: BTreeSet<_> = expected_docker
+        .union(&expected_hard)
+        .cloned()
+        .chain(expected_ordinary.iter().cloned())
+        .collect();
+    assert_eq!(
+        matrix_inputs, 1_120,
+        "complete Scenario × size × theme × tier matrix"
+    );
+    assert_eq!(docker_keys.len(), 32, "all Docker32 keys selected once");
+    assert_eq!(hard_keys.len(), 32, "all Hard32 keys selected once");
+    assert_eq!(
+        ordinary_keys.len(),
+        512,
+        "all ordinary512 keys selected once"
+    );
+    assert_eq!(selected_keys.len(), 576, "exact 576-key selected union");
+    assert_eq!(selected_keys, expected_selected, "exact selected key set");
+    assert_eq!(recent_keys.len(), 192, "all Recent192 keys remain excluded");
+    assert!(selected_keys.is_disjoint(&recent_keys));
+    assert!(selected_keys.is_disjoint(&published_owner_keys));
+    assert!(selected_keys.is_disjoint(&prior_dispatch_keys));
+    assert_eq!(
+        faint_replay_keys.len(),
+        17,
+        "all seventeen held faint-replay keys retained"
+    );
+    assert_eq!(
+        replay_dispatch_keys.len(),
+        21,
+        "all earlier replay selectors retained"
+    );
+    assert!(selected_keys.is_disjoint(&faint_replay_keys));
+    assert!(selected_keys.is_disjoint(&replay_dispatch_keys));
+    assert!(border_palette_keys.is_disjoint(&selected_keys));
+    assert_eq!(
+        border_palette_keys.len(),
+        4,
+        "all four prior border-palette routes remain"
+    );
+    assert!(docker_keys.is_disjoint(&hard_keys));
+    assert!(docker_keys.is_disjoint(&ordinary_keys));
+    assert!(hard_keys.is_disjoint(&ordinary_keys));
 }
 
 #[test]
