@@ -204,6 +204,7 @@ const BINDINGS: &[Binding<HelpCmd>] = &[
 pub struct HelpOverlay<'a> {
     id: Id,
     scope: &'a str,
+    title: &'a str,
     sections: &'a [HelpSection<'a>],
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
@@ -215,6 +216,7 @@ impl fmt::Debug for HelpOverlay<'_> {
         f.debug_struct("HelpOverlay")
             .field("id", &self.id)
             .field("scope", &self.scope)
+            .field("title", &self.title)
             .field("sections", &self.sections.len())
             .finish_non_exhaustive()
     }
@@ -240,11 +242,18 @@ impl<'a> HelpOverlay<'a> {
         HelpOverlay {
             id,
             scope,
+            title: "Keyboard shortcuts",
             sections,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
         }
+    }
+
+    #[must_use]
+    pub const fn title(mut self, title: &'a str) -> Self {
+        self.title = title;
+        self
     }
 
     #[must_use]
@@ -446,7 +455,6 @@ impl<'a> HelpOverlay<'a> {
             ui.scroll_edges(fade_area, &faded);
             self.paint_scrollbar(ui, area, inner, usize::from(body_h), total);
             self.paint_done(ui, inner);
-            let _ = self.scope;
         });
         area
     }
@@ -485,28 +493,68 @@ impl<'a> HelpOverlay<'a> {
     }
 
     fn paint_title(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags) {
-        let style = self
-            .ov
-            .style(
-                ui,
-                self.id,
-                Family::HELP,
-                Variant::DEFAULT,
-                Part::TITLE,
-                live,
-            )
-            .style;
-        let title = format!(" {} ", "Keyboard shortcuts");
-        ui.paint_str(
-            Rect {
-                x: area.x.saturating_add(2),
-                y: area.y,
-                width: area.width.saturating_sub(2),
-                height: 1,
-            },
-            &title,
-            style,
-        );
+        let reserve = 4u16;
+        let title_limit = area.width.saturating_sub(6u16.saturating_add(reserve));
+        if area.width > 6u16.saturating_add(reserve) {
+            let title = format!(" {} ", crate::text::truncate(self.title, title_limit));
+            let title_width = width(&title);
+            let title_style = self
+                .ov
+                .style(
+                    ui,
+                    self.id,
+                    Family::HELP,
+                    Variant::DEFAULT,
+                    Part::TITLE,
+                    live,
+                )
+                .style;
+            ui.paint_str(
+                Rect {
+                    x: area.x.saturating_add(2),
+                    y: area.y,
+                    width: area.width.saturating_sub(2),
+                    height: 1,
+                },
+                &title,
+                title_style,
+            );
+
+            let scope = format!(" {} ", self.scope);
+            let scope_width = width(&scope);
+            let scope_min_width = title_width
+                .saturating_add(scope_width)
+                .saturating_add(4)
+                .saturating_add(reserve);
+            if area.width > scope_min_width {
+                let scope_x = area
+                    .right()
+                    .saturating_sub(2)
+                    .saturating_sub(reserve)
+                    .saturating_sub(scope_width);
+                let scope_style = self
+                    .ov
+                    .style(
+                        ui,
+                        self.id,
+                        Family::HELP,
+                        Variant::DEFAULT,
+                        Part::DETAIL,
+                        live,
+                    )
+                    .style;
+                ui.paint_str(
+                    Rect {
+                        x: scope_x,
+                        y: area.y,
+                        width: scope_width,
+                        height: 1,
+                    },
+                    &scope,
+                    scope_style,
+                );
+            }
+        }
     }
 
     fn paint_close(&self, ui: &mut Ui<'_>, area: Rect) {
