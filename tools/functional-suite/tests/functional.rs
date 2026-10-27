@@ -336,7 +336,7 @@ impl CaseResultWriter {
         ensure!(is_safe_single_component(test_name), "unsafe test name");
         let version_root = ensure_child_dir(output_root, "v3")?;
         let root = ensure_child_dir(&version_root, "case-results")?;
-        let mut writer = Self {
+        let writer = Self {
             root,
             file_name: format!("{test_name}.json"),
             evidence: CaseResultEvidence {
