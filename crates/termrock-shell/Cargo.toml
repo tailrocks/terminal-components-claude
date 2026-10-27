@@ -18,3 +18,7 @@ termrock-layout.workspace = true
 termrock-theme.workspace = true
 termrock-runtime.workspace = true
 ratatui-core.workspace = true
+
+[dev-dependencies]
+ratatui.workspace = true
+termrock.workspace = true
