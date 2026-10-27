@@ -302,6 +302,10 @@ impl<'a> HelpOverlay<'a> {
         self.id.part(Part::ACTIONS)
     }
 
+    fn command_id(&self) -> Id {
+        self.id.sub("commands")
+    }
+
     fn column_rows(&self, cols: usize) -> usize {
         (0..cols)
             .map(|column| {
@@ -369,23 +373,18 @@ impl<'a> HelpOverlay<'a> {
                         Response::ignored()
                     }
                 }
-                Intent::Binding(action) => match Binding::command(BINDINGS, action) {
-                    Some(HelpCmd::Prev) => scroll_by(&mut st.scroll, -1),
-                    Some(HelpCmd::Next) => scroll_by(&mut st.scroll, 1),
-                    Some(HelpCmd::PageUp) => page(&mut st.scroll, false),
-                    Some(HelpCmd::PageDown) => page(&mut st.scroll, true),
-                    Some(HelpCmd::Close) => {
-                        if !done_activated && cx.is_open(self.id) {
-                            let close_token = self.close_token(cx);
-                            cx.close_layer(self.id, None);
-                            st.action_close = close_token;
-                            Response::action(HelpAction::Closed(DismissReason::Programmatic))
-                        } else {
-                            Response::ignored()
-                        }
-                    }
-                    None => Response::ignored(),
-                },
+                Intent::Binding(action) => self.binding_response(cx, st, done_activated, action),
+                _ => Response::ignored(),
+            };
+            if let Some(action) = response.action_ref().copied() {
+                acc.action(action);
+            } else {
+                acc.fold(&response.erase());
+            }
+        }
+        for intent in cx.intents(self.command_id()) {
+            let response = match intent {
+                Intent::Binding(action) => self.binding_response(cx, st, done_activated, action),
                 _ => Response::ignored(),
             };
             if let Some(action) = response.action_ref().copied() {
@@ -395,6 +394,32 @@ impl<'a> HelpOverlay<'a> {
             }
         }
         acc.finish(self.id)
+    }
+
+    fn binding_response(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut HelpOverlayState,
+        done_activated: bool,
+        action: crate::ActionKey,
+    ) -> Response<HelpAction> {
+        match Binding::command(BINDINGS, action) {
+            Some(HelpCmd::Prev) => scroll_by(&mut st.scroll, -1),
+            Some(HelpCmd::Next) => scroll_by(&mut st.scroll, 1),
+            Some(HelpCmd::PageUp) => page(&mut st.scroll, false),
+            Some(HelpCmd::PageDown) => page(&mut st.scroll, true),
+            Some(HelpCmd::Close) => {
+                if !done_activated && cx.is_open(self.id) {
+                    let close_token = self.close_token(cx);
+                    cx.close_layer(self.id, None);
+                    st.action_close = close_token;
+                    Response::action(HelpAction::Closed(DismissReason::Programmatic))
+                } else {
+                    Response::ignored()
+                }
+            }
+            None => Response::ignored(),
+        }
     }
 
     fn close_token(&self, cx: &Cx<'_>) -> Option<(LayerOpening, UpdateToken)> {
@@ -408,53 +433,54 @@ impl<'a> HelpOverlay<'a> {
         }
         let live = ui.state(self.id);
         ui.with_surface(Surface::Elevated, |ui| {
-            self.paint_card(ui, area, live);
-            let border_style = self
-                .ov
-                .style(
-                    ui,
-                    self.id,
-                    Family::HELP,
-                    Variant::DEFAULT,
-                    Part::BORDER,
-                    live,
-                )
-                .style;
-            let _frame_inner = ui.frame(area, border_style);
-            ui.register_control(self.id, area, Focusability::Focusable);
-            ui.publish_bindings(self.id, live, BINDINGS);
-            ui.register_decor(self.id, PartRef::of(Part::BORDER), area);
-            if area.width < 16 || area.height < 8 {
-                return;
-            }
-            self.paint_title(ui, area, live);
-            let inner = Rect {
-                x: area.x.saturating_add(3),
-                y: area.y.saturating_add(1),
-                width: area.width.saturating_sub(6),
-                height: area.height.saturating_sub(2),
-            };
-            if inner.is_empty() {
-                return;
-            }
-            let body_h = inner.height.saturating_sub(1);
-            let columns = self.columns(inner.width);
-            let total = columns.iter().map(Vec::len).max().unwrap_or(0);
-            let offset = st.scroll.offset();
-            self.paint_columns(ui, inner, &columns, offset, usize::from(body_h));
-            self.paint_scroll_label(ui, area, offset, usize::from(body_h), total);
-            self.paint_close(ui, area);
-            let mut faded = ScrollState::new(total);
-            faded.set_viewport(usize::from(body_h));
-            let fade_area = Rect {
-                x: area.x,
-                y: inner.y,
-                width: area.right().saturating_sub(2).saturating_sub(area.x),
-                height: body_h,
-            };
-            ui.scroll_edges(fade_area, &faded);
-            self.paint_scrollbar(ui, area, inner, usize::from(body_h), total);
-            self.paint_done(ui, inner);
+            ui.command_scope(self.command_id(), BINDINGS, |ui| {
+                self.paint_card(ui, area, live);
+                let border_style = self
+                    .ov
+                    .style(
+                        ui,
+                        self.id,
+                        Family::HELP,
+                        Variant::DEFAULT,
+                        Part::BORDER,
+                        live,
+                    )
+                    .style;
+                let _frame_inner = ui.frame(area, border_style);
+                ui.register_control(self.id, area, Focusability::Focusable);
+                ui.register_decor(self.id, PartRef::of(Part::BORDER), area);
+                if area.width < 16 || area.height < 8 {
+                    return;
+                }
+                self.paint_title(ui, area, live);
+                let inner = Rect {
+                    x: area.x.saturating_add(3),
+                    y: area.y.saturating_add(1),
+                    width: area.width.saturating_sub(6),
+                    height: area.height.saturating_sub(2),
+                };
+                if inner.is_empty() {
+                    return;
+                }
+                let body_h = inner.height.saturating_sub(1);
+                let columns = self.columns(inner.width);
+                let total = columns.iter().map(Vec::len).max().unwrap_or(0);
+                let offset = st.scroll.offset();
+                self.paint_columns(ui, inner, &columns, offset, usize::from(body_h));
+                self.paint_scroll_label(ui, area, offset, usize::from(body_h), total);
+                self.paint_close(ui, area);
+                let mut faded = ScrollState::new(total);
+                faded.set_viewport(usize::from(body_h));
+                let fade_area = Rect {
+                    x: area.x,
+                    y: inner.y,
+                    width: area.right().saturating_sub(2).saturating_sub(area.x),
+                    height: body_h,
+                };
+                ui.scroll_edges(fade_area, &faded);
+                self.paint_scrollbar(ui, area, inner, usize::from(body_h), total);
+                self.paint_done(ui, inner);
+            });
         });
         area
     }
