@@ -1,0 +1,299 @@
+{
+  "schema": "termrock.functional-suite-reference-baseline-approval.v1",
+  "status": "approved-reference-baselines",
+  "scope": {
+    "case_count": 4,
+    "cases": [
+      "first_delivery_holla_first_use",
+      "first_delivery_jackin_settings",
+      "first_delivery_showcase_buttons",
+      "first_delivery_tablepro_connections"
+    ],
+    "checkpoint_count": 30,
+    "clean_exit_count": 4
+  },
+  "approval": {
+    "reviewer_record": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/reviews/first-delivery-v4-reference-approval-independent-20261028T.json",
+    "reviewer_record_sha256": "2fe9d8f9d55461145779829bc8f6ea6e44d288fb54beeeb1edcc7f35e67d65b4",
+    "approval_map_sha256": "8a61ed43433cc2522c5e10e5fc3dc5fed9b491c41e8b4d4f470f06031f138551",
+    "candidate_packet": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/reviews/first-delivery-v4-reference-ab-candidate-packet-final-20261028T/candidate-packet.json",
+    "candidate_packet_sha256": "e854cf5c44cfdd59b558ddc77afe9df41e96da7409d102fd4ac1fb5739f7513d",
+    "all_previous_baselines_missing": true
+  },
+  "accepted_reference_run": {
+    "receipt": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/logs/first-delivery-v4-approved-reference-retry3-20261028T/terminal-receipt.json",
+    "receipt_sha256": "e99b06db5eb9855dead53a77abfc736055ad1bd3d4da91be611b0e64cc6246b8",
+    "run_id": "5f997ead-23bb-476e-b18a-ea7d7cd4de16",
+    "nextest_exit_code": 0,
+    "expected_tree_inventory_sha256": "8fa7b1374d26a4ee4c4c70d2534bf069b9abce20c16270b52ed3fd9491571d33",
+    "target_comparison_run": false,
+    "reference_binary_sha256": {
+      "holla": "8fded1b38adb91cbc277a6b76570f3b53a9345ea8ffac28f7f4d017a2c1561c5",
+      "jackin-preview": "b621569f064220f6c700c6b910133c381ea6bbface26437bb8e85c22a88afa69",
+      "showcase": "f2dfbb0a8b5e064808f611a2cca0fc24675fc64406a95ac597aeda716ce6b4f7",
+      "tablepro": "93ce87a0f335ff4f18342ac36e56288f134c7b48caed980c2eef2cb80f4a5ab4"
+    }
+  },
+  "source": {
+    "export": "/private/tmp/termrock-functional-suite-canonical-export-20261028-v4-5ee73ee6",
+    "export_receipt": "/private/tmp/termrock-functional-suite-canonical-export-receipt-20261028-v4-5ee73ee6.json",
+    "export_receipt_sha256": "d8e8c88bd9d2ba3248f9d61140084f9a90970851bc725396d6658de27ba8ff95",
+    "population_receipt": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/logs/first-delivery-v4-baseline-population-resume-cli-20261028T/baseline-input-digest-receipt.json",
+    "population_receipt_sha256": "91ad86a0ce85a52faa40f23bb7b8b4bf4d4b23fc1784be5068224956d60933b0",
+    "source_hashes": {
+      "tests/functional.rs": "5ee73ee6c7710a0c0bf01148fd772283a86ecf62dc86825047d102ae417297aa",
+      "cases/cases.toml": "b40e268df649046fe4804a7c3edcf5b57f6def7a8a14d68bd77a24273c120824",
+      "Cargo.toml": "37795e2e4f0ac8fefc65dae825ecfc4354ace96b6048f748a1bbe3b9936c4091",
+      "Cargo.lock": "1be4117d0a1b71c876dc38967032409f7548a26ae6c2168819873fa2df550ff8",
+      "engine-pins.json": "17eef5979ee88cdf6dbb74b5fd2caa5d9582c584d288a23113f9045c9ac5b1b4"
+    },
+    "engine_pins": {
+      "tui_test_rs_base_commit": "3887a75dee4463ce0122c37eb278ab7ebb71aeaf",
+      "tui_test_rs_patch_sha256": "1c827f5074a28a8d129fa93308c1a39e57a163bfb405d2d440d6b1494a9a399d",
+      "tuiscotti_commit": "ac5f70d14d1967f551261d599a4cd857ec9fa2d7",
+      "tuiscotti_pixel_gap_patch_sha256": "ed4c9ac1d03b6aac8347e7018311aebad100d37a1a8fea400378ee434038955d"
+    }
+  },
+  "files": [
+    {
+      "test_id": "termrock/first_delivery_holla_first_use/cleared/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_holla_first_use/cleared/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/holla.first_use/samples/cleared.sample.json",
+      "candidate_sha256": "661884fcda7d8effb7dcfc6cc3ff1e0e59ba20013e3f8ffec7d0126b2887ba1c",
+      "baseline_sha256": "661884fcda7d8effb7dcfc6cc3ff1e0e59ba20013e3f8ffec7d0126b2887ba1c",
+      "bytes": 1372476
+    },
+    {
+      "test_id": "termrock/first_delivery_holla_first_use/empty/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_holla_first_use/empty/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/holla.first_use/samples/empty.sample.json",
+      "candidate_sha256": "cd40a211aacd0ab82e4e958ec2305a0b95d1df4178b2f4f40480b90bb0ed49fe",
+      "baseline_sha256": "cd40a211aacd0ab82e4e958ec2305a0b95d1df4178b2f4f40480b90bb0ed49fe",
+      "bytes": 1242293
+    },
+    {
+      "test_id": "termrock/first_delivery_holla_first_use/help/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_holla_first_use/help/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/holla.first_use/samples/help.sample.json",
+      "candidate_sha256": "c688de98fa5017ba0d6e4bb22cbf93f97cad19fd3d6c98bbb0688dc129972339",
+      "baseline_sha256": "c688de98fa5017ba0d6e4bb22cbf93f97cad19fd3d6c98bbb0688dc129972339",
+      "bytes": 1468762
+    },
+    {
+      "test_id": "termrock/first_delivery_holla_first_use/initial/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_holla_first_use/initial/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/holla.first_use/samples/initial.sample.json",
+      "candidate_sha256": "63458c056d6ea32c3e8156f26af3b3f5f3f25e9b6b9759dfa6336ccbd587e10b",
+      "baseline_sha256": "63458c056d6ea32c3e8156f26af3b3f5f3f25e9b6b9759dfa6336ccbd587e10b",
+      "bytes": 1372476
+    },
+    {
+      "test_id": "termrock/first_delivery_holla_first_use/restored/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_holla_first_use/restored/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/holla.first_use/samples/restored.sample.json",
+      "candidate_sha256": "2a81bd7e41d078d009cff966005d3356b2472dbc396723ac925581618eac6368",
+      "baseline_sha256": "2a81bd7e41d078d009cff966005d3356b2472dbc396723ac925581618eac6368",
+      "bytes": 1372478
+    },
+    {
+      "test_id": "termrock/first_delivery_holla_first_use/returned/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_holla_first_use/returned/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/holla.first_use/samples/returned.sample.json",
+      "candidate_sha256": "6e4aa36ce060cfa75a7c35acc7c20a4700517899fb5e4f850576b196b922f07e",
+      "baseline_sha256": "6e4aa36ce060cfa75a7c35acc7c20a4700517899fb5e4f850576b196b922f07e",
+      "bytes": 1372477
+    },
+    {
+      "test_id": "termrock/first_delivery_holla_first_use/small/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_holla_first_use/small/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/holla.first_use/samples/small.sample.json",
+      "candidate_sha256": "0bad284c4b75c5ae9d28943c23c718efe9a00530de2695574766686c084804ea",
+      "baseline_sha256": "0bad284c4b75c5ae9d28943c23c718efe9a00530de2695574766686c084804ea",
+      "bytes": 591831
+    },
+    {
+      "test_id": "termrock/first_delivery_jackin_settings/general/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_jackin_settings/general/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/jackin.settings/samples/general.sample.json",
+      "candidate_sha256": "b37383ee991913f4ed220e98084d613f11df14e6628a0a78d645153ab087af61",
+      "baseline_sha256": "b37383ee991913f4ed220e98084d613f11df14e6628a0a78d645153ab087af61",
+      "bytes": 1251241
+    },
+    {
+      "test_id": "termrock/first_delivery_jackin_settings/general_return/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_jackin_settings/general_return/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/jackin.settings/samples/general_return.sample.json",
+      "candidate_sha256": "ce200bc82aa411042f62ce3deed5a4ced8962872295f8c837466bfb313ad8f57",
+      "baseline_sha256": "ce200bc82aa411042f62ce3deed5a4ced8962872295f8c837466bfb313ad8f57",
+      "bytes": 1251247
+    },
+    {
+      "test_id": "termrock/first_delivery_jackin_settings/help/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_jackin_settings/help/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/jackin.settings/samples/help.sample.json",
+      "candidate_sha256": "0fa7b69d359832c521876cbc345b8b5e0dbc9ba5ecc4e919732e724f89136afe",
+      "baseline_sha256": "0fa7b69d359832c521876cbc345b8b5e0dbc9ba5ecc4e919732e724f89136afe",
+      "bytes": 1404757
+    },
+    {
+      "test_id": "termrock/first_delivery_jackin_settings/help_return/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_jackin_settings/help_return/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/jackin.settings/samples/help_return.sample.json",
+      "candidate_sha256": "e4e85692cbc5146783a27f895186255028c3af2aa5df76d4670a964eb270d4ab",
+      "baseline_sha256": "e4e85692cbc5146783a27f895186255028c3af2aa5df76d4670a964eb270d4ab",
+      "bytes": 1345638
+    },
+    {
+      "test_id": "termrock/first_delivery_jackin_settings/initial/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_jackin_settings/initial/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/jackin.settings/samples/initial.sample.json",
+      "candidate_sha256": "e06d657e2747bc753fff50ac4d86d8fd0a02348814713fec387663bbc8bd8d02",
+      "baseline_sha256": "e06d657e2747bc753fff50ac4d86d8fd0a02348814713fec387663bbc8bd8d02",
+      "bytes": 1336428
+    },
+    {
+      "test_id": "termrock/first_delivery_jackin_settings/manager_return/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_jackin_settings/manager_return/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/jackin.settings/samples/manager_return.sample.json",
+      "candidate_sha256": "c2c9a71f60506ecc40aefdcd4069c81399ce8b06bee419bf58464f308f5bc977",
+      "baseline_sha256": "c2c9a71f60506ecc40aefdcd4069c81399ce8b06bee419bf58464f308f5bc977",
+      "bytes": 1345640
+    },
+    {
+      "test_id": "termrock/first_delivery_jackin_settings/mounts/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_jackin_settings/mounts/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/jackin.settings/samples/mounts.sample.json",
+      "candidate_sha256": "acc62cbe0f69c74e759962526b72409a1d42703d06fe5bdc36d89b83cc26c8e0",
+      "baseline_sha256": "acc62cbe0f69c74e759962526b72409a1d42703d06fe5bdc36d89b83cc26c8e0",
+      "bytes": 1259214
+    },
+    {
+      "test_id": "termrock/first_delivery_jackin_settings/restored/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_jackin_settings/restored/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/jackin.settings/samples/restored.sample.json",
+      "candidate_sha256": "5b382bc43bb69ad656d9833af94635dd720b41b51b3ada8a45e6301ba48730a2",
+      "baseline_sha256": "5b382bc43bb69ad656d9833af94635dd720b41b51b3ada8a45e6301ba48730a2",
+      "bytes": 1345635
+    },
+    {
+      "test_id": "termrock/first_delivery_jackin_settings/selected/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_jackin_settings/selected/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/jackin.settings/samples/selected.sample.json",
+      "candidate_sha256": "622b0c5d5447b6af79ac2328ae2c5a26dfa0031a6838f8a8b1bf01dec733f391",
+      "baseline_sha256": "622b0c5d5447b6af79ac2328ae2c5a26dfa0031a6838f8a8b1bf01dec733f391",
+      "bytes": 1345634
+    },
+    {
+      "test_id": "termrock/first_delivery_jackin_settings/small/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_jackin_settings/small/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/jackin.settings/samples/small.sample.json",
+      "candidate_sha256": "775acfa2b155306525e21fbc16d2271de089a0f510aa5af880b1ab4a0f485091",
+      "baseline_sha256": "775acfa2b155306525e21fbc16d2271de089a0f510aa5af880b1ab4a0f485091",
+      "bytes": 574191
+    },
+    {
+      "test_id": "termrock/first_delivery_showcase_buttons/help/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_showcase_buttons/help/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/showcase.buttons/samples/help.sample.json",
+      "candidate_sha256": "0877ce2c090da7bae2eb1b0b50a37c7fcc8cd0dfb4e4264d8e5df421e888f376",
+      "baseline_sha256": "0877ce2c090da7bae2eb1b0b50a37c7fcc8cd0dfb4e4264d8e5df421e888f376",
+      "bytes": 1361657
+    },
+    {
+      "test_id": "termrock/first_delivery_showcase_buttons/initial/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_showcase_buttons/initial/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/showcase.buttons/samples/initial.sample.json",
+      "candidate_sha256": "37e7c1a7ae23998531a8cfb3b0f04a7d540ec3cbd0767b084877a2c724aae1f7",
+      "baseline_sha256": "37e7c1a7ae23998531a8cfb3b0f04a7d540ec3cbd0767b084877a2c724aae1f7",
+      "bytes": 1363842
+    },
+    {
+      "test_id": "termrock/first_delivery_showcase_buttons/preview/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_showcase_buttons/preview/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/showcase.buttons/samples/preview.sample.json",
+      "candidate_sha256": "a75e68acd4c9141a1d1bc09c1f513af888074b6d79392555054f14b8a9176de4",
+      "baseline_sha256": "a75e68acd4c9141a1d1bc09c1f513af888074b6d79392555054f14b8a9176de4",
+      "bytes": 1365088
+    },
+    {
+      "test_id": "termrock/first_delivery_showcase_buttons/restored/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_showcase_buttons/restored/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/showcase.buttons/samples/restored.sample.json",
+      "candidate_sha256": "24302fda21013dfcdcc10256a8c89538905c2c00bb0d4a8b2f0c9c9ec48715f5",
+      "baseline_sha256": "24302fda21013dfcdcc10256a8c89538905c2c00bb0d4a8b2f0c9c9ec48715f5",
+      "bytes": 1365097
+    },
+    {
+      "test_id": "termrock/first_delivery_showcase_buttons/returned/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_showcase_buttons/returned/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/showcase.buttons/samples/returned.sample.json",
+      "candidate_sha256": "aa14effb1c109b5ba51358fce6c60bb3a5d4fdbd591f6cbad4aec0ac570c7101",
+      "baseline_sha256": "aa14effb1c109b5ba51358fce6c60bb3a5d4fdbd591f6cbad4aec0ac570c7101",
+      "bytes": 1365096
+    },
+    {
+      "test_id": "termrock/first_delivery_showcase_buttons/run/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_showcase_buttons/run/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/showcase.buttons/samples/run.sample.json",
+      "candidate_sha256": "d2f4aa43fd16afc037deaa7c47cc7a05946a69fdcc163d75549e126cf2aa5f0f",
+      "baseline_sha256": "d2f4aa43fd16afc037deaa7c47cc7a05946a69fdcc163d75549e126cf2aa5f0f",
+      "bytes": 1364740
+    },
+    {
+      "test_id": "termrock/first_delivery_showcase_buttons/small/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_showcase_buttons/small/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/showcase.buttons/samples/small.sample.json",
+      "candidate_sha256": "14f99e45633b801f875cac546d6a99f1c6bddbba2519fc0b974c9e3cfe7661b2",
+      "baseline_sha256": "14f99e45633b801f875cac546d6a99f1c6bddbba2519fc0b974c9e3cfe7661b2",
+      "bytes": 593884
+    },
+    {
+      "test_id": "termrock/first_delivery_tablepro_connections/help/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_tablepro_connections/help/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/tablepro.connections/samples/help.sample.json",
+      "candidate_sha256": "9bac2a81210ae69c7ecad3f3cf9e3fa2d29072ff712ed72e31c618fffbcf0ed1",
+      "baseline_sha256": "9bac2a81210ae69c7ecad3f3cf9e3fa2d29072ff712ed72e31c618fffbcf0ed1",
+      "bytes": 1396203
+    },
+    {
+      "test_id": "termrock/first_delivery_tablepro_connections/initial/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_tablepro_connections/initial/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/tablepro.connections/samples/initial.sample.json",
+      "candidate_sha256": "1a2d439c6bcd5a88ff07356b1cb44c50642efd3529a5047cdcb2cab6be31d81b",
+      "baseline_sha256": "1a2d439c6bcd5a88ff07356b1cb44c50642efd3529a5047cdcb2cab6be31d81b",
+      "bytes": 1284631
+    },
+    {
+      "test_id": "termrock/first_delivery_tablepro_connections/restored/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_tablepro_connections/restored/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/tablepro.connections/samples/restored.sample.json",
+      "candidate_sha256": "94136488550684275269e3aba3ede94f99b7e2aff77e2523f4ce9c4c2cbe3b18",
+      "baseline_sha256": "94136488550684275269e3aba3ede94f99b7e2aff77e2523f4ce9c4c2cbe3b18",
+      "bytes": 1284596
+    },
+    {
+      "test_id": "termrock/first_delivery_tablepro_connections/returned/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_tablepro_connections/returned/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/tablepro.connections/samples/returned.sample.json",
+      "candidate_sha256": "40380198fcc03e35d4b73197f3add0277b17aac7e3dcb5a5d053c80ad678ed2a",
+      "baseline_sha256": "40380198fcc03e35d4b73197f3add0277b17aac7e3dcb5a5d053c80ad678ed2a",
+      "bytes": 1284596
+    },
+    {
+      "test_id": "termrock/first_delivery_tablepro_connections/selected/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_tablepro_connections/selected/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/tablepro.connections/samples/selected.sample.json",
+      "candidate_sha256": "4fdf2af8ea29be11e65e4c1a43188e12274e20966ac9282a4140a4e2ce1878f3",
+      "baseline_sha256": "4fdf2af8ea29be11e65e4c1a43188e12274e20966ac9282a4140a4e2ce1878f3",
+      "bytes": 1284594
+    },
+    {
+      "test_id": "termrock/first_delivery_tablepro_connections/small/pixels-macos-aarch64",
+      "expected_file": "termrock/first_delivery_tablepro_connections/small/pixels-macos-aarch64.tui.json",
+      "candidate_file": "/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-reference-A-20261028T/v2/tablepro.connections/samples/small.sample.json",
+      "candidate_sha256": "fed4fe64e8d2b1825a10eb8875c8597f440bae38fb08c7346eb71907dae2838a",
+      "baseline_sha256": "fed4fe64e8d2b1825a10eb8875c8597f440bae38fb08c7346eb71907dae2838a",
+      "bytes": 528748
+    }
+  ]
+}
