@@ -344,10 +344,7 @@ fn format_simulated_stop_history(execution: &ActivityExecution) -> Option<String
     let history = milestones
         .iter()
         .map(|milestone| {
-            let elapsed_ms = milestone
-                .at_ms()
-                .saturating_sub(requested_at_ms)
-                .max(0);
+            let elapsed_ms = milestone.at_ms().saturating_sub(requested_at_ms).max(0);
             match milestone {
                 ActivityStopMilestone::TermSent { .. } => format!("TERM +{elapsed_ms} ms"),
                 ActivityStopMilestone::KillSent { .. } => format!("KILL +{elapsed_ms} ms"),
@@ -422,14 +419,20 @@ pub(crate) fn project(
             .map(|started_ms| now_ms.saturating_sub(started_ms).max(0))
             .and_then(|elapsed| u64::try_from(elapsed).ok()),
         ActivityExecutionPhase::Stopped if value.stop_phase() == ActivityStopPhase::Reaped => {
-            let term_at_ms = value.milestones().iter().find_map(|milestone| match milestone {
-                ActivityStopMilestone::TermSent { at_ms } => Some(*at_ms),
-                _ => None,
-            })?;
-            let reaped_at_ms = value.milestones().iter().find_map(|milestone| match milestone {
-                ActivityStopMilestone::Reaped { at_ms } => Some(*at_ms),
-                _ => None,
-            })?;
+            let term_at_ms = value
+                .milestones()
+                .iter()
+                .find_map(|milestone| match milestone {
+                    ActivityStopMilestone::TermSent { at_ms } => Some(*at_ms),
+                    _ => None,
+                })?;
+            let reaped_at_ms = value
+                .milestones()
+                .iter()
+                .find_map(|milestone| match milestone {
+                    ActivityStopMilestone::Reaped { at_ms } => Some(*at_ms),
+                    _ => None,
+                })?;
             u64::try_from(reaped_at_ms.saturating_sub(term_at_ms).max(0)).ok()
         }
         _ => None,
@@ -600,9 +603,7 @@ mod tests {
     impl App for HistoryFixture {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             let projections = self.projections();
-            self.screen
-                .update(&self.world, &projections, false, cx)
-                .0
+            self.screen.update(&self.world, &projections, false, cx).0
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
@@ -797,12 +798,7 @@ mod tests {
         world.seek(u64::try_from(reap_at_ms).expect("reap time remains nonnegative"));
         let mut screen = Activities::default();
         screen.show(activity_id);
-        let harness = Harness::new(
-            HistoryFixture { screen, world },
-            Theme::junie(),
-            80,
-            20,
-        );
+        let harness = Harness::new(HistoryFixture { screen, world }, Theme::junie(), 80, 20);
         let frame = harness.text();
 
         assert!(frame.contains("SIMULATED stop · TERM +0 ms · KILL +800 ms · reap +960 ms"));

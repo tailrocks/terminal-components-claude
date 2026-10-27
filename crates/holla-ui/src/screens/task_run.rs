@@ -561,14 +561,8 @@ mod tests {
                 return;
             };
             let area = ui.full();
-            self.screen.draw(
-                &self.activity,
-                &self.projection,
-                run,
-                self.now_ms,
-                ui,
-                area,
-            );
+            self.screen
+                .draw(&self.activity, &self.projection, run, self.now_ms, ui, area);
         }
     }
 

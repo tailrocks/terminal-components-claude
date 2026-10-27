@@ -1664,14 +1664,8 @@ mod tests {
 
         let before_routed_rejection = (clone.regions.len(), clone.routed_scrolls.len());
         assert_eq!(
-            clone.register_routed_scroll(
-                C,
-                inner,
-                LayerId::PAGE,
-                Axes::V,
-                Headroom::default(),
-                19,
-            ),
+            clone
+                .register_routed_scroll(C, inner, LayerId::PAGE, Axes::V, Headroom::default(), 19,),
             None
         );
         assert_eq!(
@@ -1701,7 +1695,9 @@ mod tests {
             Some(ordinary_control)
         );
         assert_eq!(
-            clone.hit(Position::new(41, 2)).map(|hit| (hit.owner, hit.kind)),
+            clone
+                .hit(Position::new(41, 2))
+                .map(|hit| (hit.owner, hit.kind)),
             Some((ordinary_part, RegionKind::Part))
         );
         assert_eq!(
@@ -1714,14 +1710,8 @@ mod tests {
         let mut other = Registry::new_with_registry_id(7, &counter);
         assert_eq!(other.registry_id.0, None);
         assert_eq!(
-            other.register_routed_scroll(
-                C,
-                inner,
-                LayerId::PAGE,
-                Axes::V,
-                Headroom::default(),
-                19,
-            ),
+            other
+                .register_routed_scroll(C, inner, LayerId::PAGE, Axes::V, Headroom::default(), 19,),
             None
         );
         assert!(other.regions.is_empty());
@@ -1732,14 +1722,8 @@ mod tests {
         clone.reset(8);
         assert_eq!(clone.registry_id.0, None);
         assert_eq!(
-            clone.register_routed_scroll(
-                C,
-                inner,
-                LayerId::PAGE,
-                Axes::V,
-                Headroom::default(),
-                19,
-            ),
+            clone
+                .register_routed_scroll(C, inner, LayerId::PAGE, Axes::V, Headroom::default(), 19,),
             None
         );
         assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
@@ -1763,31 +1747,35 @@ mod tests {
         registry.reset(4);
         assert!(registry.route_epoch_exhausted);
         assert_eq!(registry.route_epoch, u64::MAX);
-        assert!(registry
-            .register_hit_stack_wheel(
-                A,
-                PartRef::of(Part::LABEL),
-                Rect::new(0, 0, 2, 2),
-                LayerId::PAGE,
-                Axes::V,
-                7,
-            )
-            .is_none());
+        assert!(
+            registry
+                .register_hit_stack_wheel(
+                    A,
+                    PartRef::of(Part::LABEL),
+                    Rect::new(0, 0, 2, 2),
+                    LayerId::PAGE,
+                    Axes::V,
+                    7,
+                )
+                .is_none()
+        );
 
         let mut clone = registry.clone_with_registry_id(&counter);
         assert_eq!(clone.registry_id.0, Some(101));
         assert!(clone.route_epoch_exhausted);
         assert_eq!(clone.route_epoch, u64::MAX);
-        assert!(clone
-            .register_hit_stack_wheel(
-                A,
-                PartRef::of(Part::LABEL),
-                Rect::new(0, 0, 2, 2),
-                LayerId::PAGE,
-                Axes::V,
-                7,
-            )
-            .is_none());
+        assert!(
+            clone
+                .register_hit_stack_wheel(
+                    A,
+                    PartRef::of(Part::LABEL),
+                    Rect::new(0, 0, 2, 2),
+                    LayerId::PAGE,
+                    Axes::V,
+                    7,
+                )
+                .is_none()
+        );
     }
 
     #[test]
@@ -1796,14 +1784,7 @@ mod tests {
         let area = Rect::new(0, 0, 8, 6);
         let mut source = Registry::new_with_registry_id(3, &counter);
         let key = source
-            .register_hit_stack_wheel(
-                A,
-                PartRef::of(Part::LABEL),
-                area,
-                LayerId::PAGE,
-                Axes::V,
-                7,
-            )
+            .register_hit_stack_wheel(A, PartRef::of(Part::LABEL), area, LayerId::PAGE, Axes::V, 7)
             .expect("the allocated registry creates a key");
         let same_key = source
             .routed_scroll_info(0)

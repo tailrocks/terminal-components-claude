@@ -8,11 +8,11 @@ use crate::{
     screens::{activity, task_run::TaskRunScreen},
     sim::{
         activity_supervisor::{
-            ActivityExecutionId, ActivityExecutionStart, ActivityExecutionPhase,
-            ActivityStopProfile, ActivityStopPhase,
+            ActivityExecutionId, ActivityExecutionPhase, ActivityExecutionStart, ActivityStopPhase,
+            ActivityStopProfile,
         },
         catalogue,
-        task_run::{TaskRunId, TaskScriptId, TaskRunState},
+        task_run::{TaskRunId, TaskRunState, TaskScriptId},
     },
 };
 use termrock::{FeedbackClock, Id, ItemKey, Part, PartRef, SimulationMoment, Theme};
@@ -29,11 +29,7 @@ fn strip_row(activity_id: u32) -> PartRef {
     PartRef::item(Part::ROW, ItemKey::num(u64::from(activity_id)))
 }
 
-fn activity_stop_id(
-    activity_id: u32,
-    view_token: u64,
-    execution_id: ActivityExecutionId,
-) -> Id {
+fn activity_stop_id(activity_id: u32, view_token: u64, execution_id: ActivityExecutionId) -> Id {
     Id::root("holla.activity.stop")
         .item(ItemKey::pair(view_token, execution_id.generation()))
         .item(ItemKey::num(u64::from(activity_id)))
@@ -163,9 +159,7 @@ fn completed_stop_preserves_multi_activity_strip_targets_at_three_sizes() -> Tes
             let area = harness
                 .area_of_part(STRIP, strip_row(activity_id))
                 .ok_or_else(|| {
-                    format!(
-                        "Activity {activity_id} strip target is missing at {width}x{height}"
-                    )
+                    format!("Activity {activity_id} strip target is missing at {width}x{height}")
                 })?;
             assert!(area.width > 0, "Activity {activity_id} has a click cell");
             assert!(area.x >= previous_right, "strip targets remain ordered");
@@ -235,9 +229,11 @@ fn below_minimum_keeps_execution_state_but_hides_normal_stop_controls() -> TestR
         "Activity prompt remains visible: {activity_frame}"
     );
     assert!(activity_harness.area_of(STRIP).is_none());
-    assert!(activity_harness
-        .area_of_part(STRIP, strip_row(snapshot.id))
-        .is_none());
+    assert!(
+        activity_harness
+            .area_of_part(STRIP, strip_row(snapshot.id))
+            .is_none()
+    );
     assert!(activity_harness.area_of(activity_button).is_none());
     assert_ne!(activity_harness.focus(), Some(activity_button));
     let activity_execution_state = activity_harness
@@ -246,7 +242,10 @@ fn below_minimum_keeps_execution_state_but_hides_normal_stop_controls() -> TestR
         .activity_supervisor
         .execution(activity_execution)
         .ok_or("completed Activity execution is missing below minimum")?;
-    assert_eq!(activity_execution_state.phase(), ActivityExecutionPhase::Stopped);
+    assert_eq!(
+        activity_execution_state.phase(),
+        ActivityExecutionPhase::Stopped
+    );
     let activity_projection = activity_harness
         .app()
         .activity_projections()
@@ -256,12 +255,9 @@ fn below_minimum_keeps_execution_state_but_hides_normal_stop_controls() -> TestR
     assert_eq!(activity_projection.execution_id, Some(activity_execution));
     assert_eq!(activity_projection.state_label, "stopped");
 
-    let mut task_run_app = App::for_scenario_without_history(
-        Scenario::MonorepoChild,
-        Motion::Paused,
-        4_000,
-    )
-    .with_source_theme(Theme::junie());
+    let mut task_run_app =
+        App::for_scenario_without_history(Scenario::MonorepoChild, Motion::Paused, 4_000)
+            .with_source_theme(Theme::junie());
     if let Some(task) = task_run_app
         .world
         .mise
@@ -300,9 +296,11 @@ fn below_minimum_keeps_execution_state_but_hides_normal_stop_controls() -> TestR
         "TaskRun prompt remains visible: {task_run_frame}"
     );
     assert!(task_run_harness.area_of(STRIP).is_none());
-    assert!(task_run_harness
-        .area_of_part(STRIP, strip_row(task_execution.activity_id()))
-        .is_none());
+    assert!(
+        task_run_harness
+            .area_of_part(STRIP, strip_row(task_execution.activity_id()))
+            .is_none()
+    );
     assert!(task_run_harness.area_of(task_button).is_none());
     assert_ne!(task_run_harness.focus(), Some(task_button));
     let task_run = task_run_harness
@@ -328,12 +326,9 @@ fn task_run_stop_detail_keeps_full_history_and_retained_output_without_row_overl
     const TASK_OUTPUT: &str = "Run dev · modeled simulation · no process executed";
 
     for (width, height) in [(80, 24), (120, 40), (72, 20)] {
-        let mut app = App::for_scenario_without_history(
-            Scenario::MonorepoChild,
-            Motion::Paused,
-            4_000,
-        )
-        .with_source_theme(Theme::junie());
+        let mut app =
+            App::for_scenario_without_history(Scenario::MonorepoChild, Motion::Paused, 4_000)
+                .with_source_theme(Theme::junie());
         if let Some(task) = app
             .world
             .mise
@@ -380,13 +375,12 @@ fn task_run_stop_detail_keeps_full_history_and_retained_output_without_row_overl
                 initial: SimulationMoment::from_millis(4_100),
             },
         );
-        let button_id = task_run_stop_id(
-            route_id,
-            run_id,
-            execution_id.activity_id(),
-            execution_id,
+        let button_id =
+            task_run_stop_id(route_id, run_id, execution_id.activity_id(), execution_id);
+        assert!(
+            harness.area_of(button_id).is_some(),
+            "Stop button at {width}x{height}"
         );
-        assert!(harness.area_of(button_id).is_some(), "Stop button at {width}x{height}");
         let _ = harness.click_id(button_id);
         assert_eq!(
             harness
@@ -433,8 +427,7 @@ fn task_run_stop_detail_keeps_full_history_and_retained_output_without_row_overl
         assert_eq!(projection.stop_grace_ms, Some(960));
         assert_eq!(projection.simulated_stop_history.as_deref(), Some(HISTORY));
         assert_eq!(
-            projection.lines,
-            expected_activity_lines,
+            projection.lines, expected_activity_lines,
             "complete authored Activity prefix and retained TaskRun output remain unchanged"
         );
 
@@ -454,8 +447,14 @@ fn task_run_stop_detail_keeps_full_history_and_retained_output_without_row_overl
             "complete history fits at {width}x{height}"
         );
         let frame = harness.text();
-        assert!(frame.contains(execution_label), "execution summary at {width}x{height}");
-        assert!(frame.contains(HISTORY), "complete lifecycle history at {width}x{height}");
+        assert!(
+            frame.contains(execution_label),
+            "execution summary at {width}x{height}"
+        );
+        assert!(
+            frame.contains(HISTORY),
+            "complete lifecycle history at {width}x{height}"
+        );
         assert!(frame.contains("authored Activity output"));
         assert!(frame.contains(TASK_OUTPUT));
     }

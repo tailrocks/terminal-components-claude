@@ -1156,11 +1156,17 @@ fn task_run_stop_button_keyboard_space_without_prompt_preserves_resistant_grace(
         .iter()
         .map(|line| line.text().to_owned())
         .collect();
-    assert!(!output_before.is_empty(), "the fixture has authored output to freeze");
+    assert!(
+        !output_before.is_empty(),
+        "the fixture has authored output to freeze"
+    );
 
     let mut harness = harness(app);
     let stop_id = task_run_stop_id(route_id, run_id, activity_id, execution_id);
-    assert!(harness.area_of(stop_id).is_some(), "TaskRun Stop is visible");
+    assert!(
+        harness.area_of(stop_id).is_some(),
+        "TaskRun Stop is visible"
+    );
     assert!(
         harness.tab_to(stop_id),
         "real Tab traversal reaches TaskRun Stop without a prompt"
@@ -1338,7 +1344,10 @@ fn task_run_text_input_consumes_space_but_enter_stops_waiting_prompt() -> TestRe
     let _ = harness.tick();
     assert!(harness.text().contains("Execution: waiting"));
     let stop_id = task_run_stop_id(route_id, run_id, activity_id, execution_id);
-    assert!(harness.area_of(stop_id).is_some(), "TaskRun Stop is visible");
+    assert!(
+        harness.area_of(stop_id).is_some(),
+        "TaskRun Stop is visible"
+    );
     assert!(
         harness.tab_to(stop_id),
         "real Tab traversal moves from the prompt to TaskRun Stop"
@@ -1350,7 +1359,10 @@ fn task_run_text_input_consumes_space_but_enter_stops_waiting_prompt() -> TestRe
         .get(run_id)
         .ok_or("TaskRun disappeared before Space")?;
     assert_eq!(run.state(), TaskRunState::Waiting);
-    assert_eq!(run.active_prompt().map(|prompt| prompt.id()), Some(prompt_id));
+    assert_eq!(
+        run.active_prompt().map(|prompt| prompt.id()),
+        Some(prompt_id)
+    );
     let _ = harness.key(KeyCode::Char(' '));
     assert_eq!(harness.app().world.now_ms(), 4_160);
     let run = harness
@@ -1528,11 +1540,17 @@ fn covered_task_run_stop_button_cannot_activate_from_keyboard() -> TestResult {
     let activity_id = execution_id.activity_id();
     let mut harness = harness(app);
     let stop_id = task_run_stop_id(route_id, run_id, activity_id, execution_id);
-    assert!(harness.tab_to(stop_id), "Tab traversal reaches visible TaskRun Stop");
+    assert!(
+        harness.tab_to(stop_id),
+        "Tab traversal reaches visible TaskRun Stop"
+    );
     assert_eq!(harness.focus(), Some(stop_id));
 
     let _ = harness.key(KeyCode::F(1));
-    assert!(harness.app().overlay.is_some(), "the Help dialog covers TaskRun");
+    assert!(
+        harness.app().overlay.is_some(),
+        "the Help dialog covers TaskRun"
+    );
     assert!(harness.text().contains("Key reference"));
     assert!(
         harness.area_of(stop_id).is_none(),
@@ -1573,9 +1591,17 @@ fn covered_task_run_stop_button_cannot_activate_from_keyboard() -> TestResult {
             .activity_supervisor
             .execution(execution_id)
             .map(|execution| {
-                (execution.phase(), execution.stop_phase(), execution.milestones().len())
+                (
+                    execution.phase(),
+                    execution.stop_phase(),
+                    execution.milestones().len(),
+                )
             }),
-        Some((ActivityExecutionPhase::Running, ActivityStopPhase::NotRequested, 0))
+        Some((
+            ActivityExecutionPhase::Running,
+            ActivityStopPhase::NotRequested,
+            0
+        ))
     );
     assert!(!harness.app().quit);
     assert_eq!(harness.app().world.effect_revision, 0);
@@ -1676,7 +1702,11 @@ fn task_run_route_invalidation_blocks_stale_keyboard_stop_generation() -> TestRe
                     execution.milestones().len(),
                 )
             }),
-        Some((ActivityExecutionPhase::Running, ActivityStopPhase::NotRequested, 0))
+        Some((
+            ActivityExecutionPhase::Running,
+            ActivityStopPhase::NotRequested,
+            0
+        ))
     );
     assert_eq!(
         harness
@@ -1691,7 +1721,11 @@ fn task_run_route_invalidation_blocks_stale_keyboard_stop_generation() -> TestRe
                     execution.milestones().len(),
                 )
             }),
-        Some((ActivityExecutionPhase::Stopped, ActivityStopPhase::NotRequested, 0))
+        Some((
+            ActivityExecutionPhase::Stopped,
+            ActivityStopPhase::NotRequested,
+            0
+        ))
     );
     assert!(!harness.app().quit);
     assert_eq!(harness.app().world.effect_revision, 0);
@@ -2007,7 +2041,11 @@ fn activity_detail_retired_generation_ignores_keyboard_activation() -> TestResul
                     execution.milestones().len(),
                 )
             }),
-        Some((ActivityExecutionPhase::Running, ActivityStopPhase::NotRequested, 0))
+        Some((
+            ActivityExecutionPhase::Running,
+            ActivityStopPhase::NotRequested,
+            0
+        ))
     );
     assert_eq!(
         harness
@@ -2022,7 +2060,11 @@ fn activity_detail_retired_generation_ignores_keyboard_activation() -> TestResul
                     execution.milestones().len(),
                 )
             }),
-        Some((ActivityExecutionPhase::Stopped, ActivityStopPhase::NotRequested, 0))
+        Some((
+            ActivityExecutionPhase::Stopped,
+            ActivityStopPhase::NotRequested,
+            0
+        ))
     );
     assert_eq!(
         harness
