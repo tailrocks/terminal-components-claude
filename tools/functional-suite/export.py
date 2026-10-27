@@ -1004,14 +1004,13 @@ def verify_generated_paths(root, bundle_data, patch_data):
     engine_parent = root / ".engine"
     engine_path = engine_parent / "tui-test"
     if not os.path.lexists(engine_parent):
-        create_engine(root, bundle_data, patch_data)
-        return verify_engine(engine_path, bundle_data, patch_data)
+        fail("engine parent is missing from the export")
     inspect_directory(engine_parent, "engine parent")
     entries = sorted(os.listdir(engine_parent))
     if any(name != "tui-test" for name in entries):
         fail(".engine contains an unexpected generated entry")
     if not os.path.lexists(engine_path):
-        create_engine(root, bundle_data, patch_data)
+        fail("materialized engine checkout is missing from the export")
     return verify_engine(engine_path, bundle_data, patch_data)
 
 
@@ -1200,6 +1199,9 @@ def create_export(arguments):
         secure_write_relative(root_descriptor, MANIFEST_NAME, manifest_bytes, 0o644)
     finally:
         os.close(root_descriptor)
+    bundle_data, _ = safe_read_relative(out_path, BUNDLE_RELATIVE, "engine bundle")
+    patch_data, _ = safe_read_relative(out_path, ENGINE_PATCH_RELATIVE, "complete engine patch")
+    create_engine(out_path, bundle_data, patch_data)
     verify_export(out_path, seal, emit_result=False)
     print(f"H={seal}")
     print(f"data_sha256={data_digest}")
