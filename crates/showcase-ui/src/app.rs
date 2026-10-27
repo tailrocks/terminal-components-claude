@@ -3335,8 +3335,41 @@ impl App {
     }
 }
 
+const CLI_HELP: &str = "\
+Junie-tui — Junie-inspired Ratatui design system laboratory
+
+Usage: showcase [OPTIONS]
+
+Options:
+      --theme <THEME>      Theme to use: junie or paper [default: junie]
+      --color <LEVEL>      Colour level: truecolor, 256, 16, or none
+      --page <NAME>        The page to open [default: Overview]
+      --motion <MOTION>    Animation mode: full or paused [default: full]
+      --frame <N>          Frame to render while paused (0–10000)
+  -h, --help               Print help
+
+Frame:     with --motion paused, the exact tick to render
+
+Keys: Tab/Shift+Tab focus · arrows move · Enter/Space activate · Esc back · [ ] pages · ? help · q quit
+";
+
+fn print_cli_help() -> std::io::Result<()> {
+    use std::io::Write as _;
+
+    let mut stdout = std::io::stdout().lock();
+    stdout.write_all(CLI_HELP.as_bytes())?;
+    stdout.flush()
+}
+
 pub fn run() -> std::io::Result<()> {
-    let (nav, theme, paused, frame) = parse_args(std::env::args().skip(1))?;
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if args
+        .iter()
+        .any(|arg| matches!(arg.as_str(), "-h" | "--help"))
+    {
+        return print_cli_help();
+    }
+    let (nav, theme, paused, frame) = parse_args(args.into_iter())?;
     termrock::run(App::boot(nav, paused, frame), theme)
 }
 
