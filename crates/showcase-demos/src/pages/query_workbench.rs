@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use termrock::grid::{Column, ColumnKey, Table, TableColumn, TableState};
 use termrock::{
-    ActionKey, CodeAction, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, Cx,
+    ActionKey, Align, CodeAction, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, Cx,
     FrameRead, GridModel, Id, ItemKey, Maximized, Panel, PanelKind, Rect, ResetPolicy, Response,
     Role, SplitAxis, SplitFallback, SplitPane, SplitPaneState, StateFlags, StatusBar, StatusItem,
     Tabs, TabsAction, TabsState, ToolItem, Toolbar, ToolbarAction, ToolbarState, TreeAction, Ui,
@@ -121,6 +121,53 @@ const RESULT_COLUMNS: [TableColumn<'static>; 3] = [
     })
     .flexible(),
 ];
+
+const ORDERS_RESULT_COLUMNS: [TableColumn<'static>; 5] = [
+    TableColumn::new(Column {
+        min_width: 7,
+        max_width: 7,
+        ..Column::new(ColumnKey::num(0), "id")
+    }),
+    TableColumn::new(Column {
+        min_width: 16,
+        max_width: u16::MAX,
+        ..Column::new(ColumnKey::num(1), "customer")
+    })
+    .flexible(),
+    TableColumn::new(Column {
+        min_width: 10,
+        max_width: 10,
+        ..Column::new(ColumnKey::num(2), "status")
+    }),
+    TableColumn::new(Column {
+        align: Align::Right,
+        min_width: 10,
+        max_width: 10,
+        ..Column::new(ColumnKey::num(3), "total")
+    }),
+    TableColumn::new(Column {
+        min_width: 17,
+        max_width: 17,
+        ..Column::new(ColumnKey::num(4), "created_at")
+    }),
+];
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum ResultSchema {
+    #[default]
+    Generic,
+    Orders,
+}
+
+impl ResultSchema {
+    const fn columns(self) -> &'static [TableColumn<'static>] {
+        match self {
+            Self::Generic => &RESULT_COLUMNS,
+            Self::Orders => &ORDERS_RESULT_COLUMNS,
+        }
+    }
+}
+
 const SAMPLE_CUSTOMERS: [&str; 3] = ["Northwind", "Globex", "Initech"];
 const ORDER_STATUSES: [&str; 4] = ["pending", "pending", "paid", "shipped"];
 
@@ -165,63 +212,81 @@ impl QueryResultState {
     }
 
     fn model(&self) -> ResultModel {
-        let rows = match self {
-            Self::NotRun | Self::Empty => Vec::new(),
-            Self::Rows { table, count } => (0..*count)
-                .map(|index| {
-                    if table.eq_ignore_ascii_case("orders") {
+        let (schema, rows) = match self {
+            Self::NotRun | Self::Empty => (ResultSchema::Generic, Vec::new()),
+            Self::Rows { table, count } if table.eq_ignore_ascii_case("orders") => (
+                ResultSchema::Orders,
+                (0..*count).map(order_result_row).collect(),
+            ),
+            Self::Rows { count, .. } => (
+                ResultSchema::Generic,
+                (0..*count)
+                    .map(|index| {
                         let customer = SAMPLE_CUSTOMERS
                             .get(index % SAMPLE_CUSTOMERS.len())
                             .copied()
                             .unwrap_or("Sample");
-                        let status = ORDER_STATUSES
-                            .get(index % ORDER_STATUSES.len())
-                            .copied()
-                            .unwrap_or("pending");
-                        [
-                            (10_480_usize.saturating_sub(index.saturating_mul(7))).to_string(),
-                            format!("{customer} Example"),
-                            status.to_owned(),
-                        ]
-                    } else {
-                        let customer = SAMPLE_CUSTOMERS
-                            .get(index % SAMPLE_CUSTOMERS.len())
-                            .copied()
-                            .unwrap_or("Sample");
-                        [
+                        vec![
                             index.saturating_add(1).to_string(),
                             format!("{customer} Account"),
                             format!("2026-10-{:02}", 27_usize.saturating_sub(index % 26)),
                         ]
-                    }
-                })
-                .collect(),
-            Self::Plan => [
-                ["Limit".to_owned(), "0.42..2.10".to_owned(), "25".to_owned()],
-                [
-                    "Index Scan Backward on orders".to_owned(),
-                    "0.42..8 410".to_owned(),
-                    "1 204".to_owned(),
+                    })
+                    .collect(),
+            ),
+            Self::Plan => (
+                ResultSchema::Generic,
+                vec![
+                    vec!["Limit".to_owned(), "0.42..2.10".to_owned(), "25".to_owned()],
+                    vec![
+                        "Index Scan Backward on orders".to_owned(),
+                        "0.42..8 410".to_owned(),
+                        "1 204".to_owned(),
+                    ],
+                    vec![
+                        "Index condition".to_owned(),
+                        "status = 'pending'".to_owned(),
+                        String::new(),
+                    ],
+                    vec![
+                        "Using index".to_owned(),
+                        "orders_created_at_idx".to_owned(),
+                        String::new(),
+                    ],
                 ],
-                [
-                    "Index condition".to_owned(),
-                    "status = 'pending'".to_owned(),
-                    String::new(),
-                ],
-                [
-                    "Using index".to_owned(),
-                    "orders_created_at_idx".to_owned(),
-                    String::new(),
-                ],
-            ]
-            .into_iter()
-            .collect(),
-            Self::Error { message, detail } => {
-                vec![["ERROR".to_owned(), message.clone(), detail.clone()]]
-            }
+            ),
+            Self::Error { message, detail } => (
+                ResultSchema::Generic,
+                vec![vec!["ERROR".to_owned(), message.clone(), detail.clone()]],
+            ),
         };
-        ResultModel { rows }
+        ResultModel { schema, rows }
     }
+}
+
+fn order_result_row(index: usize) -> Vec<String> {
+    let customer = SAMPLE_CUSTOMERS
+        .get(index % SAMPLE_CUSTOMERS.len())
+        .copied()
+        .unwrap_or("Sample");
+    let status = ORDER_STATUSES
+        .get(index % ORDER_STATUSES.len())
+        .copied()
+        .unwrap_or("pending");
+    // Reduce the index before multiplying to keep arbitrary row counts safe.
+    let total_whole = 40 + ((index % 900) * 37) % 900;
+    let total_fraction = ((index % 100) * 13) % 100;
+    let day = 17_usize.saturating_sub(index / 6);
+    let hour = 23_usize.saturating_sub(index % 24);
+    let minute = ((index % 60) * 7) % 60;
+
+    vec![
+        (10_480_usize.saturating_sub(index.saturating_mul(7))).to_string(),
+        format!("{customer} Example"),
+        status.to_owned(),
+        format!("{total_whole}.{total_fraction:02}"),
+        format!("2026-10-{day:02} {hour:02}:{minute:02}"),
+    ]
 }
 
 #[derive(Clone, Debug)]
@@ -266,7 +331,8 @@ struct PendingRun {
 
 #[derive(Clone, Debug, Default)]
 struct ResultModel {
-    rows: Vec<[String; 3]>,
+    schema: ResultSchema,
+    rows: Vec<Vec<String>>,
 }
 
 impl GridModel for ResultModel {
@@ -908,7 +974,7 @@ impl Page for QueryWorkbenchPage {
             }
 
             let model = self.active_result_model();
-            response |= Table::new(RESULTS, &RESULT_COLUMNS)
+            response |= Table::new(RESULTS, model.schema.columns())
                 .update(cx, &mut self.results, &model)
                 .erase();
         } else {
@@ -1049,7 +1115,7 @@ impl Page for QueryWorkbenchPage {
                                         .get(1)
                                         .copied()
                                         .unwrap_or(Rect::new(0, 0, 0, 0));
-                                    let _ = Table::new(RESULTS, &RESULT_COLUMNS).draw(
+                                    let _ = Table::new(RESULTS, model.schema.columns()).draw(
                                         ui,
                                         table_area,
                                         &self.results,
@@ -2267,5 +2333,337 @@ mod tests {
             "direct modal open from Tree focus: {:?}",
             tree.diagnostics()
         );
+    }
+
+    #[test]
+    fn orders_result_adapter_restores_native_schema_and_historical_values() {
+        let model_25 = QueryResultState::Rows {
+            table: "orders".to_owned(),
+            count: 25,
+        }
+        .model();
+        let columns = model_25.schema.columns();
+
+        assert_eq!(model_25.schema, super::ResultSchema::Orders);
+        assert_eq!(
+            columns
+                .iter()
+                .map(|column| column.column.title)
+                .collect::<Vec<_>>(),
+            ["id", "customer", "status", "total", "created_at"]
+        );
+        assert_eq!(
+            columns
+                .iter()
+                .map(|column| column.column.key.raw())
+                .collect::<Vec<_>>(),
+            [0, 1, 2, 3, 4]
+        );
+        assert_eq!(
+            columns
+                .iter()
+                .map(|column| column.column.min_width)
+                .collect::<Vec<_>>(),
+            [7, 16, 10, 10, 17]
+        );
+        assert_eq!(
+            columns
+                .iter()
+                .map(|column| column.column.max_width)
+                .collect::<Vec<_>>(),
+            [7, u16::MAX, 10, 10, 17]
+        );
+        assert_eq!(
+            columns
+                .iter()
+                .map(|column| column.flexible)
+                .collect::<Vec<_>>(),
+            [false, true, false, false, false]
+        );
+        assert_eq!(
+            columns
+                .iter()
+                .map(|column| column.column.align)
+                .collect::<Vec<_>>(),
+            [
+                termrock::Align::Left,
+                termrock::Align::Left,
+                termrock::Align::Left,
+                termrock::Align::Right,
+                termrock::Align::Left,
+            ]
+        );
+        assert!(!columns.iter().any(|column| column.column.sortable));
+        assert_eq!(model_25.row_count(), 25);
+        assert_eq!(
+            model_25.rows[..3]
+                .iter()
+                .map(|row| row[..3].to_vec())
+                .collect::<Vec<_>>(),
+            vec![
+                vec![
+                    "10480".to_owned(),
+                    "Northwind Example".to_owned(),
+                    "pending".to_owned(),
+                ],
+                vec![
+                    "10473".to_owned(),
+                    "Globex Example".to_owned(),
+                    "pending".to_owned(),
+                ],
+                vec![
+                    "10466".to_owned(),
+                    "Initech Example".to_owned(),
+                    "paid".to_owned(),
+                ],
+            ]
+        );
+        assert_eq!(
+            model_25.rows[0],
+            vec![
+                "10480".to_owned(),
+                "Northwind Example".to_owned(),
+                "pending".to_owned(),
+                "40.00".to_owned(),
+                "2026-10-17 23:00".to_owned(),
+            ]
+        );
+        assert_eq!(
+            model_25.rows[24],
+            vec![
+                "10312".to_owned(),
+                "Northwind Example".to_owned(),
+                "pending".to_owned(),
+                "928.12".to_owned(),
+                "2026-10-13 23:48".to_owned(),
+            ]
+        );
+
+        let model_40 = QueryResultState::Rows {
+            table: "ORDERS".to_owned(),
+            count: 40,
+        }
+        .model();
+        assert_eq!(model_40.row_count(), 40);
+        assert_eq!(
+            model_40.rows[39],
+            vec![
+                "10207".to_owned(),
+                "Northwind Example".to_owned(),
+                "shipped".to_owned(),
+                "583.07".to_owned(),
+                "2026-10-11 08:33".to_owned(),
+            ]
+        );
+        assert_eq!(model_40.row_key(0), ItemKey::num(1));
+        assert_eq!(model_40.row_key(39), ItemKey::num(40));
+
+        let extreme = super::order_result_row(usize::MAX);
+        assert_eq!(extreme.len(), 5);
+        assert!(
+            extreme[3]
+                .split_once('.')
+                .is_some_and(|(_, cents)| cents.len() == 2)
+        );
+        assert!(extreme[4].starts_with("2026-10-"));
+    }
+
+    #[test]
+    fn non_orders_plans_and_errors_keep_the_generic_three_cell_schema() {
+        let customers = QueryResultState::Rows {
+            table: "customers".to_owned(),
+            count: 2,
+        }
+        .model();
+        assert_eq!(customers.schema, super::ResultSchema::Generic);
+        assert_eq!(
+            customers
+                .schema
+                .columns()
+                .iter()
+                .map(|column| column.column.title)
+                .collect::<Vec<_>>(),
+            ["Field", "Value", "Details"]
+        );
+        assert_eq!(
+            customers.rows,
+            [
+                vec![
+                    "1".to_owned(),
+                    "Northwind Account".to_owned(),
+                    "2026-10-27".to_owned(),
+                ],
+                vec![
+                    "2".to_owned(),
+                    "Globex Account".to_owned(),
+                    "2026-10-26".to_owned(),
+                ],
+            ]
+        );
+
+        let plan = QueryResultState::Plan.model();
+        assert_eq!(plan.schema, super::ResultSchema::Generic);
+        assert_eq!(plan.rows.len(), 4);
+        assert!(plan.rows.iter().all(|row| row.len() == 3));
+        assert_eq!(
+            plan.rows[0],
+            vec!["Limit".to_owned(), "0.42..2.10".to_owned(), "25".to_owned()]
+        );
+
+        let error = QueryResultState::Error {
+            message: "missing relation".to_owned(),
+            detail: "check the table name".to_owned(),
+        }
+        .model();
+        assert_eq!(error.schema, super::ResultSchema::Generic);
+        assert_eq!(
+            error.rows,
+            [vec![
+                "ERROR".to_owned(),
+                "missing relation".to_owned(),
+                "check the table name".to_owned(),
+            ]]
+        );
+        assert_eq!(error.rows[0].len(), 3);
+
+        for result in [QueryResultState::NotRun, QueryResultState::Empty] {
+            let model = result.model();
+            assert_eq!(model.schema, super::ResultSchema::Generic);
+            assert!(model.rows.is_empty());
+        }
+    }
+
+    #[test]
+    fn native_wide_orders_table_renders_all_columns_and_sample_cells() {
+        let h = native_harness();
+        let area = h.area_of(RESULTS_ID).unwrap_or(Rect::ZERO);
+        assert!(!area.is_empty(), "the native Results table is drawn");
+        let header = h.row(area.y);
+        for name in ["id", "customer", "status", "total", "created_at"] {
+            assert!(header.contains(name), "missing {name:?} from {header:?}");
+        }
+
+        let screen = h.text();
+        for value in [
+            "10480",
+            "Northwind Example",
+            "pending",
+            "40.00",
+            "2026-10-17 23:00",
+        ] {
+            assert!(screen.contains(value), "missing {value:?}\\n{screen}");
+        }
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+
+    #[test]
+    fn compact_orders_table_scrolls_horizontally_and_reconciles_generic_results() {
+        let mut h = Harness::new(
+            Host {
+                page: QueryWorkbenchPage::new(),
+                area: Rect::new(0, 0, 80, 24),
+                keymap: host_keymap(),
+                last_command: None,
+                open_options_before_update: false,
+            },
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert!(h.area_of(RESULTS_ID).is_some());
+        let original_sql = h.app().page.active_sql().map(str::to_owned);
+        assert!(h.tab_to(EDITOR_ID));
+        let _ = h.key(KeyCode::F(6));
+        assert_eq!(h.focus(), Some(RESULTS_ID));
+        assert_eq!(h.app().page.active_sql(), original_sql.as_deref());
+        let original_state = h.app().page.results_state() as *const _;
+        let _ = h.key(KeyCode::Down);
+        let selected_row = h.app().page.results_state().cursor().map(|(row, _)| row);
+        assert!(
+            selected_row.is_some(),
+            "native row navigation selects an Orders result row"
+        );
+
+        let mut reached_trailing_columns = false;
+        for _ in 0..super::ORDERS_RESULT_COLUMNS.len() {
+            let area = h.area_of(RESULTS_ID).unwrap_or(Rect::ZERO);
+            let header = h.row(area.y);
+            let screen = h.text();
+            if header.contains("total")
+                && header.contains("created_at")
+                && screen.contains("40.00")
+                && screen.contains("2026-10-17 23:00")
+            {
+                reached_trailing_columns = true;
+                break;
+            }
+            let _ = h.key(KeyCode::Right);
+        }
+        assert!(
+            reached_trailing_columns,
+            "native horizontal navigation must expose total and the full timestamp\n{}",
+            h.text()
+        );
+        assert!(
+            h.app().page.results_state().grid_state().col_offset() > 0,
+            "the native table owns horizontal column movement"
+        );
+        assert_eq!(h.focus(), Some(RESULTS_ID));
+        assert_eq!(
+            h.app().page.results_state().cursor().map(|(row, _)| row),
+            selected_row,
+            "horizontal navigation retains the selected result row"
+        );
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+
+        for _ in 0..super::ORDERS_RESULT_COLUMNS.len() {
+            if h.app().page.results_state().grid_state().col_offset() == 0 {
+                break;
+            }
+            let _ = h.key(KeyCode::Left);
+        }
+        assert_eq!(h.app().page.results_state().grid_state().col_offset(), 0);
+        assert_eq!(
+            h.app().page.results_state().cursor().map(|(row, _)| row),
+            selected_row
+        );
+        let area = h.area_of(RESULTS_ID).unwrap_or(Rect::ZERO);
+        let header = h.row(area.y);
+        assert!(header.contains("id"), "{header:?}");
+        assert!(header.contains("customer"), "{header:?}");
+
+        let customers_key = h.app().page.documents[1].key;
+        h.app_mut().page.documents[1].result = QueryResultState::Rows {
+            table: "customers".to_owned(),
+            count: 25,
+        };
+        h.app_mut().page.tabs.set_active(1, customers_key);
+        let _ = h.tick();
+
+        assert_eq!(h.app().page.tabs.active(), Some(customers_key));
+        assert_eq!(
+            h.app().page.results_state() as *const _,
+            original_state,
+            "schema changes retain the same native TableState"
+        );
+        assert_eq!(
+            h.app().page.active_result_model().schema,
+            super::ResultSchema::Generic
+        );
+        assert_eq!(h.app().page.active_result_model().row_count(), 25);
+        assert_eq!(
+            h.app().page.results_state().cursor().map(|(row, _)| row),
+            selected_row,
+            "native reconciliation retains the selected row across schemas"
+        );
+        assert!(h.tab_to(RESULTS_ID));
+        let _ = h.key(KeyCode::Right);
+        assert_eq!(
+            h.app().page.results_state().cursor().map(|(row, _)| row),
+            selected_row,
+            "native navigation remains usable after the schema change"
+        );
+        assert_eq!(h.focus(), Some(RESULTS_ID));
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
 }
