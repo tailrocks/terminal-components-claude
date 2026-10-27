@@ -10,6 +10,7 @@
 use std::cell::Cell;
 
 use crate::event::{Axis, Key};
+use crate::id::ItemKey;
 use crate::keymap::{Nav, NavKeys};
 use crate::outcome::Outcome;
 use crate::typeahead::TypeAhead;
@@ -32,6 +33,12 @@ pub trait RowSource {
 
     /// The type-ahead label of row `i`.
     fn label(&self, i: usize) -> &str;
+
+    /// A key for row `i`, positional by default.
+    /// Override this when a key must stay with its item after rows reorder.
+    fn key(&self, i: usize) -> ItemKey {
+        ItemKey::index(i)
+    }
 }
 
 impl RowSource for [&str] {
@@ -474,11 +481,79 @@ mod tests {
         }
     }
 
+    struct KeyedRows {
+        rows: Vec<(ItemKey, &'static str)>,
+    }
+
+    impl RowSource for KeyedRows {
+        fn len(&self) -> usize {
+            self.rows.len()
+        }
+        fn label(&self, i: usize) -> &str {
+            self.rows[i].1
+        }
+        fn key(&self, i: usize) -> ItemKey {
+            self.rows[i].0
+        }
+    }
+
     fn rows(disabled: &[usize]) -> Rows {
         Rows {
             labels: vec!["Alpha", "Beta", "Bravo", "Charlie", "Delta", "Echo"],
             disabled: disabled.to_vec(),
         }
+    }
+
+    #[test]
+    fn default_keys_are_positions_for_builtin_and_custom_sources() {
+        let borrowed: &[&str] = &["Alpha", "Beta"];
+        assert_eq!(borrowed.key(0), ItemKey::index(0));
+        assert_eq!(borrowed.key(1), ItemKey::index(1));
+
+        let owned = [String::from("Alpha"), String::from("Beta")];
+        assert_eq!(owned.as_slice().key(1), ItemKey::index(1));
+
+        let enabled = |_: usize| true;
+        let label = |i| ["Alpha", "Beta"][i];
+        let source = RowFn {
+            len: 2,
+            enabled: &enabled,
+            label: &label,
+        };
+        assert_eq!(source.key(1), ItemKey::index(1));
+
+        let source = rows(&[]);
+        assert_eq!(source.key(3), ItemKey::index(3));
+    }
+
+    #[test]
+    fn custom_numeric_and_text_keys_follow_items_after_reordering() {
+        let mut source = KeyedRows {
+            rows: vec![
+                (ItemKey::num(41), "Alpha"),
+                (ItemKey::text("row.beta"), "Beta"),
+            ],
+        };
+
+        source.rows.swap(0, 1);
+
+        assert_eq!(source.label(0), "Beta");
+        assert_eq!(source.key(0), ItemKey::text("row.beta"));
+        assert_eq!(source.label(1), "Alpha");
+        assert_eq!(source.key(1), ItemKey::num(41));
+    }
+
+    #[test]
+    fn row_source_keys_dispatch_through_trait_objects() {
+        let default_rows = rows(&[]);
+        let default_source: &dyn RowSource = &default_rows;
+        assert_eq!(default_source.key(1), ItemKey::index(1));
+
+        let custom_rows = KeyedRows {
+            rows: vec![(ItemKey::num(73), "Stable")],
+        };
+        let custom_source: &dyn RowSource = &custom_rows;
+        assert_eq!(custom_source.key(0), ItemKey::num(73));
     }
 
     #[test]
