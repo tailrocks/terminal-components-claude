@@ -3573,9 +3573,15 @@ impl App {
                     Route::DiskScan => "Disk scan",
                     Route::TaskRun => "Task run",
                 });
-            let crumb = format!("{parent} › System resources");
             let covered = ui.is_covered_by_native_layer();
-            paint_resource_band(ui, area, &crumb, self.world.activities.is_empty(), covered);
+            paint_resource_band(
+                ui,
+                area,
+                parent,
+                "System resources",
+                self.world.activities.is_empty(),
+                covered,
+            );
         }
         let status = Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1);
         if self.world.scenario == Scenario::ParityDiscovery {
@@ -4786,7 +4792,14 @@ fn paint_here_band(ui: &mut Ui<'_>, area: Rect, covered: bool) {
     }
 }
 
-fn paint_resource_band(ui: &mut Ui<'_>, area: Rect, crumb: &str, show_crumb: bool, covered: bool) {
+fn paint_resource_band(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    parent: &str,
+    current: &str,
+    show_crumb: bool,
+    covered: bool,
+) {
     let width = area.width.saturating_sub(2);
     if width == 0 || area.height < 4 {
         return;
@@ -4794,20 +4807,45 @@ fn paint_resource_band(ui: &mut Ui<'_>, area: Rect, crumb: &str, show_crumb: boo
     let x = area.x.saturating_add(1);
     let crumb_y = area.y.saturating_add(1);
     if show_crumb {
-        let crumb_style = ui.paint_patch(
+        let parent_style = ui.paint_patch(
             &StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Muted))
+                .set_fg(Role::Fg(FgStep::Secondary))
                 .remove(termrock::Modifier::BOLD),
         );
-        ui.paint_str(
-            Rect::new(x, crumb_y, width, 1),
-            &termrock::truncate(crumb, width),
-            crumb_style,
+        let separator_style = ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Faint))
+                .remove(termrock::Modifier::BOLD),
         );
+        let current_style = ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(termrock::Modifier::BOLD),
+        );
+        let mut crumb_x = x.saturating_add(1);
+        let mut crumb_room = width.saturating_sub(2);
+        for (segment, style) in [
+            (parent, parent_style),
+            (" › ", separator_style),
+            (current, current_style),
+        ] {
+            if crumb_room == 0 {
+                break;
+            }
+            let clipped = termrock::truncate(segment, crumb_room);
+            let segment_width = termrock::width(&clipped).min(crumb_room);
+            ui.paint_str(
+                Rect::new(crumb_x, crumb_y, segment_width, 1),
+                &clipped,
+                style,
+            );
+            crumb_x = crumb_x.saturating_add(segment_width);
+            crumb_room = crumb_room.saturating_sub(segment_width);
+        }
     }
 
     let y = area.y.saturating_add(2);
-    let label = format!(" {crumb} ");
+    let label = format!(" {parent} › {current}  ");
     let tab_width = termrock::width(&label).min(width);
     let tab = Rect::new(x, y, tab_width, 1);
     let plate = ui.paint_patch(

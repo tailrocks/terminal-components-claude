@@ -1,9 +1,9 @@
 use crate::sim::world::{SystemSnapshot, World};
 use termrock::{
-    Button, Constraints, Cx, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey, Meter,
-    MeterVisual, NavList, NavListState, Panel, PanelKind, Part, Props, PropsRow, Rect, Response,
-    Role, RowUi, Span, StylePatch, TextSection, TextViewport, Ui, Variant, ViewportAction,
-    ViewportLine, ViewportState,
+    Button, Color, Constraints, Cx, FgStep, FrameRead, GlyphRole, Hint, HintKey, HintLayer, Id,
+    ItemKey, Meter, MeterTone, MeterVisual, NavList, NavListState, Panel, PanelKind, Part, Props,
+    PropsRow, Rect, Response, Role, RowUi, Span, StylePatch, Surface, TextSection, TextViewport,
+    Ui, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 pub(crate) const PROCESSES: Id = Id::root("holla.snapshot.processes");
@@ -13,6 +13,47 @@ const RESOURCES_PANEL: Id = Id::root("holla.snapshot.resources.panel");
 const RESOURCE_FACT_PARTS: &[(Part, StylePatch)] = &[(
     Part::META,
     StylePatch::new().set_fg(Role::Fg(FgStep::Muted)),
+)];
+const RESOURCE_METER_CANVAS_LIFT: Color = Color::Rgb(0x1c, 0x1c, 0x1f);
+const RESOURCE_METER_TRACK_PATCH: StylePatch = StylePatch::new()
+    .set_fg(Role::Fg(FgStep::Primary))
+    .set_bg(Role::Custom(RESOURCE_METER_CANVAS_LIFT));
+const RESOURCE_METER_THUMB_PATCH: StylePatch = StylePatch::new()
+    .set_fg(Role::Surface(Surface::Canvas))
+    .add(termrock::Modifier::BOLD);
+const RESOURCE_METER_WARNING_ICON: StylePatch = StylePatch::new()
+    .set_fg(Role::Warning)
+    .set_glyph(GlyphRole::WarningMark);
+const RESOURCE_METER_DANGER_ICON: StylePatch = StylePatch::new()
+    .set_fg(Role::Danger)
+    .set_glyph(GlyphRole::Error);
+const RESOURCE_METER_BASE_PARTS: &[(Part, StylePatch)] = &[
+    (Part::TRACK, RESOURCE_METER_TRACK_PATCH),
+    (Part::THUMB, RESOURCE_METER_THUMB_PATCH),
+];
+const RESOURCE_METER_WARNING_PARTS: &[(Part, StylePatch)] = &[
+    (Part::TRACK, RESOURCE_METER_TRACK_PATCH),
+    (Part::THUMB, RESOURCE_METER_THUMB_PATCH),
+    (Part::ICON, RESOURCE_METER_WARNING_ICON),
+];
+const RESOURCE_METER_DANGER_PARTS: &[(Part, StylePatch)] = &[
+    (Part::TRACK, RESOURCE_METER_TRACK_PATCH),
+    (Part::THUMB, RESOURCE_METER_THUMB_PATCH),
+    (Part::ICON, RESOURCE_METER_DANGER_ICON),
+];
+const RESOURCE_PANEL_FOCUSED_PARTS: &[(Part, StylePatch)] = &[(
+    Part::GUTTER,
+    StylePatch::new()
+        .set_fg(Role::BorderStrong)
+        .set_bg(Role::CurrentSurface)
+        .set_glyph(GlyphRole::RuleQuiet),
+)];
+const RESOURCE_PANEL_UNFOCUSED_PARTS: &[(Part, StylePatch)] = &[(
+    Part::GUTTER,
+    StylePatch::new()
+        .set_fg(Role::BorderSubtle)
+        .set_bg(Role::CurrentSurface)
+        .set_glyph(GlyphRole::RuleQuiet),
 )];
 const RESOURCE_MIN_PANEL_HEIGHT: u16 = 5;
 
@@ -58,11 +99,10 @@ impl State {
             let lines = resource_process_lines(system);
             let spans = process_spans(&lines);
             let viewport_lines = viewport_lines(&spans);
-            let mut viewport = TextViewport::new(RESOURCES_BODY).wrap(false).update(
-                cx,
-                &mut self.resources,
-                &viewport_lines,
-            );
+            let mut viewport = TextViewport::new(RESOURCES_BODY)
+                .wrap(false)
+                .reserve_gutter(false)
+                .update(cx, &mut self.resources, &viewport_lines);
             let event = match viewport.take_action() {
                 Some(ViewportAction::Copy(text)) => Some(Event::Copy(text)),
                 _ => None,
@@ -205,7 +245,11 @@ fn draw_first_use_resources(world: &World, state: &State, ui: &mut Ui<'_>, area:
     draw_resource_processes(system, state, ui, panel_area);
 
     if follow_height > 0 {
-        draw_monitor_action(ui, area, follow_top);
+        draw_monitor_action(
+            ui,
+            area,
+            follow_top.saturating_add(follow_height.saturating_sub(1)),
+        );
     }
 }
 
@@ -280,15 +324,23 @@ fn draw_resource_meters(
             label,
             style,
         );
-        Meter::new(Id::root(match index {
+        let meter = Meter::new(Id::root(match index {
             0 => "holla.snapshot.resources.cpu",
             1 => "holla.snapshot.resources.memory",
             _ => "holla.snapshot.resources.disk",
         }))
-        .ratio(*ratio)
-        .value(value)
-        .visual(MeterVisual::Block)
-        .draw(ui, Rect::new(meter_x, row_y, meter_width, 1));
+        .ratio(*ratio);
+        let parts = match meter.resolved_tone(ui) {
+            MeterTone::Medium => RESOURCE_METER_WARNING_PARTS,
+            MeterTone::High => RESOURCE_METER_DANGER_PARTS,
+            _ => RESOURCE_METER_BASE_PARTS,
+        };
+        meter
+            .value(value)
+            .visual(MeterVisual::Block)
+            .suffix_width(2)
+            .part_defaults(parts)
+            .draw(ui, Rect::new(meter_x, row_y, meter_width, 1));
     }
 }
 
@@ -313,7 +365,7 @@ fn resource_meter_values(
         ),
     ];
     if let Some(disk) = world.disk.as_ref() {
-        let percent = disk.used_percent().min(100);
+        let percent = rounded_percent(disk.used_bytes, disk.total_bytes);
         rows.push(("Disk /", f64::from(percent) / 100.0, format!("{percent}%")));
     }
     rows
@@ -412,17 +464,76 @@ fn draw_resource_processes(system: &SystemSnapshot, state: &State, ui: &mut Ui<'
         .contains(termrock::StateFlags::FOCUSED);
     Panel::new(RESOURCES_PANEL)
         .kind(PanelKind::Framed)
-        .title("Processes")
-        .meta(&meta)
         .focused(focused)
+        .patch_part(if focused {
+            RESOURCE_PANEL_FOCUSED_PARTS
+        } else {
+            RESOURCE_PANEL_UNFOCUSED_PARTS
+        })
         .draw(ui, area, |ui, inner| {
-            TextViewport::new(RESOURCES_BODY).wrap(false).draw(
-                ui,
-                inner,
-                &state.resources,
-                &viewport_lines,
-            );
+            TextViewport::new(RESOURCES_BODY)
+                .wrap(false)
+                .reserve_gutter(false)
+                .draw(ui, inner, &state.resources, &viewport_lines);
         });
+    draw_resource_panel_header(ui, area, &meta, focused);
+}
+
+fn draw_resource_panel_header(ui: &mut Ui<'_>, area: Rect, meta: &str, focused: bool) {
+    let header = Rect::new(
+        area.x.saturating_add(2),
+        area.y,
+        area.width.saturating_sub(4),
+        1,
+    );
+    if header.is_empty() {
+        return;
+    }
+    let title_style = if focused {
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::CurrentSurface)
+                .add(termrock::Modifier::BOLD),
+        )
+    } else {
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Secondary))
+                .set_bg(Role::CurrentSurface)
+                .remove(termrock::Modifier::BOLD),
+        )
+    };
+    let meta_style = ui.paint_patch(
+        &StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Faint))
+            .set_bg(Role::CurrentSurface)
+            .remove(termrock::Modifier::BOLD),
+    );
+
+    let title_room = header.width.saturating_sub(2);
+    let title = termrock::truncate("Processes", title_room);
+    let title_label = format!(" {title} ");
+    let title_width = termrock::width(&title_label).min(header.width);
+    ui.paint_str(
+        Rect::new(header.x, header.y, title_width, 1),
+        &title_label,
+        title_style,
+    );
+
+    let meta_room = header.width.saturating_sub(title_width.saturating_add(1));
+    if meta_room < 3 {
+        return;
+    }
+    let meta_text = termrock::truncate(meta, meta_room.saturating_sub(2));
+    let meta_label = format!(" {meta_text} ");
+    let meta_width = termrock::width(&meta_label).min(meta_room);
+    let meta_x = header.right().saturating_sub(meta_width);
+    ui.paint_str(
+        Rect::new(meta_x, header.y, meta_width, 1),
+        &meta_label,
+        meta_style,
+    );
 }
 
 fn draw_monitor_action(ui: &mut Ui<'_>, area: Rect, y: u16) {
