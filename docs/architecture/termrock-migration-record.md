@@ -1595,20 +1595,48 @@ task manifest `.github/velnor/task-execution-manifest-v1.json` (SHA-256
 `12284a51e4a97c99632ff6704ef14e2bd0e4b613bacaff72ca947d9169a50a34`) has 220 tasks, including
 44 per-package Nextest tasks, all with `--no-tests fail`.
 
-The pinned schema has no per-package option to omit only generated test tasks while keeping package
-build, Clippy, formatting, and documentation checks. `RustCrateConfig` has only `build_jobs`, and
-package task derivation emits a test/Nextest task for each discovered package. `WorkflowConfig`
-has separate `tasks` and `task_suites` fields; the latter configures standalone Mise suites, while
-`[[stacks.rust.suites]]` declares named Nextest suites. These fields do not disable the default
-per-package tasks. See the versioned [Rust stack schema](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-contract/src/config/stacks.rs#L60-L123),
-[`RustCrateConfig`](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-contract/src/config/stacks.rs#L125-L130),
-[package task derivation](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-rust/src/tasks.rs#L158-L206),
-[`WorkflowConfig.tasks` and `task_suites`](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-contract/src/config/workflow.rs#L87-L92),
-and [named Rust suite fields](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-contract/src/config/rust_suites.rs#L197-L223).
-No generator input was changed. Do not hand-edit generated workflows or make empty-test jobs
-pass. CI remains fail-closed but blocked until the generator can require a nonempty common
-functional suite while retaining production, examples, public-consumer, formatting, and static
-checks.
+Correction (2026-10-28): the absence of a per-package Velnor configuration switch does not mean
+that per-package test obligations cannot be retired. At the exact Velnor Actions v0.1.48 tag
+(commit `9191feacdb538a8df8299b73eaf2ece63f2645d7`), Cargo target metadata carries the `test`
+and `doctest` flags into task derivation ([metadata conversion](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-rust/src/metadata.rs#L262-L268)). The package Nextest group is marked as having no test
+targets when none of its `lib`, `bin`, `test`, `example`, or `bench` targets has `test = true`;
+selection then omits that group and records a `valid_no_test_targets` warning. This means every
+test-bearing target in a package must be disabled before that package's Nextest obligation
+disappears. The separate Clippy, Nextest Build, doctest, documentation, and configured formatting groups
+are still derived; doctest eligibility follows `doctest` metadata. The generated Nextest Build task
+runs `nextest list --list-type binaries-only` to prepare test binaries without executing tests.
+That task does not establish normal production or example executable build coverage
+([Build task argv](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-rust/src/argv.rs#L246-L261)). This
+target-metadata route does not require `--no-tests warn` or `allow_empty_test_suite`. No Cargo
+target flags have been changed. The [target metadata and task derivation](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-rust/src/tasks.rs#L167-L215),
+[test-target filtering](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-rust/src/tasks.rs#L334-L381),
+[obligation selection](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-orchestrator/src/select.rs#L53-L70),
+and [versioned Rust stack schema](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-contract/src/config/stacks.rs#L60-L123)
+support this path. `RustCrateConfig` still exposes only `build_jobs`; `WorkflowConfig.task_suites`
+is for standalone Mise tasks, not Rust test suites.
+
+A separate required named Rust suite can keep the replacement gate fail-closed. The prepared
+external candidate at
+`/private/tmp/termrock-velnor-suite-candidate-20261028.CKh8T3/candidate-config.toml`
+adds `[[stacks.rust.suites]]` with id `functional`, profile `default`, package
+`termrock-functional-suite`, manifest `tools/functional-suite/Cargo.toml`, one inline partition,
+15-minute timeout, pull-request and push triggers, `required = true`, and
+`allow_failure = false`. It omits `filter` and `filter_input`; the v0.1.48 renderer therefore
+uses `--no-tests fail` ([runner rendering](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-workflow-renderer/src/rust_suites_steps.rs#L142-L195)).
+The suite [configuration](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-contract/src/config/rust_suites.rs#L198-L254)
+and [manifest/package validation](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-orchestrator/src/rust_suites_emit.rs#L65-L94)
+are pinned at the same tag. The referenced suite manifest is absent from this PR #38 checkout,
+so the candidate has not been applied and generation was not run. The integrated suite package must set `autotests = false` and declare its
+functional test target explicitly. This named-suite command does not include the per-package
+`--locked` / `--offline` flags; a same-lock solution remains unverified.
+
+The generated manifest still contains 44 per-package Nextest obligations, each using
+`--no-tests fail`. Do not hand-edit generated workflows or make empty-test jobs pass. Do not
+change target flags until the common suite manifest and explicit test target are integrated and
+the generated plan proves that only the intended package test obligations are omitted. Production
+builds, examples, doctests, public-consumer checks, formatting, Clippy, and documentation remain
+required. CI remains fail-closed; no common-suite run or four-application runtime journey is
+claimed.
 
 The last observed CI run, `40558493194`, used `6717d835` before the external-consumer formatting
 correction: 50 jobs, 2 passed, 46 failed, and 2 skipped. Its external-consumer formatting failure
