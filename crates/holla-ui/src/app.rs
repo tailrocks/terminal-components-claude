@@ -4069,11 +4069,10 @@ impl App {
             }
         }
         let snapshot_copy = Chord::key(KeyCode::Char('y'));
-        self.keymap
-            .remove_before_typing(snapshot::RESOURCES_BODY, snapshot_copy);
+        self.keymap.remove(KeyPhase::Capture, snapshot_copy);
         if self.snapshot_copy_binding_allowed(cx) {
             self.keymap
-                .add_before_typing(snapshot::RESOURCES_BODY, snapshot_copy, SNAPSHOT_COPY);
+                .add(KeyPhase::Capture, snapshot_copy, SNAPSHOT_COPY);
         }
         let files_bindings = [
             (Chord::key(KeyCode::Right), FILES_OPEN),
