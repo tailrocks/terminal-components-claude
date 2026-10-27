@@ -15,7 +15,22 @@ const EDITOR_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.editor_pa
 const RESULTS_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.results_panel");
 const EDITOR: Id = Id::root("showcase_ui::pages::query_workbench.editor");
 const RESULTS: Id = Id::root("showcase_ui::pages::query_workbench.results");
+
+/// Native owner ID for the query tabs.
+pub const TABS_ID: Id = TABS;
+/// Native owner ID for the query toolbar.
+pub const TOOLBAR_ID: Id = TOOLBAR;
+/// Native owner ID for the SQL editor.
+pub const EDITOR_ID: Id = EDITOR;
+/// Native owner ID for the results table.
+pub const RESULTS_ID: Id = RESULTS;
+/// Native owner ID for the editor panel.
+pub const EDITOR_PANEL_ID: Id = EDITOR_PANEL;
+/// Native owner ID for the results panel.
+pub const RESULTS_PANEL_ID: Id = RESULTS_PANEL;
+
 const RUN_CAPTURE_OWNERS: [Id; 4] = [TABS, TOOLBAR, EDITOR, RESULTS];
+/// Application action key for running the active query.
 pub const RUN_QUERY: ActionKey = ActionKey::application("showcase.query_workbench.run");
 
 const RUN_TICKS: u8 = 6;
@@ -43,7 +58,7 @@ const TOOLBAR_HINTS: &[(&str, &str)] = &[
 const EDITOR_HINTS: &[(&str, &str)] = &[
     ("Ctrl+R", "Run query"),
     ("Ctrl+F", "Find"),
-    ("Esc", "Commit editing"),
+    ("Esc", "Done editing"),
 ];
 const RESULTS_HINTS: &[(&str, &str)] = &[("↑ ↓", "Move rows"), ("← →", "Move columns")];
 
@@ -70,17 +85,37 @@ const RESULT_COLUMNS: [TableColumn<'static>; 3] = [
 const SAMPLE_CUSTOMERS: [&str; 3] = ["Northwind", "Globex", "Initech"];
 const ORDER_STATUSES: [&str; 4] = ["pending", "pending", "paid", "shipped"];
 
+/// Result state owned by one query document.
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum ResultView {
+pub enum QueryResultState {
+    /// The document has no completed query result.
+    NotRun,
+    /// A run completed with empty SQL.
     Empty,
-    Rows { table: String, count: usize },
+    /// A run returned rows from a sample table.
+    Rows {
+        /// Sample table name.
+        table: String,
+        /// Number of returned rows.
+        count: usize,
+    },
+    /// An explain run completed.
     Plan,
-    Error { message: String, detail: String },
+    /// A run failed against the sample schema.
+    Error {
+        /// Short failure message.
+        message: String,
+        /// Failure detail for the results table.
+        detail: String,
+    },
 }
 
-impl ResultView {
+type ResultView = QueryResultState;
+
+impl QueryResultState {
     fn summary(&self) -> String {
         match self {
+            Self::NotRun => "Not run yet · choose Run.".to_owned(),
             Self::Empty => "Enter SQL, then choose Run.".to_owned(),
             Self::Rows { table, count } => {
                 format!("{count} rows from {table} · simulated in 15 ms")
@@ -92,7 +127,7 @@ impl ResultView {
 
     fn model(&self) -> ResultModel {
         let rows = match self {
-            Self::Empty => Vec::new(),
+            Self::NotRun | Self::Empty => Vec::new(),
             Self::Rows { table, count } => (0..*count)
                 .map(|index| {
                     if table.eq_ignore_ascii_case("orders") {
@@ -153,25 +188,25 @@ impl ResultView {
 #[derive(Clone, Debug)]
 struct Document {
     key: ItemKey,
-    title: &'static str,
+    title: String,
     editor: CodeEditorState,
     result: ResultView,
 }
 
 impl Document {
-    fn new(key: ItemKey, title: &'static str, sql: &str) -> Self {
+    fn new(key: ItemKey, title: String, sql: &str) -> Self {
         Self {
             key,
             title,
             editor: CodeEditorState::new(sql),
-            result: ResultView::Empty,
+            result: ResultView::NotRun,
         }
     }
 }
 
 impl std::fmt::Display for Document {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str(self.title)
+        formatter.write_str(&self.title)
     }
 }
 
@@ -213,9 +248,11 @@ impl GridModel for ResultModel {
     }
 }
 
+/// Query workbench page with native tabs, editor, toolbar, and results controls.
 #[derive(Debug)]
 pub struct QueryWorkbenchPage {
     documents: Vec<Document>,
+    next_document_id: u64,
     tabs: TabsState,
     toolbar: ToolbarState,
     results: TableState,
@@ -224,26 +261,97 @@ pub struct QueryWorkbenchPage {
 }
 
 impl QueryWorkbenchPage {
+    /// Creates a workbench with the sample orders and customers documents.
     pub fn new() -> Self {
+        let orders_key = ItemKey::text("query.workbench.orders");
+        let customers_key = ItemKey::text("query.workbench.customers");
+        let mut orders = Document::new(orders_key, "orders.sql".to_owned(), FIRST_QUERY);
+        orders.result = ResultView::Rows {
+            table: "orders".to_owned(),
+            count: 25,
+        };
+        let mut tabs = TabsState::default();
+        tabs.set_active(0, orders_key);
+
         Self {
             documents: vec![
-                Document::new(
-                    ItemKey::text("query.workbench.orders"),
-                    "orders.sql",
-                    FIRST_QUERY,
-                ),
-                Document::new(
-                    ItemKey::text("query.workbench.customers"),
-                    "customers.sql",
-                    SECOND_QUERY,
-                ),
+                orders,
+                Document::new(customers_key, "customers.sql".to_owned(), SECOND_QUERY),
             ],
-            tabs: TabsState::default(),
+            next_document_id: 2,
+            tabs,
             toolbar: ToolbarState::default(),
             results: TableState::default(),
             run: None,
             status: "Ready · sample data only".to_owned(),
         }
+    }
+
+    /// Returns the number of open query documents.
+    pub fn document_count(&self) -> usize {
+        self.documents.len()
+    }
+
+    /// Returns stable document keys in tab order.
+    pub fn document_keys(&self) -> impl Iterator<Item = ItemKey> + '_ {
+        self.documents.iter().map(|document| document.key)
+    }
+
+    /// Returns the active native SQL editor state, when a document is open.
+    pub fn active_editor(&self) -> Option<&CodeEditorState> {
+        self.active_index()
+            .and_then(|index| self.documents.get(index))
+            .map(|document| &document.editor)
+    }
+
+    /// Returns the active document's SQL, when a document is open.
+    pub fn active_sql(&self) -> Option<&str> {
+        self.active_editor().map(|editor| editor.text())
+    }
+
+    /// Returns the active document's result state, when a document is open.
+    pub fn active_result_state(&self) -> Option<&QueryResultState> {
+        self.active_index()
+            .and_then(|index| self.documents.get(index))
+            .map(|document| &document.result)
+    }
+
+    /// Returns the native tabs state.
+    pub fn tabs_state(&self) -> &TabsState {
+        &self.tabs
+    }
+
+    /// Returns the native toolbar state.
+    pub fn toolbar_state(&self) -> &ToolbarState {
+        &self.toolbar
+    }
+
+    /// Returns the native results table state.
+    pub fn results_state(&self) -> &TableState {
+        &self.results
+    }
+
+    /// Returns whether a query is counting down to completion.
+    pub fn is_running(&self) -> bool {
+        self.run.is_some()
+    }
+
+    fn new_document(&mut self) -> bool {
+        let document_id = self.next_document_id;
+        let Some(next_document_id) = document_id.checked_add(1) else {
+            self.status = "Cannot open another query tab.".to_owned();
+            return false;
+        };
+        self.next_document_id = next_document_id;
+
+        let key = ItemKey::num(document_id);
+        let title = format!("Query {document_id}");
+        self.documents.push(Document::new(key, title, ""));
+        self.tabs.set_active(self.documents.len() - 1, key);
+        if self.run.is_none() {
+            self.status = "Ready · sample data only".to_owned();
+        }
+        true
     }
 
     fn active_index(&self) -> Option<usize> {
@@ -339,9 +447,6 @@ impl QueryWorkbenchPage {
     }
 
     fn close_document(&mut self, key: ItemKey) -> bool {
-        if self.documents.len() <= 1 {
-            return false;
-        }
         let Some(index) = self
             .documents
             .iter()
@@ -351,11 +456,17 @@ impl QueryWorkbenchPage {
         };
         let was_active = self.tabs.active() == Some(key);
         self.documents.remove(index);
-        if self.run.as_ref().is_some_and(|run| run.owner == key) {
+        let cancelled_run = self.run.as_ref().is_some_and(|run| run.owner == key);
+        if cancelled_run {
             self.run = None;
             self.status = "Run cancelled · its query tab was closed.".to_owned();
         }
-        if was_active
+        if self.documents.is_empty() {
+            self.tabs = TabsState::default();
+            if !cancelled_run {
+                self.status = "No query is open.".to_owned();
+            }
+        } else if was_active
             && let Some(next) = self
                 .documents
                 .get(index.min(self.documents.len().saturating_sub(1)))
@@ -422,6 +533,11 @@ impl Default for QueryWorkbenchPage {
     }
 }
 
+/// Builds a fresh query workbench page behind the native page interface.
+pub fn page() -> Box<dyn Page> {
+    Box::new(QueryWorkbenchPage::new())
+}
+
 impl Page for QueryWorkbenchPage {
     fn title(&self) -> &'static str {
         "Query workbench"
@@ -441,6 +557,7 @@ impl Page for QueryWorkbenchPage {
 
         let tabs = Tabs::new(TABS)
             .key(|document: &Document| document.key)
+            .allow_new(true)
             .closable(true);
         let tab_update = tabs.update(cx, &mut self.tabs, &self.documents);
         let tab_action = tab_update.action_ref().copied();
@@ -450,10 +567,12 @@ impl Page for QueryWorkbenchPage {
                 response |= Response::changed();
                 status = Some(PageStatus(self.status.clone()));
             }
-            Some(TabsAction::Activated(_))
-            | Some(TabsAction::New)
-            | Some(TabsAction::Close(_))
-            | None => {}
+            Some(TabsAction::New) => {
+                let _ = self.new_document();
+                response |= Response::changed();
+                status = Some(PageStatus(self.status.clone()));
+            }
+            Some(TabsAction::Activated(_)) | Some(TabsAction::Close(_)) | None => {}
         }
 
         if let Some(index) = self.active_index()
@@ -526,6 +645,7 @@ impl Page for QueryWorkbenchPage {
 
                 Tabs::new(TABS)
                     .key(|document: &Document| document.key)
+                    .allow_new(true)
                     .closable(true)
                     .draw(ui, tabs_area, &self.tabs, &self.documents);
 
@@ -544,7 +664,7 @@ impl Page for QueryWorkbenchPage {
                 {
                     Panel::new(EDITOR_PANEL)
                         .kind(PanelKind::Framed)
-                        .title(document.title)
+                        .title(&document.title)
                         .draw(ui, editor_area, |ui, inner| {
                             let _ = CodeEditor::new(EDITOR, inner.height)
                                 .fill_height(true)
@@ -671,7 +791,10 @@ fn from_table(sql: &str) -> Option<&str> {
 
 #[cfg(test)]
 mod tests {
-    use super::{QueryWorkbenchPage, ResultView, TOOLBAR, evaluate_query};
+    use super::{
+        EDITOR_ID, QueryResultState, QueryWorkbenchPage, RESULTS_ID, ResultView, TABS_ID, TOOLBAR,
+        TOOLBAR_ID, evaluate_query,
+    };
     use crate::pages::Page;
     use ratatui::layout::Rect;
     use termrock::{
@@ -736,6 +859,98 @@ mod tests {
     }
 
     #[test]
+    fn public_factory_and_accessors_expose_native_document_state() {
+        let factory_page = super::page();
+        assert_eq!(factory_page.title(), "Query workbench");
+
+        let mut page = QueryWorkbenchPage::new();
+        let keys: Vec<_> = page.document_keys().collect();
+        assert_eq!(page.document_count(), 2);
+        assert_eq!(keys.len(), 2);
+        assert_eq!(page.tabs_state().active(), Some(keys[0]));
+        assert_eq!(page.active_sql(), Some(super::FIRST_QUERY));
+        assert_eq!(
+            page.active_editor().map(|editor| editor.text()),
+            Some(super::FIRST_QUERY)
+        );
+        assert!(matches!(
+            page.active_result_state(),
+            Some(QueryResultState::Rows { table, count })
+                if table == "orders" && *count == 25
+        ));
+        assert_eq!(
+            page.documents[0].result.summary(),
+            "25 rows from orders · simulated in 15 ms"
+        );
+        assert!(!page.is_running());
+        let _ = page.toolbar_state();
+        let _ = page.results_state();
+        assert_eq!(
+            TABS_ID,
+            Id::root("showcase_ui::pages::query_workbench.tabs")
+        );
+        assert_eq!(TOOLBAR_ID, TOOLBAR);
+        assert_eq!(
+            EDITOR_ID,
+            Id::root("showcase_ui::pages::query_workbench.editor")
+        );
+        assert_eq!(
+            RESULTS_ID,
+            Id::root("showcase_ui::pages::query_workbench.results")
+        );
+
+        page.tabs.set_active(1, keys[1]);
+        assert_eq!(page.active_sql(), Some(super::SECOND_QUERY));
+        assert!(matches!(
+            page.active_result_state(),
+            Some(QueryResultState::NotRun)
+        ));
+    }
+
+    #[test]
+    fn new_documents_keep_unique_keys_after_close_and_empty_state_recovery() {
+        let mut page = QueryWorkbenchPage::new();
+        let orders_key = ItemKey::text("query.workbench.orders");
+        let customers_key = ItemKey::text("query.workbench.customers");
+        let first_new_key = ItemKey::num(2);
+        let second_new_key = ItemKey::num(3);
+
+        assert!(page.new_document());
+        assert_eq!(page.document_count(), 3);
+        assert_eq!(page.tabs_state().active(), Some(first_new_key));
+        assert_eq!(page.documents[2].title, "Query 2");
+        assert_eq!(page.active_sql(), Some(""));
+        assert!(matches!(
+            page.active_result_state(),
+            Some(QueryResultState::NotRun)
+        ));
+        assert_ne!(first_new_key, ItemKey::index(2));
+
+        assert!(page.close_document(first_new_key));
+        assert!(page.new_document());
+        assert_eq!(page.tabs_state().active(), Some(second_new_key));
+        assert!(!page.document_keys().any(|key| key == first_new_key));
+        assert!(page.document_keys().any(|key| key == second_new_key));
+
+        assert!(page.close_document(orders_key));
+        assert!(page.close_document(customers_key));
+        assert!(page.close_document(second_new_key));
+        assert_eq!(page.document_count(), 0);
+        assert_eq!(page.tabs_state().active(), None);
+        assert_eq!(page.active_editor(), None);
+        assert_eq!(page.active_result_state(), None);
+        assert_eq!(page.status, "No query is open.");
+
+        assert!(page.new_document());
+        assert_eq!(page.document_keys().collect::<Vec<_>>(), [ItemKey::num(4)]);
+        assert_eq!(page.active_sql(), Some(""));
+        assert!(matches!(
+            page.active_result_state(),
+            Some(QueryResultState::NotRun)
+        ));
+    }
+
+    #[test]
     fn query_workbench_simulates_empty_rows_plan_and_error_results() {
         assert_eq!(evaluate_query("  \n", false), ResultView::Empty);
         assert_eq!(
@@ -760,6 +975,16 @@ mod tests {
         assert_eq!(default_rows.model().row_count(), 40);
         let limited_rows = evaluate_query("SELECT id FROM orders LIMIT 25", false);
         assert_eq!(limited_rows.model().row_count(), 25);
+        let page = QueryWorkbenchPage::new();
+        assert_eq!(
+            page.documents[0].result,
+            ResultView::Rows {
+                table: "orders".to_owned(),
+                count: 25,
+            }
+        );
+        assert_eq!(page.documents[0].result.model().row_count(), 25);
+        assert_eq!(page.documents[1].result, ResultView::NotRun);
         assert!(matches!(
             evaluate_query("SELECT * FROM missing_table", false),
             ResultView::Error { .. }
@@ -805,7 +1030,13 @@ mod tests {
         activate_overflow_action(&mut stop, "Stop");
         stop.ticks(8);
         assert!(stop.app().page.run.is_none());
-        assert_eq!(stop.app().page.documents[0].result, ResultView::Empty);
+        assert_eq!(
+            stop.app().page.documents[0].result,
+            ResultView::Rows {
+                table: "orders".to_owned(),
+                count: 25,
+            }
+        );
         assert_eq!(stop.app().page.status, "Run stopped.");
 
         let mut clear = overflow_harness();

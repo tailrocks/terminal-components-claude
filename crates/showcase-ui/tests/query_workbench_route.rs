@@ -1,5 +1,5 @@
 use showcase_ui::{App, NAV_ENTRIES, PageId};
-use termrock::{Id, ItemKey, KeyCode, KeyModifiers, Part, PartRef, Theme};
+use termrock::{Id, ItemKey, KeyCode, KeyModifiers, Part, PartRef, Rect, Theme};
 use termrock_test_support::Harness;
 
 const TABS: Id = Id::root("showcase_ui::pages::query_workbench.tabs");
@@ -11,6 +11,153 @@ const HELP: Id = Id::root("showcase_ui::app::help");
 const HEADER_HELP: Id = Id::root("showcase_ui::app::header.help");
 const HEADER_INSPECT: Id = Id::root("showcase_ui::app::header.inspect");
 const INSPECTOR: Id = Id::root("showcase_ui::app::inspector");
+
+const RESULTS_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.results_panel");
+const ORDERS_SAMPLE_SUMMARY: &str = "25 rows from orders · simulated in 15 ms";
+
+fn rect_is_inside(area: Rect, parent: Rect) -> bool {
+    area.x >= parent.x
+        && area.y >= parent.y
+        && area.x.saturating_add(area.width) <= parent.x.saturating_add(parent.width)
+        && area.y.saturating_add(area.height) <= parent.y.saturating_add(parent.height)
+}
+
+fn query_workbench_summary_area(h: &Harness<App>) -> Rect {
+    let table = h
+        .area_of(RESULTS)
+        .expect("the published Results table owns its native area");
+    let panel = h
+        .area_of(RESULTS_PANEL)
+        .expect("the published Results panel owns its native area");
+    assert!(table.y > panel.y, "Results table is below the panel title");
+    let summary = Rect::new(table.x, table.y - 1, table.width, 1);
+    assert!(
+        rect_is_inside(summary, panel),
+        "summary area {summary:?} is inside Results panel {panel:?}"
+    );
+    assert_eq!(
+        summary.x, table.x,
+        "summary and table share the published x"
+    );
+    assert_eq!(
+        summary.width, table.width,
+        "summary and table share the published width"
+    );
+    assert_eq!(summary.y.saturating_add(1), table.y);
+    summary
+}
+
+fn prefix_with_cell_width(text: &str, max_width: u16) -> String {
+    let mut prefix = String::new();
+    let mut used_width = 0u16;
+    for (_, grapheme) in termrock::text::measure::graphemes(text) {
+        let grapheme_width = termrock::text::measure::grapheme_width(grapheme);
+        if used_width.saturating_add(grapheme_width) > max_width {
+            break;
+        }
+        prefix.push_str(grapheme);
+        used_width = used_width.saturating_add(grapheme_width);
+    }
+    prefix
+}
+
+fn buffer_line_prefix(h: &Harness<App>, area: Rect, max_width: u16) -> String {
+    let mut visible = String::new();
+    let mut used_width = 0u16;
+    for x in area.x..area.x.saturating_add(area.width) {
+        if used_width >= max_width {
+            break;
+        }
+        let symbol = h.cell(x, area.y).symbol();
+        if symbol.is_empty() {
+            continue;
+        }
+        let symbol_width = termrock::text::width(symbol);
+        if symbol_width == 0 {
+            continue;
+        }
+        assert!(
+            used_width.saturating_add(symbol_width) <= max_width,
+            "Buffer cell at ({x}, {}) exceeds the measured prefix width {max_width}",
+            area.y
+        );
+        visible.push_str(symbol);
+        used_width = used_width.saturating_add(symbol_width);
+    }
+    assert_eq!(
+        used_width, max_width,
+        "Buffer rectangle {area:?} contains the requested {max_width}-cell prefix"
+    );
+    visible
+}
+
+fn find_ascii_in_rect(h: &Harness<App>, area: Rect, needle: &str) -> Option<(u16, u16)> {
+    let needle_width = u16::try_from(needle.len()).ok()?;
+    if needle.is_empty() || area.width < needle_width || area.height == 0 {
+        return None;
+    }
+    let last_x = area.x.saturating_add(area.width - needle_width);
+    for y in area.y..area.y.saturating_add(area.height) {
+        for x in area.x..=last_x {
+            let matches = needle.chars().enumerate().all(|(offset, expected)| {
+                h.cell(
+                    x.saturating_add(u16::try_from(offset).expect("needle fits u16")),
+                    y,
+                )
+                .symbol()
+                    == expected.to_string()
+            });
+            if matches {
+                return Some((x, y));
+            }
+        }
+    }
+    None
+}
+
+fn assert_orders_summary_visible(h: &Harness<App>, context: &str) {
+    let summary = query_workbench_summary_area(h);
+    let expected_width = termrock::text::width(ORDERS_SAMPLE_SUMMARY).min(summary.width);
+    let expected = prefix_with_cell_width(ORDERS_SAMPLE_SUMMARY, expected_width);
+    let actual = buffer_line_prefix(h, summary, expected_width);
+    assert_eq!(
+        actual, expected,
+        "{context}: Results summary shows the exact visible prefix of {ORDERS_SAMPLE_SUMMARY:?} in {summary:?}"
+    );
+
+    let table = h
+        .area_of(RESULTS)
+        .expect("Results table area remains published");
+    assert!(
+        table.height > 1,
+        "Results table publishes its header and data rows"
+    );
+    let data = Rect::new(
+        table.x,
+        table.y.saturating_add(1),
+        table.width,
+        table.height.saturating_sub(1),
+    );
+    assert!(
+        rect_is_inside(data, table),
+        "table data area {data:?} is inside {table:?}"
+    );
+    let first_order_row = find_ascii_in_rect(h, data, "10480");
+    assert!(
+        first_order_row.is_some(),
+        "{context}: complete first-row ID 10480 is visible inside table data area {data:?}"
+    );
+}
+
+fn assert_orders_summary_fully_visible(h: &Harness<App>, context: &str) {
+    let summary = query_workbench_summary_area(h);
+    let full_width = termrock::text::width(ORDERS_SAMPLE_SUMMARY);
+    assert!(
+        summary.width >= full_width,
+        "{context}: {summary:?} is wide enough for the full {full_width}-cell summary"
+    );
+    assert_orders_summary_visible(h, context);
+}
 
 fn orders_key() -> ItemKey {
     ItemKey::text("query.workbench.orders")
@@ -47,155 +194,17 @@ fn click_close(h: &mut Harness<App>, key: ItemKey) {
     let _ = h.click_part(TABS, part);
 }
 
+fn click_new_tab(h: &mut Harness<App>) {
+    let part = PartRef::of(Part::NEW);
+    assert!(
+        h.area_of_part(TABS, part).is_some(),
+        "native New action is published"
+    );
+    let _ = h.click_part(TABS, part);
+}
+
 fn press_ctrl_r(h: &mut Harness<App>) {
     let _ = h.key_mod(KeyCode::Char('r'), KeyModifiers::CONTROL);
-}
-
-#[test]
-fn query_workbench_is_a_live_route_with_native_tabs_editor_toolbar_and_results() {
-    let h = harness();
-    let entry = NAV_ENTRIES
-        .iter()
-        .find(|entry| entry.label == "Query workbench")
-        .expect("Query workbench remains in the navigation catalogue");
-
-    assert_eq!(entry.id, PageId::QueryWorkbench);
-    assert_eq!(PageId::ALL.len(), 26);
-    assert_eq!(PageId::QueryWorkbench.index(), 25);
-    assert_eq!(
-        PageId::from_name("Query workbench"),
-        Some(PageId::QueryWorkbench)
-    );
-    assert_eq!(h.app().page(), PageId::QueryWorkbench);
-    assert!(h.area_of(TABS).is_some());
-    assert!(h.area_of(TOOLBAR).is_some());
-    assert!(h.area_of(EDITOR).is_some());
-    assert!(h.text().contains("orders.sql"));
-    assert!(h.text().contains("Pending orders, newest first"));
-    assert!(h.text().contains("Results"));
-    assert!(h.text().contains("sample data · no database connection"));
-    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
-}
-
-#[test]
-fn query_workbench_ctrl_r_completes_on_exactly_six_native_ticks_and_explain_shows_a_plan() {
-    let mut h = harness();
-    assert!(h.tab_to(EDITOR));
-    press_ctrl_r(&mut h);
-    assert!(
-        h.text()
-            .contains("Running query · 6 native ticks remaining")
-    );
-
-    for _ in 0..5 {
-        let _ = h.tick();
-    }
-    assert!(
-        h.text().contains("1 native ticks remaining"),
-        "{}",
-        h.text()
-    );
-    assert!(!h.text().contains("25 rows from orders"));
-    let _ = h.tick();
-    assert!(h.text().contains("25 rows from orders"), "{}", h.text());
-
-    let _ = h.click_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(1)));
-    assert!(
-        h.text()
-            .contains("Explaining query · 6 native ticks remaining")
-    );
-    for _ in 0..5 {
-        let _ = h.tick();
-    }
-    assert!(
-        h.text()
-            .contains("Explaining query · 1 native ticks remaining")
-    );
-    let _ = h.tick();
-    assert!(h.text().contains("Query plan · simulated in 2 ms"));
-    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
-}
-
-#[test]
-fn ctrl_r_does_not_reset_a_run_that_is_already_counting_down() {
-    let mut h = harness();
-    assert!(h.tab_to(EDITOR));
-    press_ctrl_r(&mut h);
-    let _ = h.tick();
-    let _ = h.tick();
-    assert!(
-        h.text()
-            .contains("Running query · 4 native ticks remaining")
-    );
-
-    press_ctrl_r(&mut h);
-    assert!(
-        h.text()
-            .contains("Running query · 4 native ticks remaining")
-    );
-    for _ in 0..4 {
-        let _ = h.tick();
-    }
-    assert!(h.text().contains("25 rows from orders"), "{}", h.text());
-    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
-}
-
-#[test]
-fn ctrl_r_after_switching_tabs_keeps_the_existing_run_owner() {
-    let mut h = harness();
-    assert!(h.tab_to(EDITOR));
-    press_ctrl_r(&mut h);
-    let _ = h.tick();
-    let _ = h.tick();
-    click_tab(&mut h, customers_key());
-    assert!(h.tab_to(TABS));
-    press_ctrl_r(&mut h);
-    assert!(
-        h.text()
-            .contains("Running query · 4 native ticks remaining")
-    );
-    for _ in 0..4 {
-        let _ = h.tick();
-    }
-
-    click_tab(&mut h, orders_key());
-    assert!(h.text().contains("25 rows from orders"), "{}", h.text());
-    click_tab(&mut h, customers_key());
-    assert!(!h.text().contains("25 rows from customers"));
-    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
-}
-
-#[test]
-fn query_workbench_stop_and_clear_cancel_pending_work_and_clear_saved_sql() {
-    let mut h = harness();
-    assert!(h.tab_to(EDITOR));
-    press_ctrl_r(&mut h);
-    let _ = h.click_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(2)));
-    assert!(h.text().contains("Run stopped."));
-    for _ in 0..7 {
-        let _ = h.tick();
-    }
-    assert!(h.text().contains("Run stopped."));
-    assert!(!h.text().contains("25 rows from orders"));
-
-    let _ = h.click_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(3)));
-    assert!(h.text().contains("Editor and saved query cleared."));
-    assert!(!h.text().contains("SELECT id, customer"));
-    click_tab(&mut h, customers_key());
-    assert!(h.text().contains("Recent customer accounts"));
-    click_tab(&mut h, orders_key());
-    assert!(!h.text().contains("SELECT id, customer"));
-    assert!(h.tab_to(EDITOR));
-    press_ctrl_r(&mut h);
-    assert!(
-        h.text()
-            .contains("Nothing to run · the SQL editor is empty.")
-    );
-    assert!(
-        !h.text()
-            .contains("Running query · 6 native ticks remaining")
-    );
-    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
 fn assert_enter_activates_clear(h: &mut Harness<App>, context: &str) {
@@ -249,36 +258,270 @@ fn assert_enter_activates_clear(h: &mut Harness<App>, context: &str) {
 }
 
 #[test]
-fn toolbar_enter_hint_matches_the_selected_command_after_plan_stop_and_clear() {
-    let mut planned = harness();
-    let _ = planned.click_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(1)));
+fn query_workbench_is_a_live_route_with_native_tabs_editor_toolbar_and_results() {
+    let h = harness();
+    let entry = NAV_ENTRIES
+        .iter()
+        .find(|entry| entry.label == "Query workbench")
+        .expect("Query workbench remains in the navigation catalogue");
+
+    assert_eq!(entry.id, PageId::QueryWorkbench);
+    assert_eq!(PageId::ALL.len(), 26);
+    assert_eq!(PageId::QueryWorkbench.index(), 25);
+    assert_eq!(
+        PageId::from_name("Query workbench"),
+        Some(PageId::QueryWorkbench)
+    );
+    assert_eq!(h.app().page(), PageId::QueryWorkbench);
+    assert!(h.area_of(TABS).is_some());
+    assert!(h.area_of(TOOLBAR).is_some());
+    assert!(h.area_of(EDITOR).is_some());
+    assert!(h.text().contains("orders.sql"));
+    assert!(h.text().contains("Pending orders, newest first"));
+    assert_orders_summary_visible(&h, "initial Orders sample");
+    assert!(!h.text().contains("Running query ·"));
+    assert!(h.text().contains("Results"));
+    assert!(h.text().contains("sample data · no database connection"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn query_workbench_ctrl_r_completes_on_exactly_six_native_ticks_and_explain_shows_a_plan() {
+    let mut h = harness();
+    assert!(h.tab_to(EDITOR));
+    press_ctrl_r(&mut h);
     assert!(
-        planned
-            .text()
+        h.text()
+            .contains("Running query · 6 native ticks remaining")
+    );
+
+    for _ in 0..5 {
+        let _ = h.tick();
+    }
+    assert!(
+        h.text().contains("1 native ticks remaining"),
+        "{}",
+        h.text()
+    );
+    assert_orders_summary_visible(&h, "Run after five native ticks");
+    let _ = h.tick();
+    assert!(h.text().contains("25 rows from orders"), "{}", h.text());
+    assert!(!h.text().contains("Running query ·"));
+
+    let _ = h.click_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(1)));
+    assert!(
+        h.text()
             .contains("Explaining query · 6 native ticks remaining")
     );
-    for _ in 0..6 {
-        let _ = planned.tick();
+    for _ in 0..5 {
+        let _ = h.tick();
     }
-    assert!(planned.text().contains("Query plan · simulated in 2 ms"));
-    assert_eq!(planned.focus(), Some(TOOLBAR));
-    let _ = planned.key(KeyCode::End);
-    assert_enter_activates_clear(&mut planned, "after a plan");
+    assert!(
+        h.text()
+            .contains("Explaining query · 1 native ticks remaining")
+    );
+    let _ = h.tick();
+    assert!(h.text().contains("Query plan · simulated in 2 ms"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
 
-    let mut stopped = harness();
-    assert!(stopped.tab_to(EDITOR));
-    press_ctrl_r(&mut stopped);
-    let _ = stopped.click_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(2)));
-    assert!(stopped.text().contains("Run stopped."));
-    assert_eq!(stopped.focus(), Some(TOOLBAR));
-    let _ = stopped.key(KeyCode::End);
-    assert_enter_activates_clear(&mut stopped, "after stopping a run");
+#[test]
+fn ctrl_r_does_not_reset_a_run_that_is_already_counting_down() {
+    let mut h = harness();
+    assert!(h.tab_to(EDITOR));
+    press_ctrl_r(&mut h);
+    let _ = h.tick();
+    let _ = h.tick();
+    assert!(
+        h.text()
+            .contains("Running query · 4 native ticks remaining")
+    );
 
-    let mut cleared = harness();
-    assert!(cleared.tab_to(TOOLBAR));
-    let _ = cleared.key(KeyCode::End);
-    assert_enter_activates_clear(&mut cleared, "before the first clear");
-    assert_enter_activates_clear(&mut cleared, "after the query is cleared");
+    press_ctrl_r(&mut h);
+    assert!(
+        h.text()
+            .contains("Running query · 4 native ticks remaining")
+    );
+    for _ in 0..4 {
+        let _ = h.tick();
+    }
+    assert!(h.text().contains("25 rows from orders"), "{}", h.text());
+    assert!(!h.text().contains("Running query ·"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn ctrl_r_after_switching_tabs_keeps_the_existing_run_owner() {
+    let mut h = harness();
+    assert!(h.tab_to(EDITOR));
+    press_ctrl_r(&mut h);
+    let _ = h.tick();
+    let _ = h.tick();
+    click_tab(&mut h, customers_key());
+    assert!(h.tab_to(TABS));
+    press_ctrl_r(&mut h);
+    assert!(
+        h.text()
+            .contains("Running query · 4 native ticks remaining")
+    );
+    for _ in 0..4 {
+        let _ = h.tick();
+    }
+
+    click_tab(&mut h, orders_key());
+    assert!(h.text().contains("25 rows from orders"), "{}", h.text());
+    click_tab(&mut h, customers_key());
+    assert!(!h.text().contains("25 rows from customers"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn query_workbench_stop_and_clear_cancel_pending_work_and_clear_saved_sql() {
+    let mut h = harness();
+    assert!(h.tab_to(EDITOR));
+    press_ctrl_r(&mut h);
+    let _ = h.click_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(2)));
+    assert!(h.text().contains("Run stopped."));
+    for _ in 0..7 {
+        let _ = h.tick();
+    }
+    assert!(h.text().contains("Run stopped."));
+    assert_orders_summary_visible(&h, "stopped Run preserves the sample");
+
+    let _ = h.click_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(3)));
+    assert!(h.text().contains("Editor and saved query cleared."));
+    assert!(!h.text().contains("SELECT id, customer"));
+    click_tab(&mut h, customers_key());
+    assert!(h.text().contains("Recent customer accounts"));
+    click_tab(&mut h, orders_key());
+    assert!(!h.text().contains("SELECT id, customer"));
+    assert!(h.tab_to(EDITOR));
+    press_ctrl_r(&mut h);
+    assert!(
+        h.text()
+            .contains("Nothing to run · the SQL editor is empty.")
+    );
+    assert!(
+        !h.text()
+            .contains("Running query · 6 native ticks remaining")
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn toolbar_enter_hint_matches_the_selected_command_after_plan_stop_and_clear() {
+    let mut h = harness();
+    let _ = h.click_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(1)));
+    assert!(
+        h.text()
+            .contains("Explaining query · 6 native ticks remaining")
+    );
+    for _ in 0..5 {
+        let _ = h.tick();
+    }
+    assert!(
+        h.text()
+            .contains("Explaining query · 1 native ticks remaining")
+    );
+    assert_orders_summary_visible(&h, "initial sample while Explain counts down");
+    let _ = h.tick();
+    assert!(h.text().contains("Query plan · simulated in 2 ms"));
+    assert!(!h.text().contains("Explaining query ·"));
+    assert_eq!(h.focus(), Some(TOOLBAR));
+    assert!(h.text().contains("Enter Activate"));
+    assert!(!h.text().contains("Enter Run"));
+
+    let _ = h.click_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(0)));
+    assert!(
+        h.text()
+            .contains("Running query · 6 native ticks remaining")
+    );
+    assert!(h.text().contains("Query plan · simulated in 2 ms"));
+    let _ = h.tick();
+    assert!(
+        h.text()
+            .contains("Running query · 5 native ticks remaining")
+    );
+    let _ = h.click_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(2)));
+    assert!(h.text().contains("Run stopped."));
+    assert!(!h.text().contains("Running query ·"));
+    assert!(h.text().contains("Query plan · simulated in 2 ms"));
+    for _ in 0..7 {
+        let _ = h.tick();
+    }
+    assert!(h.text().contains("Run stopped."));
+    assert!(!h.text().contains("Running query ·"));
+    assert!(
+        h.text().contains("Query plan · simulated in 2 ms"),
+        "stopping Run preserves the completed plan\n{}",
+        h.text()
+    );
+    assert_eq!(h.focus(), Some(TOOLBAR));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+
+    let _ = h.key(KeyCode::End);
+    assert_enter_activates_clear(&mut h, "after a plan and stopped run");
+    assert!(
+        h.text().contains("Query plan · simulated in 2 ms"),
+        "native Clear preserves the last completed plan\n{}",
+        h.text()
+    );
+    assert!(h.text().contains("Enter Activate"));
+}
+
+#[test]
+fn new_query_tabs_keep_unique_keys_and_isolated_unrun_state() {
+    let mut h = harness();
+    let first_new_key = ItemKey::num(2);
+    let second_new_key = ItemKey::num(3);
+
+    click_new_tab(&mut h);
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, first_new_key))
+            .is_some()
+    );
+    assert!(h.text().contains("Query 2"));
+    assert!(h.text().contains("Not run yet · choose Run."));
+    assert!(!h.text().contains("Recent customer accounts"));
+    assert!(!h.text().contains("Pending orders, newest first"));
+
+    click_tab(&mut h, orders_key());
+    assert!(h.text().contains("Pending orders, newest first"));
+    assert_orders_summary_visible(&h, "Orders sample after switching from a new tab");
+    click_tab(&mut h, first_new_key);
+    assert!(h.text().contains("Not run yet · choose Run."));
+    assert!(!h.text().contains("Pending orders, newest first"));
+
+    click_close(&mut h, first_new_key);
+    click_new_tab(&mut h);
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, second_new_key))
+            .is_some()
+    );
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, first_new_key))
+            .is_none()
+    );
+    assert!(h.text().contains("Query 3"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn closing_the_last_query_keeps_tabs_focusable_and_new_recovers() {
+    let mut h = harness();
+    click_close(&mut h, orders_key());
+    click_close(&mut h, customers_key());
+
+    assert!(h.text().contains("No query is open."));
+    assert!(h.area_of(EDITOR).is_none());
+    assert!(h.area_of_part(TABS, PartRef::of(Part::NEW)).is_some());
+    assert!(h.tab_to(TABS), "empty native Tabs remains focusable");
+
+    click_new_tab(&mut h);
+    assert!(h.text().contains("Query 2"));
+    assert!(h.text().contains("Not run yet · choose Run."));
+    assert!(h.area_of(EDITOR).is_some());
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
 #[test]
@@ -286,6 +529,7 @@ fn query_tabs_keep_their_editors_and_runs_follow_the_stable_owner_key() {
     let mut h = harness();
     click_tab(&mut h, customers_key());
     assert!(h.text().contains("Recent customer accounts"));
+    assert!(h.text().contains("Not run yet · choose Run."));
     click_tab(&mut h, orders_key());
     assert!(h.text().contains("Pending orders, newest first"));
 
@@ -346,12 +590,20 @@ fn ctrl_r_capture_requires_a_focused_page_control_and_the_base_page_layer() {
     let mut results = harness();
     assert!(results.tab_to(EDITOR));
     press_ctrl_r(&mut results);
-    results.ticks(6);
     assert!(
-        results.text().contains("25 rows from orders"),
-        "the six-tick run completes before testing pointer focus\n{}",
-        results.text()
+        results
+            .text()
+            .contains("Running query · 6 native ticks remaining")
     );
+    results.ticks(5);
+    assert!(
+        results
+            .text()
+            .contains("Running query · 1 native ticks remaining")
+    );
+    let _ = results.tick();
+    assert!(results.text().contains("25 rows from orders"));
+    assert!(!results.text().contains("Running query ·"));
     assert!(
         results.ring().reachable().any(|entry| entry.id == RESULTS),
         "Results is reachable in the native focus ring"
@@ -453,6 +705,7 @@ fn query_workbench_native_editor_exit_keys_preserve_visible_query_line_coordinat
         160,
         40,
     );
+    assert_orders_summary_fully_visible(&h, "route-local 160x40 full-render proof");
     let editor_text = h
         .area_of_part(EDITOR, PartRef::of(Part::TEXT))
         .expect("the query editor publishes its text part");

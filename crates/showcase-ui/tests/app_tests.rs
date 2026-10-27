@@ -14,6 +14,10 @@ const EDITOR: Id = Id::root("showcase_ui::pages::editor::editor.code");
 const QUERY_WORKBENCH_TABS: Id = Id::root("showcase_ui::pages::query_workbench.tabs");
 const QUERY_WORKBENCH_TOOLBAR: Id = Id::root("showcase_ui::pages::query_workbench.toolbar");
 const QUERY_WORKBENCH_EDITOR: Id = Id::root("showcase_ui::pages::query_workbench.editor");
+const QUERY_WORKBENCH_RESULTS: Id = Id::root("showcase_ui::pages::query_workbench.results");
+const QUERY_WORKBENCH_RESULTS_PANEL: Id =
+    Id::root("showcase_ui::pages::query_workbench.results_panel");
+const QUERY_WORKBENCH_ORDERS_SAMPLE_SUMMARY: &str = "25 rows from orders · simulated in 15 ms";
 const EDITOR_FIND: Id = Id::root("showcase_ui::pages::editor::editor.find");
 const EDITOR_RUN: Id = Id::root("showcase_ui::pages::editor::editor.run");
 const EDITOR_STATE_LIST: Id = Id::root("showcase_ui::pages::editor::editor.state.list");
@@ -55,6 +59,141 @@ fn move_mouse(h: &mut Harness<App>, x: u16, y: u16) {
 
 fn click(h: &mut Harness<App>, x: u16, y: u16) {
     let _ = h.click(x, y);
+}
+
+fn rect_is_inside(area: Rect, parent: Rect) -> bool {
+    area.x >= parent.x
+        && area.y >= parent.y
+        && area.x.saturating_add(area.width) <= parent.x.saturating_add(parent.width)
+        && area.y.saturating_add(area.height) <= parent.y.saturating_add(parent.height)
+}
+
+fn query_workbench_summary_area(h: &Harness<App>) -> Rect {
+    let table = h
+        .area_of(QUERY_WORKBENCH_RESULTS)
+        .expect("the published Results table owns its native area");
+    let panel = h
+        .area_of(QUERY_WORKBENCH_RESULTS_PANEL)
+        .expect("the published Results panel owns its native area");
+    assert!(table.y > panel.y, "Results table is below the panel title");
+    let summary = Rect::new(table.x, table.y - 1, table.width, 1);
+    assert!(
+        rect_is_inside(summary, panel),
+        "summary area {summary:?} is inside Results panel {panel:?}"
+    );
+    assert_eq!(
+        summary.x, table.x,
+        "summary and table share the published x"
+    );
+    assert_eq!(
+        summary.width, table.width,
+        "summary and table share the published width"
+    );
+    assert_eq!(summary.y.saturating_add(1), table.y);
+    summary
+}
+
+fn prefix_with_cell_width(text: &str, max_width: u16) -> String {
+    let mut prefix = String::new();
+    let mut used_width = 0u16;
+    for (_, grapheme) in termrock::text::measure::graphemes(text) {
+        let grapheme_width = termrock::text::measure::grapheme_width(grapheme);
+        if used_width.saturating_add(grapheme_width) > max_width {
+            break;
+        }
+        prefix.push_str(grapheme);
+        used_width = used_width.saturating_add(grapheme_width);
+    }
+    prefix
+}
+
+fn buffer_line_prefix(h: &Harness<App>, area: Rect, max_width: u16) -> String {
+    let mut visible = String::new();
+    let mut used_width = 0u16;
+    for x in area.x..area.x.saturating_add(area.width) {
+        if used_width >= max_width {
+            break;
+        }
+        let symbol = h.cell(x, area.y).symbol();
+        if symbol.is_empty() {
+            continue;
+        }
+        let symbol_width = termrock::text::width(symbol);
+        if symbol_width == 0 {
+            continue;
+        }
+        assert!(
+            used_width.saturating_add(symbol_width) <= max_width,
+            "Buffer cell at ({x}, {}) exceeds the measured prefix width {max_width}",
+            area.y
+        );
+        visible.push_str(symbol);
+        used_width = used_width.saturating_add(symbol_width);
+    }
+    assert_eq!(
+        used_width, max_width,
+        "Buffer rectangle {area:?} contains the requested {max_width}-cell prefix"
+    );
+    visible
+}
+
+fn find_ascii_in_rect(h: &Harness<App>, area: Rect, needle: &str) -> Option<(u16, u16)> {
+    let needle_width = u16::try_from(needle.len()).ok()?;
+    if needle.is_empty() || area.width < needle_width || area.height == 0 {
+        return None;
+    }
+    let last_x = area.x.saturating_add(area.width - needle_width);
+    for y in area.y..area.y.saturating_add(area.height) {
+        for x in area.x..=last_x {
+            let matches = needle.chars().enumerate().all(|(offset, expected)| {
+                h.cell(
+                    x.saturating_add(u16::try_from(offset).expect("needle fits u16")),
+                    y,
+                )
+                .symbol()
+                    == expected.to_string()
+            });
+            if matches {
+                return Some((x, y));
+            }
+        }
+    }
+    None
+}
+
+fn assert_query_workbench_orders_summary_visible(h: &Harness<App>, context: &str) {
+    let summary = query_workbench_summary_area(h);
+    let expected_width =
+        termrock::text::width(QUERY_WORKBENCH_ORDERS_SAMPLE_SUMMARY).min(summary.width);
+    let expected = prefix_with_cell_width(QUERY_WORKBENCH_ORDERS_SAMPLE_SUMMARY, expected_width);
+    let actual = buffer_line_prefix(h, summary, expected_width);
+    assert_eq!(
+        actual, expected,
+        "{context}: Results summary shows the exact visible prefix of {QUERY_WORKBENCH_ORDERS_SAMPLE_SUMMARY:?} in {summary:?}"
+    );
+
+    let table = h
+        .area_of(QUERY_WORKBENCH_RESULTS)
+        .expect("Results table area remains published");
+    assert!(
+        table.height > 1,
+        "Results table publishes its header and data rows"
+    );
+    let data = Rect::new(
+        table.x,
+        table.y.saturating_add(1),
+        table.width,
+        table.height.saturating_sub(1),
+    );
+    assert!(
+        rect_is_inside(data, table),
+        "table data area {data:?} is inside {table:?}"
+    );
+    let first_order_row = find_ascii_in_rect(h, data, "10480");
+    assert!(
+        first_order_row.is_some(),
+        "{context}: complete first-row ID 10480 is visible inside table data area {data:?}"
+    );
 }
 
 // A depth-one catalog label starts at column 5; a same-named group starts at
@@ -394,6 +533,8 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
         }
         PageId::QueryWorkbench => {
             assert!(h.text().contains("Pending orders, newest first"));
+            assert_query_workbench_orders_summary_visible(h, "initial sample before Run");
+            assert!(!h.text().contains("Running query ·"));
             assert!(
                 h.tab_to(QUERY_WORKBENCH_EDITOR),
                 "query editor accepts focus"
@@ -412,9 +553,13 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
                 "{}",
                 h.text()
             );
-            assert!(!h.text().contains("25 rows from orders"));
+            assert_query_workbench_orders_summary_visible(
+                h,
+                "sample while one Run tick is pending",
+            );
             let _ = h.tick();
-            assert!(h.text().contains("25 rows from orders"), "{}", h.text());
+            assert_query_workbench_orders_summary_visible(h, "sample after the sixth Run tick");
+            assert!(!h.text().contains("Running query ·"));
 
             let explain = PartRef::item(Part::ROW, ItemKey::index(1));
             assert!(
