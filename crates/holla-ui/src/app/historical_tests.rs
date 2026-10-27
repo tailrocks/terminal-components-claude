@@ -3264,14 +3264,15 @@ fn activities_multi_hidden_port_retains_historical_border_frame() {
 mod root_100_nonoverflow_port_owner {
     use super::*;
     use crate::domain::action::{Action, ActionKind, Availability, Risk};
-    use crate::sim::world::World;
+    use crate::sim::world::{Domain, World};
     use ratatui::{buffer::Buffer, layout::Rect, style::Modifier};
-    use termrock::{Family, FgStep, StateFlags, Variant};
+    use termrock::{Family, FgStep, Role, StateFlags, Variant};
     use termrock_test_support::Scene;
 
     const FRAME_MS: u64 = 4_000;
     const EXPECTED_KEY: &str = "monorepo-root 100 30 junie truecolor";
     const PORT_ID: &str = "system.port";
+    const HARD_CASES_NOTE_TEXT: &str = "▲ docker: discovery failed";
     const ACTIVITIES_FAINT_POSITIONS: [(u16, u16); 23] = [
         (34, 1),
         (35, 1),
@@ -3425,6 +3426,15 @@ mod root_100_nonoverflow_port_owner {
         }
     }
 
+    fn hard_cases_note_row(viewport: OwnerViewport) -> Rect {
+        match viewport {
+            OwnerViewport::W80H24 => Rect::new(3, 20, 76, 1),
+            OwnerViewport::W100H30 => Rect::new(3, 26, 96, 1),
+            OwnerViewport::W120H40 => Rect::new(3, 36, 116, 1),
+            OwnerViewport::W160H50 => Rect::new(3, 46, 156, 1),
+        }
+    }
+
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum OwnerSourceTheme {
         Junie,
@@ -3464,6 +3474,13 @@ mod root_100_nonoverflow_port_owner {
         };
         const DOCKER_W80_JUNIE_TRUECOLOR: Self = Self {
             scenario: Scenario::DockerCleanup,
+            viewport: OwnerViewport::W80H24,
+            source_theme: OwnerSourceTheme::Junie,
+            color: ColorLevel::TrueColor,
+        };
+
+        const HARD_CASES_NEGATIVE_CONTROLS: Self = Self {
+            scenario: Scenario::HardCases,
             viewport: OwnerViewport::W80H24,
             source_theme: OwnerSourceTheme::Junie,
             color: ColorLevel::TrueColor,
@@ -3757,6 +3774,36 @@ mod root_100_nonoverflow_port_owner {
         cases
     }
 
+    fn hard_cases_discovery_note_cases() -> Vec<OwnerCase> {
+        let cases = concept_owner_cases(&[Scenario::HardCases]);
+        assert_eq!(cases.len(), 32, "exact HardCases discovery-note owner size");
+        assert!(
+            cases.iter().all(|case| {
+                case.scenario == Scenario::HardCases
+                    && CONCEPT_VIEWPORTS.contains(&case.viewport)
+                    && CONCEPT_SOURCE_THEMES.contains(&case.source_theme)
+                    && CONCEPT_COLOR_LEVELS.contains(&case.color)
+            }),
+            "HardCases owner is the exact four-size, two-theme, four-tier product"
+        );
+        let mut keys: Vec<_> = cases.iter().map(|case| case.key()).collect();
+        keys.sort();
+        keys.dedup();
+        assert_eq!(keys.len(), 32, "HardCases owner keys are unique");
+
+        let mut prior_cases = all_owner_cases(Scenario::MonorepoRoot);
+        prior_cases.extend(all_owner_cases(Scenario::MonorepoChild));
+        prior_cases.extend(all_owner_cases(Scenario::ActivitiesMulti));
+        prior_cases.extend(excluded_activities_faint_cases());
+        prior_cases.extend(concept_owner_cases(&NOTE_FREE_CONCEPT_SCENARIOS));
+        prior_cases.extend(docker_cleanup_owner_cases());
+        assert!(
+            cases.iter().all(|case| !prior_cases.contains(case)),
+            "HardCases32 is disjoint from all earlier held-owner cohorts"
+        );
+        cases
+    }
+
     fn docker_cleanup_owner_cases() -> Vec<OwnerCase> {
         let cases = concept_owner_cases(&[Scenario::DockerCleanup]);
         assert_eq!(cases.len(), 32, "exact DockerCleanup owner size");
@@ -3855,10 +3902,15 @@ mod root_100_nonoverflow_port_owner {
             "64 plus Docker review equals the original96 membership"
         );
 
-        let hard_cases = excluded_hard_cases_discovery_note_cases();
+        let hard_cases_review = excluded_hard_cases_discovery_note_cases();
         assert!(
-            cases.iter().all(|case| !hard_cases.contains(case)),
+            cases.iter().all(|case| !hard_cases_review.contains(case)),
             "HardCases32 remain preserved for separate native discovery-note review"
+        );
+        let hard_cases_owner = hard_cases_discovery_note_cases();
+        assert!(
+            cases.iter().all(|case| !hard_cases_owner.contains(case)),
+            "note-free concept keys remain disjoint from the separate HardCases32 owner"
         );
         cases
     }
@@ -3880,6 +3932,10 @@ mod root_100_nonoverflow_port_owner {
     struct FrameContract<'a> {
         frame_area: Rect,
         rows_area: Rect,
+        scenario: Scenario,
+        viewport: OwnerViewport,
+        discovery_note_row: Option<Rect>,
+        discovery_note_paint: Option<&'a Buffer>,
         tokens_a: &'a [VisualToken],
         tokens_b: &'a [VisualToken],
         per_arm_action_oracle: bool,
@@ -4119,6 +4175,127 @@ mod root_100_nonoverflow_port_owner {
         runtime_theme: &'a Theme,
     }
 
+    fn hard_cases_discovery_state_errors(world: &World) -> Vec<String> {
+        let expected = [
+            (Domain::Mise, 600, false, true, false),
+            (Domain::Git, 900, false, true, false),
+            (Domain::Ssh, 1_200, false, true, false),
+            (Domain::Github, 1_600, false, true, false),
+            (Domain::Docker, 2_400, true, false, true),
+            (Domain::Pg, 2_800, false, true, false),
+            (Domain::Disk, 3_200, false, true, false),
+        ];
+        let mut errors = Vec::new();
+        if world.scenario != Scenario::HardCases {
+            errors.push("discovery-note state belongs to a non-HardCases scenario".to_owned());
+        }
+        if world.discovery.len() != expected.len() {
+            errors.push(
+                "HardCases discovery schedule does not contain exactly seven domains".to_owned(),
+            );
+        }
+        for (index, (domain, at_ms, fails, done, failed)) in expected.iter().copied().enumerate() {
+            let Some(actual) = world.discovery.get(index) else {
+                continue;
+            };
+            if (
+                actual.domain,
+                actual.at_ms,
+                actual.fails,
+                actual.done,
+                actual.failed,
+            ) != (domain, at_ms, fails, done, failed)
+            {
+                errors.push(format!(
+                    "HardCases discovery entry {index} differs from the settled schedule"
+                ));
+            }
+        }
+        let failed_domains: Vec<_> = world
+            .discovery
+            .iter()
+            .filter(|item| item.failed)
+            .map(|item| item.domain)
+            .collect();
+        if failed_domains.as_slice() != [Domain::Docker] {
+            errors.push("only Docker is allowed to fail discovery".to_owned());
+        }
+        if world.discovering() {
+            errors.push("HardCases has pending discovery".to_owned());
+        }
+        if !world.settled() {
+            errors.push("HardCases discovery schedule is not settled".to_owned());
+        }
+        errors
+    }
+
+    fn assert_hard_cases_discovery_state_corruptions_rejected() {
+        let at_frame = || {
+            let mut world = crate::sim::fixtures::world_for(Scenario::HardCases);
+            world.seek(FRAME_MS);
+            world
+        };
+
+        let mut extra_failed = at_frame();
+        let pg = extra_failed
+            .discovery
+            .iter_mut()
+            .find(|item| item.domain == Domain::Pg)
+            .expect("settled HardCases schedule contains Pg");
+        pg.done = false;
+        pg.failed = true;
+        assert!(
+            !hard_cases_discovery_state_errors(&extra_failed).is_empty(),
+            "an extra failed discovery domain is rejected"
+        );
+
+        let mut wrong_failed_domain = at_frame();
+        let docker = wrong_failed_domain
+            .discovery
+            .iter_mut()
+            .find(|item| item.domain == Domain::Docker)
+            .expect("settled HardCases schedule contains Docker");
+        docker.done = true;
+        docker.failed = false;
+        let pg = wrong_failed_domain
+            .discovery
+            .iter_mut()
+            .find(|item| item.domain == Domain::Pg)
+            .expect("settled HardCases schedule contains Pg");
+        pg.done = false;
+        pg.failed = true;
+        assert!(
+            !hard_cases_discovery_state_errors(&wrong_failed_domain).is_empty(),
+            "a different failed discovery domain is rejected"
+        );
+
+        let mut duplicate_docker = at_frame();
+        let docker = duplicate_docker
+            .discovery
+            .iter()
+            .find(|item| item.domain == Domain::Docker)
+            .expect("settled HardCases schedule contains Docker")
+            .clone();
+        duplicate_docker.discovery.push(docker);
+        assert!(
+            !hard_cases_discovery_state_errors(&duplicate_docker).is_empty(),
+            "a duplicate Docker schedule entry is rejected"
+        );
+
+        let mut pending = at_frame();
+        let git = pending
+            .discovery
+            .iter_mut()
+            .find(|item| item.domain == Domain::Git)
+            .expect("settled HardCases schedule contains Git");
+        git.done = false;
+        git.failed = false;
+        assert!(
+            !hard_cases_discovery_state_errors(&pending).is_empty(),
+            "pending discovery is rejected globally"
+        );
+    }
+
     fn assert_arm_controls(
         harness: &Harness<App>,
         expected_memory: &crate::domain::ranking::Memory,
@@ -4228,12 +4405,12 @@ mod root_100_nonoverflow_port_owner {
         }
         if matches!(
             case.scenario,
-            Scenario::MonorepoRoot | Scenario::DockerCleanup
+            Scenario::MonorepoRoot | Scenario::HardCases | Scenario::DockerCleanup
         ) {
             assert_ne!(
                 selected.as_ref().map(|action| action.id.as_str()),
                 Some(PORT_ID),
-                "{label} Root and DockerCleanup Port is not selected"
+                "{label} Root, HardCases, and DockerCleanup Port is not selected"
             );
         }
         assert_eq!(
@@ -4262,19 +4439,27 @@ mod root_100_nonoverflow_port_owner {
             tokens.len() <= usize::from(case.viewport.rows_area().height),
             "{label} model does not overflow"
         );
-        assert!(
-            !harness
-                .app()
-                .world
-                .discovery
-                .iter()
-                .any(|item| !item.done && !item.failed),
-            "{label} no pending discovery note over trailing blank"
-        );
-        assert!(
-            !harness.app().world.discovery.iter().any(|item| item.failed),
-            "{label} no failed discovery note over trailing blank"
-        );
+        if case.scenario == Scenario::HardCases {
+            let errors = hard_cases_discovery_state_errors(&harness.app().world);
+            assert!(
+                errors.is_empty(),
+                "{label} exact settled HardCases discovery note state: {errors:?}"
+            );
+        } else {
+            assert!(
+                !harness
+                    .app()
+                    .world
+                    .discovery
+                    .iter()
+                    .any(|item| !item.done && !item.failed),
+                "{label} no pending discovery note over trailing blank"
+            );
+            assert!(
+                !harness.app().world.discovery.iter().any(|item| item.failed),
+                "{label} no failed discovery note over trailing blank"
+            );
+        }
 
         let positions = positioned(tokens, case.viewport.rows_area());
         for (_, action_id) in rows {
@@ -4365,6 +4550,40 @@ mod root_100_nonoverflow_port_owner {
                 )
                 .style;
             ui.fill(row, style);
+        });
+        scene.buffer().clone()
+    }
+
+    fn paint_discovery_note_scratch(
+        rows_area: Rect,
+        note_row: Rect,
+        theme: Theme,
+        case: OwnerCase,
+    ) -> Buffer {
+        let (width, height) = case.viewport.size();
+        let mut scene = Scene::new(
+            "list-container-with-discovery-note-scratch",
+            theme,
+            case.color,
+            width,
+            height,
+        );
+        scene.draw(|ui, _| {
+            let style = ui
+                .style(
+                    Family::LIST,
+                    Variant::DEFAULT,
+                    Part::CONTAINER,
+                    StateFlags::empty(),
+                )
+                .style;
+            ui.fill(rows_area, style);
+            crate::screens::home::paint_discovery_note_for_test(
+                ui,
+                note_row,
+                HARD_CASES_NOTE_TEXT,
+                Role::Warning,
+            );
         });
         scene.buffer().clone()
     }
@@ -4482,14 +4701,65 @@ mod root_100_nonoverflow_port_owner {
         {
             errors.push("B blank suffix has the wrong model-derived extent".to_owned());
         }
-        compare_rect(
-            b,
-            contract.blank_paint,
-            contract.blank_suffix,
-            contract.blank_suffix,
-            "B LIST.CONTAINER blank suffix",
-            &mut errors,
-        );
+        if contract.scenario == Scenario::HardCases {
+            match (contract.discovery_note_row, contract.discovery_note_paint) {
+                (Some(note_row), Some(note_paint)) => {
+                    if note_row != hard_cases_note_row(contract.viewport) {
+                        errors.push(
+                            "HardCases discovery note has the wrong model-derived rectangle"
+                                .to_owned(),
+                        );
+                    }
+                    if note_row.height != 1
+                        || note_row.y.saturating_add(note_row.height) != contract.rows_area.bottom()
+                        || note_row.y < contract.blank_suffix.y
+                    {
+                        errors.push(
+                            "HardCases discovery note is outside the B blank suffix tail"
+                                .to_owned(),
+                        );
+                    }
+                    let blank_prefix = Rect::new(
+                        contract.blank_suffix.x,
+                        contract.blank_suffix.y,
+                        contract.blank_suffix.width,
+                        note_row.y.saturating_sub(contract.blank_suffix.y),
+                    );
+                    compare_rect(
+                        b,
+                        contract.blank_paint,
+                        blank_prefix,
+                        blank_prefix,
+                        "B LIST.CONTAINER blank suffix before discovery note",
+                        &mut errors,
+                    );
+                    compare_rect(
+                        b,
+                        note_paint,
+                        contract.blank_suffix,
+                        contract.blank_suffix,
+                        "B composite discovery-note oracle",
+                        &mut errors,
+                    );
+                }
+                _ => errors.push(
+                    "HardCases is missing its native composite discovery-note oracle".to_owned(),
+                ),
+            }
+        } else {
+            if contract.discovery_note_row.is_some() || contract.discovery_note_paint.is_some() {
+                errors
+                    .push("native discovery-note oracle is supplied outside HardCases".to_owned());
+            }
+            compare_rect(
+                b,
+                contract.blank_paint,
+                contract.blank_suffix,
+                contract.blank_suffix,
+                "B LIST.CONTAINER blank suffix",
+                &mut errors,
+            );
+        }
 
         let common_blank_y = contract.rows_area.y.saturating_add(
             u16::try_from(contract.tokens_a.len().max(contract.tokens_b.len())).unwrap_or(u16::MAX),
@@ -4506,6 +4776,38 @@ mod root_100_nonoverflow_port_owner {
             "common blank suffix",
             &mut errors,
         );
+        if contract.scenario == Scenario::HardCases
+            && let (Some(note_row), Some(note_paint)) =
+                (contract.discovery_note_row, contract.discovery_note_paint)
+        {
+            if note_row.y < contract.common_blank_suffix.y {
+                errors.push(
+                    "HardCases discovery note is outside the A common blank suffix".to_owned(),
+                );
+            }
+            let blank_prefix = Rect::new(
+                contract.common_blank_suffix.x,
+                contract.common_blank_suffix.y,
+                contract.common_blank_suffix.width,
+                note_row.y.saturating_sub(contract.common_blank_suffix.y),
+            );
+            compare_rect(
+                a,
+                contract.blank_paint,
+                blank_prefix,
+                blank_prefix,
+                "A LIST.CONTAINER common blank suffix before discovery note",
+                &mut errors,
+            );
+            compare_rect(
+                a,
+                note_paint,
+                contract.common_blank_suffix,
+                contract.common_blank_suffix,
+                "A composite discovery-note oracle",
+                &mut errors,
+            );
+        }
 
         let survivors_a: Vec<_> = positions_a
             .iter()
@@ -4752,6 +5054,441 @@ mod root_100_nonoverflow_port_owner {
         );
     }
 
+    #[derive(Clone, Copy, Debug)]
+    enum DiscoveryNoteArm {
+        A,
+        B,
+    }
+
+    #[derive(Clone, Copy, Debug)]
+    enum DiscoveryNoteCorruption {
+        Missing,
+        WrongGlyph,
+        WrongDomain,
+        WrongMessage,
+        Foreground,
+        Background,
+        Modifier,
+        Underline,
+        LegacySkip,
+        ShiftLeft,
+        ShiftRight,
+        ShiftUp,
+        DuplicateStale,
+        TrailingSpace,
+        Indentation,
+        FarRightNoteRow,
+        NonNoteSuffix,
+    }
+
+    const DISCOVERY_NOTE_CORRUPTIONS: [DiscoveryNoteCorruption; 17] = [
+        DiscoveryNoteCorruption::Missing,
+        DiscoveryNoteCorruption::WrongGlyph,
+        DiscoveryNoteCorruption::WrongDomain,
+        DiscoveryNoteCorruption::WrongMessage,
+        DiscoveryNoteCorruption::Indentation,
+        DiscoveryNoteCorruption::Foreground,
+        DiscoveryNoteCorruption::Background,
+        DiscoveryNoteCorruption::Modifier,
+        DiscoveryNoteCorruption::Underline,
+        DiscoveryNoteCorruption::LegacySkip,
+        DiscoveryNoteCorruption::ShiftLeft,
+        DiscoveryNoteCorruption::ShiftRight,
+        DiscoveryNoteCorruption::ShiftUp,
+        DiscoveryNoteCorruption::DuplicateStale,
+        DiscoveryNoteCorruption::TrailingSpace,
+        DiscoveryNoteCorruption::FarRightNoteRow,
+        DiscoveryNoteCorruption::NonNoteSuffix,
+    ];
+
+    fn move_discovery_note_for_test(
+        buffer: &mut Buffer,
+        blank_paint: &Buffer,
+        note_row: Rect,
+        dx: i8,
+        dy: i8,
+        duplicate: bool,
+    ) {
+        let text_width = termrock::width(HARD_CASES_NOTE_TEXT);
+        let mut source = Vec::with_capacity(usize::from(text_width));
+        for offset in 0..text_width {
+            source.push(
+                buffer
+                    .cell((note_row.x.saturating_add(offset), note_row.y))
+                    .expect("discovery note source Cell exists")
+                    .clone(),
+            );
+        }
+        if !duplicate {
+            for offset in 0..text_width {
+                let position = (note_row.x.saturating_add(offset), note_row.y);
+                let blank = blank_paint
+                    .cell(position)
+                    .expect("LIST.CONTAINER blank note source Cell exists")
+                    .clone();
+                *buffer
+                    .cell_mut(position)
+                    .expect("discovery note source Cell remains in frame") = blank;
+            }
+        }
+        let destination_y = if dy < 0 {
+            note_row.y.saturating_sub(u16::from(dy.unsigned_abs()))
+        } else {
+            note_row.y.saturating_add(u16::from(dy.unsigned_abs()))
+        };
+        for (offset, cell) in source.into_iter().enumerate() {
+            let offset = u16::try_from(offset).expect("discovery note width fits row");
+            let source_x = note_row.x.saturating_add(offset);
+            let destination_x = if dx < 0 {
+                source_x.saturating_sub(u16::from(dx.unsigned_abs()))
+            } else {
+                source_x.saturating_add(u16::from(dx.unsigned_abs()))
+            };
+            if let Some(destination) = buffer.cell_mut((destination_x, destination_y)) {
+                *destination = cell;
+            }
+        }
+    }
+
+    fn apply_discovery_note_corruption(
+        buffer: &mut Buffer,
+        contract: &FrameContract<'_>,
+        corruption: DiscoveryNoteCorruption,
+    ) {
+        let note_row = contract
+            .discovery_note_row
+            .expect("HardCases corruption contract has a note row");
+        let note_position =
+            first_non_space(buffer, note_row).expect("baseline discovery note has visible text");
+        match corruption {
+            DiscoveryNoteCorruption::Missing => {
+                let width = termrock::width(HARD_CASES_NOTE_TEXT);
+                for offset in 0..width {
+                    let position = (note_row.x.saturating_add(offset), note_row.y);
+                    let blank = contract
+                        .blank_paint
+                        .cell(position)
+                        .expect("LIST.CONTAINER blank note Cell exists")
+                        .clone();
+                    *buffer
+                        .cell_mut(position)
+                        .expect("discovery note Cell remains in frame") = blank;
+                }
+            }
+            DiscoveryNoteCorruption::WrongGlyph => {
+                if let Some(cell) = buffer.cell_mut((note_row.x, note_row.y)) {
+                    cell.set_symbol("X");
+                }
+            }
+            DiscoveryNoteCorruption::WrongDomain => {
+                if let Some(cell) = buffer.cell_mut((note_row.x.saturating_add(5), note_row.y)) {
+                    cell.set_symbol("g");
+                }
+            }
+            DiscoveryNoteCorruption::WrongMessage => {
+                let offset = termrock::width(HARD_CASES_NOTE_TEXT).saturating_sub(1);
+                if let Some(cell) = buffer.cell_mut((note_row.x.saturating_add(offset), note_row.y))
+                {
+                    cell.set_symbol("X");
+                }
+            }
+            DiscoveryNoteCorruption::Indentation => {
+                if let Some(cell) = buffer.cell_mut((contract.rows_area.x, note_row.y)) {
+                    cell.set_symbol("X");
+                }
+            }
+            DiscoveryNoteCorruption::Foreground => flip_foreground(buffer, note_position),
+            DiscoveryNoteCorruption::Background => {
+                if let Some(cell) = buffer.cell_mut(note_position) {
+                    cell.bg = if cell.bg == Color::Reset {
+                        Color::Indexed(4)
+                    } else {
+                        Color::Reset
+                    };
+                }
+            }
+            DiscoveryNoteCorruption::Modifier => {
+                if let Some(cell) = buffer.cell_mut(note_position) {
+                    if cell.modifier.contains(Modifier::BOLD) {
+                        cell.modifier.remove(Modifier::BOLD);
+                    } else {
+                        cell.modifier.insert(Modifier::BOLD);
+                    }
+                }
+            }
+            DiscoveryNoteCorruption::Underline => {
+                if let Some(cell) = buffer.cell_mut(note_position) {
+                    if cell.modifier.contains(Modifier::UNDERLINED) {
+                        cell.modifier.remove(Modifier::UNDERLINED);
+                    } else {
+                        cell.modifier.insert(Modifier::UNDERLINED);
+                    }
+                }
+            }
+            DiscoveryNoteCorruption::LegacySkip => {
+                #[expect(
+                    deprecated,
+                    reason = "Verify full Cell comparison still observes the independent legacy skip field"
+                )]
+                if let Some(cell) = buffer.cell_mut(note_position) {
+                    cell.skip = !cell.skip;
+                }
+            }
+            DiscoveryNoteCorruption::ShiftLeft => {
+                move_discovery_note_for_test(buffer, contract.blank_paint, note_row, -1, 0, false);
+            }
+            DiscoveryNoteCorruption::ShiftRight => {
+                move_discovery_note_for_test(buffer, contract.blank_paint, note_row, 1, 0, false);
+            }
+            DiscoveryNoteCorruption::ShiftUp => {
+                move_discovery_note_for_test(buffer, contract.blank_paint, note_row, 0, -1, false);
+            }
+            DiscoveryNoteCorruption::DuplicateStale => {
+                move_discovery_note_for_test(buffer, contract.blank_paint, note_row, 0, -1, true);
+            }
+            DiscoveryNoteCorruption::TrailingSpace => {
+                let offset = termrock::width(HARD_CASES_NOTE_TEXT);
+                if let Some(cell) = buffer.cell_mut((note_row.x.saturating_add(offset), note_row.y))
+                {
+                    cell.set_symbol("X");
+                }
+            }
+            DiscoveryNoteCorruption::FarRightNoteRow => {
+                let position = (note_row.right().saturating_sub(1), note_row.y);
+                if let Some(cell) = buffer.cell_mut(position) {
+                    cell.set_symbol("X");
+                }
+            }
+            DiscoveryNoteCorruption::NonNoteSuffix => {
+                let suffix_row = contract.common_blank_suffix;
+                assert!(
+                    suffix_row.y < note_row.y,
+                    "HardCases model leaves a non-note common suffix row before the note"
+                );
+                if let Some(cell) = buffer.cell_mut((suffix_row.x, suffix_row.y)) {
+                    cell.set_symbol("X");
+                }
+            }
+        }
+    }
+
+    fn assert_discovery_note_native_oracle_rejects(
+        candidate: &Buffer,
+        contract: &FrameContract<'_>,
+        arm: DiscoveryNoteArm,
+        corruption: DiscoveryNoteCorruption,
+    ) {
+        assert_eq!(
+            contract.scenario,
+            Scenario::HardCases,
+            "native discovery-note negative control is restricted to HardCases"
+        );
+        assert!(
+            contract.discovery_note_row.is_some(),
+            "HardCases negative control requires the modeled note row"
+        );
+        let native_note = contract
+            .discovery_note_paint
+            .expect("HardCases negative control requires the native composite note paint");
+        let (composite_rect, label) = match arm {
+            DiscoveryNoteArm::A => (
+                contract.common_blank_suffix,
+                "A composite discovery-note oracle",
+            ),
+            DiscoveryNoteArm::B => (contract.blank_suffix, "B composite discovery-note oracle"),
+        };
+        let mut errors = Vec::new();
+        compare_rect(
+            candidate,
+            native_note,
+            composite_rect,
+            composite_rect,
+            label,
+            &mut errors,
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains(label) && error.contains("full Cell differs")),
+            "{arm:?} {corruption:?} corruption must independently fail the complete native composite oracle: {errors:?}"
+        );
+    }
+
+    fn assert_hard_cases_note_corruptions_rejected(
+        a: &Buffer,
+        b: &Buffer,
+        contract: &FrameContract<'_>,
+    ) {
+        for arm in [DiscoveryNoteArm::A, DiscoveryNoteArm::B] {
+            for corruption in DISCOVERY_NOTE_CORRUPTIONS {
+                let mut corrupted_a = a.clone();
+                let mut corrupted_b = b.clone();
+                let target = match arm {
+                    DiscoveryNoteArm::A => &mut corrupted_a,
+                    DiscoveryNoteArm::B => &mut corrupted_b,
+                };
+                apply_discovery_note_corruption(target, contract, corruption);
+                let errors = frame_contract_errors(&corrupted_a, &corrupted_b, contract);
+                assert!(
+                    !errors.is_empty(),
+                    "{arm:?} {corruption:?} corruption produces an aggregate frame-contract rejection"
+                );
+                let corrupted = match arm {
+                    DiscoveryNoteArm::A => &corrupted_a,
+                    DiscoveryNoteArm::B => &corrupted_b,
+                };
+                assert_discovery_note_native_oracle_rejects(corrupted, contract, arm, corruption);
+            }
+        }
+
+        let mut missing_a = a.clone();
+        let mut missing_b = b.clone();
+        apply_discovery_note_corruption(&mut missing_a, contract, DiscoveryNoteCorruption::Missing);
+        apply_discovery_note_corruption(&mut missing_b, contract, DiscoveryNoteCorruption::Missing);
+        let missing_errors = frame_contract_errors(&missing_a, &missing_b, contract);
+        assert!(missing_errors.iter().any(|error| {
+            error.contains("A composite discovery-note oracle") && error.contains("Cell differs")
+        }));
+        assert!(missing_errors.iter().any(|error| {
+            error.contains("B composite discovery-note oracle") && error.contains("Cell differs")
+        }));
+        assert!(
+            !missing_errors
+                .iter()
+                .any(|error| error.contains("common blank suffix full Cell differs")),
+            "the same missing note in both arms still fails the independent oracle"
+        );
+        assert_discovery_note_native_oracle_rejects(
+            &missing_a,
+            contract,
+            DiscoveryNoteArm::A,
+            DiscoveryNoteCorruption::Missing,
+        );
+        assert_discovery_note_native_oracle_rejects(
+            &missing_b,
+            contract,
+            DiscoveryNoteArm::B,
+            DiscoveryNoteCorruption::Missing,
+        );
+
+        let mut wrong_text_a = a.clone();
+        let mut wrong_text_b = b.clone();
+        apply_discovery_note_corruption(
+            &mut wrong_text_a,
+            contract,
+            DiscoveryNoteCorruption::WrongMessage,
+        );
+        apply_discovery_note_corruption(
+            &mut wrong_text_b,
+            contract,
+            DiscoveryNoteCorruption::WrongMessage,
+        );
+        let wrong_text_errors = frame_contract_errors(&wrong_text_a, &wrong_text_b, contract);
+        assert!(wrong_text_errors.iter().any(|error| {
+            error.contains("A composite discovery-note oracle") && error.contains("Cell differs")
+        }));
+        assert!(wrong_text_errors.iter().any(|error| {
+            error.contains("B composite discovery-note oracle") && error.contains("Cell differs")
+        }));
+        assert!(
+            !wrong_text_errors
+                .iter()
+                .any(|error| error.contains("common blank suffix full Cell differs")),
+            "the same wrong message in both arms still fails the independent oracle"
+        );
+        assert_discovery_note_native_oracle_rejects(
+            &wrong_text_a,
+            contract,
+            DiscoveryNoteArm::A,
+            DiscoveryNoteCorruption::WrongMessage,
+        );
+        assert_discovery_note_native_oracle_rejects(
+            &wrong_text_b,
+            contract,
+            DiscoveryNoteArm::B,
+            DiscoveryNoteCorruption::WrongMessage,
+        );
+
+        let mut wrong_foreground_a = a.clone();
+        let mut wrong_foreground_b = b.clone();
+        apply_discovery_note_corruption(
+            &mut wrong_foreground_a,
+            contract,
+            DiscoveryNoteCorruption::Foreground,
+        );
+        apply_discovery_note_corruption(
+            &mut wrong_foreground_b,
+            contract,
+            DiscoveryNoteCorruption::Foreground,
+        );
+        let wrong_foreground_errors =
+            frame_contract_errors(&wrong_foreground_a, &wrong_foreground_b, contract);
+        assert!(wrong_foreground_errors.iter().any(|error| {
+            error.contains("A composite discovery-note oracle") && error.contains("Cell differs")
+        }));
+        assert!(wrong_foreground_errors.iter().any(|error| {
+            error.contains("B composite discovery-note oracle") && error.contains("Cell differs")
+        }));
+        assert!(
+            !wrong_foreground_errors
+                .iter()
+                .any(|error| error.contains("common blank suffix full Cell differs")),
+            "the same wrong foreground in both arms fails each independent oracle"
+        );
+        assert_discovery_note_native_oracle_rejects(
+            &wrong_foreground_a,
+            contract,
+            DiscoveryNoteArm::A,
+            DiscoveryNoteCorruption::Foreground,
+        );
+        assert_discovery_note_native_oracle_rejects(
+            &wrong_foreground_b,
+            contract,
+            DiscoveryNoteArm::B,
+            DiscoveryNoteCorruption::Foreground,
+        );
+
+        let mut missing_oracle = *contract;
+        missing_oracle.discovery_note_row = None;
+        missing_oracle.discovery_note_paint = None;
+        assert!(
+            frame_contract_errors(a, b, &missing_oracle)
+                .iter()
+                .any(|error| error.contains("missing its native composite")),
+            "the HardCases contract cannot omit its composite note oracle"
+        );
+
+        let mut unexpected_oracle = *contract;
+        unexpected_oracle.scenario = Scenario::UpgradePlan;
+        assert!(
+            frame_contract_errors(a, b, &unexpected_oracle)
+                .iter()
+                .any(|error| error.contains("supplied outside HardCases")),
+            "the composite note oracle is restricted to HardCases"
+        );
+
+        let mut wrong_expected_row = *contract;
+        wrong_expected_row.discovery_note_row = Some(Rect::new(
+            contract.discovery_note_row.expect("HardCases note row").x,
+            contract
+                .discovery_note_row
+                .expect("HardCases note row")
+                .y
+                .saturating_sub(1),
+            contract
+                .discovery_note_row
+                .expect("HardCases note row")
+                .width,
+            1,
+        ));
+        assert!(
+            frame_contract_errors(a, b, &wrong_expected_row)
+                .iter()
+                .any(|error| error.contains("wrong model-derived rectangle")),
+            "wrong expected note rectangle is rejected"
+        );
+    }
+
     fn replace_action_paint(paints: &mut [(String, Buffer)], action_id: &str, replacement: Buffer) {
         let Some((_, paint)) = paints.iter_mut().find(|(id, _)| id.as_str() == action_id) else {
             panic!("action paint exists for {action_id}");
@@ -4967,6 +5704,18 @@ mod root_100_nonoverflow_port_owner {
             assert_eq!(tokens_a.len(), 19, "Root A complete token model extent");
             assert_eq!(tokens_b.len(), 18, "Root B complete token model extent");
         }
+        if case.scenario == Scenario::HardCases {
+            assert_eq!(
+                tokens_a.len(),
+                13,
+                "HardCases A complete token model extent"
+            );
+            assert_eq!(
+                tokens_b.len(),
+                12,
+                "HardCases B complete token model extent"
+            );
+        }
         let rows_area = case.viewport.rows_area();
         assert!(
             tokens_a.len() <= usize::from(rows_area.height),
@@ -5136,10 +5885,27 @@ mod root_100_nonoverflow_port_owner {
         } else {
             Vec::new()
         };
-        let blank_paint = paint_blank_scratch(blank_suffix, runtime_theme, case);
+        let blank_paint = paint_blank_scratch(blank_suffix, runtime_theme.clone(), case);
+        let discovery_note_row = if case.scenario == Scenario::HardCases {
+            let note_row = hard_cases_note_row(case.viewport);
+            assert_eq!(
+                note_row.y,
+                rows_area.bottom().saturating_sub(1),
+                "HardCases discovery note occupies the exact bottom Home row"
+            );
+            Some(note_row)
+        } else {
+            None
+        };
+        let discovery_note_paint = discovery_note_row
+            .map(|note_row| paint_discovery_note_scratch(rows_area, note_row, runtime_theme, case));
         let contract = FrameContract {
             frame_area: case.viewport.frame_area(),
             rows_area,
+            scenario: case.scenario,
+            viewport: case.viewport,
+            discovery_note_row,
+            discovery_note_paint: discovery_note_paint.as_ref(),
             tokens_a: &tokens_a,
             tokens_b: &tokens_b,
             per_arm_action_oracle: case.scenario == Scenario::DockerCleanup,
@@ -5198,6 +5964,13 @@ mod root_100_nonoverflow_port_owner {
                 }
                 _ => panic!("negative controls are pinned to exact owner keys"),
             }
+        }
+        if case == OwnerCase::HARD_CASES_NEGATIVE_CONTROLS {
+            assert_hard_cases_note_corruptions_rejected(
+                harness_a.buffer(),
+                harness_b.buffer(),
+                &contract,
+            );
         }
 
         match replay {
@@ -5377,6 +6150,10 @@ mod root_100_nonoverflow_port_owner {
                 let replay_contract = FrameContract {
                     frame_area: case.viewport.frame_area(),
                     rows_area,
+                    scenario: case.scenario,
+                    viewport: case.viewport,
+                    discovery_note_row: None,
+                    discovery_note_paint: None,
                     tokens_a: &tokens_a,
                     tokens_b: &tokens_b,
                     per_arm_action_oracle: case.scenario == Scenario::DockerCleanup,
@@ -5469,5 +6246,19 @@ mod root_100_nonoverflow_port_owner {
         for case in note_free_concept_cases() {
             run_owner_case(case, false, OwnerReplay::Ordinary);
         }
+    }
+
+    #[test]
+    fn hard_cases_32_discovery_note_nonoverflow_port_hide_preserves_held_frames() {
+        for case in hard_cases_discovery_note_cases() {
+            run_owner_case(case, false, OwnerReplay::Ordinary);
+        }
+    }
+
+    #[test]
+    fn hard_cases_32_discovery_note_membership_and_state_controls_are_exact() {
+        let cases = hard_cases_discovery_note_cases();
+        assert_eq!(cases.len(), 32, "exact HardCases owner membership");
+        assert_hard_cases_discovery_state_corruptions_rejected();
     }
 }
