@@ -394,6 +394,16 @@ pub fn first_use_action_preview(world: &World, action: &Action, history: bool) -
             _ => "still discovering…".to_owned(),
         },
     );
+    let data_tone = source.map_or(PreviewTone::Muted, |domain| {
+        match world
+            .discovery
+            .iter()
+            .find(|discovery| discovery.domain == domain)
+        {
+            Some(discovery) if discovery.done || discovery.failed => PreviewTone::Muted,
+            _ => PreviewTone::Warning,
+        }
+    });
     let mut lines = Vec::new();
     let mut add = |label, value: String, tone, wraps| {
         lines.push(PreviewLine {
@@ -506,7 +516,7 @@ pub fn first_use_action_preview(world: &World, action: &Action, history: bool) -
         PreviewTone::Meta,
         false,
     );
-    add("Data", data, PreviewTone::Muted, false);
+    add("Data", data, data_tone, false);
     if action.id == "system.resources" {
         add("Gate", "runs directly".into(), PreviewTone::Muted, false);
         let actions = home_actions_with_history(world, history);
@@ -1260,6 +1270,7 @@ pub enum PreviewTone {
 
     Meta,
     Danger,
+    Warning,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -2,6 +2,7 @@ use std::cell::RefCell;
 
 use termrock::RowUi;
 use termrock::layout::{ColumnSpec, Track, solve_columns};
+use termrock::runtime::PartStyle;
 use termrock::theme::CursorStyle;
 use termrock::{
     BlurPolicy, Chord, Color, Cx, Family, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
@@ -529,7 +530,7 @@ impl HomeState {
         let mut navigation = if let Some(items) = discovery.as_deref() {
             parity_nav_list().update(cx, &mut self.rows, items)
         } else {
-            nav_list().update(cx, &mut self.rows, &rows)
+            nav_list_with_row(paint_action, first_use).update(cx, &mut self.rows, &rows)
         };
         let navigation_action = navigation.take_action();
         if first_use {
@@ -758,11 +759,14 @@ impl HomeState {
         if rows.is_empty() {
             paint_empty_home_rows(ui, rows_area, self.query(), self.scope);
         } else {
-            nav_list_with_row(|row, cells| {
-                let row_is_visible = !cells.area().intersection(clip).is_empty();
-                let collector = (collect_peek && row_is_visible).then_some(&peek);
-                paint_action_with_peek(row, cells, collector, false);
-            })
+            nav_list_with_row(
+                |row, cells| {
+                    let row_is_visible = !cells.area().intersection(clip).is_empty();
+                    let collector = (collect_peek && row_is_visible).then_some(&peek);
+                    paint_action_with_peek(row, cells, collector, false);
+                },
+                false,
+            )
             .draw(ui, rows_area, &self.rows, &rows);
         }
         let groups = rows
@@ -830,12 +834,9 @@ fn paint_first_use_action_card(
         paint_empty_home_rows(ui, layout.master, "", None);
         return true;
     }
-    nav_list_with_row(|row, cells| paint_action_with_peek(row, cells, None, true)).draw(
-        ui,
-        layout.master,
-        state,
-        rows,
-    );
+    nav_list_with_row(paint_action, true)
+        .render_row(&paint_first_use_row)
+        .draw(ui, layout.master, state, rows);
     let selected = state
         .current()
         .or_else(|| state.cursor())
@@ -854,7 +855,78 @@ fn paint_discovery_note(ui: &mut Ui<'_>, row: Rect, text: &str, role: Role) {
     ui.paint_str(row, text, style);
 }
 
+const FIRST_USE_SELECTED_ROW_PATCH: StylePatch = StylePatch::new()
+    .set_fg(Role::HighlightFg)
+    .set_bg(Role::HighlightBg)
+    .add(termrock::Modifier::BOLD)
+    .remove(termrock::Modifier::UNDERLINED);
+
+const FIRST_USE_SELECTED_PARTS: &[(Part, StylePatch)] = &[
+    (Part::CONTAINER, FIRST_USE_SELECTED_ROW_PATCH),
+    (Part::ROW, FIRST_USE_SELECTED_ROW_PATCH),
+    (Part::GUTTER, FIRST_USE_SELECTED_ROW_PATCH),
+    (Part::MARKER, FIRST_USE_SELECTED_ROW_PATCH),
+    (Part::ICON, FIRST_USE_SELECTED_ROW_PATCH),
+];
+
+const FIRST_USE_SELECTED_LABEL_PATCH: StylePatch = StylePatch::new()
+    .set_fg(Role::HighlightFg)
+    .set_bg(Role::HighlightBg)
+    .add(termrock::Modifier::BOLD)
+    .remove(termrock::Modifier::UNDERLINED);
+
+const FIRST_USE_SELECTED_META_PATCH: StylePatch = StylePatch::new()
+    .set_fg(Role::HighlightFg)
+    .set_bg(Role::HighlightBg)
+    .remove(termrock::Modifier::BOLD)
+    .remove(termrock::Modifier::UNDERLINED);
+
+const FIRST_USE_CHIPS_PATCH: StylePatch = StylePatch::new()
+    .set_fg(Role::Fg(FgStep::Primary))
+    .remove(termrock::Modifier::BOLD);
+
+fn paint_first_use_row(
+    ui: &mut Ui<'_>,
+    rect: Rect,
+    flags: StateFlags,
+    key: ItemKey,
+    row: &HomeRow,
+) {
+    let selected = flags.contains(StateFlags::SELECTED);
+    let author_style = if selected {
+        PartStyle::new().part(FIRST_USE_SELECTED_PARTS)
+    } else {
+        PartStyle::new()
+    };
+    let mut cells = RowUi::new_with_author_style(
+        ui,
+        ROWS,
+        Family::LIST,
+        Variant::DEFAULT,
+        flags,
+        key,
+        rect,
+        author_style,
+    )
+    .with_cursor_style(CursorStyle::Fill);
+    cells.leading_part(Part::GUTTER, 1, 0, |_| {});
+    cells.leading_part(Part::MARKER, 1, 0, |_| {});
+    cells.leading_part(Part::ICON, 1, 0, |_| {});
+    if !cells.has_space() {
+        return;
+    }
+    cells.begin_content();
+    if row.action.is_some() {
+        paint_action_with_peek(row, &mut cells, None, true);
+    } else if let Some(note) = row.note {
+        cells.label_patched(note, &FIRST_USE_NOTE_PATCH);
+    } else if let Some(chips) = row.chips {
+        cells.label_patched(&chips.join("   "), &FIRST_USE_CHIPS_PATCH);
+    }
+}
+
 const TAG_GREY: StylePatch = StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)));
+const FIRST_USE_NOTE_PATCH: StylePatch = TAG_GREY.remove(termrock::Modifier::BOLD);
 const QUERY_PARTS: &[(Part, StylePatch)] = &[(Part::PLACEHOLDER, TAG_GREY)];
 
 const DOCKER_QUERY_PARTS: &[(Part, StylePatch)] = &[
@@ -891,13 +963,17 @@ fn query_input(rows_own_navigation: bool) -> TextInput<'static> {
 fn section(row: &HomeRow) -> &str {
     row.section
 }
-fn nav_list_with_row<R>(row: R) -> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey, R>
+fn nav_list_with_row<R>(
+    row: R,
+    first_use: bool,
+) -> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey, R>
 where
     R: Fn(&HomeRow, &mut RowUi<'_>),
 {
     NavList::new(ROWS)
         .cursor_style(CursorStyle::Fill)
         .scrollable(true)
+        .content_gap(if first_use { 0 } else { 1 })
         .leave_at_boundary(true)
         .header_indent(SECTION_INDENT)
         .section(&section)
@@ -906,10 +982,6 @@ where
         .disabled_item(&home_row_disabled)
         .key(row_key)
         .row(row)
-}
-fn nav_list()
--> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey, impl Fn(&HomeRow, &mut RowUi<'_>)> {
-    nav_list_with_row(paint_action)
 }
 fn row_key(row: &HomeRow) -> ItemKey {
     if let Some(action) = &row.action {
@@ -1026,6 +1098,7 @@ fn paint_action_with_peek(
     peek: Option<&RefCell<Option<String>>>,
     first_use: bool,
 ) {
+    let selected_first_use = first_use && cells.flags().contains(StateFlags::SELECTED);
     let candidate_eligible = peek.is_some()
         && cells.flags().contains(StateFlags::FOCUSED)
         && !cells.flags().contains(StateFlags::DISABLED)
@@ -1071,15 +1144,21 @@ fn paint_action_with_peek(
         let mut columns = cells.columns_with_gap(&tracks, 2);
         let title_cut = {
             let mut title = columns.cell_part(0, Part::LABEL);
+            if selected_first_use {
+                title.patch(&FIRST_USE_SELECTED_LABEL_PATCH);
+            }
             let cut = termrock::width(&action.title) > title.available_width();
             title.text_matched(&action.title, &[]);
             cut
         };
         if !kind.is_empty() {
-            columns
-                .cell_part(1, Part::META)
-                .tone(Role::Fg(FgStep::Muted))
-                .text_matched(kind, &[]);
+            let mut kind_cell = columns.cell_part(1, Part::META);
+            if selected_first_use {
+                kind_cell.patch(&FIRST_USE_SELECTED_META_PATCH);
+            } else {
+                kind_cell.tone(Role::Fg(FgStep::Muted));
+            }
+            kind_cell.text_matched(kind, &[]);
         }
         if !scope.is_empty() {
             let scope_tone = if action.scope == Scope::Here {
@@ -1087,15 +1166,28 @@ fn paint_action_with_peek(
             } else {
                 Role::Fg(FgStep::Secondary)
             };
-            columns
-                .cell_part(2, Part::META)
-                .tone(scope_tone)
-                .text_matched(&scope, &[]);
+            let mut scope_cell = columns.cell_part(2, Part::META);
+            if selected_first_use {
+                scope_cell.patch(&FIRST_USE_SELECTED_META_PATCH);
+            } else {
+                scope_cell.tone(scope_tone);
+            }
+            scope_cell.text_matched(&scope, &[]);
         }
         let reason_cut = if !action.reason.is_empty() {
             let mut reason = columns.cell_part(3, Part::META);
             let cut = termrock::width(&action.reason) > reason.available_width();
-            reason.patch(&TAG_GREY).text_matched(&action.reason, &[]);
+            if first_use {
+                if selected_first_use {
+                    reason.patch(&FIRST_USE_SELECTED_META_PATCH);
+                } else {
+                    reason.patch(&TAG_GREY);
+                }
+                let shown = truncate_sep(&action.reason, reason.available_width());
+                reason.text_matched(&shown, &[]);
+            } else {
+                reason.patch(&TAG_GREY).text_matched(&action.reason, &[]);
+            }
             cut
         } else {
             false
@@ -2236,7 +2328,7 @@ fn paint_preview_lines(
         if value.is_empty() {
             continue;
         }
-        let fg = mix_color(tone_color(*tone), fade_num(fade), fade_den(fade));
+        let fg = mix_color(tone_color(ui, *tone), fade_num(fade), fade_den(fade));
         ui.paint_str(
             Rect::new(value_x, y, termrock::width(value).max(1), 1),
             value,
@@ -2265,13 +2357,17 @@ fn fade_den(fade: Option<(u32, u32)>) -> u32 {
     fade.map_or(1, |(_, den)| den)
 }
 
-fn tone_color(tone: catalogue::PreviewTone) -> Color {
+fn tone_color(ui: &Ui<'_>, tone: catalogue::PreviewTone) -> Color {
     match tone {
         catalogue::PreviewTone::Text => WHITE,
         catalogue::PreviewTone::Muted => TAG_GREY_FG,
         catalogue::PreviewTone::Secondary => SECONDARY_FG,
         catalogue::PreviewTone::Meta => META_FG,
         catalogue::PreviewTone::Danger => DANGER_FG,
+        catalogue::PreviewTone::Warning => ui
+            .paint_patch(&StylePatch::new().set_fg(Role::Warning))
+            .fg
+            .unwrap_or(Color::Rgb(0xf5, 0x9e, 0x09)),
     }
 }
 

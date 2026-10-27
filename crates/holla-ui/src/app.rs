@@ -40,9 +40,9 @@ use crate::{
 use termrock::{
     ActionKey, AppShell, Binding, Brand, Chord, Color, Constraints, Cx, Dialog, FgStep,
     Focusability, FrameRead, Hint, HintBar, HintKey, HintLayer, Id, Intent, ItemKey, KeyCode,
-    KeyMap, KeyPhase, LayerOpening, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem,
-    MenuState, Part, PartRef, Phase, Rect, Response, Role, StatusBar, StatusItem, StylePatch,
-    Surface, TooSmall, Ui,
+    KeyHint, KeyMap, KeyPhase, LayerOpening, Menu, MenuAction, MenuBar, MenuBarHoverScope,
+    MenuItem, MenuState, Part, PartRef, Phase, Rect, Response, Role, StatusBar, StatusItem,
+    StylePatch, Surface, TooSmall, Ui,
 };
 
 use crate::layout::{self, MIN_HEIGHT, MIN_WIDTH};
@@ -52,6 +52,8 @@ const MENU: Id = Id::root("holla.menu");
 const STRIP: Id = Id::root("holla.activities");
 const FOOTER: Id = Id::root("holla.footer");
 const HELP_LAYER: Id = Id::root("holla.help");
+const HELP_SCROLL_HINT: Id = Id::root("holla.help.footer.scroll");
+const HELP_CLOSE_HINT: Id = Id::root("holla.help.footer.close");
 const PARITY_BROWSER_STATUS: Id = Id::root("holla.status.parity-browser");
 const PARITY_FILES_STATUS: Id = Id::root("holla.status.parity-files");
 const HELP: ActionKey = ActionKey::application("holla.help");
@@ -349,6 +351,24 @@ fn help_footer_hints() -> HintLayer {
             },
         ],
         ..HintLayer::empty()
+    }
+}
+
+fn paint_help_footer_hints(ui: &mut Ui<'_>, footer: Rect) {
+    let hints = help_footer_hints();
+    let mut x = footer.x.saturating_add(1);
+    for (index, hint) in hints.hints.iter().take(2).enumerate() {
+        let id = if index == 0 {
+            HELP_SCROLL_HINT
+        } else {
+            HELP_CLOSE_HINT
+        };
+        let key_hint = KeyHint::from_hint(id, hint).patch_part(HELP_FOOTER_PARTS);
+        let drawn = key_hint.draw(
+            ui,
+            Rect::new(x, footer.y, footer.right().saturating_sub(x), 1),
+        );
+        x = drawn.right().saturating_add(2);
     }
 }
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -675,6 +695,34 @@ fn paint_status_text(
     x.saturating_add(width.min(room))
 }
 
+fn status_ink_role(ui: &Ui<'_>, fg: Role, bold: bool) -> termrock::PaintStyle {
+    let patch = StylePatch::new().set_fg(fg).set_bg(Role::Custom(STATUS_BG));
+    let patch = if bold {
+        patch.add(termrock::Modifier::BOLD)
+    } else {
+        patch.remove(termrock::Modifier::BOLD)
+    };
+    ui.paint_patch(&patch)
+}
+
+fn paint_status_text_role(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: u16,
+    text: &str,
+    fg: Role,
+    bold: bool,
+) -> u16 {
+    let width = termrock::width(text);
+    let room = area.right().saturating_sub(x);
+    if width == 0 || room == 0 {
+        return x;
+    }
+    let style = status_ink_role(ui, fg, bold);
+    ui.paint_str(Rect::new(x, area.y, width.min(room), 1), text, style);
+    x.saturating_add(width.min(room))
+}
+
 fn paint_size_label(ui: &mut Ui<'_>, area: Rect) -> u16 {
     let screen = ui.full();
     let size = format!(
@@ -943,6 +991,7 @@ fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect, world: &World, motion: Mo
         .map(|source| source.domain.label())
         .collect();
     let done = world.discovery.iter().filter(|source| source.done).count();
+    let mut progress_spinner = None;
     let progress = if !pending.is_empty() {
         let frames = ui.design().motion.spinner_frames;
         let frame = if motion == Motion::Full {
@@ -954,6 +1003,7 @@ fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect, world: &World, motion: Mo
             0
         };
         let spinner = frames.get(frame).copied().unwrap_or("⠋");
+        progress_spinner = Some(spinner);
         let shown = pending
             .iter()
             .take(3)
@@ -979,7 +1029,33 @@ fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect, world: &World, motion: Mo
         let progress = termrock::truncate(&progress, available);
         let progress_width = termrock::width(&progress);
         let x = progress_start.saturating_add(available.saturating_sub(progress_width) / 2);
-        let _ = paint_status_text(ui, area, x, &progress, STATUS_GREY, false);
+        if let Some(spinner) = progress_spinner {
+            let rest = progress.strip_prefix(spinner).unwrap_or("");
+            let mut text_x = paint_status_text_role(ui, area, x, spinner, Role::Accent, false);
+            if let Some(body) = rest.strip_prefix(" ") {
+                text_x =
+                    paint_status_text_role(ui, area, text_x, " ", Role::Fg(FgStep::Primary), false);
+                let _ = paint_status_text_role(
+                    ui,
+                    area,
+                    text_x,
+                    body,
+                    Role::Fg(FgStep::Secondary),
+                    false,
+                );
+            } else {
+                let _ = paint_status_text_role(
+                    ui,
+                    area,
+                    text_x,
+                    rest,
+                    Role::Fg(FgStep::Secondary),
+                    false,
+                );
+            }
+        } else {
+            let _ = paint_status_text(ui, area, x, &progress, STATUS_GREY, false);
+        }
     }
 }
 
@@ -3416,7 +3492,9 @@ impl App {
             if collapsed_activities {
                 paint_activities_multi_80x24_band(ui, area);
             } else {
-                paint_here_band(ui, area);
+                let covered =
+                    self.world.scenario == Scenario::FirstUse && ui.is_covered_by_native_layer();
+                paint_here_band(ui, area, covered);
                 if crate::sim::catalogue::activities_multi_tag_frame(&self.world) {
                     paint_activities_multi_chips(ui, area);
                 }
@@ -3595,10 +3673,22 @@ impl App {
 
     fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect, peek: Option<&str>) {
         if matches!(self.overlay, Some(Overlay::Help { .. })) {
-            let layer = help_footer_hints();
-            HintBar::new(FOOTER, &layer)
-                .patch_part(HELP_FOOTER_PARTS)
-                .draw(ui, footer);
+            if self.route == Route::Home && self.world.scenario == Scenario::FirstUse {
+                let home_hints = self.home.hints(
+                    &self.world,
+                    ui.state(home::ROWS).contains(termrock::StateFlags::FOCUSED),
+                );
+                HintBar::new(FOOTER, &home_hints)
+                    .patch_part(PARITY_HINT_PARTS)
+                    .draw(ui, footer);
+                ui.fill_keep_ink(footer, Color::Black);
+                paint_help_footer_hints(ui, footer);
+            } else {
+                let layer = help_footer_hints();
+                HintBar::new(FOOTER, &layer)
+                    .patch_part(HELP_FOOTER_PARTS)
+                    .draw(ui, footer);
+            }
             return;
         }
         if launch_failure_activity_open(&self.world, ui)
@@ -3729,7 +3819,9 @@ impl App {
                 &self.world,
                 ui.state(home::ROWS).contains(termrock::StateFlags::FOCUSED),
             );
-            HintBar::new(FOOTER, &home_hints).draw(ui, footer);
+            HintBar::new(FOOTER, &home_hints)
+                .patch_part(PARITY_HINT_PARTS)
+                .draw(ui, footer);
             return;
         }
         if let Some((confirm, status)) = tag_confirm
@@ -4477,7 +4569,7 @@ fn home_body(body: Rect) -> Rect {
     )
 }
 
-fn paint_here_band(ui: &mut Ui<'_>, area: Rect) {
+fn paint_here_band(ui: &mut Ui<'_>, area: Rect, covered: bool) {
     let width = area.width.saturating_sub(2);
     if width == 0 || area.height < 4 {
         return;
@@ -4497,7 +4589,12 @@ fn paint_here_band(ui: &mut Ui<'_>, area: Rect) {
     let tab = Rect::new(x, y, tab_w, 1);
     ui.fill(tab, plate);
     ui.paint_str(tab, " Here", plate);
-    let accent = ui.paint_patch(&StylePatch::new().set_fg(Role::Accent));
+    let accent_role = if covered {
+        Role::BorderSubtle
+    } else {
+        Role::Accent
+    };
+    let accent = ui.paint_patch(&StylePatch::new().set_fg(accent_role));
 
     let rule =
         ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x3a, 0x3a, 0x3a))));
