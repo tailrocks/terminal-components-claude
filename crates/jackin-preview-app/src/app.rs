@@ -6220,7 +6220,13 @@ impl App {
         match command {
             CMD_QUIT => {
                 if !self.quit_open {
-                    self.open_quit(cx);
+                    if self.route == Route::Manager {
+                        self.world.arbiter.release_entry();
+                        self.quit = true;
+                        cx.quit();
+                    } else {
+                        self.open_quit(cx);
+                    }
                 }
                 Some(Response::changed())
             }
