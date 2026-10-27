@@ -6220,7 +6220,7 @@ impl App {
         match command {
             CMD_QUIT => {
                 if !self.quit_open {
-                    if self.route == Route::Manager {
+                    if self.route == Route::Manager && cx.top_layer() == termrock::LayerId::PAGE {
                         self.world.arbiter.release_entry();
                         self.quit = true;
                         cx.quit();
