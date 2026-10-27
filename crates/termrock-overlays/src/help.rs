@@ -16,9 +16,9 @@ use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::text::width;
 use crate::theme::{Family, GlyphRole, Modifier, Role, StylePatch, Surface, Variant};
-use crate::ui::{Cx, FrameRead, Ui};
+use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 use termrock_controls::Button;
-use termrock_core::geometry::{Axes, Headroom};
+use termrock_core::geometry::Axes;
 use termrock_feedback::keyhint::HintText;
 use termrock_runtime::scroll_region::ScrollRegion;
 
@@ -204,6 +204,7 @@ const BINDINGS: &[Binding<HelpCmd>] = &[
 pub struct HelpOverlay<'a> {
     id: Id,
     scope: &'a str,
+    title: &'a str,
     sections: &'a [HelpSection<'a>],
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
@@ -215,6 +216,7 @@ impl fmt::Debug for HelpOverlay<'_> {
         f.debug_struct("HelpOverlay")
             .field("id", &self.id)
             .field("scope", &self.scope)
+            .field("title", &self.title)
             .field("sections", &self.sections.len())
             .finish_non_exhaustive()
     }
@@ -240,11 +242,18 @@ impl<'a> HelpOverlay<'a> {
         HelpOverlay {
             id,
             scope,
+            title: "Keyboard shortcuts",
             sections,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
         }
+    }
+
+    #[must_use]
+    pub const fn title(mut self, title: &'a str) -> Self {
+        self.title = title;
+        self
     }
 
     #[must_use]
@@ -293,6 +302,10 @@ impl<'a> HelpOverlay<'a> {
         self.id.part(Part::ACTIONS)
     }
 
+    fn command_id(&self) -> Id {
+        self.id.sub("commands")
+    }
+
     fn column_rows(&self, cols: usize) -> usize {
         (0..cols)
             .map(|column| {
@@ -312,10 +325,9 @@ impl<'a> HelpOverlay<'a> {
         if cx.is_open(self.id) {
             cx.resize_layer(self.id, self.measured_size(cx));
         }
-        let columns = cx
-            .area(self.id)
-            .map_or(1, |area| columns_for(area.width.saturating_sub(2)));
-        let content_len = self.column_rows(columns);
+        let content_len = cx
+            .layout(self.id)
+            .map_or(st.scroll.content_len(), |layout| layout.content_len);
         let scroll = self.scrollbar().update(cx, &mut st.scroll, content_len);
         let mut acc = Acc::new();
         acc.fold(&scroll);
@@ -360,23 +372,18 @@ impl<'a> HelpOverlay<'a> {
                         Response::ignored()
                     }
                 }
-                Intent::Binding(action) => match Binding::command(BINDINGS, action) {
-                    Some(HelpCmd::Prev) => scroll_by(&mut st.scroll, -1),
-                    Some(HelpCmd::Next) => scroll_by(&mut st.scroll, 1),
-                    Some(HelpCmd::PageUp) => page(&mut st.scroll, false),
-                    Some(HelpCmd::PageDown) => page(&mut st.scroll, true),
-                    Some(HelpCmd::Close) => {
-                        if !done_activated && cx.is_open(self.id) {
-                            let close_token = self.close_token(cx);
-                            cx.close_layer(self.id, None);
-                            st.action_close = close_token;
-                            Response::action(HelpAction::Closed(DismissReason::Programmatic))
-                        } else {
-                            Response::ignored()
-                        }
-                    }
-                    None => Response::ignored(),
-                },
+                Intent::Binding(action) => self.binding_response(cx, st, done_activated, action),
+                _ => Response::ignored(),
+            };
+            if let Some(action) = response.action_ref().copied() {
+                acc.action(action);
+            } else {
+                acc.fold(&response.erase());
+            }
+        }
+        for intent in cx.intents(self.command_id()) {
+            let response = match intent {
+                Intent::Binding(action) => self.binding_response(cx, st, done_activated, action),
                 _ => Response::ignored(),
             };
             if let Some(action) = response.action_ref().copied() {
@@ -386,6 +393,32 @@ impl<'a> HelpOverlay<'a> {
             }
         }
         acc.finish(self.id)
+    }
+
+    fn binding_response(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut HelpOverlayState,
+        done_activated: bool,
+        action: crate::ActionKey,
+    ) -> Response<HelpAction> {
+        match Binding::command(BINDINGS, action) {
+            Some(HelpCmd::Prev) => scroll_by(&mut st.scroll, -1),
+            Some(HelpCmd::Next) => scroll_by(&mut st.scroll, 1),
+            Some(HelpCmd::PageUp) => page(&mut st.scroll, false),
+            Some(HelpCmd::PageDown) => page(&mut st.scroll, true),
+            Some(HelpCmd::Close) => {
+                if !done_activated && cx.is_open(self.id) {
+                    let close_token = self.close_token(cx);
+                    cx.close_layer(self.id, None);
+                    st.action_close = close_token;
+                    Response::action(HelpAction::Closed(DismissReason::Programmatic))
+                } else {
+                    Response::ignored()
+                }
+            }
+            None => Response::ignored(),
+        }
     }
 
     fn close_token(&self, cx: &Cx<'_>) -> Option<(LayerOpening, UpdateToken)> {
@@ -399,54 +432,71 @@ impl<'a> HelpOverlay<'a> {
         }
         let live = ui.state(self.id);
         ui.with_surface(Surface::Elevated, |ui| {
-            self.paint_card(ui, area, live);
-            let border_style = self
-                .ov
-                .style(
-                    ui,
+            ui.command_scope(self.command_id(), BINDINGS, |ui| {
+                self.paint_card(ui, area, live);
+                let border_style = self
+                    .ov
+                    .style(
+                        ui,
+                        self.id,
+                        Family::HELP,
+                        Variant::DEFAULT,
+                        Part::BORDER,
+                        live,
+                    )
+                    .style;
+                let _frame_inner = ui.frame(area, border_style);
+                ui.register_control(self.id, area, Focusability::Focusable);
+                ui.register_decor(self.id, PartRef::of(Part::BORDER), area);
+                if area.width < 16 || area.height < 8 {
+                    ui.report_layout(self.id, LayoutFacts::default());
+                    return;
+                }
+                self.paint_title(ui, area, live);
+                let inner = Rect {
+                    x: area.x.saturating_add(3),
+                    y: area.y.saturating_add(1),
+                    width: area.width.saturating_sub(6),
+                    height: area.height.saturating_sub(2),
+                };
+                if inner.is_empty() {
+                    ui.report_layout(self.id, LayoutFacts::default());
+                    return;
+                }
+                let body_h = inner.height.saturating_sub(1);
+                let columns = self.columns(inner.width);
+                let total = columns.iter().map(Vec::len).max().unwrap_or(0);
+                let mut view = st.scroll;
+                view.apply_layout(usize::from(body_h), total);
+                let track_h = if view.overflows() {
+                    u16::try_from(view.viewport_len())
+                        .unwrap_or(u16::MAX)
+                        .min(inner.height)
+                } else {
+                    0
+                };
+                ui.report_layout(
                     self.id,
-                    Family::HELP,
-                    Variant::DEFAULT,
-                    Part::BORDER,
-                    live,
-                )
-                .style;
-            let _frame_inner = ui.frame(area, border_style);
-            ui.register_control(self.id, area, Focusability::Focusable);
-            ui.publish_bindings(self.id, live, BINDINGS);
-            ui.register_decor(self.id, PartRef::of(Part::BORDER), area);
-            if area.width < 16 || area.height < 8 {
-                return;
-            }
-            self.paint_title(ui, area, live);
-            let inner = Rect {
-                x: area.x.saturating_add(3),
-                y: area.y.saturating_add(1),
-                width: area.width.saturating_sub(6),
-                height: area.height.saturating_sub(2),
-            };
-            if inner.is_empty() {
-                return;
-            }
-            let body_h = inner.height.saturating_sub(1);
-            let columns = self.columns(inner.width);
-            let total = columns.iter().map(Vec::len).max().unwrap_or(0);
-            let offset = st.scroll.offset();
-            self.paint_columns(ui, inner, &columns, offset, usize::from(body_h));
-            self.paint_scroll_label(ui, area, offset, usize::from(body_h), total);
-            self.paint_close(ui, area);
-            let mut faded = ScrollState::new(total);
-            faded.set_viewport(usize::from(body_h));
-            let fade_area = Rect {
-                x: area.x,
-                y: inner.y,
-                width: area.right().saturating_sub(2).saturating_sub(area.x),
-                height: body_h,
-            };
-            ui.scroll_edges(fade_area, &faded);
-            self.paint_scrollbar(ui, area, inner, usize::from(body_h), total);
-            self.paint_done(ui, inner);
-            let _ = self.scope;
+                    LayoutFacts::new(
+                        view.viewport_len(),
+                        view.content_len(),
+                        track_h,
+                        inner.width,
+                    ),
+                );
+                self.paint_columns(ui, inner, &columns, &view);
+                self.paint_scroll_label(ui, area, &view);
+                self.paint_close(ui, area);
+                let fade_area = Rect {
+                    x: area.x,
+                    y: inner.y,
+                    width: area.right().saturating_sub(2).saturating_sub(area.x),
+                    height: body_h,
+                };
+                ui.scroll_edges(fade_area, &view);
+                self.paint_scrollbar(ui, area, inner, &view, track_h);
+                self.paint_done(ui, inner);
+            });
         });
         area
     }
@@ -485,28 +535,68 @@ impl<'a> HelpOverlay<'a> {
     }
 
     fn paint_title(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags) {
-        let style = self
-            .ov
-            .style(
-                ui,
-                self.id,
-                Family::HELP,
-                Variant::DEFAULT,
-                Part::TITLE,
-                live,
-            )
-            .style;
-        let title = format!(" {} ", "Keyboard shortcuts");
-        ui.paint_str(
-            Rect {
-                x: area.x.saturating_add(2),
-                y: area.y,
-                width: area.width.saturating_sub(2),
-                height: 1,
-            },
-            &title,
-            style,
-        );
+        let reserve = 4u16;
+        let title_limit = area.width.saturating_sub(6u16.saturating_add(reserve));
+        if area.width > 6u16.saturating_add(reserve) {
+            let title = format!(" {} ", crate::text::truncate(self.title, title_limit));
+            let title_width = width(&title);
+            let title_style = self
+                .ov
+                .style(
+                    ui,
+                    self.id,
+                    Family::HELP,
+                    Variant::DEFAULT,
+                    Part::TITLE,
+                    live,
+                )
+                .style;
+            ui.paint_str(
+                Rect {
+                    x: area.x.saturating_add(2),
+                    y: area.y,
+                    width: area.width.saturating_sub(2),
+                    height: 1,
+                },
+                &title,
+                title_style,
+            );
+
+            let scope = format!(" {} ", self.scope);
+            let scope_width = width(&scope);
+            let scope_min_width = title_width
+                .saturating_add(scope_width)
+                .saturating_add(4)
+                .saturating_add(reserve);
+            if area.width > scope_min_width {
+                let scope_x = area
+                    .right()
+                    .saturating_sub(2)
+                    .saturating_sub(reserve)
+                    .saturating_sub(scope_width);
+                let scope_style = self
+                    .ov
+                    .style(
+                        ui,
+                        self.id,
+                        Family::HELP,
+                        Variant::DEFAULT,
+                        Part::DETAIL,
+                        live,
+                    )
+                    .style;
+                ui.paint_str(
+                    Rect {
+                        x: scope_x,
+                        y: area.y,
+                        width: scope_width,
+                        height: 1,
+                    },
+                    &scope,
+                    scope_style,
+                );
+            }
+        }
     }
 
     fn paint_close(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -530,19 +620,17 @@ impl<'a> HelpOverlay<'a> {
         row(2, " ", border);
     }
 
-    fn paint_scroll_label(
-        &self,
-        ui: &mut Ui<'_>,
-        area: Rect,
-        offset: usize,
-        viewport: usize,
-        total: usize,
-    ) {
-        if total <= viewport || viewport == 0 {
+    fn paint_scroll_label(&self, ui: &mut Ui<'_>, area: Rect, scroll: &ScrollState) {
+        if !scroll.overflows() {
             return;
         }
-        let end = offset.saturating_add(viewport).min(total);
-        let label = format!(" {}–{} of {} ", offset.saturating_add(1), end, total);
+        let visible = scroll.visible_range();
+        let label = format!(
+            " {}–{} of {} ",
+            visible.start.saturating_add(1),
+            visible.end,
+            scroll.content_len()
+        );
         let pw = width(&label);
 
         let x = area.right().saturating_sub(pw.saturating_add(6));
@@ -612,9 +700,10 @@ impl<'a> HelpOverlay<'a> {
         ui: &mut Ui<'_>,
         inner: Rect,
         columns: &[Vec<Line>],
-        offset: usize,
-        viewport: usize,
+        scroll: &ScrollState,
     ) {
+        let offset = scroll.offset();
+        let viewport = scroll.viewport_len();
         let cols = columns.len().max(1) as u16;
         let col_w = inner.width / cols;
         let widest = columns
@@ -659,27 +748,21 @@ impl<'a> HelpOverlay<'a> {
         ui: &mut Ui<'_>,
         area: Rect,
         inner: Rect,
-        viewport: usize,
-        total: usize,
+        scroll: &ScrollState,
+        track_h: u16,
     ) {
-        if total <= viewport || viewport == 0 {
+        if !scroll.overflows() || track_h == 0 {
             return;
         }
-        let track_h = u16::try_from(viewport)
-            .unwrap_or(u16::MAX)
-            .min(inner.height);
         let x = area.right().saturating_sub(2);
-        let thumb = (viewport.saturating_mul(usize::from(track_h)) / total).max(1) as u16;
-        let thumb = thumb.min(track_h);
+        let (thumb_start, thumb_len) = scroll.thumb(usize::from(track_h));
+        let thumb_end = thumb_start.saturating_add(thumb_len);
         let thumb_style = ink(ui, 0x0080_8080, 0x0018_181b, false);
         let track_style = ink(ui, 0x0047_4747, 0x0018_181b, false);
         for row in 0..track_h {
-            let style = if row < thumb {
-                thumb_style
-            } else {
-                track_style
-            };
-            let glyph = if row < thumb { "┃" } else { "┆" };
+            let thumb_row = (thumb_start..thumb_end).contains(&usize::from(row));
+            let style = if thumb_row { thumb_style } else { track_style };
+            let glyph = if thumb_row { "┃" } else { "┆" };
             ui.paint_str(cell_row(x, inner.y.saturating_add(row), 1), glyph, style);
         }
         let track_rect = Rect {
@@ -689,7 +772,7 @@ impl<'a> HelpOverlay<'a> {
             height: track_h,
         };
         ui.register_part(self.id, PartRef::of(Part::TRACK), track_rect);
-        ui.register_scroll(self.id, area, Axes::V, Headroom::default());
+        ui.register_scroll(self.id, area, Axes::V, scroll.headroom_v());
     }
 
     fn paint_done(&self, ui: &mut Ui<'_>, inner: Rect) {

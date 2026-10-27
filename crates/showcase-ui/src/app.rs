@@ -3,11 +3,12 @@ use showcase_demos::render_number::RenderNumber;
 use termrock::author::PaintStyle;
 use termrock::overlays::NoticeReveal;
 use termrock::{
-    ActionKey, Anchor, App as TuiApp, Brand, Chord, ColorLevel, CrossAlign, Cx, Dialog,
-    DialogAction, DialogState, Dismiss, EmptyState, FrameRead, GlyphRole, Id, Intent, ItemKey,
-    KeyCode, KeyMap, KeyPhase, LayerOpening, Moment, Panel, PanelKind, Part, PartRef, Phase,
-    Position, Props, Rect, Response, RowFn, Side, Size, StateFlags, Status, StatusBar, StatusItem,
-    Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id, width,
+    ActionKey, Anchor, App as TuiApp, Brand, Chord, Color, ColorLevel, CrossAlign, Cx, Dialog,
+    DialogAction, DialogState, Dismiss, EmptyState, FrameRead, GlyphRole, HelpOverlay,
+    HelpOverlayState, HelpSection, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, LayerOpening,
+    Moment, Panel, PanelKind, Part, PartRef, Phase, Position, Props, Rect, Response, RowFn, Side,
+    Size, StateFlags, Status, StatusBar, StatusItem, Theme, TooSmall, Tree, TreeAction, TreeNode,
+    TreeState, Ui, Variant, id, width,
 };
 
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
@@ -67,22 +68,55 @@ const HELP_COMMAND: ActionKey = ActionKey::application("showcase.help");
 const INSPECTOR_COMMAND: ActionKey = ActionKey::application("showcase.inspector");
 const NEXT_PAGE: ActionKey = ActionKey::application("showcase.page.next");
 const PREV_PAGE: ActionKey = ActionKey::application("showcase.page.previous");
-const HELP_INSTRUCTIONS: &str = "Tab / Shift+Tab   move keyboard focus\n\
-↑ ↓ ← →           move inside the focused control\n\
-Enter / Space     activate · start editing\n\
-Esc               cancel editing · back to navigation\n\
-[ ]               previous / next page\n\
-0                 jump to navigation\n\
-i                 toggle state inspector\n\
-q                 quit";
-const HELP_MOUSE_HINT: &str = "Mouse: hover to preview, click to focus and activate, wheel to scroll, drag the scrollbar thumb.";
-
-fn build_help_description() -> String {
-    format!(
-        "{HELP_INSTRUCTIONS}\nNavigation: {} destinations.\n{HELP_MOUSE_HINT}",
-        NAV_ENTRIES.len()
-    )
-}
+const NAV_PANEL_PARTS: [(Part, termrock::StylePatch); 1] = [(
+    Part::DETAIL,
+    termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+)];
+const HELP_SHELL_ROWS: &[(&str, &str)] = &[
+    ("F1 ?", "This reference"),
+    ("F10 Ctrl+F2", "Menu bar"),
+    ("Ctrl+PgDn ]", "Next page"),
+    ("Ctrl+PgUp [", "Previous page"),
+    ("0", "Jump to navigation"),
+    ("i", "The Inspector"),
+    ("Tab", "Next control"),
+    ("Shift+Tab", "Previous control"),
+    ("Esc", "Back"),
+    ("Ctrl+Q q", "Quit"),
+    ("Ctrl+C", "Copy, else quit"),
+];
+const HELP_SIDEBAR_ROWS: &[(&str, &str)] = &[
+    ("↑↓", "Move"),
+    ("PgUp PgDn", "Page"),
+    ("Home End", "First / last"),
+    ("a–z", "Jump to a row by name"),
+    ("←→", "Fold / unfold"),
+    ("Enter", "Activate"),
+    ("*", "Expand all"),
+    ("-", "Collapse all"),
+    ("/", "Filter (Esc clears)"),
+];
+const HELP_MOUSE_ROWS: &[(&str, &str)] = &[
+    ("Hover", "Preview"),
+    ("Click", "Focus and activate"),
+    ("Wheel", "Scroll"),
+    ("Drag", "A scrollbar thumb"),
+];
+const HELP_SECTIONS: [HelpSection<'static>; 3] = [
+    HelpSection::plain("Shell", HELP_SHELL_ROWS),
+    HelpSection::plain("Sidebar", HELP_SIDEBAR_ROWS),
+    HelpSection::plain("Mouse", HELP_MOUSE_ROWS),
+];
+const HELP_PART_PATCHES: &[(Part, termrock::StylePatch)] = &[
+    (
+        Part::BORDER,
+        termrock::StylePatch::new().set_fg(termrock::Role::BorderStrong),
+    ),
+    (
+        Part::DETAIL,
+        termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+    ),
+];
 
 const STATUS_LEFT: [StatusItem<'static>; 1] = [StatusItem::new("showcase")];
 const STATUS_RIGHT: [StatusItem<'static>; 2] = [
@@ -740,6 +774,7 @@ struct NavNode {
     key: ItemKey,
     query_match: bool,
     fade: u8,
+    inactive_layer: bool,
 }
 
 fn nav_nodes(state: &TreeState, viewport_height: u16) -> Vec<NavNode> {
@@ -767,6 +802,7 @@ fn nav_nodes_for_query(
                     key: nav_group_key(section_index),
                     query_match: true,
                     fade: 0,
+                    inactive_layer: false,
                 });
                 section_index = section_index.saturating_add(1);
             }
@@ -780,6 +816,7 @@ fn nav_nodes_for_query(
             key: nav_entry_key(index),
             query_match: true,
             fade: 0,
+            inactive_layer: false,
         });
     }
 
@@ -929,17 +966,11 @@ fn node_of(node: &NavNode) -> TreeNode {
     }
 }
 
-const SIDEBAR_CHROME: [(Part, termrock::StylePatch); 1] = [(
-    Part::CONTAINER,
-    termrock::StylePatch::new().set_bg(termrock::Role::Surface(termrock::Surface::Canvas)),
-)];
-
 fn nav_tree(
     query_revision: Option<u64>,
 ) -> Tree<'static, NavNode, fn(&NavNode) -> ItemKey, impl RowFn<NavNode>> {
     let tree = Tree::new(NAV)
         .key(nav_node_key as fn(&NavNode) -> ItemKey)
-        .patch_part(&SIDEBAR_CHROME)
         .node(&node_of)
         .render_row(&paint_sidebar_row)
         .empty(EmptyState::Empty {
@@ -1090,12 +1121,6 @@ fn nav_group_for_entry(nodes: &[NavNode], entry: usize) -> Option<ItemKey> {
         .rev()
         .find(|node| node.parent && node.depth < depth)
         .map(|node| node.key)
-}
-
-fn expand_nav_groups(state: &mut TreeState, nodes: &[NavNode]) {
-    for node in nodes.iter().filter(|node| node.parent) {
-        state.expand(node.key);
-    }
 }
 
 fn reveal_nav(state: &mut TreeState, nodes: &[NavNode], entry: usize) {
@@ -1309,8 +1334,7 @@ pub struct App {
     notice_reveals: std::cell::RefCell<[NoticeReveal; 6]>,
     notice_reveal_snapshot: Option<NoticeRevealSnapshot>,
     notice_reveal_revision: u64,
-    help_description: String,
-    help_state: DialogState,
+    help_state: HelpOverlayState,
     help_open: bool,
     overlay_open: bool,
     inspector_state: DialogState,
@@ -1397,7 +1421,6 @@ impl App {
         let initial = nav_target.page().unwrap_or(PageId::Overview);
         let mut nav_state = TreeState::new();
         let nodes = nav_nodes(&nav_state, 0);
-        expand_nav_groups(&mut nav_state, &nodes);
         reveal_nav(&mut nav_state, &nodes, nav_index);
         let mut pages: Vec<Box<dyn Page>> = PageId::ALL.into_iter().map(page).collect();
         if paused {
@@ -1433,8 +1456,7 @@ impl App {
             })),
             notice_reveal_snapshot: None,
             notice_reveal_revision: 0,
-            help_description: build_help_description(),
-            help_state: DialogState::default(),
+            help_state: HelpOverlayState::default(),
             help_open: false,
             overlay_open: false,
             inspector_state: DialogState::default(),
@@ -1746,11 +1768,15 @@ impl App {
         }
     }
 
-    fn help_dialog(description: &str) -> Dialog<'_> {
-        Dialog::info(HELP, "Keyboard & mouse")
-            .description(description)
-            .body_rows(1)
-            .width(70)
+    fn help_overlay() -> HelpOverlay<'static> {
+        HelpOverlay::new(HELP, "Showcase", &HELP_SECTIONS)
+            .title("Keyboard & mouse")
+            .patch_part(HELP_PART_PATCHES)
+    }
+
+    fn open_help(&mut self, cx: &mut Cx<'_>) {
+        self.help_state = HelpOverlayState::default();
+        cx.open_layer(HELP, Self::help_overlay().layer(cx));
     }
 
     fn inspector_dialog(viewport: Rect) -> Dialog<'static> {
@@ -1861,17 +1887,9 @@ impl App {
     }
 
     fn update_help(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
-        let help = Self::help_dialog(&self.help_description).update(cx, &mut self.help_state);
-        if let Some(action) = help.action_ref() {
-            match action {
-                DialogAction::Action(_) | DialogAction::Dismissed(_) => {
-                    if cx.is_open(HELP) {
-                        cx.close_layer(HELP, None);
-                    }
-                }
-            }
-        }
-        *response |= help.erase();
+        *response |= Self::help_overlay()
+            .update(cx, &mut self.help_state)
+            .erase();
     }
 
     fn update_header(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
@@ -1886,8 +1904,7 @@ impl App {
         });
         if help_clicked {
             if !cx.is_open(HELP) {
-                let layer = Self::help_dialog(&self.help_description).layer(cx);
-                cx.open_layer(HELP, layer);
+                self.open_help(cx);
             }
             *response |= Response::changed();
         }
@@ -1922,23 +1939,44 @@ struct SidebarPresentation {
 }
 
 impl SidebarPresentation {
-    fn new(sidebar: Rect, query_active: bool) -> Self {
-        if !query_active || sidebar.is_empty() {
+    fn new(sidebar: Rect, panel_inner: Rect, gutter: u16, query_active: bool) -> Self {
+        if sidebar.is_empty() || panel_inner.is_empty() {
             return Self {
                 query: None,
-                tree: sidebar,
+                tree: Rect::default(),
             };
         }
-        let query = Rect::new(sidebar.x, sidebar.y, sidebar.width, 1);
+        let content = Rect {
+            x: sidebar.x.saturating_add(gutter),
+            y: panel_inner.y,
+            width: sidebar.width.saturating_sub(gutter.saturating_mul(2)),
+            height: panel_inner.height,
+        };
+        if !query_active || content.is_empty() {
+            return Self {
+                query: None,
+                tree: content,
+            };
+        }
+        let query = Rect::new(content.x, content.y, content.width, 1);
         let tree = Rect {
-            y: sidebar.y.saturating_add(1),
-            height: sidebar.height.saturating_sub(1),
-            ..sidebar
+            y: content.y.saturating_add(1),
+            height: content.height.saturating_sub(1),
+            ..content
         };
         Self {
             query: Some(query),
             tree,
         }
+    }
+}
+
+fn sidebar_panel_inner(sidebar: Rect, card_inset: u16) -> Rect {
+    Rect {
+        x: sidebar.x.saturating_add(card_inset),
+        y: sidebar.y.saturating_add(2),
+        width: sidebar.width.saturating_sub(card_inset.saturating_mul(2)),
+        height: sidebar.height.saturating_sub(3),
     }
 }
 
@@ -2075,15 +2113,6 @@ fn shell_text_style(ui: &Ui<'_>, step: termrock::FgStep) -> PaintStyle {
     )
 }
 
-fn legacy_crumb(label: &str) -> (&str, &str) {
-    let group = match label {
-        "Overview" => "Foundations",
-        "Settings" | "Task runner" => "Screens",
-        _ => "Components",
-    };
-    (nav_display_label(label), group)
-}
-
 fn paint_header(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -2133,12 +2162,7 @@ fn header_styles(ui: &mut Ui<'_>) -> (PaintStyle, PaintStyle, PaintStyle, PaintS
         Part::DETAIL,
         StateFlags::empty(),
     );
-    let muted = shell_part_style(
-        ui,
-        termrock::Family::PANEL,
-        Part::DETAIL,
-        StateFlags::empty(),
-    );
+    let muted = secondary;
     let faint = shell_text_style(ui, termrock::FgStep::Faint);
     let marker = shell_part_style(
         ui,
@@ -2172,22 +2196,49 @@ fn paint_header_breadcrumb(
         "Design system",
         secondary,
     );
-    x = x.saturating_add(14);
-    let _ = (section, faint);
+    x = x.saturating_add(15);
     let budget = inspector_x.saturating_sub(x).saturating_sub(2);
-    let (shown_label, group) = legacy_crumb(label);
-    let crumb = format!("/ {group} / {shown_label}");
-    let shown = clip_label(&crumb, budget);
-    let muted = chrome_fg(
-        ui,
-        termrock::theme::baseline_muted(ui.theme().capability.color),
-    );
+    let label = nav_display_label(label);
+    let current = title.add_modifier(termrock::Modifier::BOLD);
+    if section.is_empty() {
+        let shown = clip_label(label, budget);
+        ui.paint_str(Rect::new(x, area.y, budget, 1), &shown, current);
+        return x.saturating_add(width(&shown));
+    }
+
+    let separator_width = width("/ ").saturating_add(width(" / "));
+    if budget <= separator_width {
+        let crumb = format!("/ {section} / {label}");
+        let shown = clip_label(&crumb, budget);
+        ui.paint_str(Rect::new(x, area.y, budget, 1), &shown, secondary);
+        return x.saturating_add(width(&shown));
+    }
+    let label_budget = width(label).min(budget.saturating_sub(separator_width));
+    let section_budget = budget
+        .saturating_sub(separator_width)
+        .saturating_sub(label_budget);
+    let shown_section = clip_label(section, section_budget);
+    let shown_label_budget = budget
+        .saturating_sub(separator_width)
+        .saturating_sub(width(&shown_section));
+    let shown_label = clip_label(label, shown_label_budget);
+
+    ui.paint_str(Rect::new(x, area.y, width("/ "), 1), "/ ", faint);
+    x = x.saturating_add(width("/ "));
     ui.paint_str(
-        Rect::new(x, area.y, area.right().saturating_sub(x), 1),
-        &shown,
-        muted,
+        Rect::new(x, area.y, width(&shown_section), 1),
+        &shown_section,
+        secondary,
     );
-    x.saturating_add(width(&shown))
+    x = x.saturating_add(width(&shown_section));
+    ui.paint_str(Rect::new(x, area.y, width(" / "), 1), " / ", faint);
+    x = x.saturating_add(width(" / "));
+    ui.paint_str(
+        Rect::new(x, area.y, width(&shown_label), 1),
+        &shown_label,
+        current,
+    );
+    x.saturating_add(width(&shown_label))
 }
 
 fn header_action_origins(area: Rect, inspector: bool) -> (u16, u16) {
@@ -2212,10 +2263,7 @@ fn paint_header_actions(
     inspector: bool,
 ) {
     let (screen_width, screen_height) = screen;
-    let level = ui.theme().capability.color;
-    let muted = chrome_fg(ui, termrock::theme::baseline_muted(level));
-    let faint = chrome_fg(ui, termrock::theme::baseline_faint(level));
-    let _ = styles;
+    let (muted, faint) = styles;
     let capability = ui.theme().capability.color.label();
     let width_text = RenderNumber::new(usize::from(screen_width));
     let height_text = RenderNumber::new(usize::from(screen_height));
@@ -2307,27 +2355,56 @@ fn fade_paint(style: PaintStyle, steps: u8) -> PaintStyle {
     style.fg(termrock::Color::Rgb(mix(red), mix(green), mix(blue)))
 }
 
-fn chrome_fg(ui: &Ui<'_>, color: termrock::Color) -> PaintStyle {
-    shell_compat_style(ui.surface_style().fg(color))
-}
-
 fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, node: &NavNode) {
     if row.is_empty() {
         return;
     }
-    let focused = flags.contains(StateFlags::FOCUSED);
+    let focused = flags.contains(StateFlags::FOCUSED) && !node.inactive_layer;
     let selected = flags.contains(StateFlags::SELECTED);
     let fade = node.fade;
     let canvas = shell_compat_style(ui.surface_style());
-    let primary = fade_paint(shell_text_style(ui, termrock::FgStep::Primary), fade);
-    let secondary = fade_paint(shell_text_style(ui, termrock::FgStep::Secondary), fade);
-    let group_ink = fade_paint(shell_text_style(ui, termrock::FgStep::Faint), fade);
-    let selected_ink = primary.add_modifier(termrock::Modifier::BOLD);
+    let label_ink = fade_paint(canvas, fade);
+    let group_ink = fade_paint(shell_text_style(ui, termrock::FgStep::Secondary), fade);
+    let selected_background = match ui.theme_ref().color.accent_tint {
+        Color::Rgb(..) => Color::from_u32(showcase_demos::pages::accent_tint_bg(ui.theme_ref())),
+        color => color,
+    };
+    let selected_patch = ui.paint_patch(
+        &termrock::StylePatch::new().set_bg(termrock::Role::Custom(selected_background)),
+    );
+    let selected_surface =
+        shell_compat_style(canvas.patch(selected_patch)).add_modifier(termrock::Modifier::BOLD);
     let accent = ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent));
-    let marker = fade_paint(shell_compat_style(canvas.patch(accent)), fade)
-        .add_modifier(termrock::Modifier::BOLD);
+    let selected_ink = if node.inactive_layer {
+        shell_compat_style(selected_surface.patch(ui.paint_patch(
+            &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Primary)),
+        )))
+        .remove_modifier(termrock::Modifier::BOLD)
+    } else {
+        shell_compat_style(selected_surface.patch(accent))
+    };
+    let marker_surface = if selected { selected_surface } else { canvas };
+    let marker = if selected && node.inactive_layer {
+        selected_ink
+    } else {
+        fade_paint(shell_compat_style(marker_surface.patch(accent)), fade)
+            .add_modifier(termrock::Modifier::BOLD)
+    };
 
-    ui.fill(row, canvas);
+    ui.fill(row, if selected { selected_surface } else { canvas });
+    if !focused {
+        let gutter_surface = if selected { selected_surface } else { canvas };
+        let gutter_ink = if selected {
+            termrock::Role::Custom(selected_background)
+        } else {
+            termrock::Role::CurrentSurface
+        };
+        let gutter = shell_compat_style(
+            gutter_surface.patch(ui.paint_patch(&termrock::StylePatch::new().set_fg(gutter_ink))),
+        )
+        .remove_modifier(termrock::Modifier::BOLD);
+        ui.fill(Rect::new(row.x, row.y, 1, 1), gutter);
+    }
     if focused {
         ui.glyph(Rect::new(row.x, row.y, 1, 1), GlyphRole::FocusBar, marker);
     }
@@ -2347,11 +2424,11 @@ fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKe
     let room = row.right().saturating_sub(label_x).saturating_sub(1);
     let text = clip_label(node.label, room);
     let label = if node.parent {
-        group_ink
+        label_ink
     } else if selected {
         selected_ink
     } else {
-        secondary
+        label_ink
     };
     if room > 0 {
         ui.fill(Rect::new(label_x, row.y, room, 1), label);
@@ -2361,6 +2438,29 @@ fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKe
         &text,
         label,
     );
+}
+
+fn paint_sidebar_heading(ui: &mut Ui<'_>, area: Rect, gutter: u16, focused: bool) {
+    if area.is_empty() {
+        return;
+    }
+    let (title, secondary, _, _, _) = header_styles(ui);
+    let style = if focused { title } else { secondary };
+    let title_area = Rect::new(
+        area.x.saturating_add(gutter),
+        area.y,
+        area.width.saturating_sub(gutter.saturating_mul(2)),
+        1,
+    );
+    ui.paint_str(title_area, "Components", style);
+    let rule_area = Rect::new(title_area.x, area.y.saturating_add(1), title_area.width, 1);
+    let glyph = ui.glyph_str(GlyphRole::RuleQuiet);
+    let rule = glyph.repeat(usize::from(rule_area.width));
+    let style = shell_compat_style(
+        ui.surface_style()
+            .patch(ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::ChromeRule))),
+    );
+    ui.paint_str(rule_area, &rule, style);
 }
 
 fn paint_placeholder(ui: &mut Ui<'_>, area: Rect, label: &str) {
@@ -2515,32 +2615,32 @@ fn nav_cursor_kind(state: &TreeState, nodes: &[NavNode], query_active: bool) -> 
 
 const NAV_QUERY_MATCH_HINTS: &[(&str, &str)] = &[
     ("type", "Filter"),
-    ("↑ ↓", "Move"),
+    ("↑↓", "Move"),
     ("Backspace", "Edit"),
     ("Esc", "Clear"),
     ("Enter", "Open"),
 ];
 const NAV_QUERY_EMPTY_HINTS: &[(&str, &str)] = &[
     ("type", "Filter"),
-    ("↑ ↓", "Move"),
+    ("↑↓", "Move"),
     ("Backspace", "Edit"),
     ("Esc", "Clear"),
 ];
 const NAV_GROUP_HINTS: &[(&str, &str)] = &[
-    ("↑ ↓", "Move"),
+    ("↑↓", "Move"),
     ("← →", "Fold"),
     ("Enter", "Toggle"),
     ("/", "Filter"),
     ("q", "Quit"),
 ];
 const NAV_LEAF_HINTS: &[(&str, &str)] = &[
-    ("↑ ↓", "Move"),
+    ("↑↓", "Move"),
     ("Enter", "Open"),
     ("/", "Filter"),
     ("q", "Quit"),
 ];
-const NAV_EMPTY_HINTS: &[(&str, &str)] = &[("↑ ↓", "Move"), ("/", "Filter"), ("q", "Quit")];
-const HELP_HINTS: &[(&str, &str)] = &[("Esc", "Close")];
+const NAV_EMPTY_HINTS: &[(&str, &str)] = &[("↑↓", "Move"), ("/", "Filter"), ("q", "Quit")];
+const HELP_HINTS: &[(&str, &str)] = &[("↑↓", "Scroll"), ("Esc", "Close")];
 
 #[expect(
     clippy::too_many_arguments,
@@ -2586,13 +2686,44 @@ fn paint_footer(
         Part::KEY,
         StateFlags::empty(),
     );
-    let action_style = chrome_fg(
-        ui,
-        termrock::theme::baseline_muted(ui.theme().capability.color),
-    );
+    let action_style = shell_text_style(ui, termrock::FgStep::Muted);
     let mut x = area.x.saturating_add(1);
     let reserved = status.map_or(14, |message| width(message).saturating_add(3));
-    for &(key, action) in hints.iter().chain(tab_hint.iter()) {
+    let place_tab_before_quit = tab_hint.is_some()
+        && hints
+            .iter()
+            .any(|(key, action)| *key == "q" && *action == "Quit");
+    let mut tab_placed = false;
+    for &(key, action) in hints {
+        if place_tab_before_quit
+            && key == "q"
+            && action == "Quit"
+            && let Some((tab, action)) = tab_hint
+        {
+            paint_hint(
+                ui,
+                area,
+                &mut x,
+                reserved,
+                key_style,
+                action_style,
+                tab,
+                action,
+            );
+            tab_placed = true;
+        }
+        paint_hint(
+            ui,
+            area,
+            &mut x,
+            reserved,
+            key_style,
+            action_style,
+            key,
+            action,
+        );
+    }
+    if !tab_placed && let Some((key, action)) = tab_hint {
         paint_hint(
             ui,
             area,
@@ -2691,7 +2822,7 @@ impl TuiApp for App {
             }
             Some(NEXT_PAGE | PREV_PAGE) => {}
             Some(HELP_COMMAND) if !cx.is_open(HELP) => {
-                cx.open_layer(HELP, Self::help_dialog(&self.help_description).layer(cx));
+                self.open_help(cx);
             }
             Some(INSPECTOR_COMMAND) if cx.update_cause() == termrock::UpdateCause::Event => {
                 self.toggle_inspector(&mut response);
@@ -2708,8 +2839,11 @@ impl TuiApp for App {
         {
             response |= active.command(cx, action);
         }
+        let sidebar_area = self.resolved_shell_layout(cx.viewport()).sidebar;
         let sidebar = SidebarPresentation::new(
-            self.resolved_shell_layout(cx.viewport()).sidebar,
+            sidebar_area,
+            sidebar_panel_inner(sidebar_area, cx.design().space.card_inset),
+            cx.design().space.gutter,
             self.nav_query.is_some(),
         );
         let presentation = NavTreePresentation::new(sidebar.tree, self.nav_query.as_ref());
@@ -2831,22 +2965,39 @@ impl TuiApp for App {
             .copied();
         let section = entry.map(|entry| entry.section).unwrap_or("");
         let label = entry.map(|entry| entry.label).unwrap_or("Overview");
-        let sidebar = SidebarPresentation::new(shell.sidebar, self.nav_query.is_some());
+        let nav_flags = ui.state(NAV);
+        let nav_focused = nav_flags.contains(StateFlags::FOCUSED)
+            && !nav_flags.contains(StateFlags::INACTIVE_LAYER)
+            && !self.overlay_open;
+        let route_count = NAV_ENTRIES.len().to_string();
+        let panel = Panel::new(NAV)
+            .title("")
+            .meta(&route_count)
+            .focused(nav_focused)
+            .patch_part(&NAV_PANEL_PARTS);
+        let panel_inner = panel.inner(ui, shell.sidebar);
+        panel.draw(ui, shell.sidebar, |_, _| ());
+        let gutter = ui.design().space.gutter;
+        let sidebar =
+            SidebarPresentation::new(shell.sidebar, panel_inner, gutter, self.nav_query.is_some());
         let presentation = NavTreePresentation::new(sidebar.tree, self.nav_query.as_ref());
-        let nodes = nav_nodes_for_query(
+        let mut nodes = nav_nodes_for_query(
             &self.nav_state,
             sidebar.tree.height,
             self.nav_query.as_ref(),
         );
-        nav_tree(presentation.query_revision).draw(ui, sidebar.tree, &self.nav_state, &nodes);
-        self.nav_presentation.set(Some(presentation));
-        if let (Some(query_area), Some(query)) = (sidebar.query, self.nav_query.as_ref()) {
-            let nav_state = ui.state(NAV);
-            let focused = nav_state.contains(StateFlags::FOCUSED)
-                && !nav_state.contains(StateFlags::INACTIVE_LAYER)
-                && !self.overlay_open;
-            paint_nav_query(ui, query_area, query, focused);
+        for node in &mut nodes {
+            node.inactive_layer = self.overlay_open;
         }
+        let sidebar_surface = ui.theme().raise(ui.surface());
+        ui.with_surface(sidebar_surface, |ui| {
+            paint_sidebar_heading(ui, shell.sidebar, gutter, nav_focused);
+            nav_tree(presentation.query_revision).draw(ui, sidebar.tree, &self.nav_state, &nodes);
+            if let (Some(query_area), Some(query)) = (sidebar.query, self.nav_query.as_ref()) {
+                paint_nav_query(ui, query_area, query, nav_focused);
+            }
+        });
+        self.nav_presentation.set(Some(presentation));
         paint_header(
             ui,
             shell.header,
@@ -2892,10 +3043,6 @@ impl TuiApp for App {
         } else {
             (&[][..], false)
         };
-        let nav_flags = ui.state(NAV);
-        let nav_focused = nav_flags.contains(StateFlags::FOCUSED)
-            && !nav_flags.contains(StateFlags::INACTIVE_LAYER)
-            && !self.overlay_open;
         let cursor_kind = nav_cursor_kind(&self.nav_state, &nodes, self.nav_query.is_some());
         let modal_page_hints = match self.nav_target {
             NavTarget::Selection => self.selectable.hints(),
@@ -2964,14 +3111,7 @@ impl TuiApp for App {
             }
         }
         ui.layer(HELP, |ui, area| {
-            Self::help_dialog(&self.help_description).draw(
-                ui,
-                area,
-                &self.help_state,
-                |ui, body| {
-                    let _ = ui.paint_str(body, "q quit   ? help   Esc close", ui.surface_style());
-                },
-            );
+            Self::help_overlay().draw(ui, area, &self.help_state);
         });
         ui.layer(INSPECTOR, |ui, area| {
             Self::inspector_dialog(full).draw(ui, area, &self.inspector_state, |ui, body| {
