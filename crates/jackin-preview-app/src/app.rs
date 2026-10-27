@@ -87,6 +87,14 @@ pub const SETTINGS: Id = APP.sub("settings");
 pub const CAPSULE: Id = APP.sub("capsule");
 pub const MANAGER_LIST: Id = crate::screens::manager::TREE;
 const USAGE_TABS: [&str; 3] = ["Overview", "Registration", "Quota"];
+const MANAGER_HELP_HINT_PATCH: &[(Part, termrock::StylePatch)] = &[(
+    Part::CONTAINER,
+    termrock::StylePatch::new()
+        .set_fg(termrock::Role::Custom(termrock::Color::Rgb(
+            0xff, 0xff, 0xff,
+        )))
+        .set_bg(termrock::Role::Custom(termrock::Color::Rgb(0, 0, 0))),
+)];
 pub const ACCOUNTS_LIST: Id = crate::screens::accounts::LIST;
 pub const LAUNCH: Id = crate::screens::manager::LAUNCH;
 pub const ACCOUNT_ADD: Id = APP.sub("account-add");
@@ -553,11 +561,10 @@ impl Default for HintLayerSet {
     fn default() -> Self {
         use termrock::HintKey;
         Self {
-            help: Self::layer(vec![Self::hint(
-                HintKey::Chord(Chord::key(KeyCode::Esc)),
-                "Close",
-                90,
-            )]),
+            help: Self::layer(vec![
+                Self::hint(HintKey::Label("↑↓"), "Scroll", 90),
+                Self::hint(HintKey::Chord(Chord::key(KeyCode::Esc)), "Close", 80),
+            ]),
             default: Self::layer(vec![Self::hint(
                 HintKey::Chord(Chord::key(KeyCode::Enter)),
                 "Choose",
@@ -714,6 +721,7 @@ pub struct App {
     editor_accounts_transition: bool,
     editor_generation: u64,
     editor_env_role: Option<String>,
+    manager_help_state: HelpOverlayState,
     help_open: bool,
     capsule_help_open: bool,
     capsule_help_state: HelpOverlayState,
@@ -947,6 +955,7 @@ impl App {
             editor_accounts_transition: false,
             editor_generation: 0,
             editor_env_role: None,
+            manager_help_state: HelpOverlayState::default(),
             help_open: false,
             capsule_help_open: false,
             capsule_help_state: HelpOverlayState::default(),
@@ -4342,6 +4351,22 @@ impl App {
         self.acknowledge_launch_failure();
     }
 
+    fn update_manager_help(&mut self, cx: &mut Cx<'_>) -> (Response<()>, bool) {
+        let was_open = self.help_open || cx.is_open(manager_help::ID);
+        let response = manager_help::overlay().update(cx, &mut self.manager_help_state);
+        let closed = matches!(response.action_ref(), Some(HelpAction::Closed(_)));
+        let is_open = cx.is_open(manager_help::ID);
+
+        if closed || (was_open && !is_open) {
+            self.help_open = false;
+            self.status = None;
+        } else if is_open {
+            self.help_open = true;
+        }
+
+        (response.erase(), was_open || is_open)
+    }
+
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
 
@@ -6390,8 +6415,13 @@ impl App {
                 Some(Response::changed())
             }
             CMD_ACCOUNT_HELP if self.route == Route::Manager => {
-                self.help_open = true;
-                self.status = Some("Keyboard shortcuts".into());
+                if !self.help_open && !cx.is_open(manager_help::ID) {
+                    self.manager_help_state = HelpOverlayState::default();
+                    let help = manager_help::overlay();
+                    cx.open_layer(manager_help::ID, help.layer(cx));
+                    self.help_open = true;
+                    self.status = Some("Keyboard shortcuts".into());
+                }
                 Some(Response::changed())
             }
             CMD_ACCOUNT_HELP if self.route == Route::Capsule => {
@@ -11074,6 +11104,14 @@ impl App {
         let _shell = Self::shell_panel(&self.shell_meta);
         let mut result = self.advance_virtual_state(cx, product_tick);
         result |= self.sync_account_form_layer(cx);
+        let (manager_help, manager_help_active) = self.update_manager_help(cx);
+        result |= manager_help;
+        if manager_help_active {
+            self.ensure_manager_rows();
+            self.ensure_manager_header();
+            self.sync_workspace_keymap();
+            return result;
+        }
         if cx.update_cause() == UpdateCause::Settle {
             result |= accounts_page::settle_retired_detail_focus(self, cx);
             let editor_save = crate::screens::editor::SAVE;
@@ -11984,14 +12022,18 @@ impl TuiApp for App {
                 }
             });
         }
-        HintBar::new(APP.sub("hint"), hints).draw(
-            ui,
-            Rect {
-                y: full.bottom().saturating_sub(1),
-                height: 1,
-                ..full
-            },
-        );
+        let hint_area = Rect {
+            y: full.bottom().saturating_sub(1),
+            height: 1,
+            ..full
+        };
+        if self.help_open {
+            HintBar::new(APP.sub("hint"), hints)
+                .patch_part(MANAGER_HELP_HINT_PATCH)
+                .draw(ui, hint_area);
+        } else {
+            HintBar::new(APP.sub("hint"), hints).draw(ui, hint_area);
+        }
 
         if self.launch_cockpit_scene() {
             launch_cockpit::paint(self, ui);
@@ -12210,13 +12252,8 @@ impl TuiApp for App {
             cx.close_layer(CAPSULE_HELP, None);
             return self.route_changed();
         }
-        if self.help_open {
-            self.help_open = false;
-            self.status = None;
-            if self.route == Route::Manager {
-                cx.focus(MANAGER_LIST);
-            }
-            return self.route_changed();
+        if self.help_open || cx.is_open(manager_help::ID) {
+            return Response::ignored();
         }
         if matches!(self.route, Route::Launch | Route::Cockpit) && self.cockpit.log_open {
             self.cockpit.log_open = false;
