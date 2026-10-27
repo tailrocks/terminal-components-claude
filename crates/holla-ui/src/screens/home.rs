@@ -890,6 +890,42 @@ const FIRST_USE_NEUTRAL_PARTS: &[(Part, StylePatch)] = &[
     (Part::META, FIRST_USE_NEUTRAL_ROW_PATCH),
 ];
 
+const FIRST_USE_CATEGORY_GUTTER_PATCH: StylePatch = StylePatch::new()
+    .set_fg(Role::Surface(Surface::Canvas))
+    .set_bg(Role::Surface(Surface::Canvas));
+
+const FIRST_USE_NEUTRAL_CATEGORY_PARTS: &[(Part, StylePatch)] = &[
+    (Part::CONTAINER, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::ROW, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::GUTTER, FIRST_USE_CATEGORY_GUTTER_PATCH),
+    (Part::MARKER, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::ICON, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::LABEL, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::META, FIRST_USE_NEUTRAL_ROW_PATCH),
+];
+
+const FIRST_USE_SELECTED_CATEGORY_PARTS: &[(Part, StylePatch)] = &[
+    (Part::CONTAINER, FIRST_USE_SELECTED_ROW_PATCH),
+    (Part::ROW, FIRST_USE_SELECTED_ROW_PATCH),
+    (Part::GUTTER, FIRST_USE_CATEGORY_GUTTER_PATCH),
+    (Part::MARKER, FIRST_USE_SELECTED_ROW_PATCH),
+    (Part::ICON, FIRST_USE_SELECTED_ROW_PATCH),
+];
+
+const FIRST_USE_COVERED_SELECTED_MARKER_PATCH: StylePatch = StylePatch::new()
+    .set_fg(Role::Fg(FgStep::Secondary))
+    .set_bg(Role::Surface(Surface::Canvas));
+
+const FIRST_USE_COVERED_SELECTED_ACTION_PARTS: &[(Part, StylePatch)] = &[
+    (Part::CONTAINER, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::ROW, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::GUTTER, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::MARKER, FIRST_USE_COVERED_SELECTED_MARKER_PATCH),
+    (Part::ICON, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::LABEL, FIRST_USE_NEUTRAL_ROW_PATCH),
+    (Part::META, FIRST_USE_NEUTRAL_ROW_PATCH),
+];
+
 const FIRST_USE_SELECTED_LABEL_PATCH: StylePatch = StylePatch::new()
     .set_fg(Role::HighlightFg)
     .set_bg(Role::HighlightBg)
@@ -914,12 +950,21 @@ fn paint_first_use_row(
     row: &HomeRow,
 ) {
     let covered = ui.is_covered_by_native_layer();
-    let selected = flags.contains(StateFlags::SELECTED) && !covered;
-    let author_style = if selected {
-        PartStyle::new().part(FIRST_USE_SELECTED_PARTS)
+    let selected = flags.contains(StateFlags::SELECTED);
+    let author_parts = if row.chips.is_some() {
+        if selected && !covered {
+            FIRST_USE_SELECTED_CATEGORY_PARTS
+        } else {
+            FIRST_USE_NEUTRAL_CATEGORY_PARTS
+        }
+    } else if selected && covered && row.action.is_some() {
+        FIRST_USE_COVERED_SELECTED_ACTION_PARTS
+    } else if selected && !covered {
+        FIRST_USE_SELECTED_PARTS
     } else {
-        PartStyle::new().part(FIRST_USE_NEUTRAL_PARTS)
+        FIRST_USE_NEUTRAL_PARTS
     };
+    let author_style = PartStyle::new().part(author_parts);
     let mut cells = RowUi::new_with_author_style(
         ui,
         ROWS,
