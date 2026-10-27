@@ -29,11 +29,11 @@ mod source_manifest;
 const DEFAULT_COLS: u16 = 120;
 const DEFAULT_ROWS: u16 = 40;
 const FIRST_FLOW_DENOMINATOR: usize = 4;
-const FIRST_CHECKPOINT_DENOMINATOR: usize = 12;
+const FIRST_CHECKPOINT_DENOMINATOR: usize = 16;
 const FIRST_PLUS_HELP_FLOW_DENOMINATOR: usize = 5;
-const FIRST_PLUS_HELP_CHECKPOINT_DENOMINATOR: usize = 18;
+const FIRST_PLUS_HELP_CHECKPOINT_DENOMINATOR: usize = 23;
 const HOLLA_FIRST_USE_FLOW_DENOMINATOR: usize = 1;
-const HOLLA_FIRST_USE_CHECKPOINT_DENOMINATOR: usize = 7;
+const HOLLA_FIRST_USE_CHECKPOINT_DENOMINATOR: usize = 8;
 const HOLLA_RESULT_LIST_X_START: u32 = 0;
 const HOLLA_RESULT_LIST_X_END: u32 = 78;
 const HOLLA_RESULT_LIST_Y_START: u32 = 6;
@@ -131,14 +131,15 @@ if len(helper_bytes) != entry["size"] or hashlib.sha256(helper_bytes).hexdigest(
 sys.argv = [str(helper_path), *helper_arguments]
 exec(compile(helper_bytes, str(helper_path), "exec"), {"__name__": "__main__", "__file__": str(helper_path)})
 "###;
-const FIRST_CHECKPOINTS: [&str; 3] = ["initial", "help", "restored"];
-const SHOWCASE_HELP_CHECKPOINTS: [&str; 6] = [
+const FIRST_CHECKPOINTS: [&str; 4] = ["initial", "help", "restored", "exit"];
+const SHOWCASE_HELP_CHECKPOINTS: [&str; 7] = [
     "initial",
     "help-start",
     "help-scrolled",
     "restored",
     "help-reopened",
     "restored-after-modal-q",
+    "exit",
 ];
 const HOLLA_FIRST_USE_CHECKPOINTS: [&str; HOLLA_FIRST_USE_CHECKPOINT_DENOMINATOR] = [
     "initial",
@@ -148,6 +149,7 @@ const HOLLA_FIRST_USE_CHECKPOINTS: [&str; HOLLA_FIRST_USE_CHECKPOINT_DENOMINATOR
     "query-resource",
     "query-restored",
     "query-cleared",
+    "exit",
 ];
 
 #[derive(Clone, Copy)]
@@ -464,7 +466,15 @@ fn run() -> AppResult<()> {
         "incomplete"
     };
     let tuiscotti_commit = export_provenance["tuiscotti_commit"].clone();
-    let engine_commit = export_provenance["engine"]["head"].clone();
+    let engine_source = json!({
+        "base_commit":export_provenance["engine"]["base_commit"],
+        "base_tree":export_provenance["engine"]["base_tree"],
+        "head":export_provenance["engine"]["head"],
+        "head_tree":export_provenance["engine"]["head_tree"],
+        "result_tree":export_provenance["engine"]["result_tree"],
+        "bundle_sha256":export_provenance["engine"]["bundle_sha256"],
+        "patch_sha256":export_provenance["engine"]["patch_sha256"],
+    });
     let result = json!({
         "schema": "termrock-live-run.v1",
         "status": run_status,
@@ -488,13 +498,52 @@ fn run() -> AppResult<()> {
         "suite_export_provenance": export_provenance,
         "suite_dependency_sources": {
             "tuiscotti": tuiscotti_commit,
-            "tui_test_derived": engine_commit,
+            "tui_test_derived": engine_source,
+        },
+        "state_field_inventory": {
+            "cell": [
+                "text",
+                "width",
+                "continuation",
+                "foreground color reference",
+                "background color reference",
+                "underline color reference",
+                "bold",
+                "dim",
+                "italic",
+                "inverse",
+                "invisible",
+                "strike",
+                "blink",
+                "underline shape",
+                "hyperlink URI and ID",
+            ],
+            "terminal": [
+                "256-entry palette",
+                "default foreground",
+                "default background",
+                "default cursor color",
+                "title",
+            ],
+            "cursor": [
+                "column",
+                "row",
+                "capture membership",
+                "visibility",
+                "shape",
+                "RGB color",
+                "optional blink",
+            ],
         },
         "flows": flow_results,
         "limits": [
             "Full parity inventory is not run.",
             "The existing 302-screen claim is not fresh evidence.",
             "Reference approval is independent and outside this runner.",
+            "Alacritty discards SGR text blink. A false or missing snapshot flag does not prove the child requested no blink.",
+            "An explicit hyperlink ID ending in _alacritty is indistinguishable from an Alacritty-generated ID and is lost.",
+            "The unchanged comparator compares color references as written; it does not equate Default, Indexed, and RGB forms by resolved color.",
+            "Unknown cursor blink or any unsupported required field prevents full exact-state acceptance. Full exact-state acceptance is NOT VERIFIED.",
         ],
     });
     write_json_new(&out_dir.join("run-result.json"), &result)?;
@@ -703,6 +752,7 @@ fn run_case(
         })?;
         process_state = match session.execute(Operation::State)? {
             OperationResult::State(state) => json!({
+                "wait_exit_completed": true,
                 "exited": state.exited,
                 "exit_signal": state.exit_signal,
                 "cols": state.cols,
@@ -711,6 +761,7 @@ fn run_case(
             other => return Err(format!("unexpected process state result: {other:?}").into()),
         };
         child_exited = true;
+        write_json_new(&case_out.join("process-state.json"), &process_state)?;
         if process_state["exited"] != 0 || !process_state["exit_signal"].is_null() {
             return Err(format!("child did not exit cleanly: {process_state}").into());
         }
@@ -734,10 +785,42 @@ fn run_case(
             )
             .into());
         }
+        wait_visual_quiet(&session)?;
+        let exit_label = case
+            .checkpoint_labels
+            .last()
+            .copied()
+            .ok_or("case has no exit checkpoint")?;
+        if exit_label != "exit" {
+            return Err(format!("case ends with unexpected checkpoint {exit_label:?}").into());
+        }
+        checkpoints.push(capture_checkpoint(
+            &session,
+            sample_profile,
+            case,
+            exit_label,
+            &case_out,
+        )?);
         let raw = fs::read(&raw_path)?;
         if u64::try_from(raw.len())? != captured {
             return Err(format!(
                 "raw file length {} does not match reported byte count {captured}",
+                raw.len()
+            )
+            .into());
+        }
+        let exit_checkpoint = checkpoints
+            .last()
+            .ok_or("exit checkpoint was not captured")?;
+        if exit_checkpoint.offset != captured
+            || exit_checkpoint.offset != processed
+            || exit_checkpoint.offset != u64::try_from(raw.len())?
+        {
+            return Err(format!(
+                "exit checkpoint offset {} does not match captured {}, processed {}, and raw file length {}",
+                exit_checkpoint.offset,
+                captured,
+                processed,
                 raw.len()
             )
             .into());
@@ -841,6 +924,19 @@ fn run_case(
         let mut status_value = serde_json::to_value(&status)?;
         if let Some(object) = status_value.as_object_mut() {
             object.insert(
+                "raw_file_bytes".to_string(),
+                json!(fs::metadata(&raw_path).ok().map(|metadata| metadata.len())),
+            );
+            object.insert(
+                "exit_checkpoint_offset".to_string(),
+                json!(
+                    checkpoints
+                        .last()
+                        .filter(|checkpoint| checkpoint.label == "exit")
+                        .map(|checkpoint| checkpoint.offset)
+                ),
+            );
+            object.insert(
                 "observed_after_cleanup_close".to_string(),
                 json!(closed_for_cleanup),
             );
@@ -848,16 +944,15 @@ fn run_case(
         }
         write_json_new(&case_out.join("raw-status.json"), &status_value)?;
     }
-    let checkpoint_evidence_errors =
-        if work.is_err() && matches!(case.journey, Journey::HollaFirstUseAction) {
-            let errors = preserve_reached_checkpoint_prefixes(&raw_path, &case_out, &checkpoints);
-            if !errors.is_empty() {
-                write_json_new(&case_out.join("checkpoint-evidence-errors.json"), &errors)?;
-            }
-            errors
-        } else {
-            Vec::new()
-        };
+    let checkpoint_evidence_errors = if work.is_err() {
+        let errors = preserve_reached_checkpoint_prefixes(&raw_path, &case_out, &checkpoints);
+        if !errors.is_empty() {
+            write_json_new(&case_out.join("checkpoint-evidence-errors.json"), &errors)?;
+        }
+        errors
+    } else {
+        Vec::new()
+    };
     write_json_new(
         &case_out.join("actions.json"),
         &json!({
@@ -943,6 +1038,7 @@ fn run_case(
             "expected_path":format!("expected/{}.tui.json", checkpoint.sample_id),
         })).collect::<Vec<_>>(),
         "process_state":process_state,
+        "checkpoint_evidence_errors":checkpoint_evidence_errors,
         "check_failures":check_failures,
         "reference_approval":"not performed",
     });
@@ -954,10 +1050,6 @@ fn run_case(
             json!(semantic_assertions),
         );
         object.insert("failure_finalization".to_string(), failure_finalization);
-        object.insert(
-            "checkpoint_evidence_errors".to_string(),
-            json!(checkpoint_evidence_errors),
-        );
     }
     write_json_new(&case_out.join("result.json"), &result)?;
     Ok(result)

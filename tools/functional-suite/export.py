@@ -16,28 +16,39 @@ SOURCE_SUBTREE = "tools/functional-suite"
 MANIFEST_NAME = "export-manifest.json"
 ENGINE_RELATIVE = ".engine/tui-test"
 BUNDLE_RELATIVE = "engine/tui-test.bundle"
+ENGINE_PATCH_RELATIVE = "engine/tui-test.patch"
 PIN_RELATIVE = "engine/pin.json"
 LOCK_RELATIVE = "Cargo.lock"
 APPROVAL_LOCK = "expected/.tuiscotti-approval.lock"
 ENGINE_BASE_COMMIT = "e15339fd136b5454849e1107bab142c98416b174"
 ENGINE_BASE_TREE = "df8bb26a9f4de5058f89c9361fe58f42f79025ec"
-ENGINE_COMMIT = "438563a86a3c5d78e6da6e12511fa089c6f15c61"
-ENGINE_TREE = "d9957241869fcea938de9baa719de5f04d545453"
+ENGINE_BUNDLE_HEAD = "438563a86a3c5d78e6da6e12511fa089c6f15c61"
+ENGINE_BUNDLE_TREE = "d9957241869fcea938de9baa719de5f04d545453"
+ENGINE_RESULT_TREE = "5b39d021527da44190a94253fca2ace9f415eb91"
 ENGINE_BUNDLE_SHA256 = "246c93b389824a85a212cceb37e584c866b6615bd4f69fece6f241320cd26cca"
-ENGINE_PATCH_SHA256 = "9a7ed376d18c98791aa1e6a2052ce9b022d2c7aff35450b5c665dce0b6841b23"
+ENGINE_PATCH_SHA256 = "ba409cfb2a7b2481a98068a36ed906a07059222c7c3ec1eccc18c19c6c5fef9e"
 TUISCOTTI_COMMIT = "f40513120727f83c0c9713ae8d04eac70dfc955e"
 SUITE_LOCK_SHA256 = "66ffb4a40092bcf2d6e70f3342bfb3982f7c081c7633f3b042007f0bf5d73e90"
+ENGINE_PATCH_FILES = (
+    "crates/tui-test/src/api.rs",
+    "crates/tui-test/src/engine.rs",
+    "crates/tui-test/src/runtime.rs",
+    "crates/tui-test/src/session.rs",
+    "crates/tui-test/src/snapshot.rs",
+    "crates/tui-test/src/terminal/alacritty.rs",
+    "crates/tui-test/src/terminal/emu.rs",
+    "crates/tui-test/src/terminal/pty.rs",
+)
 LEGACY_IMPORT = {
     "commit": "bb055bfcdb1ac37e9855e700497fd955b4a32f4b",
     "tree": "f3434d7c30b9dd3108f25dde6507f5523f51d1f6",
     "scenario_commit": "51a37ff4a0dbd467f2944ae486b23eb2592592b8",
 }
 PIN = {
-    "schema": "termrock-live-suite-engine-pin.v1",
+    "schema": "termrock-live-suite-engine-pin.v2",
     "engine_base_commit": ENGINE_BASE_COMMIT,
     "engine_base_tree": ENGINE_BASE_TREE,
-    "engine_commit": ENGINE_COMMIT,
-    "engine_tree": ENGINE_TREE,
+    "engine_result_tree": ENGINE_RESULT_TREE,
     "bundle_sha256": ENGINE_BUNDLE_SHA256,
     "patch_sha256": ENGINE_PATCH_SHA256,
     "tuiscotti_commit": TUISCOTTI_COMMIT,
@@ -405,6 +416,8 @@ def read_committed_suite(source_root, commit):
         fail("suite lock differs from the approved lock")
     if by_path.get(BUNDLE_RELATIVE) is None or sha256(by_path[BUNDLE_RELATIVE]["data"]) != ENGINE_BUNDLE_SHA256:
         fail("local engine bundle differs from the approved bundle")
+    if by_path.get(ENGINE_PATCH_RELATIVE) is None or sha256(by_path[ENGINE_PATCH_RELATIVE]["data"]) != ENGINE_PATCH_SHA256:
+        fail("complete engine patch differs from the approved patch")
     if by_path.get("export.py") is None:
         fail("canonical suite does not contain export.py")
     return actual_tree, suite_tree, file_entries, files, implied_directories(file_entries)
@@ -779,17 +792,36 @@ def verify_export_files(root, manifest):
     bundle_data, _ = safe_read_relative(root, BUNDLE_RELATIVE, BUNDLE_RELATIVE)
     if sha256(bundle_data) != ENGINE_BUNDLE_SHA256:
         fail("exported engine bundle differs from the approved bundle")
+    patch_data, _ = safe_read_relative(root, ENGINE_PATCH_RELATIVE, ENGINE_PATCH_RELATIVE)
+    if sha256(patch_data) != ENGINE_PATCH_SHA256:
+        fail("exported complete engine patch differs from the approved patch")
 
 
 def read_engine_tree(engine_path):
     head = git_text(engine_path, ["rev-parse", "HEAD"])
-    tree = git_text(engine_path, ["rev-parse", "HEAD^{tree}"])
-    if head != ENGINE_COMMIT or tree != ENGINE_TREE:
-        fail(f"engine identity differs: HEAD={head}, tree={tree}")
+    head_tree = git_text(engine_path, ["rev-parse", "HEAD^{tree}"])
+    result_tree = git_text(engine_path, ["write-tree"])
+    if head != ENGINE_BASE_COMMIT or head_tree != ENGINE_BASE_TREE:
+        fail(f"engine base identity differs: HEAD={head}, tree={head_tree}")
+    if result_tree != ENGINE_RESULT_TREE:
+        fail(f"engine patched index differs: tree={result_tree}")
     if git_text(engine_path, ["rev-parse", "--show-toplevel"]) != str(engine_path):
         fail("engine Git root differs from its sealed path")
-    if git_call(engine_path, ["status", "--porcelain=v1", "--untracked-files=all"]):
-        fail("engine worktree is not clean")
+    status = git_call(engine_path, ["status", "--porcelain=v1", "--untracked-files=all"])
+    try:
+        status_lines = status.decode("utf-8").splitlines()
+    except UnicodeDecodeError as error:
+        fail(f"engine status is not UTF-8: {error}")
+    if any(len(line) < 4 or line[:2] != "M " for line in status_lines):
+        fail("engine has an unstaged, untracked, or unexpected tracked change")
+    status_paths = [line[3:] for line in status_lines]
+    if status_paths != list(ENGINE_PATCH_FILES):
+        fail("engine worktree changes do not match the complete approved patch")
+    index_paths = git_text(
+        engine_path, ["diff", "--cached", "--name-only", ENGINE_BASE_COMMIT]
+    ).splitlines()
+    if index_paths != list(ENGINE_PATCH_FILES):
+        fail("engine index paths differ from the complete approved patch")
     if git_text(engine_path, ["remote"]):
         fail("engine repository has a remote")
     git_dir = engine_path / ".git"
@@ -799,7 +831,7 @@ def read_engine_tree(engine_path):
     for relative in ("objects/info/alternates", "objects/info/http-alternates"):
         if os.path.lexists(git_dir / relative):
             fail(f"engine repository has an alternate object store: {relative}")
-    listing = git_call(engine_path, ["ls-tree", "-r", "-z", "--full-tree", "HEAD"])
+    listing = git_call(engine_path, ["ls-tree", "-r", "-z", "--full-tree", ENGINE_RESULT_TREE])
     entries = []
     for record in listing.split(b"\0"):
         if not record:
@@ -859,10 +891,14 @@ def read_engine_tree(engine_path):
         actual_mode = "100755" if permissions == 0o755 else "100644"
         if actual != expected or actual_mode != mode:
             fail(f"engine worktree differs from its Git tree: {relative}")
-    return {"head": head, "tree": tree}
+    return {"head": head, "head_tree": head_tree, "result_tree": result_tree}
 
 
-def create_engine(root, bundle_data):
+def create_engine(root, bundle_data, patch_data):
+    if sha256(bundle_data) != ENGINE_BUNDLE_SHA256:
+        fail("engine bundle digest differs from the approved bundle")
+    if sha256(patch_data) != ENGINE_PATCH_SHA256:
+        fail("complete engine patch digest differs from the approved patch")
     engine_parent = root / ".engine"
     engine_path = engine_parent / "tui-test"
     if os.path.lexists(engine_parent):
@@ -871,7 +907,7 @@ def create_engine(root, bundle_data):
         if any(name != "tui-test" for name in names):
             fail(".engine contains an unexpected generated entry")
         if os.path.lexists(engine_path):
-            verify_engine(engine_path, bundle_data)
+            verify_engine(engine_path, bundle_data, patch_data)
             return engine_path
     else:
         root_descriptor = os.open(root, directory_flags())
@@ -881,7 +917,7 @@ def create_engine(root, bundle_data):
         finally:
             os.close(root_descriptor)
     if os.path.lexists(engine_path):
-        verify_engine(engine_path, bundle_data)
+        verify_engine(engine_path, bundle_data, patch_data)
         return engine_path
     with tempfile.TemporaryDirectory(prefix=".tui-test-staging-", dir=engine_parent) as temporary:
         temporary_path = pathlib.Path(temporary)
@@ -898,43 +934,57 @@ def create_engine(root, bundle_data):
         git_call(staging, ["config", "--local", "core.hooksPath", os.devnull])
         git_call(staging, ["bundle", "verify", str(bundle_path)])
         heads = git_call(staging, ["bundle", "list-heads", str(bundle_path)]).decode("utf-8").splitlines()
-        expected_head = f"{ENGINE_COMMIT} refs/heads/common-raw-e153"
+        expected_head = f"{ENGINE_BUNDLE_HEAD} refs/heads/common-raw-e153"
         if heads != [expected_head]:
             fail("engine bundle does not advertise the sole approved reference")
         git_call(
             staging,
             ["fetch", "--quiet", "--no-tags", "--no-recurse-submodules", str(bundle_path), "refs/heads/common-raw-e153"],
         )
-        git_call(staging, ["checkout", "--quiet", "--detach", ENGINE_COMMIT])
-        verify_engine(staging, bundle_data)
+        if (
+            git_text(staging, ["rev-parse", f"{ENGINE_BUNDLE_HEAD}^{{tree}}"])
+            != ENGINE_BUNDLE_TREE
+        ):
+            fail("engine bundle head tree differs from the accepted raw source tree")
+        git_call(staging, ["merge-base", "--is-ancestor", ENGINE_BASE_COMMIT, ENGINE_BUNDLE_HEAD])
+        if (
+            git_text(staging, ["rev-parse", f"{ENGINE_BASE_COMMIT}^{{tree}}"])
+            != ENGINE_BASE_TREE
+        ):
+            fail("maintained engine base tree differs from the approved base tree")
+        git_call(staging, ["checkout", "--quiet", "--detach", ENGINE_BASE_COMMIT])
+        git_call(staging, ["apply", "--index", "--binary"], input_bytes=patch_data)
+        verify_engine(staging, bundle_data, patch_data)
         if os.path.lexists(engine_path):
             fail("engine destination appeared during materialization")
         os.rename(staging, engine_path)
-    verify_engine(engine_path, bundle_data)
+    verify_engine(engine_path, bundle_data, patch_data)
     return engine_path
 
 
-def verify_engine(engine_path, bundle_data):
+def verify_engine(engine_path, bundle_data, patch_data):
     if sha256(bundle_data) != ENGINE_BUNDLE_SHA256:
         fail("engine bundle digest differs from the approved bundle")
+    if sha256(patch_data) != ENGINE_PATCH_SHA256:
+        fail("complete engine patch digest differs from the approved patch")
     inspect_directory(engine_path, "materialized engine")
     identity = read_engine_tree(engine_path)
     return identity
 
 
-def verify_generated_paths(root, bundle_data):
+def verify_generated_paths(root, bundle_data, patch_data):
     engine_parent = root / ".engine"
     engine_path = engine_parent / "tui-test"
     if not os.path.lexists(engine_parent):
-        create_engine(root, bundle_data)
-        return verify_engine(engine_path, bundle_data)
+        create_engine(root, bundle_data, patch_data)
+        return verify_engine(engine_path, bundle_data, patch_data)
     inspect_directory(engine_parent, "engine parent")
     entries = sorted(os.listdir(engine_parent))
     if any(name != "tui-test" for name in entries):
         fail(".engine contains an unexpected generated entry")
     if not os.path.lexists(engine_path):
-        create_engine(root, bundle_data)
-    return verify_engine(engine_path, bundle_data)
+        create_engine(root, bundle_data, patch_data)
+    return verify_engine(engine_path, bundle_data, patch_data)
 
 
 def verify_engine_boundaries(root, boundaries):
@@ -967,7 +1017,9 @@ def provenance(manifest, seal, data_digest, reference_digest, engine_identity):
             "base_commit": pin["engine_base_commit"],
             "base_tree": pin["engine_base_tree"],
             "head": engine_identity["head"],
-            "tree": engine_identity["tree"],
+            "head_tree": engine_identity["head_tree"],
+            "tree": engine_identity["result_tree"],
+            "result_tree": engine_identity["result_tree"],
             "bundle_sha256": pin["bundle_sha256"],
             "patch_sha256": pin["patch_sha256"],
         },
@@ -984,7 +1036,9 @@ def cargo_inputs(root, manifest):
     for relative in manifest["directories"]:
         paths.add(str(root / relative))
     engine_root = root / ENGINE_RELATIVE
-    engine_tree = git_call(engine_root, ["ls-tree", "-r", "-z", "--full-tree", "HEAD"])
+    engine_tree = git_call(
+        engine_root, ["ls-tree", "-r", "-z", "--full-tree", ENGINE_RESULT_TREE]
+    )
     for record in engine_tree.split(b"\0"):
         if not record:
             continue
@@ -1030,7 +1084,10 @@ def verify_export(root_value, expected_seal, bin_value=None, output_value=None, 
     )
     verify_export_files(export_path, manifest)
     bundle_data, _ = safe_read_relative(export_path, BUNDLE_RELATIVE, "engine bundle")
-    engine_identity = verify_generated_paths(export_path, bundle_data)
+    patch_data, _ = safe_read_relative(
+        export_path, ENGINE_PATCH_RELATIVE, "complete engine patch"
+    )
+    engine_identity = verify_generated_paths(export_path, bundle_data, patch_data)
     verify_engine_boundaries(export_path, manifest["boundaries"])
     result = provenance(manifest, expected_seal, data_digest, reference_digest, engine_identity)
     if cargo:

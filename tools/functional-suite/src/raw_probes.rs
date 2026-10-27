@@ -14,10 +14,10 @@ use tui_test::api::{
     AutomaticRecording, Operation, OperationResult, RawOutputCaptureOptions, RunOptions, Timeouts,
 };
 use tui_test::launch::{LaunchEnvMode, LaunchOptions};
-use tui_test::profile::Profile;
+use tui_test::profile::{Profile, Rgb};
 use tui_test::render::style::Style;
 use tui_test::runtime::Session;
-use tui_test::snapshot::{SnapshotScope, TerminalSnapshot};
+use tui_test::snapshot::{SnapshotCursorShape, SnapshotScope, TerminalSnapshot};
 use tui_test::wait::{WaitQuietMode, WaitQuietOptions};
 
 const COLS: u16 = 120;
@@ -25,6 +25,10 @@ const ROWS: u16 = 40;
 const CHILD_WAIT: Duration = Duration::from_secs(12);
 const CHILD_WAIT_MS: u64 = 12_000;
 const EXPECTED_FLOW_DENOMINATOR: usize = 4;
+const CURSOR_STAGE_A: &[u8] =
+    b"\x1b[2J\x1b[H\x1b[?25h\x1b[5 q\x1b]12;#123456\x07CV3-BLINK-ON\x1b[3;7H";
+const CURSOR_STAGE_B: &[u8] =
+    b"\x1b[H\x1b[2KCV3-BLINK-OFF\x1b[6 q\x1b]12;#654321\x07\x1b[?25l\x1b[4;9H";
 
 type AppResult<T> = Result<T, Box<dyn Error>>;
 
@@ -66,6 +70,10 @@ pub fn run(args: Vec<OsString>) -> AppResult<()> {
         (
             "runtime-write-failure",
             run_runtime_write_failure_probe as fn(&Path) -> AppResult<Value>,
+        ),
+        (
+            "CV3-CURSOR",
+            run_cursor_blink_probe as fn(&Path) -> AppResult<Value>,
         ),
     ] {
         let probe_dir = out.join(name);
@@ -109,8 +117,8 @@ pub fn run(args: Vec<OsString>) -> AppResult<()> {
         "status":run_status,
         "started_at_unix_ms":started_at,
         "finished_at_unix_ms":unix_ms(),
-        "probe_denominator":4,
-        "probes_completed":4,
+        "probe_denominator":5,
+        "probes_completed":5,
         "probes_failed":failed,
         "probes_not_run":not_run,
         "application_flows_affected":0,
@@ -120,6 +128,7 @@ pub fn run(args: Vec<OsString>) -> AppResult<()> {
         "limits":[
             "These probes exercise the raw-capture API with real child processes.",
             "The controlled PTY writes contain no carriage return or line feed, so PTY output newline translation does not alter the expected byte stream.",
+            "CV3-CURSOR checks two fixed cursor states through the existing Alacritty producer path. It checks capture infrastructure, not an application journey.",
             "Overflow and File::flush failure are source-reviewed only; no deterministic runtime path was used.",
         ],
     });
@@ -145,8 +154,287 @@ pub fn run_child() -> AppResult<()> {
         "drain-explicit" => child_drain_parent(false),
         "drain-holder" => child_drain_holder(),
         "write-failure" => child_write_failure(),
+        "cursor-blink" => child_cursor_blink(),
         other => Err(format!("unknown raw probe child mode {other:?}").into()),
     }
+}
+
+fn run_cursor_blink_probe(out: &Path) -> AppResult<Value> {
+    let session = Session::new("raw-probe-cv3-cursor".to_string());
+    let raw_path = out.join("raw.ansi");
+    let expected = [CURSOR_STAGE_A, CURSOR_STAGE_B].concat();
+    if expected.contains(&b'\r') || expected.contains(&b'\n') {
+        return Err("CV3-CURSOR producer bytes contain a carriage return or line feed".into());
+    }
+    let mut child_state = None;
+    let operation = (|| -> AppResult<Value> {
+        let launch = child_launch(out, "cursor-blink", &[])?;
+        session.spawn_with_raw_output_capture(
+            launch,
+            run_options(out),
+            RawOutputCaptureOptions::new(&raw_path),
+        )?;
+
+        wait_file(&out.join("stage-a.ready"), CHILD_WAIT)?;
+        session
+            .get_by_text("CV3-BLINK-ON")
+            .wait_with_timeout(Some(CHILD_WAIT_MS))?;
+        wait_visual_quiet(&session)?;
+        let (snapshot_a, offset_a) =
+            session.capture_snapshot_with_raw_offset(SnapshotScope::ActiveScreen)?;
+        let offset_a = offset_a.ok_or("stage A processed byte offset is unavailable")?;
+        if CURSOR_STAGE_A.len() != 49 || offset_a != CURSOR_STAGE_A.len() as u64 {
+            return Err(
+                format!("stage A processed offset is {offset_a}, expected 49 bytes").into(),
+            );
+        }
+        let raw_a = fs::read(&raw_path)?;
+        if raw_a != CURSOR_STAGE_A {
+            return Err(format!(
+                "stage A raw prefix differs: got {} bytes, expected 49",
+                raw_a.len()
+            )
+            .into());
+        }
+        let failures_a = verify_cursor_stage(
+            &snapshot_a,
+            "CV3-BLINK-ON",
+            6,
+            2,
+            true,
+            Some(true),
+            Rgb::new(18, 52, 86),
+        );
+        write_cursor_stage(out, "stage-a", &snapshot_a, &raw_a, offset_a, &failures_a)?;
+
+        fs::write(out.join("continue-b"), b"")?;
+        wait_file(&out.join("stage-b.ready"), CHILD_WAIT)?;
+        session
+            .get_by_text("CV3-BLINK-OFF")
+            .wait_with_timeout(Some(CHILD_WAIT_MS))?;
+        wait_visual_quiet(&session)?;
+        let (snapshot_b, offset_b) =
+            session.capture_snapshot_with_raw_offset(SnapshotScope::ActiveScreen)?;
+        let offset_b = offset_b.ok_or("stage B processed byte offset is unavailable")?;
+        if CURSOR_STAGE_B.len() != 50 || offset_b != expected.len() as u64 {
+            return Err(
+                format!("stage B processed offset is {offset_b}, expected 99 bytes").into(),
+            );
+        }
+        let raw_b = fs::read(&raw_path)?;
+        if raw_b != expected {
+            return Err(format!(
+                "stage B raw prefix differs: got {} bytes, expected 99",
+                raw_b.len()
+            )
+            .into());
+        }
+        let failures_b = verify_cursor_stage(
+            &snapshot_b,
+            "CV3-BLINK-OFF",
+            8,
+            3,
+            false,
+            Some(false),
+            Rgb::new(101, 67, 33),
+        );
+        write_cursor_stage(out, "stage-b", &snapshot_b, &raw_b, offset_b, &failures_b)?;
+
+        fs::write(out.join("finish"), b"")?;
+        wait_for_exit(&session)?;
+        let state = read_state(&session)?;
+        require_clean_exit(&state)?;
+        child_state = Some(state.clone());
+        let status = session
+            .raw_output_capture_status()
+            .ok_or("cursor probe raw capture status is unavailable after child exit")?;
+        verify_complete_status(&status, expected.len() as u64)?;
+        let raw = fs::read(&raw_path)?;
+        if raw != expected {
+            return Err(format!(
+                "final cursor raw stream differs: got {} bytes, expected 99",
+                raw.len()
+            )
+            .into());
+        }
+        if offset_a != CURSOR_STAGE_A.len() as u64
+            || offset_b != expected.len() as u64
+            || status.processed_output_offset != Some(expected.len() as u64)
+            || status.captured_output_bytes != Some(expected.len() as u64)
+        {
+            return Err(format!(
+                "cursor offsets disagree: A={offset_a}, B={offset_b}, status={status:?}"
+            )
+            .into());
+        }
+        let assertion_failures = failures_a
+            .iter()
+            .chain(failures_b.iter())
+            .cloned()
+            .collect::<Vec<_>>();
+        Ok(json!({
+            "status":if assertion_failures.is_empty() { "passed" } else { "failed" },
+            "id":"CV3-CURSOR",
+            "application_flows_affected":0,
+            "counts_toward_application_flow_denominator":false,
+            "producer":"existing common-suite raw probe child",
+            "expected_bytes":expected.len(),
+            "expected_offsets":{"stage_a":49,"stage_b":99},
+            "observed_offsets":{"stage_a":offset_a,"stage_b":offset_b},
+            "raw_sha256":sha256(&raw),
+            "raw_path":"raw.ansi",
+            "stage_a":{
+                "marker":"CV3-BLINK-ON",
+                "cursor":{"col":6,"row":2,"visible":true,"shape":"bar","color":[18,52,86],"blink":true},
+                "assertion_failures":failures_a,
+            },
+            "stage_b":{
+                "marker":"CV3-BLINK-OFF",
+                "cursor":{"col":8,"row":3,"visible":false,"shape":"bar","color":[101,67,33],"blink":false},
+                "assertion_failures":failures_b,
+            },
+            "assertion_failures":assertion_failures,
+            "child":state,
+            "capture_status":status,
+            "limits":["Infrastructure conformance only; not application behavior evidence."],
+        }))
+    })();
+
+    if operation.is_err() {
+        let _ = fs::write(out.join("continue-b"), b"");
+        let _ = fs::write(out.join("finish"), b"");
+        let _ = session.execute(Operation::WaitExit {
+            timeout_ms: Some(1_000),
+        });
+    }
+    let close_result = session.close();
+    let final_status = session.raw_output_capture_status();
+    if let Some(status) = &final_status {
+        write_json_new(&out.join("raw-status-final.json"), status)?;
+    }
+    match operation {
+        Ok(mut value) => {
+            if let Err(error) = close_result {
+                return Err(format!("cursor probe session close failed: {error}").into());
+            }
+            let status = final_status.ok_or("final cursor capture status is unavailable")?;
+            verify_complete_status(&status, expected.len() as u64)?;
+            if let Some(object) = value.as_object_mut() {
+                object.insert("capture_status_after_close".to_string(), json!(status));
+                object.insert(
+                    "child_exit_observed_before_close".to_string(),
+                    json!(child_state),
+                );
+            }
+            Ok(value)
+        }
+        Err(error) => {
+            let close_note = close_result.err().map(|close| close.to_string());
+            if let Some(status) = final_status {
+                Err(format!(
+                    "{error}; final capture status after close: {status:?}; close error: {close_note:?}"
+                )
+                .into())
+            } else {
+                Err(format!(
+                    "{error}; final capture status is unavailable; close error: {close_note:?}"
+                )
+                .into())
+            }
+        }
+    }
+}
+
+fn verify_cursor_stage(
+    snapshot: &TerminalSnapshot,
+    marker: &str,
+    col: u32,
+    row: u32,
+    visible: bool,
+    blink: Option<bool>,
+    color: Rgb,
+) -> Vec<String> {
+    let mut failures = Vec::new();
+    if snapshot.cols() != u32::from(COLS) || snapshot.rows() != u32::from(ROWS) {
+        failures.push(format!(
+            "snapshot dimensions are {}x{}, expected {}x{}",
+            snapshot.cols(),
+            snapshot.rows(),
+            COLS,
+            ROWS
+        ));
+    }
+    let first_row = snapshot
+        .cells()
+        .iter()
+        .take(COLS as usize)
+        .map(|cell| cell.text())
+        .collect::<String>();
+    if !first_row.contains(marker) {
+        failures.push(format!("{marker} is not on row 0"));
+    }
+    let cursor = snapshot.cursor();
+    if cursor.col() != col || cursor.row() != row {
+        failures.push(format!(
+            "cursor position is ({}, {}), expected ({col}, {row})",
+            cursor.col(),
+            cursor.row()
+        ));
+    }
+    if !cursor.in_capture() {
+        failures.push("cursor is outside the active-screen capture".to_string());
+    }
+    if cursor.visible() != visible {
+        failures.push(format!(
+            "cursor visibility is {}, expected {visible}",
+            cursor.visible()
+        ));
+    }
+    if cursor.shape() != SnapshotCursorShape::Bar {
+        failures.push(format!(
+            "cursor shape is {:?}, expected bar",
+            cursor.shape()
+        ));
+    }
+    if cursor.color() != color {
+        failures.push(format!(
+            "cursor color is {:?}, expected {:?}",
+            cursor.color(),
+            color
+        ));
+    }
+    if cursor.blink() != blink {
+        failures.push(format!(
+            "cursor blink is {:?}, expected {:?}",
+            cursor.blink(),
+            blink
+        ));
+    }
+    failures
+}
+
+fn write_cursor_stage(
+    out: &Path,
+    label: &str,
+    snapshot: &TerminalSnapshot,
+    raw: &[u8],
+    offset: u64,
+    assertion_failures: &[String],
+) -> AppResult<()> {
+    let directory = out.join(label);
+    fs::create_dir_all(&directory)?;
+    write_new(&directory.join("raw-prefix.ansi"), raw)?;
+    write_json_new(&directory.join("decoded-snapshot.json"), snapshot)?;
+    write_json_new(
+        &directory.join("capture.json"),
+        &json!({
+            "processed_output_offset":offset,
+            "raw_prefix_bytes":raw.len(),
+            "raw_prefix_sha256":sha256(raw),
+            "assertion_failures":assertion_failures,
+        }),
+    )?;
+    Ok(())
 }
 
 fn run_exact_binary_probe(out: &Path) -> AppResult<Value> {
@@ -684,6 +972,20 @@ fn child_binary_stream() -> AppResult<()> {
     stdout.flush()?;
     fs::write(out.join("stage-two.ready"), b"ready")?;
     wait_file(&out.join("finish-child"), Duration::from_secs(30))?;
+    Ok(())
+}
+
+fn child_cursor_blink() -> AppResult<()> {
+    let out = probe_dir()?;
+    let mut stdout = io::stdout().lock();
+    stdout.write_all(CURSOR_STAGE_A)?;
+    stdout.flush()?;
+    fs::write(out.join("stage-a.ready"), b"ready")?;
+    wait_file(&out.join("continue-b"), Duration::from_secs(30))?;
+    stdout.write_all(CURSOR_STAGE_B)?;
+    stdout.flush()?;
+    fs::write(out.join("stage-b.ready"), b"ready")?;
+    wait_file(&out.join("finish"), Duration::from_secs(30))?;
     Ok(())
 }
 

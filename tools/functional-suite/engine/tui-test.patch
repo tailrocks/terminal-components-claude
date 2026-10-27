@@ -1,0 +1,899 @@
+diff --git a/crates/tui-test/src/api.rs b/crates/tui-test/src/api.rs
+index 6c3d25a07439abcce50409ca8ca2d25068906002..d6db03d1f193eda56c123098884f8e6f8a6c58e9 100644
+--- a/crates/tui-test/src/api.rs
++++ b/crates/tui-test/src/api.rs
+@@ -74,6 +74,52 @@ impl Timeouts {
+     }
+ }
+ 
++/// Path for an exact byte copy of the PTY output stream.
++///
++/// The capture starts at the PTY read boundary before terminal decoding. The
++/// file is created without replacing an existing path. A setup error prevents
++/// the child from starting.
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub struct RawOutputCaptureOptions {
++    path: PathBuf,
++}
++
++impl RawOutputCaptureOptions {
++    /// Capture raw PTY output to `path`.
++    pub fn new(path: impl Into<PathBuf>) -> Self {
++        Self { path: path.into() }
++    }
++
++    /// The output file path.
++    pub fn path(&self) -> &std::path::Path {
++        &self.path
++    }
++}
++
++/// Current setup and completion status for an exact raw PTY output capture.
++#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(rename_all = "snake_case", deny_unknown_fields)]
++pub struct RawOutputCaptureStatus {
++    /// Output file path.
++    pub path: PathBuf,
++    /// Whether capture setup succeeded before the child started.
++    pub setup_complete: bool,
++    /// Number of PTY output bytes processed by the terminal decoder.
++    /// `None` means the offset overflowed.
++    pub processed_output_offset: Option<u64>,
++    /// Number of bytes written to the capture file.
++    /// `None` means the count overflowed.
++    pub captured_output_bytes: Option<u64>,
++    /// Whether the PTY output reader reached EOF.
++    pub drained: bool,
++    /// Whether the capture file flush succeeded after EOF.
++    pub flushed: bool,
++    /// Whether the capture is complete and has no recorded errors.
++    pub complete: bool,
++    /// Read, write, flush, overflow, or incomplete-drain errors.
++    pub errors: Vec<String>,
++}
++
+ #[derive(Debug, Clone)]
+ pub struct OpenOptions {
+     pub backend: crate::terminal::backend::Backend,
+diff --git a/crates/tui-test/src/engine.rs b/crates/tui-test/src/engine.rs
+index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f96940030 100644
+--- a/crates/tui-test/src/engine.rs
++++ b/crates/tui-test/src/engine.rs
+@@ -54,6 +54,8 @@ pub struct Engine {
+     lifecycle: RwLock<()>,
+     pending_lifecycle: AtomicUsize,
+     session: RwLock<Option<TerminalSession>>,
++    /// Final status from the most recently closed captured session.
++    closed_raw_output_capture_status: Mutex<Option<crate::api::RawOutputCaptureStatus>>,
+     /// Stable generation of the installed session slot, bumped on every
+     /// install or removal. Quiet waits capture it at request start and
+     /// re-check it before reporting success, so a Close/Restart that
+@@ -141,6 +143,7 @@ struct LaunchSpawn {
+     restart: bool,
+     timeouts: crate::api::Timeouts,
+     recording: crate::api::AutomaticRecording,
++    raw_output_capture: Option<crate::api::RawOutputCaptureOptions>,
+ }
+ 
+ /// How a spawned session is constructed: either from the recorded
+@@ -153,10 +156,18 @@ enum SessionSource {
+     },
+     Native {
+         launch: crate::launch::ResolvedLaunch,
++        raw_output_capture: Option<crate::api::RawOutputCaptureOptions>,
+     },
+ }
+ 
+ impl SpawnSpec {
++    fn has_raw_output_capture(&self) -> bool {
++        matches!(
++            &self.command,
++            SpawnCommand::Launch(launch) if launch.raw_output_capture.is_some()
++        )
++    }
++
+     fn restart(mut self) -> Self {
+         match &mut self.command {
+             SpawnCommand::Open(options) => options.restart = true,
+@@ -365,6 +376,7 @@ impl Engine {
+             lifecycle: RwLock::new(()),
+             pending_lifecycle: AtomicUsize::new(0),
+             session: RwLock::new(None),
++            closed_raw_output_capture_status: Mutex::new(None),
+             session_generation: AtomicU64::new(0),
+             spawn_spec: Mutex::new(None),
+             live: Arc::new(Mutex::new(None)),
+@@ -696,9 +708,13 @@ impl Engine {
+                     .interrupt
+                     .lock()
+                     .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+-                if let Some(session) = self.write_session().take() {
++                if let Some(mut session) = self.write_session().take() {
+                     self.bump_session_generation();
+-                    session.kill();
++                    let capture_status = session.stop_and_capture_status();
++                    *self
++                        .closed_raw_output_capture_status
++                        .lock()
++                        .unwrap_or_else(std::sync::PoisonError::into_inner) = capture_status;
+                     drop(session);
+                 }
+                 *self
+@@ -803,6 +819,18 @@ impl Engine {
+         launch: crate::launch::LaunchOptions,
+         options: RunOptions,
+         context: ExecutionContext,
++    ) -> Result<OpenResult, TuiTestError> {
++        self.spawn_with_raw_output_capture_context(launch, options, None, context)
++    }
++
++    /// Spawn a child from native launch options and capture exact PTY output
++    /// bytes before terminal decoding when `capture` is set.
++    pub fn spawn_with_raw_output_capture_context(
++        &self,
++        launch: crate::launch::LaunchOptions,
++        options: RunOptions,
++        capture: Option<crate::api::RawOutputCaptureOptions>,
++        context: ExecutionContext,
+     ) -> Result<OpenResult, TuiTestError> {
+         let resolved = launch.resolve()?;
+         if let Some(artifact) = &context.artifact {
+@@ -872,6 +900,7 @@ impl Engine {
+                 restart: options.restart,
+                 timeouts: options.timeouts,
+                 recording: options.recording,
++                raw_output_capture: capture,
+             }),
+             resolved_cwd: None,
+             retention: context.retention,
+@@ -963,6 +992,12 @@ impl Engine {
+             .clone()
+             .ok_or_else(TuiTestError::no_restart_metadata)?;
+ 
++        if spec.has_raw_output_capture() {
++            return Err(TuiTestError::usage(
++                "captured sessions cannot be restarted; close the session and use a fresh capture path",
++            ));
++        }
++
+         if let Some(session) = self.lock_session().as_ref() {
+             if session.is_alive()? {
+                 if let Err(error) = session.pty.signal("INT") {
+@@ -1049,6 +1084,7 @@ impl Engine {
+             SpawnCommand::Launch(launch) => (
+                 SessionSource::Native {
+                     launch: launch.launch.clone(),
++                    raw_output_capture: launch.raw_output_capture.clone(),
+                 },
+                 launch.backend,
+                 launch.profile,
+@@ -1081,7 +1117,7 @@ impl Engine {
+         // used for this spawn. Restart reuses `resolved_cwd` and re-applies
+         // it here, keeping the child in the first directory (including the
+         // default) even after the parent moves.
+-        if let SessionSource::Native { launch } = &mut source {
++        if let SessionSource::Native { launch, .. } = &mut source {
+             *launch = launch.clone().with_cwd(cwd.clone());
+         }
+         recording.validate()?;
+@@ -1111,9 +1147,26 @@ impl Engine {
+             SpawnCommand::Launch(launch) => launch.recording = recording.clone(),
+         }
+         diagnostics.validate().map_err(TuiTestError::usage)?;
++        let capture_requested = matches!(
++            &source,
++            SessionSource::Native {
++                raw_output_capture: Some(_),
++                ..
++            }
++        );
+         let mut current = self.write_session();
++        if restart && capture_requested && current.is_some() {
++            return Err(TuiTestError::usage(
++                "captured sessions cannot be restarted; close the session and use a fresh capture path",
++            ));
++        }
+         if let Some(previous) = current.as_ref() {
+             if !restart && previous.is_alive()? {
++                if capture_requested {
++                    return Err(TuiTestError::usage(
++                        "cannot enable raw output capture on an existing live session; close it and spawn a new session",
++                    ));
++                }
+                 return Ok(OpenResult {
+                     shell_pid: previous.pid(),
+                     session: self.name.clone(),
+@@ -1133,11 +1186,16 @@ impl Engine {
+             .interrupt
+             .lock()
+             .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+-        if let Some(previous) = current.take() {
++        if let Some(mut previous) = current.take() {
+             self.bump_session_generation();
+-            self.finish_trace_with_session(&previous, context, None)?;
+-            previous.kill();
++            let trace_result = self.finish_trace_with_session(&previous, context, None);
++            let capture_status = previous.stop_and_capture_status();
++            *self
++                .closed_raw_output_capture_status
++                .lock()
++                .unwrap_or_else(std::sync::PoisonError::into_inner) = capture_status;
+             drop(previous);
++            trace_result?;
+         }
+         drop(current);
+         self.operation_history
+@@ -1184,19 +1242,38 @@ impl Engine {
+                 recording_path.clone(),
+                 recording_required,
+             ),
+-            SessionSource::Native { launch } => TerminalSession::spawn_with(
+-                &launch,
+-                backend,
+-                profile,
+-                style,
+-                cols,
+-                rows,
+-                timeouts,
+-                diagnostics,
+-                self.logger.clone(),
+-                recording_path.clone(),
+-                recording_required,
+-            ),
++            SessionSource::Native {
++                launch,
++                raw_output_capture,
++            } => match raw_output_capture {
++                Some(capture) => TerminalSession::spawn_with_raw_output_capture(
++                    &launch,
++                    backend,
++                    profile,
++                    style,
++                    cols,
++                    rows,
++                    timeouts,
++                    diagnostics,
++                    self.logger.clone(),
++                    recording_path.clone(),
++                    recording_required,
++                    Some(capture),
++                ),
++                None => TerminalSession::spawn_with(
++                    &launch,
++                    backend,
++                    profile,
++                    style,
++                    cols,
++                    rows,
++                    timeouts,
++                    diagnostics,
++                    self.logger.clone(),
++                    recording_path.clone(),
++                    recording_required,
++                ),
++            },
+         }
+         .map_err(|error| TuiTestError::internal(format!("failed to open session: {error}")))?;
+         {
+@@ -1267,6 +1344,10 @@ impl Engine {
+             pty: session.pty.clone(),
+             shell: session.shell.map(|value| value.as_str()),
+         };
++        *self
++            .closed_raw_output_capture_status
++            .lock()
++            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+         *self.write_session() = Some(session);
+         self.bump_session_generation();
+         *self
+@@ -2030,6 +2111,17 @@ impl Engine {
+         &self,
+         options: &SnapshotOptions,
+     ) -> Result<TerminalSnapshot, TuiTestError> {
++        self.capture_snapshot_with_raw_offset(options)
++            .map(|(snapshot, _)| snapshot)
++    }
++
++    /// Capture a snapshot and the PTY output byte offset processed at the same
++    /// terminal-state lock. The offset is `None` if capture was disabled or its
++    /// counter overflowed.
++    pub fn capture_snapshot_with_raw_offset(
++        &self,
++        options: &SnapshotOptions,
++    ) -> Result<(TerminalSnapshot, Option<u64>), TuiTestError> {
+         let guard = self.lock_session();
+         let session = guard.as_ref().ok_or_else(TuiTestError::no_session)?;
+         if let Some(fault) = session.fault() {
+@@ -2046,6 +2138,7 @@ impl Engine {
+             .state
+             .lock()
+             .unwrap_or_else(std::sync::PoisonError::into_inner);
++        let raw_offset = session.raw_output_offset();
+         let metadata = SnapshotMetadata {
+             captured_at_ms: capture_time_ms(),
+             revision: state.visual_revision,
+@@ -2056,8 +2149,9 @@ impl Engine {
+         let highlight = state.highlight.as_ref().map(|selected| LiveHighlight {
+             cells: &selected.cells,
+         });
+-        capture_live(state.emu.as_ref(), highlight, options, metadata)
+-            .map_err(crate::snapshot::SnapshotError::into)
++        let snapshot = capture_live(state.emu.as_ref(), highlight, options, metadata)
++            .map_err(TuiTestError::from)?;
++        Ok((snapshot, raw_offset))
+     }
+ 
+     pub fn frame(&self) -> Option<LiveFrame> {
+@@ -2350,6 +2444,23 @@ impl Engine {
+         self.lock_session().is_some()
+     }
+ 
++    /// Current raw output capture status, when capture was enabled. After
++    /// close, this returns the finalized reader status. It does not prove that
++    /// the child exited cleanly.
++    pub fn raw_output_capture_status(&self) -> Option<crate::api::RawOutputCaptureStatus> {
++        if let Some(status) = self
++            .lock_session()
++            .as_ref()
++            .and_then(TerminalSession::raw_output_capture_status)
++        {
++            return Some(status);
++        }
++        self.closed_raw_output_capture_status
++            .lock()
++            .unwrap_or_else(std::sync::PoisonError::into_inner)
++            .clone()
++    }
++
+     pub fn recording_path(&self) -> Option<PathBuf> {
+         self.recording
+             .lock()
+diff --git a/crates/tui-test/src/runtime.rs b/crates/tui-test/src/runtime.rs
+index 5334423aac882def008e16dbc98c91d5ce40dd5a..2380acdf0ef632db91cf3b031d8e56012dc1eeec 100644
+--- a/crates/tui-test/src/runtime.rs
++++ b/crates/tui-test/src/runtime.rs
+@@ -490,6 +490,27 @@ impl Session {
+             .spawn_with_context(launch, options, self.context.clone())
+     }
+ 
++    /// Spawn a native child and capture exact PTY output bytes before terminal
++    /// decoding. The capture file is created without replacing an existing
++    /// path, and setup failure prevents the child from starting. A capture
++    /// request cannot attach to an existing live session; that request fails
++    /// before the existing child is changed. Captured sessions cannot use
++    /// [`Operation::Restart`]. Close the session and use a fresh capture path
++    /// to start another captured child.
++    pub fn spawn_with_raw_output_capture(
++        &self,
++        launch: LaunchOptions,
++        options: RunOptions,
++        capture: crate::api::RawOutputCaptureOptions,
++    ) -> Result<OpenResult, TuiTestError> {
++        self.engine.spawn_with_raw_output_capture_context(
++            launch,
++            options,
++            Some(capture),
++            self.context.clone(),
++        )
++    }
++
+     /// Write raw bytes to the child without UTF-8 conversion.
+     ///
+     /// The bytes are handed to the PTY exactly as given: NUL bytes, escape
+@@ -541,6 +562,24 @@ impl Session {
+         self.engine.capture_snapshot_with(options)
+     }
+ 
++    /// Capture a snapshot and the processed PTY output byte offset at the same
++    /// terminal-state lock. `None` means capture was disabled or its counter
++    /// overflowed.
++    pub fn capture_snapshot_with_raw_offset(
++        &self,
++        scope: SnapshotScope,
++    ) -> Result<(TerminalSnapshot, Option<u64>), TuiTestError> {
++        self.engine
++            .capture_snapshot_with_raw_offset(&SnapshotOptions::new(scope))
++    }
++
++    /// Current raw output capture status, when capture was enabled. After
++    /// [`Session::close`], this returns the final reader status. It does not
++    /// prove that the child exited cleanly.
++    pub fn raw_output_capture_status(&self) -> Option<crate::api::RawOutputCaptureStatus> {
++        self.engine.raw_output_capture_status()
++    }
++
+     /// Wait until the terminal stays quiet, then return success.
+     ///
+     /// This is the Session-level quiet wait. The new capabilities over the
+diff --git a/crates/tui-test/src/session.rs b/crates/tui-test/src/session.rs
+index e36c6355080ff380807e0017d01fb181a35a54d2..572e65b3c0d46a369049eb5812c3d441aa6703c7 100644
+--- a/crates/tui-test/src/session.rs
++++ b/crates/tui-test/src/session.rs
+@@ -1,6 +1,8 @@
+ //! A single managed terminal session: a PTY feeding an emulator and command
+ //! tracker, with a background reader thread.
+ 
++use std::fs::OpenOptions;
++use std::io::Write;
+ use std::path::PathBuf;
+ use std::sync::atomic::{AtomicBool, Ordering};
+ use std::sync::{Arc, Mutex};
+@@ -105,6 +107,7 @@ pub struct Session {
+     /// Serialize viewport movement with input without blocking the output reader.
+     pub(crate) viewport_input: Arc<Mutex<()>>,
+     pub cancelled: Arc<AtomicBool>,
++    raw_output_capture: Option<Arc<RawOutputCapture>>,
+     pub(crate) bells: BellTracker,
+     recorder: Recorder,
+     logger: Arc<Logger>,
+@@ -112,6 +115,180 @@ pub struct Session {
+     _process_watcher: JoinHandle<()>,
+ }
+ 
++struct RawOutputCapture {
++    inner: Mutex<RawOutputCaptureInner>,
++}
++
++struct RawOutputCaptureInner {
++    path: PathBuf,
++    file: std::fs::File,
++    captured_output_bytes: Option<u64>,
++    processed_output_offset: Option<u64>,
++    drained: bool,
++    flushed: bool,
++    finalized: bool,
++    errors: Vec<String>,
++}
++
++impl RawOutputCapture {
++    fn create(options: &crate::api::RawOutputCaptureOptions) -> anyhow::Result<Arc<Self>> {
++        let path = options.path();
++        if path.as_os_str().is_empty() {
++            anyhow::bail!("raw output capture path must not be empty");
++        }
++        if let Some(parent) = path
++            .parent()
++            .filter(|parent| !parent.as_os_str().is_empty())
++        {
++            std::fs::create_dir_all(parent)?;
++        }
++        let file = OpenOptions::new().write(true).create_new(true).open(path)?;
++        Ok(Arc::new(Self {
++            inner: Mutex::new(RawOutputCaptureInner {
++                path: path.to_path_buf(),
++                file,
++                captured_output_bytes: Some(0),
++                processed_output_offset: Some(0),
++                drained: false,
++                flushed: false,
++                finalized: false,
++                errors: Vec::new(),
++            }),
++        }))
++    }
++
++    fn record_output(&self, bytes: &[u8]) -> std::io::Result<()> {
++        let mut inner = self
++            .inner
++            .lock()
++            .unwrap_or_else(std::sync::PoisonError::into_inner);
++        let mut written = 0;
++        while written < bytes.len() {
++            match inner.file.write(&bytes[written..]) {
++                Ok(0) => {
++                    let error = std::io::Error::new(
++                        std::io::ErrorKind::WriteZero,
++                        "raw output capture wrote zero bytes",
++                    );
++                    push_capture_error(&mut inner, format!("raw output write failed: {error}"));
++                    return Err(error);
++                }
++                Ok(count) => {
++                    written += count;
++                    inner.captured_output_bytes = inner
++                        .captured_output_bytes
++                        .and_then(|total| total.checked_add(u64::try_from(count).ok()?));
++                    if inner.captured_output_bytes.is_none() {
++                        push_capture_error(
++                            &mut inner,
++                            "raw output capture byte count overflow".to_string(),
++                        );
++                    }
++                }
++                Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
++                Err(error) => {
++                    push_capture_error(&mut inner, format!("raw output write failed: {error}"));
++                    return Err(error);
++                }
++            }
++        }
++        Ok(())
++    }
++
++    fn finish(&self) -> std::io::Result<()> {
++        let mut inner = self
++            .inner
++            .lock()
++            .unwrap_or_else(std::sync::PoisonError::into_inner);
++        inner.drained = true;
++        match inner.file.flush() {
++            Ok(()) => {
++                inner.flushed = true;
++                Ok(())
++            }
++            Err(error) => {
++                push_capture_error(&mut inner, format!("raw output flush failed: {error}"));
++                Err(error)
++            }
++        }
++    }
++
++    fn record_processed_output(&self, bytes: usize) {
++        let mut inner = self
++            .inner
++            .lock()
++            .unwrap_or_else(std::sync::PoisonError::into_inner);
++        if let Some(offset) = inner.processed_output_offset {
++            inner.processed_output_offset = u64::try_from(bytes)
++                .ok()
++                .and_then(|count| offset.checked_add(count));
++            if inner.processed_output_offset.is_none() {
++                push_capture_error(
++                    &mut inner,
++                    "processed PTY output offset overflow".to_string(),
++                );
++            }
++        }
++    }
++
++    fn record_error(&self, message: String) {
++        let mut inner = self
++            .inner
++            .lock()
++            .unwrap_or_else(std::sync::PoisonError::into_inner);
++        if !inner.finalized {
++            push_capture_error(&mut inner, message);
++        }
++    }
++
++    fn status(&self) -> crate::api::RawOutputCaptureStatus {
++        let inner = self
++            .inner
++            .lock()
++            .unwrap_or_else(std::sync::PoisonError::into_inner);
++        capture_status(&inner)
++    }
++
++    fn finalize(&self) -> crate::api::RawOutputCaptureStatus {
++        let mut inner = self
++            .inner
++            .lock()
++            .unwrap_or_else(std::sync::PoisonError::into_inner);
++        if !inner.drained {
++            push_capture_error(
++                &mut inner,
++                "incomplete PTY output drain: capture finalized before EOF".to_string(),
++            );
++        }
++        inner.finalized = true;
++        capture_status(&inner)
++    }
++}
++
++fn capture_status(inner: &RawOutputCaptureInner) -> crate::api::RawOutputCaptureStatus {
++    let complete = inner.drained
++        && inner.flushed
++        && inner.errors.is_empty()
++        && inner.captured_output_bytes.is_some()
++        && inner.captured_output_bytes == inner.processed_output_offset;
++    crate::api::RawOutputCaptureStatus {
++        path: inner.path.clone(),
++        setup_complete: true,
++        processed_output_offset: inner.processed_output_offset,
++        captured_output_bytes: inner.captured_output_bytes,
++        drained: inner.drained,
++        flushed: inner.flushed,
++        complete,
++        errors: inner.errors.clone(),
++    }
++}
++
++fn push_capture_error(inner: &mut RawOutputCaptureInner, message: String) {
++    if !inner.errors.contains(&message) {
++        inner.errors.push(message);
++    }
++}
++
+ /// Fresh emulator, tracker, and screen state for a newly spawned child.
+ ///
+ /// Shared by the legacy (`open`) and native (`spawn_with`) constructors so
+@@ -171,6 +348,7 @@ fn finish_session(
+     state: Arc<Mutex<TermState>>,
+     bells: BellTracker,
+     recorder: Recorder,
++    raw_output_capture: Option<Arc<RawOutputCapture>>,
+     logger: Arc<Logger>,
+     open_event: String,
+ ) -> Session {
+@@ -182,6 +360,7 @@ fn finish_session(
+     let reader_pty = pty.clone();
+     let reader_logger = logger.clone();
+     let reader_recorder = recorder.capture();
++    let reader_capture = raw_output_capture.clone();
+     let reader_finished = Arc::new(AtomicBool::new(false));
+     let finished = reader_finished.clone();
+     let reader_handle = std::thread::spawn(move || {
+@@ -191,13 +370,26 @@ fn finish_session(
+             match reader.read(&mut buf) {
+                 Ok(0) => {
+                     reader_logger.event("pty stream reached EOF");
++                    if let Some(capture) = &reader_capture {
++                        if let Err(error) = capture.finish() {
++                            reader_logger.event(&format!("raw output flush failed error={error}"));
++                        }
++                    }
+                     break;
+                 }
+                 Err(error) => {
+                     reader_logger.event(&format!("pty read failed error={error}"));
++                    if let Some(capture) = &reader_capture {
++                        capture.record_error(format!("PTY read failed: {error}"));
++                    }
+                     break;
+                 }
+                 Ok(n) => {
++                    if let Some(capture) = &reader_capture {
++                        if let Err(error) = capture.record_output(&buf[..n]) {
++                            reader_logger.event(&format!("raw output write failed error={error}"));
++                        }
++                    }
+                     reader_logger.read(&buf[..n]);
+                     let pending = {
+                         let mut st = reader_state
+@@ -206,6 +398,9 @@ fn finish_session(
+                         st.last_output = Some(Instant::now());
+                         st.emu.process(&buf[..n]);
+                         st.tracker.feed(&buf[..n]);
++                        if let Some(capture) = &reader_capture {
++                            capture.record_processed_output(n);
++                        }
+                         st.visual_revision = st.visual_revision.wrapping_add(1);
+                         st.screen_dirty = true;
+                         st.mouse_mode.process(&buf[..n]);
+@@ -218,7 +413,13 @@ fn finish_session(
+                     };
+                     if !pending.is_empty() {
+                         reader_logger.reply(&pending);
+-                        let _ = reader_pty.write(&pending);
++                        if let Err(error) = reader_pty.write(&pending) {
++                            reader_logger
++                                .event(&format!("PTY response write failed error={error}"));
++                            if let Some(capture) = &reader_capture {
++                                capture.record_error(format!("PTY response write failed: {error}"));
++                            }
++                        }
+                     }
+                 }
+             }
+@@ -229,6 +430,7 @@ fn finish_session(
+     let watcher_state = state.clone();
+     let watcher_pty = pty.clone();
+     let watcher_logger = logger.clone();
++    let watcher_capture = raw_output_capture.clone();
+     let process_watcher = std::thread::spawn(move || loop {
+         let status = watcher_pty.try_wait();
+         match status {
+@@ -241,6 +443,13 @@ fn finish_session(
+                 {
+                     std::thread::sleep(Duration::from_millis(crate::config::POLL_DELAY_MS));
+                 }
++                if !reader_finished.load(Ordering::Acquire) {
++                    if let Some(capture) = &watcher_capture {
++                        capture.record_error(
++                            "incomplete PTY output drain after child exit".to_string(),
++                        );
++                    }
++                }
+                 watcher_logger.event(&format!(
+                     "process exited code={} signal={:?}",
+                     status.code, status.signal
+@@ -278,6 +487,7 @@ fn finish_session(
+         state,
+         viewport_input: Arc::new(Mutex::new(())),
+         cancelled,
++        raw_output_capture,
+         bells,
+         recorder,
+         logger,
+@@ -375,7 +585,7 @@ impl Session {
+             rows
+         );
+         Ok(finish_session(
+-            shell, backend, timeouts, pty, reader, state, bells, recorder, logger, open_event,
++            shell, backend, timeouts, pty, reader, state, bells, recorder, None, logger, open_event,
+         ))
+     }
+ 
+@@ -398,6 +608,39 @@ impl Session {
+         logger: Arc<Logger>,
+         recording_path: Option<PathBuf>,
+         recording_required: bool,
++    ) -> anyhow::Result<Self> {
++        Self::spawn_with_raw_output_capture(
++            launch,
++            backend,
++            profile,
++            style,
++            cols,
++            rows,
++            timeouts,
++            diagnostics,
++            logger,
++            recording_path,
++            recording_required,
++            None,
++        )
++    }
++
++    /// Spawn a native child and optionally write the PTY output bytes before
++    /// terminal decoding. The capture file is created without replacement.
++    #[allow(clippy::too_many_arguments)]
++    pub fn spawn_with_raw_output_capture(
++        launch: &crate::launch::ResolvedLaunch,
++        backend: Backend,
++        profile: Profile,
++        style: crate::render::style::Style,
++        cols: u16,
++        rows: u16,
++        timeouts: crate::api::Timeouts,
++        diagnostics: DiagnosticRetentionOptions,
++        logger: Arc<Logger>,
++        recording_path: Option<PathBuf>,
++        recording_required: bool,
++        capture_options: Option<crate::api::RawOutputCaptureOptions>,
+     ) -> anyhow::Result<Self> {
+         style.validate().map_err(anyhow::Error::msg)?;
+         validate_size(cols, rows)?;
+@@ -407,6 +650,10 @@ impl Session {
+         diagnostics.validate().map_err(anyhow::Error::msg)?;
+         let started_at = Instant::now();
+         let (state, bells) = new_term_state(backend, profile, style, cols, rows, diagnostics)?;
++        let raw_output_capture = capture_options
++            .as_ref()
++            .map(RawOutputCapture::create)
++            .transpose()?;
+ 
+         let rec_env = vec![("TERM".to_string(), "xterm-256color".to_string())];
+         let recorder = Recorder::create_at(
+@@ -450,10 +697,36 @@ impl Session {
+             rows
+         );
+         Ok(finish_session(
+-            None, backend, timeouts, pty, reader, state, bells, recorder, logger, open_event,
++            None,
++            backend,
++            timeouts,
++            pty,
++            reader,
++            state,
++            bells,
++            recorder,
++            raw_output_capture,
++            logger,
++            open_event,
+         ))
+     }
+ 
++    /// Current exact raw output capture status, when capture was enabled.
++    pub fn raw_output_capture_status(&self) -> Option<crate::api::RawOutputCaptureStatus> {
++        let capture = self.raw_output_capture.as_ref()?;
++        Some(capture.status())
++    }
++
++    pub(crate) fn raw_output_offset(&self) -> Option<u64> {
++        self.raw_output_capture.as_ref().and_then(|capture| {
++            capture
++                .inner
++                .lock()
++                .unwrap_or_else(std::sync::PoisonError::into_inner)
++                .processed_output_offset
++        })
++    }
++
+     pub fn write(&self, data: &[u8]) -> anyhow::Result<()> {
+         if data.is_empty() {
+             return Ok(());
+@@ -703,6 +976,25 @@ impl Session {
+         self.pty.close();
+     }
+ 
++    /// Stop the session, wait for its PTY reader to finish, and return the
++    /// final raw capture status when capture was enabled. This reports capture
++    /// completion only; it does not prove that the child exited cleanly.
++    pub(crate) fn stop_and_capture_status(&mut self) -> Option<crate::api::RawOutputCaptureStatus> {
++        self.kill();
++        if let Some(reader) = self.reader.take() {
++            if reader.join().is_err() {
++                if let Some(capture) = &self.raw_output_capture {
++                    capture.record_error(
++                        "PTY output reader panicked before capture finalization".to_string(),
++                    );
++                }
++            }
++        }
++        self.raw_output_capture
++            .as_ref()
++            .map(|capture| capture.finalize())
++    }
++
+     pub fn pid(&self) -> Option<u32> {
+         self.child_pid
+     }
+diff --git a/crates/tui-test/src/snapshot.rs b/crates/tui-test/src/snapshot.rs
+index 5437c6f9e43fb54921eba7a597d62ea04dfdc614..ea63516e485f9eedaa9dbf243755e56942b0368d 100644
+--- a/crates/tui-test/src/snapshot.rs
++++ b/crates/tui-test/src/snapshot.rs
+@@ -1518,7 +1518,7 @@ pub(crate) fn capture_live(
+             emu.cursor_visible(),
+             SnapshotCursorShape::from(emu.cursor_shape()),
+             emu.color(ColorSlot::Cursor),
+-            None,
++            emu.cursor_blink(),
+         ),
+         title: emu.title(),
+         metadata,
+diff --git a/crates/tui-test/src/terminal/alacritty.rs b/crates/tui-test/src/terminal/alacritty.rs
+index 26906140f5d7a4111abf1399906fd52e8164543c..099948b102df70cd45130b774035af3f13a8b9fc 100644
+--- a/crates/tui-test/src/terminal/alacritty.rs
++++ b/crates/tui-test/src/terminal/alacritty.rs
+@@ -550,6 +550,10 @@ impl Emulator for AlacrittyEmu {
+         }
+     }
+ 
++    fn cursor_blink(&self) -> Option<bool> {
++        Some(self.term.cursor_style().blinking)
++    }
++
+     fn cursor(&self) -> (u16, u16) {
+         let p = self.term.grid().cursor.point;
+         let y = p.line.0.max(0).min(self.rows as i32 - 1) as u16;
+diff --git a/crates/tui-test/src/terminal/emu.rs b/crates/tui-test/src/terminal/emu.rs
+index d6141ed3aafe5126edabecc73b23e39880deb1e8..c51f21f62a60b5b441d2af11735a69bb1fa182e2 100644
+--- a/crates/tui-test/src/terminal/emu.rs
++++ b/crates/tui-test/src/terminal/emu.rs
+@@ -596,6 +596,10 @@ pub trait Emulator: Send {
+     /// The shape the cursor is currently drawn as.
+     fn cursor_shape(&self) -> CursorShape;
+ 
++    fn cursor_blink(&self) -> Option<bool> {
++        None
++    }
++
+     /// Visible screen as rows of cells. Always `rows` entries of `cols` cells.
+     fn viewable_rows(&self) -> Vec<Vec<EmuCell>>;
+ 
+diff --git a/crates/tui-test/src/terminal/pty.rs b/crates/tui-test/src/terminal/pty.rs
+index b96f08bf3dbb59cff539170b89c45f1ef80f9772..41d23a68dc05617a8c8e6ddcd662d6450302a7bf 100644
+--- a/crates/tui-test/src/terminal/pty.rs
++++ b/crates/tui-test/src/terminal/pty.rs
+@@ -41,10 +41,19 @@ impl Read for CancellableReader {
+                 // Drain final output, but a descendant holding or continuously
+                 // writing the slave must not keep teardown alive indefinitely.
+                 if started.elapsed() >= Duration::from_millis(250) {
+-                    return Ok(0);
++                    return Err(std::io::Error::new(
++                        std::io::ErrorKind::TimedOut,
++                        "incomplete PTY output drain: reader stopped after the 250 ms teardown limit",
++                    ));
+                 }
+             }
+             match self.reader.read(buffer) {
++                Ok(0) if self.closed.load(Ordering::Acquire) => {
++                    return Err(std::io::Error::new(
++                        std::io::ErrorKind::UnexpectedEof,
++                        "incomplete PTY output drain: PTY closed before EOF was observed",
++                    ));
++                }
+                 Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+                 Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                     let mut readiness = libc::pollfd {
