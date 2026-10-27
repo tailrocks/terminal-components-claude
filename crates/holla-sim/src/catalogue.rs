@@ -191,25 +191,22 @@ pub fn rank_with_history(w: &World, actions: &mut [Action], history: bool) {
 
 fn first_use_sections(w: &World, history: bool) -> Vec<Section> {
     let all = home_actions_with_history(w, history);
-    let suggested: Vec<Action> = ["system.resources", "disk.usage", "system.monitor"]
-        .into_iter()
-        .filter_map(|id| all.iter().find(|action| action.id == id).cloned())
+    let suggested_ids = ["system.resources", "disk.usage", "system.monitor"];
+    let suggested: Vec<Action> = all
+        .iter()
+        .filter(|action| suggested_ids.contains(&action.id.as_str()))
+        .cloned()
         .collect();
+    let has_recent_projection =
+        history && all.iter().any(|action| first_use_recently_used(w, action));
     let recent = if history {
         all.iter()
             .filter(|action| {
-                let host_recent = w.memory.host_usage_count(&w.host.name, &action.id) > 0
-                    && w.memory
-                        .host_usage_last_used_ms(&w.host.name, &action.id)
-                        .is_some_and(|last| {
-                            let age = w.now_ms().saturating_sub(last);
-                            (0..=30 * 24 * 60 * 60 * 1_000).contains(&age)
-                        });
-                let directory_recent = action.id.starts_with("recent:");
-                (host_recent || directory_recent)
+                first_use_recently_used(w, action)
                     && !suggested.iter().any(|suggested| {
                         action.id == suggested.id
-                            || (directory_recent && action.command == suggested.command)
+                            || (action.id.starts_with("recent:")
+                                && action.command == suggested.command)
                     })
             })
             .cloned()
@@ -235,9 +232,11 @@ fn first_use_sections(w: &World, history: bool) -> Vec<Section> {
         },
         Section {
             name: "Recent here",
-            empty_note: recent
-                .is_empty()
-                .then_some("Everything you use here is suggested above."),
+            empty_note: recent.is_empty().then_some(if has_recent_projection {
+                "everything used here is suggested above"
+            } else {
+                "nothing used here yet"
+            }),
             actions: recent,
             chips: None,
         },
@@ -248,6 +247,18 @@ fn first_use_sections(w: &World, history: bool) -> Vec<Section> {
             chips: Some(&["Tasks", "Git", "Files", "Disk", "Services", "System"]),
         },
     ]
+}
+
+fn first_use_recently_used(world: &World, action: &Action) -> bool {
+    let host_recent = world.memory.host_usage_count(&world.host.name, &action.id) > 0
+        && world
+            .memory
+            .host_usage_last_used_ms(&world.host.name, &action.id)
+            .is_some_and(|last| {
+                let age = world.now_ms().saturating_sub(last);
+                (0..=30 * 24 * 60 * 60 * 1_000).contains(&age)
+            });
+    host_recent || action.id.starts_with("recent:")
 }
 
 fn first_use_actions(w: &World, out: &mut Vec<Action>) {
@@ -361,18 +372,28 @@ fn first_use_actions(w: &World, out: &mut Vec<Action>) {
 }
 
 pub fn first_use_action_preview(world: &World, action: &Action, history: bool) -> ActionPreview {
-    let discovering = match action.id.as_str() {
-        "disk.usage" => !world.discovered(Domain::Filesystem),
+    let source = match action.id.as_str() {
+        "disk.usage" => Some(Domain::Filesystem),
         "scope.system" | "system.resources" | "system.processes" | "system.monitor" => {
-            !world.discovered(Domain::System)
+            Some(Domain::System)
         }
-        _ => false,
+        _ => None,
     };
-    let data = if discovering {
-        "still discovering…".to_owned()
-    } else {
-        format!("live · {} s ago", world.now_ms().max(0) / 1_000)
-    };
+    let data = source.map_or_else(
+        || format!("live · {} s ago", world.now_ms().max(0) / 1_000),
+        |domain| match world
+            .discovery
+            .iter()
+            .find(|discovery| discovery.domain == domain)
+        {
+            Some(discovery) if discovery.done => {
+                let age = world.now_ms().saturating_sub(discovery.at_ms).max(0);
+                format!("live · {} s ago", age / 1_000)
+            }
+            Some(discovery) if discovery.failed => "unavailable".to_owned(),
+            _ => "still discovering…".to_owned(),
+        },
+    );
     let mut lines = Vec::new();
     let mut add = |label, value: String, tone, wraps| {
         lines.push(PreviewLine {
@@ -417,17 +438,17 @@ pub fn first_use_action_preview(world: &World, action: &Action, history: bool) -
     }
     if action.command.is_empty() {
         add(
-            "Opens",
-            "Home scope · no command".into(),
+            "Runs",
+            "no command · opens inside holla".into(),
             PreviewTone::Secondary,
-            false,
+            true,
         );
     } else {
         add(
             "Runs",
-            format!("'{}'", action.command),
+            action.command.clone(),
             PreviewTone::Secondary,
-            true,
+            false,
         );
     }
     add(
@@ -452,11 +473,7 @@ pub fn first_use_action_preview(world: &World, action: &Action, history: bool) -
     }
     add(
         "Scope",
-        if action.scope_label.is_empty() {
-            action.scope.label().to_owned()
-        } else {
-            format!("{} · {}", action.scope.label(), action.scope_label)
-        },
+        action.scope.label().to_owned(),
         PreviewTone::Text,
         false,
     );
@@ -491,12 +508,21 @@ pub fn first_use_action_preview(world: &World, action: &Action, history: bool) -
     );
     add("Data", data, PreviewTone::Muted, false);
     if action.id == "system.resources" {
-        add(
-            "Gate",
-            "opens the system snapshot · nothing executed".into(),
-            PreviewTone::Muted,
-            true,
-        );
+        add("Gate", "runs directly".into(), PreviewTone::Muted, false);
+        let actions = home_actions_with_history(world, history);
+        let alternatives = ["system.monitor", "system.processes"]
+            .into_iter()
+            .filter_map(|id| actions.iter().find(|candidate| candidate.id == id))
+            .map(|candidate| candidate.title.as_str())
+            .collect::<Vec<_>>();
+        if !alternatives.is_empty() {
+            add(
+                "Alt+Enter",
+                format!("{} · Pin · Alias · Why here?", alternatives.join(" · ")),
+                PreviewTone::Muted,
+                true,
+            );
+        }
     } else if action.id == "system.processes" {
         add(
             "Gate",
