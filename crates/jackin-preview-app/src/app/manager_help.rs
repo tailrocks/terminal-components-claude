@@ -1,4 +1,4 @@
-use termrock::{HelpOverlay, HelpOverlayState, HelpSection, Id, Rect, Ui};
+use termrock::{HelpOverlay, HelpOverlayState, HelpSection, Id, Part, Role, StylePatch, Ui};
 
 pub(super) const ID: Id = Id::root("jackin.manager.help");
 
@@ -57,77 +57,22 @@ const SHELL: &[(&str, &str)] = &[
     ("Ctrl+C", "Copy, else quit"),
 ];
 
-pub(super) fn draw(ui: &mut Ui<'_>, screen: Rect, state: &HelpOverlayState) {
-    let sections = [
-        HelpSection::plain("Workspaces", WORKSPACES),
-        HelpSection::plain("Instances", INSTANCES),
-        HelpSection::plain("Everywhere", EVERYWHERE),
-        HelpSection::plain("Editor and Settings", EDITOR),
-        HelpSection::plain("Mouse", MOUSE),
-        HelpSection::plain("Shell", SHELL),
-    ];
-    HelpOverlay::new(ID, "Manager", &sections).draw(ui, card_area(screen), state);
+const SECTIONS: [HelpSection<'static>; 6] = [
+    HelpSection::plain("Workspaces", WORKSPACES),
+    HelpSection::plain("Instances", INSTANCES),
+    HelpSection::plain("Everywhere", EVERYWHERE),
+    HelpSection::plain("Editor and Settings", EDITOR),
+    HelpSection::plain("Mouse", MOUSE),
+    HelpSection::plain("Shell", SHELL),
+];
+
+const BORDER_PATCH: &[(Part, StylePatch)] =
+    &[(Part::BORDER, StylePatch::new().set_fg(Role::BorderStrong))];
+
+pub(super) fn overlay() -> HelpOverlay<'static> {
+    HelpOverlay::new(ID, "Manager", &SECTIONS).patch_part(BORDER_PATCH)
 }
 
-pub(super) fn dim_underlay(ui: &mut Ui<'_>, screen: Rect) {
-    let card = card_area(screen);
-    let footer_y = screen.bottom().saturating_sub(1);
-    if card.y > screen.y {
-        ui.modal_backdrop(Rect {
-            height: card.y.saturating_sub(screen.y),
-            ..screen
-        });
-    }
-    let below = card.bottom();
-    if below < footer_y {
-        ui.modal_backdrop(Rect {
-            y: below,
-            height: footer_y.saturating_sub(below),
-            ..screen
-        });
-    }
-    if card.x > screen.x {
-        ui.modal_backdrop(Rect {
-            y: card.y,
-            width: card.x.saturating_sub(screen.x),
-            height: card.height,
-            ..screen
-        });
-    }
-    let right = card.right();
-    if right < screen.right() {
-        ui.modal_backdrop(Rect {
-            x: right,
-            y: card.y,
-            width: screen.right().saturating_sub(right),
-            height: card.height,
-        });
-    }
-}
-
-fn card_area(screen: Rect) -> Rect {
-    let width = screen
-        .width
-        .saturating_sub(4)
-        .min(percent80(screen.width))
-        .max(16);
-    let height = screen
-        .height
-        .saturating_sub(3)
-        .min(percent80(screen.height))
-        .max(8);
-    Rect {
-        x: screen
-            .x
-            .saturating_add(screen.width.saturating_sub(width) / 2),
-        y: screen
-            .y
-            .saturating_add(screen.height.saturating_sub(height) / 2),
-        width,
-        height,
-    }
-}
-
-fn percent80(n: u16) -> u16 {
-    u16::try_from(u32::from(n) * 80 / 100).unwrap_or(u16::MAX)
+pub(super) fn draw(ui: &mut Ui<'_>, area: termrock::Rect, state: &HelpOverlayState) {
+    overlay().draw(ui, area, state);
 }
