@@ -747,6 +747,34 @@ fn paint_action(row: &HomeRow, cells: &mut RowUi<'_>) {
     paint_action_with_peek(row, cells, None);
 }
 
+#[cfg(test)]
+pub(crate) fn paint_port_row_for_test(
+    ui: &mut Ui<'_>,
+    row: Rect,
+    action: &Action,
+    columns: [u16; 4],
+) {
+    let [title, kind, scope, risk] = columns;
+    let item = HomeRow {
+        section: "",
+        action: action.clone(),
+        columns: ActionColumns {
+            title,
+            kind,
+            scope,
+            risk,
+        },
+    };
+    let items = [item];
+    let state = NavListState::default();
+    NavList::new(ROWS)
+        .cursor_style(CursorStyle::Fill)
+        .scrollable(false)
+        .key(row_key)
+        .row(paint_action)
+        .draw(ui, row, &state, &items);
+}
+
 fn paint_action_with_peek(
     row: &HomeRow,
     cells: &mut RowUi<'_>,
