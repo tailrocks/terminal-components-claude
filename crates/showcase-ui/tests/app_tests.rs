@@ -11,6 +11,9 @@ const APP_NAV: Id = Id::root("showcase_ui::app::navigation");
 const CHROME_BRAND: Id = Id::root("showcase_ui::pages::chrome::chrome.brand");
 const SIDEBAR_CONTENT: Id = Id::root("showcase_ui::pages::sidebars::sidebars.content");
 const EDITOR: Id = Id::root("showcase_ui::pages::editor::editor.code");
+const QUERY_WORKBENCH_TABS: Id = Id::root("showcase_ui::pages::query_workbench.tabs");
+const QUERY_WORKBENCH_TOOLBAR: Id = Id::root("showcase_ui::pages::query_workbench.toolbar");
+const QUERY_WORKBENCH_EDITOR: Id = Id::root("showcase_ui::pages::query_workbench.editor");
 const EDITOR_FIND: Id = Id::root("showcase_ui::pages::editor::editor.find");
 const EDITOR_RUN: Id = Id::root("showcase_ui::pages::editor::editor.run");
 const EDITOR_STATE_LIST: Id = Id::root("showcase_ui::pages::editor::editor.state.list");
@@ -389,6 +392,106 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             );
             assert!(h.text().contains("compile started"));
         }
+        PageId::QueryWorkbench => {
+            assert!(h.text().contains("Pending orders, newest first"));
+            assert!(
+                h.tab_to(QUERY_WORKBENCH_EDITOR),
+                "query editor accepts focus"
+            );
+            control(h, 'r');
+            assert!(
+                h.text()
+                    .contains("Running query · 6 native ticks remaining"),
+                "{}",
+                h.text()
+            );
+            h.ticks(5);
+            assert!(
+                h.text()
+                    .contains("Running query · 1 native ticks remaining"),
+                "{}",
+                h.text()
+            );
+            assert!(!h.text().contains("25 rows from orders"));
+            let _ = h.tick();
+            assert!(h.text().contains("25 rows from orders"), "{}", h.text());
+
+            let explain = PartRef::item(Part::ROW, ItemKey::index(1));
+            assert!(
+                h.area_of_part(QUERY_WORKBENCH_TOOLBAR, explain).is_some(),
+                "Explain toolbar row is published"
+            );
+            let _ = h.click_part(QUERY_WORKBENCH_TOOLBAR, explain);
+            assert!(
+                h.text()
+                    .contains("Explaining query · 6 native ticks remaining"),
+                "{}",
+                h.text()
+            );
+            h.ticks(6);
+            assert!(
+                h.text().contains("Query plan · simulated in 2 ms"),
+                "{}",
+                h.text()
+            );
+
+            assert!(
+                h.tab_to(QUERY_WORKBENCH_EDITOR),
+                "query editor accepts focus"
+            );
+            control(h, 'r');
+            assert!(
+                h.text()
+                    .contains("Running query · 6 native ticks remaining"),
+                "{}",
+                h.text()
+            );
+            let stop = PartRef::item(Part::ROW, ItemKey::index(2));
+            assert!(h.area_of_part(QUERY_WORKBENCH_TOOLBAR, stop).is_some());
+            let _ = h.click_part(QUERY_WORKBENCH_TOOLBAR, stop);
+            assert!(h.text().contains("Run stopped."), "{}", h.text());
+            h.ticks(7);
+            assert!(h.text().contains("Run stopped."), "{}", h.text());
+            assert!(
+                h.text().contains("Query plan · simulated in 2 ms"),
+                "cancelled work must not replace the prior plan: {}",
+                h.text()
+            );
+            assert!(!h.text().contains("25 rows from orders"));
+
+            let clear = PartRef::item(Part::ROW, ItemKey::index(3));
+            assert!(h.area_of_part(QUERY_WORKBENCH_TOOLBAR, clear).is_some());
+            let _ = h.click_part(QUERY_WORKBENCH_TOOLBAR, clear);
+            assert!(h.text().contains("Editor and saved query cleared."));
+            assert!(!h.text().contains("-- Pending orders, newest first"));
+            assert!(!h.text().contains("SELECT id, customer"));
+
+            let customers = PartRef::item(Part::TAB, ItemKey::text("query.workbench.customers"));
+            assert!(h.area_of_part(QUERY_WORKBENCH_TABS, customers).is_some());
+            let _ = h.click_part(QUERY_WORKBENCH_TABS, customers);
+            assert!(h.text().contains("Recent customer accounts"));
+            let orders = PartRef::item(Part::TAB, ItemKey::text("query.workbench.orders"));
+            assert!(h.area_of_part(QUERY_WORKBENCH_TABS, orders).is_some());
+            let _ = h.click_part(QUERY_WORKBENCH_TABS, orders);
+            assert!(!h.text().contains("-- Pending orders, newest first"));
+            assert!(!h.text().contains("SELECT id, customer"));
+
+            assert!(
+                h.tab_to(QUERY_WORKBENCH_EDITOR),
+                "query editor accepts focus"
+            );
+            control(h, 'r');
+            assert!(
+                h.text()
+                    .contains("Nothing to run · the SQL editor is empty."),
+                "{}",
+                h.text()
+            );
+            assert!(
+                !h.text()
+                    .contains("Running query · 6 native ticks remaining")
+            );
+        }
     }
 }
 
@@ -727,7 +830,7 @@ fn launches_and_renders_shell() {
     assert!(text.contains("Playground"));
     assert!(text.contains("Tokens and principles behind every component"));
     assert_eq!(NAV_ENTRIES.len(), 54);
-    assert_eq!(PageId::ALL.len(), 25);
+    assert_eq!(PageId::ALL.len(), 26);
     assert_eq!(PageId::from_name("Dialog kinds"), Some(PageId::DialogKinds));
 }
 

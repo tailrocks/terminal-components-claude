@@ -48,7 +48,7 @@ fn empty_alias_opens_the_private_placeholder_without_changing_catalog_identity()
     assert_eq!(index, 31);
     assert_eq!(NAV_ENTRIES.len(), 54);
     assert_eq!(NAV_ENTRIES[index].id, PageId::Overview);
-    assert_eq!(PageId::ALL.len(), 25);
+    assert_eq!(PageId::ALL.len(), 26);
     assert_eq!(PageId::from_name("empty"), None);
     assert_eq!(PageId::from_name("Empty & error"), None);
 

@@ -6,11 +6,12 @@ use termrock::{
     ActionKey, Anchor, App as TuiApp, Brand, Chord, ColorLevel, CrossAlign, Cx, Dialog,
     DialogAction, DialogState, Dismiss, EmptyState, FrameRead, GlyphRole, Id, Intent, ItemKey,
     KeyCode, KeyMap, KeyPhase, LayerOpening, Moment, Panel, PanelKind, Part, PartRef, Phase,
-    Position, Props, Rect, Response, RowFn, Side, Size, StateFlags, Status, StatusBar, StatusItem,
-    Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id, width,
+    Position, Props, Rect, Response, RowFn, ScopeId, Side, Size, StateFlags, Status, StatusBar,
+    StatusItem, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id, width,
 };
 
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
+use showcase_demos::pages::query_workbench::RUN_QUERY;
 use showcase_demos::pages::taskrunner::RUN_COMMAND;
 use showcase_demos::pages::{
     Page, PageStatus,
@@ -35,6 +36,7 @@ use showcase_demos::pages::{
     panels::PanelsPage,
     pickers::PickersPage,
     progress::ProgressPage,
+    query_workbench::QueryWorkbenchPage,
     scrolling::ScrollingPage,
     settings::SettingsPage,
     sidebars::SidebarsPage,
@@ -117,10 +119,11 @@ pub enum PageId {
     TaskRunner,
     CellEditors,
     Toolbars,
+    QueryWorkbench,
 }
 
 impl PageId {
-    pub const ALL: [Self; 25] = [
+    pub const ALL: [Self; 26] = [
         Self::Overview,
         Self::Buttons,
         Self::Inputs,
@@ -146,6 +149,7 @@ impl PageId {
         Self::TaskRunner,
         Self::CellEditors,
         Self::Toolbars,
+        Self::QueryWorkbench,
     ];
 
     pub const fn title(self) -> &'static str {
@@ -175,6 +179,7 @@ impl PageId {
             Self::TaskRunner => "Task runner",
             Self::CellEditors => "Cell editors",
             Self::Toolbars => "Toolbars",
+            Self::QueryWorkbench => "Query workbench",
         }
     }
 
@@ -205,6 +210,7 @@ impl PageId {
             Self::TaskRunner => "taskrunner",
             Self::CellEditors => "celleditors",
             Self::Toolbars => "toolbars",
+            Self::QueryWorkbench => "queryworkbench",
         }
     }
 
@@ -554,7 +560,7 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        id: PageId::QueryWorkbench,
         label: "Query workbench",
         section: "Screens",
         icon: "•",
@@ -1255,6 +1261,7 @@ fn page(kind: PageId) -> Box<dyn Page> {
         PageId::TaskRunner => Box::new(TaskRunnerPage::new()),
         PageId::CellEditors => Box::new(CellEditorsPage::new()),
         PageId::Toolbars => Box::new(ToolbarsPage::new()),
+        PageId::QueryWorkbench => Box::new(QueryWorkbenchPage::new()),
     }
 }
 
@@ -1295,6 +1302,14 @@ fn keymap() -> KeyMap {
         )
 }
 
+fn query_workbench_keymap() -> KeyMap {
+    keymap().bind(
+        KeyPhase::Capture,
+        Chord::with(KeyCode::Char('r'), termrock::KeyModifiers::CONTROL),
+        RUN_QUERY,
+    )
+}
+
 pub struct App {
     page: PageId,
     nav_target: NavTarget,
@@ -1322,6 +1337,8 @@ pub struct App {
     inspector_programmatic_close: Option<LayerOpening>,
     selectable: showcase_demos::pages::selectable::Model,
     keymap: KeyMap,
+    query_workbench_keymap: KeyMap,
+    query_workbench_capture_enabled: std::cell::Cell<bool>,
     inspector: bool,
     shell_layout_cache: std::cell::Cell<Option<CachedShellLayout>>,
     quit: bool,
@@ -1446,6 +1463,8 @@ impl App {
             inspector_programmatic_close: None,
             selectable: showcase_demos::pages::selectable::Model::default(),
             keymap: keymap(),
+            query_workbench_keymap: query_workbench_keymap(),
+            query_workbench_capture_enabled: std::cell::Cell::new(false),
             inspector: false,
             shell_layout_cache: std::cell::Cell::new(None),
             quit: false,
@@ -1754,6 +1773,27 @@ impl App {
         } else {
             self.pages.get_mut(self.page.index()).map(Box::as_mut)
         }
+    }
+
+    fn global_capture_is_current(&self, action: ActionKey, cx: &Cx<'_>) -> bool {
+        if action != RUN_QUERY {
+            return true;
+        }
+        if self.nav_target != NavTarget::Live(PageId::QueryWorkbench)
+            || self.nav_query.is_some()
+            || self.help_open
+            || self.overlay_open
+            || cx.is_open(HELP)
+            || cx.is_open(INSPECTOR)
+            || cx.top_layer() != termrock::LayerId::PAGE
+        {
+            return false;
+        }
+        let Some(focused) = cx.focused_in_scope(ScopeId::ROOT) else {
+            return false;
+        };
+        self.active()
+            .is_some_and(|page| page.global_capture_owners(action).contains(&focused))
     }
 
     fn help_dialog(description: &str) -> Dialog<'_> {
@@ -2723,6 +2763,7 @@ impl TuiApp for App {
                 action,
                 QUIT | QUIT_CTRL | NEXT_PAGE | PREV_PAGE | HELP_COMMAND | INSPECTOR_COMMAND
             )
+            && self.global_capture_is_current(action, cx)
             && let Some(active) = self.active_mut()
         {
             response |= active.command(cx, action);
@@ -2836,6 +2877,21 @@ impl TuiApp for App {
 
     fn draw(&self, ui: &mut Ui<'_>) {
         let full = ui.full();
+
+        let query_workbench_capture_enabled = full.width >= 72
+            && full.height >= 20
+            && !ui.is_covered_by_native_layer()
+            && self.nav_target == NavTarget::Live(PageId::QueryWorkbench)
+            && self.nav_query.is_none()
+            && !self.help_open
+            && !self.overlay_open
+            && self.active().is_some_and(|page| {
+                page.global_capture_owners(RUN_QUERY)
+                    .iter()
+                    .any(|owner| ui.owner_has_focus_presentation(*owner))
+            });
+        self.query_workbench_capture_enabled
+            .set(query_workbench_capture_enabled);
 
         ui.fill(full, shell_compat_style(ui.surface_style()));
         if full.width < 72 || full.height < 20 {
@@ -3008,7 +3064,16 @@ impl TuiApp for App {
     }
 
     fn keymap(&self) -> &KeyMap {
-        &self.keymap
+        if self.nav_target == NavTarget::Live(PageId::QueryWorkbench)
+            && self.query_workbench_capture_enabled.get()
+            && self.nav_query.is_none()
+            && !self.help_open
+            && !self.overlay_open
+        {
+            &self.query_workbench_keymap
+        } else {
+            &self.keymap
+        }
     }
 
     fn min_size(&self) -> Size {
@@ -3301,6 +3366,7 @@ mod nav_query_tests {
 #[cfg(test)]
 mod app_tests {
     use super::*;
+    use termrock_test_support::Harness;
 
     #[test]
     fn application_commands_are_distinct_from_library_custom_keys() {
@@ -3412,6 +3478,42 @@ mod app_tests {
             .as_ref()
             .map(|(_, since)| since.as_duration().as_millis());
         assert_eq!(since, Some(5_000));
+    }
+
+    #[test]
+    fn stale_capture_permission_cannot_run_from_navigation_focus() {
+        let mut h = Harness::new(
+            App::with_page(PageId::QueryWorkbench),
+            Theme::junie(),
+            120,
+            40,
+        )
+        .with_auto_draw(false);
+        assert_eq!(h.app().page(), PageId::QueryWorkbench);
+        assert_eq!(h.focus(), Some(NAV));
+        assert!(!h.runtime().needs_present());
+        assert!(!h.runtime().needs_settle());
+
+        h.app().query_workbench_capture_enabled.set(true);
+        assert!(h.app().query_workbench_capture_enabled.get());
+        let _ = h.ctrl('r');
+        assert!(
+            h.app().query_workbench_capture_enabled.get(),
+            "settled input does not redraw and repair the deliberately stale capture cache"
+        );
+
+        h.draw();
+        assert!(!h.app().query_workbench_capture_enabled.get());
+        assert!(
+            !h.text().contains("Running query ·"),
+            "live navigation focus rejects the stale cached permission: {}",
+            h.text()
+        );
+        h.ticks(7);
+        h.draw();
+        assert!(!h.text().contains("Running query ·"));
+        assert!(!h.text().contains("25 rows from orders"));
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
 }
 

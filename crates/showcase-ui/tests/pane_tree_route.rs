@@ -234,7 +234,7 @@ fn slot_38_routes_through_the_real_catalog_and_preserves_default_and_neighbors()
         .expect("Pane tree remains in the navigation catalog");
     assert_eq!(index, 38);
     assert_eq!(NAV_ENTRIES.len(), 54);
-    assert_eq!(PageId::ALL.len(), 25);
+    assert_eq!(PageId::ALL.len(), 26);
     assert_eq!(NAV_ENTRIES[index].id, PageId::Overview);
     assert_eq!(PageId::from_name("Pane tree"), None);
 

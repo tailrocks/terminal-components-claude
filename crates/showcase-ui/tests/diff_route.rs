@@ -27,7 +27,7 @@ fn diff_placeholder_opens_real_body_and_keeps_its_catalog_neighbor() {
         .expect("Diff remains in the navigation catalog");
     assert_eq!(diff_index, 40);
     assert_eq!(NAV_ENTRIES.len(), 54);
-    assert_eq!(PageId::ALL.len(), 25);
+    assert_eq!(PageId::ALL.len(), 26);
     assert_eq!(
         h.app().page(),
         PageId::Overview,

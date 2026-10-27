@@ -86,7 +86,7 @@ fn route_migrates_only_slot_thirteen_and_keeps_the_native_toolbar_owners() {
     assert_eq!(NAV_ENTRIES[13].label, "Toolbars");
     assert_eq!(NAV_ENTRIES[13].section, "Inputs & forms");
     assert_eq!(NAV_ENTRIES[13].id, PageId::Toolbars);
-    assert_eq!(PageId::ALL.len(), 25);
+    assert_eq!(PageId::ALL.len(), 26);
     assert_eq!(PageId::CellEditors.index(), 23);
     assert_eq!(PageId::Toolbars.index(), 24);
     assert_eq!(PageId::from_name("Toolbars"), Some(PageId::Toolbars));

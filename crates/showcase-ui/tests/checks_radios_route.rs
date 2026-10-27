@@ -79,10 +79,10 @@ fn checks_radios_aliases_and_every_other_catalog_target_keep_their_identity() {
         );
     }
     assert_eq!(
-        placeholder_count, 28,
-        "Checks & radios and Toolbars gain bodies"
+        placeholder_count, 27,
+        "Query workbench replaces one former Overview placeholder"
     );
-    assert_eq!(PageId::ALL.len(), 25);
+    assert_eq!(PageId::ALL.len(), 26);
     assert_eq!(NAV_ENTRIES.len(), 54);
 }
 

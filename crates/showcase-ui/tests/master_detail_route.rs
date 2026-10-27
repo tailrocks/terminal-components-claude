@@ -61,7 +61,7 @@ fn master_detail_uses_its_private_catalog_slot_and_keeps_neighbor_routes() {
         .expect("Master-detail remains in the navigation catalog");
     assert_eq!(index, 37);
     assert_eq!(NAV_ENTRIES.len(), 54);
-    assert_eq!(PageId::ALL.len(), 25);
+    assert_eq!(PageId::ALL.len(), 26);
     assert_eq!(NAV_ENTRIES[36].label, "Splits & stacks");
     assert_eq!(NAV_ENTRIES[37].label, "Master-detail");
     assert_eq!(NAV_ENTRIES[38].label, "Pane tree");
