@@ -1,0 +1,57 @@
+schema = "termrock-functional-terminal-profiles.v1"
+
+[profiles.first30-v1]
+cols = 120
+rows = 40
+small_cols = 80
+small_rows = 24
+readiness_timeout_ms = 8000
+quiet_timeout_ms = 15000
+quiet_interval_ms = 400
+exit_timeout_ms = 30000
+theme = "default"
+no_color = "unset"
+common_cli_args = ["--motion", "paused", "--frame", "0", "--color", "truecolor"]
+
+[profiles.first30-v1.child_environment]
+TERM = "xterm-256color"
+COLORTERM = "truecolor"
+LANG = "C.UTF-8"
+LC_ALL = "C.UTF-8"
+TZ = "UTC"
+
+[profiles.retained-showcase-help-v1]
+cols = 80
+rows = 24
+readiness_timeout_ms = 15000
+quiet_timeout_ms = 15000
+quiet_interval_ms = 400
+exit_timeout_ms = 30000
+theme = "default"
+no_color = "unset"
+common_cli_args = ["--motion", "paused", "--frame", "0", "--color", "truecolor"]
+
+[profiles.retained-showcase-help-v1.child_environment]
+TERM = "xterm-256color"
+COLORTERM = "truecolor"
+LANG = "C.UTF-8"
+LC_ALL = "C.UTF-8"
+TZ = "UTC"
+
+[profiles.retained-holla-action-v1]
+cols = 120
+rows = 40
+readiness_timeout_ms = 15000
+quiet_timeout_ms = 15000
+quiet_interval_ms = 400
+exit_timeout_ms = 30000
+theme = "default"
+no_color = "unset"
+common_cli_args = ["--motion", "paused", "--frame", "0", "--color", "truecolor"]
+
+[profiles.retained-holla-action-v1.child_environment]
+TERM = "xterm-256color"
+COLORTERM = "truecolor"
+LANG = "C.UTF-8"
+LC_ALL = "C.UTF-8"
+TZ = "UTC"

@@ -1,9 +1,13 @@
 # Frozen reference samples
 
-This directory contains 29 samples: 16 approved first-lane samples and 13 retained samples for Showcase help and Holla first-use. The original 25-file inventory remains in Git history. The migration preserves all 29 sample files byte for byte.
+This directory contains 29 existing frozen samples. Preserve all sample files byte for byte.
 
-The first lane has four journeys and sixteen approved checkpoints. Its active labels map to the historical Sample IDs as follows: `opened` to `initial`, `help` to `help`, `returned` to `restored`, and `exited` to `exit`. The runner never renames or writes an approved sample.
+Sixteen samples belong to the historical four-case, sixteen-checkpoint lane. Thirteen samples belong to the retained Showcase help and Holla first-use journeys. The historical lane maps `opened` to `initial`, `returned` to `restored`, and `exited` to `exit`. These labels remain tied to that versioned evidence.
 
-The 13 retained non-first samples are unchanged. The Showcase help and Holla first-use journeys also capture their final exit screens, but there are no approved frozen samples for those two exit screens. Their tests must keep the resulting check failures and evidence. The retained denominator is six journeys and 31 checkpoints; the 29 stored samples do not prove all 31 checkpoints completed.
+The current selected lane uses the new `first30-v1` sample IDs listed by `cases.toml`, with checkpoint labels unchanged in the sample IDs. Do not map historical IDs to these new IDs. This implementation does not add, capture, or approve frozen samples. Independent reference runs and the existing approval process must create and approve them.
 
-The first-lane approval is the finite outside-CI record for `CAPTURE-COMPARISON-TP-V2-R3-A1`. It covers supported serialized state and rendered pixels under the approved UTC profile. Full exact child-state fidelity remains `NOT VERIFIED` for text blink, hyperlink IDs, and color-reference equivalence. Do not copy a candidate into this directory. Reference approval remains outside CI.
+The retained Showcase help and Holla first-use journeys remain requirements. Their final exit screens have no approved frozen samples. Keep their ordinary check failures and evidence when they run. The Holla frame-one variant is a separate seven-frame case and is outside the primary thirty-frame denominator.
+
+The full application inventory remains absent. `required_inventory_ready` must keep failing with `NOT VERIFIED`.
+
+The pinned comparator can stop before it computes pixels when state differs. Zero pixel counts do not prove pixel equality. Mark pixel results unavailable when the comparator did not compute them. Do not approve a reference or candidate from an incomplete pixel result.

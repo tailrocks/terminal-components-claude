@@ -4,35 +4,32 @@ use std::error::Error;
 
 type TestResult = Result<(), Box<dyn Error>>;
 
-#[test]
-fn first_showcase() -> TestResult {
-    common::run_case_id("first/showcase")
+macro_rules! functional_case_tests {
+    ($($test_name:ident => $case_id:literal),* $(,)?) => {
+        const FUNCTIONAL_CASE_TESTS: &[(&str, &str)] = &[
+            $( (stringify!($test_name), $case_id), )*
+        ];
+
+        $(
+            #[test]
+            fn $test_name() -> TestResult {
+                common::run_case_id($case_id)
+            }
+        )*
+    };
 }
 
-#[test]
-fn first_holla() -> TestResult {
-    common::run_case_id("first/holla")
+functional_case_tests! {
+    first30_showcase_buttons => "first30-v1/showcase.buttons",
+    first30_holla_first_use => "first30-v1/holla.first_use",
+    first30_jackin_settings => "first30-v1/jackin.settings",
+    first30_tablepro_connections => "first30-v1/tablepro.connections",
+    holla_first_use_frame_one_variant => "first30-v1/holla.first_use.frame1",
+    showcase_help_paging => "showcase-help/80x24-v1",
+    holla_first_use_action => "holla-first-use/action-identity-v1",
 }
 
-#[test]
-fn first_jackin() -> TestResult {
-    common::run_case_id("first/jackin")
-}
-
-#[test]
-fn first_tablepro() -> TestResult {
-    common::run_case_id("first/tablepro")
-}
-
-#[test]
-fn showcase_help_paging() -> TestResult {
-    common::run_case_id("showcase-help/80x24-v1")
-}
-
-#[test]
-fn holla_first_use_action() -> TestResult {
-    common::run_case_id("holla-first-use/action-identity-v1")
-}
+const AUXILIARY_TEST_NAMES: &[&str] = &["required_inventory_ready"];
 
 #[test]
 fn required_inventory_ready() -> TestResult {

@@ -12,11 +12,10 @@ const MANIFEST_FILE: &str = "source-manifest.json";
 const REQUIRED_BINARIES: [(&str, &str); 4] = [
     ("showcase", "showcase"),
     ("holla", "holla"),
-    ("jackin", "jackin-preview"),
+    ("jackin-preview", "jackin-preview"),
     ("tablepro", "tablepro"),
 ];
-const HASH_EVIDENCE_NAMES: [&str; 5] =
-    ["showcase", "holla", "jackin-preview", "tablepro", "jackin"];
+const HASH_EVIDENCE_NAMES: [&str; 4] = ["showcase", "holla", "jackin-preview", "tablepro"];
 
 pub fn load_verified(bin_dir: &Path) -> Result<Value, Box<dyn Error>> {
     let bin_dir = canonical_directory(bin_dir)?;

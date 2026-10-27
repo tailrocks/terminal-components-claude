@@ -1,0 +1,230 @@
+schema = "termrock-functional-case-inventory.v1"
+protocol_version = "first30-v1"
+sample_id_template = "{case_id}/{checkpoint_label}/pixels-{platform_key}"
+historical_protocol = "first-v1"
+historical_case_ids = ["first/showcase", "first/holla", "first/jackin", "first/tablepro"]
+historical_live_frame_count = 16
+preserved_reference_sample_count = 29
+transition_reason = "first30-v1 replaces the prior four-case, sixteen-frame sampling subset with fixed route interactions, visible readiness and input predicates, and named resize checkpoints. Preserve the old runs and failures as history."
+primary_case_count = 4
+primary_live_frame_count = 30
+primary_exit_receipt_count = 4
+full_application_inventory_ready = false
+full_inventory_test = "required_inventory_ready"
+full_inventory_status = "must remain failing as NOT VERIFIED until the full requirement map has evidence"
+
+[[case]]
+id = "first30-v1/showcase.buttons"
+test_name = "first30_showcase_buttons"
+class = "primary"
+selected_in_primary_lane = true
+binary = "showcase"
+args = ["--page", "buttons", "--motion", "paused", "--frame", "0", "--color", "truecolor"]
+initial_marker = "Buttons"
+help_key = "?"
+help_marker = "Keyboard & mouse"
+quit_key = "q"
+terminal_profile = "first30-v1"
+fixture_path = "data/first30-v1/showcase.buttons"
+checkpoint_labels = ["initial", "run", "preview", "help", "returned", "small", "restored"]
+requirement_ids = [
+  "first30-v1/showcase.buttons/initial",
+  "first30-v1/showcase.buttons/run",
+  "first30-v1/showcase.buttons/preview",
+  "first30-v1/showcase.buttons/help",
+  "first30-v1/showcase.buttons/returned",
+  "first30-v1/showcase.buttons/small",
+  "first30-v1/showcase.buttons/restored",
+]
+exit_receipt_label = "exit-receipt"
+exit_receipt_key = "q"
+exit_receipt_is_separate = true
+
+[[case]]
+id = "first30-v1/holla.first_use"
+test_name = "first30_holla_first_use"
+class = "primary"
+selected_in_primary_lane = true
+binary = "holla"
+args = ["--scenario", "first-use", "--motion", "paused", "--frame", "0", "--color", "truecolor"]
+initial_marker = "holla❯"
+help_key = "F1"
+help_marker = "Key reference"
+quit_key = "Ctrl+q"
+terminal_profile = "first30-v1"
+fixture_path = "data/first30-v1/holla.first_use"
+checkpoint_labels = ["initial", "empty", "cleared", "help", "returned", "small", "restored"]
+requirement_ids = [
+  "first30-v1/holla.first_use/initial",
+  "first30-v1/holla.first_use/empty",
+  "first30-v1/holla.first_use/cleared",
+  "first30-v1/holla.first_use/help",
+  "first30-v1/holla.first_use/returned",
+  "first30-v1/holla.first_use/small",
+  "first30-v1/holla.first_use/restored",
+]
+exit_receipt_label = "exit-receipt"
+exit_receipt_key = "Ctrl+q"
+exit_receipt_is_separate = true
+
+[[case]]
+id = "first30-v1/jackin.settings"
+test_name = "first30_jackin_settings"
+class = "primary"
+selected_in_primary_lane = true
+binary = "jackin-preview"
+args = ["--scenario", "returning", "--motion", "paused", "--frame", "0", "--color", "truecolor"]
+initial_marker = "Current directory"
+help_key = "?"
+help_marker = "Keyboard shortcuts"
+quit_key = "q"
+terminal_profile = "first30-v1"
+fixture_path = "data/first30-v1/jackin.settings"
+checkpoint_labels = ["initial", "selected", "general", "mounts", "general_return", "manager_return", "help", "help_return", "small", "restored"]
+requirement_ids = [
+  "first30-v1/jackin.settings/initial",
+  "first30-v1/jackin.settings/selected",
+  "first30-v1/jackin.settings/general",
+  "first30-v1/jackin.settings/mounts",
+  "first30-v1/jackin.settings/general_return",
+  "first30-v1/jackin.settings/manager_return",
+  "first30-v1/jackin.settings/help",
+  "first30-v1/jackin.settings/help_return",
+  "first30-v1/jackin.settings/small",
+  "first30-v1/jackin.settings/restored",
+]
+exit_receipt_label = "exit-receipt"
+exit_receipt_key = "q"
+exit_receipt_is_separate = true
+
+[[case]]
+id = "first30-v1/tablepro.connections"
+test_name = "first30_tablepro_connections"
+class = "primary"
+selected_in_primary_lane = true
+binary = "tablepro"
+args = ["--motion", "paused", "--frame", "0", "--color", "truecolor"]
+initial_marker = "TablePro"
+help_key = "?"
+help_marker = "Keyboard shortcuts"
+quit_key = "Ctrl+q"
+terminal_profile = "first30-v1"
+fixture_path = "data/first30-v1/tablepro.connections"
+checkpoint_labels = ["initial", "selected", "help", "returned", "small", "restored"]
+requirement_ids = [
+  "first30-v1/tablepro.connections/initial",
+  "first30-v1/tablepro.connections/selected",
+  "first30-v1/tablepro.connections/help",
+  "first30-v1/tablepro.connections/returned",
+  "first30-v1/tablepro.connections/small",
+  "first30-v1/tablepro.connections/restored",
+]
+exit_receipt_label = "exit-receipt"
+exit_receipt_key = "Ctrl+q"
+exit_receipt_is_separate = true
+
+[[case]]
+id = "first30-v1/holla.first_use.frame1"
+test_name = "holla_first_use_frame_one_variant"
+class = "additional_variant"
+selected_in_primary_lane = false
+binary = "holla"
+args = ["--scenario", "first-use", "--motion", "paused", "--frame", "1", "--color", "truecolor"]
+initial_marker = "holla❯"
+help_key = "F1"
+help_marker = "Key reference"
+quit_key = "Ctrl+q"
+terminal_profile = "first30-v1"
+fixture_path = "data/first30-v1/holla.first_use.frame1"
+checkpoint_labels = ["initial", "empty", "cleared", "help", "returned", "small", "restored"]
+requirement_ids = [
+  "first30-v1/holla.first_use.frame1/initial",
+  "first30-v1/holla.first_use.frame1/empty",
+  "first30-v1/holla.first_use.frame1/cleared",
+  "first30-v1/holla.first_use.frame1/help",
+  "first30-v1/holla.first_use.frame1/returned",
+  "first30-v1/holla.first_use.frame1/small",
+  "first30-v1/holla.first_use.frame1/restored",
+]
+exit_receipt_label = "exit-receipt"
+exit_receipt_key = "Ctrl+q"
+exit_receipt_is_separate = true
+
+[[case]]
+id = "showcase-help/80x24-v1"
+test_name = "showcase_help_paging"
+class = "retained_requirement"
+selected_in_primary_lane = false
+binary = "showcase"
+args = ["--motion", "paused", "--frame", "0", "--color", "truecolor"]
+initial_marker = "Overview"
+help_key = "?"
+help_marker = "Keyboard & mouse"
+quit_key = "q"
+terminal_profile = "retained-showcase-help-v1"
+fixture_path = "data/showcase-help/80x24-v1"
+checkpoint_labels = ["opened", "help-start", "help-scrolled", "returned", "help-reopened", "restored-after-modal-q", "exited"]
+requirement_ids = [
+  "showcase-help/80x24-v1/opened",
+  "showcase-help/80x24-v1/help-start",
+  "showcase-help/80x24-v1/help-scrolled",
+  "showcase-help/80x24-v1/returned",
+  "showcase-help/80x24-v1/help-reopened",
+  "showcase-help/80x24-v1/restored-after-modal-q",
+  "showcase-help/80x24-v1/exited",
+]
+exit_receipt_label = "exited"
+exit_receipt_key = "q"
+exit_receipt_is_separate = false
+
+[[case]]
+id = "holla-first-use/action-identity-v1"
+test_name = "holla_first_use_action"
+class = "retained_requirement"
+selected_in_primary_lane = false
+binary = "holla"
+args = ["--scenario", "first-use", "--motion", "paused", "--frame", "0", "--color", "truecolor"]
+initial_marker = "holla❯"
+help_key = ""
+help_marker = ""
+quit_key = "Ctrl+q"
+terminal_profile = "retained-holla-action-v1"
+fixture_path = "data/holla-first-use/action-identity-v1"
+checkpoint_labels = ["opened", "initial-resource", "home-restored", "query-selected", "query-resource", "query-restored", "query-cleared", "exited"]
+requirement_ids = [
+  "holla-first-use/action-identity-v1/opened",
+  "holla-first-use/action-identity-v1/initial-resource",
+  "holla-first-use/action-identity-v1/home-restored",
+  "holla-first-use/action-identity-v1/query-selected",
+  "holla-first-use/action-identity-v1/query-resource",
+  "holla-first-use/action-identity-v1/query-restored",
+  "holla-first-use/action-identity-v1/query-cleared",
+  "holla-first-use/action-identity-v1/exited",
+]
+exit_receipt_label = "exited"
+exit_receipt_key = "Ctrl+q"
+exit_receipt_is_separate = false
+
+[[not_run_requirement]]
+id = "showcase-help/80x24-v1"
+test_name = "showcase_help_paging"
+selected_by_first30_filter = false
+status = "not run when unselected"
+
+[[not_run_requirement]]
+id = "holla-first-use/action-identity-v1"
+test_name = "holla_first_use_action"
+selected_by_first30_filter = false
+status = "not run when unselected"
+
+[[not_run_requirement]]
+id = "first30-v1/holla.first_use.frame1"
+test_name = "holla_first_use_frame_one_variant"
+selected_by_first30_filter = false
+status = "separate seven-frame case; outside the primary denominator"
+
+[[not_run_requirement]]
+id = "full-application-inventory"
+test_name = "required_inventory_ready"
+selected_by_first30_filter = false
+status = "NOT VERIFIED; remains failing until full inventory evidence exists"
