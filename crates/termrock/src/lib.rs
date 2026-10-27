@@ -90,7 +90,8 @@ pub use blocks::{
     AppShell, AppShellExt, AppShellSlots, Chrome, EmptyLeaf, MasterDetail, MasterDetailAction,
     MasterDetailError, MasterDetailPolicy, MasterDetailState, Regions, ShellSlots, SplitBlock,
     SplitBlockError, ToolItem, Toolbar, ToolbarAction, ToolbarActionEvent, ToolbarActions,
-    ToolbarError, ToolbarReferenceState, ToolbarState, ToolbarTip, ToolbarTooltipPolicy,
+    ToolbarError, ToolbarMoreLook, ToolbarReferenceState, ToolbarState, ToolbarTip,
+    ToolbarTooltipPolicy,
 };
 pub use slots::{DialogSlotExt, FormDialogSlotExt, PickerSlotExt, PropsSlotExt};
 pub use termrock_runtime::ui::LayerSlot;
