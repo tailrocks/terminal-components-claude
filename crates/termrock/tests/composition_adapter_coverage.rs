@@ -245,6 +245,7 @@ const NOT_COMPONENTS: &[&str] = &[
     "ToolbarActionEvent",
     "ToolbarActions",
     "ToolbarError",
+    "ToolbarMoreLook",
     "ToolbarReferenceState",
     "ToolbarState",
     "ToolbarTip",
@@ -364,6 +365,7 @@ fn a_new_component_without_an_adapter_fails_the_coverage_gate() {
         "TabMarks",
         "TabNavProfile",
         "TabRule",
+        "ToolbarMoreLook",
     ] {
         assert!(exported.contains(name), "{name} must be facade-exported");
         assert!(not_components.contains(name), "{name} must be excluded");
