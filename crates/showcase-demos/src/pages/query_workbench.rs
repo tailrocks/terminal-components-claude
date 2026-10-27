@@ -815,23 +815,35 @@ impl Page for QueryWorkbenchPage {
                 let _ = ui.paint_str(status_area, &self.status, ui.surface_style());
             }
         });
-        if area.width > title_width.saturating_add(4) {
-            let status_area = Rect {
-                x: area.x.saturating_add(title_width).saturating_add(2),
-                y: area.y,
-                width: area.width.saturating_sub(title_width).saturating_sub(3),
-                height: 1,
-            };
-            let (environment_label, environment_role) = self.options.environment_status();
-            let environment = [StatusItem::new(environment_label)
-                .tone(environment_role)
-                .priority(9)];
-            let sample = [StatusItem::new("sample data · no database connection").priority(1)];
-            StatusBar::new(ENVIRONMENT_STATUS)
-                .left(&environment)
-                .right(&sample)
-                .draw(ui, status_area);
-        }
+        let header_row = termrock::runtime::first_row(area);
+        let fixed_title_prefix = title_width.saturating_add(2);
+        let header_columns = [
+            layout::ColumnSpec::new(
+                fixed_title_prefix,
+                fixed_title_prefix,
+                fixed_title_prefix,
+                0,
+                None,
+            ),
+            layout::ColumnSpec::new(2, 2, u16::MAX, 1, Some(0)),
+            layout::ColumnSpec::new(1, 1, 1, 0, None),
+        ];
+        let [title_prefix_width, status_width] =
+            layout::solve_columns_head(&header_columns, header_row.width, 0).unwrap_or([0, 0]);
+        let status_area = Rect {
+            x: header_row.x.saturating_add(title_prefix_width),
+            width: status_width,
+            ..header_row
+        };
+        let (environment_label, environment_role) = self.options.environment_status();
+        let environment = [StatusItem::new(environment_label)
+            .tone(environment_role)
+            .priority(9)];
+        let sample = [StatusItem::new("sample data · no database connection").priority(1)];
+        StatusBar::new(ENVIRONMENT_STATUS)
+            .left(&environment)
+            .right(&sample)
+            .draw(ui, status_area);
         if self.options_open {
             let data = self.options.dialog_data();
             ui.layer(OPTIONS_DIALOG, |ui, layer| {
