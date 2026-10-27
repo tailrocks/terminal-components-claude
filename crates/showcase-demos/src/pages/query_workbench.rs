@@ -1,11 +1,13 @@
+use std::ops::Range;
 use std::time::Duration;
 
 use termrock::grid::{Column, ColumnKey, Table, TableColumn, TableState};
 use termrock::{
-    ActionKey, CodeEditor, CodeEditorState, Cx, FrameRead, GridModel, Id, ItemKey, Maximized,
-    Panel, PanelKind, Rect, ResetPolicy, Response, Role, SplitAxis, SplitFallback, SplitPane,
-    SplitPaneState, StateFlags, StatusBar, StatusItem, Tabs, TabsAction, TabsState, ToolItem,
-    Toolbar, ToolbarAction, ToolbarState, TreeAction, Ui, UpdateCause, layout,
+    ActionKey, CodeAction, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, Cx,
+    FrameRead, GridModel, Id, ItemKey, Maximized, Panel, PanelKind, Rect, ResetPolicy, Response,
+    Role, SplitAxis, SplitFallback, SplitPane, SplitPaneState, StateFlags, StatusBar, StatusItem,
+    Tabs, TabsAction, TabsState, ToolItem, Toolbar, ToolbarAction, ToolbarState, TreeAction, Ui,
+    UpdateCause, layout,
 };
 
 mod explorer;
@@ -581,14 +583,21 @@ impl QueryWorkbenchPage {
         };
         match fixture {
             ResultFixture::Run => {}
-            ResultFixture::Empty => document.result = ResultView::Empty,
+            ResultFixture::Empty => {
+                document.editor.set_diagnostics(Vec::new());
+                document.result = ResultView::Empty;
+            }
             ResultFixture::Error => {
+                document.editor.set_diagnostics(Vec::new());
                 document.result = ResultView::Error {
                     message: "relation \"ordrs\" does not exist".to_owned(),
                     detail: "SQLSTATE 42P01 · line 3 · Did you mean \"orders\"?".to_owned(),
                 };
             }
-            ResultFixture::Plan => document.result = ResultView::Plan,
+            ResultFixture::Plan => {
+                document.editor.set_diagnostics(Vec::new());
+                document.result = ResultView::Plan;
+            }
         }
     }
 
@@ -712,9 +721,10 @@ impl QueryWorkbenchPage {
             .iter_mut()
             .find(|document| document.key == run.owner)
         {
-            let result = evaluate_query(document.editor.text(), run.explain);
-            let status = result.summary();
-            document.result = result;
+            let evaluation = evaluate_query(document.editor.text(), run.explain);
+            let status = evaluation.result.summary();
+            document.result = evaluation.result;
+            document.editor.set_diagnostics(evaluation.diagnostics);
             self.status = status;
         } else {
             self.status = "Run cancelled · its query tab was closed.".to_owned();
@@ -838,7 +848,11 @@ impl Page for QueryWorkbenchPage {
                     .placeholder("Write a query against the sample data")
                     .read_only(self.options.read_only())
                     .update(cx, &mut document.editor);
+                let action = update.action_ref().cloned();
                 response |= update.erase();
+                if matches!(action, Some(CodeAction::Changed)) {
+                    document.editor.set_diagnostics(Vec::new());
+                }
             }
 
             let toolbar = self.toolbar();
@@ -1090,14 +1104,25 @@ impl Page for QueryWorkbenchPage {
     }
 }
 
-fn evaluate_query(sql: &str, explain: bool) -> ResultView {
+struct QueryEvaluation {
+    result: ResultView,
+    diagnostics: Vec<CodeDiagnostic>,
+}
+
+fn evaluate_query(sql: &str, explain: bool) -> QueryEvaluation {
     if sql.trim().is_empty() {
-        return ResultView::Empty;
+        return QueryEvaluation {
+            result: ResultView::Empty,
+            diagnostics: Vec::new(),
+        };
     }
-    let Some(table) = from_table(sql) else {
-        return ResultView::Error {
-            message: "Syntax error".to_owned(),
-            detail: "Expected a FROM clause.".to_owned(),
+    let Some((table, range)) = from_table(sql) else {
+        return QueryEvaluation {
+            result: ResultView::Error {
+                message: "Syntax error".to_owned(),
+                detail: "Expected a FROM clause.".to_owned(),
+            },
+            diagnostics: Vec::new(),
         };
     };
     let known = [
@@ -1110,26 +1135,39 @@ fn evaluate_query(sql: &str, explain: bool) -> ResultView {
         "subscriptions",
     ];
     if !known.iter().any(|known| table.eq_ignore_ascii_case(known)) {
-        return ResultView::Error {
-            message: format!("relation \"{table}\" does not exist"),
-            detail: "Check the table name in the current sample schema.".to_owned(),
+        return QueryEvaluation {
+            result: ResultView::Error {
+                message: format!("relation \"{table}\" does not exist"),
+                detail: "Check the table name in the current sample schema.".to_owned(),
+            },
+            diagnostics: vec![CodeDiagnostic::new(
+                range,
+                CodeSeverity::Error,
+                "unknown relation",
+            )],
         };
     }
     if explain {
-        return ResultView::Plan;
+        return QueryEvaluation {
+            result: ResultView::Plan,
+            diagnostics: Vec::new(),
+        };
     }
     let count = if sql.to_ascii_lowercase().contains("limit 25") {
         25
     } else {
         40
     };
-    ResultView::Rows {
-        table: table.to_owned(),
-        count,
+    QueryEvaluation {
+        result: ResultView::Rows {
+            table: table.to_owned(),
+            count,
+        },
+        diagnostics: Vec::new(),
     }
 }
 
-fn from_table(sql: &str) -> Option<&str> {
+fn from_table(sql: &str) -> Option<(&str, Range<usize>)> {
     let bytes = sql.as_bytes();
     let from = bytes
         .windows(5)
@@ -1144,5 +1182,9 @@ fn from_table(sql: &str) -> Option<&str> {
         .iter()
         .position(|byte| !byte.is_ascii_alphanumeric() && *byte != b'_')
         .map_or(bytes.len(), |offset| start.saturating_add(offset));
-    (end > start).then(|| sql.get(start..end)).flatten()
+    if end <= start {
+        return None;
+    }
+    let table = sql.get(start..end)?;
+    Some((table, start..end))
 }
