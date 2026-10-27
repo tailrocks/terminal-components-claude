@@ -664,6 +664,20 @@
       "reason": "testing-feature probe harness only (module is cfg(testing), never compiled into production builds); the expect turns an unreachable runtime rejection into a test failure.",
       "review": "Coordinator 2026-10-21; reach.rs is test support misclassified as production by path scope",
       "rule": "OWN-14"
+    },
+    {
+      "max": 2,
+      "path": "crates/showcase-demos/src/pages/query_workbench.rs",
+      "reason": "Application-owned Results summary and run/status text use Ui::paint_str; docs/components-contracts.md:17 permits application-authored painting while Panel and Table retain native controls and geometry.",
+      "review": "Independent Sol review: /root/published_recovery_regression_review; QWB ownership and native Panel/Table control and geometry boundary reviewed.",
+      "rule": "OWN-02"
+    },
+    {
+      "max": 1,
+      "path": "crates/showcase-demos/src/pages/query_workbench.rs",
+      "reason": "The existing frame page wrapper paints Query Workbench chrome; native Panel and Table retain controls and geometry under docs/components-contracts.md:17.",
+      "review": "Independent Sol review: /root/published_recovery_regression_review; QWB ownership and native Panel/Table control and geometry boundary reviewed.",
+      "rule": "OWN-04"
     }
   ],
   "schema": "termrock-ownership-exceptions/v1"

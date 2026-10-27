@@ -2878,9 +2878,14 @@ impl TuiApp for App {
     fn draw(&self, ui: &mut Ui<'_>) {
         let full = ui.full();
 
-        let query_workbench_capture_enabled = full.width >= 72
-            && full.height >= 20
-            && !ui.is_covered_by_native_layer()
+        ui.fill(full, shell_compat_style(ui.surface_style()));
+        if full.width < 72 || full.height < 20 {
+            self.query_workbench_capture_enabled.set(false);
+            too_small_notice().draw(ui, full);
+            return;
+        }
+
+        let query_workbench_capture_enabled = !ui.is_covered_by_native_layer()
             && self.nav_target == NavTarget::Live(PageId::QueryWorkbench)
             && self.nav_query.is_none()
             && !self.help_open
@@ -2892,12 +2897,6 @@ impl TuiApp for App {
             });
         self.query_workbench_capture_enabled
             .set(query_workbench_capture_enabled);
-
-        ui.fill(full, shell_compat_style(ui.surface_style()));
-        if full.width < 72 || full.height < 20 {
-            too_small_notice().draw(ui, full);
-            return;
-        }
         let shell = self.resolved_shell_layout(full);
 
         shell_brand().draw(ui, shell.header);
@@ -3368,6 +3367,7 @@ mod app_tests {
     use super::*;
     use termrock_test_support::Harness;
 
+    const QUERY_WORKBENCH_EDITOR: Id = Id::root("showcase_ui::pages::query_workbench.editor");
     const QUERY_WORKBENCH_RESULTS: Id = Id::root("showcase_ui::pages::query_workbench.results");
     const QUERY_WORKBENCH_RESULTS_PANEL: Id =
         Id::root("showcase_ui::pages::query_workbench.results_panel");
@@ -3619,6 +3619,42 @@ mod app_tests {
             .as_ref()
             .map(|(_, since)| since.as_duration().as_millis());
         assert_eq!(since, Some(5_000));
+    }
+
+    #[test]
+    fn below_minimum_size_clears_query_workbench_capture_permission() {
+        let mut h = Harness::new(
+            App::with_page(PageId::QueryWorkbench),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(
+            h.tab_to(QUERY_WORKBENCH_EDITOR),
+            "the native editor receives focus"
+        );
+        assert!(
+            h.app().query_workbench_capture_enabled.get(),
+            "focused Query Workbench owner receives capture at supported size"
+        );
+
+        let _ = h.resize(60, 15);
+        assert!(h.text().contains("Terminal too small"));
+        assert!(
+            !h.app().query_workbench_capture_enabled.get(),
+            "the minimum-size early return clears cached capture permission"
+        );
+
+        let _ = h.resize(120, 40);
+        assert!(
+            h.tab_to(QUERY_WORKBENCH_EDITOR),
+            "the native editor returns after resize"
+        );
+        assert!(
+            h.app().query_workbench_capture_enabled.get(),
+            "supported geometry restores capture for the focused native owner"
+        );
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
 
     #[test]
