@@ -10,6 +10,23 @@ Historical narrative and per-increment receipts stay in
 record and the matrix disagree, this record states the current decision and
 the matrix section is marked superseded by it.
 
+## Common functional suite: current results (2026-10-28)
+
+The standalone suite registers 89 cases and 276 checkpoint IDs: 84 retained legacy cases, four first-delivery cases with 30 checkpoints, and one separate seven-checkpoint Holla frame-1 case. The functional harness source SHA-256 is `5ee73ee6c7710a0c0bf01148fd772283a86ecf62dc86825047d102ae417297aa`. This evidence covers the four first-delivery cases only; it does not establish full acceptance.
+
+The independently accepted reference run passed 30/30 exact state-and-pixel comparisons. All four selected processes exited cleanly, drained output, and restored the terminal. The checked-in approval record is `tools/functional-suite/expected/BASELINE-APPROVAL.json` (SHA-256 `f0b1d89d44829c88b54cf0b6686835b241e7cb5a7a97a7b18bafadad56e2b3a9`). Its receipt is `/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/logs/first-delivery-v4-approved-reference-retry3-20261028T/terminal-receipt.json` (SHA-256 `e99b06db5eb9855dead53a77abfc736055ad1bd3d4da91be611b0e64cc6246b8`).
+
+The target run selected the same four cases. It reached 16/30 checkpoints: two matched exactly, 14 had visual differences, and 14 were not reached; Nextest exited 100 with evidence saved. The binaries came from `db8135a0116ae4041f0eb2e2c708c011b415ab37` plus four local application-source overlays, so they do not represent a clean build of `7c9d173fb044887e8af1e06c8d842cc0e2f34eb3`. The build receipt is `/private/tmp/termrock-pr38-production-20261028-db8135a/provenance/build-receipt.json` (SHA-256 `00c61bc7d5b694780217092a4a77d13a2de0ea29c5b9089d5d073a045eb65845`); the target receipt is `/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/logs/first-delivery-v4-target-20261028T/terminal-receipt.json` (SHA-256 `f8e3f6770b19e0bd173e05b69d3155fb78452ad6f4f2b912d8e2381d6c62d86f`). Captured outputs are under `/private/tmp/termrock-functional-suite-common-20261028-eee69f0d5c/outputs/first-delivery-v4-target-20261028T/v2/`.
+
+| Application | Target result |
+| --- | --- |
+| Holla | 1/7 reached; empty-state readiness failed. The process exited cleanly and restored the terminal. |
+| Jackin | 2/10 reached; the General contract failed, and the Hangup path did not restore the terminal. |
+| Showcase | 7/7 reached; all seven had visual differences. The buttons click, focus, resize, and exit fix was independently approved and committed as `0dd536688ecc0eb1985f9a0b22d0542bf4bbb46f`. |
+| TablePro | 6/6 reached; five had visual differences, including the selection-identity defect. |
+
+GitHub run [40590016025](https://github.com/tailrocks/terminal-components-claude/actions/runs/40590016025), for head `7c9d173`, was `Queued` at the 2026-10-27 21:56:41 UTC probe; its Plan annotation said the operation was canceled because a higher-priority `velnor-CI-38` request was waiting. It has no completed result in this record. The older run `40587157121` used checkout `0f248e0ddaefbadc565b0d6754323a428a18297d` and failed with 50 jobs: one passed, three failed, and 46 were skipped. The external pre-discovery CI capability candidate is still under development and is not applied; DCO's older missing sign-offs remain a separate issue. The 84 legacy cases and Holla frame-1 case remain outside this evidence.
+
 ## Delivery path
 
 | Item | Value |

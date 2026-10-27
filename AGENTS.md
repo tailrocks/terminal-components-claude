@@ -2,6 +2,7 @@
 
 - Retire legacy paths only through an intentional migration. Preserve documented behavior and public APIs unless an active project goal or architecture decision authorizes a breaking change.
 - This repository is a Rust TUI component library with deterministic demonstration apps. Preserve its validation, safety, and compatibility contracts; the apps do not perform real external side effects.
+- The Common functional suite rules and commands live in [tools/functional-suite/README.md](tools/functional-suite/README.md). Follow them for source export, pinned engines, runtime inputs, and fail-closed baseline handling.
 - Always apply these principles:
   - Judge work by correctness, consistency, and project fit. Never defer a known-wrong state because of ROI, cost, effort, or claims that it is low-value, marginal, or an edge case.
   - Stop only when the required change is proven impossible with the available tools or model. When uncertain, inspect, test, and measure first.

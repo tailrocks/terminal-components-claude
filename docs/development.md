@@ -11,6 +11,22 @@ Install the checked-out workspace's pinned developer tools with `mise install`, 
 
 The commands above are starting points verified against the package manifests. Format, check, lint, and test the affected workspace using its configured commands. Run focused tests first, then required integration and visual gates. Record exact command, branch, revision, and result. A passing local command is evidence only for that command and revision; old visual and nextest results are not current verification.
 
+## Common functional suite
+
+The standalone suite in [`tools/functional-suite/`](../tools/functional-suite/README.md) has one `functional` Nextest target. Use its README to export source and prepare the pinned engines. From the exported suite root, after building the four application binaries from one source snapshot and profile, use a fresh output directory for each run:
+
+```sh
+BIN_DIR="/absolute/path/to/showcase-holla-jackin-tablepro"
+OUT_DIR="/absolute/path/to/new-output"
+CARGO_BUILD_JOBS=2 TERMROCK_PARITY_BIN_DIR="$BIN_DIR" \
+TERMROCK_PARITY_OUT_DIR="$OUT_DIR" \
+"$HOME/.local/bin/rust-build-guard" -- mise exec -- cargo nextest run \
+  --locked --offline --test functional --no-tests fail --retries 0 \
+  --no-fail-fast --test-threads 2 -E 'test(/^first_delivery_/)'
+```
+
+This filter selects the four first-delivery cases. Keep source, engines, binaries, and profile fixed across a paired run; change only `OUT_DIR`. The broader case inventory and current evidence are in the suite README and [migration record](./architecture/termrock-migration-record.md#common-functional-suite-current-results-2026-10-28).
+
 The facade's named headless journey integration tests require its `testing` feature: [`crates/termrock/Cargo.toml` declares the feature](https://github.com/tailrocks/terminal-components-claude/blob/c8a31dd3fa6c65cf926228ca660bc7785dacb295/crates/termrock/Cargo.toml#L8-L10), and its [`ex01_button`, `ex02_text_input`, and consumer test targets](https://github.com/tailrocks/terminal-components-claude/blob/c8a31dd3fa6c65cf926228ca660bc7785dacb295/crates/termrock/Cargo.toml#L35-L75) mark that requirement. The manifest explains that these example journeys use the testing harness surface. This is a target prerequisite, not evidence that an example or test was run.
 
 CLI option discovery is application-specific. The [Showcase parser](https://github.com/tailrocks/terminal-components-claude/blob/c8a31dd3fa6c65cf926228ca660bc7785dacb295/crates/showcase-ui/src/app.rs#L2889-L2981) parses `--page`, `--theme`, `--color`, `--motion`, and `--frame`; that parser has no `--help` branch. Holla, Jackin Preview, and TablePro each have explicit help outcomes in their [parser](https://github.com/tailrocks/terminal-components-claude/blob/c8a31dd3fa6c65cf926228ca660bc7785dacb295/crates/holla-ui/src/cli.rs#L100-L108), [binary entry](https://github.com/tailrocks/terminal-components-claude/blob/c8a31dd3fa6c65cf926228ca660bc7785dacb295/crates/holla/src/main.rs#L16-L21), [parser](https://github.com/tailrocks/terminal-components-claude/blob/c8a31dd3fa6c65cf926228ca660bc7785dacb295/crates/jackin-preview-app/src/cli.rs#L99-L106), [binary entry](https://github.com/tailrocks/terminal-components-claude/blob/c8a31dd3fa6c65cf926228ca660bc7785dacb295/crates/jackin-preview/src/main.rs#L5-L21), [parser](https://github.com/tailrocks/terminal-components-claude/blob/c8a31dd3fa6c65cf926228ca660bc7785dacb295/crates/tablepro-ui/src/cli.rs#L143-L151), [runner](https://github.com/tailrocks/terminal-components-claude/blob/c8a31dd3fa6c65cf926228ca660bc7785dacb295/crates/tablepro-ui/src/cli.rs#L44-L55), and [binary entry](https://github.com/tailrocks/terminal-components-claude/blob/c8a31dd3fa6c65cf926228ca660bc7785dacb295/crates/tablepro/src/main.rs#L1-L13). These are source entry-point facts, not fresh launch results or a promise that every flag combination is valid.
