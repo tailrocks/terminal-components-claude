@@ -1,14 +1,20 @@
 # Termrock common live suite
 
-This external workspace runs the same four live terminal flows against staged PR26 and PR38 binaries. It records exact PTY output bytes before decoding and associates each captured screen with the processed byte offset. Its own `[patch.crates-io]` uses a local path to the derived engine checkout. `build.rs` and the runner require the full engine commit `5994dbf57047fe41f7401aaaa9197d49b8dfc0ae` and a clean engine worktree. There is no registry fallback.
+This external workspace runs the same four live terminal flows against staged PR26 and PR38 binaries. It records exact PTY output bytes before decoding and associates each captured screen with the processed byte offset. It pins `tui-test-rs` `0.1.1` with the `recording-raster` and `recording-font-jetbrains-mono-styles` features. Its own `[patch.crates-io]` uses a local path to the raw-capture fork derived from current `goal/qual-stack-r7` commit `e15339fd136b5454849e1107bab142c98416b174`. `build.rs` and the runner require derived commit `438563a86a3c5d78e6da6e12511fa089c6f15c61` and a clean engine worktree. There is no registry fallback. The Tuiscotti dependency uses current `main` commit `f40513120727f83c0c9713ae8d04eac70dfc955e`.
 
 ## First group
 
 The frozen group contains four flows and twelve checkpoints. Every case uses a 120 by 40 PTY, a cleared child environment with `LANG=LC_ALL=C.UTF-8`, `TERM=xterm-256color`, and `COLORTERM=truecolor`, and a fixed working directory under `data/first`. `NO_COLOR` is absent. The app arguments and key actions are in `src/main.rs` and do not depend on a branch.
 
-The runner requires all four staged binaries. Jackin must be staged as `jackin`, copied from `jackin-preview` with the same SHA-256. The runner does not build application binaries.
+The runner requires all four staged binaries and a `source-manifest.json` in each `--bin-dir`. Generate the manifest after staging with `write-source-manifest`; it records a full source commit and tree, a clean source worktree, the successful build log, the build hash file, and the SHA-256 for each staged binary. The runner rechecks these records and hashes before it starts a child. The manifest binds staged bytes to the recorded source and build evidence. Keep the source worktree, log, and hash file. The manifest alone does not prove how a binary was built. Jackin is staged as `jackin`, copied from `jackin-preview` with the same SHA-256. The runner does not build application binaries.
 
-Before quiet capture, the runner waits for a visible startup marker: `Overview` for Showcase, `holla❯` for Holla, `jackin❯` for Jackin, and `TablePro` for TablePro. These markers exist in both pinned source commits. After `?`, Showcase waits for its source title `Keyboard & mouse`. After Escape, each flow waits for its startup marker again before the restored screen capture.
+Before quiet capture, the runner waits for a visible startup marker: `Overview` for Showcase, `holla❯` for Holla, `Current directory` for Jackin, and `TablePro` for TablePro. Jackin uses the returning scenario so the `?` key opens help from Manager. Escape restores Manager, and `q` exits. After `?`, Showcase waits for its source title `Keyboard & mouse`. After Escape, each flow waits for its startup marker again before the restored screen capture.
+
+Create a source manifest with the verified commit, tree, source worktree, build log, and build hash file. The command creates metadata only and refuses to replace an existing manifest:
+
+```sh
+cargo run --locked -- write-source-manifest --bin-dir BIN --source-dir SOURCE --source-commit COMMIT --source-tree TREE --build-log BUILD_LOG --binary-sha256-file HASH_FILE
+```
 
 ## Run modes
 
@@ -30,7 +36,7 @@ Before the first `--locked` run, generate `Cargo.lock` with the guarded Cargo co
 
 The guard rejects Cargo's `--manifest-path` argument. For guarded local execution, use the suite directory as cwd and omit only that argument; this selects the same manifest and lock file. The recorded local run command follows that cwd form.
 
-The decoder uses the pinned engine with `TERM=xterm-256color`, `COLORTERM=truecolor`, the default xterm 256-color profile, and the app's `--color truecolor` option where specified. Snapshots retain each cell's exact grapheme, terminal width, foreground and background reference, attributes, underline, hyperlink, the resolved 256-entry palette, default colors, title, and cursor. `state-and-pixels` samples use Tuiscotti's pinned `tuiscotti-pinned-v1` render profile. Their PNG captures use the vendored JetBrains Mono styles and fixed 10 by 20 cell geometry at scale 1.
+The decoder uses the pinned engine with `TERM=xterm-256color`, `COLORTERM=truecolor`, the default xterm 256-color profile, and the app's `--color truecolor` option where specified. Snapshots retain each cell's exact grapheme, terminal width, foreground and background reference, attributes, underline, hyperlink, the resolved 256-entry palette, default colors, title, and cursor. `state-and-pixels` samples use the pinned Tuiscotti `tuiscotti-pinned-v1` render profile. Their PNG captures use the vendored JetBrains Mono styles and fixed 10 by 20 cell geometry at scale 1.
 
 The first group is process-complete only when all four child processes exit with code zero, raw capture drains and flushes without errors, and all twelve checkpoints are captured. Capture output remains unapproved and the command exits nonzero. A failed child or incomplete raw capture makes the run ineligible for reference approval. The runner records the cell-level difference, including the first differing cell or cursor field, when frozen comparison is available. ANSI byte streams may differ while decoded visible state matches.
 

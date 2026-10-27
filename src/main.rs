@@ -24,6 +24,7 @@ use tuiscotti::render_profile::{PROFILE_NAME, platform_key, resolve_profile};
 use tuiscotti::sample::{Observation, Sample};
 
 mod raw_probes;
+mod source_manifest;
 
 const COLS: u16 = 120;
 const ROWS: u16 = 40;
@@ -33,11 +34,9 @@ const HELP_TIMEOUT_MS: u64 = 15_000;
 const EXIT_TIMEOUT_MS: u64 = 30_000;
 const QUIET_TIMEOUT: Duration = Duration::from_secs(15);
 const QUIET_INTERVAL: Duration = Duration::from_millis(400);
-const ENGINE_COMMIT: &str = "5994dbf57047fe41f7401aaaa9197d49b8dfc0ae";
-const TUISCOTTI_COMMIT: &str = "9de60de9d2b9e883e5901dad07ecee508ac6dd76";
-const PR26_COMMIT: &str = "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948";
-const PR38_COMMIT: &str = "573a595e97451646cdd910ec392274c6a425f23b";
-const ENGINE_PATH: &str = "/Users/donbeave/Downloads/tui-test-raw-capture-20261027";
+const ENGINE_COMMIT: &str = "438563a86a3c5d78e6da6e12511fa089c6f15c61";
+const TUISCOTTI_COMMIT: &str = "f40513120727f83c0c9713ae8d04eac70dfc955e";
+const ENGINE_PATH: &str = "/Users/donbeave/Downloads/tui-test-raw-capture-r7-20261027";
 const CHECKPOINTS: [&str; 3] = ["initial", "help", "restored"];
 
 #[derive(Clone, Copy)]
@@ -84,7 +83,7 @@ const CASES: [Case; FLOW_DENOMINATOR] = [
         binary: "jackin",
         args: &[
             "--scenario",
-            "first-use",
+            "returning",
             "--motion",
             "paused",
             "--frame",
@@ -92,7 +91,7 @@ const CASES: [Case; FLOW_DENOMINATOR] = [
             "--color",
             "truecolor",
         ],
-        initial_marker: "jackin❯",
+        initial_marker: "Current directory",
         help_key: "?",
         help_marker: "Keyboard shortcuts",
         quit_key: "q",
@@ -157,6 +156,9 @@ fn run() -> AppResult<()> {
         verify_engine_identity()?;
         return raw_probes::run(args.collect());
     }
+    if first == "write-source-manifest" {
+        return source_manifest::write(args.collect());
+    }
     verify_engine_identity()?;
 
     let mut bin_dir = None;
@@ -200,20 +202,8 @@ fn run() -> AppResult<()> {
         return Err(format!("TERMROCK_LIVE_MODE must be capture or check, got {mode:?}").into());
     }
     let root = suite_root()?;
+    let source_manifest = source_manifest::load_verified(&bin_dir)?;
     prepare_empty_output(&out_dir)?;
-    for case in CASES {
-        let binary = bin_dir.join(case.binary);
-        if !binary.is_file() {
-            return Err(format!("required staged binary is missing: {}", binary.display()).into());
-        }
-    }
-    let binary_hashes = CASES
-        .iter()
-        .map(|case| {
-            let path = bin_dir.join(case.binary);
-            Ok((case.binary, sha256_file(&path)?))
-        })
-        .collect::<AppResult<Vec<_>>>()?;
 
     let frozen_store = if mode == "check" {
         Some(FrozenStore::new(
@@ -292,10 +282,8 @@ fn run() -> AppResult<()> {
         "checkpoint_percent": percent(completed_checkpoints, CHECKPOINT_DENOMINATOR),
         "checkpoints_passed": passed_checkpoints,
         "checkpoint_pass_percent": percent(passed_checkpoints, CHECKPOINT_DENOMINATOR),
-        "binary_hashes_sha256": binary_hashes,
-        "source_pins": {
-            "pr26": PR26_COMMIT,
-            "pr38": PR38_COMMIT,
+        "binary_source_manifest": source_manifest,
+        "suite_dependency_sources": {
             "tuiscotti": TUISCOTTI_COMMIT,
             "tui_test_derived": ENGINE_COMMIT,
         },
@@ -1107,10 +1095,6 @@ fn sha256(bytes: &[u8]) -> String {
     result
 }
 
-fn sha256_file(path: &Path) -> AppResult<String> {
-    Ok(sha256(&fs::read(path)?))
-}
-
 fn percent(value: usize, denominator: usize) -> f64 {
     (value as f64 * 100.0) / denominator as f64
 }
@@ -1123,5 +1107,5 @@ fn unix_ms() -> u128 {
 }
 
 fn usage_error() -> String {
-    "usage: termrock-live-suite --bin-dir BIN --out OUT --group first | all\n       termrock-live-suite compare-runs --left A --right B --out RESULT.json\n       termrock-live-suite probe-raw-capture --out OUT".into()
+    "usage: termrock-live-suite --bin-dir BIN --out OUT --group first | all\n       termrock-live-suite compare-runs --left A --right B --out RESULT.json\n       termrock-live-suite probe-raw-capture --out OUT\n       termrock-live-suite write-source-manifest --bin-dir BIN --source-dir REPO --source-commit SHA --source-tree SHA --build-log FILE --binary-sha256-file FILE".into()
 }

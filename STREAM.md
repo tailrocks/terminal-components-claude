@@ -35,3 +35,44 @@
 - Fixed checkpoint denominator: 12, three per flow (`initial`, `help`, `restored`).
 - Cases: `first/showcase`, `first/holla`, `first/jackin`, `first/tablepro`.
 - Full parity inventory and the existing 302-screen claim: not run and not fresh evidence.
+
+## Current source and suite update
+
+- Continuation start: 2026-10-27 01:05:37 UTC. Current observation: 2026-10-27 01:24:58 UTC. The earlier records above remain historical. This section records the current source and suite work.
+- Current stage: port the reviewed raw capture change to the latest maintained engine branch, update the shared runner to the latest merged Tuiscotti source, create verified source manifests, then run fresh PR26 reference captures twice. No application child has run with this suite revision yet.
+- Owned writes: `/Users/donbeave/Downloads/termrock-live-suite-20261027`; `/Users/donbeave/Downloads/tui-test-raw-capture-r7-20261027`; `/Users/donbeave/Downloads/termrock-live-results-20261027/streams/common`; and metadata files only in BIN26 and BIN38. No application source, upstream test, PR, remote branch, or binary was changed.
+- Blocked periods: none. The failed setup and compile attempts below did not pause project work.
+- Disk: the latest `disk-check` reported `free_bytes=2293531922432 status=ok`. This agent owns no cleanup worker. Five cleanup-only workers remain under root ownership. Free space stayed above the 2 TB gate, so this agent started no cleanup worker.
+
+### Current source pins
+
+- Official latest source check at 2026-10-27 01:09:59 UTC: `donbeave/tui-test` main `f2760592ed00e90436f8c3bae124dab712eaecf8`; maintained `goal/qual-stack-r7` `e15339fd136b5454849e1107bab142c98416b174`; `tailrocks/tuiscotti` main `f40513120727f83c0c9713ae8d04eac70dfc955e`.
+- Engine ancestry: `f2760592` is an ancestor of `e15339fd`; their merge base is `f2760592`. Main lacks public `LaunchOptions`, `Session::spawn_with`, and `capture_snapshot`; r7 has those APIs. The raw capture change was applied only to the five runtime/API files. The patch applied cleanly and changed no upstream tests.
+- New engine base: `e15339fd136b5454849e1107bab142c98416b174`, tree `df8bb26a9f4de5058f89c9361fe58f42f79025ec`.
+- New derived engine: `438563a86a3c5d78e6da6e12511fa089c6f15c61`, tree `d9957241869fcea938de9baa719de5f04d545453`. The worktree is clean. This revision is pending independent Sol high review.
+- Accepted historical raw patch artifact: `/Users/donbeave/Downloads/termrock-live-results-20261027/streams/common/tui-test-raw-capture-81da-to-5994-accepted.patch`, SHA-256 `affdd13591dc47139e3e4f26303740b6d437851e25277029950560bbc6ebfdc3`.
+- New engine diff: `/Users/donbeave/Downloads/termrock-live-results-20261027/streams/common/tui-test-raw-capture-e15339-to-438563a.patch`, SHA-256 `9a7ed376d18c98791aa1e6a2052ce9b022d2c7aff35450b5c665dce0b6841b23`.
+- New engine recovery bundle: `/Users/donbeave/Downloads/termrock-live-results-20261027/streams/common/tui-test-raw-capture-e15339-to-438563a.bundle`, SHA-256 `246c93b389824a85a212cceb37e584c866b6615bd4f69fece6f241320cd26cca`. `git bundle verify` passed. A bare clone passed `git fsck --full --no-reflogs`; it has no alternates. The bundle contains the complete history and derived ref.
+- Tuiscotti is pinned to `tailrocks/tuiscotti` main `f40513120727f83c0c9713ae8d04eac70dfc955e`. `tui-test-rs` remains exact version `0.1.1` with features `recording-raster` and `recording-font-jetbrains-mono-styles`, patched in this consumer to the clean derived engine checkout.
+
+### Toolchain
+
+- Official latest versions used: mise `2026.10.20`, Rust `1.99.1`, and mbx `1.28.0`.
+- `mise self-update 2026.10.20 --yes --no-plugins`, run from `/`, completed successfully and verified the release signature. The active binary reports `mise 2026.10.20`.
+- Suite `mise.toml` now requires `2026.10.20`. Commit `6ebc17e` contains this pin. `mise.lock` already pins Rust `1.99.1` and mbx `1.28.0`; the file did not need a version change.
+- Scoped `mise install` succeeded with `MISE_ENABLE_TOOLS=rust,mr-boxington MISE_AUTO_INSTALL=false MISE_LOCKFILE=false` and found both exact tool versions installed.
+- An unscoped `mise install` also read global tools and reported missing Java metadata for `macos-x64`. It did not change `mise.lock`. The wrapper did not preserve its exact process exit code. The scoped install succeeded afterward.
+- `MISE_ENABLE_TOOLS=rust,mr-boxington MISE_AUTO_INSTALL=false MISE_LOCKFILE=false /Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo update -p tuiscotti --precise f40513120727f83c0c9713ae8d04eac70dfc955e` exited 125. The guard denied `cargo update`. No bypass was used. The next guarded build resolved the new Tuiscotti revision and updated `Cargo.lock`.
+
+### Suite changes and build record
+
+- Jackin keeps ID `first/jackin` and the same three checkpoints. It now uses `--scenario returning`, waits for visible `Current directory`, sends `?`, waits for `Keyboard shortcuts`, sends Escape, waits for `Current directory` again, then sends `q`. PR26 source at `5b3dbd7` confirms the returning scenario starts in Manager, help opens there, and the workspace marker is visible.
+- The runner no longer hardcodes PR26 or PR38 source commits. It requires `source-manifest.json` for every binary directory. The manifest binds the full source commit/tree and clean worktree to a successful build log, build hash file, and all four staged binary hashes. The runner rechecks the source worktree, evidence digests, and staged hashes before it starts any child. Jackin's staged hash must match both `jackin` and the `jackin-preview` build artifact.
+- The suite uses its own local path patch to engine `438563a86a3c5d78e6da6e12511fa089c6f15c61` and the latest Tuiscotti commit. `build.rs` and the runner enforce the exact clean engine head. The runner keeps four flows and twelve checkpoints. It has no branch conditions or per-case selector.
+- First guarded `cargo build` without `--locked` exited 101 after it updated the lock to Tuiscotti `f405131`. It found two new manifest implementation errors (`E0277` for SHA formatting and `E0499` for the argument parser). No app child ran.
+- Final guarded `cargo build --locked` exited 0. Cargo reported 2.45 seconds. The complete log is `/Users/donbeave/Downloads/termrock-live-results-20261027/streams/common/suite-build-e153-438563a-final.log`. It produced no warnings. No Cargo tests ran.
+- PR26 source: commit `5b3dbd7ae799f325efbb4f4cc11b2f5518dec948`, tree `08fc5b793152a97d16f0d4ccbaf2abba66097f7d`, clean worktree. Its source manifest was created from build log `pr26.attempt-03.console.log` and hash file `pr26.binary-sha256.txt`. Manifest SHA-256: `4e68aeca17c160463c7a27aafd0ce0ae921e208ca1d1a042dcc138aaba5d0ae2`.
+- PR38 staged binaries are from commit `fd9eed1f8ab388005c21c7c82e601df6eb5d9d77`, tree `6480be36ec750bcee8f113c7dea4173629236080`, with a clean source worktree. The versioned manifest records this exact source, not later source `f1a428ca`. Manifest SHA-256: `b8bdd539ee2cf4c1caf39ef18592efb94dbaf20a7a86817df3c5fcd713047e4c`. Its build log and hash file are `pr38.integration-fd9eed1.console.log` and `pr38.integration-fd9eed1.binary-sha256.txt`.
+- The first PR26 manifest generation exited 1 because the build hash file lists built and staged copies with repeated names. The generator now allows repeated names only when hashes match and checks the Jackin alias. The failed attempt log is preserved at `/Users/donbeave/Downloads/termrock-live-results-20261027/streams/common/pr26-source-manifest-e153-438563a.log`. The corrected PR26 generation exited 0; its command log is `pr26-source-manifest-e153-438563a-v2.log`. PR38 manifest generation exited 0; its command log is `pr38-source-manifest-fd9eed1-e153-438563a.log`. These commands changed metadata only.
+- Fresh PR26 reference A/B captures with the new suite and engine are not run yet. No frame has been approved for the new engine. The old nine-frame approval remains historical and applies only to engine `5994dbf` and suite `a93f25e`.
+- The full parity inventory and the existing 302-screen claim remain `NOT RUN` and are not fresh evidence.

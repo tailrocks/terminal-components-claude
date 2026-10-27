@@ -11,13 +11,13 @@ serde = "=1.0.229"
 serde_json = "=1.0.154"
 sha2 = "=0.11.1"
 tui-test-rs = { version = "=0.1.1", features = ["recording-raster", "recording-font-jetbrains-mono-styles"] }
-tuiscotti = { git = "https://github.com/donbeave/tuiscotti", rev = "9de60de9d2b9e883e5901dad07ecee508ac6dd76" }
+tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "f40513120727f83c0c9713ae8d04eac70dfc955e" }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
 [patch.crates-io]
-tui-test-rs = { path = "/Users/donbeave/Downloads/tui-test-raw-capture-20261027/crates/tui-test" }
+tui-test-rs = { path = "/Users/donbeave/Downloads/tui-test-raw-capture-r7-20261027/crates/tui-test" }
 
 [workspace]
 resolver = "3"

@@ -1,13 +1,28 @@
 use std::process::Command;
 
-const ENGINE: &str = "/Users/donbeave/Downloads/tui-test-raw-capture-20261027";
-const EXPECTED_HEAD: &str = "5994dbf57047fe41f7401aaaa9197d49b8dfc0ae";
+const ENGINE: &str = "/Users/donbeave/Downloads/tui-test-raw-capture-r7-20261027";
+const EXPECTED_HEAD: &str = "438563a86a3c5d78e6da6e12511fa089c6f15c61";
 
 fn main() {
+    let git_head = git(&["rev-parse", "--path-format=absolute", "--git-path", "HEAD"]);
+    let git_ref = git(&[
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-path",
+        "refs/heads/common-raw-e153",
+    ]);
+    let git_index = git(&["rev-parse", "--path-format=absolute", "--git-path", "index"]);
+    let packed_refs = git(&[
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-path",
+        "packed-refs",
+    ]);
     for path in [
-        format!("{ENGINE}/.git/HEAD"),
-        format!("{ENGINE}/.git/refs/heads/main"),
-        format!("{ENGINE}/.git/index"),
+        git_head,
+        git_ref,
+        git_index,
+        packed_refs,
         format!("{ENGINE}/crates/tui-test"),
     ] {
         println!("cargo:rerun-if-changed={path}");
