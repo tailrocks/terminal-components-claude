@@ -9,6 +9,8 @@ use crate::world::{Domain, World};
 pub struct Section {
     pub name: &'static str,
     pub actions: Vec<Action>,
+    pub empty_note: Option<&'static str>,
+    pub chips: Option<&'static [&'static str]>,
 }
 
 pub fn catalogue(w: &World) -> Vec<Action> {
@@ -21,7 +23,7 @@ fn catalogue_with_history(w: &World, history: bool) -> Vec<Action> {
     }
     let mut out = vec![];
     if w.scenario == Scenario::FirstUse {
-        first_use_actions(w, history, &mut out);
+        first_use_actions(w, &mut out);
     }
     mise_actions(w, &mut out);
     git_actions(w, &mut out);
@@ -33,7 +35,7 @@ fn catalogue_with_history(w: &World, history: bool) -> Vec<Action> {
     debian_actions(w, &mut out);
     flow_actions(w, &mut out);
     out.push(crate::port_args::catalogue_action(w));
-    recent_actions(w, &mut out);
+    recent_actions(w, &mut out, history);
     out
 }
 
@@ -59,24 +61,21 @@ pub fn sections_with_history(w: &World, history: bool) -> Vec<Section> {
             Section {
                 name: "Suggested here",
                 actions: suggested,
+                empty_note: None,
+                chips: None,
             },
             Section {
                 name: "Explore",
                 actions: explore,
+                empty_note: None,
+                chips: None,
             },
         ];
     }
     if w.scenario == Scenario::FirstUse {
         return first_use_sections(w, history);
     }
-    let mut all = catalogue_with_history(w, history);
-    rank_with_history(w, &mut all, history);
-
-    for a in &mut all {
-        if let Some(name) = w.memory.alias_for(&a.command) {
-            a.reason = format!("{} · alias {name}", a.reason);
-        }
-    }
+    let all = home_actions_with_history(w, history);
     let suggested: Vec<Action> = all.iter().take(4).cloned().collect();
     let suggested_ids: Vec<&str> = suggested.iter().map(|a| a.id.as_str()).collect();
     let recent: Vec<Action> = all
@@ -94,18 +93,24 @@ pub fn sections_with_history(w: &World, history: bool) -> Vec<Section> {
         out.push(Section {
             name: "Suggested here",
             actions: suggested,
+            empty_note: None,
+            chips: None,
         });
     }
     if !recent.is_empty() {
         out.push(Section {
             name: "Recent here",
             actions: recent,
+            empty_note: None,
+            chips: None,
         });
     }
     if !explore.is_empty() {
         out.push(Section {
             name: "Explore",
             actions: explore,
+            empty_note: None,
+            chips: None,
         });
     }
     out
@@ -113,6 +118,20 @@ pub fn sections_with_history(w: &World, history: bool) -> Vec<Section> {
 
 pub fn rank(w: &World, actions: &mut [Action]) {
     rank_with_history(w, actions, history_enabled());
+}
+
+pub fn home_actions_with_history(w: &World, history: bool) -> Vec<Action> {
+    if let Some(view) = parity_discovery(w) {
+        return view.actions;
+    }
+    let mut actions = catalogue_with_history(w, history);
+    rank_with_history(w, &mut actions, history);
+    for action in &mut actions {
+        if let Some(name) = w.memory.alias_for(&action.command) {
+            action.reason = format!("{} · alias {name}", action.reason);
+        }
+    }
+    actions
 }
 
 #[expect(
@@ -129,8 +148,8 @@ pub fn rank_with_history(w: &World, actions: &mut [Action], history: bool) {
         if w.memory.alias_for(&a.command).is_some() {
             s += 90;
         }
-        s += w.memory.usage_at(&w.cwd, &a.command).min(10) as i32 * 2;
         if history {
+            s += w.memory.usage_at(&w.cwd, &a.command).min(10) as i32 * 2;
             let count = w.memory.host_usage_count(&w.host.name, &a.id).min(5);
             s += count as i32 * 40;
             let recent = w
@@ -147,9 +166,9 @@ pub fn rank_with_history(w: &World, actions: &mut [Action], history: bool) {
         if w.scenario == Scenario::FirstUse {
             match a.id.as_str() {
                 "system.monitor"
-                    if w.system.as_ref().is_some_and(|system| {
-                        system.btm_installed && system.pressure_minutes > 0
-                    }) =>
+                    if w.system
+                        .as_ref()
+                        .is_some_and(|system| system.btm_installed && pressure_active(system)) =>
                 {
                     s += 75;
                 }
@@ -171,110 +190,94 @@ pub fn rank_with_history(w: &World, actions: &mut [Action], history: bool) {
 }
 
 fn first_use_sections(w: &World, history: bool) -> Vec<Section> {
-    let mut all = catalogue_with_history(w, history);
-    rank_with_history(w, &mut all, history);
-    for action in &mut all {
-        if let Some(name) = w.memory.alias_for(&action.command) {
-            action.reason = format!("{} · alias {name}", action.reason);
-        }
-    }
-
-    let recent_ids: Vec<String> = if history {
+    let all = home_actions_with_history(w, history);
+    let suggested: Vec<Action> = ["system.resources", "disk.usage", "system.monitor"]
+        .into_iter()
+        .filter_map(|id| all.iter().find(|action| action.id == id).cloned())
+        .collect();
+    let recent = if history {
         all.iter()
             .filter(|action| {
-                w.memory.host_usage_count(&w.host.name, &action.id) > 0
+                let host_recent = w.memory.host_usage_count(&w.host.name, &action.id) > 0
                     && w.memory
                         .host_usage_last_used_ms(&w.host.name, &action.id)
                         .is_some_and(|last| {
                             let age = w.now_ms().saturating_sub(last);
                             (0..=30 * 24 * 60 * 60 * 1_000).contains(&age)
-                        })
+                        });
+                let directory_recent = action.id.starts_with("recent:");
+                (host_recent || directory_recent)
+                    && !suggested.iter().any(|suggested| {
+                        action.id == suggested.id
+                            || (directory_recent && action.command == suggested.command)
+                    })
             })
-            .map(|action| action.id.clone())
+            .cloned()
             .collect()
     } else {
         Vec::new()
     };
-    let recent: Vec<Action> = all
+    let recent_ids: Vec<&str> = recent.iter().map(|action| action.id.as_str()).collect();
+    let explore = all
         .iter()
-        .filter(|action| recent_ids.contains(&action.id))
+        .filter(|action| {
+            action.id == "scope.system"
+                || (action.id.starts_with("pin:") && !recent_ids.contains(&action.id.as_str()))
+        })
         .cloned()
         .collect();
-    let suggested: Vec<Action> = all
-        .iter()
-        .filter(|action| !recent_ids.contains(&action.id))
-        .take(if recent.is_empty() { 4 } else { 3 })
-        .cloned()
-        .collect();
-    let suggested_ids: Vec<String> = suggested.iter().map(|action| action.id.clone()).collect();
-    let explore: Vec<Action> = all
-        .into_iter()
-        .filter(|action| !recent_ids.contains(&action.id) && !suggested_ids.contains(&action.id))
-        .collect();
-
-    let mut sections = Vec::new();
-    if !recent.is_empty() {
-        sections.push(Section {
-            name: "Recent on this host",
-            actions: recent,
-        });
-    }
-    if !suggested.is_empty() {
-        sections.push(Section {
+    vec![
+        Section {
             name: "Suggested here",
             actions: suggested,
-        });
-    }
-    if !explore.is_empty() {
-        sections.push(Section {
+            empty_note: None,
+            chips: None,
+        },
+        Section {
+            name: "Recent here",
+            empty_note: recent
+                .is_empty()
+                .then_some("Everything you use here is suggested above."),
+            actions: recent,
+            chips: None,
+        },
+        Section {
             name: "Explore",
             actions: explore,
-        });
-    }
-    sections
+            empty_note: None,
+            chips: Some(&["Tasks", "Git", "Files", "Disk", "Services", "System"]),
+        },
+    ]
 }
 
-fn first_use_actions(w: &World, history: bool, out: &mut Vec<Action>) {
+fn first_use_actions(w: &World, out: &mut Vec<Action>) {
     let host = w.host.name.as_str();
     let cwd = w.cwd.as_str();
     let Some(system) = &w.system else { return };
-    let usage_count = if history {
-        w.memory.host_usage_count(host, "system.resources")
+    let resource_reason = if system.pressure_minutes > 0 {
+        format!(
+            "CPU {}% for {} min",
+            system.cpu_pct, system.pressure_minutes
+        )
+    } else if let Some((some, full)) = system
+        .pressure
+        .filter(|(some, full)| *some > 0 || *full > 0)
+    {
+        format!("CPU pressure some {some}% · full {full}%")
     } else {
-        0
+        format!(
+            "CPU {}% · memory {:.1} / {:.0} GB",
+            system.cpu_pct,
+            f64::from(w.host.metrics.mem_used_mb) / 1_024.0,
+            f64::from(w.host.metrics.mem_total_mb) / 1_024.0
+        )
     };
-    let last_used = if history {
-        w.memory.host_usage_last_used_ms(host, "system.resources")
-    } else {
-        None
-    };
-    let mut reason = format!(
-        "CPU {}% for {} min",
-        system.cpu_pct, system.pressure_minutes
-    );
-    if usage_count > 0 {
-        reason.push_str(&format!(" · used {} on this host", times(usage_count)));
-        if let Some(last_used) = last_used {
-            let age_ms = w.now_ms().saturating_sub(last_used);
-            if age_ms >= 0 {
-                let days = age_ms / (24 * 60 * 60 * 1_000);
-                let last_used = if days == 0 {
-                    "today".to_owned()
-                } else if days == 1 {
-                    "1 day ago".to_owned()
-                } else {
-                    format!("{days} days ago")
-                };
-                reason.push_str(&format!(" · last used {last_used}"));
-            }
-        }
-    }
     let mut resources = Action::new(
         "system.resources",
         "Show system resources",
         ActionKind::System,
         Scope::Host,
-        &reason,
+        &resource_reason,
         Risk::ReadOnly,
         host,
         "holla snapshot system",
@@ -308,7 +311,13 @@ fn first_use_actions(w: &World, history: bool, out: &mut Vec<Action>) {
             "Open btm",
             ActionKind::Flow,
             Scope::Host,
-            "sustained pressure · continuous view fits",
+            if system.pressure_minutes > 0 {
+                "sustained pressure · continuous view fits"
+            } else if pressure_active(system) {
+                "pressure active · continuous view fits"
+            } else {
+                "btm installed · continuous view available"
+            },
             Risk::ReadOnly,
             host,
             "btm",
@@ -351,6 +360,173 @@ fn first_use_actions(w: &World, history: bool, out: &mut Vec<Action>) {
     out.push(processes);
 }
 
+pub fn first_use_action_preview(world: &World, action: &Action, history: bool) -> ActionPreview {
+    let discovering = match action.id.as_str() {
+        "disk.usage" => !world.discovered(Domain::Filesystem),
+        "scope.system" | "system.resources" | "system.processes" | "system.monitor" => {
+            !world.discovered(Domain::System)
+        }
+        _ => false,
+    };
+    let data = if discovering {
+        "still discovering…".to_owned()
+    } else {
+        format!("live · {} s ago", world.now_ms().max(0) / 1_000)
+    };
+    let mut lines = Vec::new();
+    let mut add = |label, value: String, tone, wraps| {
+        lines.push(PreviewLine {
+            label,
+            value,
+            tone,
+            wraps,
+        });
+    };
+    match action.id.as_str() {
+        "system.resources" => add(
+            "Does",
+            "CPU, load, memory, swap, pressure, disk and network snapshot; then hand off to btm for continuous monitoring".into(),
+            PreviewTone::Text,
+            true,
+        ),
+        "system.processes" => add(
+            "Does",
+            "processes by CPU and memory".into(),
+            PreviewTone::Text,
+            true,
+        ),
+        "system.monitor" => add(
+            "Does",
+            "continuous host monitoring through the simulated activity lifecycle".into(),
+            PreviewTone::Text,
+            true,
+        ),
+        "disk.usage" => add(
+            "Does",
+            "largest-first tree of this folder that deepens as the scan streams".into(),
+            PreviewTone::Text,
+            true,
+        ),
+        "scope.system" => add(
+            "Does",
+            "show actions for the current host".into(),
+            PreviewTone::Text,
+            false,
+        ),
+        _ => add("Does", action.reason.clone(), PreviewTone::Text, true),
+    }
+    if action.command.is_empty() {
+        add(
+            "Opens",
+            "Home scope · no command".into(),
+            PreviewTone::Secondary,
+            false,
+        );
+    } else {
+        add(
+            "Runs",
+            format!("'{}'", action.command),
+            PreviewTone::Secondary,
+            true,
+        );
+    }
+    add(
+        "In",
+        if action.scope == Scope::Host {
+            format!("{} · host-wide", action.target)
+        } else if action.workdir.is_empty() {
+            action.target.clone()
+        } else {
+            action.workdir.clone()
+        },
+        PreviewTone::Text,
+        true,
+    );
+    if !action.scope_label.is_empty() {
+        add(
+            "Host",
+            format!("{} · {}", action.scope_label, world.host.kind.label()),
+            PreviewTone::Text,
+            false,
+        );
+    }
+    add(
+        "Scope",
+        if action.scope_label.is_empty() {
+            action.scope.label().to_owned()
+        } else {
+            format!("{} · {}", action.scope.label(), action.scope_label)
+        },
+        PreviewTone::Text,
+        false,
+    );
+    let mut reason = action.reason.clone();
+    if history {
+        let count = world.memory.host_usage_count(&world.host.name, &action.id);
+        if count > 0 {
+            reason.push_str(&format!(" · used {} on {}", times(count), world.host.name));
+        }
+    }
+    add("Why", reason, PreviewTone::Text, true);
+    add(
+        "Changes",
+        if action.risk == Risk::ReadOnly {
+            "none · read-only".into()
+        } else {
+            action.changes()
+        },
+        PreviewTone::Text,
+        true,
+    );
+    add(
+        "Risk",
+        match action.risk {
+            Risk::ReadOnly => "read-only",
+            Risk::Bounded => "bounded",
+            Risk::Broad => "broad",
+        }
+        .into(),
+        PreviewTone::Meta,
+        false,
+    );
+    add("Data", data, PreviewTone::Muted, false);
+    if action.id == "system.resources" {
+        add(
+            "Gate",
+            "opens the system snapshot · nothing executed".into(),
+            PreviewTone::Muted,
+            true,
+        );
+    } else if action.id == "system.processes" {
+        add(
+            "Gate",
+            "opens the process snapshot · nothing executed".into(),
+            PreviewTone::Muted,
+            true,
+        );
+    } else if action.id == "system.monitor" {
+        add(
+            "Gate",
+            "starts a simulated activity · no host process launched".into(),
+            PreviewTone::Muted,
+            true,
+        );
+    }
+    let kind = match action.kind {
+        ActionKind::Task => "task",
+        ActionKind::Git => "git",
+        ActionKind::Plan => "plan",
+        ActionKind::Connect => "connect",
+        ActionKind::Flow => "flow",
+        ActionKind::Clone => "clone",
+        ActionKind::System => "system",
+    };
+    ActionPreview {
+        lines,
+        meta: format!("{kind} · {}", action.scope.label()),
+    }
+}
+
 fn rounded_disk_percent(used_bytes: u64, total_bytes: u64) -> u32 {
     if total_bytes == 0 {
         return 0;
@@ -367,6 +543,13 @@ fn urgent(a: &Action) -> bool {
         || a.reason.contains("untrusted")
         || a.reason.contains("% full")
         || a.reason.contains("detached")
+}
+
+fn pressure_active(system: &crate::world::SystemSnapshot) -> bool {
+    system.pressure_minutes > 0
+        || system
+            .pressure
+            .is_some_and(|(some, full)| some > 0 || full > 0)
 }
 
 fn mise_actions(w: &World, out: &mut Vec<Action>) {
@@ -878,17 +1061,19 @@ fn flow_actions(w: &World, out: &mut Vec<Action>) {
     }
 }
 
-fn recent_actions(w: &World, out: &mut Vec<Action>) {
-    let mut usage: Vec<_> = w.memory.usage.iter().filter(|u| u.path == w.cwd).collect();
-    usage.sort_by_key(|u| std::cmp::Reverse(u.count));
+fn recent_actions(w: &World, out: &mut Vec<Action>, history: bool) {
     let canonical = out.clone();
-    for u in usage {
-        let action = memory_action(w, &canonical, &u.command);
-        out.push(action.remembered(
-            format!("recent:{}", u.command),
-            format!("used {} in this project", times(u.count)),
-            false,
-        ));
+    if history {
+        let mut usage: Vec<_> = w.memory.usage.iter().filter(|u| u.path == w.cwd).collect();
+        usage.sort_by_key(|u| std::cmp::Reverse(u.count));
+        for u in usage {
+            let action = memory_action(w, &canonical, &u.command);
+            out.push(action.remembered(
+                format!("recent:{}", u.command),
+                format!("used {} in this project", times(u.count)),
+                false,
+            ));
+        }
     }
     for pin in &w.memory.pins {
         if pin.path == w.cwd {
@@ -1074,6 +1259,12 @@ pub struct ParityDiscovery {
     pub preview_meta: String,
     pub actions: Vec<Action>,
     pub suggested_len: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActionPreview {
+    pub lines: Vec<PreviewLine>,
+    pub meta: String,
 }
 
 pub fn first_use_tag_frame(w: &World) -> bool {

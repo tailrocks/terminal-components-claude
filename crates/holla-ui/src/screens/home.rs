@@ -54,7 +54,9 @@ impl Default for HomeState {
 
 pub(crate) struct HomeRow {
     section: &'static str,
-    action: Action,
+    action: Option<Action>,
+    note: Option<&'static str>,
+    chips: Option<&'static [&'static str]>,
     columns: ActionColumns,
 }
 
@@ -83,22 +85,26 @@ impl ActionColumns {
         let columns = Self {
             title: rows
                 .iter()
-                .map(|row| termrock::width(&row.action.title))
+                .filter_map(|row| row.action.as_ref())
+                .map(|action| termrock::width(&action.title))
                 .max()
                 .unwrap_or(14),
             kind: rows
                 .iter()
-                .map(|row| termrock::width(action_kind_label(row.action.kind)))
+                .filter_map(|row| row.action.as_ref())
+                .map(|action| termrock::width(action_kind_label(action.kind)))
                 .max()
                 .unwrap_or(4),
             scope: rows
                 .iter()
-                .map(|row| termrock::width(&scope_text(&row.action)))
+                .filter_map(|row| row.action.as_ref())
+                .map(|action| termrock::width(&scope_text(action)))
                 .max()
                 .unwrap_or(4),
             risk: rows
                 .iter()
-                .map(|row| termrock::width(&risk_text(&row.action)))
+                .filter_map(|row| row.action.as_ref())
+                .map(|action| termrock::width(&risk_text(action)))
                 .max()
                 .unwrap_or(0),
         };
@@ -110,7 +116,15 @@ impl ActionColumns {
 
 impl std::fmt::Display for HomeRow {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.action.title)
+        if let Some(action) = &self.action {
+            f.write_str(&action.title)
+        } else if let Some(note) = self.note {
+            f.write_str(note)
+        } else if let Some(chips) = self.chips {
+            f.write_str(&chips.join(" · "))
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -128,7 +142,18 @@ impl HomeState {
     pub(crate) fn rows(&self, world: &World) -> Vec<HomeRow> {
         let recent_first =
             self.query().trim().is_empty() && world.scenario.boot_title() == super::finder::RECENT;
-        catalogue::sections(world)
+        let searching = !self.query().trim().is_empty();
+        let sections = if searching {
+            vec![catalogue::Section {
+                name: "Search results",
+                actions: catalogue::home_actions_with_history(world, self.history),
+                empty_note: None,
+                chips: None,
+            }]
+        } else {
+            catalogue::sections_with_history(world, self.history)
+        };
+        sections
             .into_iter()
             .flat_map(|section| {
                 let name = if recent_first && section.name == "Suggested here" {
@@ -136,7 +161,20 @@ impl HomeState {
                 } else {
                     section.name
                 };
-                catalogue::visible(
+                let mut rows: Vec<_> = Vec::new();
+                if !searching
+                    && self.scope.is_none()
+                    && let Some(chips) = section.chips
+                {
+                    rows.push(HomeRow {
+                        section: name,
+                        action: None,
+                        note: None,
+                        chips: Some(chips),
+                        columns: ActionColumns::default(),
+                    });
+                }
+                let visible = catalogue::visible(
                     &section.actions,
                     self.scope,
                     self.query(),
@@ -146,14 +184,31 @@ impl HomeState {
                 .into_iter()
                 .map(move |action| HomeRow {
                     section: name,
-                    action,
+                    action: Some(action),
+                    note: None,
+                    chips: None,
                     columns: ActionColumns::default(),
-                })
+                });
+                rows.extend(visible);
+                if !rows.iter().any(|row| row.action.is_some())
+                    && !searching
+                    && self.scope.is_none()
+                    && let Some(note) = section.empty_note
+                {
+                    rows.push(HomeRow {
+                        section: name,
+                        action: None,
+                        note: Some(note),
+                        chips: None,
+                        columns: ActionColumns::default(),
+                    });
+                }
+                rows
             })
             .collect()
     }
 
-    pub(crate) fn hints(world: &World, rows_focused: bool) -> HintLayer {
+    pub(crate) fn hints(&self, world: &World, rows_focused: bool) -> HintLayer {
         let key = |code| HintKey::Chord(Chord::key(code));
         let ctrl = |character| HintKey::ChordWithCase {
             chord: Chord::with(KeyCode::Char(character), KeyModifiers::CONTROL),
@@ -183,6 +238,29 @@ impl HomeState {
             label,
             priority: 50,
         }));
+        if world.scenario == crate::scenario::Scenario::FirstUse {
+            let action = if rows_focused {
+                self.selected(world)
+            } else {
+                self.rows(world).iter().find_map(|row| row.action.clone())
+            };
+            let label =
+                action
+                    .as_ref()
+                    .map_or("Run top match", |action| match action.id.as_str() {
+                        "disk.usage" => "Analyze",
+                        "scope.system" => "Scope",
+                        "system.resources" | "system.monitor" | "system.processes" => "Open",
+                        _ if rows_focused => "Run",
+                        _ => "Run top match",
+                    });
+            if let Some(primary) = hints
+                .iter_mut()
+                .find(|hint| hint.key == HintKey::Chord(Chord::key(KeyCode::Enter)))
+            {
+                primary.label = label;
+            }
+        }
         if !world.activities.is_empty() {
             hints.push(Hint {
                 key: ctrl('a'),
@@ -209,7 +287,7 @@ impl HomeState {
         let live_rows = self.rows(world);
         let mut live_ids = Vec::with_capacity(live_rows.len());
         for row in &live_rows {
-            let id = row.action.id.as_str();
+            let id = row.action.as_ref()?.id.as_str();
             if !PARITY_ACTION_IDS.contains(&id) || live_ids.contains(&id) {
                 return None;
             }
@@ -241,8 +319,12 @@ impl HomeState {
                         return None;
                     }
                     action_index = action_index.saturating_add(1);
-                    if let Some(row) = live_rows.iter().find(|row| row.action.id == expected_id) {
-                        if row.action != action {
+                    if let Some(row) = live_rows.iter().find(|row| {
+                        row.action
+                            .as_ref()
+                            .is_some_and(|candidate| candidate.id == expected_id)
+                    }) {
+                        if row.action.as_ref() != Some(&action) {
                             return None;
                         }
                         items.push(ParityItem::Action {
@@ -276,13 +358,18 @@ impl HomeState {
         self.rows
             .cursor()
             .and_then(|key| rows.iter().find(|row| row_key(row) == key))
-            .or_else(|| rows.first())
-            .map(|row| row.action.clone())
+            .and_then(|row| row.action.clone())
+            .or_else(|| rows.iter().find_map(|row| row.action.clone()))
     }
 
     pub(crate) fn focus_first(&mut self, world: &World, cx: &mut Cx<'_>) {
-        if let Some(row) = self.rows(world).first() {
-            self.rows.set_cursor(0, row_key(row));
+        let rows = self.rows(world);
+        if let Some((index, row)) = rows
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.action.is_some())
+        {
+            self.rows.set_cursor(index, row_key(row));
             cx.focus(ROWS);
         } else {
             cx.focus_next();
@@ -291,7 +378,7 @@ impl HomeState {
 
     pub(crate) fn subject(&self, world: &World, cx: &Cx<'_>) -> Option<Action> {
         if cx.state(QUERY).contains(StateFlags::FOCUSED) {
-            self.rows(world).into_iter().next().map(|row| row.action)
+            self.rows(world).into_iter().find_map(|row| row.action)
         } else if cx.state(ROWS).contains(StateFlags::FOCUSED) {
             self.selected(world)
         } else {
@@ -349,10 +436,10 @@ impl HomeState {
                 } else {
                     rows.iter()
                         .find(|row| row_key(row) == key)
-                        .map(|row| row.action.clone())
+                        .and_then(|row| row.action.clone())
                 }
             }
-            _ if submit => rows.first().map(|row| row.action.clone()),
+            _ if submit => rows.iter().find_map(|row| row.action.clone()),
             _ => None,
         };
         (text.erase() | navigation.erase(), chosen)
@@ -405,6 +492,12 @@ impl HomeState {
         ActionColumns::apply(&mut rows);
         let (lead_area, rows_area, paints_recent_lead) =
             home_rows_layout(area, world, self.query());
+        if world.scenario == crate::scenario::Scenario::FirstUse
+            && let Some(layout) = parity_action_layout(rows_area, ui.full().width, !rows.is_empty())
+            && paint_first_use_action_card(ui, layout, &self.rows, &rows, world, self.history)
+        {
+            return None;
+        }
         if let Some(view) = catalogue::parity_files_view(world, ui.full().width)
             && paint_parity_files(ui, lead_area, &view)
         {
@@ -413,7 +506,8 @@ impl HomeState {
         if paints_recent_lead {
             super::finder::paint_recent_lead(ui, lead_area);
         }
-        if let Some(view) = catalogue::first_use_view(world, ui.full().width, self.history)
+        if world.scenario != crate::scenario::Scenario::FirstUse
+            && let Some(view) = catalogue::first_use_view(world, ui.full().width, self.history)
             && paint_narrow_tag_list(ui, rows_area, &view)
         {
             return None;
@@ -505,7 +599,9 @@ impl HomeState {
         {
             return None;
         }
-        if let Some(view) = catalogue::first_use_plate(world, self.history)
+        if let Some(view) = (world.scenario != crate::scenario::Scenario::FirstUse)
+            .then(|| catalogue::first_use_plate(world, self.history))
+            .flatten()
             .or_else(|| catalogue::monorepo_root_plate(world, self.history))
             .or_else(|| catalogue::monorepo_child_tag(world))
             .or_else(|| catalogue::activities_multi_plate(world, self.history))
@@ -587,6 +683,31 @@ impl HomeState {
     }
 }
 
+fn paint_first_use_action_card(
+    ui: &mut Ui<'_>,
+    layout: ParityActionLayout,
+    state: &NavListState,
+    rows: &[HomeRow],
+    world: &World,
+    history: bool,
+) -> bool {
+    if rows.is_empty() {
+        paint_empty_home_rows(ui, layout.master, "", None);
+        return true;
+    }
+    nav_list().draw(ui, layout.master, state, rows);
+    let selected = state
+        .cursor()
+        .and_then(|key| rows.iter().find(|row| row_key(row) == key))
+        .and_then(|row| row.action.as_ref())
+        .or_else(|| rows.iter().find_map(|row| row.action.as_ref()));
+    if let Some(action) = selected {
+        let preview = catalogue::first_use_action_preview(world, action, history);
+        paint_action_preview(ui, layout.detail, &preview, &action.title);
+    }
+    true
+}
+
 fn paint_discovery_note(ui: &mut Ui<'_>, row: Rect, text: &str, role: Role) {
     let style = ui.paint_patch(&StylePatch::new().set_fg(role));
     ui.paint_str(row, text, style);
@@ -641,6 +762,7 @@ where
         .section(&section)
         .patch_part(HEADER_PARTS)
         .header_text_patch(&HEADER_TEXT)
+        .disabled_item(&home_row_disabled)
         .key(row_key)
         .row(row)
 }
@@ -649,7 +771,17 @@ fn nav_list()
     nav_list_with_row(paint_action)
 }
 fn row_key(row: &HomeRow) -> ItemKey {
-    ItemKey::text(&row.action.id)
+    if let Some(action) = &row.action {
+        ItemKey::text(&action.id)
+    } else if row.note.is_some() {
+        ItemKey::text("home.recent.empty")
+    } else {
+        ItemKey::text("home.explore.categories")
+    }
+}
+
+fn home_row_disabled(row: &HomeRow) -> bool {
+    row.action.is_none()
 }
 
 fn parity_item_key(item: &ParityItem) -> ItemKey {
@@ -756,7 +888,14 @@ fn paint_action_with_peek(
         && cells.flags().contains(StateFlags::FOCUSED)
         && !cells.flags().contains(StateFlags::DISABLED)
         && !cells.area().is_empty();
-    let action = &row.action;
+    let Some(action) = row.action.as_ref() else {
+        if let Some(note) = row.note {
+            cells.label(note);
+        } else if let Some(chips) = row.chips {
+            cells.label(&chips.join(" · "));
+        }
+        return;
+    };
     let kind = action_kind_label(action.kind);
     let scope = scope_text(action);
     let risk = risk_text(action);
@@ -1823,11 +1962,35 @@ fn paint_tag_preview(
     rows: &[&catalogue::TagRow],
     title_override: Option<&str>,
 ) {
+    let title = title_override.unwrap_or_else(|| {
+        rows.iter()
+            .find(|row| row.selected)
+            .map(|row| row.title.as_str())
+            .unwrap_or("")
+    });
+    paint_preview_lines(ui, detail, &view.preview, &view.preview_meta, title);
+}
+
+fn paint_action_preview(
+    ui: &mut Ui<'_>,
+    detail: Rect,
+    preview: &catalogue::ActionPreview,
+    title: &str,
+) {
+    paint_preview_lines(ui, detail, &preview.lines, &preview.meta, title);
+}
+
+fn paint_preview_lines(
+    ui: &mut Ui<'_>,
+    detail: Rect,
+    preview: &[catalogue::PreviewLine],
+    meta: &str,
+    title: &str,
+) {
     if detail.width < 8 || detail.height == 0 {
         return;
     }
-    let label_w = view
-        .preview
+    let label_w = preview
         .iter()
         .map(|line| termrock::width(line.label))
         .max()
@@ -1838,7 +2001,7 @@ fn paint_tag_preview(
     if value_w == 0 {
         return;
     }
-    let flat = flatten_preview(&view.preview, value_w);
+    let flat = flatten_preview(preview, value_w);
     let card_h = u16::try_from(flat.len())
         .unwrap_or(u16::MAX)
         .saturating_add(3)
@@ -1847,13 +2010,7 @@ fn paint_tag_preview(
     let canvas = ink(ui, WHITE, PREVIEW_BG, false);
     ui.fill(card, canvas);
     let inner_x = detail.x.saturating_add(2);
-    let title = title_override.unwrap_or_else(|| {
-        rows.iter()
-            .find(|row| row.selected)
-            .map(|row| row.title.as_str())
-            .unwrap_or("")
-    });
-    let meta_w = termrock::width(&view.preview_meta);
+    let meta_w = termrock::width(meta);
     let title_w = inner_w.saturating_sub(meta_w).saturating_sub(1);
     let title = termrock::truncate(title, title_w);
     ui.paint_str(
@@ -1869,7 +2026,7 @@ fn paint_tag_preview(
                 meta_w,
                 1,
             ),
-            &view.preview_meta,
+            meta,
             ink(ui, META_FG, PREVIEW_BG, false),
         );
     }

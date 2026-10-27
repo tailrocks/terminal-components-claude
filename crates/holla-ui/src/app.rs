@@ -444,6 +444,9 @@ pub struct App {
     next_task_run_route_id: Option<u64>,
     pending_task_run_return: Option<ReturnLocation>,
     disk_scan_task_run_return: Option<TaskRunOverlayReturn>,
+    snapshot_kind: snapshot::Kind,
+    snapshot_return: Option<ReturnLocation>,
+    snapshot: snapshot::State,
     files: files::State,
     files_return: Option<ReturnLocation>,
     disk_scan: disk_scan::State,
@@ -867,7 +870,7 @@ fn paint_parity_history_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect) {
+fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect, world: &World) {
     if area.is_empty() {
         return;
     }
@@ -876,13 +879,22 @@ fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect) {
         ui,
         area,
         area.x.saturating_add(STATUS_EDGE),
-        "~/scratch",
+        &world.cwd,
         STATUS_FG,
         true,
     );
     let size_x = paint_size_label(ui, area);
-    let mark = "91% ▲";
-    let mark_w = termrock::width(mark);
+    let Some(disk) = &world.disk else { return };
+    let percent = if disk.total_bytes == 0 {
+        0
+    } else {
+        let numerator = u128::from(disk.used_bytes)
+            .saturating_mul(100)
+            .saturating_add(u128::from(disk.total_bytes) / 2);
+        u32::try_from((numerator / u128::from(disk.total_bytes)).min(100)).unwrap_or(100)
+    };
+    let mark = format!("{percent}%{}", if percent >= 85 { " ▲" } else { "" });
+    let mark_w = termrock::width(&mark);
     let bar_w = 11u16;
     let meter_w = 1u16
         .saturating_add(1)
@@ -891,9 +903,28 @@ fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect) {
         .saturating_add(mark_w);
     let mut x = size_x.saturating_sub(STATUS_GAP).saturating_sub(meter_w);
     x = paint_status_text(ui, area, x, "/", STATUS_GREY, false).saturating_add(1);
-    x = paint_status_text(ui, area, x, &"━".repeat(10), STATUS_AMBER, false);
-    x = paint_status_text(ui, area, x, "─", Color::Rgb(0x3a, 0x3a, 0x3a), false).saturating_add(1);
-    let _ = paint_status_text(ui, area, x, mark, STATUS_AMBER, false);
+    let filled = u16::try_from(u32::from(bar_w).saturating_mul(percent).saturating_add(50) / 100)
+        .unwrap_or(bar_w)
+        .min(bar_w);
+    x = paint_status_text(
+        ui,
+        area,
+        x,
+        &"━".repeat(usize::from(filled)),
+        STATUS_AMBER,
+        false,
+    );
+    let rest = bar_w.saturating_sub(filled);
+    x = paint_status_text(
+        ui,
+        area,
+        x,
+        &"─".repeat(usize::from(rest)),
+        Color::Rgb(0x3a, 0x3a, 0x3a),
+        false,
+    )
+    .saturating_add(1);
+    let _ = paint_status_text(ui, area, x, &mark, STATUS_AMBER, false);
 }
 
 fn paint_remote_host_status(ui: &mut Ui<'_>, area: Rect) {
@@ -1395,9 +1426,7 @@ fn menu_project(world: &World) -> String {
         | Scenario::ParityDiskScan
         | Scenario::ParityPlatforms
         | Scenario::ParityPlatformsLinux => "no project".to_owned(),
-        Scenario::FirstUse if crate::sim::catalogue::first_use_tag_frame(world) => {
-            "no project".to_owned()
-        }
+        Scenario::FirstUse => "no project".to_owned(),
         Scenario::MonorepoRoot if crate::sim::catalogue::monorepo_root_tag_frame(world) => {
             "acme · mise monorepo".to_owned()
         }
@@ -1598,6 +1627,9 @@ impl App {
             next_task_run_route_id: Some(1),
             pending_task_run_return: None,
             disk_scan_task_run_return: None,
+            snapshot_kind: snapshot::Kind::Resources,
+            snapshot_return: None,
+            snapshot: snapshot::State::default(),
             files,
             files_return: None,
             disk_scan: disk_scan::State::default(),
@@ -1750,6 +1782,12 @@ impl App {
                 self.open_dialog(dialogs::Intent::Trust { action, file, args }, cx);
             }
             Destination::TaskRunStart { action, script } => self.start_task_run(action, script, cx),
+            Destination::Snapshot(kind) => self.open_snapshot(kind, cx),
+            Destination::DiskScan => self.open_disk_scan(cx, None),
+            Destination::HostScope => {
+                self.home.scope = Some(Scope::Host);
+                self.set_status("Scope: host".to_owned());
+            }
             Destination::PortArgs(start) => {
                 if self.pending_port_review.is_some() || self.port_args_opening.is_some() {
                     self.set_status("Port review is still settling · try again".to_owned());
@@ -2665,6 +2703,21 @@ impl App {
         (focus == expected).then_some(focus)
     }
 
+    fn open_snapshot(&mut self, kind: snapshot::Kind, cx: &mut Cx<'_>) {
+        if self.route == Route::Snapshot || self.overlay.is_some() || self.retired_overlay.is_some()
+        {
+            return;
+        }
+        self.snapshot_return = Some(self.capture_return_location(cx));
+        self.snapshot_kind = kind;
+        self.route = Route::Snapshot;
+        cx.focus(if kind == snapshot::Kind::Processes {
+            snapshot::PROCESSES
+        } else {
+            MENU
+        });
+    }
+
     fn open_disk_scan(&mut self, cx: &mut Cx<'_>, menu_origin: Option<ReturnLocation>) {
         if self.route == Route::DiskScan
             || self.overlay.is_some()
@@ -2823,6 +2876,7 @@ impl App {
                 }
             }
             HOME => {
+                self.snapshot_return = None;
                 if self.route == Route::TaskRun {
                     self.retire_task_run_screen(cx);
                     self.pending_task_run_return = None;
@@ -3263,7 +3317,6 @@ impl App {
             menu_project(&self.world)
         };
         let host = if launch_failure_activity_open(&self.world, ui)
-            || crate::sim::catalogue::first_use_tag_frame(&self.world)
             || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
             || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
             || crate::sim::catalogue::activities_multi_tag_frame(&self.world)
@@ -3316,8 +3369,8 @@ impl App {
         let status = Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1);
         if self.world.scenario == Scenario::ParityDiscovery {
             self.paint_parity_status(ui, status);
-        } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
-            paint_first_use_status(ui, status);
+        } else if self.world.scenario == Scenario::FirstUse {
+            paint_first_use_status(ui, status, &self.world);
         } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
             paint_monorepo_status(ui, status);
         } else if crate::sim::catalogue::activities_multi_tag_frame(&self.world) {
@@ -3502,8 +3555,6 @@ impl App {
         }
         let tag_confirm = if self.world.scenario == Scenario::ParityDiscovery {
             Some(("Confirm…", None))
-        } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
-            Some(("Open", None))
         } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
             let narrow = layout::Band::of(ui.full().width).is_narrow();
             let mid = layout::Band::of(ui.full().width).is_mid();
@@ -3643,7 +3694,7 @@ impl App {
             && self.overlay.is_none()
             && !self.menu.is_open())
         .then(|| {
-            HomeState::hints(
+            self.home.hints(
                 &self.world,
                 ui.state(home::ROWS).contains(termrock::StateFlags::FOCUSED),
             )
@@ -3917,6 +3968,23 @@ impl App {
         if disk_scan_event == Some(disk_scan::Event::Back) {
             self.return_from_disk_scan(cx);
         }
+        let snapshot_input_allowed = self.route == Route::Snapshot
+            && !too_small(viewport)
+            && cx.top_layer() == termrock::LayerId::PAGE
+            && !menu_was_open
+            && !self.menu.is_open()
+            && !menu_action_pending
+            && !retired_overlay_was_pending
+            && !pending_port_review_was_pending
+            && self.overlay.is_none()
+            && self.retired_overlay.is_none()
+            && self.pending_port_review.is_none()
+            && self.port_args_opening.is_none()
+            && !brand.activated()
+            && !(cx.update_cause() == termrock::UpdateCause::Event && cx.command().is_some());
+        let snapshot_response = self
+            .snapshot
+            .update(&self.world, cx, snapshot_input_allowed);
         let task_run_input_allowed = self.route == Route::TaskRun
             && !too_small(viewport)
             && cx.top_layer() == termrock::LayerId::PAGE
@@ -3949,6 +4017,7 @@ impl App {
             | activity_response
             | files_response
             | disk_scan_response
+            | snapshot_response
             | task_run_response;
         if too_small(cx.viewport()) {
             let overlay = if matches!(self.overlay.as_ref(), Some(Overlay::Help { .. })) {
@@ -4157,7 +4226,7 @@ impl termrock::App for App {
                 None
             }
             Route::Snapshot => {
-                snapshot::draw(&self.world, ui, body);
+                snapshot::draw(&self.world, self.snapshot_kind, &self.snapshot, ui, body);
                 None
             }
             Route::DiskScan => {
@@ -4249,6 +4318,25 @@ impl termrock::App for App {
                 self.route = location.route;
                 if let Some(focus) = location.focus {
                     cx.focus(focus);
+                }
+            } else {
+                self.route = Route::Home;
+                cx.focus(home::QUERY);
+            }
+            return Response::changed();
+        }
+        if self.route == Route::Snapshot {
+            let location = self.snapshot_return.take();
+            if let Some(location) = location {
+                self.route = location.route;
+                if let Some(focus) = location
+                    .focus
+                    .filter(|focus| matches!(*focus, home::QUERY | home::ROWS | MENU))
+                {
+                    cx.focus(focus);
+                } else {
+                    self.route = Route::Home;
+                    cx.focus(home::QUERY);
                 }
             } else {
                 self.route = Route::Home;
