@@ -12027,11 +12027,7 @@ impl TuiApp for App {
             height: 1,
             ..full
         };
-        if self.help_open {
-            HintBar::new(APP.sub("hint"), hints)
-                .patch_part(MANAGER_HELP_HINT_PATCH)
-                .draw(ui, hint_area);
-        } else {
+        if !self.help_open {
             HintBar::new(APP.sub("hint"), hints).draw(ui, hint_area);
         }
 
@@ -12189,6 +12185,11 @@ impl TuiApp for App {
             manager_frame_view::paint(self, ui, presentation);
         }
         manager_help_overlay_view::paint(self, ui, full);
+        if self.help_open {
+            HintBar::new(APP.sub("hint"), hints)
+                .patch_part(MANAGER_HELP_HINT_PATCH)
+                .draw(ui, hint_area);
+        }
     }
 
     fn should_quit(&self) -> bool {
