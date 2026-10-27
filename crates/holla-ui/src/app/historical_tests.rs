@@ -3274,13 +3274,13 @@ mod root_100_nonoverflow_port_owner {
     const PORT_ID: &str = "system.port";
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    enum RootViewport {
+    enum OwnerViewport {
         W100H30,
         W120H40,
         W160H50,
     }
 
-    impl RootViewport {
+    impl OwnerViewport {
         fn size(self) -> (u16, u16) {
             match self {
                 Self::W100H30 => (100, 30),
@@ -3304,12 +3304,12 @@ mod root_100_nonoverflow_port_owner {
     }
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    enum RootSourceTheme {
+    enum OwnerSourceTheme {
         Junie,
         Paper,
     }
 
-    impl RootSourceTheme {
+    impl OwnerSourceTheme {
         fn theme(self) -> Theme {
             match self {
                 Self::Junie => Theme::junie(),
@@ -3326,16 +3326,18 @@ mod root_100_nonoverflow_port_owner {
     }
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    struct RootCase {
-        viewport: RootViewport,
-        source_theme: RootSourceTheme,
+    struct OwnerCase {
+        scenario: Scenario,
+        viewport: OwnerViewport,
+        source_theme: OwnerSourceTheme,
         color: ColorLevel,
     }
 
-    impl RootCase {
+    impl OwnerCase {
         const ROOT100_JUNIE_TRUECOLOR: Self = Self {
-            viewport: RootViewport::W100H30,
-            source_theme: RootSourceTheme::Junie,
+            scenario: Scenario::MonorepoRoot,
+            viewport: OwnerViewport::W100H30,
+            source_theme: OwnerSourceTheme::Junie,
             color: ColorLevel::TrueColor,
         };
 
@@ -3350,21 +3352,25 @@ mod root_100_nonoverflow_port_owner {
             };
             format!(
                 "{} {width} {height} {} {color}",
-                Scenario::MonorepoRoot.name(),
+                self.scenario.name(),
                 self.source_theme.label()
             )
         }
     }
 
-    fn remaining_root_cases() -> Vec<RootCase> {
-        let all_cases: Vec<_> = [
-            RootViewport::W100H30,
-            RootViewport::W120H40,
-            RootViewport::W160H50,
+    fn all_owner_cases(scenario: Scenario) -> Vec<OwnerCase> {
+        assert!(
+            matches!(scenario, Scenario::MonorepoRoot | Scenario::MonorepoChild),
+            "finite held owner accepts only Root and Child scenarios"
+        );
+        let cases: Vec<_> = [
+            OwnerViewport::W100H30,
+            OwnerViewport::W120H40,
+            OwnerViewport::W160H50,
         ]
         .into_iter()
         .flat_map(|viewport| {
-            [RootSourceTheme::Junie, RootSourceTheme::Paper]
+            [OwnerSourceTheme::Junie, OwnerSourceTheme::Paper]
                 .into_iter()
                 .flat_map(move |source_theme| {
                     [
@@ -3374,7 +3380,8 @@ mod root_100_nonoverflow_port_owner {
                         ColorLevel::Mono,
                     ]
                     .into_iter()
-                    .map(move |color| RootCase {
+                    .map(move |color| OwnerCase {
+                        scenario,
                         viewport,
                         source_theme,
                         color,
@@ -3382,23 +3389,42 @@ mod root_100_nonoverflow_port_owner {
                 })
         })
         .collect();
-        assert_eq!(all_cases.len(), 24, "finite Root configuration size");
+        assert_eq!(cases.len(), 24, "finite scenario configuration size");
 
-        let mut keys: Vec<_> = all_cases.iter().map(|case| case.key()).collect();
+        let mut keys: Vec<_> = cases.iter().map(|case| case.key()).collect();
         keys.sort();
         keys.dedup();
-        assert_eq!(keys.len(), 24, "finite Root keys are unique");
+        assert_eq!(keys.len(), 24, "finite scenario keys are unique");
+        assert!(
+            cases.iter().all(|case| case.scenario == scenario),
+            "finite scenario membership is explicit"
+        );
+        cases
+    }
 
-        let cases: Vec<_> = all_cases
+    fn remaining_root_cases() -> Vec<OwnerCase> {
+        let cases: Vec<_> = all_owner_cases(Scenario::MonorepoRoot)
             .into_iter()
-            .filter(|case| *case != RootCase::ROOT100_JUNIE_TRUECOLOR)
+            .filter(|case| *case != OwnerCase::ROOT100_JUNIE_TRUECOLOR)
             .collect();
         assert_eq!(cases.len(), 23, "Root100 Junie TrueColor is already owned");
         assert!(
             cases
                 .iter()
-                .all(|case| *case != RootCase::ROOT100_JUNIE_TRUECOLOR),
+                .all(|case| *case != OwnerCase::ROOT100_JUNIE_TRUECOLOR),
             "remaining Root matrix excludes the existing Root100 owner"
+        );
+        cases
+    }
+
+    fn remaining_child_cases() -> Vec<OwnerCase> {
+        let cases = all_owner_cases(Scenario::MonorepoChild);
+        assert_eq!(cases.len(), 24, "all finite Child keys are admitted");
+        assert!(
+            cases
+                .iter()
+                .all(|case| case.scenario == Scenario::MonorepoChild),
+            "Child matrix contains only MonorepoChild keys"
         );
         cases
     }
@@ -3567,7 +3593,7 @@ mod root_100_nonoverflow_port_owner {
         })
     }
 
-    fn assert_generic_home_renderer(world: &World, case: RootCase) {
+    fn assert_generic_home_renderer(world: &World, case: OwnerCase) {
         let width = case.viewport.size().0;
         assert_ne!(
             world.scenario.boot_title(),
@@ -3581,6 +3607,8 @@ mod root_100_nonoverflow_port_owner {
         assert!(crate::sim::catalogue::parity_files_view(world, width).is_none());
         assert!(crate::sim::catalogue::first_use_view(world, width, false).is_none());
         assert!(crate::sim::catalogue::monorepo_root_view(world, width, false).is_none());
+        assert!(!crate::sim::catalogue::monorepo_child_tag_frame(world));
+        assert!(crate::sim::catalogue::monorepo_child_tag(world).is_none());
         assert!(crate::sim::catalogue::monorepo_child_view(world, width).is_none());
         assert!(crate::sim::catalogue::docker_cleanup_view(world, width).is_none());
         assert!(crate::sim::catalogue::remote_host_view(world, width).is_none());
@@ -3606,7 +3634,7 @@ mod root_100_nonoverflow_port_owner {
         assert!(crate::sim::catalogue::hard_cases_tag(world).is_none());
     }
 
-    fn harness(world: World, case: RootCase) -> Harness<App> {
+    fn harness(world: World, case: OwnerCase) -> Harness<App> {
         let source_theme = case.source_theme.theme();
         let (width, height) = case.viewport.size();
         let mut app = App::from_fixture_world(world, Motion::Paused, FRAME_MS);
@@ -3629,7 +3657,7 @@ mod root_100_nonoverflow_port_owner {
         expected_memory: &crate::domain::ranking::Memory,
         rows: &[(String, String)],
         tokens: &[VisualToken],
-        case: RootCase,
+        case: OwnerCase,
         label: &str,
     ) {
         let source_theme = case.source_theme.theme();
@@ -3650,7 +3678,7 @@ mod root_100_nonoverflow_port_owner {
         );
         assert_eq!(
             harness.app().world.scenario,
-            Scenario::MonorepoRoot,
+            case.scenario,
             "{label} scenario"
         );
         assert_eq!(
@@ -3719,11 +3747,20 @@ mod root_100_nonoverflow_port_owner {
                 .contains(StateFlags::FOCUSED)
         );
         let selected = harness.app().home.selected(&harness.app().world);
-        assert_ne!(
-            selected.as_ref().map(|action| action.id.as_str()),
-            Some(PORT_ID),
-            "{label} Port is not selected"
-        );
+        if let Some(selected_action) = selected.as_ref() {
+            assert!(
+                rows.iter()
+                    .any(|(_, action_id)| action_id == &selected_action.id),
+                "{label} selected action belongs to the visible scenario model"
+            );
+        }
+        if case.scenario == Scenario::MonorepoRoot {
+            assert_ne!(
+                selected.as_ref().map(|action| action.id.as_str()),
+                Some(PORT_ID),
+                "{label} Root Port is not selected"
+            );
+        }
         assert_eq!(
             *harness.buffer().area(),
             case.viewport.frame_area(),
@@ -3797,7 +3834,7 @@ mod root_100_nonoverflow_port_owner {
         columns: [u16; 4],
         row: Rect,
         theme: Theme,
-        case: RootCase,
+        case: OwnerCase,
     ) -> Buffer {
         let (width, height) = case.viewport.size();
         let mut scene = Scene::new("port-row-scratch", theme, case.color, width, height);
@@ -3807,7 +3844,7 @@ mod root_100_nonoverflow_port_owner {
         scene.buffer().clone()
     }
 
-    fn paint_blank_scratch(row: Rect, theme: Theme, case: RootCase) -> Buffer {
+    fn paint_blank_scratch(row: Rect, theme: Theme, case: OwnerCase) -> Buffer {
         let (width, height) = case.viewport.size();
         let mut scene = Scene::new("list-container-scratch", theme, case.color, width, height);
         scene.draw(|ui, _| {
@@ -4134,9 +4171,9 @@ mod root_100_nonoverflow_port_owner {
         );
     }
 
-    fn run_root_case(case: RootCase, check_root100_negative_controls: bool) {
-        let mut world_a = crate::sim::fixtures::world_for(Scenario::MonorepoRoot);
-        let mut world_b = crate::sim::fixtures::world_for(Scenario::MonorepoRoot);
+    fn run_owner_case(case: OwnerCase, check_root100_negative_controls: bool) {
+        let mut world_a = crate::sim::fixtures::world_for(case.scenario);
+        let mut world_b = crate::sim::fixtures::world_for(case.scenario);
         world_a.seek(FRAME_MS);
         world_b.seek(FRAME_MS);
 
@@ -4218,8 +4255,10 @@ mod root_100_nonoverflow_port_owner {
             .collect();
         assert_eq!(tokens_b, expected_tokens_b, "B model is A minus only Port");
         assert_eq!(tokens_a.len(), tokens_b.len().saturating_add(1));
-        assert_eq!(tokens_a.len(), 19, "A complete token model extent");
-        assert_eq!(tokens_b.len(), 18, "B complete token model extent");
+        if case.scenario == Scenario::MonorepoRoot {
+            assert_eq!(tokens_a.len(), 19, "Root A complete token model extent");
+            assert_eq!(tokens_b.len(), 18, "Root B complete token model extent");
+        }
         let rows_area = case.viewport.rows_area();
         assert!(
             tokens_a.len() <= usize::from(rows_area.height),
@@ -4250,7 +4289,7 @@ mod root_100_nonoverflow_port_owner {
                 .expect("common blank suffix starts within rows area"),
         );
         let common_blank_suffix = suffix_rect(rows_area, common_blank_y);
-        if case == RootCase::ROOT100_JUNIE_TRUECOLOR {
+        if case == OwnerCase::ROOT100_JUNIE_TRUECOLOR {
             assert_eq!(
                 case.key(),
                 EXPECTED_KEY,
@@ -4268,6 +4307,22 @@ mod root_100_nonoverflow_port_owner {
         let mut harness_b = harness(world_b, case);
         harness_a.draw();
         harness_b.draw();
+        if case.scenario == Scenario::MonorepoChild {
+            let selected_a = harness_a
+                .app()
+                .home
+                .selected(&harness_a.app().world)
+                .map(|action| action.id);
+            let selected_b = harness_b
+                .app()
+                .home
+                .selected(&harness_b.app().world)
+                .map(|action| action.id);
+            assert_eq!(
+                selected_a, selected_b,
+                "Child A/B preserve fixture-derived selected action identity"
+            );
+        }
         assert_arm_controls(&harness_a, &memory_a, &rows_a, &tokens_a, case, "A");
         assert_arm_controls(&harness_b, &memory_b, &rows_b, &tokens_b, case, "B");
         assert_eq!(
@@ -4311,14 +4366,14 @@ mod root_100_nonoverflow_port_owner {
         let errors = frame_contract_errors(harness_a.buffer(), harness_b.buffer(), &contract);
         assert!(
             errors.is_empty(),
-            "Root held-owner locality errors for {}: {errors:?}",
+            "{} held-owner locality errors: {errors:?}",
             case.key()
         );
 
         if check_root100_negative_controls {
             assert_eq!(
                 case,
-                RootCase::ROOT100_JUNIE_TRUECOLOR,
+                OwnerCase::ROOT100_JUNIE_TRUECOLOR,
                 "negative controls remain on the exact Root100 owner"
             );
             assert_corruptions_rejected(
@@ -4334,20 +4389,27 @@ mod root_100_nonoverflow_port_owner {
             );
         }
 
-        let held = harness_b.snapshot().named(Scenario::MonorepoRoot.name());
+        let held = harness_b.snapshot().named(case.scenario.name());
         assert_eq!(held.key(), case.key(), "exact named held baseline key");
         held.assert_against(&BORDER_BASELINE);
     }
 
     #[test]
     fn monorepo_root_100_junie_truecolor_port_hide_preserves_held_nonoverflow_frame() {
-        run_root_case(RootCase::ROOT100_JUNIE_TRUECOLOR, true);
+        run_owner_case(OwnerCase::ROOT100_JUNIE_TRUECOLOR, true);
     }
 
     #[test]
     fn monorepo_root_remaining_23_nonoverflow_port_hide_preserves_held_frames() {
         for case in remaining_root_cases() {
-            run_root_case(case, false);
+            run_owner_case(case, false);
+        }
+    }
+
+    #[test]
+    fn monorepo_child_remaining_24_nonoverflow_port_hide_preserves_held_frames() {
+        for case in remaining_child_cases() {
+            run_owner_case(case, false);
         }
     }
 }
