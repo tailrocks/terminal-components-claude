@@ -3771,7 +3771,7 @@ mod navigation_identity_contract {
                 .iter()
                 .filter(|target| matches!(target, NavTarget::Live(_)))
                 .count(),
-            25
+            26
         );
         assert_eq!(
             targets
@@ -3785,7 +3785,7 @@ mod navigation_identity_contract {
                 .iter()
                 .filter(|target| matches!(target, NavTarget::Placeholder(_)))
                 .count(),
-            28
+            27
         );
     }
 
