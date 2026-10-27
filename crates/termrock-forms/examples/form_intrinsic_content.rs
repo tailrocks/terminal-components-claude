@@ -1,5 +1,5 @@
-use ratatui_core::buffer::Buffer;
-use ratatui_core::layout::Rect;
+use ratatui::backend::TestBackend;
+use ratatui::{Terminal, buffer::Buffer, layout::Rect};
 use termrock_controls::button::Button;
 use termrock_core::id::Id;
 use termrock_forms::form::{
@@ -43,26 +43,48 @@ impl FormData for Data {
     }
 }
 
-#[derive(Default)]
-struct EmptyApp;
+struct IntrinsicContentApp {
+    form: Form<'static>,
+    state: FormState,
+    data: Data,
+    area: Rect,
+}
 
-impl App for EmptyApp {
+impl App for IntrinsicContentApp {
     fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
         Response::ignored()
     }
 
-    fn draw(&self, _ui: &mut Ui<'_>) {}
+    fn draw(&self, ui: &mut Ui<'_>) {
+        self.form.draw(ui, self.area, &self.state, &self.data);
+    }
 }
 
-fn main() {
-    let form = Form::new(FORM, FIELDS).field_sizing(FieldSizingPolicy::Intrinsic);
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let area = Rect::new(0, 0, 64, 10);
-    let mut buffer = Buffer::empty(area);
-    Runtime::new(EmptyApp, Theme::junie())
-        .draw_scene(area, &mut buffer, |ui, area| {
-            form.draw(ui, area, &FormState::default(), &Data);
-        })
-        .commit_presented();
+    let app = IntrinsicContentApp {
+        form: Form::new(FORM, FIELDS).field_sizing(FieldSizingPolicy::Intrinsic),
+        state: FormState::default(),
+        data: Data,
+        area,
+    };
+    render(app, area)
+}
+
+fn render(app: impl App, area: Rect) -> Result<(), Box<dyn std::error::Error>> {
+    let mut runtime = Runtime::new(app, Theme::junie());
+    let prepared = runtime.prepare(area)?;
+    let mut terminal = Terminal::new(TestBackend::new(area.width, area.height))?;
+    let mut draw_error = None;
+    terminal.try_draw(|frame| {
+        draw_error = runtime.draw_prepared(prepared, frame).err();
+        Ok::<(), std::convert::Infallible>(())
+    })?;
+    if let Some(error) = draw_error {
+        return Err(std::io::Error::other(error).into());
+    }
+    runtime.acknowledge_presented(prepared)?;
+    let buffer: &Buffer = terminal.backend().buffer();
     for y in 0..buffer.area.height {
         for x in 0..buffer.area.width {
             if let Some(cell) = buffer.cell((x, y)) {
@@ -71,4 +93,5 @@ fn main() {
         }
         println!();
     }
+    Ok(())
 }
