@@ -60,7 +60,6 @@ impl Domain {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SystemProcess {
     pub pid: u32,
-    pub parent_pid: Option<u32>,
     pub name: String,
     pub cpu_pct: u32,
     pub mem_mb: u32,

@@ -247,7 +247,6 @@ fn seed_first_use(world: &mut World) {
         processes: vec![
             SystemProcess {
                 pid: 4812,
-                parent_pid: Some(1),
                 name: "rust-analyzer".into(),
                 cpu_pct: 41,
                 mem_mb: 2_900,
@@ -256,7 +255,6 @@ fn seed_first_use(world: &mut World) {
             },
             SystemProcess {
                 pid: 9120,
-                parent_pid: Some(4812),
                 name: "cargo".into(),
                 cpu_pct: 32,
                 mem_mb: 1_100,
@@ -265,7 +263,6 @@ fn seed_first_use(world: &mut World) {
             },
             SystemProcess {
                 pid: 2201,
-                parent_pid: Some(1),
                 name: "Docker".into(),
                 cpu_pct: 9,
                 mem_mb: 3_800,
@@ -274,7 +271,6 @@ fn seed_first_use(world: &mut World) {
             },
             SystemProcess {
                 pid: 7731,
-                parent_pid: Some(1),
                 name: "node (vite)".into(),
                 cpu_pct: 6,
                 mem_mb: 420,
