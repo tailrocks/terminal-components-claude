@@ -361,12 +361,37 @@ impl TaskRunScreen {
             run.duration_ms()
         );
         render_line(ui, area, 3, &duration, muted);
-        let execution = projection.stop_grace_ms.map_or_else(
-            || format!("Execution: {}", projection.state_label),
-            |elapsed| format!("Execution: stopping · stop grace {elapsed} ms"),
-        );
-        render_line(ui, area, 4, &execution, muted);
-        if let Some(id) = self.stop_owner_id() {
+        let execution = match (projection.state_label.as_str(), projection.stop_grace_ms) {
+            ("stopping", Some(elapsed)) => {
+                format!("Execution: stopping · SIMULATED stop grace {elapsed} ms")
+            }
+            ("stopped", Some(duration)) => {
+                format!("Execution: stopped · SIMULATED stop grace {duration} ms")
+            }
+            _ => format!("Execution: {}", projection.state_label),
+        };
+        let stop_owner_id = self.stop_owner_id();
+        let execution_width = if stop_owner_id.is_some() {
+            area.width.saturating_sub(22)
+        } else {
+            area.width
+        };
+        let execution_area = Rect::new(area.x, area.y, execution_width, area.height);
+        let execution = if termrock::width(&execution) <= execution_width {
+            execution
+        } else {
+            match (projection.state_label.as_str(), projection.stop_grace_ms) {
+                ("stopping", Some(elapsed)) => {
+                    format!("Execution: stopping · SIMULATED grace {elapsed} ms")
+                }
+                ("stopped", Some(duration)) => {
+                    format!("Execution: stopped · SIMULATED grace {duration} ms")
+                }
+                _ => execution,
+            }
+        };
+        render_line(ui, execution_area, 4, &execution, muted);
+        if let Some(id) = stop_owner_id {
             Button::new(
                 id,
                 if projection.stop_enabled {
@@ -392,7 +417,14 @@ impl TaskRunScreen {
         let input_area = Self::input_area_for(area, run.active_prompt().is_some());
         let reserved_rows = if input_area.is_some() { 4 } else { 0 };
         let output_end = area.height.saturating_sub(reserved_rows);
-        let mut row = 5;
+        if let Some(history) = projection.simulated_stop_history.as_deref() {
+            render_line(ui, area, 5, history, faint);
+        }
+        let mut row = if projection.simulated_stop_history.is_some() {
+            6
+        } else {
+            5
+        };
         for line in &projection.lines {
             if row >= output_end {
                 break;

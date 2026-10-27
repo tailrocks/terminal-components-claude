@@ -2207,6 +2207,7 @@ impl App {
                         execution_id: None,
                         state_label: "unavailable".into(),
                         stop_grace_ms: None,
+                        simulated_stop_history: None,
                         stop_enabled: false,
                         lines: Vec::new(),
                     },

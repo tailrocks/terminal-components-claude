@@ -1,7 +1,8 @@
 use crate::domain::activity::{Activity, ActivityState};
 use crate::sim::{
     activity_supervisor::{
-        ActivityExecution, ActivityExecutionId, ActivityExecutionPhase, ActivityStopPhase,
+        ActivityExecution, ActivityExecutionId, ActivityExecutionPhase, ActivityStopMilestone,
+        ActivityStopPhase,
     },
     task_run::{TaskRun, TaskRunState},
     world::World,
@@ -16,7 +17,9 @@ use termrock::{
 pub(crate) struct ActivityProjection {
     pub(crate) execution_id: Option<ActivityExecutionId>,
     pub(crate) state_label: String,
+
     pub(crate) stop_grace_ms: Option<u64>,
+    pub(crate) simulated_stop_history: Option<String>,
     pub(crate) stop_enabled: bool,
     pub(crate) lines: Vec<String>,
 }
@@ -229,10 +232,21 @@ impl Activities {
                     Rect::new(area.x, area.y.saturating_add(1), area.width.min(22), 1),
                 );
         }
-        let state_label = format!(
-            "{} · {}",
-            projection.state_label,
-            elapsed_label(activity, world.now_ms())
+        let state_label = projection.stop_grace_ms.map_or_else(
+            || {
+                format!(
+                    "{} · {}",
+                    projection.state_label,
+                    elapsed_label(activity, world.now_ms())
+                )
+            },
+            |grace_ms| {
+                format!(
+                    "{} · {} · SIMULATED stop grace {grace_ms} ms",
+                    projection.state_label,
+                    elapsed_label(activity, world.now_ms())
+                )
+            },
         );
         let count_label = format!("{} retained lines", projection.lines.len());
         Props::new(&[
@@ -249,6 +263,14 @@ impl Activities {
                 area.height.saturating_sub(2).min(3),
             ),
         );
+        if let Some(history) = projection.simulated_stop_history.as_deref() {
+            let history_style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)));
+            ui.paint_str(
+                Rect::new(area.x, area.y.saturating_add(5), area.width, 1),
+                &termrock::truncate(history, area.width),
+                history_style,
+            );
+        }
         let output = Rect::new(
             area.x,
             area.y.saturating_add(6),
@@ -313,6 +335,31 @@ fn stop_button_label(projection: &ActivityProjection) -> &'static str {
     }
 }
 
+fn format_simulated_stop_history(execution: &ActivityExecution) -> Option<String> {
+    let requested_at_ms = execution.stop_requested_ms()?;
+    let milestones = execution.milestones();
+    if milestones.is_empty() {
+        return None;
+    }
+    let history = milestones
+        .iter()
+        .map(|milestone| {
+            let elapsed_ms = milestone.at_ms().saturating_sub(requested_at_ms).max(0);
+            match milestone {
+                ActivityStopMilestone::TermSent { .. } => format!("TERM +{elapsed_ms} ms"),
+                ActivityStopMilestone::KillSent { .. } => format!("KILL +{elapsed_ms} ms"),
+                ActivityStopMilestone::Reaped { .. } => format!("reap +{elapsed_ms} ms"),
+                ActivityStopMilestone::CancelledBeforeStart { .. } => {
+                    format!("queued cancellation before start +{elapsed_ms} ms")
+                }
+                _ => "simulated lifecycle event".to_owned(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" · ");
+    Some(format!("SIMULATED stop · {history}"))
+}
+
 pub(crate) fn project(
     activity: &Activity,
     execution: Option<&ActivityExecution>,
@@ -366,11 +413,31 @@ pub(crate) fn project(
         activity.state.label()
     }
     .to_owned();
-    let stop_grace_ms = execution
-        .filter(|value| value.phase() == ActivityExecutionPhase::Cancelling)
-        .and_then(ActivityExecution::stop_requested_ms)
-        .map(|started_ms| now_ms.saturating_sub(started_ms).max(0))
-        .and_then(|elapsed| u64::try_from(elapsed).ok());
+    let stop_grace_ms = execution.and_then(|value| match value.phase() {
+        ActivityExecutionPhase::Cancelling => value
+            .stop_requested_ms()
+            .map(|started_ms| now_ms.saturating_sub(started_ms).max(0))
+            .and_then(|elapsed| u64::try_from(elapsed).ok()),
+        ActivityExecutionPhase::Stopped if value.stop_phase() == ActivityStopPhase::Reaped => {
+            let term_at_ms = value
+                .milestones()
+                .iter()
+                .find_map(|milestone| match milestone {
+                    ActivityStopMilestone::TermSent { at_ms } => Some(*at_ms),
+                    _ => None,
+                })?;
+            let reaped_at_ms = value
+                .milestones()
+                .iter()
+                .find_map(|milestone| match milestone {
+                    ActivityStopMilestone::Reaped { at_ms } => Some(*at_ms),
+                    _ => None,
+                })?;
+            u64::try_from(reaped_at_ms.saturating_sub(term_at_ms).max(0)).ok()
+        }
+        _ => None,
+    });
+    let simulated_stop_history = execution.and_then(format_simulated_stop_history);
     let run_terminal = matches!(
         task_state,
         Some(TaskRunState::Completed | TaskRunState::Cancelled)
@@ -388,6 +455,7 @@ pub(crate) fn project(
         execution_id,
         state_label,
         stop_grace_ms,
+        simulated_stop_history,
         stop_enabled,
         lines,
     }
@@ -395,7 +463,7 @@ pub(crate) fn project(
 
 pub(crate) fn strip_status(projection: &ActivityProjection) -> Option<String> {
     projection.execution_id?;
-    if projection.stop_grace_ms.is_some() {
+    if projection.state_label == "stopping" {
         projection
             .stop_grace_ms
             .map(|elapsed| format!("Stopping · {elapsed} ms stop grace"))

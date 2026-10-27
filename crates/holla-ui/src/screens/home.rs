@@ -574,21 +574,22 @@ impl HomeState {
                 None
             };
             if let Some((text, role)) = note {
-                let style = ui.paint_patch(&StylePatch::new().set_fg(role));
-                ui.paint_str(
-                    Rect::new(
-                        area.x.saturating_add(2),
-                        area.bottom().saturating_sub(1),
-                        area.width.saturating_sub(2),
-                        1,
-                    ),
-                    &text,
-                    style,
+                let note_row = Rect::new(
+                    area.x.saturating_add(2),
+                    area.bottom().saturating_sub(1),
+                    area.width.saturating_sub(2),
+                    1,
                 );
+                paint_discovery_note(ui, note_row, &text, role);
             }
         }
         peek.into_inner()
     }
+}
+
+fn paint_discovery_note(ui: &mut Ui<'_>, row: Rect, text: &str, role: Role) {
+    let style = ui.paint_patch(&StylePatch::new().set_fg(role));
+    ui.paint_str(row, text, style);
 }
 
 const TAG_GREY: StylePatch = StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)));
