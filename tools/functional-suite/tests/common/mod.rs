@@ -10,7 +10,7 @@ use sha2::{Digest, Sha256};
 use tui_test::Backend;
 use tui_test::api::{
     AutomaticRecording, KeyAction, MouseAction, MouseButton, MouseOptions, Operation,
-    OperationResult, RawOutputCaptureOptions, RunOptions, Timeouts,
+    OperationResult, RawOutputCaptureOptions, RunOptions, State as SessionState, Timeouts,
 };
 use tui_test::launch::{LaunchEnvMode, LaunchOptions};
 use tui_test::profile::Profile;
@@ -483,9 +483,9 @@ const CASES: [Case; FIRST30_PRIMARY_CASE_DENOMINATOR + 1] = [
         binary: "tablepro",
         args: &["--motion", "paused", "--frame", "0", "--color", "truecolor"],
         initial_marker: "TablePro",
-        help_key: "?",
+        help_key: "F1",
         help_marker: "Keyboard shortcuts",
-        quit_key: "q",
+        quit_key: "Ctrl+q",
         cols: DEFAULT_COLS,
         rows: DEFAULT_ROWS,
         terminal_profile: "first30-v1",
@@ -1497,6 +1497,7 @@ fn run_case(
     let mut semantic_assertions = Vec::new();
     let mut failure_finalization = Value::Null;
     let mut process_state = Value::Null;
+    let mut exit_validation_errors = Vec::new();
     let work = (|| -> AppResult<()> {
         let launch = LaunchOptions::new(binary.as_os_str().to_owned())
             .with_args(case.args.iter().copied())
@@ -1610,20 +1611,125 @@ fn run_case(
         session.execute(Operation::WaitExit {
             timeout_ms: Some(EXIT_TIMEOUT_MS),
         })?;
-        process_state = match session.execute(Operation::State)? {
-            OperationResult::State(state) => json!({
-                "wait_exit_completed": true,
-                "exited": state.exited,
-                "exit_signal": state.exit_signal,
-                "cols": state.cols,
-                "rows": state.rows,
-            }),
-            other => return Err(format!("unexpected process state result: {other:?}").into()),
+        let state = match session.execute(Operation::State) {
+            Ok(OperationResult::State(state)) => state,
+            Ok(other) => {
+                let reason = format!("unexpected process state result: {other:?}");
+                process_state = json!({
+                    "status":"unavailable",
+                    "api":"Operation::State",
+                    "reason":reason,
+                });
+                return Err(reason.into());
+            }
+            Err(error) => {
+                process_state = json!({
+                    "status":"unavailable",
+                    "api":"Operation::State",
+                    "reason":error.to_string(),
+                });
+                return Err(error.into());
+            }
         };
-        child_exited = true;
-        write_json_new(&case_out.join("process-state.json"), &process_state)?;
-        if process_state["exited"] != 0 || !process_state["exit_signal"].is_null() {
-            return Err(format!("child did not exit cleanly: {process_state}").into());
+        child_exited = state.exited.is_some() || state.exit_signal.is_some();
+        let restoration = terminal_restoration_observation(&state, case.cols, case.rows);
+        process_state = serde_json::to_value(state.as_ref())?;
+        if let Some(object) = process_state.as_object_mut() {
+            object.insert("wait_exit_completed".to_string(), json!(true));
+            object.insert("terminal_restoration".to_string(), restoration.clone());
+        }
+        if state.exited != Some(0) || state.exit_signal.is_some() {
+            exit_validation_errors.push(format!(
+                "child did not exit cleanly: exited={:?}, signal={:?}",
+                state.exited, state.exit_signal
+            ));
+        }
+        if restoration["status"] != "pass" {
+            exit_validation_errors.push(format!(
+                "terminal restoration failed or was unavailable: {restoration}"
+            ));
+        }
+
+        let quiet_started = Instant::now();
+        let final_quiet = match wait_visual_quiet(&session) {
+            Ok(()) => json!({
+                "status":"quiet",
+                "interval_ms":QUIET_INTERVAL.as_millis(),
+                "elapsed_ms":quiet_started.elapsed().as_millis(),
+            }),
+            Err(error) => {
+                exit_validation_errors.push(format!(
+                    "terminal was not visually quiet before the exit receipt: {error}"
+                ));
+                json!({
+                    "status":"not_quiet_within_bound",
+                    "interval_ms":QUIET_INTERVAL.as_millis(),
+                    "timeout_ms":QUIET_TIMEOUT.as_millis(),
+                    "elapsed_ms":quiet_started.elapsed().as_millis(),
+                    "error":error.to_string(),
+                })
+            }
+        };
+        if let Some(object) = process_state.as_object_mut() {
+            object.insert("final_visual_quiet".to_string(), final_quiet);
+        }
+        if case.exit_receipt_is_separate {
+            exit_receipt = Some(capture_checkpoint(
+                &session,
+                sample_profile,
+                case,
+                case.exit_receipt_label,
+                &case_out,
+            )?);
+            let receipt = exit_receipt
+                .as_ref()
+                .ok_or("separate exit receipt was not captured")?;
+            let dimensions_match = receipt.snapshot.cols() == u32::from(case.cols)
+                && receipt.snapshot.rows() == u32::from(case.rows);
+            let dimension_observation = json!({
+                "status":if dimensions_match {"pass"} else {"fail"},
+                "expected":{"cols":case.cols,"rows":case.rows},
+                "observed":{"cols":receipt.snapshot.cols(),"rows":receipt.snapshot.rows()},
+            });
+            if let Some(restoration) = process_state
+                .get_mut("terminal_restoration")
+                .and_then(Value::as_object_mut)
+            {
+                restoration.insert(
+                    "exit_snapshot_dimensions".to_string(),
+                    dimension_observation,
+                );
+                if !dimensions_match {
+                    restoration.insert("status".to_string(), json!("fail"));
+                    if let Some(failed) = restoration
+                        .get_mut("failed_fields")
+                        .and_then(Value::as_array_mut)
+                    {
+                        failed.push(json!("exit_snapshot_dimensions"));
+                    }
+                }
+            }
+            if !dimensions_match {
+                exit_validation_errors.push(format!(
+                    "exit receipt snapshot dimensions are {}x{}, expected {}x{}",
+                    receipt.snapshot.cols(),
+                    receipt.snapshot.rows(),
+                    case.cols,
+                    case.rows
+                ));
+            }
+        } else {
+            let exit_label = case.exit_receipt_label;
+            if case.checkpoint_labels.last().copied() != Some(exit_label) {
+                return Err(format!("case ends with unexpected checkpoint {exit_label:?}").into());
+            }
+            checkpoints.push(capture_checkpoint(
+                &session,
+                sample_profile,
+                case,
+                exit_label,
+                &case_out,
+            )?);
         }
 
         let status = session
@@ -1644,28 +1750,6 @@ fn run_case(
                 status.drained, status.flushed, captured, processed
             )
             .into());
-        }
-        wait_visual_quiet(&session)?;
-        if case.exit_receipt_is_separate {
-            exit_receipt = Some(capture_checkpoint(
-                &session,
-                sample_profile,
-                case,
-                case.exit_receipt_label,
-                &case_out,
-            )?);
-        } else {
-            let exit_label = case.exit_receipt_label;
-            if case.checkpoint_labels.last().copied() != Some(exit_label) {
-                return Err(format!("case ends with unexpected checkpoint {exit_label:?}").into());
-            }
-            checkpoints.push(capture_checkpoint(
-                &session,
-                sample_profile,
-                case,
-                exit_label,
-                &case_out,
-            )?);
         }
         let raw = fs::read(&raw_path)?;
         if u64::try_from(raw.len())? != captured {
@@ -1736,52 +1820,17 @@ fn run_case(
                     "drained":status.drained,
                     "flushed":status.flushed,
                     "capture_errors":status.errors,
+                    "final_state":process_state.clone(),
                 }),
             )?;
         }
 
-        {
-            for checkpoint in &checkpoints {
-                let outcome = frozen_store.check(&checkpoint.sample_bytes)?;
-                let mut check_value = check_json(&outcome);
-                if let CheckOutcome::Failure(failure) = &outcome {
-                    let baseline_path = suite
-                        .join("expected")
-                        .join(format!("{}.tui.json", checkpoint.sample_id));
-                    if baseline_path.is_file()
-                        && let Ok(bytes) = fs::read(baseline_path)
-                        && let Ok(baseline) = Sample::from_bytes(&bytes)
-                        && let Some(object) = check_value.as_object_mut()
-                    {
-                        object.insert(
-                            "first_difference".to_string(),
-                            json!(first_difference(baseline.snapshot(), &checkpoint.snapshot)),
-                        );
-                        object.insert(
-                            "changed_fields".to_string(),
-                            json!(failure.changed_fields()),
-                        );
-                        object.insert(
-                            "changed_cells".to_string(),
-                            json!(
-                                failure
-                                    .changed_cells()
-                                    .iter()
-                                    .map(|cell| json!({
-                                        "col": cell.col(),
-                                        "row": cell.row(),
-                                        "fields": cell.fields(),
-                                        "actual_text": cell.actual_text(),
-                                        "baseline_text": cell.baseline_text(),
-                                    }))
-                                    .collect::<Vec<_>>()
-                            ),
-                        );
-                    }
-                }
-                let checkpoint_dir = case_out.join("checkpoints").join(&checkpoint.label);
-                write_json_new(&checkpoint_dir.join("check.json"), &check_value)?;
-            }
+        if !exit_validation_errors.is_empty() {
+            return Err(format!(
+                "exit validation failed: {}",
+                exit_validation_errors.join("; ")
+            )
+            .into());
         }
         Ok(())
     })();
@@ -1802,50 +1851,74 @@ fn run_case(
             }
         }
     }
-    if let Some(status) = session.raw_output_capture_status() {
-        let mut status_value = serde_json::to_value(&status)?;
-        if let Some(object) = status_value.as_object_mut() {
-            object.insert(
-                "raw_file_bytes".to_string(),
-                json!(fs::metadata(&raw_path).ok().map(|metadata| metadata.len())),
-            );
-            object.insert(
-                "exit_checkpoint_offset".to_string(),
-                json!(
-                    exit_receipt
-                        .as_ref()
-                        .map(|receipt| receipt.offset)
-                        .or_else(|| {
-                            checkpoints
-                                .last()
-                                .filter(|checkpoint| checkpoint.label == "exited")
-                                .map(|checkpoint| checkpoint.offset)
-                        })
-                ),
-            );
-            object.insert(
-                "observed_after_cleanup_close".to_string(),
-                json!(closed_for_cleanup),
-            );
-            object.insert("cleanup_error".to_string(), json!(cleanup_error.clone()));
-        }
-        write_json_new(&case_out.join("raw-status.json"), &status_value)?;
+    if let Some(object) = process_state.as_object_mut() {
+        object.insert(
+            "exit_validation_errors".to_string(),
+            json!(exit_validation_errors),
+        );
     }
-    let checkpoint_evidence_errors = if work.is_err() {
+    let mut checkpoint_evidence_errors = Vec::new();
+    if let Some(status) = session.raw_output_capture_status() {
+        match serde_json::to_value(&status) {
+            Ok(mut status_value) => {
+                if let Some(object) = status_value.as_object_mut() {
+                    object.insert(
+                        "raw_file_bytes".to_string(),
+                        json!(fs::metadata(&raw_path).ok().map(|metadata| metadata.len())),
+                    );
+                    object.insert(
+                        "exit_checkpoint_offset".to_string(),
+                        json!(
+                            exit_receipt
+                                .as_ref()
+                                .map(|receipt| receipt.offset)
+                                .or_else(|| {
+                                    checkpoints
+                                        .last()
+                                        .filter(|checkpoint| checkpoint.label == "exited")
+                                        .map(|checkpoint| checkpoint.offset)
+                                })
+                        ),
+                    );
+                    object.insert(
+                        "observed_after_cleanup_close".to_string(),
+                        json!(closed_for_cleanup),
+                    );
+                    object.insert("cleanup_error".to_string(), json!(cleanup_error.clone()));
+                }
+                if let Err(error) = write_json_new(&case_out.join("raw-status.json"), &status_value)
+                {
+                    checkpoint_evidence_errors.push(format!("raw status record failed: {error}"));
+                }
+            }
+            Err(error) => {
+                checkpoint_evidence_errors.push(format!("raw status serialization failed: {error}"))
+            }
+        }
+    }
+    if !process_state.is_null()
+        && let Err(error) = write_json_new(&case_out.join("process-state.json"), &process_state)
+    {
+        checkpoint_evidence_errors.push(format!("process state record failed: {error}"));
+    }
+    if work.is_err() {
         let errors = preserve_reached_checkpoint_prefixes(
             &raw_path,
             &case_out,
             &checkpoints,
             exit_receipt.as_ref(),
         );
-        if !errors.is_empty() {
-            write_json_new(&case_out.join("checkpoint-evidence-errors.json"), &errors)?;
+        checkpoint_evidence_errors.extend(errors);
+    }
+    if !checkpoint_evidence_errors.is_empty() {
+        if let Err(error) = write_json_new(
+            &case_out.join("checkpoint-evidence-errors.json"),
+            &checkpoint_evidence_errors,
+        ) {
+            checkpoint_evidence_errors.push(format!("evidence error record failed: {error}"));
         }
-        errors
-    } else {
-        Vec::new()
-    };
-    write_json_new(
+    }
+    if let Err(error) = write_json_new(
         &case_out.join("actions.json"),
         &json!({
             "schema":"termrock-live-actions.v1",
@@ -1853,58 +1926,130 @@ fn run_case(
             "finished_at_unix_ms":unix_ms(),
             "actions":actions,
         }),
-    )?;
+    ) {
+        checkpoint_evidence_errors.push(format!("action record failed: {error}"));
+    }
     if matches!(
         case.journey,
         Journey::First30(_) | Journey::HollaFirstUseAction
     ) {
-        write_json_new(
+        if let Err(error) = write_json_new(
             &case_out.join("semantic-assertions.json"),
             &semantic_assertions,
-        )?;
+        ) {
+            checkpoint_evidence_errors.push(format!("semantic assertion record failed: {error}"));
+        }
     }
 
     let (process_status, work_error) = match work {
         Ok(()) => ("complete", None),
         Err(error) => ("incomplete", Some(error.to_string())),
     };
-    let (check_failures, checkpoints_passed) = if process_status == "complete" {
-        let mut failures = 0;
-        let mut passed = 0;
-        for checkpoint in &checkpoints {
-            let path = case_out
-                .join("checkpoints")
-                .join(&checkpoint.label)
-                .join("check.json");
-            let is_pass = fs::read(path)
-                .ok()
-                .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
-                .is_some_and(|value| value["status"] == "pass");
-            if is_pass {
-                passed += 1;
+    let mut comparison_records = Vec::new();
+    for checkpoint in &checkpoints {
+        let is_exit_receipt = checkpoint.label == case.exit_receipt_label;
+        let (record, write_error) = compare_checkpoint(
+            frozen_store,
+            suite,
+            &case_out,
+            case.id,
+            checkpoint,
+            if is_exit_receipt {
+                "exit_receipt"
             } else {
-                failures += 1;
+                "live_frame"
+            },
+        );
+        if let Some(error) = write_error {
+            checkpoint_evidence_errors.push(error);
+        }
+        comparison_records.push(record);
+    }
+    if let Some(receipt) = exit_receipt.as_ref() {
+        let (record, write_error) = compare_checkpoint(
+            frozen_store,
+            suite,
+            &case_out,
+            case.id,
+            receipt,
+            "exit_receipt",
+        );
+        if let Some(error) = write_error {
+            checkpoint_evidence_errors.push(error);
+        }
+        comparison_records.push(record);
+    }
+    if !checkpoint_evidence_errors.is_empty() {
+        if let Err(error) = write_json_new(
+            &case_out.join("checkpoint-evidence-errors-after-comparison.json"),
+            &checkpoint_evidence_errors,
+        ) {
+            checkpoint_evidence_errors.push(format!(
+                "post-comparison evidence error record failed: {error}"
+            ));
+        }
+    }
+    let mut check_failures = 0;
+    let mut checkpoints_passed = 0;
+    let mut setup_failed_comparisons = 0;
+    let mut comparison_unavailable = 0;
+    let mut exit_receipt_check_failures = 0;
+    let mut exit_receipt_checks_passed = 0;
+    let mut exit_receipt_setup_failed = 0;
+    let mut exit_receipt_comparison_unavailable = 0;
+    for comparison in &comparison_records {
+        let is_exit_receipt = comparison["capture_kind"] == "exit_receipt";
+        match comparison["status"].as_str() {
+            Some("pass") if is_exit_receipt => exit_receipt_checks_passed += 1,
+            Some("pass") => checkpoints_passed += 1,
+            Some("failure") if is_exit_receipt => exit_receipt_check_failures += 1,
+            Some("failure") => check_failures += 1,
+            Some("setup_failed") if is_exit_receipt => exit_receipt_setup_failed += 1,
+            Some("setup_failed") => setup_failed_comparisons += 1,
+            Some("unavailable") if is_exit_receipt => exit_receipt_comparison_unavailable += 1,
+            Some("unavailable") => comparison_unavailable += 1,
+            _ => {
+                if is_exit_receipt {
+                    exit_receipt_comparison_unavailable += 1;
+                } else {
+                    comparison_unavailable += 1;
+                }
             }
         }
-        (failures, passed)
-    } else {
-        (0, 0)
-    };
+    }
     let semantic_failures = semantic_assertions
         .iter()
         .filter(|assertion| assertion["status"] != "pass")
         .count();
-    let final_status =
-        if process_status != "complete" || check_failures > 0 || semantic_failures > 0 {
-            "failed"
-        } else {
-            "passed"
-        };
+    let setup_failed_comparisons_total = setup_failed_comparisons + exit_receipt_setup_failed;
+    let comparison_unavailable_total = comparison_unavailable + exit_receipt_comparison_unavailable;
+    let application_or_visual_failure = process_status != "complete"
+        || check_failures > 0
+        || exit_receipt_check_failures > 0
+        || semantic_failures > 0;
+    let setup_failure = setup_failed_comparisons_total > 0 || comparison_unavailable_total > 0;
+    let evidence_failure = !checkpoint_evidence_errors.is_empty();
+    let final_status = if application_or_visual_failure || evidence_failure {
+        "failed"
+    } else if setup_failure {
+        "setup_failed"
+    } else {
+        "passed"
+    };
     let error = if let Some(error) = work_error {
         json!(error)
-    } else if check_failures > 0 || semantic_failures > 0 {
+    } else if application_or_visual_failure {
         json!(format!(
-            "{check_failures} frozen checkpoint checks failed; {semantic_failures} semantic checkpoint checks failed"
+            "live frame comparison failures={check_failures}; exit receipt comparison failures={exit_receipt_check_failures}; semantic checkpoint failures={semantic_failures}"
+        ))
+    } else if setup_failure {
+        json!(format!(
+            "missing baseline comparisons={setup_failed_comparisons_total}; unavailable comparisons={comparison_unavailable_total}"
+        ))
+    } else if evidence_failure {
+        json!(format!(
+            "{} checkpoint evidence records could not be saved",
+            checkpoint_evidence_errors.len()
         ))
     } else {
         Value::Null
@@ -1955,21 +2100,46 @@ fn run_case(
                 .map(str::to_owned)
         })
         .collect();
-    for checkpoint in &checkpoints {
-        let path = case_out
-            .join("checkpoints")
-            .join(&checkpoint.label)
-            .join("check.json");
-        let check_failed = fs::read(path)
-            .ok()
-            .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
-            .is_some_and(|value| value["status"] != "pass");
-        if check_failed {
-            failed_checkpoint_labels.push(checkpoint.label.clone());
+    let mut setup_failed_checkpoint_labels = Vec::new();
+    let mut comparison_unavailable_checkpoint_labels = Vec::new();
+    for comparison in &comparison_records {
+        if comparison["capture_kind"] != "live_frame" {
+            continue;
+        }
+        if let Some(label) = comparison["label"].as_str() {
+            match comparison["status"].as_str() {
+                Some("failure") => failed_checkpoint_labels.push(label.to_owned()),
+                Some("setup_failed") => setup_failed_checkpoint_labels.push(label.to_owned()),
+                Some("unavailable") => {
+                    comparison_unavailable_checkpoint_labels.push(label.to_owned());
+                }
+                _ => {}
+            }
         }
     }
     failed_checkpoint_labels.sort();
     failed_checkpoint_labels.dedup();
+    setup_failed_checkpoint_labels.sort();
+    setup_failed_checkpoint_labels.dedup();
+    comparison_unavailable_checkpoint_labels.sort();
+    comparison_unavailable_checkpoint_labels.dedup();
+    let exit_receipt_comparison = exit_receipt.as_ref().and_then(|receipt| {
+        comparison_records
+            .iter()
+            .find(|record| {
+                record["capture_kind"] == "exit_receipt"
+                    && record["sample_id"].as_str() == Some(receipt.sample_id.as_str())
+            })
+            .cloned()
+    });
+    let live_frame_comparison_count = comparison_records
+        .iter()
+        .filter(|record| record["capture_kind"] == "live_frame")
+        .count();
+    let exit_capture_comparison_count = comparison_records
+        .iter()
+        .filter(|record| record["capture_kind"] == "exit_receipt")
+        .count();
     let mut result = json!({
         "schema":"termrock-live-flow.v1",
         "id":case.id,
@@ -1989,10 +2159,15 @@ fn run_case(
         "expected_checkpoints":case.checkpoint_labels,
         "reached_checkpoint_labels":reached_checkpoint_labels,
         "failed_checkpoint_labels":failed_checkpoint_labels,
+        "setup_failed_checkpoint_labels":setup_failed_checkpoint_labels,
+        "comparison_unavailable_checkpoint_labels":comparison_unavailable_checkpoint_labels,
         "unreached_checkpoint_labels":unreached_checkpoint_labels,
         "not_run_requirements":not_run_requirements,
         "checkpoints_completed":checkpoints.len(),
         "checkpoints_passed":checkpoints_passed,
+        "check_failures":check_failures,
+        "setup_failed_comparisons":setup_failed_comparisons,
+        "comparison_unavailable":comparison_unavailable,
         "checkpoint_records":checkpoints.iter().map(|checkpoint| json!({
             "id":checkpoint.checkpoint_id,
             "sample_id":checkpoint.sample_id,
@@ -2004,10 +2179,19 @@ fn run_case(
             "rgba_sha256":checkpoint.rgba_sha256,
             "sample_path":format!("{}/checkpoints/{}/sample.tui.json", case.id, checkpoint.label),
             "expected_path":format!("expected/{}.tui.json", checkpoint.sample_id),
+            "comparison":comparison_records.iter().find(|record| {
+                record["checkpoint_id"].as_str() == Some(checkpoint.checkpoint_id.as_str())
+            }),
         })).collect::<Vec<_>>(),
         "checkpoint_count":checkpoints.len(),
         "live_frame_count":live_frame_count,
+        "live_frame_comparison_count":live_frame_comparison_count,
         "exit_receipt_count":u8::from(exit_receipt.is_some()),
+        "exit_receipt_comparison_count":exit_capture_comparison_count,
+        "exit_receipt_checks_passed":exit_receipt_checks_passed,
+        "exit_receipt_check_failures":exit_receipt_check_failures,
+        "exit_receipt_setup_failed_comparisons":exit_receipt_setup_failed,
+        "exit_receipt_comparison_unavailable":exit_receipt_comparison_unavailable,
         "exit_receipt":exit_receipt.as_ref().map(|receipt| json!({
             "schema":"termrock-live-exit-receipt.v1",
             "sample_id":receipt.sample_id,
@@ -2018,11 +2202,13 @@ fn run_case(
             "rgba_sha256":receipt.rgba_sha256,
             "sample_path":format!("{}/checkpoints/{}/sample.tui.json", case.id, case.exit_receipt_label),
             "raw_prefix_path":format!("{}/checkpoints/{}/raw-prefix.ansi", case.id, case.exit_receipt_label),
+            "terminal_restoration":process_state["terminal_restoration"],
+            "comparison":exit_receipt_comparison,
             "visual_denominator_member":false,
         })),
+        "comparison_records":comparison_records,
         "process_state":process_state,
         "checkpoint_evidence_errors":checkpoint_evidence_errors,
-        "check_failures":check_failures,
         "semantic_failures":semantic_failures,
         "reference_approval":"not performed",
     });
@@ -2595,6 +2781,103 @@ fn observe_child_state(session: &Session) -> Value {
             "child_active":false,
         }),
     }
+}
+
+fn terminal_restoration_observation(
+    state: &SessionState,
+    expected_cols: u16,
+    expected_rows: u16,
+) -> Value {
+    let mut checks = Vec::new();
+    let mut failed = Vec::new();
+    let mut unavailable = Vec::new();
+
+    for (name, expected) in [
+        ("alternate_screen", false),
+        ("cursor_visible", true),
+        ("bracketed_paste", false),
+    ] {
+        match state.modes.get(name).copied() {
+            Some(observed) => {
+                let status = if observed == expected { "pass" } else { "fail" };
+                if status == "fail" {
+                    failed.push(name);
+                }
+                checks.push(json!({
+                    "field":format!("modes.{name}"),
+                    "expected":expected,
+                    "observed":observed,
+                    "status":status,
+                }));
+            }
+            None => {
+                unavailable.push(name);
+                checks.push(json!({
+                    "field":format!("modes.{name}"),
+                    "expected":expected,
+                    "observed":null,
+                    "status":"unavailable",
+                    "reason":"the direct State mode map does not contain this required key",
+                }));
+            }
+        }
+    }
+
+    let cursor_visible_status = if state.cursor.visible { "pass" } else { "fail" };
+    if cursor_visible_status == "fail" {
+        failed.push("cursor.visible");
+    }
+    checks.push(json!({
+        "field":"cursor.visible",
+        "expected":true,
+        "observed":state.cursor.visible,
+        "status":cursor_visible_status,
+    }));
+
+    let mouse_status = if state.mouse_mode == "none" {
+        "pass"
+    } else {
+        "fail"
+    };
+    if mouse_status == "fail" {
+        failed.push("mouse_mode");
+    }
+    checks.push(json!({
+        "field":"mouse_mode",
+        "expected":"none",
+        "observed":state.mouse_mode,
+        "status":mouse_status,
+    }));
+
+    for (name, observed, expected) in [
+        ("cols", state.cols, expected_cols),
+        ("rows", state.rows, expected_rows),
+    ] {
+        let status = if observed == expected { "pass" } else { "fail" };
+        if status == "fail" {
+            failed.push(name);
+        }
+        checks.push(json!({
+            "field":name,
+            "expected":expected,
+            "observed":observed,
+            "status":status,
+        }));
+    }
+
+    let status = if !unavailable.is_empty() {
+        "unavailable"
+    } else if !failed.is_empty() {
+        "fail"
+    } else {
+        "pass"
+    };
+    json!({
+        "status":status,
+        "checks":checks,
+        "failed_fields":failed,
+        "unavailable_fields":unavailable,
+    })
 }
 
 fn visible_text_in_columns(
@@ -3796,31 +4079,130 @@ fn first_difference(left: &TerminalSnapshot, right: &TerminalSnapshot) -> Option
     None
 }
 
+fn compare_checkpoint(
+    frozen_store: &FrozenStore,
+    suite: &Path,
+    case_out: &Path,
+    case_id: &str,
+    checkpoint: &Checkpoint,
+    capture_kind: &str,
+) -> (Value, Option<String>) {
+    let mut check_value = match frozen_store.check(&checkpoint.sample_bytes) {
+        Ok(outcome) => {
+            let mut value = check_json(&outcome);
+            if let CheckOutcome::Failure(failure) = &outcome
+                && failure.reason().as_str() != "missing"
+            {
+                let baseline_path = suite
+                    .join("expected")
+                    .join(format!("{}.tui.json", checkpoint.sample_id));
+                if baseline_path.is_file()
+                    && let Ok(bytes) = fs::read(baseline_path)
+                    && let Ok(baseline) = Sample::from_bytes(&bytes)
+                    && let Some(object) = value.as_object_mut()
+                {
+                    object.insert(
+                        "first_difference".to_string(),
+                        json!(first_difference(baseline.snapshot(), &checkpoint.snapshot)),
+                    );
+                    object.insert(
+                        "changed_fields".to_string(),
+                        json!(failure.changed_fields()),
+                    );
+                    object.insert(
+                        "changed_cells".to_string(),
+                        json!(
+                            failure
+                                .changed_cells()
+                                .iter()
+                                .map(|cell| json!({
+                                    "col": cell.col(),
+                                    "row": cell.row(),
+                                    "fields": cell.fields(),
+                                    "actual_text": cell.actual_text(),
+                                    "baseline_text": cell.baseline_text(),
+                                }))
+                                .collect::<Vec<_>>()
+                        ),
+                    );
+                }
+            }
+            value
+        }
+        Err(error) => json!({
+            "status":"unavailable",
+            "comparison_status":"unavailable",
+            "classification":"setup",
+            "outcome":"ComparisonUnavailable",
+            "test_id":checkpoint.sample_id,
+            "candidate_sha256":sha256(&checkpoint.sample_bytes),
+            "reason":error.to_string(),
+        }),
+    };
+    let check_path = case_out
+        .join("checkpoints")
+        .join(&checkpoint.label)
+        .join("check.json");
+    let write_error = write_json_new(&check_path, &check_value)
+        .err()
+        .map(|error| {
+            format!(
+                "{} comparison record write failed: {error}",
+                checkpoint.checkpoint_id
+            )
+        });
+    if let Some(error) = write_error.as_ref()
+        && let Some(object) = check_value.as_object_mut()
+    {
+        object.insert("check_record_write_error".to_string(), json!(error));
+    }
+    let record = json!({
+        "case_id":case_id,
+        "checkpoint_id":checkpoint.checkpoint_id,
+        "label":checkpoint.label,
+        "sample_id":checkpoint.sample_id,
+        "capture_kind":capture_kind,
+        "status":check_value["status"],
+        "comparison_status":check_value["comparison_status"],
+        "classification":check_value["classification"],
+        "check_path":format!("checkpoints/{}/check.json", checkpoint.label),
+        "check":check_value,
+    });
+    (record, write_error)
+}
+
 fn check_json(outcome: &CheckOutcome) -> Value {
     match outcome {
         CheckOutcome::Pass(success) => json!({
             "status":"pass",
+            "comparison_status":"compared",
+            "classification":"comparison",
             "outcome":"CheckOutcomePass",
             "test_id":success.test_id(),
             "candidate_sha256":success.candidate_sha256(),
             "baseline_sha256":success.baseline_sha256(),
         }),
-        CheckOutcome::Failure(failure) => json!({
-            "status":"failure",
-            "outcome":"CheckOutcomeFailure",
-            "test_id":failure.test_id(),
-            "reason":failure.reason().as_str(),
-            "candidate_sha256":failure.candidate_sha256(),
-            "baseline_sha256":failure.baseline_sha256(),
-            "candidate_path":failure.candidate_path(),
-            "evidence_dir":failure.evidence_dir(),
-            "report_path":failure.report_path(),
-            "changed_fields":failure.changed_fields(),
-            "changed_cell_total":failure.changed_cell_total(),
-            "pixel_changed":failure.pixel_changed(),
-            "pixel_compared":failure.pixel_compared(),
-            "pixel_bounds":failure.pixel_bounds(),
-        }),
+        CheckOutcome::Failure(failure) => {
+            let missing_baseline = failure.reason().as_str() == "missing";
+            json!({
+                "status":if missing_baseline {"setup_failed"} else {"failure"},
+                "comparison_status":if missing_baseline {"missing_baseline"} else {"compared"},
+                "classification":if missing_baseline {"setup"} else {"comparison"},
+                "outcome":"CheckOutcomeFailure",
+                "test_id":failure.test_id(),
+                "reason":failure.reason().as_str(),
+                "candidate_sha256":failure.candidate_sha256(),
+                "baseline_sha256":failure.baseline_sha256(),
+                "candidate_path":failure.candidate_path(),
+                "evidence_dir":failure.evidence_dir(),
+                "report_path":failure.report_path(),
+                "changed_fields":failure.changed_fields(),
+                "changed_cell_total":failure.changed_cell_total(),
+                "pixel_changed":failure.pixel_changed(),
+                "pixel_compared":failure.pixel_compared(),
+                "pixel_bounds":failure.pixel_bounds(),
+            })
+        }
     }
 }
 
