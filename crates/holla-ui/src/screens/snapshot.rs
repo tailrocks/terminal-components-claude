@@ -97,10 +97,10 @@ fn draw_resources(
         area,
         y,
         &format!(
-            "Load  {:.2} {:.2} {:.2}",
-            f64::from(world.host.metrics.load_x100.0) / 100.0,
-            f64::from(world.host.metrics.load_x100.1) / 100.0,
-            f64::from(world.host.metrics.load_x100.2) / 100.0
+            "Load  {} {} {}",
+            format_load(world.host.metrics.load_x100.0),
+            format_load(world.host.metrics.load_x100.1),
+            format_load(world.host.metrics.load_x100.2)
         ),
     );
     y = y.saturating_add(1);
@@ -267,6 +267,16 @@ fn draw_text(ui: &mut Ui<'_>, area: Rect, y: u16, text: &str) {
         text,
         style,
     );
+}
+
+fn format_load(value_x100: u32) -> String {
+    let whole = value_x100 / 100;
+    let fraction = value_x100 % 100;
+    if fraction.is_multiple_of(10) {
+        format!("{whole}.{}", fraction / 10)
+    } else {
+        format!("{whole}.{fraction:02}")
+    }
 }
 
 fn rounded_percent(used_bytes: u64, total_bytes: u64) -> u32 {

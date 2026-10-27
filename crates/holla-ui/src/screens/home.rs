@@ -464,7 +464,11 @@ impl HomeState {
             .enumerate()
             .find(|(_, row)| row.action.is_some())
         {
-            self.rows.set_cursor(index, row_key(row));
+            let key = row_key(row);
+            self.rows.set_cursor(index, key);
+            if world.scenario == crate::scenario::Scenario::FirstUse {
+                self.rows.set_current(Some(key));
+            }
             cx.focus(ROWS);
         } else {
             cx.focus_next();

@@ -446,7 +446,7 @@ pub fn first_use_action_preview(world: &World, action: &Action, history: bool) -
     } else {
         add(
             "Runs",
-            action.command.clone(),
+            format!("'{}'", action.command),
             PreviewTone::Secondary,
             false,
         );

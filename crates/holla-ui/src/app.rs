@@ -871,7 +871,7 @@ fn paint_parity_history_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect, world: &World) {
+fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect, world: &World, motion: Motion) {
     if area.is_empty() {
         return;
     }
@@ -944,6 +944,16 @@ fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect, world: &World) {
         .collect();
     let done = world.discovery.iter().filter(|source| source.done).count();
     let progress = if !pending.is_empty() {
+        let frames = ui.design().motion.spinner_frames;
+        let frame = if motion == Motion::Full {
+            let tick_ms = ui.design().motion.tick_ms.max(1);
+            let elapsed_ms = u64::try_from(world.clock.now_ms.max(0)).unwrap_or_default();
+            let frame_count = u64::try_from(frames.len()).unwrap_or(1).max(1);
+            usize::try_from((elapsed_ms / tick_ms) % frame_count).unwrap_or_default()
+        } else {
+            0
+        };
+        let spinner = frames.get(frame).copied().unwrap_or("⠋");
         let shown = pending
             .iter()
             .take(3)
@@ -951,7 +961,8 @@ fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect, world: &World) {
             .collect::<Vec<_>>()
             .join(", ");
         format!(
-            "discovering {}{} · {} of {}",
+            "{} discovering {}{} · {} of {}",
+            spinner,
             shown,
             if pending.len() > 3 { ", …" } else { "" },
             done,
@@ -3415,7 +3426,7 @@ impl App {
         if self.world.scenario == Scenario::ParityDiscovery {
             self.paint_parity_status(ui, status);
         } else if self.world.scenario == Scenario::FirstUse {
-            paint_first_use_status(ui, status, &self.world);
+            paint_first_use_status(ui, status, &self.world, self.motion);
         } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
             paint_monorepo_status(ui, status);
         } else if crate::sim::catalogue::activities_multi_tag_frame(&self.world) {
