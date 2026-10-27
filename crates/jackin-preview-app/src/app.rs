@@ -6222,7 +6222,7 @@ impl App {
                 if !self.quit_open {
                     if self.route == Route::Manager
                         && !self.help_open
-                        && cx.top_layer() == termrock::LayerId::PAGE
+                        && cx.top_layer() == LayerId::PAGE
                     {
                         self.world.arbiter.release_entry();
                         self.quit = true;
