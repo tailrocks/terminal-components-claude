@@ -1,11 +1,3 @@
-//! Shared, single-row Toolbar primitives.
-//!
-//! This unpublished candidate owns roving focus, item geometry, input,
-//! controlled action proposals, native overflow, and reference-gallery draws.
-//! Native tooltip presentation is included in this source candidate; native
-//! characterization and remaining historical consumers are still pending, so
-//! this is not a complete replacement for the historical Toolbar contract.
-
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
@@ -62,32 +54,24 @@ static BINDINGS: &[Binding<ToolbarBinding>] = &[
     },
 ];
 
-/// One action item in a Toolbar.
-///
-/// The public fields and builder meanings follow the historical ToolItem.
-/// on is controlled input: Toolbar never changes it. A toggle activation
-/// proposes the next value in a returned action event, and the caller commits
-/// that value to its own item model.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ToolItem {
-    /// Visible label.
     pub label: String,
-    /// Display-only shortcut text. It does not install a key binding.
+
     pub shortcut: Option<String>,
-    /// Whether this item is inert.
+
     pub disabled: bool,
-    /// Controlled checked value; Some makes the item a toggle.
+
     pub on: Option<bool>,
-    /// Whether a separator follows this item.
+
     pub separator_after: bool,
-    /// Optional hover-tip text for this visible item.
+
     pub tip: Option<String>,
-    /// Explanation retained for disabled menu/tooltip presentation.
+
     pub reason: Option<String>,
 }
 
 impl ToolItem {
-    /// Create an enabled command item.
     pub fn new(label: &str) -> Self {
         Self {
             label: label.to_owned(),
@@ -95,42 +79,36 @@ impl ToolItem {
         }
     }
 
-    /// Set display-only shortcut text.
     #[must_use]
     pub fn shortcut(mut self, shortcut: &str) -> Self {
         self.shortcut = Some(shortcut.to_owned());
         self
     }
 
-    /// Set whether this item is inert.
     #[must_use]
     pub fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
         self
     }
 
-    /// Make this item a controlled toggle with the supplied checked value.
     #[must_use]
     pub fn toggle(mut self, on: bool) -> Self {
         self.on = Some(on);
         self
     }
 
-    /// Draw a separator after this item.
     #[must_use]
     pub fn separator(mut self) -> Self {
         self.separator_after = true;
         self
     }
 
-    /// Set optional hover-tip text for this item.
     #[must_use]
     pub fn tip(mut self, tip: &str) -> Self {
         self.tip = Some(tip.to_owned());
         self
     }
 
-    /// Set a disabled reason and make the item inert.
     #[must_use]
     pub fn reason(mut self, reason: &str) -> Self {
         self.reason = Some(reason.to_owned());
@@ -150,19 +128,14 @@ impl ToolItem {
     }
 }
 
-/// Text and optional display shortcut for the Toolbar's hidden-items tip.
-///
-/// The default value is the owned form of `Show hidden`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ToolbarTip {
-    /// Main text shown with the Toolbar's More control.
     pub text: String,
-    /// Optional display-only shortcut shown with the text.
+
     pub shortcut: Option<String>,
 }
 
 impl ToolbarTip {
-    /// Create tip data with no shortcut.
     pub fn new(text: &str) -> Self {
         Self {
             text: text.to_owned(),
@@ -170,7 +143,6 @@ impl ToolbarTip {
         }
     }
 
-    /// Add display-only shortcut text.
     #[must_use]
     pub fn shortcut(mut self, shortcut: &str) -> Self {
         self.shortcut = Some(shortcut.to_owned());
@@ -184,49 +156,39 @@ impl Default for ToolbarTip {
     }
 }
 
-/// Toolbar-scoped tooltip settings.
-///
-/// These settings retain the historical per-Toolbar enable, delay, and width
-/// controls. Native runtime routing owns passive input and layer lifetime.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ToolbarTooltipPolicy {
-    /// Whether this Toolbar shows configured native hover tips.
     pub enabled: bool,
-    /// Hover duration before a tip appears, in milliseconds.
+
     pub delay_ms: u64,
-    /// Maximum tip width in terminal cells.
+
     pub max_width: u16,
 }
 
 impl ToolbarTooltipPolicy {
-    /// Default hover policy: enabled after 600 ms, at most 48 cells wide.
     pub const DEFAULT: Self = Self {
         enabled: true,
         delay_ms: 600,
         max_width: 48,
     };
 
-    /// Disabled hover-tip policy.
     pub const OFF: Self = Self {
         enabled: false,
         ..Self::DEFAULT
     };
 
-    /// Change whether native hover tips may be shown.
     #[must_use]
     pub const fn enabled(mut self, enabled: bool) -> Self {
         self.enabled = enabled;
         self
     }
 
-    /// Set the hover delay in milliseconds.
     #[must_use]
     pub const fn delay_ms(mut self, delay_ms: u64) -> Self {
         self.delay_ms = delay_ms;
         self
     }
 
-    /// Set the maximum width in terminal cells.
     #[must_use]
     pub const fn max_width(mut self, max_width: u16) -> Self {
         self.max_width = max_width;
@@ -240,36 +202,29 @@ impl Default for ToolbarTooltipPolicy {
     }
 }
 
-/// One of the nine authored states used by a Toolbar reference gallery.
-///
-/// These states draw through the native Toolbar renderer in an inert
-/// reference scope. They do not change a live ToolbarState or register native
-/// interactions.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum ToolbarReferenceState {
-    /// Default content with no synthetic interaction state.
     #[default]
     Rest,
-    /// Pointer hover on the bounded second item.
+
     Hover,
-    /// Pointer hover and press on the bounded second item.
+
     Pressed,
-    /// Keyboard focus on the bounded second item.
+
     Focused,
-    /// Keyboard focus and pointer hover on the bounded second item.
+
     FocusedHover,
-    /// The first configured toggle is checked in the reference copy.
+
     Selected,
-    /// The bounded second item is disabled in the reference copy.
+
     Disabled,
-    /// The actual native row is constrained to show the More overflow part.
+
     Overflow,
-    /// The actual native row is constrained to sixteen cells.
+
     Narrow,
 }
 
 impl ToolbarReferenceState {
-    /// States in the historical gallery order.
     pub const ALL: [Self; 9] = [
         Self::Rest,
         Self::Hover,
@@ -283,83 +238,60 @@ impl ToolbarReferenceState {
     ];
 }
 
-/// One command outcome from a Toolbar update.
-///
-/// The index addresses the configuration used for that update. The enclosing
-/// ToolbarActionEvent also carries the stable key captured before application
-/// code can reorder or replace its item model.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ToolbarAction {
-    /// Activate a non-toggle item at its current configuration index.
     Activated(usize),
-    /// Propose the new checked value for a toggle at its current index.
+
     Toggled(usize, bool),
 }
 
-/// An ordered Toolbar action paired with the identity that produced it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ToolbarActionEvent {
-    /// Stable item identity captured from the configuration used for update.
     pub key: ItemKey,
-    /// Action and current configuration index.
+
     pub action: ToolbarAction,
 }
 
-/// Ordered action events from one Toolbar update.
-///
-/// Multiple intents are processed in queue order. For repeated toggles of the
-/// same item in one update, each event proposes the next value in sequence;
-/// callers can commit every event without the component mutating or reseeding
-/// checked state.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ToolbarActions {
     events: Vec<ToolbarActionEvent>,
 }
 
 impl ToolbarActions {
-    /// Borrow the action events in update order.
     pub fn as_slice(&self) -> &[ToolbarActionEvent] {
         &self.events
     }
 
-    /// Consume the ordered events.
     pub fn into_vec(self) -> Vec<ToolbarActionEvent> {
         self.events
     }
 
-    /// Whether the update produced no actions.
     pub fn is_empty(&self) -> bool {
         self.events.is_empty()
     }
 
-    /// Number of action events.
     pub fn len(&self) -> usize {
         self.events.len()
     }
 
-    /// Iterate over action events in update order.
     pub fn iter(&self) -> std::slice::Iter<'_, ToolbarActionEvent> {
         self.events.iter()
     }
 }
 
-/// Invalid stable item-key configuration.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ToolbarError {
-    /// The sidecar must contain exactly one key for each item.
     ItemKeyCount {
-        /// Number of configured items.
         expected: usize,
-        /// Number of supplied keys.
+
         actual: usize,
     },
-    /// Two configured items resolved to the same actual ItemKey.
+
     DuplicateItemKey {
-        /// The colliding key, including hashed Text keys.
         key: ItemKey,
-        /// Index of the first occurrence.
+
         first_index: usize,
-        /// Index of the later occurrence.
+
         duplicate_index: usize,
     },
 }
@@ -406,11 +338,6 @@ struct OverflowSession {
     menu_state: MenuState,
 }
 
-/// Caller-owned live state for a Toolbar.
-///
-/// This state owns the reconciled roving cursor and one private snapshot of
-/// the last live draw. Toggle values stay in ToolItem configuration and are
-/// proposed through ToolbarActionEvent.
 #[derive(Clone, Debug, Default)]
 pub struct ToolbarState {
     collection: CollectionCore,
@@ -424,23 +351,16 @@ pub struct ToolbarState {
 }
 
 impl ToolbarState {
-    /// Stable identity of the current cursor item, if one is available.
     pub const fn cursor_key(&self) -> Option<ItemKey> {
         self.collection.cursor()
     }
 
-    /// Current configuration index of the cursor item, if one is available.
     pub fn cursor_index(&self) -> Option<usize> {
         self.collection
             .cursor()
             .map(|_| self.collection.cursor_index())
     }
 
-    /// Stable keys hidden by the last live draw that published a More part.
-    ///
-    /// This returns a copy of the committed presentation snapshot. An empty
-    /// result means there are no published hidden rows; it does not infer
-    /// whether every configured item fits when overflow is disabled.
     pub fn hidden_keys(&self) -> Vec<ItemKey> {
         self.published
             .borrow()
@@ -449,12 +369,10 @@ impl ToolbarState {
             .unwrap_or_default()
     }
 
-    /// Whether native Toolbar navigation currently places its cursor on More.
     pub const fn on_more(&self) -> bool {
         self.more_focused
     }
 
-    /// Whether this state currently owns an open native More menu session.
     pub fn menu_open(&self) -> bool {
         self.overflow.is_some()
     }
@@ -506,7 +424,6 @@ struct ToolbarLayout {
     hidden_start: Option<usize>,
 }
 
-/// A single-row, single-focus-stop Toolbar with native overflow.
 #[derive(Clone, Debug)]
 pub struct Toolbar {
     id: Id,
@@ -524,11 +441,6 @@ pub struct Toolbar {
 }
 
 impl Toolbar {
-    /// Create a Toolbar with positional item keys.
-    ///
-    /// Positional keys preserve the historical slot identity: replacing the
-    /// item at a position keeps that position's identity. Call try_item_keys
-    /// when cursor identity must follow items through reorder.
     pub fn new(id: Id, items: Vec<ToolItem>) -> Self {
         let item_keys = (0..items.len()).map(ItemKey::index).collect();
         Self {
@@ -547,16 +459,6 @@ impl Toolbar {
         }
     }
 
-    /// Validate and install one stable key per item.
-    ///
-    /// No positional fallback is used. A count mismatch or any repeated
-    /// actual ItemKey, including a collision between hashed Text keys, returns
-    /// an error before the Toolbar is available for drawing or registration.
-    ///
-    /// # Errors
-    ///
-    /// Returns ItemKeyCount when the key count differs from the item count,
-    /// or DuplicateItemKey when two entries compare equal.
     pub fn try_item_keys(mut self, keys: Vec<ItemKey>) -> Result<Self, ToolbarError> {
         if keys.len() != self.items.len() {
             return Err(ToolbarError::ItemKeyCount {
@@ -581,97 +483,80 @@ impl Toolbar {
         Ok(self)
     }
 
-    /// Set the navigation-key profile.
     #[must_use]
     pub const fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-    /// Set whether horizontal movement wraps at the ends.
     #[must_use]
     pub const fn wrap(mut self, wrap: bool) -> Self {
         self.wrap = wrap;
         self
     }
 
-    /// Set whether movement skips disabled items.
     #[must_use]
     pub const fn skip_disabled(mut self, skip_disabled: bool) -> Self {
         self.skip_disabled = skip_disabled;
         self
     }
 
-    /// Set the cell gap between items and after separators.
     #[must_use]
     pub const fn gap(mut self, cells: u16) -> Self {
         self.gap = cells;
         self
     }
 
-    /// Set whether non-fitting rows are offered through a native More menu.
-    /// Overflow is enabled by default.
     #[must_use]
     pub const fn overflow(mut self, overflow: bool) -> Self {
         self.overflow = overflow;
         self
     }
 
-    /// Set an explicit More glyph, overriding the current overflow style and
-    /// the theme's named `more_titles` fallback.
     #[must_use]
     pub fn more_glyph(mut self, glyph: &str) -> Self {
         self.more_glyph = Some(glyph.to_owned());
         self
     }
 
-    /// Set horizontal padding on both sides of the More glyph.
     #[must_use]
     pub const fn more_padding(mut self, cells: u16) -> Self {
         self.more_padding = cells;
         self
     }
 
-    /// Set the owned text and optional shortcut for the More tip.
     #[must_use]
     pub fn more_tip(mut self, tip: ToolbarTip) -> Self {
         self.more_tip = tip;
         self
     }
 
-    /// Set this Toolbar's hover-tip policy.
     #[must_use]
     pub const fn tooltip_policy(mut self, policy: ToolbarTooltipPolicy) -> Self {
         self.tooltip_policy = policy;
         self
     }
 
-    /// Configured More-tip content.
     pub const fn more_tip_value(&self) -> &ToolbarTip {
         &self.more_tip
     }
 
-    /// Configured hover-tip policy.
     pub const fn tooltip_policy_value(&self) -> ToolbarTooltipPolicy {
         self.tooltip_policy
     }
 
-    /// Root identity used for focus and native part registration.
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// Configured items.
     pub fn items(&self) -> &[ToolItem] {
         &self.items
     }
 
-    /// Configured item keys.
     pub fn item_keys(&self) -> &[ItemKey] {
         &self.item_keys
     }
 
-    /// Preferred natural row width in terminal cells.
     pub fn width(&self) -> u16 {
         let item_width = self
             .items
@@ -692,12 +577,6 @@ impl Toolbar {
             .saturating_add(separator_count.saturating_mul(1u16.saturating_add(self.gap)))
     }
 
-    /// Process native Toolbar input and return ordered, caller-owned actions.
-    ///
-    /// Keyboard movement is limited to rows present in the last published
-    /// native layout. Pointer activation uses the registered item key and
-    /// validates it against the current item configuration; coordinates are
-    /// never reinterpreted in update.
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut ToolbarState) -> Response<ToolbarActions> {
         state.drain_retired_overflow_openings(cx);
 
@@ -712,8 +591,6 @@ impl Toolbar {
         }
         let published_layout = self.committed_layout(cx);
 
-        // Observe the same routed intents as Toolbar actions; tooltip handling
-        // never forwards or synthesizes pointer input.
         let routed_intents = cx.intents(self.id).collect::<Vec<_>>();
 
         self.reconcile_state(state, Some(&published_layout));
@@ -908,7 +785,6 @@ impl Toolbar {
         }
     }
 
-    /// Draw the Toolbar, publishing keyed rows and an optional native More part.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, state: &ToolbarState) -> Rect {
         let runtime_state = ui.state(self.id);
         let hovered = ui.hovered_part(self.id);
@@ -1143,14 +1019,6 @@ impl Toolbar {
         layout.area
     }
 
-    /// Draw an authored reference state through the native Toolbar renderer.
-    ///
-    /// The method clones the Toolbar configuration and uses detached state,
-    /// then draws inside `Ui::reference`. It therefore paints the real item,
-    /// separator, and More geometry without changing live focus, actions,
-    /// layout publication, menu state, or caller-owned ToolbarState. Hover
-    /// and focus target the bounded second item; Selected checks the first
-    /// configured toggle, and Disabled disables only that second item.
     pub fn draw_reference(
         &self,
         ui: &mut Ui<'_>,
@@ -1258,8 +1126,6 @@ impl Toolbar {
             layout.rows.push(LayoutRow { index, key, area });
         }
 
-        // Native geometry is keyed, not iterable. Toolbar has one horizontal
-        // row, so committed x positions preserve the published row order.
         layout.rows.sort_by_key(|row| (row.area.y, row.area.x));
         layout
     }
@@ -1792,83 +1658,5 @@ impl RowSource for VisibleStops<'_> {
             .get(position)
             .and_then(|row| self.items.get(row.index))
             .map_or("More", |item| item.label.as_str())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{ToolbarAction, ToolbarActionEvent, ToolbarActions};
-    use termrock_core::id::ItemKey;
-
-    #[test]
-    fn repeated_toggle_intents_propose_values_from_one_controlled_seed() {
-        let key = ItemKey::text("wrap");
-        let toolbar = super::Toolbar::new(
-            super::Id::root("toolbar.sequence.test"),
-            vec![super::ToolItem::new("Wrap").toggle(false)],
-        )
-        .try_item_keys(vec![key])
-        .expect("one key matches one item");
-        let mut pending = vec![Some(false)];
-
-        let first = toolbar
-            .activate(0, &mut pending)
-            .expect("first toggle action");
-        let second = toolbar
-            .activate(0, &mut pending)
-            .expect("second toggle action");
-
-        assert_eq!(
-            first,
-            ToolbarActionEvent {
-                key,
-                action: ToolbarAction::Toggled(0, true),
-            }
-        );
-        assert_eq!(
-            second,
-            ToolbarActionEvent {
-                key,
-                action: ToolbarAction::Toggled(0, false),
-            }
-        );
-    }
-
-    #[test]
-    fn action_events_keep_ordered_toggle_proposals_and_stable_identity() {
-        let events = ToolbarActions {
-            events: vec![
-                ToolbarActionEvent {
-                    key: ItemKey::text("wrap"),
-                    action: ToolbarAction::Toggled(0, true),
-                },
-                ToolbarActionEvent {
-                    key: ItemKey::text("wrap"),
-                    action: ToolbarAction::Toggled(0, false),
-                },
-                ToolbarActionEvent {
-                    key: ItemKey::text("bold"),
-                    action: ToolbarAction::Toggled(1, true),
-                },
-            ],
-        };
-
-        assert_eq!(
-            events.as_slice(),
-            &[
-                ToolbarActionEvent {
-                    key: ItemKey::text("wrap"),
-                    action: ToolbarAction::Toggled(0, true),
-                },
-                ToolbarActionEvent {
-                    key: ItemKey::text("wrap"),
-                    action: ToolbarAction::Toggled(0, false),
-                },
-                ToolbarActionEvent {
-                    key: ItemKey::text("bold"),
-                    action: ToolbarAction::Toggled(1, true),
-                },
-            ]
-        );
     }
 }

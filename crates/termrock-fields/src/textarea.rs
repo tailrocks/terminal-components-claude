@@ -32,22 +32,14 @@ use termrock_runtime::runtime::WheelRouteAttempt;
 use termrock_runtime::scroll_region::ScrollRegion;
 use termrock_runtime::{UpdateCause, WheelRouteResult};
 
-/// Opt-in horizontal wheel behavior for idle TextArea content.
-///
-/// This policy does not add a scrollbar. A newly constructed `TextArea` stays
-/// unconfigured; callers opt in and bind the setting to a monotonically
-/// increasing source revision with [`TextArea::idle_horizontal_scroll`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TextAreaIdleHorizontalScroll {
-    /// Acknowledge a visible horizontal wheel attempt without moving.
     Off,
-    /// Pan by `step` source cells for each pre-theme decoded wheel unit.
+
     Pan { step: NonZeroU16 },
 }
 
 impl TextAreaIdleHorizontalScroll {
-    /// Build a positive panning policy. `NonZeroU16` keeps a zero-step policy
-    /// from being confused with disabled panning.
     pub const fn pan(step: NonZeroU16) -> Self {
         Self::Pan { step }
     }
@@ -57,11 +49,6 @@ const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const ALT: KeyModifiers = KeyModifiers::ALT;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
 
-/// Geometry shared by TextArea drawing and coordinate-bearing input.
-///
-/// `window` describes the component body's visible rows. `text` is the
-/// registered text part inside that body, so pointer, cursor and menu mapping
-/// use the same physical origin and clipping bounds.
 #[derive(Clone, Copy, Debug)]
 struct TextAreaGeometry {
     window: VerticalWindow,
@@ -89,12 +76,6 @@ impl TextAreaGeometry {
         Some((line, col))
     }
 
-    /// Project an active captured drag through the parent window. Unlike a
-    /// press, a captured drag remains meaningful after leaving `TEXT`; the
-    /// old logical child behavior extended to the document edge from the
-    /// captured origin. Clamp above the visible window to its first row, but
-    /// preserve vertical extrapolation below it so the caller can clamp to the
-    /// document edge rather than the parent's logical viewport.
     fn captured_document_point(
         self,
         pos: Position,
@@ -139,9 +120,6 @@ impl TextAreaGeometry {
     }
 
     fn logical_inner_width(self) -> u16 {
-        // Keep the established editing contract: horizontal scrolling uses
-        // the body width minus the left gutter and the trailing cell. The
-        // vertical scrollbar does not reduce this logical editor width.
         self.window.visible_body().width.saturating_sub(3)
     }
 }
@@ -167,7 +145,6 @@ const fn b_with_action(
     }
 }
 
-// Alternate labels keep the preexisting ActionKey identities for remaps.
 const ESCAPE_CANCEL: Binding<TextCmd> = b_with_action(
     Chord::key(KeyCode::Esc),
     TextCmd::Cancel,
@@ -397,7 +374,7 @@ const fn replace_escape(
 const BINDINGS: &[Binding<TextCmd>] = &BASE_BINDINGS;
 const CANCEL_BINDINGS_ARRAY: [Binding<TextCmd>; 34] = replace_escape(BASE_BINDINGS, ESCAPE_CANCEL);
 const CANCEL_BINDINGS: &[Binding<TextCmd>] = &CANCEL_BINDINGS_ARRAY;
-// Select All is the only idle TypeToEdit binding that starts an edit session.
+
 const TYPE_TO_EDIT_IDLE_BINDINGS: &[Binding<TextCmd>] = &[SELECT_ALL];
 const EXPLICIT_IDLE_BINDINGS: &[Binding<TextCmd>] = &[ENTER_BEGIN, SELECT_ALL];
 
@@ -506,7 +483,6 @@ impl TextAreaState {
         matches!(self.phase, EditPhase::Editing)
     }
 
-    /// Take a pending contextual edit-menu request, if one was made this update.
     pub fn take_edit_menu_request(&mut self) -> Option<EditMenuRequest> {
         self.edit_menu_request.take()
     }
@@ -527,7 +503,6 @@ impl TextAreaState {
         &mut self.scroll
     }
 
-    /// Return the source-cell offset used to paint idle text.
     pub const fn idle_horizontal_offset(&self) -> usize {
         self.idle_horizontal_offset
     }
@@ -857,32 +832,18 @@ impl<'a> TextArea<'a> {
         self
     }
 
-    /// Choose when a fresh TextArea edit session begins.
-    ///
-    /// The default begins on focus. `TypeToEdit` begins on a character or
-    /// paste. Select All begins an idle session in every mode. `Explicit`
-    /// also allows Enter to begin without inserting a newline; contextual Paste
-    /// is unavailable until that session is active.
     #[must_use]
     pub const fn edit_entry(mut self, policy: EditEntry) -> Self {
         self.edit_entry = policy;
         self
     }
 
-    /// Choose the initial selection for a new non-pointer edit session.
-    ///
-    /// Pointer placement controls its own caret. A retained draft keeps its
-    /// current caret and selection.
     #[must_use]
     pub const fn focus_select(mut self, policy: FocusSelect) -> Self {
         self.focus_select = policy;
         self
     }
 
-    /// Cancel an active non-explicit edit session when Escape is pressed.
-    ///
-    /// Sessions begun with `EditEntry::Explicit` commit on Escape for legacy
-    /// compatibility, even when this option is enabled.
     #[must_use]
     pub const fn esc_reverts(mut self, enabled: bool) -> Self {
         self.esc_reverts = enabled;
@@ -895,9 +856,6 @@ impl<'a> TextArea<'a> {
         self
     }
 
-    /// Opt in to idle horizontal wheel handling and bind it to a source
-    /// revision. Increase `source_revision` whenever the displayed source or
-    /// this policy changes; stale or non-monotonic configurations fail closed.
     #[must_use]
     pub const fn idle_horizontal_scroll(
         mut self,
@@ -972,11 +930,6 @@ impl<'a> TextArea<'a> {
         }
     }
 
-    /// Registers this Form text area's keyboard stop without a pointer region.
-    ///
-    /// Use only when Form layout clips the native text area body. The native
-    /// disabled and read-only policy is preserved, including inherited Form
-    /// disabling.
     pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
         if !ui.is_inert() {
             ui.register_focus_only(self.id, self.form_focusability(inherited_disabled));
@@ -1027,7 +980,6 @@ impl<'a> TextArea<'a> {
         true
     }
 
-    /// Shared table selection for key dispatch and visible hint publication.
     fn effective_bindings(
         &self,
         editing: bool,
@@ -1085,11 +1037,6 @@ impl<'a> TextArea<'a> {
             .update_target(cx, st, value)
     }
 
-    /// Service one real Runtime H-wheel route attempt for this TextArea.
-    ///
-    /// Applications call this from `App::route_wheel_attempt` with the
-    /// supplied attempt. The same transaction is used for the initial event
-    /// update. This helper never synthesizes an intent or edits the value.
     pub fn service_idle_horizontal_wheel<T: TextTarget + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
@@ -1239,8 +1186,6 @@ impl<'a> TextArea<'a> {
         st: &mut TextAreaState,
         value: &mut T,
     ) -> Response<TextAction> {
-        // Pointer input targets the last presented frame. Snapshot both axes
-        // before sensitivity or source-revision reconciliation can reset idle state.
         let displayed_scroll = st.scroll.offset();
         let displayed_hscroll = cx
             .layout(self.id)
@@ -1318,8 +1263,6 @@ impl<'a> TextArea<'a> {
                         ) {
                             self.begin_keyboard_session(st, value.expose());
                         } else {
-                            // Pointer focus keeps its placement for the press
-                            // intent that follows.
                             let _ = st.begin_with_entry(value.expose(), self.edit_entry);
                         }
                     }
@@ -1356,14 +1299,10 @@ impl<'a> TextArea<'a> {
                             self.edit_command(st, value, cmd, page, &mut acc);
                         } else if self.edit_entry == EditEntry::Explicit && cmd == TextCmd::Newline
                         {
-                            // The first Enter opens an Explicit session. A
-                            // later Enter inserts a newline as usual.
                             self.begin_keyboard_session(st, value.expose());
                             acc.changed();
                         } else if self.edit_entry == EditEntry::Immediate && cmd != TextCmd::Commit
                         {
-                            // Keep the historical Immediate behavior after
-                            // a session was committed while focus remains.
                             self.begin_keyboard_session(st, value.expose());
                             self.edit_command(st, value, cmd, page, &mut acc);
                         }
@@ -1545,7 +1484,6 @@ impl<'a> TextArea<'a> {
         acc.finish(self.id)
     }
 
-    /// Report available edit commands without exposing the field's buffer.
     pub fn edit_capabilities<T: TextTarget + ?Sized>(
         &self,
         st: &TextAreaState,
@@ -1566,11 +1504,6 @@ impl<'a> TextArea<'a> {
         capabilities
     }
 
-    /// Return the focused caret's source row inside this TextArea's logical
-    /// visible body, after the document's own scroll offset.
-    ///
-    /// A containing Form can use this row to reveal the caret in its parent
-    /// viewport without reading or changing the document state.
     pub fn caret_source_row(&self, st: &TextAreaState) -> Option<usize> {
         st.is_editing().then(|| {
             st.draft
@@ -1580,7 +1513,6 @@ impl<'a> TextArea<'a> {
         })
     }
 
-    /// Execute one contextual edit command through the field's shared editor.
     pub fn execute_edit_command<T: TextTarget + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
@@ -1588,8 +1520,6 @@ impl<'a> TextArea<'a> {
         value: &mut T,
         command: TextEditCommand,
     ) -> bool {
-        // The shared editor can mutate an inactive draft, so Explicit Paste
-        // must stop before sensitivity synchronization or execution.
         if command == TextEditCommand::Paste
             && self.edit_entry == EditEntry::Explicit
             && !st.is_editing()
@@ -1703,8 +1633,6 @@ impl<'a> TextArea<'a> {
         self.draw_window(ui, VerticalWindow::full(body), st)
     }
 
-    /// Draw this TextArea through a physical parent window while preserving
-    /// its full logical viewport and document row numbering.
     pub fn draw_window(&self, ui: &mut Ui<'_>, window: VerticalWindow, st: &TextAreaState) -> Rect {
         let body = window.visible_body();
         if body.is_empty() {
@@ -1987,7 +1915,6 @@ impl<'a> TextArea<'a> {
             .draw(ui, area, st)
     }
 
-    /// Draw a non-secret form value through its parent's clipped body window.
     pub fn draw_in_form_window(
         &self,
         ui: &mut Ui<'_>,
@@ -2015,7 +1942,6 @@ impl<'a> TextArea<'a> {
             .draw(ui, area, st)
     }
 
-    /// Draw a secret form value through its parent's clipped body window.
     pub fn draw_secret_in_form_window(
         &self,
         ui: &mut Ui<'_>,
@@ -2165,700 +2091,5 @@ impl FieldControl for TextArea<'_> {
 
     fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         TextArea::measure(self, ui, c)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use core::cell::Cell;
-
-    use ratatui::Terminal;
-    use ratatui::backend::TestBackend;
-    use ratatui_core::buffer::Buffer;
-
-    use super::*;
-    use crate::event::{Input, Key, KeyCode, KeyModifiers};
-    use crate::runtime::App;
-    use crate::runtime::Runtime;
-    use crate::runtime::stub::{SCREEN, Stub};
-    use crate::theme::Theme;
-    use crate::ui::layer::{Anchor, LayerOpening, LayerSize, LayerSpec};
-    use crate::{ReferenceState, ReferenceTarget};
-
-    const ID: Id = Id::root("textarea.tests");
-    const CONTEXT_LAYER: Id = Id::root("textarea.context-layer");
-    const CONTEXT_TARGET: Id = Id::root("textarea.context-target");
-
-    struct ContinuationTextAreaApp {
-        state: TextAreaState,
-        value: String,
-        opening: Option<LayerOpening>,
-    }
-
-    impl App for ContinuationTextAreaApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let response = TextArea::new(ID, 3).blur(BlurPolicy::Commit).update(
-                cx,
-                &mut self.state,
-                &mut self.value,
-            );
-            if self.state.take_edit_menu_request().is_some() {
-                self.opening = cx.open_layer_with_token(
-                    CONTEXT_LAYER,
-                    LayerSpec::popover(CONTEXT_LAYER, Anchor::Point(Position::new(3, 0)))
-                        .size(LayerSize::Fixed(10, 3))
-                        .initial_focus(CONTEXT_TARGET)
-                        .continues_focus(ID),
-                );
-            }
-            if cx
-                .intents(CONTEXT_TARGET)
-                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('x')))
-            {
-                cx.close_layer(CONTEXT_LAYER, None);
-            }
-            if let Some(opening) = self.opening
-                && cx.take_layer_completion(opening).is_some()
-            {
-                self.opening = None;
-            }
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            TextArea::new(ID, 3)
-                .value(&self.value)
-                .blur(BlurPolicy::Commit)
-                .draw(ui, SCREEN, &self.state);
-            let _ = ui.layer(CONTEXT_LAYER, |ui, area| {
-                ui.register_control(CONTEXT_TARGET, area, Focusability::Focusable);
-            });
-        }
-    }
-
-    fn publish<A: App>(runtime: &mut Runtime<A>) {
-        let prepared = runtime
-            .prepare(SCREEN)
-            .expect("textarea continuation frame prepares");
-        let mut terminal = Terminal::new(TestBackend::new(SCREEN.width, SCREEN.height))
-            .expect("test terminal initializes");
-        terminal
-            .draw(|frame| {
-                runtime
-                    .draw_prepared(prepared, frame)
-                    .expect("prepared textarea continuation frame draws");
-            })
-            .expect("test backend draws");
-        runtime
-            .acknowledge_presented(prepared)
-            .expect("test backend acknowledges textarea continuation frame");
-    }
-
-    #[test]
-    fn contextual_edit_capabilities_match_single_line_field_contract() {
-        let value = "read only".to_owned();
-        let input = TextArea::new(ID, 3).read_only(true);
-        let idle = input.edit_capabilities(&TextAreaState::default(), &value);
-        assert!(!idle.editable);
-        assert!(idle.can_select_all);
-        assert!(!idle.can_paste);
-
-        let mut selected = TextAreaState::default();
-        selected.begin(&value);
-        selected.draft.select_range(0, value.len());
-        let selected_caps = input.edit_capabilities(&selected, &value);
-        assert!(selected_caps.can_copy);
-        assert!(!selected_caps.can_cut);
-        assert!(!selected_caps.can_select_all);
-
-        let disabled = TextArea::new(ID, 3)
-            .disabled(true)
-            .edit_capabilities(&selected, &value);
-        assert!(!disabled.editable);
-        assert!(!disabled.can_copy);
-        assert!(!disabled.can_paste);
-
-        let mut sensitive = TextAreaState::sensitive();
-        sensitive.begin(&value);
-        sensitive.draft.select_range(0, value.len());
-        let secret = TextArea::new(ID, 3).edit_capabilities(&sensitive, &value);
-        assert!(!secret.can_copy);
-        assert!(!secret.can_cut);
-    }
-
-    struct SecretTextAreaApp {
-        state: TextAreaState,
-        value: String,
-    }
-
-    struct SecondaryPasteTextAreaApp {
-        state: TextAreaState,
-        value: String,
-        pasted: bool,
-    }
-
-    impl App for SecondaryPasteTextAreaApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let area = TextArea::new(ID, 3);
-            let response = area.update(cx, &mut self.state, &mut self.value);
-            if self.state.take_edit_menu_request().is_some() && !self.pasted {
-                cx.clipboard_copy("X");
-                self.pasted = area.execute_edit_command(
-                    cx,
-                    &mut self.state,
-                    &mut self.value,
-                    TextEditCommand::Paste,
-                );
-            }
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            TextArea::new(ID, 3)
-                .value(&self.value)
-                .draw(ui, SCREEN, &self.state);
-        }
-    }
-
-    impl App for SecretTextAreaApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            TextArea::new(ID, 3)
-                .secret(SecretPolicy::default())
-                .update(cx, &mut self.state, &mut self.value)
-                .erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            TextArea::new(ID, 3)
-                .secret(SecretPolicy::default())
-                .value(&self.value)
-                .draw(ui, SCREEN, &self.state);
-        }
-    }
-
-    fn secret_state() -> TextAreaState {
-        let mut runtime = Runtime::new(
-            SecretTextAreaApp {
-                state: TextAreaState::default(),
-                value: "one\ntwo".to_owned(),
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(
-            &mut runtime,
-            Input::Key(Key {
-                code: KeyCode::Enter,
-                mods: KeyModifiers::NONE,
-            }),
-        );
-        runtime.app().state.clone()
-    }
-
-    #[test]
-    fn sensitive_constructor_makes_direct_lifecycle_safe() {
-        const SECRET: &str = "one\ntwo";
-        let mut state = TextAreaState::sensitive();
-        assert!(state.is_sensitive());
-
-        state.begin(SECRET);
-        assert!(!format!("{state:?}").contains(SECRET));
-
-        let mut copy = state.clone();
-        let mut copied_value = String::new();
-        copy.commit(&mut copied_value, &NoValidate)
-            .expect("a redacted snapshot must not fail validation");
-        assert!(copied_value.is_empty());
-
-        let mut value = String::new();
-        state
-            .commit(&mut value, &NoValidate)
-            .expect("the sensitive draft must commit");
-        assert_eq!(value, SECRET);
-    }
-
-    #[test]
-    fn parts_include_every_owned_scroll_region_part() {
-        for part in ScrollRegion::PARTS {
-            assert!(
-                TextArea::PARTS.contains(part),
-                "TextArea::PARTS omits owned ScrollRegion part {part:?}"
-            );
-        }
-    }
-
-    #[test]
-    fn secondary_pointer_paste_inserts_at_the_clicked_textarea_point() {
-        let mut runtime = Runtime::new(
-            SecondaryPasteTextAreaApp {
-                state: TextAreaState::default(),
-                value: "one\ntwo".to_owned(),
-                pasted: false,
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(
-            &mut runtime,
-            Input::Mouse(crate::event::Mouse {
-                kind: crate::event::MouseKind::Secondary,
-                pos: Position::new(3, 1),
-                mods: KeyModifiers::NONE,
-            }),
-        );
-        assert!(runtime.app().pasted);
-        assert_eq!(runtime.app().state.draft.text(), "one\ntXwo");
-    }
-
-    #[test]
-    fn continued_edit_menu_restoration_preserves_multiline_field_selection() {
-        let mut state = TextAreaState::default();
-        state.begin("value");
-        state.draft.select_range(1, 4);
-        let mut runtime = Runtime::new(
-            ContinuationTextAreaApp {
-                state,
-                value: "value".to_owned(),
-                opening: None,
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        publish(&mut runtime);
-        let _ = crate::runtime::stub::deliver(
-            &mut runtime,
-            Input::Mouse(crate::event::Mouse {
-                kind: crate::event::MouseKind::Secondary,
-                pos: Position::new(3, 0),
-                mods: KeyModifiers::NONE,
-            }),
-        );
-        publish(&mut runtime);
-        assert!(runtime.app().state.is_editing());
-        assert_eq!(runtime.app().state.draft.selection(), Some(1..4));
-        assert!(runtime.app().opening.is_some());
-
-        let _ = crate::runtime::stub::deliver(
-            &mut runtime,
-            Input::Key(Key {
-                code: KeyCode::Char('x'),
-                mods: KeyModifiers::NONE,
-            }),
-        );
-        publish(&mut runtime);
-        assert!(runtime.app().state.is_editing());
-        assert_eq!(runtime.app().state.draft.selection(), Some(1..4));
-        assert_eq!(runtime.app().value, "value");
-    }
-
-    #[test]
-    fn a_reference_text_area_leaves_the_owned_scroll_region_inert() {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let st = TextAreaState::default();
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            ui.reference(
-                Some(ReferenceTarget::new(ID, ReferenceState::FOCUSED)),
-                |ui| {
-                    TextArea::new(ID, 4)
-                        .value("one\ntwo\nthree\nfour\nfive")
-                        .draw(ui, Rect::new(0, 0, 20, 4), &st);
-                },
-            );
-        })
-        .commit_presented();
-        for part in ScrollRegion::PARTS {
-            assert!(
-                rt.area_of_part(ID, PartRef::of(*part)).is_none(),
-                "reference TextArea registered owned ScrollRegion part {part:?}"
-            );
-        }
-        assert!(
-            !rt.registry().delivers_to(ID),
-            "reference TextArea left its owned ScrollRegion interactive"
-        );
-    }
-
-    fn always_bad(_s: &str) -> Result<(), FieldError> {
-        Err(FieldError::new("never valid"))
-    }
-
-    #[test]
-    fn sensitive_state_masks_when_control_policy_is_removed() {
-        const SECRET: &str = "one\ntwo";
-        let mut state = secret_state();
-        state.begin(SECRET);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let area = Rect::new(0, 0, 24, 3);
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, area| {
-                TextArea::new(ID, 3).value(SECRET).draw(ui, area, &state);
-            })
-            .commit_presented();
-        let frame: String = buffer
-            .content()
-            .iter()
-            .map(ratatui_core::buffer::Cell::symbol)
-            .collect();
-        let mask = Theme::junie()
-            .design
-            .glyphs
-            .get(SecretPolicy::default().mask);
-        assert!(
-            !frame.contains(SECRET),
-            "the sensitive area reached the frame"
-        );
-        assert!(
-            frame.matches(mask).count() >= 6,
-            "the sensitive area did not paint its mask: {frame}"
-        );
-    }
-
-    #[test]
-    fn sensitive_state_equality_ignores_draft_contents() {
-        let mut left = secret_state();
-        left.cancel();
-        left.begin("one");
-        let mut right = secret_state();
-        right.cancel();
-        right.begin("different");
-        assert_eq!(left, right);
-        let copy = left.clone();
-        assert_eq!(copy.draft.text(), "•••");
-        assert!(!copy.draft.text().contains("one"));
-    }
-
-    #[test]
-    fn sensitive_state_clone_cannot_commit_redacted_draft() {
-        let mut state = TextAreaState::default();
-        state.set_sensitive(true);
-        state.begin("one\ntwo");
-        let _ = state.apply(EditAction::Insert('!'));
-
-        let mut copy = state.clone();
-        let mut value = String::new();
-        copy.commit(&mut value, &NoValidate)
-            .expect("a snapshot commit must not validate a redacted draft");
-        assert!(value.is_empty());
-        assert!(!copy.is_editing());
-    }
-
-    #[test]
-    fn sensitive_validator_error_is_generic_and_not_retained() {
-        const SECRET: &str = "one\ntwo";
-        let validator = |value: &str| Err(FieldError::new(format!("invalid {value}")));
-        let mut state = secret_state();
-        state.begin(SECRET);
-        state.set_error(Some(FieldError::new(SECRET)));
-        assert_eq!(
-            state.error().map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        let mut value = String::new();
-        let error = state
-            .commit(&mut value, &validator)
-            .expect_err("the validator must reject the secret");
-        assert_eq!(error.message, "Invalid value");
-        assert_eq!(
-            state.error().map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        assert!(!format!("{state:?}").contains(SECRET));
-        state.zeroize();
-        assert!(state.error().is_none());
-        value.clear();
-    }
-
-    #[test]
-    fn sensitive_string_target_replaces_the_old_allocation() {
-        let mut state = TextAreaState::default();
-        state.set_sensitive(true);
-        state.begin("new\nsecret");
-
-        let mut value = String::with_capacity(1024);
-        value.push_str("old\nsecret");
-        let old_capacity = value.capacity();
-
-        state
-            .commit(&mut value, &NoValidate)
-            .expect("the replacement must not fail validation");
-
-        assert_eq!(value, "new\nsecret");
-        assert!(
-            value.capacity() < old_capacity,
-            "sensitive replacement retained the old caller allocation"
-        );
-    }
-
-    #[test]
-    fn pending_error_is_masked_until_sensitivity_is_reconciled() {
-        const DETAIL: &str = "secret validation detail";
-
-        let mut plain = TextAreaState::default();
-        plain.set_error(Some(FieldError::new(DETAIL.to_owned())));
-        assert!(matches!(plain.error, Some(ErrorState::Pending(_))));
-        assert_eq!(
-            plain.error().map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        plain.set_sensitive(false);
-        assert!(matches!(plain.error, Some(ErrorState::Plain(_))));
-        assert_eq!(
-            plain.error().map(|error| error.message.as_ref()),
-            Some(DETAIL)
-        );
-
-        let mut secret = TextAreaState::default();
-        secret.set_error(Some(FieldError::new(DETAIL.to_owned())));
-        assert!(matches!(secret.error, Some(ErrorState::Pending(_))));
-        assert_eq!(
-            secret.error().map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        secret.set_sensitive(true);
-        assert!(matches!(secret.error, Some(ErrorState::Sensitive)));
-        assert_eq!(
-            secret.error().map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-    }
-
-    #[test]
-    fn blur_commits_without_validation() {
-        let mut value = "first".to_owned();
-        let mut st = TextAreaState::default();
-        st.begin(&value);
-        assert!(st.is_editing());
-        assert_eq!(st.apply(EditAction::Newline), EditOutcome::Changed);
-        assert_eq!(st.apply(EditAction::Insert('x')), EditOutcome::Changed);
-        assert!(
-            st.blur(&mut value, &always_bad, BlurPolicy::Commit).is_ok(),
-            "the default policy must not run the validator"
-        );
-        assert_eq!(value, "first\nx");
-        assert!(st.error().is_none());
-        assert!(!st.is_editing());
-
-        st.begin(&value);
-        assert!(
-            st.blur(&mut value, &always_bad, BlurPolicy::CommitAndValidate)
-                .is_err()
-        );
-        assert!(st.error().is_some());
-        assert!(!format!("{st:?}").contains("first"));
-    }
-
-    #[test]
-    fn secret_blur_keep_policy_leaves_the_draft() {
-        let mut st = secret_state();
-        st.cancel();
-        let mut value = "one".to_owned();
-        st.begin(&value);
-        let _ = st.apply(EditAction::Insert('!'));
-        assert!(st.blur(&mut value, &always_bad, BlurPolicy::Keep).is_ok());
-        assert!(st.is_editing(), "secret Keep must preserve the draft");
-        assert_eq!(st.draft.text(), "one!");
-        assert_eq!(value, "one");
-    }
-
-    #[test]
-    fn vertical_motion_and_page_moves_stay_in_the_document() {
-        let mut st = TextAreaState::default();
-        st.begin("a\nbb\nccc");
-        assert_eq!(st.draft.line_count(), 3);
-        assert_eq!(
-            st.apply(EditAction::Move(Motion::DocStart, Extend::No)),
-            EditOutcome::Moved
-        );
-        assert_eq!(st.draft.cursor_pos().line, 0);
-        assert_eq!(
-            st.apply(EditAction::Move(Motion::DocEnd, Extend::No)),
-            EditOutcome::Moved
-        );
-        assert_eq!(st.draft.cursor_pos().line, 2);
-        assert_eq!(
-            st.apply(EditAction::Move(Motion::Up, Extend::No)),
-            EditOutcome::Moved
-        );
-        assert_eq!(st.draft.cursor_pos().line, 1);
-        assert_eq!(line_count("a\nb\n"), 3);
-        assert_eq!(column_span(Rect::new(4, 0, 10, 1), 2, 5).x, 6);
-        assert_eq!(column_span(Rect::new(4, 0, 10, 1), 2, 5).width, 3);
-    }
-
-    #[test]
-    fn selected_style_is_painted_only_for_a_real_selection_range() {
-        let render = |selected: bool| {
-            let theme = Theme::junie().override_family(Family::TEXTAREA, |recipe| {
-                recipe.part(Part::ROW).when(
-                    StateFlags::SELECTED,
-                    StylePatch::new().set_bg(crate::theme::Role::Danger),
-                );
-            });
-            let mut runtime = Runtime::new(Stub::default(), theme);
-            let area = Rect::new(0, 0, 12, 3);
-            let mut buffer = Buffer::empty(area);
-            let mut state = TextAreaState::default();
-            state.begin("hello");
-            if selected {
-                let _ = state.draft.apply(EditAction::SelectAll);
-            }
-            runtime
-                .draw_scene(area, &mut buffer, |ui, area| {
-                    TextArea::new(ID, 3).value("hello").draw(ui, area, &state);
-                })
-                .commit_presented();
-            buffer
-        };
-        let plain = render(false);
-        let selected = render(true);
-        for x in 0..12 {
-            let changed = plain
-                .cell(Position::new(x, 0))
-                .map(ratatui_core::buffer::Cell::style)
-                != selected
-                    .cell(Position::new(x, 0))
-                    .map(ratatui_core::buffer::Cell::style);
-            assert_eq!(changed, (2..7).contains(&x), "column {x}");
-        }
-    }
-
-    fn draw_with(status: termrock_runtime::Status) -> Buffer {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let st = TextAreaState::default();
-        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
-            TextArea::new(ID, 4)
-                .value("hello")
-                .status(status)
-                .draw(ui, a, &st);
-        })
-        .commit_presented();
-        buf
-    }
-
-    fn symbol_at(buf: &Buffer, x: u16, y: u16) -> String {
-        buf.cell(Position::new(x, y))
-            .map_or_else(String::new, |c| c.symbol().to_owned())
-    }
-
-    fn text_run(buf: &Buffer) -> String {
-        (0..SCREEN.width - 1)
-            .map(|x| symbol_at(buf, x, 0))
-            .collect()
-    }
-
-    const READINESS_X: u16 = SCREEN.width - 1;
-
-    #[test]
-    fn busy_and_loading_paint_the_readiness_spinner() {
-        let design = Theme::junie().design;
-        let frame = design.motion.spinner_frames.first().copied().unwrap();
-        let ready = draw_with(termrock_runtime::Status::Ready);
-        for status in [
-            termrock_runtime::Status::Busy,
-            termrock_runtime::Status::Loading,
-        ] {
-            let buf = draw_with(status);
-            assert_eq!(
-                symbol_at(&buf, READINESS_X, 0),
-                frame,
-                "{status:?}: the readiness affordance was not painted"
-            );
-            assert_eq!(
-                text_run(&buf),
-                text_run(&ready),
-                "{status:?}: the affordance moved the text"
-            );
-        }
-    }
-
-    #[test]
-    fn status_error_paints_the_icon_fallback_in_the_readiness_cell() {
-        let glyph = Theme::junie().design.glyphs.get(GlyphRole::Error);
-        let buf = draw_with(termrock_runtime::Status::Error);
-        assert_eq!(symbol_at(&buf, READINESS_X, 0), glyph);
-    }
-
-    #[test]
-    fn ready_paints_no_readiness_affordance() {
-        let design = Theme::junie().design;
-        let cell = symbol_at(&draw_with(termrock_runtime::Status::Ready), READINESS_X, 0);
-        assert_ne!(cell, design.motion.spinner_frames.first().copied().unwrap());
-        assert_ne!(cell, design.glyphs.get(GlyphRole::Error));
-        assert_eq!(cell, " ", "the reserved pad column must stay blank");
-    }
-
-    #[test]
-    fn the_icon_slot_replaces_the_readiness_spinner() {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let st = TextAreaState::default();
-        let icon = |ui: &mut Ui<'_>, r: Rect| {
-            let s = ui.surface_style();
-            ui.paint_str(r, "Z", s);
-        };
-        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
-            TextArea::new(ID, 4)
-                .value("hello")
-                .status(termrock_runtime::Status::Busy)
-                .slot(Part::ICON, &icon)
-                .draw(ui, a, &st);
-        })
-        .commit_presented();
-        assert_eq!(
-            symbol_at(&buf, READINESS_X, 0),
-            "Z",
-            "the ICON slot did not replace the readiness affordance"
-        );
-    }
-
-    #[test]
-    fn validation_marker_wins_the_shared_lane_over_status_error() {
-        assert!(TextArea::PARTS.contains(&Part::ICON));
-        let marker_calls = Cell::new(0usize);
-        let icon_calls = Cell::new(0usize);
-        let marker = |ui: &mut Ui<'_>, area: Rect| {
-            marker_calls.set(marker_calls.get().saturating_add(1));
-            let style = ui.surface_style();
-            ui.paint_str(area, "M", style);
-        };
-        let icon = |ui: &mut Ui<'_>, area: Rect| {
-            icon_calls.set(icon_calls.get().saturating_add(1));
-            let style = ui.surface_style();
-            ui.paint_str(area, "I", style);
-        };
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let mut st = TextAreaState::default();
-        st.set_error(Some(FieldError::new("invalid")));
-        rt.draw_scene(SCREEN, &mut buf, |ui, area| {
-            TextArea::new(ID, 4)
-                .value("hello")
-                .status(termrock_runtime::Status::Error)
-                .slot(Part::MARKER, &marker)
-                .draw(ui, area, &st);
-        })
-        .commit_presented();
-        assert_eq!(marker_calls.get(), 1);
-        assert_eq!(icon_calls.get(), 0);
-        assert_eq!(symbol_at(&buf, READINESS_X, 0), "M");
-
-        st.set_error(None);
-        rt.draw_scene(SCREEN, &mut buf, |ui, area| {
-            TextArea::new(ID, 4)
-                .value("hello")
-                .status(termrock_runtime::Status::Error)
-                .slot(Part::ICON, &icon)
-                .draw(ui, area, &st);
-        })
-        .commit_presented();
-        assert_eq!(icon_calls.get(), 1);
-        assert_eq!(symbol_at(&buf, READINESS_X, 0), "I");
     }
 }

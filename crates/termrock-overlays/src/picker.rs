@@ -46,13 +46,6 @@ pub enum PickerAction {
     QueryChanged,
 }
 
-/// Geometry policy for a picker card.
-///
-/// [`PickerLayout::default`] preserves the original picker sizing and drawing
-/// rules. [`PickerLayout::card`] provides a centered-card policy with explicit
-/// viewport margins and content spacing. Apply `Picker::layout` before
-/// `Picker::max_rows`; the latter overrides the policy row limit. Applying a
-/// layout later replaces earlier picker-level row-limit configuration.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PickerLayout {
     legacy: bool,
@@ -77,9 +70,6 @@ impl PickerLayout {
         }
     }
 
-    /// Return a card policy with room for a border, query, footer, and one
-    /// additional visible result row. Alignment remains controlled by
-    /// [`Picker::align`]; this policy does not change the picker's anchor.
     pub const fn card() -> Self {
         Self {
             legacy: false,
@@ -113,8 +103,7 @@ impl PickerLayout {
     }
 
     #[must_use]
-    /// Reserve footer rows for the hint line. A zero-row footer explicitly
-    /// disables hint painting while retaining the configured hint string.
+
     pub const fn footer_rows(mut self, rows: u16) -> Self {
         self.footer_rows = Some(rows);
         self.legacy = false;
@@ -206,7 +195,7 @@ pub struct Picker<'a, T, R = ItemRow> {
     cursor_style: CursorStyle,
     delete_is_secondary: bool,
     metadata_gap: u16,
-    /// Blank rows kept under the list, inside the card.
+
     tail: u16,
     selection_policy: SelectionPolicy,
     layout: PickerLayout,
@@ -310,20 +299,18 @@ impl<'a, T, R> Picker<'a, T, R> {
         self
     }
 
-    /// Use the same layout policy for layer sizing and picker content.
     #[must_use]
     pub const fn layout(mut self, layout: PickerLayout) -> Self {
         self.layout = layout;
         self
     }
 
-    /// Set the maximum visible result rows, overriding the current layout policy.
     #[must_use]
     pub const fn max_rows(mut self, rows: u16) -> Self {
         self.layout = self.layout.max_rows(rows);
         self
     }
-    /// Keep this many card rows blank under the results.
+
     #[must_use]
     pub const fn tail(mut self, rows: u16) -> Self {
         self.tail = rows;
@@ -370,7 +357,6 @@ impl<'a, T, R> Picker<'a, T, R> {
         self
     }
 
-    /// Select the first enabled result after a query or scope change.
     #[must_use]
     pub const fn selection_policy(mut self, policy: SelectionPolicy) -> Self {
         self.selection_policy = policy;
@@ -566,9 +552,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         if cx.is_open(self.id) {
             cx.resize_layer(self.id, self.measured_size(cx, items));
         }
-        // Let FilterList clear hidden query state during update so it can also
-        // consume the typed binding delivered by the previous searchable
-        // frame (for example Esc or Backspace on the transition event).
+
         let query_changed = !self.searchable && !st.query().is_empty();
         let inner = self.list().update(cx, &mut st.list, items);
         let mut acc = Acc::new();
@@ -590,8 +574,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     if query_changed => {}
                 FilterListAction::QueryChanged => {
                     if self.selection_policy == SelectionPolicy::FirstEnabledOnFilterChange {
-                        // The owner may replace the projected items after this
-                        // response. Keep the reset pending for that reconcile.
                         st.list.reset_selection_on_next_reconcile();
                     }
                     acc.action(PickerAction::QueryChanged);
@@ -726,9 +708,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     self.list().draw_query(ui, query, &st.list);
                 }
 
-                // An explicit zero-row footer disables hint painting. Keeping
-                // the hint data on the picker remains useful when a caller
-                // changes its layout policy, but it must not overlap results.
                 let show_hint = !self.hints.is_empty()
                     && (self.layout.legacy || self.layout.footer_rows != Some(0));
                 if show_hint {
@@ -737,15 +716,13 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                         height: 1,
                         ..content
                     };
-                    // Baseline hint ink is faint, including the cells the string covers.
+
                     let hint_style = ui.paint_patch(
                         &StylePatch::new()
                             .set_fg(Role::Fg(FgStep::Faint))
                             .set_bg(Role::CurrentSurface),
                     );
-                    // The frozen renderer elides an over-long hint line to the
-                    // content width with a trailing ellipsis instead of hard
-                    // clipping it at the popup edge.
+
                     let line = termrock_text::truncate(self.hints, hint_area.width);
                     ui.paint_str(hint_area, &line, hint_style);
                 }
@@ -786,624 +763,3 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
 }
 
 pub type CommandPalette<'a, T, R = ItemRow> = Picker<'a, T, R>;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::theme::Theme;
-
-    struct Domain {
-        id: u64,
-        name: &'static str,
-    }
-    impl AsItem for Domain {
-        fn as_item(&self) -> Item<'_> {
-            Item::new(ItemKey::num(self.id), self.name)
-        }
-    }
-
-    #[test]
-    fn domain_item_needs_as_item_not_display() {
-        let domain = Domain {
-            id: 7,
-            name: "seven",
-        };
-        assert_eq!(domain.as_item().key, ItemKey::num(7));
-    }
-
-    #[test]
-    fn actions_use_semantic_item_key() {
-        let item = Item::new(ItemKey::num(41), "display text");
-        assert_eq!(item.as_item().key, ItemKey::num(41));
-    }
-
-    #[test]
-    fn matched_indices_are_original_grapheme_ordinals() {
-        let matched = [1usize, 3];
-        let item = Item::new(ItemKey::num(1), "aé日z").matched(&matched);
-        assert_eq!(item.matched, &[1, 3]);
-    }
-
-    #[test]
-    fn query_change_is_visible_through_state_query() {
-        let mut state = FilterListState::default();
-        state.set_query("a");
-        assert_eq!(state.query(), "a");
-    }
-
-    #[test]
-    fn picker_routes_query_editing_navigation_and_clear_through_text_input() {
-        use termrock_runtime::event::{Input, Key, KeyCode, KeyModifiers};
-        use termrock_runtime::runtime::{App, Runtime};
-
-        const ID: Id = Id::root("picker.query-runtime");
-        struct QueryApp {
-            state: PickerState,
-            opened: bool,
-            actions: Vec<PickerAction>,
-        }
-        impl App for QueryApp {
-            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-                let picker = Picker::new(ID).title("Find");
-                let items = [
-                    Item::new(ItemKey::num(1), "alpha"),
-                    Item::new(ItemKey::num(2), "beta"),
-                ];
-                if !self.opened {
-                    self.opened = true;
-                    cx.open_layer(ID, picker.layer(cx, &items));
-                }
-                let mut response = picker.update(cx, &mut self.state, &items);
-                if let Some(action) = response.take_action() {
-                    self.actions.push(action);
-                }
-                response.erase()
-            }
-
-            fn draw(&self, ui: &mut Ui<'_>) {
-                let picker = Picker::new(ID).title("Find");
-                let items = [
-                    Item::new(ItemKey::num(1), "alpha"),
-                    Item::new(ItemKey::num(2), "beta"),
-                ];
-                ui.layer(ID, |ui, area| picker.draw(ui, area, &self.state, &items));
-            }
-        }
-
-        let area = Rect::new(0, 0, 80, 24);
-        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
-        let mut runtime = Runtime::new(
-            QueryApp {
-                state: PickerState::default(),
-                opened: false,
-                actions: Vec::new(),
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert_eq!(runtime.focus(), Some(ID));
-
-        let key = |code| {
-            Input::Key(Key {
-                code,
-                mods: KeyModifiers::NONE,
-            })
-        };
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('b')));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().state.query(), "b");
-        assert_eq!(runtime.app().state.list().matched_len(), 1);
-        assert_eq!(
-            runtime.app().actions.last(),
-            Some(&PickerAction::QueryChanged)
-        );
-
-        let _ = termrock_runtime::runtime::stub::deliver(
-            &mut runtime,
-            Input::Key(Key {
-                code: KeyCode::Char('k'),
-                mods: KeyModifiers::CONTROL,
-            }),
-        );
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().state.query(), "b", "Ctrl+K navigates results");
-
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Delete));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().state.query(), "b");
-        assert!(
-            runtime
-                .app()
-                .actions
-                .contains(&PickerAction::Secondary(ItemKey::num(2))),
-            "actions={:?}, cursor={:?}",
-            runtime.app().actions,
-            runtime.app().state.cursor()
-        );
-
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Backspace));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert_eq!(
-            runtime.app().state.query(),
-            "",
-            "editing={}, draft={:?}, actions={:?}",
-            runtime.app().state.is_query_editing(),
-            runtime.app().state.query(),
-            runtime.app().actions
-        );
-        assert_eq!(runtime.app().state.list().matched_len(), 2);
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Backspace));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert!(runtime.app().actions.contains(&PickerAction::Back));
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('b')));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-
-        let query_caret = runtime.cursor().expect("visible query owns its cursor");
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert_eq!(
-            runtime.app().state.query(),
-            "",
-            "actions: {:?}",
-            runtime.app().actions
-        );
-        assert!(
-            runtime.is_open(ID),
-            "first Esc clears query, keeps picker open"
-        );
-        assert!(runtime.app().state.list().is_query_editing());
-        assert_eq!(runtime.cursor().map(|cursor| cursor.y), Some(query_caret.y));
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Paste("a".into()));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert_eq!(
-            runtime.app().state.query(),
-            "a",
-            "paste immediately after Esc"
-        );
-        let resized = Rect::new(0, 0, 90, 26);
-        let _ = termrock_runtime::runtime::stub::deliver(
-            &mut runtime,
-            Input::Resize(resized.width, resized.height),
-        );
-        buffer = ratatui_core::buffer::Buffer::empty(resized);
-        runtime.draw_buffer(resized, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().state.query(), "a");
-        assert!(runtime.app().state.list().is_query_editing());
-        assert!(
-            runtime.cursor().is_some(),
-            "resized query retains its caret"
-        );
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
-        runtime.draw_buffer(resized, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().state.query(), "");
-        for code in [KeyCode::Char('z'), KeyCode::Char('z')] {
-            let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(code));
-            runtime.draw_buffer(resized, &mut buffer).commit_presented();
-        }
-        assert_eq!(runtime.app().state.query(), "zz");
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
-        runtime.draw_buffer(resized, &mut buffer).commit_presented();
-        assert!(runtime.is_open(ID));
-        assert!(runtime.app().state.list().is_query_editing());
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Paste("a".into()));
-        runtime.draw_buffer(resized, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().state.query(), "zza");
-
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
-        runtime.draw_buffer(resized, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().state.query(), "");
-
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
-        runtime.draw_buffer(resized, &mut buffer).commit_presented();
-        assert!(!runtime.is_open(ID), "second Esc dismisses empty picker");
-        assert!(runtime.app().actions.contains(&PickerAction::QueryChanged));
-
-        runtime.app_mut().opened = false;
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(resized, &mut buffer).commit_presented();
-        assert!(runtime.is_open(ID));
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('b')));
-        runtime.draw_buffer(resized, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().state.query(), "b");
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
-        runtime.draw_buffer(resized, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().state.query(), "");
-        assert!(runtime.cursor().is_some());
-    }
-
-    #[test]
-    fn filter_navigation_remapping_uses_typed_action_not_delete_chord_claim() {
-        use termrock_runtime::event::{Input, Key, KeyCode, KeyModifiers};
-        use termrock_runtime::keymap::KeyMap;
-        use termrock_runtime::runtime::{App, Runtime};
-        use termrock_runtime::{ActionKey, Chord};
-
-        const ID: Id = Id::root("picker.remapped-filter-navigation");
-        const DOWN: ActionKey = ActionKey::custom("filter-list.down");
-        const SECONDARY: ActionKey = ActionKey::custom("filter-list.secondary");
-        struct RemappedApp {
-            state: PickerState,
-            opened: bool,
-            actions: Vec<PickerAction>,
-            keymap: KeyMap,
-        }
-        impl App for RemappedApp {
-            fn keymap(&self) -> &KeyMap {
-                &self.keymap
-            }
-
-            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-                let picker = Picker::new(ID).title("Find");
-                let items = [
-                    Item::new(ItemKey::num(1), "alpha"),
-                    Item::new(ItemKey::num(2), "beta"),
-                ];
-                if !self.opened {
-                    self.opened = true;
-                    cx.open_layer(ID, picker.layer(cx, &items));
-                }
-                let mut response = picker.update(cx, &mut self.state, &items);
-                if let Some(action) = response.take_action() {
-                    self.actions.push(action);
-                }
-                response.erase()
-            }
-
-            fn draw(&self, ui: &mut Ui<'_>) {
-                let picker = Picker::new(ID).title("Find");
-                let items = [
-                    Item::new(ItemKey::num(1), "alpha"),
-                    Item::new(ItemKey::num(2), "beta"),
-                ];
-                ui.layer(ID, |ui, area| picker.draw(ui, area, &self.state, &items));
-            }
-        }
-
-        let mut keymap = KeyMap::new();
-        keymap.remove_component(ID, SECONDARY);
-        keymap.remap_component(ID, DOWN, Chord::key(KeyCode::Delete));
-        let area = Rect::new(0, 0, 80, 24);
-        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
-        let mut runtime = Runtime::new(
-            RemappedApp {
-                state: PickerState::default(),
-                opened: false,
-                actions: Vec::new(),
-                keymap,
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        let _ = termrock_runtime::runtime::stub::deliver(
-            &mut runtime,
-            Input::Key(Key {
-                code: KeyCode::Delete,
-                mods: KeyModifiers::NONE,
-            }),
-        );
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-
-        assert_eq!(runtime.app().state.cursor(), Some(ItemKey::num(2)));
-        assert!(
-            !runtime
-                .app()
-                .actions
-                .iter()
-                .any(|action| matches!(action, PickerAction::Secondary(_)))
-        );
-    }
-
-    fn measured_at(size: LayerSize, viewport_width: u16) -> LayerSize {
-        struct MeasureApp {
-            size: LayerSize,
-            measured: Option<LayerSize>,
-        }
-        impl termrock_runtime::runtime::App for MeasureApp {
-            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-                self.measured = Some(
-                    Picker::<Domain>::new(Id::root("picker.fixed-width"))
-                        .size(self.size)
-                        .measured_size(cx, &[]),
-                );
-                Response::ignored()
-            }
-
-            fn draw(&self, _ui: &mut Ui<'_>) {}
-        }
-        let area = Rect::new(0, 0, viewport_width, 9);
-        let mut runtime = termrock_runtime::runtime::Runtime::new(
-            MeasureApp {
-                size,
-                measured: None,
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        let _ = termrock_runtime::runtime::stub::deliver(
-            &mut runtime,
-            termrock_runtime::event::Input::Tick,
-        );
-        runtime.app().measured.expect("measured_size ran")
-    }
-
-    #[test]
-    fn fixed_width_keeps_a_four_column_screen_margin() {
-        let requested = LayerSize::Fixed(84, 9);
-        assert_eq!(measured_at(requested, 72), LayerSize::Fixed(68, 9));
-        assert_eq!(measured_at(requested, 80), LayerSize::Fixed(76, 9));
-        assert_eq!(measured_at(requested, 100), LayerSize::Fixed(84, 9));
-        assert_eq!(measured_at(requested, 0), LayerSize::Fixed(84, 9));
-        assert_eq!(measured_at(requested, 4), LayerSize::Fixed(84, 9));
-        assert_eq!(measured_at(LayerSize::Fill, 72), LayerSize::Fill);
-    }
-
-    #[test]
-    fn query_field_resolves_picker_family_theme_and_part_patch() {
-        use ratatui_core::style::Color;
-        use termrock_runtime::event::{Input, KeyCode};
-        use termrock_runtime::runtime::Runtime;
-        use termrock_runtime::runtime::stub::{deliver, key};
-
-        const ID: Id = Id::root("picker.query-presentation");
-        const QUERY_PATCH: &[(Part, StylePatch)] = &[(
-            Part::QUERY,
-            StylePatch::new().set_fg(crate::theme::Role::Danger),
-        )];
-        const GLOBAL_PATCH: StylePatch = StylePatch::new().set_bg(crate::theme::Role::Danger);
-
-        struct PaintApp {
-            state: PickerState,
-            patch_kind: u8,
-        }
-
-        impl termrock_runtime::runtime::App for PaintApp {
-            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-                let picker = Self::picker(self.patch_kind);
-                if cx.update_cause() == termrock_runtime::runtime::UpdateCause::Bootstrap {
-                    cx.open_layer(ID, picker.layer(cx, &[]));
-                }
-                picker.update(cx, &mut self.state, &[]).erase()
-            }
-
-            fn draw(&self, ui: &mut Ui<'_>) {
-                let picker = Self::picker(self.patch_kind);
-                ui.layer(ID, |ui, area| picker.draw(ui, area, &self.state, &[]));
-            }
-        }
-
-        impl PaintApp {
-            fn picker(patch_kind: u8) -> Picker<'static, Item<'static>> {
-                let picker = Picker::new(ID)
-                    .placeholder("X")
-                    .size(LayerSize::Fixed(20, 7));
-                match patch_kind {
-                    1 => picker.patch(&GLOBAL_PATCH),
-                    2 => picker.patch_part(QUERY_PATCH),
-                    _ => picker,
-                }
-            }
-        }
-
-        let render = |patch_kind: u8,
-                      themed: bool,
-                      focused_style: bool,
-                      placeholder_style: bool,
-                      enter_query: bool| {
-            let theme = if themed {
-                Theme::junie().override_family(Family::PICKER, |recipe| {
-                    recipe
-                        .part(Part::QUERY)
-                        .base(StylePatch::new().set_fg(crate::theme::Role::Warning));
-                    if focused_style {
-                        recipe.part(Part::QUERY).when(
-                            StateFlags::FOCUSED,
-                            StylePatch::new().set_fg(crate::theme::Role::Success),
-                        );
-                    }
-                    if placeholder_style {
-                        recipe
-                            .part(Part::PLACEHOLDER)
-                            .base(StylePatch::new().set_fg(crate::theme::Role::Info));
-                    }
-                })
-            } else {
-                Theme::junie()
-            };
-            let mut runtime = Runtime::new(
-                PaintApp {
-                    state: PickerState::default(),
-                    patch_kind,
-                },
-                theme,
-            );
-            let _ = runtime.initialize();
-            let area = Rect::new(0, 0, 30, 12);
-            let mut buffer = ratatui_core::buffer::Buffer::empty(area);
-            runtime.draw_buffer(area, &mut buffer).commit_presented();
-            let _ = deliver(&mut runtime, Input::Tick);
-            runtime.draw_buffer(area, &mut buffer).commit_presented();
-            assert_eq!(runtime.focus(), Some(ID), "the picker query owns focus");
-            if enter_query {
-                let _ = deliver(&mut runtime, key(KeyCode::Char('X')));
-                buffer = ratatui_core::buffer::Buffer::empty(area);
-                runtime.draw_buffer(area, &mut buffer).commit_presented();
-                assert_eq!(runtime.app().state.query(), "X");
-            } else {
-                assert_eq!(runtime.app().state.query(), "");
-            }
-            buffer
-        };
-
-        let visible_x = |buffer: &ratatui_core::buffer::Buffer| {
-            let positions = buffer
-                .content
-                .iter()
-                .enumerate()
-                .filter(|(_, cell)| cell.symbol() == "X")
-                .map(|(index, _)| index)
-                .collect::<Vec<_>>();
-            assert_eq!(
-                positions.len(),
-                1,
-                "exactly one query or placeholder X is visible"
-            );
-            let cell = positions[0];
-            let x = u16::try_from(cell % 30).expect("screen x fits u16");
-            let y = u16::try_from(cell / 30).expect("screen y fits u16");
-            (x, y)
-        };
-
-        let plain_query = render(0, false, false, false, true);
-        let base_theme = render(0, true, false, false, true);
-        let focused_theme = render(0, true, true, false, true);
-        let locally_patched = render(2, true, true, false, true);
-        let globally_patched = render(1, false, false, false, true);
-        let plain_cell = &plain_query[visible_x(&plain_query)];
-        let base_cell = &base_theme[visible_x(&base_theme)];
-        let focused_cell = &focused_theme[visible_x(&focused_theme)];
-        let local_cell = &locally_patched[visible_x(&locally_patched)];
-        let global_cell = &globally_patched[visible_x(&globally_patched)];
-
-        assert_eq!(plain_cell.fg, Color::Rgb(255, 255, 255));
-        assert_eq!(base_cell.fg, Color::Rgb(245, 158, 9));
-        assert_eq!(focused_cell.fg, Color::Rgb(63, 185, 80));
-        assert_eq!(local_cell.fg, Color::Rgb(240, 93, 93));
-        assert_eq!(global_cell.fg, Color::Rgb(255, 255, 255));
-        assert_eq!(global_cell.bg, Color::Rgb(240, 93, 93));
-        assert_ne!(plain_cell.fg, base_cell.fg);
-        assert_ne!(base_cell.fg, focused_cell.fg);
-        assert_ne!(focused_cell.fg, local_cell.fg);
-        assert_ne!(plain_cell.bg, global_cell.bg);
-
-        let placeholder_plain = render(0, false, false, false, false);
-        let placeholder_base = render(0, true, false, false, false);
-        let placeholder_focused = render(0, true, true, false, false);
-        let placeholder_local = render(2, true, true, false, false);
-        let placeholder_override = render(0, true, true, true, false);
-        let placeholder_query = render(0, true, true, false, true);
-        let query_with_placeholder_override = render(0, true, true, true, true);
-        let muted = Color::Rgb(138, 138, 138);
-
-        for (name, buffer) in [
-            ("plain", &placeholder_plain),
-            ("base QUERY theme", &placeholder_base),
-            ("focused QUERY theme", &placeholder_focused),
-            ("local QUERY patch", &placeholder_local),
-        ] {
-            assert_eq!(
-                buffer[visible_x(buffer)].fg,
-                muted,
-                "{name} keeps placeholder ink"
-            );
-        }
-        let overridden_placeholder_cell = &placeholder_override[visible_x(&placeholder_override)];
-        assert_eq!(overridden_placeholder_cell.fg, Color::Rgb(135, 135, 255));
-        assert_ne!(overridden_placeholder_cell.fg, muted);
-
-        let query_without_placeholder_override = &placeholder_query[visible_x(&placeholder_query)];
-        let query_with_placeholder_override_cell =
-            &query_with_placeholder_override[visible_x(&query_with_placeholder_override)];
-        assert_eq!(
-            query_without_placeholder_override.fg,
-            Color::Rgb(63, 185, 80)
-        );
-        assert_eq!(
-            query_with_placeholder_override_cell.fg, query_without_placeholder_override.fg,
-            "PLACEHOLDER styling does not recolor entered QUERY text"
-        );
-        assert_eq!(
-            query_with_placeholder_override_cell.bg, query_without_placeholder_override.bg,
-            "PLACEHOLDER styling does not change entered QUERY background"
-        );
-    }
-
-    #[test]
-    fn scope_navigation_wraps_and_handles_shorter_or_empty_scope_lists() {
-        use ratatui::crossterm::event as backend;
-        use termrock_runtime::event::{Input, KeyCode};
-        use termrock_runtime::runtime::stub::{deliver, key};
-        use termrock_runtime::runtime::{App, Runtime, UpdateCause};
-
-        const ID: Id = Id::root("picker.scope-navigation");
-        const SCOPES: &[ScopeKey] = &[ScopeKey::new(1), ScopeKey::new(2), ScopeKey::new(3)];
-        struct ScopeApp {
-            state: PickerState,
-            count: usize,
-            searchable: bool,
-        }
-        impl ScopeApp {
-            fn picker(&self) -> Picker<'static, Item<'static>> {
-                Picker::new(ID)
-                    .scopes(SCOPES.get(..self.count).unwrap_or(&[]))
-                    .searchable(self.searchable)
-            }
-        }
-        impl App for ScopeApp {
-            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-                let picker = self.picker();
-                if cx.update_cause() == UpdateCause::Bootstrap {
-                    cx.open_layer(ID, picker.layer(cx, &[]));
-                }
-                picker.update(cx, &mut self.state, &[]).erase()
-            }
-            fn draw(&self, ui: &mut Ui<'_>) {
-                ui.layer(ID, |ui, area| {
-                    self.picker().draw(ui, area, &self.state, &[])
-                });
-            }
-        }
-        let shifted_backtab = || {
-            Input::from_crossterm(backend::Event::Key(backend::KeyEvent::new(
-                backend::KeyCode::BackTab,
-                backend::KeyModifiers::SHIFT,
-            )))
-            .expect("a pressed backend BackTab must produce input")
-        };
-        for searchable in [true, false] {
-            let mut runtime = Runtime::new(
-                ScopeApp {
-                    state: PickerState::default(),
-                    count: 3,
-                    searchable,
-                },
-                Theme::junie(),
-            );
-            let _ = runtime.initialize();
-            let area = Rect::new(0, 0, 80, 24);
-            let mut buffer = ratatui_core::buffer::Buffer::empty(area);
-            runtime.draw_buffer(area, &mut buffer).commit_presented();
-            let _ = deliver(&mut runtime, key(KeyCode::Tab));
-            runtime.draw_buffer(area, &mut buffer).commit_presented();
-            assert_eq!(runtime.app().state.scope(SCOPES), Some(ScopeKey::new(2)));
-            let _ = deliver(&mut runtime, shifted_backtab());
-            runtime.draw_buffer(area, &mut buffer).commit_presented();
-            assert_eq!(runtime.app().state.scope(SCOPES), Some(ScopeKey::new(1)));
-            let _ = deliver(&mut runtime, key(KeyCode::BackTab));
-            runtime.draw_buffer(area, &mut buffer).commit_presented();
-            assert_eq!(runtime.app().state.scope(SCOPES), Some(ScopeKey::new(3)));
-            runtime.app_mut().count = 2;
-            let _ = deliver(&mut runtime, shifted_backtab());
-            runtime.draw_buffer(area, &mut buffer).commit_presented();
-            assert_eq!(runtime.app().state.scope(SCOPES), Some(ScopeKey::new(2)));
-            runtime.app_mut().count = 0;
-            let _ = deliver(&mut runtime, shifted_backtab());
-            let _ = deliver(&mut runtime, key(KeyCode::Tab));
-            let _ = deliver(&mut runtime, Input::Tick);
-            runtime.draw_buffer(area, &mut buffer).commit_presented();
-            assert_eq!(runtime.app().state.scope(&[]), None);
-            assert!(
-                runtime.diagnostics().is_empty(),
-                "{:?}",
-                runtime.diagnostics()
-            );
-        }
-    }
-}

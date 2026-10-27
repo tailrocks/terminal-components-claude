@@ -1,9 +1,3 @@
-//! Typed composition adapters for existing Termrock components.
-//!
-//! The adapters keep component configuration and state borrowed from the
-//! consumer. Measurement and drawing delegate to the component's existing
-//! implementations; composition owns only placement.
-
 use core::fmt;
 
 use crate::blocks::{MasterDetail, MasterDetailError, MasterDetailState};
@@ -25,18 +19,12 @@ use termrock_runtime::{CompositionSlots, ContentSlot, MAX_COMPOSITION_DEPTH, Mea
 pub mod adapters;
 pub use adapters::*;
 
-/// A leaf that delegates measurement and drawing to callbacks.
-///
-/// The callbacks carry the component and its caller-owned state, so a
-/// composition child does not copy application data or introduce a second
-/// measurement or rendering path.
 pub struct Leaf<M, D> {
     measure: M,
     draw: D,
 }
 
 impl<M, D> Leaf<M, D> {
-    /// Build a leaf from a measurement callback and a drawing callback.
     pub const fn new(measure: M, draw: D) -> Self {
         Self { measure, draw }
     }
@@ -61,11 +49,6 @@ where
     }
 }
 
-/// A borrowed component configured for placement in a composition group.
-///
-/// Create children with [`button`], [`tabs`], [`steps`], [`nav_list`], [`code_editor`], or
-/// [`completing_code_editor`], then place them in a [`Group`].
-/// The component and its state remain owned by the application.
 pub struct Child<'a> {
     content: ChildContent<'a>,
     policy: ChildPolicy,
@@ -115,29 +98,24 @@ impl fmt::Debug for Child<'_> {
 }
 
 impl Child<'_> {
-    /// Set this child's minimum cell dimensions.
     #[must_use]
     pub const fn min(mut self, width: u16, height: u16) -> Self {
         self.policy = self.policy.min(width, height);
         self
     }
 
-    /// Set optional maximum cell dimensions.
     #[must_use]
     pub const fn max(mut self, width: Option<u16>, height: Option<u16>) -> Self {
         self.policy = self.policy.max(width, height);
         self
     }
 
-    /// Let this child receive flexible space with the given relative weight.
     #[must_use]
     pub const fn flex(mut self, weight: u16) -> Self {
         self.policy = self.policy.flex(weight);
         self
     }
 
-    /// Measure this child while checking that nested composition stays
-    /// within the supported depth.
     pub fn try_measure(
         &self,
         ui: &Ui<'_>,
@@ -147,8 +125,6 @@ impl Child<'_> {
         Ok(self.measure_validated(ui, constraints))
     }
 
-    /// Draw this child into a component-owned logical rectangle after
-    /// checking its nested composition depth.
     pub fn try_draw(
         &self,
         ui: &mut Ui<'_>,
@@ -172,7 +148,6 @@ impl Child<'_> {
     }
 }
 
-/// Adapt a button for layout while preserving its identity and configuration.
 pub fn button<'a, 'config>(component: &'a Button<'config>) -> Child<'a>
 where
     'config: 'a,
@@ -183,10 +158,6 @@ where
     }
 }
 
-/// Place a panel around one reusable component or composition group.
-///
-/// The panel retains its normal chrome and body geometry. Its child keeps
-/// the child’s identity, measurement, and interaction implementation.
 pub fn panel<'a, 'config>(component: &'a Panel<'config>, body: Child<'a>) -> Child<'a>
 where
     'config: 'a,
@@ -204,9 +175,6 @@ struct PanelLeaf<'a> {
     body: Child<'a>,
 }
 
-/// Adapt a responsive master/detail block with caller-owned split and drawer
-/// state. The block keeps its normal resolver, focus scopes, and child groups;
-/// this leaf only lets it participate in a parent composition.
 pub fn master_detail<'a, 'config>(
     component: &'a MasterDetail<'config>,
     state: &'a MasterDetailState,
@@ -285,7 +253,6 @@ impl CompositionLeaf for ButtonLeaf<'_, '_> {
     }
 }
 
-/// Adapt a code editor with its caller-owned editing state.
 pub fn code_editor<'a, 'config>(
     component: &'a CodeEditor<'config>,
     state: &'a CodeEditorState,
@@ -316,7 +283,6 @@ impl CompositionLeaf for CodeEditorLeaf<'_, '_> {
     }
 }
 
-/// Adapt a completing code editor with its caller-owned editor and completion state.
 pub fn completing_code_editor<'a, 'config>(
     component: &'a CompletingCodeEditor<'config>,
     state: &'a CompletingCodeEditorState,
@@ -330,8 +296,6 @@ where
     }
 }
 
-/// Adapt a property list while retaining its caller-owned keyed state and
-/// borrowed rows. Measurement and drawing delegate to the existing component.
 pub fn props_list<'a, 'config>(
     component: &'a PropsList<'config>,
     state: &'a PropsState,
@@ -385,7 +349,6 @@ impl CompositionLeaf for CompletingCodeEditorLeaf<'_, '_> {
     }
 }
 
-/// Adapt a tab strip using the caller-owned tab state and borrowed item data.
 pub fn tabs<'a, 'config, T, K, R>(
     component: &'a Tabs<'config, T, K, R>,
     state: &'a TabsState,
@@ -407,9 +370,6 @@ where
     }
 }
 
-/// Adapt a select field while retaining its caller-owned state and borrowed
-/// option data. The select keeps its own field, popup, focus, and hit regions;
-/// the composition layer only supplies its resolved placement.
 pub fn select<'a, 'config, T, K, R>(
     component: &'a Select<'config, T, K, R>,
     state: &'a SelectState,
@@ -467,7 +427,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> CompositionLeaf for TabsLeaf<'_, '_, T, K, R> 
     }
 }
 
-/// Adapt a progress rail using caller-owned state and borrowed items.
 pub fn steps<'a, 'config, T, K, R>(
     component: &'a Steps<'config, T, K, R>,
     state: &'a StepsState,
@@ -508,10 +467,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> CompositionLeaf for StepsLeaf<'_, '_, T, K, R>
     }
 }
 
-/// Adapt a navigation list using caller-owned state and borrowed item data.
-///
-/// Measurement and drawing delegate to the configured list. The adapter adds
-/// placement without introducing a second cursor, row renderer, or hit map.
 pub fn nav_list<'a, 'config, T, K, R>(
     component: &'a NavList<'config, T, K, R>,
     state: &'a NavListState,
@@ -533,9 +488,6 @@ where
     }
 }
 
-/// Adapt a hierarchical tree while retaining its caller-owned expansion and
-/// selection state and borrowed node data. Measurement and drawing delegate
-/// to the configured tree, including its row clipping and hit regions.
 pub fn tree<'a, 'config, T, K, R>(
     component: &'a Tree<'config, T, K, R>,
     state: &'a TreeState,
@@ -600,7 +552,6 @@ enum Direction {
     Wrap,
 }
 
-/// A row, column, or wrapping group of typed component children.
 #[derive(Debug)]
 pub struct Group<'a> {
     direction: Direction,
@@ -610,22 +561,18 @@ pub struct Group<'a> {
 }
 
 impl<'a> Group<'a> {
-    /// Lay out children horizontally.
     pub fn row(children: impl IntoIterator<Item = Child<'a>>) -> Self {
         Self::new(Direction::Row, children)
     }
 
-    /// Lay out children vertically.
     pub fn column(children: impl IntoIterator<Item = Child<'a>>) -> Self {
         Self::new(Direction::Column, children)
     }
 
-    /// Lay out children in rows that wrap to the available width.
     pub fn wrap(children: impl IntoIterator<Item = Child<'a>>) -> Self {
         Self::new(Direction::Wrap, children)
     }
 
-    /// Use this group as a child of another row, column, or wrapping group.
     #[must_use]
     pub fn into_child(self) -> Child<'a> {
         Child {
@@ -634,14 +581,12 @@ impl<'a> Group<'a> {
         }
     }
 
-    /// Configure shared gap, padding, alignment, and overflow behavior.
     #[must_use]
     pub const fn spec(mut self, spec: LayoutComposition) -> Self {
         self.spec = spec;
         self
     }
 
-    /// Resolve against the framework-owned area and draw each component once.
     pub fn show(&self, ui: &mut Ui<'_>) -> Result<(), CompositionError> {
         self.validate_depth()?;
         ui.compose(&self.slots())
@@ -653,8 +598,6 @@ impl<'a> Group<'a> {
             .expect("facade composition validates nested depth before drawing");
     }
 
-    /// Measure intrinsic size through the shared layout resolver without
-    /// dispatching input, drawing, or changing component state.
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Result<Size, CompositionError> {
         self.validate_depth()?;
         self.slots().measure(ui, constraints)
@@ -696,9 +639,6 @@ impl<'a> Group<'a> {
         let depth =
             1usize.saturating_add(children.iter().map(Child::nested_depth).max().unwrap_or(0));
         let children = if depth > MAX_COMPOSITION_DEPTH {
-            // Keep an over-deep group as a small error carrier. Its children
-            // are bounded to MAX_COMPOSITION_DEPTH and can therefore be
-            // dropped without recursive stack growth.
             drop(children);
             Vec::new()
         } else {

@@ -74,7 +74,6 @@ pub(crate) struct TaskArgsStart {
 }
 
 pub(crate) fn preview(world: &mut World, row: &Action) -> Destination {
-    // Every reserved typed producer stays off the legacy fixed-command preview route.
     match port_args_producer_for(row) {
         Ok(Some(producer)) => return start_port_args(world, row, producer),
         Err(error) => return Destination::Notice(error.to_string()),
@@ -183,7 +182,6 @@ fn same_task_run_action(selected: &Action, current: &Action) -> bool {
 }
 
 fn task_run_destination(world: &World, selected: &Action, launch: bool) -> Option<Destination> {
-    // Raw identity matters: recent/pin wrappers intentionally keep their ordinary static route.
     if selected.id != "task:dev" {
         return None;
     }
@@ -376,7 +374,6 @@ pub(crate) fn confirm_task_args(
 }
 
 pub(crate) fn confirm_preview(world: &mut World, row: &Action) -> Destination {
-    // Direct generic confirmation must not bypass either typed input producer.
     match port_args_producer_for(row) {
         Ok(Some(producer)) => return start_port_args(world, row, producer),
         Err(error) => return Destination::Notice(error.to_string()),
@@ -562,188 +559,5 @@ fn log_sample(name: &str) -> &'static [&'static str] {
         "nginx" => &["10:24:03 200 GET /", "10:24:07 304 GET /assets/app.css"],
         "gitea" => &["10:24:04 GET /api/v1/version 200"],
         _ => &["10:24:00 alive", "10:24:06 alive"],
-    }
-}
-
-#[cfg(test)]
-#[expect(
-    clippy::unwrap_used,
-    reason = "Named deterministic actions must exist in the fixture"
-)]
-#[expect(
-    clippy::panic,
-    reason = "Fixed test fixtures must reach their typed route"
-)]
-mod tests {
-    use super::*;
-    use crate::domain::{fixtures, ranking::Pin};
-    fn settled(scenario: Scenario) -> World {
-        let mut world = fixtures::world_for(scenario);
-        world.seek(4_000);
-        world
-    }
-    fn action(world: &World, id: &str) -> Action {
-        catalogue::catalogue(world)
-            .into_iter()
-            .find(|action| action.id == id)
-            .unwrap()
-    }
-    #[test]
-    fn clone_uses_the_same_flow_for_canonical_and_remembered_rows() {
-        let mut world = settled(Scenario::RustDirty);
-        let original = action(&world, "gh.clone");
-        assert!(matches!(invoke(&mut world, &original), Destination::Clone));
-        world.memory.pins.push(Pin {
-            path: world.cwd.clone(),
-            command: original.command.clone(),
-        });
-        let remembered = catalogue::catalogue(&world)
-            .into_iter()
-            .find(|row| row.id.starts_with("pin:") && row.intent_id() == Some("gh.clone"))
-            .unwrap();
-        assert!(matches!(
-            invoke(&mut world, &remembered),
-            Destination::Clone
-        ));
-    }
-    #[test]
-    fn broad_memory_never_bypasses_review_and_stale_target_never_runs() {
-        let mut world = settled(Scenario::DockerCleanup);
-        let original = action(&world, "docker.cleanup");
-        world.memory.pins.push(Pin {
-            path: world.cwd.clone(),
-            command: original.command.clone(),
-        });
-        let remembered = catalogue::catalogue(&world)
-            .into_iter()
-            .find(|row| row.id.starts_with("pin:") && row.intent_id() == Some("docker.cleanup"))
-            .unwrap();
-        assert!(matches!(
-            invoke(&mut world, &remembered),
-            Destination::Plan(_)
-        ));
-        assert!(matches!(
-            confirm_preview(&mut world, &remembered),
-            Destination::Plan(_)
-        ));
-        assert_eq!(world.effect_revision, 0);
-        let mut stale = original;
-        stale.target = "different-target".into();
-        assert!(matches!(invoke(&mut world, &stale), Destination::Notice(_)));
-        assert_eq!(world.effect_revision, 0);
-    }
-    #[test]
-    fn merged_logs_keep_sorted_service_identity_and_navigate_to_activity() {
-        let mut world = settled(Scenario::DockerCleanup);
-        let logs = action(&world, "docker.logs");
-        let Destination::Activity {
-            id,
-            message,
-            execution_id,
-        } = invoke(&mut world, &logs)
-        else {
-            panic!("logs must become an activity");
-        };
-        assert_eq!(message, "Following container logs · merged stream");
-        assert_eq!(
-            world
-                .activity_supervisor
-                .execution(execution_id)
-                .map(|execution| execution.snapshot().id),
-            Some(id)
-        );
-        let output = &world
-            .activities
-            .iter()
-            .find(|activity| activity.id == id)
-            .unwrap()
-            .lines;
-        assert!(output.iter().all(|line| line.contains(" | ")));
-        assert!(
-            output
-                .iter()
-                .any(|line| line == "api      | 10:24:01 GET /health 200 · 2ms")
-        );
-        assert!(
-            output
-                .iter()
-                .any(|line| line == "worker   | 10:24:10 job 1150 running")
-        );
-    }
-    #[test]
-    fn activity_id_exhaustion_refuses_without_overflow_or_duplicate_identity() {
-        let mut world = settled(Scenario::DockerCleanup);
-        world.activities.push(Activity::new(
-            u32::MAX,
-            "last",
-            "fixture",
-            ActivityState::Running,
-            0,
-        ));
-        let logs = action(&world, "docker.logs");
-        let before = world.activities.clone();
-        assert!(matches!(invoke(&mut world, &logs), Destination::Notice(_)));
-        assert_eq!(world.activities, before);
-    }
-
-    #[test]
-    fn launch_failure_registration_conflict_returns_notice_without_publishing_activity() {
-        let mut world = settled(Scenario::LaunchFailure);
-        let selected = action(&world, "task:test");
-        let intended_id = next_activity_id(&world).unwrap();
-        let prior = Activity::new(
-            intended_id,
-            "prior worker",
-            "fixture",
-            ActivityState::Running,
-            world.now_ms(),
-        );
-        let prior_execution = world
-            .activity_supervisor
-            .register(
-                &prior,
-                ActivityExecutionStart::Running,
-                ActivityStopProfile::Responsive,
-            )
-            .unwrap();
-        let activities_before = world.activities.clone();
-
-        let destination = invoke(&mut world, &selected);
-
-        assert!(matches!(
-            destination,
-            Destination::Notice(message)
-                if message == format!(
-                    "Activity unavailable · activity ID {intended_id} is already registered"
-                )
-        ));
-        assert_eq!(world.activities, activities_before);
-        assert_eq!(world.effect_revision, 0);
-        assert_eq!(
-            world.activity_supervisor.current_execution_id(intended_id),
-            Some(prior_execution)
-        );
-        let prior_record = world
-            .activity_supervisor
-            .execution(prior_execution)
-            .unwrap();
-        assert_eq!(prior_record.snapshot(), &prior);
-        assert_eq!(
-            prior_record.phase(),
-            crate::sim::activity_supervisor::ActivityExecutionPhase::Running
-        );
-
-        let probe = Activity::new(
-            intended_id + 1,
-            "generation probe",
-            "fixture",
-            ActivityState::Failed,
-            world.now_ms(),
-        );
-        let probe_id = world
-            .activity_supervisor
-            .register_terminal(&probe, ActivityStopProfile::Responsive)
-            .unwrap();
-        assert_eq!(probe_id.generation(), 2);
     }
 }

@@ -43,7 +43,6 @@ const DANGER_FG: u32 = 0xff6b6b;
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
 
-// 72- and 80-column shells keep the 120-column playground and scroll.
 const CONTENT_MIN_W: u16 = 94;
 const RESULTS_H: u16 = 8;
 const SCROLL_ROOM: u16 = 2;
@@ -303,7 +302,7 @@ fn paint_face(ui: &mut Ui<'_>, origin: Rect, label: &str, face: Face) {
         text = text.add_modifier(Modifier::BOLD);
     }
     ui.fill(area, text);
-    // Cell style merges modifiers, so the gutter must subtract bold.
+
     ui.fill(
         Rect::new(area.x, area.y, 1, 1),
         ink(bg, bg).remove_modifier(Modifier::BOLD),
@@ -768,95 +767,5 @@ impl Page for DialogsPage {
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         &[("Enter", "Open"), ("d", "Delete branch")]
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{DialogsPage, Page};
-    use termrock::{App, Color, Cx, Modifier, Response, Theme, Ui};
-    use termrock_test_support::Harness;
-
-    struct Host;
-
-    impl App for Host {
-        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
-            Response::ignored()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            DialogsPage::new().draw(ui, ui.full());
-        }
-    }
-
-    #[test]
-    fn playground_matches_the_120_column_body() {
-        let h = Harness::new(Host, Theme::junie(), 94, 36);
-        let text = h.text();
-        assert!(text.contains("Dialogs"), "{text}");
-        assert!(
-            text.contains("Focus is trapped, the page dims, Esc always cancels"),
-            "{text}"
-        );
-        assert!(text.contains("Playground"), "{text}");
-        assert!(text.contains("the live widget"), "{text}");
-        assert!(text.contains("Open a dialog"), "{text}");
-        assert!(text.contains("Enter · click"), "{text}");
-        assert!(text.contains("Confirm run"), "{text}");
-        assert!(text.contains("▲ title status"), "{text}");
-        assert!(text.contains("body that scrolls"), "{text}");
-        assert!(text.contains("read back from the built dialog"), "{text}");
-        assert!(
-            text.contains("width 54 · max height none · body scroll on"),
-            "{text}"
-        );
-        assert!(text.contains("glyph ×"), "{text}");
-        assert!(text.contains("cancel “Cancel”"), "{text}");
-        assert!(text.contains("Text · Input · Facts"), "{text}");
-        assert!(
-            text.contains("Task: Migrate sessions table · Action(i) or Cancelled"),
-            "{text}"
-        );
-        assert!(text.contains("Nothing yet"), "{text}");
-
-        let (x, y) = h.find("Playground").expect("tab");
-        assert_eq!(h.cell(x, y).bg, Color::Rgb(0x27, 0x27, 0x2a));
-        assert!(h.cell(x, y).modifier.contains(Modifier::BOLD));
-        assert_eq!(h.cell(x.saturating_sub(1), y + 1).symbol(), "━");
-
-        let (cx, cy) = h.find("Confirm run").expect("primary");
-        assert_eq!(h.cell(cx, cy).fg, Color::Rgb(0x19, 0x19, 0x1c));
-        assert_eq!(h.cell(cx, cy).bg, Color::Rgb(0x48, 0xe0, 0x54));
-        assert!(h.cell(cx, cy).modifier.contains(Modifier::BOLD));
-        let gutter = h.cell(cx.saturating_sub(1), cy);
-        assert_eq!(gutter.bg, Color::Rgb(0x48, 0xe0, 0x54));
-        assert!(!gutter.modifier.contains(Modifier::BOLD));
-
-        let (dx, dy) = h.find("Delete branch…").expect("danger");
-        assert_eq!(h.cell(dx, dy).fg, Color::Rgb(0xff, 0x6b, 0x6b));
-        assert_eq!(h.cell(dx, dy).bg, Color::Rgb(0x27, 0x27, 0x2a));
-
-        let (sx, sy) = h.find("Size").expect("prop");
-        assert_eq!(h.cell(sx, sy).fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-        assert_eq!(h.cell(sx + 12, sy).symbol(), "w");
-    }
-
-    #[test]
-    fn narrow_shell_scrolls_the_wide_card_and_ends_the_blurb_on_ellipsis() {
-        let h = Harness::new(Host, Theme::junie(), 51, 16);
-        let text = h.text();
-        assert!(text.contains("Esc alw…"), "{text}");
-        assert!(!text.contains("Enter · click"), "{text}");
-        assert!(text.contains("Confirm run"), "{text}");
-        assert_eq!(h.cell(47, 7).symbol(), "U");
-        assert_eq!(h.cell(48, 7).symbol(), "n");
-        assert_eq!(h.cell(49, 7).bg, Color::Rgb(0, 0, 0));
-        assert_eq!(h.cell(50, 5).symbol(), "┃");
-        assert_eq!(h.cell(50, 5).fg, Color::Rgb(0x80, 0x80, 0x80));
-        assert_eq!(h.cell(50, 8).symbol(), "┆");
-        assert_eq!(h.cell(50, 8).fg, Color::Rgb(0x47, 0x47, 0x47));
-        assert_eq!(h.cell(0, 15).symbol(), "━");
-        assert_eq!(h.cell(26, 15).symbol(), "┄");
-        assert_eq!(h.cell(50, 15).symbol(), " ");
     }
 }

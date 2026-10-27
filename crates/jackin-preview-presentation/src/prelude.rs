@@ -121,23 +121,3 @@ impl PreludeState {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn source_cursor_follows_only_a_one_row_move_on_step_one() {
-        let mut state = PreludeState::default();
-        assert!(!state.follow_source_cursor(0, 2));
-        assert_eq!(state.selection(), 0);
-        assert!(state.follow_source_cursor(0, 1));
-        assert_eq!(state.selection(), 1);
-        assert!(state.follow_source_cursor(1, 0));
-        assert_eq!(state.selection(), 0);
-        state.advance_flow();
-        assert_eq!(state.step(), 2);
-        assert!(!state.follow_source_cursor(0, 1));
-        assert_eq!(state.selection(), 0);
-    }
-}

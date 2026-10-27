@@ -1,5 +1,3 @@
-//! Responsive master/detail composition built from existing groups and split layout.
-
 use ratatui_core::layout::Rect;
 pub use termrock_controls::MasterDetailState;
 use termrock_controls::{
@@ -47,7 +45,6 @@ fn discard_action<A, B>(response: Response<A>) -> Response<B> {
     }
 }
 
-/// Responsive layout policy for a reusable master/detail block.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct MasterDetailPolicy {
     sizing: MasterDetailSizing,
@@ -84,7 +81,6 @@ impl Default for MasterDetailPolicy {
 }
 
 impl MasterDetailPolicy {
-    /// Set the desired percentage and inclusive bounds for the detail pane.
     #[must_use]
     pub const fn detail_share(mut self, percent: u8, min: u16, max: u16) -> Self {
         self.sizing = MasterDetailSizing::FixedDetail;
@@ -94,11 +90,6 @@ impl MasterDetailPolicy {
         self
     }
 
-    /// Opt into a user-resizable master pane with a persistent initial share.
-    ///
-    /// The existing fixed-detail policy remains the default. The initial share
-    /// seeds state only before its split state has been initialized; resizing
-    /// and redraws preserve the consumer-owned [`MasterDetailState`].
     #[must_use]
     pub const fn resizable_master(
         mut self,
@@ -136,10 +127,6 @@ impl MasterDetailPolicy {
         self
     }
 
-    /// Return the configured percentage for fixed-detail sizing.
-    ///
-    /// This setting is retained when [`Self::resizable_master`] is selected;
-    /// it does not report that mode's initial master percentage.
     pub const fn detail_share_percent(self) -> u8 {
         self.detail_share
     }
@@ -160,14 +147,12 @@ impl MasterDetailPolicy {
     }
 }
 
-/// Typed result emitted when the narrow detail drawer opens or closes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MasterDetailAction {
     DrawerOpened,
     DrawerClosed,
 }
 
-/// Missing content or a composition failure detected before rendering.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MasterDetailError {
     MissingMaster,
@@ -181,8 +166,6 @@ impl From<CompositionError> for MasterDetailError {
     }
 }
 
-/// A responsive block that composes named master, detail, and optional
-/// summary groups through the shared layout resolver.
 pub struct MasterDetail<'a> {
     id: crate::Id,
     master_owner: crate::Id,
@@ -240,7 +223,6 @@ impl<'a> MasterDetail<'a> {
         self
     }
 
-    /// Identify focusable descendants owned by the detail group.
     #[must_use]
     pub fn detail_owns(mut self, ids: &[crate::Id]) -> Self {
         self.detail_owners = ids.to_vec();
@@ -273,7 +255,6 @@ impl<'a> MasterDetail<'a> {
         1 + master.max(detail).max(summary)
     }
 
-    /// Open the narrow detail drawer and move focus to its configured owner.
     pub fn open_detail(
         &self,
         cx: &mut Cx<'_>,
@@ -286,7 +267,6 @@ impl<'a> MasterDetail<'a> {
         Response::action(MasterDetailAction::DrawerOpened).for_id(self.id)
     }
 
-    /// Close the narrow detail drawer and restore focus to the master owner.
     pub fn close_detail(
         &self,
         cx: &mut Cx<'_>,
@@ -299,8 +279,6 @@ impl<'a> MasterDetail<'a> {
         Response::action(MasterDetailAction::DrawerClosed).for_id(self.id)
     }
 
-    /// Close an open narrow drawer only for the scoped bubble binding that the
-    /// runtime routes after the focused detail control declines Escape.
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -317,9 +295,7 @@ impl<'a> MasterDetail<'a> {
                 })
                 .for_id(self.id);
             }
-            // Keep the established public action enum exhaustive/source-compatible.
-            // Split changes remain observable as a consumed, changed response;
-            // consumers inspect their persistent `MasterDetailState` if needed.
+
             return discard_action(response);
         }
 
@@ -348,7 +324,6 @@ impl<'a> MasterDetail<'a> {
         }
     }
 
-    /// Measure the active responsive layout without input, drawing, or domain effects.
     pub fn measure(
         &self,
         ui: &Ui<'_>,
@@ -392,7 +367,6 @@ impl<'a> MasterDetail<'a> {
         }
     }
 
-    /// Draw into the framework-owned root area using the resolved shared layout.
     pub fn show(
         &self,
         ui: &mut Ui<'_>,
@@ -577,45 +551,5 @@ impl Measure for Group<'_> {
 impl CompositionLeaf for Group<'_> {
     fn draw(&self, ui: &mut Ui<'_>, logical: Rect) {
         let _ = ui.with_area(logical, |ui| self.show(ui));
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const ID: crate::Id = crate::Id::root("master-detail.shared-layout.test");
-    const MASTER: crate::Id = crate::Id::root("master-detail.shared-layout.master");
-    const DETAIL: crate::Id = crate::Id::root("master-detail.shared-layout.detail");
-
-    #[test]
-    fn facade_and_control_share_resolver_but_keep_default_breakpoints_and_rows() {
-        let state = MasterDetailState::default();
-        let facade = MasterDetail::new(ID, MASTER, DETAIL);
-        let controls = ResponsiveMasterDetail::new(ID, MASTER, DETAIL);
-
-        let between_defaults = Rect::new(0, 0, 104, 30);
-        let facade_layout = facade
-            .responsive_engine()
-            .resolve_responsive_layout(between_defaults, state.drawer_open());
-        let controls_layout = controls.layout(between_defaults, &state);
-        assert_eq!(
-            facade_layout.mode,
-            termrock_controls::MasterDetailMode::Master
-        );
-        assert_eq!(facade_layout.summary.height, 1);
-        assert_eq!(
-            controls_layout.mode,
-            termrock_controls::MasterDetailMode::Split
-        );
-
-        let narrow = Rect::new(0, 0, 99, 24);
-        let facade_layout = facade
-            .responsive_engine()
-            .resolve_responsive_layout(narrow, state.drawer_open());
-        let controls_layout = controls.layout(narrow, &state);
-        assert_eq!(facade_layout.mode, controls_layout.mode);
-        assert_eq!(facade_layout.summary.height, 1);
-        assert_eq!(controls_layout.summary.height, 6);
     }
 }

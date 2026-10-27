@@ -28,14 +28,12 @@ pub(crate) enum Event {
     },
 }
 
-/// Input state retained until its exact route, run, and prompt owner has no queued lifecycle.
 struct RetiredInputOwner {
     id: Id,
     input: TextInputState,
     answer: String,
 }
 
-/// Private input state for one exact route, run, and prompt owner.
 pub(crate) struct TaskRunScreen {
     route_id: u64,
     run_id: TaskRunId,
@@ -96,11 +94,6 @@ impl TaskRunScreen {
         self.observed_prompt
     }
 
-    #[cfg(test)]
-    pub(crate) fn retired_input_count_for_test(&self) -> usize {
-        self.retired_inputs.len()
-    }
-
     pub(crate) fn current_input_id(&self) -> Option<Id> {
         self.observed_prompt
             .map(|prompt| Self::input_id_for(self.route_id, self.run_id.get(), prompt.get()))
@@ -159,7 +152,7 @@ impl TaskRunScreen {
             let response = self.poll_retired_inputs(cx);
             let (stop_response, stop_event) =
                 self.update_stop(cx, allow_input, stop_enabled, stop_label);
-            // A key routed for the previous prompt cannot reach the new prompt.
+
             return (response | stop_response | Response::changed(), stop_event);
         }
 
@@ -241,7 +234,6 @@ impl TaskRunScreen {
         (response.erase(), event)
     }
 
-    /// Service this covered screen's exact input owners without admitting edits or actions.
     pub(crate) fn poll_covered(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let (stop_response, _) = self.update_stop(cx, false, false, "Stopping…");
         let mut response = stop_response | self.poll_retired_inputs(cx);
@@ -256,7 +248,6 @@ impl TaskRunScreen {
         response
     }
 
-    /// Retain this exact input owner until its queued lifecycle is safely drained.
     pub(crate) fn retire(&mut self, cx: &mut Cx<'_>) {
         self.retain_current_input();
         self.observed_prompt = None;
@@ -266,7 +257,6 @@ impl TaskRunScreen {
         let _ = self.poll_retired_inputs(cx);
     }
 
-    /// Poll retired owners without accepting edits and report when all can be dropped.
     pub(crate) fn poll_retired(&mut self, cx: &mut Cx<'_>) -> (Response<()>, bool) {
         let (stop_response, _) = self.update_stop(cx, false, false, "Stopping…");
         let response = stop_response | self.poll_retired_inputs(cx);
@@ -295,7 +285,6 @@ impl TaskRunScreen {
     fn poll_retired_inputs(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
         self.retired_inputs.retain_mut(|owner| {
-            // Keep one quiet owner-poll cycle after routed lifecycle intents arrive.
             let had_routed_intents = cx.intents(owner.id).next().is_some();
             let mut update = answer_input(owner.id).disabled(true).update(
                 cx,

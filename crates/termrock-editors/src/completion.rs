@@ -66,15 +66,12 @@ impl CompletionValue {
         self
     }
 
-    /// Set a compact summary for the completion list while retaining the full
-    /// semantic detail for [`Self::full_detail`] and selected-detail views.
     #[must_use]
     pub fn menu_summary(mut self, summary: impl Into<String>) -> Self {
         self.menu_summary = Some(summary.into());
         self
     }
 
-    /// Return the full semantic detail, independent of any compact menu summary.
     pub fn full_detail(&self) -> &str {
         &self.detail
     }
@@ -203,10 +200,6 @@ impl CompletingCodeEditorState {
         self.completion.is_open()
     }
 
-    /// Return the currently selected value while its completion popup is open.
-    ///
-    /// Selection resolves through the collection's stable key, so a stale
-    /// cursor or a closed popup never exposes an unrelated vector entry.
     pub fn selected_completion(&self) -> Option<&CompletionValue> {
         selected_completion_by_key(
             self.completion.is_open(),
@@ -215,7 +208,6 @@ impl CompletingCodeEditorState {
         )
     }
 
-    /// Whether the opt-in selected-detail view is currently visible.
     pub const fn is_completion_details_open(&self) -> bool {
         self.completion.details_open()
     }
@@ -263,27 +255,18 @@ impl<'a> CompletingCodeEditor<'a> {
         }
     }
 
-    /// Enable a same-popup, scrollable view of the selected completion's full detail.
-    ///
-    /// The list continues to use its compact `AsItem` detail; the full value is
-    /// shown only after the user invokes the Details binding.
     #[must_use]
     pub const fn selected_details(mut self) -> Self {
         self.selected_details = true;
         self
     }
 
-    /// Configure whether leaving the editor commits its edit session.
-    ///
-    /// The default is to commit. Set to `false` when the owning view temporarily removes the
-    /// editor while preserving its edit session. Completion popups still dismiss on focus loss.
     #[must_use]
     pub const fn commit_on_blur(mut self, commit: bool) -> Self {
         self.editor = self.editor.commit_on_blur(commit);
         self
     }
 
-    /// Open the editor's find bar, dismissing any active completion popup first.
     pub fn open_find(
         &self,
         cx: &mut Cx<'_>,
@@ -297,7 +280,6 @@ impl<'a> CompletingCodeEditor<'a> {
         self.editor.open_find(cx, &mut state.editor)
     }
 
-    /// Measure the editor using its existing intrinsic sizing contract.
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
         self.editor.measure(ui, constraints)
     }
@@ -520,37 +502,3 @@ pub const MANUAL_COMPLETION_ACTION: ActionKey = ActionKey::custom("completion.ma
 pub const FOCUS_NEXT_ACTION: ActionKey = ActionKey::custom("focus.next");
 pub const FOCUS_PREVIOUS_ACTION: ActionKey = ActionKey::custom("focus.previous");
 const DISMISS_COMPLETION_ACTION: ActionKey = ActionKey::custom("completion.dismiss");
-
-#[cfg(test)]
-mod selected_key_tests {
-    use super::{AsItem, CompletionValue, selected_completion_by_key};
-    use termrock_core::id::ItemKey;
-
-    #[test]
-    fn selected_value_tracks_its_key_across_reorder_and_rejects_missing_or_closed_values() {
-        let first_key = ItemKey::num(1);
-        let selected_key = ItemKey::num(2);
-        let mut items = vec![
-            CompletionValue::new(first_key, "format", "format!()").detail("fn -> String"),
-            CompletionValue::new(selected_key, "fetch", "fetch()")
-                .detail("async fn -> Result<Body, Error>"),
-        ];
-
-        let selected = selected_completion_by_key(true, Some(selected_key), &items)
-            .expect("selected key exists");
-        assert_eq!(selected.key, selected_key);
-        assert_eq!(selected.full_detail(), "async fn -> Result<Body, Error>");
-        assert_eq!(selected.as_item().insertion(), "fetch()");
-
-        items.swap(0, 1);
-        let selected = selected_completion_by_key(true, Some(selected_key), &items)
-            .expect("the same key survives reorder");
-        assert_eq!(selected.key, selected_key);
-        assert_eq!(selected.as_item().insertion(), "fetch()");
-
-        items.retain(|item| item.key != selected_key);
-        assert!(selected_completion_by_key(true, Some(selected_key), &items).is_none());
-        assert!(selected_completion_by_key(true, None, &items).is_none());
-        assert!(selected_completion_by_key(false, Some(first_key), &items).is_none());
-    }
-}

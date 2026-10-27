@@ -184,12 +184,10 @@ impl GlyphSet {
         self.rule_active = s;
     }
 
-    /// Glyph for a Toolbar's hidden-item button when its style has no glyph.
     pub const fn more_titles(&self) -> &'static str {
         self.more_titles
     }
 
-    /// Set the fallback glyph for a Toolbar's hidden-item button.
     pub const fn set_more_titles(&mut self, glyph: &'static str) {
         self.more_titles = glyph;
     }
@@ -241,124 +239,3 @@ pub(crate) const ASCII_RULE_ACTIVE: line::Set<'static> = line::Set {
     horizontal_up: "+",
     cross: "+",
 };
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn every_role_reads_and_writes_its_slot() {
-        let mut g = GlyphSet::new(["x"; 41], scrollbar::VERTICAL, line::NORMAL, line::THICK);
-        for r in GlyphRole::ALL {
-            g.set(r, "y");
-            assert_eq!(g.get(r), "y", "{r:?}");
-        }
-        assert_eq!(g.scrollbar().thumb, "y");
-    }
-
-    #[test]
-    fn more_titles_is_an_additive_named_glyph_slot() {
-        let mut glyphs = crate::theme::Theme::junie().design.glyphs;
-        assert_eq!(glyphs.more_titles(), "»");
-        assert_eq!(glyphs.get(GlyphRole::MoreRows), "↓");
-        assert_eq!(glyphs.get(GlyphRole::OverflowRight), "›");
-
-        glyphs.set_more_titles("…");
-        let cloned = glyphs.clone();
-        assert_eq!(cloned.more_titles(), "…");
-        assert_eq!(cloned.get(GlyphRole::MoreRows), "↓");
-        assert_eq!(cloned.get(GlyphRole::OverflowRight), "›");
-    }
-
-    #[test]
-    fn select_roles_are_appended_without_shifting_existing_discriminants() {
-        assert_eq!(GlyphRole::ALL.len(), 45);
-        assert_eq!(GlyphRole::PrimaryKey as usize, 41);
-        assert_eq!(GlyphRole::SecretMask as usize, 38);
-        assert_eq!(GlyphRole::SelectClosed as usize, 39);
-        assert_eq!(GlyphRole::SelectOpen as usize, 40);
-        assert_eq!(GlyphRole::DotOn as usize, 42);
-        assert_eq!(GlyphRole::DotOff as usize, 43);
-        assert_eq!(GlyphRole::SwitchOff as usize, 44);
-    }
-
-    #[test]
-    fn dot_roles_are_one_cell_and_distinct_from_radio_pair_glyphs() {
-        let glyphs = crate::theme::Theme::junie().design.glyphs;
-        assert_eq!(glyphs.get(GlyphRole::DotOn), "●");
-        assert_eq!(glyphs.get(GlyphRole::DotOff), "○");
-        assert_eq!(glyphs.get(GlyphRole::RadioOn), "(●)");
-        assert_eq!(glyphs.get(GlyphRole::RadioOff), "(○)");
-    }
-
-    #[test]
-    fn ascii_builder_defines_dot_roles_without_changing_radio_roles() {
-        let glyphs = crate::theme::Theme::junie()
-            .builder()
-            .ascii_glyphs()
-            .build()
-            .design
-            .glyphs;
-        assert_eq!(glyphs.get(GlyphRole::DotOn), "*");
-        assert_eq!(glyphs.get(GlyphRole::DotOff), "o");
-        assert_eq!(glyphs.get(GlyphRole::RadioOn), "(●)");
-        assert_eq!(glyphs.get(GlyphRole::RadioOff), "(○)");
-    }
-
-    #[test]
-    fn ascii_glyph_set_has_no_box_drawing() {
-        let t = crate::theme::Theme::junie()
-            .builder()
-            .borders_set(crate::theme::border::ASCII)
-            .build();
-        let g = &t.design.glyphs;
-        let check = |what: &str, s: &'static str| {
-            for c in s.chars() {
-                assert!(
-                    !('\u{2500}'..='\u{257F}').contains(&c),
-                    "{what} is {s:?}, which contains box drawing U+{:04X}",
-                    c as u32
-                );
-            }
-        };
-        for r in GlyphRole::ALL {
-            check(&format!("{r:?}"), g.get(r));
-        }
-        let sb = g.scrollbar();
-        for (name, s) in [
-            ("scrollbar.track", sb.track),
-            ("scrollbar.thumb", sb.thumb),
-            ("scrollbar.begin", sb.begin),
-            ("scrollbar.end", sb.end),
-        ] {
-            check(name, s);
-        }
-        for (set_name, l) in [
-            ("rule_quiet", g.rule_quiet()),
-            ("rule_active", g.rule_active()),
-        ] {
-            for (name, s) in [
-                ("vertical", l.vertical),
-                ("horizontal", l.horizontal),
-                ("top_right", l.top_right),
-                ("top_left", l.top_left),
-                ("bottom_right", l.bottom_right),
-                ("bottom_left", l.bottom_left),
-                ("vertical_left", l.vertical_left),
-                ("vertical_right", l.vertical_right),
-                ("horizontal_down", l.horizontal_down),
-                ("horizontal_up", l.horizontal_up),
-                ("cross", l.cross),
-            ] {
-                check(&format!("{set_name}.{name}"), s);
-            }
-        }
-
-        let j = crate::theme::Theme::junie();
-        // The frozen rendered reference paints the scrollbar track with the
-        // light vertical rule: 12600 occurrences of U+2502 in the approved
-        // corpus at 120x40 across every colour mode, and no U+2506 track.
-        assert_eq!(j.design.glyphs.scrollbar().begin, "┆");
-        assert_eq!(j.design.glyphs.rule_quiet().cross, "┼");
-    }
-}

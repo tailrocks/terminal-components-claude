@@ -1,22 +1,22 @@
-//! The external consumer application: a recipe shelf built only from the
-//! public Termrock APIs.
-//!
-//! The screen is composed as
-//!
-//! ```text
-//! AppShell
-//!  ├── header : MenuBar        (termrock-overlays)
-//!  ├── body   : MasterDetail   (termrock blocks)
-//!  │    ├── master  : NavList  (termrock-navigation)
-//!  │    ├── detail  : PropsList (termrock-controls)
-//!  │    └── summary : Button   (termrock-controls)
-//!  └── footer : StatusBar      (termrock-feedback)
-//! ```
-//!
-//! Every layout decision belongs to a shared component: the consumer never
-//! computes a rectangle, never paints a cell and never matches on a raw key
-//! or mouse event. Input is routed by the shared widgets, which answer with
-//! typed actions that the consumer maps onto its own domain actions.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use termrock::author::{CompositionLeaf, Constraints, Measure, Size};
 use termrock::blocks::{MasterDetail, MasterDetailAction, MasterDetailPolicy, MasterDetailState};
@@ -31,43 +31,43 @@ use termrock::{
 
 use crate::recipes::{RECIPES, Recipe};
 
-/// The master-detail workspace that owns the screen layout.
+
 pub const WORKSPACE: Id = Id::root("recipe-box.workspace");
-/// The menu bar in the shell header.
+
 pub const MENU_BAR: Id = Id::root("recipe-box.menu");
-/// The recipe list in the master pane.
+
 pub const RECIPE_LIST: Id = Id::root("recipe-box.recipes");
-/// The property sheet in the detail pane.
+
 pub const RECIPE_FACTS: Id = Id::root("recipe-box.facts");
-/// The summary row below the master-detail panes.
+
 pub const SCALE_BUTTON: Id = Id::root("recipe-box.scale");
-/// The summary row's second action.
+
 pub const COOK_BUTTON: Id = Id::root("recipe-box.cook");
-/// The status bar in the shell footer.
+
 pub const STATUS_BAR: Id = Id::root("recipe-box.status");
-/// The keyed status item that carries the note.
+
 pub const NOTE_ITEM: ItemKey = ItemKey::num(900);
 
-/// The menu action that scales the selected recipe.
+
 pub const MENU_SCALE: ActionKey = ActionKey::custom("recipe-box.menu.scale");
-/// The menu action that shows the about note.
+
 pub const MENU_ABOUT: ActionKey = ActionKey::custom("recipe-box.menu.about");
 
-/// The status note shown in the shell footer.
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Note {
-    /// Nothing has happened yet.
+
     Ready,
-    /// The selected recipe was scaled.
+
     Scaled,
-    /// The selected recipe was marked as cooked.
+
     Cooked,
-    /// The about note was requested.
+
     About,
 }
 
 impl Note {
-    /// The static text this note renders as.
+
     pub const fn text(self) -> &'static str {
         match self {
             Note::Ready => "Ready",
@@ -78,27 +78,27 @@ impl Note {
     }
 }
 
-/// The consumer's own typed domain actions.
-///
-/// Shared widgets answer with their own typed actions; the consumer maps them
-/// onto these so the domain never depends on a widget's vocabulary.
+
+
+
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Action {
-    /// The list cursor moved onto a recipe.
+
     Focused(ItemKey),
-    /// The user chose a recipe.
+
     Chose(ItemKey),
-    /// The detail pane opened in the narrow layout.
+
     DetailOpened,
-    /// The detail pane closed in the narrow layout.
+
     DetailClosed,
-    /// A menu item was chosen.
+
     MenuChosen(ActionKey),
-    /// The status bar reported a chosen item.
+
     StatusChosen(ItemKey),
-    /// The servings of a recipe were scaled.
+
     Scaled(ItemKey),
-    /// A recipe was marked as cooked.
+
     Cooked(ItemKey),
 }
 
@@ -127,7 +127,7 @@ fn recipe_course(recipe: &Recipe) -> &str {
     recipe.course
 }
 
-/// The recipe shelf application.
+
 #[derive(Debug)]
 pub struct RecipeBox {
     recipes: Vec<Recipe>,
@@ -160,37 +160,37 @@ impl Default for RecipeBox {
 }
 
 impl RecipeBox {
-    /// The typed actions this consumer has produced, oldest first.
+
     pub fn actions(&self) -> &[Action] {
         &self.actions
     }
 
-    /// The most recent typed action, if any.
+
     pub fn last_action(&self) -> Option<Action> {
         self.actions.last().copied()
     }
 
-    /// The recipe the list cursor currently addresses.
+
     pub fn selected(&self) -> Option<ItemKey> {
         self.selected
     }
 
-    /// The servings of the selected recipe.
+
     pub const fn servings(&self) -> u16 {
         self.servings
     }
 
-    /// Whether the selected recipe is marked as cooked.
+
     pub const fn cooked(&self) -> bool {
         self.cooked
     }
 
-    /// The note the status bar renders.
+
     pub const fn note(&self) -> Note {
         self.note
     }
 
-    /// The recipes on the shelf.
+
     pub fn recipes(&self) -> &[Recipe] {
         &self.recipes
     }
@@ -292,12 +292,12 @@ impl App for RecipeBox {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
 
-        // The recipe list owns the keyboard when the shelf opens.
+
         if cx.update_cause() == UpdateCause::Bootstrap {
             cx.focus(RECIPE_LIST);
         }
 
-        // The layout block gets first refusal on Escape.
+
         let block = self.block();
         let block_response = block.update(cx, &mut self.layout);
         if let Some(action) = block_response.action_ref().copied() {
@@ -341,7 +341,7 @@ impl App for RecipeBox {
         }
         response |= nav_response.erase();
 
-        // The detail pane always shows the recipe the list cursor addresses.
+
         if let Some(key) = self.list_state.cursor() {
             self.selected = Some(key);
         }
@@ -438,7 +438,7 @@ impl RecipeBox {
     }
 }
 
-/// The shell header leaf: the shared menu bar.
+
 struct MenuLeaf<'a> {
     bar: &'a MenuBar<'a>,
     state: &'a MenuState,
@@ -456,7 +456,7 @@ impl CompositionLeaf for MenuLeaf<'_> {
     }
 }
 
-/// The shell body leaf: the shared master-detail block.
+
 struct BodyLeaf<'a> {
     block: &'a MasterDetail<'a>,
     state: &'a MasterDetailState,
@@ -484,7 +484,7 @@ impl CompositionLeaf for BodyLeaf<'_> {
     }
 }
 
-/// The shell footer leaf: the shared status bar.
+
 struct StatusLeaf<'a> {
     bar: &'a StatusBar<'a>,
 }

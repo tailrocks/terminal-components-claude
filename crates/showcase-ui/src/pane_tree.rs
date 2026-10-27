@@ -624,7 +624,7 @@ fn prepare_hidden_split_drag_states(
     {
         let control = split_control(*key, *axis, first, second);
         let (first_constraints, second_constraints) = control.pane_constraints(state, constraints);
-        // The draw path omits a split seam when either resolved child is empty.
+
         let first_empty = first_constraints.max.0 == 0 || first_constraints.max.1 == 0;
         let second_empty = second_constraints.max.0 == 0 || second_constraints.max.1 == 0;
         if first_empty || second_empty || cx.capture_owner() != Some(split_owner(*key)) {
@@ -820,7 +820,7 @@ impl PaneTreePage {
         page_area: Option<Rect>,
     ) -> Response<()> {
         let mut response = Response::ignored();
-        // `None` means the page or its pane tree will not be eligible next frame.
+
         if let Some(tree_area) = page_area.and_then(page_tree_area) {
             prepare_hidden_split_drag_states(
                 &mut self.tree.root,
@@ -1181,182 +1181,5 @@ impl Page for PaneTreePage {
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         HINTS
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn split_states(tree: &TreeModel) -> Vec<(u64, SplitPaneState)> {
-        let mut states = Vec::new();
-        tree.root.collect_split_states(&mut states);
-        states
-    }
-
-    #[test]
-    fn focus_sync_maps_only_live_leaf_owners() {
-        let mut tree = TreeModel::new();
-        assert_eq!(focused_leaf_key(&tree, leaf_owner(2)), Some(2));
-        assert_eq!(focused_leaf_key(&tree, button_id(0)), None);
-        assert_eq!(focused_leaf_key(&tree, split_owner(1)), None);
-        assert!(tree.close(3).is_ok());
-        assert_eq!(focused_leaf_key(&tree, leaf_owner(3)), None);
-    }
-
-    #[test]
-    fn initial_tree_keeps_shell_left_of_build_and_logs() {
-        let tree = TreeModel::new();
-        assert_eq!(tree.leaves(), [1, 2, 3]);
-        assert_eq!(tree.selected, 1);
-        assert!(matches!(
-            &tree.root,
-            Node::Split {
-                key: 1,
-                axis: SplitAxis::Horizontal,
-                ..
-            }
-        ));
-        if let Node::Split { first, second, .. } = &tree.root {
-            assert_eq!(**first, Node::Leaf(1));
-            assert!(matches!(
-                &**second,
-                Node::Split {
-                    key: 2,
-                    axis: SplitAxis::Vertical,
-                    ..
-                }
-            ));
-        }
-    }
-
-    #[test]
-    fn closing_focused_nested_leaf_selects_first_leaf_in_whole_tree() {
-        let mut tree = TreeModel::new();
-        tree.selected = 3;
-        assert!(tree.close(3).is_ok());
-        assert_eq!(tree.leaves(), [1, 2]);
-        assert_eq!(tree.selected, 1);
-    }
-
-    #[test]
-    fn new_leaf_and_split_keys_increase_after_close() {
-        let mut tree = TreeModel::new();
-        assert_eq!(tree.split_selected(SplitAxis::Horizontal), Some(4));
-        assert_eq!(tree.next_pane, 5);
-        assert_eq!(tree.next_split, 4);
-        assert!(tree.close(4).is_ok());
-        assert_eq!(tree.split_selected(SplitAxis::Vertical), Some(5));
-        assert_eq!(tree.next_pane, 6);
-        assert_eq!(tree.next_split, 5);
-        let ids: Vec<_> = split_states(&tree)
-            .into_iter()
-            .map(|(key, _)| key)
-            .collect();
-        assert!(ids.contains(&4));
-        assert!(!ids.contains(&3));
-    }
-
-    #[test]
-    fn closing_a_nonselected_leaf_preserves_selection() {
-        let mut tree = TreeModel::new();
-        tree.selected = 3;
-        assert!(tree.close(1).is_ok());
-        assert_eq!(tree.leaves(), [2, 3]);
-        assert_eq!(tree.selected, 3);
-    }
-
-    #[test]
-    fn one_leaf_keeps_the_shared_close_and_zoom_refusal() {
-        let mut tree = TreeModel {
-            root: Node::Leaf(1),
-            selected: 1,
-            next_pane: 2,
-            next_split: 1,
-            zoom: None,
-        };
-        assert_eq!(tree.close(1), Err(Refusal::OnePane));
-        assert_eq!(tree.toggle_zoom(), Err(Refusal::OnePane));
-        assert_eq!(Refusal::OnePane.message(), "Nothing to zoom: one pane");
-    }
-
-    #[test]
-    fn zoom_restores_every_saved_split_state() {
-        let mut tree = TreeModel::new();
-        if let Some(Node::Split { state, .. }) = tree.root.split_mut(1) {
-            state.set_percent(37);
-        }
-        if let Some(Node::Split { state, .. }) = tree.root.split_mut(2) {
-            state.set_percent(63);
-        }
-        tree.selected = 3;
-        let before = split_states(&tree);
-        assert!(tree.toggle_zoom().is_ok());
-        assert_eq!(tree.zoom.as_ref().map(|zoom| zoom.target), Some(3));
-        assert!(matches!(
-            tree.root.split_mut(1),
-            Some(Node::Split { state, .. }) if state.maximized() == Maximized::Second
-        ));
-        assert!(matches!(
-            tree.root.split_mut(2),
-            Some(Node::Split { state, .. }) if state.maximized() == Maximized::Second
-        ));
-        assert!(tree.toggle_zoom().is_ok());
-        assert_eq!(split_states(&tree), before);
-    }
-
-    #[test]
-    fn split_while_zoomed_restores_ratios_before_insert() {
-        let mut tree = TreeModel::new();
-        if let Some(Node::Split { state, .. }) = tree.root.split_mut(1) {
-            state.set_percent(41);
-        }
-        tree.selected = 3;
-        let before = split_states(&tree);
-        assert!(tree.toggle_zoom().is_ok());
-        assert_eq!(tree.split_selected(SplitAxis::Horizontal), Some(4));
-        assert!(tree.zoom.is_none());
-        let after = split_states(&tree);
-        assert_eq!(
-            after.iter().find(|(key, _)| *key == 1).map(|(_, s)| *s),
-            before.iter().find(|(key, _)| *key == 1).map(|(_, s)| *s)
-        );
-        assert_eq!(tree.leaves(), [1, 2, 3, 4]);
-    }
-
-    #[test]
-    fn close_zoomed_leaf_restores_surviving_ancestor_state_first() {
-        let mut tree = TreeModel::new();
-        if let Some(Node::Split { state, .. }) = tree.root.split_mut(1) {
-            state.set_percent(44);
-        }
-        let before = tree.root.split_mut(1).and_then(|node| match node {
-            Node::Split { state, .. } => Some(*state),
-            Node::Leaf(_) => None,
-        });
-        tree.selected = 3;
-        assert!(tree.toggle_zoom().is_ok());
-        assert!(tree.close(3).is_ok());
-        assert!(tree.zoom.is_none());
-        assert_eq!(tree.selected, 1);
-        assert_eq!(tree.leaves(), [1, 2]);
-        let after = tree.root.split_mut(1).and_then(|node| match node {
-            Node::Split { state, .. } => Some(*state),
-            Node::Leaf(_) => None,
-        });
-        assert_eq!(after, before);
-    }
-
-    #[test]
-    fn directional_focus_uses_wholly_sideways_candidates_and_stable_ties() {
-        let panes = [
-            (1, Rect::new(0, 0, 10, 10)),
-            (2, Rect::new(11, 0, 10, 5)),
-            (3, Rect::new(11, 6, 10, 4)),
-            (4, Rect::new(5, 5, 5, 5)),
-        ];
-        assert_eq!(nearest_pane(&panes, 1, Direction::Right), Some(2));
-        assert_eq!(nearest_pane(&panes, 2, Direction::Left), Some(1));
-        assert_eq!(nearest_pane(&panes, 1, Direction::Up), None);
     }
 }

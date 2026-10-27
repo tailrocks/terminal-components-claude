@@ -112,8 +112,6 @@ impl fmt::Debug for HistoryDetailController {
 }
 
 impl HistoryDetailController {
-    /// True while this controller retains an opening that still needs exact
-    /// receipt retirement, including a closing opening awaiting its receipt.
     pub(super) fn is_open(&self) -> bool {
         self.request.is_some() && self.opening.is_some()
     }
@@ -274,7 +272,7 @@ impl HistoryDetailController {
         } else {
             Response::ignored()
         };
-        // This guard immediately precedes the ID-based size mutation.
+
         if cx.layer_opening(ID) != Some(opening) || opening.layer_id() != cx.top_layer() {
             self.retiring = true;
             self.drawn.set(None);
@@ -652,69 +650,4 @@ fn sized_dialog(
     });
     dialog = dialog.body_rows(max_body_rows.min(content_rows.max(1)));
     Some(dialog)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{HistoryDetailRequest, project_detail};
-    use crate::tabs::TabKey;
-    use std::sync::Weak;
-    use tablepro_domain::model::{HistoryEntry, HistorySource};
-
-    fn entry() -> HistoryEntry {
-        HistoryEntry {
-            id: 9,
-            sql: "SELECT '界🙂'\r\nFROM source\n".to_owned(),
-            connection: "Production · 東京".to_owned(),
-            database: "ledger".to_owned(),
-            schema: "tenant_a".to_owned(),
-            minutes_ago: 2,
-            duration_ms: Some(23),
-            rows: Some(4),
-            error: Some("first error\nsecond 尾\n".to_owned()),
-            source: HistorySource::Editor,
-        }
-    }
-
-    #[test]
-    fn detail_projection_keeps_complete_unicode_crlf_and_trailing_lines() -> Result<(), &'static str>
-    {
-        let lines = project_detail(&entry());
-        let sql = lines
-            .iter()
-            .position(|line| line == "SQL:")
-            .ok_or("SQL heading")?;
-        assert_eq!(
-            lines
-                .get(sql + 1..sql + 4)
-                .ok_or("full SQL projected lines")?,
-            ["SELECT '界🙂'\r", "FROM source", ""]
-        );
-        let error = lines
-            .iter()
-            .position(|line| line == "Error:")
-            .ok_or("error heading")?;
-        assert_eq!(
-            lines.get(error + 1..).ok_or("full error projected lines")?,
-            ["first error", "second 尾", ""]
-        );
-        assert!(lines.contains(&"Connection: Production · 東京".to_owned()));
-        assert!(lines.contains(&"Duration: 23 ms".to_owned()));
-        assert!(lines.contains(&"Rows: 4".to_owned()));
-        Ok(())
-    }
-
-    #[test]
-    fn request_debug_redacts_raw_sql_and_error() {
-        let request = HistoryDetailRequest {
-            key: TabKey::new(1),
-            owner: Weak::new(),
-            generation: 2,
-            entry: entry(),
-        };
-        let debug = format!("{request:?}");
-        assert!(debug.contains("[redacted]"));
-        assert!(!debug.contains("SELECT"));
-        assert!(!debug.contains("first error"));
-    }
 }

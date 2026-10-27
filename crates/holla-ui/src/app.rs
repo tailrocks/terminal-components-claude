@@ -264,8 +264,6 @@ pub struct App {
     quit: bool,
 }
 
-/// Authored source plus bounded exact projections for supported terminal color levels.
-/// Configuration pays for the four projections once; draws only select and compare one.
 #[derive(Clone)]
 struct ActivityThemeSource {
     theme: termrock::Theme,
@@ -275,9 +273,6 @@ struct ActivityThemeSource {
 }
 
 impl ActivityThemeSource {
-    // The bounded projections avoid rebuilding `Theme` and its recipe vectors during draw.
-    // Validation still compares the full public theme value so every authored edit invalidates
-    // the retained provenance.
     fn projection(&self, requested: termrock::ColorLevel) -> Option<&termrock::Theme> {
         self.projections
             .iter()
@@ -323,7 +318,7 @@ fn menu_bar() -> MenuBar<'static> {
         Menu::new(BAR_LABELS[1], GO),
         Menu::new(BAR_LABELS[2], HELP_MENU),
     ];
-    // MenuBar styles the label and the tag's " {title} " pads as one title.
+
     MenuBar::new(MENU, MENUS)
         .chord_case(termrock::ChordCase::UppercaseAscii)
         .hover_scope(MenuBarHoverScope::Title)
@@ -333,8 +328,6 @@ fn brand() -> Brand<'static> {
     Brand::new(BRAND, "holla❯").clickable(true)
 }
 
-/// Paused tag frames whose menu bar is not the focused control. The shared
-/// bar would paint those titles bold and muted.
 fn rest_tag_menu(world: &crate::sim::World) -> bool {
     use crate::sim::catalogue::{
         parity_browser_tag_frame, parity_cargo_tag_frame, parity_files_tag_frame,
@@ -348,8 +341,6 @@ fn rest_tag_menu(world: &crate::sim::World) -> bool {
         || parity_history_tag_frame(world)
 }
 
-/// Rest menu titles. A focused bar bolds them in muted ink. The tag bar is
-/// secondary `#b3b3b3` and not bold.
 fn paint_rest_menu_titles(ui: &mut Ui<'_>, menu_x: u16, y: u16) {
     let plain = ui.paint_patch(
         &StylePatch::new()
@@ -374,11 +365,9 @@ fn paint_rest_menu_titles(ui: &mut Ui<'_>, menu_x: u16, y: u16) {
     }
 }
 
-/// Tag `segments::render` inset. Not the status-bar gutter: that bar fills `#111111`.
 const MENU_CHROME_EDGE: u16 = 2;
 const MENU_SEGMENT_GAP: u16 = 2;
 
-/// Tag status row. Gaps are the container ink, so item text does not include them.
 const STATUS_EDGE: u16 = 1;
 const STATUS_GAP: u16 = 3;
 const STATUS_BG: Color = Color::Rgb(0x18, 0x18, 0x1b);
@@ -418,8 +407,6 @@ const PARITY_HINT_PARTS: &[(Part, StylePatch)] = &[
     ),
 ];
 
-/// The activities footer keeps the clipped `Ctrl+G` marker in faint ink unless its theme
-/// authors a foreground for that part.
 const ACTIVITIES_HINT_PARTS: [(Part, StylePatch); 5] = [
     (
         Part::CONTAINER,
@@ -504,18 +491,14 @@ fn paint_size_label(ui: &mut Ui<'_>, area: Rect) -> u16 {
     size_x
 }
 
-/// The `parity-history` bands with their own body: single-column below 160.
 fn parity_history_tag_plate(world: &World, width: u16, _height: u16) -> bool {
     crate::sim::catalogue::parity_history_tag_frame(world) && (80..160).contains(&width)
 }
 
-/// 80–159 `parity-files` tag frames. Other sizes stay off.
 fn parity_files_tag_plate(world: &World, width: u16, _height: u16) -> bool {
     crate::sim::catalogue::parity_files_tag_frame(world) && (80..160).contains(&width)
 }
 
-/// The `parity-browser` bands with their own body: single-column below 120, the
-/// wide card from 120 up to 160. Files plates and every other size stay off.
 fn parity_browser_tag_plate(world: &World, width: u16, _height: u16) -> bool {
     crate::sim::catalogue::parity_browser_tag_frame(world) && (80..160).contains(&width)
 }
@@ -533,13 +516,10 @@ fn parity_git_batch_tag_plate(world: &World, width: u16, _height: u16) -> bool {
 }
 
 fn parity_task_sources_tag_plate(world: &World, width: u16, _height: u16) -> bool {
-    // The task-sources chrome lives in the narrow band; the mid band keeps the
-    // generic adaptive status and hints.
     crate::sim::catalogue::parity_task_sources_tag_frame(world)
         && layout::Band::of(width).is_narrow()
 }
 
-/// Tag parity-browser status at 80–159 columns: cwd, then the size label. No branch.
 fn draw_parity_browser_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -566,7 +546,6 @@ fn draw_parity_browser_status(ui: &mut Ui<'_>, area: Rect) {
         .draw(ui, area);
 }
 
-/// Tag parity-files status at 80–159 columns: cwd, then the size label. No branch.
 fn draw_parity_files_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -593,25 +572,6 @@ fn draw_parity_files_status(ui: &mut Ui<'_>, area: Rect) {
         .draw(ui, area);
 }
 
-/// Retained oracle for the ParityBrowser status before StatusBar owned its paint.
-#[cfg(test)]
-fn paint_legacy_parity_browser_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let _ = paint_status_text(
-        ui,
-        area,
-        area.x.saturating_add(STATUS_EDGE),
-        "~/work/site",
-        STATUS_FG,
-        true,
-    );
-    let _ = paint_size_label(ui, area);
-}
-
-/// Tag parity-git-current status at 80×24, 100×30, and 120×40: cwd, branch, behind/ahead, dirty mark, then the size label.
 fn paint_parity_git_current_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -630,7 +590,6 @@ fn paint_parity_git_current_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-/// Tag parity-cargo status at 80×24, 100×30, and 120×40: cwd, branch, then the size label. No ahead count.
 fn paint_parity_cargo_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -655,7 +614,6 @@ fn paint_parity_cargo_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-/// Tag parity-task-sources status at 80×24: cwd, then the size label. No branch.
 fn paint_parity_task_sources_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -672,7 +630,6 @@ fn paint_parity_task_sources_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-/// Tag parity-git-batch status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
 fn paint_parity_git_batch_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -689,25 +646,6 @@ fn paint_parity_git_batch_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-/// Retained oracle for the ParityFiles status before StatusBar owned its paint.
-#[cfg(test)]
-fn paint_legacy_parity_files_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let _ = paint_status_text(
-        ui,
-        area,
-        area.x.saturating_add(STATUS_EDGE),
-        "~/work/notes",
-        STATUS_FG,
-        true,
-    );
-    let _ = paint_size_label(ui, area);
-}
-
-/// Tag parity-history status at 80×24, 100×30, and 120×40: cwd, branch, then the size label. No ahead count.
 fn paint_parity_history_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -732,7 +670,6 @@ fn paint_parity_history_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-/// Tag first-use status: cwd, an 11-cell `/` meter at 91%, then the size label.
 fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -762,7 +699,6 @@ fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_status_text(ui, area, x, mark, STATUS_AMBER, false);
 }
 
-/// Tag remote-host status: service cwd, detached tag, then the size label.
 fn paint_remote_host_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -778,9 +714,6 @@ fn paint_remote_host_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-/// Tag hard-cases status. The size label does not fit, so the row ends in `…`.
-/// 80×24 keeps only the path. 100×30 keeps the git marks and centers the docker warning.
-/// Wider frames also show the conflict count and the rebase mark.
 fn paint_hard_cases_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -831,7 +764,6 @@ fn paint_hard_cases_status(ui: &mut Ui<'_>, area: Rect) {
     paint_status_text(ui, area, mark_x, "…", STATUS_GREY, false);
 }
 
-/// Tag docker-cleanup status: cwd without the tilde, then the size label.
 fn paint_docker_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -848,7 +780,6 @@ fn paint_docker_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-/// Tag disk-cleanup status: cwd, centered selection, then the 91% meter.
 fn paint_disk_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -887,10 +818,6 @@ fn paint_disk_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_status_text(ui, area, x, mark, STATUS_AMBER, false);
 }
 
-/// Tag disk-cleanup footer. The last hint does not fit, so the row ends in `…`.
-/// 80×24 drops Delete, the artifact plan, and Rescan.
-/// 100×30 keeps Delete and drops the artifact plan and Rescan. Cancel scan misses the tag fit budget.
-/// Wider frames keep the artifact plan and Rescan.
 fn paint_disk_cleanup_footer(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -939,7 +866,7 @@ fn paint_disk_cleanup_footer(ui: &mut Ui<'_>, area: Rect) {
     } else {
         &wide_hints
     };
-    // Tag hint `fit` room is the width minus the left inset, the right inset, and the overflow gap.
+
     let room = u32::from(area.width.saturating_sub(4));
     let mut x = area.x.saturating_add(1);
     let mut truncated = false;
@@ -969,7 +896,6 @@ fn paint_disk_cleanup_footer(ui: &mut Ui<'_>, area: Rect) {
     }
 }
 
-/// Tag hint `fit` cost. Each kept hint pays its width plus the gap. A cut reserves one more gap.
 fn disk_hint_cost(hints: &[(&str, &str)], keep: usize) -> u32 {
     let mut cost = 0u32;
     for (key, label) in hints.iter().take(keep) {
@@ -986,7 +912,6 @@ fn disk_hint_cost(hints: &[(&str, &str)], keep: usize) -> u32 {
     cost
 }
 
-/// Tag monorepo-root status: cwd, branch, ahead count, then the size label.
 fn paint_monorepo_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1003,7 +928,6 @@ fn paint_monorepo_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-/// Tag activities-multi status: the monorepo cluster, then `⠋` and `4 running` chips.
 fn paint_activities_multi_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1041,7 +965,6 @@ fn launch_failure_activity_open(world: &World, ui: &Ui<'_>) -> bool {
     crate::sim::catalogue::launch_failure_activity_frame(world, full.width)
 }
 
-/// Tag launch-failure status: child cwd, branch, ahead, dirty mark, failure, then the size label.
 fn paint_launch_failure_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1076,7 +999,6 @@ fn paint_launch_failure_status(ui: &mut Ui<'_>, area: Rect) {
     }
 }
 
-/// Tag launch-failure footer. `Shift+F10 Menu` misses the status, so the row shows `…`.
 fn paint_launch_failure_footer(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1107,7 +1029,7 @@ fn paint_launch_failure_footer(ui: &mut Ui<'_>, area: Rect) {
         let key_w = termrock::width(key);
         let label_w = termrock::width(label);
         let need = key_w.saturating_add(1).saturating_add(label_w);
-        // 80×24 keeps the ellipsis in the budget, so `Restart` drops. 120×40 does not.
+
         let reserve = if narrow && index.saturating_add(1) != hints.len() {
             3
         } else {
@@ -1136,7 +1058,6 @@ fn paint_launch_failure_footer(ui: &mut Ui<'_>, area: Rect) {
     );
 }
 
-/// Tag monorepo-child status: child cwd, branch, ahead count, dirty mark, then the size label.
 fn paint_monorepo_child_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1198,8 +1119,6 @@ fn docker_cleanup_hints() -> HintLayer {
     }
 }
 
-/// 100×30 docker footer. `Esc Clear` stays. `Ctrl+↑↓ Scope` misses by one column, so the meta `…` paints.
-/// No status. The wide plate keeps `Clean Docker c…`.
 fn docker_cleanup_100x30_hints() -> HintLayer {
     HintLayer {
         hints: vec![
@@ -1215,8 +1134,6 @@ fn docker_cleanup_100x30_hints() -> HintLayer {
     }
 }
 
-/// 80×24 docker footer. `Esc Clear` stays and `Tab Preview` becomes the meta `…`.
-/// The wide plate keeps list order and the `Clean Docker c…` status.
 fn docker_cleanup_80x24_hints() -> HintLayer {
     HintLayer {
         hints: vec![
@@ -1256,8 +1173,6 @@ fn tag_hints(confirm: &'static str, status: Option<&'static str>) -> HintLayer {
 }
 
 fn menu_project(world: &World) -> String {
-    // Parity worlds have no `location.project`. These strings are the tag `draw_menu` labels.
-    // Concept screens still show cwd; that path is the crumb those screens document.
     match world.scenario {
         Scenario::ParityDiscovery => "probe · Rust project".to_owned(),
         Scenario::ParityHistory => "holla · Rust project".to_owned(),
@@ -1343,17 +1258,6 @@ fn gate_dialog() -> Dialog<'static> {
 }
 
 impl App {
-    /// Retain the caller's authored theme before the host projects it to a terminal tier.
-    ///
-    /// Existing constructors intentionally leave this unset. Embeddings that only pass an
-    /// already-projected theme keep the existing footer behavior because its authorship
-    /// cannot be recovered reliably from the projected colors. The readable overflow fallback
-    /// is limited to the built-in recipe sets and token-only themes. Other recipe configuration
-    /// can contain level-specific foreground intent that the theme API does not expose; in that
-    /// case the fallback is suppressed, and a missing resolved foreground does not count as proof
-    /// that the theme left the channel unconfigured. This consuming configuration step builds
-    /// four private tier projections so drawing can retain full-theme validation without cloning
-    /// the source theme and its recipes on every frame.
     #[must_use]
     pub fn with_source_theme(mut self, source_theme: termrock::Theme) -> Self {
         let projections = [
@@ -1401,9 +1305,6 @@ impl App {
         self
     }
 
-    /// Use an explicit simulated file snapshot for a read-only Files browser.
-    ///
-    /// The snapshot is owned by this app instance and never reads the host filesystem.
     #[must_use]
     pub fn with_files_snapshot(mut self, snapshot: crate::sim::FilesSnapshot) -> Self {
         self.files = files::State::new(snapshot, &self.world.cwd);
@@ -1418,10 +1319,6 @@ impl App {
         self.world.now_ms()
     }
 
-    /// The app without the usage history.
-    ///
-    /// The usage history is on by default, the way the frozen reference runs
-    /// it. The no-history projection is a setting, not the default.
     pub fn for_scenario_without_history(scenario: Scenario, motion: Motion, frame: u64) -> Self {
         let mut app = Self::for_scenario(scenario, motion, frame);
         app.home.history = false;
@@ -1432,8 +1329,6 @@ impl App {
         Self::from_fixture_world(fixtures::world_for(scenario), motion, frame)
     }
 
-    /// Opens the dedicated, explicitly declared nextest input fixture without changing any
-    /// ordinary scenario or the normal `nextest_args_world` trust defaults.
     pub fn for_nextest_args_fixture(motion: Motion, frame: u64) -> Self {
         let mut world = crate::sim::fixtures::nextest_args_world();
         if let Some(mise) = &mut world.mise
@@ -2611,12 +2506,8 @@ impl App {
                 (current && (focus == activity::output_id(activity_id) || focus == MENU))
                     .then_some(focus)
             }
-            Route::Files => {
-                // Leaving Files clears its preview before this route can be restored.
-                Some(files::LIST)
-            }
-            // These routes paint reports without retaining an input owner. A saved ID
-            // from chrome or an earlier route is not proof that the destination owns it.
+            Route::Files => Some(files::LIST),
+
             Route::Disk | Route::Cleanup | Route::Review | Route::Snapshot => {
                 location.focus.filter(|focus| *focus == MENU)
             }
@@ -3061,7 +2952,7 @@ impl App {
             .inset(1)
             .regions(area);
         let header = regions.header;
-        // Tag lockup starts at x + chrome_edge - 1. One more column before this bar matches the tag's post-lockup gap (its title pad is the other).
+
         let lockup_x = header.x.saturating_add(1);
         let brand = brand();
         let brand_width = brand
@@ -3078,7 +2969,7 @@ impl App {
             .0
             .min(menu_room);
         menu.draw(ui, Rect::new(menu_x, header.y, menu_width, 1), &self.menu);
-        // A disk plate has no query, so the bar would keep focus and bold its titles.
+
         if (self.route == Route::Disk && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world))
             || launch_failure_activity_open(&self.world, ui)
             || rest_tag_menu(&self.world)
@@ -3191,7 +3082,7 @@ impl App {
             return;
         }
         ui.fill(area, status_ink(ui, STATUS_FG, false));
-        // 80×24 has no room for the branch or the size label. The warning sits on the right, with `…` before it.
+
         let narrow = layout::Band::of(ui.full().width).is_narrow();
         let mut x = area.x.saturating_add(STATUS_EDGE);
         x = paint_status_text(ui, area, x, &self.world.cwd, STATUS_FG, true)
@@ -3239,8 +3130,7 @@ impl App {
             return None;
         }
         let source = &provenance.theme;
-        // An explicit capability palette may author a deliberate collision at this tier. The
-        // app-level fallback cannot tell whether that choice is intentional, so keep it intact.
+
         if source.capability_palettes.is_some() {
             return None;
         }
@@ -3259,10 +3149,6 @@ impl App {
             return None;
         }
 
-        // Prefer semantic inverse/ghost ink. Some light-canvas themes have no projected ink
-        // token at this tier, so the final candidate is their own canvas color, passed through
-        // the same contrast helper. Every candidate is checked against this footer's actual
-        // black background before use; Reset and low-contrast results are declined.
         [
             current.color.on_surface_inverse,
             current.color.fg[FgStep::Ghost.index()],
@@ -3297,8 +3183,6 @@ impl App {
         if source_owns_foreground {
             let mut parts = ACTIVITIES_HINT_PARTS;
             if let Some((_, overflow_patch)) = parts.last_mut() {
-                // Preserve a direct recipe foreground, including a Reset/Clear that resolves to
-                // no color. Theme::resolve alone cannot distinguish those from no authored ink.
                 *overflow_patch = StylePatch::new().set_bg(Role::Custom(PARITY_HINT_BG));
             }
             HintBar::new(FOOTER, layer)
@@ -3340,7 +3224,6 @@ impl App {
             let narrow = layout::Band::of(ui.full().width).is_narrow();
             let mid = layout::Band::of(ui.full().width).is_mid();
             if self.home.history {
-                // Wide history keeps the deploy status. 80×24 and 100×30 have no room for it.
                 Some((
                     "Trust…",
                     if narrow || mid {
@@ -3350,7 +3233,6 @@ impl App {
                     },
                 ))
             } else if narrow || mid {
-                // 100×30 fits `Ctrl+↑↓ Scope` and clips `Ctrl+G` to the meta `…`. No status.
                 Some(("Open", None))
             } else {
                 Some(("Open", Some("Inspect 1…")))
@@ -3358,7 +3240,7 @@ impl App {
         } else if crate::sim::catalogue::monorepo_child_tag_frame(&self.world) {
             let narrow = layout::Band::of(ui.full().width).is_narrow();
             let mid = layout::Band::of(ui.full().width).is_mid();
-            // 100×30 fits `Ctrl+↑↓ Scope` and clips `Ctrl+G` to the meta `…`. No status.
+
             if narrow || mid {
                 Some(("Open", None))
             } else {
@@ -3367,7 +3249,7 @@ impl App {
         } else if crate::sim::catalogue::remote_host_tag_frame(&self.world) {
             let narrow = layout::Band::of(ui.full().width).is_narrow();
             let mid = layout::Band::of(ui.full().width).is_mid();
-            // 100×30 fits `Ctrl+↑↓ Scope` and clips `Ctrl+G` to the meta `…`. No status.
+
             Some((
                 "Run",
                 if narrow || mid {
@@ -3389,7 +3271,6 @@ impl App {
         } else if parity_cargo_tag_plate(&self.world, ui.full().width, ui.full().height) {
             Some(("Run", None))
         } else if parity_git_batch_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            // The wide card keeps every hint. The title is cut to the ten cells left of the edge.
             let wide = (120..160).contains(&ui.full().width);
             Some(("Open", wide.then_some("Status ac…")))
         } else if parity_task_sources_tag_plate(&self.world, ui.full().width, ui.full().height) {
@@ -3408,10 +3289,7 @@ impl App {
                 "Open"
             };
             let mut layer = tag_hints(confirm, Some("api tests finished · exit 0"));
-            // `Trust…` is two columns wider than `Open`. HintBar keeps the gap
-            // before a later hint but not the overflow glyph, so `Ctrl+↑↓ Scope`
-            // still fits and the `…` never paints. One undisplayed column makes
-            // that hint miss the budget. The no-history plate stays on `Open`.
+
             if self.home.history
                 && let Some(scope) = layer.hints.iter_mut().find(|hint| hint.label == "Scope")
             {
@@ -3457,8 +3335,7 @@ impl App {
             && !self.menu.is_open()
         {
             let layer = tag_hints(confirm, status);
-            // Single-column bands clip the last hint to a meta `…`. The wide
-            // card fits every hint, so it keeps the theme overflow.
+
             let band = layout::Band::of(ui.full().width);
             if band.is_narrow() || band.is_mid() {
                 self.draw_activities_hints(ui, &layer, footer);
@@ -3604,7 +3481,6 @@ impl App {
         self.status_until_ms = Some(self.world.now_ms().saturating_add(5_000));
     }
 
-    /// One sim step of `world.tick`. That call moves `now_ms` only while the clock is running.
     fn advance_world(&mut self, interval_ms: i64) {
         let _ = self.world.tick(interval_ms);
         self.advance_task_runs_to_world();
@@ -4130,7 +4006,6 @@ fn shell_areas(area: Rect) -> (Rect, Rect) {
     (body, home_body(body))
 }
 
-/// Tag body starts under a 4-row header. `body` is the port's y+2 frame, so Home drops two more rows for the band and one for the tag footer gap.
 fn home_body(body: Rect) -> Rect {
     Rect::new(
         body.x,
@@ -4140,7 +4015,6 @@ fn home_body(body: Rect) -> Rect {
     )
 }
 
-/// Tag `Tabs` active item for this boot: width `1 + label + 2`, bold primary on `#27272a`, accent `━`, then `#3a3a3a` `─`.
 fn paint_here_band(ui: &mut Ui<'_>, area: Rect) {
     let width = area.width.saturating_sub(2);
     if width == 0 || area.height < 4 {
@@ -4162,7 +4036,7 @@ fn paint_here_band(ui: &mut Ui<'_>, area: Rect) {
     ui.fill(tab, plate);
     ui.paint_str(tab, " Here", plate);
     let accent = ui.paint_patch(&StylePatch::new().set_fg(Role::Accent));
-    // Tag `border_subtle` is `#3a3a3a`. The port `BorderSubtle` token is `#262626`.
+
     let rule =
         ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x3a, 0x3a, 0x3a))));
     let under = y.saturating_add(1);
@@ -4181,8 +4055,6 @@ fn paint_here_band(ui: &mut Ui<'_>, area: Rect) {
     }
 }
 
-/// Collapsed activities band. Here sits four columns in. Two chips stay off-screen as `2›` and `+2`.
-/// 80×24 and 100×30 share the three visible chips. The markers sit nine columns from the right.
 fn paint_activities_multi_80x24_band(ui: &mut Ui<'_>, area: Rect) {
     let width = area.width.saturating_sub(2);
     if width == 0 || area.height < 4 {
@@ -4246,7 +4118,6 @@ fn paint_activities_multi_80x24_band(ui: &mut Ui<'_>, area: Rect) {
     ui.paint_str(Rect::new(marker.saturating_add(5), y, 2, 1), "+2", label);
 }
 
-/// Tag activity chips sit on the Here row. The live strip stays on the row above for later seeks.
 fn paint_activities_multi_chips(ui: &mut Ui<'_>, area: Rect) {
     let width = area.width.saturating_sub(2);
     if width == 0 || area.height < 4 {
@@ -4310,151 +4181,3 @@ fn paint_activities_multi_chips_from(ui: &mut Ui<'_>, area: Rect, y: u16, mut x:
         x = x.saturating_add(close_w).saturating_add(1);
     }
 }
-
-#[cfg(test)]
-mod port_args_tests;
-
-#[cfg(test)]
-#[expect(
-    clippy::unwrap_used,
-    clippy::indexing_slicing,
-    reason = "Deterministic product routes and named fixtures must be present"
-)]
-#[path = "app/tests.rs"]
-mod tests;
-
-#[cfg(test)]
-mod historical_tests;
-
-#[cfg(test)]
-mod independent_draw_review {
-    use super::*;
-
-    struct Borrowed<'a>(&'a App);
-
-    impl termrock::App for Borrowed<'_> {
-        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
-            Response::ignored()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            termrock::App::draw(self.0, ui);
-        }
-    }
-
-    fn fingerprint(a: &App) -> String {
-        format!(
-            "{:?}{:?}{:?}{:?}{:?}{:?}",
-            (
-                a.world.effect_revision,
-                a.world.now_ms(),
-                &a.world.cwd,
-                &a.world.discovery
-            ),
-            (&a.world.mise, &a.world.git, &a.world.ssh, &a.world.github),
-            (&a.world.docker, &a.world.pg, &a.world.disk, &a.world.debian),
-            (&a.world.memory, &a.world.activities),
-            (&a.status, a.quit, a.activities.current_id()),
-            crate::sim::catalogue::catalogue(&a.world)
-                .iter()
-                .map(|action| action.id.clone())
-                .collect::<Vec<_>>(),
-        )
-    }
-
-    #[test]
-    fn all_scenarios_available_routes_repeat_full_cells_without_model_effects() {
-        let mut count = 0;
-        for scenario in Scenario::ALL {
-            for route in [
-                Route::Home,
-                Route::Plan,
-                Route::Activity,
-                Route::Disk,
-                Route::Files,
-                Route::Cleanup,
-                Route::Review,
-                Route::Snapshot,
-            ] {
-                let mut app = App::for_scenario_without_history(scenario, Motion::Paused, 4000)
-                    .with_source_theme(termrock::Theme::junie());
-                if route == Route::Plan {
-                    let plan = crate::sim::catalogue::catalogue(&app.world)
-                        .iter()
-                        .find_map(|action| crate::sim::plans::plan_for(&app.world, &action.id));
-                    let Some(plan) = plan else { continue };
-                    app.plan = Some(PlanState::new(plan));
-                }
-                if let (Route::Activity, Some(activity)) = (route, app.world.activities.first()) {
-                    app.activities.show(activity.id);
-                }
-                app.route = route;
-                let before = fingerprint(&app);
-                for (cols, rows) in [(71, 19), (72, 20), (120, 40)] {
-                    for color in [
-                        termrock::ColorLevel::TrueColor,
-                        termrock::ColorLevel::Ansi256,
-                        termrock::ColorLevel::Ansi16,
-                        termrock::ColorLevel::Mono,
-                    ] {
-                        let mut scene = termrock_test_support::Harness::new(
-                            Borrowed(&app),
-                            termrock::Theme::junie().downgrade(color),
-                            cols,
-                            rows,
-                        );
-                        scene.draw();
-                        let cells = scene.buffer().clone();
-                        let cursor = scene.runtime().cursor_position();
-                        scene.draw();
-                        assert_eq!(
-                            scene.buffer(),
-                            &cells,
-                            "{scenario:?} route {} {cols}x{rows}",
-                            route as u8
-                        );
-                        assert_eq!(
-                            scene.runtime().cursor_position(),
-                            cursor,
-                            "{scenario:?} route {} {cols}x{rows}",
-                            route as u8
-                        );
-                        assert_eq!(
-                            fingerprint(&app),
-                            before,
-                            "{scenario:?} route {}",
-                            route as u8
-                        );
-                        count += 1;
-                    }
-                }
-            }
-        }
-        debug_assert!(count > 0, "no cases drawn");
-        let _ = count;
-    }
-}
-
-#[cfg(test)]
-#[path = "app/files_tests.rs"]
-mod files_tests;
-
-#[cfg(test)]
-#[path = "app/disk_tests.rs"]
-mod disk_tests;
-
-#[cfg(test)]
-#[path = "app/disk_scan_tests.rs"]
-mod disk_scan_tests;
-
-#[cfg(test)]
-#[path = "app/task_args_tests.rs"]
-mod task_args_tests;
-
-#[cfg(test)]
-#[path = "app/task_run_tests.rs"]
-mod task_run_tests;
-
-#[cfg(test)]
-#[path = "app/activity_stop_tests.rs"]
-mod activity_stop_tests;

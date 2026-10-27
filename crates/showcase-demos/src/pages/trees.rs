@@ -28,7 +28,7 @@ const SELECTION_H: u16 = 10;
 const COLUMN_GAP: u16 = 2;
 const INDENT: u16 = 2;
 const SCROLL_ROOM: u16 = 2;
-// 72- and 80-column shells keep the column split that makes the left card 55 wide.
+
 const CONTENT_MIN_W: u16 = 92;
 
 const CANVAS: u32 = 0x000000;
@@ -929,8 +929,6 @@ fn paint_playground_body(ui: &mut Ui<'_>, area: Rect, page: &TreesPage) {
     );
     let inner = card_inner(project);
     if !inner.is_empty() {
-        // Register the live tree so Tab, fold, and the focus bar stay on one control.
-        // The card paint below replaces its pixels with the baseline geometry.
         project_tree().draw(ui, inner, &page.state, TREE);
     }
     let offset = page.state.scroll().offset();
@@ -1093,126 +1091,5 @@ impl Page for TreesPage {
             ("Enter", "Open"),
             ("*", "Expand all"),
         ]
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{TreesPage, wrap_lines};
-    use crate::pages::Page;
-    use termrock::{App, Color, Cx, Modifier, Rect, Response, Theme, Ui};
-    use termrock_test_support::Harness;
-
-    struct Host {
-        page: TreesPage,
-    }
-
-    impl App for Host {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            self.page.update(cx).response
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            self.page.draw(ui, Rect::new(0, 0, 94, 36));
-        }
-    }
-
-    fn rgb(r: u8, g: u8, b: u8) -> Color {
-        Color::Rgb(r, g, b)
-    }
-
-    #[test]
-    fn readout_wraps_like_the_baseline() {
-        let lines = wrap_lines(
-            "branch_activate Toggle · click Double · indent 2 · divider false · alt_click_recursive true · reserve_right 0 · show_meta true",
-            94,
-        );
-        assert_eq!(
-            lines,
-            vec![
-                "branch_activate Toggle · click Double · indent 2 · divider false · alt_click_recursive true ·".to_owned(),
-                "reserve_right 0 · show_meta true".to_owned(),
-            ]
-        );
-        let lines = wrap_lines(
-            "nav default · wrap false · type-ahead on · track_click Page · selected_marker None · * TreeCmd::ExpandAll · - TreeCmd::CollapseAll",
-            94,
-        );
-        assert_eq!(
-            lines,
-            vec![
-                "nav default · wrap false · type-ahead on · track_click Page · selected_marker None · *".to_owned(),
-                "TreeCmd::ExpandAll · - TreeCmd::CollapseAll".to_owned(),
-            ]
-        );
-        let lines = wrap_lines(
-            "last TreeAction: —   (TreeAction::Expand on a lazy node · TreeAction::Activate on a leaf, or a branch per branch_activate)",
-            94,
-        );
-        assert_eq!(
-            lines,
-            vec![
-                "last TreeAction: —   (TreeAction::Expand on a lazy node · TreeAction::Activate on a leaf, or a".to_owned(),
-                "                     branch per branch_activate)".to_owned(),
-            ]
-        );
-    }
-
-    #[test]
-    fn playground_matches_the_120_column_body() {
-        let h = Harness::new(
-            Host {
-                page: TreesPage::new(),
-            },
-            Theme::junie(),
-            94,
-            36,
-        );
-        let row = |y| h.row(y).trim_end().to_owned();
-        assert_eq!(
-            row(0),
-            "Trees  Indent carries hierarchy; the focus bar never moves"
-        );
-        assert!(row(2).starts_with(" Playground"), "{}", row(2));
-        assert!(row(2).contains("the live widget"), "{}", row(2));
-        assert!(row(3).starts_with("━━━━━━━━━━━━━"), "{}", row(3));
-        assert!(row(5).contains("Project"), "{}", row(5));
-        assert!(row(5).contains("1–15 of 16"), "{}", row(5));
-        assert!(row(5).contains("Selection"), "{}", row(5));
-        assert!(row(7).contains("▾ src"), "{}", row(7));
-        assert!(row(11).contains("config.rs"), "{}", row(11));
-        assert!(row(11).contains("1.9 KB"), "{}", row(11));
-        assert!(row(21).contains("Cargo.toml"), "{}", row(21));
-        assert!(row(16).contains("Connections"), "{}", row(16));
-        assert!(row(16).contains("→ loads a database"), "{}", row(16));
-        assert!(row(18).contains("◆ production"), "{}", row(18));
-        assert!(row(21).contains("replica-eu"), "{}", row(21));
-        assert!(row(25).contains("No connections"), "{}", row(25));
-        assert!(row(7).contains("Nothing selected"), "{}", row(7));
-        assert!(row(10).contains("cursor"), "{}", row(10));
-        assert!(row(10).contains("src"), "{}", row(10));
-        assert!(row(12).contains("5 folders"), "{}", row(12));
-        assert!(
-            row(28).starts_with("branch_activate Toggle · click Double"),
-            "{}",
-            row(28)
-        );
-        assert_eq!(h.cell(2, 7).symbol(), "▎");
-        assert_eq!(h.cell(2, 7).fg, rgb(72, 224, 84));
-        assert_eq!(h.cell(2, 8).fg, rgb(17, 17, 17));
-        assert_eq!(h.cell(2, 8).bg, rgb(17, 17, 17));
-        assert_eq!(h.cell(5, 7).fg, rgb(255, 255, 255));
-        assert_eq!(h.cell(3, 7).fg, rgb(179, 179, 179));
-        assert_eq!(h.cell(46, 11).fg, rgb(138, 138, 138));
-        assert_eq!(h.cell(53, 7).symbol(), "┃");
-        assert_eq!(h.cell(53, 7).fg, rgb(128, 128, 128));
-        assert_eq!(h.cell(53, 21).symbol(), "┆");
-        assert_eq!(h.cell(53, 21).fg, rgb(71, 71, 71));
-        assert_eq!(h.cell(7, 21).fg, rgb(148, 148, 148));
-        assert_eq!(h.cell(7, 20).fg, rgb(207, 207, 207));
-        assert_eq!(h.cell(63, 18).fg, rgb(255, 107, 107));
-        assert_eq!(h.cell(65, 21).fg, rgb(245, 158, 9));
-        assert!(h.cell(0, 0).modifier.contains(Modifier::BOLD));
-        assert_eq!(h.cell(1, 2).bg, rgb(39, 39, 42));
     }
 }

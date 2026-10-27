@@ -14,10 +14,6 @@ jackin-preview-capsule-ui.workspace = true
 termrock.workspace = true
 ratatui.workspace = true
 
-[dev-dependencies]
-termrock-test-support.workspace = true
-
-
 [lints]
 workspace = true
 

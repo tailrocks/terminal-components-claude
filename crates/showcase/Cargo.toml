@@ -9,8 +9,4 @@ license.workspace = true
 showcase-data.workspace = true
 showcase-ui.workspace = true
 termrock-session.workspace = true
-clap.workspace = true
 ratatui.workspace = true
-
-[dev-dependencies]
-tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "a1ea27f757d75d07b05499276cd932e9f8e067ad", features = ["pty"] }

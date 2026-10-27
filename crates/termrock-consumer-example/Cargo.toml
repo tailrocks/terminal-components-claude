@@ -18,9 +18,5 @@ termrock.workspace = true
 # path (`prepare` / `draw_prepared` / `acknowledge_presented`) on Ratatui's
 # public test backend. Ratatui is already part of the Termrock dependency
 # graph, so this adds no crate to it.
-[dev-dependencies]
-ratatui.workspace = true
-
-# Rust documentation examples are guarded by the workspace doc inventory test.
 [lib]
 doctest = false

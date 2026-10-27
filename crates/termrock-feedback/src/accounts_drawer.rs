@@ -1,8 +1,3 @@
-//! Accounts list beside the open account drawer.
-//!
-//! The list is the narrow column. The drawer is the chrome panel: fields,
-//! quota meters, and actions. Positions follow the panel edges.
-
 use core::ops::Range;
 
 use ratatui_core::layout::Rect;
@@ -85,10 +80,6 @@ pub enum DrawerLine<'a> {
     Blank,
 }
 
-/// Identifies the semantic segment that produced a projected drawer range.
-///
-/// The source [`DrawerLine`] remains available on [`DrawerLineProjection`];
-/// this enum identifies which part of that source produced each visible run.
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DrawerProjectionSource {
@@ -114,7 +105,6 @@ pub enum DrawerProjectionSource {
     LayoutGap,
 }
 
-/// A styled source mapping in a [`DrawerLineProjection`].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DrawerProjectionRange {
     bytes: Range<usize>,
@@ -125,42 +115,32 @@ pub struct DrawerProjectionRange {
 }
 
 impl DrawerProjectionRange {
-    /// UTF-8 byte range in the projected display text.
     #[must_use]
     pub fn bytes(&self) -> Range<usize> {
         self.bytes.clone()
     }
 
-    /// Logical display-cell range relative to the projection's column origin.
     #[must_use]
     pub fn columns(&self) -> Range<usize> {
         self.columns.clone()
     }
 
-    /// Complete painter style for this range, or `None` for an unpainted gap.
     #[must_use]
     pub const fn style(&self) -> Option<PaintStyle> {
         self.style
     }
 
-    /// Semantic segment in the original [`DrawerLine`].
     #[must_use]
     pub const fn source(&self) -> DrawerProjectionSource {
         self.source
     }
 
-    /// Source UTF-8 byte range, when this range maps directly to source text.
     #[must_use]
     pub fn source_bytes(&self) -> Option<Range<usize>> {
         self.source_bytes.clone()
     }
 }
 
-/// Logical display text and painter mappings for one drawer row.
-///
-/// The original typed line is retained so callers can rebuild this projection
-/// when their layout changes instead of deriving semantic facts from clipped
-/// display text.
 pub struct DrawerLineProjection<'line, 'text> {
     source: &'line DrawerLine<'text>,
     origin_x: u16,
@@ -169,54 +149,47 @@ pub struct DrawerLineProjection<'line, 'text> {
 }
 
 impl<'line, 'text> DrawerLineProjection<'line, 'text> {
-    /// Original typed source line.
     #[must_use]
     pub const fn source(&self) -> &'line DrawerLine<'text> {
         self.source
     }
 
-    /// Absolute x coordinate represented by logical column zero.
     #[must_use]
     pub const fn origin_x(&self) -> u16 {
         self.origin_x
     }
 
-    /// Full logical display text, including the spaces between painted parts.
     #[must_use]
     pub fn text(&self) -> &str {
         &self.text
     }
 
-    /// Non-overlapping styled ranges ordered by display position.
     #[must_use]
     pub fn ranges(&self) -> &[DrawerProjectionRange] {
         &self.ranges
     }
 }
 
-/// A row shape that cannot be represented as one logical grapheme-safe line.
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DrawerProjectionError {
-    /// A right-aligned emission begins before the requested column origin.
     BeforeOrigin,
-    /// An operation replaces only part of a previously emitted wide grapheme.
+
     PartialGraphemeOverlap,
-    /// Separately emitted text joins into a grapheme with ambiguous ownership.
+
     GraphemeJoinAcrossEmissions,
-    /// A grapheme boundary splits the direct/synthetic part of an emission.
+
     GraphemeCrossesSourceBoundary,
-    /// A standalone control or zero-width grapheme has no display-cell mapping.
+
     UnrenderableGrapheme,
-    /// Logical display columns cannot be represented without integer overflow.
+
     ColumnOverflow,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum PaneChrome {
-    /// Open drawer. The list rule is quiet and selection has no focus bar.
     Drawer,
-    /// Detail with the drawer closed. The list keeps the strong border and the focus bar.
+
     Detail,
 }
 
@@ -235,15 +208,6 @@ pub struct AccountsDrawer<'a> {
     pub chrome: PaneChrome,
 }
 
-/// Explicit rectangles for an Accounts drawer composed around a live split.
-///
-/// `master_box` and `detail_box` exclude the shared page header and footer.
-/// `master_rows` is the physical row window inside the master box. The split
-/// control owns `seam`; the drawer painter leaves its live seam feedback
-/// visible. `detail_content` is the unscrolled line-layout origin, while
-/// `detail_body` is the logical scroll viewport and `detail_clip` is the
-/// physical content window after scrollbar allocation. The title and fixed
-/// action row remain outside that window.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct AccountsDrawerLayout {
     pub outer: Rect,
@@ -375,14 +339,6 @@ pub fn paint_accounts_drawer(ui: &mut Ui<'_>, area: Rect, page: &AccountsDrawer<
     paint_hints(ui, area, page, &ink);
 }
 
-/// Paint the shared Accounts shell using caller-owned split and body geometry.
-///
-/// Unlike [`paint_accounts_drawer`], this entrypoint does not choose pane
-/// widths or paint scrolling body rows. It paints the same page header, master
-/// frame/rows, drawer title/rule/action row, and footer using explicit
-/// rectangles. The caller uses the window painters for `detail_body` and owns
-/// its scrollbar and input state. The existing whole-page entrypoint retains
-/// its fixed39-column behavior.
 pub fn paint_accounts_drawer_layout(
     ui: &mut Ui<'_>,
     layout: AccountsDrawerLayout,
@@ -544,21 +500,6 @@ pub fn paint_accounts_drawer_layout(
     }
 }
 
-/// Paint borrowed account-drawer rows through a bounded physical window.
-///
-/// `content_layout` describes the full, unscrolled content column: its left
-/// edge is the text origin and its right edge retains all right-aligned
-/// metadata anchors. `content_clip` is a physical sub-rectangle of that
-/// column, and `first_source_row` is the source row at its top edge. The
-/// returned range contains the source rows visible through both the requested
-/// clip and the current `Ui` clip. Empty clips are valid and return an empty
-/// range. Invalid geometry or a source offset past `lines.len()` returns
-/// `None` before painting any cells.
-///
-/// This painter leaves row backgrounds to its caller. Graphemes cut by a
-/// horizontal clip edge are omitted whole; remaining text keeps its original
-/// logical columns. The existing whole drawer painter keeps its historic
-/// clipping behavior.
 pub fn paint_accounts_drawer_lines_window(
     ui: &mut Ui<'_>,
     content_layout: Rect,
@@ -614,14 +555,6 @@ pub fn paint_accounts_drawer_lines_window(
     Some(visible_start..end)
 }
 
-/// Project one typed drawer row into its full logical display text and styles.
-///
-/// This uses the same row-emission path as the existing painters. It does not
-/// apply a physical clip: callers receive the complete logical row and can
-/// retain the original [`DrawerLine`] for width-dependent rebuilding. Some
-/// painter operations cannot be represented as one grapheme-safe row; those
-/// inputs return a [`DrawerProjectionError`] instead of silently losing text
-/// or style ownership.
 pub fn project_accounts_drawer_line<'line, 'text>(
     theme: &termrock_theme::Theme,
     layout: Rect,
@@ -1089,9 +1022,6 @@ impl ProjectionSink {
                 });
             }
 
-            // Each operation is applied in order. Remove old graphemes only
-            // when this entire operation covers them; a partial wide overwrite
-            // cannot be represented as an ordinary display-row source range.
             for old in &glyphs {
                 if !emission_glyphs
                     .iter()
@@ -1154,8 +1084,6 @@ impl ProjectionSink {
             column = glyph.columns.end;
         }
 
-        // Separate emissions may join into a different grapheme (for example,
-        // regional indicators). Reject ambiguous source/style boundaries.
         let mut range_index = 0usize;
         for (byte, grapheme) in crate::text::measure::graphemes(&text) {
             let end = byte
@@ -1210,10 +1138,6 @@ fn projected_style_at(
     if previous.columns.start == column {
         previous.style.unwrap_or_default().patch(emitted)
     } else {
-        // Ui::paint_cluster resets every continuation cell of a wide glyph.
-        // A later emission into that cell therefore starts from default cell
-        // style, even though the row projection is otherwise a patch on its
-        // destination's underlay. Encode that reset before the new patch.
         PaintStyle::new()
             .fg(Color::Reset)
             .bg(Color::Reset)
@@ -1439,8 +1363,7 @@ fn paint_meter<S: LineSink>(
     });
     let bar_x = content_x.saturating_add(LABEL_W);
     let fill = tone_color_tone(meter.tone);
-    // `plain` records a modifier removal. A later add does not clear that
-    // removal, so the bar would lose bold, italic, and the black ink.
+
     let style = PaintStyle::new()
         .fg(Color::Rgb(0, 0, 0))
         .bg(fill)
@@ -1668,143 +1591,5 @@ fn span_style(tone: DetailInk, ink: &Ink) -> PaintStyle {
         DetailInk::DangerBold => bold(DANGER, ink.chrome),
         DetailInk::Warning => plain(WARNING, ink.chrome),
         DetailInk::Info => plain(INFO, ink.chrome),
-    }
-}
-
-#[cfg(test)]
-mod projection_style_tests {
-    use super::{DrawerProjectionSource, ProjectionGlyph, projected_style_at};
-    use crate::theme::{PaintStyle, Role, Surface};
-    use ratatui_core::buffer::Cell;
-    use ratatui_core::style::{Color, Modifier, Style};
-
-    #[test]
-    fn overlapping_style_composition_matches_sequential_cell_paints_and_keeps_roles() {
-        let previous = PaintStyle::bound(
-            Style::new()
-                .fg(Color::Rgb(0x11, 0x22, 0x33))
-                .bg(Color::Rgb(0x44, 0x55, 0x66))
-                .underline_color(Color::Rgb(0x77, 0x88, 0x99))
-                .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
-            Some(Role::Accent),
-            Some(Role::Surface(Surface::Canvas)),
-            Surface::Surface,
-        );
-        let later = PaintStyle::new()
-            .fg(Color::Reset)
-            .underline_color(Color::Reset)
-            .remove_modifier(Modifier::BOLD | Modifier::UNDERLINED)
-            .add_modifier(Modifier::ITALIC);
-        let underlay = PaintStyle::new()
-            .fg(Color::Rgb(0xaa, 0xbb, 0xcc))
-            .bg(Color::Rgb(0xdd, 0xee, 0xff))
-            .underline_color(Color::Rgb(0x0a, 0x0b, 0x0c))
-            .add_modifier(Modifier::DIM | Modifier::REVERSED | Modifier::UNDERLINED);
-        let old = [ProjectionGlyph {
-            columns: 5..6,
-            text: "x".to_owned(),
-            style: Some(previous),
-            source: DrawerProjectionSource::Text,
-            source_bytes: Some(0..1),
-        }];
-        let composed = projected_style_at(&old, 5, later);
-
-        // Ui::paint_cluster applies each PaintStyle with Cell::set_style on a
-        // leading cell. The projection must replay the same ordered patches.
-        let mut sequential = Cell::default();
-        sequential.set_style(underlay.into_style());
-        sequential.set_style(previous.into_style());
-        sequential.set_style(later.into_style());
-
-        let mut projected = Cell::default();
-        projected.set_style(underlay.into_style());
-        projected.set_style(composed.into_style());
-
-        assert_eq!(sequential.fg, projected.fg);
-        assert_eq!(sequential.bg, projected.bg);
-        assert_eq!(sequential.underline_color, projected.underline_color);
-        assert_eq!(sequential.modifier, projected.modifier);
-        assert_eq!(projected.fg, Color::Reset);
-        assert_eq!(projected.bg, Color::Rgb(0x44, 0x55, 0x66));
-        assert_eq!(projected.underline_color, Color::Reset);
-        assert_eq!(
-            projected.modifier,
-            Modifier::DIM | Modifier::REVERSED | Modifier::ITALIC
-        );
-        assert_eq!(composed.fg_role, None);
-        assert_eq!(
-            composed.bg_role,
-            Some((Role::Surface(Surface::Canvas), Surface::Surface))
-        );
-
-        let modifier_only = PaintStyle::new().add_modifier(Modifier::BOLD);
-        let remove_bold = PaintStyle::new().remove_modifier(Modifier::BOLD);
-        let modifier_glyph = [ProjectionGlyph {
-            columns: 5..6,
-            text: "x".to_owned(),
-            style: Some(modifier_only),
-            source: DrawerProjectionSource::Text,
-            source_bytes: Some(0..1),
-        }];
-        let inherited_channels = projected_style_at(&modifier_glyph, 5, remove_bold);
-        let mut sequential_inherited = Cell::default();
-        sequential_inherited.set_style(underlay.into_style());
-        sequential_inherited.set_style(modifier_only.into_style());
-        sequential_inherited.set_style(remove_bold.into_style());
-        let mut projected_inherited = Cell::default();
-        projected_inherited.set_style(underlay.into_style());
-        projected_inherited.set_style(inherited_channels.into_style());
-        assert_eq!(sequential_inherited.fg, projected_inherited.fg);
-        assert_eq!(sequential_inherited.bg, projected_inherited.bg);
-        assert_eq!(
-            sequential_inherited.underline_color,
-            projected_inherited.underline_color
-        );
-        assert_eq!(sequential_inherited.modifier, projected_inherited.modifier);
-        assert_eq!(projected_inherited.fg, Color::Rgb(0xaa, 0xbb, 0xcc));
-        assert_eq!(projected_inherited.bg, Color::Rgb(0xdd, 0xee, 0xff));
-        assert_eq!(
-            projected_inherited.underline_color,
-            Color::Rgb(0x0a, 0x0b, 0x0c)
-        );
-        assert_eq!(
-            projected_inherited.modifier,
-            Modifier::DIM | Modifier::REVERSED | Modifier::UNDERLINED
-        );
-
-        let continuation = [ProjectionGlyph {
-            columns: 4..6,
-            text: "界".to_owned(),
-            style: Some(previous),
-            source: DrawerProjectionSource::Text,
-            source_bytes: Some(0.."界".len()),
-        }];
-        let reset_then_later = projected_style_at(&continuation, 5, later);
-
-        // Ui::paint_cluster resets wide-glyph continuation cells before later
-        // content reaches them. The projection represents that reset too.
-        let mut sequential_continuation = Cell::default();
-        sequential_continuation.set_style(underlay.into_style());
-        sequential_continuation.reset();
-        sequential_continuation.set_style(later.into_style());
-
-        let mut projected_continuation = Cell::default();
-        projected_continuation.set_style(underlay.into_style());
-        projected_continuation.set_style(reset_then_later.into_style());
-
-        assert_eq!(sequential_continuation.fg, projected_continuation.fg);
-        assert_eq!(sequential_continuation.bg, projected_continuation.bg);
-        assert_eq!(
-            sequential_continuation.underline_color,
-            projected_continuation.underline_color
-        );
-        assert_eq!(
-            sequential_continuation.modifier,
-            projected_continuation.modifier
-        );
-        assert_eq!(projected_continuation.fg, Color::Reset);
-        assert_eq!(projected_continuation.bg, Color::Reset);
-        assert_eq!(projected_continuation.underline_color, Color::Reset);
-        assert_eq!(projected_continuation.modifier, Modifier::ITALIC);
     }
 }

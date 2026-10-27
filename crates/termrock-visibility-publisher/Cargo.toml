@@ -16,9 +16,5 @@ sha2.workspace = true
 reqwest = { version = "=0.13.5", default-features = false, features = ["blocking", "rustls-no-provider"] }
 rustls = { version = "=0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
 
-[dev-dependencies]
-rcgen = { version = "=0.14.10", default-features = false, features = ["ring"] }
-
-# Rust documentation examples are guarded by the workspace doc inventory test.
 [lib]
 doctest = false

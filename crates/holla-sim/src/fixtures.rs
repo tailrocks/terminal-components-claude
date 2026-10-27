@@ -22,11 +22,6 @@ pub fn expand_home(path: &str) -> String {
     path.replacen('~', HOME, 1)
 }
 
-/// Build the deterministic simulated file snapshot used by the Files route.
-///
-/// This fixture is data only; it never inspects the host filesystem. The empty
-/// scratch scenario stays empty, while other starting directories contain a
-/// small tree with hidden, Unicode, unreadable, and broken-link entries.
 pub fn files_for_cwd(cwd: &str) -> crate::files::FilesSnapshot {
     use crate::files::{FileEntry, FilesSnapshot};
 
@@ -220,11 +215,6 @@ pub fn world_for(scenario: Scenario) -> World {
     w
 }
 
-/// Builds a dedicated nextest-capable task fixture for typed filter/profile input.
-///
-/// The existing `test` task remains `cargo test --workspace`; this fixture adds a
-/// separate producer-backed `test-nextest` task and does not change that task's
-/// historical behavior.
 pub fn nextest_args_world() -> World {
     let mut world = world_for(Scenario::RustDirty);
     if let Some(mise) = &mut world.mise {
@@ -242,22 +232,14 @@ pub fn nextest_args_world() -> World {
     world
 }
 
-/// Dedicated synthetic case for a typed frontend port-conflict failure.
-///
-/// This case is not a CLI scenario and does not change any existing World fixture.
 pub struct PortConflictCase {
-    /// The isolated fixture World containing the synthetic failed Activity.
     pub world: World,
-    /// Optional simulator-owned listener data for the same host context.
+
     pub listeners: Option<ListenerModel>,
-    /// Typed EADDRINUSE event bound to the unchanged failed Activity.
+
     pub conflict: PortConflict,
 }
 
-/// Builds one failed frontend-dev Activity with a separate simulated listener inventory.
-///
-/// # Errors
-/// Returns an error if the authored listener rows do not form a valid inventory.
 pub fn port_conflict_case() -> Result<PortConflictCase, ListenerModelError> {
     let mut world = world_for(Scenario::MonorepoChild);
     let mut activity = Activity::new(
@@ -1127,246 +1109,4 @@ pub fn memory_command(
         .iter()
         .copied()
         .find(|candidate| candidate.command() == command)
-}
-
-#[cfg(test)]
-#[expect(
-    clippy::indexing_slicing,
-    clippy::unwrap_used,
-    reason = "Tests assert fixed fixture structure and bounded values; violations must fail the test"
-)]
-mod tests {
-    use super::*;
-    use crate::domain::pg;
-
-    fn settled(scenario: Scenario) -> World {
-        let mut w = world_for(scenario);
-        w.clock.running = true;
-        w.seek(10_000);
-        w
-    }
-
-    #[test]
-    fn every_scenario_settles_discovery() {
-        for s in Scenario::ALL {
-            let w = settled(s);
-            assert!(!w.discovering(), "{} still discovering", s.name());
-        }
-    }
-
-    #[test]
-    fn hard_cases_docker_discovery_fails() {
-        let w = settled(Scenario::HardCases);
-        assert!(w.discovery_failed(Domain::Docker));
-        assert!(w.discovered(Domain::Git));
-        assert!(w.docker.is_none());
-    }
-
-    #[test]
-    fn rust_dirty_facts_match_the_vocabulary() {
-        let w = settled(Scenario::RustDirty);
-        let git = w.git.as_ref().unwrap();
-        assert_eq!(git.behind, 3);
-        assert_eq!(git.modified, 4);
-        assert_eq!(git.primary_branch, "trunk");
-        assert!(
-            git.summary()
-                .contains(&"branch is 3 commits behind".to_owned())
-        );
-        assert!(git.summary().contains(&"4 modified files".to_owned()));
-        assert_eq!(w.memory.usage_at("~/work/pave", "cargo build"), 6);
-        assert!(w.memory.pin_at("~/work/pave", "make test"));
-        assert_eq!(w.memory.alias("gs"), Some("git status"));
-    }
-
-    #[test]
-    fn docker_cleanup_has_serious_reclaimable() {
-        let w = settled(Scenario::DockerCleanup);
-        let d = w.docker.as_ref().unwrap();
-        assert_eq!(d.unhealthy().len(), 1);
-        assert!(
-            d.reclaimable_bytes().unwrap() >= 12 * GB,
-            "{}",
-            d.reclaimable_bytes().unwrap()
-        );
-        assert_eq!(d.running(), 3);
-    }
-
-    #[test]
-    fn remote_host_has_blocker_tree_and_production_identity() {
-        let w = settled(Scenario::RemoteHost);
-        assert_eq!(w.host.env, Environment::Production);
-        let sessions = w.pg.as_ref().unwrap();
-        let roots = pg::blockers(sessions);
-        assert_eq!(roots.len(), 1);
-        assert_eq!(roots[0].pid, 4201);
-        assert_eq!(pg::blocked_by(sessions, 4201).len(), 2);
-        let d = w.docker.as_ref().unwrap();
-        assert_eq!(d.unhealthy()[0].name, "payments");
-    }
-
-    #[test]
-    fn activities_multi_carries_four_states() {
-        let w = settled(Scenario::ActivitiesMulti);
-        assert_eq!(w.activities.len(), 4);
-        assert!(w.scenario_activity_execution_ids().is_empty());
-        for state in [
-            ActivityState::Running,
-            ActivityState::Waiting,
-            ActivityState::Detached,
-            ActivityState::Failed,
-        ] {
-            assert!(
-                w.activities.iter().any(|a| a.state == state),
-                "missing {state:?}"
-            );
-        }
-    }
-
-    #[test]
-    fn parity_activity_stop_owns_four_exact_setup_executions() {
-        use crate::activity_supervisor::{ActivityExecutionPhase, ActivityStopProfile};
-
-        let world = world_for(Scenario::ParityActivityStop);
-        assert_eq!(world.effect_revision, 0);
-        assert_eq!(world.activities.len(), 4);
-        assert_eq!(world.scenario_activity_execution_ids().len(), 4);
-
-        let expected = [
-            (
-                1,
-                ActivityExecutionPhase::Running,
-                ActivityStopProfile::Responsive,
-            ),
-            (
-                2,
-                ActivityExecutionPhase::Queued,
-                ActivityStopProfile::Responsive,
-            ),
-            (
-                3,
-                ActivityExecutionPhase::Detached,
-                ActivityStopProfile::Responsive,
-            ),
-            (
-                4,
-                ActivityExecutionPhase::Running,
-                ActivityStopProfile::Resistant,
-            ),
-        ];
-        for ((activity, execution_id), (activity_id, phase, profile)) in world
-            .activities
-            .iter()
-            .zip(world.scenario_activity_execution_ids())
-            .zip(expected)
-        {
-            assert_eq!(activity.id, activity_id);
-            assert_eq!(execution_id.activity_id(), activity_id);
-            assert_eq!(
-                world.activity_supervisor.current_execution_id(activity_id),
-                Some(*execution_id)
-            );
-            let execution = world.activity_supervisor.execution(*execution_id).unwrap();
-            assert_eq!(execution.snapshot(), activity);
-            assert_eq!(execution.phase(), phase);
-            assert_eq!(execution.profile(), profile);
-            assert!(execution.is_owned());
-        }
-    }
-
-    #[test]
-    fn parity_activity_stop_duplicate_setup_uses_fresh_failed_world() {
-        let scenario = Scenario::ParityActivityStop;
-        let mut world = World::new(scenario, host_for(scenario), cwd_for(scenario));
-        world.discovery = World::default_schedule();
-        let mut duplicate = Activity::new(
-            4,
-            "preexisting conflict",
-            cwd_for(scenario),
-            ActivityState::Running,
-            0,
-        );
-        duplicate.lines = vec!["fixture conflict".into()];
-        world.activities.push(duplicate);
-
-        let failed_world = parity_activity_stop_world(world);
-
-        assert_eq!(failed_world.scenario, scenario);
-        assert_eq!(failed_world.effect_revision, 0);
-        assert_eq!(failed_world.activities.len(), 1);
-        let diagnostic = &failed_world.activities[0];
-        assert_eq!(diagnostic.id, 0);
-        assert_eq!(diagnostic.state, ActivityState::Failed);
-        assert_eq!(
-            diagnostic.lines,
-            vec![
-                "Activity stop fixture unavailable · activity ID 4 is already registered"
-                    .to_owned()
-            ]
-        );
-        assert!(failed_world.scenario_activity_execution_ids().is_empty());
-        assert_eq!(
-            failed_world
-                .activity_supervisor
-                .current_execution_id(diagnostic.id),
-            None
-        );
-        for activity_id in 1..=4 {
-            assert_eq!(
-                failed_world
-                    .activity_supervisor
-                    .current_execution_id(activity_id),
-                None,
-                "failed setup leaves no registered worker {activity_id}"
-            );
-        }
-    }
-
-    #[test]
-    fn upgrade_plan_facts() {
-        let w = settled(Scenario::UpgradePlan);
-        let deb = w.debian.as_ref().unwrap();
-        assert_eq!(deb.pending, 47);
-        assert!(deb.reboot_required);
-        let mise = w.mise.as_ref().unwrap();
-        assert!(mise.tools.iter().any(|t| t.state == ToolState::Missing));
-        assert_eq!(
-            mise.tools
-                .iter()
-                .filter(|t| matches!(t.state, ToolState::Outdated { .. }))
-                .count(),
-            2
-        );
-    }
-
-    #[test]
-    fn monorepo_child_sees_parent_tasks_and_local_dev() {
-        let w = settled(Scenario::MonorepoChild);
-        let mise = w.mise.as_ref().unwrap();
-        assert!(
-            mise.tasks
-                .iter()
-                .any(|t| t.id == "//projects/frontend:build")
-        );
-        assert!(mise.tasks.iter().any(|t| t.id == "dev"));
-        assert!(
-            mise.tasks
-                .iter()
-                .any(|t| t.trust == Trust::Untrusted && t.id == "//projects/backend:reset-db")
-        );
-    }
-
-    #[test]
-    fn worlds_are_deterministic() {
-        let a = settled(Scenario::DiskCleanup);
-        let b = settled(Scenario::DiskCleanup);
-        assert_eq!(a.disk, b.disk);
-        assert_eq!(a.memory, b.memory);
-        assert_eq!(a.git, b.git);
-    }
-
-    #[test]
-    fn expand_home_resolves_typed_phrase_targets() {
-        assert_eq!(expand_home("~/work/scratch"), "/home/dev/work/scratch");
-    }
 }

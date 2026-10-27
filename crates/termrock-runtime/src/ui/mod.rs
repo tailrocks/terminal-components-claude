@@ -85,10 +85,6 @@ pub struct FrameState {
     pub(crate) screen: Rect,
     pub(crate) inert_floor: LayerId,
     pub(crate) top: LayerId,
-    #[cfg(feature = "testing")]
-    pub(crate) styled_parts: Vec<(Id, Part)>,
-    #[cfg(feature = "testing")]
-    pub(crate) styled_queries: Vec<StyledQuery>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -106,9 +102,6 @@ pub(crate) enum CursorRetentionMode {
     FocusedOwner,
     VisibleOwner,
 }
-
-#[cfg(feature = "testing")]
-pub type StyledQuery = (Id, Family, Variant, Part, Resolved);
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct ReferenceState(u8);
@@ -211,10 +204,6 @@ impl FrameState {
         self.screen = screen;
         self.inert_floor = LayerId::PAGE;
         self.top = LayerId::PAGE;
-        #[cfg(feature = "testing")]
-        self.styled_parts.clear();
-        #[cfg(feature = "testing")]
-        self.styled_queries.clear();
     }
 
     fn role_index(&self, pos: Position) -> Option<usize> {
@@ -373,11 +362,6 @@ impl<'f> Ui<'f> {
         }
     }
 
-    /// Draw one subtree with a different theme.
-    ///
-    /// The frame, buffer, and hit state stay. Only the theme reference
-    /// changes for the closure. Callers use this when one screen must follow
-    /// a baseline color ladder the shared capability palette does not.
     pub fn with_theme<R>(&mut self, theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> R {
         let mut nested = Ui {
             frame: &mut *self.frame,
@@ -411,23 +395,10 @@ impl<'f> Ui<'f> {
         self.layer
     }
 
-    /// Whether a higher native runtime layer covers this drawing context.
-    ///
-    /// This reports the current frame's native layer stack, independently of
-    /// [`Self::is_inert`]. It does not account for application-owned overlays
-    /// or establish whether input can reach an owner. A detached reference is
-    /// presented independently of the live layer stack and therefore returns
-    /// `false`.
     pub fn is_covered_by_native_layer(&self) -> bool {
         self.reference.is_none() && self.layer != self.frame.top
     }
 
-    /// Whether `owner` has focus in this context's presentation.
-    ///
-    /// Live drawing reads only the focus captured in the bound frame; declared
-    /// or themed `FOCUSED` flags do not grant focus. A reference reports only
-    /// the synthetic focus injected for its exact target. That reference value
-    /// is presentation data, not physical focus or input permission.
     pub fn owner_has_focus_presentation(&self, owner: Id) -> bool {
         match self.reference_state(owner) {
             Some(state) => state.contains(StateFlags::FOCUSED),
@@ -439,12 +410,6 @@ impl<'f> Ui<'f> {
         self.inert || self.reference.is_some()
     }
 
-    /// The state flags this context contributes to the components it draws.
-    ///
-    /// An inert context — a layer below the active layer, a reference frame,
-    /// or a modal backdrop — reports [`StateFlags::INACTIVE_LAYER`]. The
-    /// flag carries no styling of its own: the palette is frozen, and the
-    /// inert look still comes from [`termrock_theme::Theme::inactive_look`].
     pub const fn context_state(&self) -> StateFlags {
         if self.is_inert() {
             StateFlags::INACTIVE_LAYER
@@ -453,14 +418,10 @@ impl<'f> Ui<'f> {
         }
     }
 
-    /// Whether this context draws an inactive layer.
     pub const fn is_inactive_layer(&self) -> bool {
         self.is_inert()
     }
 
-    /// Append a component-author diagnostic to this frame's bounded runtime
-    /// diagnostic stream. Diagnostics are committed with the frame and cannot
-    /// be cleared by an individual component.
     pub fn diagnostic(&mut self, diagnostic: Diagnostic) {
         self.frame.diagnostics.push(diagnostic);
     }
@@ -579,12 +540,6 @@ impl<'f> Ui<'f> {
         )
     }
 
-    /// Resolve defaults and report which channels are owned by capability
-    /// profiles or authored overrides.
-    ///
-    /// Components can use the ownership patch to decide whether a semantic
-    /// fallback should apply while keeping the resolved paint, including
-    /// capability-specific role bindings, canonical.
     pub fn style_defaults_with_fallback_ownership(
         &self,
         family: Family,
@@ -628,36 +583,6 @@ impl<'f> Ui<'f> {
             self.surface,
             patch,
         )
-    }
-
-    #[cfg(feature = "testing")]
-    pub fn note_styled(
-        &mut self,
-        owner: Id,
-        family: Family,
-        variant: Variant,
-        part: Part,
-        resolved: Resolved,
-    ) {
-        self.frame.styled_parts.push((owner, part));
-        self.frame
-            .styled_queries
-            .push((owner, family, variant, part, resolved));
-    }
-
-    #[cfg(feature = "testing")]
-    pub fn styled_parts(&self) -> &[(Id, Part)] {
-        &self.frame.styled_parts
-    }
-
-    #[cfg(feature = "testing")]
-    pub fn styled_queries(&self) -> &[StyledQuery] {
-        &self.frame.styled_queries
-    }
-
-    #[cfg(feature = "testing")]
-    pub fn style_cache_stats(&self) -> (u64, u64) {
-        self.core.style_cache.stats()
     }
 
     pub fn resolve(
@@ -846,10 +771,7 @@ impl<'f> Ui<'f> {
         if self.reference.is_some() {
             return;
         }
-        // The context state travels with the component's own state so a
-        // consumer reading the declared flags can tell an inactive layer
-        // from a disabled control. It carries no styling, so painting is
-        // unchanged.
+
         let flags = flags | self.context_state();
         if flags.is_empty() {
             return;
@@ -1008,15 +930,6 @@ impl<'f> Ui<'f> {
         }
     }
 
-    /// Declare `owner` as an opt-in recipient for a whole paste while it has
-    /// focus, including before it enters an editing session.
-    ///
-    /// This declaration does not establish typing ownership, editing state,
-    /// fallback routing, or a cursor. The runtime accepts it only for the
-    /// focused, visible editor in the active layer, and rejects disabled or
-    /// read-only owners. Inert and reference drawing contexts cannot publish
-    /// the declaration. Call this after registering the matching editor; a
-    /// declaration without a visible registration in this layer is ignored.
     pub fn publish_focused_paste_target(&mut self, owner: Id) {
         let registered_here = self
             .frame
@@ -1064,7 +977,6 @@ impl<'f> Ui<'f> {
         );
     }
 
-    /// Add bindings to the focused owner's current table while preserving hint metadata.
     pub fn publish_additional_bindings<C: Copy + 'static>(
         &mut self,
         owner: Id,
@@ -1170,14 +1082,6 @@ impl<'f> Ui<'f> {
             .register_part(owner, part, area.intersection(self.clip), self.layer);
     }
 
-    /// Register a text body for captured pointer-drag autoscroll.
-    ///
-    /// The area is clipped and accepted only when the same owner and part have
-    /// an enabled `Part` registration in this frame. Vertical autoscroll is
-    /// required. Horizontal autoscroll is enabled only when `axes` includes
-    /// [`Axes::H`]. `headroom` prevents scheduling movement past a content edge;
-    /// `source_revision` lets a widget restart the interval when its mapping
-    /// changes without changing the visible body geometry.
     pub fn register_text_drag_autoscroll(
         &mut self,
         owner: Id,
@@ -1203,10 +1107,6 @@ impl<'f> Ui<'f> {
             });
     }
 
-    /// Register a clipped region that participates in live hover only.
-    ///
-    /// Hover-only regions do not receive clicks, focus, capture, move intents,
-    /// or scrolling. Ordinary hit testing continues to the underlying region.
     pub fn register_hover_part(&mut self, owner: Id, part: PartRef, area: Rect) {
         if self.registrations_suppressed() {
             return;
@@ -1241,12 +1141,6 @@ impl<'f> Ui<'f> {
         );
     }
 
-    /// Register an opt-in scroll target that can acknowledge wheel routing.
-    ///
-    /// The returned key identifies this clipped registration in the current
-    /// frame. The owner must check the supplied source revision before it
-    /// acknowledges a route attempt. Ordinary [`Ui::register_scroll`]
-    /// registrations keep single-target wheel behavior.
     pub fn register_routed_scroll(
         &mut self,
         id: Id,
@@ -1268,12 +1162,6 @@ impl<'f> Ui<'f> {
         )
     }
 
-    /// Register an explicitly enrolled, source-qualified wheel target.
-    ///
-    /// This adds scroll-only routing metadata for `part`; it does not change an
-    /// existing control or part registration. Only other targets registered
-    /// with this method can receive an Ignored fallback offer. A matching
-    /// ordinary control or part remains available to click and focus routing.
     pub fn register_hit_stack_wheel(
         &mut self,
         id: Id,
@@ -1295,15 +1183,6 @@ impl<'f> Ui<'f> {
         )
     }
 
-    /// Register an event-local, source-qualified wheel target.
-    ///
-    /// The returned key identifies this clipped registration in the current
-    /// frame. Repeated owner/part registrations may use disjoint geometry or
-    /// axes. Only pointer-enabled scroll targets on the same layer that contain
-    /// the event position and handle its axis participate in ambiguity checks.
-    /// Exact duplicates coalesce; conflicting eligible registrations stop
-    /// fallback. The owner must independently resolve its live source from the
-    /// event position and axis before acknowledging an attempt.
     pub fn register_event_local_hit_stack_wheel(
         &mut self,
         id: Id,
@@ -1325,21 +1204,10 @@ impl<'f> Ui<'f> {
         )
     }
 
-    /// Link this frame's routed child registration to its immediate parent.
-    ///
-    /// The parent must be a containing routed registration on the same layer.
-    /// The runtime checks that it is the next eligible target in reverse hit
-    /// order before it services a fallback.
     pub fn link_scroll_parent(&mut self, child: ScrollRouteKey, parent: ScrollRouteKey) -> bool {
         !self.registrations_suppressed() && self.frame.registry.link_scroll_parent(child, parent)
     }
 
-    /// Register a vertical passive-reveal scroll region.
-    ///
-    /// Eligible unmodified wheel input scrolls this region by three lines. At
-    /// either end, or for modified, horizontal, zero-delta, or unavailable
-    /// scroll input, routing may continue to another scroll region on the same
-    /// top layer. Ordinary [`Ui::register_scroll`] behavior is unchanged.
     pub fn register_passive_reveal_scroll(&mut self, id: Id, area: Rect, head: Headroom) {
         if self.registrations_suppressed() {
             return;
@@ -1359,13 +1227,6 @@ impl<'f> Ui<'f> {
         self.frame.layout.push((id, l));
     }
 
-    /// Attach the source column painted at the left edge of an owner's text
-    /// area to its most recently reported current-frame layout facts.
-    ///
-    /// This updates the same latest-owner entry read by [`FrameRead::layout`]
-    /// after publication. It never appends partial facts or falls back to the
-    /// previous frame. It returns `false` when the owner has not reported
-    /// layout in this frame or when called from a reference scope.
     pub fn report_horizontal_source_offset(&mut self, owner: Id, source_column: usize) -> bool {
         if self.reference.is_some() {
             return false;
@@ -1387,25 +1248,14 @@ impl<'f> Ui<'f> {
         self.record_cursor(owner, pos, false, crate::cursor::CursorShape::Block);
     }
 
-    /// Same as [`Self::set_cursor`] with a steady bar. Presentation emits the
-    /// shape. Callers do not write cursor bytes.
     pub fn set_bar_cursor(&mut self, owner: Id, pos: Position) {
         self.record_cursor(owner, pos, false, crate::cursor::CursorShape::Bar);
     }
 
-    /// Retains an already-rendered focused owner's cursor through a nonmodal
-    /// popover that explicitly calls this method. The cursor request is moved to the current
-    /// overlay layer without registering a second control or cursor. Ordinary
-    /// popovers, modal layers, inert layers, and missing or stale owner requests
-    /// do not retain a cursor.
     pub fn retain_owner_cursor(&mut self, owner: Id) -> bool {
         self.retain_cursor_request(owner, CursorRetentionMode::FocusedOwner)
     }
 
-    /// Retains a real rendered owner's cursor through the current nonmodal
-    /// popover, even when that popover owns keyboard focus. This is intended
-    /// for visible terminal or editor carets that remain meaningful while a
-    /// menu takes input. It never registers a control or invents a cursor.
     pub fn retain_visible_owner_cursor(&mut self, owner: Id) -> bool {
         self.retain_cursor_request(owner, CursorRetentionMode::VisibleOwner)
     }
@@ -1484,8 +1334,6 @@ impl<'f> Ui<'f> {
         true
     }
 
-    /// Steady bar for `owner` on the open top layer. Does not draw that layer,
-    /// so a page stamp is not dimmed or covered.
     pub fn set_undrawn_top_bar_cursor(&mut self, owner: Id, area: Rect, pos: Position) {
         if self.reference.is_some() || area.is_empty() {
             return;
@@ -1528,10 +1376,6 @@ impl<'f> Ui<'f> {
         });
     }
 
-    /// Draws a layer only when this exact opening was admitted to the current frame.
-    ///
-    /// The opening is checked before delegating to layer, so stale same-ID renderers
-    /// cannot claim the current opening's draw slot.
     pub fn layer_for<R>(
         &mut self,
         opening: LayerOpening,
@@ -1677,9 +1521,6 @@ impl<'f> Ui<'f> {
                 }
             }
             if let Some(cell) = self.buffer().cell_mut(src) {
-                // `reset` drops every channel. A partial style then leaves
-                // fg/bg at Default, which punches a hole through the row fill
-                // when a right-aligned value shifts off those cells.
                 let kept_fg = cell.fg;
                 let kept_bg = cell.bg;
                 cell.reset();
@@ -1692,10 +1533,7 @@ impl<'f> Ui<'f> {
                     cell.bg = kept_bg;
                 }
             }
-            // Preserve the source cell's semantic role metadata for the
-            // vacated padding cell, then apply any reset-channel overrides.
-            // Clearing roles here makes later visual passes (such as dimming)
-            // treat padding differently from the row it belongs to.
+
             self.mark(src, Some(reset));
             if let Target::Layer(i) = self.target
                 && let Some(d) = self.frame.layers.active_mut().get_mut(i)
@@ -1721,9 +1559,6 @@ impl<'f> Ui<'f> {
                     if let Some(page_cell) = page_cell
                         && let Some(d) = self.frame.layers.active_mut().get_mut(i)
                     {
-                        // raw() clears the replay so a direct edit sticks.
-                        // Bake the inherited ink first, or the cleared cell
-                        // keeps the terminal default foreground.
                         d.materialize_underlay(pos, &page_cell, page_roles);
                     }
                 }
@@ -1778,7 +1613,6 @@ impl<'f> Ui<'f> {
         self.page
     }
 
-    /// Card fill that keeps the dimmed page glyph color and sets the card background.
     pub fn fill_card_from_page(&mut self, area: Rect, card: ratatui_core::style::Color) {
         let theme = self.theme.clone();
         let samples: Vec<_> = area
@@ -1812,20 +1646,10 @@ impl<'f> Ui<'f> {
         self.mark_area(area, None);
     }
 
-    /// Space fill that keeps the ink already on the page.
-    ///
-    /// Baseline `fill` sets the glyph to a space and the background, and leaves
-    /// the foreground. Call it after `modal_backdrop` so an empty dialog cell
-    /// keeps the dimmed color under it.
     pub fn fill_keep_fg(&mut self, area: Rect, bg: ratatui_core::style::Color) {
         self.fill(area, crate::theme::PaintStyle::new().bg(bg));
     }
 
-    /// Map truecolor inks. Indexed and named colors stay.
-    ///
-    /// A channel that maps to its existing color keeps its semantic paint
-    /// role. Changed channels lose only their own role; the other channel and
-    /// all non-color cell attributes remain intact.
     pub fn recolor_rgb(
         &mut self,
         area: Rect,
@@ -1846,9 +1670,6 @@ impl<'f> Ui<'f> {
         });
     }
 
-    /// Map a cell's foreground and background together.
-    ///
-    /// Unchanged output channels keep their semantic paint roles.
     pub fn recolor_pair(
         &mut self,
         area: Rect,
@@ -1860,10 +1681,6 @@ impl<'f> Ui<'f> {
         self.recolor_cells(area, map);
     }
 
-    /// Replace a cell's foreground. `map` returns the new ink, or `None` to keep it.
-    ///
-    /// Returning the existing foreground also keeps its semantic paint role;
-    /// background provenance is preserved in either case.
     pub fn recolor_fg(
         &mut self,
         area: Rect,
@@ -1933,10 +1750,6 @@ impl<'f> Ui<'f> {
 
     pub(crate) fn composite(&mut self, i: usize) {
         if let Some(d) = self.frame.layers.active().get(i) {
-            // The frozen renderer dims the modal layer's own written cells as
-            // well as the underlay at low color levels (16-color and mono):
-            // SGR 2 is added to every composed cell while fg/bg/bold are
-            // preserved. High color levels dim only the underlay.
             let content_dim = matches!(d.spec.backdrop, crate::layer::Backdrop::Dim { .. })
                 && matches!(
                     self.theme_ref().capability.color,
@@ -1999,1554 +1812,5 @@ impl FrameRead for Ui<'_> {
         } else {
             self.last.layout_of(id)
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::panic::{AssertUnwindSafe, catch_unwind};
-
-    use ratatui_core::buffer::Buffer;
-    use ratatui_core::layout::{Position, Rect};
-    use ratatui_core::style::Style;
-
-    use super::cx::LastFrame;
-    use super::{
-        CellRoles, CursorRetentionMode, FrameRead, FrameState, LayoutFacts, ReferenceState,
-        ReferenceTarget, RetainedCursorRequest, Ui, UiCore,
-    };
-    use crate::action::ActionKey;
-    use crate::diagnostics::Diagnostic;
-    use crate::event::{Chord, KeyCode};
-    use crate::focus::Focusability;
-    use crate::hit::{Axes, Headroom, RegionKind};
-    use crate::id::{Id, ItemKey, Part, PartRef};
-    use crate::keymap::Binding;
-    use crate::layer::{DismissReason, LayerEvent, LayerId, LayerOpening, LayerSpec, LayerStack};
-    use crate::response::StateFlags;
-    use crate::rowui::RowUi;
-    use crate::theme::{
-        Family, FgStep, Overlay, OverlayRule, Role, StylePatch, Surface, Theme, Variant,
-    };
-
-    const SCREEN: Rect = Rect {
-        x: 0,
-        y: 0,
-        width: 24,
-        height: 3,
-    };
-    const OWNER: Id = Id::root("ui.owner");
-    const OTHER: Id = Id::root("ui.other");
-
-    #[test]
-    fn horizontal_source_offset_updates_the_latest_current_layout_entry_only() {
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let mut last = LastFrame::default();
-        let theme = Theme::junie();
-        let first = LayoutFacts::new(2, 20, 2, 12).with_logical_area(Rect::new(1, 1, 12, 2));
-        let other = LayoutFacts::new(3, 30, 3, 18).with_logical_area(Rect::new(2, 0, 18, 3));
-        let latest = LayoutFacts::new(4, 40, 4, 20).with_logical_area(Rect::new(3, 0, 20, 3));
-        let previous_only = Id::root("ui.previous-only");
-        let mut previous = LayoutFacts::new(5, 50, 5, 22);
-        previous.horizontal_source_offset = Some(11);
-        last.layout.push((previous_only, previous));
-
-        let (updated, absent, reference_suppressed) = {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            ui.report_layout(OWNER, first);
-            ui.report_layout(OTHER, other);
-            ui.report_layout(OWNER, latest);
-            let updated = ui.report_horizontal_source_offset(OWNER, 8);
-            let absent = ui.report_horizontal_source_offset(previous_only, 9);
-            let reference_suppressed = ui.reference(None, |reference| {
-                !reference.report_horizontal_source_offset(OWNER, 10)
-            });
-            (updated, absent, reference_suppressed)
-        };
-
-        assert!(updated);
-        assert!(!absent);
-        assert!(reference_suppressed);
-        assert_eq!(frame.layout.len(), 3, "the helper never appends a fact");
-        assert_eq!(frame.layout[0], (OWNER, first));
-        assert_eq!(frame.layout[1], (OTHER, other));
-        let mut expected = latest;
-        expected.horizontal_source_offset = Some(8);
-        assert_eq!(frame.layout[2], (OWNER, expected));
-        assert_eq!(last.layout[0], (previous_only, previous));
-        assert_eq!(LayoutFacts::new(0, 0, 0, 0).horizontal_source_offset, None);
-    }
-
-    #[derive(Clone, Copy)]
-    enum TestCmd {
-        Activate,
-    }
-
-    const TEST_BINDINGS: &[Binding<TestCmd>] = &[Binding {
-        action: ActionKey::CONFIRM,
-        chord: Some(Chord::key(KeyCode::Enter)),
-        cmd: TestCmd::Activate,
-        label: "Activate",
-        priority: 1,
-        visible: true,
-    }];
-
-    #[derive(Clone, Copy)]
-    enum TestNavCmd {
-        Up,
-    }
-
-    const TEST_NAV_BINDINGS: &[Binding<TestNavCmd>] = &[Binding {
-        action: ActionKey::custom("ui.nav.up"),
-        chord: Some(Chord::key(KeyCode::Up)),
-        cmd: TestNavCmd::Up,
-        label: "Up",
-        priority: 2,
-        visible: true,
-    }];
-
-    fn with_ui<R>(theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> (R, Buffer) {
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let out = {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
-            f(&mut ui)
-        };
-        (out, page)
-    }
-
-    fn with_inert_ui<R>(theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> (R, Buffer) {
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        // A layer above the page is the inert floor: everything under it is
-        // drawn but not interactive.
-        frame.inert_floor = crate::layer::LayerId(1);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let out = {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
-            f(&mut ui)
-        };
-        (out, page)
-    }
-
-    const GUARDED_LAYER: Id = Id::root("ui.layer.guarded");
-    const GUARDED_PARENT: Id = Id::root("ui.layer.guarded.parent");
-    const GUARDED_OTHER_OWNER: Id = Id::root("ui.layer.guarded.other-owner");
-
-    fn opening_for_test(id: Id, spec: LayerSpec, runtime: u64) -> LayerOpening {
-        LayerStack::default()
-            .open_with_runtime(id, spec, None, runtime)
-            .expect("test layer opens")
-    }
-
-    fn frame_for_opening(opening: LayerOpening, spec: LayerSpec) -> FrameState {
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        frame
-            .layers
-            .push(opening.id(), opening.layer_id(), spec, SCREEN, SCREEN);
-        frame.layer_openings.push(opening);
-        frame
-    }
-
-    fn assert_layer_for_rejects(active: LayerOpening, attempted: LayerOpening, spec: LayerSpec) {
-        let mut frame = frame_for_opening(active, spec);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let theme = Theme::junie();
-        let mut callback_ran = false;
-        let result = {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            ui.layer_for(attempted, |_, _| callback_ran = true)
-        };
-        assert_eq!(result, None);
-        assert!(!callback_ran);
-        assert!(!frame.layers.active()[0].drawn);
-        assert!(frame.diagnostics.items().is_empty());
-    }
-
-    #[test]
-    fn layer_for_rejects_stale_same_id_before_native_draw_claims_the_slot() {
-        let spec = LayerSpec::modal(OWNER);
-        let mut stack = LayerStack::default();
-        let stale = stack
-            .open_with_runtime(GUARDED_LAYER, spec, None, 19)
-            .expect("first opening");
-        let _ = stack.close(
-            GUARDED_LAYER,
-            LayerEvent::Dismissed(DismissReason::Programmatic),
-        );
-        let current = stack
-            .open_with_runtime(GUARDED_LAYER, spec, None, 19)
-            .expect("same-ID replacement");
-        assert_eq!(stale.id(), current.id());
-        assert_eq!(stale.runtime(), current.runtime());
-        assert_eq!(stale.owner(), current.owner());
-        assert_eq!(stale.parent(), current.parent());
-        assert_ne!(stale, current);
-
-        let mut frame = frame_for_opening(current, spec);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let theme = Theme::junie();
-        let mut stale_callback_ran = false;
-        let mut native_callback_ran = false;
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            assert_eq!(ui.layer_for(stale, |_, _| stale_callback_ran = true), None);
-            assert_eq!(
-                ui.layer(current.id(), |_, area| {
-                    assert_eq!(area, SCREEN);
-                    native_callback_ran = true;
-                }),
-                Some(())
-            );
-        }
-        assert!(!stale_callback_ran);
-        assert!(native_callback_ran);
-        assert!(frame.layers.active()[0].drawn);
-        assert!(frame.diagnostics.items().is_empty());
-    }
-
-    #[test]
-    fn layer_for_valid_draw_preserves_the_existing_duplicate_draw_diagnostic() {
-        let spec = LayerSpec::modal(OWNER);
-        let opening = opening_for_test(GUARDED_LAYER, spec, 20);
-        let mut frame = frame_for_opening(opening, spec);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let theme = Theme::junie();
-        let mut callback_count = 0;
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            assert_eq!(ui.layer_for(opening, |_, _| callback_count += 1), Some(()));
-            assert_eq!(ui.layer_for(opening, |_, _| callback_count += 1), None);
-        }
-        assert_eq!(callback_count, 1);
-        assert_eq!(
-            frame.diagnostics.items(),
-            &[Diagnostic::DuplicateLayerDraw { id: GUARDED_LAYER }]
-        );
-    }
-
-    #[test]
-    fn layer_for_rejects_foreign_runtime_owner_and_parent_openings() {
-        let spec = LayerSpec::modal(OWNER);
-        let active = opening_for_test(GUARDED_LAYER, spec, 21);
-        let foreign_runtime = opening_for_test(GUARDED_LAYER, spec, 22);
-        assert_eq!(active.id(), foreign_runtime.id());
-        assert_eq!(active.layer_id(), foreign_runtime.layer_id());
-        assert_eq!(active.owner(), foreign_runtime.owner());
-        assert_eq!(active.generation(), foreign_runtime.generation());
-        assert_eq!(active.parent(), foreign_runtime.parent());
-        assert_ne!(active, foreign_runtime);
-        assert_layer_for_rejects(active, foreign_runtime, spec);
-
-        let owner_spec = LayerSpec::modal(GUARDED_OTHER_OWNER);
-        let foreign_owner = opening_for_test(GUARDED_LAYER, owner_spec, 21);
-        assert_eq!(active.layer_id(), foreign_owner.layer_id());
-        assert_eq!(active.runtime(), foreign_owner.runtime());
-        assert_eq!(active.generation(), foreign_owner.generation());
-        assert_eq!(active.parent(), foreign_owner.parent());
-        assert_ne!(active.owner(), foreign_owner.owner());
-        assert_layer_for_rejects(active, foreign_owner, spec);
-
-        let mut without_parent = LayerStack::default();
-        let _closed_parent = without_parent
-            .open_with_runtime(GUARDED_PARENT, LayerSpec::modal(GUARDED_PARENT), None, 23)
-            .expect("temporary parent opens");
-        let _ = without_parent.close(
-            GUARDED_PARENT,
-            LayerEvent::Dismissed(DismissReason::Programmatic),
-        );
-        let parentless = without_parent
-            .open_with_runtime(GUARDED_LAYER, spec, None, 23)
-            .expect("parentless layer opens after close");
-
-        let mut with_parent = LayerStack::default();
-        let parent = with_parent
-            .open_with_runtime(GUARDED_PARENT, LayerSpec::modal(GUARDED_PARENT), None, 23)
-            .expect("parent opens");
-        let parented = with_parent
-            .open_with_runtime(GUARDED_LAYER, spec, None, 23)
-            .expect("child layer opens");
-        assert_eq!(parentless.id(), parented.id());
-        assert_eq!(parentless.layer_id(), parented.layer_id());
-        assert_eq!(parentless.runtime(), parented.runtime());
-        assert_eq!(parentless.generation(), parented.generation());
-        assert_eq!(parentless.owner(), parented.owner());
-        assert_eq!(parentless.parent(), None);
-        assert_eq!(parented.parent(), Some(parent.into()));
-        assert_layer_for_rejects(parentless, parented, spec);
-    }
-
-    #[test]
-    fn layer_for_rejects_missing_identity_and_reference_mode_without_claiming() {
-        let spec = LayerSpec::modal(OWNER);
-        let opening = opening_for_test(GUARDED_LAYER, spec, 24);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let theme = Theme::junie();
-
-        let mut missing_frame = FrameState::default();
-        missing_frame.reset(1, SCREEN);
-        let mut missing_callback_ran = false;
-        {
-            let mut ui = Ui::new(&mut missing_frame, &mut page, &mut core, &theme, &last);
-            assert_eq!(
-                ui.layer_for(opening, |_, _| missing_callback_ran = true),
-                None
-            );
-        }
-        assert!(!missing_callback_ran);
-        assert!(missing_frame.diagnostics.items().is_empty());
-
-        let mut unlisted_frame = frame_for_opening(opening, spec);
-        unlisted_frame.layer_openings.clear();
-        let mut unlisted_callback_ran = false;
-        {
-            let mut ui = Ui::new(&mut unlisted_frame, &mut page, &mut core, &theme, &last);
-            assert_eq!(
-                ui.layer_for(opening, |_, _| unlisted_callback_ran = true),
-                None
-            );
-        }
-        assert!(!unlisted_callback_ran);
-        assert!(!unlisted_frame.layers.active()[0].drawn);
-        assert!(unlisted_frame.diagnostics.items().is_empty());
-
-        let mut reference_frame = frame_for_opening(opening, spec);
-        let mut reference_callback_ran = false;
-        {
-            let mut ui = Ui::new(&mut reference_frame, &mut page, &mut core, &theme, &last);
-            assert_eq!(
-                ui.reference(None, |ui| {
-                    ui.layer_for(opening, |_, _| reference_callback_ran = true)
-                }),
-                None
-            );
-        }
-        assert!(!reference_callback_ran);
-        assert!(!reference_frame.layers.active()[0].drawn);
-        assert!(reference_frame.diagnostics.items().is_empty());
-    }
-
-    #[test]
-    fn frame_reset_clears_exact_layer_opening_admission_tokens() {
-        let spec = LayerSpec::modal(OWNER);
-        let opening = opening_for_test(GUARDED_LAYER, spec, 25);
-        let mut frame = frame_for_opening(opening, spec);
-        assert_eq!(frame.layer_openings, vec![opening]);
-
-        frame.reset(2, SCREEN);
-
-        assert!(frame.layer_openings.is_empty());
-    }
-
-    #[test]
-    fn inactive_layer_is_a_first_class_state() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            assert!(!ui.is_inactive_layer());
-            assert_eq!(ui.context_state(), StateFlags::empty());
-            ui.declare_state(OWNER, StateFlags::FOCUSED);
-            assert_eq!(ui.frame.declared, vec![(OWNER, StateFlags::FOCUSED)]);
-        });
-        with_inert_ui(&theme, |ui| {
-            assert!(ui.is_inactive_layer());
-            assert_eq!(ui.context_state(), StateFlags::INACTIVE_LAYER);
-            assert!(ui.context_state().is_inactive_layer());
-            ui.declare_state(OWNER, StateFlags::FOCUSED);
-            assert_eq!(
-                ui.frame.declared,
-                vec![(OWNER, StateFlags::FOCUSED | StateFlags::INACTIVE_LAYER)],
-                "an inactive layer travels with the component's own state"
-            );
-        });
-    }
-
-    #[test]
-    fn author_binding_extension_is_explicit_and_additive_for_same_owner() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            ui.register_focus_only(OWNER, Focusability::Focusable);
-            ui.publish_bindings(OWNER, StateFlags::FOCUSED, TEST_BINDINGS);
-            crate::author::extend_bindings(
-                ui,
-                OWNER,
-                StateFlags::FOCUSED,
-                TEST_NAV_BINDINGS,
-                |command| matches!(command, TestNavCmd::Up),
-            )
-            .expect("disjoint nav action extends the owner table");
-
-            let (_, descriptors) = ui.frame.bindings.get(OWNER).expect("published owner");
-            assert_eq!(descriptors.len(), 2);
-            assert!(
-                descriptors
-                    .iter()
-                    .any(|binding| binding.action == ActionKey::CONFIRM)
-            );
-            assert!(
-                descriptors
-                    .iter()
-                    .any(|binding| binding.action == ActionKey::custom("ui.nav.up"))
-            );
-        });
-    }
-
-    #[test]
-    fn reference_state_has_exactly_the_four_runtime_bits() {
-        const CONST_COMBINED: ReferenceState =
-            ReferenceState::FOCUS_VISIBLE.union(ReferenceState::PRESSED);
-        assert_eq!(
-            CONST_COMBINED.state_flags(),
-            StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE | StateFlags::PRESSED
-        );
-
-        let choices = [
-            (ReferenceState::FOCUSED, StateFlags::FOCUSED),
-            (ReferenceState::FOCUS_VISIBLE, StateFlags::FOCUS_VISIBLE),
-            (ReferenceState::HOVERED, StateFlags::HOVERED),
-            (ReferenceState::PRESSED, StateFlags::PRESSED),
-        ];
-        for mask in 0u8..16 {
-            let mut reference = ReferenceState::default();
-            let mut expected = StateFlags::empty();
-            for (i, (reference_bit, state_bit)) in choices.iter().copied().enumerate() {
-                if mask & (1 << i) != 0 {
-                    reference |= reference_bit;
-                    expected |= state_bit;
-                }
-            }
-            if expected.contains(StateFlags::FOCUS_VISIBLE) {
-                expected |= StateFlags::FOCUSED;
-            }
-            assert_eq!(reference.state_flags(), expected, "mask {mask:04b}");
-        }
-    }
-
-    #[test]
-    fn reference_injects_only_the_exact_target_and_hides_stale_live_state() {
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let part = PartRef::item(Part::MARKER, ItemKey::num(7));
-        let stale_part = PartRef::of(Part::LABEL);
-        let last = LastFrame {
-            declared: vec![
-                (OWNER, StateFlags::ERROR | StateFlags::EDITING),
-                (OTHER, StateFlags::BUSY),
-            ],
-            snapshot: super::cx::Snapshot {
-                focus: Some(OTHER),
-                focus_visible: true,
-                hover: Some((OTHER, stale_part)),
-                hover_suppressed: false,
-                pressed: Some((OWNER, stale_part)),
-                capture: Some(OTHER),
-            },
-            ..LastFrame::default()
-        };
-        let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-
-        let target = ReferenceTarget::new(
-            OWNER,
-            ReferenceState::FOCUSED
-                | ReferenceState::FOCUS_VISIBLE
-                | ReferenceState::HOVERED
-                | ReferenceState::PRESSED,
-        )
-        .part(part);
-        ui.reference(Some(target), |ui| {
-            assert_eq!(
-                ui.state(OWNER),
-                StateFlags::FOCUSED
-                    | StateFlags::FOCUS_VISIBLE
-                    | StateFlags::HOVERED
-                    | StateFlags::PRESSED
-            );
-            assert_eq!(ui.state(OTHER), StateFlags::empty());
-            assert_eq!(ui.hovered_part(OWNER), Some(part));
-            assert_eq!(ui.pressed_part(OWNER), Some(part));
-            assert_eq!(ui.hovered_part(OTHER), None);
-            assert_eq!(ui.pressed_part(OTHER), None);
-        });
-        ui.reference(None, |ui| {
-            assert_eq!(ui.state(OWNER), StateFlags::empty());
-            assert_eq!(ui.state(OTHER), StateFlags::empty());
-            assert_eq!(ui.hovered_part(OWNER), None);
-            assert_eq!(ui.pressed_part(OWNER), None);
-        });
-        ui.reference(
-            Some(ReferenceTarget::new(OWNER, ReferenceState::HOVERED)),
-            |ui| {
-                assert_eq!(ui.state(OWNER), StateFlags::HOVERED);
-                assert_eq!(
-                    ui.hovered_part(OWNER),
-                    Some(PartRef::of(Part::CONTAINER)),
-                    "an owner target canonicalizes to its container part"
-                );
-            },
-        );
-        ui.reference(
-            Some(ReferenceTarget::new(OWNER, ReferenceState::PRESSED)),
-            |ui| {
-                assert_eq!(ui.pressed_part(OWNER), Some(PartRef::of(Part::CONTAINER)));
-            },
-        );
-    }
-
-    #[test]
-    fn nested_reference_restores_the_outer_target_even_after_a_panic() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            assert!(!ui.is_inert());
-            let outer =
-                ReferenceTarget::new(OWNER, ReferenceState::HOVERED).part(PartRef::of(Part::LABEL));
-            let inner = ReferenceTarget::new(OTHER, ReferenceState::PRESSED)
-                .part(PartRef::of(Part::MARKER));
-            ui.reference(Some(outer), |ui| {
-                assert!(ui.is_inert());
-                assert_eq!(ui.state(OWNER), StateFlags::HOVERED);
-                ui.reference(Some(inner), |ui| {
-                    assert_eq!(ui.state(OWNER), StateFlags::empty());
-                    assert_eq!(ui.state(OTHER), StateFlags::PRESSED);
-                });
-                assert_eq!(ui.state(OWNER), StateFlags::HOVERED);
-
-                let unwind = catch_unwind(AssertUnwindSafe(|| {
-                    ui.reference(Some(inner), |_| panic!("reference probe"));
-                }));
-                assert!(unwind.is_err());
-                assert_eq!(ui.state(OWNER), StateFlags::HOVERED);
-                assert_eq!(ui.hovered_part(OWNER), Some(PartRef::of(Part::LABEL)));
-            });
-            assert!(!ui.is_inert());
-        });
-    }
-
-    #[test]
-    fn reference_sinks_every_registration_and_runtime_output() {
-        const LAYER: Id = Id::root("ui.layer");
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        frame
-            .layers
-            .push(LAYER, LayerId(1), LayerSpec::modal(LAYER), SCREEN, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let mut layer_ran = false;
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            ui.reference(None, |ui| {
-                ui.register_control(OWNER, SCREEN, Focusability::Focusable);
-                ui.register_focus_only(OTHER, Focusability::Focusable);
-                ui.register_editor(OWNER, SCREEN, Focusability::Focusable, StateFlags::EDITING);
-                ui.register_part(OWNER, PartRef::of(Part::LABEL), SCREEN);
-                ui.register_decor(OWNER, PartRef::of(Part::HELP), SCREEN);
-                ui.register_scroll(OWNER, SCREEN, Axes::Both, Headroom::default());
-                ui.register_hover_part(OWNER, PartRef::of(Part::LABEL), SCREEN);
-                ui.register_passive_reveal_scroll(OWNER, SCREEN, Headroom::default());
-                ui.declare_state(OWNER, StateFlags::ERROR);
-                ui.report_layout(OWNER, LayoutFacts::new(1, 2, 3, 4));
-                ui.set_cursor(OWNER, Position::new(1, 1));
-                ui.publish_bindings(OWNER, StateFlags::FOCUSED, TEST_BINDINGS);
-                ui.publish_dynamic_bindings(
-                    OWNER,
-                    StateFlags::FOCUSED,
-                    core::iter::once((ActionKey::SAVE, Some(Chord::key(KeyCode::Char('s'))))),
-                );
-                assert!(ui.layer(LAYER, |_, _| layer_ran = true).is_none());
-                ui.focus_scope(OWNER, crate::focus::ScopeMode::Trap, |ui| {
-                    ui.register_control(OWNER, SCREEN, Focusability::Focusable);
-                });
-            });
-        }
-
-        assert!(!layer_ran);
-        assert!(!frame.registry.has_owner(OWNER));
-        assert!(!frame.registry.has_owner(OTHER));
-        assert!(frame.ring.entries().is_empty());
-        assert!(frame.declared.is_empty());
-        assert!(frame.layout.is_empty());
-        assert!(frame.cursors.is_empty());
-        assert!(frame.bindings.get(OWNER).is_none());
-        assert!(frame.diagnostics.items().is_empty());
-        assert!(
-            frame
-                .layers
-                .active()
-                .first()
-                .is_some_and(|layer| !layer.drawn)
-        );
-    }
-
-    #[test]
-    fn passive_registrations_respect_the_current_clip_and_inert_floor() {
-        const HOVER: Id = Id::root("ui.passive-hover");
-        const REVEAL_SCROLL: Id = Id::root("ui.passive-scroll");
-        let theme = Theme::junie();
-        let clip = Rect::new(3, 1, 5, 2);
-        let registered = with_ui(&theme, |ui| {
-            ui.with_area(clip, |ui| {
-                ui.register_hover_part(HOVER, PartRef::of(Part::LABEL), Rect::new(0, 0, 20, 8));
-                ui.register_passive_reveal_scroll(
-                    REVEAL_SCROLL,
-                    Rect::new(0, 0, 20, 8),
-                    Headroom {
-                        down: 4,
-                        ..Headroom::default()
-                    },
-                );
-            });
-            ui.frame.registry.regions().to_vec()
-        })
-        .0;
-        assert_eq!(registered.len(), 2);
-        assert_eq!(registered[0].owner, HOVER);
-        assert_eq!(registered[0].kind, RegionKind::HoverOnly);
-        assert_eq!(registered[0].area, clip);
-        assert_eq!(registered[1].owner, REVEAL_SCROLL);
-        assert_eq!(registered[1].kind, RegionKind::Scroll);
-        assert_eq!(registered[1].area, clip);
-
-        let inert_regions = with_inert_ui(&theme, |ui| {
-            ui.register_hover_part(HOVER, PartRef::of(Part::LABEL), SCREEN);
-            ui.register_passive_reveal_scroll(REVEAL_SCROLL, SCREEN, Headroom::default());
-            ui.frame.registry.regions().to_vec()
-        })
-        .0;
-        assert!(
-            inert_regions.is_empty(),
-            "inert registrations are suppressed"
-        );
-    }
-
-    fn with_cursor_popover(
-        kind: crate::layer::LayerKind,
-        inert_below: bool,
-        owner_focused: bool,
-        owner_area: Rect,
-        cursor_pos: Option<Position>,
-        run: impl FnOnce(&mut Ui<'_>) -> bool,
-    ) -> (bool, FrameState) {
-        const POPUP: Id = Id::root("ui.cursor-popup");
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        frame.top = LayerId(1);
-        frame.inert_floor = if inert_below {
-            LayerId(1)
-        } else {
-            LayerId::PAGE
-        };
-        let mut spec = if kind == crate::layer::LayerKind::Modal {
-            LayerSpec::modal(POPUP)
-        } else {
-            LayerSpec::popover(
-                POPUP,
-                crate::layer::Anchor::Screen(crate::layer::ScreenAlign::Center),
-            )
-        };
-        spec.inert_below = inert_below;
-        frame.layers.push(POPUP, LayerId(1), spec, SCREEN, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let mut last = LastFrame::default();
-        if owner_focused {
-            last.snapshot.focus = Some(OWNER);
-        }
-        let moved = {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            ui.register_editor(
-                OWNER,
-                owner_area,
-                Focusability::Focusable,
-                StateFlags::EDITING,
-            );
-            if let Some(pos) = cursor_pos {
-                ui.set_bar_cursor(OWNER, pos);
-            }
-            let mut moved = false;
-            let _ = ui.layer(POPUP, |ui, _| moved = run(ui));
-            moved
-        };
-        (moved, frame)
-    }
-
-    #[test]
-    fn focused_owner_cursor_can_be_retained_only_by_an_opted_in_nonmodal_popover() {
-        use crate::layer::LayerKind;
-
-        let (retained, frame) = with_cursor_popover(
-            LayerKind::Popover,
-            false,
-            true,
-            SCREEN,
-            Some(Position::new(4, 1)),
-            |ui| ui.retain_owner_cursor(OWNER),
-        );
-        assert!(retained);
-        assert_eq!(
-            frame.retained_cursor_request,
-            Some(RetainedCursorRequest {
-                owner: OWNER,
-                parent_layer: LayerId::PAGE,
-                overlay_layer: LayerId(1),
-                cursor_index: 0,
-                mode: CursorRetentionMode::FocusedOwner,
-                ambiguous: false,
-            })
-        );
-        assert_eq!(frame.cursors.len(), 1, "the real cursor request is reused");
-        assert_eq!(frame.cursors[0].layer, LayerId(1));
-        assert_eq!(frame.cursors[0].pos, Position::new(4, 1));
-        assert_eq!(frame.cursors[0].shape, crate::cursor::CursorShape::Bar);
-
-        let (ordinary, frame) = with_cursor_popover(
-            LayerKind::Popover,
-            false,
-            true,
-            SCREEN,
-            Some(Position::new(4, 1)),
-            |_| false,
-        );
-        assert!(!ordinary, "ordinary popovers do not retain owner cursors");
-        assert_eq!(frame.retained_cursor_request, None);
-        assert_eq!(frame.cursors[0].layer, LayerId::PAGE);
-
-        for (kind, inert, focused, area, cursor) in [
-            (
-                LayerKind::Modal,
-                false,
-                true,
-                SCREEN,
-                Some(Position::new(4, 1)),
-            ),
-            (
-                LayerKind::Popover,
-                true,
-                true,
-                SCREEN,
-                Some(Position::new(4, 1)),
-            ),
-            (
-                LayerKind::Popover,
-                false,
-                false,
-                SCREEN,
-                Some(Position::new(4, 1)),
-            ),
-            (LayerKind::Popover, false, true, SCREEN, None),
-            (
-                LayerKind::Popover,
-                false,
-                true,
-                Rect::new(0, 0, 2, 2),
-                Some(Position::new(4, 1)),
-            ),
-        ] {
-            let (retained, frame) = with_cursor_popover(kind, inert, focused, area, cursor, |ui| {
-                ui.retain_owner_cursor(OWNER)
-            });
-            assert!(!retained, "invalid cursor retention must be rejected");
-            assert_eq!(frame.retained_cursor_request, None);
-            assert!(
-                frame
-                    .cursors
-                    .iter()
-                    .all(|cursor| cursor.layer == LayerId::PAGE),
-                "rejected retention leaves the original cursor scope intact"
-            );
-        }
-
-        let (retained, frame) = with_cursor_popover(
-            LayerKind::Popover,
-            false,
-            true,
-            SCREEN,
-            Some(Position::new(4, 1)),
-            |ui| {
-                ui.register_control(OWNER, SCREEN, Focusability::Focusable);
-                ui.retain_owner_cursor(OWNER)
-            },
-        );
-        assert!(
-            !retained,
-            "an owner registered in the popup is not the parent control"
-        );
-        assert_eq!(frame.retained_cursor_request, None);
-    }
-
-    #[test]
-    fn visible_owner_cursor_can_be_retained_without_keyboard_focus() {
-        use crate::layer::LayerKind;
-
-        let (retained, frame) = with_cursor_popover(
-            LayerKind::Popover,
-            false,
-            false,
-            SCREEN,
-            Some(Position::new(4, 1)),
-            |ui| ui.retain_visible_owner_cursor(OWNER),
-        );
-        assert!(retained);
-        assert_eq!(
-            frame.retained_cursor_request,
-            Some(RetainedCursorRequest {
-                owner: OWNER,
-                parent_layer: LayerId::PAGE,
-                overlay_layer: LayerId(1),
-                cursor_index: 0,
-                mode: CursorRetentionMode::VisibleOwner,
-                ambiguous: false,
-            })
-        );
-        assert_eq!(
-            frame.cursors.len(),
-            1,
-            "the existing cursor request is reused"
-        );
-        assert_eq!(frame.cursors[0].layer, LayerId(1));
-        assert_eq!(frame.cursors[0].pos, Position::new(4, 1));
-
-        for (kind, inert, area, cursor) in [
-            (LayerKind::Modal, false, SCREEN, Some(Position::new(4, 1))),
-            (LayerKind::Popover, true, SCREEN, Some(Position::new(4, 1))),
-            (
-                LayerKind::Popover,
-                false,
-                Rect::ZERO,
-                Some(Position::new(4, 1)),
-            ),
-            (LayerKind::Popover, false, SCREEN, None),
-        ] {
-            let (retained, frame) = with_cursor_popover(kind, inert, false, area, cursor, |ui| {
-                ui.retain_visible_owner_cursor(OWNER)
-            });
-            assert!(!retained);
-            assert_eq!(frame.retained_cursor_request, None);
-            assert!(
-                frame
-                    .cursors
-                    .iter()
-                    .all(|request| request.layer == LayerId::PAGE),
-                "a rejected request must not move the underlying cursor"
-            );
-        }
-    }
-
-    #[test]
-    fn conflicting_visible_cursor_owners_reject_the_retention() {
-        const POPUP: Id = Id::root("ui.cursor-conflict-popup");
-        const OTHER: Id = Id::root("ui.cursor-conflict-other");
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        frame.top = LayerId(1);
-        frame.layers.push(
-            POPUP,
-            LayerId(1),
-            LayerSpec::popover(
-                POPUP,
-                crate::layer::Anchor::Screen(crate::layer::ScreenAlign::Center),
-            ),
-            SCREEN,
-            SCREEN,
-        );
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            ui.register_control(OWNER, SCREEN, Focusability::Focusable);
-            ui.set_bar_cursor(OWNER, Position::new(4, 1));
-            ui.register_control(OTHER, SCREEN, Focusability::Focusable);
-            ui.set_bar_cursor(OTHER, Position::new(8, 1));
-            let _ = ui.layer(POPUP, |ui, _| {
-                assert!(ui.retain_visible_owner_cursor(OWNER));
-                assert!(!ui.retain_visible_owner_cursor(OTHER));
-                assert!(!ui.retain_visible_owner_cursor(OWNER));
-            });
-        }
-        let retained = frame
-            .retained_cursor_request
-            .expect("ambiguous attempt recorded");
-        assert!(retained.ambiguous);
-        assert!(frame.diagnostics.items().iter().any(|diagnostic| matches!(
-            diagnostic,
-            crate::diagnostics::Diagnostic::CursorRejected { owner: OTHER, .. }
-        )));
-    }
-
-    #[test]
-    fn reference_cache_is_namespaced_from_live_and_sibling_scopes() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            let formerly_colliding = OWNER.sub("__reference").index(0);
-            *ui.cache::<u32>(formerly_colliding) = 7;
-            let first = ReferenceTarget::new(OWNER, ReferenceState::FOCUSED);
-            let second = ReferenceTarget::new(OTHER, ReferenceState::FOCUSED);
-            ui.reference(Some(first), |ui| {
-                assert_eq!(*ui.cache::<u32>(OWNER), 0);
-                *ui.cache::<u32>(OWNER) = 11;
-                ui.reference(Some(second), |ui| {
-                    assert_eq!(*ui.cache::<u32>(OWNER), 0);
-                    *ui.cache::<u32>(OWNER) = 13;
-                });
-                assert_eq!(*ui.cache::<u32>(OWNER), 11);
-            });
-            ui.reference(Some(second), |ui| {
-                assert_eq!(*ui.cache::<u32>(OWNER), 13);
-            });
-            ui.reference(Some(first), |ui| {
-                assert_eq!(*ui.cache::<u32>(OWNER), 11);
-            });
-            assert_eq!(*ui.cache::<u32>(formerly_colliding), 7);
-        });
-    }
-
-    #[test]
-    fn targetless_sibling_reference_scopes_do_not_share_cache() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            ui.reference(None, |ui| {
-                assert_eq!(*ui.cache::<u32>(OWNER), 0);
-                *ui.cache::<u32>(OWNER) = 11;
-            });
-            ui.reference(None, |ui| {
-                assert_eq!(
-                    *ui.cache::<u32>(OWNER),
-                    0,
-                    "a targetless sibling is a distinct reference fixture"
-                );
-            });
-        });
-    }
-
-    #[test]
-    fn reference_panic_cannot_poison_the_live_cache_namespace() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            *ui.cache::<u32>(OWNER) = 7;
-            let unwind = catch_unwind(AssertUnwindSafe(|| {
-                ui.reference(
-                    Some(ReferenceTarget::new(OWNER, ReferenceState::FOCUSED)),
-                    |ui| {
-                        *ui.cache::<u32>(OWNER) = 99;
-                        panic!("reference cache probe");
-                    },
-                );
-            }));
-            assert!(unwind.is_err());
-            assert_eq!(*ui.cache::<u32>(OWNER), 7);
-        });
-    }
-
-    #[test]
-    fn reference_hides_stale_tab_shaped_area_and_layout() {
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(2, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let mut registry = crate::hit::Registry::default();
-        registry.reset(1);
-        let _ = registry.register_control(OWNER, Rect::new(2, 1, 20, 1), LayerId::PAGE);
-        let last = LastFrame {
-            registry,
-            layout: vec![(OWNER, LayoutFacts::new(3, 12, 1, 20))],
-            ..LastFrame::default()
-        };
-        let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-        assert_eq!(ui.area(OWNER), Some(Rect::new(2, 1, 20, 1)));
-        assert_eq!(ui.layout(OWNER), Some(LayoutFacts::new(3, 12, 1, 20)));
-        ui.reference(
-            Some(ReferenceTarget::new(OWNER, ReferenceState::FOCUSED)),
-            |ui| {
-                assert_eq!(ui.area(OWNER), None);
-                assert_eq!(ui.layout(OWNER), None);
-            },
-        );
-    }
-
-    #[test]
-    fn focused_hints_are_suppressed_inside_a_reference_scope() {
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame {
-            snapshot: super::cx::Snapshot {
-                focus: Some(OWNER),
-                ..super::cx::Snapshot::default()
-            },
-            ..LastFrame::default()
-        };
-        let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-        ui.register_control(OWNER, SCREEN, Focusability::Focusable);
-        ui.publish_bindings(OWNER, StateFlags::FOCUSED, TEST_BINDINGS);
-        assert!(ui.with_focused_hints(|_, _| ()).is_some());
-        ui.reference(
-            Some(ReferenceTarget::new(OWNER, ReferenceState::FOCUSED)),
-            |ui| assert!(ui.with_focused_hints(|_, _| ()).is_none()),
-        );
-    }
-
-    #[test]
-    fn focus_only_is_reachable_without_an_area_or_hit_target() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            ui.register_focus_only(OWNER, Focusability::Focusable);
-
-            assert_eq!(ui.frame.ring.next(None), Some(OWNER));
-            assert_eq!(ui.frame.ring.entry(OWNER).map(|e| e.area), Some(Rect::ZERO));
-            assert_eq!(ui.frame.registry.area_of(OWNER), None);
-            assert_eq!(ui.frame.registry.hit(Position::new(0, 0)), None);
-        });
-    }
-
-    #[test]
-    fn focus_only_click_only_is_a_no_op() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            ui.register_focus_only(OWNER, Focusability::ClickOnly);
-
-            assert!(!ui.frame.ring.is_registered(OWNER));
-            assert!(!ui.frame.registry.has_owner(OWNER));
-        });
-    }
-
-    #[test]
-    fn zero_area_control_still_registers_nothing() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            ui.register_control(OWNER, Rect::ZERO, Focusability::Focusable);
-
-            assert!(!ui.frame.ring.is_registered(OWNER));
-            assert!(!ui.frame.registry.has_owner(OWNER));
-        });
-    }
-
-    #[test]
-    fn focus_only_preserves_disabled_and_read_only_semantics() {
-        const DISABLED: Id = Id::root("ui.disabled");
-        const READ_ONLY: Id = Id::root("ui.read-only");
-
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            ui.register_focus_only(DISABLED, Focusability::Disabled);
-            ui.register_focus_only(READ_ONLY, Focusability::FocusableReadOnly);
-
-            assert!(ui.frame.ring.is_registered(DISABLED));
-            assert!(!ui.frame.ring.contains(DISABLED));
-            assert!(ui.frame.ring.contains(READ_ONLY));
-            assert_eq!(ui.frame.declared, vec![(READ_ONLY, StateFlags::READ_ONLY)]);
-        });
-    }
-
-    #[test]
-    fn with_part_resolves_once_and_records_the_role() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            #[cfg(feature = "testing")]
-            let before = ui.style_cache_stats();
-            let painted = ui.with_part(
-                Family::LIST,
-                Variant::DEFAULT,
-                Part::CONTAINER,
-                StateFlags::empty(),
-                |ui, r| {
-                    let area = Rect::new(0, 0, 4, 1);
-                    ui.fill(area, r.style);
-                    (area, r)
-                },
-            );
-            #[cfg(feature = "testing")]
-            {
-                let after = ui.style_cache_stats();
-                assert_eq!(after.1, before.1 + 1, "exactly one cache miss");
-                assert_eq!(after.0, before.0, "and no hit: it resolved once");
-            }
-            let (area, r) = painted;
-
-            assert_eq!(ui.full(), SCREEN);
-            assert_eq!(ui.surface(), Surface::Canvas);
-            for pos in area.positions() {
-                assert_eq!(
-                    ui.roles_at(pos),
-                    CellRoles {
-                        fg: Some(Role::Fg(FgStep::Primary)),
-                        bg: Some(Role::CurrentSurface),
-                    }
-                );
-            }
-            assert_eq!(r.style.bg, Some(theme.bg(Surface::Canvas)));
-        });
-    }
-
-    #[test]
-    fn scoped_part_hit_precedence_runs_once_and_keeps_reference_registration_inert() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            let requested = PartRef::item(Part::SEAM, ItemKey::num(17));
-            let mut calls = 0;
-            crate::author::with_part_hit_precedence(ui, requested, |nested| {
-                calls += 1;
-                nested.register_part(OWNER, requested, SCREEN);
-                nested.register_control(OTHER, SCREEN, Focusability::Focusable);
-            });
-            assert_eq!(calls, 1);
-            let hit = ui
-                .frame
-                .registry
-                .hit(Position::new(1, 1))
-                .expect("the exact part registration is promoted");
-            assert_eq!(
-                (hit.owner, hit.part, hit.kind),
-                (OWNER, requested, RegionKind::Part)
-            );
-
-            let count_before_reference = ui.frame.registry.len();
-            ui.reference(None, |reference| {
-                crate::author::with_part_hit_precedence(reference, requested, |nested| {
-                    calls += 1;
-                    nested.register_part(OTHER, requested, SCREEN);
-                    nested.register_control(OWNER, SCREEN, Focusability::Focusable);
-                });
-            });
-            assert_eq!(calls, 2, "the reference render closure still runs once");
-            assert_eq!(ui.frame.registry.len(), count_before_reference);
-        });
-    }
-
-    #[test]
-    fn surface_style_is_the_left_operand_of_the_final_patch() {
-        for theme in [Theme::junie(), Theme::paper()] {
-            for s in [
-                Surface::Canvas,
-                Surface::Surface,
-                Surface::Elevated,
-                Surface::Overlay,
-                Surface::Popover,
-                Surface::Field,
-            ] {
-                with_ui(&theme, |ui| {
-                    ui.with_surface(s, |ui| {
-                        let inherited = ui.surface_style();
-                        assert_eq!(inherited.bg, Some(theme.bg(s)));
-                        assert_eq!(
-                            inherited.fg,
-                            crate::theme::resolve::bind_role(&theme, Role::Fg(FgStep::Primary), s)
-                        );
-                        assert_eq!(inherited.add_modifier, Style::new().add_modifier);
-                        for &f in &[Family::LIST, Family::BUTTON, Family::FIELD] {
-                            for &p in &[Part::CONTAINER, Part::LABEL, Part::GUTTER] {
-                                for st in [StateFlags::empty(), StateFlags::FOCUSED] {
-                                    let r = ui.style(f, Variant::DEFAULT, p, st);
-                                    assert_eq!(r.over(inherited), inherited.patch(r.style));
-                                }
-                            }
-                        }
-                    });
-                });
-            }
-        }
-    }
-
-    #[test]
-    fn right_align_keeps_the_row_fill_in_the_vacated_prefix() {
-        use ratatui_core::style::Color;
-
-        use crate::rowui::CellUi;
-        use crate::theme::{Align, PaintStyle};
-
-        let theme = Theme::junie();
-        let (_, page) = with_ui(&theme, |ui| {
-            let area = Rect::new(0, 0, 12, 1);
-            let row = PaintStyle::new()
-                .fg(Color::Rgb(255, 255, 255))
-                .bg(Color::Rgb(0, 0, 0));
-            ui.fill(area, row);
-            let mut cell = CellUi::new(ui.reborrow(), area, PaintStyle::new());
-            cell.align(Align::Right);
-            cell.text("10000");
-        });
-        for x in 0..7 {
-            let cell = page.cell(Position::new(x, 0)).expect("prefix cell");
-            assert_eq!(cell.symbol(), " ", "prefix symbol {x}");
-            assert_eq!(cell.fg, Color::Rgb(255, 255, 255), "prefix fg {x}");
-            assert_eq!(cell.bg, Color::Rgb(0, 0, 0), "prefix bg {x}");
-        }
-        let text: String = (7..12)
-            .map(|x| {
-                page.cell(Position::new(x, 0))
-                    .expect("digit cell")
-                    .symbol()
-                    .to_owned()
-            })
-            .collect();
-        assert_eq!(text, "10000");
-    }
-
-    #[test]
-    fn right_aligned_padding_keeps_semantic_roles_through_dimming() {
-        use crate::rowui::CellUi;
-        use crate::theme::{Align, PaintStyle};
-
-        let theme = Theme::junie();
-        let (_, page) = with_ui(&theme, |ui| {
-            let area = Rect::new(0, 0, 12, 1);
-            let fill = ui.paint_patch(
-                &StylePatch::new()
-                    .set_fg(Role::Accent)
-                    .set_bg(Role::Surface(Surface::Overlay)),
-            );
-            ui.fill(area, fill);
-            let mut cell = CellUi::new(ui.reborrow(), Rect::new(0, 0, 6, 1), PaintStyle::new());
-            cell.align(Align::Right);
-            cell.text("1");
-            drop(cell);
-            ui.dim_layer(area, 1);
-        });
-
-        let padding = page.cell(Position::new(0, 0)).expect("padding cell");
-        let row_fill = page.cell(Position::new(8, 0)).expect("row fill cell");
-        assert_eq!((padding.fg, padding.bg), (row_fill.fg, row_fill.bg));
-    }
-
-    #[test]
-    fn dim_layer_uses_the_role_of_the_painted_cell() {
-        let theme = Theme::junie();
-        let backdrop = crate::theme::resolve::bind_role(&theme, Role::BackdropFg, Surface::Canvas);
-        let ((), page) = with_ui(&theme, |ui| {
-            let row = Rect::new(0, 0, 10, 1);
-            {
-                let mut r = RowUi::new(
-                    ui,
-                    OWNER,
-                    Family::LIST,
-                    Variant::DEFAULT,
-                    StateFlags::empty(),
-                    ItemKey::num(1),
-                    row,
-                );
-                let mut cell = r.part(Part::META, 6);
-                cell.align(crate::theme::Align::Right);
-                cell.text("ok");
-            }
-
-            for x in 12..24u16 {
-                assert_eq!(ui.roles_at(Position::new(x, 0)), CellRoles::default());
-            }
-            ui.dim_layer(SCREEN, 2);
-        });
-
-        let far = page.cell(Position::new(20, 2)).expect("cell");
-        assert_eq!(far.fg, backdrop.unwrap_or(far.fg));
-
-        let painted = page.cell(Position::new(1, 0)).expect("cell");
-        assert_eq!(painted.bg, theme.bg(Surface::Canvas));
-    }
-
-    static PANIC_OVERLAY_OUTER: [OverlayRule; 1] = [(
-        Family::LIST,
-        Variant::DEFAULT,
-        Part::CONTAINER,
-        StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Warning),
-    )];
-    static PANIC_OVERLAY_INNER: [OverlayRule; 1] = [(
-        Family::LIST,
-        Variant::DEFAULT,
-        Part::CONTAINER,
-        StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Danger),
-    )];
-
-    fn list_container_style(ui: &mut Ui<'_>) -> super::Resolved {
-        ui.style(
-            Family::LIST,
-            Variant::DEFAULT,
-            Part::CONTAINER,
-            StateFlags::empty(),
-        )
-    }
-
-    #[test]
-    fn with_area_and_with_surface_restore_the_outer_view_after_a_panic() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            let outer_clip = ui.full();
-            let outer_surface = ui.surface();
-            let inner = Rect::new(1, 1, 4, 1);
-
-            ui.with_area(inner, |ui| assert_eq!(ui.full(), inner));
-            let unwind = catch_unwind(AssertUnwindSafe(|| {
-                ui.with_area(inner, |_| panic!("area probe"));
-            }));
-            assert!(unwind.is_err());
-            assert_eq!(
-                ui.full(),
-                outer_clip,
-                "a panicking body must not leave the clip narrowed"
-            );
-
-            ui.with_surface(Surface::Popover, |ui| {
-                assert_eq!(ui.surface(), Surface::Popover);
-            });
-            let unwind = catch_unwind(AssertUnwindSafe(|| {
-                ui.with_surface(Surface::Popover, |_| panic!("surface probe"));
-            }));
-            assert!(unwind.is_err());
-            assert_eq!(
-                ui.surface(),
-                outer_surface,
-                "a panicking body must not leave the surface switched"
-            );
-        });
-    }
-
-    #[test]
-    fn with_overlay_restores_the_stack_after_a_panic() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            let plain = list_container_style(ui);
-            let overlay = Overlay::new(&PANIC_OVERLAY_OUTER);
-            let patched = ui.with_overlay(&overlay, list_container_style);
-            assert_ne!(
-                patched.style.fg, plain.style.fg,
-                "the probe overlay must actually change the resolved style"
-            );
-            let depth = ui.core.overlays.len();
-            let hash = ui.core.stack_hash;
-
-            let unwind = catch_unwind(AssertUnwindSafe(|| {
-                ui.with_overlay(&overlay, |_| panic!("overlay probe"));
-            }));
-            assert!(unwind.is_err());
-            assert_eq!(ui.core.overlays.len(), depth);
-            assert_eq!(ui.core.stack_hash, hash);
-            assert_eq!(
-                list_container_style(ui),
-                plain,
-                "a panicking overlay scope must not leak into later resolution"
-            );
-        });
-    }
-
-    #[test]
-    fn nested_overlay_panic_restores_exactly_the_outer_overlay() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            let outer = Overlay::new(&PANIC_OVERLAY_OUTER);
-            let inner = Overlay::new(&PANIC_OVERLAY_INNER);
-            ui.with_overlay(&outer, |ui| {
-                let outer_style = list_container_style(ui);
-                let inner_style = ui.with_overlay(&inner, list_container_style);
-                assert_ne!(outer_style.style.fg, inner_style.style.fg);
-                assert_eq!(list_container_style(ui), outer_style);
-
-                let unwind = catch_unwind(AssertUnwindSafe(|| {
-                    ui.with_overlay(&inner, |_| panic!("nested overlay probe"));
-                }));
-                assert!(unwind.is_err());
-                assert_eq!(ui.core.overlays.len(), 1, "exactly the outer overlay");
-                assert_eq!(
-                    list_container_style(ui),
-                    outer_style,
-                    "unwinding pops the inner overlay only"
-                );
-            });
-            assert!(ui.core.overlays.is_empty());
-            assert_eq!(ui.core.stack_hash, 0);
-        });
-    }
-
-    #[test]
-    fn focus_scope_restores_the_open_scope_after_a_panic() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            let root = ui.frame.ring.current_scope();
-            let unwind = catch_unwind(AssertUnwindSafe(|| {
-                ui.focus_scope(OWNER, crate::focus::ScopeMode::Trap, |ui| {
-                    ui.register_control(OWNER, Rect::new(0, 0, 4, 1), Focusability::Focusable);
-                    panic!("focus scope probe");
-                });
-            }));
-            assert!(unwind.is_err());
-            assert_eq!(ui.frame.ring.current_scope(), root);
-
-            ui.register_control(OTHER, Rect::new(4, 0, 4, 1), Focusability::Focusable);
-            let entry = ui
-                .frame
-                .ring
-                .entries()
-                .iter()
-                .find(|e| e.id == OTHER)
-                .copied()
-                .expect("entry");
-            assert_eq!(
-                entry.scope, root,
-                "a control after the panic belongs to the outer scope, not the trap"
-            );
-        });
-    }
-
-    #[test]
-    fn layer_restores_the_page_target_and_scope_after_a_panic() {
-        const LAYER: Id = Id::root("ui.panic.layer");
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        let layer_area = Rect::new(1, 1, 4, 1);
-        frame.layers.push(
-            LAYER,
-            LayerId(1),
-            LayerSpec::modal(LAYER),
-            layer_area,
-            SCREEN,
-        );
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let root;
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            root = ui.frame.ring.current_scope();
-            let unwind = catch_unwind(AssertUnwindSafe(|| {
-                ui.layer(LAYER, |ui, area| {
-                    assert_eq!(ui.full(), area);
-                    assert_eq!(ui.layer_id(), LayerId(1));
-                    assert_eq!(ui.surface(), Surface::Overlay);
-                    assert_ne!(ui.frame.ring.current_scope(), root);
-                    panic!("layer probe");
-                });
-            }));
-            assert!(unwind.is_err());
-            assert_eq!(ui.full(), SCREEN);
-            assert_eq!(ui.layer_id(), LayerId::PAGE);
-            assert_eq!(ui.surface(), Surface::Canvas);
-            assert!(!ui.is_inert());
-            assert_eq!(ui.frame.ring.current_scope(), root);
-
-            ui.fill(SCREEN, Style::new().bg(theme.bg(Surface::Canvas)));
-            ui.register_control(OWNER, Rect::new(0, 0, 4, 1), Focusability::Focusable);
-        }
-
-        let entry = frame
-            .ring
-            .entries()
-            .iter()
-            .find(|e| e.id == OWNER)
-            .copied()
-            .expect("entry");
-        assert_eq!(entry.scope, root);
-        assert_eq!(
-            entry.layer,
-            LayerId::PAGE,
-            "a control after the panic registers on the page layer"
-        );
-        assert_eq!(
-            page.cell(Position::new(20, 2)).expect("cell").bg,
-            theme.bg(Surface::Canvas),
-            "painting after the panic reaches the page outside the layer's area"
-        );
-    }
-    #[test]
-    fn independent_carrier_layer_composite_keeps_origin() {
-        const LAYER: Id = Id::root("review.layer");
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            let page = ui.paint_patch(
-                &StylePatch::new()
-                    .set_fg(Role::Fg(FgStep::Primary))
-                    .set_bg(Role::Surface(Surface::Canvas)),
-            );
-            ui.fill(SCREEN, page);
-            ui.frame
-                .layers
-                .push(LAYER, LayerId(1), LayerSpec::modal(LAYER), SCREEN, SCREEN);
-            ui.layer(LAYER, |ui, _| {
-                let st = ui.paint_patch(
-                    &StylePatch::new()
-                        .set_fg(Role::Fg(FgStep::Ghost))
-                        .set_bg(Role::Surface(Surface::Overlay)),
-                );
-                ui.paint_str(Rect::new(1, 0, 1, 1), "X", st);
-            });
-            ui.composite(0);
-            assert_eq!(
-                ui.roles_at(Position::new(1, 0)),
-                CellRoles {
-                    fg: Some(Role::Fg(FgStep::Ghost)),
-                    bg: Some(Role::Surface(Surface::Overlay))
-                },
-                "composited cells must carry layer origins, not page origins"
-            );
-            ui.dim_layer(SCREEN, 1);
-            assert_eq!(
-                ui.page.cell((1, 0)).unwrap().symbol(),
-                " ",
-                "Ghost on lower layer must erase under next modal"
-            );
-        });
-    }
-
-    #[test]
-    fn layer_scope_parent_follows_active_order_after_id_gap() {
-        const OUTER: Id = Id::root("ui.layer.outer");
-        const INNER: Id = Id::root("ui.layer.inner");
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        frame
-            .layers
-            .push(OUTER, LayerId(1), LayerSpec::modal(OUTER), SCREEN, SCREEN);
-
-        frame
-            .layers
-            .push(INNER, LayerId(3), LayerSpec::modal(INNER), SCREEN, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            assert!(
-                ui.layer(OUTER, |ui, _| {
-                    ui.register_control(OWNER, SCREEN, Focusability::Focusable);
-                })
-                .is_some()
-            );
-            assert!(
-                ui.layer(INNER, |ui, _| {
-                    ui.register_control(OTHER, SCREEN, Focusability::Focusable);
-                })
-                .is_some()
-            );
-        }
-        let outer = frame.ring.entry(OWNER).map(|entry| entry.scope);
-        let inner = frame.ring.entry(OTHER).map(|entry| entry.scope);
-        assert!(
-            matches!((outer, inner), (Some(outer), Some(inner)) if frame.ring.within(inner, outer))
-        );
     }
 }

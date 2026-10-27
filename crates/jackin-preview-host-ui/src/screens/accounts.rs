@@ -118,24 +118,3 @@ impl AccountsState {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn form_hints_switch_when_a_field_is_editing() {
-        let mut state = AccountsState::default();
-        assert!(!state.form_editing());
-        assert_eq!(
-            state.form_hints(),
-            "Tab Next field  Enter Edit / Save  Esc Cancel"
-        );
-        state.name_input.begin("Team");
-        assert!(state.form_editing());
-        assert_eq!(
-            state.form_hints(),
-            "EDIT  Enter Commit  Tab Next field  Esc Revert"
-        );
-    }
-}

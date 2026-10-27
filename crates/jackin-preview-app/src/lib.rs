@@ -8,7 +8,6 @@
     reason = "all arithmetic is over bounded deterministic fixture values"
 )]
 #![allow(clippy::indexing_slicing)]
-#![cfg_attr(test, allow(clippy::expect_used, clippy::panic, clippy::unwrap_used))]
 
 pub mod app;
 pub mod cli;

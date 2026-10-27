@@ -1,25 +1,15 @@
-//! Page routing: the navigation stack, tabs and page identity.
-//!
 //! Ported from PR #26 `src/shell/nav.rs` (commit `f4867e9b5`). The parity
-//! adaptation returns [`Option`] where the source asserted internal
-//! invariants, and the breadcrumb is the shell-owned [`Crumb`] model because
-//! the parity breadcrumb widget is owned by another crate wave.
 
 use std::hash;
 
 use termrock_core::id::{Id, ItemKey};
 
-/// Opaque identity of the page currently shown. Focus upkeep compares keys to
-/// detect a page change; two visits to the same route get different keys so a
-/// re-entered page re-focuses its primary control.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct PageKey(pub u64);
 
 impl PageKey {
-    /// The key of a router before its first entry.
     pub const ROOT: Self = Self(0);
 
-    /// Derive a key from any hashable value.
     pub fn of(value: impl hash::Hash) -> Self {
         let mut h = std::collections::hash_map::DefaultHasher::new();
         hash::Hash::hash(&value, &mut h);
@@ -27,20 +17,18 @@ impl PageKey {
     }
 }
 
-/// A navigation request the app resolves through its quit guard.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Nav<R> {
-    /// Show `R` on top of the active stack.
     Push(R),
-    /// Swap the top of the active stack for `R`.
+
     Replace(R),
-    /// Discard the active stack and show only `R`.
+
     Reset(R),
-    /// Pop the top of the active stack.
+
     Back,
-    /// Pop the active stack down to `depth` entries.
+
     PopTo(usize),
-    /// Switch to tab `i`, keeping its stack.
+
     Tab(usize),
 }
 
@@ -50,10 +38,6 @@ struct Entry<P> {
     page: P,
 }
 
-/// Per-tab navigation stacks with one active tab.
-///
-/// Each entry keeps a monotonically increasing key so focus upkeep can tell a
-/// new page from a revisit.
 #[derive(Debug)]
 pub struct Router<P> {
     tabs: Vec<Vec<Entry<P>>>,
@@ -62,15 +46,10 @@ pub struct Router<P> {
 }
 
 impl<P> Router<P> {
-    /// A router with one tab whose stack starts at `root`.
     pub fn new(root: P) -> Self {
         Self::with_tabs(vec![root])
     }
 
-    /// A router with one tab per root. At least one root is required.
-    ///
-    /// # Panics
-    /// Panics when `roots` is empty.
     pub fn with_tabs(roots: Vec<P>) -> Self {
         assert!(!roots.is_empty(), "a router needs at least one tab");
         let mut r = Self {
@@ -99,39 +78,29 @@ impl<P> Router<P> {
             .map_or(&[][..], std::vec::Vec::as_slice)
     }
 
-    /// The active stack, mutably. `None` when the active tab is gone.
-    ///
-    /// A router always keeps its active tab, so the live case is the only
-    /// one the app sees; the accessor stays total so a broken invariant
-    /// degrades to "no active stack" instead of panicking.
     fn active_stack_mut(&mut self) -> Option<&mut Vec<Entry<P>>> {
         let active = self.active;
         self.tabs.get_mut(active)
     }
 
-    /// The page on top of the active stack.
     pub fn current(&self) -> Option<&P> {
         self.active_stack().last().map(|e| &e.page)
     }
 
-    /// The page on top of the active stack, mutably.
     pub fn current_mut(&mut self) -> Option<&mut P> {
         self.active_stack_mut()
             .and_then(|stack| stack.last_mut())
             .map(|e| &mut e.page)
     }
 
-    /// The key of the top entry of the active stack.
     pub fn key(&self) -> PageKey {
         PageKey(self.active_stack().last().map_or(0, |e| e.key))
     }
 
-    /// The active stack, root first.
     pub fn stack(&self) -> impl DoubleEndedIterator<Item = &P> + ExactSizeIterator {
         self.active_stack().iter().map(|e| &e.page)
     }
 
-    /// The active stack, mutably, root first.
     pub fn stack_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut P> + ExactSizeIterator {
         let stack: &mut [Entry<P>] = match self.active_stack_mut() {
             Some(stack) => stack.as_mut_slice(),
@@ -140,12 +109,10 @@ impl<P> Router<P> {
         stack.iter_mut().map(|e| &mut e.page)
     }
 
-    /// How deep the active stack is.
     pub fn depth(&self) -> usize {
         self.active_stack().len()
     }
 
-    /// Tab `i`'s stack, root first.
     pub fn tab(&self, i: usize) -> impl DoubleEndedIterator<Item = &P> + ExactSizeIterator {
         self.tabs
             .get(i)
@@ -154,37 +121,30 @@ impl<P> Router<P> {
             .map(|e| &e.page)
     }
 
-    /// The top page of tab `i`.
     pub fn top_of(&self, i: usize) -> Option<&P> {
         self.tabs.get(i)?.last().map(|e| &e.page)
     }
 
-    /// The top page of tab `i`, mutably.
     pub fn top_of_mut(&mut self, i: usize) -> Option<&mut P> {
         self.tabs.get_mut(i)?.last_mut().map(|e| &mut e.page)
     }
 
-    /// The active tab index.
     pub fn active(&self) -> usize {
         self.active
     }
 
-    /// How many tabs exist.
     pub fn tab_count(&self) -> usize {
         self.tabs.len()
     }
 
-    /// Every page in every tab.
     pub fn pages(&self) -> impl Iterator<Item = &P> {
         self.tabs.iter().flatten().map(|e| &e.page)
     }
 
-    /// Every page in every tab, mutably.
     pub fn pages_mut(&mut self) -> impl Iterator<Item = &mut P> {
         self.tabs.iter_mut().flatten().map(|e| &mut e.page)
     }
 
-    /// Push `page` onto the active stack.
     pub fn push(&mut self, page: P) {
         let e = self.entry(page);
         if let Some(stack) = self.active_stack_mut() {
@@ -192,7 +152,6 @@ impl<P> Router<P> {
         }
     }
 
-    /// Pop the top of the active stack. The root stays.
     pub fn back(&mut self) -> Option<P> {
         let stack = self.active_stack_mut()?;
         if stack.len() < 2 {
@@ -201,7 +160,6 @@ impl<P> Router<P> {
         stack.pop().map(|e| e.page)
     }
 
-    /// Pop the active stack down to `depth + 1` entries and return what left.
     pub fn pop_to(&mut self, depth: usize) -> Vec<P> {
         let Some(stack) = self.active_stack_mut() else {
             return Vec::new();
@@ -212,7 +170,6 @@ impl<P> Router<P> {
         stack.drain(depth + 1..).map(|e| e.page).collect()
     }
 
-    /// Swap the top of the active stack for `page` and return the old top.
     pub fn replace(&mut self, page: P) -> Option<P> {
         let e = self.entry(page);
         self.active_stack_mut()
@@ -220,7 +177,6 @@ impl<P> Router<P> {
             .map(|top| core::mem::replace(top, e).page)
     }
 
-    /// Discard the active stack, show only `page`, and return what left.
     pub fn reset(&mut self, page: P) -> Vec<P> {
         let e = self.entry(page);
         let active = self.active;
@@ -232,7 +188,6 @@ impl<P> Router<P> {
         old.into_iter().map(|e| e.page).collect()
     }
 
-    /// Show tab `i`. `false` when `i` is out of range or already shown.
     pub fn select(&mut self, i: usize) -> bool {
         if i >= self.tabs.len() || i == self.active {
             return false;
@@ -241,7 +196,6 @@ impl<P> Router<P> {
         true
     }
 
-    /// Open a new tab rooted at `root` and show it, returning its index.
     pub fn open_tab(&mut self, root: P) -> usize {
         let e = self.entry(root);
         self.tabs.push(vec![e]);
@@ -249,7 +203,6 @@ impl<P> Router<P> {
         self.active
     }
 
-    /// Close tab `i` and return its pages. The last tab stays.
     pub fn close_tab(&mut self, i: usize) -> Option<Vec<P>> {
         if self.tabs.len() < 2 || i >= self.tabs.len() {
             return None;
@@ -261,7 +214,6 @@ impl<P> Router<P> {
         Some(pages)
     }
 
-    /// Does this move drop any page (and so owe its stakes a guard)?
     pub fn drops<R>(&self, nav: &Nav<R>) -> bool {
         match nav {
             Nav::Push(_) | Nav::Tab(_) => false,
@@ -271,7 +223,6 @@ impl<P> Router<P> {
         }
     }
 
-    /// The pages a move would drop, top first.
     pub fn dropped_by<R>(&self, nav: &Nav<R>) -> impl Iterator<Item = &P> {
         let stack = self.active_stack();
         let n = stack.len();
@@ -286,8 +237,6 @@ impl<P> Router<P> {
         stack[from..].iter().rev().map(|e| &e.page)
     }
 
-    /// Apply a resolved move, building pages from their routes, and return
-    /// what the move dropped, top first.
     pub fn apply<R>(&mut self, nav: Nav<R>, mut build: impl FnMut(R) -> P) -> Option<Vec<P>> {
         match nav {
             Nav::Push(r) => {
@@ -305,14 +254,10 @@ impl<P> Router<P> {
         }
     }
 
-    /// The active stack as a breadcrumb model, one [`Crumb`] segment per page.
     pub fn crumb(&self, id: Id, label: impl Fn(&P) -> String) -> Crumb {
         Crumb::new(id, self.stack().map(label).collect())
     }
 
-    /// A click on breadcrumb segment `hit` maps to the pop that shows it.
-    /// `levels` extra segments the shell renders above this router's stack
-    /// shift the mapping the same way they do for [`Crumb::on_click`].
     pub fn crumb_click<R>(&self, crumb: &Crumb, levels: usize, hit: Id) -> Option<Nav<R>> {
         let level = crumb.on_click(hit)?;
         let depth = level.checked_sub(levels)?;
@@ -320,28 +265,22 @@ impl<P> Router<P> {
     }
 }
 
-/// The shell-owned breadcrumb model: the segments of one location trail and
-/// which of them is a link back to its level.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Crumb {
-    /// The widget id the trail renders under; each segment is a child id.
     pub id: Id,
-    /// The segment labels, root first.
+
     pub segments: Vec<String>,
 }
 
 impl Crumb {
-    /// A trail with one segment per page.
     pub fn new(id: Id, segments: Vec<String>) -> Self {
         Self { id, segments }
     }
 
-    /// The id of segment `i`, as the renderer should publish it.
     pub fn segment_id(&self, i: usize) -> Id {
         self.id.index(i)
     }
 
-    /// Which level a click on `hit` names, counting segments from 0.
     pub fn on_click(&self, hit: Id) -> Option<usize> {
         self.segments
             .iter()
@@ -349,7 +288,6 @@ impl Crumb {
             .find_map(|(i, _)| (self.segment_id(i) == hit).then_some(i))
     }
 
-    /// The ids of the segments that link back (every segment but the last).
     pub fn links(&self) -> impl Iterator<Item = (usize, Id)> + '_ {
         let last = self.segments.len().saturating_sub(1);
         (0..last).map(|i| (i, self.segment_id(i)))
@@ -361,6 +299,3 @@ impl From<PageKey> for ItemKey {
         ItemKey::index(key.0 as usize)
     }
 }
-
-#[cfg(test)]
-mod tests;

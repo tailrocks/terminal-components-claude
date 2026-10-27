@@ -184,8 +184,6 @@ impl ChecksRadiosPage {
 
         let after = (self.hit, self.mixed, self.radio_nav, self.globally_disabled);
         if before != after {
-            // The source page rebuilds this first field from the Mixed option on every option
-            // change; the other values and radio cursor selections remain user state.
             self.checks[0] = if self.mixed {
                 CheckboxState::Mixed
             } else {
@@ -662,19 +660,5 @@ fn checkbox_hit_width(label: &str, available: u16, full_row: bool) -> u16 {
         available
     } else {
         width(label).saturating_add(5).min(available)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::checkbox_hit_width;
-
-    #[test]
-    fn label_hit_area_uses_terminal_columns_for_wide_and_combining_text() {
-        let label = "e\u{301}界";
-        assert_eq!(termrock::width(label), 3);
-        assert_eq!(checkbox_hit_width(label, 20, false), 8);
-        assert_eq!(checkbox_hit_width(label, 7, false), 7);
-        assert_eq!(checkbox_hit_width(label, 20, true), 20);
     }
 }

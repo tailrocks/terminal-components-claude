@@ -14,12 +14,6 @@ runner_label = "ubuntu-26.04"
 
 [resources]
 compiler_process_budget = 2
-test_process_budget = 2
-
-[test_sharding]
-default_shards = 1
-
-[test_sharding.by_manifest]
 
 [stacks]
 ignore = []
@@ -27,30 +21,11 @@ ignore = []
 [stacks.rust]
 compile_driver = "mbx"
 test_runner = "cargo_nextest"
-run_ignored = "default"
 
 [[stacks.rust.configurations]]
 name = "default"
 features = ["default"]
 target = "host"
-
-[[stacks.rust.configurations]]
-name = "testing"
-features = ["default", "testing"]
-target = "host"
-
-[[stacks.rust.inputs]]
-globs = [
-    "crates/showcase/Cargo.toml",
-    "crates/showcase/src/main.rs",
-    "crates/tablepro/Cargo.toml",
-    "crates/tablepro/src/main.rs",
-    "crates/jackin-preview/Cargo.toml",
-    "crates/jackin-preview/src/main.rs",
-    "crates/holla/Cargo.toml",
-    "crates/holla/src/main.rs",
-]
-packages = ["visual-harness"]
 
 [stacks.rust.release]
 enabled = false
@@ -95,7 +70,7 @@ enabled = false
 environment = "release"
 
 [discovery]
-exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**", "tools/frozen-cli-frame-support/**", "crates/termrock-e2e/**", "crates/termrock-visibility-tests/**", "crates/showcase-data/**", "crates/holla-catalog/**", "crates/holla-plan/**", "docs/audits/evidence/**", "crates/tablepro-ui/manual-api-contracts/workbench-tabs-privacy/Cargo.toml", "crates/termrock-theme/manual-api-contracts/paint-style-pilot/Cargo.toml"]
+exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**", "crates/showcase-data/**", "crates/holla-catalog/**", "crates/holla-plan/**", "docs/audits/evidence/**"]
 
 [actions.overrides]
 

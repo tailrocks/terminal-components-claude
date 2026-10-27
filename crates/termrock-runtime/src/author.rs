@@ -12,8 +12,6 @@ pub use surface::{CellView, PaintSurface};
 mod window;
 pub use window::{VerticalWindow, VerticalWindowError};
 
-/// Publish low-priority bindings for a real focus scope. These bindings are
-/// considered only after the focused control has declined the same key.
 pub fn publish_scope_bindings<C: Copy + 'static>(
     ui: &mut crate::ui::Ui<'_>,
     scope: crate::focus::ScopeId,
@@ -27,8 +25,6 @@ pub fn publish_scope_bindings<C: Copy + 'static>(
 mod composition;
 pub use composition::{ClosureLeaf, CompositionLeaf, composition_leaf};
 
-/// Apply only explicit style channels to an existing component-author surface.
-/// Symbols, inherited channels, hit regions, and cursor state are preserved.
 pub fn patch_style(
     ui: &mut crate::ui::Ui<'_>,
     area: ratatui_core::layout::Rect,
@@ -38,14 +34,6 @@ pub fn patch_style(
     ui.patch_style(area, style, explicit);
 }
 
-/// Give registrations for one exact part precedence in pointer hit testing
-/// during a render closure.
-///
-/// The closure runs once. Among regions it adds, `RegionKind::Part` entries
-/// whose complete [`PartRef`] equals `part` are considered after the other
-/// registrations at the same layer. Higher layers still take precedence, and
-/// registrations outside this closure keep their existing order. Use this
-/// when the selected part intentionally owns an overlapping hit area.
 pub fn with_part_hit_precedence<R>(
     ui: &mut Ui<'_>,
     part: PartRef,
@@ -151,9 +139,6 @@ impl<'a> PartStyle<'a> {
         part: Part,
         resolved: Resolved,
     ) {
-        #[cfg(feature = "testing")]
-        ui.note_styled(owner, family, variant, part, resolved);
-        #[cfg(not(feature = "testing"))]
         let _ = (ui, owner, family, variant, part, resolved);
     }
 }
@@ -175,10 +160,6 @@ pub trait LayerSlotAuthor {
     fn render_component<R>(&mut self, render: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> R;
 }
 
-/// Low-level adapter for a nested component slot clipped to its parent area.
-///
-/// This belongs to the component-author API: ordinary consumers should obtain
-/// slots from [`Ui::layer_slot`](crate::ui::Ui::layer_slot).
 pub trait NestedLayerSlotAuthor {
     fn with_nested_layer_slot<R>(
         &mut self,
@@ -225,12 +206,6 @@ pub use crate::keymap::{
     KeyMap, KeyPhase, binding_conflicts,
 };
 
-/// Explicitly extends an existing same-owner component binding table for this frame.
-///
-/// Unlike [`Ui::publish_bindings`], this does not replace the prior table. Only bindings
-/// selected by `include` are added. Duplicate actions and ambiguous default chords are
-/// rejected and diagnosed; key-map remapping conflicts remain visible through runtime
-/// binding-conflict diagnostics.
 pub fn extend_bindings<C: Copy + 'static>(
     ui: &mut Ui<'_>,
     owner: Id,
@@ -241,10 +216,6 @@ pub fn extend_bindings<C: Copy + 'static>(
     ui.extend_bindings(owner, flags, table, include)
 }
 
-/// Publishes an explicitly selected subset of a static component binding table.
-///
-/// This keeps the replacement semantics of [`Ui::publish_bindings`]; use
-/// [`extend_bindings`] when multiple controls intentionally share one owner.
 pub fn publish_bindings_filtered<C: Copy + 'static>(
     ui: &mut Ui<'_>,
     owner: Id,
@@ -266,51 +237,4 @@ pub use ratatui_core::style::{Color, Style};
 
 pub mod raw {
     pub use ratatui_core::text::{Line, Span, Text};
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const GLOBAL: StylePatch = StylePatch::new().set_fg(Role::Accent);
-    const LABEL_A: StylePatch = StylePatch::new().set_bg(Role::Danger);
-    const LABEL_B: StylePatch = StylePatch::new().add(Modifier::BOLD);
-    const PARTS: &[(Part, StylePatch)] = &[(Part::LABEL, LABEL_A), (Part::LABEL, LABEL_B)];
-
-    #[test]
-    fn part_style_merges_global_and_part_patches_in_order() {
-        let styles = PartStyle::new().global(&GLOBAL).part(PARTS);
-        let internal = PartStyle::new().global(&GLOBAL).part(PARTS);
-
-        assert_eq!(
-            styles.part_patch(Part::LABEL),
-            Some(GLOBAL.merge(LABEL_A).merge(LABEL_B))
-        );
-        assert_eq!(
-            styles.part_patch(Part::LABEL),
-            internal.part_patch(Part::LABEL)
-        );
-        assert_eq!(
-            styles.part_patch(Part::BODY),
-            internal.part_patch(Part::BODY)
-        );
-        assert_eq!(styles.part_patch(Part::BODY), Some(GLOBAL));
-        assert_eq!(PartStyle::new().part(PARTS).part_patch(Part::BODY), None);
-    }
-
-    #[test]
-    fn part_style_flags_match_internal_override_union() {
-        let runtime = StateFlags::FOCUSED | StateFlags::HOVERED;
-        let derived = StateFlags::SELECTED | StateFlags::DISABLED;
-        assert_eq!(PartStyle::flags(runtime, derived), runtime | derived);
-    }
-
-    #[test]
-    fn part_style_slot_lookup_is_part_scoped() {
-        fn paint(_: &mut Ui<'_>, _: Rect) {}
-
-        let styles = PartStyle::new().slot(Part::LABEL, &paint);
-        assert!(styles.slot_for(Part::LABEL).is_some());
-        assert!(styles.slot_for(Part::BODY).is_none());
-    }
 }

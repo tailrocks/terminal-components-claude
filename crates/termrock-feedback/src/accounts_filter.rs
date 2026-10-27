@@ -1,7 +1,3 @@
-//! Filtered accounts list: menu, boxed rows, detail band, and hints.
-//!
-//! Column positions come from the labels and the screen edges.
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 

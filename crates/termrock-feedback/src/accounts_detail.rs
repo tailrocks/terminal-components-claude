@@ -1,8 +1,3 @@
-//! Accounts list with one account selected and its detail band open.
-//!
-//! Column positions come from the labels, the scrollbar, and the screen edges.
-//! The last faded row keeps 55% of its ink, the same ratio as the list edge.
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 
@@ -84,10 +79,6 @@ const SEAM: Color = Color::Rgb(0x47, 0x47, 0x47);
 const SEAM_HEAVY: Color = Color::Rgb(0x80, 0x80, 0x80);
 const FADE_KEEP: f32 = 0.55;
 
-/// Returns the visible six-row summary band painted by [`paint_accounts_detail`].
-///
-/// Areas below the painter's supported minimum, or whose summary band has no
-/// visible intersection with the supplied area, have no summary target.
 #[must_use]
 pub fn accounts_detail_summary_area(area: Rect) -> Option<Rect> {
     if area.width < 40 || area.height < 16 {

@@ -13,9 +13,5 @@ unicode-segmentation.workspace = true
 ratatui.workspace = true
 ratatui-core.workspace = true
 
-[dev-dependencies]
-termrock-test-support.workspace = true
-
-# Rust documentation examples are guarded by the workspace doc inventory test.
 [lib]
 doctest = false

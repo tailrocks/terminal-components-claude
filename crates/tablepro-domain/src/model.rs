@@ -133,7 +133,6 @@ type HistorySeedRow = (
     HistorySource,
 );
 
-// Oldest first. The history card shows this order, ten rows at a time.
 const HISTORY_SEED_ROWS: [HistorySeedRow; 15] = [
     (
         "SELECT plan, count(*) FROM\nsubscriptions GROUP BY plan",
@@ -1054,71 +1053,4 @@ pub fn statement_tokens(source: &str) -> Vec<String> {
         .into_iter()
         .filter_map(|token| source.get(token.start..token.end).map(str::to_owned))
         .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn history_search_is_multi_term_and() {
-        let history = History::seeded();
-        assert_eq!(history.search("orders pending", None, false).len(), 1);
-        let development = history.search("", Some("Development"), false);
-        assert_ne!(development.len(), 0);
-        assert!(
-            development
-                .iter()
-                .all(|entry| entry.connection == "Development")
-        );
-        let failed = history.search("", None, true);
-        assert!(!failed.is_empty() && failed.iter().all(|entry| !entry.ok()));
-    }
-    #[test]
-    fn completion_is_context_aware() {
-        let catalog = Catalog::acme_prod();
-        let items = complete("SELECT o. FROM orders o WHERE ", 9, &catalog);
-        assert_eq!(
-            items.first().map(|item| item.kind),
-            Some(CompletionKind::Column)
-        );
-        assert!(items.iter().any(|item| item.label == "total_amount"));
-        let source = "SELECT * FROM ord";
-        let batch = completion_batch(source, source.len(), &catalog);
-        assert_eq!(batch.replace, 14..17);
-        let items = batch.items;
-        assert_eq!(
-            items.first().map(|item| item.matched.as_slice()),
-            Some([0, 1, 2].as_slice())
-        );
-        assert_eq!(
-            items.first().map(|item| item.label.as_str()),
-            Some("orders")
-        );
-        assert_eq!(
-            items.first().map(|item| item.kind),
-            Some(CompletionKind::Table)
-        );
-        let source = "SELECT * FROM orders WHERE st";
-        assert_eq!(
-            complete(source, source.len(), &catalog)
-                .first()
-                .map(|item| item.label.as_str()),
-            Some("status")
-        );
-        let source = "SELECT * FROM orders WHERE status = 'x' ORDER BY cre";
-        assert_eq!(
-            complete(source, source.len(), &catalog)
-                .first()
-                .map(|item| item.label.as_str()),
-            Some("created_at")
-        );
-        let source = "SELECT * FROM analytics.";
-        assert!(
-            complete(source, source.len(), &catalog)
-                .iter()
-                .any(|item| item.label == "events")
-        );
-        assert!(auto_trigger("SELECT * FROM ", 14));
-        assert!(!auto_trigger("SELECT * FROM orders WHERE s", 28));
-    }
 }

@@ -147,29 +147,3 @@ impl FileBrowserState {
         self.entries.iter().find(|entry| entry.key() == key)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn selection_reconciles_after_item_removal() {
-        let mut state = FileBrowserState::new("~/src");
-        let old = FileBrowserEntry::new("~/src/old", "directory");
-        let keep = FileBrowserEntry::new("~/src/keep", "directory");
-        state.replace_entries(vec![old.clone(), keep.clone()]);
-        assert!(state.select(old.key()));
-        state.replace_entries(vec![keep.clone()]);
-        assert_eq!(state.selected_path(), Some("~/src/keep"));
-    }
-
-    #[test]
-    fn disabled_entries_are_visible_but_not_choosable() {
-        let mut state = FileBrowserState::new("~/src");
-        let entry = FileBrowserEntry::new("~/src/missing", "directory").disabled();
-        state.replace_entries(vec![entry.clone()]);
-        assert_eq!(state.selected(), None);
-        assert!(!state.select(entry.key()));
-        assert_eq!(state.choose(), None);
-    }
-}

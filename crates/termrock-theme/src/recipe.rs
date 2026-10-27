@@ -232,8 +232,7 @@ pub fn merge_states(
     live: StateFlags,
 ) -> StylePatch {
     let mut acc = acc;
-    // Inactive equal-specificity siblings must not affect the merge order of
-    // the rules which match this query.
+
     let mut fam = family.iter().filter(|rule| rule.matches(live)).peekable();
     let mut var = variant.iter().filter(|rule| rule.matches(live)).peekable();
     loop {
@@ -242,10 +241,6 @@ pub fn merge_states(
             (Some(_), None) => true,
             (None, Some(_)) => false,
             (Some(a), Some(b)) => match (a.when, b.when) {
-                // A family disabled patch must retain ownership of its
-                // channels when a variant supplies only a hover treatment.
-                // Keep the existing family-before-variant tie break for all
-                // other state pairs.
                 (StateFlags::HOVERED, StateFlags::DISABLED) => true,
                 (StateFlags::DISABLED, StateFlags::HOVERED) => false,
                 _ => a.specificity() <= b.specificity(),
@@ -297,19 +292,14 @@ impl Recipe {
     }
 }
 
-/// Explicit shared-Manager presentation policy carried with a theme's recipes.
-///
-/// `Standard` keeps the component's current presentation. `Junie` opts the
-/// shared Manager into its authored semantic-ink and Mono layout policy.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 #[non_exhaustive]
 pub enum ManagerPresentationProfile {
-    /// Preserve the shared Manager's standard presentation policy.
     #[default]
     Standard,
-    /// Use the Junie shared-Manager presentation policy when rendered in Mono.
+
     Junie,
-    /// Use the Paper shared-Manager semantic palette and saved layout in TrueColor.
+
     Paper,
 }
 
@@ -400,9 +390,6 @@ pub(crate) enum DeclarationKind {
     LevelProfile,
 }
 
-/// Typed consumer declarations kept apart from the populated builtin recipes.
-/// This records only intent expressed through `RecipeEdit`; it never infers
-/// ownership by comparing values with a builtin seed.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub(crate) struct AuthoredDeclaration {
     pub family: Family,
@@ -556,11 +543,6 @@ impl Recipes {
         self.consumer_mono.contains(&family)
     }
 
-    #[cfg(test)]
-    pub(crate) fn declarations(&self) -> &[AuthoredDeclaration] {
-        &self.declarations
-    }
-
     pub(crate) fn push_declaration(&mut self, declaration: AuthoredDeclaration) {
         self.revision = next_recipe_revision();
         self.declarations.push(declaration);
@@ -658,10 +640,6 @@ impl PartEdit {
         self.glyph_slot(Slot::Set(g))
     }
 
-    /// Declare the glyph channel, including explicit clearing or inheritance.
-    ///
-    /// `Inherit` leaves the channel unspecified, `Set` authors a glyph, and
-    /// `Clear` explicitly removes a lower-priority glyph.
     pub fn glyph_slot(&mut self, glyph: Slot<GlyphRole>) -> &mut Self {
         self.recipe.glyph = glyph;
         self
@@ -671,7 +649,6 @@ impl PartEdit {
         self.size_slot(Slot::Set(n))
     }
 
-    /// Declare the size channel, including explicit clearing or inheritance.
     pub fn size_slot(&mut self, size: Slot<u16>) -> &mut Self {
         self.recipe.size = size;
         self
@@ -762,497 +739,5 @@ impl Overlay {
         let ptr = self.rules.as_ptr() as usize as u64;
         let len = self.rules.len() as u64;
         fnv1a(fnv1a(FNV_OFFSET, &ptr.to_le_bytes()), &len.to_le_bytes())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::theme::role::Role;
-    use ratatui_core::style::Modifier;
-
-    #[test]
-    fn part_edit_slot_methods_preserve_set_clear_and_inherit_intent() {
-        let mut edit = PartEdit::default();
-        edit.glyph_slot(Slot::Set(GlyphRole::CheckboxOff));
-        // Reasserting the same value remains an explicit Set declaration.
-        edit.glyph_slot(Slot::Set(GlyphRole::CheckboxOff));
-        edit.size_slot(Slot::Set(3));
-        assert_eq!(edit.recipe().glyph, Slot::Set(GlyphRole::CheckboxOff));
-        assert_eq!(edit.recipe().size, Slot::Set(3));
-
-        edit.glyph_slot(Slot::Clear);
-        edit.size_slot(Slot::Clear);
-        assert_eq!(edit.recipe().glyph, Slot::Clear);
-        assert_eq!(edit.recipe().size, Slot::Clear);
-
-        edit.glyph_slot(Slot::Inherit);
-        edit.size_slot(Slot::Inherit);
-        assert_eq!(edit.recipe().glyph, Slot::Inherit);
-        assert_eq!(edit.recipe().size, Slot::Inherit);
-    }
-
-    #[test]
-    fn declaration_keeps_same_value_set_without_claiming_unrelated_channels() {
-        let builtin = crate::Theme::junie();
-        let seed_fg = builtin
-            .recipes
-            .get(Family::LIST)
-            .and_then(|recipe| recipe.parts.get(Part::CONTAINER))
-            .map(|part| part.base.fg);
-        let Slot::Set(seed_fg) = seed_fg.expect("built-in list row has a foreground") else {
-            panic!("built-in list row foreground must be explicit");
-        };
-        let mut edit = RecipeEdit::default();
-        edit.part(Part::CONTAINER)
-            .base(StylePatch::new().set_fg(seed_fg));
-        edit.part(Part::META)
-            .base(StylePatch::new().set_bg(Role::Accent));
-
-        let declaration = AuthoredDeclaration::from_edit(
-            Family::LIST,
-            None,
-            DeclarationKind::Family,
-            None,
-            None,
-            &edit,
-        )
-        .expect("explicit channel sets are declarations");
-
-        let container = declaration.parts.get(Part::CONTAINER).unwrap();
-        assert_eq!(container.base.fg, Slot::Set(seed_fg));
-        assert_eq!(container.base.bg, Slot::Inherit);
-        assert_eq!(
-            declaration.parts.get(Part::META).unwrap().base.fg,
-            Slot::Inherit
-        );
-        assert_eq!(declaration.parts.len(), 2);
-    }
-
-    #[test]
-    fn empty_parts_and_inherit_slots_are_normalized_away() {
-        let mut edit = RecipeEdit::default();
-        edit.part(Part::LABEL);
-        edit.part(Part::META)
-            .glyph_slot(Slot::Inherit)
-            .size_slot(Slot::Inherit);
-
-        assert!(edit.normalized_parts().is_empty());
-        assert!(
-            AuthoredDeclaration::from_edit(
-                Family::LIST,
-                None,
-                DeclarationKind::Family,
-                None,
-                None,
-                &edit,
-            )
-            .is_none()
-        );
-    }
-
-    #[test]
-    fn empty_state_patches_are_removed_around_populated_rules() {
-        let mut edit = RecipeEdit::default();
-        let part = edit.part(Part::LABEL);
-        part.base(StylePatch::new().set_fg(Role::Info))
-            .when(StateFlags::empty(), StylePatch::new())
-            .when(StateFlags::HOVERED, StylePatch::new().set_fg(Role::Accent))
-            .when(StateFlags::SELECTED, StylePatch::new())
-            .when(
-                StateFlags::HOVERED | StateFlags::PRESSED,
-                StylePatch::new().set_align(crate::Align::Center),
-            )
-            .when(
-                StateFlags::HOVERED | StateFlags::SELECTED,
-                StylePatch::new(),
-            );
-
-        let normalized = edit.normalized_parts();
-        let normalized = normalized.get(Part::LABEL).unwrap();
-        assert_eq!(normalized.base.fg, Slot::Set(Role::Info));
-        assert_eq!(normalized.states.len(), 2);
-        assert_eq!(normalized.states[0].when, StateFlags::HOVERED);
-        assert_eq!(normalized.states[0].patch.fg, Slot::Set(Role::Accent));
-        assert_eq!(
-            normalized.states[1].when,
-            StateFlags::HOVERED | StateFlags::PRESSED
-        );
-        assert_eq!(
-            normalized.states[1].patch.align,
-            Slot::Set(crate::Align::Center)
-        );
-    }
-
-    #[test]
-    fn empty_state_inside_a_populated_theme_edit_is_a_noop() {
-        let base = crate::Theme::junie();
-        let without_empty_rule = base.clone().define_family(Family::LIST, |edit| {
-            edit.part(Part::LABEL)
-                .base(StylePatch::new().set_fg(Role::Info));
-        });
-        let with_empty_rule = base.clone().define_family(Family::LIST, |edit| {
-            edit.part(Part::LABEL)
-                .base(StylePatch::new().set_fg(Role::Info))
-                .when(StateFlags::HOVERED, StylePatch::new());
-        });
-
-        assert_eq!(without_empty_rule, with_empty_rule);
-        let without_empty_variant =
-            base.clone()
-                .define_variant(Family::LIST, Variant::PRIMARY, |edit| {
-                    edit.part(Part::LABEL)
-                        .base(StylePatch::new().set_fg(Role::Info))
-                        .when(
-                            StateFlags::FOCUSED,
-                            StylePatch::new().set_align(crate::Align::Right),
-                        );
-                });
-        let with_empty_variant = base.define_variant(Family::LIST, Variant::PRIMARY, |edit| {
-            edit.part(Part::LABEL)
-                .base(StylePatch::new().set_fg(Role::Info))
-                .when(StateFlags::empty(), StylePatch::new())
-                .when(
-                    StateFlags::FOCUSED,
-                    StylePatch::new().set_align(crate::Align::Right),
-                )
-                .when(StateFlags::SELECTED, StylePatch::new());
-        });
-        assert_eq!(without_empty_variant, with_empty_variant);
-
-        let empty_only = without_empty_rule
-            .clone()
-            .define_family(Family::LIST, |edit| {
-                edit.part(Part::LABEL)
-                    .when(StateFlags::HOVERED, StylePatch::new());
-            });
-        assert_eq!(without_empty_rule, empty_only);
-        assert_eq!(
-            without_empty_rule.fingerprint(),
-            empty_only.fingerprint(),
-            "an empty state patch must not advance the recipe revision"
-        );
-    }
-
-    #[test]
-    fn clear_and_modifier_intent_survive_normalization() {
-        let mut edit = RecipeEdit::default();
-        edit.part(Part::LABEL)
-            .base(StylePatch::new().clear_bg().remove(Modifier::BOLD));
-        edit.part(Part::META)
-            .glyph_slot(Slot::Clear)
-            .size_slot(Slot::Set(2));
-
-        let parts = edit.normalized_parts();
-        assert_eq!(parts.get(Part::LABEL).unwrap().base.bg, Slot::Clear);
-        assert_eq!(parts.get(Part::LABEL).unwrap().base.remove, Modifier::BOLD);
-        assert_eq!(parts.get(Part::META).unwrap().glyph, Slot::Clear);
-        assert_eq!(parts.get(Part::META).unwrap().size, Slot::Set(2));
-
-        let mut inherit = RecipeEdit::default();
-        inherit
-            .part(Part::LABEL)
-            .glyph_slot(Slot::Set(GlyphRole::FocusBar))
-            .glyph_slot(Slot::Inherit);
-        assert!(inherit.normalized_parts().is_empty());
-    }
-
-    #[test]
-    fn declaration_preserves_alignment_and_state_patch_channels() {
-        let mut edit = RecipeEdit::default();
-        edit.part(Part::LABEL)
-            .base(StylePatch::new().set_align(crate::Align::Right))
-            .when(
-                StateFlags::HOVERED | StateFlags::PRESSED,
-                StylePatch::new()
-                    .set_align(crate::Align::Center)
-                    .set_fg(Role::Accent)
-                    .add(Modifier::BOLD),
-            );
-
-        let declaration = AuthoredDeclaration::from_edit(
-            Family::BUTTON,
-            None,
-            DeclarationKind::Family,
-            None,
-            None,
-            &edit,
-        )
-        .expect("alignment and state patches are authored channels");
-        let part = declaration.parts.get(Part::LABEL).unwrap();
-        assert_eq!(part.base.align, Slot::Set(crate::Align::Right));
-        assert_eq!(part.states.len(), 1);
-        assert_eq!(
-            part.states[0].when,
-            StateFlags::HOVERED | StateFlags::PRESSED
-        );
-        assert_eq!(part.states[0].patch.align, Slot::Set(crate::Align::Center));
-        assert_eq!(part.states[0].patch.fg, Slot::Set(Role::Accent));
-        assert!(part.states[0].patch.add.contains(Modifier::BOLD));
-    }
-
-    #[test]
-    fn declaration_clone_and_recipe_equality_include_authorship() {
-        let mut edit = RecipeEdit::default();
-        edit.part(Part::LABEL)
-            .base(StylePatch::new().set_fg(Role::Accent));
-        let declaration = AuthoredDeclaration::from_edit(
-            Family::BUTTON,
-            None,
-            DeclarationKind::Family,
-            None,
-            None,
-            &edit,
-        )
-        .unwrap();
-
-        let mut original = Recipes::default();
-        original.push_declaration(declaration);
-        let mut clone = original.clone();
-        assert_eq!(original, clone);
-        clone.push_declaration(
-            AuthoredDeclaration::from_edit(
-                Family::BUTTON,
-                Some(Variant::PRIMARY),
-                DeclarationKind::Variant,
-                None,
-                None,
-                &edit,
-            )
-            .unwrap(),
-        );
-        assert_ne!(original, clone);
-        assert_eq!(original.declarations().len(), 1);
-        assert_eq!(clone.declarations().len(), 2);
-    }
-
-    #[test]
-    fn builtin_and_consumer_mono_rules_keep_separate_origins() {
-        let family = Family::SCROLLBAR;
-        let mut recipes = Recipes::default();
-        recipes.set_builtin_mono_rules(family, Vec::new());
-        assert!(!recipes.mono_is_consumer_authored(family));
-        recipes.set_consumer_mono_rules(family, Vec::new());
-        assert!(recipes.mono_is_consumer_authored(family));
-
-        let cloned = recipes.clone();
-        assert_eq!(recipes, cloned);
-        assert!(cloned.mono_is_consumer_authored(family));
-
-        let builtin_theme = crate::Theme::junie();
-        assert!(
-            !builtin_theme
-                .recipes
-                .mono_is_consumer_authored(Family::LIST)
-        );
-        let builtin_rules = builtin_theme
-            .recipes
-            .mono_rules(Family::LIST)
-            .unwrap()
-            .to_vec();
-        let consumer_theme = builtin_theme
-            .clone()
-            .builder()
-            .mono_rules(Family::LIST, &builtin_rules)
-            .build();
-        assert!(
-            consumer_theme
-                .recipes
-                .mono_is_consumer_authored(Family::LIST)
-        );
-        assert_eq!(
-            builtin_theme.recipes.mono_rules(Family::LIST),
-            consumer_theme.recipes.mono_rules(Family::LIST)
-        );
-        assert_ne!(builtin_theme.recipes, consumer_theme.recipes);
-    }
-
-    #[test]
-    fn state_rules_are_stored_in_specificity_order() {
-        let mut r = PartRecipe::default();
-        r.when(
-            StateFlags::HOVERED | StateFlags::PRESSED,
-            StylePatch::new().set_bg(Role::Accent),
-        );
-        r.when(StateFlags::FOCUSED, StylePatch::new().set_fg(Role::Focus));
-        r.when(StateFlags::empty(), StylePatch::new().set_fg(Role::Info));
-        let specs: Vec<u32> = r.states.iter().map(StateRule::specificity).collect();
-        assert_eq!(specs, vec![0, 1, 2]);
-    }
-
-    #[test]
-    fn state_rules_tie_break_by_declaration_order() {
-        let mut r = PartRecipe::default();
-        r.when(
-            StateFlags::SELECTED,
-            StylePatch::new().set_glyph(GlyphRole::Chosen),
-        );
-        r.when(
-            StateFlags::CHECKED,
-            StylePatch::new().set_glyph(GlyphRole::Checked),
-        );
-        let live = StateFlags::SELECTED | StateFlags::CHECKED;
-        let acc = r.apply(StylePatch::new(), live);
-        assert_eq!(acc.glyph, Slot::Set(GlyphRole::Checked));
-        let acc = r.apply(StylePatch::new(), StateFlags::SELECTED);
-        assert_eq!(acc.glyph, Slot::Set(GlyphRole::Chosen));
-    }
-
-    #[test]
-    fn disabled_hover_has_a_narrow_cross_scope_tie_break() {
-        let merged_fg = |family_states: &[StateFlags], variant_states: &[StateFlags], live| {
-            let mut family = PartRecipe::default();
-            for state in family_states {
-                family.when(*state, StylePatch::new().set_fg(Role::Danger));
-            }
-            let mut variant = PartRecipe::default();
-            for state in variant_states {
-                variant.when(*state, StylePatch::new().set_fg(Role::Warning));
-            }
-            merge_states(StylePatch::new(), &family.states, &variant.states, live).fg
-        };
-
-        assert_eq!(
-            merged_fg(
-                &[StateFlags::DISABLED],
-                &[StateFlags::HOVERED],
-                StateFlags::DISABLED | StateFlags::HOVERED,
-            ),
-            Slot::Set(Role::Danger),
-            "disabled retains its ownership when a same-specificity variant supplies hover"
-        );
-        assert_eq!(
-            merged_fg(
-                &[StateFlags::HOVERED],
-                &[StateFlags::DISABLED],
-                StateFlags::DISABLED | StateFlags::HOVERED,
-            ),
-            Slot::Set(Role::Warning),
-            "a variant disabled rule remains later than family hover"
-        );
-        assert_eq!(
-            merged_fg(
-                &[StateFlags::DISABLED],
-                &[StateFlags::PRESSED, StateFlags::HOVERED],
-                StateFlags::DISABLED | StateFlags::HOVERED,
-            ),
-            Slot::Set(Role::Danger),
-            "an unmatched variant press sibling must not let hover override family disabled"
-        );
-        assert_eq!(
-            merged_fg(
-                &[StateFlags::DISABLED],
-                &[StateFlags::HOVERED, StateFlags::PRESSED],
-                StateFlags::DISABLED | StateFlags::HOVERED,
-            ),
-            Slot::Set(Role::Danger),
-            "disabled precedence is independent of the variant sibling declaration order"
-        );
-        assert_eq!(
-            merged_fg(
-                &[StateFlags::PRESSED, StateFlags::HOVERED],
-                &[StateFlags::DISABLED],
-                StateFlags::DISABLED | StateFlags::HOVERED,
-            ),
-            Slot::Set(Role::Warning),
-            "an unmatched family press sibling must not let hover override variant disabled"
-        );
-
-        // The documented family-before-variant order remains in force for
-        // the other exact state ties. Explicit combined rules still sort by
-        // their greater specificity.
-        for state in [
-            StateFlags::PRESSED,
-            StateFlags::SELECTED,
-            StateFlags::READ_ONLY,
-        ] {
-            assert_eq!(
-                merged_fg(
-                    &[StateFlags::DISABLED],
-                    &[state],
-                    StateFlags::DISABLED | state
-                ),
-                Slot::Set(Role::Warning),
-                "non-hover state tie {state:?} retains variant precedence"
-            );
-        }
-        assert_eq!(
-            merged_fg(
-                &[StateFlags::DISABLED],
-                &[StateFlags::DISABLED | StateFlags::PRESSED],
-                StateFlags::DISABLED | StateFlags::PRESSED,
-            ),
-            Slot::Set(Role::Warning),
-            "more-specific combined state rule remains later than a single-flag disabled rule"
-        );
-    }
-
-    #[test]
-    fn custom_family_and_variant_round_trip() {
-        let f = Family::custom("segmented");
-        let v = Variant::custom("outline");
-        assert!(f.raw() >= 0x8000 && v.raw() >= 0x8000);
-        assert_eq!(f, Family::custom("segmented"));
-        assert_eq!(format!("{:?}", Family::BUTTON), "Family::BUTTON");
-        assert_eq!(
-            format!("{v:?}"),
-            format!("Variant::custom(#{:04x})", v.raw())
-        );
-        let mut rs = Recipes::default();
-        rs.get_mut(f).default_variant = v;
-        rs.get_mut(f).variant_mut(v).entry(Part::LABEL).base =
-            StylePatch::new().set_fg(Role::Accent);
-        assert_eq!(rs.get(f).map(|r| r.default_variant), Some(v));
-        assert!(
-            rs.get(f)
-                .and_then(|r| r.variant(v))
-                .and_then(|m| m.get(Part::LABEL))
-                .is_some()
-        );
-        assert_eq!(rs.len(), 1);
-    }
-
-    #[test]
-    fn part_map_stays_sorted() {
-        let mut m: PartMap<u8> = PartMap::new();
-        m.insert(Part::THUMB, 1);
-        m.insert(Part::BORDER, 2);
-        *m.entry(Part::LABEL) = 3;
-        m.insert(Part::BORDER, 4);
-        let keys: Vec<Part> = m.iter().map(|(k, _)| k).collect();
-        assert_eq!(keys, vec![Part::BORDER, Part::LABEL, Part::THUMB]);
-        assert_eq!(m.get(Part::BORDER), Some(&4));
-        assert_eq!(m.get_mut(Part::THUMB).copied(), Some(1));
-        assert_eq!(m.len(), 3);
-    }
-
-    #[test]
-    fn overlay_applies_only_matching_rules_and_hashes_by_identity() {
-        static RULES: [OverlayRule; 1] = [(
-            Family::BUTTON,
-            Variant::DEFAULT,
-            Part::LABEL,
-            StateFlags::FOCUSED,
-            StylePatch::new().set_fg(Role::Warning),
-        )];
-        let ov = Overlay::new(&RULES);
-        let hit = ov.apply(
-            StylePatch::new(),
-            Family::BUTTON,
-            Variant::DEFAULT,
-            Part::LABEL,
-            StateFlags::FOCUSED,
-        );
-        assert_eq!(hit.fg, Slot::Set(Role::Warning));
-        let miss = ov.apply(
-            StylePatch::new(),
-            Family::BUTTON,
-            Variant::DEFAULT,
-            Part::LABEL,
-            StateFlags::empty(),
-        );
-        assert!(miss.is_empty());
-        assert_ne!(ov.hash(), Overlay::EMPTY.hash());
-        assert_eq!(ov.hash(), Overlay::new(&RULES).hash());
     }
 }

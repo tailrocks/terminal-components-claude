@@ -37,7 +37,6 @@ const DOCUMENTS: [CatalogueDocument; 2] = [
     },
 ];
 
-/// Public consumer example using borrowed document data and Termrock blocks.
 pub struct FileCatalogue {
     selected: usize,
     documents: &'static [CatalogueDocument],
@@ -73,7 +72,6 @@ impl FileCatalogue {
         }
     }
 
-    /// Build a catalogue with caller-owned borrowed documents and layout policy.
     pub fn with_documents(
         policy: MasterDetailPolicy,
         documents: &'static [CatalogueDocument],
@@ -166,8 +164,6 @@ impl FileCatalogue {
 
 impl App for FileCatalogue {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        // The block gets first refusal on Escape. For every other input its
-        // iterator is observational, so the focused editor still receives it.
         let master_owner = self
             .documents
             .first()
@@ -218,12 +214,10 @@ impl App for FileCatalogue {
     }
 }
 
-/// Render one public example frame; root geometry enters only at the runtime boundary.
 pub fn render_once(width: u16, height: u16) {
     render_with_policy_once(width, height, MasterDetailPolicy::default());
 }
 
-/// Render the same live catalogue through an explicitly resizable master pane.
 pub fn render_with_policy_once(width: u16, height: u16, policy: MasterDetailPolicy) {
     let area = Rect::new(0, 0, width, height);
     let mut runtime = Runtime::new(FileCatalogue::with_policy(policy), Theme::junie());

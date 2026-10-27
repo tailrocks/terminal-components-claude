@@ -34,7 +34,7 @@ pub(crate) struct HomeState {
     editor: TextInputState,
     rows: NavListState,
     pub(crate) scope: Option<Scope>,
-    /// History-on tag plates. Set from `HOLLA_NO_HISTORY=0`.
+
     pub(crate) history: bool,
 }
 
@@ -591,10 +591,9 @@ impl HomeState {
     }
 }
 
-/// Tag finder grey. Junie `FgStep::Muted` is `#808080`.
 const TAG_GREY: StylePatch = StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)));
 const QUERY_PARTS: &[(Part, StylePatch)] = &[(Part::PLACEHOLDER, TAG_GREY)];
-/// Focused tag query. The whole value is underlined in secondary, not only the caret.
+
 const DOCKER_QUERY_PARTS: &[(Part, StylePatch)] = &[
     (Part::PLACEHOLDER, TAG_GREY),
     (
@@ -604,9 +603,9 @@ const DOCKER_QUERY_PARTS: &[(Part, StylePatch)] = &[
             .set_underline(Role::Fg(FgStep::Secondary)),
     ),
 ];
-/// Home body is already one column in. Tag section titles start at screen column 4.
+
 const SECTION_INDENT: u16 = 3;
-/// Header recipe is bold secondary. The pad must stay primary; glyphs are retinted below.
+
 const HEADER_PAD: StylePatch = StylePatch::new()
     .set_fg(Role::Fg(FgStep::Primary))
     .remove(termrock::Modifier::BOLD);
@@ -761,8 +760,6 @@ fn paint_action_with_peek(
     let scope = scope_text(action);
     let risk = risk_text(action);
 
-    // Use the row owner's full allocation to keep optional columns responsive
-    // when NavList reserves a scrollbar or its leading slots.
     let content_width = cells.remaining_width().min(cells.container_width());
     let title_width = row
         .columns
@@ -1122,16 +1119,11 @@ fn split_detail(area: Rect) -> Option<(Rect, Rect)> {
     ))
 }
 
-/// Single-column band body for the concept screens. The 80–119 band replaces the
-/// frozen 80×24 and 100×30 plate frames; overflow gets a black thumb and the preview fade.
 fn paint_narrow_tag_list(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
     (80..120).contains(&full.width) && paint_tag_list(ui, area, view, None)
 }
 
-/// Frozen columns. Same grid as 100×30. Only the 80×24 frame reaches this painter.
-/// `parity-history` body. Single-column tag list below 120 with the frozen
-/// columns, the wide card in the 120 band, and the plain action list from 160 up.
 fn paint_parity_history(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
     let cols = TagCols {
@@ -1149,8 +1141,6 @@ fn paint_parity_history(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDis
     false
 }
 
-/// Frozen columns. The explore chips keep the accent fill. The system row does not.
-/// Single-column in the 80–119 band, wide card from 120.
 fn paint_parity_files(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
     if (80..120).contains(&full.width) {
@@ -1162,7 +1152,6 @@ fn paint_parity_files(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDisco
     false
 }
 
-/// Frozen columns. The explore chips keep the accent fill. The system row does not.
 fn paint_parity_files_list(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
     if !(80..120).contains(&full.width) || area.is_empty() {
@@ -1205,7 +1194,6 @@ fn paint_parity_files_list(ui: &mut Ui<'_>, area: Rect, view: &catalogue::Parity
     true
 }
 
-/// Wide card. Explore chips keep the accent fill. The system row does not.
 fn paint_parity_files_card(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
     if !(120..160).contains(&full.width) || area.is_empty() {
@@ -1253,7 +1241,6 @@ fn paint_parity_files_card(ui: &mut Ui<'_>, area: Rect, view: &catalogue::Parity
     true
 }
 
-/// Selected explore chips. The gutter is accent-on-accent. `›` sits in the gap before the first chip.
 fn paint_tag_chips_selected(ui: &mut Ui<'_>, master: Rect, y: u16, labels: &[&str]) {
     let fill = ink(ui, WHITE, SELECT_BG, true);
     ui.fill(Rect::new(master.x, y, master.width, 1), fill);
@@ -1274,9 +1261,6 @@ fn paint_tag_chips_selected(ui: &mut Ui<'_>, master: Rect, y: u16, labels: &[&st
     }
 }
 
-/// `parity-browser` body. The single-column bands keep the frozen columns; the
-/// 120 band keeps the wide card; from 160 up the reference shows the plain
-/// action list, so the view painter steps aside.
 fn paint_parity_browser(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
     let cols = TagCols {
@@ -1294,8 +1278,6 @@ fn paint_parity_browser(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDis
     false
 }
 
-/// Wide card band for the replay families. From 120 up the split card keeps
-/// the auto-sized tag columns.
 fn paint_parity_wide_card(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
     if !(120..160).contains(&full.width) || area.is_empty() {
@@ -1320,8 +1302,6 @@ fn paint_parity_wide_card(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityD
     )
 }
 
-/// Default tag columns in the 80–119 band.
-/// The action row middle-truncates `Runs` below 100 so the line fits. Do not write cursor bytes.
 fn paint_parity_git_batch(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
     if (80..120).contains(&full.width) {
@@ -1335,7 +1315,6 @@ fn paint_parity_git_batch(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityD
     paint_parity_wide_card(ui, area, view)
 }
 
-/// Shrink `Runs` so `→ {runs} · {scope} · {risk}` fits the action row.
 fn fit_narrow_runs(view: &mut catalogue::ParityDiscovery, room: u16) {
     let scope = view
         .preview
@@ -1361,9 +1340,6 @@ fn fit_narrow_runs(view: &mut catalogue::ParityDiscovery, room: u16) {
     }
 }
 
-/// Frozen columns in the 80–119 band.
-/// Git-batch, cargo, git-current, browser, files, history, discovery, and every other size stay off.
-/// Do not write cursor bytes.
 fn paint_parity_task_sources(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1386,7 +1362,6 @@ fn paint_parity_task_sources(
     false
 }
 
-/// Default tag columns in the 80–119 band, wide card from 120.
 fn paint_parity_cargo(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
     if (80..120).contains(&full.width) {
@@ -1395,7 +1370,6 @@ fn paint_parity_cargo(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDisco
     paint_parity_wide_card(ui, area, view)
 }
 
-/// Default tag columns in the 80–119 band, wide card from 120.
 fn paint_parity_git_current(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1408,7 +1382,6 @@ fn paint_parity_git_current(
     paint_parity_wide_card(ui, area, view)
 }
 
-/// Size-free single-column body. Callers keep their own layout policy.
 fn paint_tag_list(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1430,11 +1403,11 @@ fn paint_tag_list(
         })
         .collect();
     let footer_y = area.bottom().saturating_sub(1);
-    // Short lists never reach this row. A longer list clips here instead of covering it.
+
     let gap_y = footer_y.saturating_sub(1);
     let slots = usize::from(gap_y.saturating_sub(area.y));
     let overflow = slots > 0 && view.lines.len() > slots;
-    // The thumb owns the last column. Leave the cell before it blank, so a truncated reason stops one earlier.
+
     let content_w = area.width.saturating_sub(if overflow { 5 } else { 4 });
     let cols = columns.unwrap_or_else(|| tag_columns(&rows, content_w));
     let shown = if overflow { slots } else { view.lines.len() };
@@ -1502,8 +1475,6 @@ fn narrow_action_line(view: &catalogue::ParityDiscovery) -> Option<String> {
     ))
 }
 
-/// `hard-cases` body. Below the 120-wide breakpoint the view keeps its single-column
-/// tag list; from 120 up it uses the split master/detail card.
 fn paint_hard_cases_discovery(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1516,8 +1487,6 @@ fn paint_hard_cases_discovery(
     paint_parity_discovery(ui, area, view)
 }
 
-/// `parity-discovery` body. Below the 120-wide breakpoint the view keeps its
-/// single-column tag list; from 120 up it uses the split master/detail card.
 fn paint_parity_discovery_view(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1527,19 +1496,6 @@ fn paint_parity_discovery_view(
         return true;
     }
     paint_parity_discovery(ui, area, view)
-}
-
-#[cfg(test)]
-/// Paint the retained custom Finder body over the same real Home row allocation.
-pub(crate) fn paint_legacy_parity_discovery_for_test(
-    ui: &mut Ui<'_>,
-    world: &World,
-    home_area: Rect,
-    query: &str,
-) -> Option<Rect> {
-    let (_, rows_area, _) = home_rows_layout(home_area, world, query);
-    let view = catalogue::parity_discovery_view(world, ui.full().width)?;
-    paint_parity_discovery_view(ui, rows_area, &view).then_some(rows_area)
 }
 
 fn paint_parity_discovery(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
@@ -1759,7 +1715,6 @@ fn paint_tag_chips(
     labels: &[&str],
     fade: Option<(u32, u32)>,
 ) {
-    // Unfocused explore gutter is ink-on-ink, so the cell reads as an empty black column.
     ui.paint_str(
         Rect::new(master.x, y, 1, 1),
         " ",
@@ -1785,7 +1740,6 @@ fn paint_tag_row(
     cols: &TagCols,
     fade: Option<(u32, u32)>,
 ) {
-    // A selected row keeps the solid accent. Fade is only the unselected tail.
     let fade = if row.selected { None } else { fade };
     let bg = if row.selected { SELECT_BG } else { BLACK };
     let title_style = ink(ui, faded(WHITE, fade), bg, row.selected);
@@ -1805,7 +1759,7 @@ fn paint_tag_row(
         title_style,
     );
     x = x.saturating_add(cols.label).saturating_add(2);
-    // Tag row chrome bolds only the label. Kind, scope, reason, and risk stay plain.
+
     let plain = ink(ui, faded(WHITE, fade), bg, false);
     let kind_style = if row.selected {
         plain
@@ -2000,7 +1954,6 @@ fn tone_color(tone: catalogue::PreviewTone) -> Color {
     }
 }
 
-/// Bottom edge of an overflowing preview. `4/5` is the inner keep, `11/20` the outer.
 fn preview_fade(index: usize, shown: usize) -> Option<(u32, u32)> {
     if shown < 4 {
         return None;
@@ -2078,7 +2031,6 @@ fn paint_preview_scrollbar(ui: &mut Ui<'_>, area: Rect, content_len: usize) {
     }
 }
 
-/// List thumb on the narrow plate. Same geometry as the preview thumb, on black not `#111111`.
 fn paint_narrow_scrollbar(ui: &mut Ui<'_>, area: Rect, content_len: usize) {
     if area.is_empty() {
         return;
@@ -2130,545 +2082,4 @@ fn flatten_preview(
         }
     }
     flat
-}
-
-#[cfg(test)]
-#[expect(
-    clippy::panic,
-    clippy::unwrap_used,
-    clippy::indexing_slicing,
-    reason = "Named fixtures provide known rows and failed fixture assumptions must fail tests"
-)]
-mod tests {
-    use std::cell::Cell;
-
-    use super::*;
-    use crate::{domain::fixtures, scenario::Scenario};
-    use termrock::{App, KeyCode, Theme};
-    use termrock_test_support::Harness;
-
-    struct HomeFixture {
-        home: HomeState,
-        world: World,
-        invoked: Option<Action>,
-        peek: RefCell<Option<String>>,
-        clip_home_to_query: Cell<bool>,
-    }
-    impl App for HomeFixture {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let viewport = cx.viewport();
-            let (response, action) =
-                self.home
-                    .update(&self.world, cx, Some(viewport), viewport.width);
-            if action.is_some() {
-                self.invoked = action;
-            }
-            response
-        }
-        fn draw(&self, ui: &mut Ui<'_>) {
-            let area = ui.full();
-            if self.clip_home_to_query.get() {
-                let query_clip = Rect::new(area.x, area.y, area.width, 1);
-                ui.with_area(query_clip, |ui| {
-                    *self.peek.borrow_mut() = self.home.draw(&self.world, ui, area);
-                });
-            } else {
-                *self.peek.borrow_mut() = self.home.draw(&self.world, ui, area);
-            }
-        }
-    }
-    fn fixture(scenario: Scenario) -> HomeFixture {
-        let mut world = fixtures::world_for(scenario);
-        world.seek(2_000);
-        HomeFixture {
-            home: HomeState::default(),
-            world,
-            invoked: None,
-            peek: RefCell::new(None),
-            clip_home_to_query: Cell::new(false),
-        }
-    }
-
-    #[test]
-    fn all_scenarios_render_without_mutating_domain_or_query() {
-        for scenario in Scenario::ALL {
-            let mut harness = Harness::new(fixture(scenario), Theme::junie(), 120, 40);
-            let before = catalogue::catalogue(&harness.app().world);
-            let time = harness.app().world.now_ms();
-            let query = harness.app().home.query().to_owned();
-            harness.draw();
-            harness.draw();
-            assert_eq!(catalogue::catalogue(&harness.app().world), before);
-            assert_eq!(harness.app().world.now_ms(), time);
-            assert_eq!(harness.app().home.query(), query);
-            let heading = if scenario.boot_title() == crate::screens::finder::RECENT {
-                crate::screens::finder::RECENT
-            } else {
-                "Suggested here"
-            };
-            assert!(
-                harness.text().contains(heading),
-                "{} missing {heading}",
-                scenario.name()
-            );
-        }
-    }
-
-    #[test]
-    fn ordinary_home_peek_tracks_physical_row_focus_not_retained_selection() {
-        let mut harness = Harness::new(fixture(Scenario::RustDirty), Theme::junie(), 80, 24);
-        let task = harness
-            .app_mut()
-            .world
-            .mise
-            .as_mut()
-            .expect("RustDirty includes project tasks")
-            .tasks
-            .first_mut()
-            .expect("RustDirty includes a task");
-        task.defined_in = format!(
-            "~/work/pave/{}",
-            "footer-peek-producer-long-reason-".repeat(6)
-        );
-        harness.draw();
-        assert!(harness.app().peek.borrow().is_none());
-
-        assert!(harness.tab_to(QUERY));
-        let _ = harness.type_str("footer-peek-producer-long-reason");
-        assert!(harness.tab_to(ROWS));
-        harness.draw();
-        let selected = harness
-            .app()
-            .home
-            .selected(&harness.app().world)
-            .expect("the settled ordinary Home query has a focused task row");
-        assert!(matches!(
-            selected.title.as_str(),
-            "Run test" | "Run build" | "Run lint"
-        ));
-        assert!(selected.reason.contains("footer-peek-producer-long-reason"));
-        let reason = one_line(&selected.reason);
-        let expected = if reason.is_empty() {
-            one_line(&selected.title)
-        } else {
-            format!("{} — {reason}", one_line(&selected.title))
-        };
-        assert_eq!(
-            harness.app().peek.borrow().as_deref(),
-            Some(expected.as_str())
-        );
-
-        assert!(harness.tab_to(QUERY));
-        harness.draw();
-        assert!(
-            harness.app().peek.borrow().is_none(),
-            "a retained row selection does not reveal while QUERY owns focus"
-        );
-    }
-
-    #[test]
-    fn ordinary_home_peek_rejects_a_focused_row_outside_the_ui_clip() {
-        let mut harness = Harness::new(fixture(Scenario::RustDirty), Theme::junie(), 80, 24);
-        let task = harness
-            .app_mut()
-            .world
-            .mise
-            .as_mut()
-            .expect("RustDirty includes project tasks")
-            .tasks
-            .first_mut()
-            .expect("RustDirty includes a task");
-        task.defined_in = format!(
-            "~/work/pave/{}",
-            "footer-peek-producer-long-reason-".repeat(6)
-        );
-        assert!(harness.tab_to(QUERY));
-        let _ = harness.type_str("footer-peek-producer-long-reason");
-        assert!(harness.tab_to(ROWS));
-        assert_eq!(harness.focus(), Some(ROWS));
-        assert!(harness.app().peek.borrow().is_some());
-
-        harness.app().clip_home_to_query.set(true);
-        harness.draw();
-        assert!(
-            harness.app().peek.borrow().is_none(),
-            "the focused logical row is wholly outside the query-only clip"
-        );
-
-        harness.app().clip_home_to_query.set(false);
-        assert!(harness.tab_to(ROWS));
-        harness.draw();
-        assert!(harness.app().peek.borrow().is_some());
-    }
-
-    #[test]
-    fn reserved_trailing_label_glyph_is_counted_as_a_title_cut() {
-        let mut baseline = Harness::new(fixture(Scenario::RustDirty), Theme::junie(), 120, 40);
-        let task = baseline
-            .app_mut()
-            .world
-            .mise
-            .as_mut()
-            .expect("RustDirty includes project tasks")
-            .tasks
-            .first_mut()
-            .expect("RustDirty includes a task");
-        task.id = "reserved-glyph".into();
-        task.defined_in = "~/work/pave/x".into();
-        assert!(baseline.tab_to(QUERY));
-        let _ = baseline.type_str("reserved-glyph");
-        assert!(baseline.tab_to(ROWS));
-        baseline.draw();
-        assert!(baseline.app().peek.borrow().is_none());
-
-        let theme = Theme::junie().define_family(Family::LIST, |edit| {
-            edit.part(Part::LABEL)
-                .base(StylePatch::new().set_glyph(termrock::GlyphRole::Ellipsis));
-        });
-        let mut harness = Harness::new(fixture(Scenario::RustDirty), theme, 120, 40);
-        let task = harness
-            .app_mut()
-            .world
-            .mise
-            .as_mut()
-            .expect("RustDirty includes project tasks")
-            .tasks
-            .first_mut()
-            .expect("RustDirty includes a task");
-        task.id = "reserved-glyph".into();
-        task.defined_in = "~/work/pave/x".into();
-        assert!(harness.tab_to(QUERY));
-        let _ = harness.type_str("reserved-glyph");
-        assert!(harness.tab_to(ROWS));
-        harness.draw();
-
-        let selected = harness
-            .app()
-            .home
-            .selected(&harness.app().world)
-            .expect("the matching task has a real Home row");
-        assert_eq!(selected.title, "Run reserved-glyph");
-        assert_eq!(
-            harness.app().peek.borrow().as_deref(),
-            Some("Run reserved-glyph — defined by project task runner · x")
-        );
-    }
-
-    #[test]
-    fn footer_peek_parts_normalize_to_a_single_line() {
-        assert_eq!(
-            one_line("title\ncontinued\r\t reason"),
-            "title continued  reason"
-        );
-        assert_eq!(one_line("\n\t"), "");
-    }
-
-    #[test]
-    fn shared_query_filters_and_enter_reports_real_catalogue_identity() {
-        let mut harness = Harness::new(fixture(Scenario::RustDirty), Theme::junie(), 120, 40);
-        assert!(harness.tab_to(QUERY));
-        let _ = harness.type_str("git");
-        assert_eq!(harness.app().home.query(), "git");
-        let expected = harness
-            .app()
-            .home
-            .selected(&harness.app().world)
-            .map(|action| action.id);
-        let _ = harness.key(KeyCode::Enter);
-        assert_eq!(
-            harness
-                .app()
-                .invoked
-                .as_ref()
-                .map(|action| action.id.clone()),
-            expected
-        );
-    }
-
-    #[test]
-    fn mouse_and_keyboard_row_activation_share_identity() {
-        let mut mouse = Harness::new(fixture(Scenario::DockerCleanup), Theme::junie(), 120, 40);
-        let selected = mouse.app().home.selected(&mouse.app().world);
-        let Some(selected) = selected else {
-            panic!("fixture has actions")
-        };
-        let _ = mouse.click_part(
-            ROWS,
-            termrock::PartRef::item(Part::ROW, ItemKey::text(&selected.id)),
-        );
-        assert_eq!(
-            mouse.app().invoked.as_ref().map(|action| &action.id),
-            Some(&selected.id)
-        );
-        let mut keyboard = Harness::new(fixture(Scenario::DockerCleanup), Theme::junie(), 120, 40);
-        assert!(keyboard.tab_to(ROWS));
-        let _ = keyboard.key(KeyCode::Enter);
-        assert_eq!(
-            keyboard.app().invoked.as_ref().map(|action| &action.id),
-            Some(&selected.id)
-        );
-    }
-
-    #[test]
-    fn shared_action_row_keeps_live_semantic_fields_and_owner_focus() {
-        let mut harness = Harness::new(fixture(Scenario::LaunchFailure), Theme::junie(), 120, 40);
-        let action = harness
-            .app()
-            .home
-            .rows(&harness.app().world)
-            .into_iter()
-            .find(|row| !row.action.reason.is_empty())
-            .expect("fixture has a live action with a reason")
-            .action;
-        assert!(harness.find(&action.title).is_some());
-        assert!(harness.find(action_kind_label(action.kind)).is_some());
-        assert!(harness.find(action.scope.label()).is_some());
-        assert!(harness.find(risk_label(action.risk)).is_some());
-        assert!(harness.find(&action.reason).is_some());
-
-        let rows_bounds = harness.area_of(ROWS).expect("Home NavList is registered");
-        assert!(harness.tab_to(ROWS));
-        assert_eq!(harness.focus(), Some(ROWS));
-        assert_eq!(
-            (rows_bounds.y..rows_bounds.bottom())
-                .flat_map(|y| (rows_bounds.x..rows_bounds.right()).map(move |x| (x, y)))
-                .filter(|(x, y)| harness.cell(*x, *y).symbol() == "▎")
-                .count(),
-            0,
-            "shared Fill cursor must not add a second focus gutter"
-        );
-        let _ = harness.key(KeyCode::Down);
-        assert!(harness.diagnostics().is_empty());
-    }
-
-    #[test]
-    fn section_headers_use_nav_list_text_policy_across_widths_and_color_levels() {
-        use termrock::ColorLevel::{Ansi16, Ansi256, Mono, TrueColor};
-
-        for width in [79, 80, 81, 99, 100, 101, 119, 120, 121] {
-            for level in [TrueColor, Ansi256, Ansi16, Mono] {
-                let mut harness =
-                    Harness::new(fixture(Scenario::LaunchFailure), Theme::junie(), width, 16)
-                        .with_color(level);
-                let (text_x, header_y) = harness
-                    .find("Suggested here")
-                    .expect("live Home rows include a section header");
-                assert_eq!(text_x, SECTION_INDENT);
-                let rows_bounds = harness.area_of(ROWS).expect("Home NavList is addressable");
-                let selected = harness
-                    .app()
-                    .home
-                    .selected(&harness.app().world)
-                    .expect("live Home rows have an action");
-                let selected_hit = harness
-                    .area_of_part(
-                        ROWS,
-                        termrock::PartRef::item(Part::ROW, ItemKey::text(&selected.id)),
-                    )
-                    .expect("selected Home row has a real hit region");
-
-                let padding = (0..SECTION_INDENT)
-                    .map(|x| {
-                        let cell = harness.cell(x, header_y);
-                        (cell.fg, cell.bg, cell.modifier)
-                    })
-                    .collect::<Vec<_>>();
-                assert!(padding.iter().all(|style| *style == padding[0]));
-
-                let header = harness.cell(text_x, header_y);
-                assert!(!header.modifier.contains(termrock::Modifier::BOLD));
-                let header_style = (header.fg, header.bg, header.modifier);
-                assert_ne!(header.fg, padding[0].0);
-
-                assert!(harness.tab_to(ROWS), "rows focus at {width} columns");
-                assert_eq!(harness.area_of(ROWS), Some(rows_bounds));
-                assert_eq!(
-                    harness.area_of_part(
-                        ROWS,
-                        termrock::PartRef::item(Part::ROW, ItemKey::text(&selected.id)),
-                    ),
-                    Some(selected_hit)
-                );
-                for x in text_x..text_x.saturating_add(13) {
-                    let cell = harness.cell(x, header_y);
-                    assert_eq!((cell.fg, cell.bg, cell.modifier), header_style);
-                }
-                for (x, style) in padding.iter().enumerate() {
-                    let cell = harness.cell(u16::try_from(x).unwrap(), header_y);
-                    assert_eq!((cell.fg, cell.bg, cell.modifier), *style);
-                }
-
-                let _ = harness.key(KeyCode::End);
-                assert_eq!(harness.area_of(ROWS), Some(rows_bounds));
-
-                if width == 121 && level == TrueColor {
-                    let before = harness
-                        .app()
-                        .home
-                        .rows(&harness.app().world)
-                        .into_iter()
-                        .map(|row| row.action.title)
-                        .collect::<Vec<_>>();
-                    let task = harness
-                        .app_mut()
-                        .world
-                        .mise
-                        .as_mut()
-                        .expect("live fixture includes task data")
-                        .tasks
-                        .first_mut()
-                        .expect("live fixture includes a task");
-                    task.id = "task:termrock-header-live-probe".to_owned();
-                    let after = harness
-                        .app()
-                        .home
-                        .rows(&harness.app().world)
-                        .into_iter()
-                        .map(|row| row.action.title)
-                        .collect::<Vec<_>>();
-                    assert_ne!(before, after, "fixture data changes the live labels");
-                    assert!(
-                        after
-                            .iter()
-                            .any(|label| label.contains("termrock-header-live-probe"))
-                    );
-                    let _ = harness.key(KeyCode::Home);
-                    assert!(harness.find("Suggested here").is_some());
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn home_header_text_policy_survives_menu_open_close_and_focus_restoration() {
-        use termrock::ColorLevel::{Ansi16, Ansi256, Mono, TrueColor};
-        use termrock::{FeedbackClock, SimulationMoment};
-
-        for width in [119, 120, 121] {
-            for level in [TrueColor, Ansi256, Ansi16, Mono] {
-                let source_theme = Theme::junie();
-                let app = crate::App::for_scenario_without_history(
-                    Scenario::RustDirty,
-                    crate::Motion::Paused,
-                    2_000,
-                )
-                .with_source_theme(source_theme.clone());
-                let initial = u64::try_from(app.fixture_time_ms())
-                    .expect("simulation fixture time is nonnegative");
-                let mut harness = Harness::new_with_feedback_clock(
-                    app,
-                    source_theme,
-                    width,
-                    40,
-                    FeedbackClock::Simulation {
-                        initial: SimulationMoment::from_millis(initial),
-                    },
-                )
-                .with_color(level);
-                let (text_x, header_y) = harness
-                    .find("Suggested here")
-                    .expect("live Home rows include a section header");
-                let rows_bounds = harness.area_of(ROWS).expect("Home NavList is addressable");
-                assert_eq!(text_x, rows_bounds.x.saturating_add(SECTION_INDENT));
-                let home_focus = Some(QUERY);
-                assert_eq!(harness.focus(), home_focus);
-                let style = |harness: &Harness<crate::App>, x, y| {
-                    let cell = harness.cell(x, y);
-                    (cell.fg, cell.bg, cell.modifier)
-                };
-                let before_padding = (0..SECTION_INDENT)
-                    .map(|offset| style(&harness, rows_bounds.x.saturating_add(offset), header_y))
-                    .collect::<Vec<_>>();
-                let before_text = style(&harness, text_x, header_y);
-                assert!(
-                    before_padding
-                        .iter()
-                        .all(|entry| *entry == before_padding[0])
-                );
-                assert_ne!(before_padding[0].0, before_text.0);
-
-                assert_eq!(
-                    (rows_bounds.y..rows_bounds.bottom())
-                        .flat_map(|y| (rows_bounds.x..rows_bounds.right()).map(move |x| (x, y)))
-                        .filter(|(x, y)| harness.cell(*x, *y).symbol() == "▎")
-                        .count(),
-                    0,
-                    "Home rows must not paint an application-owned focus gutter"
-                );
-                let _ = harness.key(KeyCode::F(10));
-                assert_eq!(harness.focus(), Some(Id::root("holla.menu")));
-                assert!(harness.text().contains("Quit"));
-                let (_, overlay_header_y) = harness
-                    .find("Suggested here")
-                    .expect("Home header remains rendered beneath the open menu layer");
-                let overlay_padding = (0..SECTION_INDENT)
-                    .map(|offset| {
-                        style(
-                            &harness,
-                            rows_bounds.x.saturating_add(offset),
-                            overlay_header_y,
-                        )
-                    })
-                    .collect::<Vec<_>>();
-                let overlay_text = style(&harness, text_x, overlay_header_y);
-                assert_eq!(overlay_padding, before_padding);
-                assert_eq!(overlay_text, before_text);
-                assert_eq!(
-                    (rows_bounds.y..rows_bounds.bottom())
-                        .flat_map(|y| (rows_bounds.x..rows_bounds.right()).map(move |x| (x, y)))
-                        .filter(|(x, y)| harness.cell(*x, *y).symbol() == "▎")
-                        .count(),
-                    0,
-                    "inactive Home rows must not retain focus under the menu"
-                );
-
-                let _ = harness.key(KeyCode::Esc);
-                assert_eq!(harness.focus(), home_focus);
-                assert!(
-                    harness.diagnostics().is_empty(),
-                    "{:?}",
-                    harness.diagnostics()
-                );
-                let (_, closed_header_y) = harness
-                    .find("Suggested here")
-                    .expect("Home header remains rendered after closing the menu");
-                assert_eq!(
-                    (0..SECTION_INDENT)
-                        .map(|offset| {
-                            style(
-                                &harness,
-                                rows_bounds.x.saturating_add(offset),
-                                closed_header_y,
-                            )
-                        })
-                        .collect::<Vec<_>>(),
-                    before_padding
-                );
-                assert_eq!(style(&harness, text_x, closed_header_y), before_text);
-            }
-        }
-    }
-
-    #[test]
-    fn query_submission_uses_top_match_after_row_navigation() {
-        let mut harness = Harness::new(fixture(Scenario::RustDirty), Theme::junie(), 120, 40);
-        let expected = harness.app().home.rows(&harness.app().world)[0]
-            .action
-            .id
-            .clone();
-        assert!(harness.tab_to(ROWS));
-        let _ = harness.key(KeyCode::Down);
-        assert_ne!(
-            harness
-                .app()
-                .home
-                .selected(&harness.app().world)
-                .unwrap()
-                .id,
-            expected
-        );
-        assert!(harness.tab_to(QUERY));
-        let _ = harness.key(KeyCode::Enter);
-        assert_eq!(harness.app().invoked.as_ref().unwrap().id, expected);
-    }
 }

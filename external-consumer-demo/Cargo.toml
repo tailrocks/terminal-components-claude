@@ -25,8 +25,5 @@ termrock = { path = "../crates/termrock" }
 # The test harness drives the consumer through the public production render
 # path (`prepare` / `draw_prepared` / `acknowledge_presented`) on Ratatui's
 # public test backend.
-[dev-dependencies]
-ratatui = { version = "0.30", features = ["crossterm_0_29"] }
-
 [lib]
 doctest = false

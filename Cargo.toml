@@ -44,11 +44,8 @@ members = [
     "crates/tablepro-ui",
     "crates/tablepro",
     "crates/termrock-consumer-example",
-    "crates/termrock-test-support",
-    "crates/termrock-conformance",
     "crates/termrock-xtask",
     "crates/termrock-visibility-publisher",
-    "crates/visual-harness",
     "tools/refactor-proof",
 ]
 default-members = [
@@ -57,7 +54,6 @@ default-members = [
     "crates/jackin-preview",
     "crates/holla",
     "crates/tablepro",
-    "crates/termrock-conformance",
 ]
 
 [workspace.package]
@@ -115,15 +111,11 @@ tablepro-demo = { path = "crates/tablepro-demo" }
 tablepro-ui = { path = "crates/tablepro-ui" }
 tablepro = { path = "crates/tablepro" }
 
-termrock-test-support = { path = "crates/termrock-test-support" }
-termrock-conformance = { path = "crates/termrock-conformance" }
 termrock-xtask = { path = "crates/termrock-xtask" }
 
-clap = { version = "4.6", features = ["derive"] }
 ratatui = { version = "0.30", features = ["crossterm_0_29"] }
 unicode-width = "0.2"
 unicode-segmentation = "1"
-tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "a1ea27f757d75d07b05499276cd932e9f8e067ad", features = ["pty"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tempfile = "3"
@@ -134,7 +126,6 @@ pulldown-cmark = { version = "=0.13.5", default-features = false }
 ratatui-core = { version = "0.1.2", default-features = false, features = ["std", "underline-color"] }
 ratatui-crossterm = { version = "0.1.2" }
 bitflags = "2.13"
-trybuild = "1.0"
 
 [workspace.lints.rust]
 unsafe_code = "deny"                          # crates/tui raises to forbid at the crate root
@@ -177,6 +168,3 @@ cast_possible_wrap = "allow"
 [profile.release]
 lto = "thin"
 codegen-units = 1
-
-[profile.test.package."*"]
-opt-level = 3

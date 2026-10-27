@@ -66,7 +66,6 @@ fn editable(frame: &FrameState, owner: Id) -> bool {
 }
 
 fn focused_paste_owner(frame: &FrameState, focus: Option<Id>) -> Option<Id> {
-    // Unlike the typing candidate scan below, this capability never grants fallback routing.
     let owner = focus?;
     let offered_here = frame
         .focused_paste_targets
@@ -115,9 +114,6 @@ pub(crate) fn resolve(frame: &mut FrameState, focus: Option<Id>) -> TypingResolv
     {
         resolved.owner = editable(frame, owner).then_some(owner);
         if flags(frame, owner).contains(StateFlags::READ_ONLY) {
-            // Read-only controls may still expose a visible caret for navigation or
-            // inspection. Preserve that cursor only when the control itself published
-            // an ordinary cursor request; read-only focus must not manufacture one.
             resolved.cursor = frame
                 .cursors
                 .iter()

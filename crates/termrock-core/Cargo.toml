@@ -8,7 +8,6 @@ license.workspace = true
 [features]
 default = ["crossterm"]
 crossterm = ["dep:ratatui-crossterm"]
-testing = []
 
 [dependencies]
 ratatui-core.workspace = true

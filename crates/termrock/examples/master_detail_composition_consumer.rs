@@ -1,5 +1,3 @@
-//! Default-feature, facade-only downstream composition example.
-
 use termrock::blocks::{AppShell, MasterDetail, MasterDetailPolicy, MasterDetailState};
 use termrock::composition::{self, Group};
 use termrock::controls::Button;

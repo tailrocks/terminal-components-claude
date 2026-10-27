@@ -1,8 +1,3 @@
-//! Private native hover-tip controller shared by every Toolbar instance.
-//!
-//! This module owns only Toolbar-local timing, identity, measurement, and paint.
-//! Native hover routing and managed layer lifetime remain runtime-owned.
-
 use std::time::Duration;
 
 use ratatui_core::layout::Rect;
@@ -238,9 +233,7 @@ impl TooltipController {
             && !cx.refresh_hover_tooltip(opening, anchor, size)
         {
             active.opening = None;
-            // A failed refresh means this token no longer proves a live
-            // native presentation. Require a new interval before opening
-            // another token for the same hovered source.
+
             active.since = cx.now();
         }
 

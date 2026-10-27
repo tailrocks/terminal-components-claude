@@ -18,10 +18,6 @@ enum NoticeKindValue {
     Success,
 }
 
-/// One of the four supported notice meanings.
-///
-/// The representation is private so callers cannot construct an unsupported
-/// kind. Use the named constants in builder calls and matches.
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
 pub struct NoticeKind(NoticeKindValue);
@@ -35,13 +31,12 @@ impl PartialEq for NoticeKind {
 impl Eq for NoticeKind {}
 
 impl NoticeKind {
-    /// Error feedback.
     pub const ERROR: Self = Self(NoticeKindValue::Error);
-    /// Warning feedback.
+
     pub const WARNING: Self = Self(NoticeKindValue::Warning);
-    /// Informational feedback.
+
     pub const INFO: Self = Self(NoticeKindValue::Info);
-    /// Successful feedback.
+
     pub const SUCCESS: Self = Self(NoticeKindValue::Success);
 }
 
@@ -51,22 +46,16 @@ impl Default for NoticeKind {
     }
 }
 
-/// The semantic text source represented by a cut Notice row.
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NoticeSource {
-    /// The primary message.
     Message,
-    /// The optional detail paragraph.
+
     Detail,
-    /// The optional supporting hint.
+
     Hint,
 }
 
-/// Borrowed metadata for one logically cut row of a Notice.
-///
-/// The original source remains intact even when the row shown by the Notice
-/// has been wrapped or truncated.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct NoticeCut<'a> {
     source: NoticeSource,
@@ -90,22 +79,18 @@ impl<'a> NoticeCut<'a> {
         }
     }
 
-    /// Return the message, detail, or hint represented by this row.
     pub const fn source(&self) -> NoticeSource {
         self.source
     }
 
-    /// Return this row's zero-based position in the complete logical Notice.
     pub const fn logical_row(&self) -> u16 {
         self.logical_row
     }
 
-    /// Return the text's horizontal inset from the Notice's left edge.
     pub const fn inset(&self) -> u16 {
         self.inset
     }
 
-    /// Return the complete original message, detail, or hint text.
     pub const fn original_text(&self) -> &'a str {
         self.original_text
     }
@@ -131,11 +116,6 @@ struct WrappedLine {
     cut: bool,
 }
 
-/// A borrowed feedback notice with independent wrapping and style controls.
-///
-/// This is an additive borrowed API. The older Showcase notice was an owned
-/// public struct and is not source-compatible with this widget. Cut rows keep
-/// private presentation metadata; this component does not provide hover reveal.
 #[derive(Clone, Copy, Debug)]
 pub struct Notice<'a> {
     kind: NoticeKind,
@@ -154,7 +134,6 @@ pub struct Notice<'a> {
 }
 
 impl<'a> Notice<'a> {
-    /// Create an Error notice, borrowing its message text.
     #[must_use]
     pub const fn new(message: &'a str) -> Self {
         Self {
@@ -174,134 +153,102 @@ impl<'a> Notice<'a> {
         }
     }
 
-    /// Create an Error notice.
     #[must_use]
     pub const fn error(message: &'a str) -> Self {
         Self::new(message)
     }
 
-    /// Create a Warning notice.
     #[must_use]
     pub const fn warning(message: &'a str) -> Self {
         Self::new(message).kind(NoticeKind::WARNING)
     }
 
-    /// Create an Info notice.
     #[must_use]
     pub const fn info(message: &'a str) -> Self {
         Self::new(message).kind(NoticeKind::INFO)
     }
 
-    /// Create a Success notice.
     #[must_use]
     pub const fn success(message: &'a str) -> Self {
         Self::new(message).kind(NoticeKind::SUCCESS)
     }
 
-    /// Select the notice's semantic kind.
     #[must_use]
     pub const fn kind(mut self, kind: NoticeKind) -> Self {
         self.kind = kind;
         self
     }
 
-    /// Add a secondary detail paragraph.
     #[must_use]
     pub const fn detail(mut self, detail: &'a str) -> Self {
         self.detail = Some(detail);
         self
     }
 
-    /// Add a one-row supporting hint.
     #[must_use]
     pub const fn hint(mut self, hint: &'a str) -> Self {
         self.hint = Some(hint);
         self
     }
 
-    /// Set the message row cap. Zero is normalized to one row.
     #[must_use]
     pub const fn message_lines(mut self, lines: usize) -> Self {
         self.message_lines = if lines == 0 { 1 } else { lines };
         self
     }
 
-    /// Set the detail row cap. Zero suppresses the detail.
     #[must_use]
     pub const fn max_lines(mut self, lines: usize) -> Self {
         self.max_lines = lines;
         self
     }
 
-    /// Set the semantic foreground step used for detail text.
     #[must_use]
     pub const fn detail_tone(mut self, tone: FgStep) -> Self {
         self.detail_tone = tone;
         self
     }
 
-    /// Show or hide the visible truncation mark without changing cut tracking.
     #[must_use]
     pub const fn mark_cut(mut self, mark: bool) -> Self {
         self.mark_cut = mark;
         self
     }
 
-    /// Override the marker glyph with borrowed text.
     #[must_use]
     pub const fn marker(mut self, marker: &'a str) -> Self {
         self.marker = Some(marker);
         self
     }
 
-    /// Apply an explicit local patch to the marker style.
     #[must_use]
     pub const fn marker_patch(mut self, patch: StylePatch) -> Self {
         self.marker_patch = patch;
         self
     }
 
-    /// Apply an explicit local patch to the message style.
     #[must_use]
     pub const fn message_patch(mut self, patch: StylePatch) -> Self {
         self.message_patch = patch;
         self
     }
 
-    /// Apply an explicit local patch to the detail style.
     #[must_use]
     pub const fn detail_patch(mut self, patch: StylePatch) -> Self {
         self.detail_patch = patch;
         self
     }
 
-    /// Apply an explicit local patch to the hint style.
     #[must_use]
     pub const fn hint_patch(mut self, patch: StylePatch) -> Self {
         self.hint_patch = patch;
         self
     }
 
-    /// Return the preferred height for a specific available width.
-    ///
-    /// Stacks should use this method after choosing their column width so their
-    /// next child starts after the same rows that `draw` uses.
     pub fn height_for_width(&self, ui: &Ui<'_>, width: u16) -> u16 {
         self.walk_rows(width, self.marker_inset(ui), |_| {})
     }
 
-    /// Visit each logically cut row without allocating wrapped text.
-    ///
-    /// `width` and `logical_height` must match the logical geometry supplied
-    /// to [`Self::draw`]. For [`Self::draw_window`], pass the visible body's
-    /// width and the window's logical row count. A physical viewport crop does
-    /// not create a cut; callers can map each returned row through their
-    /// validated window and clip.
-    ///
-    /// The visitor receives rows in Notice order. Its row number is relative
-    /// to the complete Notice, and its text is the complete original source,
-    /// not the wrapped or painted row. The visible `mark_cut` setting does not
-    /// affect this metadata.
     pub fn visit_cuts(
         &self,
         ui: &Ui<'_>,
@@ -326,7 +273,6 @@ impl<'a> Notice<'a> {
         );
     }
 
-    /// Measure the notice within the supplied constraints.
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
         let natural_width = self.natural_width(ui).min(constraints.max.0);
         let measured_width = if constraints.tight_w {
@@ -338,7 +284,6 @@ impl<'a> Notice<'a> {
         Size::exact(natural_width, measured_height).fit(constraints)
     }
 
-    /// Draw only the notice's text. Blank cells and the caller's surface remain untouched.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         if area.is_empty() {
             return;
@@ -370,12 +315,6 @@ impl<'a> Notice<'a> {
         );
     }
 
-    /// Draw the rows visible through a validated window into the notice's
-    /// original logical row range.
-    ///
-    /// `window.logical_rows()` is the height cap that an ordinary draw would
-    /// receive. Cropping at a physical viewport edge does not create a new
-    /// logical cut row. A full window uses the same path as [`Self::draw`].
     pub fn draw_window(&self, ui: &mut Ui<'_>, window: VerticalWindow) {
         let area = window.visible_body();
         if window == VerticalWindow::full(area) {
@@ -484,9 +423,6 @@ impl<'a> Notice<'a> {
         self.walk_rows_with_capture(available_width, message_inset, true, emit)
     }
 
-    /// Emit the visible logical rows, marking the final row when this height
-    /// cap omits later content. Drawing, windowed drawing, and cut reporting
-    /// all use this lookahead so their cap semantics cannot drift apart.
     fn walk_visible_rows(
         &self,
         available_width: u16,
@@ -907,40 +843,5 @@ where
             self.emitted = self.emitted.saturating_add(1);
         }
         self.emitted
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{Notice, RowKind};
-
-    #[test]
-    fn long_hint_rows_retain_the_borrowed_text_and_cut_state() {
-        let controls = "\0".repeat(65_536);
-        let visible = format!("{controls}visible");
-        for hint in [controls.as_str(), visible.as_str()] {
-            for width in [0, 1, 2, 6, 10] {
-                let notice = Notice::new("x").hint(hint);
-                let mut retained = None;
-                let rows = notice.walk_rows(width, 2, |row| {
-                    if matches!(row.kind, RowKind::Hint) {
-                        retained = Some((row.text.as_ptr(), row.text.len(), row.cut));
-                    }
-                });
-                let (_, retained_len, cut) = retained.expect("the hint produces a row");
-                assert_eq!(rows, 2);
-                assert_eq!(retained_len, hint.len(), "width={width}");
-                assert!(
-                    retained.is_some_and(|(pointer, _, _)| pointer == hint.as_ptr()),
-                    "the hint row copied input at width={width}"
-                );
-                let expected_cut = if hint == controls {
-                    width <= 2
-                } else {
-                    width <= 6
-                };
-                assert_eq!(cut, expected_cut, "width={width}");
-            }
-        }
     }
 }

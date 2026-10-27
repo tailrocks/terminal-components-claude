@@ -1,31 +1,13 @@
-//! The workbench footer: the hint groups on the left, the status on the right.
-//!
-//! The footer follows the shared hint bar's fitting rule:
-//!
-//! * The status owns the right edge. Its width is reserved before the hints
-//!   are placed, so a hint never runs under it.
-//! * The hint groups fill what is left, from the left.
-//! * When they do not fit, the groups that fall off the right end are
-//!   dropped — the pinned ones (`Esc`, `?`, `F1`) go last — and an overflow
-//!   marker takes the first of the freed columns.
-//!
-//! The app owns the *content* (which groups a surface offers, and what its
-//! status says). The *composition* — how a group is measured, how the status
-//! is reserved, and where the overflow marker goes — lives here so every
-//! surface renders the same way.
-
 use termrock::{PaintStyle, Role, StylePatch, Ui, text::width};
 
-/// The ink a hint action is written in.
 const ACTION_ROLE: Role = Role::Custom(termrock::Color::from_u32(0x008a_8a8a));
-/// The ink the overflow marker is written in.
+
 const OVERFLOW_ROLE: Role = Role::Custom(termrock::Color::from_u32(0x0073_7373));
-/// The ink the edit badge is written in.
+
 const BADGE_FG_ROLE: Role = Role::Custom(termrock::Color::from_u32(0x0019_191c));
-/// The ground the edit badge sits on.
+
 const BADGE_BG_ROLE: Role = Role::Custom(termrock::Color::from_u32(0x0048_e054));
 
-/// One hint group: a key, a space, and an action.
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Hint {
     pub key: &'static str,
@@ -37,7 +19,6 @@ impl Hint {
         Self { key, action }
     }
 
-    /// The width the group occupies, without the gap that follows it.
     fn content_width(self) -> u16 {
         width(self.key) + 1 + width(self.action)
     }
@@ -47,11 +28,8 @@ impl Hint {
     }
 }
 
-/// The gap between two hint groups, and between a group and the overflow
-/// marker.
 const GAP: u16 = 2;
 
-/// The status a surface shows on the right of the footer.
 #[derive(Clone, Debug)]
 pub(crate) struct Status {
     pub text: String,
@@ -67,25 +45,15 @@ impl Status {
     }
 }
 
-/// The overflow marker that replaces the groups that did not fit.
 const OVERFLOW: &str = "…";
 
-/// How the footer divides the width it was given.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Plan {
-    /// The hint groups that are shown, in order.
     pub groups: Vec<usize>,
-    /// Where the overflow marker goes, when the groups did not all fit.
+
     pub overflow_at: Option<u16>,
 }
 
-/// Fit the hint groups into `room` columns.
-///
-/// The groups that fall off the right end go first and the pinned ones
-/// survive longest. The mask says which groups stay, and the flag says
-/// whether the overflow marker takes a column of its own.
-///
-/// `costs` is the width of every group, the gap that follows it included.
 pub(crate) fn fit_hint_mask(costs: &[u16], room: u16, pinned: &[bool]) -> (Vec<bool>, bool) {
     let mut keep = vec![true; costs.len()];
     let cost = |keep: &[bool]| -> u16 {
@@ -107,8 +75,6 @@ pub(crate) fn fit_hint_mask(costs: &[u16], room: u16, pinned: &[bool]) -> (Vec<b
             .filter(|index| pinned.get(*index).copied() == Some(true)),
     );
     for index in order {
-        // Once a group is gone, the overflow marker and the gap before it
-        // take the room it left behind.
         let overflow = if keep.iter().any(|on| !on) { GAP } else { 0 };
         if cost(&keep).saturating_add(overflow) <= room {
             break;
@@ -121,11 +87,6 @@ pub(crate) fn fit_hint_mask(costs: &[u16], room: u16, pinned: &[bool]) -> (Vec<b
     (keep, ellipsis)
 }
 
-/// Fit the hint groups beside a status of `status_width` columns.
-///
-/// The status always wins the right edge. The groups fill what is left, from
-/// the left; the ones that fall off the right end are dropped, and the
-/// overflow marker takes the first of those columns.
 pub(crate) fn plan(
     groups: &[Hint],
     area: termrock::Rect,
@@ -138,7 +99,7 @@ pub(crate) fn plan(
             overflow_at: None,
         };
     }
-    // The status is separated from the last group by a gap.
+
     let limit = if status_width == 0 {
         area.right()
     } else {
@@ -158,7 +119,7 @@ pub(crate) fn plan(
         .filter(|(_, on)| **on)
         .map(|(index, _)| index)
         .collect();
-    // The overflow marker takes the first of the freed columns.
+
     let mut x = start;
     for index in &kept {
         x = x.saturating_add(costs.get(*index).copied().unwrap_or(0));
@@ -170,10 +131,6 @@ pub(crate) fn plan(
     }
 }
 
-/// Paint the footer: the hint groups on the left, the status on the right.
-///
-/// `badge` is the small plate that sits before the first group (`EDIT` while
-/// a field owns the keyboard). `status` is the message on the right edge.
 pub(crate) fn draw(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
@@ -183,7 +140,7 @@ pub(crate) fn draw(
     base: PaintStyle,
 ) {
     let status_width = status.map_or(0, |status| width(&status.text) as u16);
-    // The badge sits in a cell of its own, then a gap before the first group.
+
     let badge_advance = badge.map_or(0, |badge| width(badge).saturating_add(4));
     let plan = plan(groups, area, status_width, badge_advance);
     let action_style = base.patch(ui.paint_patch(&StylePatch::new().set_fg(ACTION_ROLE)));

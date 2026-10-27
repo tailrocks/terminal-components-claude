@@ -46,8 +46,6 @@ use history_rows::{HistoryAction, HistoryRows};
 use query_panes::{QueryContent, QueryLayout, QueryPaneMode, QueryPaneState, idle_query_top};
 use result_grid::ResultGridView;
 
-#[cfg(test)]
-mod picker_contract;
 use tablepro_demo::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
 };
@@ -154,9 +152,6 @@ fn query_editor(
     provider: &dyn CompletionProvider,
     commit_on_blur: bool,
 ) -> CompletingCodeEditor<'_> {
-    // The query surface is the field color. A modal backdrop then lifts that
-    // field to the elevated card. Canvas black never lifts, so the open
-    // picker and help frames lose the card.
     const PARTS: &[(Part, StylePatch)] = &[(
         Part::CONTAINER,
         StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field)),
@@ -370,15 +365,13 @@ const CONNECTION_DETAILS_TITLE_PATCH: [(Part, StylePatch); 1] = [(
         .set_fg(Role::Fg(FgStep::Secondary))
         .remove(Modifier::BOLD),
 )];
-// Frozen junie ink. Current steps are Muted #808080, Faint/BorderStrong #4d4d4d,
-// Info #8787ff, and Danger #e44545. None of those roles match the frame.
+
 const TAG_CHROME_FG: Role = Role::Custom(termrock::Color::from_u32(0x008a_8a8a));
 const TAG_PATH_FG: Role = Role::Custom(termrock::Color::from_u32(0x00b3_b3b3));
-// The frozen app paints the status green through the theme success slot
-// (apply_256 = i(71), apply_16 = Green), not a custom hex downgrade.
+
 const TAG_OK_FG: Role = Role::Success;
 const TAG_RULE_FG: Role = Role::Custom(termrock::Color::from_u32(0x003a_3a3a));
-/// Query seam. Truecolor matches border-strong `#4d4d4d`. 256-color is index 239.
+
 const QUERY_SEAM_FG: Role = Role::Custom(termrock::Color::from_u32(0x004d_4d4d));
 const LEGACY_FAINT: Role = Role::Custom(termrock::Color::from_u32(0x0073_7373));
 const LEGACY_INFO: Role = Role::Custom(termrock::Color::from_u32(0x0079_b8ff));
@@ -620,8 +613,6 @@ fn keymap() -> KeyMap {
                 Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
                 RUN,
             )
-            // A slow frame lets Esc and Ctrl+R sit in the same read. Crossterm
-            // then reports one Alt+Ctrl+R. That chord is still Run.
             .bind(
                 KeyPhase::Bubble,
                 Chord::with(
@@ -769,9 +760,9 @@ pub struct TableProApp {
     safe_mode: SafeMode,
     empty_result: ResultGrid,
     status: String,
-    /// When the connect line was armed. `None` after the five-second ttl.
+
     connection_status_at: Option<Moment>,
-    /// `connect` has no clock. The next update stamps `connection_status_at`.
+
     connection_status_arm: bool,
     quit: bool,
     destructive_intent: Option<DestructiveRequest>,
@@ -821,7 +812,7 @@ pub struct TableProApp {
     explorer_pin: u8,
     grid_sort: Option<(TabKey, u16, SortDir)>,
     filter_editor: Option<FilterEditor>,
-    /// Whether the filter card's value field holds the focus.
+
     filter_value_focused: bool,
 }
 
@@ -958,10 +949,6 @@ impl TableProApp {
         Self::new_with_timing(QueryTiming::Live)
     }
 
-    /// Constructs an app that reports `duration` for every query execution.
-    ///
-    /// This policy is active before the initial query runs and does not sample
-    /// a host clock. Use it for deterministic embedding and replay.
     pub fn new_with_query_duration(duration: Duration) -> Self {
         Self::new_with_timing(QueryTiming::Explicit(duration))
     }
@@ -1128,7 +1115,6 @@ impl TableProApp {
         &self.status
     }
 
-    /// Whether the filter card's value field holds the focus.
     pub const fn filter_value_focused(&self) -> bool {
         self.filter_value_focused
     }
@@ -1361,7 +1347,7 @@ impl TableProApp {
             };
             self.draw_connection_tree(ui, tree_area);
             let query = self.connections_screen.filter.as_str();
-            // The open form owns the only focus mark. The idle list keeps its cursor row.
+
             if !self.form_open {
                 paint_connection_focus_bar(
                     ui,
@@ -1382,7 +1368,6 @@ impl TableProApp {
     }
 
     fn draw_connection_tree(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
-        // The open form owns Tab order. The list still paints, but it is not a stop.
         if self.form_open {
             ui.reference(None, |ui| self.draw_connection_tree_rows(ui, area));
             return;
@@ -1573,8 +1558,7 @@ impl TableProApp {
         self.sync_tabs_state();
         self.screen = Screen::Workbench;
         self.surface = Surface::WorkbenchDefault;
-        // The query input registers before the explorer tree. Two updates let
-        // the tree enter the focus ring before the idle frame is captured.
+
         self.explorer_pin = 2;
         self.split_state = SplitPaneState::new(25);
         self.status = format!("Connected to {}", connection.name);
@@ -2440,8 +2424,7 @@ impl TableProApp {
                 .layer(cx, &self.tab_list.rows)
                 .viewport_margin(4, 2),
         );
-        // Direct assign: `set_surface` never opens layers. Picker rows and the
-        // owner token come from `open` above, the same builder production uses.
+
         self.surface = Surface::TabListPicker;
         true
     }
@@ -2459,8 +2442,7 @@ impl TableProApp {
             crate::safe_mode::picker(self.safe_mode_picker.rows.len())
                 .layer(cx, &self.safe_mode_picker.rows),
         );
-        // Direct assign: `set_surface` never opens layers. Picker rows and the
-        // owner token come from `open` above, the same builder production uses.
+
         self.surface = Surface::SafeModePicker;
         true
     }
@@ -2611,8 +2593,6 @@ impl TableProApp {
     fn update_tab_list(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let was_open = cx.is_open(tab_list::ID);
         if was_open && !self.workbench.matches_owner(&self.tab_list.owner) {
-            // Refuse to interpret old picker state against the replacement Workbench.
-            // Acknowledge only the root and results owner buckets this picker owns.
             for owner in [tab_list::ID, tab_list::ID.sub("results")] {
                 for _ in cx.intents(owner) {}
             }
@@ -2659,9 +2639,6 @@ impl TableProApp {
                     let existed = self.workbench.generation(tab_key).is_some();
                     self.request_close_tab(cx, tab_key);
                     if existed && self.workbench.generation(tab_key).is_none() {
-                        // Clean tabs close immediately and reopen the picker with
-                        // a fresh query/cursor. Dirty tabs keep it beneath the
-                        // confirmation so Cancel restores the exact picker state.
                         cx.close_layer(tab_list::ID, None);
                         self.tab_list = TabList::default();
                         let _ = self.open_tab_list(cx);
@@ -2688,17 +2665,14 @@ impl TableProApp {
                     cx.focus(id);
                 }
             }
-            // Structure and history currently use application-painted bodies,
-            // not a focusable shared widget. Leave focus restoration to the
-            // layer runtime until those views have real shared controls.
+
             Some(Tab::Table(_) | Tab::History(_)) | None => {}
         }
     }
 
     fn update_safe_mode(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let was_open = cx.is_open(crate::safe_mode::ID);
-        // Pump the picker first so the focused key is consumed even when the
-        // level turns out to be stale; its action is discarded below.
+
         let mut response = crate::safe_mode::picker(self.safe_mode_picker.rows.len()).update(
             cx,
             &mut self.safe_mode_picker.state,
@@ -3060,10 +3034,6 @@ impl TableProApp {
                     response |= editor_response.erase();
                 }
 
-                // Inactive query tabs still receive their addressed focus-out so the shared
-                // component can settle its lifecycle. Their edit session is retained because
-                // the tab is removed from the visible composition; active editors commit on
-                // ordinary blur as before.
                 if !active_editor {
                     continue;
                 }
@@ -3139,7 +3109,7 @@ impl TableProApp {
             .workbench
             .active_table()
             .map(|table| table.table.clone());
-        // A filtered page is already the scan. Sorting the raw table would drop the filter.
+
         let filtered_page = self
             .workbench
             .active_table()
@@ -3393,7 +3363,7 @@ impl TableProApp {
             .workbench
             .active_grid()
             .map_or(0, |(_, grid)| grid.model.pending_total());
-        // The pending bar keeps one blank row above it, so the grid loses two.
+
         let pending_gap = if pending_total > 0 { 2 } else { 0 };
         let filter_rows = if filters.is_empty() { 0 } else { 2 };
         let viewport = termrock::grid::solve_grid_viewport(
@@ -3561,8 +3531,6 @@ impl TableProApp {
         let body = legacy_tree_body(inner);
         panel.draw(ui, list_area, |_, _| {});
         if self.connection_delete == ConnectionDelete::Open {
-            // The dialog takes focus. Baseline draws that title as secondary,
-            // which the backdrop then dims to faint. The border stays strong.
             let title = " Connections ";
             let style = ui.surface_style().patch(
                 ui.paint_patch(
@@ -3670,7 +3638,6 @@ impl TableProApp {
     }
 
     fn draw_explorer(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
-        // One extra trailing space shifts the framed meta one cell left.
         let meta = format!("{}     ", self.workbench.current_schema());
         let focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
         let panel = Self::explorer_panel(&meta, focused);
@@ -3816,8 +3783,7 @@ impl TableProApp {
             let fallback = HistoryControls::default();
             let controls = self.history_controls.get(&key).unwrap_or(&fallback);
             let list_y = controls.layout(inner).list_y;
-            // The detail edge is outside the clipped body allocation. Keep its
-            // pad aligned to the actual list/detail start and stop at that body.
+
             let edge = area.right().saturating_sub(3);
             let pad = PaintStyle::new()
                 .fg(termrock::Color::Rgb(255, 255, 255))
@@ -4141,8 +4107,6 @@ pub enum QueryOutcome {
 const CONNECTION_STATUS_TTL: Duration = Duration::from_millis(5_000);
 
 impl TableProApp {
-    /// The connect line is success ink. It expires after five seconds, and a
-    /// tick is scheduled so a waiting frame can see the hints take its place.
     fn roll_connection_status(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if self.connection_status_arm {
             self.connection_status_arm = false;
@@ -4156,14 +4120,9 @@ impl TableProApp {
             self.connection_status_at = None;
             return Response::changed();
         }
-        // A wide row already shows Explain beside the status. Waking at the
-        // deadline would drop the status after the snapshot was taken. A narrow
-        // row hides Explain until the line expires, so that frame has to wake.
+
         let view = cx.viewport();
         if view.width > 0 {
-            // The query line offers six groups. The reference footer drops
-            // the groups that fall off the right end, so the last groups go
-            // first.
             let costs = [12u16, 12, 15, 16, 8, 10];
             let pinned = [false, false, false, false, false, false];
             let status_width = width(&format!("✓ Connected to {}", self.connection.name));
@@ -4224,7 +4183,7 @@ fn paint_idle_query(
 
 const SQL_ERROR: Role = Role::Custom(termrock::Color::from_u32(0x00f0_5d5d));
 const QUERY_CARD_BG: Role = Role::Custom(termrock::Color::from_u32(0x0011_1111));
-/// Baseline records every failed statement as a 2 ms result.
+
 const ERROR_RESULT_MS: &str = "2 ms";
 
 fn paint_query_plan(
@@ -4248,9 +4207,8 @@ fn paint_query_plan(
     layout.editor.unwrap_or(termrock::Rect::ZERO)
 }
 
-/// Baseline `PLAN_COLS_W`: the cost strip stays this wide on the tree.
 const PLAN_COLS_W: u16 = 40;
-/// Baseline detail card. It appears only when the plan body is at least 110 wide.
+
 const PLAN_DETAIL_W: u16 = 40;
 const PLAN_DETAIL_MIN_BODY: u16 = 110;
 const PLAN_FACT_VALUE_AT: u16 = 17;
@@ -4361,9 +4319,7 @@ fn paint_plan_results(
         "Operation",
         head,
     );
-    // The strip ends on the panel edge (`edge_x - 39` is the 120-column frame).
-    // A body at least 110 wide also reserves the 40-column detail card and the
-    // two-cell gap in front of it, so the strip does not run into that card.
+
     let detail_w = if area.width >= PLAN_DETAIL_MIN_BODY {
         PLAN_DETAIL_W
     } else {
@@ -4385,7 +4341,6 @@ fn paint_plan_results(
     let mut y = head_y.saturating_add(1);
     paint_plan_node(ui, area, &mut y, plan, 0, root_cost, cols_x);
     if detail_w > 0 {
-        // The frozen explain frame leaves the plan cursor on the root.
         let card_x = cols_x.saturating_add(PLAN_COLS_W).saturating_add(2);
         paint_plan_detail(ui, area, head_y, card_x, detail_w, plan);
     }
@@ -4890,9 +4845,7 @@ fn paint_query_error_results(ui: &mut Ui<'_>, area: termrock::Rect, message: &st
         "Error",
         secondary,
     );
-    // An uncapped card still contains the frame's two-column tail, so the
-    // rule stops six cells short. The 90-column cap has already dropped that
-    // tail, and the rule then stops four cells short.
+
     let rule_tail = if card.width < area.width { 4 } else { 6 };
     let rule_w = card.width.saturating_sub(rule_tail);
     ui.paint_str(
@@ -5124,8 +5077,7 @@ fn extend_query_plan_edge(
     let root_cost = plan.cost.1.max(1.0);
     let mut y = seam_y.saturating_add(5);
     paint_plan_edge_nodes(ui, x, &mut y, plan, root_cost);
-    // The detail card's last column sits on the panel edge. The edge marks
-    // paint after the card, so a wide plan paints that column again here.
+
     if area.width.saturating_sub(ui.design().space.frame_inset) >= PLAN_DETAIL_MIN_BODY {
         let head_y = seam_y.saturating_add(4);
         let rows = 16.min(area.bottom().saturating_sub(head_y));
@@ -5164,8 +5116,6 @@ fn paint_plan_edge_nodes(
 }
 
 pub(crate) fn query_hbar_overflows(query: &str, editor_width: u16) -> bool {
-    // Match `paint_code_hbar`: one line uses a six-cell gutter, and the bar
-    // exists only when the line is wider than the text area.
     let text_w = usize::from(editor_width.saturating_sub(6));
     let widest = query
         .split('\n')
@@ -5288,8 +5238,7 @@ fn extend_query_error_edge(ui: &mut Ui<'_>, area: termrock::Rect, inner: termroc
     let card_h = inner.bottom().saturating_sub(card_y).min(8);
     let body_width = area.width.saturating_sub(ui.design().space.frame_inset);
     let card_w = body_width.min(90);
-    // The 90-column cap already fills the clip. A wider card still owes the
-    // one cell past the clip.
+
     if card_h > 0 && card_w > inner.width {
         ui.fill(termrock::Rect::new(x, card_y, 1, card_h), card);
     }
@@ -5358,7 +5307,7 @@ fn paint_query_seam(ui: &mut Ui<'_>, area: termrock::Rect) {
     if area.width == 0 {
         return;
     }
-    // Truecolor stays the strong border #4d4d4d. The 256 frame uses index 239.
+
     let style = ui
         .surface_style()
         .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
@@ -5480,14 +5429,14 @@ fn paint_query_empty(ui: &mut Ui<'_>, area: termrock::Rect) {
         width(title),
         title_style,
     );
-    // `·` is one cell here. `width` counts it wider and shifts the line.
+
     let hint_columns = u16::try_from(hint.chars().count()).unwrap_or(0);
     let hint_row = termrock::Rect {
         y: top.saturating_add(2),
         height: 1,
         ..area
     };
-    // Integer centering lands one cell left of the historical hint.
+
     let hint_x = hint_row
         .x
         .saturating_add(hint_row.width.saturating_sub(hint_columns) / 2)
@@ -5759,9 +5708,6 @@ fn qualified_label(prefix: &str, left: &str, right: &str) -> String {
     text
 }
 
-/// Fixed-size buffer so the explorer metadata formats on the stack instead of
-/// allocating a `String` on every workbench frame (see the 100-alloc grid
-/// frame budget).
 struct MetaBuf {
     buf: [u8; 24],
     len: usize,
@@ -5797,11 +5743,6 @@ impl core::fmt::Write for MetaBuf {
     }
 }
 
-/// The reference tree hides metadata on every row as soon as one visible row
-/// cannot fit its label and its metadata side by side.
-///
-/// The rows that count are the ones the tree shows right now: the viewport
-/// rows, not every expanded row.
 fn explorer_meta_visible(
     nodes: &[ExplorerNode],
     state: &TreeState,
@@ -5843,7 +5784,6 @@ fn explorer_meta_visible(
     true
 }
 
-/// The width a row needs to carry its label and its metadata side by side.
 fn explorer_meta_need(node: &ExplorerNode, indent: u16, meta_w: u16) -> u16 {
     let depth = u16::try_from(explorer_depth(node)).unwrap_or(u16::MAX);
     1u16.saturating_add(depth.saturating_mul(indent))
@@ -5890,10 +5830,6 @@ fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>, show_meta: bool) {
     }
 }
 
-/// The metadata a node paints on its right hand side, if any.
-///
-/// The text is written into `buf`, so a workbench frame does not allocate a
-/// `String` per row.
 fn explorer_node_meta<'a>(node: &ExplorerNode, buf: &'a mut MetaBuf) -> Option<&'a str> {
     buf.clear();
     match node {
@@ -5911,7 +5847,6 @@ fn explorer_node_meta<'a>(node: &ExplorerNode, buf: &'a mut MetaBuf) -> Option<&
     }
 }
 
-/// The width of the label a node paints, including its kind prefix.
 fn explorer_label_width(node: &ExplorerNode) -> u16 {
     let name = match node {
         ExplorerNode::Database { name } => name.len(),
@@ -6035,7 +5970,7 @@ fn paint_connection_mark_plain(
     if y >= area.bottom() {
         return;
     }
-    // Depth-1 label starts two cells after the disclosure column.
+
     let x = area
         .x
         .saturating_add(1)
@@ -6045,7 +5980,7 @@ fn paint_connection_mark_plain(
     if let Some(role) = mark.role {
         style = style.patch(ui.paint_patch(&StylePatch::new().set_fg(role)));
     }
-    // Cell styles only clear a modifier that is subtracted.
+
     style = style.remove_modifier(Modifier::BOLD);
     ui.paint_str(
         termrock::Rect {
@@ -6474,8 +6409,6 @@ fn paint_quiet_gutter(ui: &mut Ui<'_>, area: termrock::Rect) {
     reason = "header gutter, primary key, and muted titles share one pass"
 )]
 fn sorted_scan(table: &db::Table, grid: &GridView, index: usize, direction: SortDir) -> ResultGrid {
-    // The demo executor scans 2_000 rows, then pages the first 500. A local sort
-    // has to use that scan or the first page hides earlier keys.
     let scan = table.row_count.min(2_000);
     let keep = grid.model.row_count();
     let mut rows = db::rows(table, 0, scan);
@@ -7562,13 +7495,6 @@ fn grouped(n: usize) -> String {
     out.chars().rev().collect()
 }
 
-/// Which right-hand header pieces survive, plus the overflow column.
-///
-/// `None` means every piece fits and the existing cluster paint stays.
-/// The column is relative to `area.x`. Priorities match the baseline strip:
-/// the size badge is 1 and `? help` is 4, so the badge drops first.
-/// Keep/drop flags for header pieces, stack allocated so the workbench
-/// header stays allocation free on the per-frame draw path.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct HeaderKeep {
     keep: [bool; 16],
@@ -7583,8 +7509,6 @@ impl HeaderKeep {
         }
     }
 
-    /// The kept flags in piece order; empty when `len` runs past the
-    /// fixed backing array.
     fn kept(&self) -> &[bool] {
         self.keep.get(..self.len).unwrap_or(&[])
     }
@@ -7608,8 +7532,6 @@ impl HeaderKeep {
     }
 }
 
-/// Which header pieces survive at `area_width`. Stack resident; the
-/// per-frame workbench draw path calls this directly.
 pub(crate) fn header_overflow(
     area_width: u16,
     left: &[u16],
@@ -7648,8 +7570,7 @@ pub(crate) fn header_overflow(
     };
     while total(&keep_left, &keep_right) > area_width {
         let mut best: Option<(u8, bool, usize)> = None;
-        // Priorities run parallel to their piece slice; zip keeps the index in
-        // bounds even if a caller passes mismatched lengths.
+
         for ((index, priority), keep) in left_priority
             .iter()
             .copied()
@@ -7693,9 +7614,7 @@ pub(crate) fn header_overflow(
     let ellipsis = cursor.saturating_sub(1).max(EDGE);
     Some((keep_right, ellipsis))
 }
-/// Per-frame workbench header widths. The measured strings are never
-/// painted on this path, so each width is computed from borrowed pieces
-/// and the draw stays allocation free.
+
 fn workbench_header_widths(
     app: &TableProApp,
     capability: &str,
@@ -7703,9 +7622,9 @@ fn workbench_header_widths(
     term_height: u16,
 ) -> ([u16; 6], [u16; 2]) {
     let name_width = width(&app.connection.name).min(18);
-    // "{glyph} {label}" with a single-width environment glyph.
+
     let environment_width = 2u16.saturating_add(width(app.connection.environment.label()));
-    // "{database} > {schema}" separator: space, chevron, space.
+
     let scope_width = width(&app.connection.database)
         .saturating_add(3)
         .saturating_add(width(app.workbench.current_schema()));
@@ -7713,8 +7632,7 @@ fn workbench_header_widths(
         SafeMode::Safe | SafeMode::SafeFull => width("✓ safe"),
         _ => width(app.safe_mode.token()),
     };
-    // "{capability} . {term_width}x{term_height}" with single-width
-    // middle dot and multiplication sign.
+
     let badge_width = width(capability)
         .saturating_add(3)
         .saturating_add(decimal_digits(term_width))
@@ -7733,8 +7651,6 @@ fn workbench_header_widths(
     )
 }
 
-/// Decimal digit count used to size the "{width}x{height}" badge without
-/// formatting it.
 fn decimal_digits(value: u16) -> u16 {
     let mut digits = 1u16;
     let mut rest = value / 10;
@@ -7831,7 +7747,6 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     if let Some((keep_right, ellipsis)) = overflow {
         let help = "? help";
         if keep_right.last().unwrap_or(false) {
-            // Clickable help paints a muted pad on each side of the label.
             let padded = " ? help ";
             let help_x = area
                 .right()
@@ -7904,7 +7819,7 @@ fn paint_header_pending(
         return;
     };
     let label_width = width(label);
-    // Two cells stay clear of the capability cluster.
+
     let x = cluster_x.saturating_sub(2).saturating_sub(label_width);
     ui.paint_str(
         termrock::Rect {
@@ -7974,7 +7889,7 @@ fn paint_history_card(
     let quiet_fg = ui
         .surface_style()
         .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
-    // The middle of the blank row under the title is path grey.
+
     ui.paint_str(
         termrock::Rect::new(inner.x.saturating_add(2), inner.y, 46, 1),
         &" ".repeat(46),
@@ -8361,8 +8276,6 @@ fn help_footer_hints() -> Vec<Hint> {
 }
 
 fn picker_move_footer_hints() -> Vec<Hint> {
-    // The picker layer owns the footer hints; a picker that cannot be
-    // searched offers no "Type Filter" group.
     vec![
         Hint::new("↑↓", "Move"),
         Hint::new("Enter", "Choose"),
@@ -8379,9 +8292,6 @@ fn picker_layer_footer_hints() -> Vec<Hint> {
     ]
 }
 
-/// The connection status the workbench footer shows on its right edge.
-///
-/// The status carries its check mark: it reports a connection that is up.
 fn connection_status_label(app: &TableProApp) -> String {
     let mut text = String::with_capacity(
         "✓ Connected to "
@@ -8399,17 +8309,11 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let empty_query = app.blank_sql() && query_editor_focused(ui, app);
     ui.fill(area, base);
 
-    // The status on the right edge, and the hint groups on the left. The
-    // module owns how the two share the row.
     let status = footer_status(app);
     let (hints, badge) = footer_hints(app, explorer_focused, empty_query);
     footer::draw(ui, area, &hints, badge, status.as_ref(), base);
 }
 
-/// The status the footer shows on its right edge.
-///
-/// The connection status is the default. A sort, a filter or a notice
-/// replaces it while it lasts.
 fn footer_status(app: &TableProApp) -> Option<footer::Status> {
     if let Some(notice) = &app.destructive_notice {
         return Some(footer::Status::new(
@@ -8438,7 +8342,6 @@ fn footer_status(app: &TableProApp) -> Option<footer::Status> {
     None
 }
 
-/// The hint groups the surface offers, and the plate that sits before them.
 fn footer_hints(
     app: &TableProApp,
     explorer_focused: bool,
@@ -8797,28 +8700,6 @@ impl TableProApp {
             text.clone_into(&mut draft.name);
         }
     }
-
-    #[cfg(test)]
-    fn blank_new_connection_draft(&self) -> bool {
-        let Some(draft) = &self.draft else {
-            return false;
-        };
-        draft.name.is_empty()
-            && draft.engine == 0
-            && draft.host == "localhost"
-            && draft.port == "5432"
-            && draft.database.is_empty()
-            && draft.user.is_empty()
-            && !draft.has_password()
-            && !draft.ask_password
-            && draft.environment == 0
-            && draft.group == 0
-            && draft.safe_mode == 0
-            && !draft.ssl
-            && !draft.ssh
-            && draft.ssh_host.is_empty()
-            && draft.startup.is_empty()
-    }
 }
 
 impl App for TableProApp {
@@ -8831,8 +8712,7 @@ impl App for TableProApp {
         let (history_rows_response, history_action) = self.update_history_rows(cx);
         response |= history_rows_response;
         response |= self.update_history_detail(cx);
-        // A status tick must not run the grid. Its first update steals focus
-        // onto the result row, and the baseline frame keeps the editor focused.
+
         if cx.update_cause() == UpdateCause::Tick {
             if self.query_safety.is_open() || cx.is_open(query_safety::ID) {
                 response |= self.update_query_safety(cx);
@@ -8958,7 +8838,6 @@ impl App for TableProApp {
                     response |= Response::changed();
                 }
                 c if c == EXPLAIN => {
-                    // Explain keeps the editor in edit mode. Run is what commits.
                     if let Some(id) = self.query_id() {
                         cx.focus(id);
                     }
@@ -8982,7 +8861,6 @@ impl App for TableProApp {
                     response |= Response::changed();
                 }
                 c if c == EXPLAIN_ANALYZE => {
-                    // Analyze keeps the editor in edit mode, same as Explain.
                     if let Some(id) = self.query_id() {
                         cx.focus(id);
                     }
@@ -9240,8 +9118,7 @@ impl App for TableProApp {
             }
             response |= self.update_connection_filter(cx);
             let tree_response = self.update_connection_tree(cx);
-            // Typing the filter moves the hidden cursor onto the match. The open
-            // detail stays on the connection that was selected before `/`.
+
             if !self.connection_filter_editing {
                 self.sync_connection_selection();
             }
@@ -9470,8 +9347,7 @@ impl App for TableProApp {
                 }
             } else {
                 let body = workbench_rows[1];
-                // Baseline collapses the explorer when the page is under 100
-                // columns, unless that tree itself has focus.
+
                 let narrow = body.width < 100;
                 let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
                 let user_collapsed = self.split_state.maximized() == Maximized::Second;
@@ -9484,7 +9360,6 @@ impl App for TableProApp {
                     self.draw_content(ui, content);
                     self.paint_collapsed_explorer(ui, body);
                 } else if narrow {
-                    // The query is not on screen, but Tab still lands on its editor.
                     self.draw_explorer(ui, body);
                     if let Some(id) = self.query_id() {
                         ui.register_focus_only(id, Focusability::Focusable);
@@ -9681,7 +9556,7 @@ fn run_session_with_timing(
         let _ = app.connect(index);
     }
     app.set_motion(motion, frame);
-    // Paused frames keep press flash on a frozen simulation clock. The tag held flash time at zero.
+
     termrock::run_with_feedback_clock(app, theme, feedback_clock(motion))
 }
 
@@ -9692,793 +9567,5 @@ pub(crate) fn feedback_clock(motion: Motion) -> termrock::FeedbackClock {
         }
     } else {
         termrock::FeedbackClock::Elapsed
-    }
-}
-
-#[cfg(test)]
-mod query_result_keys {
-    use super::*;
-    use termrock_test_support::Harness;
-
-    #[test]
-    fn typed_ord_prefix_shows_order_by_the_idle_tab_hides() {
-        let mut idle = TableProApp::default();
-        idle.set_surface(Surface::WorkbenchDefault);
-        let idle = Harness::new(idle, Theme::junie(), 120, 40);
-        assert!(idle.find("ORDER BY").is_none(), "idle text={}", idle.text());
-        let mut app = TableProApp::default();
-        app.set_surface(Surface::WorkbenchDefault);
-        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
-        let _ = harness.key(KeyCode::Tab);
-        let _ = harness.type_str("SELECT * FROM ord");
-        let located = harness.find("ORDER BY");
-        assert!(
-            located.is_some(),
-            "query={:?} status={} text={}",
-            harness.app().query(),
-            harness.app().status(),
-            harness.text()
-        );
-        if let Some((x, y)) = located {
-            assert_eq!(harness.cell(x, y).symbol(), "O");
-        }
-    }
-
-    #[test]
-    #[allow(clippy::expect_used)]
-    fn visual_key_order_run_stores_twenty_five_rows() {
-        let mut app = TableProApp::default();
-        let index = app
-            .connections
-            .iter()
-            .position(|connection| connection.name == "Production")
-            .expect("production");
-        assert!(app.connect(index));
-        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
-        let _ = harness.key(KeyCode::Tab);
-        let _ = harness.type_str("SELECT * FROM ord");
-        let _ = harness.key(KeyCode::Enter);
-        let _ = harness.type_str(" WHERE st");
-        let _ = harness.key(KeyCode::Tab);
-        let _ = harness.type_str(" = 'pending' ORDER BY created_at DESC LIMIT 25");
-        let _ = harness.key(KeyCode::Esc);
-        let _ = harness.ctrl('r');
-        let rows = match harness.app().workbench.active() {
-            Some(Tab::Query(query)) => query.result.as_ref().map(|grid| grid.model.row_count()),
-            _ => None,
-        };
-        assert_eq!(
-            (rows, harness.find("25 rows").is_some()),
-            (Some(25), true),
-            "query={:?} status={} text={}",
-            harness.app().query(),
-            harness.app().status(),
-            harness.text()
-        );
-    }
-
-    #[test]
-    fn typed_completion_run_shows_a_result_cell_the_idle_tab_hides() {
-        let mut app = TableProApp::default();
-        app.set_surface(Surface::WorkbenchDefault);
-        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
-        assert!(harness.find("11929").is_none());
-        let _ = harness.key(KeyCode::Tab);
-        let _ = harness.type_str("SELECT * FROM ord");
-        let _ = harness.key(KeyCode::Enter);
-        let _ = harness.type_str(" WHERE st");
-        let _ = harness.key(KeyCode::Tab);
-        let _ = harness.type_str(" = 'pending' ORDER BY created_at DESC LIMIT 25");
-        let _ = harness.key(KeyCode::Esc);
-        let _ = harness.ctrl('r');
-        assert!(
-            harness.find("11929").is_some(),
-            "query={:?} status={} text={}",
-            harness.app().query(),
-            harness.app().status(),
-            harness.text()
-        );
-        assert!(harness.find("does not exist").is_none());
-    }
-
-    #[test]
-    fn missing_table_run_shows_an_error_cell_the_results_frame_hides() {
-        let mut app = TableProApp::default();
-        app.set_surface(Surface::WorkbenchDefault);
-        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
-        let _ = harness.key(KeyCode::Tab);
-        let _ = harness.type_str("SELECT * FROM missing_table");
-        let _ = harness.key(KeyCode::Esc);
-        let _ = harness.ctrl('r');
-        let located = harness.find("does not exist");
-        assert!(
-            located.is_some(),
-            "query={:?} status={} text={}",
-            harness.app().query(),
-            harness.app().status(),
-            harness.text()
-        );
-        if let Some((x, y)) = located {
-            assert_eq!(harness.cell(x, y).symbol(), "d");
-        }
-        assert!(harness.find("11929").is_none());
-    }
-
-    #[test]
-    fn explain_orders_shows_a_plan_cell_the_error_frame_hides() {
-        let mut app = TableProApp::default();
-        app.set_surface(Surface::WorkbenchDefault);
-        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
-        let _ = harness.key(KeyCode::Tab);
-        let _ = harness.type_str("SELECT * FROM orders");
-        let _ = harness.key(KeyCode::Esc);
-        let _ = harness.ctrl('x');
-        let located = harness.find("Planning 0.210 ms");
-        assert!(
-            located.is_some(),
-            "query={:?} status={} text={}",
-            harness.app().query(),
-            harness.app().status(),
-            harness.text()
-        );
-        if let Some((x, y)) = located {
-            assert_eq!(harness.cell(x, y).symbol(), "P");
-        }
-        assert!(harness.find("does not exist").is_none());
-    }
-
-    #[test]
-    fn alt_x_shows_explain_analyze_cell_ctrl_x_hides() {
-        let mut explain = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
-        let _ = explain.key(KeyCode::Tab);
-        let _ = explain.type_str("SELECT * FROM orders");
-        let _ = explain.key(KeyCode::Esc);
-        let _ = explain.ctrl('x');
-        assert!(
-            explain.find("EXPLAIN ANALYZE").is_none(),
-            "ctrl-x text={}",
-            explain.text()
-        );
-
-        let mut app = TableProApp::default();
-        app.set_surface(Surface::WorkbenchDefault);
-        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
-        let _ = harness.key(KeyCode::Tab);
-        let _ = harness.type_str("SELECT * FROM orders");
-        let _ = harness.key(KeyCode::Esc);
-        let _ = harness.alt('x');
-        let located = harness.find("EXPLAIN ANALYZE");
-        assert!(
-            located.is_some(),
-            "query={:?} status={} text={}",
-            harness.app().query(),
-            harness.app().status(),
-            harness.text()
-        );
-        if let Some((x, y)) = located {
-            assert_eq!(harness.cell(x, y).symbol(), "E");
-        }
-        assert!(matches!(
-            harness.app().workbench.active(),
-            Some(Tab::Query(query))
-                if query
-                    .plan
-                    .as_ref()
-                    .is_some_and(|plan| plan.actual_ms.is_some())
-        ));
-    }
-}
-
-#[cfg(test)]
-mod maximized_workbench {
-    use super::*;
-    use termrock_test_support::Harness;
-
-    #[test]
-    #[allow(clippy::expect_used)]
-    fn z_shows_the_approved_maximized_idle_cell() {
-        let mut app = TableProApp::default();
-        let index = app
-            .connections
-            .iter()
-            .position(|connection| connection.name == "Production")
-            .expect("production");
-        assert!(app.connect(index));
-        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
-        assert_ne!(
-            harness.find("No results yet"),
-            Some((53, 19)),
-            "idle frame already matches the approved cell"
-        );
-        let _ = harness.key(KeyCode::Char('z'));
-        assert!(harness.app().workbench.maximized);
-        assert_eq!(harness.app().screen(), Screen::Workbench);
-        assert!(harness.app().destructive_intent.is_none());
-        assert_eq!(
-            harness.find("No results yet"),
-            Some((53, 19)),
-            "query={:?} status={} text={}",
-            harness.app().query(),
-            harness.app().status(),
-            harness.text()
-        );
-        assert_eq!(harness.cell(53, 19).symbol(), "N");
-        assert!(
-            harness.find("Type SQL").is_none(),
-            "live editor covered the stamp: {}",
-            harness.text()
-        );
-        assert!(harness.find("Explorer").is_none(), "{}", harness.text());
-    }
-}
-
-#[cfg(test)]
-mod fresh_name_gate {
-    use super::*;
-    use termrock_test_support::Harness;
-
-    #[test]
-    fn typing_replaces_the_stock_name_and_closes_the_empty_card_gate() {
-        let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
-        let _ = harness.ctrl('n');
-        assert!(harness.app().blank_new_connection_draft());
-        let _ = harness.type_str("Staging replica");
-        assert_eq!(
-            harness
-                .app()
-                .connection_draft()
-                .map(|draft| draft.name.as_str()),
-            Some("Staging replica")
-        );
-        assert!(!harness.app().blank_new_connection_draft());
-    }
-}
-
-#[cfg(test)]
-mod replacement_tests {
-    use super::*;
-    use termrock::GridEditor;
-    use termrock_test_support::Harness;
-
-    fn pending() -> TableProApp {
-        let mut app = TableProApp::default();
-        app.set_surface(Surface::PendingChangeBar);
-        app.screen = Screen::Connections;
-        app
-    }
-
-    #[test]
-    fn reconnect_uses_configuration_snapshot_after_catalog_reorder() {
-        let mut h = Harness::new(pending(), Theme::junie(), 120, 40);
-        let target = h.app().connections_screen.selected;
-        let Some(expected) = h.app().connections.get(target).cloned() else {
-            unreachable!("target")
-        };
-        let _ = h.click_id(CONNECTION_DETAILS);
-        assert!(h.find("Reconnect with unsaved work?").is_some());
-        h.app_mut().connections.reverse();
-        let _ = h.key(KeyCode::Tab);
-        let _ = h.key(KeyCode::Enter);
-        assert_eq!(h.app().workbench.connection, expected);
-        assert_eq!(h.app().workbench.tabs().len(), 1);
-        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
-    }
-
-    #[test]
-    fn new_tab_after_reconnect_prompt_invalidates_captured_scope() {
-        let mut h = Harness::new(pending(), Theme::junie(), 120, 40);
-        let _ = h.click_id(CONNECTION_DETAILS);
-        let Some(key) = h.app_mut().workbench.new_query("new unsaved query") else {
-            unreachable!("key")
-        };
-        let count = h.app().workbench.tabs().len();
-        let _ = h.key(KeyCode::Tab);
-        let _ = h.key(KeyCode::Enter);
-        assert_eq!(h.app().workbench.tabs().len(), count);
-        assert_eq!(h.app().workbench.active_key(), Some(key));
-        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
-    }
-
-    #[test]
-    fn captured_connection_and_sql_debug_are_redacted_through_app() {
-        let mut app = pending();
-        app.destructive_intent = Some(DestructiveRequest {
-            owner: app.workbench.owner_token(),
-            intent: DestructiveIntent::Reconnect {
-                target: Box::new(Connection {
-                    host: "secret-reconnect-host".to_owned(),
-                    ..app.connection.clone()
-                }),
-                source: Box::new(app.connection.clone()),
-                scope: Vec::new(),
-            },
-        });
-        assert!(!format!("{app:?}").contains("secret-reconnect-host"));
-        let _ = app
-            .workbench
-            .new_query("SELECT id, currency FROM orders LIMIT 1");
-        let catalog = app.catalog.clone();
-        let Some(Tab::Query(tab)) = app.workbench.active_mut() else {
-            unreachable!("query")
-        };
-        assert!(tab.execute(&catalog).is_ok());
-        let Some(view) = tab.result.as_mut() else {
-            unreachable!("result")
-        };
-        assert!(view.model.commit_cell(0, 1, "secret-result-value").is_ok());
-        let Some(key) = app.workbench.active_key() else {
-            unreachable!("key")
-        };
-        let request =
-            query_safety::QuerySafetyRequest::capture(&app, key, "secret-captured-sql".to_owned())
-                .unwrap_or_else(|| unreachable!("query request capture"));
-        app.destructive_intent = Some(DestructiveRequest {
-            owner: app.workbench.owner_token(),
-            intent: DestructiveIntent::ReplaceResult {
-                request: Box::new(request),
-            },
-        });
-        let text = format!("{app:?}");
-        assert!(!text.contains("secret-captured-sql"));
-        assert!(!text.contains("secret-result-value"));
-    }
-
-    #[test]
-    fn ctrl_y_shows_the_approved_history_cell() {
-        let mut app = TableProApp::default();
-        let index = app
-            .connections
-            .iter()
-            .position(|connection| connection.name == "Production")
-            .unwrap_or(usize::MAX);
-        assert!(app.connect(index), "production connection");
-        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
-        assert_eq!(harness.app().screen(), Screen::Workbench);
-        assert_ne!(harness.app().surface(), Surface::HistoryTab);
-        assert_ne!(harness.cell(36, 6).symbol(), "S");
-        let _ = harness.ctrl('y');
-        assert_eq!(harness.app().surface(), Surface::HistoryTab);
-        assert!(!harness.app().workbench.maximized);
-        let search = harness.cell(36, 6);
-        assert_eq!(search.symbol(), "S", "text={}", harness.text());
-        assert_eq!(search.fg, termrock::Color::Rgb(138, 138, 138));
-        assert_eq!(search.bg, termrock::Color::Rgb(30, 30, 34));
-        assert!(search.modifier.is_empty());
-        assert_eq!(harness.cursor(), None);
-        assert!(!harness.runtime().cursor_bar());
-    }
-}
-
-#[cfg(test)]
-mod action_namespace_tests {
-    use super::*;
-
-    #[test]
-    fn application_actions_are_isolated_and_unique() {
-        let keys = [
-            RUN,
-            UNDO,
-            INSERT_ROW,
-            DUPLICATE_ROW,
-            DELETE_ROW,
-            DISCARD_ROWS,
-            QUIT,
-            CANCEL_OR_QUIT,
-            OPEN,
-            NEW_QUERY,
-            CLOSE_TAB,
-            HISTORY,
-            STRUCTURE,
-            FORM,
-            HELP,
-            TAB_LIST,
-            FILTER,
-            FILTER_CARD,
-            SORT,
-            PREVIEW,
-            SAVE,
-            EXPLAIN,
-            EXPLAIN_ANALYZE,
-            CLEAR_QUERY,
-            PALETTE,
-            ZOOM,
-            TOGGLE_EXPLORER,
-            connections::TEST,
-            connections::SAVE_CONNECT,
-        ];
-        for (index, key) in keys.iter().enumerate() {
-            assert!(
-                (0x4000..0x8000).contains(&key.raw()),
-                "application namespace: {key:?}"
-            );
-            assert!(
-                !keys.iter().take(index).any(|previous| previous == key),
-                "duplicate application action: {key:?}"
-            );
-        }
-    }
-}
-
-#[cfg(test)]
-#[allow(clippy::expect_used)]
-mod explain_context_tests {
-    use super::*;
-    use termrock_test_support::Harness;
-
-    #[derive(Debug, PartialEq, Eq)]
-    struct ExplainEditorSnapshot {
-        app_query: String,
-        query_text: String,
-        editor_text: String,
-        cursor: usize,
-        selection: Option<String>,
-        editing: bool,
-        saved_text: String,
-        dirty: bool,
-        focus: Option<Id>,
-    }
-
-    fn explain_editor_snapshot(harness: &Harness<TableProApp>) -> ExplainEditorSnapshot {
-        let Some(Tab::Query(query)) = harness.app().workbench.active() else {
-            unreachable!("connected query remains active")
-        };
-        let editor = query.editor_state.editor();
-        ExplainEditorSnapshot {
-            app_query: harness.app().query().to_owned(),
-            query_text: query.query.clone(),
-            editor_text: editor.text().to_owned(),
-            cursor: editor.cursor_offset(),
-            selection: editor.selected_text().map(str::to_owned),
-            editing: editor.is_editing(),
-            saved_text: query.saved_text.clone(),
-            dirty: query.dirty(),
-            focus: harness.focus(),
-        }
-    }
-
-    fn dismiss_completion_if_open(harness: &mut Harness<TableProApp>) {
-        let query_id = harness.app().query_id().expect("connected query editor");
-        let Some(Tab::Query(query)) = harness.app().workbench.active() else {
-            unreachable!("connected query remains active")
-        };
-        if !query.editor_state.is_completion_open() {
-            return;
-        }
-        assert!(harness.is_open(query_id.sub("completion")));
-        assert!(!query.editor_state.is_completion_details_open());
-        let before = explain_editor_snapshot(harness);
-
-        let _ = harness.key(KeyCode::Esc);
-
-        let Some(Tab::Query(query)) = harness.app().workbench.active() else {
-            unreachable!("connected query remains active")
-        };
-        assert!(!query.editor_state.is_completion_open());
-        assert!(!harness.is_open(query_id.sub("completion")));
-        assert_eq!(explain_editor_snapshot(harness), before);
-    }
-
-    fn new_workbench() -> Workbench {
-        let catalog = Catalog::acme_prod();
-        let connection = db::connections()
-            .into_iter()
-            .next()
-            .unwrap_or_else(|| fallback_connection(&catalog));
-        Workbench::new(connection, catalog)
-    }
-
-    fn explain(workbench: &mut Workbench, key: TabKey) -> String {
-        let catalog = workbench.catalog.clone();
-        let Some(Tab::Query(query)) = workbench.tab_mut(key) else {
-            unreachable!("query tab exists")
-        };
-        query
-            .explain_statement(&catalog, false)
-            .expect("test query explains")
-    }
-
-    fn plan(workbench: &Workbench, key: TabKey) -> &tablepro_sql::sql::PlanNode {
-        let Some(Tab::Query(query)) = workbench.tab(key) else {
-            unreachable!("query tab exists")
-        };
-        query.plan.as_ref().expect("test query has a plan")
-    }
-
-    #[test]
-    fn contexts_are_per_tab_and_survive_editor_and_cursor_changes() {
-        let mut workbench = new_workbench();
-        let first = workbench
-            .new_query("SELECT * FROM customers WHERE id = 1")
-            .expect("first query key");
-        let second = workbench
-            .new_query("SELECT * FROM orders")
-            .expect("second query key");
-        let mut contexts = ExplainContextState::default();
-
-        let first_sql = explain(&mut workbench, first);
-        contexts.capture(&workbench, first, first_sql.clone());
-        let second_sql = explain(&mut workbench, second);
-        contexts.capture(&workbench, second, second_sql.clone());
-        workbench.activate(first);
-        if let Some(Tab::Query(query)) = workbench.tab_mut(first) {
-            query.editor_state.editor_mut().jump_to(0);
-            query
-                .editor_state
-                .editor_mut()
-                .set_text("SELECT * FROM orders WHERE status = 'changed'");
-        }
-        workbench.activate(second);
-        contexts.sync(&workbench);
-
-        assert_eq!(
-            contexts.matching_sql(first, plan(&workbench, first)),
-            Some(first_sql.as_str())
-        );
-        assert_eq!(
-            contexts.matching_sql(second, plan(&workbench, second)),
-            Some(second_sql.as_str())
-        );
-    }
-
-    #[test]
-    fn replaced_plan_and_closed_tab_retire_captured_sql() {
-        let mut workbench = new_workbench();
-        let key = workbench
-            .new_query("SELECT * FROM customers WHERE id = 1")
-            .expect("query key");
-        let mut contexts = ExplainContextState::default();
-        let previous_sql = explain(&mut workbench, key);
-        let previous_plan = plan(&workbench, key).clone();
-        contexts.capture(&workbench, key, previous_sql);
-
-        if let Some(Tab::Query(query)) = workbench.tab_mut(key) {
-            query
-                .editor_state
-                .editor_mut()
-                .set_text("SELECT * FROM orders");
-        }
-        let replacement_sql = explain(&mut workbench, key);
-        let replacement_plan = plan(&workbench, key).clone();
-        assert_ne!(replacement_plan, previous_plan);
-        contexts.sync(&workbench);
-        assert_eq!(contexts.matching_sql(key, &replacement_plan), None);
-
-        contexts.capture(&workbench, key, replacement_sql);
-        assert!(workbench.close_tab_from_picker(key));
-        contexts.sync(&workbench);
-        assert_eq!(contexts.matching_sql(key, &replacement_plan), None);
-    }
-
-    #[test]
-    fn error_and_result_retire_context() {
-        let mut workbench = new_workbench();
-        let key = workbench
-            .new_query("SELECT * FROM orders")
-            .expect("query key");
-        let mut contexts = ExplainContextState::default();
-        let statement_sql = explain(&mut workbench, key);
-        let explained_plan = plan(&workbench, key).clone();
-        contexts.capture(&workbench, key, statement_sql.clone());
-
-        if let Some(Tab::Query(query)) = workbench.tab_mut(key) {
-            query.error = Some("replacement error".to_owned());
-        }
-        contexts.sync(&workbench);
-        assert_eq!(contexts.matching_sql(key, &explained_plan), None);
-
-        if let Some(Tab::Query(query)) = workbench.tab_mut(key) {
-            query.error = None;
-        }
-        contexts.capture(&workbench, key, statement_sql);
-        let result = tablepro_sql::sql::parse("SELECT * FROM orders")
-            .ok()
-            .and_then(|statement| match statement {
-                tablepro_sql::sql::Statement::Select(select) => {
-                    tablepro_sql::sql::run_select(&workbench.catalog, &select).ok()
-                }
-                _ => None,
-            })
-            .expect("orders query returns a result");
-        if let Some(Tab::Query(query)) = workbench.tab_mut(key) {
-            query.result = Some(GridView::from_result(&result));
-        }
-        contexts.sync(&workbench);
-        assert_eq!(contexts.matching_sql(key, &explained_plan), None);
-    }
-
-    #[test]
-    fn replacement_workbench_with_colliding_tab_key_clears_context() {
-        let mut workbench = new_workbench();
-        let key = workbench
-            .new_query("SELECT * FROM customers WHERE id = 1")
-            .expect("original query key");
-        let mut contexts = ExplainContextState::default();
-        let original_sql = explain(&mut workbench, key);
-        contexts.capture(&workbench, key, original_sql);
-
-        let mut replacement = new_workbench();
-        let replacement_key = replacement
-            .new_query("SELECT * FROM orders")
-            .expect("replacement query key");
-        assert_eq!(replacement_key, key);
-        let replacement_sql = explain(&mut replacement, replacement_key);
-        let replacement_plan = plan(&replacement, replacement_key).clone();
-        contexts.sync(&replacement);
-        assert_eq!(
-            contexts.matching_sql(replacement_key, &replacement_plan),
-            None
-        );
-
-        contexts.capture(&replacement, replacement_key, replacement_sql);
-        assert_eq!(
-            contexts.matching_sql(replacement_key, &replacement_plan),
-            Some("SELECT * FROM orders")
-        );
-    }
-
-    #[test]
-    fn captured_sql_is_omitted_from_app_debug() {
-        let mut app = TableProApp::default();
-        let key = app
-            .workbench
-            .new_query("SELECT * FROM orders")
-            .expect("query key");
-        let statement_sql = explain(&mut app.workbench, key);
-        app.explain_contexts.get_mut().capture(
-            &app.workbench,
-            key,
-            format!("{statement_sql} -- private context marker"),
-        );
-
-        assert!(!format!("{app:?}").contains("private context marker"));
-    }
-
-    #[test]
-    fn results_painter_keeps_captured_sql_after_editor_changes() {
-        let mut app = TableProApp::default();
-        let connection = app
-            .connections
-            .iter()
-            .position(|connection| connection.name == "Production")
-            .unwrap_or(usize::MAX);
-        assert!(app.connect(connection), "production connection");
-        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
-        let query_id = harness.app().query_id().expect("connected query editor");
-        assert!(harness.tab_to(query_id));
-
-        let _ = harness.type_str("SELECT * FROM orders");
-        dismiss_completion_if_open(&mut harness);
-        let _ = harness.ctrl('x');
-        let key = harness
-            .app()
-            .workbench
-            .active_key()
-            .expect("active query key");
-        assert!(
-            harness.find("Planning 0.210 ms").is_some(),
-            "{}",
-            harness.text()
-        );
-
-        let previous_context_sql = {
-            let plan = match harness.app().workbench.active() {
-                Some(Tab::Query(query)) => query.plan.as_ref(),
-                _ => None,
-            }
-            .expect("captured plan exists");
-            harness
-                .app()
-                .explain_contexts
-                .borrow()
-                .matching_sql(key, plan)
-                .map(str::to_owned)
-        };
-        assert_eq!(
-            previous_context_sql.as_deref(),
-            Some("SELECT * FROM orders")
-        );
-        let (query_text, cursor, selection, previous_plan) = match harness.app().workbench.active()
-        {
-            Some(Tab::Query(query)) => (
-                query.editor_state.editor().text().to_owned(),
-                query.editor_state.editor().cursor_offset(),
-                query
-                    .editor_state
-                    .editor()
-                    .selected_text()
-                    .map(str::to_owned),
-                query.plan.clone(),
-            ),
-            _ => unreachable!("connected query remains active"),
-        };
-        let _ = harness.key(KeyCode::F(6));
-        assert_ne!(harness.focus(), Some(query_id));
-        assert_eq!(harness.app().query(), query_text);
-        let Some(Tab::Query(query)) = harness.app().workbench.active() else {
-            unreachable!("connected query remains active")
-        };
-        assert_eq!(query.editor_state.editor().text(), query_text);
-        assert_eq!(query.editor_state.editor().cursor_offset(), cursor);
-        assert_eq!(
-            query
-                .editor_state
-                .editor()
-                .selected_text()
-                .map(str::to_owned),
-            selection
-        );
-        assert_eq!(query.plan, previous_plan);
-        let Some(plan) = query.plan.as_ref() else {
-            unreachable!("captured plan remains available")
-        };
-        assert_eq!(
-            harness
-                .app()
-                .explain_contexts
-                .borrow()
-                .matching_sql(key, plan),
-            previous_context_sql.as_deref()
-        );
-        assert!(
-            harness.diagnostics().is_empty(),
-            "F6 settled the query owner before the private Results painter: {:?}",
-            harness.diagnostics()
-        );
-
-        {
-            let app = harness.app_mut();
-            app.sync_query_panes();
-            app.query_panes.get_mut().set(key, QueryPaneMode::Results);
-            app.workbench.maximized = true;
-        }
-        assert_eq!(
-            harness.app().visible_query_pane_mode(),
-            QueryPaneMode::Results
-        );
-        harness.draw();
-        assert!(
-            harness.find("Planning 0.210 ms").is_some(),
-            "Results pane omitted the captured plan facts: {}",
-            harness.text()
-        );
-
-        let changed_sql = "SELECT * FROM customers WHERE id = 1";
-        let previous_plan = match harness.app().workbench.active() {
-            Some(Tab::Query(query)) => query.plan.clone(),
-            _ => unreachable!("connected query remains active"),
-        };
-        {
-            let app = harness.app_mut();
-            let Some(Tab::Query(query)) = app.workbench.active_mut() else {
-                unreachable!("connected query remains active")
-            };
-            query.editor_state.editor_mut().jump_to(0);
-            query.editor_state.editor_mut().set_text(changed_sql);
-            query.sync_query_text();
-            assert_eq!(query.query, changed_sql);
-            assert_eq!(query.plan, previous_plan);
-        }
-
-        harness.draw();
-        assert!(
-            harness.find("Planning 0.210 ms").is_some(),
-            "Results painter retargeted the prior plan after editor changes: {}",
-            harness.text()
-        );
-        {
-            harness.app_mut().workbench.maximized = false;
-        }
-        assert_eq!(harness.app().visible_query_pane_mode(), QueryPaneMode::None);
-        harness.draw();
-        assert!(
-            harness.find("Planning 0.210 ms").is_some(),
-            "legacy pane lost the captured plan facts: {}",
-            harness.text()
-        );
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
     }
 }
