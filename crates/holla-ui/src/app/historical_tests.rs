@@ -3360,8 +3360,11 @@ mod root_100_nonoverflow_port_owner {
 
     fn all_owner_cases(scenario: Scenario) -> Vec<OwnerCase> {
         assert!(
-            matches!(scenario, Scenario::MonorepoRoot | Scenario::MonorepoChild),
-            "finite held owner accepts only Root and Child scenarios"
+            matches!(
+                scenario,
+                Scenario::MonorepoRoot | Scenario::MonorepoChild | Scenario::ActivitiesMulti
+            ),
+            "finite held owner accepts only Root, Child, and Activities scenarios"
         );
         let cases: Vec<_> = [
             OwnerViewport::W100H30,
@@ -3425,6 +3428,103 @@ mod root_100_nonoverflow_port_owner {
                 .iter()
                 .all(|case| case.scenario == Scenario::MonorepoChild),
             "Child matrix contains only MonorepoChild keys"
+        );
+        cases
+    }
+
+    fn excluded_activities_faint_cases() -> Vec<OwnerCase> {
+        let cases: Vec<_> = [
+            OwnerViewport::W100H30,
+            OwnerViewport::W120H40,
+            OwnerViewport::W160H50,
+        ]
+        .into_iter()
+        .map(|viewport| OwnerCase {
+            scenario: Scenario::ActivitiesMulti,
+            viewport,
+            source_theme: OwnerSourceTheme::Junie,
+            color: ColorLevel::Ansi16,
+        })
+        .collect();
+        assert_eq!(cases.len(), 3, "exact Activities faint exclusion size");
+        assert!(
+            cases.iter().all(|case| {
+                case.scenario == Scenario::ActivitiesMulti
+                    && case.source_theme == OwnerSourceTheme::Junie
+                    && case.color == ColorLevel::Ansi16
+            }),
+            "only Junie Ansi16 Activities keys are excluded as faint cases"
+        );
+        cases
+    }
+
+    fn remaining_activities_cases() -> Vec<OwnerCase> {
+        let all_cases = all_owner_cases(Scenario::ActivitiesMulti);
+        assert_eq!(
+            all_cases.len(),
+            24,
+            "all Activities product keys are admitted"
+        );
+        let faint_cases = excluded_activities_faint_cases();
+        let all_faint_axis_cases: Vec<_> = all_cases
+            .iter()
+            .copied()
+            .filter(|case| {
+                case.source_theme == OwnerSourceTheme::Junie && case.color == ColorLevel::Ansi16
+            })
+            .collect();
+        assert_eq!(
+            all_faint_axis_cases, faint_cases,
+            "the three excluded keys are the complete Junie Ansi16 Activities axis"
+        );
+
+        let cases: Vec<_> = all_cases
+            .into_iter()
+            .filter(|case| !faint_cases.contains(case))
+            .collect();
+        assert_eq!(cases.len(), 21, "exact remaining ordinary Activities keys");
+        assert!(
+            cases
+                .iter()
+                .all(|case| case.scenario == Scenario::ActivitiesMulti),
+            "Activities owner contains only ActivitiesMulti keys"
+        );
+        assert!(
+            cases.iter().all(|case| !faint_cases.contains(case)),
+            "ordinary Activities owner excludes all three faint keys"
+        );
+        let mut activity_keys: Vec<_> = cases.iter().map(|case| case.key()).collect();
+        activity_keys.sort();
+        activity_keys.dedup();
+        assert_eq!(activity_keys.len(), 21, "Activities keys are unique");
+
+        let root_cases = all_owner_cases(Scenario::MonorepoRoot);
+        let child_cases = all_owner_cases(Scenario::MonorepoChild);
+        assert_eq!(root_cases.len(), 24, "existing Root owners cover 24 keys");
+        assert_eq!(child_cases.len(), 24, "existing Child owners cover 24 keys");
+        let root_keys: Vec<_> = root_cases.iter().map(|case| case.key()).collect();
+        let child_keys: Vec<_> = child_cases.iter().map(|case| case.key()).collect();
+        let faint_keys: Vec<_> = faint_cases.iter().map(|case| case.key()).collect();
+        assert!(
+            cases.iter().all(|case| {
+                let key = case.key();
+                !root_keys.contains(&key)
+            }),
+            "Activities keys are disjoint from existing Root owners"
+        );
+        assert!(
+            cases.iter().all(|case| {
+                let key = case.key();
+                !child_keys.contains(&key)
+            }),
+            "Activities keys are disjoint from existing Child owners"
+        );
+        assert!(
+            cases.iter().all(|case| {
+                let key = case.key();
+                !faint_keys.contains(&key)
+            }),
+            "Activities keys are disjoint from all three excluded faint keys"
         );
         cases
     }
@@ -3595,6 +3695,11 @@ mod root_100_nonoverflow_port_owner {
 
     fn assert_generic_home_renderer(world: &World, case: OwnerCase) {
         let width = case.viewport.size().0;
+        assert_eq!(
+            world.now_ms(),
+            FRAME_MS as i64,
+            "custom-renderer eligibility uses the held frame"
+        );
         assert_ne!(
             world.scenario.boot_title(),
             crate::screens::finder::RECENT,
@@ -3612,7 +3717,22 @@ mod root_100_nonoverflow_port_owner {
         assert!(crate::sim::catalogue::monorepo_child_view(world, width).is_none());
         assert!(crate::sim::catalogue::docker_cleanup_view(world, width).is_none());
         assert!(crate::sim::catalogue::remote_host_view(world, width).is_none());
-        assert!(crate::sim::catalogue::activities_multi_view(world, width, false).is_none());
+        assert!(
+            !crate::sim::catalogue::activities_multi_tag_frame(world),
+            "ordinary Activities Home is outside its tick-40 tag frame"
+        );
+        assert!(
+            crate::sim::catalogue::activities_multi_tag(world).is_none(),
+            "ordinary Activities Home has no custom tag"
+        );
+        assert!(
+            crate::sim::catalogue::activities_multi_view(world, width, false).is_none(),
+            "ordinary Activities Home has no custom view"
+        );
+        assert!(
+            crate::sim::catalogue::activities_multi_plate(world, false).is_none(),
+            "ordinary Activities Home has no custom plate"
+        );
         assert!(crate::sim::catalogue::parity_discovery_view(world, width).is_none());
         assert!(crate::sim::catalogue::parity_discovery(world).is_none());
         assert!(crate::sim::catalogue::parity_history_view(world, width).is_none());
@@ -4307,7 +4427,7 @@ mod root_100_nonoverflow_port_owner {
         let mut harness_b = harness(world_b, case);
         harness_a.draw();
         harness_b.draw();
-        if case.scenario == Scenario::MonorepoChild {
+        if case.scenario != Scenario::MonorepoRoot {
             let selected_a = harness_a
                 .app()
                 .home
@@ -4320,7 +4440,7 @@ mod root_100_nonoverflow_port_owner {
                 .map(|action| action.id);
             assert_eq!(
                 selected_a, selected_b,
-                "Child A/B preserve fixture-derived selected action identity"
+                "non-Root A/B preserve fixture-derived selected action identity"
             );
         }
         assert_arm_controls(&harness_a, &memory_a, &rows_a, &tokens_a, case, "A");
@@ -4409,6 +4529,13 @@ mod root_100_nonoverflow_port_owner {
     #[test]
     fn monorepo_child_remaining_24_nonoverflow_port_hide_preserves_held_frames() {
         for case in remaining_child_cases() {
+            run_owner_case(case, false);
+        }
+    }
+
+    #[test]
+    fn activities_multi_remaining_21_nonoverflow_port_hide_preserves_held_frames() {
+        for case in remaining_activities_cases() {
             run_owner_case(case, false);
         }
     }
