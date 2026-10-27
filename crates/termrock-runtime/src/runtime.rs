@@ -1,6 +1,5 @@
 pub mod clipboard;
 pub(crate) mod feedback;
-#[cfg(feature = "crossterm")]
 mod time;
 pub use feedback::{ActivationFeedback, FeedbackClock, FeedbackClockError, SimulationMoment};
 pub(crate) mod typing;
