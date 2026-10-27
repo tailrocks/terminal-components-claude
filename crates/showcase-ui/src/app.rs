@@ -3,7 +3,7 @@ use showcase_demos::render_number::RenderNumber;
 use termrock::author::PaintStyle;
 use termrock::overlays::NoticeReveal;
 use termrock::{
-    ActionKey, Anchor, App as TuiApp, Brand, Chord, ColorLevel, CrossAlign, Cx, Dialog,
+    ActionKey, Anchor, App as TuiApp, Brand, Chord, Color, ColorLevel, CrossAlign, Cx, Dialog,
     DialogAction, DialogState, Dismiss, EmptyState, FrameRead, GlyphRole, HelpOverlay,
     HelpOverlayState, HelpSection, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, LayerOpening,
     Moment, Panel, PanelKind, Part, PartRef, Phase, Position, Props, Rect, Response, RowFn, Side,
@@ -2353,8 +2353,10 @@ fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKe
     let canvas = shell_compat_style(ui.surface_style());
     let label_ink = fade_paint(canvas, fade);
     let group_ink = fade_paint(shell_text_style(ui, termrock::FgStep::Secondary), fade);
-    let selected_background =
-        termrock::Color::from_u32(showcase_demos::pages::accent_tint_bg(ui.theme_ref()));
+    let selected_background = match ui.theme_ref().color.accent_tint {
+        Color::Rgb(..) => Color::from_u32(showcase_demos::pages::accent_tint_bg(ui.theme_ref())),
+        color => color,
+    };
     let selected_patch = ui.paint_patch(
         &termrock::StylePatch::new().set_bg(termrock::Role::Custom(selected_background)),
     );
