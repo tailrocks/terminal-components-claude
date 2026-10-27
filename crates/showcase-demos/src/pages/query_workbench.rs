@@ -3,11 +3,14 @@ use std::time::Duration;
 use termrock::grid::{Column, ColumnKey, Table, TableColumn, TableState};
 use termrock::{
     ActionKey, CodeEditor, CodeEditorState, Cx, FrameRead, GridModel, Id, ItemKey, Panel,
-    PanelKind, Rect, Response, Role, StateFlags, Tabs, TabsAction, TabsState, ToolItem, Toolbar,
-    ToolbarAction, ToolbarState, Ui, UpdateCause, layout,
+    PanelKind, Rect, Response, Role, StateFlags, StatusBar, StatusItem, Tabs, TabsAction,
+    TabsState, ToolItem, Toolbar, ToolbarAction, ToolbarState, Ui, UpdateCause, layout,
 };
 
+mod options;
+
 use super::{Page, PageStatus, PageUpdate, frame};
+use options::{Change as OptionChange, ResultFixture, Settings as WorkbenchOptions};
 
 const TABS: Id = Id::root("showcase_ui::pages::query_workbench.tabs");
 const TOOLBAR: Id = Id::root("showcase_ui::pages::query_workbench.toolbar");
@@ -15,6 +18,8 @@ const EDITOR_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.editor_pa
 const RESULTS_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.results_panel");
 const EDITOR: Id = Id::root("showcase_ui::pages::query_workbench.editor");
 const RESULTS: Id = Id::root("showcase_ui::pages::query_workbench.results");
+const OPTIONS_DIALOG: Id = options::DIALOG_ID;
+const ENVIRONMENT_STATUS: Id = Id::root("showcase_ui::pages::query_workbench.environment_status");
 
 /// Native owner ID for the query tabs.
 pub const TABS_ID: Id = TABS;
@@ -258,6 +263,10 @@ pub struct QueryWorkbenchPage {
     results: TableState,
     run: Option<PendingRun>,
     status: String,
+    options: WorkbenchOptions,
+    options_state: termrock::FormDialogState,
+    options_open: bool,
+    options_close_pending: bool,
 }
 
 impl QueryWorkbenchPage {
@@ -284,6 +293,10 @@ impl QueryWorkbenchPage {
             results: TableState::default(),
             run: None,
             status: "Ready · sample data only".to_owned(),
+            options: WorkbenchOptions::default(),
+            options_state: termrock::FormDialogState::default(),
+            options_open: false,
+            options_close_pending: false,
         }
     }
 
@@ -337,6 +350,9 @@ impl QueryWorkbenchPage {
     }
 
     fn new_document(&mut self) -> bool {
+        if !self.options.allow_new() {
+            return false;
+        }
         let document_id = self.next_document_id;
         let Some(next_document_id) = document_id.checked_add(1) else {
             self.status = "Cannot open another query tab.".to_owned();
@@ -390,8 +406,51 @@ impl QueryWorkbenchPage {
                 explain,
                 stop,
                 ToolItem::new("Clear").tip("Clear this query"),
+                ToolItem::new("Options").tip("Configure this query workbench"),
             ],
         )
+    }
+
+    fn open_options(&mut self, cx: &mut Cx<'_>) {
+        if cx.is_open(OPTIONS_DIALOG) {
+            self.options_open = true;
+            return;
+        }
+        let data = self.options.dialog_data();
+        self.options_close_pending = false;
+        cx.open_layer(OPTIONS_DIALOG, options::dialog().layer(cx, &data));
+        self.options_open = cx.is_open(OPTIONS_DIALOG);
+    }
+
+    fn set_option_value(&mut self, key: &str, value: usize) -> bool {
+        let Some(change) = self.options.set_option(key, value) else {
+            return false;
+        };
+        self.apply_option_change(change);
+        true
+    }
+
+    fn apply_option_change(&mut self, change: OptionChange) {
+        let OptionChange::Result(fixture) = change else {
+            return;
+        };
+        let Some(index) = self.active_index() else {
+            return;
+        };
+        let Some(document) = self.documents.get_mut(index) else {
+            return;
+        };
+        match fixture {
+            ResultFixture::Run => {}
+            ResultFixture::Empty => document.result = ResultView::Empty,
+            ResultFixture::Error => {
+                document.result = ResultView::Error {
+                    message: "relation \"ordrs\" does not exist".to_owned(),
+                    detail: "SQLSTATE 42P01 · line 3 · Did you mean \"orders\"?".to_owned(),
+                };
+            }
+            ResultFixture::Plan => document.result = ResultView::Plan,
+        }
     }
 
     fn start_run(&mut self, cx: &mut Cx<'_>, explain: bool) -> PageStatus {
@@ -483,6 +542,10 @@ impl QueryWorkbenchPage {
             1 => Some(self.start_run(cx, true)),
             2 if self.stop_run() => Some(PageStatus(self.status.clone())),
             3 if self.clear_active() => Some(PageStatus(self.status.clone())),
+            4 => {
+                self.open_options(cx);
+                None
+            }
             _ => None,
         }
     }
@@ -525,6 +588,19 @@ impl QueryWorkbenchPage {
             .and_then(|index| self.documents.get(index))
             .map_or_else(ResultModel::default, |document| document.result.model())
     }
+
+    fn apply_tabs_action(&mut self, action: TabsAction) -> Option<PageStatus> {
+        match action {
+            TabsAction::Close(key) if self.close_document(key) => {
+                Some(PageStatus(self.status.clone()))
+            }
+            TabsAction::New if self.options.allow_new() => {
+                let _ = self.new_document();
+                Some(PageStatus(self.status.clone()))
+            }
+            TabsAction::New | TabsAction::Activated(_) | TabsAction::Close(_) => None,
+        }
+    }
 }
 
 impl Default for QueryWorkbenchPage {
@@ -543,6 +619,14 @@ impl Page for QueryWorkbenchPage {
         "Query workbench"
     }
 
+    fn option_value(&self, key: &str) -> Option<usize> {
+        self.options.option_value(key)
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        let _ = self.set_option_value(key, value);
+    }
+
     fn global_capture_owners(&self, action: ActionKey) -> &'static [Id] {
         if action == RUN_QUERY {
             &RUN_CAPTURE_OWNERS
@@ -554,57 +638,80 @@ impl Page for QueryWorkbenchPage {
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
         let mut status = None;
-
-        let tabs = Tabs::new(TABS)
-            .key(|document: &Document| document.key)
-            .allow_new(true)
-            .closable(true);
-        let tab_update = tabs.update(cx, &mut self.tabs, &self.documents);
-        let tab_action = tab_update.action_ref().copied();
-        response |= tab_update.erase();
-        match tab_action {
-            Some(TabsAction::Close(key)) if self.close_document(key) => {
-                response |= Response::changed();
-                status = Some(PageStatus(self.status.clone()));
-            }
-            Some(TabsAction::New) => {
-                let _ = self.new_document();
-                response |= Response::changed();
-                status = Some(PageStatus(self.status.clone()));
-            }
-            Some(TabsAction::Activated(_)) | Some(TabsAction::Close(_)) | None => {}
+        let options_were_close_pending = core::mem::take(&mut self.options_close_pending);
+        if options_were_close_pending {
+            let mut data = self.options.dialog_data();
+            response |= options::dialog()
+                .update(cx, &mut self.options_state, &mut data)
+                .erase();
         }
 
-        if let Some(index) = self.active_index()
-            && let Some(document) = self.documents.get_mut(index)
-        {
-            let update = CodeEditor::new(EDITOR, 12)
-                .fill_height(true)
-                .placeholder("Write a query against the sample data")
-                .update(cx, &mut document.editor);
+        let options_were_open = self.options_open || cx.is_open(OPTIONS_DIALOG);
+        if options_were_open {
+            let mut data = self.options.dialog_data();
+            let update = options::dialog().update(cx, &mut self.options_state, &mut data);
+            let action = update.action_ref().copied();
             response |= update.erase();
-        }
-
-        let toolbar = self.toolbar();
-        let toolbar_update = toolbar.update(cx, &mut self.toolbar);
-        let actions = toolbar_update
-            .action_ref()
-            .map(|actions| actions.as_slice().to_vec())
-            .unwrap_or_default();
-        response |= toolbar_update.erase();
-        for action in actions {
-            if let ToolbarAction::Activated(index) = action.action
-                && let Some(next_status) = self.apply_toolbar_action(cx, index)
+            if let Some(termrock::FormDialogAction::Committed(id)) = action
+                && let Some((key, value)) = data.option_for(id)
             {
-                status = Some(next_status);
-                response |= Response::changed();
+                let _ = self.set_option_value(key, value);
             }
-        }
+            self.options_open = cx.is_open(OPTIONS_DIALOG);
+            if !self.options_open {
+                self.options_close_pending = true;
+            }
+        } else if !options_were_close_pending {
+            self.options_open = false;
+            let tabs = Tabs::new(TABS)
+                .key(|document: &Document| document.key)
+                .allow_new(self.options.allow_new())
+                .close_reveal(self.options.close_reveal())
+                .closable(true);
+            let tab_update = tabs.update(cx, &mut self.tabs, &self.documents);
+            let tab_action = tab_update.action_ref().copied();
+            response |= tab_update.erase();
+            if let Some(action) = tab_action
+                && let Some(next_status) = self.apply_tabs_action(action)
+            {
+                response |= Response::changed();
+                status = Some(next_status);
+            }
 
-        let model = self.active_result_model();
-        response |= Table::new(RESULTS, &RESULT_COLUMNS)
-            .update(cx, &mut self.results, &model)
-            .erase();
+            if let Some(index) = self.active_index()
+                && let Some(document) = self.documents.get_mut(index)
+            {
+                let update = CodeEditor::new(EDITOR, 12)
+                    .fill_height(true)
+                    .placeholder("Write a query against the sample data")
+                    .read_only(self.options.read_only())
+                    .update(cx, &mut document.editor);
+                response |= update.erase();
+            }
+
+            let toolbar = self.toolbar();
+            let toolbar_update = toolbar.update(cx, &mut self.toolbar);
+            let actions = toolbar_update
+                .action_ref()
+                .map(|actions| actions.as_slice().to_vec())
+                .unwrap_or_default();
+            response |= toolbar_update.erase();
+            for action in actions {
+                if let ToolbarAction::Activated(index) = action.action
+                    && let Some(next_status) = self.apply_toolbar_action(cx, index)
+                {
+                    status = Some(next_status);
+                    response |= Response::changed();
+                }
+            }
+
+            let model = self.active_result_model();
+            response |= Table::new(RESULTS, &RESULT_COLUMNS)
+                .update(cx, &mut self.results, &model)
+                .erase();
+        } else {
+            self.options_open = false;
+        }
 
         if let Some(next_status) = self.advance_run(cx) {
             status = Some(next_status);
@@ -615,7 +722,12 @@ impl Page for QueryWorkbenchPage {
     }
 
     fn command(&mut self, cx: &mut Cx<'_>, action: ActionKey) -> Response<()> {
-        if action != RUN_QUERY || self.run.is_some() {
+        if action != RUN_QUERY
+            || self.run.is_some()
+            || self.options_open
+            || self.options_close_pending
+            || cx.is_open(OPTIONS_DIALOG)
+        {
             return Response::ignored();
         }
         let _ = self.start_run(cx, false);
@@ -623,90 +735,109 @@ impl Page for QueryWorkbenchPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(
-            ui,
-            area,
-            self.title(),
-            "sample data · no database connection",
-            |ui, body| {
-                let rows = layout::rows(
-                    body,
-                    &[
-                        layout::Track::Fixed(1),
-                        layout::Track::Fixed(1),
-                        layout::Track::Flex(1),
-                        layout::Track::Fixed(1),
-                    ],
-                );
-                let tabs_area = rows.first().copied().unwrap_or(Rect::new(0, 0, 0, 0));
-                let toolbar_area = rows.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
-                let work_area = rows.get(2).copied().unwrap_or(Rect::new(0, 0, 0, 0));
-                let status_area = rows.get(3).copied().unwrap_or(Rect::new(0, 0, 0, 0));
+        let title_width = termrock::width(self.title());
+        frame(ui, area, self.title(), "", |ui, body| {
+            let rows = layout::rows(
+                body,
+                &[
+                    layout::Track::Fixed(1),
+                    layout::Track::Fixed(1),
+                    layout::Track::Flex(1),
+                    layout::Track::Fixed(1),
+                ],
+            );
+            let tabs_area = rows.first().copied().unwrap_or(Rect::new(0, 0, 0, 0));
+            let toolbar_area = rows.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
+            let work_area = rows.get(2).copied().unwrap_or(Rect::new(0, 0, 0, 0));
+            let status_area = rows.get(3).copied().unwrap_or(Rect::new(0, 0, 0, 0));
 
-                Tabs::new(TABS)
-                    .key(|document: &Document| document.key)
-                    .allow_new(true)
-                    .closable(true)
-                    .draw(ui, tabs_area, &self.tabs, &self.documents);
+            Tabs::new(TABS)
+                .key(|document: &Document| document.key)
+                .allow_new(self.options.allow_new())
+                .close_reveal(self.options.close_reveal())
+                .closable(true)
+                .draw(ui, tabs_area, &self.tabs, &self.documents);
 
-                let _ = self.toolbar().draw(ui, toolbar_area, &self.toolbar);
+            let _ = self.toolbar().draw(ui, toolbar_area, &self.toolbar);
 
-                let columns = layout::columns(
-                    work_area,
-                    &[layout::Track::Flex(3), layout::Track::Flex(2)],
-                    1,
-                );
-                let editor_area = columns.first().copied().unwrap_or(Rect::new(0, 0, 0, 0));
-                let results_area = columns.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
-                if let Some(document) = self
-                    .active_index()
-                    .and_then(|index| self.documents.get(index))
-                {
-                    Panel::new(EDITOR_PANEL)
-                        .kind(PanelKind::Framed)
-                        .title(&document.title)
-                        .draw(ui, editor_area, |ui, inner| {
-                            let _ = CodeEditor::new(EDITOR, inner.height)
-                                .fill_height(true)
-                                .placeholder("Write a query against the sample data")
-                                .draw(ui, inner, &document.editor);
-                        });
-                }
-
-                let model = self.active_result_model();
-                let summary = self
-                    .active_index()
-                    .and_then(|index| self.documents.get(index))
-                    .map_or_else(
-                        || "No query is open.".to_owned(),
-                        |document| document.result.summary(),
-                    );
-                Panel::new(RESULTS_PANEL)
+            let columns = layout::columns(
+                work_area,
+                &[layout::Track::Flex(3), layout::Track::Flex(2)],
+                1,
+            );
+            let editor_area = columns.first().copied().unwrap_or(Rect::new(0, 0, 0, 0));
+            let results_area = columns.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
+            if let Some(document) = self
+                .active_index()
+                .and_then(|index| self.documents.get(index))
+            {
+                Panel::new(EDITOR_PANEL)
                     .kind(PanelKind::Framed)
-                    .title("Results")
-                    .draw(ui, results_area, |ui, inner| {
-                        let result_rows =
-                            layout::rows(inner, &[layout::Track::Fixed(1), layout::Track::Flex(1)]);
-                        if let Some(summary_area) = result_rows.first()
-                            && !summary_area.is_empty()
-                        {
-                            let _ = ui.paint_str(*summary_area, &summary, ui.surface_style());
-                        }
-                        let table_area =
-                            result_rows.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
-                        let _ = Table::new(RESULTS, &RESULT_COLUMNS).draw(
-                            ui,
-                            table_area,
-                            &self.results,
-                            &model,
-                        );
+                    .title(&document.title)
+                    .draw(ui, editor_area, |ui, inner| {
+                        let _ = CodeEditor::new(EDITOR, inner.height)
+                            .fill_height(true)
+                            .placeholder("Write a query against the sample data")
+                            .read_only(self.options.read_only())
+                            .draw(ui, inner, &document.editor);
                     });
+            }
 
-                if !status_area.is_empty() {
-                    let _ = ui.paint_str(status_area, &self.status, ui.surface_style());
-                }
-            },
-        );
+            let model = self.active_result_model();
+            let summary = self
+                .active_index()
+                .and_then(|index| self.documents.get(index))
+                .map_or_else(
+                    || "No query is open.".to_owned(),
+                    |document| document.result.summary(),
+                );
+            Panel::new(RESULTS_PANEL)
+                .kind(PanelKind::Framed)
+                .title("Results")
+                .draw(ui, results_area, |ui, inner| {
+                    let result_rows =
+                        layout::rows(inner, &[layout::Track::Fixed(1), layout::Track::Flex(1)]);
+                    if let Some(summary_area) = result_rows.first()
+                        && !summary_area.is_empty()
+                    {
+                        let _ = ui.paint_str(*summary_area, &summary, ui.surface_style());
+                    }
+                    let table_area = result_rows.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
+                    let _ = Table::new(RESULTS, &RESULT_COLUMNS).draw(
+                        ui,
+                        table_area,
+                        &self.results,
+                        &model,
+                    );
+                });
+
+            if !status_area.is_empty() {
+                let _ = ui.paint_str(status_area, &self.status, ui.surface_style());
+            }
+        });
+        if area.width > title_width.saturating_add(4) {
+            let status_area = Rect {
+                x: area.x.saturating_add(title_width).saturating_add(2),
+                y: area.y,
+                width: area.width.saturating_sub(title_width).saturating_sub(3),
+                height: 1,
+            };
+            let (environment_label, environment_role) = self.options.environment_status();
+            let environment = [StatusItem::new(environment_label)
+                .tone(environment_role)
+                .priority(9)];
+            let sample = [StatusItem::new("sample data · no database connection").priority(1)];
+            StatusBar::new(ENVIRONMENT_STATUS)
+                .left(&environment)
+                .right(&sample)
+                .draw(ui, status_area);
+        }
+        if self.options_open {
+            let data = self.options.dialog_data();
+            ui.layer(OPTIONS_DIALOG, |ui, layer| {
+                options::dialog().draw(ui, layer, &self.options_state, &data);
+            });
+        }
     }
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
@@ -792,30 +923,55 @@ fn from_table(sql: &str) -> Option<&str> {
 #[cfg(test)]
 mod tests {
     use super::{
-        EDITOR_ID, QueryResultState, QueryWorkbenchPage, RESULTS_ID, ResultView, TABS_ID, TOOLBAR,
-        TOOLBAR_ID, evaluate_query,
+        EDITOR_ID, FIRST_QUERY, OPTIONS_DIALOG, QueryResultState, QueryWorkbenchPage, RESULTS_ID,
+        RUN_QUERY, ResultView, TABS_ID, TOOLBAR, TOOLBAR_ID, evaluate_query, options,
     };
     use crate::pages::Page;
     use ratatui::layout::Rect;
     use termrock::{
-        App as TermrockApp, Cx, GridModel, Id, ItemKey, Part, PartRef, Response, Theme, Ui,
+        ActionKey, App as TermrockApp, Chord, Cx, GridModel, Id, ItemKey, KeyCode, KeyMap,
+        KeyModifiers, KeyPhase, Part, PartRef, Response, TabsAction, Theme, Ui,
     };
     use termrock_test_support::Harness;
+
+    const OPTIONS_ALLOW_NEW_FIELD: Id = OPTIONS_DIALOG.part(Part::BODY).part(Part::FIELD).index(0);
+    const OPTIONS_READ_ONLY_FIELD: Id = OPTIONS_DIALOG.part(Part::BODY).part(Part::FIELD).index(2);
 
     #[derive(Debug)]
     struct Host {
         page: QueryWorkbenchPage,
         area: Rect,
+        keymap: KeyMap,
+        last_command: Option<(ActionKey, bool)>,
     }
 
     impl TermrockApp for Host {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            self.page.update(cx).response
+            let command = cx.command();
+            let mut response = self.page.update(cx).response;
+            if let Some(action) = command {
+                let command_response = self.page.command(cx, action);
+                self.last_command = Some((action, command_response.is_changed()));
+                response |= command_response;
+            }
+            response
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
             self.page.draw(ui, self.area);
         }
+
+        fn keymap(&self) -> &KeyMap {
+            &self.keymap
+        }
+    }
+
+    fn host_keymap() -> KeyMap {
+        KeyMap::new().bind(
+            KeyPhase::Capture,
+            Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
+            RUN_QUERY,
+        )
     }
 
     fn overflow_harness() -> Harness<Host> {
@@ -823,11 +979,34 @@ mod tests {
             Host {
                 page: QueryWorkbenchPage::new(),
                 area: Rect::new(0, 0, 14, 18),
+                keymap: host_keymap(),
+                last_command: None,
             },
             Theme::junie(),
             14,
             18,
         )
+    }
+
+    fn native_harness() -> Harness<Host> {
+        Harness::new(
+            Host {
+                page: QueryWorkbenchPage::new(),
+                area: Rect::new(0, 0, 160, 40),
+                keymap: host_keymap(),
+                last_command: None,
+            },
+            Theme::junie(),
+            160,
+            40,
+        )
+    }
+
+    fn open_options(h: &mut Harness<Host>) {
+        let options = PartRef::item(Part::ROW, ItemKey::index(4));
+        assert!(h.area_of_part(TOOLBAR, options).is_some());
+        let _ = h.click_part(TOOLBAR, options);
+        assert!(h.is_open(OPTIONS_DIALOG));
     }
 
     fn more_menu() -> Id {
@@ -1046,5 +1225,155 @@ mod tests {
         for h in [&run, &explain, &stop, &clear] {
             assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
         }
+    }
+
+    #[test]
+    fn page_option_adapter_preserves_sql_owner_and_countdown_for_noop_and_valid_changes() {
+        let mut h = native_harness();
+        assert!(h.tab_to(EDITOR_ID));
+        let _ = h.key_mod(KeyCode::Char('r'), KeyModifiers::CONTROL);
+        assert_eq!(
+            h.app().last_command,
+            Some((RUN_QUERY, true)),
+            "the host routes a real Ctrl+R command to the page"
+        );
+        assert_eq!(
+            h.app().page.run.as_ref().map(|run| run.remaining_ticks),
+            Some(6)
+        );
+        h.ticks(2);
+
+        let page = &h.app().page;
+        let original_sql = page.active_sql().map(str::to_owned);
+        let original_active = page.tabs.active();
+        let original_run = page
+            .run
+            .as_ref()
+            .map(|run| (run.owner, run.remaining_ticks));
+        assert_eq!(original_run.map(|(_, ticks)| ticks), Some(4));
+        let unchanged = format!("{page:?}");
+        for (key, value) in [
+            (options::ALLOW_NEW_KEY, 1),
+            (options::ALLOW_NEW_KEY, 2),
+            (options::CLOSE_REVEAL_KEY, 0),
+            (options::CLOSE_REVEAL_KEY, 2),
+            (options::READ_ONLY_KEY, 0),
+            (options::READ_ONLY_KEY, 2),
+            (options::RESULT_KEY, 0),
+            (options::RESULT_KEY, 4),
+            (options::ENVIRONMENT_KEY, 0),
+            (options::ENVIRONMENT_KEY, 4),
+            ("queryworkbench.unknown", 1),
+        ] {
+            Page::set_option(&mut h.app_mut().page, key, value);
+            assert_eq!(format!("{:?}", h.app().page), unchanged, "{key}={value}");
+            assert_eq!(h.app().page.active_sql(), original_sql.as_deref());
+            assert_eq!(h.app().page.tabs.active(), original_active);
+            assert_eq!(
+                h.app()
+                    .page
+                    .run
+                    .as_ref()
+                    .map(|run| (run.owner, run.remaining_ticks)),
+                original_run
+            );
+        }
+
+        for (key, value) in [
+            (options::ALLOW_NEW_KEY, 0),
+            (options::CLOSE_REVEAL_KEY, 1),
+            (options::READ_ONLY_KEY, 1),
+            (options::ENVIRONMENT_KEY, 1),
+            (options::RESULT_KEY, 1),
+            (options::RESULT_KEY, 2),
+            (options::RESULT_KEY, 3),
+            (options::RESULT_KEY, 0),
+        ] {
+            Page::set_option(&mut h.app_mut().page, key, value);
+            assert_eq!(Page::option_value(&h.app().page, key), Some(value), "{key}");
+            assert_eq!(h.app().page.active_sql(), original_sql.as_deref(), "{key}");
+            assert_eq!(h.app().page.tabs.active(), original_active, "{key}");
+            assert_eq!(
+                h.app()
+                    .page
+                    .run
+                    .as_ref()
+                    .map(|run| (run.owner, run.remaining_ticks)),
+                original_run,
+                "{key} does not replace the pending owner or advance its countdown"
+            );
+        }
+        assert!(
+            matches!(
+                h.app().page.active_result_state(),
+                Some(QueryResultState::Plan)
+            ),
+            "selecting Run preserves the active Plan fixture"
+        );
+        let _ = h.tick();
+        assert_eq!(
+            h.app().page.run.as_ref().map(|run| run.remaining_ticks),
+            Some(3),
+            "only a native Tick advances the countdown"
+        );
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+
+    #[test]
+    fn disabled_stale_new_action_does_not_consume_the_next_document_key() {
+        let mut page = QueryWorkbenchPage::new();
+        Page::set_option(&mut page, options::ALLOW_NEW_KEY, 0);
+        let next_document_id = page.next_document_id;
+        let document_count = page.documents.len();
+        let tab_state = page.tabs.clone();
+
+        assert!(page.apply_tabs_action(TabsAction::New).is_none());
+        assert_eq!(page.next_document_id, next_document_id);
+        assert_eq!(page.documents.len(), document_count);
+        assert_eq!(page.tabs, tab_state);
+
+        Page::set_option(&mut page, options::ALLOW_NEW_KEY, 1);
+        assert!(page.apply_tabs_action(TabsAction::New).is_some());
+        assert_eq!(page.next_document_id, next_document_id.saturating_add(1));
+        assert_eq!(page.document_count(), document_count.saturating_add(1));
+        assert_eq!(page.tabs.active(), Some(ItemKey::num(next_document_id)));
+    }
+
+    #[test]
+    fn read_only_input_preserves_the_exact_host_sql_after_keyboard_and_paste() {
+        let mut h = native_harness();
+        open_options(&mut h);
+        assert!(h.tab_to(OPTIONS_READ_ONLY_FIELD));
+        let _ = h.key(KeyCode::Char(' '));
+        let _ = h.key(KeyCode::Esc);
+
+        assert!(h.tab_to(EDITOR_ID));
+        let _ = h.type_str(" DROP");
+        let _ = h.paste(" UPDATE orders SET status = 'bad'");
+        assert_eq!(h.app().page.active_sql(), Some(FIRST_QUERY));
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+
+    #[test]
+    fn direct_run_command_is_rejected_while_the_native_options_layer_is_open() {
+        let mut h = native_harness();
+        open_options(&mut h);
+        assert_eq!(h.focus(), Some(OPTIONS_ALLOW_NEW_FIELD));
+        let _ = h.key_mod(KeyCode::Char('r'), KeyModifiers::CONTROL);
+        assert_eq!(
+            h.app().last_command,
+            Some((RUN_QUERY, false)),
+            "the real command reaches Page::command and is rejected by the open modal"
+        );
+        assert!(h.is_open(OPTIONS_DIALOG));
+        assert!(!h.app().page.is_running());
+        assert_eq!(
+            h.app().page.active_result_state(),
+            Some(&QueryResultState::Rows {
+                table: "orders".to_owned(),
+                count: 25,
+            })
+        );
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
 }

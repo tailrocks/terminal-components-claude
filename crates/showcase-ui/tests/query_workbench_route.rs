@@ -11,6 +11,14 @@ const HELP: Id = Id::root("showcase_ui::app::help");
 const HEADER_HELP: Id = Id::root("showcase_ui::app::header.help");
 const HEADER_INSPECT: Id = Id::root("showcase_ui::app::header.inspect");
 const INSPECTOR: Id = Id::root("showcase_ui::app::inspector");
+const OPTIONS: Id = Id::root("showcase_ui::pages::query_workbench.options");
+const OPTIONS_FORM: Id = OPTIONS.part(Part::BODY);
+const ALLOW_NEW: Id = OPTIONS_FORM.part(Part::FIELD).index(0);
+const CLOSE_REVEAL: Id = OPTIONS_FORM.part(Part::FIELD).index(1);
+const READ_ONLY: Id = OPTIONS_FORM.part(Part::FIELD).index(2);
+const RESULT_FIXTURE: Id = OPTIONS_FORM.part(Part::FIELD).index(3);
+const ENVIRONMENT: Id = OPTIONS_FORM.part(Part::FIELD).index(4);
+const CLOSE_OPTIONS: Id = OPTIONS_FORM.part(Part::ACTIONS).index(0);
 
 const RESULTS_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.results_panel");
 const ORDERS_SAMPLE_SUMMARY: &str = "25 rows from orders · simulated in 15 ms";
@@ -149,6 +157,31 @@ fn assert_orders_summary_visible(h: &Harness<App>, context: &str) {
     );
 }
 
+fn visible_line_text(h: &Harness<App>, area: Rect) -> String {
+    let mut visible = String::new();
+    for x in area.x..area.x.saturating_add(area.width) {
+        visible.push_str(h.cell(x, area.y).symbol());
+    }
+    visible.trim_end().to_owned()
+}
+
+fn assert_plan_fixture_visible(h: &Harness<App>, context: &str) {
+    let summary = query_workbench_summary_area(h);
+    assert_eq!(
+        visible_line_text(h, summary),
+        "Query plan · simulated in 2 ms",
+        "{context}: the Results summary identifies the Plan fixture in its published bounds"
+    );
+
+    let table = h
+        .area_of(RESULTS)
+        .expect("the Results table publishes its native bounds");
+    assert!(
+        find_ascii_in_rect(h, table, "Using index").is_some(),
+        "{context}: the exact visible Plan cell appears inside Results table {table:?}"
+    );
+}
+
 fn assert_orders_summary_fully_visible(h: &Harness<App>, context: &str) {
     let summary = query_workbench_summary_area(h);
     let full_width = termrock::text::width(ORDERS_SAMPLE_SUMMARY);
@@ -205,6 +238,63 @@ fn click_new_tab(h: &mut Harness<App>) {
 
 fn press_ctrl_r(h: &mut Harness<App>) {
     let _ = h.key_mod(KeyCode::Char('r'), KeyModifiers::CONTROL);
+}
+
+fn click_toolbar_options(h: &mut Harness<App>) {
+    let options = PartRef::item(Part::ROW, ItemKey::index(4));
+    assert!(h.area_of_part(TOOLBAR, options).is_some());
+    let _ = h.click_part(TOOLBAR, options);
+    assert!(h.is_open(OPTIONS));
+}
+
+fn choose_select_index(h: &mut Harness<App>, id: Id, down: usize) {
+    assert!(
+        h.tab_to(id),
+        "select {id:?} is reachable in the Options dialog"
+    );
+    let _ = h.key(KeyCode::Enter);
+    for _ in 0..down {
+        let _ = h.key(KeyCode::Down);
+    }
+    let _ = h.key(KeyCode::Enter);
+}
+
+fn choose_select_last(h: &mut Harness<App>, id: Id) {
+    assert!(
+        h.tab_to(id),
+        "select {id:?} is reachable in the Options dialog"
+    );
+    let _ = h.key(KeyCode::Enter);
+    let _ = h.key(KeyCode::End);
+    let _ = h.key(KeyCode::Enter);
+}
+
+fn assert_environment_status(h: &Harness<App>, label: &str, expected_fg: termrock::Color) {
+    assert!(
+        h.text().contains(label),
+        "the selected label is fully visible"
+    );
+    let (x, y) = h.find(label).expect("selected environment is visible");
+    let toolbar = h.area_of(TOOLBAR).expect("toolbar publishes its bounds");
+    assert_eq!(
+        y,
+        toolbar.y.saturating_sub(3),
+        "environment status occupies the page header row"
+    );
+    let header_left = toolbar
+        .x
+        .saturating_add(termrock::width("Query workbench"))
+        .saturating_add(2);
+    let header_right = toolbar.x.saturating_add(toolbar.width);
+    assert!(
+        x >= header_left && x.saturating_add(termrock::width(label)) <= header_right,
+        "the complete environment label fits inside the header status bounds"
+    );
+    assert_eq!(
+        h.cell(x, y).fg,
+        expected_fg,
+        "{label} has semantic status ink"
+    );
 }
 
 fn assert_enter_activates_clear(h: &mut Harness<App>, context: &str) {
@@ -460,7 +550,16 @@ fn toolbar_enter_hint_matches_the_selected_command_after_plan_stop_and_clear() {
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 
     let _ = h.key(KeyCode::End);
-    assert_enter_activates_clear(&mut h, "after a plan and stopped run");
+    let options = h
+        .area_of_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(4)))
+        .expect("Options is the last native toolbar row");
+    assert_eq!(
+        h.cell(options.x, options.y).symbol(),
+        "▎",
+        "End follows native toolbar order and focuses Options"
+    );
+    let _ = h.key(KeyCode::Left);
+    assert_enter_activates_clear(&mut h, "after End then Left from Options");
     assert!(
         h.text().contains("Query plan · simulated in 2 ms"),
         "native Clear preserves the last completed plan\n{}",
@@ -860,4 +959,353 @@ fn query_workbench_native_editor_exit_keys_preserve_visible_query_line_coordinat
     );
     assert_no_diagnostics(&h, "Tab from committed Editor to Results");
     assert_visible_query_unchanged(&h);
+}
+
+#[test]
+fn options_dialog_has_the_historical_defaults_and_restores_native_focus() {
+    let mut h = harness();
+    click_toolbar_options(&mut h);
+    assert_eq!(h.focus(), Some(ALLOW_NEW));
+    assert!(h.text().contains("Allow new query tabs"));
+    assert!(h.text().contains("Read-only SQL input"));
+    assert!(h.text().contains("always"));
+    assert!(h.text().contains("run"));
+    assert!(h.text().contains("production"));
+    assert!(h.text().contains("Sample environments"));
+
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.is_open(OPTIONS), "Enter never submits or closes the form");
+    let _ = h.click_id(CLOSE_OPTIONS);
+    assert!(!h.is_open(OPTIONS));
+    assert_eq!(h.focus(), Some(TOOLBAR), "Close restores toolbar focus");
+
+    let _ = h.key(KeyCode::Enter);
+    assert!(
+        h.is_open(OPTIONS),
+        "keyboard Enter reopens the selected Options item"
+    );
+    let _ = h.key(KeyCode::Esc);
+    assert!(!h.is_open(OPTIONS));
+    assert_eq!(h.focus(), Some(TOOLBAR), "Escape restores toolbar focus");
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn escape_closes_the_native_select_before_options_and_restores_focus() {
+    let mut h = harness();
+    click_toolbar_options(&mut h);
+    assert!(h.tab_to(CLOSE_REVEAL));
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.is_open(CLOSE_REVEAL), "Enter opens the native Select");
+    assert!(h.is_open(OPTIONS));
+
+    let _ = h.key(KeyCode::Esc);
+    assert!(!h.is_open(CLOSE_REVEAL), "first Escape closes only Select");
+    assert!(
+        h.is_open(OPTIONS),
+        "Options remains open after Select dismisses"
+    );
+    assert_eq!(h.focus(), Some(CLOSE_REVEAL), "focus returns to Select");
+
+    let _ = h.key(KeyCode::Esc);
+    assert!(!h.is_open(OPTIONS), "second Escape closes Options");
+    assert_eq!(h.focus(), Some(TOOLBAR), "focus restores to the toolbar");
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn options_dialog_changes_each_functional_field_and_closes_without_rollback() {
+    let mut h = Harness::new(
+        App::for_page_name("queryworkbench"),
+        Theme::junie(),
+        160,
+        40,
+    );
+    click_toolbar_options(&mut h);
+
+    assert!(h.tab_to(ALLOW_NEW));
+    let _ = h.key(KeyCode::Char(' '));
+    choose_select_index(&mut h, CLOSE_REVEAL, 1);
+    assert!(h.text().contains("hover"));
+
+    assert!(h.tab_to(READ_ONLY));
+    let _ = h.key(KeyCode::Char(' '));
+    choose_select_last(&mut h, RESULT_FIXTURE);
+    assert!(h.text().contains("plan"));
+    choose_select_index(&mut h, ENVIRONMENT, 2);
+    assert!(h.text().contains("development"));
+
+    let _ = h.click_id(CLOSE_OPTIONS);
+    assert!(!h.is_open(OPTIONS));
+    assert_plan_fixture_visible(&h, "Options-selected Plan fixture");
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+
+    click_toolbar_options(&mut h);
+    assert!(h.text().contains("hover"));
+    assert!(h.text().contains("development"));
+    let _ = h.key(KeyCode::Esc);
+    assert!(!h.is_open(OPTIONS));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn result_fixture_choices_apply_once_and_run_selection_preserves_the_current_result() {
+    let mut h = Harness::new(
+        App::for_page_name("queryworkbench"),
+        Theme::junie(),
+        160,
+        40,
+    );
+    click_toolbar_options(&mut h);
+    choose_select_index(&mut h, RESULT_FIXTURE, 1);
+    let _ = h.key(KeyCode::Esc);
+    assert!(h.text().contains("Enter SQL, then choose Run."));
+
+    click_toolbar_options(&mut h);
+    choose_select_index(&mut h, RESULT_FIXTURE, 1);
+    let _ = h.key(KeyCode::Esc);
+    assert!(h.text().contains("relation \"ordrs\" does not exist"));
+
+    click_toolbar_options(&mut h);
+    choose_select_index(&mut h, RESULT_FIXTURE, 1);
+    let _ = h.key(KeyCode::Esc);
+    assert_plan_fixture_visible(&h, "selected Plan fixture");
+
+    click_toolbar_options(&mut h);
+    assert!(h.tab_to(RESULT_FIXTURE));
+    let _ = h.key(KeyCode::Enter);
+    let _ = h.key(KeyCode::Home);
+    let _ = h.key(KeyCode::Enter);
+    let _ = h.key(KeyCode::Esc);
+    assert_plan_fixture_visible(&h, "selecting Run preserves the current Plan fixture");
+    assert!(!h.text().contains("Running query ·"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn options_modal_keeps_run_owner_busy_and_ticks_while_fixtures_are_changed() {
+    let mut h = Harness::new(
+        App::for_page_name("queryworkbench"),
+        Theme::junie(),
+        160,
+        40,
+    );
+    assert!(h.tab_to(EDITOR));
+    press_ctrl_r(&mut h);
+    let _ = h.tick();
+    let _ = h.tick();
+    assert!(
+        h.text()
+            .contains("Running query · 4 native ticks remaining")
+    );
+    click_tab(&mut h, customers_key());
+
+    click_toolbar_options(&mut h);
+    press_ctrl_r(&mut h);
+    assert!(
+        h.text()
+            .contains("Running query · 4 native ticks remaining")
+    );
+    choose_select_last(&mut h, RESULT_FIXTURE);
+    assert!(
+        h.text()
+            .contains("Running query · 4 native ticks remaining")
+    );
+    let _ = h.tick();
+    assert!(
+        h.text()
+            .contains("Running query · 3 native ticks remaining")
+    );
+    for _ in 0..3 {
+        let _ = h.tick();
+    }
+    assert!(
+        h.is_open(OPTIONS),
+        "the modal stays open through completion"
+    );
+    assert!(!h.text().contains("Running query ·"));
+    let _ = h.key(KeyCode::Esc);
+
+    click_tab(&mut h, orders_key());
+    assert!(h.text().contains("25 rows from orders"));
+    click_tab(&mut h, customers_key());
+    assert_plan_fixture_visible(&h, "non-owner Plan fixture survives the Orders completion");
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn a_fixture_on_the_run_owner_loses_to_that_runs_completion() {
+    let mut h = Harness::new(
+        App::for_page_name("queryworkbench"),
+        Theme::junie(),
+        160,
+        40,
+    );
+    assert!(h.tab_to(EDITOR));
+    press_ctrl_r(&mut h);
+    click_toolbar_options(&mut h);
+    choose_select_last(&mut h, RESULT_FIXTURE);
+    assert!(
+        h.text()
+            .contains("Running query · 6 native ticks remaining")
+    );
+    h.ticks(6);
+    assert!(h.is_open(OPTIONS));
+    let _ = h.key(KeyCode::Esc);
+    assert!(h.text().contains("25 rows from orders"));
+    let table = h
+        .area_of(RESULTS)
+        .expect("the Results table publishes its native bounds");
+    assert!(
+        find_ascii_in_rect(&h, table, "Using index").is_none(),
+        "the completed owner result replaced the temporary Plan fixture"
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn read_only_blocks_editor_input_but_keeps_run_and_clear_available() {
+    let mut h = Harness::new(
+        App::for_page_name("queryworkbench"),
+        Theme::junie(),
+        160,
+        40,
+    );
+    click_toolbar_options(&mut h);
+    assert!(h.tab_to(READ_ONLY));
+    let _ = h.key(KeyCode::Char(' '));
+    let _ = h.key(KeyCode::Esc);
+
+    let editor_text = h
+        .area_of_part(EDITOR, PartRef::of(Part::TEXT))
+        .expect("the native editor publishes its text bounds");
+    let full_select_width = termrock::width("SELECT id, customer, status, total, created_at");
+    assert!(
+        editor_text.width >= full_select_width,
+        "160x40 editor text width {} exposes the full {full_select_width}-cell SQL line",
+        editor_text.width
+    );
+
+    assert!(h.tab_to(EDITOR));
+    assert_eq!(
+        h.focus(),
+        Some(EDITOR),
+        "native Editor focus receives typing"
+    );
+    let _ = h.type_str(" DROP");
+    assert_eq!(
+        h.focus(),
+        Some(EDITOR),
+        "native Editor focus receives paste"
+    );
+    let _ = h.paste(" UPDATE orders SET status = 'bad'");
+    assert!(
+        h.text()
+            .contains("SELECT id, customer, status, total, created_at")
+    );
+    assert!(!h.text().contains("DROP"));
+    assert!(!h.text().contains("UPDATE orders"));
+
+    assert_eq!(
+        h.focus(),
+        Some(EDITOR),
+        "native Editor focus receives Ctrl+R"
+    );
+    press_ctrl_r(&mut h);
+    assert!(
+        h.text()
+            .contains("Running query · 6 native ticks remaining")
+    );
+    let _ = h.click_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(2)));
+    assert!(h.text().contains("Run stopped."));
+    let _ = h.click_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(3)));
+    assert!(h.text().contains("Editor and saved query cleared."));
+    assert!(!h.text().contains("SELECT id, customer"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn options_remain_reachable_without_documents_and_allow_new_can_be_reenabled() {
+    let mut h = harness();
+    click_close(&mut h, orders_key());
+    click_close(&mut h, customers_key());
+    assert!(h.text().contains("No query is open."));
+
+    click_toolbar_options(&mut h);
+    assert!(h.tab_to(ALLOW_NEW));
+    let _ = h.key(KeyCode::Char(' '));
+    let _ = h.key(KeyCode::Esc);
+    assert!(h.area_of_part(TABS, PartRef::of(Part::NEW)).is_none());
+
+    click_toolbar_options(&mut h);
+    assert!(h.tab_to(ALLOW_NEW));
+    let _ = h.key(KeyCode::Char(' '));
+    let _ = h.key(KeyCode::Esc);
+    click_new_tab(&mut h);
+    assert!(h.text().contains("Query 2"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn selected_environment_uses_semantic_status_ink_and_keeps_all_sample_labels() {
+    let mut h = Harness::new(
+        App::for_page_name("queryworkbench"),
+        Theme::junie(),
+        160,
+        40,
+    );
+    click_toolbar_options(&mut h);
+    for label in [
+        "Production: sample data only",
+        "Staging: sample data only",
+        "Development: sample data only",
+        "Local: sample data only",
+    ] {
+        assert!(h.text().contains(label), "the dialog explains {label}");
+    }
+    let theme = Theme::junie();
+    assert!(h.text().contains("Sample labels only"));
+    let environments = [
+        ("Production: sample data only", theme.color.danger),
+        ("Staging: sample data only", theme.color.warning),
+        ("Development: sample data only", theme.color.info),
+        (
+            "Local: sample data only",
+            theme.color.fg[termrock::FgStep::Muted.index()],
+        ),
+    ];
+    for (index, (label, color)) in environments.into_iter().enumerate() {
+        if index == 0 {
+            let _ = h.key(KeyCode::Esc);
+        } else {
+            click_toolbar_options(&mut h);
+            assert!(h.tab_to(ENVIRONMENT));
+            let _ = h.key(KeyCode::Enter);
+            let _ = h.key(KeyCode::Down);
+            let _ = h.key(KeyCode::Enter);
+            let _ = h.key(KeyCode::Esc);
+        }
+        assert_environment_status(&h, label, color);
+    }
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn options_modal_has_no_native_diagnostics_at_supported_viewport_sizes() {
+    for (width, height) in [(120, 40), (80, 24), (72, 20)] {
+        let mut h = Harness::new(
+            App::for_page_name("queryworkbench"),
+            Theme::junie(),
+            width,
+            height,
+        );
+        click_toolbar_options(&mut h);
+        assert!(h.is_open(OPTIONS));
+        let _ = h.key(KeyCode::Esc);
+        assert!(
+            h.diagnostics().is_empty(),
+            "{width}x{height}: {:?}",
+            h.diagnostics()
+        );
+    }
 }
