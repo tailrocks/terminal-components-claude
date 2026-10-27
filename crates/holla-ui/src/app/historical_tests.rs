@@ -3266,12 +3266,131 @@ mod root_100_nonoverflow_port_owner {
     use crate::domain::action::{Action, ActionKind, Availability, Risk};
     use crate::sim::world::World;
     use ratatui::{buffer::Buffer, layout::Rect, style::Modifier};
-    use termrock::{Family, StateFlags, Variant};
+    use termrock::{Family, FgStep, StateFlags, Variant};
     use termrock_test_support::Scene;
 
     const FRAME_MS: u64 = 4_000;
     const EXPECTED_KEY: &str = "monorepo-root 100 30 junie truecolor";
     const PORT_ID: &str = "system.port";
+    const ACTIVITIES_FAINT_POSITIONS: [(u16, u16); 23] = [
+        (34, 1),
+        (35, 1),
+        (36, 1),
+        (37, 1),
+        (38, 1),
+        (39, 1),
+        (40, 1),
+        (41, 1),
+        (42, 1),
+        (43, 1),
+        (44, 1),
+        (45, 1),
+        (46, 1),
+        (47, 1),
+        (48, 1),
+        (49, 1),
+        (50, 1),
+        (66, 1),
+        (67, 1),
+        (68, 1),
+        (69, 1),
+        (70, 1),
+        (71, 1),
+    ];
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum OwnerReplay {
+        Ordinary,
+        JunieAnsi16Faint,
+    }
+
+    fn faint_replay_mismatch(normal: &Buffer, replay: &Buffer) -> Vec<String> {
+        let mut errors = Vec::new();
+        if normal.area() != replay.area() {
+            errors.push("normal/replay frame areas differ".to_owned());
+        }
+        let mut unique_positions = ACTIVITIES_FAINT_POSITIONS.to_vec();
+        unique_positions.sort_unstable();
+        unique_positions.dedup();
+        if unique_positions.len() != ACTIVITIES_FAINT_POSITIONS.len() {
+            errors.push("faint allowlist coordinates are not unique".to_owned());
+        }
+        for &(x, y) in &ACTIVITIES_FAINT_POSITIONS {
+            if normal.cell((x, y)).is_none() || replay.cell((x, y)).is_none() {
+                errors.push(format!("faint allowlist cell ({x}, {y}) is absent"));
+            }
+        }
+        let area = *normal.area();
+        for y in area.y..area.y.saturating_add(area.height) {
+            for x in area.x..area.x.saturating_add(area.width) {
+                let position = (x, y);
+                match (normal.cell(position), replay.cell(position)) {
+                    (Some(normal_cell), Some(replay_cell))
+                        if ACTIVITIES_FAINT_POSITIONS.contains(&position) =>
+                    {
+                        if normal_cell.fg != Color::Gray {
+                            errors
+                                .push(format!("normal faint foreground at ({x}, {y}) is not Gray"));
+                        }
+                        if normal_cell.bg != Color::Black {
+                            errors.push(format!(
+                                "normal faint background at ({x}, {y}) is not Black"
+                            ));
+                        }
+                        let mut expected_cell = normal_cell.clone();
+                        expected_cell.fg = Color::DarkGray;
+                        if replay_cell != &expected_cell {
+                            errors
+                                .push(format!("allowlisted faint full Cell differs at ({x}, {y})"));
+                        }
+                    }
+                    (Some(normal_cell), Some(replay_cell)) if normal_cell != replay_cell => {
+                        errors.push(format!(
+                            "outside faint allowlist full Cell differs at ({x}, {y})"
+                        ));
+                    }
+                    (Some(_), Some(_)) => {}
+                    _ => errors.push(format!("normal/replay Cell at ({x}, {y}) is absent")),
+                }
+            }
+        }
+        errors
+    }
+
+    fn assert_faint_replay_corruptions_rejected(normal: &Buffer, replay: &Buffer, label: &str) {
+        let mut wrong_foreground = replay.clone();
+        if let Some(cell) = wrong_foreground.cell_mut(ACTIVITIES_FAINT_POSITIONS[0]) {
+            cell.fg = Color::Blue;
+        }
+        assert!(
+            faint_replay_mismatch(normal, &wrong_foreground)
+                .iter()
+                .any(|error| error.contains("allowlisted faint full Cell differs")),
+            "{label} wrong foreground at allowed coordinate is rejected"
+        );
+
+        let mut wrong_nonforeground = replay.clone();
+        if let Some(cell) = wrong_nonforeground.cell_mut(ACTIVITIES_FAINT_POSITIONS[0]) {
+            cell.bg = Color::Red;
+        }
+        assert!(
+            faint_replay_mismatch(normal, &wrong_nonforeground)
+                .iter()
+                .any(|error| error.contains("allowlisted faint full Cell differs")),
+            "{label} nonforeground change at allowed coordinate is rejected"
+        );
+
+        let mut outside_allowlist = replay.clone();
+        if let Some(cell) = outside_allowlist.cell_mut((0, 0)) {
+            cell.set_symbol("X");
+        }
+        assert!(
+            faint_replay_mismatch(normal, &outside_allowlist)
+                .iter()
+                .any(|error| error.contains("outside faint allowlist full Cell differs")),
+            "{label} change outside faint allowlist is rejected"
+        );
+    }
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum OwnerViewport {
@@ -3466,6 +3585,18 @@ mod root_100_nonoverflow_port_owner {
             "all Activities product keys are admitted"
         );
         let faint_cases = excluded_activities_faint_cases();
+        assert_eq!(
+            faint_cases
+                .iter()
+                .map(|case| case.key())
+                .collect::<Vec<_>>(),
+            vec![
+                "activities-multi 100 30 junie 16".to_owned(),
+                "activities-multi 120 40 junie 16".to_owned(),
+                "activities-multi 160 50 junie 16".to_owned(),
+            ],
+            "the faint owner keys are exact and ordered"
+        );
         let all_faint_axis_cases: Vec<_> = all_cases
             .iter()
             .copied()
@@ -3524,7 +3655,31 @@ mod root_100_nonoverflow_port_owner {
                 let key = case.key();
                 !faint_keys.contains(&key)
             }),
-            "Activities keys are disjoint from all three excluded faint keys"
+            "ordinary Activities keys are disjoint from all three faint keys"
+        );
+        let mut combined = cases.clone();
+        combined.extend(faint_cases);
+        assert_eq!(
+            combined.len(),
+            24,
+            "ordinary and faint owners cover 24 keys"
+        );
+        let mut combined_keys: Vec<_> = combined.iter().map(|case| case.key()).collect();
+        combined_keys.sort();
+        combined_keys.dedup();
+        assert_eq!(
+            combined_keys.len(),
+            24,
+            "ordinary and faint keys are unique"
+        );
+        let mut all_keys: Vec<_> = all_owner_cases(Scenario::ActivitiesMulti)
+            .iter()
+            .map(|case| case.key())
+            .collect();
+        all_keys.sort();
+        assert_eq!(
+            combined_keys, all_keys,
+            "ordinary plus faint union is Activities24"
         );
         cases
     }
@@ -3772,19 +3927,25 @@ mod root_100_nonoverflow_port_owner {
         .with_color(case.color)
     }
 
+    #[derive(Clone, Copy)]
+    struct ExpectedArmControls<'a> {
+        cwd: &'a str,
+        runtime_theme: &'a Theme,
+    }
+
     fn assert_arm_controls(
         harness: &Harness<App>,
         expected_memory: &crate::domain::ranking::Memory,
         rows: &[(String, String)],
         tokens: &[VisualToken],
+        expected: ExpectedArmControls<'_>,
         case: OwnerCase,
         label: &str,
     ) {
         let source_theme = case.source_theme.theme();
-        let expected_runtime_theme = source_theme.for_level(case.color);
         assert_eq!(
             harness.runtime().theme(),
-            &expected_runtime_theme,
+            expected.runtime_theme,
             "{label} runtime theme"
         );
         assert_eq!(
@@ -3800,6 +3961,11 @@ mod root_100_nonoverflow_port_owner {
             harness.app().world.scenario,
             case.scenario,
             "{label} scenario"
+        );
+        assert_eq!(
+            harness.app().world.cwd.as_str(),
+            expected.cwd,
+            "{label} raw cwd"
         );
         assert_eq!(
             harness.app().world.clock.now_ms,
@@ -4291,7 +4457,14 @@ mod root_100_nonoverflow_port_owner {
         );
     }
 
-    fn run_owner_case(case: OwnerCase, check_root100_negative_controls: bool) {
+    fn run_owner_case(case: OwnerCase, check_root100_negative_controls: bool, replay: OwnerReplay) {
+        assert_eq!(
+            replay == OwnerReplay::JunieAnsi16Faint,
+            case.scenario == Scenario::ActivitiesMulti
+                && case.source_theme == OwnerSourceTheme::Junie
+                && case.color == ColorLevel::Ansi16,
+            "only the exact excluded Junie Ansi16 Activities keys use faint replay"
+        );
         let mut world_a = crate::sim::fixtures::world_for(case.scenario);
         let mut world_b = crate::sim::fixtures::world_for(case.scenario);
         world_a.seek(FRAME_MS);
@@ -4307,6 +4480,8 @@ mod root_100_nonoverflow_port_owner {
         assert!(world_a.clock.running, "A pre-App seek leaves clock running");
         assert!(world_b.clock.running, "B pre-App seek leaves clock running");
         assert_eq!(world_a.memory, world_b.memory, "pre-App Memory equality");
+        let raw_cwd = world_a.cwd.clone();
+        assert_eq!(world_b.cwd, raw_cwd, "pre-App raw cwd equality");
 
         let raw_a = crate::sim::catalogue::catalogue(&world_a);
         let raw_b = crate::sim::catalogue::catalogue(&world_b);
@@ -4443,8 +4618,41 @@ mod root_100_nonoverflow_port_owner {
                 "non-Root A/B preserve fixture-derived selected action identity"
             );
         }
-        assert_arm_controls(&harness_a, &memory_a, &rows_a, &tokens_a, case, "A");
-        assert_arm_controls(&harness_b, &memory_b, &rows_b, &tokens_b, case, "B");
+        let normal_runtime_theme = case.source_theme.theme().for_level(case.color);
+        assert_arm_controls(
+            &harness_a,
+            &memory_a,
+            &rows_a,
+            &tokens_a,
+            ExpectedArmControls {
+                cwd: raw_cwd.as_str(),
+                runtime_theme: &normal_runtime_theme,
+            },
+            case,
+            "A normal",
+        );
+        assert_arm_controls(
+            &harness_b,
+            &memory_b,
+            &rows_b,
+            &tokens_b,
+            ExpectedArmControls {
+                cwd: raw_cwd.as_str(),
+                runtime_theme: &normal_runtime_theme,
+            },
+            case,
+            "B normal",
+        );
+        assert_eq!(
+            crate::sim::catalogue::catalogue(&harness_a.app().world),
+            raw_a,
+            "A normal raw catalogue/order"
+        );
+        assert_eq!(
+            crate::sim::catalogue::catalogue(&harness_b.app().world),
+            raw_a,
+            "B normal raw catalogue/order remains after the actual Memory Pin"
+        );
         assert_eq!(
             harness_a.area_of_part(
                 crate::screens::home::ROWS,
@@ -4464,6 +4672,11 @@ mod root_100_nonoverflow_port_owner {
         );
 
         let runtime_theme = harness_a.runtime().theme().clone();
+        assert_eq!(
+            harness_b.runtime().theme(),
+            &runtime_theme,
+            "normal A/B runtime themes are identical"
+        );
         let port_paint = paint_port_scratch(
             &port_action,
             columns_a,
@@ -4509,34 +4722,216 @@ mod root_100_nonoverflow_port_owner {
             );
         }
 
-        let held = harness_b.snapshot().named(case.scenario.name());
-        assert_eq!(held.key(), case.key(), "exact named held baseline key");
-        held.assert_against(&BORDER_BASELINE);
+        match replay {
+            OwnerReplay::Ordinary => {
+                let held = harness_b.snapshot().named(case.scenario.name());
+                assert_eq!(held.key(), case.key(), "exact named held baseline key");
+                held.assert_against(&BORDER_BASELINE);
+            }
+            OwnerReplay::JunieAnsi16Faint => {
+                let normal_a = harness_a.buffer().clone();
+                let normal_b = harness_b.buffer().clone();
+                let cursor_a_before = harness_a.cursor();
+                let cursor_b_before = harness_b.cursor();
+                let now_a_before = harness_a.now();
+                let now_b_before = harness_b.now();
+                assert_eq!(normal_a.area(), normal_b.area(), "normal A/B frame areas");
+                assert_eq!(
+                    cursor_a_before,
+                    Some(Position::new(3, 4)),
+                    "normal A query cursor before replay"
+                );
+                assert_eq!(
+                    cursor_b_before,
+                    Some(Position::new(3, 4)),
+                    "normal B query cursor before replay"
+                );
+
+                let mut replay_theme_a = harness_a.runtime().theme().clone();
+                replay_theme_a.color.fg[FgStep::Faint.index()] = Color::DarkGray;
+                let mut replay_theme_b = harness_b.runtime().theme().clone();
+                replay_theme_b.color.fg[FgStep::Faint.index()] = Color::DarkGray;
+                let mut expected_replay_theme = normal_runtime_theme.clone();
+                expected_replay_theme.color.fg[FgStep::Faint.index()] = Color::DarkGray;
+                assert_eq!(
+                    replay_theme_a, expected_replay_theme,
+                    "A replay changes only Junie ANSI16 Faint foreground"
+                );
+                assert_eq!(
+                    replay_theme_b, expected_replay_theme,
+                    "B replay changes only Junie ANSI16 Faint foreground"
+                );
+                assert_eq!(
+                    replay_theme_a.downgrade(case.color),
+                    replay_theme_a,
+                    "A replay downgrade is idempotent at ANSI16"
+                );
+                assert_eq!(
+                    replay_theme_b.downgrade(case.color),
+                    replay_theme_b,
+                    "B replay downgrade is idempotent at ANSI16"
+                );
+
+                harness_a.runtime_mut().set_theme(replay_theme_a.clone());
+                harness_a.draw();
+                harness_b.runtime_mut().set_theme(replay_theme_b.clone());
+                harness_b.draw();
+                let replay_a = harness_a.buffer().clone();
+                let replay_b = harness_b.buffer().clone();
+                assert_eq!(
+                    replay_a.area(),
+                    normal_a.area(),
+                    "A replay preserves frame area"
+                );
+                assert_eq!(
+                    replay_b.area(),
+                    normal_b.area(),
+                    "B replay preserves frame area"
+                );
+                assert_eq!(
+                    harness_a.cursor(),
+                    cursor_a_before,
+                    "A replay preserves cursor"
+                );
+                assert_eq!(
+                    harness_b.cursor(),
+                    cursor_b_before,
+                    "B replay preserves cursor"
+                );
+                assert_eq!(harness_a.cursor(), Some(Position::new(3, 4)));
+                assert_eq!(harness_b.cursor(), Some(Position::new(3, 4)));
+                assert_eq!(harness_a.now(), now_a_before, "A replay preserves clock");
+                assert_eq!(harness_b.now(), now_b_before, "B replay preserves clock");
+
+                for (label, normal, replay_frame) in
+                    [("A", &normal_a, &replay_a), ("B", &normal_b, &replay_b)]
+                {
+                    let errors = faint_replay_mismatch(normal, replay_frame);
+                    assert!(
+                        errors.is_empty(),
+                        "{label} faint replay escaped exact foreground-only allowlist: {errors:?}"
+                    );
+                    assert_faint_replay_corruptions_rejected(normal, replay_frame, label);
+                }
+                assert_eq!(
+                    harness_a.runtime().theme(),
+                    &replay_theme_a,
+                    "A exact runtime replay theme"
+                );
+                assert_eq!(
+                    harness_b.runtime().theme(),
+                    &replay_theme_b,
+                    "B exact runtime replay theme"
+                );
+                assert_eq!(
+                    harness_a.runtime().theme(),
+                    harness_b.runtime().theme(),
+                    "A/B replay themes are identical"
+                );
+                assert_arm_controls(
+                    &harness_a,
+                    &memory_a,
+                    &rows_a,
+                    &tokens_a,
+                    ExpectedArmControls {
+                        cwd: raw_cwd.as_str(),
+                        runtime_theme: &replay_theme_a,
+                    },
+                    case,
+                    "A replay",
+                );
+                assert_arm_controls(
+                    &harness_b,
+                    &memory_b,
+                    &rows_b,
+                    &tokens_b,
+                    ExpectedArmControls {
+                        cwd: raw_cwd.as_str(),
+                        runtime_theme: &replay_theme_b,
+                    },
+                    case,
+                    "B replay",
+                );
+                assert_eq!(
+                    crate::sim::catalogue::catalogue(&harness_a.app().world),
+                    raw_a,
+                    "A replay preserves raw catalogue/order"
+                );
+                assert_eq!(
+                    crate::sim::catalogue::catalogue(&harness_b.app().world),
+                    raw_a,
+                    "B replay preserves raw catalogue/order"
+                );
+
+                let replay_port_paint = paint_port_scratch(
+                    &port_action,
+                    columns_a,
+                    port_row,
+                    replay_theme_a.clone(),
+                    case,
+                );
+                let replay_blank_paint =
+                    paint_blank_scratch(blank_suffix, replay_theme_a.clone(), case);
+                let replay_contract = FrameContract {
+                    frame_area: case.viewport.frame_area(),
+                    rows_area,
+                    tokens_a: &tokens_a,
+                    tokens_b: &tokens_b,
+                    port_row,
+                    blank_suffix,
+                    common_blank_suffix,
+                    port_paint: &replay_port_paint,
+                    blank_paint: &replay_blank_paint,
+                };
+                let replay_errors =
+                    frame_contract_errors(harness_a.buffer(), harness_b.buffer(), &replay_contract);
+                assert!(
+                    replay_errors.is_empty(),
+                    "{} replay held-owner locality errors: {replay_errors:?}",
+                    case.key()
+                );
+
+                let held = harness_b.snapshot().named(case.scenario.name());
+                assert_eq!(held.key(), case.key(), "exact replay B held baseline key");
+                held.assert_against(&BORDER_BASELINE);
+            }
+        }
     }
 
     #[test]
     fn monorepo_root_100_junie_truecolor_port_hide_preserves_held_nonoverflow_frame() {
-        run_owner_case(OwnerCase::ROOT100_JUNIE_TRUECOLOR, true);
+        run_owner_case(
+            OwnerCase::ROOT100_JUNIE_TRUECOLOR,
+            true,
+            OwnerReplay::Ordinary,
+        );
     }
 
     #[test]
     fn monorepo_root_remaining_23_nonoverflow_port_hide_preserves_held_frames() {
         for case in remaining_root_cases() {
-            run_owner_case(case, false);
+            run_owner_case(case, false, OwnerReplay::Ordinary);
         }
     }
 
     #[test]
     fn monorepo_child_remaining_24_nonoverflow_port_hide_preserves_held_frames() {
         for case in remaining_child_cases() {
-            run_owner_case(case, false);
+            run_owner_case(case, false, OwnerReplay::Ordinary);
         }
     }
 
     #[test]
     fn activities_multi_remaining_21_nonoverflow_port_hide_preserves_held_frames() {
         for case in remaining_activities_cases() {
-            run_owner_case(case, false);
+            run_owner_case(case, false, OwnerReplay::Ordinary);
+        }
+    }
+
+    #[test]
+    fn activities_multi_junie_ansi16_faint_replay_preserves_held_frames() {
+        for case in excluded_activities_faint_cases() {
+            run_owner_case(case, false, OwnerReplay::JunieAnsi16Faint);
         }
     }
 }
