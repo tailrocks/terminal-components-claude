@@ -1541,3 +1541,76 @@ Receipts are stored outside this worktree at:
   (SHA-256 `832f1d4c7c86b15e65df95dde9c7fdccbbac0622bc97dcf6b5b716ba229e29b1`).
 - `/Users/donbeave/Projects/termrock-review-20261021-1536-9plajc9k/resource-guard-global-verification-20261022.json`
   (SHA-256 `c018253e6609e54d5b629c5096115291fd1c8b9814efdffd93dcb7a007ecee95`).
+
+### PR #38 cleanup, retained comments, and current validation (2026-10-28)
+
+The cleanup commits are `119d608c62d0b0530a588bd87cb742d8ae7e9742` (parent
+`573a595e97451646cdd910ec392274c6a425f23b`) and comment-group correction
+`ff1bdaff6b7c2e04766fb0aaadca55df4f325120`; the cleanup line was merged by
+`078ecf638b6811ce2a169110eedb107021b5988d`. A prior AST-assisted report stated that a comparison
+of 351 modified Rust files found only comment, `cfg(test)`/`testing` test-only, and non-literal
+whitespace changes, with no retained-production token differences. The parser output, file
+inventory, and token-comparison witness are not retained here. Treat that finding as an
+unverified prior report, not established source proof; it is not runtime acceptance.
+
+Three later commits repaired cleanup regressions without restoring the removed test suite:
+`e6d7ae08152e749d508f409f51adf659e160b6ba` updated the Forms examples,
+`d89a9237c289573e7bf0fa65688db4f69bc40d99` restored Shell example development dependencies,
+and `6717d83557897d4888532fb0f549f4d6fb2d1266` removed a stale `cfg(not(test))` from
+`HintBar::derived_flags`. The Forms and Shell publication receipts bind those commits
+([Forms](</private/tmp/pr38-form-examples-runtime-api-publication-20261028/push-receipt.json>),
+SHA-256 `e9d6ca70700cb2ba11b850bd2a2bf74f690f608e5a6b464b1b96e6834efadfbe`);
+[Shell](</private/tmp/pr38-shell-dependency-publication-20261028-d89a923/push-receipt.json>),
+SHA-256 `da51b8cd8e37ff579add6c25090355b016c0bb16ce2582ddb12bb37dc00d4a9d`). These receipts
+prove publication, not gate execution, so this entry does not assert Forms or Shell gate results.
+The HintBar workspace Clippy record reports exit 0 at
+[record.json](</private/tmp/pr38-hintbar-cleanup-20261028-242b98e4/gates/hintbar-workspace-clippy/record.json>),
+SHA-256 `4545ddd332d457b8f9e8d7d5c691116f2cc4dd08b0c17be375c57661c5ed590a`. Commit
+`2fe3a04119b1fba133853e87c281bd0bc1797713` later normalized formatting in three
+external-consumer sources. The four application CLI journeys have not been run; builds and
+example smoke checks do not establish those journeys.
+
+A prior comment inventory reported 117 retained Rust comments, but its AST witness is not retained
+here; treat the count and the following positions as a reported inventory, not an independently
+revalidated count. The safety notes are in `crates/termrock-session/src/esc_bridge.rs` at lines
+241, 527, 587, 594, 601, 605, 619, 652, 664, 674, 825, 933, 952, 975, 991, 996, 998, 1014,
+1028, 1030, 1036, 1047, 1055, 1063, 1065, 1073, 1078, and 1086; they document unsafe operation
+contracts. PR #26 attribution notes are recorded at `crates/termrock-collections/src/scroll.rs`
+(6, 16, 176, 203, 322); `crates/termrock-core/src/{keymap,keys,list,nav,outcome,platform,selection,shape,typeahead}.rs`
+(each line 1); `crates/termrock-runtime/src/capture.rs` (91, 103, 116, 190, 220), `hit.rs` (46,
+59, 80, 1442, 1477, 1487), `keymap.rs` (777), and `layer.rs` (309, 387);
+`crates/termrock-shell/src/{chrome,footer,keyboard,lib,nav,quit,router,status}.rs` (each line 1)
+and `page.rs` (1, 47, 63); `crates/termrock-terminal/src/keyboard.rs` (1);
+`crates/termrock-text/src/undo.rs` (1); and `crates/termrock-theme/src/visual.rs` (1). These
+attribution notes record historical source provenance; their legal necessity or approval for
+removal has not been established. Their disposition remains pending technical review. This list
+is an inventory, not a removal decision.
+
+At PR #38 head `2fe3a04119b1fba133853e87c281bd0bc1797713`, `mise.toml` pins Velnor Actions 0.1.48;
+`.velnor/config.toml` remains schema 2 with `test_runner = "cargo_nextest"`. The repository-pinned
+`mise exec -- velnor-actions plan` and `mise exec -- velnor-actions config migrate --to 2` both
+succeeded. An earlier ambient 0.1.58 invocation used the wrong executable path; its manifest
+mismatch was not a repository pin discrepancy, and no Velnor pin update is required. The generated
+task manifest `.github/velnor/task-execution-manifest-v1.json` (SHA-256
+`12284a51e4a97c99632ff6704ef14e2bd0e4b613bacaff72ca947d9169a50a34`) has 220 tasks, including
+44 per-package Nextest tasks, all with `--no-tests fail`.
+
+The pinned schema has no per-package option to omit only generated test tasks while keeping package
+build, Clippy, formatting, and documentation checks. `RustCrateConfig` has only `build_jobs`, and
+package task derivation emits a test/Nextest task for each discovered package. `WorkflowConfig`
+has separate `tasks` and `task_suites` fields; the latter configures standalone Mise suites, while
+`[[stacks.rust.suites]]` declares named Nextest suites. These fields do not disable the default
+per-package tasks. See the versioned [Rust stack schema](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-contract/src/config/stacks.rs#L60-L123),
+[`RustCrateConfig`](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-contract/src/config/stacks.rs#L125-L130),
+[package task derivation](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-rust/src/tasks.rs#L158-L206),
+[`WorkflowConfig.tasks` and `task_suites`](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-contract/src/config/workflow.rs#L87-L92),
+and [named Rust suite fields](https://github.com/tailrocks/velnor-new/blob/v0.1.48/crates/velnor-actions-contract/src/config/rust_suites.rs#L197-L223).
+No generator input was changed. Do not hand-edit generated workflows or make empty-test jobs
+pass. CI remains fail-closed but blocked until the generator can require a nonempty common
+functional suite while retaining production, examples, public-consumer, formatting, and static
+checks.
+
+The last observed CI run, `40558493194`, used `6717d835` before the external-consumer formatting
+correction: 50 jobs, 2 passed, 46 failed, and 2 skipped. Its external-consumer formatting failure
+was corrected in `2fe3a04`; this is not a current post-fix CI result. No full CI rerun, common
+functional suite, or four-application runtime journey is claimed.
