@@ -1,7 +1,8 @@
 use termrock::author::PaintStyle;
 use termrock::{
     Brand, Chord, Color, ColorLevel, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintLayer,
-    Id, ItemKey, KeyCode, Modifier, PropsList, PropsRow, PropsState, Rect, Ui, width, wrap,
+    Id, ItemKey, KeyCode, Modifier, PropsList, PropsRow, PropsState, Rect, Role, StylePatch, Ui,
+    width, wrap,
 };
 
 use super::{Page, PageUpdate, author::AuthorBadge, frame};
@@ -507,10 +508,17 @@ fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
         ink(ui, RULE, CANVAS),
     );
     let active = tab_width(SECTIONS[0]).min(area.width);
+    let active_rule_role = if ui.is_covered_by_native_layer() {
+        Role::BorderStrong
+    } else {
+        Role::Accent
+    };
+    let active_rule =
+        ink(ui, ACCENT, CANVAS).patch(ui.paint_patch(&StylePatch::new().set_fg(active_rule_role)));
     ui.paint_str(
         Rect::new(area.x, rule_y, active, 1),
         &"━".repeat(usize::from(active)),
-        ink(ui, ACCENT, CANVAS),
+        active_rule,
     );
 }
 
