@@ -21,3 +21,4 @@ tui-test-rs = { path = ".engine/tui-test/crates/tui-test" }
 
 [workspace]
 resolver = "3"
+exclude = [".engine/tui-test"]
