@@ -429,6 +429,15 @@ const GRID_RESULT_VIEWPORT: termrock::grid::GridViewportPolicy =
     };
 const CONNECTIONS_PANEL_PATCH: [(Part, StylePatch); 1] =
     [(Part::DETAIL, StylePatch::new().set_fg(LEGACY_FAINT))];
+const CONNECTIONS_PANEL_INACTIVE_PATCH: [(Part, StylePatch); 2] = [
+    (Part::DETAIL, StylePatch::new().set_fg(LEGACY_FAINT)),
+    (
+        Part::TITLE,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Secondary))
+            .remove(Modifier::BOLD),
+    ),
+];
 const CONNECTION_TREE_PATCH: [(Part, StylePatch); 1] = [(
     Part::GUTTER,
     StylePatch::new().set_fg(Role::Surface(termrock::Surface::Canvas)),
@@ -1260,9 +1269,13 @@ impl TableProApp {
         let panel = Panel::new(CONNECTIONS_PANEL)
             .kind(PanelKind::Framed)
             .title(title)
-            .focused(focused)
-            .patch_part(&CONNECTIONS_PANEL_PATCH)
-            .slot(Part::GUTTER, &preserve_frame_gutter);
+            .focused(focused);
+        let panel = if focused {
+            panel.patch_part(&CONNECTIONS_PANEL_PATCH)
+        } else {
+            panel.patch_part(&CONNECTIONS_PANEL_INACTIVE_PATCH)
+        }
+        .slot(Part::GUTTER, &preserve_frame_gutter);
         match meta {
             Some(meta) => panel.meta(meta),
             None => panel,
