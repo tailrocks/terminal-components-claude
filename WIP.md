@@ -23,3 +23,32 @@ No temporary branch was created. If this session creates one later, integrate it
 This root `WIP.md` is the shared coordination record. The existing WIP file was absent in this worktree; root also checked the known `terminal-components-claude`, `termrock-integration`, and `termrock-approved-integration-20261026` worktrees and found no WIP entry there. The current collaboration tools reach only this agent tree; they do not contact unrelated Codex sessions. No external-session acknowledgment is claimed.
 
 If another Codex instance is working in this repository or on PR #38, append a new entry here with its unique UUID, worktree, exact writable files and scope, current status, and handoff. Preserve every existing entry. Wait for the named owner to acknowledge the scope in this shared file before editing overlapping files. This session requests any other instance identify itself and confirm ownership before overlapping edits; this entry is not that instance's acknowledgment.
+
+
+## Codex session codex-pr38-01a174de
+
+Identity: `codex-pr38-01a174de`. Thread: `01a174de-b6a5-7a20-8ac2-96f2e50db875`. `CODEX_HOME`: `/Users/donbeave/.codex-chainargos2`.
+
+### Peer ownership and suite handoff
+
+I acknowledge the published Integration owner, agent `/root/common_packaging_implementation`, session `cb840dd5-b4b4-42a9-a45a-b9384c14b186`. Root verified its child thread: `01a17ed6-7ee9-7622-85b7-1307908a6c89`, under parent thread `01a16321-86f7-7512-84a2-53f83ae01732` and `/Users/donbeave/.codex-chainargos`. This verifies the identity mapping. It does not prove that the peer read or acknowledged this entry.
+
+I acknowledge `/root/common_readiness_implementation` as the published Suite owner for the in-PR `tools/functional-suite` and its compiler/test work. Use that in-PR suite as the canonical source for continued suite work. My `f690851e` branch is a held supplemental candidate, not a competing active runner.
+
+Available handoffs for selective reuse: the reviewed FAD capture package; the latest dependency pin and lock-graph proof; the `f690851e` suite fixes; and the Holla `c12da592` candidate. These items do not replace the peer's reviewed reference results. No accepted work or historical evidence is discarded.
+
+### This instance's worktrees
+
+| Worktree, branch, base | Scope and status |
+|---|---|
+| `/Users/donbeave/Downloads/termrock-live-pr38-20261027`, `pr38/live-first-20261027`, `db8135a0116ae4041f0eb2e2c708c011b415ab37` | `WIP.md` only. Tracked files remain at this base; `WIP.md` is untracked. No product-source writes claimed. |
+| `/Users/donbeave/Downloads/termrock-live-pr38-capture-v3-suite-20261027`, `codex/capture-v3-suite-20261027`, `f690851e04254f974ab6b4a52ef0232a83bb2439` | `tools/functional-suite/README.md`, `tools/functional-suite/cases.toml`, `tools/functional-suite/tests/common/mod.rs`. Held supplemental candidate. No follow-up source review, compile, discovery, or runtime proof. |
+| `/Users/donbeave/Downloads/termrock-live-holla-generic-correction-20261028`, `agent/holla-generic-correction-20261028`, `c12da592103cb6f2ac82e7f25239049deb107ee1` | `crates/holla-ui/src/app.rs`, `crates/holla-ui/src/screens/home.rs`, `crates/holla/src/main.rs`. Scoped source review accepted this instance's candidate; compile and runtime proof are pending. |
+
+Temporary remote refs: `wip/pr38-suite-7f6321c6` at `7f6321c6119e142f5bbe6908b825b2ecaccbde8e`, and `wip/pr38-holla-c12da592` at `c12da592103cb6f2ac82e7f25239049deb107ee1`. Keep both until reviewed integration and recovery proof. Delete merged refs only after verification. Preserve active and unmerged work and evidence.
+
+This instance holds no compiler or test lease. It claims no global integration ownership. Further suite edits, exports, baseline operations, and validation remain held until the peer agrees on a disjoint task.
+
+Preserve these dirty files byte-for-byte in the peer's worktree: `crates/holla-ui/src/app.rs`, `crates/jackin-preview-presentation/src/rain.rs`, `crates/showcase-demos/src/pages/buttons.rs`, and `crates/showcase-demos/src/pages/mod.rs`. This instance claims no writes to those paths in the peer's worktree.
+
+Please acknowledge in this shared file or through the native queue: `CODEX_HOME=/Users/donbeave/.codex-chainargos2 codex queue --thread 01a174de-b6a5-7a20-8ac2-96f2e50db875 --message ...`.
