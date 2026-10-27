@@ -1,4 +1,6 @@
-use termrock::{Cx, HelpOverlay, HelpOverlayState, HelpSection, Id, LayerSpec, Ui};
+use termrock::{
+    Cx, HelpOverlay, HelpOverlayState, HelpSection, Id, LayerSpec, Part, Role, StylePatch, Ui,
+};
 
 pub(crate) const ID: Id = Id::root("tablepro.help");
 
@@ -21,7 +23,7 @@ const SHELL: &[(&str, &str)] = &[
     ("Ctrl+D", "Data / Structure"),
     ("Ctrl+S", "Save pending changes"),
     ("Ctrl+F", "Filter or find"),
-    ("z", "Zoom workbench; focused query pane"),
+    ("z", "Maximize the pane"),
     ("Ctrl+↑", "Grow the results"),
     ("Ctrl+↓", "Grow the editor"),
     ("Ctrl+N", "New connection"),
@@ -44,11 +46,16 @@ const GRID: &[(&str, &str)] = &[
     ("Right-click", "The same menu at the pointer"),
 ];
 
+const HELP_PARTS: &[(Part, StylePatch)] =
+    &[(Part::BORDER, StylePatch::new().set_fg(Role::BorderStrong))];
+
 pub(crate) fn layer(cx: &Cx<'_>) -> LayerSpec {
     let shell = HelpSection::plain("Shell and workbench", SHELL);
     let grid = HelpSection::plain("Grid and editor", GRID);
     let sections = [shell, grid];
-    HelpOverlay::new(ID, "TablePro", &sections).layer(cx)
+    HelpOverlay::new(ID, "TablePro", &sections)
+        .patch_part(HELP_PARTS)
+        .layer(cx)
 }
 
 pub(crate) fn update(
@@ -58,12 +65,16 @@ pub(crate) fn update(
     let shell = HelpSection::plain("Shell and workbench", SHELL);
     let grid = HelpSection::plain("Grid and editor", GRID);
     let sections = [shell, grid];
-    HelpOverlay::new(ID, "TablePro", &sections).update(cx, state)
+    HelpOverlay::new(ID, "TablePro", &sections)
+        .patch_part(HELP_PARTS)
+        .update(cx, state)
 }
 
 pub(crate) fn draw(ui: &mut Ui<'_>, area: termrock::Rect, state: &HelpOverlayState) {
     let shell = HelpSection::plain("Shell and workbench", SHELL);
     let grid = HelpSection::plain("Grid and editor", GRID);
     let sections = [shell, grid];
-    HelpOverlay::new(ID, "TablePro", &sections).draw(ui, area, state);
+    HelpOverlay::new(ID, "TablePro", &sections)
+        .patch_part(HELP_PARTS)
+        .draw(ui, area, state);
 }

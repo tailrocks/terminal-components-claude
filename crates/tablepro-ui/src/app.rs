@@ -429,6 +429,15 @@ const GRID_RESULT_VIEWPORT: termrock::grid::GridViewportPolicy =
     };
 const CONNECTIONS_PANEL_PATCH: [(Part, StylePatch); 1] =
     [(Part::DETAIL, StylePatch::new().set_fg(LEGACY_FAINT))];
+const CONNECTIONS_PANEL_INACTIVE_PATCH: [(Part, StylePatch); 2] = [
+    (Part::DETAIL, StylePatch::new().set_fg(LEGACY_FAINT)),
+    (
+        Part::TITLE,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Secondary))
+            .remove(Modifier::BOLD),
+    ),
+];
 const CONNECTION_TREE_PATCH: [(Part, StylePatch); 1] = [(
     Part::GUTTER,
     StylePatch::new().set_fg(Role::Surface(termrock::Surface::Canvas)),
@@ -781,6 +790,7 @@ pub struct TableProApp {
     history_rows: HistoryRows,
     result_grid: ResultGridView,
     help_state: termrock::HelpOverlayState,
+    help_underlay: Option<Surface>,
 
     pub screen: Screen,
 
@@ -992,6 +1002,7 @@ impl TableProApp {
             history_rows: HistoryRows::default(),
             result_grid: ResultGridView::default(),
             help_state: termrock::HelpOverlayState::default(),
+            help_underlay: None,
             screen: Screen::Connections,
             surface: Surface::Connections,
             connections_screen: ConnectionsScreen::new(connections),
@@ -1258,9 +1269,13 @@ impl TableProApp {
         let panel = Panel::new(CONNECTIONS_PANEL)
             .kind(PanelKind::Framed)
             .title(title)
-            .focused(focused)
-            .patch_part(&CONNECTIONS_PANEL_PATCH)
-            .slot(Part::GUTTER, &preserve_frame_gutter);
+            .focused(focused);
+        let panel = if focused {
+            panel.patch_part(&CONNECTIONS_PANEL_PATCH)
+        } else {
+            panel.patch_part(&CONNECTIONS_PANEL_INACTIVE_PATCH)
+        }
+        .slot(Part::GUTTER, &preserve_frame_gutter);
         match meta {
             Some(meta) => panel.meta(meta),
             None => panel,
@@ -1348,7 +1363,7 @@ impl TableProApp {
             self.draw_connection_tree(ui, tree_area);
             let query = self.connections_screen.filter.as_str();
 
-            if !self.form_open {
+            if !self.form_open && ui.state(CONNECTIONS).contains(StateFlags::FOCUSED) {
                 paint_connection_focus_bar(
                     ui,
                     tree_area,
@@ -2541,16 +2556,18 @@ impl TableProApp {
             return false;
         }
         self.help_state = termrock::HelpOverlayState::default();
+        self.help_underlay = Some(self.surface);
         cx.open_layer(crate::help_keys::ID, crate::help_keys::layer(cx));
         self.surface = Surface::HelpDialog;
         true
     }
 
     fn update_help(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let was_open = cx.is_open(crate::help_keys::ID);
         let response = crate::help_keys::update(cx, &mut self.help_state);
-        if was_open && !cx.is_open(crate::help_keys::ID) && self.surface == Surface::HelpDialog {
-            self.sync_active_tab();
+        if matches!(response.action_ref(), Some(termrock::HelpAction::Closed(_)))
+            && let Some(surface) = self.help_underlay.take()
+        {
+            self.surface = surface;
         }
         response.erase()
     }
@@ -3515,6 +3532,8 @@ impl TableProApp {
 
     fn draw_connections(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
         let count = format!("{} ", self.connections_screen.connections.len());
+        let focused = ui.state(CONNECTIONS).contains(StateFlags::FOCUSED)
+            || ui.state(CONNECTION_FILTER).contains(StateFlags::FOCUSED);
         let list_width = (area.width / 3).clamp(26, 40).min(area.width);
         let list_area = termrock::Rect {
             x: area.x,
@@ -3526,7 +3545,7 @@ impl TableProApp {
             },
             height: area.height,
         };
-        let panel = Self::connections_panel(" Connections ", Some(&count), true);
+        let panel = Self::connections_panel(" Connections ", Some(&count), focused);
         let inner = panel.inner(ui, list_area);
         let body = legacy_tree_body(inner);
         panel.draw(ui, list_area, |_, _| {});
@@ -7670,7 +7689,8 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     };
     if app.screen == Screen::Connections {
         let saved = format!("{} saved", app.connections_screen.connections.len());
-        if app.surface == Surface::Connections {
+        let surface = app.help_underlay.unwrap_or(app.surface);
+        if surface == Surface::Connections {
             ui.paint_spans(
                 area,
                 &[
@@ -7686,7 +7706,7 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
                 base,
             );
         } else {
-            let surface = format!(" · {}", app.surface.label());
+            let surface = format!(" · {}", surface.label());
             ui.paint_spans(
                 area,
                 &[
