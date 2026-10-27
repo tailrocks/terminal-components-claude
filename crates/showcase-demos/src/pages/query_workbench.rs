@@ -242,12 +242,25 @@ impl std::fmt::Display for Document {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct PendingRun {
     owner: ItemKey,
     sql: String,
     explain: bool,
     remaining_ticks: u8,
+}
+
+impl std::fmt::Debug for PendingRun {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("PendingRun")
+            .field("owner", &self.owner)
+            .field("sql", &"[redacted]")
+            .field("sql_len", &self.sql.len())
+            .field("explain", &self.explain)
+            .field("remaining_ticks", &self.remaining_ticks)
+            .finish()
+    }
 }
 
 #[derive(Clone, Debug, Default)]
