@@ -23,6 +23,8 @@ use tuiscotti::check::{CheckOutcome, FrozenStore};
 use tuiscotti::render_profile::{PROFILE_NAME, platform_key, resolve_profile};
 use tuiscotti::sample::{Observation, Sample};
 
+mod raw_probes;
+
 const COLS: u16 = 120;
 const ROWS: u16 = 40;
 const FLOW_DENOMINATOR: usize = 4;
@@ -31,7 +33,7 @@ const HELP_TIMEOUT_MS: u64 = 15_000;
 const EXIT_TIMEOUT_MS: u64 = 30_000;
 const QUIET_TIMEOUT: Duration = Duration::from_secs(15);
 const QUIET_INTERVAL: Duration = Duration::from_millis(400);
-const ENGINE_COMMIT: &str = "9ff17bb7a7b2dc446ef1064cc8e4c0a8307934ff";
+const ENGINE_COMMIT: &str = "5994dbf57047fe41f7401aaaa9197d49b8dfc0ae";
 const TUISCOTTI_COMMIT: &str = "9de60de9d2b9e883e5901dad07ecee508ac6dd76";
 const PR26_COMMIT: &str = "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948";
 const PR38_COMMIT: &str = "573a595e97451646cdd910ec392274c6a425f23b";
@@ -122,6 +124,18 @@ struct Checkpoint {
 type AppResult<T> = Result<T, Box<dyn Error>>;
 
 fn main() -> std::process::ExitCode {
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|argument| argument == "--raw-probe-child")
+    {
+        return match raw_probes::run_child() {
+            Ok(()) => std::process::ExitCode::SUCCESS,
+            Err(error) => {
+                eprintln!("raw-probe-child: {error}");
+                std::process::ExitCode::FAILURE
+            }
+        };
+    }
     match run() {
         Ok(()) => std::process::ExitCode::SUCCESS,
         Err(error) => {
@@ -138,6 +152,10 @@ fn run() -> AppResult<()> {
     };
     if first == "compare-runs" {
         return compare_command(args.collect());
+    }
+    if first == "probe-raw-capture" {
+        verify_engine_identity()?;
+        return raw_probes::run(args.collect());
     }
     verify_engine_identity()?;
 
@@ -394,6 +412,9 @@ fn run_case(
         session
             .get_by_text(case.help_marker)
             .wait_hidden(Some(HELP_TIMEOUT_MS))?;
+        session
+            .get_by_text(case.initial_marker)
+            .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
         wait_visual_quiet(&session)?;
         let restored = capture_checkpoint(&session, &sample_profile, case, "restored", &case_out)?;
         checkpoints.push(restored);
@@ -420,7 +441,6 @@ fn run_case(
         let status = session
             .raw_output_capture_status()
             .ok_or("raw output capture status is unavailable")?;
-        write_json_new(&case_out.join("raw-status.json"), &status)?;
         if !status.setup_complete || !status.complete || !status.errors.is_empty() {
             return Err(format!("raw capture is incomplete or has errors: {status:?}").into());
         }
@@ -529,14 +549,24 @@ fn run_case(
         Ok(())
     })();
 
-    let capture_status = session.raw_output_capture_status();
-    if work.is_err() && spawned && !child_exited {
-        let _ = session.close();
-    }
-    if let Some(status) = session.raw_output_capture_status().or(capture_status) {
-        if !case_out.join("raw-status.json").exists() {
-            let _ = write_json_new(&case_out.join("raw-status.json"), &status);
+    let mut cleanup_error = None;
+    let mut closed_for_cleanup = false;
+    if work.is_err() && spawned {
+        closed_for_cleanup = true;
+        if let Err(error) = session.close() {
+            cleanup_error = Some(error.to_string());
         }
+    }
+    if let Some(status) = session.raw_output_capture_status() {
+        let mut status_value = serde_json::to_value(&status)?;
+        if let Some(object) = status_value.as_object_mut() {
+            object.insert(
+                "observed_after_cleanup_close".to_string(),
+                json!(closed_for_cleanup),
+            );
+            object.insert("cleanup_error".to_string(), json!(cleanup_error.clone()));
+        }
+        write_json_new(&case_out.join("raw-status.json"), &status_value)?;
     }
     write_json_new(
         &case_out.join("actions.json"),
@@ -597,6 +627,7 @@ fn run_case(
         "status":final_status,
         "process_status":process_status,
         "error":error,
+        "cleanup_error":cleanup_error,
         "started_at_unix_ms":started_at,
         "finished_at_unix_ms":unix_ms(),
         "live_process_elapsed_ms":case_start.elapsed().as_millis() as u64,
@@ -612,7 +643,7 @@ fn run_case(
             "sample_sha256":sha256(&checkpoint.sample_bytes),
             "png_sha256":checkpoint.png_sha256,
             "rgba_sha256":checkpoint.rgba_sha256,
-            "sample_path":format!("{}/{}/sample.tui.json", case.id, checkpoint.label),
+            "sample_path":format!("{}/checkpoints/{}/sample.tui.json", case.id, checkpoint.label),
             "expected_path":format!("expected/{}.tui.json", checkpoint.sample_id),
         })).collect::<Vec<_>>(),
         "process_state":process_state,
@@ -1092,5 +1123,5 @@ fn unix_ms() -> u128 {
 }
 
 fn usage_error() -> String {
-    "usage: termrock-live-suite --bin-dir BIN --out OUT --group first | all\n       termrock-live-suite compare-runs --left A --right B --out RESULT.json".into()
+    "usage: termrock-live-suite --bin-dir BIN --out OUT --group first | all\n       termrock-live-suite compare-runs --left A --right B --out RESULT.json\n       termrock-live-suite probe-raw-capture --out OUT".into()
 }

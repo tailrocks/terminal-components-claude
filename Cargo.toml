@@ -13,6 +13,9 @@ sha2 = "=0.11.1"
 tui-test-rs = { version = "=0.1.1", features = ["recording-raster", "recording-font-jetbrains-mono-styles"] }
 tuiscotti = { git = "https://github.com/donbeave/tuiscotti", rev = "9de60de9d2b9e883e5901dad07ecee508ac6dd76" }
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [patch.crates-io]
 tui-test-rs = { path = "/Users/donbeave/Downloads/tui-test-raw-capture-20261027/crates/tui-test" }
 

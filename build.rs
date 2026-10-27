@@ -1,7 +1,7 @@
 use std::process::Command;
 
 const ENGINE: &str = "/Users/donbeave/Downloads/tui-test-raw-capture-20261027";
-const EXPECTED_HEAD: &str = "9ff17bb7a7b2dc446ef1064cc8e4c0a8307934ff";
+const EXPECTED_HEAD: &str = "5994dbf57047fe41f7401aaaa9197d49b8dfc0ae";
 
 fn main() {
     for path in [
