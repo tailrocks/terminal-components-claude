@@ -1,0 +1,11 @@
+{
+  "bundle_sha256": "246c93b389824a85a212cceb37e584c866b6615bd4f69fece6f241320cd26cca",
+  "engine_base_commit": "e15339fd136b5454849e1107bab142c98416b174",
+  "engine_base_tree": "df8bb26a9f4de5058f89c9361fe58f42f79025ec",
+  "engine_commit": "438563a86a3c5d78e6da6e12511fa089c6f15c61",
+  "engine_tree": "d9957241869fcea938de9baa719de5f04d545453",
+  "patch_sha256": "9a7ed376d18c98791aa1e6a2052ce9b022d2c7aff35450b5c665dce0b6841b23",
+  "schema": "termrock-live-suite-engine-pin.v1",
+  "suite_lock_sha256": "66ffb4a40092bcf2d6e70f3342bfb3982f7c081c7633f3b042007f0bf5d73e90",
+  "tuiscotti_commit": "f40513120727f83c0c9713ae8d04eac70dfc955e"
+}
