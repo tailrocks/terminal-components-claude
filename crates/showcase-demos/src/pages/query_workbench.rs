@@ -245,6 +245,7 @@ impl std::fmt::Display for Document {
 #[derive(Clone, Debug)]
 struct PendingRun {
     owner: ItemKey,
+    sql: String,
     explain: bool,
     remaining_ticks: u8,
 }
@@ -604,7 +605,8 @@ impl QueryWorkbenchPage {
             self.status = "No query is open.".to_owned();
             return PageStatus(self.status.clone());
         };
-        if document.editor.text().trim().is_empty() {
+        let sql = document.editor.text().to_owned();
+        if sql.trim().is_empty() {
             document.result = ResultView::Empty;
             self.status = "Nothing to run · the SQL editor is empty.".to_owned();
             return PageStatus(self.status.clone());
@@ -612,6 +614,7 @@ impl QueryWorkbenchPage {
         let owner = document.key;
         self.run = Some(PendingRun {
             owner,
+            sql,
             explain,
             remaining_ticks: RUN_TICKS,
         });
@@ -712,7 +715,7 @@ impl QueryWorkbenchPage {
             .iter_mut()
             .find(|document| document.key == run.owner)
         {
-            let result = evaluate_query(document.editor.text(), run.explain);
+            let result = evaluate_query(&run.sql, run.explain);
             let status = result.summary();
             document.result = result;
             self.status = status;
