@@ -1,0 +1,662 @@
+diff --git a/crates/tuiscotti/docs/check.md b/crates/tuiscotti/docs/check.md
+index 6451f90..714e09c 100644
+--- a/crates/tuiscotti/docs/check.md
++++ b/crates/tuiscotti/docs/check.md
+@@ -10,11 +10,14 @@ artifact root, keyed by the compared baseline digest, and returns a
+ 
+ Comparison order (GOAL 14.2): read and validate the actual sample, read
+ and validate the baseline when present (`Missing` without making the
+-baseline directory otherwise), require equal test IDs and gates, compare
+-canonical snapshot state first, then the render contract, then upstream
+-`compare_rgba` over DECODED RGBA pixels for `state-and-pixels`. Equal
+-pixels never hide a state difference: state is compared first, and the
+-`state` gate ignores image and render metadata entirely.
++baseline directory otherwise), require equal test IDs and gates, then
++compare canonical snapshot state. A state difference remains the primary
++failure; a `state-and-pixels` check also compares the two decoded images
++and records that result, even when state differs or render contracts
++differ. When state is equal, the `state` gate passes and ignores image
++and render metadata, while the `state-and-pixels` gate checks the render
++contract before comparing upstream `compare_rgba` over decoded RGBA
++pixels. Equal pixels never hide a state difference.
+ 
+ Store note: these stores hold local project data. They are not a hostile
+ multi-user filesystem service. Store-relative write paths are still
+@@ -128,6 +131,30 @@ Decoded RGBA pixels differ with equal dimensions.
+ 
+ The wire value recorded in `result.json` and the HTML report.
+ 
++# enum `PixelComparison`
++
++The decoded-pixel comparison result recorded alongside a check failure.
++
++# variant `PixelComparison::PixelEqual`
++
++Decoded RGBA images are equal.
++
++# variant `PixelComparison::PixelDifferent`
++
++Decoded RGBA pixels differ.
++
++# variant `PixelComparison::DimensionDifferent`
++
++Decoded images have different dimensions, so their pixels were not compared.
++
++# variant `PixelComparison::Unavailable`
++
++No pixel comparison was available for this failure.
++
++# fn `as_str`
++
++The wire value recorded in `result.json` and shown in check reports.
++
+ # struct `CheckSuccess`
+ 
+ A passing comparison: the candidate digest and the compared baseline
+@@ -206,6 +233,11 @@ Compared pixel count (zero after a dimension mismatch).
+ 
+ Smallest changed rectangle as `(min_x, min_y, max_x, max_y)`.
+ 
++# fn `pixel_comparison`
++
++The decoded-pixel comparison result, independent of the primary mismatch
++reason.
++
+ # enum `CheckOutcome`
+ 
+ The outcome of [`FrozenStore::check`]: a pass or a saved failure.
+@@ -313,8 +345,10 @@ Compare against present baseline bytes after both sides validate.
+ 
+ # fn `compare_pixels`
+ 
+-Compare render contracts, then decoded RGBA pixels. State is already
+-equal here, so equal pixels can never hide a state difference.
++For equal-state pixel-gate checks, compare render contracts, then decoded
++RGBA pixels. A state mismatch is already recorded before this path; its
++pixel-gate branch compares decoded images directly and keeps state as
++the primary reason.
+ 
+ # fn `compare_present`
+ 
+@@ -390,7 +424,9 @@ Pixels differ with counts, bounds, and a difference image.
+ # fn `decide_pixels`
+ 
+ Decode both images and run upstream `compare_rgba` over DECODED RGBA,
+-never PNG bytes. State and contract are already equal at this point.
++never PNG bytes. For a state failure, the comparison is independent of
++state and render-contract equality; otherwise the caller has already
++checked both.
+ 
+ # fn `validate_test_id`
+ 
+@@ -501,11 +537,12 @@ digest's evidence.
+ 
+ # fn `save_images`
+ 
+-Save `expected.png`, `actual.png`, and `diff.png` for pixel gates.
+-State gates carry no images; a missing baseline has no expected one.
+-A baseline without an image (a state-only sample at a pixel
+-candidate's baseline path) likewise yields no `expected.png`: the
+-failure still records with full evidence instead of erroring.
++Save `expected.png` and `actual.png` for pixel-gate failures, and
++`diff.png` only when decoded pixels differ. State gates carry no images;
++a missing baseline has no expected one. A baseline without an image (a
++state-only sample at a pixel candidate's baseline path) likewise yields
++no `expected.png`: the failure still records with full evidence
++instead of erroring.
+ 
+ # struct `SavedImages`
+ 
+@@ -561,6 +598,12 @@ Compared window titles in `result.json`, display-truncated.
+ The versioned comparison record saved as `result.json` beside the
+ evidence. Evidence keying, report rendering, and re-validation all read
+ this record back; unknown fields and unsupported schemas are rejected.
++Its optional `pixel_comparison` field records equal, different,
++dimension-different, or unavailable image comparisons. Older records
++without that field deserialize with no pixel status. If a saved record
++or report at the same evidence key conflicts with the current comparison,
++the store preserves it and returns `EvidenceCorrupt`; use a fresh artifact
++root for the new evidence.
+ 
+ # fn `for_failure`
+ 
+@@ -572,7 +615,8 @@ Save the record, or re-validate a present one against this failure.
+ 
+ # fn `validate_saved`
+ 
+-Re-validate a saved record: schema, identity, reason, and digests.
++Re-validate a saved record: schema, identity, reason, digests, and any
++recorded pixel comparison status.
+ 
+ # fn `report_input`
+ 
+diff --git a/crates/tuiscotti/docs/report.md b/crates/tuiscotti/docs/report.md
+index 3c82f33..5eea445 100644
+--- a/crates/tuiscotti/docs/report.md
++++ b/crates/tuiscotti/docs/report.md
+@@ -8,6 +8,12 @@ difference images when present (as relative sibling links); cell
+ coordinates and changed state fields for state differences; and an
+ explicit note when no expected image exists.
+ 
++FrozenStore failure reports also show the decoded-pixel comparison
++status independently from the primary mismatch reason. Equal images show
++no difference image, different images link the upstream difference
++image, dimension mismatches identify that pixel values were not
++compared, and unavailable comparisons say so directly.
++
+ The output carries no code from samples and no web server or script:
+ text and attribute values are escaped, every href segment is
+ percent-encoded, cross-drive targets become `file://` URLs, and no
+diff --git a/crates/tuiscotti/src/check.rs b/crates/tuiscotti/src/check.rs
+index 64038a3..442ed58 100644
+--- a/crates/tuiscotti/src/check.rs
++++ b/crates/tuiscotti/src/check.rs
+@@ -11,7 +11,8 @@ use tui_test::terminal::cell::Attrs;
+ use tui_test::{SnapshotCell, TerminalSnapshot};
+ 
+ use crate::report::{
+-    PixelSummary, ReportInput, ReportedCell, atomic_write, render_report, write_report,
++    PixelComparisonReport, PixelSummary, ReportInput, ReportedCell, atomic_write,
++    render_report_with_pixel_comparison, write_report_with_pixel_comparison,
+ };
+ use crate::sample::{
+     Gate, MAX_IMAGE_DIM, MAX_RGBA_BYTES, Sample, SampleError, read_bounded, read_bounded_optional,
+@@ -150,6 +151,33 @@ impl MismatchReason {
+     }
+ }
+ 
++#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
++#[serde(rename_all = "kebab-case")]
++#[doc = "The decoded-pixel comparison result recorded alongside a check failure."]
++pub enum PixelComparison {
++    #[doc = "Decoded RGBA images are equal."]
++    PixelEqual,
++    #[doc = "Decoded RGBA pixels differ."]
++    PixelDifferent,
++    #[doc = "Decoded images have different dimensions, so their pixels were not compared."]
++    DimensionDifferent,
++    #[doc = "No pixel comparison was available for this failure."]
++    Unavailable,
++}
++
++impl PixelComparison {
++    #[must_use]
++    #[doc = "The wire value recorded in result.json and shown in check reports."]
++    pub const fn as_str(self) -> &'static str {
++        match self {
++            Self::PixelEqual => "pixel-equal",
++            Self::PixelDifferent => "pixel-different",
++            Self::DimensionDifferent => "dimension-different",
++            Self::Unavailable => "unavailable",
++        }
++    }
++}
++
+ impl Display for MismatchReason {
+     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+         f.write_str(self.as_str())
+@@ -201,6 +229,7 @@ pub struct CheckFailure {
+     pixel_changed: u64,
+     pixel_compared: u64,
+     pixel_bounds: Option<[u32; 4]>,
++    pixel_comparison: PixelComparison,
+ }
+ 
+ impl CheckFailure {
+@@ -287,6 +316,12 @@ impl CheckFailure {
+     pub const fn pixel_bounds(&self) -> Option<[u32; 4]> {
+         self.pixel_bounds
+     }
++
++    #[must_use]
++    #[doc = "The decoded-pixel comparison result, independent of the primary mismatch reason."]
++    pub const fn pixel_comparison(&self) -> PixelComparison {
++        self.pixel_comparison
++    }
+ }
+ 
+ #[derive(Debug, Clone)]
+@@ -432,6 +467,13 @@ impl FrozenStore {
+         }
+         let state = diff_snapshots(actual.snapshot(), baseline.snapshot());
+         if !state.is_equal() {
++            let mut state = state;
++            let diff = if actual.gate() == Gate::State {
++                state.pixel_comparison = PixelComparison::Unavailable;
++                None
++            } else {
++                decide_pixels(actual, &baseline)?.record_in(&mut state)
++            };
+             let failure = self.write_failure(
+                 actual.test_id(),
+                 actual.gate(),
+@@ -441,7 +483,7 @@ impl FrozenStore {
+                 &baseline_digest,
+                 Some(baseline_bytes),
+                 &state,
+-                None,
++                diff.as_ref(),
+             )?;
+             return Ok(CheckOutcome::Failure(failure));
+         }
+@@ -486,7 +528,7 @@ impl FrozenStore {
+             return Ok(CheckOutcome::Failure(failure));
+         }
+         match decide_pixels(actual, baseline)? {
+-            PixelVerdict::Equal => Ok(CheckOutcome::Pass(CheckSuccess {
++            PixelVerdict::Equal { .. } => Ok(CheckOutcome::Pass(CheckSuccess {
+                 test_id: actual.test_id().to_string(),
+                 candidate_sha256: candidate_digest.to_string(),
+                 baseline_sha256: baseline_digest.to_string(),
+@@ -500,7 +542,8 @@ impl FrozenStore {
+                     candidate_bytes,
+                     baseline_digest,
+                     Some(baseline_bytes),
+-                    &StateDiff::named("image_dimensions"),
++                    &StateDiff::named("image_dimensions")
++                        .with_pixel_comparison(PixelComparison::DimensionDifferent),
+                     None,
+                 )?;
+                 Ok(CheckOutcome::Failure(failure))
+@@ -550,7 +593,7 @@ impl FrozenStore {
+             ));
+         }
+         match decide_pixels(candidate, baseline)? {
+-            PixelVerdict::Equal => Ok(PresentComparison::Pass),
++            PixelVerdict::Equal { .. } => Ok(PresentComparison::Pass),
+             PixelVerdict::Dimensions => {
+                 let dimensions = StateDiff::named("image_dimensions");
+                 Ok(PresentComparison::from_state(
+@@ -661,6 +704,7 @@ struct StateDiff {
+     pixel_changed: u64,
+     pixel_compared: u64,
+     pixel_bounds: Option<[u32; 4]>,
++    pixel_comparison: PixelComparison,
+ }
+ 
+ impl StateDiff {
+@@ -673,6 +717,7 @@ impl StateDiff {
+             pixel_changed: 0,
+             pixel_compared: 0,
+             pixel_bounds: None,
++            pixel_comparison: PixelComparison::Unavailable,
+         }
+     }
+ 
+@@ -685,9 +730,15 @@ impl StateDiff {
+             pixel_changed: changed,
+             pixel_compared: compared,
+             pixel_bounds: bounds,
++            pixel_comparison: PixelComparison::PixelDifferent,
+         }
+     }
+ 
++    fn with_pixel_comparison(mut self, pixel_comparison: PixelComparison) -> Self {
++        self.pixel_comparison = pixel_comparison;
++        self
++    }
++
+     fn is_equal(&self) -> bool {
+         self.changed_fields.is_empty() && self.changed_cell_total == 0
+     }
+@@ -700,7 +751,9 @@ struct DiffPng {
+ }
+ 
+ enum PixelVerdict {
+-    Equal,
++    Equal {
++        compared: u64,
++    },
+     Dimensions,
+     Different {
+         changed: u64,
+@@ -710,6 +763,34 @@ enum PixelVerdict {
+     },
+ }
+ 
++impl PixelVerdict {
++    fn record_in(self, state: &mut StateDiff) -> Option<DiffPng> {
++        match self {
++            Self::Equal { compared } => {
++                state.pixel_compared = compared;
++                state.pixel_comparison = PixelComparison::PixelEqual;
++                None
++            }
++            Self::Dimensions => {
++                state.pixel_comparison = PixelComparison::DimensionDifferent;
++                None
++            }
++            Self::Different {
++                changed,
++                compared,
++                bounds,
++                diff,
++            } => {
++                state.pixel_changed = changed;
++                state.pixel_compared = compared;
++                state.pixel_bounds = bounds;
++                state.pixel_comparison = PixelComparison::PixelDifferent;
++                Some(diff)
++            }
++        }
++    }
++}
++
+ fn decide_pixels(actual: &Sample, baseline: &Sample) -> Result<PixelVerdict, CheckError> {
+     let actual_image = actual.image().ok_or_else(|| SampleError::GateMismatch {
+         detail: "state-and-pixels gate requires an image".to_string(),
+@@ -739,7 +820,9 @@ fn decide_pixels(actual: &Sample, baseline: &Sample) -> Result<PixelVerdict, Che
+         &baseline_pixels,
+     )?;
+     if comparison.is_equal() {
+-        return Ok(PixelVerdict::Equal);
++        return Ok(PixelVerdict::Equal {
++            compared: comparison.compared_pixels,
++        });
+     }
+     let bounds = comparison
+         .bounds
+@@ -816,6 +899,7 @@ fn diff_snapshots(actual: &TerminalSnapshot, baseline: &TerminalSnapshot) -> Sta
+         pixel_changed: 0,
+         pixel_compared: 0,
+         pixel_bounds: None,
++        pixel_comparison: PixelComparison::Unavailable,
+     }
+ }
+ 
+@@ -1155,10 +1239,39 @@ impl FrozenStore {
+             &Self::relative_dir(test_id, candidate_digest, baseline_digest),
+         )?;
+         fs::create_dir_all(&check_dir).map_err(|source| CheckError::Io { source })?;
++        let record = ResultRecord::for_failure(
++            test_id,
++            gate,
++            reason,
++            candidate_digest,
++            baseline_digest,
++            state,
++        );
++        let result_path = check_dir.join("result.json");
++        if result_path.exists() {
++            let saved = read_bounded(&result_path).map_err(|error| match error {
++                SampleError::Io { source } => CheckError::Io { source },
++                other => CheckError::from(other),
++            })?;
++            record.validate_saved(&result_path, &saved)?;
++        }
++        let images = SavedImages::for_failure(gate, baseline_digest, baseline_bytes, diff)?;
++        let input = record.report_input(state, &images);
++        let pixel_comparison = PixelComparisonReport {
++            status: state.pixel_comparison,
++            changed: state.pixel_changed,
++            compared: state.pixel_compared,
++            bounds: state.pixel_bounds,
++        };
++        let html = render_report_with_pixel_comparison(&input, pixel_comparison);
++        let report_path = check_dir.join("report.html");
++        if report_path.exists() {
++            validate_saved_report(&report_path, &html)?;
++        }
+         let candidate_path =
+             Self::save_candidate(&candidate_dir, candidate_digest, candidate_bytes)?;
+         Self::save_expected(&check_dir, baseline_digest, baseline_bytes)?;
+-        let images = Self::save_images(
++        let saved_images = Self::save_images(
+             &check_dir,
+             gate,
+             baseline_digest,
+@@ -1166,21 +1279,19 @@ impl FrozenStore {
+             candidate_bytes,
+             diff,
+         )?;
+-        let record = ResultRecord::for_failure(
+-            test_id,
+-            gate,
+-            reason,
+-            candidate_digest,
+-            baseline_digest,
+-            state,
+-        );
++        if saved_images != images {
++            return Err(CheckError::EvidenceCorrupt {
++                detail:
++                    "saved image evidence does not match the report plan; use a fresh artifact root"
++                        .to_string(),
++            });
++        }
+         record.save(&check_dir)?;
+-        let report_path = check_dir.join("report.html");
+-        let input = record.report_input(state, &images);
+         if report_path.exists() {
+-            validate_saved_report(&report_path, &render_report(&input))?;
++            validate_saved_report(&report_path, &html)?;
+         } else {
+-            write_report(&input, &report_path).map_err(CheckError::from)?;
++            write_report_with_pixel_comparison(&input, pixel_comparison, &report_path)
++                .map_err(CheckError::from)?;
+         }
+         Ok(CheckFailure {
+             test_id: test_id.to_string(),
+@@ -1197,6 +1308,7 @@ impl FrozenStore {
+             pixel_changed: state.pixel_changed,
+             pixel_compared: state.pixel_compared,
+             pixel_bounds: state.pixel_bounds,
++            pixel_comparison: state.pixel_comparison,
+         })
+     }
+ 
+@@ -1289,6 +1401,7 @@ impl FrozenStore {
+     }
+ }
+ 
++#[derive(Debug, PartialEq, Eq)]
+ struct SavedImages {
+     has_expected: bool,
+     has_actual: bool,
+@@ -1303,6 +1416,32 @@ impl SavedImages {
+             has_diff: false,
+         }
+     }
++
++    fn for_failure(
++        gate: Gate,
++        baseline_digest: &str,
++        baseline_bytes: Option<&[u8]>,
++        diff: Option<&DiffPng>,
++    ) -> Result<Self, CheckError> {
++        if gate == Gate::State {
++            return Ok(Self::none());
++        }
++        let has_expected = match baseline_bytes {
++            Some(bytes) => {
++                Sample::from_bytes(bytes)
++                    .map_err(CheckError::from)?
++                    .image()
++                    .is_some()
++                    && baseline_digest != MISSING_BASELINE
++            }
++            None => false,
++        };
++        Ok(Self {
++            has_expected,
++            has_actual: true,
++            has_diff: diff.is_some(),
++        })
++    }
+ }
+ 
+ fn validate_saved_report(path: &Path, expected: &str) -> Result<(), CheckError> {
+@@ -1321,7 +1460,7 @@ fn validate_saved_report(path: &Path, expected: &str) -> Result<(), CheckError>
+     if saved != expected.as_bytes() {
+         return Err(CheckError::EvidenceCorrupt {
+             detail: format!(
+-                "{} disagrees with this comparison; conflicting evidence is never overwritten",
++                "{} conflicts with this comparison; immutable evidence is never overwritten; use a fresh artifact root",
+                 path.display()
+             ),
+         });
+@@ -1454,6 +1593,8 @@ struct ResultRecord {
+     pixel_changed_pixels: u64,
+     pixel_compared_pixels: u64,
+     pixel_bounds: Option<BoundsRecord>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pixel_comparison: Option<PixelComparison>,
+ }
+ 
+ impl ResultRecord {
+@@ -1495,6 +1636,7 @@ impl ResultRecord {
+                 max_x: bounds[2],
+                 max_y: bounds[3],
+             }),
++            pixel_comparison: Some(state.pixel_comparison),
+         }
+     }
+ 
+@@ -1525,7 +1667,7 @@ impl ResultRecord {
+         })?;
+         if parsed != *self {
+             return Err(corrupt(
+-                "saved comparison record disagrees with this comparison".to_string(),
++                "saved comparison record conflicts with this comparison; immutable evidence is never overwritten; use a fresh artifact root".to_string(),
+             ));
+         }
+         if !is_hex_digest(&parsed.candidate_sha256) {
+diff --git a/crates/tuiscotti/src/report.rs b/crates/tuiscotti/src/report.rs
+index 82ca1ec..972fbb7 100644
+--- a/crates/tuiscotti/src/report.rs
++++ b/crates/tuiscotti/src/report.rs
+@@ -142,6 +142,14 @@ pub struct ReportInput<'a> {
+     pub title_values: Option<(&'a str, &'a str)>,
+ }
+ 
++#[derive(Debug, Clone, Copy)]
++pub(crate) struct PixelComparisonReport {
++    pub(crate) status: crate::check::PixelComparison,
++    pub(crate) changed: u64,
++    pub(crate) compared: u64,
++    pub(crate) bounds: Option<[u32; 4]>,
++}
++
+ #[doc = "One completed evidence index: the static page linking every saved check record."]
+ #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+ pub struct IndexOutcome {
+@@ -450,10 +458,27 @@ fn file_url(target: &Path) -> String {
+ #[doc = "Render the static HTML report for one comparison as a string."]
+ #[must_use]
+ pub fn render_report(input: &ReportInput<'_>) -> String {
++    render_report_inner(input, None)
++}
++
++pub(crate) fn render_report_with_pixel_comparison(
++    input: &ReportInput<'_>,
++    comparison: PixelComparisonReport,
++) -> String {
++    render_report_inner(input, Some(comparison))
++}
++
++fn render_report_inner(
++    input: &ReportInput<'_>,
++    comparison: Option<PixelComparisonReport>,
++) -> String {
+     let mut html = String::new();
+     push_header(&mut html, input);
+     push_summary(&mut html, input);
+-    push_state(&mut html, input);
++    push_state(&mut html, input, comparison.is_none());
++    if let Some(comparison) = comparison {
++        push_pixel_comparison(&mut html, comparison);
++    }
+     push_images(&mut html, input);
+     push_footer(&mut html);
+     html
+@@ -461,7 +486,21 @@ pub fn render_report(input: &ReportInput<'_>) -> String {
+ 
+ #[doc = "Render and save the static HTML report through one atomic file write.\n\n# Errors\n\nReturns [`ReportError`] when the report path has no file name or the report file cannot be written."]
+ pub fn write_report(input: &ReportInput<'_>, path: &Path) -> Result<(), ReportError> {
+-    let html = render_report(input);
++    write_report_html(&render_report(input), path)
++}
++
++pub(crate) fn write_report_with_pixel_comparison(
++    input: &ReportInput<'_>,
++    comparison: PixelComparisonReport,
++    path: &Path,
++) -> Result<(), ReportError> {
++    write_report_html(
++        &render_report_with_pixel_comparison(input, comparison),
++        path,
++    )
++}
++
++fn write_report_html(html: &str, path: &Path) -> Result<(), ReportError> {
+     let invalid = |what: &str| {
+         ReportError::Io(std::io::Error::new(
+             std::io::ErrorKind::InvalidInput,
+@@ -593,11 +632,13 @@ fn push_summary(html: &mut String, input: &ReportInput<'_>) {
+     );
+ }
+ 
+-fn push_state(html: &mut String, input: &ReportInput<'_>) {
++fn push_state(html: &mut String, input: &ReportInput<'_>, include_pixel_summary: bool) {
+     html.push_str("<h2>State differences</h2>\n");
+     if input.changed_fields.is_empty() && input.changed_cell_total == 0 {
+         html.push_str("<p>No state field changed.</p>\n");
+-        push_pixels(html, input);
++        if include_pixel_summary {
++            push_pixels(html, input);
++        }
+     } else {
+         html.push_str("<h3>Changed fields</h3>\n<ul>\n");
+         for field in input.changed_fields {
+@@ -606,7 +647,50 @@ fn push_state(html: &mut String, input: &ReportInput<'_>) {
+         html.push_str("</ul>\n");
+         push_title_values(html, input);
+         push_cells(html, input);
+-        push_pixels(html, input);
++        if include_pixel_summary {
++            push_pixels(html, input);
++        }
++    }
++}
++
++fn push_pixel_comparison(html: &mut String, comparison: PixelComparisonReport) {
++    html.push_str("<h2>Pixel comparison</h2>\n");
++    match comparison.status {
++        crate::check::PixelComparison::PixelEqual => {
++            let _result = writeln!(
++                html,
++                "<p>{}: 0 of {} decoded pixels changed.</p>",
++                comparison.status.as_str(),
++                comparison.compared,
++            );
++        }
++        crate::check::PixelComparison::PixelDifferent => {
++            let _result = write!(
++                html,
++                "<p>{}: {} of {} decoded pixels changed",
++                comparison.status.as_str(),
++                comparison.changed,
++                comparison.compared,
++            );
++            if let Some([min_x, min_y, max_x, max_y]) = comparison.bounds {
++                let _result = write!(html, "; bounds ({min_x}-{max_x}, {min_y}-{max_y})",);
++            }
++            html.push_str(".</p>\n");
++        }
++        crate::check::PixelComparison::DimensionDifferent => {
++            let _result = writeln!(
++                html,
++                "<p>{}: image dimensions differ, so decoded pixels were not compared.</p>",
++                comparison.status.as_str(),
++            );
++        }
++        crate::check::PixelComparison::Unavailable => {
++            let _result = writeln!(
++                html,
++                "<p>{}: decoded pixel values were not compared.</p>",
++                comparison.status.as_str(),
++            );
++        }
+     }
+ }
+ 

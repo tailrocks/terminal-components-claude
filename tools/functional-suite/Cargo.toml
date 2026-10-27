@@ -1,0 +1,27 @@
+[workspace]
+exclude = ["forks/tui-test-upstream", "forks/tuiscotti-upstream"]
+resolver = "3"
+
+[package]
+name = "termrock-functional-suite"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99.1"
+publish = false
+autotests = false
+
+[[test]]
+name = "functional"
+path = "tests/functional.rs"
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "=0.9.12"
+sha2 = "0.10"
+tui-test-rs = { path = "forks/tui-test-upstream/crates/tui-test", features = ["recording-raster", "recording-font-jetbrains-mono-styles"] }
+tuiscotti = { path = "forks/tuiscotti-upstream/crates/tuiscotti" }
+
+[patch.crates-io]
+tui-test-rs = { path = "forks/tui-test-upstream/crates/tui-test" }

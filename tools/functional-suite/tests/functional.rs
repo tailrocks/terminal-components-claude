@@ -1,0 +1,3693 @@
+use std::collections::{BTreeMap, BTreeSet};
+use std::env;
+use std::fs::{self, File, OpenOptions};
+use std::io::ErrorKind;
+use std::io::Write;
+use std::path::{Path, PathBuf};
+use std::thread;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+
+use anyhow::{Context, Result, bail, ensure};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use tui_test::profile::Profile;
+use tui_test::render::style::Style;
+use tui_test::terminal::cell::Attrs;
+use tui_test::{
+    AutomaticRecording, Backend, KeyAction, LaunchEnvMode, LaunchOptions, MouseAction, MouseButton,
+    MouseOptions, Operation, OperationResult, RunOptions, Session, SnapshotScope, Timeouts,
+    WaitQuietOptions,
+};
+use tuiscotti::check::{CheckFailure, CheckOutcome, FrozenStore};
+use tuiscotti::render_profile::{
+    PROFILE_NAME, Profile as PixelProfile, platform_key, resolve_profile,
+};
+use tuiscotti::sample::{ContractFont, Observation, RenderContract, Sample, SampleImage};
+
+const MANIFEST_TOML: &str = include_str!("../cases/cases.toml");
+const DATASET_JSON: &str = include_str!("../fixtures/dataset.json");
+const CASE_LOCK_TIMEOUT: Duration = Duration::from_secs(120);
+const CASE_LOCK_POLL_INTERVAL: Duration = Duration::from_millis(25);
+const OWNER_MARKER_TIMEOUT: Duration = Duration::from_secs(5);
+const OWNER_MARKER_POLL_INTERVAL: Duration = Duration::from_millis(25);
+const READINESS_TIMEOUT: Duration = Duration::from_secs(8);
+const READINESS_POLL_INTERVAL: Duration = Duration::from_millis(100);
+const SETTLE_TIMEOUT: Duration = Duration::from_secs(8);
+const SETTLE_QUIET: Duration = Duration::from_millis(400);
+const EXIT_TIMEOUT_MS: u64 = 20_000;
+const RAW_DRAIN_TIMEOUT: Duration = Duration::from_secs(10);
+const LEGACY_FIRST_CASES: [&str; 4] = [
+    "first_showcase",
+    "first_holla",
+    "first_jackin",
+    "first_tablepro",
+];
+const DELIVERY_CASES: [&str; 4] = [
+    "first_delivery_showcase_buttons",
+    "first_delivery_holla_first_use",
+    "first_delivery_jackin_settings",
+    "first_delivery_tablepro_connections",
+];
+const DELIVERY_FRAME_TOTAL: usize = 30;
+
+const LEGACY_CASES: [&str; 84] = [
+    "first_showcase",
+    "first_holla",
+    "first_jackin",
+    "first_tablepro",
+    "showcase_overview",
+    "showcase_chrome",
+    "showcase_status_and_hints",
+    "showcase_breadcrumbs_and_rails",
+    "showcase_help_and_keys",
+    "showcase_quit_and_leave",
+    "showcase_focus_and_navigation",
+    "showcase_buttons",
+    "showcase_inputs",
+    "showcase_text_areas",
+    "showcase_chips_and_selects",
+    "showcase_forms",
+    "showcase_checks_and_radios",
+    "showcase_toolbars",
+    "showcase_basic_table",
+    "showcase_editable",
+    "showcase_data_grid",
+    "showcase_selection",
+    "showcase_cell_editors",
+    "showcase_columns",
+    "showcase_lists",
+    "showcase_trees",
+    "showcase_sidebars",
+    "showcase_tabs",
+    "showcase_menus",
+    "showcase_dialogs",
+    "showcase_pickers",
+    "showcase_dialog_kinds",
+    "showcase_popups_and_tooltips",
+    "showcase_file_browser",
+    "showcase_progress",
+    "showcase_empty_and_error",
+    "showcase_meters",
+    "showcase_notices",
+    "showcase_panels",
+    "showcase_scrolling",
+    "showcase_splits_and_stacks",
+    "showcase_master_detail",
+    "showcase_pane_tree",
+    "showcase_code_editor",
+    "showcase_diff",
+    "showcase_terminal",
+    "showcase_text_utilities",
+    "showcase_settings",
+    "showcase_task_runner",
+    "showcase_query_workbench",
+    "showcase_connections",
+    "showcase_finder",
+    "showcase_disk_cleanup",
+    "showcase_activity",
+    "showcase_workspaces",
+    "showcase_accounts_and_usage",
+    "showcase_launch_cockpit",
+    "showcase_read_only_report",
+    "showcase_explorer",
+    "showcase_orders",
+    "showcase_query_edit_while_running",
+    "showcase_query_tab_switching",
+    "holla_home_actions",
+    "holla_plan_args_gate",
+    "holla_activity_stop",
+    "holla_disk_cleanup_review",
+    "holla_files_clone",
+    "holla_taskrun_args_cancel",
+    "holla_database_blockers",
+    "jackin_intro_prelude",
+    "jackin_editor_save_cancel_leave",
+    "jackin_accounts_usage",
+    "jackin_settings",
+    "jackin_launch_cancel_failure",
+    "jackin_handoff_capsule",
+    "jackin_capsule_controls",
+    "jackin_protected_quit_outro",
+    "tablepro_connection_retry",
+    "tablepro_explorer_structure_grid",
+    "tablepro_edit_transaction",
+    "tablepro_query_execution",
+    "tablepro_safety_ack",
+    "tablepro_history_filter_reconnect",
+    "tablepro_switchers_dirty_close",
+];
+const EXPECTED_COVERAGE_ID_COUNT: usize = 276;
+
+#[derive(Debug, Deserialize)]
+struct SuiteManifest {
+    version: SuiteVersion,
+    suite: SuiteConfig,
+    required_coverage: toml::Value,
+    engine_pins: BTreeMap<String, String>,
+    cases: Vec<Journey>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SuiteVersion {
+    schema_version: u32,
+    suite_id: String,
+    predecessor_suite_id: String,
+    result_inheritance: bool,
+    crosswalk: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SuiteConfig {
+    coverage_scope: String,
+    terminal: TerminalConfig,
+    render_profile: String,
+    fixture_dataset: String,
+    expected_store: String,
+    theme: String,
+    no_color: String,
+    readiness_timeout_ms: u64,
+    readiness_poll_interval_ms: u64,
+    settle_timeout_ms: u64,
+    settle_quiet_ms: u64,
+}
+
+#[derive(Debug, Deserialize)]
+struct TerminalConfig {
+    cols: u16,
+    rows: u16,
+    locale: String,
+    timezone: String,
+    term: String,
+    color_term: String,
+    color_mode_arguments: Vec<String>,
+    motion_arguments: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Journey {
+    name: String,
+    case_id: Option<String>,
+    binary: String,
+    arguments: Vec<String>,
+    help_key: Option<String>,
+    return_key: Option<String>,
+    exit_key: Option<String>,
+    native_steps: Option<Vec<String>>,
+    frame: Option<u64>,
+    steps: Option<Vec<CheckpointPlan>>,
+    coverage_ids: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CheckpointPlan {
+    name: String,
+    required_anchors: Vec<String>,
+    forbidden_anchors: Vec<String>,
+    #[serde(default = "default_terminal_cols")]
+    expected_cols: u16,
+    #[serde(default = "default_terminal_rows")]
+    expected_rows: u16,
+    #[serde(default)]
+    actions: Vec<NativeAction>,
+}
+
+fn default_terminal_cols() -> u16 {
+    120
+}
+
+fn default_terminal_rows() -> u16 {
+    40
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum NativeAction {
+    Key { key: String },
+    Write { text: String },
+    Resize { cols: u16, rows: u16 },
+    MouseClick { x: u16, y: u16, button: String },
+}
+
+#[derive(Debug, Deserialize)]
+struct FixtureDataset {
+    schema_version: u32,
+    dataset_id: String,
+    description: String,
+    sandbox_root: String,
+    work_directory: String,
+    home_directory: String,
+    data_directory: String,
+    config_directory: String,
+    cache_directory: String,
+    state_directory: String,
+    temporary_directory: String,
+    owner_marker: String,
+    owner_marker_contents: String,
+}
+
+#[derive(Debug)]
+struct FixturePaths {
+    cwd: PathBuf,
+    env: Vec<(String, String)>,
+    _case_lock: File,
+}
+
+#[derive(Debug, Serialize)]
+struct CaptureIndex {
+    schema_version: u32,
+    suite_id: String,
+    case_name: String,
+    executable_name: String,
+    arguments: Vec<String>,
+    terminal: TerminalEvidence,
+    child_environment: BTreeMap<String, String>,
+    no_color_present: bool,
+    working_directory: String,
+    fixture_dataset_id: String,
+    coverage_scope: String,
+    capture_api: String,
+    evidence_roots: EvidenceRootsEvidence,
+    raw_pty: Option<RawPtyEvidence>,
+    process_state_before_finalize: Option<ProcessStateEvidence>,
+    process_state_after_finalize: Option<ProcessStateEvidence>,
+    terminal_restoration: Option<TerminalRestorationEvidence>,
+    checkpoints: Vec<CheckpointEvidence>,
+    checkpoint_attempts: Vec<CheckpointAttemptEvidence>,
+    not_reached_checkpoints: Vec<NotReachedCheckpointEvidence>,
+    capture_errors: Vec<String>,
+    execution_errors: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct DeliveryCaptureIndex {
+    schema_version: u32,
+    suite_id: String,
+    case_id: String,
+    test_name: String,
+    case_status: String,
+    frame_checkpoint_count: usize,
+    executable_name: String,
+    arguments: Vec<String>,
+    terminal: TerminalEvidence,
+    child_environment: BTreeMap<String, String>,
+    no_color_present: bool,
+    working_directory: String,
+    fixture_dataset_id: String,
+    coverage_scope: String,
+    capture_api: String,
+    evidence_roots: EvidenceRootsEvidence,
+    exit_result_file: String,
+    checkpoints: Vec<CheckpointEvidence>,
+    checkpoint_attempts: Vec<CheckpointAttemptEvidence>,
+    not_reached_checkpoints: Vec<NotReachedCheckpointEvidence>,
+    capture_errors: Vec<String>,
+    execution_errors: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct DeliveryExitResult {
+    schema_version: u32,
+    suite_id: String,
+    case_id: String,
+    test_name: String,
+    case_status: String,
+    exit_key: Option<String>,
+    exit_key_attempted: bool,
+    exit_key_error: Option<String>,
+    wait_exit_succeeded: bool,
+    process_state_before_finalize: Option<ProcessStateEvidence>,
+    drain_succeeded: bool,
+    raw_pty: Option<RawPtyEvidence>,
+    raw_tail: Option<RawTailEvidence>,
+    process_state_after_finalize: Option<ProcessStateEvidence>,
+    terminal_restoration: Option<TerminalRestorationEvidence>,
+    execution_errors: Vec<String>,
+    capture_errors: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct RawTailEvidence {
+    byte_offset: usize,
+    byte_length: usize,
+    sha256: String,
+    hex: String,
+}
+
+#[derive(Debug, Serialize)]
+struct TerminalEvidence {
+    cols: u16,
+    rows: u16,
+    locale: String,
+    timezone: String,
+    term: String,
+    color_term: String,
+    render_profile: String,
+    platform_key: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct EvidenceRootsEvidence {
+    expected_store_root: String,
+    output_root: String,
+    comparison_root: String,
+    roots_disjoint: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct ProcessStateEvidence {
+    exited: Option<i32>,
+    exit_signal: Option<String>,
+    modes: BTreeMap<String, bool>,
+    mouse_mode: String,
+}
+
+#[derive(Debug, Serialize)]
+struct TerminalRestorationEvidence {
+    expected_modes: BTreeMap<String, bool>,
+    expected_mouse_mode: String,
+    restored: bool,
+    errors: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct RawPtyEvidence {
+    byte_length: usize,
+    sha256: String,
+    maximum_retained_bytes: usize,
+    bytes_file: String,
+    exact_bytes: bool,
+    drain_reached_eof: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct CheckpointAttemptEvidence {
+    name: String,
+    reached: bool,
+    capture_attempted: bool,
+    outcome: String,
+    reason: Option<String>,
+    raw_prefix_offset: Option<usize>,
+    raw_prefix_sha256: Option<String>,
+    sample_file: Option<String>,
+    sample_sha256: Option<String>,
+    native_snapshot_file: Option<String>,
+    native_snapshot_sha256: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct NotReachedCheckpointEvidence {
+    name: String,
+    status: String,
+    reason: String,
+}
+
+#[derive(Debug, Serialize)]
+struct CheckpointEvidence {
+    name: String,
+    test_id: String,
+    source_revision: u64,
+    raw_prefix_offset: usize,
+    raw_prefix_sha256: Option<String>,
+    sample_file: String,
+    sample_sha256: String,
+    native_snapshot_file: String,
+    native_snapshot_sha256: String,
+    cols: u32,
+    rows: u32,
+    cursor: CursorEvidence,
+    resolved_cells: Vec<CellEvidence>,
+    image: ImageEvidence,
+    render_contract: RenderContractEvidence,
+    comparison: ComparisonEvidence,
+}
+
+#[derive(Debug, Serialize)]
+struct CursorEvidence {
+    col: u32,
+    row: u32,
+    in_capture: bool,
+    visible: bool,
+    shape: String,
+    blink: Option<bool>,
+    color: String,
+}
+
+#[derive(Debug, Serialize)]
+struct CellEvidence {
+    col: u32,
+    row: u32,
+    text: String,
+    width: u16,
+    continuation: bool,
+    foreground: String,
+    background: String,
+    bold: bool,
+    dim: bool,
+    italic: bool,
+    inverse: bool,
+    invisible: bool,
+    strike: bool,
+    blink: bool,
+    underline: String,
+    underline_color: String,
+    link_uri: Option<String>,
+    link_id: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct ImageEvidence {
+    width: u32,
+    height: u32,
+    png_sha256: String,
+    rgba_sha256: String,
+}
+
+#[derive(Debug, Serialize)]
+struct RenderContractEvidence {
+    profile: String,
+    renderer_version: String,
+    raster_policy: String,
+    fonts: Vec<FontEvidence>,
+    palette_digest: String,
+    cell_width: f32,
+    cell_height: f32,
+    font_size: f32,
+    baseline: f32,
+    scale: f64,
+    cursor_phase: String,
+    cursor_blink: Option<bool>,
+}
+
+#[derive(Debug, Serialize)]
+struct FontEvidence {
+    sha256: String,
+    face_index: u32,
+    bold: bool,
+    italic: bool,
+    fallback_position: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct ComparisonEvidence {
+    test_id: String,
+    gate: String,
+    outcome: String,
+    passed: bool,
+    reason: Option<String>,
+    baseline_sha256: Option<String>,
+    candidate_sha256: String,
+    changed_fields: Vec<String>,
+    first_changed_cell: Option<ChangedCellEvidence>,
+    changed_cell_total: Option<usize>,
+    pixel_comparison: String,
+    pixel_changed: Option<u64>,
+    pixel_compared: Option<u64>,
+    pixel_bounds: Option<[u32; 4]>,
+    report_path: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct ChangedCellEvidence {
+    col: u32,
+    row: u32,
+    fields: Vec<String>,
+    actual_text: String,
+    baseline_text: String,
+}
+
+macro_rules! journey_test {
+    ($test_name:ident) => {
+        #[test]
+        fn $test_name() -> Result<()> {
+            run_case(stringify!($test_name))
+        }
+    };
+}
+
+journey_test!(first_showcase);
+journey_test!(first_holla);
+journey_test!(first_jackin);
+journey_test!(first_tablepro);
+journey_test!(showcase_overview);
+journey_test!(showcase_chrome);
+journey_test!(showcase_status_and_hints);
+journey_test!(showcase_breadcrumbs_and_rails);
+journey_test!(showcase_help_and_keys);
+journey_test!(showcase_quit_and_leave);
+journey_test!(showcase_focus_and_navigation);
+journey_test!(showcase_buttons);
+journey_test!(showcase_inputs);
+journey_test!(showcase_text_areas);
+journey_test!(showcase_chips_and_selects);
+journey_test!(showcase_forms);
+journey_test!(showcase_checks_and_radios);
+journey_test!(showcase_toolbars);
+journey_test!(showcase_basic_table);
+journey_test!(showcase_editable);
+journey_test!(showcase_data_grid);
+journey_test!(showcase_selection);
+journey_test!(showcase_cell_editors);
+journey_test!(showcase_columns);
+journey_test!(showcase_lists);
+journey_test!(showcase_trees);
+journey_test!(showcase_sidebars);
+journey_test!(showcase_tabs);
+journey_test!(showcase_menus);
+journey_test!(showcase_dialogs);
+journey_test!(showcase_pickers);
+journey_test!(showcase_dialog_kinds);
+journey_test!(showcase_popups_and_tooltips);
+journey_test!(showcase_file_browser);
+journey_test!(showcase_progress);
+journey_test!(showcase_empty_and_error);
+journey_test!(showcase_meters);
+journey_test!(showcase_notices);
+journey_test!(showcase_panels);
+journey_test!(showcase_scrolling);
+journey_test!(showcase_splits_and_stacks);
+journey_test!(showcase_master_detail);
+journey_test!(showcase_pane_tree);
+journey_test!(showcase_code_editor);
+journey_test!(showcase_diff);
+journey_test!(showcase_terminal);
+journey_test!(showcase_text_utilities);
+journey_test!(showcase_settings);
+journey_test!(showcase_task_runner);
+journey_test!(showcase_query_workbench);
+journey_test!(showcase_connections);
+journey_test!(showcase_finder);
+journey_test!(showcase_disk_cleanup);
+journey_test!(showcase_activity);
+journey_test!(showcase_workspaces);
+journey_test!(showcase_accounts_and_usage);
+journey_test!(showcase_launch_cockpit);
+journey_test!(showcase_read_only_report);
+journey_test!(showcase_explorer);
+journey_test!(showcase_orders);
+journey_test!(showcase_query_edit_while_running);
+journey_test!(showcase_query_tab_switching);
+journey_test!(holla_home_actions);
+journey_test!(holla_plan_args_gate);
+journey_test!(holla_activity_stop);
+journey_test!(holla_disk_cleanup_review);
+journey_test!(holla_files_clone);
+journey_test!(holla_taskrun_args_cancel);
+journey_test!(holla_database_blockers);
+journey_test!(jackin_intro_prelude);
+journey_test!(jackin_editor_save_cancel_leave);
+journey_test!(jackin_accounts_usage);
+journey_test!(jackin_settings);
+journey_test!(jackin_launch_cancel_failure);
+journey_test!(jackin_handoff_capsule);
+journey_test!(jackin_capsule_controls);
+journey_test!(jackin_protected_quit_outro);
+journey_test!(tablepro_connection_retry);
+journey_test!(tablepro_explorer_structure_grid);
+journey_test!(tablepro_edit_transaction);
+journey_test!(tablepro_query_execution);
+journey_test!(tablepro_safety_ack);
+journey_test!(tablepro_history_filter_reconnect);
+journey_test!(tablepro_switchers_dirty_close);
+journey_test!(first_delivery_showcase_buttons);
+journey_test!(first_delivery_holla_first_use);
+journey_test!(first_delivery_jackin_settings);
+journey_test!(first_delivery_tablepro_connections);
+journey_test!(full_holla_first_use_frame1);
+
+fn run_case(case_name: &str) -> Result<()> {
+    let manifest: SuiteManifest =
+        toml::from_str(MANIFEST_TOML).context("parse TOML suite manifest")?;
+    let dataset: FixtureDataset =
+        serde_json::from_str(DATASET_JSON).context("parse fixture dataset")?;
+    validate_manifest(&manifest, &dataset)?;
+    let journey = manifest
+        .cases
+        .iter()
+        .find(|case| case.name == case_name)
+        .with_context(|| format!("manifest has no case named {case_name}"))?;
+    ensure_supported_plan(journey)?;
+    let case_id = case_id(journey);
+
+    let binary_dir = required_directory("TERMROCK_PARITY_BIN_DIR")?;
+    let output_root = required_directory("TERMROCK_PARITY_OUT_DIR")?;
+    let binary_path = binary_dir
+        .join(&journey.binary)
+        .canonicalize()
+        .with_context(|| {
+            format!(
+                "resolve application binary {}",
+                binary_dir.join(&journey.binary).display()
+            )
+        })?;
+    ensure!(
+        binary_path.is_file(),
+        "application binary is not a file: {}",
+        binary_path.display()
+    );
+
+    let fixture = prepare_fixture(&dataset, journey, &manifest)?;
+    let output_dir = prepare_case_output(&output_root, case_id)?;
+    let samples_dir = ensure_child_dir(&output_dir, "samples")?;
+    let compare_dir = output_dir.join("comparison");
+    let expected_store = safe_manifest_path(&manifest.suite.expected_store)?;
+    let expected_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join(expected_store)
+        .canonicalize()
+        .context("canonicalize expected frame store")?;
+    ensure_disjoint_roots(&expected_root, &output_root)?;
+    let store =
+        FrozenStore::new(&expected_root, &compare_dir).context("open expected frame store")?;
+    let comparison_root = compare_dir
+        .canonicalize()
+        .context("canonicalize comparison artifact root")?;
+    ensure!(
+        comparison_root.starts_with(&output_root),
+        "comparison artifact root escaped TERMROCK_PARITY_OUT_DIR"
+    );
+    ensure_disjoint_roots(&expected_root, &comparison_root)?;
+    let evidence_roots = EvidenceRootsEvidence {
+        expected_store_root: expected_root.to_string_lossy().into_owned(),
+        output_root: output_root.to_string_lossy().into_owned(),
+        comparison_root: comparison_root.to_string_lossy().into_owned(),
+        roots_disjoint: true,
+    };
+    let pixel_profile =
+        resolve_profile(&manifest.suite.render_profile).context("resolve pinned pixel profile")?;
+
+    let mut args = journey.arguments.clone();
+    let mut motion_arguments = manifest.suite.terminal.motion_arguments.clone();
+    if let Some(frame) = journey.frame {
+        let frame_index = motion_arguments
+            .iter()
+            .position(|argument| argument == "--frame")
+            .context("suite motion arguments lack a frame value")?;
+        let frame_value = motion_arguments
+            .get_mut(frame_index + 1)
+            .context("suite frame argument lacks a value")?;
+        *frame_value = frame.to_string();
+    }
+    args.extend(motion_arguments);
+    args.extend(manifest.suite.terminal.color_mode_arguments.iter().cloned());
+    let child_environment = fixture.env.iter().cloned().collect::<BTreeMap<_, _>>();
+    let launch = LaunchOptions::new(binary_path.as_os_str())
+        .with_args(args.iter().cloned())
+        .with_cwd(&fixture.cwd)
+        .with_env_mode(LaunchEnvMode::Cleared)
+        .with_remove_env("NO_COLOR")
+        .with_envs(fixture.env.iter().cloned())
+        .with_raw_pty_capture();
+    let resolved_launch = launch
+        .resolve()
+        .context("resolve deterministic native launch")?;
+    ensure!(
+        !resolved_launch
+            .env()
+            .iter()
+            .any(|(key, _)| key.as_os_str() == std::ffi::OsStr::new("NO_COLOR")),
+        "NO_COLOR remained in the resolved child environment"
+    );
+    ensure!(
+        resolved_launch.captures_raw_pty(),
+        "exact raw PTY capture is disabled"
+    );
+
+    let run_options = RunOptions {
+        backend: Backend::Alacritty,
+        program: binary_path.to_string_lossy().into_owned(),
+        args: args.clone(),
+        profile: Profile::default(),
+        cols: manifest.suite.terminal.cols,
+        rows: manifest.suite.terminal.rows,
+        cwd: Some(fixture.cwd.to_string_lossy().into_owned()),
+        env: fixture.env.clone(),
+        wait_ready: Some(false),
+        restart: false,
+        timeouts: Timeouts::default(),
+        recording: AutomaticRecording::default(),
+        style: Style::default(),
+    };
+    let session = Session::new(format!("termrock-functional-{case_id}"));
+    session
+        .spawn_with(launch, run_options)
+        .context("spawn native application")?;
+
+    let journey_result = if journey.steps.is_some() {
+        run_delivery_journey(
+            &session,
+            journey,
+            &manifest,
+            pixel_profile,
+            &store,
+            &evidence_roots,
+            &samples_dir,
+            &output_dir,
+            &child_environment,
+            &fixture,
+            &dataset,
+            &args,
+        )
+    } else {
+        run_journey(
+            &session,
+            journey,
+            &manifest,
+            pixel_profile,
+            &store,
+            &evidence_roots,
+            &samples_dir,
+            &output_dir,
+            &child_environment,
+            &fixture,
+            &dataset,
+            &args,
+            case_name,
+        )
+    };
+    let close_result = session
+        .close()
+        .context("close native session after journey");
+    if let Err(close_error) = &close_result {
+        if output_dir.join("capture-index.json").is_file() {
+            append_capture_index_execution_error(
+                &output_dir,
+                &format!("checked session close failed: {close_error:#}"),
+            )
+            .context("record session close failure in capture index")?;
+            append_exit_result_execution_error(
+                &output_dir,
+                &format!("checked session close failed: {close_error:#}"),
+            )
+            .context("record session close failure in exit result")?;
+        }
+    }
+    match (journey_result, close_result) {
+        (Ok(()), Ok(())) => Ok(()),
+        (Err(journey_error), Ok(())) => Err(journey_error),
+        (Ok(()), Err(close_error)) => Err(close_error),
+        (Err(journey_error), Err(close_error)) => Err(anyhow::anyhow!(
+            "journey failed: {journey_error:#}; session cleanup also failed: {close_error:#}"
+        )),
+    }
+}
+
+fn append_capture_index_execution_error(output_dir: &Path, message: &str) -> Result<()> {
+    append_json_array_error(
+        output_dir,
+        "capture-index.json",
+        "execution_errors",
+        message,
+    )
+}
+
+fn append_exit_result_execution_error(output_dir: &Path, message: &str) -> Result<()> {
+    let exit_result = output_dir.join("exit-result.json");
+    if !exit_result.exists() {
+        return Ok(());
+    }
+    append_json_array_error(output_dir, "exit-result.json", "execution_errors", message)
+}
+
+fn append_json_array_error(
+    output_dir: &Path,
+    file_name: &str,
+    array_name: &str,
+    message: &str,
+) -> Result<()> {
+    let index_path = output_dir.join(file_name);
+    ensure_direct_child(output_dir, &index_path)?;
+    let metadata = fs::symlink_metadata(&index_path).context("inspect JSON evidence file")?;
+    ensure!(
+        !metadata.file_type().is_symlink() && metadata.is_file(),
+        "JSON evidence path is not a regular file: {}",
+        index_path.display()
+    );
+    let bytes = fs::read(&index_path).context("read JSON evidence for cleanup update")?;
+    let mut index: serde_json::Value =
+        serde_json::from_slice(&bytes).context("parse JSON evidence for cleanup update")?;
+    if let Some(case_status) = index.get_mut("case_status")
+        && case_status.as_str() == Some("passed")
+    {
+        *case_status = serde_json::Value::String("failed/execution".to_string());
+    }
+    let errors = index
+        .get_mut(array_name)
+        .and_then(serde_json::Value::as_array_mut)
+        .with_context(|| format!("{file_name} lacks {array_name} array"))?;
+    errors.push(serde_json::Value::String(message.to_string()));
+    let updated = serde_json::to_vec_pretty(&index).context("serialize updated JSON evidence")?;
+    write_atomic(output_dir, file_name, &updated)
+}
+
+fn ensure_supported_plan(journey: &Journey) -> Result<()> {
+    if let Some(steps) = journey.steps.as_ref() {
+        ensure!(
+            !steps.is_empty(),
+            "setup failure: delivery case {} has no checkpoint steps",
+            journey.name
+        );
+        ensure!(
+            journey.exit_key.is_some(),
+            "setup failure: delivery case {} is missing its exit key",
+            journey.name
+        );
+        let mut names = BTreeSet::new();
+        for step in steps {
+            ensure!(
+                is_safe_single_component(&step.name)
+                    && names.insert(step.name.as_str())
+                    && !step.required_anchors.is_empty(),
+                "setup failure: delivery case {} has an invalid checkpoint plan {:?}",
+                journey.name,
+                step.name
+            );
+            for action in &step.actions {
+                match action {
+                    NativeAction::Key { key } => ensure!(
+                        !key.is_empty(),
+                        "setup failure: delivery case {} has an empty key",
+                        journey.name
+                    ),
+                    NativeAction::Write { text } => ensure!(
+                        !text.is_empty(),
+                        "setup failure: delivery case {} has an empty text action",
+                        journey.name
+                    ),
+                    NativeAction::Resize { cols, rows } => ensure!(
+                        matches!((*cols, *rows), (80, 24) | (120, 40)),
+                        "setup failure: delivery case {} has an invalid resize",
+                        journey.name
+                    ),
+                    NativeAction::MouseClick { x, y, button } => ensure!(
+                        *x == 30 && *y == 10 && button == "left",
+                        "setup failure: delivery case {} has an unsupported mouse click",
+                        journey.name
+                    ),
+                }
+            }
+        }
+        return Ok(());
+    }
+    let Some(native_steps) = journey.native_steps.as_deref() else {
+        bail!(
+            "setup failure: case {} is registered for coverage {:?}, but has no native_steps plan",
+            journey.name,
+            journey.coverage_ids
+        );
+    };
+    ensure!(
+        same_strings(native_steps, &["help", "return", "exit"]),
+        "setup failure: case {} has a native plan not implemented by this runner: {:?}",
+        journey.name,
+        native_steps
+    );
+    ensure!(
+        journey.help_key.is_some() && journey.return_key.is_some() && journey.exit_key.is_some(),
+        "setup failure: case {} is missing its help, return, or exit key",
+        journey.name
+    );
+    Ok(())
+}
+
+fn run_journey(
+    session: &Session,
+    journey: &Journey,
+    manifest: &SuiteManifest,
+    pixel_profile: &PixelProfile,
+    store: &FrozenStore,
+    evidence_roots: &EvidenceRootsEvidence,
+    samples_dir: &Path,
+    output_dir: &Path,
+    child_environment: &BTreeMap<String, String>,
+    fixture: &FixturePaths,
+    dataset: &FixtureDataset,
+    args: &[String],
+    case_name: &str,
+) -> Result<()> {
+    let mut checkpoints = Vec::new();
+    let mut checkpoint_attempts = ["opened", "help", "returned", "exited"]
+        .into_iter()
+        .map(|name| CheckpointAttemptEvidence {
+            name: name.to_string(),
+            reached: false,
+            capture_attempted: false,
+            outcome: "not-run".to_string(),
+            reason: None,
+            raw_prefix_offset: None,
+            raw_prefix_sha256: None,
+            sample_file: None,
+            sample_sha256: None,
+            native_snapshot_file: None,
+            native_snapshot_sha256: None,
+        })
+        .collect::<Vec<_>>();
+    let mut capture_errors = Vec::new();
+    let mut execution_errors = Vec::new();
+    let mut journey_active = record_execution_step(
+        &mut execution_errors,
+        "wait for opened screen readiness",
+        wait_for_visible_anchors(session, &journey.name, "opened"),
+    );
+    if journey_active {
+        journey_active = record_execution_step(
+            &mut execution_errors,
+            "settle opened screen",
+            settle(session),
+        );
+    }
+    if journey_active {
+        journey_active = try_capture_checkpoint(
+            session,
+            "opened",
+            &mut checkpoint_attempts[0],
+            journey,
+            pixel_profile,
+            store,
+            samples_dir,
+            &mut checkpoints,
+            &mut capture_errors,
+        );
+    }
+
+    if journey_active {
+        journey_active = record_execution_step(
+            &mut execution_errors,
+            "open help screen",
+            press_required(session, journey.help_key.as_deref(), "help"),
+        );
+    }
+    if journey_active {
+        journey_active = record_execution_step(
+            &mut execution_errors,
+            "wait for help screen readiness",
+            wait_for_visible_anchors(session, &journey.name, "help"),
+        );
+    }
+    if journey_active {
+        journey_active =
+            record_execution_step(&mut execution_errors, "settle help screen", settle(session));
+        if journey_active {
+            journey_active = try_capture_checkpoint(
+                session,
+                "help",
+                &mut checkpoint_attempts[1],
+                journey,
+                pixel_profile,
+                store,
+                samples_dir,
+                &mut checkpoints,
+                &mut capture_errors,
+            );
+        }
+    }
+
+    if journey_active {
+        journey_active = record_execution_step(
+            &mut execution_errors,
+            "return from help screen",
+            press_required(session, journey.return_key.as_deref(), "return"),
+        );
+    }
+    if journey_active {
+        journey_active = record_execution_step(
+            &mut execution_errors,
+            "wait for returned screen readiness",
+            wait_for_visible_anchors(session, &journey.name, "returned"),
+        );
+    }
+    if journey_active {
+        journey_active = record_execution_step(
+            &mut execution_errors,
+            "settle returned screen",
+            settle(session),
+        );
+        if journey_active {
+            journey_active = try_capture_checkpoint(
+                session,
+                "returned",
+                &mut checkpoint_attempts[2],
+                journey,
+                pixel_profile,
+                store,
+                samples_dir,
+                &mut checkpoints,
+                &mut capture_errors,
+            );
+        }
+    }
+
+    if journey_active {
+        record_execution_step(
+            &mut execution_errors,
+            "send application exit key",
+            press_required(session, journey.exit_key.as_deref(), "exit"),
+        );
+    }
+    let wait_exit_succeeded = match session.execute(Operation::WaitExit {
+        timeout_ms: Some(EXIT_TIMEOUT_MS),
+    }) {
+        Ok(_) => true,
+        Err(error) => {
+            execution_errors.push(format!(
+                "wait for application process exit failed: {error:#}"
+            ));
+            false
+        }
+    };
+    let process_state_before_finalize = match session.execute(Operation::State) {
+        Ok(OperationResult::State(state)) => {
+            if state.exited != Some(0) {
+                execution_errors.push(format!(
+                    "child did not exit with status 0: {:?}",
+                    state.exited
+                ));
+            }
+            if let Some(signal) = state.exit_signal.as_ref() {
+                execution_errors.push(format!("child exited from signal {signal:?}"));
+            }
+            Some(ProcessStateEvidence {
+                exited: state.exited,
+                exit_signal: state
+                    .exit_signal
+                    .as_ref()
+                    .map(|signal| format!("{signal:?}")),
+                modes: state.modes.clone(),
+                mouse_mode: state.mouse_mode.clone(),
+            })
+        }
+        Ok(other) => {
+            execution_errors.push(format!(
+                "Operation::State returned unexpected result before capture finalization: {other:?}"
+            ));
+            None
+        }
+        Err(error) => {
+            execution_errors.push(format!("read final process state failed: {error:#}"));
+            None
+        }
+    };
+    let pre_finalize_exit_confirmed = wait_exit_succeeded
+        && process_state_before_finalize
+            .as_ref()
+            .is_some_and(|state| state.exited == Some(0) && state.exit_signal.is_none());
+
+    let mut raw_bytes = None;
+    let mut process_state_after_finalize = None;
+    let mut terminal_restoration = None;
+    let mut post_drain_exit_confirmed = false;
+    let finalization_succeeded = match session.finish_capture(RAW_DRAIN_TIMEOUT) {
+        Ok(bytes) => {
+            let nonempty_capture = !bytes.is_empty();
+            if nonempty_capture {
+                raw_bytes = Some(bytes);
+            } else {
+                capture_errors
+                    .push("checked PTY finalization returned an empty byte stream".to_string());
+            }
+            match session.execute(Operation::State) {
+                Ok(OperationResult::State(state)) => {
+                    let exit_confirmed = state.exited == Some(0) && state.exit_signal.is_none();
+                    if state.exited != Some(0) {
+                        execution_errors.push(format!(
+                            "post-drain child did not exit with status 0: {:?}",
+                            state.exited
+                        ));
+                    }
+                    if let Some(signal) = state.exit_signal.as_ref() {
+                        execution_errors.push(format!(
+                            "post-drain child exited from signal {signal:?}"
+                        ));
+                    }
+                    post_drain_exit_confirmed = exit_confirmed;
+                    let restoration = terminal_restoration_evidence(&state.modes, &state.mouse_mode);
+                    if !restoration.restored {
+                        execution_errors.extend(restoration.errors.iter().cloned());
+                    }
+                    terminal_restoration = Some(restoration);
+                    process_state_after_finalize = Some(ProcessStateEvidence {
+                        exited: state.exited,
+                        exit_signal: state.exit_signal.as_ref().map(|signal| format!("{signal:?}")),
+                        modes: state.modes.clone(),
+                        mouse_mode: state.mouse_mode.clone(),
+                    });
+                }
+                Ok(other) => execution_errors.push(format!(
+                    "Operation::State returned unexpected result after capture finalization: {other:?}"
+                )),
+                Err(error) => execution_errors.push(format!(
+                    "read terminal state after capture finalization failed: {error:#}"
+                )),
+            }
+            nonempty_capture && post_drain_exit_confirmed
+        }
+        Err(error) => {
+            capture_errors.push(format!(
+                "checked PTY capture finalization failed; no raw bytes are marked exact: {error:#}"
+            ));
+            false
+        }
+    };
+
+    let exited_checkpoint_eligible = wait_exit_succeeded
+        && pre_finalize_exit_confirmed
+        && finalization_succeeded
+        && post_drain_exit_confirmed;
+    if exited_checkpoint_eligible {
+        try_capture_checkpoint(
+            session,
+            "exited",
+            &mut checkpoint_attempts[3],
+            journey,
+            pixel_profile,
+            store,
+            samples_dir,
+            &mut checkpoints,
+            &mut capture_errors,
+        );
+    } else {
+        let mut reasons = Vec::new();
+        if !wait_exit_succeeded {
+            reasons.push(
+                "WaitExit did not succeed (including process status watcher errors)".to_string(),
+            );
+        }
+        if !pre_finalize_exit_confirmed {
+            reasons.push(
+                "pre-finalization state did not confirm exit status 0 without a signal".to_string(),
+            );
+        }
+        if !finalization_succeeded {
+            reasons.push("checked finalization did not produce a nonempty stream and confirmed post-drain state".to_string());
+        }
+        if !post_drain_exit_confirmed {
+            reasons.push(
+                "post-drain state did not confirm exit status 0 without a signal".to_string(),
+            );
+        }
+        execution_errors.push(format!("exited checkpoint not-run: {}", reasons.join("; ")));
+    }
+
+    let raw_pty = if let Some(bytes) = raw_bytes.as_deref() {
+        for attempt in &mut checkpoint_attempts {
+            let Some(offset) = attempt.raw_prefix_offset else {
+                continue;
+            };
+            if offset <= bytes.len() {
+                let prefix_sha256 = sha256_hex(&bytes[..offset]);
+                attempt.raw_prefix_sha256 = Some(prefix_sha256.clone());
+                if let Some(checkpoint) = checkpoints
+                    .iter_mut()
+                    .find(|checkpoint| checkpoint.name == attempt.name)
+                {
+                    checkpoint.raw_prefix_sha256 = Some(prefix_sha256);
+                }
+                if attempt.name == "exited" && offset != bytes.len() {
+                    capture_errors.push(format!(
+                        "exited checkpoint PTY offset {} does not include the full drained stream length {}",
+                        offset,
+                        bytes.len()
+                    ));
+                }
+            } else {
+                capture_errors.push(format!(
+                    "{} checkpoint PTY offset {} exceeds retained stream length {}",
+                    attempt.name,
+                    offset,
+                    bytes.len()
+                ));
+            }
+        }
+        match write_atomic(output_dir, "raw_pty.bin", bytes) {
+            Ok(()) => Some(RawPtyEvidence {
+                byte_length: bytes.len(),
+                sha256: sha256_hex(bytes),
+                maximum_retained_bytes: 32 * 1024 * 1024,
+                bytes_file: "raw_pty.bin".to_string(),
+                exact_bytes: true,
+                drain_reached_eof: true,
+            }),
+            Err(error) => {
+                capture_errors.push(format!(
+                    "write exact retained raw PTY bytes failed: {error:#}"
+                ));
+                None
+            }
+        }
+    } else {
+        None
+    };
+
+    let first_failure = execution_errors
+        .first()
+        .or_else(|| capture_errors.first())
+        .cloned()
+        .unwrap_or_else(|| "process exit or capture finalization was not confirmed".to_string());
+    for attempt in &mut checkpoint_attempts {
+        if !attempt.reached && attempt.reason.is_none() {
+            attempt.reason = Some(format!(
+                "checkpoint phase not-run after prerequisite failure: {first_failure}"
+            ));
+        }
+    }
+    let not_reached_checkpoints = checkpoint_attempts
+        .iter()
+        .filter(|attempt| !attempt.reached)
+        .map(|attempt| NotReachedCheckpointEvidence {
+            name: attempt.name.clone(),
+            status: "not-run".to_string(),
+            reason: attempt
+                .reason
+                .clone()
+                .unwrap_or_else(|| "checkpoint phase was not reached".to_string()),
+        })
+        .collect::<Vec<_>>();
+
+    let index = CaptureIndex {
+        schema_version: 1,
+        suite_id: manifest.version.suite_id.clone(),
+        case_name: case_name.to_string(),
+        executable_name: journey.binary.clone(),
+        arguments: args.to_vec(),
+        terminal: TerminalEvidence {
+            cols: manifest.suite.terminal.cols,
+            rows: manifest.suite.terminal.rows,
+            locale: manifest.suite.terminal.locale.clone(),
+            timezone: manifest.suite.terminal.timezone.clone(),
+            term: manifest.suite.terminal.term.clone(),
+            color_term: manifest.suite.terminal.color_term.clone(),
+            render_profile: manifest.suite.render_profile.clone(),
+            platform_key: platform_key(),
+        },
+        child_environment: child_environment.clone(),
+        no_color_present: child_environment.contains_key("NO_COLOR"),
+        working_directory: fixture.cwd.to_string_lossy().into_owned(),
+        fixture_dataset_id: dataset.dataset_id.clone(),
+        coverage_scope: manifest.suite.coverage_scope.clone(),
+        capture_api: "tui-test-rs::Session::capture_checkpoint(ActiveScreen+raw-prefix-offset-under-one-terminal-state-lock);offset-saved-before-render;native-snapshot-written-before-sample-validation;Session::finish_capture(bounded-checked-drain)".to_string(),
+        evidence_roots: evidence_roots.clone(),
+        raw_pty,
+        process_state_before_finalize,
+        process_state_after_finalize,
+        terminal_restoration,
+        checkpoints,
+        checkpoint_attempts,
+        not_reached_checkpoints,
+        capture_errors,
+        execution_errors,
+    };
+    let index_bytes = serde_json::to_vec_pretty(&index).context("serialize capture index")?;
+    write_atomic(output_dir, "capture-index.json", &index_bytes).context("write capture index")?;
+
+    ensure!(
+        index.checkpoints.len() == 4,
+        "captured {} of 4 checkpoints; not reached: {:?}; capture errors: {:?}",
+        index.checkpoints.len(),
+        index.not_reached_checkpoints,
+        index.capture_errors
+    );
+    ensure!(
+        index.capture_errors.is_empty(),
+        "checkpoint or raw-capture failures: {:?}",
+        index.capture_errors
+    );
+    ensure!(
+        index
+            .raw_pty
+            .as_ref()
+            .is_some_and(|raw| { raw.byte_length > 0 && raw.exact_bytes && raw.drain_reached_eof }),
+        "raw PTY capture must be nonempty and fully drained before it can pass"
+    );
+    ensure!(
+        index
+            .terminal_restoration
+            .as_ref()
+            .is_some_and(|state| state.restored),
+        "terminal restoration failed or has no post-finalization state evidence"
+    );
+    ensure!(
+        index.execution_errors.is_empty(),
+        "journey execution failures: {:?}",
+        index.execution_errors
+    );
+    let failures = index
+        .checkpoints
+        .iter()
+        .filter(|checkpoint| !checkpoint.comparison.passed)
+        .map(|checkpoint| {
+            format!(
+                "{}: reason={:?}, report={:?}, first_cell={:?}",
+                checkpoint.test_id,
+                checkpoint.comparison.reason,
+                checkpoint.comparison.report_path,
+                checkpoint.comparison.first_changed_cell
+            )
+        })
+        .collect::<Vec<_>>();
+    ensure!(
+        failures.is_empty(),
+        "frozen visual checks failed after collecting every checkpoint: {failures:#?}"
+    );
+    Ok(())
+}
+
+fn try_capture_checkpoint(
+    session: &Session,
+    phase: &str,
+    attempt: &mut CheckpointAttemptEvidence,
+    journey: &Journey,
+    pixel_profile: &PixelProfile,
+    store: &FrozenStore,
+    samples_dir: &Path,
+    checkpoints: &mut Vec<CheckpointEvidence>,
+    errors: &mut Vec<String>,
+) -> bool {
+    attempt.reached = true;
+    attempt.capture_attempted = true;
+    let mut readiness_failed = false;
+    match capture_checkpoint(
+        session,
+        phase,
+        attempt,
+        &mut readiness_failed,
+        journey,
+        pixel_profile,
+        store,
+        samples_dir,
+    ) {
+        Ok(checkpoint) => {
+            attempt.sample_file = Some(checkpoint.sample_file.clone());
+            attempt.sample_sha256 = Some(checkpoint.sample_sha256.clone());
+            if checkpoint.comparison.passed {
+                attempt.outcome = "captured".to_string();
+            } else {
+                attempt.outcome = "comparison-failure".to_string();
+                attempt.reason = checkpoint.comparison.reason.clone();
+            }
+            checkpoints.push(checkpoint);
+            true
+        }
+        Err(error) => {
+            let message = format!("{phase}: {error:#}");
+            attempt.outcome = "capture-failure".to_string();
+            attempt.reason = Some(message.clone());
+            match partial_sample_evidence(samples_dir, phase) {
+                Ok(Some((sample_file, sample_sha256))) => {
+                    attempt.sample_file = Some(sample_file);
+                    attempt.sample_sha256 = Some(sample_sha256);
+                }
+                Ok(None) => {}
+                Err(sample_error) => errors.push(format!(
+                    "{phase}: reading partial sample evidence failed: {sample_error:#}"
+                )),
+            }
+            errors.push(message);
+            !readiness_failed
+        }
+    }
+}
+
+fn run_delivery_journey(
+    session: &Session,
+    journey: &Journey,
+    manifest: &SuiteManifest,
+    pixel_profile: &PixelProfile,
+    store: &FrozenStore,
+    evidence_roots: &EvidenceRootsEvidence,
+    samples_dir: &Path,
+    output_dir: &Path,
+    child_environment: &BTreeMap<String, String>,
+    fixture: &FixturePaths,
+    dataset: &FixtureDataset,
+    args: &[String],
+) -> Result<()> {
+    let plans = journey
+        .steps
+        .as_deref()
+        .context("delivery plan disappeared")?;
+    let mut attempts = plans
+        .iter()
+        .map(|step| CheckpointAttemptEvidence {
+            name: step.name.clone(),
+            reached: false,
+            capture_attempted: false,
+            outcome: "not-run".to_string(),
+            reason: None,
+            raw_prefix_offset: None,
+            raw_prefix_sha256: None,
+            sample_file: None,
+            sample_sha256: None,
+            native_snapshot_file: None,
+            native_snapshot_sha256: None,
+        })
+        .collect::<Vec<_>>();
+    let mut checkpoints = Vec::new();
+    let mut capture_errors = Vec::new();
+    let mut execution_errors = Vec::new();
+    let mut journey_active = true;
+
+    for (index, step) in plans.iter().enumerate() {
+        if !journey_active {
+            continue;
+        }
+        for action in &step.actions {
+            if !record_execution_step(
+                &mut execution_errors,
+                &format!("execute {} action for {}", step.name, journey.name),
+                execute_native_action(session, action),
+            ) {
+                journey_active = false;
+                break;
+            }
+        }
+        if !journey_active {
+            continue;
+        }
+        journey_active = record_execution_step(
+            &mut execution_errors,
+            &format!("wait for {} visible readiness", step.name),
+            wait_for_step_readiness(session, case_id(journey), step),
+        );
+        if !journey_active {
+            attempts[index].reason = execution_errors.last().cloned();
+            continue;
+        }
+        journey_active = record_execution_step(
+            &mut execution_errors,
+            &format!("settle {} screen", step.name),
+            settle(session),
+        );
+        if !journey_active {
+            attempts[index].reason = execution_errors.last().cloned();
+            continue;
+        }
+        journey_active = try_capture_delivery_checkpoint(
+            session,
+            step,
+            &mut attempts[index],
+            journey,
+            pixel_profile,
+            store,
+            samples_dir,
+            &mut checkpoints,
+            &mut capture_errors,
+        );
+    }
+
+    let exit_key = journey.exit_key.clone();
+    let exit_key_attempted = true;
+    let exit_key_error = match press_required(session, journey.exit_key.as_deref(), "exit") {
+        Ok(()) => None,
+        Err(error) => {
+            execution_errors.push(format!("send application exit key failed: {error:#}"));
+            Some(format!("{error:#}"))
+        }
+    };
+    let wait_exit_succeeded = match session.execute(Operation::WaitExit {
+        timeout_ms: Some(EXIT_TIMEOUT_MS),
+    }) {
+        Ok(_) => true,
+        Err(error) => {
+            execution_errors.push(format!(
+                "wait for application process exit failed: {error:#}"
+            ));
+            false
+        }
+    };
+    let process_state_before_finalize = match session.execute(Operation::State) {
+        Ok(OperationResult::State(state)) => {
+            if state.exited != Some(0) {
+                execution_errors.push(format!(
+                    "child did not exit with status 0 before drain: {:?}",
+                    state.exited
+                ));
+            }
+            if let Some(signal) = state.exit_signal.as_ref() {
+                execution_errors.push(format!("child exited from signal before drain {signal:?}"));
+            }
+            Some(process_state_evidence(&state))
+        }
+        Ok(other) => {
+            execution_errors.push(format!(
+                "Operation::State returned unexpected result before drain: {other:?}"
+            ));
+            None
+        }
+        Err(error) => {
+            execution_errors.push(format!("read process state before drain failed: {error:#}"));
+            None
+        }
+    };
+
+    let mut raw_bytes = None;
+    let mut process_state_after_finalize = None;
+    let mut terminal_restoration = None;
+    let mut post_drain_exit_confirmed = false;
+    let mut drain_succeeded = false;
+    match session.finish_capture(RAW_DRAIN_TIMEOUT) {
+        Ok(bytes) => {
+            if bytes.is_empty() {
+                capture_errors
+                    .push("checked PTY finalization returned an empty byte stream".to_string());
+            } else {
+                raw_bytes = Some(bytes);
+            }
+            match session.execute(Operation::State) {
+                Ok(OperationResult::State(state)) => {
+                    post_drain_exit_confirmed =
+                        state.exited == Some(0) && state.exit_signal.is_none();
+                    if state.exited != Some(0) {
+                        execution_errors.push(format!(
+                            "post-drain child did not exit with status 0: {:?}",
+                            state.exited
+                        ));
+                    }
+                    if let Some(signal) = state.exit_signal.as_ref() {
+                        execution_errors
+                            .push(format!("post-drain child exited from signal {signal:?}"));
+                    }
+                    let restoration =
+                        terminal_restoration_evidence(&state.modes, &state.mouse_mode);
+                    if !restoration.restored {
+                        execution_errors.extend(restoration.errors.iter().cloned());
+                    }
+                    terminal_restoration = Some(restoration);
+                    process_state_after_finalize = Some(process_state_evidence(&state));
+                }
+                Ok(other) => execution_errors.push(format!(
+                    "Operation::State returned unexpected result after drain: {other:?}"
+                )),
+                Err(error) => execution_errors
+                    .push(format!("read process state after drain failed: {error:#}")),
+            }
+            drain_succeeded = raw_bytes.is_some() && post_drain_exit_confirmed;
+        }
+        Err(error) => capture_errors.push(format!(
+            "checked PTY capture finalization failed; no raw bytes are marked exact: {error:#}"
+        )),
+    }
+
+    let mut raw_pty = None;
+    let mut raw_tail = None;
+    if let Some(bytes) = raw_bytes.as_deref() {
+        for attempt in &mut attempts {
+            let Some(offset) = attempt.raw_prefix_offset else {
+                continue;
+            };
+            if offset > bytes.len() {
+                capture_errors.push(format!(
+                    "{} checkpoint PTY offset {} exceeds drained stream length {}",
+                    attempt.name,
+                    offset,
+                    bytes.len()
+                ));
+                continue;
+            }
+            let prefix_sha256 = sha256_hex(&bytes[..offset]);
+            attempt.raw_prefix_sha256 = Some(prefix_sha256.clone());
+            if let Some(checkpoint) = checkpoints
+                .iter_mut()
+                .find(|checkpoint| checkpoint.name == attempt.name)
+            {
+                checkpoint.raw_prefix_sha256 = Some(prefix_sha256);
+            }
+        }
+        let tail_start = bytes.len().saturating_sub(512);
+        let tail = &bytes[tail_start..];
+        raw_tail = Some(RawTailEvidence {
+            byte_offset: tail_start,
+            byte_length: tail.len(),
+            sha256: sha256_hex(tail),
+            hex: hex_bytes(tail),
+        });
+        match write_atomic(output_dir, "raw_pty.bin", bytes) {
+            Ok(()) => {
+                raw_pty = Some(RawPtyEvidence {
+                    byte_length: bytes.len(),
+                    sha256: sha256_hex(bytes),
+                    maximum_retained_bytes: 32 * 1024 * 1024,
+                    bytes_file: "raw_pty.bin".to_string(),
+                    exact_bytes: true,
+                    drain_reached_eof: true,
+                });
+            }
+            Err(error) => capture_errors.push(format!(
+                "write exact retained raw PTY bytes failed: {error:#}"
+            )),
+        }
+    }
+
+    let first_failure = execution_errors
+        .first()
+        .or_else(|| capture_errors.first())
+        .cloned()
+        .unwrap_or_else(|| "delivery journey did not complete".to_string());
+    for attempt in &mut attempts {
+        if !attempt.reached && attempt.reason.is_none() {
+            attempt.reason = Some(format!(
+                "checkpoint phase not-run after prerequisite failure: {first_failure}"
+            ));
+        }
+    }
+    let not_reached_checkpoints = attempts
+        .iter()
+        .filter(|attempt| !attempt.reached)
+        .map(|attempt| NotReachedCheckpointEvidence {
+            name: attempt.name.clone(),
+            status: "not-run".to_string(),
+            reason: attempt
+                .reason
+                .clone()
+                .unwrap_or_else(|| "checkpoint phase was not reached".to_string()),
+        })
+        .collect::<Vec<_>>();
+    let visual_failure = checkpoints
+        .iter()
+        .any(|checkpoint| !checkpoint.comparison.passed);
+    let missing_baseline = checkpoints
+        .iter()
+        .any(|checkpoint| checkpoint.comparison.reason.as_deref() == Some("missing"));
+    let setup_failure = execution_errors
+        .iter()
+        .chain(capture_errors.iter())
+        .any(|error| error.contains("setup failure"))
+        || missing_baseline;
+    let case_status = if setup_failure {
+        "failed/setup"
+    } else if !capture_errors.is_empty() {
+        "failed/capture"
+    } else if !execution_errors.is_empty() {
+        "failed/execution"
+    } else if visual_failure {
+        "failed/visual"
+    } else {
+        "passed"
+    }
+    .to_string();
+
+    let exit_result = DeliveryExitResult {
+        schema_version: 1,
+        suite_id: manifest.version.suite_id.clone(),
+        case_id: case_id(journey).to_string(),
+        test_name: journey.name.clone(),
+        case_status: case_status.clone(),
+        exit_key,
+        exit_key_attempted,
+        exit_key_error,
+        wait_exit_succeeded,
+        process_state_before_finalize,
+        drain_succeeded,
+        raw_pty,
+        raw_tail,
+        process_state_after_finalize,
+        terminal_restoration,
+        execution_errors: execution_errors.clone(),
+        capture_errors: capture_errors.clone(),
+    };
+    match serde_json::to_vec_pretty(&exit_result) {
+        Ok(exit_bytes) => {
+            if let Err(error) = write_atomic(output_dir, "exit-result.json", &exit_bytes) {
+                capture_errors.push(format!("write exit result failed: {error:#}"));
+            }
+        }
+        Err(error) => capture_errors.push(format!("serialize exit result failed: {error:#}")),
+    }
+
+    let setup_failure = execution_errors
+        .iter()
+        .chain(capture_errors.iter())
+        .any(|error| error.contains("setup failure"))
+        || missing_baseline;
+    let case_status = if setup_failure {
+        "failed/setup"
+    } else if !capture_errors.is_empty() {
+        "failed/capture"
+    } else if !execution_errors.is_empty() {
+        "failed/execution"
+    } else if visual_failure {
+        "failed/visual"
+    } else {
+        "passed"
+    }
+    .to_string();
+
+    let index = DeliveryCaptureIndex {
+        schema_version: 2,
+        suite_id: manifest.version.suite_id.clone(),
+        case_id: case_id(journey).to_string(),
+        test_name: journey.name.clone(),
+        case_status: case_status.clone(),
+        frame_checkpoint_count: plans.len(),
+        executable_name: journey.binary.clone(),
+        arguments: args.to_vec(),
+        terminal: TerminalEvidence {
+            cols: manifest.suite.terminal.cols,
+            rows: manifest.suite.terminal.rows,
+            locale: manifest.suite.terminal.locale.clone(),
+            timezone: manifest.suite.terminal.timezone.clone(),
+            term: manifest.suite.terminal.term.clone(),
+            color_term: manifest.suite.terminal.color_term.clone(),
+            render_profile: manifest.suite.render_profile.clone(),
+            platform_key: platform_key(),
+        },
+        child_environment: child_environment.clone(),
+        no_color_present: child_environment.contains_key("NO_COLOR"),
+        working_directory: fixture.cwd.to_string_lossy().into_owned(),
+        fixture_dataset_id: dataset.dataset_id.clone(),
+        coverage_scope: manifest.suite.coverage_scope.clone(),
+        capture_api: "tui-test-rs::Session::capture_checkpoint(ActiveScreen+raw-prefix-offset-under-one-terminal-state-lock);offset-saved-before-render;native-snapshot-written-before-sample-validation;Session::finish_capture(bounded-checked-drain)".to_string(),
+        evidence_roots: evidence_roots.clone(),
+        exit_result_file: "exit-result.json".to_string(),
+        checkpoints,
+        checkpoint_attempts: attempts,
+        not_reached_checkpoints,
+        capture_errors,
+        execution_errors,
+    };
+    let index_bytes =
+        serde_json::to_vec_pretty(&index).context("serialize delivery capture index")?;
+    write_atomic(output_dir, "capture-index.json", &index_bytes)
+        .context("write delivery capture index")?;
+
+    ensure!(
+        index.checkpoints.len() == index.frame_checkpoint_count,
+        "captured {} of {} frame checkpoints; not reached: {:?}; capture errors: {:?}",
+        index.checkpoints.len(),
+        index.frame_checkpoint_count,
+        index.not_reached_checkpoints,
+        index.capture_errors
+    );
+    ensure!(
+        index.capture_errors.is_empty(),
+        "checkpoint capture failures: {:?}",
+        index.capture_errors
+    );
+    ensure!(
+        index.execution_errors.is_empty(),
+        "delivery journey execution failures: {:?}",
+        index.execution_errors
+    );
+    let failures = index
+        .checkpoints
+        .iter()
+        .filter(|checkpoint| !checkpoint.comparison.passed)
+        .map(|checkpoint| {
+            format!(
+                "{}: reason={:?}, report={:?}, first_cell={:?}",
+                checkpoint.test_id,
+                checkpoint.comparison.reason,
+                checkpoint.comparison.report_path,
+                checkpoint.comparison.first_changed_cell
+            )
+        })
+        .collect::<Vec<_>>();
+    ensure!(
+        failures.is_empty(),
+        "frozen visual checks failed: {failures:#?}"
+    );
+    ensure!(
+        drain_succeeded,
+        "exit result lacks successful checked PTY drain and zero exit"
+    );
+    ensure!(
+        index
+            .checkpoints
+            .iter()
+            .all(|checkpoint| checkpoint.raw_prefix_sha256.is_some()),
+        "one or more frame checkpoints lack a post-drain raw-prefix hash"
+    );
+    Ok(())
+}
+
+fn process_state_evidence(state: &tui_test::State) -> ProcessStateEvidence {
+    ProcessStateEvidence {
+        exited: state.exited,
+        exit_signal: state
+            .exit_signal
+            .as_ref()
+            .map(|signal| format!("{signal:?}")),
+        modes: state.modes.clone(),
+        mouse_mode: state.mouse_mode.clone(),
+    }
+}
+
+fn hex_bytes(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        output.push(HEX[(byte >> 4) as usize] as char);
+        output.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    output
+}
+
+fn execute_native_action(session: &Session, action: &NativeAction) -> Result<()> {
+    match action {
+        NativeAction::Key { key } => press(session, key),
+        NativeAction::Write { text } => {
+            session
+                .execute(Operation::Write { data: text.clone() })
+                .with_context(|| format!("write native text {text:?}"))?;
+            Ok(())
+        }
+        NativeAction::Resize { cols, rows } => {
+            session
+                .execute(Operation::Resize {
+                    cols: *cols,
+                    rows: *rows,
+                })
+                .with_context(|| format!("resize native terminal to {cols}x{rows}"))?;
+            Ok(())
+        }
+        NativeAction::MouseClick { x, y, button } => {
+            let button = match button.as_str() {
+                "left" => MouseButton::Left,
+                _ => bail!("unsupported native mouse button {button:?}"),
+            };
+            let options = MouseOptions::new(button);
+            session
+                .execute(Operation::Mouse {
+                    action: MouseAction::Down {
+                        x: *x,
+                        y: *y,
+                        options,
+                    },
+                })
+                .context("press native mouse button")?;
+            session
+                .execute(Operation::Mouse {
+                    action: MouseAction::Up {
+                        x: *x,
+                        y: *y,
+                        options,
+                    },
+                })
+                .context("release native mouse button")?;
+            Ok(())
+        }
+    }
+}
+
+fn wait_for_step_readiness(session: &Session, case_id: &str, step: &CheckpointPlan) -> Result<()> {
+    let deadline = Instant::now() + READINESS_TIMEOUT;
+    loop {
+        let captured = session
+            .capture_checkpoint(SnapshotScope::ActiveScreen)
+            .with_context(|| format!("setup failure: capture {case_id}/{} readiness", step.name))?;
+        let snapshot = captured.snapshot();
+        let revision = snapshot.metadata().revision;
+        let raw_offset = captured.raw_pty_offset();
+        let problems = step_readiness_problems(snapshot, step);
+        if problems.is_empty() {
+            return Ok(());
+        }
+        let now = Instant::now();
+        if now >= deadline {
+            bail!(
+                "setup failure: {case_id}/{} did not reach required visible state within {:?}; anchor problems {:?}, revision {:?}, raw PTY offset {:?}",
+                step.name,
+                READINESS_TIMEOUT,
+                problems,
+                revision,
+                raw_offset
+            );
+        }
+        thread::sleep(READINESS_POLL_INTERVAL.min(deadline.saturating_duration_since(now)));
+    }
+}
+
+fn step_readiness_problems(
+    snapshot: &tui_test::TerminalSnapshot,
+    step: &CheckpointPlan,
+) -> Vec<String> {
+    let required = step
+        .required_anchors
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    let forbidden = step
+        .forbidden_anchors
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    let mut problems = missing_snapshot_anchors(snapshot, &required);
+    if snapshot.cols() != u32::from(step.expected_cols)
+        || snapshot.rows() != u32::from(step.expected_rows)
+    {
+        problems.push(format!(
+            "terminal size is {}x{}, expected {}x{}",
+            snapshot.cols(),
+            snapshot.rows(),
+            step.expected_cols,
+            step.expected_rows
+        ));
+    }
+    problems.extend(
+        forbidden
+            .iter()
+            .filter(|anchor| snapshot_has_anchor(snapshot, anchor))
+            .map(|anchor| format!("forbidden anchor {anchor:?} is visible")),
+    );
+    problems
+}
+
+fn assert_step_snapshot(
+    snapshot: &tui_test::TerminalSnapshot,
+    step: &CheckpointPlan,
+) -> Result<()> {
+    let problems = step_readiness_problems(snapshot, step);
+    ensure!(
+        problems.is_empty(),
+        "setup failure: captured {} checkpoint does not match required visible state: {:?}",
+        step.name,
+        problems
+    );
+    Ok(())
+}
+
+fn save_native_snapshot(
+    snapshot: &tui_test::TerminalSnapshot,
+    checkpoint_name: &str,
+    samples_dir: &Path,
+    attempt: &mut CheckpointAttemptEvidence,
+) -> Result<(String, String)> {
+    let bytes =
+        serde_json::to_vec_pretty(snapshot).context("serialize native terminal snapshot")?;
+    let hash = sha256_hex(&bytes);
+    let file_name = format!("{checkpoint_name}.snapshot.json");
+    write_atomic(samples_dir, &file_name, &bytes)
+        .with_context(|| format!("write {checkpoint_name} native terminal snapshot"))?;
+    let relative_path = format!("samples/{file_name}");
+    attempt.native_snapshot_file = Some(relative_path.clone());
+    attempt.native_snapshot_sha256 = Some(hash.clone());
+    Ok((relative_path, hash))
+}
+
+fn try_capture_delivery_checkpoint(
+    session: &Session,
+    step: &CheckpointPlan,
+    attempt: &mut CheckpointAttemptEvidence,
+    journey: &Journey,
+    pixel_profile: &PixelProfile,
+    store: &FrozenStore,
+    samples_dir: &Path,
+    checkpoints: &mut Vec<CheckpointEvidence>,
+    errors: &mut Vec<String>,
+) -> bool {
+    attempt.reached = true;
+    attempt.capture_attempted = true;
+    let mut readiness_failed = false;
+    match capture_delivery_checkpoint(
+        session,
+        step,
+        attempt,
+        &mut readiness_failed,
+        journey,
+        pixel_profile,
+        store,
+        samples_dir,
+    ) {
+        Ok(checkpoint) => {
+            attempt.sample_file = Some(checkpoint.sample_file.clone());
+            attempt.sample_sha256 = Some(checkpoint.sample_sha256.clone());
+            if checkpoint.comparison.passed {
+                attempt.outcome = "captured".to_string();
+            } else {
+                attempt.outcome = "comparison-failure".to_string();
+                attempt.reason = checkpoint.comparison.reason.clone();
+            }
+            checkpoints.push(checkpoint);
+            true
+        }
+        Err(error) => {
+            let message = format!("{}: {error:#}", step.name);
+            attempt.outcome = if readiness_failed {
+                "setup-failure"
+            } else {
+                "capture-failure"
+            }
+            .to_string();
+            attempt.reason = Some(message.clone());
+            match partial_sample_evidence(samples_dir, &step.name) {
+                Ok(Some((sample_file, sample_sha256))) => {
+                    attempt.sample_file = Some(sample_file);
+                    attempt.sample_sha256 = Some(sample_sha256);
+                }
+                Ok(None) => {}
+                Err(sample_error) => errors.push(format!(
+                    "{}: reading partial sample evidence failed: {sample_error:#}",
+                    step.name
+                )),
+            }
+            errors.push(message);
+            !readiness_failed
+        }
+    }
+}
+
+fn capture_delivery_checkpoint(
+    session: &Session,
+    step: &CheckpointPlan,
+    attempt: &mut CheckpointAttemptEvidence,
+    readiness_failed: &mut bool,
+    journey: &Journey,
+    pixel_profile: &PixelProfile,
+    store: &FrozenStore,
+    samples_dir: &Path,
+) -> Result<CheckpointEvidence> {
+    let captured = session
+        .capture_checkpoint(SnapshotScope::ActiveScreen)
+        .with_context(|| format!("capture {} ActiveScreen and raw PTY offset", step.name))?;
+    let raw_offset = captured.raw_pty_offset();
+    attempt.raw_prefix_offset = Some(raw_offset);
+    let snapshot = captured.snapshot();
+    let (native_snapshot_file, native_snapshot_sha256) =
+        save_native_snapshot(snapshot, &step.name, samples_dir, attempt)?;
+    let anchor_result = assert_step_snapshot(snapshot, step);
+    if anchor_result.is_err() {
+        *readiness_failed = true;
+    }
+    let platform = platform_key();
+    ensure!(
+        !platform.is_empty()
+            && platform
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.')),
+        "platform key is invalid for a frozen pixel test ID: {platform:?}"
+    );
+    let test_id = format!("termrock/{}/{}/pixels-{platform}", journey.name, step.name);
+    let sample = Sample::with_pixels(&test_id, snapshot, Observation::empty(), pixel_profile)
+        .with_context(|| format!("render {} pinned pixels", step.name))?;
+    let sample_bytes = sample.to_bytes().context("serialize state+pixel sample")?;
+    let sample_hash = sha256_hex(&sample_bytes);
+    let sample_name = format!("{}.sample.json", step.name);
+    write_atomic(samples_dir, &sample_name, &sample_bytes)
+        .with_context(|| format!("write {} candidate sample", step.name))?;
+    anchor_result?;
+    let contract = sample
+        .render_contract()
+        .context("state+pixels sample has no render contract")?;
+    ensure!(
+        snapshot.cursor().blink().is_some() && contract.blink().is_some(),
+        "{} checkpoint has unknown cursor blink state",
+        step.name
+    );
+    let image = sample.image().context("state+pixels sample has no image")?;
+    let compared_pixels = u64::from(image.width()) * u64::from(image.height());
+    let comparison = comparison_evidence(
+        store
+            .check(&sample_bytes)
+            .context("compare frozen sample")?,
+        &test_id,
+        sample.gate().as_str(),
+        &sample_hash,
+        compared_pixels,
+    )?;
+    Ok(CheckpointEvidence {
+        name: step.name.clone(),
+        test_id,
+        source_revision: snapshot.metadata().revision,
+        raw_prefix_offset: raw_offset,
+        raw_prefix_sha256: None,
+        sample_file: format!("samples/{sample_name}"),
+        sample_sha256: sample_hash,
+        native_snapshot_file,
+        native_snapshot_sha256,
+        cols: snapshot.cols(),
+        rows: snapshot.rows(),
+        cursor: cursor_evidence(snapshot),
+        resolved_cells: cell_evidence(snapshot),
+        image: image_evidence(image),
+        render_contract: render_contract_evidence(contract),
+        comparison,
+    })
+}
+
+fn partial_sample_evidence(samples_dir: &Path, phase: &str) -> Result<Option<(String, String)>> {
+    let sample_name = format!("{phase}.sample.json");
+    let sample_path = samples_dir.join(&sample_name);
+    ensure_direct_child(samples_dir, &sample_path)?;
+    let metadata = match fs::symlink_metadata(&sample_path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error).context("inspect partial sample file"),
+    };
+    ensure!(
+        !metadata.file_type().is_symlink() && metadata.is_file(),
+        "partial sample path is not a regular file: {}",
+        sample_path.display()
+    );
+    let bytes = fs::read(&sample_path).context("read partial sample file")?;
+    Ok(Some((format!("samples/{sample_name}"), sha256_hex(&bytes))))
+}
+
+fn capture_checkpoint(
+    session: &Session,
+    phase: &str,
+    attempt: &mut CheckpointAttemptEvidence,
+    readiness_failed: &mut bool,
+    journey: &Journey,
+    pixel_profile: &PixelProfile,
+    store: &FrozenStore,
+    samples_dir: &Path,
+) -> Result<CheckpointEvidence> {
+    let captured = session
+        .capture_checkpoint(SnapshotScope::ActiveScreen)
+        .with_context(|| format!("capture {phase} ActiveScreen and raw PTY offset"))?;
+    let raw_offset = captured.raw_pty_offset();
+    attempt.raw_prefix_offset = Some(raw_offset);
+    let snapshot = captured.snapshot();
+    let (native_snapshot_file, native_snapshot_sha256) =
+        save_native_snapshot(snapshot, phase, samples_dir, attempt)?;
+    let anchor_result = assert_snapshot_anchors(snapshot, &journey.name, phase);
+    if anchor_result.is_err() {
+        *readiness_failed = true;
+    }
+    let platform = platform_key();
+    ensure!(
+        !platform.is_empty()
+            && platform
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.')),
+        "platform key is invalid for a frozen pixel test ID: {platform:?}"
+    );
+    let test_id = format!("termrock/{}/{phase}/pixels-{platform}", journey.name);
+    ensure!(
+        test_id.ends_with(&format!("/pixels-{platform}")),
+        "pixel test ID must end in /pixels-{platform}"
+    );
+    let sample = Sample::with_pixels(&test_id, snapshot, Observation::empty(), pixel_profile)
+        .with_context(|| format!("render {phase} pinned pixels"))?;
+    let sample_bytes = sample.to_bytes().context("serialize state+pixel sample")?;
+    let sample_hash = sha256_hex(&sample_bytes);
+    let sample_name = format!("{phase}.sample.json");
+    write_atomic(samples_dir, &sample_name, &sample_bytes)
+        .with_context(|| format!("write {phase} candidate sample"))?;
+    anchor_result?;
+    let contract = sample
+        .render_contract()
+        .context("state+pixels sample has no render contract")?;
+    ensure!(
+        snapshot.cursor().blink().is_some() && contract.blink().is_some(),
+        "{phase} checkpoint has unknown cursor blink state"
+    );
+    let image = sample.image().context("state+pixels sample has no image")?;
+    let compared_pixels = u64::from(image.width()) * u64::from(image.height());
+    let comparison = comparison_evidence(
+        store
+            .check(&sample_bytes)
+            .context("compare frozen sample")?,
+        &test_id,
+        sample.gate().as_str(),
+        &sample_hash,
+        compared_pixels,
+    )?;
+    Ok(CheckpointEvidence {
+        name: phase.to_string(),
+        test_id,
+        source_revision: snapshot.metadata().revision,
+        raw_prefix_offset: raw_offset,
+        raw_prefix_sha256: None,
+        sample_file: format!("samples/{sample_name}"),
+        sample_sha256: sample_hash,
+        native_snapshot_file,
+        native_snapshot_sha256,
+        cols: snapshot.cols(),
+        rows: snapshot.rows(),
+        cursor: cursor_evidence(snapshot),
+        resolved_cells: cell_evidence(snapshot),
+        image: image_evidence(image),
+        render_contract: render_contract_evidence(contract),
+        comparison,
+    })
+}
+
+fn cursor_evidence(snapshot: &tui_test::TerminalSnapshot) -> CursorEvidence {
+    let cursor = snapshot.cursor();
+    CursorEvidence {
+        col: cursor.col(),
+        row: cursor.row(),
+        in_capture: cursor.in_capture(),
+        visible: cursor.visible(),
+        shape: format!("{:?}", cursor.shape()),
+        blink: cursor.blink(),
+        color: format!("{:?}", cursor.color()),
+    }
+}
+
+fn cell_evidence(snapshot: &tui_test::TerminalSnapshot) -> Vec<CellEvidence> {
+    snapshot
+        .cells()
+        .iter()
+        .enumerate()
+        .map(|(index, cell)| {
+            let cols = snapshot.cols() as usize;
+            CellEvidence {
+                col: (index % cols) as u32,
+                row: (index / cols) as u32,
+                text: cell.text().to_string(),
+                width: cell.width(),
+                continuation: cell.is_continuation(),
+                foreground: format!("{:?}", cell.fg()),
+                background: format!("{:?}", cell.bg()),
+                bold: cell.has(Attrs::BOLD),
+                dim: cell.has(Attrs::DIM),
+                italic: cell.has(Attrs::ITALIC),
+                inverse: cell.has(Attrs::INVERSE),
+                invisible: cell.has(Attrs::INVISIBLE),
+                strike: cell.has(Attrs::STRIKE),
+                blink: cell.has(Attrs::BLINK),
+                underline: format!("{:?}", cell.underline()),
+                underline_color: format!("{:?}", cell.underline_color()),
+                link_uri: cell.link_uri().map(str::to_string),
+                link_id: cell.link_id().map(str::to_string),
+            }
+        })
+        .collect()
+}
+
+fn image_evidence(image: &SampleImage) -> ImageEvidence {
+    ImageEvidence {
+        width: image.width(),
+        height: image.height(),
+        png_sha256: image.png_sha256().to_string(),
+        rgba_sha256: image.rgba_sha256().to_string(),
+    }
+}
+
+fn render_contract_evidence(contract: &RenderContract) -> RenderContractEvidence {
+    RenderContractEvidence {
+        profile: contract.profile().to_string(),
+        renderer_version: contract.renderer_version().to_string(),
+        raster_policy: contract.raster_policy().to_string(),
+        fonts: contract.fonts().iter().map(font_evidence).collect(),
+        palette_digest: contract.palette_digest().to_string(),
+        cell_width: contract.cell_width(),
+        cell_height: contract.cell_height(),
+        font_size: contract.font_size(),
+        baseline: contract.baseline(),
+        scale: contract.scale(),
+        cursor_phase: format!("{:?}", contract.cursor_phase()),
+        cursor_blink: contract.blink(),
+    }
+}
+
+fn font_evidence(font: &ContractFont) -> FontEvidence {
+    FontEvidence {
+        sha256: font.digest().to_string(),
+        face_index: font.face_index(),
+        bold: font.bold(),
+        italic: font.italic(),
+        fallback_position: font.fallback_position(),
+    }
+}
+
+fn comparison_evidence(
+    outcome: CheckOutcome,
+    expected_test_id: &str,
+    gate: &str,
+    expected_candidate_sha256: &str,
+    compared_pixels: u64,
+) -> Result<ComparisonEvidence> {
+    match outcome {
+        CheckOutcome::Pass(success) => {
+            ensure!(
+                gate == "state-and-pixels",
+                "passing comparison did not use the state-and-pixels gate: {gate:?}"
+            );
+            ensure!(
+                success.test_id() == expected_test_id,
+                "passing comparison returned unexpected test ID {:?}",
+                success.test_id()
+            );
+            ensure!(
+                success.candidate_sha256() == expected_candidate_sha256,
+                "passing comparison candidate digest differs from the saved sample"
+            );
+            Ok(ComparisonEvidence {
+                test_id: success.test_id().to_string(),
+                gate: gate.to_string(),
+                outcome: "pass".to_string(),
+                passed: true,
+                reason: None,
+                baseline_sha256: Some(success.baseline_sha256().to_string()),
+                candidate_sha256: success.candidate_sha256().to_string(),
+                changed_fields: Vec::new(),
+                first_changed_cell: None,
+                changed_cell_total: Some(0),
+                pixel_comparison: "pixel-equal".to_string(),
+                pixel_changed: Some(0),
+                pixel_compared: Some(compared_pixels),
+                pixel_bounds: None,
+                report_path: None,
+            })
+        }
+        CheckOutcome::Failure(failure) => {
+            ensure!(
+                failure.test_id() == expected_test_id,
+                "failing comparison returned unexpected test ID {:?}",
+                failure.test_id()
+            );
+            ensure!(
+                failure.gate().as_str() == gate,
+                "failing comparison gate differs from the submitted sample"
+            );
+            ensure!(
+                failure.candidate_sha256() == expected_candidate_sha256,
+                "failing comparison candidate digest differs from the saved sample"
+            );
+            Ok(failure_evidence(&failure))
+        }
+    }
+}
+
+fn failure_evidence(failure: &CheckFailure) -> ComparisonEvidence {
+    let first_changed_cell = failure
+        .changed_cells()
+        .first()
+        .map(|cell| ChangedCellEvidence {
+            col: cell.col(),
+            row: cell.row(),
+            fields: cell.fields().to_vec(),
+            actual_text: cell.actual_text().to_string(),
+            baseline_text: cell.baseline_text().to_string(),
+        });
+    ComparisonEvidence {
+        test_id: failure.test_id().to_string(),
+        gate: failure.gate().as_str().to_string(),
+        outcome: "failure".to_string(),
+        passed: false,
+        reason: Some(failure.reason().as_str().to_string()),
+        baseline_sha256: Some(failure.baseline_sha256().to_string()),
+        candidate_sha256: failure.candidate_sha256().to_string(),
+        changed_fields: failure.changed_fields().to_vec(),
+        first_changed_cell,
+        changed_cell_total: Some(failure.changed_cell_total()),
+        pixel_comparison: failure.pixel_comparison().as_str().to_string(),
+        pixel_changed: Some(failure.pixel_changed()),
+        pixel_compared: Some(failure.pixel_compared()),
+        pixel_bounds: failure.pixel_bounds(),
+        report_path: Some(failure.report_path().to_string_lossy().into_owned()),
+    }
+}
+
+fn expected_terminal_modes() -> BTreeMap<String, bool> {
+    [
+        ("application_cursor_keys".to_string(), false),
+        ("application_keypad".to_string(), false),
+        ("origin".to_string(), false),
+        ("wraparound".to_string(), true),
+        ("insert".to_string(), false),
+        ("focus_events".to_string(), false),
+        ("bracketed_paste".to_string(), false),
+        ("alternate_screen".to_string(), false),
+        ("cursor_visible".to_string(), true),
+    ]
+    .into_iter()
+    .collect()
+}
+
+fn terminal_restoration_evidence(
+    actual_modes: &BTreeMap<String, bool>,
+    actual_mouse_mode: &str,
+) -> TerminalRestorationEvidence {
+    let expected_modes = expected_terminal_modes();
+    let expected_mouse_mode = "none".to_string();
+    let mut errors = Vec::new();
+    if *actual_modes != expected_modes {
+        errors.push(format!(
+            "terminal modes were not restored: expected {expected_modes:?}, found {actual_modes:?}"
+        ));
+    }
+    if actual_mouse_mode != expected_mouse_mode {
+        errors.push(format!(
+            "mouse mode was not restored: expected {expected_mouse_mode:?}, found {actual_mouse_mode:?}"
+        ));
+    }
+    TerminalRestorationEvidence {
+        restored: errors.is_empty(),
+        expected_modes,
+        expected_mouse_mode,
+        errors,
+    }
+}
+
+fn ensure_disjoint_roots(baseline_root: &Path, output_root: &Path) -> Result<()> {
+    let baseline = baseline_root
+        .canonicalize()
+        .with_context(|| format!("canonicalize baseline root {}", baseline_root.display()))?;
+    let output = output_root
+        .canonicalize()
+        .with_context(|| format!("canonicalize output root {}", output_root.display()))?;
+    ensure!(
+        baseline != output && !baseline.starts_with(&output) && !output.starts_with(&baseline),
+        "baseline and output roots must be disjoint: baseline={}, output={}",
+        baseline.display(),
+        output.display()
+    );
+    Ok(())
+}
+
+fn record_execution_step(errors: &mut Vec<String>, label: &str, result: Result<()>) -> bool {
+    match result {
+        Ok(()) => true,
+        Err(error) => {
+            errors.push(format!("{label} failed: {error:#}"));
+            false
+        }
+    }
+}
+
+fn press_required(session: &Session, key: Option<&str>, label: &str) -> Result<()> {
+    let key = key.ok_or_else(|| anyhow::anyhow!("validated {label} key is missing"))?;
+    press(session, key)
+}
+
+fn settle(session: &Session) -> Result<()> {
+    let wait = WaitQuietOptions::new(SETTLE_TIMEOUT, SETTLE_QUIET)
+        .context("construct visual quiet wait")?;
+    session
+        .wait_quiet(&wait)
+        .context("wait for visual screen stability")?;
+    Ok(())
+}
+
+fn wait_for_visible_anchors(session: &Session, journey_name: &str, phase: &str) -> Result<()> {
+    let deadline = Instant::now() + READINESS_TIMEOUT;
+    loop {
+        let captured = session
+            .capture_checkpoint(SnapshotScope::ActiveScreen)
+            .with_context(|| format!("setup failure: capture {journey_name}/{phase} readiness"))?;
+        let snapshot = captured.snapshot();
+        let last_revision = snapshot.metadata().revision;
+        let last_raw_offset = captured.raw_pty_offset();
+        let problems = snapshot_readiness_problems(snapshot, journey_name, phase)?;
+        if problems.is_empty() {
+            return Ok(());
+        }
+        let now = Instant::now();
+        if now >= deadline {
+            bail!(
+                "setup failure: {} {phase} screen did not match its required visible state within {:?}; last anchor problems {:?}, revision {:?}, raw PTY offset {:?}",
+                journey_name,
+                READINESS_TIMEOUT,
+                problems,
+                last_revision,
+                last_raw_offset
+            );
+        }
+        thread::sleep(READINESS_POLL_INTERVAL.min(deadline.saturating_duration_since(now)));
+    }
+}
+
+fn assert_snapshot_anchors(
+    snapshot: &tui_test::TerminalSnapshot,
+    journey_name: &str,
+    phase: &str,
+) -> Result<()> {
+    if phase == "exited" {
+        return Ok(());
+    }
+    let problems = snapshot_readiness_problems(snapshot, journey_name, phase)?;
+    ensure!(
+        problems.is_empty(),
+        "setup failure: captured {} {phase} checkpoint does not match its required visible state: {:?}",
+        journey_name,
+        problems
+    );
+    Ok(())
+}
+
+fn required_checkpoint_anchors(journey_name: &str, phase: &str) -> Result<&'static [&'static str]> {
+    match (journey_name, phase) {
+        ("first_showcase", "opened" | "returned") => Ok(&["Design system", "Overview"]),
+        ("first_showcase", "help") => Ok(&["Keyboard & mouse"]),
+        ("first_holla", "opened" | "returned") => {
+            Ok(&["holla❯", "Here", "Search actions and resources"])
+        }
+        ("first_holla", "help") => Ok(&["Key reference"]),
+        ("first_jackin", "opened" | "returned") => Ok(&["jackin❯", "Workspaces"]),
+        ("first_jackin", "help") => Ok(&["Keyboard shortcuts"]),
+        ("first_tablepro", "opened" | "returned") => {
+            Ok(&["TablePro", "Connections", "Local PostgreSQL"])
+        }
+        ("first_tablepro", "help") => Ok(&["Keyboard shortcuts"]),
+        _ => bail!("setup failure: no readiness anchors are admitted for {journey_name}/{phase}"),
+    }
+}
+
+fn forbidden_checkpoint_anchors(
+    journey_name: &str,
+    phase: &str,
+) -> Result<&'static [&'static str]> {
+    match (journey_name, phase) {
+        ("first_showcase", "opened" | "returned") => Ok(&["Keyboard & mouse"]),
+        ("first_holla", "opened" | "returned") => Ok(&["Key reference"]),
+        ("first_jackin" | "first_tablepro", "opened" | "returned") => Ok(&["Keyboard shortcuts"]),
+        ("first_showcase" | "first_holla" | "first_jackin" | "first_tablepro", "help") => Ok(&[]),
+        _ => bail!(
+            "setup failure: no forbidden readiness anchors are admitted for {journey_name}/{phase}"
+        ),
+    }
+}
+
+fn snapshot_readiness_problems(
+    snapshot: &tui_test::TerminalSnapshot,
+    journey_name: &str,
+    phase: &str,
+) -> Result<Vec<String>> {
+    let required = required_checkpoint_anchors(journey_name, phase)?;
+    let forbidden = forbidden_checkpoint_anchors(journey_name, phase)?;
+    let mut problems = missing_snapshot_anchors(snapshot, required);
+    problems.extend(
+        forbidden
+            .iter()
+            .filter(|anchor| snapshot_has_anchor(snapshot, anchor))
+            .map(|anchor| format!("forbidden help heading {anchor:?} is visible")),
+    );
+    Ok(problems)
+}
+
+fn missing_snapshot_anchors(
+    snapshot: &tui_test::TerminalSnapshot,
+    anchors: &[&str],
+) -> Vec<String> {
+    anchors
+        .iter()
+        .filter(|anchor| !snapshot_has_anchor(snapshot, anchor))
+        .map(|anchor| (*anchor).to_string())
+        .collect()
+}
+
+fn snapshot_has_anchor(snapshot: &tui_test::TerminalSnapshot, anchor: &str) -> bool {
+    let columns = snapshot.cols() as usize;
+    columns > 0
+        && snapshot.cells().chunks(columns).any(|row| {
+            let mut row_text = String::new();
+            for cell in row {
+                row_text.push_str(cell.text());
+            }
+            row_text.contains(anchor)
+        })
+}
+
+fn press(session: &Session, key: &str) -> Result<()> {
+    session
+        .execute(Operation::Key {
+            keys: vec![key.to_string()],
+            action: KeyAction::Press,
+        })
+        .with_context(|| format!("press native key {key:?}"))?;
+    Ok(())
+}
+
+fn validate_manifest(manifest: &SuiteManifest, dataset: &FixtureDataset) -> Result<()> {
+    ensure!(
+        manifest.version.schema_version == 2,
+        "unsupported suite manifest schema"
+    );
+    ensure!(
+        manifest.version.suite_id == "termrock-functional-suite-v2"
+            && manifest.version.predecessor_suite_id == "termrock-functional-suite-v1"
+            && !manifest.version.result_inheritance,
+        "unexpected suite ID"
+    );
+    ensure!(
+        manifest.version.crosswalk.len() >= 5
+            && manifest
+                .version
+                .crosswalk
+                .iter()
+                .any(|entry| entry.contains("not inherited")),
+        "suite v2 must carry its no-result-inheritance crosswalk"
+    );
+    ensure!(
+        manifest.cases.len() == 89,
+        "functional inventory must contain 89 cases"
+    );
+    let actual_legacy = manifest.cases[..LEGACY_CASES.len()]
+        .iter()
+        .map(|case| case.name.as_str())
+        .collect::<Vec<_>>();
+    ensure!(
+        actual_legacy.as_slice() == LEGACY_CASES.as_slice(),
+        "legacy functional case order or denominator changed: {actual_legacy:?}"
+    );
+    ensure!(
+        manifest.cases[LEGACY_CASES.len()..]
+            .iter()
+            .map(|case| case.name.as_str())
+            .eq([
+                "first_delivery_showcase_buttons",
+                "first_delivery_holla_first_use",
+                "first_delivery_jackin_settings",
+                "first_delivery_tablepro_connections",
+                "full_holla_first_use_frame1",
+            ]),
+        "delivery case order or denominator changed"
+    );
+    ensure!(
+        manifest
+            .suite
+            .coverage_scope
+            .contains("84 registered v1 journeys")
+            && manifest
+                .suite
+                .coverage_scope
+                .contains("prior results are not inherited"),
+        "coverage scope must retain all legacy journeys and state no result inheritance"
+    );
+
+    let exact_first_cases = [
+        (
+            "first_showcase",
+            "showcase",
+            &["--page", "overview"][..],
+            "?",
+            "Esc",
+            "q",
+        ),
+        (
+            "first_holla",
+            "holla",
+            &["--scenario", "first-use"][..],
+            "F1",
+            "Esc",
+            "Ctrl+q",
+        ),
+        (
+            "first_jackin",
+            "jackin",
+            &["--scenario", "returning"][..],
+            "?",
+            "Esc",
+            "q",
+        ),
+        ("first_tablepro", "tablepro", &[][..], "?", "Esc", "q"),
+    ];
+    for (case, (name, binary, arguments, help_key, return_key, exit_key)) in manifest
+        .cases
+        .iter()
+        .take(LEGACY_FIRST_CASES.len())
+        .zip(exact_first_cases)
+    {
+        ensure!(
+            case.name == name && case.binary == binary && same_strings(&case.arguments, arguments),
+            "first-priority journey command changed for {name}"
+        );
+        ensure!(
+            case.help_key.as_deref() == Some(help_key)
+                && case.return_key.as_deref() == Some(return_key)
+                && case.exit_key.as_deref() == Some(exit_key),
+            "first-priority journey keys changed for {name}"
+        );
+        ensure!(
+            same_strings(
+                case.native_steps.as_deref().unwrap_or_default(),
+                &["help", "return", "exit"]
+            ),
+            "first-priority native steps changed for {name}"
+        );
+    }
+
+    let expected_delivery = [
+        (
+            "first_delivery_showcase_buttons",
+            "showcase.buttons",
+            "showcase",
+            &["--page", "buttons"][..],
+            "q",
+        ),
+        (
+            "first_delivery_holla_first_use",
+            "holla.first_use",
+            "holla",
+            &["--scenario", "first-use"][..],
+            "Ctrl+q",
+        ),
+        (
+            "first_delivery_jackin_settings",
+            "jackin.settings",
+            "jackin-preview",
+            &["--scenario", "returning"][..],
+            "q",
+        ),
+        (
+            "first_delivery_tablepro_connections",
+            "tablepro.connections",
+            "tablepro",
+            &[][..],
+            "Ctrl+q",
+        ),
+    ];
+    for (case, (name, id, binary, arguments, exit_key)) in manifest.cases
+        [LEGACY_CASES.len()..LEGACY_CASES.len() + DELIVERY_CASES.len()]
+        .iter()
+        .zip(expected_delivery)
+    {
+        ensure!(
+            case.name == name
+                && case.case_id.as_deref() == Some(id)
+                && case.binary == binary
+                && same_strings(&case.arguments, arguments)
+                && case.exit_key.as_deref() == Some(exit_key)
+                && case.steps.is_some()
+                && case.frame.is_none(),
+            "first-delivery command or identity changed for {name}"
+        );
+    }
+    let expected_steps: [(&str, Vec<(&str, Vec<&str>)>); 4] = [
+        (
+            "first_delivery_showcase_buttons",
+            vec![
+                ("initial", vec![]),
+                ("run", vec!["mouse_click:left:30:10"]),
+                ("preview", vec!["key:Tab", "key:Enter"]),
+                ("help", vec!["key:?"]),
+                ("returned", vec!["key:Esc"]),
+                ("small", vec!["resize:80:24"]),
+                ("restored", vec!["resize:120:40"]),
+            ],
+        ),
+        (
+            "first_delivery_holla_first_use",
+            vec![
+                ("initial", vec![]),
+                ("empty", vec!["write:zzzz-no-such-action"]),
+                ("cleared", vec!["key:Esc"]),
+                ("help", vec!["key:F1"]),
+                ("returned", vec!["key:Esc"]),
+                ("small", vec!["resize:80:24"]),
+                ("restored", vec!["resize:120:40"]),
+            ],
+        ),
+        (
+            "first_delivery_jackin_settings",
+            vec![
+                ("initial", vec![]),
+                ("selected", vec!["key:Down"]),
+                ("general", vec!["key:s"]),
+                ("mounts", vec!["key:]"]),
+                ("general_return", vec!["key:["]),
+                ("manager_return", vec!["key:Esc"]),
+                ("help", vec!["key:?"]),
+                ("help_return", vec!["key:Esc"]),
+                ("small", vec!["resize:80:24"]),
+                ("restored", vec!["resize:120:40"]),
+            ],
+        ),
+        (
+            "first_delivery_tablepro_connections",
+            vec![
+                ("initial", vec![]),
+                ("selected", vec!["key:Down"]),
+                ("help", vec!["key:F1"]),
+                ("returned", vec!["key:Esc"]),
+                ("small", vec!["resize:80:24"]),
+                ("restored", vec!["resize:120:40"]),
+            ],
+        ),
+    ];
+    for (case, (name, expected)) in manifest.cases
+        [LEGACY_CASES.len()..LEGACY_CASES.len() + DELIVERY_CASES.len()]
+        .iter()
+        .zip(expected_steps)
+    {
+        ensure!(case.name == name, "delivery plan order changed for {name}");
+        let steps = case.steps.as_deref().unwrap_or_default();
+        ensure!(
+            steps.len() == expected.len(),
+            "checkpoint count changed for {name}"
+        );
+        let help_heading = match case.binary.as_str() {
+            "showcase" => "Keyboard & mouse",
+            "holla" => "Key reference",
+            "jackin-preview" | "tablepro" => "Keyboard shortcuts",
+            _ => bail!("unsupported delivery executable {}", case.binary),
+        };
+        for (step, (expected_name, expected_actions)) in steps.iter().zip(expected) {
+            let actual_actions = step
+                .actions
+                .iter()
+                .map(action_signature)
+                .collect::<Vec<_>>();
+            ensure!(
+                step.name == expected_name
+                    && actual_actions
+                        == expected_actions
+                            .into_iter()
+                            .map(str::to_string)
+                            .collect::<Vec<_>>(),
+                "native action sequence changed for {name}/{}",
+                step.name
+            );
+            if step.name == "help" {
+                ensure!(
+                    step.required_anchors
+                        .iter()
+                        .any(|anchor| anchor == help_heading)
+                        && !step
+                            .forbidden_anchors
+                            .iter()
+                            .any(|anchor| anchor == help_heading),
+                    "help heading readiness changed for {name}"
+                );
+                if case.binary == "jackin-preview" {
+                    ensure!(
+                        step.required_anchors
+                            .iter()
+                            .any(|anchor| anchor == "Workspaces")
+                            && step
+                                .required_anchors
+                                .iter()
+                                .any(|anchor| anchor == "Instances"),
+                        "Jackin help headings are missing for {name}"
+                    );
+                }
+            } else {
+                ensure!(
+                    step.forbidden_anchors
+                        .iter()
+                        .any(|anchor| anchor == help_heading)
+                        && !step
+                            .required_anchors
+                            .iter()
+                            .any(|anchor| anchor == help_heading),
+                    "returned/readiness help heading exclusion changed for {name}/{}",
+                    step.name
+                );
+            }
+            if step.name == "selected" {
+                let selected_anchor = match case.binary.as_str() {
+                    "jackin-preview" => "payments-platform",
+                    "tablepro" => "Local PostgreSQL",
+                    _ => bail!("unexpected selected checkpoint for {}", case.binary),
+                };
+                ensure!(
+                    step.required_anchors
+                        .iter()
+                        .any(|anchor| anchor == selected_anchor),
+                    "selected checkpoint lacks visible row content for {name}"
+                );
+            }
+            ensure!(
+                (step.name == "small" && step.expected_cols == 80 && step.expected_rows == 24)
+                    || (step.name != "small"
+                        && step.expected_cols == 120
+                        && step.expected_rows == 40),
+                "checkpoint terminal dimensions changed for {name}/{}",
+                step.name
+            );
+        }
+    }
+    let holla_delivery = &manifest.cases[LEGACY_CASES.len() + 1];
+    let empty_step = holla_delivery
+        .steps
+        .as_deref()
+        .unwrap_or_default()
+        .iter()
+        .find(|step| step.name == "empty")
+        .context("Holla delivery plan lacks empty checkpoint")?;
+    ensure!(
+        empty_step
+            .required_anchors
+            .iter()
+            .any(|anchor| anchor == "No matches for “zzzz-no-such-action”")
+            && empty_step
+                .required_anchors
+                .iter()
+                .any(|anchor| anchor == "Nothing to preview"),
+        "Holla must expose the exact query's empty-results and empty-preview state"
+    );
+    let delivery_steps = manifest.cases
+        [LEGACY_CASES.len()..LEGACY_CASES.len() + DELIVERY_CASES.len()]
+        .iter()
+        .flat_map(|case| case.steps.as_deref().unwrap_or_default())
+        .count();
+    ensure!(
+        DELIVERY_CASES.len() == 4 && delivery_steps == DELIVERY_FRAME_TOTAL,
+        "first delivery subset must contain exactly four cases and 30 frame checkpoints"
+    );
+    let frame_one = manifest
+        .cases
+        .last()
+        .context("missing Holla frame-1 variant")?;
+    let first_delivery_holla_steps = manifest
+        .cases
+        .iter()
+        .find(|case| case.name == "first_delivery_holla_first_use")
+        .and_then(|case| case.steps.as_deref())
+        .context("missing Holla first-delivery checkpoint plan")?;
+    ensure!(
+        frame_one.name == "full_holla_first_use_frame1"
+            && frame_one.case_id.as_deref() == Some("holla.first_use.frame1")
+            && frame_one.binary == "holla"
+            && same_strings(&frame_one.arguments, &["--scenario", "first-use"])
+            && frame_one.exit_key.as_deref() == Some("Ctrl+q")
+            && frame_one.frame == Some(1)
+            && frame_one.steps.as_ref().is_some_and(|steps| {
+                steps.len() == 7
+                    && steps.len() == first_delivery_holla_steps.len()
+                    && steps
+                        .iter()
+                        .zip(first_delivery_holla_steps)
+                        .all(|(variant, first)| {
+                            variant.name == first.name
+                                && variant.required_anchors == first.required_anchors
+                                && variant.forbidden_anchors == first.forbidden_anchors
+                                && variant.expected_cols == first.expected_cols
+                                && variant.expected_rows == first.expected_rows
+                                && variant
+                                    .actions
+                                    .iter()
+                                    .map(action_signature)
+                                    .eq(first.actions.iter().map(action_signature))
+                        })
+            }),
+        "Holla frame-1 variant must repeat the full first-use journey outside the first subset"
+    );
+
+    let mut coverage_ids = BTreeSet::new();
+    let mut case_ids = BTreeSet::new();
+    for case in &manifest.cases {
+        let expected_binary = if case.name == "first_showcase" || case.name.starts_with("showcase_")
+        {
+            Some("showcase")
+        } else if case.name == "first_holla" || case.name.starts_with("holla_") {
+            Some("holla")
+        } else if case.name == "first_jackin" || case.name.starts_with("jackin_") {
+            Some("jackin")
+        } else if case.name == "first_tablepro" || case.name.starts_with("tablepro_") {
+            Some("tablepro")
+        } else if case.name.starts_with("first_delivery_showcase_") {
+            Some("showcase")
+        } else if case.name.starts_with("first_delivery_holla_")
+            || case.name == "full_holla_first_use_frame1"
+        {
+            Some("holla")
+        } else if case.name.starts_with("first_delivery_jackin_") {
+            Some("jackin-preview")
+        } else if case.name.starts_with("first_delivery_tablepro_") {
+            Some("tablepro")
+        } else {
+            None
+        };
+        ensure!(
+            expected_binary == Some(case.binary.as_str()),
+            "unexpected executable for case {}: {}",
+            case.name,
+            case.binary
+        );
+        let case_id = case_id(case);
+        ensure!(
+            is_safe_single_component(case_id) && case_ids.insert(case_id),
+            "invalid or duplicate case ID for {}: {case_id}",
+            case.name
+        );
+        if case.steps.is_none() {
+            ensure!(
+                case.coverage_ids
+                    .contains(&format!("suite.case.{}", case.name)),
+                "legacy case {} lacks its stable suite.case coverage ID",
+                case.name
+            );
+        }
+        for coverage_id in &case.coverage_ids {
+            ensure!(
+                is_safe_single_component(coverage_id),
+                "unsafe coverage ID in case {}: {coverage_id:?}",
+                case.name
+            );
+            ensure!(
+                coverage_ids.insert(coverage_id.as_str()),
+                "duplicate coverage ID: {coverage_id}"
+            );
+        }
+    }
+    ensure!(
+        coverage_ids.len() == EXPECTED_COVERAGE_ID_COUNT,
+        "coverage inventory changed: expected {} IDs, found {}",
+        EXPECTED_COVERAGE_ID_COUNT,
+        coverage_ids.len()
+    );
+    let owners = manifest
+        .required_coverage
+        .get("coverage_id_owners")
+        .and_then(toml::Value::as_table)
+        .context("required coverage lacks coverage_id_owners")?;
+    ensure!(
+        owners.len() == EXPECTED_COVERAGE_ID_COUNT
+            && owners.keys().map(String::as_str).collect::<BTreeSet<_>>() == coverage_ids,
+        "coverage ID owner map differs from case coverage IDs"
+    );
+    let inventory_names = manifest
+        .required_coverage
+        .get("journey_ids")
+        .and_then(toml::Value::as_array)
+        .context("required coverage lacks journey_ids")?
+        .iter()
+        .map(|value| value.as_str().context("journey ID is not a string"))
+        .collect::<Result<Vec<_>>>()?;
+    ensure!(
+        inventory_names.len() == 89
+            && inventory_names
+                .iter()
+                .copied()
+                .eq(manifest.cases.iter().map(|case| case.name.as_str())),
+        "coverage journey inventory differs from the 89 registered cases"
+    );
+    for case in manifest
+        .cases
+        .iter()
+        .skip(LEGACY_FIRST_CASES.len())
+        .take(LEGACY_CASES.len() - LEGACY_FIRST_CASES.len())
+    {
+        ensure!(
+            case.arguments.is_empty(),
+            "later journey arguments require an admitted native step plan: {}",
+            case.name
+        );
+        ensure!(
+            case.native_steps.is_none()
+                && case.help_key.is_none()
+                && case.return_key.is_none()
+                && case.exit_key.is_none()
+                && case.steps.is_none(),
+            "later journeys without a native plan must remain explicit setup failures: {}",
+            case.name
+        );
+    }
+
+    ensure!(
+        manifest.suite.terminal.cols == 120 && manifest.suite.terminal.rows == 40,
+        "functional terminal size must be 120x40"
+    );
+    ensure!(
+        manifest.suite.terminal.locale == "C.UTF-8",
+        "functional locale changed"
+    );
+    ensure!(
+        manifest.suite.terminal.timezone == "UTC",
+        "functional timezone changed"
+    );
+    ensure!(
+        manifest.suite.terminal.term == "xterm-256color",
+        "functional TERM changed"
+    );
+    ensure!(
+        manifest.suite.terminal.color_term == "truecolor",
+        "functional COLORTERM changed"
+    );
+    ensure!(
+        manifest.suite.theme == "default" && manifest.suite.no_color == "unset",
+        "functional default theme or NO_COLOR contract changed"
+    );
+    ensure!(
+        manifest.suite.readiness_timeout_ms == READINESS_TIMEOUT.as_millis() as u64
+            && manifest.suite.readiness_poll_interval_ms
+                == READINESS_POLL_INTERVAL.as_millis() as u64
+            && manifest.suite.settle_timeout_ms == SETTLE_TIMEOUT.as_millis() as u64
+            && manifest.suite.settle_quiet_ms == SETTLE_QUIET.as_millis() as u64,
+        "visible readiness or quiet-settle timing changed"
+    );
+    ensure!(
+        same_strings(
+            &manifest.suite.terminal.motion_arguments,
+            &["--motion", "paused", "--frame", "0"]
+        ),
+        "motion arguments changed"
+    );
+    ensure!(
+        same_strings(
+            &manifest.suite.terminal.color_mode_arguments,
+            &["--color", "truecolor"]
+        ),
+        "color arguments changed"
+    );
+    ensure!(
+        manifest.suite.render_profile == PROFILE_NAME,
+        "render profile is not the pinned TuiScotti profile"
+    );
+    ensure!(
+        manifest.suite.fixture_dataset == "fixtures/dataset.json",
+        "unexpected fixture dataset path"
+    );
+    ensure!(
+        manifest.suite.expected_store == "expected",
+        "unexpected expected-store path"
+    );
+    ensure!(
+        dataset.schema_version == 1,
+        "unsupported fixture dataset schema"
+    );
+    ensure!(
+        dataset.dataset_id == "empty-user-state-v1",
+        "unexpected fixture dataset ID"
+    );
+    ensure!(
+        manifest.engine_pins.get("tui-test-rs").map(String::as_str)
+            == Some("3887a75dee4463ce0122c37eb278ab7ebb71aeaf")
+            && manifest.engine_pins.get("tuiscotti").map(String::as_str)
+                == Some("ac5f70d14d1967f551261d599a4cd857ec9fa2d7"),
+        "pinned native capture engine revisions changed"
+    );
+    ensure!(
+        !dataset.description.is_empty(),
+        "fixture dataset description is empty"
+    );
+    ensure!(
+        dataset.owner_marker_contents.ends_with('\n'),
+        "fixture owner marker must be line-terminated"
+    );
+    for name in [
+        &dataset.sandbox_root,
+        &dataset.work_directory,
+        &dataset.home_directory,
+        &dataset.data_directory,
+        &dataset.config_directory,
+        &dataset.cache_directory,
+        &dataset.state_directory,
+        &dataset.temporary_directory,
+        &dataset.owner_marker,
+    ] {
+        ensure!(
+            is_safe_single_component(name),
+            "unsafe fixture path component {name:?}"
+        );
+    }
+    Ok(())
+}
+
+fn same_strings(actual: &[String], expected: &[&str]) -> bool {
+    actual
+        .iter()
+        .map(String::as_str)
+        .eq(expected.iter().copied())
+}
+
+fn action_signature(action: &NativeAction) -> String {
+    match action {
+        NativeAction::Key { key } => format!("key:{key}"),
+        NativeAction::Write { text } => format!("write:{text}"),
+        NativeAction::Resize { cols, rows } => format!("resize:{cols}:{rows}"),
+        NativeAction::MouseClick { x, y, button } => {
+            format!("mouse_click:{button}:{x}:{y}")
+        }
+    }
+}
+
+fn required_directory(variable: &str) -> Result<PathBuf> {
+    let raw = env::var_os(variable)
+        .with_context(|| format!("required environment variable {variable} is unset"))?;
+    let path = PathBuf::from(raw);
+    ensure!(
+        path.is_absolute(),
+        "{variable} must be an absolute path: {}",
+        path.display()
+    );
+    ensure!(
+        path.exists(),
+        "{variable} does not exist: {}",
+        path.display()
+    );
+    ensure!(
+        path.is_dir(),
+        "{variable} is not a directory: {}",
+        path.display()
+    );
+    Ok(path
+        .canonicalize()
+        .with_context(|| format!("canonicalize {variable}"))?)
+}
+
+fn safe_manifest_path(relative: &str) -> Result<PathBuf> {
+    let path = Path::new(relative);
+    ensure!(path.is_relative(), "manifest path must be relative");
+    ensure!(
+        path.components()
+            .all(|part| matches!(part, std::path::Component::Normal(_))),
+        "manifest path escapes its root: {relative:?}"
+    );
+    Ok(path.to_path_buf())
+}
+
+fn case_id(journey: &Journey) -> &str {
+    journey.case_id.as_deref().unwrap_or(&journey.name)
+}
+
+fn prepare_fixture(
+    dataset: &FixtureDataset,
+    journey: &Journey,
+    manifest: &SuiteManifest,
+) -> Result<FixturePaths> {
+    let temp_root = env::temp_dir()
+        .canonicalize()
+        .context("canonicalize platform temp directory")?;
+    let case_id = case_id(journey);
+    let lock_name = format!(".{}-{case_id}.case-lock", dataset.sandbox_root);
+    ensure!(
+        is_safe_single_component(&lock_name),
+        "unsafe fixture lock name {lock_name:?}"
+    );
+    let lock_path = temp_root.join(lock_name);
+    let case_lock = acquire_case_lock(&lock_path)?;
+    let sandbox = temp_root.join(&dataset.sandbox_root);
+    create_owned_root(
+        &sandbox,
+        &dataset.owner_marker,
+        &dataset.owner_marker_contents,
+    )?;
+    verify_shared_root_entries(&sandbox, &dataset.owner_marker, &manifest.cases)?;
+    let case_root = sandbox.join(case_id);
+    create_case_root(
+        &case_root,
+        &dataset.owner_marker,
+        &dataset.owner_marker_contents,
+        case_id,
+    )?;
+
+    let owned = [
+        dataset.work_directory.as_str(),
+        dataset.home_directory.as_str(),
+        dataset.data_directory.as_str(),
+        dataset.config_directory.as_str(),
+        dataset.cache_directory.as_str(),
+        dataset.state_directory.as_str(),
+        dataset.temporary_directory.as_str(),
+    ];
+    for entry in fs::read_dir(&case_root).context("list owned fixture case directory")? {
+        let entry = entry?;
+        let name = entry.file_name();
+        if name == std::ffi::OsStr::new(&dataset.owner_marker) {
+            continue;
+        }
+        let name = name
+            .to_str()
+            .context("fixture case directory contains a non-UTF-8 entry name")?;
+        ensure!(
+            owned.contains(&name),
+            "refuse to reset unknown fixture entry {}",
+            entry.path().display()
+        );
+        let metadata = fs::symlink_metadata(entry.path()).context("inspect fixture entry")?;
+        ensure!(
+            !metadata.file_type().is_symlink(),
+            "refuse to reset symlink fixture entry {}",
+            entry.path().display()
+        );
+        ensure!(
+            metadata.is_dir(),
+            "refuse to reset non-directory fixture entry {}",
+            entry.path().display()
+        );
+        fs::remove_dir_all(entry.path()).context("reset owned fixture directory")?;
+    }
+
+    let mut paths = BTreeMap::new();
+    for (name, directory) in [
+        ("cwd", &dataset.work_directory),
+        ("home", &dataset.home_directory),
+        ("data", &dataset.data_directory),
+        ("config", &dataset.config_directory),
+        ("cache", &dataset.cache_directory),
+        ("state", &dataset.state_directory),
+        ("tmp", &dataset.temporary_directory),
+    ] {
+        let path = case_root.join(directory);
+        ensure_direct_child(&case_root, &path)?;
+        fs::create_dir(&path).with_context(|| format!("create fixture {name} directory"))?;
+        paths.insert(name, path);
+    }
+    let cwd = paths.get("cwd").context("missing fixture cwd")?.clone();
+    let env = vec![
+        ("LANG".to_string(), "C.UTF-8".to_string()),
+        ("LC_ALL".to_string(), "C.UTF-8".to_string()),
+        ("TZ".to_string(), "UTC".to_string()),
+        ("TERM".to_string(), "xterm-256color".to_string()),
+        ("COLORTERM".to_string(), "truecolor".to_string()),
+        (
+            "PATH".to_string(),
+            "/usr/bin:/bin:/usr/sbin:/sbin".to_string(),
+        ),
+        ("SHELL".to_string(), "/bin/sh".to_string()),
+        (
+            "HOME".to_string(),
+            paths.get("home").unwrap().to_string_lossy().into_owned(),
+        ),
+        (
+            "XDG_DATA_HOME".to_string(),
+            paths.get("data").unwrap().to_string_lossy().into_owned(),
+        ),
+        (
+            "XDG_CONFIG_HOME".to_string(),
+            paths.get("config").unwrap().to_string_lossy().into_owned(),
+        ),
+        (
+            "XDG_CACHE_HOME".to_string(),
+            paths.get("cache").unwrap().to_string_lossy().into_owned(),
+        ),
+        (
+            "XDG_STATE_HOME".to_string(),
+            paths.get("state").unwrap().to_string_lossy().into_owned(),
+        ),
+        (
+            "TMPDIR".to_string(),
+            paths.get("tmp").unwrap().to_string_lossy().into_owned(),
+        ),
+    ];
+    Ok(FixturePaths {
+        cwd,
+        env,
+        _case_lock: case_lock,
+    })
+}
+
+fn create_owned_root(root: &Path, marker_name: &str, marker_contents: &str) -> Result<()> {
+    let created = match fs::create_dir(root) {
+        Ok(()) => true,
+        Err(error) if error.kind() == ErrorKind::AlreadyExists => false,
+        Err(error) => {
+            return Err(error).with_context(|| format!("create fixture root {}", root.display()));
+        }
+    };
+    let metadata = fs::symlink_metadata(root).context("inspect fixture root")?;
+    ensure!(
+        !metadata.file_type().is_symlink() && metadata.is_dir(),
+        "fixture root is not a real directory: {}",
+        root.display()
+    );
+    if created {
+        publish_owner_marker(root, marker_name, marker_contents)?;
+        ensure!(
+            owner_marker_matches(root, marker_name, marker_contents)?,
+            "fixture root creator did not publish its owner marker: {}",
+            root.display()
+        );
+    } else {
+        wait_for_owner_marker(root, marker_name, marker_contents)?;
+    }
+    Ok(())
+}
+
+fn create_case_root(
+    root: &Path,
+    marker_name: &str,
+    marker_contents: &str,
+    case_name: &str,
+) -> Result<()> {
+    ensure!(
+        is_safe_single_component(case_name),
+        "unsafe case directory name"
+    );
+    let created = match fs::create_dir(root) {
+        Ok(()) => true,
+        Err(error) if error.kind() == ErrorKind::AlreadyExists => false,
+        Err(error) => {
+            return Err(error)
+                .with_context(|| format!("create fixture case root {}", root.display()));
+        }
+    };
+    let metadata = fs::symlink_metadata(root).context("inspect fixture case root")?;
+    ensure!(
+        !metadata.file_type().is_symlink() && metadata.is_dir(),
+        "fixture case root is not a real directory: {}",
+        root.display()
+    );
+    if created {
+        publish_owner_marker(root, marker_name, marker_contents)?;
+        ensure!(
+            owner_marker_matches(root, marker_name, marker_contents)?,
+            "fixture case creator did not publish its owner marker: {}",
+            root.display()
+        );
+    } else {
+        wait_for_owner_marker(root, marker_name, marker_contents)?;
+    }
+    Ok(())
+}
+
+fn publish_owner_marker(root: &Path, name: &str, contents: &str) -> Result<()> {
+    let marker = root.join(name);
+    ensure_direct_child(root, &marker)?;
+    let temporary_root = env::temp_dir()
+        .canonicalize()
+        .context("canonicalize platform temp directory for owner marker")?;
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .context("system time before Unix epoch")?
+        .as_nanos();
+    let temporary = temporary_root.join(format!(
+        ".termrock-owner-marker-{}-{nonce}",
+        std::process::id()
+    ));
+    ensure_direct_child(&temporary_root, &temporary)?;
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temporary)
+        .context("create temporary fixture owner marker")?;
+    if let Err(error) = file
+        .write_all(contents.as_bytes())
+        .and_then(|()| file.flush())
+        .and_then(|()| file.sync_all())
+    {
+        drop(file);
+        let _ = fs::remove_file(&temporary);
+        return Err(error).context("write temporary fixture owner marker");
+    }
+    drop(file);
+    if let Err(error) = fs::hard_link(&temporary, &marker) {
+        let _ = fs::remove_file(&temporary);
+        return Err(error).context("atomically publish fixture owner marker");
+    }
+    fs::remove_file(&temporary).context("remove temporary fixture owner marker")?;
+    Ok(())
+}
+
+fn owner_marker_matches(root: &Path, name: &str, contents: &str) -> Result<bool> {
+    let marker = root.join(name);
+    ensure_direct_child(root, &marker)?;
+    let metadata = match fs::symlink_metadata(&marker) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(error).context("inspect fixture owner marker"),
+    };
+    ensure!(
+        !metadata.file_type().is_symlink() && metadata.is_file(),
+        "fixture owner marker is not a regular file: {}",
+        marker.display()
+    );
+    let existing = fs::read(&marker).context("read fixture owner marker")?;
+    ensure!(
+        existing == contents.as_bytes(),
+        "fixture owner marker contents differ: {}",
+        marker.display()
+    );
+    Ok(true)
+}
+
+fn wait_for_owner_marker(root: &Path, name: &str, contents: &str) -> Result<()> {
+    let deadline = Instant::now() + OWNER_MARKER_TIMEOUT;
+    loop {
+        if owner_marker_matches(root, name, contents)? {
+            return Ok(());
+        }
+        let now = Instant::now();
+        if now >= deadline {
+            bail!("existing fixture directory is unowned: {}", root.display());
+        }
+        thread::sleep(OWNER_MARKER_POLL_INTERVAL.min(deadline.saturating_duration_since(now)));
+    }
+}
+
+fn verify_shared_root_entries(root: &Path, marker_name: &str, cases: &[Journey]) -> Result<()> {
+    let expected_case_ids = cases.iter().map(case_id).collect::<BTreeSet<_>>();
+    for entry in fs::read_dir(root).context("list shared fixture root")? {
+        let entry = entry?;
+        let name = entry.file_name();
+        if name == std::ffi::OsStr::new(marker_name) {
+            continue;
+        }
+        let name = name
+            .to_str()
+            .context("shared fixture root contains a non-UTF-8 entry name")?;
+        ensure!(
+            expected_case_ids.contains(name),
+            "refuse unknown shared fixture entry {}",
+            entry.path().display()
+        );
+        let metadata =
+            fs::symlink_metadata(entry.path()).context("inspect shared fixture entry")?;
+        ensure!(
+            !metadata.file_type().is_symlink() && metadata.is_dir(),
+            "shared fixture case entry is not a real directory: {}",
+            entry.path().display()
+        );
+    }
+    Ok(())
+}
+
+fn acquire_case_lock(path: &Path) -> Result<File> {
+    let parent = path
+        .parent()
+        .context("fixture lock path has no parent directory")?;
+    ensure_direct_child(parent, path)?;
+    match fs::symlink_metadata(path) {
+        Ok(metadata) => ensure!(
+            !metadata.file_type().is_symlink() && metadata.is_file(),
+            "fixture case lock is not a regular file: {}",
+            path.display()
+        ),
+        Err(error) if error.kind() == ErrorKind::NotFound => {}
+        Err(error) => return Err(error).context("inspect fixture case lock"),
+    }
+    let lock = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(path)
+        .context("open persistent fixture case lock")?;
+    let path_metadata =
+        fs::symlink_metadata(path).context("verify persistent fixture case lock")?;
+    let file_metadata = lock
+        .metadata()
+        .context("inspect opened fixture case lock")?;
+    ensure!(
+        !path_metadata.file_type().is_symlink()
+            && path_metadata.is_file()
+            && file_metadata.is_file(),
+        "fixture case lock is not a regular file: {}",
+        path.display()
+    );
+
+    let deadline = Instant::now() + CASE_LOCK_TIMEOUT;
+    loop {
+        match lock.try_lock() {
+            Ok(()) => return Ok(lock),
+            Err(std::fs::TryLockError::WouldBlock) => {
+                let now = Instant::now();
+                if now >= deadline {
+                    bail!(
+                        "timed out after {:?} waiting for fixture case lock {}",
+                        CASE_LOCK_TIMEOUT,
+                        path.display()
+                    );
+                }
+                thread::sleep(CASE_LOCK_POLL_INTERVAL.min(deadline.saturating_duration_since(now)));
+            }
+            Err(std::fs::TryLockError::Error(error)) => {
+                return Err(error).context("acquire persistent fixture case lock");
+            }
+        }
+    }
+}
+
+fn prepare_case_output(root: &Path, case_name: &str) -> Result<PathBuf> {
+    ensure!(
+        is_safe_single_component(case_name),
+        "unsafe output case name"
+    );
+    let version_root = ensure_child_dir(root, "v2")?;
+    let path = version_root.join(case_name);
+    if !path.exists() {
+        fs::create_dir(&path).with_context(|| format!("create case output {}", path.display()))?;
+    }
+    let metadata = fs::symlink_metadata(&path).context("inspect case output directory")?;
+    ensure!(
+        !metadata.file_type().is_symlink() && metadata.is_dir(),
+        "case output is not a real directory: {}",
+        path.display()
+    );
+    let canonical = path
+        .canonicalize()
+        .context("canonicalize case output directory")?;
+    ensure_direct_child(&version_root, &canonical)?;
+    Ok(canonical)
+}
+
+fn ensure_child_dir(parent: &Path, name: &str) -> Result<PathBuf> {
+    ensure!(
+        is_safe_single_component(name),
+        "unsafe output child name {name:?}"
+    );
+    let path = parent.join(name);
+    match fs::create_dir(&path) {
+        Ok(()) => {}
+        Err(error) if error.kind() == ErrorKind::AlreadyExists => {}
+        Err(error) => {
+            return Err(error)
+                .with_context(|| format!("create output directory {}", path.display()));
+        }
+    }
+    let metadata = fs::symlink_metadata(&path).context("inspect output child directory")?;
+    ensure!(
+        !metadata.file_type().is_symlink() && metadata.is_dir(),
+        "output child is not a real directory: {}",
+        path.display()
+    );
+    ensure_direct_child(parent, &path)?;
+    Ok(path)
+}
+
+fn write_atomic(directory: &Path, name: &str, bytes: &[u8]) -> Result<()> {
+    ensure!(
+        is_safe_single_component(name),
+        "unsafe output filename {name:?}"
+    );
+    let target = directory.join(name);
+    ensure_direct_child(directory, &target)?;
+    if let Ok(metadata) = fs::symlink_metadata(&target) {
+        ensure!(
+            !metadata.file_type().is_symlink() && metadata.is_file(),
+            "refuse to replace non-file output {}",
+            target.display()
+        );
+    }
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .context("system time before Unix epoch")?
+        .as_nanos();
+    let temp = directory.join(format!(".{name}.tmp-{}-{nonce}", std::process::id()));
+    ensure_direct_child(directory, &temp)?;
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temp)
+        .context("create temporary evidence file")?;
+    if let Err(error) = file
+        .write_all(bytes)
+        .and_then(|()| file.flush())
+        .and_then(|()| file.sync_all())
+    {
+        drop(file);
+        let _ = fs::remove_file(&temp);
+        return Err(error).context("write temporary evidence file");
+    }
+    drop(file);
+    fs::rename(&temp, &target).context("atomically publish evidence file")?;
+    Ok(())
+}
+
+fn ensure_direct_child(parent: &Path, child: &Path) -> Result<()> {
+    let parent = parent
+        .canonicalize()
+        .with_context(|| format!("canonicalize parent {}", parent.display()))?;
+    ensure!(
+        child.parent() == Some(parent.as_path()),
+        "path is not a direct child: {}",
+        child.display()
+    );
+    Ok(())
+}
+
+fn is_safe_single_component(value: &str) -> bool {
+    !value.is_empty()
+        && value != "."
+        && value != ".."
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(bytes))
+}

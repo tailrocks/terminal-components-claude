@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "dataset_id": "empty-user-state-v1",
+  "description": "Synthetic empty per-case user state; application sample content remains built into each demo.",
+  "sandbox_root": "termrock-functional-suite-fixed-cwd-v1",
+  "work_directory": "work",
+  "home_directory": "home",
+  "data_directory": "xdg-data",
+  "config_directory": "xdg-config",
+  "cache_directory": "xdg-cache",
+  "state_directory": "xdg-state",
+  "temporary_directory": "tmp",
+  "owner_marker": ".termrock-functional-suite-owner",
+  "owner_marker_contents": "termrock-functional-suite-owned-v1\n"
+}

@@ -1,0 +1,2905 @@
+diff --git a/crates/tui-test/src/engine.rs b/crates/tui-test/src/engine.rs
+index c6dc2bc..716469a 100644
+--- a/crates/tui-test/src/engine.rs
++++ b/crates/tui-test/src/engine.rs
+@@ -2,7 +2,9 @@
+ 
+ use std::path::PathBuf;
+ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+-use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard, TryLockError};
++use std::sync::{
++    Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard, TryLockError,
++};
+ use std::time::{Duration, Instant};
+ 
+ use crate::api::{
+@@ -38,8 +40,8 @@
+ };
+ pub use crate::session::{CheckedInputError, CheckedMouseAction};
+ use crate::snapshot::{
+-    capture_live, capture_time_ms, LiveHighlight, SnapshotMetadata, SnapshotOptions, SnapshotScope,
+-    SnapshotSource, TerminalSnapshot,
++    capture_live, capture_time_ms, CapturedTerminalSnapshot, LiveHighlight, SnapshotMetadata,
++    SnapshotOptions, SnapshotScope, SnapshotSource, TerminalSnapshot,
+ };
+ use crate::terminal::cell::{rows_to_strings, Attrs, Color, EmuCell};
+ use crate::terminal::emu::{
+@@ -278,6 +280,8 @@
+ struct RequestPlan {
+     waiting: bool,
+     lifecycle: bool,
++    /// A lifecycle deadline shared by close-time lock acquisition and teardown.
++    deadline: Option<Instant>,
+     /// Overall request deadline enforced while acquiring the lifecycle lock.
+     /// Only quiet waits set this: ordinary waits start their clocks after
+     /// acquisition, while a quiet request's deadline covers acquisition and
+@@ -357,6 +361,170 @@
+     }
+ }
+ 
++fn wait_for_deadline(deadline: Instant) {
++    let remaining = deadline.saturating_duration_since(Instant::now());
++    if !remaining.is_zero() {
++        std::thread::sleep(Duration::from_millis(10).min(remaining));
++    }
++}
++
++fn lock_mutex_until<'a, T>(
++    mutex: &'a Mutex<T>,
++    deadline: Instant,
++    name: &str,
++) -> Result<MutexGuard<'a, T>, TuiTestError> {
++    loop {
++        if Instant::now() >= deadline {
++            return Err(TuiTestError::internal(format!(
++                "{name} exceeded the capture deadline"
++            )));
++        }
++        match mutex.try_lock() {
++            Ok(guard) => return Ok(guard),
++            Err(TryLockError::Poisoned(error)) => return Ok(error.into_inner()),
++            Err(TryLockError::WouldBlock) if Instant::now() >= deadline => {
++                return Err(TuiTestError::internal(format!(
++                    "{name} exceeded the capture deadline"
++                )));
++            }
++            Err(TryLockError::WouldBlock) => wait_for_deadline(deadline),
++        }
++    }
++}
++
++fn lock_write_until<'a, T>(
++    lock: &'a RwLock<T>,
++    deadline: Instant,
++    name: &str,
++) -> Result<RwLockWriteGuard<'a, T>, TuiTestError> {
++    loop {
++        if Instant::now() >= deadline {
++            return Err(TuiTestError::internal(format!(
++                "{name} exceeded the capture deadline"
++            )));
++        }
++        match lock.try_write() {
++            Ok(guard) => return Ok(guard),
++            Err(TryLockError::Poisoned(error)) => return Ok(error.into_inner()),
++            Err(TryLockError::WouldBlock) if Instant::now() >= deadline => {
++                return Err(TuiTestError::internal(format!(
++                    "{name} exceeded the capture deadline"
++                )));
++            }
++            Err(TryLockError::WouldBlock) => wait_for_deadline(deadline),
++        }
++    }
++}
++
++fn lock_read_until<'a, T>(
++    lock: &'a RwLock<T>,
++    deadline: Instant,
++    name: &str,
++) -> Result<RwLockReadGuard<'a, T>, TuiTestError> {
++    loop {
++        if Instant::now() >= deadline {
++            return Err(TuiTestError::internal(format!(
++                "{name} exceeded the capture deadline"
++            )));
++        }
++        match lock.try_read() {
++            Ok(guard) => return Ok(guard),
++            Err(TryLockError::Poisoned(error)) => return Ok(error.into_inner()),
++            Err(TryLockError::WouldBlock) if Instant::now() >= deadline => {
++                return Err(TuiTestError::internal(format!(
++                    "{name} exceeded the capture deadline"
++                )));
++            }
++            Err(TryLockError::WouldBlock) => wait_for_deadline(deadline),
++        }
++    }
++}
++
++fn lock_mutex_for_deadline<'a, T>(
++    mutex: &'a Mutex<T>,
++    deadline: Option<Instant>,
++    name: &str,
++) -> Result<MutexGuard<'a, T>, TuiTestError> {
++    match deadline {
++        Some(deadline) => lock_mutex_until(mutex, deadline, name),
++        None => Ok(mutex
++            .lock()
++            .unwrap_or_else(std::sync::PoisonError::into_inner)),
++    }
++}
++
++fn lock_read_for_deadline<'a, T>(
++    lock: &'a RwLock<T>,
++    deadline: Option<Instant>,
++    name: &str,
++) -> Result<RwLockReadGuard<'a, T>, TuiTestError> {
++    match deadline {
++        Some(deadline) => lock_read_until(lock, deadline, name),
++        None => Ok(lock
++            .read()
++            .unwrap_or_else(std::sync::PoisonError::into_inner)),
++    }
++}
++
++fn ensure_before_deadline(
++    deadline: Option<Instant>,
++    context: &str,
++) -> Result<(), TuiTestError> {
++    if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
++        return Err(TuiTestError::internal(format!(
++            "{context} exceeded the capture deadline"
++        )));
++    }
++    Ok(())
++}
++
++fn run_bounded_completion<T>(
++    deadline: Option<Instant>,
++    operation: &'static str,
++    work: impl FnOnce() -> Result<T, String> + Send + 'static,
++    cleanup_if_unobserved: impl FnOnce(T) + Send + 'static,
++) -> Result<T, TuiTestError>
++where
++    T: Send + 'static,
++{
++    let Some(deadline) = deadline else {
++        return work().map_err(TuiTestError::internal);
++    };
++    ensure_before_deadline(Some(deadline), operation)?;
++    let (reply, response) = std::sync::mpsc::sync_channel(0);
++    let worker_name = format!("tui-test-{operation}");
++    std::thread::Builder::new()
++        .name(worker_name)
++        .spawn(move || {
++            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(work))
++                .unwrap_or_else(|payload| {
++                    Err(format!(
++                        "{operation} worker panicked: {}",
++                        panic_message(payload.as_ref())
++                    ))
++                });
++            if let Err(unsent) = reply.send(result) {
++                if let Ok(value) = unsent.0 {
++                    cleanup_if_unobserved(value);
++                }
++            }
++        })
++        .map_err(|error| {
++            TuiTestError::internal(format!("failed to start {operation} worker: {error}"))
++        })?;
++    response
++        .recv_timeout(deadline.saturating_duration_since(Instant::now()))
++        .map_err(|error| match error {
++            std::sync::mpsc::RecvTimeoutError::Timeout => {
++                TuiTestError::internal(format!("{operation} exceeded the capture deadline"))
++            }
++            std::sync::mpsc::RecvTimeoutError::Disconnected => {
++                TuiTestError::internal(format!("{operation} worker stopped without a reply"))
++            }
++        })?
++        .map_err(TuiTestError::internal)
++}
++
+ impl Engine {
+     pub fn new(name: String, logger: Arc<Logger>, recording_path: PathBuf) -> Self {
+         Self {
+@@ -402,6 +570,8 @@
+         context: ExecutionContext,
+         cancelled: &dyn Fn() -> bool,
+     ) -> Result<OperationResult, TuiTestError> {
++        let deadline = matches!(operation, Operation::Close)
++            .then(|| Instant::now() + Duration::from_secs(2));
+         if let Some(artifact) = &context.artifact {
+             artifact.validate().map_err(TuiTestError::usage)?;
+         }
+@@ -409,6 +579,10 @@
+             trace.validate().map_err(TuiTestError::usage)?;
+         }
+         self.interrupt_for_operation(&operation);
++        if let Some(deadline) = deadline {
++            self.close_request_until(deadline, &context)?;
++            return Ok(OperationResult::Unit);
++        }
+         let canonical_name = diagnostic_operation_name(&operation);
+         let name = context
+             .operation_name
+@@ -424,6 +598,7 @@
+                     | Operation::Close
+                     | Operation::FinishTrace { .. }
+             ),
++            deadline,
+             acquisition_deadline: None,
+             acquire_before_poll: false,
+         };
+@@ -443,8 +618,48 @@
+             metadata,
+             &context,
+             cancelled,
+-            |cancelled, metadata| self.execute_inner(operation, &context, metadata, cancelled),
++            |cancelled, metadata| {
++                self.execute_inner(operation, &context, metadata, cancelled, deadline)
++            },
+         )
++    }
++
++    fn close_request_until(
++        &self,
++        deadline: Instant,
++        context: &ExecutionContext,
++    ) -> Result<(), TuiTestError> {
++        let _pending = LifecycleRequest::new(&self.pending_lifecycle);
++        let _lifecycle = lock_write_until(&self.lifecycle, deadline, "lifecycle lock")?;
++        let _operation = lock_mutex_until(&self.operations, deadline, "operation lock")?;
++        let result = self.close_session_until(deadline, context);
++        if let Err(error) = &result {
++            // A timed-out close cannot enter the ordinary diagnostic wrapper:
++            // it may wait on the state/history locks or start filesystem work.
++            // Preserve the failure outcome and history opportunistically only.
++            match self.recording.try_lock() {
++                Ok(mut recording) => recording.failed = true,
++                Err(TryLockError::Poisoned(error)) => error.into_inner().failed = true,
++                Err(TryLockError::WouldBlock) => {}
++            }
++            let mut history = match self.operation_history.try_lock() {
++                Ok(history) => Some(history),
++                Err(TryLockError::Poisoned(error)) => Some(error.into_inner()),
++                Err(TryLockError::WouldBlock) => None,
++            };
++            if let Some(history) = history.as_mut() {
++                let pending = history.begin(
++                    "close".to_string(),
++                    0,
++                    0,
++                    "close".to_string(),
++                    false,
++                    None,
++                );
++                history.finish(pending, None, 0, error.kind.as_str(), None);
++            }
++        }
++        result
+     }
+ 
+     /// Shared request wrapper behind [`Engine::execute_with_context_cancellable`]
+@@ -555,17 +770,29 @@
+                     .unwrap_or_else(std::sync::PoisonError::into_inner),
+             )
+         };
+-        let _exclusive = plan.lifecycle.then(|| {
+-            self.lifecycle
+-                .write()
+-                .unwrap_or_else(std::sync::PoisonError::into_inner)
+-        });
++        let _exclusive = if plan.lifecycle {
++            Some(match plan.deadline {
++                Some(deadline) => lock_write_until(&self.lifecycle, deadline, "lifecycle lock")?,
++                None => self
++                    .lifecycle
++                    .write()
++                    .unwrap_or_else(std::sync::PoisonError::into_inner),
++            })
++        } else {
++            None
++        };
+         drop(pending);
+-        let _operation = (!plan.waiting).then(|| {
+-            self.operations
+-                .lock()
+-                .unwrap_or_else(std::sync::PoisonError::into_inner)
+-        });
++        let _operation = if plan.waiting {
++            None
++        } else if let Some(deadline) = plan.deadline {
++            Some(lock_mutex_until(&self.operations, deadline, "operation lock")?)
++        } else {
++            Some(
++                self.operations
++                    .lock()
++                    .unwrap_or_else(std::sync::PoisonError::into_inner),
++            )
++        };
+         if self.logger.enabled() {
+             self.logger
+                 .event(&format!("operation {}", metadata_inputs.log_summary));
+@@ -674,10 +901,11 @@
+         context: &ExecutionContext,
+         metadata: &mut OperationMetadata,
+         cancelled: &dyn Fn() -> bool,
++        deadline: Option<Instant>,
+     ) -> Result<OperationResult, TuiTestError> {
+         match operation {
+             Operation::FinishTrace { failed } => {
+-                self.finish_trace(context, Some(failed))?;
++                self.finish_trace(context, Some(failed), None)?;
+                 Ok(OperationResult::Unit)
+             }
+             Operation::Open(options) => self
+@@ -692,30 +920,8 @@
+                 .restart(graceful_timeout_ms, context, metadata)
+                 .map(OperationResult::Open),
+             Operation::Close => {
+-                let trace_result = self.finish_trace(context, None);
+-                *self
+-                    .live
+-                    .lock()
+-                    .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+-                *self
+-                    .interrupt
+-                    .lock()
+-                    .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+-                if let Some(session) = self.write_session().take() {
+-                    self.bump_session_generation();
+-                    session.kill();
+-                    drop(session);
+-                }
+-                *self
+-                    .spawn_spec
+-                    .lock()
+-                    .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+-                self.cleanup_recording();
+-                self.trace
+-                    .lock()
+-                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+-                    .pending_startup_outcome = false;
+-                trace_result?;
++                let deadline = deadline.unwrap_or_else(|| Instant::now() + Duration::from_secs(2));
++                self.close_session_until(deadline, context)?;
+                 Ok(OperationResult::Unit)
+             }
+             Operation::Resize { cols, rows } => {
+@@ -1140,7 +1346,7 @@
+             .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+         if let Some(previous) = current.take() {
+             self.bump_session_generation();
+-            self.finish_trace_with_session(&previous, context, None)?;
++            self.finish_trace_with_session(&previous, context, None, None)?;
+             previous.kill();
+             drop(previous);
+         }
+@@ -1689,13 +1895,14 @@
+         &self,
+         context: &ExecutionContext,
+         failed: Option<bool>,
++        deadline: Option<Instant>,
+     ) -> Result<(), TuiTestError> {
+         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+-            let session = self.lock_session();
++            let session = lock_read_for_deadline(&self.session, deadline, "session read lock")?;
+             if let Some(session) = session.as_ref() {
+-                self.finish_trace_with_session(session, context, failed)?;
++                self.finish_trace_with_session(session, context, failed, deadline)?;
+             } else {
+-                self.finish_failed_startup_trace(failed)?;
++                self.finish_failed_startup_trace(failed, deadline)?;
+             }
+             Ok(())
+         }))
+@@ -1707,60 +1914,71 @@
+         })
+     }
+ 
+-    fn finish_failed_startup_trace(&self, failed: Option<bool>) -> Result<(), TuiTestError> {
++    fn finish_failed_startup_trace(
++        &self,
++        failed: Option<bool>,
++        deadline: Option<Instant>,
++    ) -> Result<(), TuiTestError> {
+         let Some(failed) = failed else {
+             return Ok(());
+         };
+         let mode = {
+-            let trace = self
+-                .trace
+-                .lock()
+-                .unwrap_or_else(std::sync::PoisonError::into_inner);
++            let trace = lock_mutex_for_deadline(&self.trace, deadline, "trace lock")?;
+             if !trace.pending_startup_outcome {
+                 return Ok(());
+             }
+             trace.options.mode
+         };
+         if !failed && mode == TraceMode::OnFailure {
+-            self.discard_trace_artifacts()?;
+-        }
+-        let mut recording = self
+-            .recording
+-            .lock()
+-            .unwrap_or_else(std::sync::PoisonError::into_inner);
++            self.discard_trace_artifacts(deadline)?;
++        }
++        let mut recording =
++            lock_mutex_for_deadline(&self.recording, deadline, "recording lock")?;
+         if !failed && recording.mode == AutomaticRecordingMode::OnFailure {
+-            if let Some(path) = &recording.path {
+-                match std::fs::remove_file(path) {
+-                    Ok(()) => {}
+-                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+-                    Err(error) => {
+-                        return Err(TuiTestError::internal(format!(
++            if let Some(path) = recording.path.clone() {
++                run_bounded_completion(
++                    deadline,
++                    "automatic recording cleanup",
++                    move || match std::fs::remove_file(&path) {
++                        Ok(()) => Ok(()),
++                        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
++                        Err(error) => Err(format!(
+                             "failed to discard automatic recording {}: {error}",
+                             path.display()
+-                        )));
+-                    }
+-                }
++                        )),
++                    },
++                    |_| {},
++                )?;
+             }
+         }
+         recording.failed = failed;
+         Ok(())
+     }
+ 
+-    fn discard_trace_artifacts(&self) -> Result<(), TuiTestError> {
+-        let mut trace = self
+-            .trace
+-            .lock()
+-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+-        while let Some(directory) = trace.owned_directories.last() {
+-            std::fs::remove_dir_all(directory).map_err(|error| {
+-                TuiTestError::internal(format!(
+-                    "failed to discard superseded trace {}: {error}",
+-                    directory.display()
+-                ))
+-            })?;
++    fn discard_trace_artifacts(
++        &self,
++        deadline: Option<Instant>,
++    ) -> Result<(), TuiTestError> {
++        let mut trace = lock_mutex_for_deadline(&self.trace, deadline, "trace lock")?;
++        while let Some(directory) = trace.owned_directories.last().cloned() {
++            ensure_before_deadline(deadline, "trace artifact cleanup")?;
++            run_bounded_completion(
++                deadline,
++                "trace artifact cleanup",
++                move || match std::fs::remove_dir_all(&directory) {
++                    Ok(()) => Ok(()),
++                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
++                    Err(error) => Err(format!(
++                        "failed to discard superseded trace {}: {error}",
++                        directory.display()
++                    )),
++                },
++                |_| {},
++            )?;
+             trace.owned_directories.pop();
+         }
+         trace.artifact = None;
++        ensure_before_deadline(deadline, "trace artifact cleanup")?;
+         Ok(())
+     }
+ 
+@@ -1769,6 +1987,7 @@
+         session: &TerminalSession,
+         context: &ExecutionContext,
+         failed: Option<bool>,
++        deadline: Option<Instant>,
+     ) -> Result<(), TuiTestError> {
+         // Read the stored outcome and apply an explicit one under a single
+         // recording lock: a concurrent acquisition failure landing between a
+@@ -1777,10 +1996,8 @@
+         // writing back the read value. The lock is released before the file
+         // work below.
+         let (failed, outcome_changed) = {
+-            let mut recording = self
+-                .recording
+-                .lock()
+-                .unwrap_or_else(std::sync::PoisonError::into_inner);
++            let mut recording =
++                lock_mutex_for_deadline(&self.recording, deadline, "recording lock")?;
+             match failed {
+                 Some(explicit) => {
+                     let changed = explicit != recording.failed;
+@@ -1791,13 +2008,10 @@
+             }
+         };
+         if outcome_changed {
+-            self.discard_trace_artifacts()?;
++            self.discard_trace_artifacts(deadline)?;
+         }
+         let options = {
+-            let trace = self
+-                .trace
+-                .lock()
+-                .unwrap_or_else(std::sync::PoisonError::into_inner);
++            let trace = lock_mutex_for_deadline(&self.trace, deadline, "trace lock")?;
+             if trace.options.mode == TraceMode::Off || trace.artifact.is_some() {
+                 return Ok(());
+             }
+@@ -1806,7 +2020,7 @@
+         if options.mode == TraceMode::OnFailure && !failed {
+             return Ok(());
+         }
+-        let observation = capture_failure_observation(session);
++        let observation = capture_failure_observation_until(session, deadline)?;
+         let mut details = FailureReport::new(
+             "test",
+             None,
+@@ -1834,17 +2048,15 @@
+             ..observation.runtime.clone()
+         });
+         details.process = Some(observation.process.clone());
+-        details.recording = Some(self.recording_diagnostics(&observation));
+-        details.context = self
+-            .trace
+-            .lock()
+-            .unwrap_or_else(std::sync::PoisonError::into_inner)
++        details.recording = Some(self.recording_diagnostics_until(&observation, deadline)?);
++        details.context = lock_mutex_for_deadline(&self.trace, deadline, "trace lock")?
+             .diagnostic_context(context);
+-        details.recent_operations = self
+-            .operation_history
+-            .lock()
+-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+-            .snapshot();
++        details.recent_operations = lock_mutex_for_deadline(
++            &self.operation_history,
++            deadline,
++            "operation history lock",
++        )?
++        .snapshot();
+         details.truncated = details.recent_operations.iter().any(|event| {
+             matches!(
+                 event.expectation,
+@@ -1855,28 +2067,71 @@
+                 .is_some_and(InputDetails::is_unavailable)
+         });
+         details.finish_signature();
+-        let directory = allocate_trace_directory(&options.directory).map_err(|error| {
+-            TuiTestError::internal(format!("failed to allocate trace directory: {error}"))
+-        })?;
+-        let recording =
+-            self.prepare_recording_artifact(session, &observation, &directory, &mut details);
+-        let artifact = write_failure_artifact(
+-            &options.artifact_options(),
+-            ArtifactInputs {
+-                details: &mut details,
+-                observation: &observation,
+-                recording,
++        ensure_before_deadline(deadline, "trace finalization")?;
++        let trace_directory = options.directory.clone();
++        let directory = run_bounded_completion(
++            deadline,
++            "trace directory allocation",
++            move || {
++                allocate_trace_directory(&trace_directory)
++                    .map_err(|error| format!("failed to allocate trace directory: {error}"))
+             },
+-            directory.clone(),
+-        );
++            |directory| {
++                let _ = std::fs::remove_dir_all(directory);
++            },
++        )?;
++        let recording = self.prepare_recording_artifact_until(
++            session,
++            &observation,
++            &directory,
++            &mut details,
++            deadline,
++        )?;
++        ensure_before_deadline(deadline, "trace artifact write")?;
+         {
+-            let mut trace = self
+-                .trace
+-                .lock()
+-                .unwrap_or_else(std::sync::PoisonError::into_inner);
++            let mut trace = lock_mutex_for_deadline(&self.trace, deadline, "trace lock")?;
++            trace.owned_directories.push(directory.clone());
++        }
++        let options = options.artifact_options();
++        let (reply, response) = std::sync::mpsc::sync_channel(1);
++        std::thread::Builder::new()
++            .name("tui-test-trace-artifact".to_string())
++            .spawn(move || {
++                let mut details = details;
++                let artifact = write_failure_artifact(
++                    &options,
++                    ArtifactInputs {
++                        details: &mut details,
++                        observation: &observation,
++                        recording,
++                    },
++                    directory,
++                );
++                let _ = reply.send(artifact);
++            })
++            .map_err(|error| {
++                TuiTestError::internal(format!("failed to start trace artifact writer: {error}"))
++            })?;
++        let artifact = match deadline {
++            Some(deadline) => response
++                .recv_timeout(deadline.saturating_duration_since(Instant::now()))
++                .map_err(|error| match error {
++                    std::sync::mpsc::RecvTimeoutError::Timeout => {
++                        TuiTestError::internal("trace artifact write exceeded the capture deadline")
++                    }
++                    std::sync::mpsc::RecvTimeoutError::Disconnected => {
++                        TuiTestError::internal("trace artifact writer stopped without a reply")
++                    }
++                })?,
++            None => response
++                .recv()
++                .map_err(|_| TuiTestError::internal("trace artifact writer stopped without a reply"))?,
++        };
++        {
++            let mut trace = lock_mutex_for_deadline(&self.trace, deadline, "trace lock")?;
+             trace.artifact = Some(artifact.clone());
+-            trace.owned_directories.push(directory);
+-        }
++        }
++        ensure_before_deadline(deadline, "trace artifact write")?;
+         if artifact.status != FailureArtifactStatus::Written {
+             let mut error = TuiTestError::internal(format!(
+                 "trace could not be fully written at {}: {}",
+@@ -1959,31 +2214,96 @@
+         }
+     }
+ 
++    fn prepare_recording_artifact_until(
++        &self,
++        session: &TerminalSession,
++        observation: &FailureObservation,
++        directory: &std::path::Path,
++        details: &mut FailureReport,
++        deadline: Option<Instant>,
++    ) -> Result<Option<PreparedRecording>, TuiTestError> {
++        if details
++            .recording
++            .as_ref()
++            .is_some_and(|recording| recording.status == RecordingStatus::Disabled)
++        {
++            return Ok(None);
++        }
++        let state = lock_mutex_for_deadline(&session.state, deadline, "terminal-state lock")?;
++        if details.outcome.is_none()
++            && (state.visual_revision != observation.output_revision
++                || state.screen_dirty
++                || state.screen_history.current_sequence() != observation.screen_sequence)
++        {
++            if let Some(recording) = details.recording.as_mut() {
++                recording.status = RecordingStatus::Omitted;
++                recording.reason = Some(
++                    "terminal output advanced after the pinned failure observation".to_string(),
++                );
++            }
++            return Ok(None);
++        }
++        let temporary_path = recording_temp_path(directory);
++        let result = match deadline {
++            Some(deadline) => session.snapshot_automatic_recording_until(
++                temporary_path.clone(),
++                RECORDING_COPY_LIMIT,
++                deadline,
++            ),
++            None => session
++                .snapshot_automatic_recording(temporary_path.clone(), RECORDING_COPY_LIMIT)
++                .map_err(|error| capture_error_message(&error)),
++        };
++        drop(state);
++        match result {
++            Ok(snapshot) => {
++                if let Some(recording) = details.recording.as_mut() {
++                    recording.status = RecordingStatus::Live;
++                    recording.last_committed_ms = snapshot.last_committed_ms;
++                    recording.path = None;
++                    recording.bytes = Some(snapshot.bytes);
++                    recording.reason = None;
++                    recording.ephemeral = false;
++                }
++                Ok(Some(PreparedRecording {
++                    temporary_path,
++                    bytes: snapshot.bytes,
++                    sha256: snapshot.sha256,
++                }))
++            }
++            Err(message) if message.contains("deadline") => {
++                Err(TuiTestError::internal(message))
++            }
++            Err(message) => {
++                if let Some(recording) = details.recording.as_mut() {
++                    recording.status = if message.contains("maximum byte limit") {
++                        RecordingStatus::Omitted
++                    } else {
++                        RecordingStatus::Failed
++                    };
++                    recording.reason = Some(message);
++                }
++                Ok(None)
++            }
++        }
++    }
++
++    fn recording_diagnostics_until(
++        &self,
++        observation: &FailureObservation,
++        deadline: Option<Instant>,
++    ) -> Result<RecordingDiagnostics, TuiTestError> {
++        let recording =
++            lock_mutex_for_deadline(&self.recording, deadline, "recording lock")?;
++        Ok(recording_diagnostics_from(&recording, observation))
++    }
++
+     fn recording_diagnostics(&self, observation: &FailureObservation) -> RecordingDiagnostics {
+         let recording = self
+             .recording
+             .lock()
+             .unwrap_or_else(std::sync::PoisonError::into_inner);
+-        let (status, reason) = match (&recording.mode, &recording.path) {
+-            (AutomaticRecordingMode::Disabled, _) => {
+-                (RecordingStatus::Disabled, Some("disabled".to_string()))
+-            }
+-            (_, Some(_)) => (RecordingStatus::Live, None),
+-            _ => (
+-                RecordingStatus::Unavailable,
+-                Some("automatic recording could not be created".to_string()),
+-            ),
+-        };
+-        RecordingDiagnostics {
+-            mode: recording.mode,
+-            status,
+-            failure_offset_ms: observation.captured_ms,
+-            last_committed_ms: None,
+-            path: None,
+-            bytes: None,
+-            reason,
+-            ephemeral: false,
+-        }
++        recording_diagnostics_from(&recording, observation)
+     }
+ 
+     pub fn status(&self) -> RuntimeStatus {
+@@ -2035,6 +2355,176 @@
+         &self,
+         options: &SnapshotOptions,
+     ) -> Result<TerminalSnapshot, TuiTestError> {
++        self.capture_snapshot_with_offset(options, false)
++            .map(|(snapshot, _)| snapshot)
++    }
++
++    /// Capture the terminal snapshot and exact PTY prefix offset under one
++    /// terminal-state lock. The launch must enable raw PTY capture.
++    pub fn capture_checkpoint(
++        &self,
++        scope: SnapshotScope,
++    ) -> Result<CapturedTerminalSnapshot, TuiTestError> {
++        self.capture_checkpoint_with(&SnapshotOptions::new(scope))
++    }
++
++    /// Capture a checkpoint with explicit snapshot options.
++    pub fn capture_checkpoint_with(
++        &self,
++        options: &SnapshotOptions,
++    ) -> Result<CapturedTerminalSnapshot, TuiTestError> {
++        let (snapshot, raw_pty_offset) = self.capture_snapshot_with_offset(options, true)?;
++        let raw_pty_offset = raw_pty_offset.ok_or_else(|| {
++            TuiTestError::internal("raw PTY capture was not enabled for this launch")
++        })?;
++        Ok(CapturedTerminalSnapshot::new(snapshot, raw_pty_offset))
++    }
++
++    /// Drain exact PTY output and finalize the session recorder under one
++    /// deadline. The session remains installed so callers can inspect its
++    /// final terminal state and take a post-drain checkpoint.
++    pub(crate) fn finish_capture_until(
++        &self,
++        deadline: Instant,
++        context: ExecutionContext,
++    ) -> Result<Vec<u8>, TuiTestError> {
++        if let Some(artifact) = &context.artifact {
++            artifact.validate().map_err(TuiTestError::usage)?;
++        }
++        if let Some(trace) = &context.trace {
++            trace.validate().map_err(TuiTestError::usage)?;
++        }
++        ensure_before_deadline(Some(deadline), "capture finalization")?;
++        let _pending = LifecycleRequest::new(&self.pending_lifecycle);
++        let _lifecycle = lock_write_until(&self.lifecycle, deadline, "lifecycle lock")?;
++        let _operation = lock_mutex_until(&self.operations, deadline, "operation lock")?;
++        self.finish_capture_installed_until(deadline, &context)
++    }
++
++    fn finish_capture_installed_until(
++        &self,
++        deadline: Instant,
++        context: &ExecutionContext,
++    ) -> Result<Vec<u8>, TuiTestError> {
++        let mut session_guard = lock_write_until(&self.session, deadline, "session write lock")?;
++        let session = session_guard.as_mut().ok_or_else(TuiTestError::no_session)?;
++        if !session.captures_raw_pty() {
++            return Err(TuiTestError::internal(
++                "raw PTY capture was not enabled for this launch",
++            ));
++        }
++        session
++            .drain_capture_until(deadline)
++            .map_err(TuiTestError::internal)?;
++        drop(session_guard);
++
++        let trace_result = self.finish_trace(context, None, Some(deadline));
++        let mut session_guard = match self.session.try_write() {
++            Ok(guard) => guard,
++            Err(TryLockError::Poisoned(error)) => error.into_inner(),
++            Err(TryLockError::WouldBlock) => {
++                lock_write_until(&self.session, deadline, "session write lock")?
++            }
++        };
++        let session = session_guard.as_mut().ok_or_else(TuiTestError::no_session)?;
++        let capture_result = session.finish_capture_after_trace(deadline);
++        match (trace_result, capture_result) {
++            (Ok(()), Ok(bytes)) => Ok(bytes),
++            (Err(error), Ok(_)) => Err(error),
++            (Ok(()), Err(error)) => Err(TuiTestError::internal(error)),
++            (Err(trace), Err(capture)) => Err(TuiTestError::internal(format!(
++                "{trace}; exact PTY capture finalization failed: {capture}"
++            ))),
++        }
++    }
++
++    fn close_session_until(
++        &self,
++        deadline: Instant,
++        context: &ExecutionContext,
++    ) -> Result<(), TuiTestError> {
++        let mut session_guard = lock_write_until(&self.session, deadline, "session write lock")?;
++        let raw_capture = session_guard
++            .as_ref()
++            .is_some_and(TerminalSession::captures_raw_pty);
++        if raw_capture {
++            drop(session_guard);
++            self.finish_capture_installed_until(deadline, context)?;
++        } else {
++            if let Some(session) = session_guard.as_mut() {
++                session
++                    .drain_workers_until(deadline)
++                    .map_err(TuiTestError::internal)?;
++            }
++            drop(session_guard);
++            self.finish_trace(context, None, Some(deadline))?;
++            let mut session_guard =
++                lock_write_until(&self.session, deadline, "session write lock")?;
++            if let Some(session) = session_guard.as_mut() {
++                session
++                    .finish_shutdown_until(deadline)
++                    .map_err(TuiTestError::internal)?;
++            }
++        }
++
++        // Acquire every mutex before removing the session. A deadline failure
++        // must leave the session installed so checked callers can still report
++        // and inspect it.
++        let mut live = lock_mutex_until(&self.live, deadline, "live target lock")?;
++        let mut interrupt = lock_mutex_until(&self.interrupt, deadline, "interrupt target lock")?;
++        let mut spawn_spec =
++            lock_mutex_until(&self.spawn_spec, deadline, "spawn specification lock")?;
++        let recording = lock_mutex_until(&self.recording, deadline, "recording lock")?;
++        let mut trace = lock_mutex_until(&self.trace, deadline, "trace lock")?;
++        let mut session_guard = lock_write_until(&self.session, deadline, "session write lock")?;
++        ensure_before_deadline(Some(deadline), "session close")?;
++
++        let keep_recording = match recording.mode {
++            AutomaticRecordingMode::Disabled => false,
++            AutomaticRecordingMode::OnFailure => recording.failed,
++            AutomaticRecordingMode::Always => true,
++        };
++        if !keep_recording {
++            if let Some(path) = recording.path.clone() {
++                run_bounded_completion(
++                    Some(deadline),
++                    "automatic recording cleanup",
++                    move || match std::fs::remove_file(&path) {
++                        Ok(()) => Ok(()),
++                        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
++                        Err(error) => Err(format!(
++                            "failed to discard automatic recording {}: {error}",
++                            path.display()
++                        )),
++                    },
++                    |_| {},
++                )?;
++            }
++        }
++        ensure_before_deadline(Some(deadline), "session close")?;
++
++        *live = None;
++        *interrupt = None;
++        *spawn_spec = None;
++        trace.pending_startup_outcome = false;
++        if let Some(session) = session_guard.take() {
++            self.bump_session_generation();
++            drop(session_guard);
++            drop(trace);
++            drop(recording);
++            drop(spawn_spec);
++            drop(interrupt);
++            drop(live);
++            drop(session);
++        }
++        Ok(())
++    }
++
++    fn capture_snapshot_with_offset(
++        &self,
++        options: &SnapshotOptions,
++        require_raw_capture: bool,
++    ) -> Result<(TerminalSnapshot, Option<usize>), TuiTestError> {
+         let guard = self.lock_session();
+         let session = guard.as_ref().ok_or_else(TuiTestError::no_session)?;
+         if let Some(fault) = session.fault() {
+@@ -2051,6 +2541,31 @@
+             .state
+             .lock()
+             .unwrap_or_else(std::sync::PoisonError::into_inner);
++        let raw_capture = if require_raw_capture {
++            Some(session.raw_capture.as_ref().ok_or_else(|| {
++                TuiTestError::internal("raw PTY capture was not enabled for this launch")
++            })?)
++        } else {
++            None
++        };
++        let capture_guard = raw_capture.map(|capture| {
++            capture
++                .lock()
++                .unwrap_or_else(std::sync::PoisonError::into_inner)
++        });
++        if let Some(error) = &state.exit_error {
++            if require_raw_capture {
++                return Err(TuiTestError::internal(format!(
++                    "process status watcher failed: {error}"
++                )));
++            }
++        }
++        if let Some(capture) = capture_guard.as_ref() {
++            if let Some(error) = &capture.error {
++                return Err(TuiTestError::internal(error.clone()));
++            }
++        }
++        let raw_pty_offset = capture_guard.as_ref().map(|capture| capture.bytes.len());
+         let metadata = SnapshotMetadata {
+             captured_at_ms: capture_time_ms(),
+             revision: state.visual_revision,
+@@ -2061,8 +2576,9 @@
+         let highlight = state.highlight.as_ref().map(|selected| LiveHighlight {
+             cells: &selected.cells,
+         });
+-        capture_live(state.emu.as_ref(), highlight, options, metadata)
+-            .map_err(crate::snapshot::SnapshotError::into)
++        let snapshot = capture_live(state.emu.as_ref(), highlight, options, metadata)
++            .map_err(TuiTestError::from)?;
++        Ok((snapshot, raw_pty_offset))
+     }
+ 
+     pub fn frame(&self) -> Option<LiveFrame> {
+@@ -2163,6 +2679,7 @@
+         let plan = RequestPlan {
+             waiting: false,
+             lifecycle: false,
++            deadline: None,
+             acquisition_deadline: None,
+             acquire_before_poll: false,
+         };
+@@ -2331,7 +2848,14 @@
+ 
+     pub(crate) fn interrupt_for_operation(&self, operation: &Operation) {
+         match operation {
+-            Operation::Close => self.interrupt(),
++            Operation::Close => {
++                self.interrupt_generation.fetch_add(1, Ordering::AcqRel);
++                if let Ok(target) = self.interrupt.try_lock() {
++                    if let Some(target) = target.as_ref() {
++                        target.cancelled.store(true, Ordering::Release);
++                    }
++                }
++            }
+             Operation::Signal { name }
+                 if matches!(
+                     name.trim_start_matches("SIG").to_uppercase().as_str(),
+@@ -2554,6 +3078,7 @@
+             RequestPlan {
+                 waiting: true,
+                 lifecycle: false,
++                deadline: None,
+                 acquisition_deadline: Some(AcquisitionDeadline {
+                     deadline,
+                     error: crate::wait::timeout_error(options),
+@@ -2616,6 +3141,7 @@
+         if let Err(error) = self.finish_trace(
+             &ExecutionContext::default(),
+             std::thread::panicking().then_some(true),
++            None,
+         ) {
+             eprintln!("failed to finish terminal trace: {error}");
+         }
+@@ -2627,6 +3153,40 @@
+         }
+         self.cleanup_recording();
+     }
++}
++
++fn recording_diagnostics_from(
++    recording: &RecordingState,
++    observation: &FailureObservation,
++) -> RecordingDiagnostics {
++        let (status, reason) = match (&recording.mode, &recording.path) {
++            (AutomaticRecordingMode::Disabled, _) => {
++                (RecordingStatus::Disabled, Some("disabled".to_string()))
++            }
++            (_, Some(_)) => (RecordingStatus::Live, None),
++            _ => (
++                RecordingStatus::Unavailable,
++                Some("automatic recording could not be created".to_string()),
++            ),
++        };
++        RecordingDiagnostics {
++            mode: recording.mode,
++            status,
++            failure_offset_ms: observation.captured_ms,
++            last_committed_ms: None,
++            path: None,
++            bytes: None,
++            reason,
++            ephemeral: false,
++        }
++    }
++
++fn capture_failure_observation_until(
++    session: &TerminalSession,
++    deadline: Option<Instant>,
++) -> Result<FailureObservation, TuiTestError> {
++    let mut state = lock_mutex_for_deadline(&session.state, deadline, "terminal-state lock")?;
++    Ok(capture_failure_observation_locked(session, &mut state))
+ }
+ 
+ fn capture_failure_observation(session: &TerminalSession) -> FailureObservation {
+diff --git a/crates/tui-test/src/launch.rs b/crates/tui-test/src/launch.rs
+index 536a5e9..10f35c2 100644
+--- a/crates/tui-test/src/launch.rs
++++ b/crates/tui-test/src/launch.rs
+@@ -59,6 +59,7 @@
+     env_mode: LaunchEnvMode,
+     removals: Vec<OsString>,
+     overrides: Vec<(OsString, OsString)>,
++    capture_raw_pty: bool,
+ }
+ 
+ impl LaunchOptions {
+@@ -71,6 +72,7 @@
+             env_mode: LaunchEnvMode::Inherited,
+             removals: Vec::new(),
+             overrides: Vec::new(),
++            capture_raw_pty: false,
+         }
+     }
+ 
+@@ -127,6 +129,16 @@
+     /// Select the inherited or cleared environment mode.
+     pub fn with_env_mode(mut self, mode: LaunchEnvMode) -> Self {
+         self.env_mode = mode;
++        self
++    }
++
++    /// Capture exact PTY output bytes for checkpoints and final evidence.
++    ///
++    /// The capture is bounded to 32 MiB. Overflow, read, and PTY reply-write
++    /// failures are returned by the capture accessors instead of producing a
++    /// truncated stream.
++    pub fn with_raw_pty_capture(mut self) -> Self {
++        self.capture_raw_pty = true;
+         self
+     }
+ 
+@@ -199,6 +211,7 @@
+             args: self.args.clone(),
+             cwd: self.cwd.clone(),
+             env,
++            capture_raw_pty: self.capture_raw_pty,
+         })
+     }
+ }
+@@ -218,6 +231,7 @@
+     args: Vec<OsString>,
+     cwd: Option<PathBuf>,
+     env: Vec<(OsString, OsString)>,
++    capture_raw_pty: bool,
+ }
+ 
+ impl ResolvedLaunch {
+@@ -239,6 +253,11 @@
+     /// Full child environment in resolution order.
+     pub fn env(&self) -> &[(OsString, OsString)] {
+         &self.env
++    }
++
++    /// Whether this launch retains exact PTY output bytes for capture.
++    pub fn captures_raw_pty(&self) -> bool {
++        self.capture_raw_pty
+     }
+ 
+     /// Record the frozen absolute working directory for this spawn. The
+diff --git a/crates/tui-test/src/lib.rs b/crates/tui-test/src/lib.rs
+index b8050bf..16f37f2 100644
+--- a/crates/tui-test/src/lib.rs
++++ b/crates/tui-test/src/lib.rs
+@@ -41,10 +41,10 @@
+     Session, SessionHandle, SessionRegistry,
+ };
+ pub use snapshot::{
+-    SnapshotCell, SnapshotColor, SnapshotCursor, SnapshotCursorShape, SnapshotError,
+-    SnapshotMetadata, SnapshotOptions, SnapshotParts, SnapshotScope, SnapshotSource,
+-    SnapshotUnderline, TerminalSnapshot, MAX_CELL_TEXT_BYTES, MAX_LINK_BYTES, MAX_SNAPSHOT_CELLS,
+-    MAX_SNAPSHOT_DIM, MAX_TITLE_BYTES, SNAPSHOT_SCHEMA_VERSION,
++    CapturedTerminalSnapshot, SnapshotCell, SnapshotColor, SnapshotCursor, SnapshotCursorShape,
++    SnapshotError, SnapshotMetadata, SnapshotOptions, SnapshotParts, SnapshotScope,
++    SnapshotSource, SnapshotUnderline, TerminalSnapshot, MAX_CELL_TEXT_BYTES, MAX_LINK_BYTES,
++    MAX_SNAPSHOT_CELLS, MAX_SNAPSHOT_DIM, MAX_TITLE_BYTES, SNAPSHOT_SCHEMA_VERSION,
+ };
+ pub use terminal::backend::Backend;
+ pub use wait::{WaitQuietMode, WaitQuietOptions, DEFAULT_QUIET_INTERVAL, DEFAULT_QUIET_TIMEOUT};
+diff --git a/crates/tui-test/src/record.rs b/crates/tui-test/src/record.rs
+index a91d18a..c98a008 100644
+--- a/crates/tui-test/src/record.rs
++++ b/crates/tui-test/src/record.rs
+@@ -1,7 +1,9 @@
+ use std::path::PathBuf;
+-use std::sync::{mpsc, Arc};
++use std::sync::{mpsc, Arc, Mutex};
+ use std::thread::JoinHandle;
+-use std::time::Instant;
++use std::time::{Duration, Instant};
++
++const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(2);
+ 
+ use crate::api::RecordingFormat;
+ 
+@@ -23,6 +25,9 @@
+     sender: mpsc::Sender<Message>,
+     worker: Option<JoinHandle<()>>,
+     automatic: bool,
++    shutdown_sent: bool,
++    shutdown_reply: Option<Mutex<mpsc::Receiver<Result<(), CaptureError>>>>,
++    shutdown_result: Option<Result<(), String>>,
+ }
+ 
+ pub(crate) struct StartRecording {
+@@ -121,6 +126,9 @@
+             sender,
+             worker: Some(worker),
+             automatic,
++            shutdown_sent: false,
++            shutdown_reply: None,
++            shutdown_result: None,
+         })
+     }
+ 
+@@ -178,6 +186,33 @@
+         response.recv().unwrap_or(Err(CaptureError::WorkerStopped))
+     }
+ 
++    pub(crate) fn snapshot_automatic_until(
++        &self,
++        target_path: PathBuf,
++        max_bytes: u64,
++        deadline: Instant,
++    ) -> Result<AutomaticRecordingSnapshot, String> {
++        let (reply, response) = mpsc::sync_channel(0);
++        self.sender
++            .send(Message::SnapshotAutomatic {
++                target_path,
++                max_bytes,
++                reply,
++            })
++            .map_err(|_| "recording worker stopped before automatic snapshot".to_string())?;
++        response
++            .recv_timeout(deadline.saturating_duration_since(Instant::now()))
++            .map_err(|error| match error {
++                mpsc::RecvTimeoutError::Timeout => {
++                    "automatic recording snapshot exceeded its deadline".to_string()
++                }
++                mpsc::RecvTimeoutError::Disconnected => {
++                    "recording worker stopped before automatic snapshot reply".to_string()
++                }
++            })?
++            .map_err(|error| crate::diagnostics::strings::capture_error_message(&error))
++    }
++
+     pub fn on_resize(&self, cols: u16, rows: u16) {
+         let _ = self.sender.send(Message::Resize {
+             at: Instant::now(),
+@@ -186,10 +221,97 @@
+         });
+     }
+ 
++    pub(crate) fn shutdown_started(&self) -> bool {
++        self.shutdown_sent
++    }
++
++    pub(crate) fn flush_until(&self, deadline: Instant) -> Result<(), String> {
++        let (reply, response) = mpsc::sync_channel(0);
++        self.sender
++            .send(Message::Barrier { reply })
++            .map_err(|_| "recording worker stopped before flush".to_string())?;
++        response
++            .recv_timeout(deadline.saturating_duration_since(Instant::now()))
++            .map_err(|error| match error {
++                mpsc::RecvTimeoutError::Timeout => {
++                    "recording worker flush exceeded its deadline".to_string()
++                }
++                mpsc::RecvTimeoutError::Disconnected => {
++                    "recording worker stopped before flush reply".to_string()
++                }
++            })?
++            .map_err(|error| crate::diagnostics::strings::capture_error_message(&error))
++    }
++
+     pub fn shutdown(&mut self) {
+-        let _ = self.sender.send(Message::Shutdown);
+-        if let Some(worker) = self.worker.take() {
+-            let _ = worker.join();
++        let deadline = Instant::now() + SHUTDOWN_TIMEOUT;
++        let _ = self.shutdown_until(deadline);
++    }
++
++    pub(crate) fn shutdown_until(&mut self, deadline: Instant) -> Result<(), String> {
++        if self.worker.is_none() {
++            return self.shutdown_result.clone().unwrap_or(Ok(()));
++        }
++        if !self.shutdown_sent {
++            let (reply, response) = mpsc::sync_channel(0);
++            match self.sender.send(Message::Shutdown { reply }) {
++                Ok(()) => self.shutdown_reply = Some(Mutex::new(response)),
++                Err(_) => {
++                    self.shutdown_result = Some(Err(
++                        "recording worker stopped before shutdown".to_string(),
++                    ));
++                }
++            }
++            self.shutdown_sent = true;
++        }
++        if self.shutdown_result.is_none() {
++            let Some(response) = self.shutdown_reply.take() else {
++                self.shutdown_result = Some(Err(
++                    "recording worker shutdown reply is unavailable".to_string(),
++                ));
++                return self.shutdown_result.clone().unwrap_or(Ok(()));
++            };
++            let response = response
++                .into_inner()
++                .unwrap_or_else(std::sync::PoisonError::into_inner);
++            match response.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
++                Ok(result) => {
++                    self.shutdown_result = Some(result.map_err(|error| {
++                        crate::diagnostics::strings::capture_error_message(&error)
++                    }));
++                }
++                Err(mpsc::RecvTimeoutError::Timeout) => {
++                    self.shutdown_reply = Some(Mutex::new(response));
++                    return Err("recording worker shutdown exceeded its deadline".to_string());
++                }
++                Err(mpsc::RecvTimeoutError::Disconnected) => {
++                    self.shutdown_result = Some(Err(
++                        "recording worker stopped before shutdown reply".to_string(),
++                    ));
++                }
++            }
++        }
++        loop {
++            let Some(worker) = self.worker.as_ref() else {
++                return self.shutdown_result.clone().unwrap_or(Ok(()));
++            };
++            if worker.is_finished() {
++                let Some(worker) = self.worker.take() else {
++                    return self.shutdown_result.clone().unwrap_or(Ok(()));
++                };
++                if worker.join().is_err() {
++                    let error = "recording worker panicked during shutdown".to_string();
++                    self.shutdown_result = Some(Err(error.clone()));
++                    return Err(error);
++                }
++                return self.shutdown_result.clone().unwrap_or(Ok(()));
++            }
++            if Instant::now() >= deadline {
++                return Err("recording worker shutdown exceeded its deadline".to_string());
++            }
++            std::thread::sleep(Duration::from_millis(10).min(
++                deadline.saturating_duration_since(Instant::now()),
++            ));
+         }
+     }
+ }
+@@ -232,12 +354,17 @@
+     Flush {
+         reply: mpsc::SyncSender<Result<(), CaptureError>>,
+     },
++    Barrier {
++        reply: mpsc::SyncSender<Result<(), CaptureError>>,
++    },
+     SnapshotAutomatic {
+         target_path: PathBuf,
+         max_bytes: u64,
+         reply: mpsc::SyncSender<Result<AutomaticRecordingSnapshot, CaptureError>>,
+     },
+-    Shutdown,
++    Shutdown {
++        reply: mpsc::SyncSender<Result<(), CaptureError>>,
++    },
+ }
+ 
+ pub(crate) fn sidecar_path(target: &std::path::Path) -> PathBuf {
+diff --git a/crates/tui-test/src/record/worker.rs b/crates/tui-test/src/record/worker.rs
+index 40221d8..c79fb00 100644
+--- a/crates/tui-test/src/record/worker.rs
++++ b/crates/tui-test/src/record/worker.rs
+@@ -30,6 +30,7 @@
+     let mut seed = super::seed::State::new(cols, rows);
+     let mut primary_decoder = cast::IncrementalDecoder::default();
+     let mut primary_last_at = Instant::now();
++    let mut primary_error: Option<String> = None;
+     let mut active: Option<ActiveRecording> = None;
+ 
+     while let Ok(message) = receiver.recv() {
+@@ -42,6 +43,7 @@
+                     if let Some(writer) = primary.as_mut() {
+                         if let Err(error) = writer.write_output(at, &text) {
+                             logger.event(&format!("automatic recording failed: {error}"));
++                            primary_error = Some(error.to_string());
+                             primary = None;
+                         }
+                     }
+@@ -62,6 +64,7 @@
+                 if let Some(writer) = primary.as_mut() {
+                     if let Err(error) = writer.write_resize(at, cols, rows) {
+                         logger.event(&format!("automatic recording failed: {error}"));
++                        primary_error = Some(error.to_string());
+                         primary = None;
+                     }
+                 }
+@@ -158,14 +161,38 @@
+                     Some(writer) => writer
+                         .flush()
+                         .map_err(|error| CaptureError::Io(error.to_string())),
+-                    None => Err(CaptureError::Io(
+-                        "automatic recording is unavailable".to_string(),
+-                    )),
++                    None => Err(CaptureError::Io(primary_error.clone().unwrap_or_else(|| {
++                        "automatic recording is unavailable".to_string()
++                    }))),
+                 };
+                 if let Err(CaptureError::Io(error)) = &result {
+                     logger.event(&format!("automatic recording flush failed: {error}"));
++                    primary_error.get_or_insert_with(|| error.clone());
+                     primary = None;
+                 }
++                let _ = reply.send(result);
++            }
++            Message::Barrier { reply } => {
++                let mut failure = primary_error.clone();
++                if let Some(writer) = primary.as_mut() {
++                    if let Err(error) = writer.flush() {
++                        let message = error.to_string();
++                        logger.event(&format!("automatic recording flush failed: {message}"));
++                        primary_error = Some(message.clone());
++                        primary = None;
++                        failure.get_or_insert(message);
++                    }
++                }
++                if let Some(recording) = active.as_mut() {
++                    if let Some(error) = recording.error.clone() {
++                        failure.get_or_insert(error);
++                    } else if let Err(error) = recording.writer.flush() {
++                        let message = error.to_string();
++                        remember_error(recording, Err(error));
++                        failure.get_or_insert(message);
++                    }
++                }
++                let result = failure.map_or(Ok(()), |error| Err(CaptureError::Io(error)));
+                 let _ = reply.send(result);
+             }
+             Message::SnapshotAutomatic {
+@@ -180,28 +207,39 @@
+                             logger.event(&format!(
+                                 "automatic recording snapshot flush failed: {error}"
+                             ));
++                            primary_error = Some(error.to_string());
+                             primary = None;
+                             Err(CaptureError::Io(error.to_string()))
+                         }
+                     },
+-                    None => Err(CaptureError::Io(
+-                        "automatic recording is unavailable".to_string(),
+-                    )),
++                    None => Err(CaptureError::Io(primary_error.clone().unwrap_or_else(|| {
++                        "automatic recording is unavailable".to_string()
++                    }))),
+                 };
+                 let _ = reply.send(result);
+             }
+-            Message::Shutdown => {
++            Message::Shutdown { reply } => {
++                let mut failure = primary_error.clone();
+                 let tail = primary_decoder.finish();
+                 if !tail.is_empty() {
+                     if let Some(writer) = primary.as_mut() {
+                         if let Err(error) = writer.write_output(primary_last_at, &tail) {
+-                            logger.event(&format!("automatic recording failed: {error}"));
++                            let message = error.to_string();
++                            logger.event(&format!("automatic recording failed: {message}"));
++                            primary_error = Some(message.clone());
+                             primary = None;
++                            failure.get_or_insert(message);
+                         }
+                     }
+                 }
+                 if let Some(writer) = primary.as_mut() {
+-                    let _ = writer.flush();
++                    if let Err(error) = writer.flush() {
++                        let message = error.to_string();
++                        logger.event(&format!("automatic recording flush failed: {message}"));
++                        primary_error = Some(message.clone());
++                        primary = None;
++                        failure.get_or_insert(message);
++                    }
+                 }
+                 if let Some(recording) = active.as_mut() {
+                     let tail = recording.decoder.finish();
+@@ -209,8 +247,17 @@
+                         let result = recording.writer.write_output(recording.last_at, &tail);
+                         remember_error(recording, result);
+                     }
+-                    let _ = recording.writer.flush();
+-                }
++                    if recording.error.is_none() {
++                        if let Err(error) = recording.writer.flush() {
++                            remember_error(recording, Err(error));
++                        }
++                    }
++                    if let Some(error) = recording.error.clone() {
++                        failure.get_or_insert(error);
++                    }
++                }
++                let result = failure.map_or(Ok(()), |error| Err(CaptureError::Io(error)));
++                let _ = reply.send(result);
+                 break;
+             }
+         }
+diff --git a/crates/tui-test/src/runtime.rs b/crates/tui-test/src/runtime.rs
+index 5334423..110e63e 100644
+--- a/crates/tui-test/src/runtime.rs
++++ b/crates/tui-test/src/runtime.rs
+@@ -2,6 +2,7 @@
+ use std::path::PathBuf;
+ use std::sync::atomic::{AtomicU64, Ordering};
+ use std::sync::{Arc, Condvar, Mutex, MutexGuard, OnceLock, RwLock, Weak};
++use std::time::{Duration, Instant};
+ 
+ use sha2::{Digest, Sha256};
+ 
+@@ -14,7 +15,9 @@
+ use crate::engine::{CheckedInputError, CheckedMouseAction, Engine};
+ use crate::launch::LaunchOptions;
+ use crate::logger::Logger;
+-use crate::snapshot::{SnapshotOptions, SnapshotScope, TerminalSnapshot};
++use crate::snapshot::{
++    CapturedTerminalSnapshot, SnapshotOptions, SnapshotScope, TerminalSnapshot,
++};
+ use crate::wait::WaitQuietOptions;
+ 
+ const MAX_COMPLETED_RECORDINGS: usize = 1024;
+@@ -539,6 +542,32 @@
+         options: &SnapshotOptions,
+     ) -> Result<TerminalSnapshot, TuiTestError> {
+         self.engine.capture_snapshot_with(options)
++    }
++
++    /// Capture a visual snapshot and exact PTY output prefix offset atomically.
++    pub fn capture_checkpoint(
++        &self,
++        scope: SnapshotScope,
++    ) -> Result<CapturedTerminalSnapshot, TuiTestError> {
++        self.engine.capture_checkpoint(scope)
++    }
++
++    /// Capture a checkpoint with explicit snapshot options.
++    pub fn capture_checkpoint_with(
++        &self,
++        options: &SnapshotOptions,
++    ) -> Result<CapturedTerminalSnapshot, TuiTestError> {
++        self.engine.capture_checkpoint_with(options)
++    }
++
++    /// Drain exact PTY output and finalize recording under one deadline.
++    /// The session remains available for a post-drain state read and checkpoint.
++    pub fn finish_capture(&self, timeout: std::time::Duration) -> Result<Vec<u8>, TuiTestError> {
++        let deadline = Instant::now()
++            .checked_add(timeout)
++            .unwrap_or_else(|| Instant::now() + Duration::from_secs(31_536_000));
++        self.engine
++            .finish_capture_until(deadline, self.context.clone())
+     }
+ 
+     /// Wait until the terminal stays quiet, then return success.
+diff --git a/crates/tui-test/src/session.rs b/crates/tui-test/src/session.rs
+index e36c635..a4b2933 100644
+--- a/crates/tui-test/src/session.rs
++++ b/crates/tui-test/src/session.rs
+@@ -3,7 +3,7 @@
+ 
+ use std::path::PathBuf;
+ use std::sync::atomic::{AtomicBool, Ordering};
+-use std::sync::{Arc, Mutex};
++use std::sync::{Arc, Mutex, TryLockError};
+ use std::thread::JoinHandle;
+ use std::time::{Duration, Instant};
+ 
+@@ -20,6 +20,9 @@
+ use crate::terminal::emu::{Emulator, MouseMode, MouseModeTracker, TerminalMode};
+ use crate::terminal::integration::CommandTracker;
+ use crate::terminal::pty::{validate_cwd, validate_size, NativeSpawnOptions, Pty, SpawnOptions};
++
++const MAX_CAPTURED_PTY_BYTES: usize = 32 * 1024 * 1024;
++const FINAL_DRAIN_TIMEOUT: Duration = Duration::from_secs(2);
+ 
+ #[derive(Debug, Clone)]
+ pub(crate) struct TextHighlight {
+@@ -94,6 +97,14 @@
+     }
+ }
+ 
++#[derive(Default)]
++pub(crate) struct RawPtyCapture {
++    pub bytes: Vec<u8>,
++    pub eof: bool,
++    pub reader_finished: bool,
++    pub error: Option<String>,
++}
++
+ pub struct Session {
+     pub shell: Option<Shell>,
+     pub backend: Backend,
+@@ -104,12 +115,20 @@
+     pub state: Arc<Mutex<TermState>>,
+     /// Serialize viewport movement with input without blocking the output reader.
+     pub(crate) viewport_input: Arc<Mutex<()>>,
++    pub(crate) raw_capture: Option<Arc<Mutex<RawPtyCapture>>>,
++    reader_error: Arc<Mutex<Option<String>>>,
++    capture_drained: bool,
++    capture_finalized: bool,
++    workers_drained: bool,
++    shutdown_complete: bool,
++    reader_join_error: Option<String>,
++    process_watcher_join_error: Option<String>,
+     pub cancelled: Arc<AtomicBool>,
+     pub(crate) bells: BellTracker,
+     recorder: Recorder,
+     logger: Arc<Logger>,
+     reader: Option<JoinHandle<()>>,
+-    _process_watcher: JoinHandle<()>,
++    process_watcher: Option<JoinHandle<()>>,
+ }
+ 
+ /// Fresh emulator, tracker, and screen state for a newly spawned child.
+@@ -172,55 +191,131 @@
+     bells: BellTracker,
+     recorder: Recorder,
+     logger: Arc<Logger>,
++    capture_raw_pty: bool,
+     open_event: String,
+ ) -> Session {
+     let child_pid = pty.pid();
+     let pty = Arc::new(pty);
+     let cancelled = Arc::new(AtomicBool::new(false));
++    let raw_capture = capture_raw_pty.then(|| Arc::new(Mutex::new(RawPtyCapture::default())));
++    let reader_error = Arc::new(Mutex::new(None));
+ 
+     let reader_state = state.clone();
+     let reader_pty = pty.clone();
+     let reader_logger = logger.clone();
+     let reader_recorder = recorder.capture();
++    let reader_capture = raw_capture.clone();
++    let reader_worker_error = reader_error.clone();
+     let reader_finished = Arc::new(AtomicBool::new(false));
+     let finished = reader_finished.clone();
+     let reader_handle = std::thread::spawn(move || {
+-        use std::io::Read;
+-        let mut buf = [0u8; 8192];
+-        loop {
+-            match reader.read(&mut buf) {
+-                Ok(0) => {
+-                    reader_logger.event("pty stream reached EOF");
+-                    break;
+-                }
+-                Err(error) => {
+-                    reader_logger.event(&format!("pty read failed error={error}"));
+-                    break;
+-                }
+-                Ok(n) => {
+-                    reader_logger.read(&buf[..n]);
+-                    let pending = {
+-                        let mut st = reader_state
++        let worker_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++            use std::io::Read;
++            let mut buf = [0u8; 8192];
++            loop {
++                match reader.read(&mut buf) {
++                    Ok(0) => {
++                        reader_logger.event("pty stream reached EOF");
++                        let _state = reader_state
+                             .lock()
+                             .unwrap_or_else(std::sync::PoisonError::into_inner);
+-                        st.last_output = Some(Instant::now());
+-                        st.emu.process(&buf[..n]);
+-                        st.tracker.feed(&buf[..n]);
+-                        st.visual_revision = st.visual_revision.wrapping_add(1);
+-                        st.screen_dirty = true;
+-                        st.mouse_mode.process(&buf[..n]);
+-                        st.highlight = None;
+-                        reader_recorder.on_data(&buf[..n]);
+-                        #[cfg(feature = "recording-raster")]
+-                        capture_recording_frame(&mut st);
+-                        let _ = try_capture_visual_state(&mut st, false);
+-                        st.emu.take_pending_writes()
+-                    };
+-                    if !pending.is_empty() {
+-                        reader_logger.reply(&pending);
+-                        let _ = reader_pty.write(&pending);
++                        if let Some(capture) = &reader_capture {
++                            capture
++                                .lock()
++                                .unwrap_or_else(std::sync::PoisonError::into_inner)
++                                .eof = true;
++                        }
++                        break;
++                    }
++                    Err(error) => {
++                        reader_logger.event(&format!("pty read failed error={error}"));
++                        remember_reader_failure(
++                            &reader_state,
++                            &reader_capture,
++                            &reader_worker_error,
++                            format!("PTY reader failed before EOF: {error}"),
++                        );
++                        break;
++                    }
++                    Ok(n) => {
++                        let pending = {
++                            let mut state = reader_state
++                                .lock()
++                                .unwrap_or_else(std::sync::PoisonError::into_inner);
++                            if let Some(capture) = &reader_capture {
++                                let mut capture = capture
++                                    .lock()
++                                    .unwrap_or_else(std::sync::PoisonError::into_inner);
++                                if capture.error.is_none() {
++                                    let capture_error = match capture.bytes.len().checked_add(n) {
++                                        Some(next_len) if next_len <= MAX_CAPTURED_PTY_BYTES => {
++                                            capture
++                                                .bytes
++                                                .try_reserve(n)
++                                                .map_err(|error| error.to_string())
++                                                .map(|()| capture.bytes.extend_from_slice(&buf[..n]))
++                                                .err()
++                                        }
++                                        _ => Some(format!(
++                                            "exact PTY output exceeded the {MAX_CAPTURED_PTY_BYTES}-byte capture bound"
++                                        )),
++                                    };
++                                    if let Some(error) = capture_error {
++                                        capture.error = Some(format!(
++                                            "failed to retain exact PTY output: {error}"
++                                        ));
++                                    }
++                                }
++                            }
++                            state.last_output = Some(Instant::now());
++                            state.emu.process(&buf[..n]);
++                            state.tracker.feed(&buf[..n]);
++                            state.visual_revision = state.visual_revision.wrapping_add(1);
++                            state.screen_dirty = true;
++                            state.mouse_mode.process(&buf[..n]);
++                            state.highlight = None;
++                            reader_recorder.on_data(&buf[..n]);
++                            #[cfg(feature = "recording-raster")]
++                            capture_recording_frame(&mut state);
++                            let _ = try_capture_visual_state(&mut state, false);
++                            state.emu.take_pending_writes()
++                        };
++                        reader_logger.read(&buf[..n]);
++                        if !pending.is_empty() {
++                            reader_logger.reply(&pending);
++                            if let Err(error) = reader_pty.write(&pending) {
++                                reader_logger.event(&format!(
++                                    "pty reply write failed error={error}"
++                                ));
++                                remember_reader_failure(
++                                    &reader_state,
++                                    &reader_capture,
++                                    &reader_worker_error,
++                                    format!("PTY reply write or flush failed: {error}"),
++                                );
++                            }
++                        }
+                     }
+                 }
++            }
++        }));
++        if worker_result.is_err() {
++            remember_reader_failure(
++                &reader_state,
++                &reader_capture,
++                &reader_worker_error,
++                "PTY reader worker panicked".to_string(),
++            );
++        }
++        {
++            let _state = reader_state
++                .lock()
++                .unwrap_or_else(std::sync::PoisonError::into_inner);
++            if let Some(capture) = &reader_capture {
++                capture
++                    .lock()
++                    .unwrap_or_else(std::sync::PoisonError::into_inner)
++                    .reader_finished = true;
+             }
+         }
+         finished.store(true, Ordering::Release);
+@@ -277,16 +372,374 @@
+         pty,
+         state,
+         viewport_input: Arc::new(Mutex::new(())),
++        raw_capture,
++        reader_error,
++        capture_drained: false,
++        capture_finalized: false,
++        workers_drained: false,
++        shutdown_complete: false,
++        reader_join_error: None,
++        process_watcher_join_error: None,
+         cancelled,
+         bells,
+         recorder,
+         logger,
+         reader: Some(reader_handle),
+-        _process_watcher: process_watcher,
+-    }
++        process_watcher: Some(process_watcher),
++    }
++}
++
++fn remember_reader_failure(
++    state: &Arc<Mutex<TermState>>,
++    capture: &Option<Arc<Mutex<RawPtyCapture>>>,
++    reader_error: &Arc<Mutex<Option<String>>>,
++    message: String,
++) {
++    let _state = state
++        .lock()
++        .unwrap_or_else(std::sync::PoisonError::into_inner);
++    if let Some(capture) = capture {
++        capture
++            .lock()
++            .unwrap_or_else(std::sync::PoisonError::into_inner)
++            .error
++            .get_or_insert_with(|| message.clone());
++    }
++    reader_error
++        .lock()
++        .unwrap_or_else(std::sync::PoisonError::into_inner)
++        .get_or_insert(message);
+ }
+ 
+ impl Session {
++    /// Close the PTY transport and drain the exact-output reader under one
++    /// caller-owned deadline. The recorder remains alive until trace work is
++    /// complete so automatic recording finalization retains its normal order.
++    pub(crate) fn drain_capture_until(&mut self, deadline: Instant) -> Result<(), String> {
++        if self.capture_finalized || self.capture_drained {
++            return Ok(());
++        }
++        if self.raw_capture.is_none() {
++            return Err("raw PTY capture was not enabled for this launch".to_string());
++        }
++        self.cancelled.store(true, Ordering::Release);
++        let mut errors = Vec::new();
++        if let Err(error) = self.pty.close_until(deadline) {
++            errors.push(error);
++        }
++        if let Err(error) = join_worker_checked_until(
++            &mut self.reader,
++            &mut self.reader_join_error,
++            deadline,
++            "PTY reader",
++        ) {
++            errors.push(error);
++        }
++        if let Err(error) = join_worker_checked_until(
++            &mut self.process_watcher,
++            &mut self.process_watcher_join_error,
++            deadline,
++            "process status watcher",
++        ) {
++            errors.push(error);
++        }
++        if let Err(error) = self.wait_capture_drain_until(deadline) {
++            errors.push(error);
++        }
++        if errors.is_empty() {
++            self.capture_drained = true;
++            self.workers_drained = true;
++            Ok(())
++        } else {
++            Err(errors.join("; "))
++        }
++    }
++
++    /// Stop and verify the recording worker after trace finalization, then
++    /// return the complete raw stream only when every capture stage succeeded.
++    pub(crate) fn finish_capture_after_trace(
++        &mut self,
++        deadline: Instant,
++    ) -> Result<Vec<u8>, String> {
++        if self.capture_finalized {
++            let bytes = self.captured_bytes_until(deadline)?;
++            self.shutdown_complete = true;
++            return Ok(bytes);
++        }
++        if !self.capture_drained {
++            return Err("PTY output capture has not completed its checked drain".to_string());
++        }
++        let mut errors = Vec::new();
++        if !self.recorder.shutdown_started() {
++            if let Err(error) = self.recorder.flush_until(deadline) {
++                errors.push(error);
++            }
++        }
++        if let Err(error) = self.recorder.shutdown_until(deadline) {
++            errors.push(error);
++        }
++        match self.captured_bytes_until(deadline) {
++            Ok(bytes) if errors.is_empty() => {
++                self.capture_finalized = true;
++                self.shutdown_complete = true;
++                Ok(bytes)
++            }
++            Ok(_) => {
++                let message = errors.join("; ");
++                self.record_capture_error_until(&message, deadline);
++                Err(message)
++            }
++            Err(error) => {
++                errors.push(error);
++                let message = errors.join("; ");
++                self.record_capture_error_until(&message, deadline);
++                Err(message)
++            }
++        }
++    }
++
++    fn record_capture_error_until(&self, error: &str, deadline: Instant) {
++        let Some(capture) = self.raw_capture.as_ref() else {
++            return;
++        };
++        loop {
++            if Instant::now() >= deadline {
++                return;
++            }
++            let state = match self.state.try_lock() {
++                Ok(state) => state,
++                Err(TryLockError::Poisoned(poisoned)) => poisoned.into_inner(),
++                Err(TryLockError::WouldBlock) if Instant::now() >= deadline => return,
++                Err(TryLockError::WouldBlock) => {
++                    wait_until(deadline);
++                    continue;
++                }
++            };
++            let mut capture = match capture.try_lock() {
++                Ok(capture) => capture,
++                Err(TryLockError::Poisoned(poisoned)) => poisoned.into_inner(),
++                Err(TryLockError::WouldBlock) if Instant::now() >= deadline => return,
++                Err(TryLockError::WouldBlock) => {
++                    drop(state);
++                    wait_until(deadline);
++                    continue;
++                }
++            };
++            capture.error.get_or_insert_with(|| error.to_string());
++            return;
++        }
++    }
++
++    fn reader_error_until(&self, deadline: Instant) -> Result<(), String> {
++        loop {
++            if Instant::now() >= deadline {
++                return Err(
++                    "PTY reader outcome inspection exceeded its drain deadline".to_string(),
++                );
++            }
++            match self.reader_error.try_lock() {
++                Ok(error) => return error.clone().map_or(Ok(()), Err),
++                Err(TryLockError::Poisoned(error)) => {
++                    return error.into_inner().clone().map_or(Ok(()), Err);
++                }
++                Err(TryLockError::WouldBlock) => wait_until(deadline),
++            }
++        }
++    }
++
++    /// Close the PTY and check that both session workers drain under the
++    /// caller-owned deadline. Recorder shutdown follows trace finalization.
++    pub(crate) fn drain_workers_until(&mut self, deadline: Instant) -> Result<(), String> {
++        if self.shutdown_complete || self.workers_drained {
++            return Ok(());
++        }
++        self.cancelled.store(true, Ordering::Release);
++        let mut errors = Vec::new();
++        if let Err(error) = self.pty.close_until(deadline) {
++            errors.push(error);
++        }
++        if let Err(error) = join_worker_checked_until(
++            &mut self.reader,
++            &mut self.reader_join_error,
++            deadline,
++            "PTY reader",
++        ) {
++            errors.push(error);
++        }
++        if let Err(error) = join_worker_checked_until(
++            &mut self.process_watcher,
++            &mut self.process_watcher_join_error,
++            deadline,
++            "process status watcher",
++        ) {
++            errors.push(error);
++        }
++        if self.raw_capture.is_none() {
++            if let Err(error) = self.reader_error_until(deadline) {
++                errors.push(error);
++            }
++        }
++        let exit_error = loop {
++            if Instant::now() >= deadline {
++                errors.push("process status inspection exceeded its drain deadline".to_string());
++                break None;
++            }
++            match self.state.try_lock() {
++                Ok(state) => break state.exit_error.clone(),
++                Err(TryLockError::Poisoned(error)) => break error.into_inner().exit_error.clone(),
++                Err(TryLockError::WouldBlock) => wait_until(deadline),
++            }
++        };
++        if let Some(error) = exit_error {
++            errors.push(format!("process status watcher failed: {error}"));
++        }
++        if errors.is_empty() {
++            self.workers_drained = true;
++            Ok(())
++        } else {
++            Err(errors.join("; "))
++        }
++    }
++
++    /// Flush and stop the recorder after checked worker drain and trace work.
++    pub(crate) fn finish_shutdown_until(&mut self, deadline: Instant) -> Result<(), String> {
++        if self.shutdown_complete {
++            return Ok(());
++        }
++        if !self.workers_drained {
++            return Err("session workers have not completed their checked drain".to_string());
++        }
++        let mut errors = Vec::new();
++        if !self.recorder.shutdown_started() {
++            if let Err(error) = self.recorder.flush_until(deadline) {
++                errors.push(error);
++            }
++        }
++        if let Err(error) = self.recorder.shutdown_until(deadline) {
++            errors.push(error);
++        }
++        if errors.is_empty() {
++            self.shutdown_complete = true;
++            Ok(())
++        } else {
++            Err(errors.join("; "))
++        }
++    }
++
++    pub(crate) fn captures_raw_pty(&self) -> bool {
++        self.raw_capture.is_some()
++    }
++
++    fn wait_capture_drain_until(&self, deadline: Instant) -> Result<(), String> {
++        let capture = self
++            .raw_capture
++            .as_ref()
++            .ok_or_else(|| "raw PTY capture was not enabled for this launch".to_string())?;
++        let mut errors = Vec::new();
++        loop {
++            if Instant::now() >= deadline {
++                return Err("PTY output drain exceeded its deadline".to_string());
++            }
++            let state = match self.state.try_lock() {
++                Ok(state) => state,
++                Err(TryLockError::Poisoned(error)) => error.into_inner(),
++                Err(TryLockError::WouldBlock) => {
++                    if Instant::now() >= deadline {
++                        return Err("terminal-state lock exceeded the capture deadline".to_string());
++                    }
++                    wait_until(deadline);
++                    continue;
++                }
++            };
++            let capture = match capture.try_lock() {
++                Ok(capture) => capture,
++                Err(TryLockError::Poisoned(error)) => error.into_inner(),
++                Err(TryLockError::WouldBlock) => {
++                    drop(state);
++                    if Instant::now() >= deadline {
++                        return Err("raw-capture lock exceeded the capture deadline".to_string());
++                    }
++                    wait_until(deadline);
++                    continue;
++                }
++            };
++            if let Some(error) = &state.exit_error {
++                if !errors.contains(error) {
++                    errors.push(format!("process status watcher failed: {error}"));
++                }
++            }
++            if let Some(error) = &capture.error {
++                if !errors.contains(error) {
++                    errors.push(error.clone());
++                }
++            }
++            let reader_finished = capture.reader_finished;
++            let eof = capture.eof;
++            drop(capture);
++            drop(state);
++            if reader_finished {
++                if !eof && errors.is_empty() {
++                    errors.push("PTY reader finished without reaching EOF".to_string());
++                }
++                return if errors.is_empty() {
++                    Ok(())
++                } else {
++                    Err(errors.join("; "))
++                };
++            }
++            if Instant::now() >= deadline {
++                errors.push("PTY output drain exceeded its deadline".to_string());
++                return Err(errors.join("; "));
++            }
++            wait_until(deadline);
++        }
++    }
++
++    fn captured_bytes_until(&self, deadline: Instant) -> Result<Vec<u8>, String> {
++        let capture = self
++            .raw_capture
++            .as_ref()
++            .ok_or_else(|| "raw PTY capture was not enabled for this launch".to_string())?;
++        loop {
++            if Instant::now() >= deadline {
++                return Err("PTY output capture exceeded its deadline".to_string());
++            }
++            let state = match self.state.try_lock() {
++                Ok(state) => state,
++                Err(TryLockError::Poisoned(error)) => error.into_inner(),
++                Err(TryLockError::WouldBlock) => {
++                    if Instant::now() >= deadline {
++                        return Err("terminal-state lock exceeded the capture deadline".to_string());
++                    }
++                    wait_until(deadline);
++                    continue;
++                }
++            };
++            let capture = match capture.try_lock() {
++                Ok(capture) => capture,
++                Err(TryLockError::Poisoned(error)) => error.into_inner(),
++                Err(TryLockError::WouldBlock) => {
++                    drop(state);
++                    if Instant::now() >= deadline {
++                        return Err("raw-capture lock exceeded the capture deadline".to_string());
++                    }
++                    wait_until(deadline);
++                    continue;
++                }
++            };
++            if let Some(error) = &state.exit_error {
++                return Err(format!("process status watcher failed: {error}"));
++            }
++            if let Some(error) = &capture.error {
++                return Err(error.clone());
++            }
++            if !capture.eof || !capture.reader_finished {
++                return Err("PTY output capture is incomplete".to_string());
++            }
++            return Ok(capture.bytes.clone());
++        }
++    }
++
+     /// The session default for `class`, else the environment, else the built-in.
+     pub fn timeout_for(&self, class: crate::config::TimeoutClass) -> u64 {
+         self.timeouts
+@@ -318,7 +771,8 @@
+         }
+         diagnostics.validate().map_err(anyhow::Error::msg)?;
+         let started_at = Instant::now();
+-        let (state, bells) = new_term_state(backend, profile, style, cols, rows, diagnostics)?;
++        let (state, bells) =
++            new_term_state(backend, profile, style, cols, rows, diagnostics)?;
+ 
+         let mut rec_env = vec![("TERM".to_string(), "xterm-256color".to_string())];
+         if let Some(sh) = shell {
+@@ -375,7 +829,7 @@
+             rows
+         );
+         Ok(finish_session(
+-            shell, backend, timeouts, pty, reader, state, bells, recorder, logger, open_event,
++            shell, backend, timeouts, pty, reader, state, bells, recorder, logger, false, open_event,
+         ))
+     }
+ 
+@@ -406,7 +860,14 @@
+         }
+         diagnostics.validate().map_err(anyhow::Error::msg)?;
+         let started_at = Instant::now();
+-        let (state, bells) = new_term_state(backend, profile, style, cols, rows, diagnostics)?;
++        let (state, bells) = new_term_state(
++            backend,
++            profile,
++            style,
++            cols,
++            rows,
++            diagnostics,
++        )?;
+ 
+         let rec_env = vec![("TERM".to_string(), "xterm-256color".to_string())];
+         let recorder = Recorder::create_at(
+@@ -418,16 +879,27 @@
+             logger.clone(),
+             started_at,
+         )?;
+-        let spawned = Pty::spawn_native(
+-            launch.program(),
+-            launch.args(),
+-            &NativeSpawnOptions {
+-                cols,
+-                rows,
+-                env: launch.env().to_vec(),
+-            },
+-            launch.cwd(),
+-        );
++        let native_options = NativeSpawnOptions {
++            cols,
++            rows,
++            env: launch.env().to_vec(),
++        };
++        let spawned = if launch.captures_raw_pty() {
++            Pty::spawn_native_with_capture(
++                launch.program(),
++                launch.args(),
++                &native_options,
++                launch.cwd(),
++                true,
++            )
++        } else {
++            Pty::spawn_native(
++                launch.program(),
++                launch.args(),
++                &native_options,
++                launch.cwd(),
++            )
++        };
+         let (pty, reader) = match spawned {
+             Ok(spawned) => spawned,
+             Err(error) => {
+@@ -450,7 +922,7 @@
+             rows
+         );
+         Ok(finish_session(
+-            None, backend, timeouts, pty, reader, state, bells, recorder, logger, open_event,
++            None, backend, timeouts, pty, reader, state, bells, recorder, logger, launch.captures_raw_pty(), open_event,
+         ))
+     }
+ 
+@@ -768,6 +1240,16 @@
+         max_bytes: u64,
+     ) -> Result<record::AutomaticRecordingSnapshot, CaptureError> {
+         self.recorder.snapshot_automatic(target_path, max_bytes)
++    }
++
++    pub(crate) fn snapshot_automatic_recording_until(
++        &self,
++        target_path: PathBuf,
++        max_bytes: u64,
++        deadline: Instant,
++    ) -> Result<record::AutomaticRecordingSnapshot, String> {
++        self.recorder
++            .snapshot_automatic_until(target_path, max_bytes, deadline)
+     }
+ 
+     pub fn automatic_recording_enabled(&self) -> bool {
+@@ -1157,18 +1639,149 @@
+     }
+ }
+ 
++fn wait_until(deadline: Instant) {
++    let remaining = deadline.saturating_duration_since(Instant::now());
++    if !remaining.is_zero() {
++        std::thread::sleep(Duration::from_millis(10).min(remaining));
++    }
++}
++
++fn join_worker_checked_until(
++    worker: &mut Option<JoinHandle<()>>,
++    cached_failure: &mut Option<String>,
++    deadline: Instant,
++    name: &str,
++) -> Result<(), String> {
++    if let Some(error) = cached_failure {
++        return Err(error.clone());
++    }
++    loop {
++        let Some(handle) = worker.as_ref() else {
++            return Ok(());
++        };
++        if Instant::now() >= deadline {
++            return Err(format!("{name} shutdown exceeded its drain deadline"));
++        }
++        if handle.is_finished() {
++            let Some(handle) = worker.take() else {
++                return Ok(());
++            };
++            return match handle.join() {
++                Ok(()) => Ok(()),
++                Err(_) => {
++                    let error = format!("{name} worker panicked during shutdown");
++                    *cached_failure = Some(error.clone());
++                    Err(error)
++                }
++            };
++        }
++        if Instant::now() >= deadline {
++            return Err(format!("{name} shutdown exceeded its drain deadline"));
++        }
++        wait_until(deadline);
++    }
++}
++
++fn join_worker_until(
++    worker: &mut Option<JoinHandle<()>>,
++    deadline: Instant,
++    name: &str,
++) -> Result<(), String> {
++    loop {
++        let Some(handle) = worker.as_ref() else {
++            return Ok(());
++        };
++        if Instant::now() >= deadline {
++            return Err(format!("{name} shutdown exceeded its drain deadline"));
++        }
++        if handle.is_finished() {
++            let Some(handle) = worker.take() else {
++                return Ok(());
++            };
++            return handle
++                .join()
++                .map_err(|_| format!("{name} worker panicked during shutdown"));
++        }
++        if Instant::now() >= deadline {
++            return Err(format!("{name} shutdown exceeded its drain deadline"));
++        }
++        wait_until(deadline);
++    }
++}
++
++fn drain_session_workers_and_recorder_until(
++    reader: &mut Option<JoinHandle<()>>,
++    process_watcher: &mut Option<JoinHandle<()>>,
++    recorder: &mut Recorder,
++    deadline: Instant,
++) -> Vec<String> {
++    let mut errors = Vec::new();
++    if let Err(error) = join_worker_until(reader, deadline, "PTY reader") {
++        errors.push(error);
++    }
++    if let Err(error) = join_worker_until(process_watcher, deadline, "process status watcher") {
++        errors.push(error);
++    }
++    if let Err(error) = recorder.shutdown_until(deadline) {
++        errors.push(error);
++    }
++    errors
++}
++
++#[cfg(test)]
+ fn drain_reader_and_recorder(reader: &mut Option<JoinHandle<()>>, recorder: &mut Recorder) {
+-    if let Some(reader) = reader.take() {
+-        let _ = reader.join();
+-    }
+-    recorder.shutdown();
++    let deadline = Instant::now() + FINAL_DRAIN_TIMEOUT;
++    let _ = join_worker_until(reader, deadline, "PTY reader");
++    let _ = recorder.shutdown_until(deadline);
+ }
+ 
+ impl Drop for Session {
+     fn drop(&mut self) {
++        if self.shutdown_complete {
++            return;
++        }
+         self.cancelled.store(true, Ordering::Release);
+-        self.pty.close();
+-        drain_reader_and_recorder(&mut self.reader, &mut self.recorder);
++        let deadline = Instant::now() + FINAL_DRAIN_TIMEOUT;
++        let mut errors = Vec::new();
++        if !self.capture_drained && !self.capture_finalized {
++            if let Err(error) = self.pty.close_until(deadline) {
++                errors.push(error);
++            }
++        }
++        errors.extend(drain_session_workers_and_recorder_until(
++            &mut self.reader,
++            &mut self.process_watcher,
++            &mut self.recorder,
++            deadline,
++        ));
++        if !errors.is_empty() {
++            if let Some(capture) = &self.raw_capture {
++                let message = errors.join("; ");
++                loop {
++                    let state = match self.state.try_lock() {
++                        Ok(state) => state,
++                        Err(TryLockError::Poisoned(error)) => error.into_inner(),
++                        Err(TryLockError::WouldBlock) if Instant::now() >= deadline => break,
++                        Err(TryLockError::WouldBlock) => {
++                            wait_until(deadline);
++                            continue;
++                        }
++                    };
++                    let mut capture = match capture.try_lock() {
++                        Ok(capture) => capture,
++                        Err(TryLockError::Poisoned(error)) => error.into_inner(),
++                        Err(TryLockError::WouldBlock) if Instant::now() >= deadline => break,
++                        Err(TryLockError::WouldBlock) => {
++                            drop(state);
++                            wait_until(deadline);
++                            continue;
++                        }
++                    };
++                    capture.error.get_or_insert(message);
++                    break;
++                }
++            }
++        }
+     }
+ }
+ 
+diff --git a/crates/tui-test/src/snapshot.rs b/crates/tui-test/src/snapshot.rs
+index 5437c6f..eb18a8f 100644
+--- a/crates/tui-test/src/snapshot.rs
++++ b/crates/tui-test/src/snapshot.rs
+@@ -818,6 +818,37 @@
+     cursor: SnapshotCursor,
+     title: Option<String>,
+     metadata: SnapshotMetadata,
++}
++
++/// An atomic visual snapshot and exact PTY output prefix boundary.
++#[derive(Debug, Clone)]
++pub struct CapturedTerminalSnapshot {
++    snapshot: TerminalSnapshot,
++    raw_pty_offset: usize,
++}
++
++impl CapturedTerminalSnapshot {
++    pub(crate) fn new(snapshot: TerminalSnapshot, raw_pty_offset: usize) -> Self {
++        Self {
++            snapshot,
++            raw_pty_offset,
++        }
++    }
++
++    /// The owned terminal snapshot at the checkpoint.
++    pub fn snapshot(&self) -> &TerminalSnapshot {
++        &self.snapshot
++    }
++
++    /// The exact raw PTY byte length observed under the same state lock.
++    pub fn raw_pty_offset(&self) -> usize {
++        self.raw_pty_offset
++    }
++
++    /// Consume the checkpoint and return its snapshot.
++    pub fn into_snapshot(self) -> TerminalSnapshot {
++        self.snapshot
++    }
+ }
+ 
+ impl TerminalSnapshot {
+@@ -1518,7 +1549,7 @@
+             emu.cursor_visible(),
+             SnapshotCursorShape::from(emu.cursor_shape()),
+             emu.color(ColorSlot::Cursor),
+-            None,
++            emu.cursor_blink(),
+         ),
+         title: emu.title(),
+         metadata,
+diff --git a/crates/tui-test/src/terminal/alacritty.rs b/crates/tui-test/src/terminal/alacritty.rs
+index 2690614..099948b 100644
+--- a/crates/tui-test/src/terminal/alacritty.rs
++++ b/crates/tui-test/src/terminal/alacritty.rs
+@@ -550,6 +550,10 @@
+         }
+     }
+ 
++    fn cursor_blink(&self) -> Option<bool> {
++        Some(self.term.cursor_style().blinking)
++    }
++
+     fn cursor(&self) -> (u16, u16) {
+         let p = self.term.grid().cursor.point;
+         let y = p.line.0.max(0).min(self.rows as i32 - 1) as u16;
+diff --git a/crates/tui-test/src/terminal/emu.rs b/crates/tui-test/src/terminal/emu.rs
+index d6141ed..3ab068f 100644
+--- a/crates/tui-test/src/terminal/emu.rs
++++ b/crates/tui-test/src/terminal/emu.rs
+@@ -596,6 +596,11 @@
+     /// The shape the cursor is currently drawn as.
+     fn cursor_shape(&self) -> CursorShape;
+ 
++    /// Whether the cursor blink is enabled, when the backend reports it.
++    fn cursor_blink(&self) -> Option<bool> {
++        None
++    }
++
+     /// Visible screen as rows of cells. Always `rows` entries of `cols` cells.
+     fn viewable_rows(&self) -> Vec<Vec<EmuCell>>;
+ 
+diff --git a/crates/tui-test/src/terminal/pty.rs b/crates/tui-test/src/terminal/pty.rs
+index b96f08b..fcf9484 100644
+--- a/crates/tui-test/src/terminal/pty.rs
++++ b/crates/tui-test/src/terminal/pty.rs
+@@ -1,11 +1,13 @@
+ //! PTY spawning and control via `portable-pty`.
+ 
++use std::collections::HashMap;
+ use std::ffi::{OsStr, OsString};
+ use std::io::{Read, Write};
+ use std::path::{Path, PathBuf};
+ use std::sync::atomic::{AtomicBool, Ordering};
+-use std::sync::{Arc, Mutex};
+-use std::time::Duration;
++use std::sync::mpsc;
++use std::sync::{Arc, Mutex, MutexGuard, OnceLock, TryLockError, Weak};
++use std::time::{Duration, Instant};
+ 
+ use portable_pty::{native_pty_system, Child, CommandBuilder, ExitStatus, MasterPty, PtySize};
+ 
+@@ -20,12 +22,201 @@
+     closed: Arc<AtomicBool>,
+ }
+ 
++type PtyDisposalReply = mpsc::Receiver<Result<(), String>>;
++
++struct PtyResourceDisposal<T> {
++    retained: Option<Arc<Mutex<Option<T>>>>,
++    pending: Option<PtyDisposalReply>,
++    failure: Option<String>,
++}
++
++impl<T> Default for PtyResourceDisposal<T> {
++    fn default() -> Self {
++        Self {
++            retained: None,
++            pending: None,
++            failure: None,
++        }
++    }
++}
++
++struct PtyDisposalState {
++    master: PtyResourceDisposal<Box<dyn MasterPty + Send>>,
++    writer: PtyResourceDisposal<Box<dyn Write + Send>>,
++}
++
++impl Default for PtyDisposalState {
++    fn default() -> Self {
++        Self {
++            master: PtyResourceDisposal::default(),
++            writer: PtyResourceDisposal::default(),
++        }
++    }
++}
++
++type PtyDisposalSlot = Arc<Mutex<PtyDisposalState>>;
++
++struct PtyDisposalEntry {
++    owner: Weak<AtomicBool>,
++    pending: PtyDisposalSlot,
++}
++
++static PTY_DISPOSALS: OnceLock<Mutex<HashMap<usize, PtyDisposalEntry>>> = OnceLock::new();
++
++fn pty_disposal_slot(
++    closed: &Arc<AtomicBool>,
++    deadline: Instant,
++) -> Result<(usize, PtyDisposalSlot), String> {
++    let key = Arc::as_ptr(closed) as usize;
++    let registry = PTY_DISPOSALS.get_or_init(|| Mutex::new(HashMap::new()));
++    let mut registry =
++        lock_until_with_immediate_try(registry, deadline, "PTY disposal registry lock")?;
++    if let Some(entry) = registry.get(&key) {
++        if entry.owner.upgrade().is_some_and(|owner| Arc::ptr_eq(&owner, closed)) {
++            return Ok((key, entry.pending.clone()));
++        }
++    }
++    let pending = Arc::new(Mutex::new(PtyDisposalState::default()));
++    registry.insert(
++        key,
++        PtyDisposalEntry {
++            owner: Arc::downgrade(closed),
++            pending: pending.clone(),
++        },
++    );
++    Ok((key, pending))
++}
++
++fn remove_pty_disposal_slot(key: usize, closed: &Arc<AtomicBool>) {
++    let Some(registry) = PTY_DISPOSALS.get() else {
++        return;
++    };
++    let Ok(mut registry) = registry.try_lock() else {
++        return;
++    };
++    let Some(entry) = registry.get(&key) else {
++        return;
++    };
++    if !entry
++        .owner
++        .upgrade()
++        .is_some_and(|owner| Arc::ptr_eq(&owner, closed))
++    {
++        return;
++    }
++    let state = match entry.pending.try_lock() {
++        Ok(state) => state,
++        Err(std::sync::TryLockError::Poisoned(error)) => error.into_inner(),
++        Err(std::sync::TryLockError::WouldBlock) => return,
++    };
++    // Keep any retained handle owned by the sidecar; dropping it here could
++    // run a blocking PTY destructor on the caller.
++    let still_owned = state.master.retained.is_some()
++        || state.writer.retained.is_some()
++        || state.master.pending.is_some()
++        || state.writer.pending.is_some();
++    drop(state);
++    if !still_owned {
++        registry.remove(&key);
++    }
++}
++
++fn stage_pty_resource<T: Send + 'static>(
++    source: &Mutex<Option<T>>,
++    disposal: &mut PtyResourceDisposal<T>,
++    deadline: Instant,
++    name: &str,
++) -> Result<(), String> {
++    if disposal.retained.is_some() {
++        return Ok(());
++    }
++    let resource = lock_until_with_immediate_try(source, deadline, name)?.take();
++    if let Some(resource) = resource {
++        disposal.retained = Some(Arc::new(Mutex::new(Some(resource))));
++    }
++    Ok(())
++}
++
++fn wait_pty_disposal_until<T>(
++    disposal: &mut PtyResourceDisposal<T>,
++    deadline: Instant,
++    resource: &str,
++) -> Result<(), String> {
++    if let Some(error) = &disposal.failure {
++        return Err(error.clone());
++    }
++    let Some(response) = disposal.pending.as_ref() else {
++        return Ok(());
++    };
++    if Instant::now() >= deadline {
++        return Err(format!("{resource} disposal exceeded the PTY close deadline"));
++    }
++    let result = response.recv_timeout(deadline.saturating_duration_since(Instant::now()));
++    match result {
++        Ok(Ok(())) => {
++            disposal.pending.take();
++            disposal.retained.take();
++            Ok(())
++        }
++        Ok(Err(error)) => {
++            disposal.pending.take();
++            disposal.failure = Some(error.clone());
++            Err(error)
++        }
++        Err(mpsc::RecvTimeoutError::Timeout) => {
++            Err(format!("{resource} disposal exceeded the PTY close deadline"))
++        }
++        Err(mpsc::RecvTimeoutError::Disconnected) => {
++            disposal.pending.take();
++            let error = format!("{resource} disposal worker stopped before its reply");
++            disposal.failure = Some(error.clone());
++            Err(error)
++        }
++    }
++}
++
++fn dispose_pty_resource_until<T: Send + 'static>(
++    disposal: &mut PtyResourceDisposal<T>,
++    name: &'static str,
++    deadline: Instant,
++) -> Result<(), String> {
++    wait_pty_disposal_until(disposal, deadline, name)?;
++    let Some(resource) = disposal.retained.as_ref().cloned() else {
++        return Ok(());
++    };
++    if Instant::now() >= deadline {
++        return Err(format!("{name} disposal exceeded the PTY close deadline"));
++    }
++    let worker_resource = resource.clone();
++    let (reply, response) = mpsc::sync_channel(0);
++    std::thread::Builder::new()
++        .name(format!("tui-test-{}-disposal", name.replace(' ', "-")))
++        .spawn(move || {
++            let resource = worker_resource
++                .lock()
++                .unwrap_or_else(std::sync::PoisonError::into_inner)
++                .take();
++            let result = match resource {
++                Some(resource) => std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++                    drop(resource);
++                }))
++                .map_err(|_| format!("{name} disposal worker panicked")),
++                None => Err(format!("{name} disposal resource was unavailable")),
++            };
++            let _ = reply.send(result);
++        })
++        .map_err(|error| format!("failed to start {name} disposal worker: {error}"))?;
++    disposal.pending = Some(response);
++    wait_pty_disposal_until(disposal, deadline, name)
++}
++
+ #[cfg(unix)]
+ struct CancellableReader {
+     reader: Box<dyn Read + Send>,
+     readiness: std::os::fd::OwnedFd,
+     closed: Arc<AtomicBool>,
+     shutdown_started: Option<std::time::Instant>,
++    strict_drain: bool,
+ }
+ 
+ #[cfg(unix)]
+@@ -41,6 +232,12 @@
+                 // Drain final output, but a descendant holding or continuously
+                 // writing the slave must not keep teardown alive indefinitely.
+                 if started.elapsed() >= Duration::from_millis(250) {
++                    if self.strict_drain {
++                        return Err(std::io::Error::new(
++                            std::io::ErrorKind::TimedOut,
++                            "PTY output did not reach EOF before the bounded drain expired",
++                        ));
++                    }
+                     return Ok(0);
+                 }
+             }
+@@ -195,6 +392,18 @@
+         opts: &SpawnOptions,
+         cwd: Option<&Path>,
+     ) -> anyhow::Result<(Pty, Box<dyn Read + Send>)> {
++        Self::spawn_with_cwd_capture(target, args, opts, cwd, false)
++    }
++
++    pub(crate) fn spawn_with_cwd_capture(
++        target: &str,
++        args: &[String],
++        opts: &SpawnOptions,
++        cwd: Option<&Path>,
++        strict_drain: bool,
++    ) -> anyhow::Result<(Pty, Box<dyn Read + Send>)> {
++        #[cfg(not(unix))]
++        let _ = strict_drain;
+         validate_size(opts.cols, opts.rows)?;
+         if let Some(cwd) = cwd {
+             validate_cwd(cwd)?;
+@@ -238,6 +447,7 @@
+             readiness,
+             closed: closed.clone(),
+             shutdown_started: None,
++            strict_drain,
+         });
+ 
+         Ok((
+@@ -264,6 +474,18 @@
+         opts: &NativeSpawnOptions,
+         cwd: Option<&Path>,
+     ) -> anyhow::Result<(Pty, Box<dyn Read + Send>)> {
++        Self::spawn_native_with_capture(target, args, opts, cwd, false)
++    }
++
++    pub(crate) fn spawn_native_with_capture(
++        target: &OsStr,
++        args: &[OsString],
++        opts: &NativeSpawnOptions,
++        cwd: Option<&Path>,
++        strict_drain: bool,
++    ) -> anyhow::Result<(Pty, Box<dyn Read + Send>)> {
++        #[cfg(not(unix))]
++        let _ = strict_drain;
+         validate_size(opts.cols, opts.rows)?;
+         if let Some(cwd) = cwd {
+             validate_cwd(cwd)?;
+@@ -304,6 +526,7 @@
+             readiness,
+             closed: closed.clone(),
+             shutdown_started: None,
++            strict_drain,
+         });
+ 
+         Ok((
+@@ -429,6 +652,63 @@
+             .take();
+     }
+ 
++    pub(crate) fn close_until(&self, deadline: Instant) -> Result<(), String> {
++        self.closed.store(true, Ordering::Release);
++        let mut errors = Vec::new();
++        match lock_until(&self.child, deadline, "PTY child lock") {
++            Ok(mut child) => match child_status(child.as_mut()) {
++                Ok(Some(_)) => {}
++                Ok(None) => {
++                    if let Err(error) = child.kill() {
++                        errors.push(format!("failed to terminate PTY child: {error}"));
++                    }
++                }
++                Err(error) => {
++                    errors.push(format!("failed to query PTY child status: {error}"));
++                    if let Err(kill_error) = child.kill() {
++                        errors.push(format!("failed to terminate PTY child: {kill_error}"));
++                    }
++                }
++            },
++            Err(error) => errors.push(error),
++        }
++        let (key, disposal) = pty_disposal_slot(&self.closed, deadline)?;
++        let mut disposal =
++            lock_until_with_immediate_try(&disposal, deadline, "PTY disposal state lock")?;
++        if let Err(error) = stage_pty_resource(
++            &self.master,
++            &mut disposal.master,
++            deadline,
++            "PTY master lock",
++        ) {
++            return Err(join_close_errors(errors, error));
++        }
++        if let Err(error) = dispose_pty_resource_until(&mut disposal.master, "PTY master", deadline) {
++            return Err(join_close_errors(errors, error));
++        }
++        if let Err(error) = stage_pty_resource(
++            &self.writer,
++            &mut disposal.writer,
++            deadline,
++            "PTY writer lock",
++        ) {
++            return Err(join_close_errors(errors, error));
++        }
++        if let Err(error) = dispose_pty_resource_until(&mut disposal.writer, "PTY writer", deadline) {
++            return Err(join_close_errors(errors, error));
++        }
++        if Instant::now() >= deadline {
++            errors.push("PTY close exceeded its deadline".to_string());
++        }
++        if errors.is_empty() {
++            drop(disposal);
++            remove_pty_disposal_slot(key, &self.closed);
++            Ok(())
++        } else {
++            Err(errors.join("; "))
++        }
++    }
++
+     /// Send a named signal. Cross-platform support is limited: INT delivers a
+     /// Ctrl-C to the foreground app; TERM/KILL terminate the child.
+     pub fn signal(&self, name: &str) -> anyhow::Result<()> {
+@@ -448,6 +728,64 @@
+             .lock()
+             .unwrap_or_else(std::sync::PoisonError::into_inner);
+         child_status(child.as_mut())
++    }
++}
++
++
++fn join_close_errors(mut errors: Vec<String>, error: String) -> String {
++    errors.push(error);
++    errors.join("; ")
++}
++
++impl Drop for Pty {
++    fn drop(&mut self) {
++        remove_pty_disposal_slot(Arc::as_ptr(&self.closed) as usize, &self.closed);
++    }
++}
++
++// A successful try_lock does not wait, so it may stage ownership after the deadline.
++// Contention after the deadline returns an error with ownership left in the source slot.
++fn lock_until_with_immediate_try<'a, T>(
++    mutex: &'a Mutex<T>,
++    deadline: Instant,
++    name: &str,
++) -> Result<MutexGuard<'a, T>, String> {
++    loop {
++        match mutex.try_lock() {
++            Ok(guard) => return Ok(guard),
++            Err(TryLockError::Poisoned(error)) => return Ok(error.into_inner()),
++            Err(TryLockError::WouldBlock) => {
++                let now = Instant::now();
++                if now >= deadline {
++                    return Err(format!("{name} exceeded the PTY close deadline"));
++                }
++                let remaining = deadline.saturating_duration_since(now);
++                std::thread::sleep(Duration::from_millis(10).min(remaining));
++            }
++        }
++    }
++}
++
++fn lock_until<'a, T>(
++    mutex: &'a Mutex<T>,
++    deadline: Instant,
++    name: &str,
++) -> Result<MutexGuard<'a, T>, String> {
++    loop {
++        if Instant::now() >= deadline {
++            return Err(format!("{name} exceeded the PTY close deadline"));
++        }
++        match mutex.try_lock() {
++            Ok(guard) => return Ok(guard),
++            Err(TryLockError::Poisoned(error)) => return Ok(error.into_inner()),
++            Err(TryLockError::WouldBlock) if Instant::now() >= deadline => {
++                return Err(format!("{name} exceeded the PTY close deadline"));
++            }
++            Err(TryLockError::WouldBlock) => {
++                let remaining = deadline.saturating_duration_since(Instant::now());
++                std::thread::sleep(Duration::from_millis(10).min(remaining));
++            }
++        }
+     }
+ }
+ 

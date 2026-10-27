@@ -1,0 +1,1266 @@
+[version]
+schema_version = 2
+suite_id = "termrock-functional-suite-v2"
+predecessor_suite_id = "termrock-functional-suite-v1"
+result_inheritance = false
+crosswalk = [
+    "Retains all 84 v1 registered cases and 271 v1 coverage IDs; prior results are not inherited.",
+    "The four delivery case IDs add changed first-use journeys; legacy first_* cases remain distinct.",
+    "The first delivery subset contains four cases and 30 frame checkpoints; each exit result is separate.",
+    "Holla checkpoint name empty_results was renamed to empty to match the updated Section 6 contract; prior captures remain historical and results are not inherited.",
+    "holla.first_use.frame1 repeats the full seven-checkpoint first-use journey at --frame 1, outside the first subset.",
+    "Runtime binary and output inputs are TERMROCK_PARITY_BIN_DIR and TERMROCK_PARITY_OUT_DIR."
+]
+
+[suite]
+coverage_scope = "v2 retains the 84 registered v1 journeys and all 271 v1 coverage IDs, adds four first-delivery cases with 30 frame checkpoints and a separate seven-checkpoint Holla first-use journey at frame 1; prior results are not inherited."
+render_profile = "tuiscotti-pinned-v1"
+fixture_dataset = "fixtures/dataset.json"
+expected_store = "expected"
+theme = "default"
+no_color = "unset"
+readiness_timeout_ms = 8000
+readiness_poll_interval_ms = 100
+settle_timeout_ms = 8000
+settle_quiet_ms = 400
+
+[suite.terminal]
+cols = 120
+rows = 40
+locale = "C.UTF-8"
+timezone = "UTC"
+term = "xterm-256color"
+color_term = "truecolor"
+color_mode_arguments = ["--color", "truecolor"]
+motion_arguments = ["--motion", "paused", "--frame", "0"]
+
+[engine_pins]
+tui-test-rs = "3887a75dee4463ce0122c37eb278ab7ebb71aeaf"
+tuiscotti = "ac5f70d14d1967f551261d599a4cd857ec9fa2d7"
+
+[required_coverage]
+journey_ids = ["first_showcase", "first_holla", "first_jackin", "first_tablepro", "showcase_overview", "showcase_chrome", "showcase_status_and_hints", "showcase_breadcrumbs_and_rails", "showcase_help_and_keys", "showcase_quit_and_leave", "showcase_focus_and_navigation", "showcase_buttons", "showcase_inputs", "showcase_text_areas", "showcase_chips_and_selects", "showcase_forms", "showcase_checks_and_radios", "showcase_toolbars", "showcase_basic_table", "showcase_editable", "showcase_data_grid", "showcase_selection", "showcase_cell_editors", "showcase_columns", "showcase_lists", "showcase_trees", "showcase_sidebars", "showcase_tabs", "showcase_menus", "showcase_dialogs", "showcase_pickers", "showcase_dialog_kinds", "showcase_popups_and_tooltips", "showcase_file_browser", "showcase_progress", "showcase_empty_and_error", "showcase_meters", "showcase_notices", "showcase_panels", "showcase_scrolling", "showcase_splits_and_stacks", "showcase_master_detail", "showcase_pane_tree", "showcase_code_editor", "showcase_diff", "showcase_terminal", "showcase_text_utilities", "showcase_settings", "showcase_task_runner", "showcase_query_workbench", "showcase_connections", "showcase_finder", "showcase_disk_cleanup", "showcase_activity", "showcase_workspaces", "showcase_accounts_and_usage", "showcase_launch_cockpit", "showcase_read_only_report", "showcase_explorer", "showcase_orders", "showcase_query_edit_while_running", "showcase_query_tab_switching", "holla_home_actions", "holla_plan_args_gate", "holla_activity_stop", "holla_disk_cleanup_review", "holla_files_clone", "holla_taskrun_args_cancel", "holla_database_blockers", "jackin_intro_prelude", "jackin_editor_save_cancel_leave", "jackin_accounts_usage", "jackin_settings", "jackin_launch_cancel_failure", "jackin_handoff_capsule", "jackin_capsule_controls", "jackin_protected_quit_outro", "tablepro_connection_retry", "tablepro_explorer_structure_grid", "tablepro_edit_transaction", "tablepro_query_execution", "tablepro_safety_ack", "tablepro_history_filter_reconnect", "tablepro_switchers_dirty_close", "first_delivery_showcase_buttons", "first_delivery_holla_first_use", "first_delivery_jackin_settings", "first_delivery_tablepro_connections", "full_holla_first_use_frame1"]
+
+[required_coverage.source_binding]
+repository_revision = "6717d83557897d4888532fb0f549f4d6fb2d1266"
+showcase_nav_entries_path = "crates/showcase-ui/src/app.rs:329"
+showcase_nav_entries_count = 54
+full_inventory_policy = "Requirements below define the coverage denominator; only cases[] are currently executable. Missing journeys remain not-run/setup failures, never ignored, xfail, placeholders, or passes."
+
+[required_coverage.showcase]
+nav_entries = ["Overview", "Chrome", "Status & hints", "Breadcrumbs & rails", "Help & keys", "Quit & leave", "Focus & navigation", "Buttons", "Inputs", "Text areas", "Chips & selects", "Forms", "Checks & radios", "Toolbars", "Basic table", "Editable", "Data grid", "Selection", "Cell editors", "Columns", "Lists", "Trees", "Sidebars", "Tabs", "Menus", "Dialogs", "Pickers", "Dialog kinds", "Popups & tooltips", "File browser", "Progress", "Empty & error", "Meters", "Notices", "Panels", "Scrolling", "Splits & stacks", "Master-detail", "Pane tree", "Code editor", "Diff", "Terminal", "Text utilities", "Settings", "Task runner", "Query workbench", "Connections", "Finder", "Disk cleanup", "Activity", "Workspaces", "Accounts & usage", "Launch cockpit", "Read-only report"]
+title_only_routes = ["Status & hints", "Breadcrumbs & rails", "Help & keys", "Quit & leave", "Focus & navigation", "Columns", "Tabs", "Menus", "Popups & tooltips", "File browser", "Meters", "Splits & stacks", "Text utilities", "Connections", "Finder", "Disk cleanup", "Activity", "Workspaces", "Accounts & usage", "Launch cockpit", "Read-only report"]
+additional_pages_when_present = ["Playground", "Options", "States"]
+explorer_and_query_workbench_behaviors = ["Explorer filtering", "lazy loading", "table activation", "tabs", "edit", "run", "explain", "stop", "clear", "diagnostics", "options", "both splits", "results", "Orders columns", "customer data", "status colors", "horizontal movement"]
+
+[required_coverage.showcase.paired_query_follow_up]
+query = "SELECT id FROM orders LIMIT 25"
+action = "edit 25 to 40 before completion while keeping the tab and focus"
+reference_tab_switching = "inspect separately before changing semantics"
+
+[required_coverage.holla]
+screens = ["Home", "Plan", "Activity", "Disk", "Files", "Cleanup", "Review", "Snapshot", "DiskScan", "TaskRun"]
+overlays = ["Dialog", "Args", "PortArgs", "Clone", "Actions", "Gate", "DiskSelection"]
+behaviors = ["argument review", "clone options", "database blockers", "stop/cancel", "cleanup review", "return to origin"]
+external_operations = "simulated"
+
+[required_coverage.jackin]
+screens = ["Intro", "Manager", "Prelude", "Editor", "Accounts", "Usage", "Settings", "Launch", "Cockpit", "Handoff", "Capsule", "Outro"]
+behaviors = ["account/agent/role pickers", "save/cancel", "editor leave choices", "launch cancel/failure details", "Capsule tabs/splits/zoom/changes/export/reveal", "protected quit"]
+paused_intro_sequence = ["first Enter enters Warp", "second Enter finishes"]
+
+[required_coverage.tablepro]
+screens = ["Connections", "ConnectionsFailed", "WorkbenchDefault", "ExplorerFocused", "TableGrid", "GridCellEditing", "PendingChangeBar", "StructureView", "QueryEditing", "CompletionPopup", "ResultsGrid", "ErrorResult", "ExplainPlan", "HistoryTab", "QuickSwitcher", "TabListPicker", "SafeModePicker", "FilterEditor", "SafetyDialogTypedAck", "HelpDialog", "MaximisedTab"]
+behaviors = ["connection failure/retry", "completion", "safety acknowledgement", "edit preview/commit/cancel", "dirty close", "reconnect/history/filter/help"]
+
+[required_coverage.interaction_and_environment_coverage]
+inputs = ["keyboard", "pointer", "wheel", "resize", "modal actions"]
+states = ["empty", "error", "disabled", "focus", "small-screen"]
+color_and_size = "cover required color and size combinations without a Cartesian matrix"
+first_cohort_cases_are_exactly = ["first_showcase", "first_holla", "first_jackin", "first_tablepro"]
+unimplemented_journey_status = "not-run or setup-failure; never ignored, xfail, or passing placeholder"
+journey_count = 89
+delivery_first_subset = ["first_delivery_showcase_buttons", "first_delivery_holla_first_use", "first_delivery_jackin_settings", "first_delivery_tablepro_connections"]
+delivery_first_subset_case_count = 4
+delivery_first_subset_frame_count = 30
+delivery_exit_results_separate = true
+frame1_variant_checkpoints = 7
+remaining_cases_policy = "ordinary test wrappers fail setup until their native step plans are present; nextest filtering leaves unselected cases not-run"
+
+[required_coverage.coverage_id_owners]
+"suite.case.first_showcase" = "first_showcase"
+"showcase.first_overview" = "first_showcase"
+"suite.case.first_holla" = "first_holla"
+"holla.first_use" = "first_holla"
+"suite.case.first_jackin" = "first_jackin"
+"jackin.first_returning" = "first_jackin"
+"suite.case.first_tablepro" = "first_tablepro"
+"tablepro.first_workbench" = "first_tablepro"
+"suite.case.showcase_overview" = "showcase_overview"
+"showcase.nav.overview" = "showcase_overview"
+"suite.case.showcase_chrome" = "showcase_chrome"
+"showcase.nav.chrome" = "showcase_chrome"
+"suite.case.showcase_status_and_hints" = "showcase_status_and_hints"
+"showcase.nav.status_and_hints" = "showcase_status_and_hints"
+"showcase.title_only.status_and_hints" = "showcase_status_and_hints"
+"suite.case.showcase_breadcrumbs_and_rails" = "showcase_breadcrumbs_and_rails"
+"showcase.nav.breadcrumbs_and_rails" = "showcase_breadcrumbs_and_rails"
+"showcase.title_only.breadcrumbs_and_rails" = "showcase_breadcrumbs_and_rails"
+"suite.case.showcase_help_and_keys" = "showcase_help_and_keys"
+"showcase.nav.help_and_keys" = "showcase_help_and_keys"
+"showcase.title_only.help_and_keys" = "showcase_help_and_keys"
+"suite.case.showcase_quit_and_leave" = "showcase_quit_and_leave"
+"showcase.nav.quit_and_leave" = "showcase_quit_and_leave"
+"showcase.title_only.quit_and_leave" = "showcase_quit_and_leave"
+"suite.case.showcase_focus_and_navigation" = "showcase_focus_and_navigation"
+"showcase.nav.focus_and_navigation" = "showcase_focus_and_navigation"
+"showcase.title_only.focus_and_navigation" = "showcase_focus_and_navigation"
+"suite.case.showcase_buttons" = "showcase_buttons"
+"showcase.nav.buttons" = "showcase_buttons"
+"suite.case.showcase_inputs" = "showcase_inputs"
+"showcase.nav.inputs" = "showcase_inputs"
+"suite.case.showcase_text_areas" = "showcase_text_areas"
+"showcase.nav.text_areas" = "showcase_text_areas"
+"suite.case.showcase_chips_and_selects" = "showcase_chips_and_selects"
+"showcase.nav.chips_and_selects" = "showcase_chips_and_selects"
+"suite.case.showcase_forms" = "showcase_forms"
+"showcase.nav.forms" = "showcase_forms"
+"suite.case.showcase_checks_and_radios" = "showcase_checks_and_radios"
+"showcase.nav.checks_and_radios" = "showcase_checks_and_radios"
+"suite.case.showcase_toolbars" = "showcase_toolbars"
+"showcase.nav.toolbars" = "showcase_toolbars"
+"suite.case.showcase_basic_table" = "showcase_basic_table"
+"showcase.nav.basic_table" = "showcase_basic_table"
+"suite.case.showcase_editable" = "showcase_editable"
+"showcase.nav.editable" = "showcase_editable"
+"suite.case.showcase_data_grid" = "showcase_data_grid"
+"showcase.nav.data_grid" = "showcase_data_grid"
+"suite.case.showcase_selection" = "showcase_selection"
+"showcase.nav.selection" = "showcase_selection"
+"suite.case.showcase_cell_editors" = "showcase_cell_editors"
+"showcase.nav.cell_editors" = "showcase_cell_editors"
+"suite.case.showcase_columns" = "showcase_columns"
+"showcase.nav.columns" = "showcase_columns"
+"showcase.title_only.columns" = "showcase_columns"
+"suite.case.showcase_lists" = "showcase_lists"
+"showcase.nav.lists" = "showcase_lists"
+"suite.case.showcase_trees" = "showcase_trees"
+"showcase.nav.trees" = "showcase_trees"
+"suite.case.showcase_sidebars" = "showcase_sidebars"
+"showcase.nav.sidebars" = "showcase_sidebars"
+"suite.case.showcase_tabs" = "showcase_tabs"
+"showcase.nav.tabs" = "showcase_tabs"
+"showcase.title_only.tabs" = "showcase_tabs"
+"suite.case.showcase_menus" = "showcase_menus"
+"showcase.nav.menus" = "showcase_menus"
+"showcase.title_only.menus" = "showcase_menus"
+"suite.case.showcase_dialogs" = "showcase_dialogs"
+"showcase.nav.dialogs" = "showcase_dialogs"
+"suite.case.showcase_pickers" = "showcase_pickers"
+"showcase.nav.pickers" = "showcase_pickers"
+"suite.case.showcase_dialog_kinds" = "showcase_dialog_kinds"
+"showcase.nav.dialog_kinds" = "showcase_dialog_kinds"
+"suite.case.showcase_popups_and_tooltips" = "showcase_popups_and_tooltips"
+"showcase.nav.popups_and_tooltips" = "showcase_popups_and_tooltips"
+"showcase.title_only.popups_and_tooltips" = "showcase_popups_and_tooltips"
+"suite.case.showcase_file_browser" = "showcase_file_browser"
+"showcase.nav.file_browser" = "showcase_file_browser"
+"showcase.title_only.file_browser" = "showcase_file_browser"
+"suite.case.showcase_progress" = "showcase_progress"
+"showcase.nav.progress" = "showcase_progress"
+"suite.case.showcase_empty_and_error" = "showcase_empty_and_error"
+"showcase.nav.empty_and_error" = "showcase_empty_and_error"
+"suite.case.showcase_meters" = "showcase_meters"
+"showcase.nav.meters" = "showcase_meters"
+"showcase.title_only.meters" = "showcase_meters"
+"suite.case.showcase_notices" = "showcase_notices"
+"showcase.nav.notices" = "showcase_notices"
+"suite.case.showcase_panels" = "showcase_panels"
+"showcase.nav.panels" = "showcase_panels"
+"suite.case.showcase_scrolling" = "showcase_scrolling"
+"showcase.nav.scrolling" = "showcase_scrolling"
+"suite.case.showcase_splits_and_stacks" = "showcase_splits_and_stacks"
+"showcase.nav.splits_and_stacks" = "showcase_splits_and_stacks"
+"showcase.title_only.splits_and_stacks" = "showcase_splits_and_stacks"
+"suite.case.showcase_master_detail" = "showcase_master_detail"
+"showcase.nav.master_detail" = "showcase_master_detail"
+"suite.case.showcase_pane_tree" = "showcase_pane_tree"
+"showcase.nav.pane_tree" = "showcase_pane_tree"
+"suite.case.showcase_code_editor" = "showcase_code_editor"
+"showcase.nav.code_editor" = "showcase_code_editor"
+"suite.case.showcase_diff" = "showcase_diff"
+"showcase.nav.diff" = "showcase_diff"
+"suite.case.showcase_terminal" = "showcase_terminal"
+"showcase.nav.terminal" = "showcase_terminal"
+"suite.case.showcase_text_utilities" = "showcase_text_utilities"
+"showcase.nav.text_utilities" = "showcase_text_utilities"
+"showcase.title_only.text_utilities" = "showcase_text_utilities"
+"suite.case.showcase_settings" = "showcase_settings"
+"showcase.nav.settings" = "showcase_settings"
+"suite.case.showcase_task_runner" = "showcase_task_runner"
+"showcase.nav.task_runner" = "showcase_task_runner"
+"suite.case.showcase_query_workbench" = "showcase_query_workbench"
+"showcase.nav.query_workbench" = "showcase_query_workbench"
+"suite.case.showcase_connections" = "showcase_connections"
+"showcase.nav.connections" = "showcase_connections"
+"showcase.title_only.connections" = "showcase_connections"
+"suite.case.showcase_finder" = "showcase_finder"
+"showcase.nav.finder" = "showcase_finder"
+"showcase.title_only.finder" = "showcase_finder"
+"suite.case.showcase_disk_cleanup" = "showcase_disk_cleanup"
+"showcase.nav.disk_cleanup" = "showcase_disk_cleanup"
+"showcase.title_only.disk_cleanup" = "showcase_disk_cleanup"
+"suite.case.showcase_activity" = "showcase_activity"
+"showcase.nav.activity" = "showcase_activity"
+"showcase.title_only.activity" = "showcase_activity"
+"suite.case.showcase_workspaces" = "showcase_workspaces"
+"showcase.nav.workspaces" = "showcase_workspaces"
+"showcase.title_only.workspaces" = "showcase_workspaces"
+"suite.case.showcase_accounts_and_usage" = "showcase_accounts_and_usage"
+"showcase.nav.accounts_and_usage" = "showcase_accounts_and_usage"
+"showcase.title_only.accounts_and_usage" = "showcase_accounts_and_usage"
+"suite.case.showcase_launch_cockpit" = "showcase_launch_cockpit"
+"showcase.nav.launch_cockpit" = "showcase_launch_cockpit"
+"showcase.title_only.launch_cockpit" = "showcase_launch_cockpit"
+"suite.case.showcase_read_only_report" = "showcase_read_only_report"
+"showcase.nav.read_only_report" = "showcase_read_only_report"
+"showcase.title_only.read_only_report" = "showcase_read_only_report"
+"showcase.additional_page.playground" = "showcase_overview"
+"showcase.additional_page.options" = "showcase_overview"
+"showcase.additional_page.states" = "showcase_overview"
+"showcase.explorer.filtering" = "showcase_explorer"
+"showcase.explorer.lazy_loading" = "showcase_explorer"
+"showcase.explorer.table_activation" = "showcase_explorer"
+"showcase.query_workbench.tabs" = "showcase_query_workbench"
+"showcase.query_workbench.edit" = "showcase_query_workbench"
+"showcase.query_workbench.run" = "showcase_query_workbench"
+"showcase.query_workbench.explain" = "showcase_query_workbench"
+"showcase.query_workbench.stop" = "showcase_query_workbench"
+"showcase.query_workbench.clear" = "showcase_query_workbench"
+"showcase.query_workbench.diagnostics" = "showcase_query_workbench"
+"showcase.query_workbench.options" = "showcase_query_workbench"
+"showcase.query_workbench.both_splits" = "showcase_query_workbench"
+"showcase.query_workbench.results" = "showcase_query_workbench"
+"showcase.orders.columns" = "showcase_orders"
+"showcase.orders.customer_data" = "showcase_orders"
+"showcase.orders.status_colors" = "showcase_orders"
+"showcase.orders.horizontal_movement" = "showcase_orders"
+"showcase.query_edit_while_running.run_select_id_limit_25" = "showcase_query_edit_while_running"
+"showcase.query_edit_while_running.edit_limit_25_to_40_before_completion" = "showcase_query_edit_while_running"
+"showcase.query_edit_while_running.keep_tab" = "showcase_query_edit_while_running"
+"showcase.query_edit_while_running.keep_focus" = "showcase_query_edit_while_running"
+"showcase.query_tab_switching.reference_semantics" = "showcase_query_tab_switching"
+"suite.case.showcase_explorer" = "showcase_explorer"
+"suite.case.showcase_orders" = "showcase_orders"
+"suite.case.showcase_query_edit_while_running" = "showcase_query_edit_while_running"
+"suite.case.showcase_query_tab_switching" = "showcase_query_tab_switching"
+"suite.case.holla_home_actions" = "holla_home_actions"
+"suite.case.holla_plan_args_gate" = "holla_plan_args_gate"
+"suite.case.holla_activity_stop" = "holla_activity_stop"
+"suite.case.holla_disk_cleanup_review" = "holla_disk_cleanup_review"
+"suite.case.holla_files_clone" = "holla_files_clone"
+"suite.case.holla_taskrun_args_cancel" = "holla_taskrun_args_cancel"
+"suite.case.holla_database_blockers" = "holla_database_blockers"
+"holla.screen.home" = "holla_home_actions"
+"holla.screen.plan" = "holla_plan_args_gate"
+"holla.screen.activity" = "holla_activity_stop"
+"holla.screen.disk" = "holla_disk_cleanup_review"
+"holla.screen.files" = "holla_files_clone"
+"holla.screen.cleanup" = "holla_disk_cleanup_review"
+"holla.screen.review" = "holla_disk_cleanup_review"
+"holla.screen.snapshot" = "holla_disk_cleanup_review"
+"holla.screen.diskscan" = "holla_disk_cleanup_review"
+"holla.screen.taskrun" = "holla_taskrun_args_cancel"
+"holla.overlay.dialog" = "holla_plan_args_gate"
+"holla.overlay.args" = "holla_plan_args_gate"
+"holla.overlay.portargs" = "holla_database_blockers"
+"holla.overlay.clone" = "holla_files_clone"
+"holla.overlay.actions" = "holla_home_actions"
+"holla.overlay.gate" = "holla_plan_args_gate"
+"holla.overlay.diskselection" = "holla_disk_cleanup_review"
+"holla.behavior.argument_review" = "holla_plan_args_gate"
+"holla.behavior.clone_options" = "holla_files_clone"
+"holla.behavior.database_blockers" = "holla_database_blockers"
+"holla.behavior.stop_cancel" = "holla_activity_stop"
+"holla.behavior.cleanup_review" = "holla_disk_cleanup_review"
+"holla.behavior.return_to_origin" = "holla_home_actions"
+"holla.external_operations.simulated" = "holla_database_blockers"
+"suite.case.jackin_intro_prelude" = "jackin_intro_prelude"
+"suite.case.jackin_editor_save_cancel_leave" = "jackin_editor_save_cancel_leave"
+"suite.case.jackin_accounts_usage" = "jackin_accounts_usage"
+"suite.case.jackin_settings" = "jackin_settings"
+"suite.case.jackin_launch_cancel_failure" = "jackin_launch_cancel_failure"
+"suite.case.jackin_handoff_capsule" = "jackin_handoff_capsule"
+"suite.case.jackin_capsule_controls" = "jackin_capsule_controls"
+"suite.case.jackin_protected_quit_outro" = "jackin_protected_quit_outro"
+"jackin.screen.intro" = "jackin_intro_prelude"
+"jackin.screen.manager" = "jackin_accounts_usage"
+"jackin.screen.prelude" = "jackin_intro_prelude"
+"jackin.screen.editor" = "jackin_editor_save_cancel_leave"
+"jackin.screen.accounts" = "jackin_accounts_usage"
+"jackin.screen.usage" = "jackin_accounts_usage"
+"jackin.screen.settings" = "jackin_settings"
+"jackin.screen.launch" = "jackin_launch_cancel_failure"
+"jackin.screen.cockpit" = "jackin_handoff_capsule"
+"jackin.screen.handoff" = "jackin_handoff_capsule"
+"jackin.screen.capsule" = "jackin_capsule_controls"
+"jackin.screen.outro" = "jackin_protected_quit_outro"
+"jackin.behavior.account_agent_role_pickers" = "jackin_accounts_usage"
+"jackin.behavior.save_cancel" = "jackin_editor_save_cancel_leave"
+"jackin.behavior.editor_leave_choices" = "jackin_editor_save_cancel_leave"
+"jackin.behavior.launch_cancel_failure_details" = "jackin_launch_cancel_failure"
+"jackin.behavior.capsule_tabs_splits_zoom_changes_export_reveal" = "jackin_capsule_controls"
+"jackin.behavior.protected_quit" = "jackin_protected_quit_outro"
+"jackin.intro.first_enter_enters_warp" = "jackin_intro_prelude"
+"jackin.intro.second_enter_finishes" = "jackin_intro_prelude"
+"suite.case.tablepro_connection_retry" = "tablepro_connection_retry"
+"suite.case.tablepro_explorer_structure_grid" = "tablepro_explorer_structure_grid"
+"suite.case.tablepro_edit_transaction" = "tablepro_edit_transaction"
+"suite.case.tablepro_query_execution" = "tablepro_query_execution"
+"suite.case.tablepro_safety_ack" = "tablepro_safety_ack"
+"suite.case.tablepro_history_filter_reconnect" = "tablepro_history_filter_reconnect"
+"suite.case.tablepro_switchers_dirty_close" = "tablepro_switchers_dirty_close"
+"tablepro.screen.connections" = "tablepro_connection_retry"
+"tablepro.screen.connectionsfailed" = "tablepro_connection_retry"
+"tablepro.screen.workbenchdefault" = "tablepro_query_execution"
+"tablepro.screen.explorerfocused" = "tablepro_explorer_structure_grid"
+"tablepro.screen.tablegrid" = "tablepro_edit_transaction"
+"tablepro.screen.gridcellediting" = "tablepro_edit_transaction"
+"tablepro.screen.pendingchangebar" = "tablepro_edit_transaction"
+"tablepro.screen.structureview" = "tablepro_explorer_structure_grid"
+"tablepro.screen.queryediting" = "tablepro_query_execution"
+"tablepro.screen.completionpopup" = "tablepro_query_execution"
+"tablepro.screen.resultsgrid" = "tablepro_query_execution"
+"tablepro.screen.errorresult" = "tablepro_query_execution"
+"tablepro.screen.explainplan" = "tablepro_query_execution"
+"tablepro.screen.historytab" = "tablepro_history_filter_reconnect"
+"tablepro.screen.quickswitcher" = "tablepro_switchers_dirty_close"
+"tablepro.screen.tablistpicker" = "tablepro_switchers_dirty_close"
+"tablepro.screen.safemodepicker" = "tablepro_safety_ack"
+"tablepro.screen.filtereditor" = "tablepro_history_filter_reconnect"
+"tablepro.screen.safetydialogtypedack" = "tablepro_safety_ack"
+"tablepro.screen.helpdialog" = "tablepro_switchers_dirty_close"
+"tablepro.screen.maximisedtab" = "tablepro_switchers_dirty_close"
+"tablepro.behavior.connection_failure_retry" = "tablepro_connection_retry"
+"tablepro.behavior.completion" = "tablepro_query_execution"
+"tablepro.behavior.safety_acknowledgement" = "tablepro_safety_ack"
+"tablepro.behavior.edit_preview_commit_cancel" = "tablepro_edit_transaction"
+"tablepro.behavior.dirty_close" = "tablepro_switchers_dirty_close"
+"tablepro.behavior.reconnect_history_filter_help" = "tablepro_history_filter_reconnect"
+"interaction.keyboard" = "first_showcase"
+"interaction.pointer" = "showcase_explorer"
+"interaction.wheel" = "showcase_orders"
+"interaction.resize" = "tablepro_explorer_structure_grid"
+"interaction.modal_actions" = "holla_plan_args_gate"
+"interaction.empty" = "showcase_overview"
+"interaction.error" = "tablepro_query_execution"
+"interaction.disabled" = "holla_plan_args_gate"
+"interaction.focus" = "showcase_explorer"
+"interaction.small_screen" = "tablepro_explorer_structure_grid"
+"interaction.color" = "showcase_orders"
+"interaction.size" = "tablepro_explorer_structure_grid"
+"delivery.case.showcase.buttons" = "first_delivery_showcase_buttons"
+"delivery.case.holla.first_use" = "first_delivery_holla_first_use"
+"delivery.case.jackin.settings" = "first_delivery_jackin_settings"
+"delivery.case.tablepro.connections" = "first_delivery_tablepro_connections"
+"delivery.variant.holla.first_use.frame1" = "full_holla_first_use_frame1"
+
+[[cases]]
+name = "first_showcase"
+binary = "showcase"
+arguments = ["--page", "overview"]
+help_key = "?"
+return_key = "Esc"
+exit_key = "q"
+native_steps = ["help", "return", "exit"]
+coverage_ids = ["suite.case.first_showcase", "showcase.first_overview", "interaction.keyboard"]
+
+[[cases]]
+name = "first_holla"
+binary = "holla"
+arguments = ["--scenario", "first-use"]
+help_key = "F1"
+return_key = "Esc"
+exit_key = "Ctrl+q"
+native_steps = ["help", "return", "exit"]
+coverage_ids = ["suite.case.first_holla", "holla.first_use"]
+
+[[cases]]
+name = "first_jackin"
+binary = "jackin"
+arguments = ["--scenario", "returning"]
+help_key = "?"
+return_key = "Esc"
+exit_key = "q"
+native_steps = ["help", "return", "exit"]
+coverage_ids = ["suite.case.first_jackin", "jackin.first_returning"]
+
+[[cases]]
+name = "first_tablepro"
+binary = "tablepro"
+arguments = []
+help_key = "?"
+return_key = "Esc"
+exit_key = "q"
+native_steps = ["help", "return", "exit"]
+coverage_ids = ["suite.case.first_tablepro", "tablepro.first_workbench"]
+
+[[cases]]
+name = "showcase_overview"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_overview", "showcase.nav.overview", "showcase.additional_page.playground", "showcase.additional_page.options", "showcase.additional_page.states", "interaction.empty"]
+
+[[cases]]
+name = "showcase_chrome"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_chrome", "showcase.nav.chrome"]
+
+[[cases]]
+name = "showcase_status_and_hints"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_status_and_hints", "showcase.nav.status_and_hints", "showcase.title_only.status_and_hints"]
+
+[[cases]]
+name = "showcase_breadcrumbs_and_rails"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_breadcrumbs_and_rails", "showcase.nav.breadcrumbs_and_rails", "showcase.title_only.breadcrumbs_and_rails"]
+
+[[cases]]
+name = "showcase_help_and_keys"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_help_and_keys", "showcase.nav.help_and_keys", "showcase.title_only.help_and_keys"]
+
+[[cases]]
+name = "showcase_quit_and_leave"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_quit_and_leave", "showcase.nav.quit_and_leave", "showcase.title_only.quit_and_leave"]
+
+[[cases]]
+name = "showcase_focus_and_navigation"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_focus_and_navigation", "showcase.nav.focus_and_navigation", "showcase.title_only.focus_and_navigation"]
+
+[[cases]]
+name = "showcase_buttons"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_buttons", "showcase.nav.buttons"]
+
+[[cases]]
+name = "showcase_inputs"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_inputs", "showcase.nav.inputs"]
+
+[[cases]]
+name = "showcase_text_areas"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_text_areas", "showcase.nav.text_areas"]
+
+[[cases]]
+name = "showcase_chips_and_selects"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_chips_and_selects", "showcase.nav.chips_and_selects"]
+
+[[cases]]
+name = "showcase_forms"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_forms", "showcase.nav.forms"]
+
+[[cases]]
+name = "showcase_checks_and_radios"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_checks_and_radios", "showcase.nav.checks_and_radios"]
+
+[[cases]]
+name = "showcase_toolbars"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_toolbars", "showcase.nav.toolbars"]
+
+[[cases]]
+name = "showcase_basic_table"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_basic_table", "showcase.nav.basic_table"]
+
+[[cases]]
+name = "showcase_editable"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_editable", "showcase.nav.editable"]
+
+[[cases]]
+name = "showcase_data_grid"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_data_grid", "showcase.nav.data_grid"]
+
+[[cases]]
+name = "showcase_selection"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_selection", "showcase.nav.selection"]
+
+[[cases]]
+name = "showcase_cell_editors"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_cell_editors", "showcase.nav.cell_editors"]
+
+[[cases]]
+name = "showcase_columns"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_columns", "showcase.nav.columns", "showcase.title_only.columns"]
+
+[[cases]]
+name = "showcase_lists"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_lists", "showcase.nav.lists"]
+
+[[cases]]
+name = "showcase_trees"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_trees", "showcase.nav.trees"]
+
+[[cases]]
+name = "showcase_sidebars"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_sidebars", "showcase.nav.sidebars"]
+
+[[cases]]
+name = "showcase_tabs"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_tabs", "showcase.nav.tabs", "showcase.title_only.tabs"]
+
+[[cases]]
+name = "showcase_menus"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_menus", "showcase.nav.menus", "showcase.title_only.menus"]
+
+[[cases]]
+name = "showcase_dialogs"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_dialogs", "showcase.nav.dialogs"]
+
+[[cases]]
+name = "showcase_pickers"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_pickers", "showcase.nav.pickers"]
+
+[[cases]]
+name = "showcase_dialog_kinds"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_dialog_kinds", "showcase.nav.dialog_kinds"]
+
+[[cases]]
+name = "showcase_popups_and_tooltips"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_popups_and_tooltips", "showcase.nav.popups_and_tooltips", "showcase.title_only.popups_and_tooltips"]
+
+[[cases]]
+name = "showcase_file_browser"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_file_browser", "showcase.nav.file_browser", "showcase.title_only.file_browser"]
+
+[[cases]]
+name = "showcase_progress"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_progress", "showcase.nav.progress"]
+
+[[cases]]
+name = "showcase_empty_and_error"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_empty_and_error", "showcase.nav.empty_and_error"]
+
+[[cases]]
+name = "showcase_meters"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_meters", "showcase.nav.meters", "showcase.title_only.meters"]
+
+[[cases]]
+name = "showcase_notices"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_notices", "showcase.nav.notices"]
+
+[[cases]]
+name = "showcase_panels"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_panels", "showcase.nav.panels"]
+
+[[cases]]
+name = "showcase_scrolling"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_scrolling", "showcase.nav.scrolling"]
+
+[[cases]]
+name = "showcase_splits_and_stacks"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_splits_and_stacks", "showcase.nav.splits_and_stacks", "showcase.title_only.splits_and_stacks"]
+
+[[cases]]
+name = "showcase_master_detail"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_master_detail", "showcase.nav.master_detail"]
+
+[[cases]]
+name = "showcase_pane_tree"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_pane_tree", "showcase.nav.pane_tree"]
+
+[[cases]]
+name = "showcase_code_editor"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_code_editor", "showcase.nav.code_editor"]
+
+[[cases]]
+name = "showcase_diff"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_diff", "showcase.nav.diff"]
+
+[[cases]]
+name = "showcase_terminal"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_terminal", "showcase.nav.terminal"]
+
+[[cases]]
+name = "showcase_text_utilities"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_text_utilities", "showcase.nav.text_utilities", "showcase.title_only.text_utilities"]
+
+[[cases]]
+name = "showcase_settings"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_settings", "showcase.nav.settings"]
+
+[[cases]]
+name = "showcase_task_runner"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_task_runner", "showcase.nav.task_runner"]
+
+[[cases]]
+name = "showcase_query_workbench"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_query_workbench", "showcase.nav.query_workbench", "showcase.query_workbench.tabs", "showcase.query_workbench.edit", "showcase.query_workbench.run", "showcase.query_workbench.explain", "showcase.query_workbench.stop", "showcase.query_workbench.clear", "showcase.query_workbench.diagnostics", "showcase.query_workbench.options", "showcase.query_workbench.both_splits", "showcase.query_workbench.results"]
+
+[[cases]]
+name = "showcase_connections"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_connections", "showcase.nav.connections", "showcase.title_only.connections"]
+
+[[cases]]
+name = "showcase_finder"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_finder", "showcase.nav.finder", "showcase.title_only.finder"]
+
+[[cases]]
+name = "showcase_disk_cleanup"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_disk_cleanup", "showcase.nav.disk_cleanup", "showcase.title_only.disk_cleanup"]
+
+[[cases]]
+name = "showcase_activity"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_activity", "showcase.nav.activity", "showcase.title_only.activity"]
+
+[[cases]]
+name = "showcase_workspaces"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_workspaces", "showcase.nav.workspaces", "showcase.title_only.workspaces"]
+
+[[cases]]
+name = "showcase_accounts_and_usage"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_accounts_and_usage", "showcase.nav.accounts_and_usage", "showcase.title_only.accounts_and_usage"]
+
+[[cases]]
+name = "showcase_launch_cockpit"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_launch_cockpit", "showcase.nav.launch_cockpit", "showcase.title_only.launch_cockpit"]
+
+[[cases]]
+name = "showcase_read_only_report"
+binary = "showcase"
+arguments = []
+coverage_ids = ["suite.case.showcase_read_only_report", "showcase.nav.read_only_report", "showcase.title_only.read_only_report"]
+
+[[cases]]
+name = "showcase_explorer"
+binary = "showcase"
+arguments = []
+coverage_ids = ["showcase.explorer.filtering", "showcase.explorer.lazy_loading", "showcase.explorer.table_activation", "suite.case.showcase_explorer", "interaction.pointer", "interaction.focus"]
+
+[[cases]]
+name = "showcase_orders"
+binary = "showcase"
+arguments = []
+coverage_ids = ["showcase.orders.columns", "showcase.orders.customer_data", "showcase.orders.status_colors", "showcase.orders.horizontal_movement", "suite.case.showcase_orders", "interaction.wheel", "interaction.color"]
+
+[[cases]]
+name = "showcase_query_edit_while_running"
+binary = "showcase"
+arguments = []
+coverage_ids = ["showcase.query_edit_while_running.run_select_id_limit_25", "showcase.query_edit_while_running.edit_limit_25_to_40_before_completion", "showcase.query_edit_while_running.keep_tab", "showcase.query_edit_while_running.keep_focus", "suite.case.showcase_query_edit_while_running"]
+
+[[cases]]
+name = "showcase_query_tab_switching"
+binary = "showcase"
+arguments = []
+coverage_ids = ["showcase.query_tab_switching.reference_semantics", "suite.case.showcase_query_tab_switching"]
+
+[[cases]]
+name = "holla_home_actions"
+binary = "holla"
+arguments = []
+coverage_ids = ["suite.case.holla_home_actions", "holla.screen.home", "holla.overlay.actions", "holla.behavior.return_to_origin"]
+
+[[cases]]
+name = "holla_plan_args_gate"
+binary = "holla"
+arguments = []
+coverage_ids = ["suite.case.holla_plan_args_gate", "holla.screen.plan", "holla.overlay.dialog", "holla.overlay.args", "holla.overlay.gate", "holla.behavior.argument_review", "interaction.modal_actions", "interaction.disabled"]
+
+[[cases]]
+name = "holla_activity_stop"
+binary = "holla"
+arguments = []
+coverage_ids = ["suite.case.holla_activity_stop", "holla.screen.activity", "holla.behavior.stop_cancel"]
+
+[[cases]]
+name = "holla_disk_cleanup_review"
+binary = "holla"
+arguments = []
+coverage_ids = ["suite.case.holla_disk_cleanup_review", "holla.screen.disk", "holla.screen.cleanup", "holla.screen.review", "holla.screen.snapshot", "holla.screen.diskscan", "holla.overlay.diskselection", "holla.behavior.cleanup_review"]
+
+[[cases]]
+name = "holla_files_clone"
+binary = "holla"
+arguments = []
+coverage_ids = ["suite.case.holla_files_clone", "holla.screen.files", "holla.overlay.clone", "holla.behavior.clone_options"]
+
+[[cases]]
+name = "holla_taskrun_args_cancel"
+binary = "holla"
+arguments = []
+coverage_ids = ["suite.case.holla_taskrun_args_cancel", "holla.screen.taskrun"]
+
+[[cases]]
+name = "holla_database_blockers"
+binary = "holla"
+arguments = []
+coverage_ids = ["suite.case.holla_database_blockers", "holla.overlay.portargs", "holla.behavior.database_blockers", "holla.external_operations.simulated"]
+
+[[cases]]
+name = "jackin_intro_prelude"
+binary = "jackin"
+arguments = []
+coverage_ids = ["suite.case.jackin_intro_prelude", "jackin.screen.intro", "jackin.screen.prelude", "jackin.intro.first_enter_enters_warp", "jackin.intro.second_enter_finishes"]
+
+[[cases]]
+name = "jackin_editor_save_cancel_leave"
+binary = "jackin"
+arguments = []
+coverage_ids = ["suite.case.jackin_editor_save_cancel_leave", "jackin.screen.editor", "jackin.behavior.save_cancel", "jackin.behavior.editor_leave_choices"]
+
+[[cases]]
+name = "jackin_accounts_usage"
+binary = "jackin"
+arguments = []
+coverage_ids = ["suite.case.jackin_accounts_usage", "jackin.screen.manager", "jackin.screen.accounts", "jackin.screen.usage", "jackin.behavior.account_agent_role_pickers"]
+
+[[cases]]
+name = "jackin_settings"
+binary = "jackin"
+arguments = []
+coverage_ids = ["suite.case.jackin_settings", "jackin.screen.settings"]
+
+[[cases]]
+name = "jackin_launch_cancel_failure"
+binary = "jackin"
+arguments = []
+coverage_ids = ["suite.case.jackin_launch_cancel_failure", "jackin.screen.launch", "jackin.behavior.launch_cancel_failure_details"]
+
+[[cases]]
+name = "jackin_handoff_capsule"
+binary = "jackin"
+arguments = []
+coverage_ids = ["suite.case.jackin_handoff_capsule", "jackin.screen.cockpit", "jackin.screen.handoff"]
+
+[[cases]]
+name = "jackin_capsule_controls"
+binary = "jackin"
+arguments = []
+coverage_ids = ["suite.case.jackin_capsule_controls", "jackin.screen.capsule", "jackin.behavior.capsule_tabs_splits_zoom_changes_export_reveal"]
+
+[[cases]]
+name = "jackin_protected_quit_outro"
+binary = "jackin"
+arguments = []
+coverage_ids = ["suite.case.jackin_protected_quit_outro", "jackin.screen.outro", "jackin.behavior.protected_quit"]
+
+[[cases]]
+name = "tablepro_connection_retry"
+binary = "tablepro"
+arguments = []
+coverage_ids = ["suite.case.tablepro_connection_retry", "tablepro.screen.connections", "tablepro.screen.connectionsfailed", "tablepro.behavior.connection_failure_retry"]
+
+[[cases]]
+name = "tablepro_explorer_structure_grid"
+binary = "tablepro"
+arguments = []
+coverage_ids = ["suite.case.tablepro_explorer_structure_grid", "tablepro.screen.explorerfocused", "tablepro.screen.structureview", "interaction.resize", "interaction.small_screen", "interaction.size"]
+
+[[cases]]
+name = "tablepro_edit_transaction"
+binary = "tablepro"
+arguments = []
+coverage_ids = ["suite.case.tablepro_edit_transaction", "tablepro.screen.tablegrid", "tablepro.screen.gridcellediting", "tablepro.screen.pendingchangebar", "tablepro.behavior.edit_preview_commit_cancel"]
+
+[[cases]]
+name = "tablepro_query_execution"
+binary = "tablepro"
+arguments = []
+coverage_ids = ["suite.case.tablepro_query_execution", "tablepro.screen.workbenchdefault", "tablepro.screen.queryediting", "tablepro.screen.completionpopup", "tablepro.screen.resultsgrid", "tablepro.screen.errorresult", "tablepro.screen.explainplan", "tablepro.behavior.completion", "interaction.error"]
+
+[[cases]]
+name = "tablepro_safety_ack"
+binary = "tablepro"
+arguments = []
+coverage_ids = ["suite.case.tablepro_safety_ack", "tablepro.screen.safemodepicker", "tablepro.screen.safetydialogtypedack", "tablepro.behavior.safety_acknowledgement"]
+
+[[cases]]
+name = "tablepro_history_filter_reconnect"
+binary = "tablepro"
+arguments = []
+coverage_ids = ["suite.case.tablepro_history_filter_reconnect", "tablepro.screen.historytab", "tablepro.screen.filtereditor", "tablepro.behavior.reconnect_history_filter_help"]
+
+[[cases]]
+name = "tablepro_switchers_dirty_close"
+binary = "tablepro"
+arguments = []
+coverage_ids = ["suite.case.tablepro_switchers_dirty_close", "tablepro.screen.quickswitcher", "tablepro.screen.tablistpicker", "tablepro.screen.helpdialog", "tablepro.screen.maximisedtab", "tablepro.behavior.dirty_close"]
+
+[[cases]]
+name = "first_delivery_showcase_buttons"
+case_id = "showcase.buttons"
+binary = "showcase"
+arguments = ["--page", "buttons"]
+exit_key = "q"
+coverage_ids = ["delivery.case.showcase.buttons"]
+
+[[cases.steps]]
+name = "initial"
+required_anchors = ["Buttons", "Playground", "Run task", "Preview"]
+forbidden_anchors = ["Keyboard & mouse"]
+
+[[cases.steps]]
+name = "run"
+required_anchors = ["Buttons", "Run task ✓"]
+forbidden_anchors = ["Keyboard & mouse"]
+
+[[cases.steps.actions]]
+kind = "mouse_click"
+x = 30
+y = 10
+button = "left"
+
+[[cases.steps]]
+name = "preview"
+required_anchors = ["Buttons", "Preview ✓"]
+forbidden_anchors = ["Keyboard & mouse"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Tab"
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Enter"
+
+[[cases.steps]]
+name = "help"
+required_anchors = ["Keyboard & mouse"]
+forbidden_anchors = []
+
+[[cases.steps.actions]]
+kind = "key"
+key = "?"
+
+[[cases.steps]]
+name = "returned"
+required_anchors = ["Buttons", "Playground"]
+forbidden_anchors = ["Keyboard & mouse"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Esc"
+
+[[cases.steps]]
+name = "small"
+expected_cols = 80
+expected_rows = 24
+required_anchors = ["Buttons"]
+forbidden_anchors = ["Keyboard & mouse"]
+
+[[cases.steps.actions]]
+kind = "resize"
+cols = 80
+rows = 24
+
+[[cases.steps]]
+name = "restored"
+required_anchors = ["Buttons"]
+forbidden_anchors = ["Keyboard & mouse"]
+
+[[cases.steps.actions]]
+kind = "resize"
+cols = 120
+rows = 40
+
+[[cases]]
+name = "first_delivery_holla_first_use"
+case_id = "holla.first_use"
+binary = "holla"
+arguments = ["--scenario", "first-use"]
+exit_key = "Ctrl+q"
+coverage_ids = ["delivery.case.holla.first_use"]
+
+[[cases.steps]]
+name = "initial"
+required_anchors = ["holla❯", "Here", "Search actions and resources"]
+forbidden_anchors = ["Key reference"]
+
+[[cases.steps]]
+name = "empty"
+required_anchors = ["No matches for “zzzz-no-such-action”", "Nothing to preview"]
+forbidden_anchors = ["Key reference"]
+
+[[cases.steps.actions]]
+kind = "write"
+text = "zzzz-no-such-action"
+
+[[cases.steps]]
+name = "cleared"
+required_anchors = ["holla❯", "Here", "Search actions and resources"]
+forbidden_anchors = ["No matches for “zzzz-no-such-action”", "Key reference"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Esc"
+
+[[cases.steps]]
+name = "help"
+required_anchors = ["Key reference"]
+forbidden_anchors = []
+
+[[cases.steps.actions]]
+kind = "key"
+key = "F1"
+
+[[cases.steps]]
+name = "returned"
+required_anchors = ["holla❯", "Here", "Search actions and resources"]
+forbidden_anchors = ["Key reference"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Esc"
+
+[[cases.steps]]
+name = "small"
+expected_cols = 80
+expected_rows = 24
+required_anchors = ["holla❯", "Here"]
+forbidden_anchors = ["Key reference"]
+
+[[cases.steps.actions]]
+kind = "resize"
+cols = 80
+rows = 24
+
+[[cases.steps]]
+name = "restored"
+required_anchors = ["holla❯", "Here"]
+forbidden_anchors = ["Key reference"]
+
+[[cases.steps.actions]]
+kind = "resize"
+cols = 120
+rows = 40
+
+[[cases]]
+name = "first_delivery_jackin_settings"
+case_id = "jackin.settings"
+binary = "jackin-preview"
+arguments = ["--scenario", "returning"]
+exit_key = "q"
+coverage_ids = ["delivery.case.jackin.settings"]
+
+[[cases.steps]]
+name = "initial"
+required_anchors = ["jackin❯", "Workspaces", "Current directory"]
+forbidden_anchors = ["Keyboard shortcuts"]
+
+[[cases.steps]]
+name = "selected"
+required_anchors = ["jackin❯", "Workspaces", "payments-platform"]
+forbidden_anchors = ["Keyboard shortcuts"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Down"
+
+[[cases.steps]]
+name = "general"
+required_anchors = ["Settings › global › General"]
+forbidden_anchors = ["Keyboard shortcuts"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "s"
+
+[[cases.steps]]
+name = "mounts"
+required_anchors = ["Settings › global › Mounts"]
+forbidden_anchors = ["Keyboard shortcuts"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "]"
+
+[[cases.steps]]
+name = "general_return"
+required_anchors = ["Settings › global › General"]
+forbidden_anchors = ["Keyboard shortcuts"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "["
+
+[[cases.steps]]
+name = "manager_return"
+required_anchors = ["jackin❯", "Workspaces"]
+forbidden_anchors = ["Keyboard shortcuts"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Esc"
+
+[[cases.steps]]
+name = "help"
+required_anchors = ["Keyboard shortcuts", "Workspaces", "Instances"]
+forbidden_anchors = []
+
+[[cases.steps.actions]]
+kind = "key"
+key = "?"
+
+[[cases.steps]]
+name = "help_return"
+required_anchors = ["jackin❯", "Workspaces"]
+forbidden_anchors = ["Keyboard shortcuts"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Esc"
+
+[[cases.steps]]
+name = "small"
+expected_cols = 80
+expected_rows = 24
+required_anchors = ["jackin❯", "Workspaces"]
+forbidden_anchors = ["Keyboard shortcuts"]
+
+[[cases.steps.actions]]
+kind = "resize"
+cols = 80
+rows = 24
+
+[[cases.steps]]
+name = "restored"
+required_anchors = ["jackin❯", "Workspaces"]
+forbidden_anchors = ["Keyboard shortcuts"]
+
+[[cases.steps.actions]]
+kind = "resize"
+cols = 120
+rows = 40
+
+[[cases]]
+name = "first_delivery_tablepro_connections"
+case_id = "tablepro.connections"
+binary = "tablepro"
+arguments = []
+exit_key = "Ctrl+q"
+coverage_ids = ["delivery.case.tablepro.connections"]
+
+[[cases.steps]]
+name = "initial"
+required_anchors = ["TablePro", "Connections", "Local PostgreSQL"]
+forbidden_anchors = ["Keyboard shortcuts"]
+
+[[cases.steps]]
+name = "selected"
+required_anchors = ["TablePro", "Connections", "Local PostgreSQL"]
+forbidden_anchors = ["Keyboard shortcuts"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Down"
+
+[[cases.steps]]
+name = "help"
+required_anchors = ["Keyboard shortcuts"]
+forbidden_anchors = []
+
+[[cases.steps.actions]]
+kind = "key"
+key = "F1"
+
+[[cases.steps]]
+name = "returned"
+required_anchors = ["TablePro", "Connections", "Local PostgreSQL"]
+forbidden_anchors = ["Keyboard shortcuts"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Esc"
+
+[[cases.steps]]
+name = "small"
+expected_cols = 80
+expected_rows = 24
+required_anchors = ["TablePro", "Connections"]
+forbidden_anchors = ["Keyboard shortcuts"]
+
+[[cases.steps.actions]]
+kind = "resize"
+cols = 80
+rows = 24
+
+[[cases.steps]]
+name = "restored"
+required_anchors = ["TablePro", "Connections"]
+forbidden_anchors = ["Keyboard shortcuts"]
+
+[[cases.steps.actions]]
+kind = "resize"
+cols = 120
+rows = 40
+
+[[cases]]
+name = "full_holla_first_use_frame1"
+case_id = "holla.first_use.frame1"
+binary = "holla"
+arguments = ["--scenario", "first-use"]
+frame = 1
+exit_key = "Ctrl+q"
+coverage_ids = ["delivery.variant.holla.first_use.frame1"]
+
+[[cases.steps]]
+name = "initial"
+required_anchors = ["holla❯", "Here", "Search actions and resources"]
+forbidden_anchors = ["Key reference"]
+
+[[cases.steps]]
+name = "empty"
+required_anchors = ["No matches for “zzzz-no-such-action”", "Nothing to preview"]
+forbidden_anchors = ["Key reference"]
+
+[[cases.steps.actions]]
+kind = "write"
+text = "zzzz-no-such-action"
+
+[[cases.steps]]
+name = "cleared"
+required_anchors = ["holla❯", "Here", "Search actions and resources"]
+forbidden_anchors = ["No matches for “zzzz-no-such-action”", "Key reference"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Esc"
+
+[[cases.steps]]
+name = "help"
+required_anchors = ["Key reference"]
+forbidden_anchors = []
+
+[[cases.steps.actions]]
+kind = "key"
+key = "F1"
+
+[[cases.steps]]
+name = "returned"
+required_anchors = ["holla❯", "Here", "Search actions and resources"]
+forbidden_anchors = ["Key reference"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Esc"
+
+[[cases.steps]]
+name = "small"
+expected_cols = 80
+expected_rows = 24
+required_anchors = ["holla❯", "Here"]
+forbidden_anchors = ["Key reference"]
+
+[[cases.steps.actions]]
+kind = "resize"
+cols = 80
+rows = 24
+
+[[cases.steps]]
+name = "restored"
+required_anchors = ["holla❯", "Here"]
+forbidden_anchors = ["Key reference"]
+
+[[cases.steps.actions]]
+kind = "resize"
+cols = 120
+rows = 40
