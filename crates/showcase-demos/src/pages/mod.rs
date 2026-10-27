@@ -22,6 +22,10 @@ impl From<Response<()>> for PageUpdate {
 
 pub trait Page: Send {
     fn title(&self) -> &'static str;
+
+    fn quit_confirmation(&self) -> Option<&'static str> {
+        None
+    }
     fn update(&mut self, cx: &mut termrock::Cx<'_>) -> PageUpdate;
     fn option_value(&self, _key: &str) -> Option<usize> {
         None

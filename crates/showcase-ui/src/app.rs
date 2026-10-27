@@ -3,8 +3,8 @@ use showcase_demos::render_number::RenderNumber;
 use termrock::author::PaintStyle;
 use termrock::overlays::NoticeReveal;
 use termrock::{
-    ActionKey, Anchor, App as TuiApp, Brand, Chord, Color, ColorLevel, CrossAlign, Cx, Dialog,
-    DialogAction, DialogState, Dismiss, EmptyState, FrameRead, GlyphRole, HelpOverlay,
+    Action, ActionKey, Anchor, App as TuiApp, Brand, Chord, Color, ColorLevel, CrossAlign, Cx,
+    Dialog, DialogAction, DialogState, Dismiss, EmptyState, FrameRead, GlyphRole, HelpOverlay,
     HelpOverlayState, HelpSection, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, LayerOpening,
     Moment, Panel, PanelKind, Part, PartRef, Phase, Position, Props, Rect, Response, RowFn,
     ScopeId, Side, Size, StateFlags, Status, StatusBar, StatusItem, Theme, TooSmall, Tree,
@@ -64,6 +64,12 @@ const HEADER_HELP: Id = id!("header.help");
 const HEADER_INSPECT: Id = id!("header.inspect");
 const INSPECTOR: Id = id!("inspector");
 const INSPECTOR_CLOSE: Id = INSPECTOR.part(Part::ACTIONS).index(0);
+const QUIT_CONFIRMATION: Id = id!("quit-confirmation");
+const QUIT_CONFIRMATION_CLOSED_REASON: &str = "";
+const QUIT_CONFIRMATION_ACTIONS: [Action<'static>; 2] = [
+    Action::quiet(ActionKey::CANCEL, "Stay"),
+    Action::danger(ActionKey::CONFIRM, "Stop and leave"),
+];
 const QUIT: ActionKey = ActionKey::application("showcase.quit");
 const QUIT_CTRL: ActionKey = ActionKey::application("showcase.quit.ctrl");
 const HELP_COMMAND: ActionKey = ActionKey::application("showcase.help");
@@ -1350,6 +1356,8 @@ pub struct App {
     notice_reveal_snapshot: Option<NoticeRevealSnapshot>,
     notice_reveal_revision: u64,
     help_state: HelpOverlayState,
+    pending_quit_reason: Option<&'static str>,
+    quit_confirmation_state: DialogState,
     help_open: bool,
     overlay_open: bool,
     inspector_state: DialogState,
@@ -1396,6 +1404,8 @@ impl core::fmt::Debug for App {
             .field("notice_reveal_snapshot", &self.notice_reveal_snapshot)
             .field("notice_reveal_revision", &self.notice_reveal_revision)
             .field("help_state", &self.help_state)
+            .field("pending_quit_reason", &self.pending_quit_reason)
+            .field("quit_confirmation_state", &self.quit_confirmation_state)
             .field("help_open", &self.help_open)
             .field("overlay_open", &self.overlay_open)
             .field("inspector_state", &self.inspector_state)
@@ -1474,6 +1484,8 @@ impl App {
             notice_reveal_snapshot: None,
             notice_reveal_revision: 0,
             help_state: HelpOverlayState::default(),
+            pending_quit_reason: None,
+            quit_confirmation_state: DialogState::default(),
             help_open: false,
             overlay_open: false,
             inspector_state: DialogState::default(),
@@ -1817,6 +1829,51 @@ impl App {
     fn open_help(&mut self, cx: &mut Cx<'_>) {
         self.help_state = HelpOverlayState::default();
         cx.open_layer(HELP, Self::help_overlay().layer(cx));
+    }
+
+    fn quit_confirmation_dialog(reason: &'static str) -> Dialog<'static> {
+        Dialog::destructive(QUIT_CONFIRMATION, "Still running", reason)
+            .actions(&QUIT_CONFIRMATION_ACTIONS)
+    }
+
+    fn request_quit(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
+        if self.pending_quit_reason.is_some() {
+            *response |= Response::consumed();
+            return;
+        }
+        if let Some(reason) = self.pages.iter().find_map(|page| page.quit_confirmation()) {
+            self.pending_quit_reason = Some(reason);
+            let dialog = Self::quit_confirmation_dialog(reason);
+            let layer = dialog.layer(cx).initial_focus(dialog.action_id(0));
+            cx.open_layer(QUIT_CONFIRMATION, layer);
+            *response |= Response::changed();
+        } else {
+            self.quit = true;
+            cx.quit();
+        }
+    }
+
+    fn update_quit_confirmation(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
+        let pending_reason = self.pending_quit_reason;
+        let reason = pending_reason.unwrap_or(QUIT_CONFIRMATION_CLOSED_REASON);
+        let update =
+            Self::quit_confirmation_dialog(reason).update(cx, &mut self.quit_confirmation_state);
+        let action = update.action_ref().copied();
+        *response |= update.erase();
+        if let Some(action) = action.filter(|_| pending_reason.is_some()) {
+            self.pending_quit_reason = None;
+            if matches!(action, DialogAction::Action(key) if key == ActionKey::CONFIRM) {
+                self.quit = true;
+                cx.quit();
+            }
+            if cx.is_open(QUIT_CONFIRMATION) {
+                cx.close_layer(QUIT_CONFIRMATION, None);
+            }
+            *response |= Response::changed();
+        } else if pending_reason.is_some() && !cx.is_open(QUIT_CONFIRMATION) {
+            self.pending_quit_reason = None;
+            *response |= Response::changed();
+        }
     }
 
     fn inspector_dialog(viewport: Rect) -> Dialog<'static> {
@@ -2827,7 +2884,17 @@ impl TuiApp for App {
         let _ = inspector_panel();
         let command = cx.command();
         let inspector_modal_active = self.inspector_modal_active(cx);
+        let pending_quit_at_start = self.pending_quit_reason.is_some();
         let consume_nav_tree_key = match nav_query_input(cx, self.nav_query.is_some()) {
+            Some(NavQueryInput::FocusOut) => {
+                self.apply_nav_query_input(NavQueryInput::FocusOut);
+                response |= Response::changed();
+                false
+            }
+            Some(_) if pending_quit_at_start => {
+                response |= Response::consumed();
+                true
+            }
             Some(NavQueryInput::Consume) => {
                 response |= Response::consumed();
                 true
@@ -2841,18 +2908,15 @@ impl TuiApp for App {
         };
         self.update_header(cx, &mut response);
         match command {
-            Some(QUIT | QUIT_CTRL) => {
-                self.quit = true;
-                cx.quit();
-            }
-            Some(NEXT_PAGE) if !inspector_modal_active => {
+            Some(QUIT | QUIT_CTRL) => self.request_quit(cx, &mut response),
+            Some(NEXT_PAGE) if !inspector_modal_active && self.pending_quit_reason.is_none() => {
                 let count = NAV_ENTRIES.len();
                 if count > 0 {
                     let current = nav_index_for_target(self.nav_target).unwrap_or(0);
                     response |= self.goto_entry_with_cx(cx, current.saturating_add(1) % count);
                 }
             }
-            Some(PREV_PAGE) if !inspector_modal_active => {
+            Some(PREV_PAGE) if !inspector_modal_active && self.pending_quit_reason.is_none() => {
                 let count = NAV_ENTRIES.len();
                 if count > 0 {
                     let current = nav_index_for_target(self.nav_target).unwrap_or(0);
@@ -2861,10 +2925,13 @@ impl TuiApp for App {
                 }
             }
             Some(NEXT_PAGE | PREV_PAGE) => {}
-            Some(HELP_COMMAND) if !cx.is_open(HELP) => {
+            Some(HELP_COMMAND) if !cx.is_open(HELP) && self.pending_quit_reason.is_none() => {
                 self.open_help(cx);
             }
-            Some(INSPECTOR_COMMAND) if cx.update_cause() == termrock::UpdateCause::Event => {
+            Some(INSPECTOR_COMMAND)
+                if cx.update_cause() == termrock::UpdateCause::Event
+                    && self.pending_quit_reason.is_none() =>
+            {
                 self.toggle_inspector(&mut response);
             }
             _ => {}
@@ -2893,28 +2960,39 @@ impl TuiApp for App {
             sidebar.tree.height,
             self.nav_query.as_ref(),
         );
-        let query_disclosure = self.nav_query.as_ref().and_then(|_| {
-            cx.intents(NAV).find_map(|intent| match intent {
-                Intent::Pointer {
-                    phase: Phase::Click | Phase::DoubleClick,
-                    part,
-                    ..
-                } if matches!(part.part, Part::ICON | Part::ROW) => part.item,
-                _ => None,
+        let query_disclosure = if self.pending_quit_reason.is_some() {
+            None
+        } else {
+            self.nav_query.as_ref().and_then(|_| {
+                cx.intents(NAV).find_map(|intent| match intent {
+                    Intent::Pointer {
+                        phase: Phase::Click | Phase::DoubleClick,
+                        part,
+                        ..
+                    } if matches!(part.part, Part::ICON | Part::ROW) => part.item,
+                    _ => None,
+                })
             })
-        });
+        };
         let query_disclosure =
             query_disclosure.filter(|key| nodes.iter().any(|node| node.key == *key && node.parent));
         let auto_group_expanded_before = self
             .nav_auto_group
             .map(|key| self.nav_state.is_expanded(key));
-        let nav_response =
-            if !consume_nav_tree_key && self.nav_presentation.get() == Some(presentation) {
-                nav_tree(presentation.query_revision).update(cx, &mut self.nav_state, &nodes)
-            } else {
-                Response::ignored().repaint()
-            };
-        let nav_action = nav_response.action_ref().copied();
+        let pending_quit = self.pending_quit_reason.is_some();
+        let nav_response = if pending_quit {
+            let mut lifecycle_state = self.nav_state.clone();
+            nav_tree(presentation.query_revision).update(cx, &mut lifecycle_state, &nodes)
+        } else if !consume_nav_tree_key && self.nav_presentation.get() == Some(presentation) {
+            nav_tree(presentation.query_revision).update(cx, &mut self.nav_state, &nodes)
+        } else {
+            Response::ignored().repaint()
+        };
+        let nav_action = if pending_quit {
+            None
+        } else {
+            nav_response.action_ref().copied()
+        };
         response |= nav_response.erase();
         if let Some(key) = query_disclosure {
             self.nav_state.toggle(key);
@@ -2969,6 +3047,7 @@ impl TuiApp for App {
         }
         self.update_help(cx, &mut response);
         self.update_inspector(cx, &mut response);
+        self.update_quit_confirmation(cx, &mut response);
         self.help_open = cx.is_open(HELP);
         self.overlay_open = cx.top_layer() != termrock::LayerId::PAGE;
         if self.nav_target == NavTarget::Placeholder(PANE_TREE_ENTRY) {
@@ -2996,6 +3075,16 @@ impl TuiApp for App {
         if full.width < 72 || full.height < 20 {
             self.query_workbench_capture_enabled.set(false);
             too_small_notice().draw(ui, full);
+            if let Some(reason) = self.pending_quit_reason {
+                ui.layer(QUIT_CONFIRMATION, |ui, area| {
+                    Self::quit_confirmation_dialog(reason).draw(
+                        ui,
+                        area,
+                        &self.quit_confirmation_state,
+                        |_, _| {},
+                    );
+                });
+            }
             return;
         }
 
@@ -3167,6 +3256,17 @@ impl TuiApp for App {
         }
         ui.layer(HELP, |ui, area| {
             Self::help_overlay().draw(ui, area, &self.help_state);
+        });
+        let quit_reason = self
+            .pending_quit_reason
+            .unwrap_or("The query is still running. Leaving stops it.");
+        ui.layer(QUIT_CONFIRMATION, |ui, area| {
+            Self::quit_confirmation_dialog(quit_reason).draw(
+                ui,
+                area,
+                &self.quit_confirmation_state,
+                |_, _| {},
+            );
         });
         ui.layer(INSPECTOR, |ui, area| {
             Self::inspector_dialog(full).draw(ui, area, &self.inspector_state, |ui, body| {

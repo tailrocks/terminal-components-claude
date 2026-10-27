@@ -757,6 +757,12 @@ impl Page for QueryWorkbenchPage {
         "Query workbench"
     }
 
+    fn quit_confirmation(&self) -> Option<&'static str> {
+        self.run
+            .as_ref()
+            .map(|_| "The query is still running. Leaving stops it.")
+    }
+
     fn option_value(&self, key: &str) -> Option<usize> {
         self.options.option_value(key)
     }
