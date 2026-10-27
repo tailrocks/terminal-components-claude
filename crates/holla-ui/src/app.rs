@@ -85,6 +85,7 @@ const PREVIOUS: ActionKey = ActionKey::application("holla.previous");
 const INTERRUPT: ActionKey = ActionKey::application("holla.interrupt");
 const SNAPSHOT_FOCUS_NEXT: ActionKey = ActionKey::application("holla.snapshot.focus-next");
 const SNAPSHOT_FOCUS_PREVIOUS: ActionKey = ActionKey::application("holla.snapshot.focus-previous");
+const SNAPSHOT_COPY: ActionKey = ActionKey::application("holla.snapshot.copy-resources");
 const ACTIVITY_SHORTCUTS: &[(char, ActionKey)] = &[
     ('1', ActionKey::application("holla.activity-1")),
     ('2', ActionKey::application("holla.activity-2")),
@@ -3123,6 +3124,11 @@ impl App {
             {
                 cx.focus_prev();
             }
+            SNAPSHOT_COPY if self.snapshot_copy_allowed(cx) => {
+                if let Some(event) = snapshot::copy_resource_body(&self.world) {
+                    self.snapshot_event(event, cx);
+                }
+            }
             QUERY_ESCAPE if self.route == Route::Home => {
                 if self.home.scope.take().is_some() {
                     self.set_status("Scope: all".into());
@@ -3568,7 +3574,8 @@ impl App {
                     Route::TaskRun => "Task run",
                 });
             let crumb = format!("{parent} › System resources");
-            paint_resource_band(ui, area, &crumb, self.world.activities.is_empty());
+            let covered = ui.is_covered_by_native_layer();
+            paint_resource_band(ui, area, &crumb, self.world.activities.is_empty(), covered);
         }
         let status = Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1);
         if self.world.scenario == Scenario::ParityDiscovery {
@@ -3992,6 +3999,26 @@ impl App {
         }
         synchronized
     }
+    fn snapshot_copy_binding_allowed(&self, cx: &Cx<'_>) -> bool {
+        self.route == Route::Snapshot
+            && self.world.scenario == Scenario::FirstUse
+            && self.snapshot_kind == snapshot::Kind::Resources
+            && !too_small(cx.viewport())
+            && cx.top_layer() == termrock::LayerId::PAGE
+            && !self.menu.is_open()
+            && self.overlay.is_none()
+            && self.retired_overlay.is_none()
+            && self.pending_port_review.is_none()
+            && self.port_args_opening.is_none()
+    }
+
+    fn snapshot_copy_allowed(&self, cx: &Cx<'_>) -> bool {
+        self.snapshot_copy_binding_allowed(cx)
+            && cx
+                .state(snapshot::RESOURCES_BODY)
+                .contains(termrock::StateFlags::FOCUSED)
+    }
+
     fn refresh_query_bindings(&mut self, cx: &Cx<'_>) {
         let scope = Chord::with(KeyCode::Char('s'), termrock::KeyModifiers::CONTROL);
         self.keymap.remove(KeyPhase::Capture, scope);
@@ -4040,6 +4067,13 @@ impl App {
             if self.home.query().is_empty() {
                 self.keymap.add_before_typing(home::QUERY, chord, command);
             }
+        }
+        let snapshot_copy = Chord::key(KeyCode::Char('y'));
+        self.keymap
+            .remove_before_typing(snapshot::RESOURCES_BODY, snapshot_copy);
+        if self.snapshot_copy_binding_allowed(cx) {
+            self.keymap
+                .add_before_typing(snapshot::RESOURCES_BODY, snapshot_copy, SNAPSHOT_COPY);
         }
         let files_bindings = [
             (Chord::key(KeyCode::Right), FILES_OPEN),
@@ -4753,7 +4787,7 @@ fn paint_here_band(ui: &mut Ui<'_>, area: Rect, covered: bool) {
     }
 }
 
-fn paint_resource_band(ui: &mut Ui<'_>, area: Rect, crumb: &str, show_crumb: bool) {
+fn paint_resource_band(ui: &mut Ui<'_>, area: Rect, crumb: &str, show_crumb: bool, covered: bool) {
     let width = area.width.saturating_sub(2);
     if width == 0 || area.height < 4 {
         return;
@@ -4786,7 +4820,12 @@ fn paint_resource_band(ui: &mut Ui<'_>, area: Rect, crumb: &str, show_crumb: boo
     ui.fill(tab, plate);
     ui.paint_str(tab, &termrock::truncate(&label, tab_width), plate);
 
-    let accent = ui.paint_patch(&StylePatch::new().set_fg(Role::Accent));
+    let accent_role = if covered {
+        Role::BorderSubtle
+    } else {
+        Role::Accent
+    };
+    let accent = ui.paint_patch(&StylePatch::new().set_fg(accent_role));
     let rule =
         ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x3a, 0x3a, 0x3a))));
     let under = y.saturating_add(1);

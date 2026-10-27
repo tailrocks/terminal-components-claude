@@ -2,8 +2,8 @@ use crate::sim::world::{SystemSnapshot, World};
 use termrock::{
     Button, Constraints, Cx, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey, Meter,
     MeterVisual, NavList, NavListState, Panel, PanelKind, Part, Props, PropsRow, Rect, Response,
-    Role, RowUi, Span, StylePatch, TextSection, TextViewport, Ui, ViewportAction, ViewportLine,
-    ViewportState,
+    Role, RowUi, Span, StylePatch, TextSection, TextViewport, Ui, Variant, ViewportAction,
+    ViewportLine, ViewportState,
 };
 
 pub(crate) const PROCESSES: Id = Id::root("holla.snapshot.processes");
@@ -70,6 +70,7 @@ impl State {
             let mut response = viewport.erase();
             let monitor = monitor_available(world);
             let button = Button::new(MONITOR_BUTTON, "Open btm")
+                .variant(Variant::SUBTLE)
                 .disabled(!monitor)
                 .update(cx);
             let event = if button.activated() && monitor {
@@ -223,16 +224,20 @@ fn draw_resource_header(world: &World, system: &SystemSnapshot, ui: &mut Ui<'_>,
         system.os,
         world.clock.ago(world.clock.now_secs().saturating_sub(1))
     );
-    let meta_width = termrock::width(&meta).min(area.width.saturating_sub(1));
-    let meta_x = area.right().saturating_sub(meta_width);
-    if meta_x > left {
-        ui.paint_str(
-            Rect::new(left, y, meta_x.saturating_sub(left).saturating_sub(1), 1),
-            "System resources",
-            title,
-        );
+    let right = area.right().saturating_sub(1);
+    let inner_width = right.saturating_sub(left);
+    let title_width = termrock::width("System resources");
+    ui.paint_str(
+        Rect::new(left, y, inner_width.min(title_width), 1),
+        "System resources",
+        title,
+    );
+    let meta_width = termrock::width(&meta);
+    let gap = 4u16;
+    if title_width.saturating_add(gap).saturating_add(meta_width) <= inner_width {
+        let meta_x = right.saturating_sub(meta_width);
+        ui.paint_str(Rect::new(meta_x, y, meta_width, 1), &meta, subtitle);
     }
-    ui.paint_str(Rect::new(meta_x, y, meta_width, 1), &meta, subtitle);
 }
 
 fn draw_resource_meters(
@@ -251,7 +256,11 @@ fn draw_resource_meters(
         .unwrap_or(0)
         .max(12)
         .min(available);
-    let meter_x = area.x.saturating_add(1).saturating_add(label_width);
+    let meter_x = area
+        .x
+        .saturating_add(1)
+        .saturating_add(label_width)
+        .saturating_add(1);
     let meter_width = area
         .right()
         .saturating_sub(meter_x)
@@ -287,6 +296,10 @@ fn resource_meter_values(
     world: &World,
     system: &SystemSnapshot,
 ) -> Vec<(&'static str, f64, String)> {
+    let memory_percent = truncated_percent(
+        world.host.metrics.mem_used_mb,
+        world.host.metrics.mem_total_mb,
+    );
     let mut rows = vec![
         (
             "CPU",
@@ -295,17 +308,8 @@ fn resource_meter_values(
         ),
         (
             "Memory",
-            safe_ratio(
-                world.host.metrics.mem_used_mb,
-                world.host.metrics.mem_total_mb,
-            ),
-            format!(
-                "{}%",
-                truncated_percent(
-                    world.host.metrics.mem_used_mb,
-                    world.host.metrics.mem_total_mb
-                )
-            ),
+            f64::from(memory_percent) / 100.0,
+            format!("{memory_percent}%"),
         ),
     ];
     if let Some(disk) = world.disk.as_ref() {
@@ -431,10 +435,25 @@ fn draw_monitor_action(ui: &mut Ui<'_>, area: Rect, y: u16) {
         "Next",
         label_style,
     );
-    Button::new(MONITOR_BUTTON, "Open btm").draw(
-        ui,
-        Rect::new(area.x.saturating_add(7), y, area.width.saturating_sub(8), 1),
-    );
+    Button::new(MONITOR_BUTTON, "Open btm")
+        .variant(Variant::SUBTLE)
+        .draw(
+            ui,
+            Rect::new(area.x.saturating_add(7), y, area.width.saturating_sub(8), 1),
+        );
+}
+
+pub(crate) fn copy_resource_body(world: &World) -> Option<Event> {
+    if world.scenario != crate::scenario::Scenario::FirstUse {
+        return None;
+    }
+    let system = world.system.as_ref()?;
+    let text = resource_process_lines(system)
+        .into_iter()
+        .map(|(line, _)| line)
+        .collect::<Vec<_>>()
+        .join("\n");
+    Some(Event::Copy(text))
 }
 
 fn resource_process_lines(system: &SystemSnapshot) -> Vec<(String, Role)> {
@@ -487,14 +506,6 @@ fn monitor_available(world: &World) -> bool {
         && crate::sim::catalogue::catalogue(world)
             .iter()
             .any(|action| action.id == "system.monitor")
-}
-
-fn safe_ratio(used: u32, total: u32) -> f64 {
-    if total == 0 {
-        0.0
-    } else {
-        f64::from(used) / f64::from(total)
-    }
 }
 
 fn truncated_percent(used: u32, total: u32) -> u32 {
