@@ -6220,7 +6220,16 @@ impl App {
         match command {
             CMD_QUIT => {
                 if !self.quit_open {
-                    self.open_quit(cx);
+                    if self.route == Route::Manager
+                        && !self.help_open
+                        && cx.top_layer() == LayerId::PAGE
+                    {
+                        self.world.arbiter.release_entry();
+                        self.quit = true;
+                        cx.quit();
+                    } else {
+                        self.open_quit(cx);
+                    }
                 }
                 Some(Response::changed())
             }
@@ -11906,10 +11915,8 @@ impl TuiApp for App {
                 if baseline_256 {
                     capsule_split_view::apply_baseline_ladder(&mut theme);
                 }
-                if mono_chip {
-                    if let Some(overlay) = theme.color.surfaces.get_mut(3) {
-                        *overlay = termrock::Color::Indexed(8);
-                    }
+                if mono_chip && let Some(overlay) = theme.color.surfaces.get_mut(3) {
+                    *overlay = termrock::Color::Indexed(8);
                 }
                 ui.with_theme(&theme, |ui| self.draw_capsule_scene(ui, full));
             } else {
