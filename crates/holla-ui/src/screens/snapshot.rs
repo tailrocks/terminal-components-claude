@@ -1,4 +1,4 @@
-use crate::sim::world::{Domain, SystemSnapshot, World};
+use crate::sim::world::{SystemSnapshot, World};
 use termrock::{
     Cx, FgStep, Id, ItemKey, Meter, MeterVisual, NavList, NavListState, Rect, Response, Role,
     RowUi, StylePatch, TextSection, Ui,
@@ -33,6 +33,7 @@ impl State {
 struct ProcessRow {
     key: String,
     label: String,
+    cpu_pct: u32,
 }
 
 type ProcessKey = fn(&ProcessRow) -> ItemKey;
@@ -46,17 +47,11 @@ pub(crate) fn draw(world: &World, kind: Kind, state: &State, ui: &mut Ui<'_>, ar
             .render(ui, area);
         return;
     };
-    let discovered = world.discovered(Domain::System);
-    let freshness = if discovered {
-        format!("live · {} ms", world.now_ms().max(0))
-    } else {
-        "still discovering…".to_owned()
-    };
     let title = match kind {
         Kind::Resources => "System resources",
         Kind::Processes => "Process tree",
     };
-    let subtitle = format!("{} · {} · {freshness}", world.host.name, system.os);
+    let subtitle = format!("{} · {}", world.host.name, system.os);
     TextSection::new(title).subtitle(&subtitle).render(ui, area);
 
     match kind {
@@ -93,7 +88,7 @@ fn draw_resources(
                 .iter()
                 .map(|core| format!("{core}%"))
                 .collect::<Vec<_>>()
-                .join("  ")
+                .join(" ")
         ),
     );
     y = y.saturating_add(1);
@@ -102,7 +97,7 @@ fn draw_resources(
         area,
         y,
         &format!(
-            "Load  {:.2}  {:.2}  {:.2}",
+            "Load  {:.2} {:.2} {:.2}",
             f64::from(world.host.metrics.load_x100.0) / 100.0,
             f64::from(world.host.metrics.load_x100.1) / 100.0,
             f64::from(world.host.metrics.load_x100.2) / 100.0
@@ -120,7 +115,7 @@ fn draw_resources(
         Rect::new(area.x.saturating_add(1), y, area.width.saturating_sub(2), 1),
         memory_ratio,
         &format!(
-            "Memory {:.1} / {:.0} GB · swap {:.1} GB",
+            "Memory {:.1} of {:.0} GB · swap {:.1} GB",
             f64::from(world.host.metrics.mem_used_mb) / 1_024.0,
             f64::from(world.host.metrics.mem_total_mb) / 1_024.0,
             f64::from(system.swap_used_mb) / 1_024.0
@@ -147,7 +142,7 @@ fn draw_resources(
             Id::root("holla.snapshot.disk"),
             Rect::new(area.x.saturating_add(1), y, area.width.saturating_sub(2), 1),
             f64::from(percent) / 100.0,
-            &format!("Disk  {percent}% used"),
+            &format!("Disk /  {percent}%"),
         );
         y = y.saturating_add(1);
     }
@@ -163,11 +158,7 @@ fn draw_resources(
         draw_text(ui, area, y, &format!("Temperature  {temp} °C"));
         y = y.saturating_add(1);
     }
-    if y < end {
-        draw_text(ui, area, y, "Processes");
-        y = y.saturating_add(1);
-    }
-    draw_process_list(
+    draw_process_table(
         system,
         state,
         ui,
@@ -176,11 +167,31 @@ fn draw_resources(
 }
 
 fn draw_processes(system: &SystemSnapshot, state: &State, ui: &mut Ui<'_>, area: Rect) {
+    draw_process_table(
+        system,
+        state,
+        ui,
+        Rect::new(
+            area.x,
+            area.y.saturating_add(3),
+            area.width,
+            area.height.saturating_sub(3),
+        ),
+    );
+}
+
+fn draw_process_table(system: &SystemSnapshot, state: &State, ui: &mut Ui<'_>, area: Rect) {
+    if area.height == 0 {
+        return;
+    }
     draw_text(
         ui,
         area,
-        area.y.saturating_add(3),
-        "pid     name                 cpu      mem   state",
+        area.y,
+        &format!(
+            "{:<8}{:<20}{:>6}{:>9}   {}",
+            "pid", "name", "cpu", "mem", "state"
+        ),
     );
     draw_process_list(
         system,
@@ -188,9 +199,9 @@ fn draw_processes(system: &SystemSnapshot, state: &State, ui: &mut Ui<'_>, area:
         ui,
         Rect::new(
             area.x,
-            area.y.saturating_add(4),
+            area.y.saturating_add(1),
             area.width,
-            area.height.saturating_sub(4),
+            area.height.saturating_sub(1),
         ),
     );
 }
@@ -211,13 +222,10 @@ fn process_rows(system: &SystemSnapshot) -> Vec<ProcessRow> {
             ProcessRow {
                 key: process.pid.to_string(),
                 label: format!(
-                    "{} (PID {}) · CPU {}% · {:.1} GB · {}{port}",
-                    process.name,
-                    process.pid,
-                    process.cpu_pct,
-                    f64::from(process.mem_mb) / 1_024.0,
-                    process.state
+                    "{:<8}{:<20}{:>5}%{:>7} MB   {}{port}",
+                    process.pid, process.name, process.cpu_pct, process.mem_mb, process.state
                 ),
+                cpu_pct: process.cpu_pct,
             }
         })
         .collect()
@@ -234,7 +242,11 @@ fn process_key(row: &ProcessRow) -> ItemKey {
 }
 
 fn render_process_row(row: &ProcessRow, cells: &mut RowUi<'_>) {
-    cells.label(&row.label);
+    if row.cpu_pct >= 30 {
+        cells.label_patched(&row.label, &StylePatch::new().set_fg(Role::Warning));
+    } else {
+        cells.label(&row.label);
+    }
 }
 
 fn draw_meter(ui: &mut Ui<'_>, id: Id, area: Rect, ratio: f64, value: &str) {
