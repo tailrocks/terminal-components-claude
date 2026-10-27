@@ -1,11 +1,13 @@
+use std::ops::Range;
 use std::time::Duration;
 
 use termrock::grid::{Column, ColumnKey, Table, TableColumn, TableState};
 use termrock::{
-    ActionKey, CodeEditor, CodeEditorState, Cx, FrameRead, GridModel, Id, ItemKey, Maximized,
-    Panel, PanelKind, Rect, ResetPolicy, Response, Role, SplitAxis, SplitFallback, SplitPane,
-    SplitPaneState, StateFlags, StatusBar, StatusItem, Tabs, TabsAction, TabsState, ToolItem,
-    Toolbar, ToolbarAction, ToolbarState, TreeAction, Ui, UpdateCause, layout,
+    ActionKey, CodeAction, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, Cx,
+    FrameRead, GridModel, Id, ItemKey, Maximized, Panel, PanelKind, Rect, ResetPolicy, Response,
+    Role, SplitAxis, SplitFallback, SplitPane, SplitPaneState, StateFlags, StatusBar, StatusItem,
+    Tabs, TabsAction, TabsState, ToolItem, Toolbar, ToolbarAction, ToolbarState, TreeAction, Ui,
+    UpdateCause, layout,
 };
 
 mod explorer;
@@ -616,14 +618,21 @@ impl QueryWorkbenchPage {
         };
         match fixture {
             ResultFixture::Run => {}
-            ResultFixture::Empty => document.result = ResultView::Empty,
+            ResultFixture::Empty => {
+                document.editor.set_diagnostics(Vec::new());
+                document.result = ResultView::Empty;
+            }
             ResultFixture::Error => {
+                document.editor.set_diagnostics(Vec::new());
                 document.result = ResultView::Error {
                     message: "relation \"ordrs\" does not exist".to_owned(),
                     detail: "SQLSTATE 42P01 · line 3 · Did you mean \"orders\"?".to_owned(),
                 };
             }
-            ResultFixture::Plan => document.result = ResultView::Plan,
+            ResultFixture::Plan => {
+                document.editor.set_diagnostics(Vec::new());
+                document.result = ResultView::Plan;
+            }
         }
     }
 
@@ -747,9 +756,10 @@ impl QueryWorkbenchPage {
             .iter_mut()
             .find(|document| document.key == run.owner)
         {
-            let result = evaluate_query(document.editor.text(), run.explain);
-            let status = result.summary();
-            document.result = result;
+            let evaluation = evaluate_query(document.editor.text(), run.explain);
+            let status = evaluation.result.summary();
+            document.result = evaluation.result;
+            document.editor.set_diagnostics(evaluation.diagnostics);
             self.status = status;
         } else {
             self.status = "Run cancelled · its query tab was closed.".to_owned();
@@ -874,7 +884,11 @@ impl Page for QueryWorkbenchPage {
                     .placeholder("Write a query against the sample data")
                     .read_only(self.options.read_only())
                     .update(cx, &mut document.editor);
+                let action = update.action_ref().cloned();
                 response |= update.erase();
+                if matches!(action, Some(CodeAction::Changed)) {
+                    document.editor.set_diagnostics(Vec::new());
+                }
             }
 
             let toolbar = self.toolbar();
@@ -1126,14 +1140,25 @@ impl Page for QueryWorkbenchPage {
     }
 }
 
-fn evaluate_query(sql: &str, explain: bool) -> ResultView {
+struct QueryEvaluation {
+    result: ResultView,
+    diagnostics: Vec<CodeDiagnostic>,
+}
+
+fn evaluate_query(sql: &str, explain: bool) -> QueryEvaluation {
     if sql.trim().is_empty() {
-        return ResultView::Empty;
+        return QueryEvaluation {
+            result: ResultView::Empty,
+            diagnostics: Vec::new(),
+        };
     }
-    let Some(table) = from_table(sql) else {
-        return ResultView::Error {
-            message: "Syntax error".to_owned(),
-            detail: "Expected a FROM clause.".to_owned(),
+    let Some((table, range)) = from_table(sql) else {
+        return QueryEvaluation {
+            result: ResultView::Error {
+                message: "Syntax error".to_owned(),
+                detail: "Expected a FROM clause.".to_owned(),
+            },
+            diagnostics: Vec::new(),
         };
     };
     let known = [
@@ -1146,26 +1171,39 @@ fn evaluate_query(sql: &str, explain: bool) -> ResultView {
         "subscriptions",
     ];
     if !known.iter().any(|known| table.eq_ignore_ascii_case(known)) {
-        return ResultView::Error {
-            message: format!("relation \"{table}\" does not exist"),
-            detail: "Check the table name in the current sample schema.".to_owned(),
+        return QueryEvaluation {
+            result: ResultView::Error {
+                message: format!("relation \"{table}\" does not exist"),
+                detail: "Check the table name in the current sample schema.".to_owned(),
+            },
+            diagnostics: vec![CodeDiagnostic::new(
+                range,
+                CodeSeverity::Error,
+                "unknown relation",
+            )],
         };
     }
     if explain {
-        return ResultView::Plan;
+        return QueryEvaluation {
+            result: ResultView::Plan,
+            diagnostics: Vec::new(),
+        };
     }
     let count = if sql.to_ascii_lowercase().contains("limit 25") {
         25
     } else {
         40
     };
-    ResultView::Rows {
-        table: table.to_owned(),
-        count,
+    QueryEvaluation {
+        result: ResultView::Rows {
+            table: table.to_owned(),
+            count,
+        },
+        diagnostics: Vec::new(),
     }
 }
 
-fn from_table(sql: &str) -> Option<&str> {
+fn from_table(sql: &str) -> Option<(&str, Range<usize>)> {
     let bytes = sql.as_bytes();
     let from = bytes
         .windows(5)
@@ -1180,15 +1218,20 @@ fn from_table(sql: &str) -> Option<&str> {
         .iter()
         .position(|byte| !byte.is_ascii_alphanumeric() && *byte != b'_')
         .map_or(bytes.len(), |offset| start.saturating_add(offset));
-    (end > start).then(|| sql.get(start..end)).flatten()
+    if end <= start {
+        return None;
+    }
+    let table = sql.get(start..end)?;
+    Some((table, start..end))
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        Document, EDITOR_ID, FIRST_QUERY, OPTIONS_DIALOG, PendingRun, QueryResultState,
-        QueryWorkbenchPage, RESULTS_ID, RUN_QUERY, ResultView, SampleTable, TABS_ID, TOOLBAR,
-        TOOLBAR_ID, evaluate_query, options,
+        CodeDiagnostic, CodeSeverity, Document, EDITOR_ID, FIRST_QUERY, OPTIONS_DIALOG,
+        OptionChange, PendingRun, QueryResultState, QueryWorkbenchPage, RESULTS_ID, RUN_QUERY,
+        RUN_TICKS, ResultFixture, ResultView, SampleTable, TABS_ID, TOOLBAR, TOOLBAR_ID,
+        evaluate_query, options,
     };
     use crate::pages::Page;
     use ratatui::layout::Rect;
@@ -1257,10 +1300,10 @@ mod tests {
         )
     }
 
-    fn native_harness() -> Harness<Host> {
+    fn harness_with_page(page: QueryWorkbenchPage) -> Harness<Host> {
         Harness::new(
             Host {
-                page: QueryWorkbenchPage::new(),
+                page,
                 area: Rect::new(0, 0, 160, 40),
                 keymap: host_keymap(),
                 last_command: None,
@@ -1270,6 +1313,10 @@ mod tests {
             160,
             40,
         )
+    }
+
+    fn native_harness() -> Harness<Host> {
+        harness_with_page(QueryWorkbenchPage::new())
     }
 
     fn open_options(h: &mut Harness<Host>) {
@@ -1404,19 +1451,19 @@ mod tests {
 
     #[test]
     fn query_workbench_simulates_empty_rows_plan_and_error_results() {
-        assert_eq!(evaluate_query("  \n", false), ResultView::Empty);
+        assert_eq!(evaluate_query("  \n", false).result, ResultView::Empty);
         assert_eq!(
-            evaluate_query("SELECT id FROM orders LIMIT 25", false),
+            evaluate_query("SELECT id FROM orders LIMIT 25", false).result,
             ResultView::Rows {
                 table: "orders".to_owned(),
                 count: 25,
             }
         );
         assert_eq!(
-            evaluate_query("SELECT id FROM orders", true),
+            evaluate_query("SELECT id FROM orders", true).result,
             ResultView::Plan
         );
-        let default_rows = evaluate_query("SELECT id FROM orders", false);
+        let default_rows = evaluate_query("SELECT id FROM orders", false).result;
         assert_eq!(
             default_rows,
             ResultView::Rows {
@@ -1425,7 +1472,7 @@ mod tests {
             }
         );
         assert_eq!(default_rows.model().row_count(), 40);
-        let limited_rows = evaluate_query("SELECT id FROM orders LIMIT 25", false);
+        let limited_rows = evaluate_query("SELECT id FROM orders LIMIT 25", false).result;
         assert_eq!(limited_rows.model().row_count(), 25);
         let page = QueryWorkbenchPage::new();
         assert_eq!(
@@ -1438,13 +1485,239 @@ mod tests {
         assert_eq!(page.documents[0].result.model().row_count(), 25);
         assert_eq!(page.documents[1].result, ResultView::NotRun);
         assert!(matches!(
-            evaluate_query("SELECT * FROM missing_table", false),
+            evaluate_query("SELECT * FROM missing_table", false).result,
             ResultView::Error { .. }
         ));
         assert!(matches!(
-            evaluate_query("SELECT 1", false),
+            evaluate_query("SELECT 1", false).result,
             ResultView::Error { .. }
         ));
+    }
+
+    #[test]
+    fn unknown_relation_evaluation_returns_exact_byte_range_diagnostic() {
+        let sql = "-- café\nSELECT id FROM missing_table;";
+        let evaluation = evaluate_query(sql, false);
+        assert_eq!(
+            evaluation.result,
+            ResultView::Error {
+                message: "relation \"missing_table\" does not exist".to_owned(),
+                detail: "Check the table name in the current sample schema.".to_owned(),
+            }
+        );
+        assert_eq!(evaluation.diagnostics.len(), 1);
+        let diagnostic = &evaluation.diagnostics[0];
+        assert_eq!(diagnostic.range, 24..37);
+        assert_eq!(sql.find("missing_table"), Some(diagnostic.range.start));
+        assert_eq!(sql.get(diagnostic.range.clone()), Some("missing_table"));
+        assert_eq!(diagnostic.severity, CodeSeverity::Error);
+        assert_eq!(diagnostic.message, "unknown relation");
+        assert!(
+            evaluate_query("SELECT * FROM orders;", false)
+                .diagnostics
+                .is_empty(),
+            "known sample relations have no editor diagnostic"
+        );
+    }
+
+    #[test]
+    fn native_editor_change_clears_completed_relation_diagnostic() {
+        let mut h = native_harness();
+        h.app_mut().page.documents[0]
+            .editor
+            .set_text("SELECT * FROM missing_table;");
+        assert!(h.tab_to(EDITOR_ID));
+        let _ = h.key_mod(KeyCode::Char('r'), KeyModifiers::CONTROL);
+        h.ticks(6);
+        assert_eq!(
+            h.app().page.documents[0].editor.diagnostics()[0].message,
+            "unknown relation"
+        );
+
+        assert!(h.tab_to(EDITOR_ID));
+        let _ = h.paste(" ");
+        assert!(
+            h.app().page.documents[0].editor.diagnostics().is_empty(),
+            "CodeAction::Changed clears diagnostics for the edited document"
+        );
+    }
+
+    #[test]
+    fn successful_run_clears_diagnostics_from_the_document() {
+        let mut h = native_harness();
+        h.app_mut().page.documents[0]
+            .editor
+            .set_diagnostics(vec![CodeDiagnostic::new(
+                0..6,
+                CodeSeverity::Error,
+                "previous relation error",
+            )]);
+        assert!(h.tab_to(EDITOR_ID));
+        let _ = h.key_mod(KeyCode::Char('r'), KeyModifiers::CONTROL);
+        h.ticks(6);
+
+        assert!(matches!(
+            h.app().page.documents[0].result,
+            ResultView::Rows { .. }
+        ));
+        assert!(h.app().page.documents[0].editor.diagnostics().is_empty());
+    }
+
+    #[test]
+    fn error_fixture_preserves_its_message_without_a_false_editor_diagnostic() {
+        let mut page = QueryWorkbenchPage::new();
+        page.documents[0].editor.set_text("SELECT * FROM orders;");
+        page.documents[0]
+            .editor
+            .set_diagnostics(vec![CodeDiagnostic::new(
+                14..20,
+                CodeSeverity::Error,
+                "old diagnostic",
+            )]);
+        page.apply_option_change(OptionChange::Result(ResultFixture::Error));
+
+        assert_eq!(
+            page.documents[0].result,
+            ResultView::Error {
+                message: "relation \"ordrs\" does not exist".to_owned(),
+                detail: "SQLSTATE 42P01 · line 3 · Did you mean \"orders\"?".to_owned(),
+            }
+        );
+        assert!(page.documents[0].editor.diagnostics().is_empty());
+    }
+
+    #[test]
+    fn run_completion_attaches_diagnostics_to_the_original_tab_after_switching() {
+        let mut page = QueryWorkbenchPage::new();
+        let owner = page.documents[0].key;
+        let sql = "SELECT * FROM missing_table;";
+        page.documents[0].editor.set_text(sql);
+        page.run = Some(PendingRun {
+            owner,
+            explain: false,
+            remaining_ticks: 1,
+        });
+        let customers = page.documents[1].key;
+        page.tabs.set_active(1, customers);
+        let mut h = harness_with_page(page);
+        let _ = h.tick();
+
+        assert_eq!(h.app().page.tabs.active(), Some(customers));
+        let owner_diagnostics = h
+            .app()
+            .page
+            .documents
+            .iter()
+            .find(|document| document.key == owner)
+            .map(|document| document.editor.diagnostics());
+        assert_eq!(
+            owner_diagnostics,
+            Some(
+                [CodeDiagnostic::new(
+                    14..27,
+                    CodeSeverity::Error,
+                    "unknown relation",
+                )]
+                .as_slice()
+            )
+        );
+        assert!(h.app().page.documents[1].editor.diagnostics().is_empty());
+    }
+
+    #[test]
+    fn editing_during_run_uses_current_text_and_shifts_relation_diagnostic() {
+        let mut h = native_harness();
+        let owner = h.app().page.documents[0].key;
+        h.app_mut().page.documents[0]
+            .editor
+            .set_text("SELECT * FROM missing_table;");
+        assert!(h.tab_to(EDITOR_ID));
+        let _ = h.key_mod(KeyCode::Char('r'), KeyModifiers::CONTROL);
+        assert_eq!(
+            h.app()
+                .page
+                .run
+                .as_ref()
+                .map(|run| (run.owner, run.remaining_ticks)),
+            Some((owner, RUN_TICKS))
+        );
+
+        let _ = h.key(KeyCode::Home);
+        let _ = h.paste(" ");
+        assert_eq!(
+            h.app().page.documents[0].editor.text(),
+            " SELECT * FROM missing_table;",
+            "the native edit inserts one leading space"
+        );
+        assert_eq!(
+            h.app()
+                .page
+                .run
+                .as_ref()
+                .map(|run| (run.owner, run.remaining_ticks)),
+            Some((owner, RUN_TICKS)),
+            "editing neither changes run ownership nor advances its countdown"
+        );
+        h.ticks(6);
+
+        assert_eq!(
+            h.app().page.documents[0].result,
+            ResultView::Error {
+                message: "relation \"missing_table\" does not exist".to_owned(),
+                detail: "Check the table name in the current sample schema.".to_owned(),
+            }
+        );
+        let diagnostics = h.app().page.documents[0].editor.diagnostics();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0].range, 15..28);
+        assert_eq!(diagnostics[0].severity, CodeSeverity::Error);
+        assert_eq!(diagnostics[0].message, "unknown relation");
+    }
+
+    #[test]
+    fn editing_during_run_to_known_relation_completes_without_diagnostics() {
+        let mut h = native_harness();
+        h.app_mut().page.documents[0]
+            .editor
+            .set_text("SELECT * FROM missing_table;");
+        assert!(h.tab_to(EDITOR_ID));
+        let owner = h.app().page.documents[0].key;
+        let _ = h.key_mod(KeyCode::Char('r'), KeyModifiers::CONTROL);
+        assert_eq!(
+            h.app()
+                .page
+                .run
+                .as_ref()
+                .map(|run| (run.owner, run.remaining_ticks)),
+            Some((owner, RUN_TICKS))
+        );
+
+        h.app_mut().page.documents[0]
+            .editor
+            .set_text("SELECT * FROM orders;");
+        assert_eq!(
+            h.app().page.documents[0].editor.text(),
+            "SELECT * FROM orders;"
+        );
+        assert_eq!(
+            h.app()
+                .page
+                .run
+                .as_ref()
+                .map(|run| (run.owner, run.remaining_ticks)),
+            Some((owner, RUN_TICKS)),
+            "editing leaves the original owner and pending countdown intact"
+        );
+        h.ticks(6);
+
+        assert_eq!(
+            h.app().page.documents[0].result,
+            ResultView::Rows {
+                table: "orders".to_owned(),
+                count: 40,
+            }
+        );
+        assert!(h.app().page.documents[0].editor.diagnostics().is_empty());
     }
 
     #[test]
