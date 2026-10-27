@@ -2380,9 +2380,14 @@ fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKe
     ui.fill(row, if selected { selected_surface } else { canvas });
     if !focused {
         let gutter_surface = if selected { selected_surface } else { canvas };
-        let gutter = shell_compat_style(gutter_surface.patch(
-            ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::CurrentSurface)),
-        ))
+        let gutter_ink = if selected {
+            termrock::Role::Custom(selected_background)
+        } else {
+            termrock::Role::CurrentSurface
+        };
+        let gutter = shell_compat_style(
+            gutter_surface.patch(ui.paint_patch(&termrock::StylePatch::new().set_fg(gutter_ink))),
+        )
         .remove_modifier(termrock::Modifier::BOLD);
         ui.fill(Rect::new(row.x, row.y, 1, 1), gutter);
     }
