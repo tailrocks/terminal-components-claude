@@ -17,7 +17,7 @@ use termrock_overlays::{ContextMenu, MenuAction, MenuItem, MenuState};
 use termrock_runtime::focus::Focusability;
 use termrock_runtime::layer::{CrossAlign, LayerEvent, LayerOpening, Side};
 use termrock_runtime::{
-    Binding, Cx, FrameRead, LayoutFacts, Measure, ReferenceState, ReferenceTarget, Ui,
+    Binding, Cx, FrameRead, LayoutFacts, Measure, ReferenceState, ReferenceTarget, Tooltips, Ui,
 };
 use termrock_text::width;
 use termrock_theme::{
@@ -201,6 +201,26 @@ impl ToolbarTooltipPolicy {
 impl Default for ToolbarTooltipPolicy {
     fn default() -> Self {
         Self::DEFAULT
+    }
+}
+
+impl From<ToolbarTooltipPolicy> for Tooltips {
+    fn from(policy: ToolbarTooltipPolicy) -> Self {
+        Self {
+            enabled: policy.enabled,
+            delay_ms: policy.delay_ms,
+            max_width: policy.max_width,
+        }
+    }
+}
+
+impl From<Tooltips> for ToolbarTooltipPolicy {
+    fn from(policy: Tooltips) -> Self {
+        Self {
+            enabled: policy.enabled,
+            delay_ms: policy.delay_ms,
+            max_width: policy.max_width,
+        }
     }
 }
 
@@ -506,7 +526,7 @@ pub struct Toolbar {
     more_danger_hover: bool,
     more_padding: u16,
     more_tip: ToolbarTip,
-    tooltip_policy: ToolbarTooltipPolicy,
+    tooltip_policy: Option<ToolbarTooltipPolicy>,
 }
 
 impl Toolbar {
@@ -526,7 +546,7 @@ impl Toolbar {
             more_danger_hover: false,
             more_padding: 1,
             more_tip: ToolbarTip::default(),
-            tooltip_policy: ToolbarTooltipPolicy::DEFAULT,
+            tooltip_policy: None,
         }
     }
 
@@ -624,7 +644,7 @@ impl Toolbar {
 
     #[must_use]
     pub const fn tooltip_policy(mut self, policy: ToolbarTooltipPolicy) -> Self {
-        self.tooltip_policy = policy;
+        self.tooltip_policy = Some(policy);
         self
     }
 
@@ -633,7 +653,14 @@ impl Toolbar {
     }
 
     pub const fn tooltip_policy_value(&self) -> ToolbarTooltipPolicy {
-        self.tooltip_policy
+        match self.tooltip_policy {
+            Some(policy) => policy,
+            None => ToolbarTooltipPolicy::DEFAULT,
+        }
+    }
+
+    fn effective_tooltip_policy(&self, ambient: Tooltips) -> ToolbarTooltipPolicy {
+        self.tooltip_policy.unwrap_or_else(|| ambient.into())
     }
 
     pub const fn id(&self) -> Id {
@@ -669,6 +696,7 @@ impl Toolbar {
     }
 
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut ToolbarState) -> Response<ToolbarActions> {
+        let tooltip_policy = self.effective_tooltip_policy(cx.tooltips());
         state.drain_retired_overflow_openings(cx);
 
         if state
@@ -857,7 +885,7 @@ impl Toolbar {
                 owner: self.id,
                 items: &self.items,
                 item_keys: &self.item_keys,
-                policy: self.tooltip_policy,
+                policy: tooltip_policy,
                 more_tip: &self.more_tip,
             },
             &published_layout,
@@ -877,6 +905,7 @@ impl Toolbar {
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, state: &ToolbarState) -> Rect {
+        let tooltip_policy = self.effective_tooltip_policy(ui.tooltips());
         let runtime_state = ui.state(self.id);
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
@@ -966,7 +995,7 @@ impl Toolbar {
             ui.register_control(self.id, layout.area, focusability);
             for row in &layout.rows {
                 ui.register_part(self.id, PartRef::item(Part::ROW, row.key), row.area);
-                if self.tooltip_policy.enabled
+                if tooltip_policy.enabled
                     && self
                         .items
                         .get(row.index)
@@ -978,7 +1007,7 @@ impl Toolbar {
             }
             if let Some(more) = layout.more {
                 ui.register_part(self.id, PartRef::of(Part::OVERFLOW), more);
-                if self.tooltip_policy.enabled && !self.more_tip.text.is_empty() {
+                if tooltip_policy.enabled && !self.more_tip.text.is_empty() {
                     ui.register_hover_part(self.id, PartRef::of(Part::OVERFLOW), more);
                 }
             }
@@ -1103,7 +1132,7 @@ impl Toolbar {
                 owner: self.id,
                 items: &self.items,
                 item_keys: &self.item_keys,
-                policy: self.tooltip_policy,
+                policy: tooltip_policy,
                 more_tip: &self.more_tip,
             },
             &live_rows,
@@ -1125,7 +1154,7 @@ impl Toolbar {
             item.tip = None;
         }
         reference.more_tip = ToolbarTip::new("");
-        reference.tooltip_policy = ToolbarTooltipPolicy::OFF;
+        reference.tooltip_policy = Some(ToolbarTooltipPolicy::OFF);
 
         let target_index =
             (!reference.items.is_empty()).then(|| 1.min(reference.items.len().saturating_sub(1)));

@@ -175,6 +175,7 @@ pub(crate) struct DeferredFocus {
 pub struct FrameServices {
     pub(crate) runtime_id: u64,
     pub(crate) viewport: Rect,
+    pub(crate) tooltips: crate::Tooltips,
     pub(crate) layers: LayerStack,
     pub(crate) managed_tooltip: Option<ManagedTooltip>,
     pub(crate) capture: CaptureSlot,
@@ -188,7 +189,6 @@ pub struct FrameServices {
     pub(crate) now: crate::runtime::Moment,
     pub(crate) repaint_at: Option<crate::runtime::Moment>,
     pub(crate) quit: bool,
-
     pub(crate) diagnostics: Diagnostics,
     pub(crate) closed_layers: Vec<crate::layer::OpenLayer>,
     pub(crate) direct_closed_layers: Vec<crate::layer::OpenLayer>,
@@ -283,6 +283,10 @@ fn next_callback_serial(serial: &mut u64) -> Option<u64> {
 }
 
 impl<'f> Cx<'f> {
+    pub const fn tooltips(&self) -> crate::Tooltips {
+        self.services.tooltips
+    }
+
     pub fn diagnostic(&mut self, diagnostic: crate::diagnostics::Diagnostic) {
         self.services.diagnostics.push(diagnostic);
     }

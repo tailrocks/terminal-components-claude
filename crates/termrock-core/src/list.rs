@@ -4,6 +4,7 @@
 use std::cell::Cell;
 
 use crate::event::{Axis, Key};
+use crate::id::ItemKey;
 use crate::keymap::{Nav, NavKeys};
 use crate::outcome::Outcome;
 use crate::typeahead::TypeAhead;
@@ -21,6 +22,10 @@ pub trait RowSource {
     }
 
     fn label(&self, i: usize) -> &str;
+
+    fn key(&self, i: usize) -> ItemKey {
+        ItemKey::index(i)
+    }
 }
 
 impl RowSource for [&str] {

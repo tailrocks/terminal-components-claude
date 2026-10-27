@@ -49,12 +49,15 @@ struct Candidate {
 }
 
 impl Candidate {
-    fn matches(&self, active: &Active) -> bool {
+    fn matches_identity(&self, active: &Active) -> bool {
         self.owner == active.owner
             && self.target == active.target
             && self.text == active.text
             && self.shortcut == active.shortcut
-            && self.policy == active.policy
+    }
+
+    fn matches(&self, active: &Active) -> bool {
+        self.matches_identity(active) && self.policy == active.policy
     }
 }
 
@@ -164,7 +167,7 @@ impl TooltipController {
             && self.dismissed.is_some()
             && candidate.as_ref().is_some_and(|candidate| {
                 self.active.as_ref().is_some_and(|active| {
-                    active.target == candidate.target && !candidate.matches(active)
+                    active.target == candidate.target && !candidate.matches_identity(active)
                 })
             })
         {
