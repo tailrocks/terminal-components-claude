@@ -2,7 +2,12 @@ use std::{collections::BTreeMap, io::Write};
 
 use crate::{
     dispatch::{self, Destination},
-    domain::{action::Scope, activity::Activity, fixtures, ranking::Pin},
+    domain::{
+        action::Scope,
+        activity::{Activity, ActivityState},
+        fixtures,
+        ranking::Pin,
+    },
     scenario::{Motion, Scenario, Screen},
     screens::{
         actions::{Actions, Choice},
@@ -2516,6 +2521,32 @@ impl App {
         }
     }
 
+    fn has_running_work(&self) -> bool {
+        let live_activity = self.world.activities.iter().any(|activity| {
+            match self
+                .world
+                .activity_supervisor
+                .current_execution_id(activity.id)
+            {
+                Some(execution_id) => self
+                    .world
+                    .activity_supervisor
+                    .execution(execution_id)
+                    .is_none_or(|execution| execution.is_owned()),
+                None => matches!(
+                    activity.state,
+                    ActivityState::Running | ActivityState::Waiting | ActivityState::Detached
+                ),
+            }
+        });
+        let live_task_run = self.task_run_owners.keys().any(|run_id| {
+            self.task_runs.get(*run_id).is_some_and(|run| {
+                matches!(run.state(), TaskRunState::Running | TaskRunState::Waiting)
+            })
+        });
+        live_activity || live_task_run
+    }
+
     fn command(&mut self, command: ActionKey, cx: &mut Cx<'_>) {
         match command {
             HELP => self.open_dialog(dialogs::Intent::Help, cx),
@@ -2548,7 +2579,10 @@ impl App {
             SNAPSHOT_PAGE => self.open_dialog(dialogs::Intent::SnapshotPage, cx),
             DEFINITION_TRUST => self.open_dialog(dialogs::Intent::DefinitionTrust, cx),
             ABOUT => self.open_dialog(dialogs::Intent::About, cx),
-            QUIT => self.open_dialog(dialogs::Intent::Quit, cx),
+            QUIT if self.has_running_work() => {
+                self.open_dialog(dialogs::Intent::Quit, cx);
+            }
+            QUIT => self.quit = true,
             INTERRUPT => {
                 if !self.cancel_current_task_run_prompt(cx) {
                     self.quit = true;
