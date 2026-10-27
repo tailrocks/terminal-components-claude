@@ -34,6 +34,10 @@ const FIRST_PLUS_HELP_FLOW_DENOMINATOR: usize = 5;
 const FIRST_PLUS_HELP_CHECKPOINT_DENOMINATOR: usize = 18;
 const HOLLA_FIRST_USE_FLOW_DENOMINATOR: usize = 1;
 const HOLLA_FIRST_USE_CHECKPOINT_DENOMINATOR: usize = 7;
+const HOLLA_RESULT_LIST_X_START: u32 = 0;
+const HOLLA_RESULT_LIST_X_END: u32 = 78;
+const HOLLA_RESULT_LIST_Y_START: u32 = 6;
+const HOLLA_RESULT_LIST_Y_END: u32 = 38;
 const HELP_TIMEOUT_MS: u64 = 15_000;
 const EXIT_TIMEOUT_MS: u64 = 30_000;
 const QUIET_TIMEOUT: Duration = Duration::from_secs(15);
@@ -203,6 +207,14 @@ struct Checkpoint {
     sample_bytes: Vec<u8>,
     png_sha256: String,
     rgba_sha256: String,
+}
+
+struct FailureScreenEvidence {
+    record: Value,
+    snapshot: TerminalSnapshot,
+    state_observation: Value,
+    child_active: bool,
+    screen_observable: bool,
 }
 
 type AppResult<T> = Result<T, Box<dyn Error>>;
@@ -493,12 +505,14 @@ fn run_case(
             .get_by_text(case.initial_marker)
             .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
         wait_visual_quiet(&session)?;
-        let initial_text = match session.execute(Operation::Text { full: true })? {
-            OperationResult::Text(text) => text,
-            other => return Err(format!("unexpected text result: {other:?}").into()),
-        };
-        if initial_text.trim().is_empty() {
-            return Err("initial visible marker appeared but screen text is empty".into());
+        if !matches!(case.journey, Journey::HollaFirstUseAction) {
+            let initial_text = match session.execute(Operation::Text { full: true })? {
+                OperationResult::Text(text) => text,
+                other => return Err(format!("unexpected text result: {other:?}").into()),
+            };
+            if initial_text.trim().is_empty() {
+                return Err("initial visible marker appeared but screen text is empty".into());
+            }
         }
         checkpoints.push(capture_checkpoint(
             &session,
@@ -507,6 +521,13 @@ fn run_case(
             case.checkpoint_labels[0],
             &case_out,
         )?);
+        if matches!(case.journey, Journey::HollaFirstUseAction)
+            && snapshot_text(last_checkpoint_snapshot(&checkpoints)?)
+                .trim()
+                .is_empty()
+        {
+            return Err("initial visible marker appeared but captured screen is empty".into());
+        }
 
         match case.journey {
             Journey::First => {
@@ -941,8 +962,13 @@ fn run_holla_first_use_action_steps(
     semantic_assertions: &mut Vec<Value>,
 ) -> AppResult<()> {
     let raw_path = case_out.join("raw.ansi");
-    let initial_text = visible_text(session)?;
-    let initial_assertion = holla_home_assertion("initial", &initial_text, "empty", true, false);
+    let initial_assertion = holla_home_assertion(
+        "initial",
+        last_checkpoint_snapshot(checkpoints)?,
+        "empty",
+        true,
+        false,
+    );
     semantic_assertions.push(initial_assertion.clone());
 
     actions.push(json!({"event":"key_press","key":"Enter","at_unix_ms":unix_ms()}));
@@ -962,26 +988,61 @@ fn run_holla_first_use_action_steps(
             &raw_path,
             "initial-resource",
         ) {
-            Ok((evidence, actual_text)) => {
-                let mut assertion = holla_resource_page_assertion("initial-resource", &actual_text);
+            Ok(evidence) => {
+                let actual_text = snapshot_text(&evidence.snapshot);
+                let mut assertion =
+                    holla_resource_page_assertion("initial-resource", &evidence.snapshot);
+                let expected_page_visible = assertion_passed(&assertion);
+                let screen_quiet = quiet_error.is_none();
+                let wrong_destination = evidence.child_active
+                    && evidence.screen_observable
+                    && screen_quiet
+                    && actual_text.contains("System snapshot")
+                    && !actual_text.contains("System resources");
                 if let Some(object) = assertion.as_object_mut() {
                     object.insert(
                         "locator_wait_error".to_string(),
                         json!(wait_error.to_string()),
                     );
                     object.insert("visual_quiet_error".to_string(), json!(quiet_error));
-                    object.insert("failure_evidence".to_string(), evidence.clone());
+                    object.insert("failure_evidence".to_string(), evidence.record.clone());
+                    object.insert(
+                        "failure_state_observation".to_string(),
+                        evidence.state_observation.clone(),
+                    );
+                    object.insert(
+                        "screen_observable".to_string(),
+                        json!(evidence.screen_observable),
+                    );
+                    object.insert("screen_quiet".to_string(), json!(screen_quiet));
                     object.insert(
                         "wrong_destination_confirmed".to_string(),
-                        json!(
-                            actual_text.contains("System snapshot")
-                                && !actual_text.contains("System resources")
-                        ),
+                        json!(wrong_destination),
                     );
+                    if !evidence.child_active || !evidence.screen_observable {
+                        object.insert("status".to_string(), json!("unverified"));
+                        object.insert(
+                            "infrastructure_status".to_string(),
+                            json!("active screen or live child could not be verified"),
+                        );
+                    } else if !screen_quiet {
+                        object.insert("status".to_string(), json!("unverified"));
+                        object.insert(
+                            "infrastructure_status".to_string(),
+                            json!("captured screen did not reach visual quiet"),
+                        );
+                    } else if expected_page_visible {
+                        object.insert("status".to_string(), json!("unverified"));
+                        object.insert(
+                            "infrastructure_status".to_string(),
+                            json!("locator wait timed out although the captured snapshot showed the expected page"),
+                        );
+                    }
                 }
                 semantic_assertions.push(assertion.clone());
-                let wrong_destination = assertion["wrong_destination_confirmed"] == true;
-                let evidence_path = evidence["directory"].as_str().unwrap_or("failure-evidence");
+                let evidence_path = evidence.record["directory"]
+                    .as_str()
+                    .unwrap_or("failure-evidence");
                 if wrong_destination {
                     return Err(format!(
                         "initial-resource opened the visible System snapshot dialog instead of the System resources page; evidence: {evidence_path}"
@@ -1001,6 +1062,7 @@ fn run_holla_first_use_action_steps(
                     "locator_wait_error":wait_error.to_string(),
                     "visual_quiet_error":quiet_error,
                     "failure_evidence_error":capture_error.to_string(),
+                    "wrong_destination_confirmed":false,
                 }));
                 return Err(format!(
                     "initial-resource wait failed and active-screen evidence could not be captured: {capture_error}"
@@ -1018,9 +1080,8 @@ fn run_holla_first_use_action_steps(
         case.checkpoint_labels[1],
         case_out,
     )?);
-    let initial_resource_text = visible_text(session)?;
     let initial_resource_assertion =
-        holla_resource_page_assertion("initial-resource", &initial_resource_text);
+        holla_resource_page_assertion("initial-resource", last_checkpoint_snapshot(checkpoints)?);
     semantic_assertions.push(initial_resource_assertion.clone());
     if !assertion_passed(&initial_resource_assertion) {
         return Err(assertion_error(&initial_resource_assertion).into());
@@ -1053,9 +1114,13 @@ fn run_holla_first_use_action_steps(
         case.checkpoint_labels[2],
         case_out,
     )?);
-    let home_restored_text = visible_text(session)?;
-    let home_restored_assertion =
-        holla_home_assertion("home-restored", &home_restored_text, "empty", false, false);
+    let home_restored_assertion = holla_home_assertion(
+        "home-restored",
+        last_checkpoint_snapshot(checkpoints)?,
+        "empty",
+        false,
+        false,
+    );
     semantic_assertions.push(home_restored_assertion.clone());
     if !assertion_passed(&home_restored_assertion) {
         return Err(assertion_error(&home_restored_assertion).into());
@@ -1071,12 +1136,6 @@ fn run_holla_first_use_action_steps(
     session
         .get_by_text("Show system resources")
         .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
-    session
-        .get_by_text("Analyze disk usage")
-        .wait_hidden(Some(HELP_TIMEOUT_MS))?;
-    session
-        .get_by_text("Open btm")
-        .wait_hidden(Some(HELP_TIMEOUT_MS))?;
     wait_visual_quiet(session)?;
     checkpoints.push(capture_checkpoint(
         session,
@@ -1085,10 +1144,9 @@ fn run_holla_first_use_action_steps(
         case.checkpoint_labels[3],
         case_out,
     )?);
-    let query_selected_text = visible_text(session)?;
     let query_selected_assertion = holla_home_assertion(
         "query-selected",
-        &query_selected_text,
+        last_checkpoint_snapshot(checkpoints)?,
         "resources",
         false,
         true,
@@ -1115,15 +1173,46 @@ fn run_holla_first_use_action_steps(
             &raw_path,
             "query-resource",
         ) {
-            Ok((evidence, actual_text)) => {
-                let mut assertion = holla_resource_page_assertion("query-resource", &actual_text);
+            Ok(evidence) => {
+                let mut assertion =
+                    holla_resource_page_assertion("query-resource", &evidence.snapshot);
+                let expected_page_visible = assertion_passed(&assertion);
+                let screen_quiet = quiet_error.is_none();
                 if let Some(object) = assertion.as_object_mut() {
                     object.insert(
                         "locator_wait_error".to_string(),
                         json!(wait_error.to_string()),
                     );
                     object.insert("visual_quiet_error".to_string(), json!(quiet_error));
-                    object.insert("failure_evidence".to_string(), json!(evidence));
+                    object.insert("failure_evidence".to_string(), evidence.record.clone());
+                    object.insert(
+                        "failure_state_observation".to_string(),
+                        evidence.state_observation.clone(),
+                    );
+                    object.insert(
+                        "screen_observable".to_string(),
+                        json!(evidence.screen_observable),
+                    );
+                    object.insert("screen_quiet".to_string(), json!(screen_quiet));
+                    if !evidence.child_active || !evidence.screen_observable {
+                        object.insert("status".to_string(), json!("unverified"));
+                        object.insert(
+                            "infrastructure_status".to_string(),
+                            json!("active screen or live child could not be verified"),
+                        );
+                    } else if !screen_quiet {
+                        object.insert("status".to_string(), json!("unverified"));
+                        object.insert(
+                            "infrastructure_status".to_string(),
+                            json!("captured screen did not reach visual quiet"),
+                        );
+                    } else if expected_page_visible {
+                        object.insert("status".to_string(), json!("unverified"));
+                        object.insert(
+                            "infrastructure_status".to_string(),
+                            json!("locator wait timed out although the captured snapshot showed the expected page"),
+                        );
+                    }
                 }
                 semantic_assertions.push(assertion);
                 return Err(
@@ -1139,6 +1228,7 @@ fn run_holla_first_use_action_steps(
                     "locator_wait_error":wait_error.to_string(),
                     "visual_quiet_error":quiet_error,
                     "failure_evidence_error":capture_error.to_string(),
+                    "screen_observable":false,
                 }));
                 return Err(format!(
                     "query-resource wait failed and active-screen evidence could not be captured: {capture_error}"
@@ -1155,9 +1245,8 @@ fn run_holla_first_use_action_steps(
         case.checkpoint_labels[4],
         case_out,
     )?);
-    let query_resource_text = visible_text(session)?;
     let query_resource_assertion =
-        holla_resource_page_assertion("query-resource", &query_resource_text);
+        holla_resource_page_assertion("query-resource", last_checkpoint_snapshot(checkpoints)?);
     semantic_assertions.push(query_resource_assertion.clone());
     if !assertion_passed(&query_resource_assertion) {
         return Err(assertion_error(&query_resource_assertion).into());
@@ -1186,10 +1275,9 @@ fn run_holla_first_use_action_steps(
         case.checkpoint_labels[5],
         case_out,
     )?);
-    let query_restored_text = visible_text(session)?;
     let query_restored_assertion = holla_home_assertion(
         "query-restored",
-        &query_restored_text,
+        last_checkpoint_snapshot(checkpoints)?,
         "resources",
         false,
         false,
@@ -1213,9 +1301,13 @@ fn run_holla_first_use_action_steps(
         case.checkpoint_labels[6],
         case_out,
     )?);
-    let query_cleared_text = visible_text(session)?;
-    let query_cleared_assertion =
-        holla_home_assertion("query-cleared", &query_cleared_text, "empty", false, false);
+    let query_cleared_assertion = holla_home_assertion(
+        "query-cleared",
+        last_checkpoint_snapshot(checkpoints)?,
+        "empty",
+        false,
+        false,
+    );
     semantic_assertions.push(query_cleared_assertion.clone());
     if !assertion_passed(&query_cleared_assertion) {
         return Err(assertion_error(&query_cleared_assertion).into());
@@ -1224,20 +1316,79 @@ fn run_holla_first_use_action_steps(
     Ok(())
 }
 
-fn visible_text(session: &Session) -> AppResult<String> {
-    match session.execute(Operation::Text { full: true })? {
-        OperationResult::Text(text) => Ok(text),
-        other => Err(format!("unexpected text result: {other:?}").into()),
-    }
+fn last_checkpoint_snapshot(checkpoints: &[Checkpoint]) -> AppResult<&TerminalSnapshot> {
+    checkpoints
+        .last()
+        .map(|checkpoint| &checkpoint.snapshot)
+        .ok_or_else(|| "no captured checkpoint is available for semantic assertions".into())
+}
+
+fn snapshot_text(snapshot: &TerminalSnapshot) -> String {
+    (0..snapshot.rows())
+        .filter_map(|row_index| snapshot.row(row_index))
+        .map(|row| {
+            row.iter()
+                .map(|cell| {
+                    if cell.has(Attrs::INVISIBLE) {
+                        ""
+                    } else {
+                        cell.text()
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("")
+                .trim_end()
+                .to_owned()
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim_end()
+        .to_owned()
+}
+
+// The PR26 120x40 FirstUse snapshot places the Finder query at row 4.
+// Finder renders the master/detail body two rows below the query. Its 34%
+// detail share gives 40 columns at this width; with the two-column gap, the
+// master result list occupies x=0..77 and y=6..37. Keep row-absence checks in
+// this pane so a valid preview alternative is not treated as an unfiltered row.
+fn holla_result_list_text(snapshot: &TerminalSnapshot) -> String {
+    let x_start = HOLLA_RESULT_LIST_X_START;
+    let x_end = HOLLA_RESULT_LIST_X_END.min(snapshot.cols());
+    let y_start = HOLLA_RESULT_LIST_Y_START.min(snapshot.rows());
+    let y_end = HOLLA_RESULT_LIST_Y_END.min(snapshot.rows());
+    (y_start..y_end)
+        .filter_map(|row_index| snapshot.row(row_index))
+        .map(|row| {
+            row.iter()
+                .skip(x_start as usize)
+                .take(x_end.saturating_sub(x_start) as usize)
+                .map(|cell| {
+                    if cell.has(Attrs::INVISIBLE) {
+                        ""
+                    } else {
+                        cell.text()
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("")
+                .trim_end()
+                .to_owned()
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim_end()
+        .to_owned()
 }
 
 fn holla_home_assertion(
     id: &str,
-    actual_text: &str,
+    snapshot: &TerminalSnapshot,
     query_state: &str,
     initial: bool,
     filtered: bool,
 ) -> Value {
+    let actual_text = snapshot_text(snapshot);
+    let result_list_text = holla_result_list_text(snapshot);
     let mut required = vec!["› Show system resources", "holla snapshot system", "mbp"];
     if initial {
         required.extend(["CPU 78% for 4 min", "still discovering…", "no project"]);
@@ -1265,7 +1416,7 @@ fn holla_home_assertion(
     let unexpected_rows: Vec<&str> = if filtered {
         ["Analyze disk usage", "Open btm"]
             .into_iter()
-            .filter(|marker| actual_text.contains(marker))
+            .filter(|marker| result_list_text.contains(marker))
             .collect()
     } else {
         Vec::new()
@@ -1286,6 +1437,7 @@ fn holla_home_assertion(
         "missing_visible":missing,
         "forbidden_visible":forbidden_visible,
         "unexpected_default_rows":unexpected_rows,
+        "observed_result_list_text":result_list_text,
         "query_line":query_line,
         "query_state":query_state,
         "query_matches":query_matches,
@@ -1293,7 +1445,8 @@ fn holla_home_assertion(
     })
 }
 
-fn holla_resource_page_assertion(id: &str, actual_text: &str) -> Value {
+fn holla_resource_page_assertion(id: &str, snapshot: &TerminalSnapshot) -> Value {
+    let actual_text = snapshot_text(snapshot);
     let required = [
         "System resources",
         "mbp",
@@ -1327,7 +1480,7 @@ fn holla_resource_page_assertion(id: &str, actual_text: &str) -> Value {
         "required_visible":required,
         "missing_visible":missing,
         "forbidden_visible":forbidden_visible,
-        "wrong_destination_confirmed":actual_text.contains("System snapshot")
+        "wrong_destination_visible":actual_text.contains("System snapshot")
             && !actual_text.contains("System resources"),
         "observed_visible_text":actual_text,
     })
@@ -1354,13 +1507,18 @@ fn capture_failure_evidence(
     case_out: &Path,
     raw_path: &Path,
     stage: &str,
-) -> AppResult<(Value, String)> {
+) -> AppResult<FailureScreenEvidence> {
     let (snapshot, offset) =
         session.capture_snapshot_with_raw_offset(SnapshotScope::ActiveScreen)?;
-    let offset = offset.ok_or("processed PTY byte offset is unavailable or overflowed")?;
+    let (state_observation, child_active) = failure_state_observation(session);
+    let offset = offset.ok_or_else(|| {
+        format!(
+            "processed PTY byte offset is unavailable or overflowed; state: {state_observation}"
+        )
+    })?;
     if snapshot.cols() != u32::from(case.cols) || snapshot.rows() != u32::from(case.rows) {
         return Err(format!(
-            "failure snapshot dimensions are {}x{}, expected {}x{}",
+            "failure snapshot dimensions are {}x{}, expected {}x{}; state: {state_observation}",
             snapshot.cols(),
             snapshot.rows(),
             case.cols,
@@ -1368,7 +1526,8 @@ fn capture_failure_evidence(
         )
         .into());
     }
-    let actual_text = visible_text(session)?;
+    let actual_text = snapshot_text(&snapshot);
+    let screen_observable = !actual_text.trim().is_empty();
     let directory = case_out.join("failure-evidence").join(stage);
     let sample_id = format!(
         "{}/failure-evidence/{stage}/pixels-{}",
@@ -1405,23 +1564,62 @@ fn capture_failure_evidence(
             "stage":stage,
             "sample_id":sample_id,
             "processed_output_offset":offset,
+            "state_observation":state_observation,
+            "child_active":child_active,
+            "screen_observable":screen_observable,
             "raw_prefix_sha256":sha256(&raw[..prefix_end]),
             "raw_stream_bytes_at_capture":raw.len(),
             "raw_stream_sha256_at_capture":sha256(&raw),
         }),
     )?;
-    Ok((
-        json!({
+    Ok(FailureScreenEvidence {
+        record: json!({
             "directory":format!("failure-evidence/{stage}"),
             "sample_id":sample_id,
             "processed_output_offset":offset,
+            "child_active":child_active,
+            "screen_observable":screen_observable,
+            "state_observation":state_observation,
             "sample_sha256":sha256(&sample_bytes),
             "png_sha256":image.png_sha256(),
             "rgba_sha256":image.rgba_sha256(),
             "raw_prefix_sha256":sha256(&raw[..prefix_end]),
         }),
-        actual_text,
-    ))
+        snapshot,
+        state_observation,
+        child_active,
+        screen_observable,
+    })
+}
+
+fn failure_state_observation(session: &Session) -> (Value, bool) {
+    match session.execute(Operation::State) {
+        Ok(OperationResult::State(state)) => {
+            let child_active = state.exited.is_none() && state.exit_signal.is_none();
+            (
+                json!({
+                    "status":"available",
+                    "exited":state.exited,
+                    "exit_signal":state.exit_signal,
+                    "cols":state.cols,
+                    "rows":state.rows,
+                    "child_active":child_active,
+                }),
+                child_active,
+            )
+        }
+        Ok(other) => (
+            json!({
+                "status":"unavailable",
+                "error":format!("unexpected process state result: {other:?}"),
+            }),
+            false,
+        ),
+        Err(error) => (
+            json!({"status":"unavailable","error":error.to_string()}),
+            false,
+        ),
+    }
 }
 
 fn finalize_holla_after_error(session: &Session, actions: &mut Vec<Value>) -> (Value, Value, bool) {
@@ -1457,6 +1655,10 @@ fn finalize_holla_after_error(session: &Session, actions: &mut Vec<Value>) -> (V
         Ok(_) => (true, Value::Null),
         Err(error) => (false, json!(error.to_string())),
     };
+    let clean_exit = wait_exit_completed
+        && state_error.is_null()
+        && process_state["exited"] == 0
+        && process_state["exit_signal"].is_null();
     let finalization = json!({
         "attempted":true,
         "quit_key":"Ctrl+q",
@@ -1467,7 +1669,7 @@ fn finalize_holla_after_error(session: &Session, actions: &mut Vec<Value>) -> (V
         "state":state_value,
         "state_error":state_error,
         "child_exited":child_exited,
-        "clean_exit":process_state["exited"] == 0 && process_state["exit_signal"].is_null(),
+        "clean_exit":clean_exit,
     });
     (finalization, process_state, child_exited)
 }
