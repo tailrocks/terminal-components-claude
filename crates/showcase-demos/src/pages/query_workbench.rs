@@ -2,21 +2,25 @@ use std::time::Duration;
 
 use termrock::grid::{Column, ColumnKey, Table, TableColumn, TableState};
 use termrock::{
-    ActionKey, CodeEditor, CodeEditorState, Cx, FrameRead, GridModel, Id, ItemKey, Panel,
-    PanelKind, Rect, ResetPolicy, Response, Role, SplitAxis, SplitFallback, SplitPane,
+    ActionKey, CodeEditor, CodeEditorState, Cx, FrameRead, GridModel, Id, ItemKey, Maximized,
+    Panel, PanelKind, Rect, ResetPolicy, Response, Role, SplitAxis, SplitFallback, SplitPane,
     SplitPaneState, StateFlags, StatusBar, StatusItem, Tabs, TabsAction, TabsState, ToolItem,
-    Toolbar, ToolbarAction, ToolbarState, Ui, UpdateCause, layout,
+    Toolbar, ToolbarAction, ToolbarState, TreeAction, Ui, UpdateCause, layout,
 };
 
+mod explorer;
 mod options;
 
 use super::{Page, PageStatus, PageUpdate, frame};
+use explorer::{ExplorerState, SampleTable};
 use options::{Change as OptionChange, ResultFixture, Settings as WorkbenchOptions};
 
 const TABS: Id = Id::root("showcase_ui::pages::query_workbench.tabs");
 const TOOLBAR: Id = Id::root("showcase_ui::pages::query_workbench.toolbar");
 const EDITOR_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.editor_panel");
 const RESULTS_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.results_panel");
+const EXPLORER_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.explorer_panel");
+const EXPLORER_SPLIT: Id = Id::root("showcase_ui::pages::query_workbench.explorer_split");
 const SPLIT: Id = Id::root("showcase_ui::pages::query_workbench.split");
 const EDITOR: Id = Id::root("showcase_ui::pages::query_workbench.editor");
 const RESULTS: Id = Id::root("showcase_ui::pages::query_workbench.results");
@@ -35,7 +39,16 @@ pub const EDITOR_PANEL_ID: Id = EDITOR_PANEL;
 
 pub const RESULTS_PANEL_ID: Id = RESULTS_PANEL;
 
-const RUN_CAPTURE_OWNERS: [Id; 5] = [TABS, TOOLBAR, SPLIT, EDITOR, RESULTS];
+const RUN_CAPTURE_OWNERS: [Id; 8] = [
+    EXPLORER_SPLIT,
+    explorer::FILTER,
+    explorer::TREE,
+    TABS,
+    TOOLBAR,
+    SPLIT,
+    EDITOR,
+    RESULTS,
+];
 
 pub const RUN_QUERY: ActionKey = ActionKey::application("showcase.query_workbench.run");
 
@@ -67,6 +80,18 @@ const EDITOR_HINTS: &[(&str, &str)] = &[
     ("Esc", "Done editing"),
 ];
 const RESULTS_HINTS: &[(&str, &str)] = &[("↑ ↓", "Move rows"), ("← →", "Move columns")];
+const EXPLORER_SPLIT_HINTS: &[(&str, &str)] = &[
+    ("← →", "Resize panes"),
+    ("Home", "Reset Explorer share"),
+    ("Ctrl+R", "Run query"),
+];
+const FILTER_HINTS: &[(&str, &str)] = &[("Ctrl+R", "Run query"), ("Esc", "Cancel filter")];
+const TREE_HINTS: &[(&str, &str)] = &[
+    ("↑ ↓", "Move objects"),
+    ("← →", "Expand or collapse"),
+    ("Enter", "Open table"),
+    ("Ctrl+R", "Run query"),
+];
 const SPLIT_HINTS: &[(&str, &str)] = &[
     ("↑ ↓", "Resize panes"),
     ("Home", "Reset editor share"),
@@ -190,6 +215,7 @@ struct Document {
     title: String,
     editor: CodeEditorState,
     result: ResultView,
+    source_table: Option<SampleTable>,
 }
 
 impl Document {
@@ -199,7 +225,14 @@ impl Document {
             title,
             editor: CodeEditorState::new(sql),
             result: ResultView::NotRun,
+            source_table: None,
         }
+    }
+
+    fn for_sample_table(key: ItemKey, title: String, sql: &str, source_table: SampleTable) -> Self {
+        let mut document = Self::new(key, title, sql);
+        document.source_table = Some(source_table);
+        document
     }
 }
 
@@ -257,6 +290,8 @@ pub struct QueryWorkbenchPage {
     run: Option<PendingRun>,
     status: String,
     options: WorkbenchOptions,
+    explorer: ExplorerState,
+    explorer_split: SplitPaneState,
     split: SplitPaneState,
     options_state: termrock::FormDialogState,
     options_open: bool,
@@ -267,7 +302,12 @@ impl QueryWorkbenchPage {
     pub fn new() -> Self {
         let orders_key = ItemKey::text("query.workbench.orders");
         let customers_key = ItemKey::text("query.workbench.customers");
-        let mut orders = Document::new(orders_key, "orders.sql".to_owned(), FIRST_QUERY);
+        let mut orders = Document::for_sample_table(
+            orders_key,
+            "orders.sql".to_owned(),
+            FIRST_QUERY,
+            SampleTable::Orders,
+        );
         orders.result = ResultView::Rows {
             table: "orders".to_owned(),
             count: 25,
@@ -278,7 +318,12 @@ impl QueryWorkbenchPage {
         Self {
             documents: vec![
                 orders,
-                Document::new(customers_key, "customers.sql".to_owned(), SECOND_QUERY),
+                Document::for_sample_table(
+                    customers_key,
+                    "customers.sql".to_owned(),
+                    SECOND_QUERY,
+                    SampleTable::Customers,
+                ),
             ],
             next_document_id: 2,
             tabs,
@@ -287,6 +332,8 @@ impl QueryWorkbenchPage {
             run: None,
             status: "Ready · sample data only".to_owned(),
             options: WorkbenchOptions::default(),
+            explorer: ExplorerState::new(),
+            explorer_split: SplitPaneState::new(32),
             split: SplitPaneState::new(40),
             options_state: termrock::FormDialogState::default(),
             options_open: false,
@@ -338,21 +385,71 @@ impl QueryWorkbenchPage {
         if !self.options.allow_new() {
             return false;
         }
-        let document_id = self.next_document_id;
-        let Some(next_document_id) = document_id.checked_add(1) else {
+        let title = format!("Query {}", self.next_document_id);
+        if self.append_document(title, "", None) {
+            true
+        } else {
             self.status = "Cannot open another query tab.".to_owned();
+            false
+        }
+    }
+
+    fn open_sample_table(&mut self, table: SampleTable) -> bool {
+        if let Some(index) = self
+            .documents
+            .iter()
+            .position(|document| document.source_table == Some(table))
+        {
+            let Some(key) = self.documents.get(index).map(|document| document.key) else {
+                return false;
+            };
+            self.tabs.set_active(index, key);
+            return true;
+        }
+
+        let title = format!("{}.sql", table.name());
+        let sql = format!("SELECT * FROM {} LIMIT 100;\n", table.name());
+        self.append_document(title, &sql, Some(table))
+    }
+
+    fn append_document(
+        &mut self,
+        title: String,
+        sql: &str,
+        source_table: Option<SampleTable>,
+    ) -> bool {
+        let Some(key) = self.allocate_document_key() else {
             return false;
         };
-        self.next_document_id = next_document_id;
-
-        let key = ItemKey::num(document_id);
-        let title = format!("Query {document_id}");
-        self.documents.push(Document::new(key, title, ""));
+        let document = match source_table {
+            Some(table) => Document::for_sample_table(key, title, sql, table),
+            None => Document::new(key, title, sql),
+        };
+        self.documents.push(document);
         self.tabs.set_active(self.documents.len() - 1, key);
         if self.run.is_none() {
             self.status = "Ready · sample data only".to_owned();
         }
         true
+    }
+
+    fn allocate_document_key(&mut self) -> Option<ItemKey> {
+        let document_id = self.next_document_id;
+        let next_document_id = document_id.checked_add(1)?;
+        self.next_document_id = next_document_id;
+        Some(ItemKey::num(document_id))
+    }
+
+    fn apply_sample_table(&mut self, table: SampleTable) -> bool {
+        let opened = self.open_sample_table(table);
+        if self.run.is_none() {
+            self.status = if opened {
+                format!("Opened {} from Explorer.", table.name())
+            } else {
+                "Cannot open another query tab.".to_owned()
+            };
+        }
+        opened
     }
 
     fn active_index(&self) -> Option<usize> {
@@ -396,6 +493,33 @@ impl QueryWorkbenchPage {
         )
     }
 
+    fn explorer_results_split(&self) -> SplitPane<'static> {
+        SplitPane::new(EXPLORER_SPLIT, SplitAxis::Horizontal)
+            .min_first(22)
+            .min_second(40)
+            .gap(1)
+            .resizable(true)
+            .reset_policy(ResetPolicy::Percent(self.options.explorer_share()))
+            .undersized_fallback(SplitFallback::second_only())
+    }
+
+    fn set_explorer_visible(&mut self, visible: bool) {
+        let maximized = self.explorer_split.maximized();
+        if visible == (maximized == Maximized::Second) {
+            self.explorer_split.toggle_max(Maximized::Second);
+        }
+    }
+
+    fn explorer_is_effectively_visible(&self, cx: &Cx<'_>) -> bool {
+        let area = cx.area(EXPLORER_SPLIT).unwrap_or(Rect::ZERO);
+        self.options.show_explorer()
+            && self
+                .explorer_results_split()
+                .resolved_for(&self.explorer_split, area)
+                .effective_maximized(&self.explorer_split)
+                != Maximized::Second
+    }
+
     fn editor_results_split(&self) -> SplitPane<'static> {
         SplitPane::new(SPLIT, SplitAxis::Vertical)
             .min_first(5)
@@ -426,9 +550,25 @@ impl QueryWorkbenchPage {
     }
 
     fn apply_option_change(&mut self, change: OptionChange) {
-        if change == OptionChange::EditorShare {
-            self.split.set_percent(self.options.editor_share());
-            return;
+        match change {
+            OptionChange::EditorShare => {
+                self.split.set_percent(self.options.editor_share());
+                return;
+            }
+            OptionChange::ExplorerShare => {
+                self.explorer_split
+                    .set_percent(self.options.explorer_share());
+                return;
+            }
+            OptionChange::ShowExplorer(visible) => {
+                self.set_explorer_visible(visible);
+                return;
+            }
+            OptionChange::Result(_) => {}
+            OptionChange::AllowNew
+            | OptionChange::CloseReveal
+            | OptionChange::ReadOnly
+            | OptionChange::Environment => return,
         }
         let OptionChange::Result(fixture) = change else {
             return;
@@ -662,6 +802,10 @@ impl Page for QueryWorkbenchPage {
         } else if !options_were_close_pending {
             self.options_open = false;
             response |= self
+                .explorer_results_split()
+                .update(cx, &mut self.explorer_split)
+                .erase();
+            response |= self
                 .editor_results_split()
                 .update(cx, &mut self.split)
                 .erase();
@@ -715,6 +859,29 @@ impl Page for QueryWorkbenchPage {
             self.options_open = false;
         }
 
+        let explorer_controls_allowed = !options_were_open
+            && !options_were_close_pending
+            && !self.options_open
+            && !self.options_close_pending
+            && !cx.is_open(OPTIONS_DIALOG)
+            && self.explorer_is_effectively_visible(cx);
+        if explorer_controls_allowed {
+            let update = self.explorer.update(cx);
+            response |= update.response;
+            if update.filter_action.is_some() {
+                response |= Response::changed();
+            }
+            if let Some(TreeAction::Activated(key)) = update.tree_action
+                && let Some(table) = self.explorer.sample_table_for(key)
+            {
+                let _ = self.apply_sample_table(table);
+                response |= Response::changed();
+                status = Some(PageStatus(self.status.clone()));
+            }
+        } else {
+            response |= self.explorer.inactive_update(cx);
+        }
+
         if let Some(next_status) = self.advance_run(cx) {
             status = Some(next_status);
             response |= Response::changed();
@@ -739,29 +906,9 @@ impl Page for QueryWorkbenchPage {
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         let title_width = termrock::width(self.title());
         frame(ui, area, self.title(), "", |ui, body| {
-            let rows = layout::rows(
-                body,
-                &[
-                    layout::Track::Fixed(1),
-                    layout::Track::Fixed(1),
-                    layout::Track::Flex(1),
-                    layout::Track::Fixed(1),
-                ],
-            );
-            let tabs_area = rows.first().copied().unwrap_or(Rect::new(0, 0, 0, 0));
-            let toolbar_area = rows.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
-            let work_area = rows.get(2).copied().unwrap_or(Rect::new(0, 0, 0, 0));
-            let status_area = rows.get(3).copied().unwrap_or(Rect::new(0, 0, 0, 0));
-
-            Tabs::new(TABS)
-                .key(|document: &Document| document.key)
-                .allow_new(self.options.allow_new())
-                .close_reveal(self.options.close_reveal())
-                .closable(true)
-                .draw(ui, tabs_area, &self.tabs, &self.documents);
-
-            let _ = self.toolbar().draw(ui, toolbar_area, &self.toolbar);
-
+            let rows = layout::rows(body, &[layout::Track::Flex(1), layout::Track::Fixed(1)]);
+            let work_area = rows.first().copied().unwrap_or(Rect::new(0, 0, 0, 0));
+            let status_area = rows.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
             let model = self.active_result_model();
             let summary = self
                 .active_index()
@@ -770,49 +917,91 @@ impl Page for QueryWorkbenchPage {
                     || "No query is open.".to_owned(),
                     |document| document.result.summary(),
                 );
-            self.editor_results_split().draw(
+
+            self.explorer_results_split().draw(
                 ui,
                 work_area,
-                &self.split,
-                |ui, editor_area, results_area| {
-                    if let Some(document) = self
-                        .active_index()
-                        .and_then(|index| self.documents.get(index))
-                    {
-                        Panel::new(EDITOR_PANEL)
-                            .kind(PanelKind::Framed)
-                            .title(&document.title)
-                            .draw(ui, editor_area, |ui, inner| {
-                                let _ = CodeEditor::new(EDITOR, inner.height)
-                                    .fill_height(true)
-                                    .placeholder("Write a query against the sample data")
-                                    .read_only(self.options.read_only())
-                                    .draw(ui, inner, &document.editor);
-                            });
-                    }
-
-                    Panel::new(RESULTS_PANEL)
+                &self.explorer_split,
+                |ui, explorer_area, main_area| {
+                    Panel::new(EXPLORER_PANEL)
                         .kind(PanelKind::Framed)
-                        .title("Results")
-                        .draw(ui, results_area, |ui, inner| {
-                            let result_rows = layout::rows(
-                                inner,
-                                &[layout::Track::Fixed(1), layout::Track::Flex(1)],
-                            );
-                            if let Some(summary_area) = result_rows.first()
-                                && !summary_area.is_empty()
-                            {
-                                let _ = ui.paint_str(*summary_area, &summary, ui.surface_style());
-                            }
-                            let table_area =
-                                result_rows.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
-                            let _ = Table::new(RESULTS, &RESULT_COLUMNS).draw(
-                                ui,
-                                table_area,
-                                &self.results,
-                                &model,
-                            );
+                        .title("Explorer")
+                        .draw(ui, explorer_area, |ui, inner| {
+                            self.explorer.draw(ui, inner);
                         });
+
+                    let main_rows = layout::rows(
+                        main_area,
+                        &[
+                            layout::Track::Fixed(1),
+                            layout::Track::Fixed(1),
+                            layout::Track::Flex(1),
+                        ],
+                    );
+                    let tabs_area = main_rows.first().copied().unwrap_or(Rect::new(0, 0, 0, 0));
+                    let toolbar_area = main_rows.get(1).copied().unwrap_or(Rect::new(0, 0, 0, 0));
+                    let editor_results_area =
+                        main_rows.get(2).copied().unwrap_or(Rect::new(0, 0, 0, 0));
+
+                    Tabs::new(TABS)
+                        .key(|document: &Document| document.key)
+                        .allow_new(self.options.allow_new())
+                        .close_reveal(self.options.close_reveal())
+                        .closable(true)
+                        .draw(ui, tabs_area, &self.tabs, &self.documents);
+                    let _ = self.toolbar().draw(ui, toolbar_area, &self.toolbar);
+
+                    self.editor_results_split().draw(
+                        ui,
+                        editor_results_area,
+                        &self.split,
+                        |ui, editor_area, results_area| {
+                            if let Some(document) = self
+                                .active_index()
+                                .and_then(|index| self.documents.get(index))
+                            {
+                                Panel::new(EDITOR_PANEL)
+                                    .kind(PanelKind::Framed)
+                                    .title(&document.title)
+                                    .draw(ui, editor_area, |ui, inner| {
+                                        let _ = CodeEditor::new(EDITOR, inner.height)
+                                            .fill_height(true)
+                                            .placeholder("Write a query against the sample data")
+                                            .read_only(self.options.read_only())
+                                            .draw(ui, inner, &document.editor);
+                                    });
+                            }
+
+                            Panel::new(RESULTS_PANEL)
+                                .kind(PanelKind::Framed)
+                                .title("Results")
+                                .draw(ui, results_area, |ui, inner| {
+                                    let result_rows = layout::rows(
+                                        inner,
+                                        &[layout::Track::Fixed(1), layout::Track::Flex(1)],
+                                    );
+                                    if let Some(summary_area) = result_rows.first()
+                                        && !summary_area.is_empty()
+                                    {
+                                        let _ = ui.paint_str(
+                                            *summary_area,
+                                            &summary,
+                                            ui.surface_style(),
+                                        );
+                                    }
+                                    let table_area = result_rows
+                                        .get(1)
+                                        .copied()
+                                        .unwrap_or(Rect::new(0, 0, 0, 0));
+                                    let _ = Table::new(RESULTS, &RESULT_COLUMNS).draw(
+                                        ui,
+                                        table_area,
+                                        &self.results,
+                                        &model,
+                                    );
+                                });
+                        },
+                    );
                 },
             );
 
@@ -864,6 +1053,15 @@ impl Page for QueryWorkbenchPage {
         if ui.state(TOOLBAR).contains(StateFlags::FOCUSED) {
             return TOOLBAR_HINTS;
         }
+        if ui.state(EXPLORER_SPLIT).contains(StateFlags::FOCUSED) {
+            return EXPLORER_SPLIT_HINTS;
+        }
+        if ui.state(explorer::FILTER).contains(StateFlags::FOCUSED) {
+            return FILTER_HINTS;
+        }
+        if ui.state(explorer::TREE).contains(StateFlags::FOCUSED) {
+            return TREE_HINTS;
+        }
         if ui.state(SPLIT).contains(StateFlags::FOCUSED) {
             return SPLIT_HINTS;
         }
@@ -876,10 +1074,13 @@ impl Page for QueryWorkbenchPage {
         &[]
     }
 
-    fn editing(&self, _ui: &Ui<'_>) -> bool {
-        self.active_index()
-            .and_then(|index| self.documents.get(index))
-            .is_some_and(|document| document.editor.is_editing())
+    fn editing(&self, ui: &Ui<'_>) -> bool {
+        (self.explorer.is_filter_editing()
+            && ui.state(explorer::FILTER).contains(StateFlags::FOCUSED))
+            || self
+                .active_index()
+                .and_then(|index| self.documents.get(index))
+                .is_some_and(|document| document.editor.is_editing())
     }
 }
 

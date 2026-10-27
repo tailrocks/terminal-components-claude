@@ -12,6 +12,8 @@ const RESULT: Id = FORM_ID.part(Part::FIELD).index(3);
 const ENVIRONMENT: Id = FORM_ID.part(Part::FIELD).index(4);
 const ENVIRONMENT_NOTE: Id = FORM_ID.part(Part::FIELD).index(5);
 const EDITOR_SHARE: Id = FORM_ID.part(Part::FIELD).index(6);
+const SHOW_EXPLORER: Id = FORM_ID.part(Part::FIELD).index(7);
+const EXPLORER_SHARE: Id = FORM_ID.part(Part::FIELD).index(8);
 
 pub(super) const ALLOW_NEW_KEY: &str = "queryworkbench.allow_new";
 pub(super) const CLOSE_REVEAL_KEY: &str = "queryworkbench.close_reveal";
@@ -19,6 +21,8 @@ pub(super) const READ_ONLY_KEY: &str = "queryworkbench.read_only";
 pub(super) const RESULT_KEY: &str = "queryworkbench.result";
 pub(super) const ENVIRONMENT_KEY: &str = "queryworkbench.env";
 pub(super) const EDITOR_SHARE_KEY: &str = "queryworkbench.editor_share";
+pub(super) const SHOW_EXPLORER_KEY: &str = "queryworkbench.explorer";
+pub(super) const EXPLORER_SHARE_KEY: &str = "queryworkbench.explorer_width";
 
 const CLOSE: ActionKey = ActionKey::CANCEL;
 const ACTIONS: &[Action<'static>] = &[Action::quiet(CLOSE, "Close")];
@@ -26,6 +30,7 @@ const CLOSE_REVEAL_OPTIONS: &[&str] = &["always", "hover"];
 const RESULT_OPTIONS: &[&str] = &["run", "empty", "error", "plan"];
 const ENVIRONMENT_OPTIONS: &[&str] = &["production", "staging", "development", "local"];
 const EDITOR_SHARE_OPTIONS: &[&str] = &["40", "25", "60"];
+const EXPLORER_SHARE_OPTIONS: &[&str] = &["32", "24", "40"];
 const ENVIRONMENT_ROWS: [(&str, Role); 5] = [
     ("Sample environments", Role::Info),
     ("Production: sample data only", Role::Danger),
@@ -69,6 +74,17 @@ const FIELDS: &[FieldSpec<'static>] = &[
         FieldKind::Select(termrock::Select::new(EDITOR_SHARE)),
     )
     .help("Choose the editor pane height percentage; Home resets to this preset."),
+    FieldSpec::new(
+        SHOW_EXPLORER,
+        "",
+        FieldKind::Toggle(termrock::Toggle::new(SHOW_EXPLORER, "Show Explorer")),
+    ),
+    FieldSpec::new(
+        EXPLORER_SHARE,
+        "Explorer %",
+        FieldKind::Select(termrock::Select::new(EXPLORER_SHARE)),
+    )
+    .help("Choose the Explorer pane width percentage; Home resets to this preset."),
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -90,6 +106,31 @@ enum EditorShare {
     Forty,
     TwentyFive,
     Sixty,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ExplorerShare {
+    ThirtyTwo,
+    TwentyFour,
+    Forty,
+}
+
+impl ExplorerShare {
+    const fn index(self) -> usize {
+        match self {
+            Self::ThirtyTwo => 0,
+            Self::TwentyFour => 1,
+            Self::Forty => 2,
+        }
+    }
+
+    const fn percent(self) -> u8 {
+        match self {
+            Self::ThirtyTwo => 32,
+            Self::TwentyFour => 24,
+            Self::Forty => 40,
+        }
+    }
 }
 
 impl EditorShare {
@@ -126,6 +167,8 @@ pub(super) struct Settings {
     result: ResultFixture,
     environment: Environment,
     editor_share: EditorShare,
+    show_explorer: bool,
+    explorer_share: ExplorerShare,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -136,6 +179,8 @@ pub(super) enum Change {
     Result(ResultFixture),
     Environment,
     EditorShare,
+    ShowExplorer(bool),
+    ExplorerShare,
 }
 
 impl Default for Settings {
@@ -147,6 +192,8 @@ impl Default for Settings {
             result: ResultFixture::Run,
             environment: Environment::Production,
             editor_share: EditorShare::Forty,
+            show_explorer: true,
+            explorer_share: ExplorerShare::ThirtyTwo,
         }
     }
 }
@@ -162,6 +209,14 @@ impl Settings {
 
     pub(super) const fn editor_share(&self) -> u8 {
         self.editor_share.percent()
+    }
+
+    pub(super) const fn show_explorer(&self) -> bool {
+        self.show_explorer
+    }
+
+    pub(super) const fn explorer_share(&self) -> u8 {
+        self.explorer_share.percent()
     }
 
     pub(super) const fn environment_status(&self) -> (&'static str, Role) {
@@ -201,6 +256,8 @@ impl Settings {
                 Environment::Local => 3,
             }),
             EDITOR_SHARE_KEY => Some(self.editor_share.index()),
+            SHOW_EXPLORER_KEY => Some(if self.show_explorer { 1 } else { 0 }),
+            EXPLORER_SHARE_KEY => Some(self.explorer_share.index()),
             _ => None,
         }
     }
@@ -276,6 +333,27 @@ impl Settings {
                 self.editor_share = next;
                 Change::EditorShare
             }
+            SHOW_EXPLORER_KEY if value <= 1 => {
+                let next = value == 1;
+                if self.show_explorer == next {
+                    return None;
+                }
+                self.show_explorer = next;
+                Change::ShowExplorer(next)
+            }
+            EXPLORER_SHARE_KEY => {
+                let next = match value {
+                    0 => ExplorerShare::ThirtyTwo,
+                    1 => ExplorerShare::TwentyFour,
+                    2 => ExplorerShare::Forty,
+                    _ => return None,
+                };
+                if self.explorer_share == next {
+                    return None;
+                }
+                self.explorer_share = next;
+                Change::ExplorerShare
+            }
             _ => return None,
         };
         Some(change)
@@ -289,6 +367,8 @@ impl Settings {
             result: self.option_value(RESULT_KEY).unwrap_or(0),
             environment: self.option_value(ENVIRONMENT_KEY).unwrap_or(0),
             editor_share: self.option_value(EDITOR_SHARE_KEY).unwrap_or(0),
+            show_explorer: self.show_explorer,
+            explorer_share: self.option_value(EXPLORER_SHARE_KEY).unwrap_or(0),
             environment_rows: ENVIRONMENT_ROWS,
         }
     }
@@ -301,6 +381,8 @@ pub(super) struct DialogData {
     result: usize,
     environment: usize,
     editor_share: usize,
+    show_explorer: bool,
+    explorer_share: usize,
     environment_rows: [(&'static str, Role); 5],
 }
 
@@ -313,6 +395,8 @@ impl DialogData {
             RESULT => Some((RESULT_KEY, self.result)),
             ENVIRONMENT => Some((ENVIRONMENT_KEY, self.environment)),
             EDITOR_SHARE => Some((EDITOR_SHARE_KEY, self.editor_share)),
+            SHOW_EXPLORER => Some((SHOW_EXPLORER_KEY, if self.show_explorer { 1 } else { 0 })),
+            EXPLORER_SHARE => Some((EXPLORER_SHARE_KEY, self.explorer_share)),
             _ => None,
         }
     }
@@ -328,6 +412,8 @@ impl FormData for DialogData {
             ENVIRONMENT => FieldRef::Choice(self.environment),
             ENVIRONMENT_NOTE => FieldRef::Note(&self.environment_rows),
             EDITOR_SHARE => FieldRef::Choice(self.editor_share),
+            SHOW_EXPLORER => FieldRef::Flag(self.show_explorer),
+            EXPLORER_SHARE => FieldRef::Choice(self.explorer_share),
             _ => FieldRef::Text(""),
         }
     }
@@ -340,6 +426,8 @@ impl FormData for DialogData {
             RESULT => FieldMut::Choice(&mut self.result),
             ENVIRONMENT => FieldMut::Choice(&mut self.environment),
             EDITOR_SHARE => FieldMut::Choice(&mut self.editor_share),
+            SHOW_EXPLORER => FieldMut::Flag(&mut self.show_explorer),
+            EXPLORER_SHARE => FieldMut::Choice(&mut self.explorer_share),
             _ => FieldMut::ReadOnly,
         }
     }
@@ -350,6 +438,7 @@ impl FormData for DialogData {
             RESULT => RESULT_OPTIONS,
             ENVIRONMENT => ENVIRONMENT_OPTIONS,
             EDITOR_SHARE => EDITOR_SHARE_OPTIONS,
+            EXPLORER_SHARE => EXPLORER_SHARE_OPTIONS,
             _ => &[],
         }
     }
@@ -360,6 +449,7 @@ impl FormData for DialogData {
             RESULT => RESULT_OPTIONS,
             ENVIRONMENT => ENVIRONMENT_OPTIONS,
             EDITOR_SHARE => EDITOR_SHARE_OPTIONS,
+            EXPLORER_SHARE => EXPLORER_SHARE_OPTIONS,
             _ => &[],
         };
         (self.value_mut(id), options)

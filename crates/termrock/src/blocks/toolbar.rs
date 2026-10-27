@@ -24,8 +24,10 @@ use termrock_theme::{
     Family, FgStep, GlyphRole, Resolved, Role, Slot, StyleDefaults, StylePatch, Variant,
 };
 
+mod compat;
 mod tooltip;
 use self::tooltip::{TooltipConfig, TooltipController};
+pub use compat::{IconButton, IconButtonTip, IconLook};
 
 const ACTIVATE_ENTER: ActionKey = ActionKey::custom("termrock.toolbar.activate.enter");
 const ACTIVATE_SPACE: ActionKey = ActionKey::custom("termrock.toolbar.activate.space");
@@ -607,6 +609,25 @@ impl Toolbar {
     #[must_use]
     pub fn more_glyph(mut self, glyph: &str) -> Self {
         self.more_glyph = Some(glyph.to_owned());
+        self
+    }
+
+    #[must_use]
+    pub fn more_button(mut self, button: IconButton) -> Self {
+        self.more_glyph = button.glyph;
+        self.more_look = Some(match button.look {
+            IconLook::Close => ToolbarMoreLook::Close,
+            IconLook::Title => ToolbarMoreLook::Title,
+        });
+        self.more_padding = button.pad;
+        self.more_danger_hover = button.danger_hover;
+        self.more_tip = match button.tip {
+            Some(tip) => ToolbarTip {
+                text: tip.text,
+                shortcut: tip.shortcut,
+            },
+            None => ToolbarTip::default(),
+        };
         self
     }
 
