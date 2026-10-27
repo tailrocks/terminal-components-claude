@@ -2768,6 +2768,7 @@ impl Grid<'_> {
                             item: Some(row_key),
                         },
                     pos,
+                    mods,
                     ..
                 } => {
                     let Some(row) = Self::row_index(model, row_key, st.core.cursor_index()) else {
@@ -2786,10 +2787,15 @@ impl Grid<'_> {
                         st.type_ahead.reset();
                     }
                     match phase {
-                        Phase::Press => self.move_to(st, model, row, col, false, acc),
+                        Phase::Press => {
+                            let extend = matches!(self.nav, NavUnit::Row) && mods.contains(SHIFT);
+                            self.move_to(st, model, row, col, extend, acc);
+                        }
                         Phase::DoubleClick => {
                             if matches!(self.nav, NavUnit::Row) {
-                                if model.row_enabled(row) {
+                                if mods.contains(SHIFT) {
+                                    acc.consumed();
+                                } else if model.row_enabled(row) {
                                     acc.action(GridAction::Activated(row_key));
                                 } else {
                                     acc.consumed();
@@ -5325,6 +5331,222 @@ mod tests {
                 .actions
                 .iter()
                 .any(|action| matches!(action, GridAction::Activated(_)))
+        );
+    }
+
+    fn row_nav_harness(model: Model, editable: bool) -> Harness<GridApp> {
+        let mut app = GridApp::new(model, editable);
+        app.nav = NavUnit::Row;
+        Harness::new(app, Theme::junie(), AREA.width, AREA.height)
+    }
+
+    fn send_grid_mouse(
+        harness: &mut Harness<GridApp>,
+        kind: MouseKind,
+        x: u16,
+        y: u16,
+        mods: KeyModifiers,
+    ) {
+        let _ = harness.handle(crate::event::Input::Mouse(crate::event::Mouse {
+            kind,
+            pos: Position::new(x, y),
+            mods,
+        }));
+    }
+
+    fn click_grid_text_with_modifiers(
+        harness: &mut Harness<GridApp>,
+        text: &str,
+        mods: KeyModifiers,
+    ) {
+        let point = harness.find(text);
+        assert!(point.is_some(), "grid text is visible: {text:?}");
+        if let Some((x, y)) = point {
+            send_grid_mouse(harness, MouseKind::Down, x, y, mods);
+            send_grid_mouse(harness, MouseKind::Up, x, y, mods);
+        }
+    }
+
+    #[test]
+    fn row_nav_shift_click_extends_and_shrinks_full_row_copy_without_checking_rows() {
+        let model = Model {
+            rows: vec![
+                (ItemKey::num(10), ["alpha", "1"]),
+                (ItemKey::num(20), ["beta", "2"]),
+                (ItemKey::num(30), ["gamma", "3"]),
+                (ItemKey::num(40), ["delta", "4"]),
+            ],
+            ..Model::default()
+        };
+        let mut app = GridApp::new(model, false);
+        app.nav = NavUnit::Row;
+        app.state.core.checked_mut().insert(ItemKey::num(20));
+        let mut harness = Harness::new(app, Theme::junie(), AREA.width, AREA.height);
+        let checked_before = harness.app().state.selected_rows().clone();
+        let columns = columns();
+        let grid = Grid::new(ID, &columns).nav(NavUnit::Row);
+
+        click_grid_text_with_modifiers(&mut harness, "alpha", KeyModifiers::NONE);
+        click_grid_text_with_modifiers(&mut harness, "gamma", SHIFT);
+        assert_eq!(
+            harness.app().state.anchor,
+            Some(RangeAnchor::Cell(ItemKey::num(10), ColumnKey::num(1)))
+        );
+        assert_eq!(
+            harness.app().state.cursor().map(|(row, _)| row),
+            Some(ItemKey::num(30))
+        );
+        assert_eq!(
+            grid.copy_tsv(&harness.app().state, &harness.app().model, (2, 0)),
+            "alpha\t1\nbeta\t2\ngamma\t3\n"
+        );
+
+        click_grid_text_with_modifiers(&mut harness, "beta", SHIFT);
+        assert_eq!(
+            harness.app().state.anchor,
+            Some(RangeAnchor::Cell(ItemKey::num(10), ColumnKey::num(1)))
+        );
+        assert_eq!(
+            harness.app().state.cursor().map(|(row, _)| row),
+            Some(ItemKey::num(20))
+        );
+        assert_eq!(
+            grid.copy_tsv(&harness.app().state, &harness.app().model, (1, 0)),
+            "alpha\t1\nbeta\t2\n"
+        );
+        assert_eq!(harness.app().state.selected_rows(), &checked_before);
+    }
+
+    #[test]
+    fn row_nav_shift_click_extends_in_reverse_from_the_keyed_anchor() {
+        let model = Model {
+            rows: vec![
+                (ItemKey::num(10), ["alpha", "1"]),
+                (ItemKey::num(20), ["beta", "2"]),
+                (ItemKey::num(30), ["gamma", "3"]),
+                (ItemKey::num(40), ["delta", "4"]),
+            ],
+            ..Model::default()
+        };
+        let mut harness = row_nav_harness(model, false);
+        let columns = columns();
+        let grid = Grid::new(ID, &columns).nav(NavUnit::Row);
+
+        click_grid_text_with_modifiers(&mut harness, "delta", KeyModifiers::NONE);
+        click_grid_text_with_modifiers(&mut harness, "alpha", SHIFT);
+        assert_eq!(
+            harness.app().state.anchor,
+            Some(RangeAnchor::Cell(ItemKey::num(40), ColumnKey::num(1)))
+        );
+        assert_eq!(
+            grid.copy_tsv(&harness.app().state, &harness.app().model, (0, 0)),
+            "alpha\t1\nbeta\t2\ngamma\t3\ndelta\t4\n"
+        );
+
+        click_grid_text_with_modifiers(&mut harness, "beta", SHIFT);
+        assert_eq!(
+            harness.app().state.anchor,
+            Some(RangeAnchor::Cell(ItemKey::num(40), ColumnKey::num(1)))
+        );
+        assert_eq!(
+            grid.copy_tsv(&harness.app().state, &harness.app().model, (1, 0)),
+            "beta\t2\ngamma\t3\ndelta\t4\n"
+        );
+    }
+
+    #[test]
+    fn row_nav_shift_click_copies_ineligible_rows_as_geometry() {
+        let model = Model {
+            rows: vec![
+                (ItemKey::num(10), ["alpha", "1"]),
+                (ItemKey::num(20), ["blocked", "2"]),
+                (ItemKey::num(30), ["gamma", "3"]),
+            ],
+            ineligible_rows: vec![1],
+            ..Model::default()
+        };
+        let mut harness = row_nav_harness(model, false);
+        let checked_before = harness.app().state.selected_rows().clone();
+        let columns = columns();
+        let grid = Grid::new(ID, &columns).nav(NavUnit::Row);
+
+        click_grid_text_with_modifiers(&mut harness, "alpha", KeyModifiers::NONE);
+        click_grid_text_with_modifiers(&mut harness, "blocked", SHIFT);
+        assert_eq!(
+            harness.app().state.cursor().map(|(row, _)| row),
+            Some(ItemKey::num(20))
+        );
+        assert_eq!(
+            grid.copy_tsv(&harness.app().state, &harness.app().model, (1, 0)),
+            "alpha\t1\nblocked\t2\n"
+        );
+
+        click_grid_text_with_modifiers(&mut harness, "gamma", SHIFT);
+        assert_eq!(
+            grid.copy_tsv(&harness.app().state, &harness.app().model, (2, 0)),
+            "alpha\t1\nblocked\t2\ngamma\t3\n"
+        );
+        assert_eq!(harness.app().state.selected_rows(), &checked_before);
+    }
+
+    #[test]
+    fn row_nav_shift_double_click_does_not_activate_or_edit() {
+        let mut harness = row_nav_harness(Model::two(), true);
+        click_grid_text_with_modifiers(&mut harness, "alpha", SHIFT);
+        click_grid_text_with_modifiers(&mut harness, "alpha", SHIFT);
+        assert!(
+            !harness
+                .app()
+                .actions
+                .iter()
+                .any(|action| matches!(action, GridAction::Activated(_)))
+        );
+        assert!(!harness.app().state.is_editing());
+
+        click_grid_text_with_modifiers(&mut harness, "beta", KeyModifiers::NONE);
+        click_grid_text_with_modifiers(&mut harness, "beta", KeyModifiers::NONE);
+        assert!(
+            harness
+                .app()
+                .actions
+                .contains(&GridAction::Activated(ItemKey::num(20)))
+        );
+        assert!(!harness.app().state.is_editing());
+    }
+
+    #[test]
+    fn row_range_copy_excludes_the_fetch_sentinel() {
+        let model = TypeAheadTraceModel::new();
+        let columns = columns();
+        let grid = Grid::new(ID, &columns)
+            .nav(NavUnit::Row)
+            .fetch_on_activate(true);
+        let mut state = GridState::default();
+        let mut acc = Acc::new();
+        let last_row = model.row_count().saturating_sub(1);
+        let sentinel = model.row_count();
+        grid.move_to(&mut state, &model, last_row, 0, false, &mut acc);
+        grid.move_to(&mut state, &model, sentinel, 0, true, &mut acc);
+        assert!(state.on_fetch_row());
+        assert_eq!(
+            state.anchor,
+            Some(RangeAnchor::Cell(
+                ItemKey::index(last_row),
+                ColumnKey::num(1)
+            ))
+        );
+
+        model.reads.borrow_mut().clear();
+        assert_eq!(
+            grid.copy_tsv(&state, &model, (sentinel, 0)),
+            "bravo later\tbravo later\n"
+        );
+        assert_eq!(
+            model.reads.borrow().as_slice(),
+            &[
+                TypeAheadRead::Cell(last_row, 0),
+                TypeAheadRead::Cell(last_row, 1)
+            ]
         );
     }
 
