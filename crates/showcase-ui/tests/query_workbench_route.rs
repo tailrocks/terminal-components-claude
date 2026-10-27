@@ -9,6 +9,9 @@ const EDITOR_PANEL: Id = Id::root("showcase_ui::pages::query_workbench.editor_pa
 const RESULTS: Id = Id::root("showcase_ui::pages::query_workbench.results");
 const SPLIT: Id = Id::root("showcase_ui::pages::query_workbench.split");
 const NAV: Id = Id::root("showcase_ui::app::navigation");
+const QUIT_CONFIRMATION: Id = Id::root("showcase_ui::app::quit-confirmation");
+const QUIT_STAY: Id = QUIT_CONFIRMATION.part(Part::ACTIONS).index(0);
+const QUIT_LEAVE: Id = QUIT_CONFIRMATION.part(Part::ACTIONS).index(1);
 const HELP: Id = Id::root("showcase_ui::app::help");
 const HEADER_HELP: Id = Id::root("showcase_ui::app::header.help");
 const HEADER_INSPECT: Id = Id::root("showcase_ui::app::header.inspect");
@@ -327,6 +330,64 @@ fn press_ctrl_r(h: &mut Harness<App>) {
     let _ = h.key_mod(KeyCode::Char('r'), KeyModifiers::CONTROL);
 }
 
+fn press_ctrl_c(h: &mut Harness<App>) {
+    let _ = h.key_mod(KeyCode::Char('c'), KeyModifiers::CONTROL);
+}
+
+fn navigate_to_page_with_filter(h: &mut Harness<App>, label: &str, expected_page: PageId) {
+    let focus_navigation = |h: &mut Harness<App>| {
+        for _ in 0..=NAV_ENTRIES.len() {
+            if h.focus() == Some(NAV) {
+                break;
+            }
+            let key = if h.focus() == Some(EDITOR) {
+                KeyCode::F(6)
+            } else {
+                KeyCode::Tab
+            };
+            let _ = h.key(key);
+        }
+        assert_eq!(h.focus(), Some(NAV), "native focus traversal reaches NAV");
+        assert!(
+            h.diagnostics().is_empty(),
+            "native NAV focus traversal: {:?}",
+            h.diagnostics()
+        );
+    };
+
+    focus_navigation(h);
+    let _ = h.key(KeyCode::Char('/'));
+    let _ = h.type_str(label);
+    assert!(
+        format!("{:?}", h.app()).contains("nav_query: Some"),
+        "the native navigation filter owns the full destination label"
+    );
+
+    let nav = h
+        .area_of(NAV)
+        .expect("the Showcase navigation area is published");
+    let mut visible = false;
+    for y in nav.y..nav.y.saturating_add(nav.height) {
+        let mut row = String::new();
+        for x in nav.x..nav.x.saturating_add(nav.width) {
+            row.push_str(h.cell(x, y).symbol());
+        }
+        if row.contains(label) {
+            visible = true;
+            break;
+        }
+    }
+    assert!(visible, "native navigation filter shows {label:?}");
+
+    let _ = h.key(KeyCode::Enter);
+    assert_eq!(h.app().page(), expected_page);
+    assert!(
+        format!("{:?}", h.app()).contains("nav_query: None"),
+        "opening a filtered destination clears the native query"
+    );
+    focus_navigation(h);
+}
+
 fn click_toolbar_options(h: &mut Harness<App>) {
     let options = PartRef::item(Part::ROW, ItemKey::index(4));
     if h.area_of_part(TOOLBAR, options).is_some() {
@@ -627,6 +688,393 @@ fn query_workbench_stop_and_clear_cancel_pending_work_and_clear_saved_sql() {
             .contains("Running query · 6 native ticks remaining")
     );
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn running_query_quit_confirmation_preserves_run_on_stay_and_consumes_repeats() {
+    let mut h = harness();
+    assert!(h.tab_to(EDITOR));
+    press_ctrl_r(&mut h);
+    assert!(
+        h.text()
+            .contains("Running query · 6 native ticks remaining")
+    );
+
+    let _ = h.key(KeyCode::Char('q'));
+    assert!(!h.app().quit());
+    assert!(!h.is_open(QUIT_CONFIRMATION));
+    assert!(
+        h.text().contains("q-- Pending orders, newest first"),
+        "q is inserted into the focused SQL editor rather than treated as a shell quit"
+    );
+
+    press_ctrl_c(&mut h);
+    assert!(h.is_open(QUIT_CONFIRMATION));
+    assert!(!h.app().quit());
+    assert!(h.text().contains("Still running"));
+    assert!(h.text().contains("Stay"));
+    assert!(h.text().contains("Stop and leave"));
+    assert!(
+        h.text()
+            .contains("The query is still running. Leaving stops it.")
+    );
+    assert_eq!(h.focus(), Some(QUIT_STAY), "Stay receives initial focus");
+    assert!(h.diagnostics().is_empty(), "open: {:?}", h.diagnostics());
+
+    press_ctrl_c(&mut h);
+    let _ = h.key(KeyCode::Char('q'));
+    press_ctrl_r(&mut h);
+    let _ = h.key(KeyCode::Char(']'));
+    assert!(
+        h.is_open(QUIT_CONFIRMATION),
+        "repeated quit cannot bypass the dialog"
+    );
+    assert!(!h.app().quit());
+    assert_eq!(
+        h.app().page(),
+        PageId::QueryWorkbench,
+        "navigation stays blocked"
+    );
+    assert!(format!("{:?}", h.app()).contains("nav_query: None"));
+
+    let _ = h.key(KeyCode::Enter);
+    assert!(
+        !h.is_open(QUIT_CONFIRMATION),
+        "Stay closes the confirmation"
+    );
+    assert!(!h.app().quit());
+    assert_eq!(
+        h.focus(),
+        Some(EDITOR),
+        "native focus returns to the query editor"
+    );
+    assert!(h.diagnostics().is_empty(), "Stay: {:?}", h.diagnostics());
+    press_ctrl_c(&mut h);
+    assert!(
+        h.is_open(QUIT_CONFIRMATION),
+        "closing the first dialog clears its pending reason"
+    );
+    assert!(
+        !h.app().quit(),
+        "the prior programmatic close receipt cannot confirm a new quit"
+    );
+    assert_eq!(h.focus(), Some(QUIT_STAY));
+    assert!(h.diagnostics().is_empty(), "reopen: {:?}", h.diagnostics());
+    let _ = h.tick();
+    assert!(
+        h.is_open(QUIT_CONFIRMATION),
+        "the prior close receipt cannot dismiss the new dialog"
+    );
+    assert!(!h.app().quit());
+    assert!(
+        h.diagnostics().is_empty(),
+        "close receipt follow-up: {:?}",
+        h.diagnostics()
+    );
+    let _ = h.key(KeyCode::Esc);
+    assert!(!h.is_open(QUIT_CONFIRMATION));
+    assert_eq!(h.focus(), Some(EDITOR));
+    assert!(h.diagnostics().is_empty(), "Escape: {:?}", h.diagnostics());
+    let _ = h.tick();
+    assert!(
+        h.diagnostics().is_empty(),
+        "Escape follow-up: {:?}",
+        h.diagnostics()
+    );
+    press_ctrl_c(&mut h);
+    assert!(h.is_open(QUIT_CONFIRMATION));
+    assert!(
+        h.diagnostics().is_empty(),
+        "outside open: {:?}",
+        h.diagnostics()
+    );
+    let _ = h.click(0, 0);
+    assert!(
+        !h.is_open(QUIT_CONFIRMATION),
+        "outside dismissal clears the pending quit"
+    );
+    assert!(!h.app().quit());
+    assert!(
+        h.diagnostics().is_empty(),
+        "outside dismissal: {:?}",
+        h.diagnostics()
+    );
+    let _ = h.tick();
+    assert_eq!(h.focus(), Some(EDITOR));
+    assert!(
+        h.diagnostics().is_empty(),
+        "outside follow-up: {:?}",
+        h.diagnostics()
+    );
+    h.ticks(6);
+    assert!(h.text().contains("25 rows from orders"));
+    assert!(!h.text().contains("Running query ·"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn running_query_quit_confirmation_confirms_only_from_native_confirm_action() {
+    let mut h = harness();
+    assert!(h.tab_to(EDITOR));
+    press_ctrl_r(&mut h);
+    press_ctrl_c(&mut h);
+    assert!(h.is_open(QUIT_CONFIRMATION));
+    assert!(!h.app().quit(), "opening the dialog does not quit");
+    assert_eq!(h.focus(), Some(QUIT_STAY));
+    assert!(
+        h.diagnostics().is_empty(),
+        "confirm open: {:?}",
+        h.diagnostics()
+    );
+
+    let _ = h.key(KeyCode::Right);
+    assert_eq!(
+        h.focus(),
+        Some(QUIT_LEAVE),
+        "the destructive action is reachable"
+    );
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.app().quit(), "native Confirm quits the app");
+    assert!(!h.is_open(QUIT_CONFIRMATION));
+    assert!(
+        h.diagnostics().is_empty(),
+        "confirm close: {:?}",
+        h.diagnostics()
+    );
+}
+
+#[test]
+fn running_query_quit_confirmation_restores_options_and_help_focus() {
+    let mut options = harness();
+    assert!(options.tab_to(EDITOR));
+    press_ctrl_r(&mut options);
+    click_toolbar_options(&mut options);
+    assert!(options.is_open(OPTIONS));
+    let options_focus = options.focus();
+    press_ctrl_c(&mut options);
+    assert!(options.is_open(QUIT_CONFIRMATION));
+    assert_eq!(options.focus(), Some(QUIT_STAY));
+    assert!(
+        options.diagnostics().is_empty(),
+        "Options open: {:?}",
+        options.diagnostics()
+    );
+    let _ = options.key(KeyCode::Esc);
+    assert!(options.is_open(OPTIONS), "Options remains open underneath");
+    assert_eq!(options.focus(), options_focus, "focus returns to Options");
+    assert!(!options.app().quit());
+    assert!(
+        options.diagnostics().is_empty(),
+        "Options close: {:?}",
+        options.diagnostics()
+    );
+    let _ = options.tick();
+    assert!(
+        options.diagnostics().is_empty(),
+        "Options follow-up: {:?}",
+        options.diagnostics()
+    );
+
+    let mut help = harness();
+    assert!(help.tab_to(EDITOR));
+    press_ctrl_r(&mut help);
+    let help_area = help
+        .area_of_part(HEADER_HELP, PartRef::of(Part::LABEL))
+        .expect("Help header action is registered");
+    let _ = help.click(help_area.x.saturating_add(1), help_area.y);
+    assert!(help.is_open(HELP));
+    let help_focus = help.focus();
+    press_ctrl_c(&mut help);
+    assert!(help.is_open(QUIT_CONFIRMATION));
+    assert!(
+        help.diagnostics().is_empty(),
+        "Help plus quit open: {:?}",
+        help.diagnostics()
+    );
+    let _ = help.tick();
+    assert!(help.is_open(QUIT_CONFIRMATION));
+    let _ = help.key(KeyCode::Esc);
+    assert!(help.is_open(HELP), "Help remains open underneath");
+    assert_eq!(help.focus(), help_focus, "focus returns to Help");
+    assert!(!help.app().quit());
+    assert!(
+        help.diagnostics().is_empty(),
+        "Help close: {:?}",
+        help.diagnostics()
+    );
+    let _ = help.tick();
+    assert!(
+        help.diagnostics().is_empty(),
+        "Help follow-up: {:?}",
+        help.diagnostics()
+    );
+    let _ = help.key(KeyCode::Esc);
+    assert!(!help.is_open(HELP));
+    assert!(
+        help.text()
+            .contains("Running query · 6 native ticks remaining"),
+        "Help pauses an active run even below the quit confirmation"
+    );
+    assert!(
+        options.diagnostics().is_empty(),
+        "{:?}",
+        options.diagnostics()
+    );
+    assert!(help.diagnostics().is_empty(), "{:?}", help.diagnostics());
+}
+
+#[test]
+fn hidden_query_run_still_requires_quit_confirmation_and_keeps_its_ticks() {
+    let mut h = harness();
+    assert!(h.tab_to(EDITOR));
+    press_ctrl_r(&mut h);
+    h.ticks(2);
+    assert!(
+        h.text()
+            .contains("Running query · 4 native ticks remaining")
+    );
+
+    navigate_to_page_with_filter(&mut h, "Buttons", PageId::Buttons);
+    assert_eq!(h.app().page(), PageId::Buttons);
+    assert_eq!(
+        h.focus(),
+        Some(NAV),
+        "route selection leaves navigation focused"
+    );
+    h.ticks(3);
+    let _ = h.key(KeyCode::Char('/'));
+    let _ = h.type_str("query");
+    assert!(format!("{:?}", h.app()).contains("nav_query: Some"));
+    press_ctrl_c(&mut h);
+    assert!(
+        h.is_open(QUIT_CONFIRMATION),
+        "hidden QWB state still guards quit"
+    );
+    assert_eq!(h.focus(), Some(QUIT_STAY));
+    assert!(!h.app().quit());
+    assert!(
+        h.diagnostics().is_empty(),
+        "hidden open: {:?}",
+        h.diagnostics()
+    );
+    let _ = h.tick();
+    assert!(format!("{:?}", h.app()).contains("nav_query: None"));
+    assert_eq!(h.focus(), Some(QUIT_STAY));
+    assert!(
+        h.diagnostics().is_empty(),
+        "hidden focus-out: {:?}",
+        h.diagnostics()
+    );
+    let _ = h.key(KeyCode::Esc);
+    assert!(!h.is_open(QUIT_CONFIRMATION));
+    assert_eq!(h.focus(), Some(NAV), "native focus returns to NAV");
+    assert!(
+        h.diagnostics().is_empty(),
+        "hidden close: {:?}",
+        h.diagnostics()
+    );
+    let _ = h.tick();
+    assert_eq!(h.focus(), Some(NAV), "settled focus remains on NAV");
+    assert!(
+        h.diagnostics().is_empty(),
+        "hidden follow-up: {:?}",
+        h.diagnostics()
+    );
+
+    navigate_to_page_with_filter(&mut h, "Query workbench", PageId::QueryWorkbench);
+    assert_eq!(h.app().page(), PageId::QueryWorkbench);
+    assert!(
+        h.text()
+            .contains("Running query · 4 native ticks remaining")
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn running_query_quit_confirmation_remains_drawn_below_the_shell_minimum() {
+    let mut h = harness();
+    assert!(h.tab_to(EDITOR));
+    press_ctrl_r(&mut h);
+    let _ = h.resize(70, 18);
+    press_ctrl_c(&mut h);
+    assert!(h.is_open(QUIT_CONFIRMATION));
+    assert!(h.text().contains("Still running"));
+    assert!(h.text().contains("Stop and leave"));
+    assert!(!h.app().quit());
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn query_completion_while_quit_confirmation_is_open_does_not_auto_quit_or_restart() {
+    let mut h = harness();
+    assert!(h.tab_to(EDITOR));
+    press_ctrl_r(&mut h);
+    press_ctrl_c(&mut h);
+    assert!(h.is_open(QUIT_CONFIRMATION));
+
+    h.ticks(6);
+    assert!(h.is_open(QUIT_CONFIRMATION));
+    assert!(!h.app().quit(), "query completion does not confirm leaving");
+    assert!(h.text().contains("25 rows from orders"));
+    assert!(!h.text().contains("Running query ·"));
+
+    press_ctrl_r(&mut h);
+    assert!(h.is_open(QUIT_CONFIRMATION));
+    assert!(
+        !h.text().contains("Running query ·"),
+        "Ctrl+R stays blocked by the native layer"
+    );
+    let _ = h.key(KeyCode::Esc);
+    assert!(!h.app().quit());
+    assert!(h.text().contains("25 rows from orders"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn idle_completed_stopped_and_owner_closed_work_keep_immediate_quit() {
+    let mut idle = harness();
+    let _ = idle.key(KeyCode::Char('q'));
+    assert!(idle.app().quit(), "idle QWB keeps immediate quit");
+    assert!(!idle.is_open(QUIT_CONFIRMATION));
+
+    let mut completed = harness();
+    assert!(completed.tab_to(EDITOR));
+    press_ctrl_r(&mut completed);
+    completed.ticks(6);
+    press_ctrl_c(&mut completed);
+    assert!(
+        completed.app().quit(),
+        "completed query no longer guards quit"
+    );
+    assert!(!completed.is_open(QUIT_CONFIRMATION));
+
+    let mut stopped = harness();
+    assert!(stopped.tab_to(EDITOR));
+    press_ctrl_r(&mut stopped);
+    let _ = stopped.click_part(TOOLBAR, PartRef::item(Part::ROW, ItemKey::index(2)));
+    assert!(stopped.text().contains("Run stopped."));
+    press_ctrl_c(&mut stopped);
+    assert!(stopped.app().quit(), "stopped query no longer guards quit");
+    assert!(!stopped.is_open(QUIT_CONFIRMATION));
+
+    let mut owner_closed = harness();
+    assert!(owner_closed.tab_to(EDITOR));
+    press_ctrl_r(&mut owner_closed);
+    click_close(&mut owner_closed, orders_key());
+    assert!(
+        owner_closed
+            .text()
+            .contains("Run cancelled · its query tab was closed.")
+    );
+    press_ctrl_c(&mut owner_closed);
+    assert!(
+        owner_closed.app().quit(),
+        "closing the run owner clears the quit guard"
+    );
+    assert!(!owner_closed.is_open(QUIT_CONFIRMATION));
+    for h in [&idle, &completed, &stopped, &owner_closed] {
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
 }
 
 #[test]

@@ -8,6 +8,7 @@ use termrock_test_support::Harness;
 const FORM_SUMMARY: Id = Id::root("showcase_ui::pages::forms::forms.summary");
 const SCROLL_LIST: Id = Id::root("showcase_ui::pages::scrolling::scrolling.list");
 const APP_NAV: Id = Id::root("showcase_ui::app::navigation");
+const QUIT_CONFIRMATION: Id = Id::root("showcase_ui::app::quit-confirmation");
 const CHROME_BRAND: Id = Id::root("showcase_ui::pages::chrome::chrome.brand");
 const SIDEBAR_CONTENT: Id = Id::root("showcase_ui::pages::sidebars::sidebars.content");
 const EDITOR: Id = Id::root("showcase_ui::pages::editor::editor.code");
@@ -2164,6 +2165,14 @@ fn quit_keys() {
     let mut overview = harness(PageId::Overview);
     press(&mut overview, KeyCode::Char('q'));
     assert!(overview.app().quit());
+
+    let mut idle_query_workbench = harness(PageId::QueryWorkbench);
+    press(&mut idle_query_workbench, KeyCode::Char('q'));
+    assert!(idle_query_workbench.app().quit());
+    assert!(
+        !idle_query_workbench.is_open(QUIT_CONFIRMATION),
+        "an idle Query Workbench keeps immediate quit"
+    );
 
     quit_keys_with_default_select_all();
     quit_keys_with_explicit_caret_end();
