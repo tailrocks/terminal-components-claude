@@ -20,5 +20,5 @@ pub use status::{StatusSeg, StatusTone, paint_status};
 pub use tabs::{Tab, paint_tabs};
 pub use toolbar::{
     ToolItem, Toolbar, ToolbarAction, ToolbarActionEvent, ToolbarActions, ToolbarError,
-    ToolbarReferenceState, ToolbarState, ToolbarTip, ToolbarTooltipPolicy,
+    ToolbarMoreLook, ToolbarReferenceState, ToolbarState, ToolbarTip, ToolbarTooltipPolicy,
 };

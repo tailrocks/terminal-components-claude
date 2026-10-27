@@ -3,11 +3,14 @@ use std::time::Duration;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui_core::layout::{Position, Rect};
+use ratatui_core::style::{Color, Modifier};
 use termrock::core::keymap::NavKeys;
+use termrock::theme::{ColorLevel, FgStep, Overlay, Role, StylePatch, Surface};
 use termrock::{
     App, Button, Cx, Id, Input, ItemKey, Key, KeyCode, KeyModifiers, Mouse, MouseKind, Part,
     PartRef, Response, Runtime, Theme, ToolItem, Toolbar, ToolbarAction, ToolbarActionEvent,
-    ToolbarError, ToolbarReferenceState, ToolbarState, ToolbarTip, ToolbarTooltipPolicy, Ui,
+    ToolbarError, ToolbarMoreLook, ToolbarReferenceState, ToolbarState, ToolbarTip,
+    ToolbarTooltipPolicy, Ui,
 };
 
 const TOOLBAR: Id = Id::root("termrock.tests.toolbar.root");
@@ -43,9 +46,13 @@ struct ToolbarHost {
     skip_disabled: bool,
     overflow_mode: OverflowFixtureMode,
     more_glyph: Option<String>,
+    more_look: Option<ToolbarMoreLook>,
+    more_danger_hover: Option<bool>,
     more_padding: u16,
     more_tip: ToolbarTip,
     tooltip_policy: ToolbarTooltipPolicy,
+    more_surface: Option<Surface>,
+    more_style_overlay: Option<&'static Overlay>,
     reference_probe: bool,
     reference_gallery: bool,
     draw_toolbar_snapshot: Option<Toolbar>,
@@ -69,9 +76,13 @@ impl ToolbarHost {
             skip_disabled: true,
             overflow_mode: OverflowFixtureMode::NoOverflowFixture,
             more_glyph: None,
+            more_look: None,
+            more_danger_hover: None,
             more_padding: 1,
             more_tip: ToolbarTip::default(),
             tooltip_policy: ToolbarTooltipPolicy::DEFAULT,
+            more_surface: None,
+            more_style_overlay: None,
             reference_probe: false,
             reference_gallery: false,
             draw_toolbar_snapshot: None,
@@ -88,6 +99,14 @@ impl ToolbarHost {
         let toolbar = match self.overflow_mode {
             OverflowFixtureMode::NoOverflowFixture => toolbar.overflow(false),
             OverflowFixtureMode::Default => toolbar,
+        };
+        let toolbar = match self.more_look {
+            Some(look) => toolbar.more_look(look),
+            None => toolbar,
+        };
+        let toolbar = match self.more_danger_hover {
+            Some(enabled) => toolbar.more_danger_hover(enabled),
+            None => toolbar,
         };
         let toolbar = toolbar.more_padding(self.more_padding);
         let toolbar = match self.more_glyph.as_deref() {
@@ -119,6 +138,32 @@ impl ToolbarHost {
 
     fn tooltip_policy(&mut self, policy: ToolbarTooltipPolicy) {
         self.tooltip_policy = policy;
+    }
+
+    fn draw_toolbar_scope(&self, ui: &mut Ui<'_>, toolbar: &Toolbar) {
+        if let Some(overlay) = self.more_style_overlay {
+            ui.with_overlay(overlay, |ui| self.draw_toolbar_surface(ui, toolbar));
+        } else {
+            self.draw_toolbar_surface(ui, toolbar);
+        }
+    }
+
+    fn draw_toolbar_surface(&self, ui: &mut Ui<'_>, toolbar: &Toolbar) {
+        if let Some(surface) = self.more_surface {
+            ui.with_surface(surface, |ui| self.draw_toolbar_clip(ui, toolbar));
+        } else {
+            self.draw_toolbar_clip(ui, toolbar);
+        }
+    }
+
+    fn draw_toolbar_clip(&self, ui: &mut Ui<'_>, toolbar: &Toolbar) {
+        if let Some(clip) = self.parent_clip {
+            ui.with_area(clip, |nested| {
+                toolbar.draw(nested, self.toolbar_area, &self.state);
+            });
+        } else {
+            toolbar.draw(ui, self.toolbar_area, &self.state);
+        }
     }
 
     fn more_tip(&mut self, tip: ToolbarTip) {
@@ -160,13 +205,7 @@ impl App for ToolbarHost {
             .draw_toolbar_snapshot
             .clone()
             .unwrap_or_else(|| self.toolbar());
-        if let Some(clip) = self.parent_clip {
-            ui.with_area(clip, |nested| {
-                toolbar.draw(nested, self.toolbar_area, &self.state);
-            });
-        } else {
-            toolbar.draw(ui, self.toolbar_area, &self.state);
-        }
+        self.draw_toolbar_scope(ui, &toolbar);
         if self.reference_probe {
             let reference = Toolbar::new(
                 OTHER_TOOLBAR,
@@ -392,6 +431,320 @@ fn theme_with_hovered_overflow_glyph(role: termrock::theme::GlyphRole) -> Theme 
     theme
 }
 
+const CLOSE_STYLE_SELECTOR: (termrock::theme::Family, termrock::theme::Variant) =
+    Toolbar::more_style_selector(Some(ToolbarMoreLook::Close));
+const TITLE_STYLE_SELECTOR: (termrock::theme::Family, termrock::theme::Variant) =
+    Toolbar::more_style_selector(Some(ToolbarMoreLook::Title));
+const DANGER_STYLE_SELECTOR: (termrock::theme::Family, termrock::theme::Variant) =
+    Toolbar::more_style_selector(None);
+
+static CLOSE_STYLE_SCOPE_RULES: [termrock::theme::OverlayRule; 4] = [
+    (
+        CLOSE_STYLE_SELECTOR.0,
+        CLOSE_STYLE_SELECTOR.1,
+        Part::OVERFLOW,
+        termrock::StateFlags::HOVERED,
+        StylePatch::new().set_fg(Role::Warning),
+    ),
+    (
+        CLOSE_STYLE_SELECTOR.0,
+        CLOSE_STYLE_SELECTOR.1,
+        Part::OVERFLOW,
+        termrock::StateFlags::HOVERED,
+        StylePatch::new().set_bg(Role::Accent),
+    ),
+    (
+        CLOSE_STYLE_SELECTOR.0,
+        CLOSE_STYLE_SELECTOR.1,
+        Part::OVERFLOW,
+        termrock::StateFlags::PRESSED,
+        StylePatch::new().set_fg(Role::Warning),
+    ),
+    (
+        CLOSE_STYLE_SELECTOR.0,
+        CLOSE_STYLE_SELECTOR.1,
+        Part::OVERFLOW,
+        termrock::StateFlags::PRESSED,
+        StylePatch::new().set_bg(Role::Accent),
+    ),
+];
+static CLOSE_STYLE_SCOPE: Overlay = Overlay::new(&CLOSE_STYLE_SCOPE_RULES);
+const LOOK_HOVER_CLEAR: StylePatch = StylePatch::new().clear_fg();
+const LOOK_PRESS_CLEAR: StylePatch = StylePatch::new().clear_fg().clear_bg();
+static CLOSE_CLEAR_STYLE_SCOPE_RULES: [termrock::theme::OverlayRule; 6] = [
+    (
+        CLOSE_STYLE_SELECTOR.0,
+        CLOSE_STYLE_SELECTOR.1,
+        Part::CONTAINER,
+        termrock::StateFlags::HOVERED,
+        LOOK_HOVER_CLEAR,
+    ),
+    (
+        CLOSE_STYLE_SELECTOR.0,
+        CLOSE_STYLE_SELECTOR.1,
+        Part::GUTTER,
+        termrock::StateFlags::HOVERED,
+        LOOK_HOVER_CLEAR,
+    ),
+    (
+        CLOSE_STYLE_SELECTOR.0,
+        CLOSE_STYLE_SELECTOR.1,
+        Part::OVERFLOW,
+        termrock::StateFlags::HOVERED,
+        LOOK_HOVER_CLEAR,
+    ),
+    (
+        CLOSE_STYLE_SELECTOR.0,
+        CLOSE_STYLE_SELECTOR.1,
+        Part::CONTAINER,
+        termrock::StateFlags::PRESSED,
+        LOOK_PRESS_CLEAR,
+    ),
+    (
+        CLOSE_STYLE_SELECTOR.0,
+        CLOSE_STYLE_SELECTOR.1,
+        Part::GUTTER,
+        termrock::StateFlags::PRESSED,
+        LOOK_PRESS_CLEAR,
+    ),
+    (
+        CLOSE_STYLE_SELECTOR.0,
+        CLOSE_STYLE_SELECTOR.1,
+        Part::OVERFLOW,
+        termrock::StateFlags::PRESSED,
+        LOOK_PRESS_CLEAR,
+    ),
+];
+static CLOSE_CLEAR_STYLE_SCOPE: Overlay = Overlay::new(&CLOSE_CLEAR_STYLE_SCOPE_RULES);
+static TITLE_METRIC_SCOPE_RULES: [termrock::theme::OverlayRule; 1] = [(
+    TITLE_STYLE_SELECTOR.0,
+    TITLE_STYLE_SELECTOR.1,
+    Part::OVERFLOW,
+    termrock::StateFlags::empty(),
+    StylePatch::new()
+        .set_glyph(termrock::theme::GlyphRole::Close)
+        .set_size(2),
+)];
+static TITLE_METRIC_SCOPE: Overlay = Overlay::new(&TITLE_METRIC_SCOPE_RULES);
+
+const DANGER_HOVER_CLEAR: StylePatch = StylePatch::new()
+    .clear_fg()
+    .set_bg(Role::Accent)
+    .add(Modifier::BOLD)
+    .set_underline(Role::Warning)
+    .set_glyph(termrock::theme::GlyphRole::Close)
+    .set_size(2);
+const DANGER_PRESS_CLEAR: StylePatch = StylePatch::new()
+    .clear_fg()
+    .clear_bg()
+    .add(Modifier::ITALIC)
+    .set_underline(Role::Info)
+    .set_glyph(termrock::theme::GlyphRole::Close)
+    .set_size(2);
+static DANGER_STYLE_SCOPE_RULES: [termrock::theme::OverlayRule; 6] = [
+    (
+        DANGER_STYLE_SELECTOR.0,
+        DANGER_STYLE_SELECTOR.1,
+        Part::CONTAINER,
+        termrock::StateFlags::HOVERED,
+        DANGER_HOVER_CLEAR,
+    ),
+    (
+        DANGER_STYLE_SELECTOR.0,
+        DANGER_STYLE_SELECTOR.1,
+        Part::GUTTER,
+        termrock::StateFlags::HOVERED,
+        DANGER_HOVER_CLEAR,
+    ),
+    (
+        DANGER_STYLE_SELECTOR.0,
+        DANGER_STYLE_SELECTOR.1,
+        Part::OVERFLOW,
+        termrock::StateFlags::HOVERED,
+        DANGER_HOVER_CLEAR,
+    ),
+    (
+        DANGER_STYLE_SELECTOR.0,
+        DANGER_STYLE_SELECTOR.1,
+        Part::CONTAINER,
+        termrock::StateFlags::PRESSED,
+        DANGER_PRESS_CLEAR,
+    ),
+    (
+        DANGER_STYLE_SELECTOR.0,
+        DANGER_STYLE_SELECTOR.1,
+        Part::GUTTER,
+        termrock::StateFlags::PRESSED,
+        DANGER_PRESS_CLEAR,
+    ),
+    (
+        DANGER_STYLE_SELECTOR.0,
+        DANGER_STYLE_SELECTOR.1,
+        Part::OVERFLOW,
+        termrock::StateFlags::PRESSED,
+        DANGER_PRESS_CLEAR,
+    ),
+];
+static DANGER_STYLE_SCOPE: Overlay = Overlay::new(&DANGER_STYLE_SCOPE_RULES);
+const DANGER_HOVER_CLEAR_ONLY: StylePatch = StylePatch::new().clear_fg();
+const DANGER_PRESS_CLEAR_ONLY: StylePatch = StylePatch::new().clear_fg().clear_bg();
+static DANGER_CLEAR_STYLE_SCOPE_RULES: [termrock::theme::OverlayRule; 6] = [
+    (
+        DANGER_STYLE_SELECTOR.0,
+        DANGER_STYLE_SELECTOR.1,
+        Part::CONTAINER,
+        termrock::StateFlags::HOVERED,
+        DANGER_HOVER_CLEAR_ONLY,
+    ),
+    (
+        DANGER_STYLE_SELECTOR.0,
+        DANGER_STYLE_SELECTOR.1,
+        Part::GUTTER,
+        termrock::StateFlags::HOVERED,
+        DANGER_HOVER_CLEAR_ONLY,
+    ),
+    (
+        DANGER_STYLE_SELECTOR.0,
+        DANGER_STYLE_SELECTOR.1,
+        Part::OVERFLOW,
+        termrock::StateFlags::HOVERED,
+        DANGER_HOVER_CLEAR_ONLY,
+    ),
+    (
+        DANGER_STYLE_SELECTOR.0,
+        DANGER_STYLE_SELECTOR.1,
+        Part::CONTAINER,
+        termrock::StateFlags::PRESSED,
+        DANGER_PRESS_CLEAR_ONLY,
+    ),
+    (
+        DANGER_STYLE_SELECTOR.0,
+        DANGER_STYLE_SELECTOR.1,
+        Part::GUTTER,
+        termrock::StateFlags::PRESSED,
+        DANGER_PRESS_CLEAR_ONLY,
+    ),
+    (
+        DANGER_STYLE_SELECTOR.0,
+        DANGER_STYLE_SELECTOR.1,
+        Part::OVERFLOW,
+        termrock::StateFlags::PRESSED,
+        DANGER_PRESS_CLEAR_ONLY,
+    ),
+];
+static DANGER_CLEAR_STYLE_SCOPE: Overlay = Overlay::new(&DANGER_CLEAR_STYLE_SCOPE_RULES);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum MoreInteraction {
+    Rest,
+    Hover,
+    Pressed,
+    Focused,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct MoreCell {
+    symbol: String,
+    fg: Color,
+    bg: Color,
+    underline: Color,
+    modifier: Modifier,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct MoreSnapshot {
+    area: Rect,
+    cells: Vec<MoreCell>,
+    hidden: Vec<ItemKey>,
+    on_more: bool,
+    toolbar_focus_entries: usize,
+}
+
+fn more_snapshot(
+    theme: Theme,
+    look: Option<ToolbarMoreLook>,
+    danger_hover: Option<bool>,
+    surface: Option<Surface>,
+    overlay: Option<&'static Overlay>,
+    interaction: MoreInteraction,
+) -> MoreSnapshot {
+    let item_keys = keys(&["visible", "hidden-one", "hidden-two"]);
+    let mut host = ToolbarHost::new(
+        vec![
+            ToolItem::new("Visible"),
+            ToolItem::new("Hidden One"),
+            ToolItem::new("Hidden Two"),
+        ],
+        item_keys,
+    );
+    host.toolbar_area = Rect::new(5, 1, 16, 1);
+    host.use_default_overflow();
+    host.more_look = look;
+    host.more_danger_hover = danger_hover;
+    host.more_surface = surface;
+    host.more_style_overlay = overlay;
+    let (mut runtime, mut terminal) = runtime_for_theme(host, theme);
+    render(&mut runtime, &mut terminal, SCREEN);
+
+    let area = runtime
+        .area_of_part(TOOLBAR, PartRef::of(Part::OVERFLOW))
+        .expect("overflow publishes More geometry");
+    match interaction {
+        MoreInteraction::Rest => {}
+        MoreInteraction::Hover => {
+            hover_part(
+                &mut runtime,
+                &mut terminal,
+                SCREEN,
+                TOOLBAR,
+                PartRef::of(Part::OVERFLOW),
+            );
+        }
+        MoreInteraction::Pressed => {
+            mouse(
+                &mut runtime,
+                &mut terminal,
+                SCREEN,
+                MouseKind::Down,
+                Position::new(area.x.saturating_add(1), area.y),
+            );
+            render(&mut runtime, &mut terminal, SCREEN);
+        }
+        MoreInteraction::Focused => {
+            focus_toolbar(&mut runtime, &mut terminal, SCREEN);
+            key(&mut runtime, &mut terminal, SCREEN, KeyCode::End);
+            render(&mut runtime, &mut terminal, SCREEN);
+        }
+    }
+
+    let buffer = terminal.backend().buffer();
+    let cells = area
+        .positions()
+        .map(|position| {
+            let cell = buffer.cell(position).expect("More cell is in the buffer");
+            MoreCell {
+                symbol: cell.symbol().to_owned(),
+                fg: cell.fg,
+                bg: cell.bg,
+                underline: cell.underline_color,
+                modifier: cell.modifier,
+            }
+        })
+        .collect();
+    MoreSnapshot {
+        area,
+        cells,
+        hidden: runtime.app().state.hidden_keys(),
+        on_more: runtime.app().state.on_more(),
+        toolbar_focus_entries: runtime
+            .ring()
+            .entries()
+            .iter()
+            .filter(|entry| entry.id == TOOLBAR)
+            .count(),
+    }
+}
+
 fn focus_toolbar(
     runtime: &mut Runtime<ToolbarHost>,
     terminal: &mut Terminal<TestBackend>,
@@ -402,6 +755,570 @@ fn focus_toolbar(
         render(runtime, terminal, screen);
     }
     assert_eq!(runtime.focus(), Some(TOOLBAR));
+}
+
+fn more_glyph(snapshot: &MoreSnapshot) -> &MoreCell {
+    snapshot
+        .cells
+        .iter()
+        .find(|cell| cell.symbol == "»")
+        .expect("More keeps the native overflow glyph")
+}
+
+fn more_role(theme: &Theme, role: Role, surface: Surface) -> Color {
+    termrock::theme::resolve::bind_role(theme, role, surface)
+        .expect("the Toolbar semantic role resolves to a color")
+}
+
+#[test]
+fn more_default_and_explicit_false_keep_the_existing_button_recipe() {
+    for interaction in [
+        MoreInteraction::Rest,
+        MoreInteraction::Hover,
+        MoreInteraction::Pressed,
+        MoreInteraction::Focused,
+    ] {
+        let unchanged = more_snapshot(Theme::junie(), None, None, None, None, interaction);
+        let explicitly_disabled =
+            more_snapshot(Theme::junie(), None, Some(false), None, None, interaction);
+        assert_eq!(explicitly_disabled, unchanged);
+    }
+}
+
+#[test]
+fn more_looks_resolve_their_state_and_plate_roles_on_each_surface() {
+    for theme in [
+        Theme::junie(),
+        Theme::paper().for_level(ColorLevel::Ansi256),
+    ] {
+        for (look, surface) in [
+            (ToolbarMoreLook::Close, Surface::Canvas),
+            (ToolbarMoreLook::Close, Surface::Field),
+            (ToolbarMoreLook::Title, Surface::Canvas),
+            (ToolbarMoreLook::Title, Surface::Field),
+        ] {
+            let scoped_surface = Some(surface);
+            let rest = more_snapshot(
+                theme.clone(),
+                Some(look),
+                Some(false),
+                scoped_surface,
+                None,
+                MoreInteraction::Rest,
+            );
+            let focused = more_snapshot(
+                theme.clone(),
+                Some(look),
+                Some(false),
+                scoped_surface,
+                None,
+                MoreInteraction::Focused,
+            );
+            assert_eq!(
+                focused.cells, rest.cells,
+                "explicit looks suppress focus-only styling"
+            );
+
+            for (interaction, pressed, hovered) in [
+                (MoreInteraction::Rest, false, false),
+                (MoreInteraction::Hover, false, true),
+                (MoreInteraction::Pressed, true, false),
+            ] {
+                let snapshot = if interaction == MoreInteraction::Rest {
+                    rest.clone()
+                } else {
+                    more_snapshot(
+                        theme.clone(),
+                        Some(look),
+                        Some(false),
+                        scoped_surface,
+                        None,
+                        interaction,
+                    )
+                };
+                let (fg_role, bg_role, bold) = match (look, pressed, hovered) {
+                    (ToolbarMoreLook::Close, true, _) => {
+                        (Role::CurrentSurface, Role::Fg(FgStep::Primary), false)
+                    }
+                    (ToolbarMoreLook::Close, false, true) => {
+                        (Role::Fg(FgStep::Primary), Role::RaisedSurface, false)
+                    }
+                    (ToolbarMoreLook::Close, false, false) => {
+                        (Role::Fg(FgStep::Secondary), Role::CurrentSurface, false)
+                    }
+                    (ToolbarMoreLook::Title, true, _) => {
+                        (Role::Fg(FgStep::Primary), Role::RaisedSurface, true)
+                    }
+                    (ToolbarMoreLook::Title, false, true) => {
+                        (Role::Fg(FgStep::Primary), Role::HoverSurface, false)
+                    }
+                    (ToolbarMoreLook::Title, false, false) => {
+                        (Role::Fg(FgStep::Secondary), Role::CurrentSurface, false)
+                    }
+                };
+                let glyph = more_glyph(&snapshot);
+                assert_eq!(glyph.fg, more_role(&theme, fg_role, surface));
+                assert_eq!(glyph.bg, more_role(&theme, bg_role, surface));
+                assert_eq!(glyph.modifier.contains(Modifier::BOLD), bold);
+                assert!(
+                    snapshot
+                        .cells
+                        .iter()
+                        .all(|cell| { cell.bg == more_role(&theme, bg_role, surface) }),
+                    "the full padded plate uses the state background role"
+                );
+                assert_eq!(snapshot.area.width, 3);
+            }
+        }
+    }
+}
+
+#[test]
+fn more_pointer_danger_changes_only_the_resolved_ink_and_plate_channels() {
+    let theme = Theme::junie();
+    for look in [
+        None,
+        Some(ToolbarMoreLook::Close),
+        Some(ToolbarMoreLook::Title),
+    ] {
+        for interaction in [
+            MoreInteraction::Rest,
+            MoreInteraction::Focused,
+            MoreInteraction::Hover,
+            MoreInteraction::Pressed,
+        ] {
+            let plain = more_snapshot(theme.clone(), look, Some(false), None, None, interaction);
+            let danger = more_snapshot(theme.clone(), look, Some(true), None, None, interaction);
+            assert_eq!(plain.area, danger.area);
+            assert_eq!(plain.hidden, danger.hidden);
+            if matches!(
+                interaction,
+                MoreInteraction::Rest | MoreInteraction::Focused
+            ) {
+                assert_eq!(danger.cells, plain.cells);
+                continue;
+            }
+
+            assert_eq!(danger.cells.len(), plain.cells.len());
+            for (actual, original) in danger.cells.iter().zip(&plain.cells) {
+                assert_eq!(actual.symbol, original.symbol);
+                assert_eq!(actual.modifier, original.modifier);
+                assert_eq!(actual.underline, original.underline);
+                if interaction == MoreInteraction::Hover {
+                    assert_eq!(actual.bg, original.bg, "hover changes foreground only");
+                }
+            }
+            let glyph = more_glyph(&danger);
+            if interaction == MoreInteraction::Hover {
+                assert_eq!(glyph.fg, theme.color.danger_soft);
+            } else {
+                assert_eq!(glyph.fg, theme.color.on_danger);
+                assert_eq!(glyph.bg, theme.color.danger);
+                assert!(
+                    danger
+                        .cells
+                        .iter()
+                        .all(|cell| cell.bg == theme.color.danger)
+                );
+                if look == Some(ToolbarMoreLook::Title) {
+                    assert!(glyph.modifier.contains(Modifier::BOLD));
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn more_look_supports_authored_variant_and_scoped_overrides() {
+    let (family, variant) = CLOSE_STYLE_SELECTOR;
+    let theme = Theme::junie()
+        .define_variant(family, variant, |recipe| {
+            recipe
+                .part(Part::OVERFLOW)
+                .base(StylePatch::new().set_fg(Role::Warning).set_bg(Role::Accent));
+        })
+        .override_variant(family, variant, |edit| {
+            edit.part(Part::OVERFLOW).when(
+                termrock::StateFlags::HOVERED,
+                StylePatch::new().set_fg(Role::Info),
+            );
+            edit.part(Part::OVERFLOW).when(
+                termrock::StateFlags::PRESSED,
+                StylePatch::new().set_bg(Role::Danger),
+            );
+        });
+
+    let rest = more_snapshot(
+        theme.clone(),
+        Some(ToolbarMoreLook::Close),
+        Some(false),
+        None,
+        None,
+        MoreInteraction::Rest,
+    );
+    assert_eq!(more_glyph(&rest).fg, theme.color.warning);
+    assert_eq!(more_glyph(&rest).bg, theme.color.accent);
+
+    let authored_hover = more_snapshot(
+        theme.clone(),
+        Some(ToolbarMoreLook::Close),
+        Some(true),
+        None,
+        None,
+        MoreInteraction::Hover,
+    );
+    assert_eq!(more_glyph(&authored_hover).fg, theme.color.info);
+    assert_eq!(more_glyph(&authored_hover).bg, theme.color.accent);
+
+    let authored_press = more_snapshot(
+        theme.clone(),
+        Some(ToolbarMoreLook::Close),
+        Some(true),
+        None,
+        None,
+        MoreInteraction::Pressed,
+    );
+    assert_eq!(
+        more_glyph(&authored_press).fg,
+        theme.color.info,
+        "the authored hover foreground remains active during press independently of the pressed background override"
+    );
+    assert_eq!(more_glyph(&authored_press).bg, theme.color.danger);
+
+    let scoped_hover = more_snapshot(
+        theme.clone(),
+        Some(ToolbarMoreLook::Close),
+        Some(true),
+        None,
+        Some(&CLOSE_STYLE_SCOPE),
+        MoreInteraction::Hover,
+    );
+    assert_eq!(more_glyph(&scoped_hover).fg, Theme::junie().color.warning);
+    assert_eq!(more_glyph(&scoped_hover).bg, Theme::junie().color.accent);
+
+    let scoped_press = more_snapshot(
+        theme,
+        Some(ToolbarMoreLook::Close),
+        Some(true),
+        None,
+        Some(&CLOSE_STYLE_SCOPE),
+        MoreInteraction::Pressed,
+    );
+    assert_eq!(more_glyph(&scoped_press).fg, Theme::junie().color.warning);
+    assert_eq!(more_glyph(&scoped_press).bg, Theme::junie().color.accent);
+}
+
+#[test]
+fn explicit_look_authored_and_scoped_clears_override_danger_defaults() {
+    let (family, variant) = CLOSE_STYLE_SELECTOR;
+    let authored_clears = Theme::junie().override_variant(family, variant, |edit| {
+        for part in [Part::CONTAINER, Part::GUTTER, Part::OVERFLOW] {
+            edit.part(part)
+                .when(termrock::StateFlags::HOVERED, LOOK_HOVER_CLEAR)
+                .when(termrock::StateFlags::PRESSED, LOOK_PRESS_CLEAR);
+        }
+    });
+
+    for interaction in [MoreInteraction::Hover, MoreInteraction::Pressed] {
+        let cleared = more_snapshot(
+            authored_clears.clone(),
+            Some(ToolbarMoreLook::Close),
+            Some(true),
+            None,
+            None,
+            interaction,
+        );
+        let glyph = more_glyph(&cleared);
+        assert_eq!(glyph.fg, Color::Reset);
+        if interaction == MoreInteraction::Pressed {
+            assert_eq!(glyph.bg, Color::Reset);
+            assert!(cleared.cells.iter().all(|cell| cell.bg == Color::Reset));
+        }
+    }
+
+    let scoped_set_channels = Theme::junie().define_variant(family, variant, |recipe| {
+        for part in [Part::CONTAINER, Part::GUTTER, Part::OVERFLOW] {
+            recipe
+                .part(part)
+                .base(StylePatch::new().set_fg(Role::Warning).set_bg(Role::Accent));
+        }
+    });
+    for interaction in [MoreInteraction::Hover, MoreInteraction::Pressed] {
+        let cleared = more_snapshot(
+            scoped_set_channels.clone(),
+            Some(ToolbarMoreLook::Close),
+            Some(true),
+            None,
+            Some(&CLOSE_CLEAR_STYLE_SCOPE),
+            interaction,
+        );
+        let glyph = more_glyph(&cleared);
+        assert_eq!(glyph.fg, Color::Reset);
+        if interaction == MoreInteraction::Hover {
+            assert_eq!(glyph.bg, Theme::junie().color.accent);
+            assert!(
+                cleared
+                    .cells
+                    .iter()
+                    .all(|cell| cell.bg == Theme::junie().color.accent)
+            );
+        } else {
+            assert_eq!(glyph.bg, Color::Reset);
+            assert!(cleared.cells.iter().all(|cell| cell.bg == Color::Reset));
+        }
+    }
+}
+
+#[test]
+fn unset_danger_preserves_button_base_and_yields_to_specific_selector_rules() {
+    let theme = Theme::junie()
+        .override_variant(
+            termrock::theme::Family::BUTTON,
+            termrock::theme::Variant::SUBTLE,
+            |edit| {
+                edit.part(Part::OVERFLOW)
+                    .base(StylePatch::new().set_fg(Role::Warning).set_bg(Role::Accent))
+                    .when(
+                        termrock::StateFlags::HOVERED,
+                        StylePatch::new().set_bg(Role::Info),
+                    );
+            },
+        )
+        .override_variant(DANGER_STYLE_SELECTOR.0, DANGER_STYLE_SELECTOR.1, |edit| {
+            edit.part(Part::OVERFLOW)
+                .when(
+                    termrock::StateFlags::HOVERED,
+                    StylePatch::new().set_fg(Role::Success),
+                )
+                .when(termrock::StateFlags::PRESSED, StylePatch::new().clear_bg());
+        });
+
+    let rest = more_snapshot(
+        theme.clone(),
+        None,
+        Some(false),
+        None,
+        None,
+        MoreInteraction::Rest,
+    );
+    let focused = more_snapshot(
+        theme.clone(),
+        None,
+        Some(false),
+        None,
+        None,
+        MoreInteraction::Focused,
+    );
+    assert_eq!(more_glyph(&rest).fg, theme.color.warning);
+    assert_eq!(more_glyph(&rest).bg, theme.color.accent);
+
+    let danger_rest = more_snapshot(
+        theme.clone(),
+        None,
+        Some(true),
+        None,
+        None,
+        MoreInteraction::Rest,
+    );
+    let danger_focused = more_snapshot(
+        theme.clone(),
+        None,
+        Some(true),
+        None,
+        None,
+        MoreInteraction::Focused,
+    );
+    assert_eq!(danger_rest.cells, rest.cells);
+    assert_eq!(danger_focused.cells, focused.cells);
+
+    let plain_hover = more_snapshot(
+        theme.clone(),
+        None,
+        Some(false),
+        None,
+        None,
+        MoreInteraction::Hover,
+    );
+    let danger_hover = more_snapshot(
+        theme.clone(),
+        None,
+        Some(true),
+        None,
+        None,
+        MoreInteraction::Hover,
+    );
+    assert_eq!(more_glyph(&plain_hover).bg, theme.color.info);
+    assert_eq!(more_glyph(&danger_hover).bg, theme.color.info);
+    assert_eq!(more_glyph(&danger_hover).fg, theme.color.success);
+
+    let plain_press = more_snapshot(
+        theme.clone(),
+        None,
+        Some(false),
+        None,
+        None,
+        MoreInteraction::Pressed,
+    );
+    let danger_press = more_snapshot(
+        theme.clone(),
+        None,
+        Some(true),
+        None,
+        None,
+        MoreInteraction::Pressed,
+    );
+    assert_eq!(
+        more_glyph(&danger_press).fg,
+        theme.color.success,
+        "the authored hover foreground participates during press while the pressed danger background is independently cleared"
+    );
+    assert_eq!(more_glyph(&plain_press).bg, theme.color.info);
+    assert_eq!(
+        more_glyph(&danger_press).bg,
+        theme.color.danger,
+        "an overflow background clear inherits the pressed container plate"
+    );
+    assert!(
+        danger_press
+            .cells
+            .iter()
+            .all(|cell| cell.bg == theme.color.danger)
+    );
+}
+
+#[test]
+fn sparse_danger_clears_propagate_and_other_channels_stay_inert() {
+    for interaction in [MoreInteraction::Hover, MoreInteraction::Pressed] {
+        let full = more_snapshot(
+            Theme::junie(),
+            None,
+            Some(true),
+            None,
+            Some(&DANGER_STYLE_SCOPE),
+            interaction,
+        );
+        let clear_only = more_snapshot(
+            Theme::junie(),
+            None,
+            Some(true),
+            None,
+            Some(&DANGER_CLEAR_STYLE_SCOPE),
+            interaction,
+        );
+        assert_eq!(full, clear_only, "unsupported channels do not affect More");
+        assert_eq!(full.area.width, 3, "size declarations do not change layout");
+        assert_eq!(
+            more_glyph(&full).symbol,
+            "»",
+            "glyph declarations are inert"
+        );
+        assert_eq!(more_glyph(&full).fg, Color::Reset);
+        if interaction == MoreInteraction::Pressed {
+            assert_eq!(more_glyph(&full).bg, Color::Reset);
+        }
+        assert!(full.cells.iter().all(|cell| cell.underline == Color::Reset));
+        assert!(
+            full.cells
+                .iter()
+                .all(|cell| !cell.modifier.contains(Modifier::ITALIC))
+        );
+    }
+}
+
+#[test]
+fn danger_selector_keeps_profile_colors_across_terminal_levels() {
+    for (level, custom) in [
+        (ColorLevel::Ansi256, Color::Indexed(201)),
+        (ColorLevel::Ansi16, Color::Indexed(9)),
+        (ColorLevel::Mono, Color::White),
+    ] {
+        for (look, (family, variant)) in [
+            (None, DANGER_STYLE_SELECTOR),
+            (Some(ToolbarMoreLook::Close), CLOSE_STYLE_SELECTOR),
+            (Some(ToolbarMoreLook::Title), TITLE_STYLE_SELECTOR),
+        ] {
+            let theme = Theme::junie()
+                .define_variant_for_level(level, family, variant, |recipe| {
+                    recipe
+                        .part(Part::OVERFLOW)
+                        .base(StylePatch::new().set_fg(Role::Custom(custom)));
+                })
+                .for_level(level);
+            let expected = theme
+                .resolve(
+                    family,
+                    variant,
+                    Part::OVERFLOW,
+                    termrock::StateFlags::HOVERED,
+                    Surface::Canvas,
+                )
+                .style
+                .as_style()
+                .fg
+                .expect("profile style sets its foreground");
+            let snapshot =
+                more_snapshot(theme, look, Some(true), None, None, MoreInteraction::Hover);
+            assert_eq!(more_glyph(&snapshot).fg, expected, "{look:?}, {level:?}");
+            assert_eq!(snapshot.area.width, 3);
+            assert_eq!(more_glyph(&snapshot).symbol, "»");
+        }
+    }
+}
+
+#[test]
+fn opt_in_more_reuses_native_overflow_geometry_menu_and_receipt_lifecycle() {
+    let visible = ItemKey::text("opt-in-visible");
+    let hidden = ItemKey::text("opt-in-hidden");
+    let blocked = ItemKey::text("opt-in-blocked");
+    let mut host = ToolbarHost::new(
+        vec![
+            ToolItem::new("Visible"),
+            ToolItem::new("Hidden action"),
+            ToolItem::new("Blocked").disabled(true),
+        ],
+        vec![visible, hidden, blocked],
+    );
+    host.toolbar_area = Rect::new(5, 1, 16, 1);
+    host.use_default_overflow();
+    host.more_look = Some(ToolbarMoreLook::Title);
+    host.more_danger_hover = Some(true);
+    let (mut runtime, mut terminal) = runtime_for(host);
+    render(&mut runtime, &mut terminal, SCREEN);
+
+    assert_eq!(runtime.app().state.hidden_keys(), vec![hidden, blocked]);
+    assert_eq!(
+        runtime.area_of_part(TOOLBAR, PartRef::of(Part::OVERFLOW)),
+        Some(Rect::new(18, 1, 3, 1))
+    );
+    assert_eq!(
+        runtime
+            .ring()
+            .entries()
+            .iter()
+            .filter(|entry| entry.id == TOOLBAR)
+            .count(),
+        1
+    );
+
+    focus_toolbar(&mut runtime, &mut terminal, SCREEN);
+    key(&mut runtime, &mut terminal, SCREEN, KeyCode::End);
+    render(&mut runtime, &mut terminal, SCREEN);
+    assert!(runtime.app().state.on_more());
+    key(&mut runtime, &mut terminal, SCREEN, KeyCode::Enter);
+    render(&mut runtime, &mut terminal, SCREEN);
+    assert!(runtime.is_open(OVERFLOW_MENU));
+    click_menu_row(&mut runtime, &mut terminal, SCREEN, 0);
+    render(&mut runtime, &mut terminal, SCREEN);
+    assert_eq!(runtime.focus(), Some(TOOLBAR));
+    assert!(!runtime.is_open(OVERFLOW_MENU));
+    assert_eq!(runtime.app().events.len(), 1);
+    assert_eq!(
+        runtime.app().events.first().copied(),
+        Some(ToolbarActionEvent {
+            key: hidden,
+            action: ToolbarAction::Activated(1),
+        })
+    );
 }
 
 fn row_part(key: ItemKey) -> PartRef {
@@ -1504,7 +2421,7 @@ fn overflow_retirement_drains_only_its_terminal_receipt() {
 }
 
 #[test]
-fn pointer_more_opens_native_menu_and_pointer_receipt_selects_the_hidden_key() {
+fn pointer_more_opens_native_menu_and_keyboard_receipt_selects_the_hidden_key() {
     let keys = keys(&["visible", "one", "two", "three"]);
     let mut host = ToolbarHost::new(
         vec![
@@ -1517,12 +2434,28 @@ fn pointer_more_opens_native_menu_and_pointer_receipt_selects_the_hidden_key() {
     );
     host.toolbar_area = Rect::new(5, 1, 16, 1);
     host.use_default_overflow();
+    host.more_look = Some(ToolbarMoreLook::Title);
+    host.more_danger_hover = Some(true);
+    host.more_glyph = Some("界".to_owned());
+    host.more_padding = 2;
+    host.more_style_overlay = Some(&TITLE_METRIC_SCOPE);
     let (mut runtime, mut terminal) = runtime_for(host);
     render(&mut runtime, &mut terminal, SCREEN);
+    focus_toolbar(&mut runtime, &mut terminal, SCREEN);
 
     let more = runtime
         .area_of_part(TOOLBAR, PartRef::of(Part::OVERFLOW))
-        .expect("default overflow publishes More");
+        .expect("opt-in overflow publishes More");
+    assert_eq!(more, Rect::new(15, 1, 6, 1));
+    assert_eq!(
+        terminal
+            .backend()
+            .buffer()
+            .cell(Position::new(17, 1))
+            .map(|cell| cell.symbol()),
+        Some("界"),
+        "the explicit wide glyph and custom padding define the native layout"
+    );
     click(
         &mut runtime,
         &mut terminal,
@@ -1530,17 +2463,38 @@ fn pointer_more_opens_native_menu_and_pointer_receipt_selects_the_hidden_key() {
         Position::new(more.x.saturating_add(1), more.y),
     );
     assert!(runtime.is_open(OVERFLOW_MENU));
-
-    click_menu_row(&mut runtime, &mut terminal, SCREEN, 2);
+    let menu_area = runtime
+        .area_of(OVERFLOW_MENU)
+        .expect("the pointer-opened menu publishes native geometry");
     assert_eq!(
-        runtime.app().events.last().copied(),
-        Some(ToolbarActionEvent {
+        menu_area.x, more.x,
+        "the menu retains the More anchor column"
+    );
+    assert!(menu_area.y >= more.bottom(), "the menu opens below More");
+    key(&mut runtime, &mut terminal, SCREEN, KeyCode::End);
+    key(&mut runtime, &mut terminal, SCREEN, KeyCode::Enter);
+    render(&mut runtime, &mut terminal, SCREEN);
+    assert_eq!(
+        runtime.app().events,
+        vec![ToolbarActionEvent {
             key: *keys.get(3).expect("third hidden key exists"),
             action: ToolbarAction::Activated(3),
-        }),
-        "repeated fixed menu action tokens use the selected row receipt"
+        }],
+        "keyboard selection resolves the native terminal receipt to its hidden key"
     );
     assert!(!runtime.is_open(OVERFLOW_MENU));
+    assert!(!runtime.app().state.menu_open());
+    assert_eq!(runtime.focus(), Some(TOOLBAR));
+    assert!(runtime.diagnostics().is_empty());
+
+    ready_for_input(&mut runtime, &mut terminal, SCREEN);
+    let _ = runtime
+        .handle(Input::Tick)
+        .expect("settled More action is retired");
+    render(&mut runtime, &mut terminal, SCREEN);
+    assert_eq!(runtime.app().events.len(), 1, "receipt is delivered once");
+    assert_eq!(runtime.focus(), Some(TOOLBAR));
+    assert!(runtime.diagnostics().is_empty());
 }
 
 #[test]

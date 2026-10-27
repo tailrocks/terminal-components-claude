@@ -28,7 +28,9 @@ use termrock_runtime::{
     Binding, Cx, FrameRead, LayoutFacts, Measure, ReferenceState, ReferenceTarget, Ui,
 };
 use termrock_text::width;
-use termrock_theme::{Family, GlyphRole, Resolved, Slot, Variant};
+use termrock_theme::{
+    Family, FgStep, GlyphRole, Resolved, Role, Slot, StyleDefaults, StylePatch, Variant,
+};
 
 mod tooltip;
 use self::tooltip::{TooltipConfig, TooltipController};
@@ -506,6 +508,73 @@ struct ToolbarLayout {
     hidden_start: Option<usize>,
 }
 
+/// Optional More-button appearance for a [`Toolbar`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ToolbarMoreLook {
+    /// Use the modern Close-style semantic recipe.
+    Close,
+    /// Use the modern Title-style semantic recipe.
+    Title,
+}
+
+const MORE_STYLE_FAMILY: Family = Family::custom("termrock.toolbar.more");
+const MORE_CLOSE_VARIANT: Variant = Variant::custom("close");
+const MORE_TITLE_VARIANT: Variant = Variant::custom("title");
+const MORE_DANGER_VARIANT: Variant = Variant::custom("danger");
+
+fn more_danger_patch(flags: StateFlags) -> StylePatch {
+    if flags.contains(StateFlags::DISABLED) {
+        return StylePatch::new();
+    }
+    if flags.contains(StateFlags::PRESSED) {
+        StylePatch::new()
+            .set_fg(Role::OnDanger)
+            .set_bg(Role::Danger)
+    } else if flags.contains(StateFlags::HOVERED) {
+        StylePatch::new().set_fg(Role::DangerSoft)
+    } else {
+        StylePatch::new()
+    }
+}
+
+fn more_look_patch(look: ToolbarMoreLook, flags: StateFlags, danger_hover: bool) -> StylePatch {
+    let patch = match (
+        look,
+        flags.contains(StateFlags::PRESSED),
+        flags.contains(StateFlags::HOVERED),
+    ) {
+        (ToolbarMoreLook::Close, true, _) => StylePatch::new()
+            .set_fg(Role::CurrentSurface)
+            .set_bg(Role::Fg(FgStep::Primary))
+            .remove(Modifier::BOLD),
+        (ToolbarMoreLook::Close, false, true) => StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::RaisedSurface)
+            .remove(Modifier::BOLD),
+        (ToolbarMoreLook::Close, false, false) => StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Secondary))
+            .set_bg(Role::CurrentSurface)
+            .remove(Modifier::BOLD),
+        (ToolbarMoreLook::Title, true, _) => StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::RaisedSurface)
+            .add(Modifier::BOLD),
+        (ToolbarMoreLook::Title, false, true) => StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::HoverSurface)
+            .remove(Modifier::BOLD),
+        (ToolbarMoreLook::Title, false, false) => StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Secondary))
+            .set_bg(Role::CurrentSurface)
+            .remove(Modifier::BOLD),
+    };
+    if danger_hover {
+        patch.merge(more_danger_patch(flags))
+    } else {
+        patch
+    }
+}
+
 /// A single-row, single-focus-stop Toolbar with native overflow.
 #[derive(Clone, Debug)]
 pub struct Toolbar {
@@ -518,6 +587,8 @@ pub struct Toolbar {
     gap: u16,
     overflow: bool,
     more_glyph: Option<String>,
+    more_look: Option<ToolbarMoreLook>,
+    more_danger_hover: bool,
     more_padding: u16,
     more_tip: ToolbarTip,
     tooltip_policy: ToolbarTooltipPolicy,
@@ -541,6 +612,8 @@ impl Toolbar {
             gap: 1,
             overflow: true,
             more_glyph: None,
+            more_look: None,
+            more_danger_hover: false,
             more_padding: 1,
             more_tip: ToolbarTip::default(),
             tooltip_policy: ToolbarTooltipPolicy::DEFAULT,
@@ -623,6 +696,51 @@ impl Toolbar {
     pub fn more_glyph(mut self, glyph: &str) -> Self {
         self.more_glyph = Some(glyph.to_owned());
         self
+    }
+
+    /// Set the opt-in semantic appearance for the More control.
+    ///
+    /// The selected look uses its dedicated Toolbar-scoped selector and does
+    /// not inherit `BUTTON/SUBTLE` theme overrides. The default remains the
+    /// existing `BUTTON/SUBTLE` appearance.
+    #[must_use]
+    pub const fn more_look(mut self, look: ToolbarMoreLook) -> Self {
+        self.more_look = Some(look);
+        self
+    }
+
+    /// Enable pointer-only danger colors for More hover and press states.
+    ///
+    /// This is off by default. It changes only resolved foreground on hover,
+    /// and foreground/background on press. Press takes precedence over hover.
+    /// When no explicit look is selected, the unchanged `BUTTON/SUBTLE` style
+    /// remains the base. With danger enabled, the `None` selector is queried
+    /// only for pointer hover and press; its foreground on hover and its
+    /// foreground/background on press replace those base channels, including
+    /// explicit clears. More-specific authored or scoped rules keep ordinary
+    /// resolver precedence over this fallback.
+    #[must_use]
+    pub const fn more_danger_hover(mut self, enabled: bool) -> Self {
+        self.more_danger_hover = enabled;
+        self
+    }
+
+    /// Return the typed theme target for a More look or its sparse danger overlay.
+    ///
+    /// `Some(Close)` and `Some(Title)` target complete opt-in appearance
+    /// recipes, each with its own selector rather than inheriting authored
+    /// `BUTTON/SUBTLE` rules. `None` targets the sparse danger overlay and is
+    /// queried only when pointer danger is enabled during hover or press. Only
+    /// foreground on hover, and foreground/background on press, are consumed;
+    /// explicit clears replace those channels too. More-specific authored or
+    /// scoped rules retain ordinary resolver precedence. Other channels,
+    /// including glyphs and metrics, have no effect through `None`.
+    pub const fn more_style_selector(look: Option<ToolbarMoreLook>) -> (Family, Variant) {
+        match look {
+            Some(ToolbarMoreLook::Close) => (MORE_STYLE_FAMILY, MORE_CLOSE_VARIANT),
+            Some(ToolbarMoreLook::Title) => (MORE_STYLE_FAMILY, MORE_TITLE_VARIANT),
+            None => (MORE_STYLE_FAMILY, MORE_DANGER_VARIANT),
+        }
     }
 
     /// Set horizontal padding on both sides of the More glyph.
@@ -1067,7 +1185,11 @@ impl Toolbar {
         }
 
         if let Some(more) = layout.more {
-            self.draw_more(ui, more, more_glyph, more_flags, more_style);
+            if self.more_look.is_some() || self.more_danger_hover {
+                self.draw_more_with_appearance(ui, more, more_glyph, more_flags, more_style);
+            } else {
+                self.draw_more(ui, more, more_glyph, more_flags, more_style);
+            }
         }
 
         if !ui.is_inert() {
@@ -1446,6 +1568,95 @@ impl Toolbar {
             1,
         );
         ui.paint_str(glyph_area, glyph, overflow.over(container));
+    }
+
+    fn draw_more_with_appearance(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        glyph: &str,
+        flags: StateFlags,
+        overflow_base: Resolved,
+    ) {
+        let button_variant = Variant::SUBTLE;
+        let container_base = if self.more_look.is_some() {
+            Resolved::default()
+        } else {
+            ui.style(Family::BUTTON, button_variant, Part::CONTAINER, flags)
+        };
+        let style_flags = if self.more_look.is_some() {
+            flags.difference(StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE)
+        } else {
+            flags
+        };
+        let gutter_base = ui.style(Family::BUTTON, button_variant, Part::GUTTER, style_flags);
+        let container =
+            self.resolve_more_appearance(ui, Part::CONTAINER, style_flags, container_base);
+        let gutter = self.resolve_more_appearance(ui, Part::GUTTER, style_flags, gutter_base);
+        let overflow = self.resolve_more_appearance(ui, Part::OVERFLOW, style_flags, overflow_base);
+        let container_style = container.style;
+        ui.fill(area, container_style);
+
+        let left_padding = self.more_padding.min(area.width);
+        if left_padding > 0 {
+            let gutter_area = Rect::new(area.x, area.y, 1, 1);
+            match gutter.glyph {
+                Slot::Set(glyph) => {
+                    ui.glyph(gutter_area, glyph, gutter.style);
+                }
+                Slot::Inherit | Slot::Clear => {
+                    let pad = container_style.as_style().bg.map_or(container_style, |bg| {
+                        container_style.fg(bg).remove_modifier(Modifier::BOLD)
+                    });
+                    ui.fill(gutter_area, pad);
+                }
+            }
+        }
+
+        let glyph_area = Rect::new(
+            area.x.saturating_add(left_padding),
+            area.y,
+            width(glyph).min(area.width.saturating_sub(left_padding)),
+            1,
+        );
+        ui.paint_str(glyph_area, glyph, overflow.over(container_style));
+    }
+
+    fn resolve_more_appearance(
+        &self,
+        ui: &Ui<'_>,
+        part: Part,
+        flags: StateFlags,
+        mut base: Resolved,
+    ) -> Resolved {
+        if let Some(look) = self.more_look {
+            let (family, variant) = Self::more_style_selector(Some(look));
+            let defaults = StyleDefaults::new(more_look_patch(look, flags, self.more_danger_hover));
+            let appearance = ui.style_defaults(family, variant, part, flags, defaults, None);
+            base.style = appearance.style;
+            return base;
+        }
+
+        let danger_patch = more_danger_patch(flags);
+        if !self.more_danger_hover || danger_patch.is_empty() {
+            return base;
+        }
+
+        let (family, variant) = Self::more_style_selector(None);
+        let danger = ui.style_defaults(
+            family,
+            variant,
+            part,
+            flags,
+            StyleDefaults::new(danger_patch),
+            None,
+        );
+        let mut style = base.style.with_fg_from(danger.style);
+        if flags.contains(StateFlags::PRESSED) {
+            style = style.with_bg_from(danger.style);
+        }
+        base.style = style;
+        base
     }
 
     fn layout(&self, area: Rect, configured_more_width: u16) -> ToolbarLayout {
