@@ -103,7 +103,6 @@ impl PickerLayout {
     }
 
     #[must_use]
-
     pub const fn footer_rows(mut self, rows: u16) -> Self {
         self.footer_rows = Some(rows);
         self.legacy = false;
