@@ -191,10 +191,7 @@ impl<'a> HintBar<'a> {
     }
 
     fn derived_flags(&self) -> StateFlags {
-        #[cfg(not(test))]
-        {
-            self.status.flags()
-        }
+        self.status.flags()
     }
 
     fn hint(&self, i: usize) -> Option<KeyHint<'a>> {
