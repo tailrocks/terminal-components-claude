@@ -31,7 +31,7 @@ Text blink is not retained by the Alacritty backend. Link IDs with the `_alacrit
 
 The binary directory must contain `showcase`, `holla`, `jackin`, and `tablepro`, plus a valid `source-manifest.json`. The staged `jackin` binary must have the same SHA-256 as the built `jackin-preview` binary. The manifest binds the clean source commit and tree, build log, build hash file, and staged binary hashes. The test checks these values before it launches an application.
 
-The suite pins `tui-test-rs` 0.1.1 to maintained engine base `e15339fd136b5454849e1107bab142c98416b174`, then applies the complete reviewed patch with SHA-256 `ba409cfb2a7b2481a98068a36ed906a07059222c7c3ec1eccc18c19c6c5fef9e` and result tree `5b39d021527da44190a94253fca2ace9f415eb91`. It pins Tuiscotti `0.3.0` at `692fc227fd5d774535641622488366b9113de900`.
+The suite pins `tui-test-rs` 0.1.1 to maintained engine base `3887a75dee4463ce0122c37eb278ab7ebb71aeaf` (tree `4840743cfb7371d2628f2b77afd619e18cee29c9`). The complete capture patch is rebased from historical patch input `ba409cfb2a7b2481a98068a36ed906a07059222c7c3ec1eccc18c19c6c5fef9e`; its SHA-256 is `fad39f69c647ac2218efdf263a76ff569b8e7c715c0d13451e8b6a963362971d` and its result tree is `43571813ce7ef7481c7032dfa110c62df7beb062`. The recovery bundle contains the sole ref `common-raw-388` at `4e51249f5fb6baa33495972b8b8ee924a9122ded` (tree `2dae292afaa4a47f84f234faecc69b680dce0325`). The suite pins Tuiscotti `0.3.0` at `742426d085166b70dc2f01c550c7076cc6128979`.
 
 The old in-package source-manifest writer and raw-probe commands are retired. `STREAM.md` records the earlier CLI and results as history. Its commands do not describe this standard target. Historical capture records remain in Git history and the preserved stream evidence.
 

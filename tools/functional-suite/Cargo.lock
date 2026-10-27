@@ -2054,7 +2054,7 @@ dependencies = [
 [[package]]
 name = "tuiscotti"
 version = "0.3.0"
-source = "git+https://github.com/tailrocks/tuiscotti?rev=692fc227fd5d774535641622488366b9113de900#692fc227fd5d774535641622488366b9113de900"
+source = "git+https://github.com/tailrocks/tuiscotti?rev=742426d085166b70dc2f01c550c7076cc6128979#742426d085166b70dc2f01c550c7076cc6128979"
 dependencies = [
  "base64 0.23.1",
  "fs2",

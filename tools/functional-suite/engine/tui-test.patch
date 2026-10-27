@@ -56,7 +56,7 @@ index 6c3d25a07439abcce50409ca8ca2d25068906002..d6db03d1f193eda56c123098884f8e6f
  pub struct OpenOptions {
      pub backend: crate::terminal::backend::Backend,
 diff --git a/crates/tui-test/src/engine.rs b/crates/tui-test/src/engine.rs
-index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f96940030 100644
+index c6dc2bc515805ec62e3c3c3b770746955eb79a46..f16cb07759819da4ceb19353983b0b623c727bc0 100644
 --- a/crates/tui-test/src/engine.rs
 +++ b/crates/tui-test/src/engine.rs
 @@ -54,6 +54,8 @@ pub struct Engine {
@@ -103,7 +103,7 @@ index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f
              session_generation: AtomicU64::new(0),
              spawn_spec: Mutex::new(None),
              live: Arc::new(Mutex::new(None)),
-@@ -696,9 +708,13 @@ impl Engine {
+@@ -701,9 +713,13 @@ impl Engine {
                      .interrupt
                      .lock()
                      .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
@@ -119,7 +119,7 @@ index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f
                      drop(session);
                  }
                  *self
-@@ -803,6 +819,18 @@ impl Engine {
+@@ -808,6 +824,18 @@ impl Engine {
          launch: crate::launch::LaunchOptions,
          options: RunOptions,
          context: ExecutionContext,
@@ -138,7 +138,7 @@ index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f
      ) -> Result<OpenResult, TuiTestError> {
          let resolved = launch.resolve()?;
          if let Some(artifact) = &context.artifact {
-@@ -872,6 +900,7 @@ impl Engine {
+@@ -877,6 +905,7 @@ impl Engine {
                  restart: options.restart,
                  timeouts: options.timeouts,
                  recording: options.recording,
@@ -146,7 +146,7 @@ index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f
              }),
              resolved_cwd: None,
              retention: context.retention,
-@@ -963,6 +992,12 @@ impl Engine {
+@@ -968,6 +997,12 @@ impl Engine {
              .clone()
              .ok_or_else(TuiTestError::no_restart_metadata)?;
  
@@ -159,7 +159,7 @@ index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f
          if let Some(session) = self.lock_session().as_ref() {
              if session.is_alive()? {
                  if let Err(error) = session.pty.signal("INT") {
-@@ -1049,6 +1084,7 @@ impl Engine {
+@@ -1054,6 +1089,7 @@ impl Engine {
              SpawnCommand::Launch(launch) => (
                  SessionSource::Native {
                      launch: launch.launch.clone(),
@@ -167,7 +167,7 @@ index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f
                  },
                  launch.backend,
                  launch.profile,
-@@ -1081,7 +1117,7 @@ impl Engine {
+@@ -1086,7 +1122,7 @@ impl Engine {
          // used for this spawn. Restart reuses `resolved_cwd` and re-applies
          // it here, keeping the child in the first directory (including the
          // default) even after the parent moves.
@@ -176,7 +176,7 @@ index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f
              *launch = launch.clone().with_cwd(cwd.clone());
          }
          recording.validate()?;
-@@ -1111,9 +1147,26 @@ impl Engine {
+@@ -1116,9 +1152,26 @@ impl Engine {
              SpawnCommand::Launch(launch) => launch.recording = recording.clone(),
          }
          diagnostics.validate().map_err(TuiTestError::usage)?;
@@ -203,7 +203,7 @@ index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f
                  return Ok(OpenResult {
                      shell_pid: previous.pid(),
                      session: self.name.clone(),
-@@ -1133,11 +1186,16 @@ impl Engine {
+@@ -1138,11 +1191,16 @@ impl Engine {
              .interrupt
              .lock()
              .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
@@ -223,7 +223,7 @@ index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f
          }
          drop(current);
          self.operation_history
-@@ -1184,19 +1242,38 @@ impl Engine {
+@@ -1189,19 +1247,38 @@ impl Engine {
                  recording_path.clone(),
                  recording_required,
              ),
@@ -275,7 +275,7 @@ index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f
          }
          .map_err(|error| TuiTestError::internal(format!("failed to open session: {error}")))?;
          {
-@@ -1267,6 +1344,10 @@ impl Engine {
+@@ -1272,6 +1349,10 @@ impl Engine {
              pty: session.pty.clone(),
              shell: session.shell.map(|value| value.as_str()),
          };
@@ -286,7 +286,7 @@ index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f
          *self.write_session() = Some(session);
          self.bump_session_generation();
          *self
-@@ -2030,6 +2111,17 @@ impl Engine {
+@@ -2035,6 +2116,17 @@ impl Engine {
          &self,
          options: &SnapshotOptions,
      ) -> Result<TerminalSnapshot, TuiTestError> {
@@ -304,7 +304,7 @@ index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f
          let guard = self.lock_session();
          let session = guard.as_ref().ok_or_else(TuiTestError::no_session)?;
          if let Some(fault) = session.fault() {
-@@ -2046,6 +2138,7 @@ impl Engine {
+@@ -2051,6 +2143,7 @@ impl Engine {
              .state
              .lock()
              .unwrap_or_else(std::sync::PoisonError::into_inner);
@@ -312,7 +312,7 @@ index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f
          let metadata = SnapshotMetadata {
              captured_at_ms: capture_time_ms(),
              revision: state.visual_revision,
-@@ -2056,8 +2149,9 @@ impl Engine {
+@@ -2061,8 +2154,9 @@ impl Engine {
          let highlight = state.highlight.as_ref().map(|selected| LiveHighlight {
              cells: &selected.cells,
          });
@@ -324,7 +324,7 @@ index 540e860681731ed5b138ac008a0ddbd5846ac4c8..ddc278341f023dbe56f5dd2141109d6f
      }
  
      pub fn frame(&self) -> Option<LiveFrame> {
-@@ -2350,6 +2444,23 @@ impl Engine {
+@@ -2355,6 +2449,23 @@ impl Engine {
          self.lock_session().is_some()
      }
  

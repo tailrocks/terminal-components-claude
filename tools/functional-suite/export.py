@@ -20,15 +20,16 @@ ENGINE_PATCH_RELATIVE = "engine/tui-test.patch"
 PIN_RELATIVE = "engine/pin.json"
 LOCK_RELATIVE = "Cargo.lock"
 APPROVAL_LOCK = "expected/.tuiscotti-approval.lock"
-ENGINE_BASE_COMMIT = "e15339fd136b5454849e1107bab142c98416b174"
-ENGINE_BASE_TREE = "df8bb26a9f4de5058f89c9361fe58f42f79025ec"
-ENGINE_BUNDLE_HEAD = "438563a86a3c5d78e6da6e12511fa089c6f15c61"
-ENGINE_BUNDLE_TREE = "d9957241869fcea938de9baa719de5f04d545453"
-ENGINE_RESULT_TREE = "5b39d021527da44190a94253fca2ace9f415eb91"
-ENGINE_BUNDLE_SHA256 = "246c93b389824a85a212cceb37e584c866b6615bd4f69fece6f241320cd26cca"
-ENGINE_PATCH_SHA256 = "ba409cfb2a7b2481a98068a36ed906a07059222c7c3ec1eccc18c19c6c5fef9e"
-TUISCOTTI_COMMIT = "692fc227fd5d774535641622488366b9113de900"
-SUITE_LOCK_SHA256 = "bf8cc92db4b0301341bb1487173c0675bfa39c70f4454372f6c1747f8598eaf3"
+ENGINE_BASE_COMMIT = "3887a75dee4463ce0122c37eb278ab7ebb71aeaf"
+ENGINE_BASE_TREE = "4840743cfb7371d2628f2b77afd619e18cee29c9"
+ENGINE_BUNDLE_HEAD = "4e51249f5fb6baa33495972b8b8ee924a9122ded"
+ENGINE_BUNDLE_REF = "refs/heads/common-raw-388"
+ENGINE_BUNDLE_TREE = "2dae292afaa4a47f84f234faecc69b680dce0325"
+ENGINE_RESULT_TREE = "43571813ce7ef7481c7032dfa110c62df7beb062"
+ENGINE_BUNDLE_SHA256 = "2448a1154019b120f697964c65f6da0bd7a7aa6530707d80763a78da66d64c3e"
+ENGINE_PATCH_SHA256 = "fad39f69c647ac2218efdf263a76ff569b8e7c715c0d13451e8b6a963362971d"
+TUISCOTTI_COMMIT = "742426d085166b70dc2f01c550c7076cc6128979"
+SUITE_LOCK_SHA256 = "186e7e42afee1826a0c7b7a823217e0fa7f073bc7c6c4acc39495756ff2fc94c"
 ENGINE_PATCH_FILES = (
     "crates/tui-test/src/api.rs",
     "crates/tui-test/src/engine.rs",
@@ -959,12 +960,12 @@ def create_engine(root, bundle_data, patch_data):
         git_call(staging, ["config", "--local", "core.hooksPath", os.devnull])
         git_call(staging, ["bundle", "verify", str(bundle_path)])
         heads = git_call(staging, ["bundle", "list-heads", str(bundle_path)]).decode("utf-8").splitlines()
-        expected_head = f"{ENGINE_BUNDLE_HEAD} refs/heads/common-raw-e153"
+        expected_head = f"{ENGINE_BUNDLE_HEAD} {ENGINE_BUNDLE_REF}"
         if heads != [expected_head]:
             fail("engine bundle does not advertise the sole approved reference")
         git_call(
             staging,
-            ["fetch", "--quiet", "--no-tags", "--no-recurse-submodules", str(bundle_path), "refs/heads/common-raw-e153"],
+            ["fetch", "--quiet", "--no-tags", "--no-recurse-submodules", str(bundle_path), ENGINE_BUNDLE_REF],
         )
         if (
             git_text(staging, ["rev-parse", f"{ENGINE_BUNDLE_HEAD}^{{tree}}"])
