@@ -32,6 +32,8 @@ const FIRST_FLOW_DENOMINATOR: usize = 4;
 const FIRST_CHECKPOINT_DENOMINATOR: usize = 12;
 const FIRST_PLUS_HELP_FLOW_DENOMINATOR: usize = 5;
 const FIRST_PLUS_HELP_CHECKPOINT_DENOMINATOR: usize = 18;
+const HOLLA_FIRST_USE_FLOW_DENOMINATOR: usize = 1;
+const HOLLA_FIRST_USE_CHECKPOINT_DENOMINATOR: usize = 7;
 const HELP_TIMEOUT_MS: u64 = 15_000;
 const EXIT_TIMEOUT_MS: u64 = 30_000;
 const QUIET_TIMEOUT: Duration = Duration::from_secs(15);
@@ -48,11 +50,21 @@ const SHOWCASE_HELP_CHECKPOINTS: [&str; 6] = [
     "help-reopened",
     "restored-after-modal-q",
 ];
+const HOLLA_FIRST_USE_CHECKPOINTS: [&str; HOLLA_FIRST_USE_CHECKPOINT_DENOMINATOR] = [
+    "initial",
+    "initial-resource",
+    "home-restored",
+    "query-selected",
+    "query-resource",
+    "query-restored",
+    "query-cleared",
+];
 
 #[derive(Clone, Copy)]
 enum Journey {
     First,
     ShowcaseHelp80x24,
+    HollaFirstUseAction,
 }
 
 #[derive(Clone, Copy)]
@@ -155,6 +167,29 @@ const SHOWCASE_HELP_CASE: Case = Case {
     rows: 24,
     checkpoint_labels: &SHOWCASE_HELP_CHECKPOINTS,
     journey: Journey::ShowcaseHelp80x24,
+};
+
+const HOLLA_FIRST_USE_ACTION_CASE: Case = Case {
+    id: "holla-first-use/action-identity-v1",
+    binary: "holla",
+    args: &[
+        "--scenario",
+        "first-use",
+        "--motion",
+        "paused",
+        "--frame",
+        "0",
+        "--color",
+        "truecolor",
+    ],
+    initial_marker: "holla❯",
+    help_key: "",
+    help_marker: "",
+    quit_key: "Ctrl+q",
+    cols: DEFAULT_COLS,
+    rows: DEFAULT_ROWS,
+    checkpoint_labels: &HOLLA_FIRST_USE_CHECKPOINTS,
+    journey: Journey::HollaFirstUseAction,
 };
 
 #[derive(Debug)]
@@ -366,6 +401,11 @@ fn cases_for_group(group: &str) -> AppResult<(Vec<Case>, usize, usize)> {
             FIRST_PLUS_HELP_FLOW_DENOMINATOR,
             FIRST_PLUS_HELP_CHECKPOINT_DENOMINATOR,
         ),
+        "holla-first-use-action" => (
+            vec![HOLLA_FIRST_USE_ACTION_CASE],
+            HOLLA_FIRST_USE_FLOW_DENOMINATOR,
+            HOLLA_FIRST_USE_CHECKPOINT_DENOMINATOR,
+        ),
         "all" => {
             return Err(
                 "--group all is incomplete: the full parity inventory is not implemented".into(),
@@ -373,7 +413,7 @@ fn cases_for_group(group: &str) -> AppResult<(Vec<Case>, usize, usize)> {
         }
         other => {
             return Err(format!(
-                "unsupported group {other:?}; expected first, first-plus-help, or all"
+                "unsupported group {other:?}; expected first, first-plus-help, holla-first-use-action, or all"
             )
             .into());
         }
@@ -408,8 +448,11 @@ fn run_case(
     let session = Session::new(format!("termrock-live-{}", case.id.replace('/', "-")));
     let mut spawned = false;
     let mut child_exited = false;
+    let mut final_quit_attempted = false;
     let mut checkpoints = Vec::with_capacity(case.checkpoint_labels.len());
     let mut actions = Vec::new();
+    let mut semantic_assertions = Vec::new();
+    let mut failure_finalization = Value::Null;
     let mut process_state = Value::Null;
     let work = (|| -> AppResult<()> {
         let launch = LaunchOptions::new(binary.as_os_str().to_owned())
@@ -507,9 +550,19 @@ fn run_case(
                 &mut checkpoints,
                 &mut actions,
             )?,
+            Journey::HollaFirstUseAction => run_holla_first_use_action_steps(
+                &session,
+                sample_profile,
+                case,
+                &case_out,
+                &mut checkpoints,
+                &mut actions,
+                &mut semantic_assertions,
+            )?,
         }
 
         actions.push(json!({"event":"key_press","key":case.quit_key,"at_unix_ms":unix_ms()}));
+        final_quit_attempted = true;
         send_key(&session, case.quit_key)?;
         session.execute(Operation::WaitExit {
             timeout_ms: Some(EXIT_TIMEOUT_MS),
@@ -637,9 +690,17 @@ fn run_case(
     let mut cleanup_error = None;
     let mut closed_for_cleanup = false;
     if work.is_err() && spawned {
-        closed_for_cleanup = true;
-        if let Err(error) = session.close() {
-            cleanup_error = Some(error.to_string());
+        if matches!(case.journey, Journey::HollaFirstUseAction) && !final_quit_attempted {
+            let (finalization, state, exited) = finalize_holla_after_error(&session, &mut actions);
+            failure_finalization = finalization;
+            process_state = state;
+            child_exited = exited;
+        }
+        if !child_exited {
+            closed_for_cleanup = true;
+            if let Err(error) = session.close() {
+                cleanup_error = Some(error.to_string());
+            }
         }
     }
     if let Some(status) = session.raw_output_capture_status() {
@@ -653,6 +714,16 @@ fn run_case(
         }
         write_json_new(&case_out.join("raw-status.json"), &status_value)?;
     }
+    let checkpoint_evidence_errors =
+        if work.is_err() && matches!(case.journey, Journey::HollaFirstUseAction) {
+            let errors = preserve_reached_checkpoint_prefixes(&raw_path, &case_out, &checkpoints);
+            if !errors.is_empty() {
+                write_json_new(&case_out.join("checkpoint-evidence-errors.json"), &errors)?;
+            }
+            errors
+        } else {
+            Vec::new()
+        };
     write_json_new(
         &case_out.join("actions.json"),
         &json!({
@@ -662,6 +733,12 @@ fn run_case(
             "actions":actions,
         }),
     )?;
+    if matches!(case.journey, Journey::HollaFirstUseAction) {
+        write_json_new(
+            &case_out.join("semantic-assertions.json"),
+            &semantic_assertions,
+        )?;
+    }
 
     let (process_status, work_error) = match work {
         Ok(()) => ("complete", None),
@@ -704,7 +781,7 @@ fn run_case(
     } else {
         Value::Null
     };
-    let result = json!({
+    let mut result = json!({
         "schema":"termrock-live-flow.v1",
         "id":case.id,
         "binary":case.binary,
@@ -735,6 +812,19 @@ fn run_case(
         "check_failures":check_failures,
         "reference_approval":"not performed",
     });
+    if matches!(case.journey, Journey::HollaFirstUseAction)
+        && let Some(object) = result.as_object_mut()
+    {
+        object.insert(
+            "semantic_assertions".to_string(),
+            json!(semantic_assertions),
+        );
+        object.insert("failure_finalization".to_string(), failure_finalization);
+        object.insert(
+            "checkpoint_evidence_errors".to_string(),
+            json!(checkpoint_evidence_errors),
+        );
+    }
     write_json_new(&case_out.join("result.json"), &result)?;
     Ok(result)
 }
@@ -839,6 +929,620 @@ fn run_showcase_help_steps(
         case_out,
     )?);
     Ok(())
+}
+
+fn run_holla_first_use_action_steps(
+    session: &Session,
+    profile: &tuiscotti::render_profile::Profile,
+    case: Case,
+    case_out: &Path,
+    checkpoints: &mut Vec<Checkpoint>,
+    actions: &mut Vec<Value>,
+    semantic_assertions: &mut Vec<Value>,
+) -> AppResult<()> {
+    let raw_path = case_out.join("raw.ansi");
+    let initial_text = visible_text(session)?;
+    let initial_assertion = holla_home_assertion("initial", &initial_text, "empty", true, false);
+    semantic_assertions.push(initial_assertion.clone());
+
+    actions.push(json!({"event":"key_press","key":"Enter","at_unix_ms":unix_ms()}));
+    send_key(session, "Enter")?;
+    if let Err(wait_error) = session
+        .get_by_text("System resources")
+        .wait_with_timeout(Some(HELP_TIMEOUT_MS))
+    {
+        let quiet_error = wait_visual_quiet(session)
+            .err()
+            .map(|error| error.to_string());
+        match capture_failure_evidence(
+            session,
+            profile,
+            case,
+            case_out,
+            &raw_path,
+            "initial-resource",
+        ) {
+            Ok((evidence, actual_text)) => {
+                let mut assertion = holla_resource_page_assertion("initial-resource", &actual_text);
+                if let Some(object) = assertion.as_object_mut() {
+                    object.insert(
+                        "locator_wait_error".to_string(),
+                        json!(wait_error.to_string()),
+                    );
+                    object.insert("visual_quiet_error".to_string(), json!(quiet_error));
+                    object.insert("failure_evidence".to_string(), evidence.clone());
+                    object.insert(
+                        "wrong_destination_confirmed".to_string(),
+                        json!(
+                            actual_text.contains("System snapshot")
+                                && !actual_text.contains("System resources")
+                        ),
+                    );
+                }
+                semantic_assertions.push(assertion.clone());
+                let wrong_destination = assertion["wrong_destination_confirmed"] == true;
+                let evidence_path = evidence["directory"].as_str().unwrap_or("failure-evidence");
+                if wrong_destination {
+                    return Err(format!(
+                        "initial-resource opened the visible System snapshot dialog instead of the System resources page; evidence: {evidence_path}"
+                    )
+                    .into());
+                }
+                return Err(format!(
+                    "initial-resource did not show the System resources page before timeout; wrong destination was not confirmed; evidence: {evidence_path}"
+                )
+                .into());
+            }
+            Err(capture_error) => {
+                semantic_assertions.push(json!({
+                    "id":"initial-resource",
+                    "status":"unverified",
+                    "expected_visible":["System resources","12.4 of 16 GB","swap 1.1 GB","rust-analyzer","4812"],
+                    "locator_wait_error":wait_error.to_string(),
+                    "visual_quiet_error":quiet_error,
+                    "failure_evidence_error":capture_error.to_string(),
+                }));
+                return Err(format!(
+                    "initial-resource wait failed and active-screen evidence could not be captured: {capture_error}"
+                )
+                .into());
+            }
+        }
+    }
+
+    wait_visual_quiet(session)?;
+    checkpoints.push(capture_checkpoint(
+        session,
+        profile,
+        case,
+        case.checkpoint_labels[1],
+        case_out,
+    )?);
+    let initial_resource_text = visible_text(session)?;
+    let initial_resource_assertion =
+        holla_resource_page_assertion("initial-resource", &initial_resource_text);
+    semantic_assertions.push(initial_resource_assertion.clone());
+    if !assertion_passed(&initial_resource_assertion) {
+        return Err(assertion_error(&initial_resource_assertion).into());
+    }
+    session
+        .get_by_text("System snapshot")
+        .wait_hidden(Some(HELP_TIMEOUT_MS))?;
+
+    if !assertion_passed(&initial_assertion) {
+        return Err(assertion_error(&initial_assertion).into());
+    }
+
+    actions.push(json!({"event":"key_press","key":"Escape","at_unix_ms":unix_ms()}));
+    send_key(session, "Escape")?;
+    session
+        .get_by_text("System resources")
+        .wait_hidden(Some(HELP_TIMEOUT_MS))?;
+    session
+        .get_by_text("4812")
+        .wait_hidden(Some(HELP_TIMEOUT_MS))?;
+    session
+        .get_by_text(case.initial_marker)
+        .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
+    wait_visual_quiet(session)?;
+    ensure_child_active(session)?;
+    checkpoints.push(capture_checkpoint(
+        session,
+        profile,
+        case,
+        case.checkpoint_labels[2],
+        case_out,
+    )?);
+    let home_restored_text = visible_text(session)?;
+    let home_restored_assertion =
+        holla_home_assertion("home-restored", &home_restored_text, "empty", false, false);
+    semantic_assertions.push(home_restored_assertion.clone());
+    if !assertion_passed(&home_restored_assertion) {
+        return Err(assertion_error(&home_restored_assertion).into());
+    }
+
+    for key in ["r", "e", "s", "o", "u", "r", "c", "e", "s"] {
+        actions.push(json!({"event":"key_press","key":key,"at_unix_ms":unix_ms()}));
+        send_key(session, key)?;
+    }
+    session
+        .get_by_text("resources")
+        .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
+    session
+        .get_by_text("Show system resources")
+        .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
+    session
+        .get_by_text("Analyze disk usage")
+        .wait_hidden(Some(HELP_TIMEOUT_MS))?;
+    session
+        .get_by_text("Open btm")
+        .wait_hidden(Some(HELP_TIMEOUT_MS))?;
+    wait_visual_quiet(session)?;
+    checkpoints.push(capture_checkpoint(
+        session,
+        profile,
+        case,
+        case.checkpoint_labels[3],
+        case_out,
+    )?);
+    let query_selected_text = visible_text(session)?;
+    let query_selected_assertion = holla_home_assertion(
+        "query-selected",
+        &query_selected_text,
+        "resources",
+        false,
+        true,
+    );
+    semantic_assertions.push(query_selected_assertion.clone());
+    if !assertion_passed(&query_selected_assertion) {
+        return Err(assertion_error(&query_selected_assertion).into());
+    }
+
+    actions.push(json!({"event":"key_press","key":"Enter","at_unix_ms":unix_ms()}));
+    send_key(session, "Enter")?;
+    if let Err(wait_error) = session
+        .get_by_text("System resources")
+        .wait_with_timeout(Some(HELP_TIMEOUT_MS))
+    {
+        let quiet_error = wait_visual_quiet(session)
+            .err()
+            .map(|error| error.to_string());
+        match capture_failure_evidence(
+            session,
+            profile,
+            case,
+            case_out,
+            &raw_path,
+            "query-resource",
+        ) {
+            Ok((evidence, actual_text)) => {
+                let mut assertion = holla_resource_page_assertion("query-resource", &actual_text);
+                if let Some(object) = assertion.as_object_mut() {
+                    object.insert(
+                        "locator_wait_error".to_string(),
+                        json!(wait_error.to_string()),
+                    );
+                    object.insert("visual_quiet_error".to_string(), json!(quiet_error));
+                    object.insert("failure_evidence".to_string(), json!(evidence));
+                }
+                semantic_assertions.push(assertion);
+                return Err(
+                    "query-resource did not show the System resources page before timeout; evidence: failure-evidence/query-resource"
+                        .into(),
+                );
+            }
+            Err(capture_error) => {
+                semantic_assertions.push(json!({
+                    "id":"query-resource",
+                    "status":"unverified",
+                    "expected_visible":["System resources","12.4 of 16 GB","swap 1.1 GB","rust-analyzer","4812"],
+                    "locator_wait_error":wait_error.to_string(),
+                    "visual_quiet_error":quiet_error,
+                    "failure_evidence_error":capture_error.to_string(),
+                }));
+                return Err(format!(
+                    "query-resource wait failed and active-screen evidence could not be captured: {capture_error}"
+                )
+                .into());
+            }
+        }
+    }
+    wait_visual_quiet(session)?;
+    checkpoints.push(capture_checkpoint(
+        session,
+        profile,
+        case,
+        case.checkpoint_labels[4],
+        case_out,
+    )?);
+    let query_resource_text = visible_text(session)?;
+    let query_resource_assertion =
+        holla_resource_page_assertion("query-resource", &query_resource_text);
+    semantic_assertions.push(query_resource_assertion.clone());
+    if !assertion_passed(&query_resource_assertion) {
+        return Err(assertion_error(&query_resource_assertion).into());
+    }
+    session
+        .get_by_text("System snapshot")
+        .wait_hidden(Some(HELP_TIMEOUT_MS))?;
+
+    actions.push(json!({"event":"key_press","key":"Escape","at_unix_ms":unix_ms()}));
+    send_key(session, "Escape")?;
+    session
+        .get_by_text("System resources")
+        .wait_hidden(Some(HELP_TIMEOUT_MS))?;
+    session
+        .get_by_text("4812")
+        .wait_hidden(Some(HELP_TIMEOUT_MS))?;
+    session
+        .get_by_text(case.initial_marker)
+        .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
+    wait_visual_quiet(session)?;
+    ensure_child_active(session)?;
+    checkpoints.push(capture_checkpoint(
+        session,
+        profile,
+        case,
+        case.checkpoint_labels[5],
+        case_out,
+    )?);
+    let query_restored_text = visible_text(session)?;
+    let query_restored_assertion = holla_home_assertion(
+        "query-restored",
+        &query_restored_text,
+        "resources",
+        false,
+        false,
+    );
+    semantic_assertions.push(query_restored_assertion.clone());
+    if !assertion_passed(&query_restored_assertion) {
+        return Err(assertion_error(&query_restored_assertion).into());
+    }
+
+    actions.push(json!({"event":"key_press","key":"Escape","at_unix_ms":unix_ms()}));
+    send_key(session, "Escape")?;
+    session
+        .get_by_text("Search actions and resources…")
+        .wait_with_timeout(Some(HELP_TIMEOUT_MS))?;
+    wait_visual_quiet(session)?;
+    ensure_child_active(session)?;
+    checkpoints.push(capture_checkpoint(
+        session,
+        profile,
+        case,
+        case.checkpoint_labels[6],
+        case_out,
+    )?);
+    let query_cleared_text = visible_text(session)?;
+    let query_cleared_assertion =
+        holla_home_assertion("query-cleared", &query_cleared_text, "empty", false, false);
+    semantic_assertions.push(query_cleared_assertion.clone());
+    if !assertion_passed(&query_cleared_assertion) {
+        return Err(assertion_error(&query_cleared_assertion).into());
+    }
+
+    Ok(())
+}
+
+fn visible_text(session: &Session) -> AppResult<String> {
+    match session.execute(Operation::Text { full: true })? {
+        OperationResult::Text(text) => Ok(text),
+        other => Err(format!("unexpected text result: {other:?}").into()),
+    }
+}
+
+fn holla_home_assertion(
+    id: &str,
+    actual_text: &str,
+    query_state: &str,
+    initial: bool,
+    filtered: bool,
+) -> Value {
+    let mut required = vec!["› Show system resources", "holla snapshot system", "mbp"];
+    if initial {
+        required.extend(["CPU 78% for 4 min", "still discovering…", "no project"]);
+    }
+    let missing: Vec<&str> = required
+        .iter()
+        .copied()
+        .filter(|marker| !actual_text.contains(marker))
+        .collect();
+    let forbidden = ["System snapshot"];
+    let forbidden_visible: Vec<&str> = forbidden
+        .iter()
+        .copied()
+        .filter(|marker| actual_text.contains(marker))
+        .collect();
+    let query_line = actual_text.lines().nth(4).unwrap_or_default();
+    let query_matches = match query_state {
+        "empty" => query_line.contains("Search actions and resources…"),
+        "resources" => {
+            query_line.contains("resources")
+                && !query_line.contains("Search actions and resources…")
+        }
+        _ => false,
+    };
+    let unexpected_rows: Vec<&str> = if filtered {
+        ["Analyze disk usage", "Open btm"]
+            .into_iter()
+            .filter(|marker| actual_text.contains(marker))
+            .collect()
+    } else {
+        Vec::new()
+    };
+    let status = if missing.is_empty()
+        && forbidden_visible.is_empty()
+        && unexpected_rows.is_empty()
+        && query_matches
+    {
+        "pass"
+    } else {
+        "fail"
+    };
+    json!({
+        "id":id,
+        "status":status,
+        "required_visible":required,
+        "missing_visible":missing,
+        "forbidden_visible":forbidden_visible,
+        "unexpected_default_rows":unexpected_rows,
+        "query_line":query_line,
+        "query_state":query_state,
+        "query_matches":query_matches,
+        "observed_visible_text":actual_text,
+    })
+}
+
+fn holla_resource_page_assertion(id: &str, actual_text: &str) -> Value {
+    let required = [
+        "System resources",
+        "mbp",
+        "CPU",
+        "Load",
+        "Cores",
+        "Memory",
+        "Pressure",
+        "12.4 of 16 GB",
+        "swap 1.1 GB",
+        "rust-analyzer",
+        "4812",
+    ];
+    let missing: Vec<&str> = required
+        .into_iter()
+        .filter(|marker| !actual_text.contains(marker))
+        .collect();
+    let forbidden = ["System snapshot"];
+    let forbidden_visible: Vec<&str> = forbidden
+        .into_iter()
+        .filter(|marker| actual_text.contains(marker))
+        .collect();
+    let status = if missing.is_empty() && forbidden_visible.is_empty() {
+        "pass"
+    } else {
+        "fail"
+    };
+    json!({
+        "id":id,
+        "status":status,
+        "required_visible":required,
+        "missing_visible":missing,
+        "forbidden_visible":forbidden_visible,
+        "wrong_destination_confirmed":actual_text.contains("System snapshot")
+            && !actual_text.contains("System resources"),
+        "observed_visible_text":actual_text,
+    })
+}
+
+fn assertion_passed(assertion: &Value) -> bool {
+    assertion["status"] == "pass"
+}
+
+fn assertion_error(assertion: &Value) -> String {
+    let missing = assertion["missing_visible"].to_string();
+    let forbidden = assertion["forbidden_visible"].to_string();
+    let unexpected = assertion["unexpected_default_rows"].to_string();
+    format!(
+        "{} semantic assertion failed: missing={missing}, forbidden={forbidden}, unexpected_rows={unexpected}",
+        assertion["id"].as_str().unwrap_or("unknown")
+    )
+}
+
+fn capture_failure_evidence(
+    session: &Session,
+    profile: &tuiscotti::render_profile::Profile,
+    case: Case,
+    case_out: &Path,
+    raw_path: &Path,
+    stage: &str,
+) -> AppResult<(Value, String)> {
+    let (snapshot, offset) =
+        session.capture_snapshot_with_raw_offset(SnapshotScope::ActiveScreen)?;
+    let offset = offset.ok_or("processed PTY byte offset is unavailable or overflowed")?;
+    if snapshot.cols() != u32::from(case.cols) || snapshot.rows() != u32::from(case.rows) {
+        return Err(format!(
+            "failure snapshot dimensions are {}x{}, expected {}x{}",
+            snapshot.cols(),
+            snapshot.rows(),
+            case.cols,
+            case.rows
+        )
+        .into());
+    }
+    let actual_text = visible_text(session)?;
+    let directory = case_out.join("failure-evidence").join(stage);
+    let sample_id = format!(
+        "{}/failure-evidence/{stage}/pixels-{}",
+        case.id,
+        platform_key()
+    );
+    let sample = Sample::with_pixels(&sample_id, &snapshot, Observation::empty(), profile)?;
+    let sample_bytes = sample.to_bytes()?;
+    let image = sample
+        .image()
+        .ok_or("failure evidence sample has no PNG image")?;
+    let png = base64::engine::general_purpose::STANDARD.decode(image.png_base64())?;
+    let raw = fs::read(raw_path)?;
+    let prefix_end = usize::try_from(offset)?;
+    if prefix_end > raw.len() {
+        return Err(format!(
+            "failure snapshot offset {prefix_end} exceeds raw file length {}",
+            raw.len()
+        )
+        .into());
+    }
+    fs::create_dir_all(&directory)?;
+    write_new(&directory.join("sample.tui.json"), &sample_bytes)?;
+    write_new(
+        &directory.join("decoded-snapshot.json"),
+        &serde_json::to_vec_pretty(&snapshot)?,
+    )?;
+    write_new(&directory.join("screen.png"), &png)?;
+    write_new(&directory.join("visible-text.txt"), actual_text.as_bytes())?;
+    write_new(&directory.join("raw-prefix.ansi"), &raw[..prefix_end])?;
+    write_json_new(
+        &directory.join("capture.json"),
+        &json!({
+            "stage":stage,
+            "sample_id":sample_id,
+            "processed_output_offset":offset,
+            "raw_prefix_sha256":sha256(&raw[..prefix_end]),
+            "raw_stream_bytes_at_capture":raw.len(),
+            "raw_stream_sha256_at_capture":sha256(&raw),
+        }),
+    )?;
+    Ok((
+        json!({
+            "directory":format!("failure-evidence/{stage}"),
+            "sample_id":sample_id,
+            "processed_output_offset":offset,
+            "sample_sha256":sha256(&sample_bytes),
+            "png_sha256":image.png_sha256(),
+            "rgba_sha256":image.rgba_sha256(),
+            "raw_prefix_sha256":sha256(&raw[..prefix_end]),
+        }),
+        actual_text,
+    ))
+}
+
+fn finalize_holla_after_error(session: &Session, actions: &mut Vec<Value>) -> (Value, Value, bool) {
+    actions.push(json!({
+        "event":"cleanup_key_press",
+        "key":"Ctrl+q",
+        "reason":"bounded_finalization_after_assertion_failure",
+        "at_unix_ms":unix_ms(),
+    }));
+    let key_result = send_key(session, "Ctrl+q");
+    let wait_result = session.execute(Operation::WaitExit {
+        timeout_ms: Some(EXIT_TIMEOUT_MS),
+    });
+    let state_result = session.execute(Operation::State);
+    let (state_value, process_state, child_exited, state_error) = match state_result {
+        Ok(OperationResult::State(state)) => {
+            let exited = state.exited.is_some() || state.exit_signal.is_some();
+            let value = json!({
+                "exited":state.exited,
+                "exit_signal":state.exit_signal,
+                "cols":state.cols,
+                "rows":state.rows,
+            });
+            (value.clone(), value, exited, Value::Null)
+        }
+        Ok(other) => {
+            let error = format!("unexpected process state result: {other:?}");
+            (Value::Null, Value::Null, false, json!(error))
+        }
+        Err(error) => (Value::Null, Value::Null, false, json!(error.to_string())),
+    };
+    let (wait_exit_completed, wait_exit_error) = match wait_result {
+        Ok(_) => (true, Value::Null),
+        Err(error) => (false, json!(error.to_string())),
+    };
+    let finalization = json!({
+        "attempted":true,
+        "quit_key":"Ctrl+q",
+        "quit_key_sent":key_result.is_ok(),
+        "quit_key_error":key_result.err().map(|error| error.to_string()),
+        "wait_exit_completed":wait_exit_completed,
+        "wait_exit_error":wait_exit_error,
+        "state":state_value,
+        "state_error":state_error,
+        "child_exited":child_exited,
+        "clean_exit":process_state["exited"] == 0 && process_state["exit_signal"].is_null(),
+    });
+    (finalization, process_state, child_exited)
+}
+
+fn preserve_reached_checkpoint_prefixes(
+    raw_path: &Path,
+    case_out: &Path,
+    checkpoints: &[Checkpoint],
+) -> Vec<String> {
+    let raw = match fs::read(raw_path) {
+        Ok(raw) => raw,
+        Err(error) => return vec![format!("cannot read raw stream: {error}")],
+    };
+    let mut errors = Vec::new();
+    for checkpoint in checkpoints {
+        let checkpoint_dir = case_out.join("checkpoints").join(&checkpoint.label);
+        let prefix_path = checkpoint_dir.join("raw-prefix.ansi");
+        let capture_path = checkpoint_dir.join("capture.json");
+        if prefix_path.is_file() && capture_path.is_file() {
+            continue;
+        }
+        let end = match usize::try_from(checkpoint.offset) {
+            Ok(end) if end <= raw.len() => end,
+            Ok(end) => {
+                errors.push(format!(
+                    "{} offset {end} exceeds final raw length {}",
+                    checkpoint.checkpoint_id,
+                    raw.len()
+                ));
+                continue;
+            }
+            Err(error) => {
+                errors.push(format!(
+                    "{} offset conversion failed: {error}",
+                    checkpoint.checkpoint_id
+                ));
+                continue;
+            }
+        };
+        if let Err(error) = fs::create_dir_all(&checkpoint_dir) {
+            errors.push(format!(
+                "{} output directory failed: {error}",
+                checkpoint.checkpoint_id
+            ));
+            continue;
+        }
+        if !prefix_path.exists()
+            && let Err(error) = write_new(&prefix_path, &raw[..end])
+        {
+            errors.push(format!(
+                "{} raw prefix failed: {error}",
+                checkpoint.checkpoint_id
+            ));
+            continue;
+        }
+        if !capture_path.exists()
+            && let Err(error) = write_json_new(
+                &capture_path,
+                &json!({
+                    "checkpoint_id":checkpoint.checkpoint_id,
+                    "sample_id":checkpoint.sample_id,
+                    "processed_output_offset":checkpoint.offset,
+                    "raw_prefix_sha256":sha256(&raw[..end]),
+                    "raw_stream_sha256":sha256(&raw),
+                    "raw_stream_bytes":raw.len(),
+                }),
+            )
+        {
+            errors.push(format!(
+                "{} capture record failed: {error}",
+                checkpoint.checkpoint_id
+            ));
+        }
+    }
+    errors
 }
 
 fn capture_checkpoint(
@@ -1379,5 +2083,5 @@ fn unix_ms() -> u128 {
 }
 
 fn usage_error() -> String {
-    "usage: termrock-live-suite --bin-dir BIN --out OUT --group first | first-plus-help | all\n       termrock-live-suite compare-runs --left A --right B --out RESULT.json\n       termrock-live-suite probe-raw-capture --out OUT\n       termrock-live-suite write-source-manifest --bin-dir BIN --source-dir REPO --source-commit SHA --source-tree SHA --build-log FILE --binary-sha256-file FILE".into()
+    "usage: termrock-live-suite --bin-dir BIN --out OUT --group first | first-plus-help | holla-first-use-action | all\n       termrock-live-suite compare-runs --left A --right B --out RESULT.json\n       termrock-live-suite probe-raw-capture --out OUT\n       termrock-live-suite write-source-manifest --bin-dir BIN --source-dir REPO --source-commit SHA --source-tree SHA --build-log FILE --binary-sha256-file FILE".into()
 }
