@@ -636,6 +636,7 @@ fn run_case(
             .with_envs([
                 ("LANG", "C.UTF-8"),
                 ("LC_ALL", "C.UTF-8"),
+                ("TZ", "UTC"),
                 ("TERM", "xterm-256color"),
                 ("COLORTERM", "truecolor"),
             ]);
