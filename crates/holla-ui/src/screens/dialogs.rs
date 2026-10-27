@@ -194,7 +194,6 @@ fn clone_destination_input<'a>(value: Option<&'a str>) -> TextInput<'a> {
 
 pub(crate) enum Intent {
     About,
-    Help,
     Quit,
     Monitor,
     Preview(Action),
@@ -301,19 +300,6 @@ impl ProductDialog {
                         "Design system",
                         "Junie-inspired Ratatui components (termrock)".into(),
                     ),
-                ]);
-            }
-            Intent::Help => {
-                view.title = "Key reference".into();
-                view.facts = facts(&[
-                    ("Type", "filter the action list".into()),
-                    ("↑ ↓", "move between query and results".into()),
-                    ("Enter", "run the focused action".into()),
-                    ("Ctrl+O / Ctrl+P", "actions menu / preview".into()),
-                    ("Esc", "clear query · close dialog".into()),
-                    ("F10", "menu bar".into()),
-                    ("?", "this reference (empty query)".into()),
-                    ("q", "quit (empty query)".into()),
                 ]);
             }
             Intent::Quit => {
@@ -682,7 +668,7 @@ impl ProductDialog {
             ];
             view.ssh = Some(host.clone());
         }
-        if matches!(view.intent, Intent::About | Intent::Help) {
+        if matches!(view.intent, Intent::About) {
             view.actions = vec![UiAction::new(ActionKey::CANCEL, "Close")];
         }
         if matches!(view.intent, Intent::Monitor) {
@@ -971,7 +957,6 @@ impl ProductDialog {
                 }
             }
             Intent::About
-            | Intent::Help
             | Intent::TopFiles
             | Intent::CleanupReview
             | Intent::HomeFind

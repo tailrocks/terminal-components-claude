@@ -17,11 +17,20 @@ pub struct Usage {
     pub count: u32,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HostUsage {
+    pub host: String,
+    pub action_id: String,
+    pub count: u32,
+    pub last_used_ms: i64,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Memory {
     pub pins: Vec<Pin>,
     aliases: Vec<Alias>,
     pub usage: Vec<Usage>,
+    pub host_usage: Vec<HostUsage>,
     pub hides: Vec<Pin>,
 }
 
@@ -31,6 +40,7 @@ impl Memory {
             pins,
             aliases: Vec::new(),
             usage,
+            host_usage: Vec::new(),
             hides,
         };
         for alias in aliases {
@@ -72,6 +82,22 @@ impl Memory {
             .filter(|u| u.path == path && u.command == command)
             .map(|u| u.count)
             .fold(0, u32::saturating_add)
+    }
+
+    pub fn host_usage_count(&self, host: &str, action_id: &str) -> u32 {
+        self.host_usage
+            .iter()
+            .filter(|usage| usage.host == host && usage.action_id == action_id)
+            .map(|usage| usage.count)
+            .fold(0, u32::saturating_add)
+    }
+
+    pub fn host_usage_last_used_ms(&self, host: &str, action_id: &str) -> Option<i64> {
+        self.host_usage
+            .iter()
+            .filter(|usage| usage.host == host && usage.action_id == action_id)
+            .map(|usage| usage.last_used_ms)
+            .max()
     }
 
     pub fn pin_at(&self, path: &str, command: &str) -> bool {

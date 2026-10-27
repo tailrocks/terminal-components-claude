@@ -1,13 +1,15 @@
 use std::cell::RefCell;
 
 use termrock::RowUi;
+use termrock::composition::{self, Group};
 use termrock::layout::{ColumnSpec, Track, solve_columns};
 use termrock::theme::CursorStyle;
 use termrock::{
     BlurPolicy, Chord, Color, Cx, Family, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
-    KeyCode, KeyModifiers, NavList, NavListAction, NavListState, Part, Rect, Response, Role,
-    StateFlags, StylePatch, TextAction, TextCmd, TextInput, TextInputState, TypingPolicy, Ui,
-    Variant,
+    KeyCode, KeyModifiers, MasterDetail, MasterDetailPolicy, MasterDetailState, NavList,
+    NavListAction, NavListState, Part, Rect, Response, Role, StateFlags, StylePatch, TextAction,
+    TextCmd, TextInput, TextInputState, TextSection, TextViewport, TypingPolicy, Ui, Variant,
+    ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::action::{Action, Availability, Scope};
@@ -15,6 +17,12 @@ use crate::sim::{catalogue, world::World};
 
 pub(crate) const QUERY: Id = Id::root("home.query");
 pub(crate) const ROWS: Id = Id::root("home.rows");
+pub(crate) const DETAIL_VIEWPORT: Id = Id::root("home.detail.viewport");
+const MASTER_DETAIL: Id = Id::root("home.master-detail");
+
+fn home_master_detail_policy() -> MasterDetailPolicy {
+    MasterDetailPolicy::default()
+}
 
 const PARITY_ACTION_IDS: [&str; 6] = [
     "git.pull",
@@ -33,6 +41,8 @@ pub(crate) struct HomeState {
     value: String,
     editor: TextInputState,
     rows: NavListState,
+    detail: MasterDetailState,
+    detail_viewport: ViewportState,
     pub(crate) scope: Option<Scope>,
 
     pub(crate) history: bool,
@@ -46,15 +56,20 @@ impl Default for HomeState {
             value: String::new(),
             editor,
             rows: NavListState::default(),
+            detail: MasterDetailState::default(),
+            detail_viewport: ViewportState::default(),
             scope: None,
-            history: false,
+            history: catalogue::history_enabled(),
         }
     }
 }
 
 pub(crate) struct HomeRow {
+    key: ItemKey,
     section: &'static str,
-    action: Action,
+    action: Option<Action>,
+    note: Option<&'static str>,
+    chips: Option<&'static [&'static str]>,
     columns: ActionColumns,
 }
 
@@ -83,22 +98,26 @@ impl ActionColumns {
         let columns = Self {
             title: rows
                 .iter()
-                .map(|row| termrock::width(&row.action.title))
+                .filter_map(|row| row.action.as_ref())
+                .map(|action| termrock::width(&action.title))
                 .max()
                 .unwrap_or(14),
             kind: rows
                 .iter()
-                .map(|row| termrock::width(action_kind_label(row.action.kind)))
+                .filter_map(|row| row.action.as_ref())
+                .map(|action| termrock::width(action_kind_label(action.kind)))
                 .max()
                 .unwrap_or(4),
             scope: rows
                 .iter()
-                .map(|row| termrock::width(&scope_text(&row.action)))
+                .filter_map(|row| row.action.as_ref())
+                .map(|action| termrock::width(&scope_text(action)))
                 .max()
                 .unwrap_or(4),
             risk: rows
                 .iter()
-                .map(|row| termrock::width(&risk_text(&row.action)))
+                .filter_map(|row| row.action.as_ref())
+                .map(|action| termrock::width(&risk_text(action)))
                 .max()
                 .unwrap_or(0),
         };
@@ -110,7 +129,16 @@ impl ActionColumns {
 
 impl std::fmt::Display for HomeRow {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.action.title)
+        if let Some(action) = &self.action {
+            return f.write_str(&action.title);
+        }
+        if let Some(note) = self.note {
+            return f.write_str(note);
+        }
+        if let Some(chips) = self.chips {
+            return f.write_str(&chips.join(" · "));
+        }
+        Ok(())
     }
 }
 
@@ -128,40 +156,72 @@ impl HomeState {
     pub(crate) fn rows(&self, world: &World) -> Vec<HomeRow> {
         let recent_first =
             self.query().trim().is_empty() && world.scenario.boot_title() == super::finder::RECENT;
-        catalogue::sections(world)
-            .into_iter()
-            .flat_map(|section| {
-                let name = if recent_first && section.name == "Suggested here" {
-                    "Explore"
-                } else {
-                    section.name
-                };
-                catalogue::visible(
-                    &section.actions,
-                    self.scope,
-                    self.query(),
-                    &world.memory,
-                    &world.cwd,
-                )
-                .into_iter()
-                .map(move |action| HomeRow {
+        let filtered = !self.query().trim().is_empty() || self.scope.is_some();
+        let mut rows = Vec::new();
+        for section in catalogue::sections_with_history(world, self.history) {
+            let name = if recent_first && section.name == "Suggested here" {
+                "Explore"
+            } else {
+                section.name
+            };
+            if !filtered && let Some(chips) = section.chips {
+                rows.push(HomeRow {
+                    key: ItemKey::text("home.categories.explore"),
                     section: name,
-                    action,
+                    action: None,
+                    note: None,
+                    chips: Some(chips),
                     columns: ActionColumns::default(),
-                })
-            })
-            .collect()
+                });
+            }
+            let visible = catalogue::visible(
+                &section.actions,
+                self.scope,
+                self.query(),
+                &world.memory,
+                &world.cwd,
+            );
+            rows.extend(visible.into_iter().map(|action| HomeRow {
+                key: ItemKey::text(&action.id),
+                section: name,
+                action: Some(action),
+                note: None,
+                chips: None,
+                columns: ActionColumns::default(),
+            }));
+            if !filtered && let Some(note) = section.empty_note {
+                rows.push(HomeRow {
+                    key: ItemKey::text("home.note.recent"),
+                    section: name,
+                    action: None,
+                    note: Some(note),
+                    chips: None,
+                    columns: ActionColumns::default(),
+                });
+            }
+        }
+        rows
     }
 
-    pub(crate) fn hints(world: &World, rows_focused: bool) -> HintLayer {
+    pub(crate) fn hints(
+        world: &World,
+        rows_focused: bool,
+        detail_focused: bool,
+        selected: Option<&Action>,
+    ) -> HintLayer {
         let key = |code| HintKey::Chord(Chord::key(code));
         let ctrl = |character| HintKey::ChordWithCase {
             chord: Chord::with(KeyCode::Char(character), KeyModifiers::CONTROL),
             case: termrock::ChordCase::UppercaseAscii,
         };
-        let entries: &[(HintKey, &str)] = if rows_focused {
+        let entries: &[(HintKey, &str)] = if detail_focused {
+            &[(ctrl('p'), "Preview"), (ctrl('o'), "Actions")]
+        } else if rows_focused {
             &[
-                (key(KeyCode::Enter), "Run"),
+                (
+                    key(KeyCode::Enter),
+                    selected.map_or("Run top match", primary_verb),
+                ),
                 (ctrl('p'), "Preview"),
                 (ctrl('o'), "Actions"),
                 (key(KeyCode::Up), "Query"),
@@ -171,7 +231,10 @@ impl HomeState {
             &[
                 (HintKey::Label("Type"), "Filter"),
                 (key(KeyCode::Down), "Results"),
-                (key(KeyCode::Enter), "Run top match"),
+                (
+                    key(KeyCode::Enter),
+                    selected.map_or("Run top match", primary_verb),
+                ),
                 (ctrl('s'), "Scope"),
                 (key(KeyCode::F(10)), "Menu"),
                 (key(KeyCode::Char('q')), "Quit"),
@@ -207,9 +270,14 @@ impl HomeState {
         }
         let catalogue::ParityDiscovery { lines, actions, .. } = projection;
         let live_rows = self.rows(world);
+        let action_rows: Vec<_> = live_rows
+            .iter()
+            .filter(|row| row.action.is_some())
+            .collect();
         let mut live_ids = Vec::with_capacity(live_rows.len());
-        for row in &live_rows {
-            let id = row.action.id.as_str();
+        for row in &action_rows {
+            let action = row.action.as_ref()?;
+            let id = action.id.as_str();
             if !PARITY_ACTION_IDS.contains(&id) || live_ids.contains(&id) {
                 return None;
             }
@@ -241,8 +309,12 @@ impl HomeState {
                         return None;
                     }
                     action_index = action_index.saturating_add(1);
-                    if let Some(row) = live_rows.iter().find(|row| row.action.id == expected_id) {
-                        if row.action != action {
+                    if let Some(row) = action_rows.iter().find(|row| {
+                        row.action
+                            .as_ref()
+                            .is_some_and(|candidate| candidate.id == expected_id)
+                    }) {
+                        if row.action.as_ref() != Some(&action) {
                             return None;
                         }
                         items.push(ParityItem::Action {
@@ -264,7 +336,7 @@ impl HomeState {
                 .iter()
                 .filter(|item| matches!(item, ParityItem::Action { .. }))
                 .count()
-                != live_rows.len()
+                != action_rows.len()
         {
             return None;
         }
@@ -276,13 +348,19 @@ impl HomeState {
         self.rows
             .cursor()
             .and_then(|key| rows.iter().find(|row| row_key(row) == key))
-            .or_else(|| rows.first())
-            .map(|row| row.action.clone())
+            .filter(|row| row.action.is_some())
+            .or_else(|| rows.iter().find(|row| row.action.is_some()))
+            .and_then(|row| row.action.clone())
     }
 
     pub(crate) fn focus_first(&mut self, world: &World, cx: &mut Cx<'_>) {
-        if let Some(row) = self.rows(world).first() {
-            self.rows.set_cursor(0, row_key(row));
+        let rows = self.rows(world);
+        if let Some((index, row)) = rows
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.action.is_some())
+        {
+            self.rows.set_cursor(index, row_key(row));
             cx.focus(ROWS);
         } else {
             cx.focus_next();
@@ -290,9 +368,10 @@ impl HomeState {
     }
 
     pub(crate) fn subject(&self, world: &World, cx: &Cx<'_>) -> Option<Action> {
-        if cx.state(QUERY).contains(StateFlags::FOCUSED) {
-            self.rows(world).into_iter().next().map(|row| row.action)
-        } else if cx.state(ROWS).contains(StateFlags::FOCUSED) {
+        if cx.state(QUERY).contains(StateFlags::FOCUSED)
+            || cx.state(ROWS).contains(StateFlags::FOCUSED)
+            || cx.state(DETAIL_VIEWPORT).contains(StateFlags::FOCUSED)
+        {
             self.selected(world)
         } else {
             None
@@ -305,7 +384,8 @@ impl HomeState {
         cx: &mut Cx<'_>,
         home_area: Option<Rect>,
         viewport_width: u16,
-    ) -> (Response<()>, Option<Action>) {
+    ) -> (Response<()>, Option<Action>, Option<String>) {
+        let previous_selected = self.selected(world).map(|action| ItemKey::text(&action.id));
         let rows_own_navigation = cx.state(ROWS).contains(StateFlags::FOCUSED)
             && catalogue::parity_discovery(world).is_some();
         let mut text =
@@ -316,6 +396,29 @@ impl HomeState {
             self.editor.begin(&self.value);
         }
         let rows = self.rows(world);
+        let retained = previous_selected.and_then(|key| {
+            rows.iter()
+                .enumerate()
+                .find(|(_, row)| row_key(row) == key && row.action.is_some())
+        });
+        let first_action = rows
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.action.is_some());
+        if let Some((index, row)) = retained.or(first_action) {
+            self.rows.set_cursor(index, row_key(row));
+        }
+        let master_detail = MasterDetail::new(MASTER_DETAIL, ROWS, DETAIL_VIEWPORT)
+            .policy(home_master_detail_policy())
+            .detail_owns(&[DETAIL_VIEWPORT]);
+        let master_detail_active = home_area.is_some()
+            && cx.layout(MASTER_DETAIL).is_some()
+            && cx.top_layer() == termrock::LayerId::PAGE;
+        let mut response = if master_detail_active {
+            master_detail.update(cx, &mut self.detail).erase()
+        } else {
+            Response::ignored()
+        };
         let discovery = home_area.and_then(|area| {
             let (_, rows_area, _) = home_rows_layout(area, world, self.query());
             let layout = parity_action_layout(rows_area, viewport_width, !rows.is_empty())?;
@@ -336,7 +439,15 @@ impl HomeState {
                 None
             }
             Some(NavListAction::LeaveForward) => {
-                cx.focus_next();
+                let collapsed = home_area.is_some_and(|area| {
+                    let (_, rows_area, _) = home_rows_layout(area, world, self.query());
+                    home_master_detail_policy().is_collapsed(rows_area.width)
+                });
+                if master_detail_active && collapsed {
+                    response |= master_detail.open_detail(cx, &mut self.detail).erase();
+                } else {
+                    cx.focus_next();
+                }
                 None
             }
             Some(NavListAction::Chose(key) | NavListAction::EnterContent(key)) => {
@@ -349,13 +460,33 @@ impl HomeState {
                 } else {
                     rows.iter()
                         .find(|row| row_key(row) == key)
-                        .map(|row| row.action.clone())
+                        .and_then(|row| row.action.clone())
                 }
             }
-            _ if submit => rows.first().map(|row| row.action.clone()),
+            _ if submit => self.selected(world),
             _ => None,
         };
-        (text.erase() | navigation.erase(), chosen)
+        let mut copy = None;
+        if master_detail_active && let Some(area) = home_area {
+            let (_, rows_area, _) = home_rows_layout(area, world, self.query());
+            let visible = !home_master_detail_policy().is_collapsed(rows_area.width)
+                || self.detail.drawer_open();
+            if visible {
+                let text_lines =
+                    detail_text_lines(self.selected(world).as_ref(), world, self.history);
+                let viewport_lines = viewport_lines(&text_lines);
+                let viewport = TextViewport::new(DETAIL_VIEWPORT)
+                    .wrap(true)
+                    .reserve_gutter(false);
+                let detail_response =
+                    viewport.update(cx, &mut self.detail_viewport, &viewport_lines);
+                if let Some(ViewportAction::Copy(value)) = detail_response.action_ref() {
+                    copy = Some(value.clone());
+                }
+                response |= detail_response.erase();
+            }
+        }
+        (text.erase() | navigation.erase() | response, chosen, copy)
     }
 
     #[expect(
@@ -412,11 +543,6 @@ impl HomeState {
         }
         if paints_recent_lead {
             super::finder::paint_recent_lead(ui, lead_area);
-        }
-        if let Some(view) = catalogue::first_use_view(world, ui.full().width, self.history)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return None;
         }
         if let Some(view) = catalogue::monorepo_root_view(world, ui.full().width, self.history)
             && paint_narrow_tag_list(ui, rows_area, &view)
@@ -505,8 +631,7 @@ impl HomeState {
         {
             return None;
         }
-        if let Some(view) = catalogue::first_use_plate(world, self.history)
-            .or_else(|| catalogue::monorepo_root_plate(world, self.history))
+        if let Some(view) = catalogue::monorepo_root_plate(world, self.history)
             .or_else(|| catalogue::monorepo_child_tag(world))
             .or_else(|| catalogue::activities_multi_plate(world, self.history))
             .or_else(|| catalogue::remote_host_tag(world))
@@ -526,6 +651,55 @@ impl HomeState {
             && ui.owner_has_focus_presentation(ROWS);
         if rows.is_empty() {
             paint_empty_home_rows(ui, rows_area, self.query(), self.scope);
+        } else if catalogue::parity_discovery(world).is_none() {
+            let selected = self.selected(world);
+            let preview = selected
+                .as_ref()
+                .map(|action| catalogue::action_preview(world, action, self.history));
+            let selected_title = selected
+                .as_ref()
+                .map_or("Choose an action", |action| action.title.as_str());
+            let selected_meta = preview
+                .as_ref()
+                .map_or("Select an action to preview it", |preview| {
+                    preview.meta.as_str()
+                });
+            let lines = preview
+                .as_ref()
+                .map(|preview| {
+                    preview
+                        .lines
+                        .iter()
+                        .map(|line| format!("{}: {}", line.label, line.value))
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
+            let line_refs = viewport_lines(&lines);
+            let list = nav_list_with_row(|row, cells| {
+                let row_is_visible = !cells.area().intersection(clip).is_empty();
+                let collector = (collect_peek && row_is_visible).then_some(&peek);
+                paint_action_with_peek(row, cells, collector);
+            });
+            let master = Group::column([composition::nav_list(&list, &self.rows, &rows)]);
+            let summary = TextSection::new(selected_title).inset(1);
+            let summary = Group::column([composition::text_section(&summary)]);
+            let heading = TextSection::new(selected_title)
+                .subtitle(selected_meta)
+                .inset(1);
+            let viewport = TextViewport::new(DETAIL_VIEWPORT)
+                .wrap(true)
+                .reserve_gutter(false);
+            let detail = Group::column([
+                composition::text_section(&heading),
+                composition::text_viewport(&viewport, &self.detail_viewport, &line_refs).flex(1),
+            ]);
+            let layout = MasterDetail::new(MASTER_DETAIL, ROWS, DETAIL_VIEWPORT)
+                .policy(home_master_detail_policy())
+                .master(&master)
+                .detail(&detail)
+                .summary(&summary)
+                .detail_owns(&[DETAIL_VIEWPORT]);
+            let _ = ui.with_area(rows_area, |ui| layout.show(ui, &self.detail));
         } else {
             nav_list_with_row(|row, cells| {
                 let row_is_visible = !cells.area().intersection(clip).is_empty();
@@ -592,6 +766,26 @@ fn paint_discovery_note(ui: &mut Ui<'_>, row: Rect, text: &str, role: Role) {
     ui.paint_str(row, text, style);
 }
 
+fn viewport_lines(lines: &[String]) -> Vec<ViewportLine<'_>> {
+    lines
+        .iter()
+        .map(|line| ViewportLine::from(line.as_str()))
+        .collect()
+}
+
+fn detail_text_lines(action: Option<&Action>, world: &World, history: bool) -> Vec<String> {
+    action.map_or_else(
+        || vec!["Select an action to see its preview.".to_owned()],
+        |action| {
+            catalogue::action_preview(world, action, history)
+                .lines
+                .into_iter()
+                .map(|line| format!("{}: {}", line.label, line.value))
+                .collect()
+        },
+    )
+}
+
 const TAG_GREY: StylePatch = StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)));
 const QUERY_PARTS: &[(Part, StylePatch)] = &[(Part::PLACEHOLDER, TAG_GREY)];
 
@@ -629,6 +823,24 @@ fn query_input(rows_own_navigation: bool) -> TextInput<'static> {
 fn section(row: &HomeRow) -> &str {
     row.section
 }
+fn home_row_disabled(row: &HomeRow) -> bool {
+    row.action.is_none()
+}
+
+pub(crate) fn primary_verb(action: &Action) -> &'static str {
+    if action.long_running {
+        "Run"
+    } else if action.command.starts_with("holla disk analyze") {
+        "Analyze"
+    } else if action.kind == crate::domain::action::ActionKind::Task {
+        "Run"
+    } else if action.risk == crate::domain::action::Risk::Broad {
+        "Review"
+    } else {
+        "Open"
+    }
+}
+
 fn nav_list_with_row<R>(row: R) -> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey, R>
 where
     R: Fn(&HomeRow, &mut RowUi<'_>),
@@ -639,6 +851,7 @@ where
         .leave_at_boundary(true)
         .header_indent(SECTION_INDENT)
         .section(&section)
+        .disabled_item(&home_row_disabled)
         .patch_part(HEADER_PARTS)
         .header_text_patch(&HEADER_TEXT)
         .key(row_key)
@@ -649,7 +862,7 @@ fn nav_list()
     nav_list_with_row(paint_action)
 }
 fn row_key(row: &HomeRow) -> ItemKey {
-    ItemKey::text(&row.action.id)
+    row.key
 }
 
 fn parity_item_key(item: &ParityItem) -> ItemKey {
@@ -756,7 +969,14 @@ fn paint_action_with_peek(
         && cells.flags().contains(StateFlags::FOCUSED)
         && !cells.flags().contains(StateFlags::DISABLED)
         && !cells.area().is_empty();
-    let action = &row.action;
+    let Some(action) = &row.action else {
+        if let Some(note) = row.note {
+            cells.label(note);
+        } else if let Some(chips) = row.chips {
+            cells.label(&chips.join(" · "));
+        }
+        return;
+    };
     let kind = action_kind_label(action.kind);
     let scope = scope_text(action);
     let risk = risk_text(action);

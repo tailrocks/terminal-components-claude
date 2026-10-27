@@ -40,9 +40,9 @@ use crate::{
 use termrock::{
     ActionKey, AppShell, Binding, Brand, Chord, Color, Constraints, Cx, Dialog, FgStep,
     Focusability, FrameRead, Hint, HintBar, HintKey, HintLayer, Id, Intent, ItemKey, KeyCode,
-    KeyMap, KeyPhase, LayerOpening, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem,
-    MenuState, Part, PartRef, Phase, Rect, Response, Role, StatusBar, StatusItem, StylePatch,
-    Surface, TooSmall, Ui,
+    KeyHint, KeyMap, KeyPhase, LayerOpening, Menu, MenuAction, MenuBar, MenuBarHoverScope,
+    MenuItem, MenuState, Part, PartRef, Phase, Rect, Response, Role, StatusBar, StatusItem,
+    StylePatch, Surface, TooSmall, Ui,
 };
 
 use crate::layout::{self, MIN_HEIGHT, MIN_WIDTH};
@@ -51,6 +51,9 @@ const BRAND: Id = Id::root("holla.brand");
 const MENU: Id = Id::root("holla.menu");
 const STRIP: Id = Id::root("holla.activities");
 const FOOTER: Id = Id::root("holla.footer");
+const HELP_LAYER: Id = Id::root("holla.help");
+const HELP_SCROLL_HINT: Id = Id::root("holla.help.footer.scroll");
+const HELP_CLOSE_HINT: Id = Id::root("holla.help.footer.close");
 const PARITY_BROWSER_STATUS: Id = Id::root("holla.status.parity-browser");
 const PARITY_FILES_STATUS: Id = Id::root("holla.status.parity-files");
 const HELP: ActionKey = ActionKey::application("holla.help");
@@ -80,6 +83,206 @@ const RESULTS: ActionKey = ActionKey::application("holla.results");
 const QUERY_ESCAPE: ActionKey = ActionKey::application("holla.query-escape");
 const PREVIOUS: ActionKey = ActionKey::application("holla.previous");
 const INTERRUPT: ActionKey = ActionKey::application("holla.interrupt");
+
+const HELP_FINDER_ROWS: &[(&str, &str)] = &[
+    (
+        "Type",
+        "search actions and resources together · @parent @children @system @all narrow the scope",
+    ),
+    ("↑↓", "move · PgUp PgDn Home End"),
+    (
+        "Enter",
+        "primary action · destructive rows open a review instead",
+    ),
+    (
+        "Alt+Enter",
+        "alternatives · run, copy, insert, arguments, pin, alias, hide, why",
+    ),
+    ("Tab", "preview › tab strip › finder"),
+    (
+        "Ctrl+↑ / Ctrl+↓",
+        "scope outward (parent, system) / inward (children)",
+    ),
+    ("Esc", "clear query › scope back to here › back a page"),
+    (
+        "Aliases",
+        "gp pull · du disk usage · test the test task here · d then u · dc docker cleanup",
+    ),
+];
+const HELP_PAGE_ROWS: &[(&str, &str)] = &[
+    (
+        "Disk",
+        "↑↓ move · Space select · a all · Enter drill · c cleanup plan · p details",
+    ),
+    (
+        "Plan review",
+        "Space include or exclude · u undo · Enter step facts · c confirm",
+    ),
+    (
+        "Gates",
+        "Gate 1 reviews facts and the full sequence · Gate 2 types the target-bound phrase",
+    ),
+];
+const HELP_ACTIVITY_ROWS: &[(&str, &str)] = &[
+    ("↑↓ PgUp PgDn", "scroll · f follow tail · y copy selection"),
+    ("s", "stop · r restart · x close tab"),
+    (
+        "Enter / i",
+        "attach to an interactive program · Ctrl+] detaches",
+    ),
+    ("1–9", "show or hide a merged log stream"),
+    ("Esc", "back to Here · the activity keeps running"),
+];
+const HELP_PLAN_ROWS: &[(&str, &str)] = &[
+    ("↑↓", "select a step · Enter maximise its output · f follow"),
+    ("r", "retry the failed step · k skip an optional failure"),
+    ("Ctrl+C", "cancel the remaining work"),
+    ("Esc", "back to Here · the plan keeps running"),
+];
+const HELP_MOUSE_ROWS: &[(&str, &str)] = &[
+    ("Click", "select"),
+    ("Double-click", "run"),
+    ("Right-click", "alternatives"),
+    ("Wheel", "scroll under the pointer"),
+];
+const HELP_EVERYWHERE_ROWS: &[(&str, &str)] = &[
+    ("Alt+0", "Here"),
+    ("Ctrl+W", "Close tab"),
+    ("Ctrl+G", "Activities"),
+    ("F1 ?", "This reference"),
+    ("F10 Ctrl+F2", "Menu bar"),
+    ("Ctrl+PgDn", "Next page"),
+    ("Ctrl+PgUp", "Previous page"),
+    ("Tab", "Next control"),
+    ("Shift+Tab", "Previous control"),
+    ("Esc", "Back"),
+    ("Ctrl+Q", "Quit"),
+    ("Ctrl+C", "Copy, else quit"),
+    ("Alt+1–9", "Show that tab"),
+];
+static HELP_HOME_SECTIONS: [termrock::HelpSection<'static>; 4] = [
+    termrock::HelpSection::plain("Finder", HELP_FINDER_ROWS),
+    termrock::HelpSection::plain("Pages", HELP_PAGE_ROWS),
+    termrock::HelpSection::plain("Mouse", HELP_MOUSE_ROWS),
+    termrock::HelpSection::plain("Everywhere", HELP_EVERYWHERE_ROWS),
+];
+static HELP_ACTIVITY_SECTIONS: [termrock::HelpSection<'static>; 3] = [
+    termrock::HelpSection::plain("Activity", HELP_ACTIVITY_ROWS),
+    termrock::HelpSection::plain("Mouse", HELP_MOUSE_ROWS),
+    termrock::HelpSection::plain("Everywhere", HELP_EVERYWHERE_ROWS),
+];
+static HELP_PLAN_SECTIONS: [termrock::HelpSection<'static>; 3] = [
+    termrock::HelpSection::plain("Plan", HELP_PLAN_ROWS),
+    termrock::HelpSection::plain("Mouse", HELP_MOUSE_ROWS),
+    termrock::HelpSection::plain("Everywhere", HELP_EVERYWHERE_ROWS),
+];
+static HELP_PAGE_SECTIONS: [termrock::HelpSection<'static>; 3] = [
+    termrock::HelpSection::plain("Pages", HELP_PAGE_ROWS),
+    termrock::HelpSection::plain("Mouse", HELP_MOUSE_ROWS),
+    termrock::HelpSection::plain("Everywhere", HELP_EVERYWHERE_ROWS),
+];
+
+const HELP_OVERLAY_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::CONTAINER,
+        StylePatch::new().set_bg(Role::Custom(Color::Rgb(0x18, 0x18, 0x1b))),
+    ),
+    (
+        Part::BORDER,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0x4d, 0x4d, 0x4d)))
+            .set_bg(Role::Custom(Color::Rgb(0x18, 0x18, 0x1b)))
+            .remove(termrock::Modifier::BOLD),
+    ),
+    (
+        Part::TITLE,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0xff, 0xff, 0xff)))
+            .set_bg(Role::Custom(Color::Rgb(0x18, 0x18, 0x1b)))
+            .add(termrock::Modifier::BOLD)
+            .remove(termrock::Modifier::UNDERLINED),
+    ),
+    (
+        Part::DETAIL,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0x73, 0x73, 0x73)))
+            .set_bg(Role::Custom(Color::Rgb(0x18, 0x18, 0x1b)))
+            .remove(termrock::Modifier::BOLD),
+    ),
+];
+const HELP_FOOTER_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::CONTAINER,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0xff, 0xff, 0xff)))
+            .set_bg(Role::Custom(Color::Rgb(0x00, 0x00, 0x00))),
+    ),
+    (
+        Part::KEY,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0xff, 0xff, 0xff)))
+            .set_bg(Role::Custom(Color::Rgb(0x00, 0x00, 0x00)))
+            .add(termrock::Modifier::BOLD),
+    ),
+    (
+        Part::ACTION,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)))
+            .set_bg(Role::Custom(Color::Rgb(0x00, 0x00, 0x00))),
+    ),
+];
+
+fn help_sections(route: Route) -> &'static [termrock::HelpSection<'static>] {
+    match route {
+        Route::Home => &HELP_HOME_SECTIONS,
+        Route::Plan => &HELP_PLAN_SECTIONS,
+        Route::Activity | Route::TaskRun => &HELP_ACTIVITY_SECTIONS,
+        Route::Disk
+        | Route::Files
+        | Route::Cleanup
+        | Route::Review
+        | Route::Snapshot
+        | Route::DiskScan => &HELP_PAGE_SECTIONS,
+    }
+}
+
+fn help_overlay(route: Route, scope: &str) -> termrock::HelpOverlay<'_> {
+    termrock::HelpOverlay::new(HELP_LAYER, scope, help_sections(route))
+        .title("Key reference")
+        .patch_part(HELP_OVERLAY_PARTS)
+}
+
+fn paint_help_footer_hints(ui: &mut Ui<'_>, footer: Rect) {
+    let hints = HintLayer {
+        hints: vec![
+            Hint {
+                key: HintKey::Label("↑↓"),
+                label: "Scroll",
+                priority: 50,
+            },
+            Hint {
+                key: HintKey::Label("Esc"),
+                label: "Close",
+                priority: 50,
+            },
+        ],
+        ..HintLayer::empty()
+    };
+    let mut x = footer.x.saturating_add(1);
+    for (index, hint) in hints.hints.iter().take(2).enumerate() {
+        let id = if index == 0 {
+            HELP_SCROLL_HINT
+        } else {
+            HELP_CLOSE_HINT
+        };
+        let key_hint = KeyHint::from_hint(id, hint).patch_part(HELP_FOOTER_PARTS);
+        let drawn = key_hint.draw(
+            ui,
+            Rect::new(x, footer.y, footer.right().saturating_sub(x), 1),
+        );
+        x = drawn.right().saturating_add(2);
+    }
+}
 const ACTIVITY_SHORTCUTS: &[(char, ActionKey)] = &[
     ('1', ActionKey::application("holla.activity-1")),
     ('2', ActionKey::application("holla.activity-2")),
@@ -228,6 +431,11 @@ struct PendingPortReview {
 
 enum Overlay {
     Dialog(Box<ProductDialog>),
+    Help {
+        state: termrock::HelpOverlayState,
+        route: Route,
+        scope: String,
+    },
     Args(Box<TaskArgsEditor>),
     PortArgs(Box<PortArgsEditor>),
     Clone(ClonePicker),
@@ -242,6 +450,9 @@ pub struct App {
     motion: Motion,
     route: Route,
     home: HomeState,
+    snapshot_kind: snapshot::Kind,
+    snapshot: snapshot::State,
+    snapshot_return: Option<ReturnLocation>,
     plan: Option<PlanState>,
     activities: Activities,
     activity_executions: BTreeMap<u32, ActivityExecutionId>,
@@ -479,6 +690,15 @@ fn paint_status_text(
     x.saturating_add(width.min(room))
 }
 
+fn rounded_ratio_percent(used: u64, total: u64) -> u32 {
+    if total == 0 {
+        return 0;
+    }
+    let denominator = u128::from(total);
+    let numerator = u128::from(used).saturating_mul(100);
+    u32::try_from(numerator.saturating_add(denominator / 2) / denominator).unwrap_or(u32::MAX)
+}
+
 fn paint_size_label(ui: &mut Ui<'_>, area: Rect) -> u16 {
     let screen = ui.full();
     let size = format!(
@@ -673,35 +893,6 @@ fn paint_parity_history_status(ui: &mut Ui<'_>, area: Rect) {
         false,
     );
     let _ = paint_size_label(ui, area);
-}
-
-fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let _ = paint_status_text(
-        ui,
-        area,
-        area.x.saturating_add(STATUS_EDGE),
-        "~/scratch",
-        STATUS_FG,
-        true,
-    );
-    let size_x = paint_size_label(ui, area);
-    let mark = "91% ▲";
-    let mark_w = termrock::width(mark);
-    let bar_w = 11u16;
-    let meter_w = 1u16
-        .saturating_add(1)
-        .saturating_add(bar_w)
-        .saturating_add(1)
-        .saturating_add(mark_w);
-    let mut x = size_x.saturating_sub(STATUS_GAP).saturating_sub(meter_w);
-    x = paint_status_text(ui, area, x, "/", STATUS_GREY, false).saturating_add(1);
-    x = paint_status_text(ui, area, x, &"━".repeat(10), STATUS_AMBER, false);
-    x = paint_status_text(ui, area, x, "─", Color::Rgb(0x3a, 0x3a, 0x3a), false).saturating_add(1);
-    let _ = paint_status_text(ui, area, x, mark, STATUS_AMBER, false);
 }
 
 fn paint_remote_host_status(ui: &mut Ui<'_>, area: Rect) {
@@ -1178,6 +1369,12 @@ fn tag_hints(confirm: &'static str, status: Option<&'static str>) -> HintLayer {
 }
 
 fn menu_project(world: &World) -> String {
+    if world.system.is_some()
+        && world.git.is_none()
+        && world.mise.as_ref().is_none_or(|mise| mise.tasks.is_empty())
+    {
+        return "no project".to_owned();
+    }
     match world.scenario {
         Scenario::ParityDiscovery => "probe · Rust project".to_owned(),
         Scenario::ParityHistory => "holla · Rust project".to_owned(),
@@ -1203,9 +1400,6 @@ fn menu_project(world: &World) -> String {
         | Scenario::ParityDiskScan
         | Scenario::ParityPlatforms
         | Scenario::ParityPlatformsLinux => "no project".to_owned(),
-        Scenario::FirstUse if crate::sim::catalogue::first_use_tag_frame(world) => {
-            "no project".to_owned()
-        }
         Scenario::MonorepoRoot if crate::sim::catalogue::monorepo_root_tag_frame(world) => {
             "acme · mise monorepo".to_owned()
         }
@@ -1396,6 +1590,9 @@ impl App {
             motion,
             route,
             home,
+            snapshot_kind: snapshot::Kind::Resources,
+            snapshot: snapshot::State::default(),
+            snapshot_return: None,
             plan: None,
             activities,
             activity_executions,
@@ -1427,6 +1624,100 @@ impl App {
         let dialog = ProductDialog::new(intent, &self.world);
         dialog.open(cx);
         self.overlay = Some(Overlay::Dialog(Box::new(dialog)));
+    }
+    fn help_scope(&self) -> String {
+        match self.route {
+            Route::Home => "Here".to_owned(),
+            Route::Plan => self
+                .plan
+                .as_ref()
+                .map_or_else(|| "Plan".to_owned(), |plan| plan.plan().title().to_owned()),
+            Route::Activity => self
+                .activities
+                .current(&self.world)
+                .map_or_else(|| "Activity".to_owned(), |activity| activity.name.clone()),
+            Route::TaskRun => self
+                .task_run_screen
+                .as_ref()
+                .and_then(|screen| self.task_run_owners.get(&screen.run_id()))
+                .map_or_else(
+                    || "Task run".to_owned(),
+                    |owner| owner.activity.name.clone(),
+                ),
+            Route::Disk => "Disk".to_owned(),
+            Route::Files => "Files".to_owned(),
+            Route::Cleanup => "Cleanup".to_owned(),
+            Route::Review => "Plan review".to_owned(),
+            Route::Snapshot => "System snapshot".to_owned(),
+            Route::DiskScan => "Disk scan".to_owned(),
+        }
+    }
+    fn open_help(&mut self, cx: &mut Cx<'_>) {
+        if cx.is_open(HELP_LAYER) {
+            return;
+        }
+        let route = self.route;
+        let scope = self.help_scope();
+        let layer = help_overlay(route, &scope).layer(cx);
+        cx.open_layer(HELP_LAYER, layer);
+        self.overlay = Some(Overlay::Help {
+            state: termrock::HelpOverlayState::default(),
+            route,
+            scope,
+        });
+    }
+    fn open_snapshot(&mut self, kind: snapshot::Kind, cx: &mut Cx<'_>) {
+        if self.world.system.is_none()
+            || self.overlay.is_some()
+            || self.retired_overlay.is_some()
+            || self.pending_port_review.is_some()
+            || self.port_args_opening.is_some()
+        {
+            self.set_status("System snapshot unavailable · review the current host facts".into());
+            return;
+        }
+        self.snapshot_return = Some(self.capture_return_location(cx));
+        self.snapshot_kind = kind;
+        self.route = Route::Snapshot;
+        cx.focus(match kind {
+            snapshot::Kind::Resources => snapshot::RESOURCES_BODY,
+            snapshot::Kind::Processes => snapshot::PROCESSES,
+        });
+    }
+    fn return_from_snapshot(&mut self, cx: &mut Cx<'_>) {
+        if let Some(location) = self.snapshot_return.take() {
+            self.route = location.route;
+            if let Some(focus) = location.focus.filter(|focus| {
+                *focus == home::QUERY
+                    || *focus == home::ROWS
+                    || *focus == home::DETAIL_VIEWPORT
+                    || *focus == MENU
+            }) {
+                cx.focus(focus);
+            } else {
+                self.route = Route::Home;
+                cx.focus(home::QUERY);
+            }
+        } else {
+            self.route = Route::Home;
+            cx.focus(home::QUERY);
+        }
+    }
+    fn snapshot_event(&mut self, event: snapshot::Event, cx: &mut Cx<'_>) {
+        match event {
+            snapshot::Event::Copy(text) => self.copy_osc52(&text),
+            snapshot::Event::OpenMonitor => {
+                let action = catalogue::catalogue(&self.world)
+                    .into_iter()
+                    .find(|action| action.id == "system.monitor");
+                if let Some(action) = action {
+                    let destination = dispatch::invoke(&mut self.world, &action);
+                    self.destination(destination, cx);
+                } else {
+                    self.set_status("Monitor unavailable · review the current host facts".into());
+                }
+            }
+        }
     }
     fn poll_pending_port_review(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let Some((opening, route, origin_focus)) = self
@@ -1590,6 +1881,13 @@ impl App {
                 self.plan = Some(PlanState::new(*review));
                 self.route = Route::Plan;
                 cx.focus(plan::STEPS);
+            }
+            Destination::Snapshot(kind) => self.open_snapshot(kind, cx),
+            Destination::DiskScan => self.open_disk_scan(cx, None),
+            Destination::HostScope => {
+                self.home.scope = Some(Scope::Host);
+                self.route = Route::Home;
+                cx.focus(home::ROWS);
             }
             Destination::Activity {
                 id,
@@ -2550,7 +2848,7 @@ impl App {
 
     fn command(&mut self, command: ActionKey, cx: &mut Cx<'_>) {
         match command {
-            HELP => self.open_dialog(dialogs::Intent::Help, cx),
+            HELP => self.open_help(cx),
             TOP_FILES => self.open_dialog(dialogs::Intent::TopFiles, cx),
             CLEANUP_REVIEW => self.open_dialog(dialogs::Intent::CleanupReview, cx),
             FOLDER_BROWSER => {
@@ -2778,6 +3076,15 @@ impl App {
                     }
                 }
                 (response, closed)
+            }
+            Overlay::Help {
+                state,
+                route,
+                scope,
+            } => {
+                let response = help_overlay(*route, scope).update(cx, state);
+                let closed = matches!(response.action_ref(), Some(termrock::HelpAction::Closed(_)));
+                (response.erase(), closed)
             }
             Overlay::PortArgs(editor) => {
                 let (response, event) = editor.update(cx, &self.world);
@@ -3021,7 +3328,6 @@ impl App {
             menu_project(&self.world)
         };
         let host = if launch_failure_activity_open(&self.world, ui)
-            || crate::sim::catalogue::first_use_tag_frame(&self.world)
             || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
             || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
             || crate::sim::catalogue::activities_multi_tag_frame(&self.world)
@@ -3074,8 +3380,8 @@ impl App {
         let status = Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1);
         if self.world.scenario == Scenario::ParityDiscovery {
             self.paint_parity_status(ui, status);
-        } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
-            paint_first_use_status(ui, status);
+        } else if self.world.system.is_some() {
+            self.paint_system_status(ui, status);
         } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
             paint_monorepo_status(ui, status);
         } else if crate::sim::catalogue::activities_multi_tag_frame(&self.world) {
@@ -3157,6 +3463,52 @@ impl App {
             let cx = lo.saturating_add(free.saturating_sub(center_w) / 2);
             paint_status_text(ui, area, cx, STATUS_CENTER, STATUS_DANGER, false);
         }
+    }
+    fn paint_system_status(&self, ui: &mut Ui<'_>, area: Rect) {
+        if area.is_empty() {
+            return;
+        }
+        ui.fill(area, status_ink(ui, STATUS_FG, false));
+        let mut x = area.x.saturating_add(STATUS_EDGE);
+        x = paint_status_text(ui, area, x, &self.world.cwd, STATUS_FG, true)
+            .saturating_add(STATUS_GAP);
+        let pending: Vec<_> = self
+            .world
+            .discovery
+            .iter()
+            .filter(|item| !item.done && !item.failed)
+            .map(|item| item.domain.label())
+            .collect();
+        let status = if pending.is_empty() {
+            "discovery complete".to_owned()
+        } else {
+            format!("scanning {}", pending.join(" · "))
+        };
+        let selected = self.home.selected(&self.world);
+        let selected_data = selected
+            .as_ref()
+            .map(|action| format!("{} {}", home::primary_verb(action), action.title));
+        let context = selected_data.map_or(status.clone(), |selected| {
+            format!("{} · {}", status, selected)
+        });
+        let size_x = paint_size_label(ui, area);
+        let meter_area = if let Some(disk) = self.world.disk.as_ref() {
+            let percent = rounded_ratio_percent(disk.used_bytes, disk.total_bytes);
+            let value = format!("{percent}% disk");
+            let meter_width = termrock::width(&value).saturating_add(12);
+            let meter_x = size_x
+                .saturating_sub(STATUS_GAP)
+                .saturating_sub(meter_width);
+            let meter = termrock::Meter::new(Id::root("holla.status.system.disk"))
+                .ratio(f64::from(percent) / 100.0)
+                .value(&value);
+            meter.draw(ui, Rect::new(meter_x, area.y, meter_width, 1));
+            meter_x
+        } else {
+            size_x.saturating_sub(STATUS_GAP)
+        };
+        let text = termrock::truncate(&context, meter_area.saturating_sub(x));
+        let _ = paint_status_text(ui, area, x, &text, STATUS_GREY, false);
     }
 
     fn activity_overflow_ink(&self, validated: &ValidatedActivityTheme<'_>) -> Option<Color> {
@@ -3243,9 +3595,29 @@ impl App {
     }
 
     fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect, peek: Option<&str>) {
+        let help_underlay = matches!(self.overlay, Some(Overlay::Help { .. }));
+        self.footer_route_draw(ui, footer, peek, help_underlay);
+        if help_underlay {
+            let footer_base = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::Surface(Surface::Canvas)),
+            );
+            ui.fill(footer, footer_base);
+            paint_help_footer_hints(ui, footer);
+        }
+    }
+
+    fn footer_route_draw(
+        &self,
+        ui: &mut Ui<'_>,
+        footer: Rect,
+        peek: Option<&str>,
+        help_underlay: bool,
+    ) {
         if launch_failure_activity_open(&self.world, ui)
             && self.route == Route::Activity
-            && self.overlay.is_none()
+            && (self.overlay.is_none() || help_underlay)
             && !self.menu.is_open()
         {
             paint_launch_failure_footer(ui, footer);
@@ -3253,8 +3625,6 @@ impl App {
         }
         let tag_confirm = if self.world.scenario == Scenario::ParityDiscovery {
             Some(("Confirm…", None))
-        } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
-            Some(("Open", None))
         } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
             let narrow = layout::Band::of(ui.full().width).is_narrow();
             let mid = layout::Band::of(ui.full().width).is_mid();
@@ -3315,7 +3685,7 @@ impl App {
         };
         if crate::sim::catalogue::activities_multi_tag_frame(&self.world)
             && self.route == Route::Home
-            && self.overlay.is_none()
+            && (self.overlay.is_none() || help_underlay)
             && !self.menu.is_open()
         {
             let confirm = if self.home.history {
@@ -3335,7 +3705,7 @@ impl App {
         }
         if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world)
             && self.route == Route::Home
-            && self.overlay.is_none()
+            && (self.overlay.is_none() || help_underlay)
             && !self.menu.is_open()
         {
             let narrow = layout::Band::of(ui.full().width).is_narrow();
@@ -3358,7 +3728,7 @@ impl App {
         }
         if crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
             && self.route == Route::Disk
-            && self.overlay.is_none()
+            && (self.overlay.is_none() || help_underlay)
             && !self.menu.is_open()
         {
             paint_disk_cleanup_footer(ui, footer);
@@ -3366,7 +3736,7 @@ impl App {
         }
         if let Some((confirm, status)) = tag_confirm
             && self.route == Route::Home
-            && self.overlay.is_none()
+            && (self.overlay.is_none() || help_underlay)
             && !self.menu.is_open()
         {
             let layer = tag_hints(confirm, status);
@@ -3384,18 +3754,26 @@ impl App {
         let hints = HintLayer::from_bindings(GLOBAL);
         let editing = match &self.overlay {
             Some(Overlay::Dialog(dialog)) => dialog.is_editing(),
+            Some(Overlay::Help { .. }) if help_underlay => {
+                self.route == Route::Home && self.home.is_editing()
+            }
+            Some(Overlay::Help { .. }) => false,
             Some(Overlay::Args(_) | Overlay::PortArgs(_)) => true,
             Some(Overlay::Gate(gate)) => gate.is_editing(),
             Some(Overlay::Clone(_) | Overlay::Actions(_) | Overlay::DiskSelection(_)) => false,
             None => self.route == Route::Home && self.home.is_editing(),
         };
         let home_hints = (self.route == Route::Home
-            && self.overlay.is_none()
+            && (self.overlay.is_none() || help_underlay)
             && !self.menu.is_open())
         .then(|| {
+            let selected = self.home.selected(&self.world);
             HomeState::hints(
                 &self.world,
                 ui.state(home::ROWS).contains(termrock::StateFlags::FOCUSED),
+                ui.state(home::DETAIL_VIEWPORT)
+                    .contains(termrock::StateFlags::FOCUSED),
+                selected.as_ref(),
             )
         });
         let actions_hints = matches!(self.overlay, Some(Overlay::Actions(_))).then(Actions::hints);
@@ -3579,6 +3957,11 @@ impl App {
         let retired = match self.retired_overlay.take() {
             None => Response::ignored(),
             Some(Overlay::Dialog(mut dialog)) => dialog.poll(cx).0,
+            Some(Overlay::Help {
+                mut state,
+                route,
+                scope,
+            }) => help_overlay(route, &scope).update(cx, &mut state).erase(),
             Some(Overlay::Args(mut editor)) => editor.poll(cx),
             Some(Overlay::PortArgs(mut editor)) => editor.poll(cx),
             Some(Overlay::Gate(mut gate)) => gate.poll(cx).0,
@@ -3595,9 +3978,33 @@ impl App {
         let port_review = self.poll_pending_port_review(cx);
 
         let viewport = cx.viewport();
-        let (home_response, home_action) =
+        let home_active = self.route == Route::Home
+            && !too_small(viewport)
+            && cx.top_layer() == termrock::LayerId::PAGE
+            && !menu_was_open
+            && !self.menu.is_open()
+            && self.overlay.is_none()
+            && self.retired_overlay.is_none()
+            && self.pending_port_review.is_none()
+            && self.port_args_opening.is_none();
+        let (home_response, home_action, home_copy) = if home_active {
             self.home
-                .update(&self.world, cx, home_allocation(viewport), viewport.width);
+                .update(&self.world, cx, home_allocation(viewport), viewport.width)
+        } else {
+            (Response::ignored(), None, None)
+        };
+        let snapshot_active = self.route == Route::Snapshot
+            && !too_small(viewport)
+            && cx.top_layer() == termrock::LayerId::PAGE
+            && !menu_was_open
+            && !self.menu.is_open()
+            && self.overlay.is_none()
+            && self.retired_overlay.is_none()
+            && self.pending_port_review.is_none()
+            && self.port_args_opening.is_none();
+        let (snapshot_response, snapshot_event) =
+            self.snapshot
+                .update(&self.world, self.snapshot_kind, cx, snapshot_active);
         let (plan_response, plan_event) = self
             .plan
             .as_mut()
@@ -3694,6 +4101,7 @@ impl App {
             | activity_response
             | files_response
             | disk_scan_response
+            | snapshot_response
             | task_run_response;
         if too_small(cx.viewport()) {
             let overlay = self
@@ -3701,6 +4109,11 @@ impl App {
                 .as_mut()
                 .map_or_else(Response::ignored, |overlay| match overlay {
                     Overlay::Dialog(dialog) => dialog.poll(cx).0,
+                    Overlay::Help {
+                        state,
+                        route,
+                        scope,
+                    } => help_overlay(*route, scope).update(cx, state).erase(),
                     Overlay::Args(editor) => editor.poll(cx),
                     Overlay::PortArgs(editor) => editor.poll(cx),
                     Overlay::Gate(gate) => gate.poll(cx).0,
@@ -3759,6 +4172,9 @@ impl App {
         let strip = self.strip_update(cx);
         match self.route {
             Route::Home => {
+                if let Some(value) = home_copy {
+                    self.copy_osc52(&value);
+                }
                 if let Some(action) = home_action {
                     let destination = dispatch::invoke(&mut self.world, &action);
                     self.destination(destination, cx);
@@ -3774,8 +4190,12 @@ impl App {
             | Route::DiskScan
             | Route::Files
             | Route::Cleanup
-            | Route::Review
-            | Route::Snapshot => {}
+            | Route::Review => {}
+            Route::Snapshot => {
+                if let Some(event) = snapshot_event {
+                    self.snapshot_event(event, cx);
+                }
+            }
             Route::TaskRun => {}
         }
         controls | menu.erase() | brand.erase() | strip
@@ -3894,7 +4314,7 @@ impl termrock::App for App {
                 None
             }
             Route::Snapshot => {
-                snapshot::draw(&self.world, ui, body);
+                snapshot::draw(&self.world, self.snapshot_kind, &self.snapshot, ui, body);
                 None
             }
             Route::DiskScan => {
@@ -3948,6 +4368,14 @@ impl termrock::App for App {
         if let Some(overlay) = &self.overlay {
             match overlay {
                 Overlay::Dialog(dialog) => dialog.draw(ui),
+                Overlay::Help {
+                    state,
+                    route,
+                    scope,
+                } => {
+                    let help = help_overlay(*route, scope);
+                    ui.layer(HELP_LAYER, |ui, area| help.draw(ui, area, state));
+                }
                 Overlay::Args(editor) => editor.draw(ui),
                 Overlay::PortArgs(editor) => editor.draw(ui),
                 Overlay::Clone(picker) => picker.draw(ui),
@@ -3966,6 +4394,10 @@ impl termrock::App for App {
         &self.keymap
     }
     fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.route == Route::Snapshot {
+            self.return_from_snapshot(cx);
+            return Response::changed();
+        }
         if self.route == Route::DiskScan {
             self.return_from_disk_scan(cx);
             return Response::changed();

@@ -18,8 +18,10 @@ use crate::scenario::Scenario;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Domain {
+    Filesystem,
     Mise,
     Git,
+    System,
     Ssh,
     Github,
     Docker,
@@ -28,9 +30,11 @@ pub enum Domain {
 }
 
 impl Domain {
-    pub const ALL: [Domain; 7] = [
+    pub const ALL: [Domain; 9] = [
+        Domain::Filesystem,
         Domain::Mise,
         Domain::Git,
+        Domain::System,
         Domain::Ssh,
         Domain::Github,
         Domain::Docker,
@@ -40,8 +44,10 @@ impl Domain {
 
     pub fn label(self) -> &'static str {
         match self {
+            Domain::Filesystem => "filesystem",
             Domain::Mise => "mise",
             Domain::Git => "git",
+            Domain::System => "system",
             Domain::Ssh => "ssh",
             Domain::Github => "github",
             Domain::Docker => "docker",
@@ -49,6 +55,31 @@ impl Domain {
             Domain::Disk => "disk",
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SystemProcess {
+    pub pid: u32,
+    pub name: String,
+    pub cpu_pct: u32,
+    pub mem_mb: u32,
+    pub state: String,
+    pub port: Option<u16>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SystemSnapshot {
+    pub cpu_pct: u32,
+    pub cores: Vec<u32>,
+    pub swap_used_mb: u32,
+    pub pressure: Option<(u32, u32)>,
+    pub pressure_minutes: u32,
+    pub disk_io: Vec<(String, String)>,
+    pub network: Vec<(String, String)>,
+    pub processes: Vec<SystemProcess>,
+    pub btm_installed: bool,
+    pub os: String,
+    pub temp_c: Option<u32>,
 }
 
 #[derive(Debug, Clone)]
@@ -93,6 +124,7 @@ pub struct World {
     pub host: Host,
     pub cwd: String,
     pub discovery: Vec<Discovery>,
+    pub system: Option<SystemSnapshot>,
 
     pub mise: Option<MiseState>,
     pub git: Option<GitRepo>,
@@ -117,6 +149,7 @@ impl World {
             host,
             cwd: cwd.to_owned(),
             discovery: vec![],
+            system: None,
             mise: None,
             git: None,
             ssh: vec![],
