@@ -3462,6 +3462,12 @@ mod root_100_nonoverflow_port_owner {
             source_theme: OwnerSourceTheme::Junie,
             color: ColorLevel::TrueColor,
         };
+        const DOCKER_W80_JUNIE_TRUECOLOR: Self = Self {
+            scenario: Scenario::DockerCleanup,
+            viewport: OwnerViewport::W80H24,
+            source_theme: OwnerSourceTheme::Junie,
+            color: ColorLevel::TrueColor,
+        };
 
         fn key(self) -> String {
             let (width, height) = self.viewport.size();
@@ -3751,10 +3757,9 @@ mod root_100_nonoverflow_port_owner {
         cases
     }
 
-    fn docker_cleanup_review_cases() -> Vec<OwnerCase> {
-        // Membership only; Docker's cross-arm columns remain under review.
+    fn docker_cleanup_owner_cases() -> Vec<OwnerCase> {
         let cases = concept_owner_cases(&[Scenario::DockerCleanup]);
-        assert_eq!(cases.len(), 32, "exact DockerCleanup review-set size");
+        assert_eq!(cases.len(), 32, "exact DockerCleanup owner size");
         assert!(
             cases.iter().all(|case| {
                 case.scenario == Scenario::DockerCleanup
@@ -3762,23 +3767,23 @@ mod root_100_nonoverflow_port_owner {
                     && CONCEPT_SOURCE_THEMES.contains(&case.source_theme)
                     && CONCEPT_COLOR_LEVELS.contains(&case.color)
             }),
-            "DockerCleanup32 remains a separate finite review partition"
+            "DockerCleanup32 is a separate finite owner partition"
         );
         let mut keys: Vec<_> = cases.iter().map(|case| case.key()).collect();
         keys.sort();
         keys.dedup();
-        assert_eq!(keys.len(), 32, "DockerCleanup review keys are unique");
+        assert_eq!(keys.len(), 32, "DockerCleanup owner keys are unique");
 
         let prior_cases = concept_owner_cases(&NOTE_FREE_CONCEPT_SCENARIOS);
         assert!(
             cases.iter().all(|case| !prior_cases.contains(case)),
-            "DockerCleanup review keys are disjoint from the selected concept64 product"
+            "DockerCleanup owner keys are disjoint from the selected concept64 product"
         );
         assert!(
             cases
                 .iter()
                 .all(|case| case.scenario == Scenario::DockerCleanup),
-            "DockerCleanup review keys are excluded from the selected product"
+            "DockerCleanup owner keys stay outside the selected concept64 product"
         );
         cases
     }
@@ -3824,13 +3829,13 @@ mod root_100_nonoverflow_port_owner {
             "concept keys are disjoint from all three Junie Ansi16 faint keys"
         );
 
-        let docker_review = docker_cleanup_review_cases();
+        let docker_owner = docker_cleanup_owner_cases();
         assert!(
-            cases.iter().all(|case| !docker_review.contains(case)),
-            "selected note-free concept64 keys exclude DockerCleanup32 review keys"
+            cases.iter().all(|case| !docker_owner.contains(case)),
+            "selected note-free concept64 keys exclude DockerCleanup32 owner keys"
         );
         let mut split_union = cases.clone();
-        split_union.extend(docker_review.iter().copied());
+        split_union.extend(docker_owner.iter().copied());
         assert_eq!(split_union.len(), 96, "64 plus 32 split size");
         let mut split_keys: Vec<_> = split_union.iter().map(|case| case.key()).collect();
         split_keys.sort();
@@ -3877,6 +3882,9 @@ mod root_100_nonoverflow_port_owner {
         rows_area: Rect,
         tokens_a: &'a [VisualToken],
         tokens_b: &'a [VisualToken],
+        per_arm_action_oracle: bool,
+        action_paints_a: &'a [(String, Buffer)],
+        action_paints_b: &'a [(String, Buffer)],
         port_row: Rect,
         blank_suffix: Rect,
         common_blank_suffix: Rect,
@@ -4218,11 +4226,14 @@ mod root_100_nonoverflow_port_owner {
                 "{label} selected action belongs to the visible scenario model"
             );
         }
-        if case.scenario == Scenario::MonorepoRoot {
+        if matches!(
+            case.scenario,
+            Scenario::MonorepoRoot | Scenario::DockerCleanup
+        ) {
             assert_ne!(
                 selected.as_ref().map(|action| action.id.as_str()),
                 Some(PORT_ID),
-                "{label} Root Port is not selected"
+                "{label} Root and DockerCleanup Port is not selected"
             );
         }
         assert_eq!(
@@ -4293,7 +4304,7 @@ mod root_100_nonoverflow_port_owner {
         }
     }
 
-    fn paint_port_scratch(
+    fn paint_home_row_scratch(
         action: &Action,
         columns: [u16; 4],
         row: Rect,
@@ -4301,11 +4312,44 @@ mod root_100_nonoverflow_port_owner {
         case: OwnerCase,
     ) -> Buffer {
         let (width, height) = case.viewport.size();
-        let mut scene = Scene::new("port-row-scratch", theme, case.color, width, height);
+        let mut scene = Scene::new("home-action-row-scratch", theme, case.color, width, height);
         scene.draw(|ui, _| {
             crate::screens::home::paint_port_row_for_test(ui, row, action, columns);
         });
         scene.buffer().clone()
+    }
+
+    fn paint_action_rows_scratch(
+        world: &World,
+        tokens: &[VisualToken],
+        rows_area: Rect,
+        columns: [u16; 4],
+        theme: &Theme,
+        case: OwnerCase,
+    ) -> Vec<(String, Buffer)> {
+        let actions = visible_actions(world);
+        positioned(tokens, rows_area)
+            .into_iter()
+            .filter_map(|positioned| {
+                let VisualToken::Action(action_id) = positioned.token else {
+                    return None;
+                };
+                if action_id == PORT_ID {
+                    return None;
+                }
+                let matching: Vec<_> = actions
+                    .iter()
+                    .filter(|action| action.id.as_str() == action_id.as_str())
+                    .collect();
+                assert_eq!(matching.len(), 1, "modeled action has one native action");
+                let action = matching[0];
+                let row = row_rect(rows_area, positioned.y);
+                Some((
+                    action_id,
+                    paint_home_row_scratch(action, columns, row, theme.clone(), case),
+                ))
+            })
+            .collect()
     }
 
     fn paint_blank_scratch(row: Rect, theme: Theme, case: OwnerCase) -> Buffer {
@@ -4376,6 +4420,40 @@ mod root_100_nonoverflow_port_owner {
 
         let positions_a = positioned(contract.tokens_a, contract.rows_area);
         let positions_b = positioned(contract.tokens_b, contract.rows_area);
+        if contract.per_arm_action_oracle {
+            let expected_a: Vec<_> = positions_a
+                .iter()
+                .filter_map(|positioned| match &positioned.token {
+                    VisualToken::Action(id) if id != PORT_ID => Some(id.as_str()),
+                    _ => None,
+                })
+                .collect();
+            let expected_b: Vec<_> = positions_b
+                .iter()
+                .filter_map(|positioned| match &positioned.token {
+                    VisualToken::Action(id) if id != PORT_ID => Some(id.as_str()),
+                    _ => None,
+                })
+                .collect();
+            let actual_a: Vec<_> = contract
+                .action_paints_a
+                .iter()
+                .map(|(id, _)| id.as_str())
+                .collect();
+            let actual_b: Vec<_> = contract
+                .action_paints_b
+                .iter()
+                .map(|(id, _)| id.as_str())
+                .collect();
+            if actual_a != expected_a {
+                errors.push("A action native paint coverage differs from model".to_owned());
+            }
+            if actual_b != expected_b {
+                errors.push("B action native paint coverage differs from model".to_owned());
+            }
+        } else if !contract.action_paints_a.is_empty() || !contract.action_paints_b.is_empty() {
+            errors.push("per-arm action paints exist outside DockerCleanup oracle".to_owned());
+        }
         let port_y = port_position(&positions_a);
         let expected_port_rect = port_y.map(|y| row_rect(contract.rows_area, y));
         if expected_port_rect != Some(contract.port_row) {
@@ -4441,6 +4519,45 @@ mod root_100_nonoverflow_port_owner {
         for (survivor_a, survivor_b) in survivors_a.into_iter().zip(&positions_b) {
             if survivor_a.token != survivor_b.token {
                 errors.push("surviving token order differs between A and B models".to_owned());
+                continue;
+            }
+            if contract.per_arm_action_oracle
+                && let VisualToken::Action(action_id) = &survivor_a.token
+            {
+                let row_a = row_rect(contract.rows_area, survivor_a.y);
+                let row_b = row_rect(contract.rows_area, survivor_b.y);
+                if let Some((_, paint_a)) = contract
+                    .action_paints_a
+                    .iter()
+                    .find(|(id, _)| id.as_str() == action_id.as_str())
+                {
+                    compare_rect(
+                        a,
+                        paint_a,
+                        row_a,
+                        row_a,
+                        &format!("A action native paint {action_id}"),
+                        &mut errors,
+                    );
+                } else {
+                    errors.push(format!("A action native paint missing for {action_id}"));
+                }
+                if let Some((_, paint_b)) = contract
+                    .action_paints_b
+                    .iter()
+                    .find(|(id, _)| id.as_str() == action_id.as_str())
+                {
+                    compare_rect(
+                        b,
+                        paint_b,
+                        row_b,
+                        row_b,
+                        &format!("B action native paint {action_id}"),
+                        &mut errors,
+                    );
+                } else {
+                    errors.push(format!("B action native paint missing for {action_id}"));
+                }
                 continue;
             }
             compare_rect(
@@ -4635,7 +4752,115 @@ mod root_100_nonoverflow_port_owner {
         );
     }
 
-    fn run_owner_case(case: OwnerCase, check_root100_negative_controls: bool, replay: OwnerReplay) {
+    fn replace_action_paint(paints: &mut [(String, Buffer)], action_id: &str, replacement: Buffer) {
+        let Some((_, paint)) = paints.iter_mut().find(|(id, _)| id.as_str() == action_id) else {
+            panic!("action paint exists for {action_id}");
+        };
+        *paint = replacement;
+    }
+
+    #[derive(Clone, Copy)]
+    struct ArmColumnMaxima {
+        a: [u16; 4],
+        b: [u16; 4],
+    }
+
+    fn assert_docker_corruptions_rejected(
+        a: &Buffer,
+        b: &Buffer,
+        contract: &FrameContract<'_>,
+        action: &Action,
+        columns: ArmColumnMaxima,
+        runtime_theme: &Theme,
+        case: OwnerCase,
+    ) {
+        let action_id = action.id.as_str();
+        let position_b = action_position(
+            &positioned(contract.tokens_b, contract.rows_area),
+            action_id,
+        )
+        .expect("Docker action model includes selected corruption target");
+        let row_b = row_rect(contract.rows_area, position_b);
+        let paint_b = |columns, y| {
+            paint_home_row_scratch(
+                action,
+                columns,
+                row_rect(contract.rows_area, y),
+                runtime_theme.clone(),
+                case,
+            )
+        };
+
+        let mut wrong_columns = contract.action_paints_b.to_vec();
+        replace_action_paint(
+            &mut wrong_columns,
+            action_id,
+            paint_b(columns.a, position_b),
+        );
+        let wrong_columns_contract = FrameContract {
+            action_paints_b: &wrong_columns,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(a, b, &wrong_columns_contract)
+                .iter()
+                .any(|error| error.contains("B action native paint") && error.contains(action_id)),
+            "Docker survivor paint with wrong title columns is rejected"
+        );
+
+        let mut wrong_style = contract.action_paints_b.to_vec();
+        let Some((_, wrong_style_paint)) = wrong_style
+            .iter_mut()
+            .find(|(id, _)| id.as_str() == action_id)
+        else {
+            panic!("Docker B action paint exists for style control");
+        };
+        let style_position = first_non_space(b, row_b).expect("Docker action has visible text");
+        flip_foreground(wrong_style_paint, style_position);
+        let wrong_style_contract = FrameContract {
+            action_paints_b: &wrong_style,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(a, b, &wrong_style_contract)
+                .iter()
+                .any(|error| error.contains("B action native paint") && error.contains(action_id)),
+            "Docker survivor style corruption is rejected"
+        );
+
+        let wrong_y = position_b.saturating_add(1);
+        assert!(
+            wrong_y < contract.rows_area.bottom(),
+            "wrong row remains in Rows"
+        );
+        let mut wrong_position = contract.action_paints_b.to_vec();
+        replace_action_paint(&mut wrong_position, action_id, paint_b(columns.b, wrong_y));
+        let wrong_position_contract = FrameContract {
+            action_paints_b: &wrong_position,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(a, b, &wrong_position_contract)
+                .iter()
+                .any(|error| error.contains("B action native paint") && error.contains(action_id)),
+            "Docker survivor paint at wrong model-derived y is rejected"
+        );
+
+        let mut omitted = contract.action_paints_b.to_vec();
+        omitted.retain(|(id, _)| id.as_str() != action_id);
+        let omitted_contract = FrameContract {
+            action_paints_b: &omitted,
+            ..*contract
+        };
+        assert!(
+            frame_contract_errors(a, b, &omitted_contract)
+                .iter()
+                .any(|error| error.contains("B action native paint coverage differs from model")),
+            "omitted Docker survivor paint coverage is rejected"
+        );
+    }
+
+    fn run_owner_case(case: OwnerCase, check_negative_controls: bool, replay: OwnerReplay) {
         assert_eq!(
             replay == OwnerReplay::JunieAnsi16Faint,
             case.scenario == Scenario::ActivitiesMulti
@@ -4714,10 +4939,20 @@ mod root_100_nonoverflow_port_owner {
         assert_eq!(rows_b, expected_rows_b, "B hides only actual Port row");
         let columns_a = action_column_maxima(&world_a);
         let columns_b = action_column_maxima(&world_b);
-        assert_eq!(
-            columns_a, columns_b,
-            "all ActionColumns maxima remain equal"
-        );
+        if case.scenario == Scenario::DockerCleanup {
+            assert_eq!(columns_a[0], 24, "DockerCleanup A title maximum");
+            assert_eq!(columns_b[0], 22, "DockerCleanup B title maximum after hide");
+            assert_eq!(
+                columns_a[1..],
+                columns_b[1..],
+                "other ActionColumns maxima remain equal"
+            );
+        } else {
+            assert_eq!(
+                columns_a, columns_b,
+                "all ActionColumns maxima remain equal"
+            );
+        }
 
         let tokens_a = visual_tokens(&rows_a);
         let tokens_b = visual_tokens(&rows_b);
@@ -4870,19 +5105,46 @@ mod root_100_nonoverflow_port_owner {
             &runtime_theme,
             "normal A/B runtime themes are identical"
         );
-        let port_paint = paint_port_scratch(
+        let port_paint = paint_home_row_scratch(
             &port_action,
             columns_a,
             port_row,
             runtime_theme.clone(),
             case,
         );
+        let action_paints_a = if case.scenario == Scenario::DockerCleanup {
+            paint_action_rows_scratch(
+                &harness_a.app().world,
+                &tokens_a,
+                rows_area,
+                columns_a,
+                harness_a.runtime().theme(),
+                case,
+            )
+        } else {
+            Vec::new()
+        };
+        let action_paints_b = if case.scenario == Scenario::DockerCleanup {
+            paint_action_rows_scratch(
+                &harness_b.app().world,
+                &tokens_b,
+                rows_area,
+                columns_b,
+                harness_b.runtime().theme(),
+                case,
+            )
+        } else {
+            Vec::new()
+        };
         let blank_paint = paint_blank_scratch(blank_suffix, runtime_theme, case);
         let contract = FrameContract {
             frame_area: case.viewport.frame_area(),
             rows_area,
             tokens_a: &tokens_a,
             tokens_b: &tokens_b,
+            per_arm_action_oracle: case.scenario == Scenario::DockerCleanup,
+            action_paints_a: &action_paints_a,
+            action_paints_b: &action_paints_b,
             port_row,
             blank_suffix,
             common_blank_suffix,
@@ -4896,23 +5158,46 @@ mod root_100_nonoverflow_port_owner {
             case.key()
         );
 
-        if check_root100_negative_controls {
-            assert_eq!(
-                case,
-                OwnerCase::ROOT100_JUNIE_TRUECOLOR,
-                "negative controls remain on the exact Root100 owner"
-            );
-            assert_corruptions_rejected(
-                harness_a.buffer(),
-                harness_b.buffer(),
-                &contract,
-                port_y,
-                positioned(&tokens_a, rows_area)
-                    .iter()
-                    .find(|positioned| !matches!(&positioned.token, VisualToken::Action(id) if id == PORT_ID))
-                    .expect("A has a surviving visible token")
-                    .y,
-            );
+        if check_negative_controls {
+            match case {
+                OwnerCase::ROOT100_JUNIE_TRUECOLOR => {
+                    assert_corruptions_rejected(
+                        harness_a.buffer(),
+                        harness_b.buffer(),
+                        &contract,
+                        port_y,
+                        positioned(&tokens_a, rows_area)
+                            .iter()
+                            .find(|positioned| !matches!(&positioned.token, VisualToken::Action(id) if id == PORT_ID))
+                            .expect("A has a surviving visible token")
+                            .y,
+                    );
+                }
+                OwnerCase::DOCKER_W80_JUNIE_TRUECOLOR => {
+                    let positions_b = positioned(&tokens_b, rows_area);
+                    let action = visible_actions(&harness_b.app().world)
+                        .into_iter()
+                        .find(|action| {
+                            termrock::width(&action.title) == columns_b[0]
+                                && action_position(&positions_b, &action.id)
+                                    .is_some_and(|y| y.saturating_add(1) < rows_area.bottom())
+                        })
+                        .expect("Docker B has a title-maximum action with an in-Rows control row");
+                    assert_docker_corruptions_rejected(
+                        harness_a.buffer(),
+                        harness_b.buffer(),
+                        &contract,
+                        &action,
+                        ArmColumnMaxima {
+                            a: columns_a,
+                            b: columns_b,
+                        },
+                        harness_b.runtime().theme(),
+                        case,
+                    );
+                }
+                _ => panic!("negative controls are pinned to exact owner keys"),
+            }
         }
 
         match replay {
@@ -5056,13 +5341,37 @@ mod root_100_nonoverflow_port_owner {
                     "B replay preserves raw catalogue/order"
                 );
 
-                let replay_port_paint = paint_port_scratch(
+                let replay_port_paint = paint_home_row_scratch(
                     &port_action,
                     columns_a,
                     port_row,
                     replay_theme_a.clone(),
                     case,
                 );
+                let replay_action_paints_a = if case.scenario == Scenario::DockerCleanup {
+                    paint_action_rows_scratch(
+                        &harness_a.app().world,
+                        &tokens_a,
+                        rows_area,
+                        columns_a,
+                        harness_a.runtime().theme(),
+                        case,
+                    )
+                } else {
+                    Vec::new()
+                };
+                let replay_action_paints_b = if case.scenario == Scenario::DockerCleanup {
+                    paint_action_rows_scratch(
+                        &harness_b.app().world,
+                        &tokens_b,
+                        rows_area,
+                        columns_b,
+                        harness_b.runtime().theme(),
+                        case,
+                    )
+                } else {
+                    Vec::new()
+                };
                 let replay_blank_paint =
                     paint_blank_scratch(blank_suffix, replay_theme_a.clone(), case);
                 let replay_contract = FrameContract {
@@ -5070,6 +5379,9 @@ mod root_100_nonoverflow_port_owner {
                     rows_area,
                     tokens_a: &tokens_a,
                     tokens_b: &tokens_b,
+                    per_arm_action_oracle: case.scenario == Scenario::DockerCleanup,
+                    action_paints_a: &replay_action_paints_a,
+                    action_paints_b: &replay_action_paints_b,
                     port_row,
                     blank_suffix,
                     common_blank_suffix,
@@ -5129,20 +5441,27 @@ mod root_100_nonoverflow_port_owner {
     }
 
     #[test]
-    fn docker_cleanup_32_nonoverflow_keys_remain_in_review_partition() {
-        let cases = docker_cleanup_review_cases();
+    fn docker_cleanup_32_nonoverflow_keys_are_exact_and_disjoint() {
+        let cases = docker_cleanup_owner_cases();
         let selected = note_free_concept_cases();
-        assert_eq!(
-            cases.len(),
-            32,
-            "DockerCleanup32 remains separately reviewable"
-        );
+        assert_eq!(cases.len(), 32, "DockerCleanup32 owner matrix is exact");
         assert_eq!(selected.len(), 64, "selected concept64 matrix is exact");
         assert!(
             cases
                 .iter()
                 .all(|case| case.scenario == Scenario::DockerCleanup)
         );
+    }
+
+    #[test]
+    fn docker_cleanup_32_nonoverflow_port_hide_preserves_held_frames() {
+        for case in docker_cleanup_owner_cases() {
+            run_owner_case(
+                case,
+                case == OwnerCase::DOCKER_W80_JUNIE_TRUECOLOR,
+                OwnerReplay::Ordinary,
+            );
+        }
     }
 
     #[test]
