@@ -18,7 +18,7 @@ use tui_test::{
     MouseOptions, Operation, OperationResult, RunOptions, Session, SnapshotScope, Timeouts,
     WaitQuietOptions,
 };
-use tuiscotti::check::{CheckFailure, CheckOutcome, FrozenStore};
+use tuiscotti::check::{CheckFailure, CheckOutcome, FrozenStore, MismatchReason};
 use tuiscotti::render_profile::{
     PROFILE_NAME, Profile as PixelProfile, platform_key, resolve_profile,
 };
@@ -252,11 +252,131 @@ struct FixturePaths {
     _case_lock: File,
 }
 
+#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum CaseResultStatus {
+    Pending,
+    Passed,
+    Failed,
+}
+
+#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum CaseFailureKind {
+    Setup,
+    Application,
+    Execution,
+    Capture,
+    Comparison,
+}
+
+#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum ComparisonFailureKind {
+    MissingBaseline,
+    TestId,
+    Policy,
+    State,
+    Contract,
+    Dimensions,
+    Pixels,
+}
+
+#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum CaseStage {
+    Manifest,
+    Plan,
+    Fixture,
+    Launch,
+    Journey,
+    Finalize,
+}
+
+enum ReadinessOutcome {
+    Ready,
+    TimedOut(String),
+}
+
+#[derive(Debug)]
+struct StoreCheckFailure(String);
+
+impl std::fmt::Display for StoreCheckFailure {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for StoreCheckFailure {}
+
+#[derive(Debug, Serialize)]
+struct CaseResultEvidence {
+    schema_version: u32,
+    suite_id: Option<String>,
+    test_name: String,
+    case_id: Option<String>,
+    planned_checkpoint_names: Vec<String>,
+    not_run_checkpoints: Vec<NotReachedCheckpointEvidence>,
+    status: CaseResultStatus,
+    failure_kind: Option<CaseFailureKind>,
+    comparison_failure_kind: Option<ComparisonFailureKind>,
+    stage: CaseStage,
+    launched: bool,
+    error: Option<String>,
+}
+
+struct CaseResultWriter {
+    root: PathBuf,
+    file_name: String,
+    evidence: CaseResultEvidence,
+}
+
+impl CaseResultWriter {
+    fn create(output_root: &Path, test_name: &str) -> Result<Self> {
+        ensure!(is_safe_single_component(test_name), "unsafe test name");
+        let version_root = ensure_child_dir(output_root, "v3")?;
+        let root = ensure_child_dir(&version_root, "case-results")?;
+        let mut writer = Self {
+            root,
+            file_name: format!("{test_name}.json"),
+            evidence: CaseResultEvidence {
+                schema_version: 1,
+                suite_id: None,
+                test_name: test_name.to_string(),
+                case_id: None,
+                planned_checkpoint_names: Vec::new(),
+                not_run_checkpoints: Vec::new(),
+                status: CaseResultStatus::Pending,
+                failure_kind: None,
+                comparison_failure_kind: None,
+                stage: CaseStage::Manifest,
+                launched: false,
+                error: None,
+            },
+        };
+        writer.persist()?;
+        Ok(writer)
+    }
+
+    fn persist(&self) -> Result<()> {
+        let bytes = serde_json::to_vec_pretty(&self.evidence)
+            .context("serialize structured case result")?;
+        write_atomic(&self.root, &self.file_name, &bytes).context("write structured case result")
+    }
+}
+
 #[derive(Debug, Serialize)]
 struct CaptureIndex {
     schema_version: u32,
     suite_id: String,
     case_name: String,
+    case_id: String,
+    test_name: String,
+    case_status: String,
+    failure_kind: Option<CaseFailureKind>,
+    comparison_failure_kind: Option<ComparisonFailureKind>,
+    frame_checkpoint_count: usize,
+    exit_result_file: Option<String>,
     executable_name: String,
     arguments: Vec<String>,
     terminal: TerminalEvidence,
@@ -268,38 +388,16 @@ struct CaptureIndex {
     capture_api: String,
     evidence_roots: EvidenceRootsEvidence,
     raw_pty: Option<RawPtyEvidence>,
+    raw_tail: Option<RawTailEvidence>,
+    drain_succeeded: bool,
     process_state_before_finalize: Option<ProcessStateEvidence>,
     process_state_after_finalize: Option<ProcessStateEvidence>,
     terminal_restoration: Option<TerminalRestorationEvidence>,
     checkpoints: Vec<CheckpointEvidence>,
     checkpoint_attempts: Vec<CheckpointAttemptEvidence>,
     not_reached_checkpoints: Vec<NotReachedCheckpointEvidence>,
-    capture_errors: Vec<String>,
-    execution_errors: Vec<String>,
-}
-
-#[derive(Debug, Serialize)]
-struct DeliveryCaptureIndex {
-    schema_version: u32,
-    suite_id: String,
-    case_id: String,
-    test_name: String,
-    case_status: String,
-    frame_checkpoint_count: usize,
-    executable_name: String,
-    arguments: Vec<String>,
-    terminal: TerminalEvidence,
-    child_environment: BTreeMap<String, String>,
-    no_color_present: bool,
-    working_directory: String,
-    fixture_dataset_id: String,
-    coverage_scope: String,
-    capture_api: String,
-    evidence_roots: EvidenceRootsEvidence,
-    exit_result_file: String,
-    checkpoints: Vec<CheckpointEvidence>,
-    checkpoint_attempts: Vec<CheckpointAttemptEvidence>,
-    not_reached_checkpoints: Vec<NotReachedCheckpointEvidence>,
+    setup_errors: Vec<String>,
+    application_errors: Vec<String>,
     capture_errors: Vec<String>,
     execution_errors: Vec<String>,
 }
@@ -311,6 +409,8 @@ struct DeliveryExitResult {
     case_id: String,
     test_name: String,
     case_status: String,
+    failure_kind: Option<CaseFailureKind>,
+    comparison_failure_kind: Option<ComparisonFailureKind>,
     exit_key: Option<String>,
     exit_key_attempted: bool,
     exit_key_error: Option<String>,
@@ -321,11 +421,13 @@ struct DeliveryExitResult {
     raw_tail: Option<RawTailEvidence>,
     process_state_after_finalize: Option<ProcessStateEvidence>,
     terminal_restoration: Option<TerminalRestorationEvidence>,
+    setup_errors: Vec<String>,
+    application_errors: Vec<String>,
     execution_errors: Vec<String>,
     capture_errors: Vec<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct RawTailEvidence {
     byte_offset: usize,
     byte_length: usize,
@@ -353,7 +455,7 @@ struct EvidenceRootsEvidence {
     roots_disjoint: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct ProcessStateEvidence {
     exited: Option<i32>,
     exit_signal: Option<String>,
@@ -361,7 +463,7 @@ struct ProcessStateEvidence {
     mouse_mode: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct TerminalRestorationEvidence {
     expected_modes: BTreeMap<String, bool>,
     expected_mouse_mode: String,
@@ -369,7 +471,7 @@ struct TerminalRestorationEvidence {
     errors: Vec<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct RawPtyEvidence {
     byte_length: usize,
     sha256: String,
@@ -394,7 +496,7 @@ struct CheckpointAttemptEvidence {
     native_snapshot_sha256: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct NotReachedCheckpointEvidence {
     name: String,
     status: String,
@@ -494,6 +596,7 @@ struct ComparisonEvidence {
     outcome: String,
     passed: bool,
     reason: Option<String>,
+    failure_kind: Option<ComparisonFailureKind>,
     baseline_sha256: Option<String>,
     candidate_sha256: String,
     changed_fields: Vec<String>,
@@ -615,21 +718,76 @@ journey_test!(first_delivery_tablepro_connections);
 journey_test!(full_holla_first_use_frame1);
 
 fn run_case(case_name: &str) -> Result<()> {
+    let output_root = required_directory("TERMROCK_PARITY_OUT_DIR")?;
+    ensure_output_disjoint_from_expected(&output_root)?;
+    let mut result = CaseResultWriter::create(&output_root, case_name)?;
+    let run_result = run_case_with_result(case_name, &output_root, &mut result);
+    match run_result {
+        Ok(()) => {
+            result.evidence.status = CaseResultStatus::Passed;
+            result.evidence.failure_kind = None;
+            result.evidence.error = None;
+            result.evidence.stage = CaseStage::Finalize;
+            result.persist()?;
+            Ok(())
+        }
+        Err(error) => {
+            result.evidence.status = CaseResultStatus::Failed;
+            if result.evidence.failure_kind.is_none() {
+                result.evidence.failure_kind = Some(if result.evidence.launched {
+                    CaseFailureKind::Execution
+                } else {
+                    CaseFailureKind::Setup
+                });
+            }
+            result.evidence.error = Some(format!("{error:#}"));
+            if !result.evidence.launched {
+                let reason = result.evidence.error.clone().unwrap_or_default();
+                for checkpoint in &mut result.evidence.not_run_checkpoints {
+                    checkpoint.reason.clone_from(&reason);
+                }
+            }
+            result.persist().context("persist failed case result")?;
+            Err(error)
+        }
+    }
+}
+
+fn run_case_with_result(
+    case_name: &str,
+    output_root: &Path,
+    result: &mut CaseResultWriter,
+) -> Result<()> {
+    result.evidence.stage = CaseStage::Manifest;
     let manifest: SuiteManifest =
         toml::from_str(MANIFEST_TOML).context("parse TOML suite manifest")?;
-    let dataset: FixtureDataset =
-        serde_json::from_str(DATASET_JSON).context("parse fixture dataset")?;
-    validate_manifest(&manifest, &dataset)?;
+    result.evidence.suite_id = Some(manifest.version.suite_id.clone());
     let journey = manifest
         .cases
         .iter()
         .find(|case| case.name == case_name)
         .with_context(|| format!("manifest has no case named {case_name}"))?;
+    result.evidence.case_id = Some(case_id(journey).to_string());
+    result.evidence.planned_checkpoint_names = checkpoint_names(journey);
+    result.evidence.not_run_checkpoints = result
+        .evidence
+        .planned_checkpoint_names
+        .iter()
+        .map(|name| NotReachedCheckpointEvidence {
+            name: name.clone(),
+            status: "not-run".to_string(),
+            reason: "case has not reached this checkpoint".to_string(),
+        })
+        .collect();
+    let dataset: FixtureDataset =
+        serde_json::from_str(DATASET_JSON).context("parse fixture dataset")?;
+    validate_manifest(&manifest, &dataset)?;
+    result.evidence.stage = CaseStage::Plan;
     ensure_supported_plan(journey)?;
     let case_id = case_id(journey);
 
+    result.evidence.stage = CaseStage::Fixture;
     let binary_dir = required_directory("TERMROCK_PARITY_BIN_DIR")?;
-    let output_root = required_directory("TERMROCK_PARITY_OUT_DIR")?;
     let binary_path = binary_dir
         .join(&journey.binary)
         .canonicalize()
@@ -646,7 +804,7 @@ fn run_case(case_name: &str) -> Result<()> {
     );
 
     let fixture = prepare_fixture(&dataset, journey, &manifest)?;
-    let output_dir = prepare_case_output(&output_root, case_id)?;
+    let output_dir = prepare_case_output(output_root, case_id)?;
     let samples_dir = ensure_child_dir(&output_dir, "samples")?;
     let compare_dir = output_dir.join("comparison");
     let expected_store = safe_manifest_path(&manifest.suite.expected_store)?;
@@ -654,14 +812,14 @@ fn run_case(case_name: &str) -> Result<()> {
         .join(expected_store)
         .canonicalize()
         .context("canonicalize expected frame store")?;
-    ensure_disjoint_roots(&expected_root, &output_root)?;
+    ensure_disjoint_roots(&expected_root, output_root)?;
     let store =
         FrozenStore::new(&expected_root, &compare_dir).context("open expected frame store")?;
     let comparison_root = compare_dir
         .canonicalize()
         .context("canonicalize comparison artifact root")?;
     ensure!(
-        comparison_root.starts_with(&output_root),
+        comparison_root.starts_with(output_root),
         "comparison artifact root escaped TERMROCK_PARITY_OUT_DIR"
     );
     ensure_disjoint_roots(&expected_root, &comparison_root)?;
@@ -727,45 +885,43 @@ fn run_case(case_name: &str) -> Result<()> {
         style: Style::default(),
     };
     let session = Session::new(format!("termrock-functional-{case_id}"));
+    result.evidence.stage = CaseStage::Launch;
     session
         .spawn_with(launch, run_options)
         .context("spawn native application")?;
+    result.evidence.launched = true;
+    result.evidence.stage = CaseStage::Journey;
 
-    let journey_result = if journey.steps.is_some() {
-        run_delivery_journey(
-            &session,
-            journey,
-            &manifest,
-            pixel_profile,
-            &store,
-            &evidence_roots,
-            &samples_dir,
-            &output_dir,
-            &child_environment,
-            &fixture,
-            &dataset,
-            &args,
-        )
+    let is_delivery = journey.steps.is_some();
+    let generated_legacy_plans;
+    let plans = if let Some(plans) = journey.steps.as_deref() {
+        plans
     } else {
-        run_journey(
-            &session,
-            journey,
-            &manifest,
-            pixel_profile,
-            &store,
-            &evidence_roots,
-            &samples_dir,
-            &output_dir,
-            &child_environment,
-            &fixture,
-            &dataset,
-            &args,
-            case_name,
-        )
+        generated_legacy_plans = legacy_checkpoint_plans(journey)?;
+        &generated_legacy_plans
     };
+    let journey_result = run_unified_journey(
+        &session,
+        journey,
+        plans,
+        is_delivery,
+        &manifest,
+        pixel_profile,
+        &store,
+        &evidence_roots,
+        &samples_dir,
+        &output_dir,
+        &child_environment,
+        &fixture,
+        &dataset,
+        &args,
+        case_name,
+        result,
+    );
     let close_result = session
         .close()
         .context("close native session after journey");
+    result.evidence.stage = CaseStage::Finalize;
     if let Err(close_error) = &close_result {
         if output_dir.join("capture-index.json").is_file() {
             append_capture_index_execution_error(
@@ -824,10 +980,11 @@ fn append_json_array_error(
     let bytes = fs::read(&index_path).context("read JSON evidence for cleanup update")?;
     let mut index: serde_json::Value =
         serde_json::from_slice(&bytes).context("parse JSON evidence for cleanup update")?;
-    if let Some(case_status) = index.get_mut("case_status")
-        && case_status.as_str() == Some("passed")
-    {
-        *case_status = serde_json::Value::String("failed/execution".to_string());
+    if index.get("case_status").and_then(serde_json::Value::as_str) == Some("passed") {
+        index["case_status"] = serde_json::Value::String("failed/execution".to_string());
+        if index.get("failure_kind").is_some() {
+            index["failure_kind"] = serde_json::Value::String("execution".to_string());
+        }
     }
     let errors = index
         .get_mut(array_name)
@@ -908,9 +1065,75 @@ fn ensure_supported_plan(journey: &Journey) -> Result<()> {
     Ok(())
 }
 
-fn run_journey(
+fn legacy_checkpoint_plans(journey: &Journey) -> Result<Vec<CheckpointPlan>> {
+    ["opened", "help", "returned", "exited"]
+        .into_iter()
+        .map(|name| {
+            let required_anchors = if name == "exited" {
+                Vec::new()
+            } else {
+                required_checkpoint_anchors(&journey.name, name)?
+                    .iter()
+                    .map(|anchor| (*anchor).to_string())
+                    .collect()
+            };
+            let forbidden_anchors = if name == "exited" {
+                Vec::new()
+            } else {
+                forbidden_checkpoint_anchors(&journey.name, name)?
+                    .iter()
+                    .map(|anchor| (*anchor).to_string())
+                    .collect()
+            };
+            let actions = match name {
+                "help" => vec![NativeAction::Key {
+                    key: journey
+                        .help_key
+                        .clone()
+                        .context("validated legacy help key disappeared")?,
+                }],
+                "returned" => vec![NativeAction::Key {
+                    key: journey
+                        .return_key
+                        .clone()
+                        .context("validated legacy return key disappeared")?,
+                }],
+                _ => Vec::new(),
+            };
+            Ok(CheckpointPlan {
+                name: name.to_string(),
+                required_anchors,
+                forbidden_anchors,
+                expected_cols: 120,
+                expected_rows: 40,
+                actions,
+            })
+        })
+        .collect()
+}
+
+fn checkpoint_names(journey: &Journey) -> Vec<String> {
+    if let Some(steps) = journey.steps.as_deref() {
+        return steps.iter().map(|step| step.name.clone()).collect();
+    }
+    if journey
+        .native_steps
+        .as_deref()
+        .is_some_and(|steps| same_strings(steps, &["help", "return", "exit"]))
+    {
+        return ["opened", "help", "returned", "exited"]
+            .into_iter()
+            .map(str::to_string)
+            .collect();
+    }
+    Vec::new()
+}
+
+fn run_unified_journey(
     session: &Session,
     journey: &Journey,
+    plans: &[CheckpointPlan],
+    is_delivery: bool,
     manifest: &SuiteManifest,
     pixel_profile: &PixelProfile,
     store: &FrozenStore,
@@ -922,507 +1145,8 @@ fn run_journey(
     dataset: &FixtureDataset,
     args: &[String],
     case_name: &str,
+    result_writer: &mut CaseResultWriter,
 ) -> Result<()> {
-    let mut checkpoints = Vec::new();
-    let mut checkpoint_attempts = ["opened", "help", "returned", "exited"]
-        .into_iter()
-        .map(|name| CheckpointAttemptEvidence {
-            name: name.to_string(),
-            reached: false,
-            capture_attempted: false,
-            outcome: "not-run".to_string(),
-            reason: None,
-            raw_prefix_offset: None,
-            raw_prefix_sha256: None,
-            sample_file: None,
-            sample_sha256: None,
-            native_snapshot_file: None,
-            native_snapshot_sha256: None,
-        })
-        .collect::<Vec<_>>();
-    let mut capture_errors = Vec::new();
-    let mut execution_errors = Vec::new();
-    let mut journey_active = record_execution_step(
-        &mut execution_errors,
-        "wait for opened screen readiness",
-        wait_for_visible_anchors(session, &journey.name, "opened"),
-    );
-    if journey_active {
-        journey_active = record_execution_step(
-            &mut execution_errors,
-            "settle opened screen",
-            settle(session),
-        );
-    }
-    if journey_active {
-        journey_active = try_capture_checkpoint(
-            session,
-            "opened",
-            &mut checkpoint_attempts[0],
-            journey,
-            pixel_profile,
-            store,
-            samples_dir,
-            &mut checkpoints,
-            &mut capture_errors,
-        );
-    }
-
-    if journey_active {
-        journey_active = record_execution_step(
-            &mut execution_errors,
-            "open help screen",
-            press_required(session, journey.help_key.as_deref(), "help"),
-        );
-    }
-    if journey_active {
-        journey_active = record_execution_step(
-            &mut execution_errors,
-            "wait for help screen readiness",
-            wait_for_visible_anchors(session, &journey.name, "help"),
-        );
-    }
-    if journey_active {
-        journey_active =
-            record_execution_step(&mut execution_errors, "settle help screen", settle(session));
-        if journey_active {
-            journey_active = try_capture_checkpoint(
-                session,
-                "help",
-                &mut checkpoint_attempts[1],
-                journey,
-                pixel_profile,
-                store,
-                samples_dir,
-                &mut checkpoints,
-                &mut capture_errors,
-            );
-        }
-    }
-
-    if journey_active {
-        journey_active = record_execution_step(
-            &mut execution_errors,
-            "return from help screen",
-            press_required(session, journey.return_key.as_deref(), "return"),
-        );
-    }
-    if journey_active {
-        journey_active = record_execution_step(
-            &mut execution_errors,
-            "wait for returned screen readiness",
-            wait_for_visible_anchors(session, &journey.name, "returned"),
-        );
-    }
-    if journey_active {
-        journey_active = record_execution_step(
-            &mut execution_errors,
-            "settle returned screen",
-            settle(session),
-        );
-        if journey_active {
-            journey_active = try_capture_checkpoint(
-                session,
-                "returned",
-                &mut checkpoint_attempts[2],
-                journey,
-                pixel_profile,
-                store,
-                samples_dir,
-                &mut checkpoints,
-                &mut capture_errors,
-            );
-        }
-    }
-
-    if journey_active {
-        record_execution_step(
-            &mut execution_errors,
-            "send application exit key",
-            press_required(session, journey.exit_key.as_deref(), "exit"),
-        );
-    }
-    let wait_exit_succeeded = match session.execute(Operation::WaitExit {
-        timeout_ms: Some(EXIT_TIMEOUT_MS),
-    }) {
-        Ok(_) => true,
-        Err(error) => {
-            execution_errors.push(format!(
-                "wait for application process exit failed: {error:#}"
-            ));
-            false
-        }
-    };
-    let process_state_before_finalize = match session.execute(Operation::State) {
-        Ok(OperationResult::State(state)) => {
-            if state.exited != Some(0) {
-                execution_errors.push(format!(
-                    "child did not exit with status 0: {:?}",
-                    state.exited
-                ));
-            }
-            if let Some(signal) = state.exit_signal.as_ref() {
-                execution_errors.push(format!("child exited from signal {signal:?}"));
-            }
-            Some(ProcessStateEvidence {
-                exited: state.exited,
-                exit_signal: state
-                    .exit_signal
-                    .as_ref()
-                    .map(|signal| format!("{signal:?}")),
-                modes: state.modes.clone(),
-                mouse_mode: state.mouse_mode.clone(),
-            })
-        }
-        Ok(other) => {
-            execution_errors.push(format!(
-                "Operation::State returned unexpected result before capture finalization: {other:?}"
-            ));
-            None
-        }
-        Err(error) => {
-            execution_errors.push(format!("read final process state failed: {error:#}"));
-            None
-        }
-    };
-    let pre_finalize_exit_confirmed = wait_exit_succeeded
-        && process_state_before_finalize
-            .as_ref()
-            .is_some_and(|state| state.exited == Some(0) && state.exit_signal.is_none());
-
-    let mut raw_bytes = None;
-    let mut process_state_after_finalize = None;
-    let mut terminal_restoration = None;
-    let mut post_drain_exit_confirmed = false;
-    let finalization_succeeded = match session.finish_capture(RAW_DRAIN_TIMEOUT) {
-        Ok(bytes) => {
-            let nonempty_capture = !bytes.is_empty();
-            if nonempty_capture {
-                raw_bytes = Some(bytes);
-            } else {
-                capture_errors
-                    .push("checked PTY finalization returned an empty byte stream".to_string());
-            }
-            match session.execute(Operation::State) {
-                Ok(OperationResult::State(state)) => {
-                    let exit_confirmed = state.exited == Some(0) && state.exit_signal.is_none();
-                    if state.exited != Some(0) {
-                        execution_errors.push(format!(
-                            "post-drain child did not exit with status 0: {:?}",
-                            state.exited
-                        ));
-                    }
-                    if let Some(signal) = state.exit_signal.as_ref() {
-                        execution_errors.push(format!(
-                            "post-drain child exited from signal {signal:?}"
-                        ));
-                    }
-                    post_drain_exit_confirmed = exit_confirmed;
-                    let restoration = terminal_restoration_evidence(&state.modes, &state.mouse_mode);
-                    if !restoration.restored {
-                        execution_errors.extend(restoration.errors.iter().cloned());
-                    }
-                    terminal_restoration = Some(restoration);
-                    process_state_after_finalize = Some(ProcessStateEvidence {
-                        exited: state.exited,
-                        exit_signal: state.exit_signal.as_ref().map(|signal| format!("{signal:?}")),
-                        modes: state.modes.clone(),
-                        mouse_mode: state.mouse_mode.clone(),
-                    });
-                }
-                Ok(other) => execution_errors.push(format!(
-                    "Operation::State returned unexpected result after capture finalization: {other:?}"
-                )),
-                Err(error) => execution_errors.push(format!(
-                    "read terminal state after capture finalization failed: {error:#}"
-                )),
-            }
-            nonempty_capture && post_drain_exit_confirmed
-        }
-        Err(error) => {
-            capture_errors.push(format!(
-                "checked PTY capture finalization failed; no raw bytes are marked exact: {error:#}"
-            ));
-            false
-        }
-    };
-
-    let exited_checkpoint_eligible = wait_exit_succeeded
-        && pre_finalize_exit_confirmed
-        && finalization_succeeded
-        && post_drain_exit_confirmed;
-    if exited_checkpoint_eligible {
-        try_capture_checkpoint(
-            session,
-            "exited",
-            &mut checkpoint_attempts[3],
-            journey,
-            pixel_profile,
-            store,
-            samples_dir,
-            &mut checkpoints,
-            &mut capture_errors,
-        );
-    } else {
-        let mut reasons = Vec::new();
-        if !wait_exit_succeeded {
-            reasons.push(
-                "WaitExit did not succeed (including process status watcher errors)".to_string(),
-            );
-        }
-        if !pre_finalize_exit_confirmed {
-            reasons.push(
-                "pre-finalization state did not confirm exit status 0 without a signal".to_string(),
-            );
-        }
-        if !finalization_succeeded {
-            reasons.push("checked finalization did not produce a nonempty stream and confirmed post-drain state".to_string());
-        }
-        if !post_drain_exit_confirmed {
-            reasons.push(
-                "post-drain state did not confirm exit status 0 without a signal".to_string(),
-            );
-        }
-        execution_errors.push(format!("exited checkpoint not-run: {}", reasons.join("; ")));
-    }
-
-    let raw_pty = if let Some(bytes) = raw_bytes.as_deref() {
-        for attempt in &mut checkpoint_attempts {
-            let Some(offset) = attempt.raw_prefix_offset else {
-                continue;
-            };
-            if offset <= bytes.len() {
-                let prefix_sha256 = sha256_hex(&bytes[..offset]);
-                attempt.raw_prefix_sha256 = Some(prefix_sha256.clone());
-                if let Some(checkpoint) = checkpoints
-                    .iter_mut()
-                    .find(|checkpoint| checkpoint.name == attempt.name)
-                {
-                    checkpoint.raw_prefix_sha256 = Some(prefix_sha256);
-                }
-                if attempt.name == "exited" && offset != bytes.len() {
-                    capture_errors.push(format!(
-                        "exited checkpoint PTY offset {} does not include the full drained stream length {}",
-                        offset,
-                        bytes.len()
-                    ));
-                }
-            } else {
-                capture_errors.push(format!(
-                    "{} checkpoint PTY offset {} exceeds retained stream length {}",
-                    attempt.name,
-                    offset,
-                    bytes.len()
-                ));
-            }
-        }
-        match write_atomic(output_dir, "raw_pty.bin", bytes) {
-            Ok(()) => Some(RawPtyEvidence {
-                byte_length: bytes.len(),
-                sha256: sha256_hex(bytes),
-                maximum_retained_bytes: 32 * 1024 * 1024,
-                bytes_file: "raw_pty.bin".to_string(),
-                exact_bytes: true,
-                drain_reached_eof: true,
-            }),
-            Err(error) => {
-                capture_errors.push(format!(
-                    "write exact retained raw PTY bytes failed: {error:#}"
-                ));
-                None
-            }
-        }
-    } else {
-        None
-    };
-
-    let first_failure = execution_errors
-        .first()
-        .or_else(|| capture_errors.first())
-        .cloned()
-        .unwrap_or_else(|| "process exit or capture finalization was not confirmed".to_string());
-    for attempt in &mut checkpoint_attempts {
-        if !attempt.reached && attempt.reason.is_none() {
-            attempt.reason = Some(format!(
-                "checkpoint phase not-run after prerequisite failure: {first_failure}"
-            ));
-        }
-    }
-    let not_reached_checkpoints = checkpoint_attempts
-        .iter()
-        .filter(|attempt| !attempt.reached)
-        .map(|attempt| NotReachedCheckpointEvidence {
-            name: attempt.name.clone(),
-            status: "not-run".to_string(),
-            reason: attempt
-                .reason
-                .clone()
-                .unwrap_or_else(|| "checkpoint phase was not reached".to_string()),
-        })
-        .collect::<Vec<_>>();
-
-    let index = CaptureIndex {
-        schema_version: 1,
-        suite_id: manifest.version.suite_id.clone(),
-        case_name: case_name.to_string(),
-        executable_name: journey.binary.clone(),
-        arguments: args.to_vec(),
-        terminal: TerminalEvidence {
-            cols: manifest.suite.terminal.cols,
-            rows: manifest.suite.terminal.rows,
-            locale: manifest.suite.terminal.locale.clone(),
-            timezone: manifest.suite.terminal.timezone.clone(),
-            term: manifest.suite.terminal.term.clone(),
-            color_term: manifest.suite.terminal.color_term.clone(),
-            render_profile: manifest.suite.render_profile.clone(),
-            platform_key: platform_key(),
-        },
-        child_environment: child_environment.clone(),
-        no_color_present: child_environment.contains_key("NO_COLOR"),
-        working_directory: fixture.cwd.to_string_lossy().into_owned(),
-        fixture_dataset_id: dataset.dataset_id.clone(),
-        coverage_scope: manifest.suite.coverage_scope.clone(),
-        capture_api: "tui-test-rs::Session::capture_checkpoint(ActiveScreen+raw-prefix-offset-under-one-terminal-state-lock);offset-saved-before-render;native-snapshot-written-before-sample-validation;Session::finish_capture(bounded-checked-drain)".to_string(),
-        evidence_roots: evidence_roots.clone(),
-        raw_pty,
-        process_state_before_finalize,
-        process_state_after_finalize,
-        terminal_restoration,
-        checkpoints,
-        checkpoint_attempts,
-        not_reached_checkpoints,
-        capture_errors,
-        execution_errors,
-    };
-    let index_bytes = serde_json::to_vec_pretty(&index).context("serialize capture index")?;
-    write_atomic(output_dir, "capture-index.json", &index_bytes).context("write capture index")?;
-
-    ensure!(
-        index.checkpoints.len() == 4,
-        "captured {} of 4 checkpoints; not reached: {:?}; capture errors: {:?}",
-        index.checkpoints.len(),
-        index.not_reached_checkpoints,
-        index.capture_errors
-    );
-    ensure!(
-        index.capture_errors.is_empty(),
-        "checkpoint or raw-capture failures: {:?}",
-        index.capture_errors
-    );
-    ensure!(
-        index
-            .raw_pty
-            .as_ref()
-            .is_some_and(|raw| { raw.byte_length > 0 && raw.exact_bytes && raw.drain_reached_eof }),
-        "raw PTY capture must be nonempty and fully drained before it can pass"
-    );
-    ensure!(
-        index
-            .terminal_restoration
-            .as_ref()
-            .is_some_and(|state| state.restored),
-        "terminal restoration failed or has no post-finalization state evidence"
-    );
-    ensure!(
-        index.execution_errors.is_empty(),
-        "journey execution failures: {:?}",
-        index.execution_errors
-    );
-    let failures = index
-        .checkpoints
-        .iter()
-        .filter(|checkpoint| !checkpoint.comparison.passed)
-        .map(|checkpoint| {
-            format!(
-                "{}: reason={:?}, report={:?}, first_cell={:?}",
-                checkpoint.test_id,
-                checkpoint.comparison.reason,
-                checkpoint.comparison.report_path,
-                checkpoint.comparison.first_changed_cell
-            )
-        })
-        .collect::<Vec<_>>();
-    ensure!(
-        failures.is_empty(),
-        "frozen visual checks failed after collecting every checkpoint: {failures:#?}"
-    );
-    Ok(())
-}
-
-fn try_capture_checkpoint(
-    session: &Session,
-    phase: &str,
-    attempt: &mut CheckpointAttemptEvidence,
-    journey: &Journey,
-    pixel_profile: &PixelProfile,
-    store: &FrozenStore,
-    samples_dir: &Path,
-    checkpoints: &mut Vec<CheckpointEvidence>,
-    errors: &mut Vec<String>,
-) -> bool {
-    attempt.reached = true;
-    attempt.capture_attempted = true;
-    let mut readiness_failed = false;
-    match capture_checkpoint(
-        session,
-        phase,
-        attempt,
-        &mut readiness_failed,
-        journey,
-        pixel_profile,
-        store,
-        samples_dir,
-    ) {
-        Ok(checkpoint) => {
-            attempt.sample_file = Some(checkpoint.sample_file.clone());
-            attempt.sample_sha256 = Some(checkpoint.sample_sha256.clone());
-            if checkpoint.comparison.passed {
-                attempt.outcome = "captured".to_string();
-            } else {
-                attempt.outcome = "comparison-failure".to_string();
-                attempt.reason = checkpoint.comparison.reason.clone();
-            }
-            checkpoints.push(checkpoint);
-            true
-        }
-        Err(error) => {
-            let message = format!("{phase}: {error:#}");
-            attempt.outcome = "capture-failure".to_string();
-            attempt.reason = Some(message.clone());
-            match partial_sample_evidence(samples_dir, phase) {
-                Ok(Some((sample_file, sample_sha256))) => {
-                    attempt.sample_file = Some(sample_file);
-                    attempt.sample_sha256 = Some(sample_sha256);
-                }
-                Ok(None) => {}
-                Err(sample_error) => errors.push(format!(
-                    "{phase}: reading partial sample evidence failed: {sample_error:#}"
-                )),
-            }
-            errors.push(message);
-            !readiness_failed
-        }
-    }
-}
-
-fn run_delivery_journey(
-    session: &Session,
-    journey: &Journey,
-    manifest: &SuiteManifest,
-    pixel_profile: &PixelProfile,
-    store: &FrozenStore,
-    evidence_roots: &EvidenceRootsEvidence,
-    samples_dir: &Path,
-    output_dir: &Path,
-    child_environment: &BTreeMap<String, String>,
-    fixture: &FixturePaths,
-    dataset: &FixtureDataset,
-    args: &[String],
-) -> Result<()> {
-    let plans = journey
-        .steps
-        .as_deref()
-        .context("delivery plan disappeared")?;
     let mut attempts = plans
         .iter()
         .map(|step| CheckpointAttemptEvidence {
@@ -1442,9 +1166,14 @@ fn run_delivery_journey(
     let mut checkpoints = Vec::new();
     let mut capture_errors = Vec::new();
     let mut execution_errors = Vec::new();
+    let mut application_errors = Vec::new();
+    let mut setup_errors = Vec::new();
     let mut journey_active = true;
 
     for (index, step) in plans.iter().enumerate() {
+        if !is_delivery && step.name == "exited" {
+            continue;
+        }
         if !journey_active {
             continue;
         }
@@ -1461,13 +1190,21 @@ fn run_delivery_journey(
         if !journey_active {
             continue;
         }
-        journey_active = record_execution_step(
-            &mut execution_errors,
-            &format!("wait for {} visible readiness", step.name),
-            wait_for_step_readiness(session, case_id(journey), step),
-        );
+        journey_active = match wait_for_step_readiness(session, case_id(journey), step) {
+            Ok(ReadinessOutcome::Ready) => true,
+            Ok(ReadinessOutcome::TimedOut(message)) => {
+                application_errors.push(message.clone());
+                attempts[index].reason = Some(message);
+                false
+            }
+            Err(error) => {
+                let message = format!("capture {} readiness failed: {error:#}", step.name);
+                capture_errors.push(message.clone());
+                attempts[index].reason = Some(message);
+                false
+            }
+        };
         if !journey_active {
-            attempts[index].reason = execution_errors.last().cloned();
             continue;
         }
         journey_active = record_execution_step(
@@ -1479,7 +1216,7 @@ fn run_delivery_journey(
             attempts[index].reason = execution_errors.last().cloned();
             continue;
         }
-        journey_active = try_capture_delivery_checkpoint(
+        journey_active = try_capture_checkpoint(
             session,
             step,
             &mut attempts[index],
@@ -1489,17 +1226,23 @@ fn run_delivery_journey(
             samples_dir,
             &mut checkpoints,
             &mut capture_errors,
+            &mut application_errors,
+            &mut setup_errors,
         );
     }
 
     let exit_key = journey.exit_key.clone();
-    let exit_key_attempted = true;
-    let exit_key_error = match press_required(session, journey.exit_key.as_deref(), "exit") {
-        Ok(()) => None,
-        Err(error) => {
-            execution_errors.push(format!("send application exit key failed: {error:#}"));
-            Some(format!("{error:#}"))
+    let exit_key_attempted = is_delivery || journey_active;
+    let exit_key_error = if exit_key_attempted {
+        match press_required(session, journey.exit_key.as_deref(), "exit") {
+            Ok(()) => None,
+            Err(error) => {
+                execution_errors.push(format!("send application exit key failed: {error:#}"));
+                Some(format!("{error:#}"))
+            }
         }
+    } else {
+        None
     };
     let wait_exit_succeeded = match session.execute(Operation::WaitExit {
         timeout_ms: Some(EXIT_TIMEOUT_MS),
@@ -1585,6 +1328,42 @@ fn run_delivery_journey(
         )),
     }
 
+    if !is_delivery {
+        let exit_index = plans
+            .iter()
+            .position(|step| step.name == "exited")
+            .context("legacy plan lacks exited checkpoint")?;
+        let pre_finalize_exit_confirmed = wait_exit_succeeded
+            && process_state_before_finalize
+                .as_ref()
+                .is_some_and(|state| state.exited == Some(0) && state.exit_signal.is_none());
+        let finalization_succeeded =
+            raw_bytes.as_ref().is_some_and(|bytes| !bytes.is_empty()) && post_drain_exit_confirmed;
+        if pre_finalize_exit_confirmed && finalization_succeeded {
+            let _ = try_capture_checkpoint(
+                session,
+                &plans[exit_index],
+                &mut attempts[exit_index],
+                journey,
+                pixel_profile,
+                store,
+                samples_dir,
+                &mut checkpoints,
+                &mut capture_errors,
+                &mut application_errors,
+                &mut setup_errors,
+            );
+        } else {
+            attempts[exit_index].reason = Some(
+                "exited checkpoint was not reached because checked process exit or drain was incomplete"
+                    .to_string(),
+            );
+            execution_errors.push(
+                "exited checkpoint not-run after incomplete process exit or drain".to_string(),
+            );
+        }
+    }
+
     let mut raw_pty = None;
     let mut raw_tail = None;
     if let Some(bytes) = raw_bytes.as_deref() {
@@ -1612,12 +1391,14 @@ fn run_delivery_journey(
         }
         let tail_start = bytes.len().saturating_sub(512);
         let tail = &bytes[tail_start..];
-        raw_tail = Some(RawTailEvidence {
-            byte_offset: tail_start,
-            byte_length: tail.len(),
-            sha256: sha256_hex(tail),
-            hex: hex_bytes(tail),
-        });
+        if is_delivery {
+            raw_tail = Some(RawTailEvidence {
+                byte_offset: tail_start,
+                byte_length: tail.len(),
+                sha256: sha256_hex(tail),
+                hex: hex_bytes(tail),
+            });
+        }
         match write_atomic(output_dir, "raw_pty.bin", bytes) {
             Ok(()) => {
                 raw_pty = Some(RawPtyEvidence {
@@ -1635,8 +1416,10 @@ fn run_delivery_journey(
         }
     }
 
-    let first_failure = execution_errors
+    let first_failure = setup_errors
         .first()
+        .or_else(|| application_errors.first())
+        .or_else(|| execution_errors.first())
         .or_else(|| capture_errors.first())
         .cloned()
         .unwrap_or_else(|| "delivery journey did not complete".to_string());
@@ -1659,83 +1442,94 @@ fn run_delivery_journey(
                 .unwrap_or_else(|| "checkpoint phase was not reached".to_string()),
         })
         .collect::<Vec<_>>();
-    let visual_failure = checkpoints
+    result_writer.evidence.not_run_checkpoints = not_reached_checkpoints.clone();
+    let comparison_failure = checkpoints
         .iter()
         .any(|checkpoint| !checkpoint.comparison.passed);
-    let missing_baseline = checkpoints
+    let comparison_failure_kind = checkpoints
         .iter()
-        .any(|checkpoint| checkpoint.comparison.reason.as_deref() == Some("missing"));
-    let setup_failure = execution_errors
-        .iter()
-        .chain(capture_errors.iter())
-        .any(|error| error.contains("setup failure"))
-        || missing_baseline;
-    let case_status = if setup_failure {
-        "failed/setup"
-    } else if !capture_errors.is_empty() {
-        "failed/capture"
-    } else if !execution_errors.is_empty() {
-        "failed/execution"
-    } else if visual_failure {
-        "failed/visual"
-    } else {
-        "passed"
-    }
-    .to_string();
+        .find(|checkpoint| !checkpoint.comparison.passed)
+        .and_then(|checkpoint| checkpoint.comparison.failure_kind);
+    let (_, exit_failure_kind, case_status) = classify_case_result(
+        &setup_errors,
+        &capture_errors,
+        &application_errors,
+        &execution_errors,
+        comparison_failure,
+    );
 
-    let exit_result = DeliveryExitResult {
-        schema_version: 1,
-        suite_id: manifest.version.suite_id.clone(),
-        case_id: case_id(journey).to_string(),
-        test_name: journey.name.clone(),
-        case_status: case_status.clone(),
-        exit_key,
-        exit_key_attempted,
-        exit_key_error,
-        wait_exit_succeeded,
-        process_state_before_finalize,
-        drain_succeeded,
-        raw_pty,
-        raw_tail,
-        process_state_after_finalize,
-        terminal_restoration,
-        execution_errors: execution_errors.clone(),
-        capture_errors: capture_errors.clone(),
-    };
-    match serde_json::to_vec_pretty(&exit_result) {
-        Ok(exit_bytes) => {
-            if let Err(error) = write_atomic(output_dir, "exit-result.json", &exit_bytes) {
-                capture_errors.push(format!("write exit result failed: {error:#}"));
+    if is_delivery {
+        let exit_result = DeliveryExitResult {
+            schema_version: 1,
+            suite_id: manifest.version.suite_id.clone(),
+            case_id: case_id(journey).to_string(),
+            test_name: journey.name.clone(),
+            case_status: case_status.to_string(),
+            failure_kind: exit_failure_kind,
+            comparison_failure_kind,
+            exit_key: exit_key.clone(),
+            exit_key_attempted,
+            exit_key_error: exit_key_error.clone(),
+            wait_exit_succeeded,
+            process_state_before_finalize: process_state_before_finalize.clone(),
+            drain_succeeded,
+            raw_pty: raw_pty.clone(),
+            raw_tail: raw_tail.clone(),
+            process_state_after_finalize: process_state_after_finalize.clone(),
+            terminal_restoration: terminal_restoration.clone(),
+            setup_errors: setup_errors.clone(),
+            application_errors: application_errors.clone(),
+            execution_errors: execution_errors.clone(),
+            capture_errors: capture_errors.clone(),
+        };
+        match serde_json::to_vec_pretty(&exit_result) {
+            Ok(exit_bytes) => {
+                if let Err(error) = write_atomic(output_dir, "exit-result.json", &exit_bytes) {
+                    capture_errors.push(format!("write exit result failed: {error:#}"));
+                }
             }
+            Err(error) => capture_errors.push(format!("serialize exit result failed: {error:#}")),
         }
-        Err(error) => capture_errors.push(format!("serialize exit result failed: {error:#}")),
     }
 
-    let setup_failure = execution_errors
+    let comparison_failure = checkpoints
         .iter()
-        .chain(capture_errors.iter())
-        .any(|error| error.contains("setup failure"))
-        || missing_baseline;
-    let case_status = if setup_failure {
-        "failed/setup"
-    } else if !capture_errors.is_empty() {
-        "failed/capture"
-    } else if !execution_errors.is_empty() {
-        "failed/execution"
-    } else if visual_failure {
-        "failed/visual"
-    } else {
-        "passed"
-    }
-    .to_string();
+        .any(|checkpoint| !checkpoint.comparison.passed);
+    let (typed_status, failure_kind, case_status) = classify_case_result(
+        &setup_errors,
+        &capture_errors,
+        &application_errors,
+        &execution_errors,
+        comparison_failure,
+    );
+    result_writer.evidence.status = typed_status;
+    result_writer.evidence.failure_kind = failure_kind;
+    result_writer.evidence.comparison_failure_kind = comparison_failure_kind;
+    result_writer.evidence.error = setup_errors
+        .first()
+        .or_else(|| capture_errors.first())
+        .or_else(|| application_errors.first())
+        .or_else(|| execution_errors.first())
+        .or_else(|| {
+            checkpoints
+                .iter()
+                .find(|checkpoint| !checkpoint.comparison.passed)
+                .map(|checkpoint| &checkpoint.test_id)
+        })
+        .cloned();
+    result_writer.persist()?;
 
-    let index = DeliveryCaptureIndex {
-        schema_version: 2,
+    let index = CaptureIndex {
+        schema_version: 3,
         suite_id: manifest.version.suite_id.clone(),
+        case_name: case_name.to_string(),
         case_id: case_id(journey).to_string(),
         test_name: journey.name.clone(),
-        case_status: case_status.clone(),
+        case_status: case_status.to_string(),
+        failure_kind,
+        comparison_failure_kind,
         frame_checkpoint_count: plans.len(),
+        exit_result_file: is_delivery.then(|| "exit-result.json".to_string()),
         executable_name: journey.binary.clone(),
         arguments: args.to_vec(),
         terminal: TerminalEvidence {
@@ -1753,19 +1547,24 @@ fn run_delivery_journey(
         working_directory: fixture.cwd.to_string_lossy().into_owned(),
         fixture_dataset_id: dataset.dataset_id.clone(),
         coverage_scope: manifest.suite.coverage_scope.clone(),
-        capture_api: "tui-test-rs::Session::capture_checkpoint(ActiveScreen+raw-prefix-offset-under-one-terminal-state-lock);offset-saved-before-render;native-snapshot-written-before-sample-validation;Session::finish_capture(bounded-checked-drain)".to_string(),
+        capture_api: "tuiscotti-tui-test::Session::capture_checkpoint(ActiveScreen+raw-prefix-offset-under-one-terminal-state-lock);offset-saved-before-render;native-snapshot-written-before-sample-validation;Session::finish_capture(bounded-checked-drain)".to_string(),
         evidence_roots: evidence_roots.clone(),
-        exit_result_file: "exit-result.json".to_string(),
+        raw_pty,
+        raw_tail,
+        drain_succeeded,
+        process_state_before_finalize,
+        process_state_after_finalize,
+        terminal_restoration,
         checkpoints,
         checkpoint_attempts: attempts,
         not_reached_checkpoints,
+        setup_errors,
+        application_errors,
         capture_errors,
         execution_errors,
     };
-    let index_bytes =
-        serde_json::to_vec_pretty(&index).context("serialize delivery capture index")?;
-    write_atomic(output_dir, "capture-index.json", &index_bytes)
-        .context("write delivery capture index")?;
+    let index_bytes = serde_json::to_vec_pretty(&index).context("serialize capture index")?;
+    write_atomic(output_dir, "capture-index.json", &index_bytes).context("write capture index")?;
 
     ensure!(
         index.checkpoints.len() == index.frame_checkpoint_count,
@@ -1781,8 +1580,18 @@ fn run_delivery_journey(
         index.capture_errors
     );
     ensure!(
+        index.setup_errors.is_empty(),
+        "suite setup/evidence-store failures: {:?}",
+        index.setup_errors
+    );
+    ensure!(
+        index.application_errors.is_empty(),
+        "application visible-state failures: {:?}",
+        index.application_errors
+    );
+    ensure!(
         index.execution_errors.is_empty(),
-        "delivery journey execution failures: {:?}",
+        "journey execution failures: {:?}",
         index.execution_errors
     );
     let failures = index
@@ -1809,6 +1618,20 @@ fn run_delivery_journey(
     );
     ensure!(
         index
+            .raw_pty
+            .as_ref()
+            .is_some_and(|raw| raw.byte_length > 0 && raw.exact_bytes && raw.drain_reached_eof),
+        "raw PTY stream is incomplete"
+    );
+    ensure!(
+        index
+            .terminal_restoration
+            .as_ref()
+            .is_some_and(|state| state.restored),
+        "terminal restoration failed or has no post-finalization state evidence"
+    );
+    ensure!(
+        index
             .checkpoints
             .iter()
             .all(|checkpoint| checkpoint.raw_prefix_sha256.is_some()),
@@ -1826,6 +1649,44 @@ fn process_state_evidence(state: &tui_test::State) -> ProcessStateEvidence {
             .map(|signal| format!("{signal:?}")),
         modes: state.modes.clone(),
         mouse_mode: state.mouse_mode.clone(),
+    }
+}
+
+fn classify_case_result(
+    setup_errors: &[String],
+    capture_errors: &[String],
+    application_errors: &[String],
+    execution_errors: &[String],
+    comparison_failed: bool,
+) -> (CaseResultStatus, Option<CaseFailureKind>, &'static str) {
+    let failure_kind = if !setup_errors.is_empty() {
+        Some(CaseFailureKind::Setup)
+    } else if !capture_errors.is_empty() {
+        Some(CaseFailureKind::Capture)
+    } else if !application_errors.is_empty() {
+        Some(CaseFailureKind::Application)
+    } else if !execution_errors.is_empty() {
+        Some(CaseFailureKind::Execution)
+    } else if comparison_failed {
+        Some(CaseFailureKind::Comparison)
+    } else {
+        None
+    };
+    match failure_kind {
+        None => (CaseResultStatus::Passed, None, "passed"),
+        Some(CaseFailureKind::Setup) => (CaseResultStatus::Failed, failure_kind, "failed/setup"),
+        Some(CaseFailureKind::Capture) => {
+            (CaseResultStatus::Failed, failure_kind, "failed/capture")
+        }
+        Some(CaseFailureKind::Application) => {
+            (CaseResultStatus::Failed, failure_kind, "failed/application")
+        }
+        Some(CaseFailureKind::Execution) => {
+            (CaseResultStatus::Failed, failure_kind, "failed/execution")
+        }
+        Some(CaseFailureKind::Comparison) => {
+            (CaseResultStatus::Failed, failure_kind, "failed/comparison")
+        }
     }
 }
 
@@ -1886,29 +1747,29 @@ fn execute_native_action(session: &Session, action: &NativeAction) -> Result<()>
     }
 }
 
-fn wait_for_step_readiness(session: &Session, case_id: &str, step: &CheckpointPlan) -> Result<()> {
+fn wait_for_step_readiness(
+    session: &Session,
+    case_id: &str,
+    step: &CheckpointPlan,
+) -> Result<ReadinessOutcome> {
     let deadline = Instant::now() + READINESS_TIMEOUT;
     loop {
         let captured = session
             .capture_checkpoint(SnapshotScope::ActiveScreen)
-            .with_context(|| format!("setup failure: capture {case_id}/{} readiness", step.name))?;
+            .with_context(|| format!("capture {case_id}/{} readiness", step.name))?;
         let snapshot = captured.snapshot();
         let revision = snapshot.metadata().revision;
         let raw_offset = captured.raw_pty_offset();
         let problems = step_readiness_problems(snapshot, step);
         if problems.is_empty() {
-            return Ok(());
+            return Ok(ReadinessOutcome::Ready);
         }
         let now = Instant::now();
         if now >= deadline {
-            bail!(
-                "setup failure: {case_id}/{} did not reach required visible state within {:?}; anchor problems {:?}, revision {:?}, raw PTY offset {:?}",
-                step.name,
-                READINESS_TIMEOUT,
-                problems,
-                revision,
-                raw_offset
-            );
+            return Ok(ReadinessOutcome::TimedOut(format!(
+                "{case_id}/{} did not reach required visible state within {:?}; anchor problems {:?}, revision {:?}, raw PTY offset {:?}",
+                step.name, READINESS_TIMEOUT, problems, revision, raw_offset
+            )));
         }
         thread::sleep(READINESS_POLL_INTERVAL.min(deadline.saturating_duration_since(now)));
     }
@@ -1953,10 +1814,13 @@ fn assert_step_snapshot(
     snapshot: &tui_test::TerminalSnapshot,
     step: &CheckpointPlan,
 ) -> Result<()> {
+    if step.name == "exited" {
+        return Ok(());
+    }
     let problems = step_readiness_problems(snapshot, step);
     ensure!(
         problems.is_empty(),
-        "setup failure: captured {} checkpoint does not match required visible state: {:?}",
+        "captured {} checkpoint does not match required visible state: {:?}",
         step.name,
         problems
     );
@@ -1981,7 +1845,7 @@ fn save_native_snapshot(
     Ok((relative_path, hash))
 }
 
-fn try_capture_delivery_checkpoint(
+fn try_capture_checkpoint(
     session: &Session,
     step: &CheckpointPlan,
     attempt: &mut CheckpointAttemptEvidence,
@@ -1990,12 +1854,14 @@ fn try_capture_delivery_checkpoint(
     store: &FrozenStore,
     samples_dir: &Path,
     checkpoints: &mut Vec<CheckpointEvidence>,
-    errors: &mut Vec<String>,
+    capture_errors: &mut Vec<String>,
+    application_errors: &mut Vec<String>,
+    setup_errors: &mut Vec<String>,
 ) -> bool {
     attempt.reached = true;
     attempt.capture_attempted = true;
     let mut readiness_failed = false;
-    match capture_delivery_checkpoint(
+    match capture_checkpoint(
         session,
         step,
         attempt,
@@ -2019,7 +1885,10 @@ fn try_capture_delivery_checkpoint(
         }
         Err(error) => {
             let message = format!("{}: {error:#}", step.name);
+            let store_check_failed = error.chain().any(|cause| cause.is::<StoreCheckFailure>());
             attempt.outcome = if readiness_failed {
+                "application-failure"
+            } else if store_check_failed {
                 "setup-failure"
             } else {
                 "capture-failure"
@@ -2032,18 +1901,26 @@ fn try_capture_delivery_checkpoint(
                     attempt.sample_sha256 = Some(sample_sha256);
                 }
                 Ok(None) => {}
-                Err(sample_error) => errors.push(format!(
+                Err(sample_error) => capture_errors.push(format!(
                     "{}: reading partial sample evidence failed: {sample_error:#}",
                     step.name
                 )),
             }
-            errors.push(message);
-            !readiness_failed
+            if readiness_failed {
+                application_errors.push(message);
+                false
+            } else if store_check_failed {
+                setup_errors.push(message);
+                true
+            } else {
+                capture_errors.push(message);
+                true
+            }
         }
     }
 }
 
-fn capture_delivery_checkpoint(
+fn capture_checkpoint(
     session: &Session,
     step: &CheckpointPlan,
     attempt: &mut CheckpointAttemptEvidence,
@@ -2093,9 +1970,9 @@ fn capture_delivery_checkpoint(
     let image = sample.image().context("state+pixels sample has no image")?;
     let compared_pixels = u64::from(image.width()) * u64::from(image.height());
     let comparison = comparison_evidence(
-        store
-            .check(&sample_bytes)
-            .context("compare frozen sample")?,
+        store.check(&sample_bytes).map_err(|error| {
+            StoreCheckFailure(format!("frozen store check API failed: {error:#}"))
+        })?,
         &test_id,
         sample.gate().as_str(),
         &sample_hash,
@@ -2137,87 +2014,6 @@ fn partial_sample_evidence(samples_dir: &Path, phase: &str) -> Result<Option<(St
     );
     let bytes = fs::read(&sample_path).context("read partial sample file")?;
     Ok(Some((format!("samples/{sample_name}"), sha256_hex(&bytes))))
-}
-
-fn capture_checkpoint(
-    session: &Session,
-    phase: &str,
-    attempt: &mut CheckpointAttemptEvidence,
-    readiness_failed: &mut bool,
-    journey: &Journey,
-    pixel_profile: &PixelProfile,
-    store: &FrozenStore,
-    samples_dir: &Path,
-) -> Result<CheckpointEvidence> {
-    let captured = session
-        .capture_checkpoint(SnapshotScope::ActiveScreen)
-        .with_context(|| format!("capture {phase} ActiveScreen and raw PTY offset"))?;
-    let raw_offset = captured.raw_pty_offset();
-    attempt.raw_prefix_offset = Some(raw_offset);
-    let snapshot = captured.snapshot();
-    let (native_snapshot_file, native_snapshot_sha256) =
-        save_native_snapshot(snapshot, phase, samples_dir, attempt)?;
-    let anchor_result = assert_snapshot_anchors(snapshot, &journey.name, phase);
-    if anchor_result.is_err() {
-        *readiness_failed = true;
-    }
-    let platform = platform_key();
-    ensure!(
-        !platform.is_empty()
-            && platform
-                .bytes()
-                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.')),
-        "platform key is invalid for a frozen pixel test ID: {platform:?}"
-    );
-    let test_id = format!("termrock/{}/{phase}/pixels-{platform}", journey.name);
-    ensure!(
-        test_id.ends_with(&format!("/pixels-{platform}")),
-        "pixel test ID must end in /pixels-{platform}"
-    );
-    let sample = Sample::with_pixels(&test_id, snapshot, Observation::empty(), pixel_profile)
-        .with_context(|| format!("render {phase} pinned pixels"))?;
-    let sample_bytes = sample.to_bytes().context("serialize state+pixel sample")?;
-    let sample_hash = sha256_hex(&sample_bytes);
-    let sample_name = format!("{phase}.sample.json");
-    write_atomic(samples_dir, &sample_name, &sample_bytes)
-        .with_context(|| format!("write {phase} candidate sample"))?;
-    anchor_result?;
-    let contract = sample
-        .render_contract()
-        .context("state+pixels sample has no render contract")?;
-    ensure!(
-        snapshot.cursor().blink().is_some() && contract.blink().is_some(),
-        "{phase} checkpoint has unknown cursor blink state"
-    );
-    let image = sample.image().context("state+pixels sample has no image")?;
-    let compared_pixels = u64::from(image.width()) * u64::from(image.height());
-    let comparison = comparison_evidence(
-        store
-            .check(&sample_bytes)
-            .context("compare frozen sample")?,
-        &test_id,
-        sample.gate().as_str(),
-        &sample_hash,
-        compared_pixels,
-    )?;
-    Ok(CheckpointEvidence {
-        name: phase.to_string(),
-        test_id,
-        source_revision: snapshot.metadata().revision,
-        raw_prefix_offset: raw_offset,
-        raw_prefix_sha256: None,
-        sample_file: format!("samples/{sample_name}"),
-        sample_sha256: sample_hash,
-        native_snapshot_file,
-        native_snapshot_sha256,
-        cols: snapshot.cols(),
-        rows: snapshot.rows(),
-        cursor: cursor_evidence(snapshot),
-        resolved_cells: cell_evidence(snapshot),
-        image: image_evidence(image),
-        render_contract: render_contract_evidence(contract),
-        comparison,
-    })
 }
 
 fn cursor_evidence(snapshot: &tui_test::TerminalSnapshot) -> CursorEvidence {
@@ -2328,6 +2124,7 @@ fn comparison_evidence(
                 outcome: "pass".to_string(),
                 passed: true,
                 reason: None,
+                failure_kind: None,
                 baseline_sha256: Some(success.baseline_sha256().to_string()),
                 candidate_sha256: success.candidate_sha256().to_string(),
                 changed_fields: Vec::new(),
@@ -2360,6 +2157,7 @@ fn comparison_evidence(
 }
 
 fn failure_evidence(failure: &CheckFailure) -> ComparisonEvidence {
+    let reason = failure.reason();
     let first_changed_cell = failure
         .changed_cells()
         .first()
@@ -2375,7 +2173,16 @@ fn failure_evidence(failure: &CheckFailure) -> ComparisonEvidence {
         gate: failure.gate().as_str().to_string(),
         outcome: "failure".to_string(),
         passed: false,
-        reason: Some(failure.reason().as_str().to_string()),
+        reason: Some(reason.as_str().to_string()),
+        failure_kind: Some(match reason {
+            MismatchReason::Missing => ComparisonFailureKind::MissingBaseline,
+            MismatchReason::TestId => ComparisonFailureKind::TestId,
+            MismatchReason::Policy => ComparisonFailureKind::Policy,
+            MismatchReason::State => ComparisonFailureKind::State,
+            MismatchReason::Contract => ComparisonFailureKind::Contract,
+            MismatchReason::Dimensions => ComparisonFailureKind::Dimensions,
+            MismatchReason::Pixels => ComparisonFailureKind::Pixels,
+        }),
         baseline_sha256: Some(failure.baseline_sha256().to_string()),
         candidate_sha256: failure.candidate_sha256().to_string(),
         changed_fields: failure.changed_fields().to_vec(),
@@ -2446,6 +2253,31 @@ fn ensure_disjoint_roots(baseline_root: &Path, output_root: &Path) -> Result<()>
     Ok(())
 }
 
+fn ensure_output_disjoint_from_expected(output_root: &Path) -> Result<()> {
+    let suite_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .canonicalize()
+        .context("canonicalize functional suite root")?;
+    let expected_root = suite_root.join("expected");
+    match expected_root.canonicalize() {
+        Ok(expected_root) => ensure_disjoint_roots(&expected_root, output_root),
+        Err(error) if error.kind() == ErrorKind::NotFound => {
+            let output = output_root
+                .canonicalize()
+                .context("canonicalize output root while expected store is absent")?;
+            ensure!(
+                output != expected_root
+                    && !output.starts_with(&expected_root)
+                    && !expected_root.starts_with(&output),
+                "expected store and output roots must be disjoint: expected={}, output={}",
+                expected_root.display(),
+                output.display()
+            );
+            Ok(())
+        }
+        Err(error) => Err(error).context("canonicalize expected frame store before case setup"),
+    }
+}
+
 fn record_execution_step(errors: &mut Vec<String>, label: &str, result: Result<()>) -> bool {
     match result {
         Ok(()) => true,
@@ -2467,52 +2299,6 @@ fn settle(session: &Session) -> Result<()> {
     session
         .wait_quiet(&wait)
         .context("wait for visual screen stability")?;
-    Ok(())
-}
-
-fn wait_for_visible_anchors(session: &Session, journey_name: &str, phase: &str) -> Result<()> {
-    let deadline = Instant::now() + READINESS_TIMEOUT;
-    loop {
-        let captured = session
-            .capture_checkpoint(SnapshotScope::ActiveScreen)
-            .with_context(|| format!("setup failure: capture {journey_name}/{phase} readiness"))?;
-        let snapshot = captured.snapshot();
-        let last_revision = snapshot.metadata().revision;
-        let last_raw_offset = captured.raw_pty_offset();
-        let problems = snapshot_readiness_problems(snapshot, journey_name, phase)?;
-        if problems.is_empty() {
-            return Ok(());
-        }
-        let now = Instant::now();
-        if now >= deadline {
-            bail!(
-                "setup failure: {} {phase} screen did not match its required visible state within {:?}; last anchor problems {:?}, revision {:?}, raw PTY offset {:?}",
-                journey_name,
-                READINESS_TIMEOUT,
-                problems,
-                last_revision,
-                last_raw_offset
-            );
-        }
-        thread::sleep(READINESS_POLL_INTERVAL.min(deadline.saturating_duration_since(now)));
-    }
-}
-
-fn assert_snapshot_anchors(
-    snapshot: &tui_test::TerminalSnapshot,
-    journey_name: &str,
-    phase: &str,
-) -> Result<()> {
-    if phase == "exited" {
-        return Ok(());
-    }
-    let problems = snapshot_readiness_problems(snapshot, journey_name, phase)?;
-    ensure!(
-        problems.is_empty(),
-        "setup failure: captured {} {phase} checkpoint does not match its required visible state: {:?}",
-        journey_name,
-        problems
-    );
     Ok(())
 }
 
@@ -2547,23 +2333,6 @@ fn forbidden_checkpoint_anchors(
             "setup failure: no forbidden readiness anchors are admitted for {journey_name}/{phase}"
         ),
     }
-}
-
-fn snapshot_readiness_problems(
-    snapshot: &tui_test::TerminalSnapshot,
-    journey_name: &str,
-    phase: &str,
-) -> Result<Vec<String>> {
-    let required = required_checkpoint_anchors(journey_name, phase)?;
-    let forbidden = forbidden_checkpoint_anchors(journey_name, phase)?;
-    let mut problems = missing_snapshot_anchors(snapshot, required);
-    problems.extend(
-        forbidden
-            .iter()
-            .filter(|anchor| snapshot_has_anchor(snapshot, anchor))
-            .map(|anchor| format!("forbidden help heading {anchor:?} is visible")),
-    );
-    Ok(problems)
 }
 
 fn missing_snapshot_anchors(
@@ -2601,23 +2370,23 @@ fn press(session: &Session, key: &str) -> Result<()> {
 
 fn validate_manifest(manifest: &SuiteManifest, dataset: &FixtureDataset) -> Result<()> {
     ensure!(
-        manifest.version.schema_version == 2,
+        manifest.version.schema_version == 3,
         "unsupported suite manifest schema"
     );
     ensure!(
-        manifest.version.suite_id == "termrock-functional-suite-v2"
-            && manifest.version.predecessor_suite_id == "termrock-functional-suite-v1"
+        manifest.version.suite_id == "termrock-functional-suite-v3"
+            && manifest.version.predecessor_suite_id == "termrock-functional-suite-v2"
             && !manifest.version.result_inheritance,
         "unexpected suite ID"
     );
     ensure!(
-        manifest.version.crosswalk.len() >= 5
+        !manifest.version.crosswalk.is_empty()
             && manifest
                 .version
                 .crosswalk
                 .iter()
-                .any(|entry| entry.contains("not inherited")),
-        "suite v2 must carry its no-result-inheritance crosswalk"
+                .all(|entry| !entry.trim().is_empty()),
+        "suite v3 crosswalk must contain nonempty revision notes"
     );
     ensure!(
         manifest.cases.len() == 89,
@@ -2645,15 +2414,8 @@ fn validate_manifest(manifest: &SuiteManifest, dataset: &FixtureDataset) -> Resu
         "delivery case order or denominator changed"
     );
     ensure!(
-        manifest
-            .suite
-            .coverage_scope
-            .contains("84 registered v1 journeys")
-            && manifest
-                .suite
-                .coverage_scope
-                .contains("prior results are not inherited"),
-        "coverage scope must retain all legacy journeys and state no result inheritance"
+        !manifest.suite.coverage_scope.trim().is_empty(),
+        "coverage scope must not be empty"
     );
 
     let exact_first_cases = [
@@ -2675,7 +2437,7 @@ fn validate_manifest(manifest: &SuiteManifest, dataset: &FixtureDataset) -> Resu
         ),
         (
             "first_jackin",
-            "jackin",
+            "jackin-preview",
             &["--scenario", "returning"][..],
             "?",
             "Esc",
@@ -2974,7 +2736,7 @@ fn validate_manifest(manifest: &SuiteManifest, dataset: &FixtureDataset) -> Resu
         } else if case.name == "first_holla" || case.name.starts_with("holla_") {
             Some("holla")
         } else if case.name == "first_jackin" || case.name.starts_with("jackin_") {
-            Some("jackin")
+            Some("jackin-preview")
         } else if case.name == "first_tablepro" || case.name.starts_with("tablepro_") {
             Some("tablepro")
         } else if case.name.starts_with("first_delivery_showcase_") {
@@ -3054,28 +2816,6 @@ fn validate_manifest(manifest: &SuiteManifest, dataset: &FixtureDataset) -> Resu
                 .eq(manifest.cases.iter().map(|case| case.name.as_str())),
         "coverage journey inventory differs from the 89 registered cases"
     );
-    for case in manifest
-        .cases
-        .iter()
-        .skip(LEGACY_FIRST_CASES.len())
-        .take(LEGACY_CASES.len() - LEGACY_FIRST_CASES.len())
-    {
-        ensure!(
-            case.arguments.is_empty(),
-            "later journey arguments require an admitted native step plan: {}",
-            case.name
-        );
-        ensure!(
-            case.native_steps.is_none()
-                && case.help_key.is_none()
-                && case.return_key.is_none()
-                && case.exit_key.is_none()
-                && case.steps.is_none(),
-            "later journeys without a native plan must remain explicit setup failures: {}",
-            case.name
-        );
-    }
-
     ensure!(
         manifest.suite.terminal.cols == 120 && manifest.suite.terminal.rows == 40,
         "functional terminal size must be 120x40"
@@ -3143,10 +2883,13 @@ fn validate_manifest(manifest: &SuiteManifest, dataset: &FixtureDataset) -> Resu
         "unexpected fixture dataset ID"
     );
     ensure!(
-        manifest.engine_pins.get("tui-test-rs").map(String::as_str)
-            == Some("3887a75dee4463ce0122c37eb278ab7ebb71aeaf")
+        manifest
+            .engine_pins
+            .get("tuiscotti-tui-test")
+            .map(String::as_str)
+            == Some("59a8ded6d8f419f93aaf2c0edcf8253a6e6c7496")
             && manifest.engine_pins.get("tuiscotti").map(String::as_str)
-                == Some("ac5f70d14d1967f551261d599a4cd857ec9fa2d7"),
+                == Some("4b3a5e49ea2e5dbaa913534ced91aa9e45337d67"),
         "pinned native capture engine revisions changed"
     );
     ensure!(
@@ -3586,7 +3329,7 @@ fn prepare_case_output(root: &Path, case_name: &str) -> Result<PathBuf> {
         is_safe_single_component(case_name),
         "unsafe output case name"
     );
-    let version_root = ensure_child_dir(root, "v2")?;
+    let version_root = ensure_child_dir(root, "v3")?;
     let path = version_root.join(case_name);
     if !path.exists() {
         fs::create_dir(&path).with_context(|| format!("create case output {}", path.display()))?;

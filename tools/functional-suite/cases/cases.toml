@@ -1,7 +1,7 @@
 [version]
-schema_version = 2
-suite_id = "termrock-functional-suite-v2"
-predecessor_suite_id = "termrock-functional-suite-v1"
+schema_version = 3
+suite_id = "termrock-functional-suite-v3"
+predecessor_suite_id = "termrock-functional-suite-v2"
 result_inheritance = false
 crosswalk = [
     "Retains all 84 v1 registered cases and 271 v1 coverage IDs; prior results are not inherited.",
@@ -9,11 +9,13 @@ crosswalk = [
     "The first delivery subset contains four cases and 30 frame checkpoints; each exit result is separate.",
     "Holla checkpoint name empty_results was renamed to empty to match the updated Section 6 contract; prior captures remain historical and results are not inherited.",
     "holla.first_use.frame1 repeats the full seven-checkpoint first-use journey at --frame 1, outside the first subset.",
+    "The 0.2.0 capture backend is a new suite successor: no v1, v2, or 0.1.1 result is inherited; reference A/B and explicit approval are required before the new expected store is populated.",
+    "This revision registers 89 cases and 276 coverage IDs. Nine cases currently have native action plans and 80 are not-run until planned; those counts describe this revision and do not constrain future plan coverage.",
     "Runtime binary and output inputs are TERMROCK_PARITY_BIN_DIR and TERMROCK_PARITY_OUT_DIR."
 ]
 
 [suite]
-coverage_scope = "v2 retains the 84 registered v1 journeys and all 271 v1 coverage IDs, adds four first-delivery cases with 30 frame checkpoints and a separate seven-checkpoint Holla first-use journey at frame 1; prior results are not inherited."
+coverage_scope = "v3 retains all 84 v1 journeys and 271 v1 coverage IDs, adds four delivery cases and one Holla frame-1 variant for 89 registered cases and 276 coverage IDs. Nine cases currently have native action plans and 80 remain not-run; this is not a fixed coverage rule. The first four delivery cases contain 30 checkpoints, while coverage IDs are requirement identifiers rather than frame counts. Results are not inherited across the v1, v2, or 0.2.0 capture contracts."
 render_profile = "tuiscotti-pinned-v1"
 fixture_dataset = "fixtures/dataset.json"
 expected_store = "expected"
@@ -35,8 +37,8 @@ color_mode_arguments = ["--color", "truecolor"]
 motion_arguments = ["--motion", "paused", "--frame", "0"]
 
 [engine_pins]
-tui-test-rs = "3887a75dee4463ce0122c37eb278ab7ebb71aeaf"
-tuiscotti = "ac5f70d14d1967f551261d599a4cd857ec9fa2d7"
+tuiscotti-tui-test = "59a8ded6d8f419f93aaf2c0edcf8253a6e6c7496"
+tuiscotti = "4b3a5e49ea2e5dbaa913534ced91aa9e45337d67"
 
 [required_coverage]
 journey_ids = ["first_showcase", "first_holla", "first_jackin", "first_tablepro", "showcase_overview", "showcase_chrome", "showcase_status_and_hints", "showcase_breadcrumbs_and_rails", "showcase_help_and_keys", "showcase_quit_and_leave", "showcase_focus_and_navigation", "showcase_buttons", "showcase_inputs", "showcase_text_areas", "showcase_chips_and_selects", "showcase_forms", "showcase_checks_and_radios", "showcase_toolbars", "showcase_basic_table", "showcase_editable", "showcase_data_grid", "showcase_selection", "showcase_cell_editors", "showcase_columns", "showcase_lists", "showcase_trees", "showcase_sidebars", "showcase_tabs", "showcase_menus", "showcase_dialogs", "showcase_pickers", "showcase_dialog_kinds", "showcase_popups_and_tooltips", "showcase_file_browser", "showcase_progress", "showcase_empty_and_error", "showcase_meters", "showcase_notices", "showcase_panels", "showcase_scrolling", "showcase_splits_and_stacks", "showcase_master_detail", "showcase_pane_tree", "showcase_code_editor", "showcase_diff", "showcase_terminal", "showcase_text_utilities", "showcase_settings", "showcase_task_runner", "showcase_query_workbench", "showcase_connections", "showcase_finder", "showcase_disk_cleanup", "showcase_activity", "showcase_workspaces", "showcase_accounts_and_usage", "showcase_launch_cockpit", "showcase_read_only_report", "showcase_explorer", "showcase_orders", "showcase_query_edit_while_running", "showcase_query_tab_switching", "holla_home_actions", "holla_plan_args_gate", "holla_activity_stop", "holla_disk_cleanup_review", "holla_files_clone", "holla_taskrun_args_cancel", "holla_database_blockers", "jackin_intro_prelude", "jackin_editor_save_cancel_leave", "jackin_accounts_usage", "jackin_settings", "jackin_launch_cancel_failure", "jackin_handoff_capsule", "jackin_capsule_controls", "jackin_protected_quit_outro", "tablepro_connection_retry", "tablepro_explorer_structure_grid", "tablepro_edit_transaction", "tablepro_query_execution", "tablepro_safety_ack", "tablepro_history_filter_reconnect", "tablepro_switchers_dirty_close", "first_delivery_showcase_buttons", "first_delivery_holla_first_use", "first_delivery_jackin_settings", "first_delivery_tablepro_connections", "full_holla_first_use_frame1"]
@@ -45,7 +47,7 @@ journey_ids = ["first_showcase", "first_holla", "first_jackin", "first_tablepro"
 repository_revision = "6717d83557897d4888532fb0f549f4d6fb2d1266"
 showcase_nav_entries_path = "crates/showcase-ui/src/app.rs:329"
 showcase_nav_entries_count = 54
-full_inventory_policy = "Requirements below define the coverage denominator; only cases[] are currently executable. Missing journeys remain not-run/setup failures, never ignored, xfail, placeholders, or passes."
+full_inventory_policy = "The 89 case rows define the case denominator and the 276 coverage_id_owners define the coverage denominator; coverage IDs are not frame counts. Cases without executable plans remain explicitly not-run or setup-failed, never ignored, xfail, placeholders, or passes. Current plan availability is descriptive and does not constrain future plan coverage."
 
 [required_coverage.showcase]
 nav_entries = ["Overview", "Chrome", "Status & hints", "Breadcrumbs & rails", "Help & keys", "Quit & leave", "Focus & navigation", "Buttons", "Inputs", "Text areas", "Chips & selects", "Forms", "Checks & radios", "Toolbars", "Basic table", "Editable", "Data grid", "Selection", "Cell editors", "Columns", "Lists", "Trees", "Sidebars", "Tabs", "Menus", "Dialogs", "Pickers", "Dialog kinds", "Popups & tooltips", "File browser", "Progress", "Empty & error", "Meters", "Notices", "Panels", "Scrolling", "Splits & stacks", "Master-detail", "Pane tree", "Code editor", "Diff", "Terminal", "Text utilities", "Settings", "Task runner", "Query workbench", "Connections", "Finder", "Disk cleanup", "Activity", "Workspaces", "Accounts & usage", "Launch cockpit", "Read-only report"]
@@ -85,7 +87,7 @@ delivery_first_subset_case_count = 4
 delivery_first_subset_frame_count = 30
 delivery_exit_results_separate = true
 frame1_variant_checkpoints = 7
-remaining_cases_policy = "ordinary test wrappers fail setup until their native step plans are present; nextest filtering leaves unselected cases not-run"
+remaining_cases_policy = "cases without native action plans remain not-run or setup-failed; nextest filtering leaves unselected cases not-run. This revision's plan count is descriptive, not a fixed inventory rule."
 
 [required_coverage.coverage_id_owners]
 "suite.case.first_showcase" = "first_showcase"
@@ -387,7 +389,7 @@ coverage_ids = ["suite.case.first_holla", "holla.first_use"]
 
 [[cases]]
 name = "first_jackin"
-binary = "jackin"
+binary = "jackin-preview"
 arguments = ["--scenario", "returning"]
 help_key = "?"
 return_key = "Esc"
@@ -797,49 +799,49 @@ coverage_ids = ["suite.case.holla_database_blockers", "holla.overlay.portargs", 
 
 [[cases]]
 name = "jackin_intro_prelude"
-binary = "jackin"
+binary = "jackin-preview"
 arguments = []
 coverage_ids = ["suite.case.jackin_intro_prelude", "jackin.screen.intro", "jackin.screen.prelude", "jackin.intro.first_enter_enters_warp", "jackin.intro.second_enter_finishes"]
 
 [[cases]]
 name = "jackin_editor_save_cancel_leave"
-binary = "jackin"
+binary = "jackin-preview"
 arguments = []
 coverage_ids = ["suite.case.jackin_editor_save_cancel_leave", "jackin.screen.editor", "jackin.behavior.save_cancel", "jackin.behavior.editor_leave_choices"]
 
 [[cases]]
 name = "jackin_accounts_usage"
-binary = "jackin"
+binary = "jackin-preview"
 arguments = []
 coverage_ids = ["suite.case.jackin_accounts_usage", "jackin.screen.manager", "jackin.screen.accounts", "jackin.screen.usage", "jackin.behavior.account_agent_role_pickers"]
 
 [[cases]]
 name = "jackin_settings"
-binary = "jackin"
+binary = "jackin-preview"
 arguments = []
 coverage_ids = ["suite.case.jackin_settings", "jackin.screen.settings"]
 
 [[cases]]
 name = "jackin_launch_cancel_failure"
-binary = "jackin"
+binary = "jackin-preview"
 arguments = []
 coverage_ids = ["suite.case.jackin_launch_cancel_failure", "jackin.screen.launch", "jackin.behavior.launch_cancel_failure_details"]
 
 [[cases]]
 name = "jackin_handoff_capsule"
-binary = "jackin"
+binary = "jackin-preview"
 arguments = []
 coverage_ids = ["suite.case.jackin_handoff_capsule", "jackin.screen.cockpit", "jackin.screen.handoff"]
 
 [[cases]]
 name = "jackin_capsule_controls"
-binary = "jackin"
+binary = "jackin-preview"
 arguments = []
 coverage_ids = ["suite.case.jackin_capsule_controls", "jackin.screen.capsule", "jackin.behavior.capsule_tabs_splits_zoom_changes_export_reveal"]
 
 [[cases]]
 name = "jackin_protected_quit_outro"
-binary = "jackin"
+binary = "jackin-preview"
 arguments = []
 coverage_ids = ["suite.case.jackin_protected_quit_outro", "jackin.screen.outro", "jackin.behavior.protected_quit"]
 
