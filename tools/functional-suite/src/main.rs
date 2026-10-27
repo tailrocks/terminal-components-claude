@@ -333,8 +333,10 @@ fn run() -> AppResult<()> {
         return Err(usage_error().into());
     };
     if first == "compare-runs" {
-        verify_export(None, None)?;
-        return compare_command(args.collect());
+        let values = args.collect::<Vec<_>>();
+        let out_path = required_path_argument(&values, "--out")?;
+        verify_export(None, Some(&out_path))?;
+        return compare_command(values);
     }
     if first == "probe-raw-capture" {
         let values = args.collect::<Vec<_>>();

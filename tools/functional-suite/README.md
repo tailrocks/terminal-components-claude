@@ -42,7 +42,7 @@ exec(compile(b, str(p), "exec"), {"__name__": "__main__", "__file__": str(p)})
 ' "$V" "$CANONICAL/export.py" "$@"
 }
 
-trusted_export create --source-root "$SOURCE_ROOT" --source-commit "$FIXED_HEAD" --out "$EXPORT" --application-root "$REFERENCE" --application-root "$CANDIDATE" --bin-root "$BIN26" --bin-root "$BIN38" --run-output-root "$RUN_ROOT"
+trusted_export create --source-root "$SOURCE_ROOT" --source-commit "$FIXED_HEAD" --out "$EXPORT" --application-root "$REFERENCE" --application-root "$CANDIDATE" --bin-root "$BIN26" --bin-root "$BIN38" --run-output-root "$RUN_ROOT" || exit $?
 ```
 
 Copy `H` from the create output into the task record. Do not read a replacement seal from the export.
@@ -51,23 +51,44 @@ Keep `RUN_ROOT` existing and outside the export, binary roots, and application w
 Before each guarded Cargo command, run authenticated preflight. Run Cargo from `EXPORT` with the locked offline command.
 
 ```sh
-trusted_export verify --root "$EXPORT" --sha256 "$H"
-(cd "$EXPORT" && TERMROCK_SUITE_EXPORT_SHA256="$H" MISE_ENABLE_TOOLS=rust,mr-boxington MISE_AUTO_INSTALL=false MISE_LOCKFILE=false /Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo build --locked --offline)
+trusted_export verify --root "$EXPORT" --sha256 "$H" || exit $?
+(cd "$EXPORT" && TERMROCK_SUITE_EXPORT_SHA256="$H" MISE_ENABLE_TOOLS=rust,mr-boxington MISE_AUTO_INSTALL=false MISE_LOCKFILE=false /Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo build --locked --offline) || exit $?
 
-trusted_export verify --root "$EXPORT" --sha256 "$H" --bin-dir "$BIN"
-(cd "$EXPORT" && TERMROCK_SUITE_EXPORT_SHA256="$H" MISE_ENABLE_TOOLS=rust,mr-boxington MISE_AUTO_INSTALL=false MISE_LOCKFILE=false /Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo run --locked --offline -- write-source-manifest --bin-dir "$BIN" --source-dir "$SOURCE" --source-commit "$COMMIT" --source-tree "$TREE" --build-log "$BUILD_LOG" --binary-sha256-file "$HASH_FILE")
+trusted_export verify --root "$EXPORT" --sha256 "$H" --bin-dir "$BIN" || exit $?
+runner_status=0
+(cd "$EXPORT" && TERMROCK_SUITE_EXPORT_SHA256="$H" MISE_ENABLE_TOOLS=rust,mr-boxington MISE_AUTO_INSTALL=false MISE_LOCKFILE=false /Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo run --locked --offline -- write-source-manifest --bin-dir "$BIN" --source-dir "$SOURCE" --source-commit "$COMMIT" --source-tree "$TREE" --build-log "$BUILD_LOG" --binary-sha256-file "$HASH_FILE") || runner_status=$?
+post_verify_status=0
+trusted_export verify --root "$EXPORT" --sha256 "$H" || post_verify_status=$?
+printf 'source_manifest_status=%s post_verify_status=%s\n' "$runner_status" "$post_verify_status" || exit $?
+if [ "$runner_status" -ne 0 ] || [ "$post_verify_status" -ne 0 ]; then exit 1; fi
 
-trusted_export verify --root "$EXPORT" --sha256 "$H" --bin-dir "$BIN" --run-out "$RUN_OUT"
-(cd "$EXPORT" && TERMROCK_SUITE_EXPORT_SHA256="$H" TERMROCK_LIVE_MODE=check MISE_ENABLE_TOOLS=rust,mr-boxington MISE_AUTO_INSTALL=false MISE_LOCKFILE=false /Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo run --locked --offline -- --bin-dir "$BIN" --out "$RUN_OUT" --group first-plus-help)
-trusted_export verify --root "$EXPORT" --sha256 "$H"
+trusted_export verify --root "$EXPORT" --sha256 "$H" --bin-dir "$BIN" --run-out "$RUN_OUT" || exit $?
+runner_status=0
+(cd "$EXPORT" && TERMROCK_SUITE_EXPORT_SHA256="$H" TERMROCK_LIVE_MODE=check MISE_ENABLE_TOOLS=rust,mr-boxington MISE_AUTO_INSTALL=false MISE_LOCKFILE=false /Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo run --locked --offline -- --bin-dir "$BIN" --out "$RUN_OUT" --group first-plus-help) || runner_status=$?
+post_verify_status=0
+trusted_export verify --root "$EXPORT" --sha256 "$H" || post_verify_status=$?
+printf 'runner_status=%s post_verify_status=%s\n' "$runner_status" "$post_verify_status" || exit $?
+if [ "$runner_status" -ne 0 ] || [ "$post_verify_status" -ne 0 ]; then exit 1; fi
 ```
 
-Repeat the final two commands for each branch and group. Change only `BIN` and `RUN_OUT` for a branch.
+Repeat the run preflight, command, and post-check for each branch and group. Change only `BIN` and `RUN_OUT` for a branch.
 Keep `TERMROCK_LIVE_MODE` equal for both branches. Check mode is the only passing mode.
 Capture and stability results remain unapproved. Missing or different references fail.
 Never regenerate `Cargo.lock` or copy run output into `expected/`.
 Reference approval stays independent and outside CI. Check mode never approves or writes a baseline.
 Candidate A/B comparison reports `stable-unapproved` and exits nonzero when visible results match.
+
+Comparison writes `COMPARE_OUT` beneath an existing sealed `RUN_ROOT`. The result path must not exist.
+
+```sh
+trusted_export verify --root "$EXPORT" --sha256 "$H" --run-out "$COMPARE_OUT" || exit $?
+comparison_status=0
+(cd "$EXPORT" && TERMROCK_SUITE_EXPORT_SHA256="$H" MISE_ENABLE_TOOLS=rust,mr-boxington MISE_AUTO_INSTALL=false MISE_LOCKFILE=false /Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo run --locked --offline -- compare-runs --left "$LEFT_RUN" --right "$RIGHT_RUN" --out "$COMPARE_OUT") || comparison_status=$?
+post_verify_status=0
+trusted_export verify --root "$EXPORT" --sha256 "$H" || post_verify_status=$?
+printf 'comparison_status=%s post_verify_status=%s\n' "$comparison_status" "$post_verify_status" || exit $?
+if [ "$comparison_status" -ne 0 ] || [ "$post_verify_status" -ne 0 ]; then exit 1; fi
+```
 
 The runner keeps the existing `--bin-dir BIN --out OUT --group GROUP` interface. The first group remains four flows and twelve checkpoints.
 The `first-plus-help` group remains five flows and eighteen checkpoints. `all` remains incomplete and fails.
@@ -99,9 +120,13 @@ The runner supports `--group first-plus-help` for this selected set. The `first`
 Use the external export and its fixed seal for raw capture probes.
 
 ```sh
-trusted_export verify --root "$EXPORT" --sha256 "$H" --run-out "$OUT"
-(cd "$EXPORT" && TERMROCK_SUITE_EXPORT_SHA256="$H" MISE_ENABLE_TOOLS=rust,mr-boxington MISE_AUTO_INSTALL=false MISE_LOCKFILE=false /Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo run --locked --offline -- probe-raw-capture --out "$OUT")
-trusted_export verify --root "$EXPORT" --sha256 "$H"
+trusted_export verify --root "$EXPORT" --sha256 "$H" --run-out "$OUT" || exit $?
+runner_status=0
+(cd "$EXPORT" && TERMROCK_SUITE_EXPORT_SHA256="$H" MISE_ENABLE_TOOLS=rust,mr-boxington MISE_AUTO_INSTALL=false MISE_LOCKFILE=false /Users/donbeave/.local/bin/rust-build-guard -- mise exec -- cargo run --locked --offline -- probe-raw-capture --out "$OUT") || runner_status=$?
+post_verify_status=0
+trusted_export verify --root "$EXPORT" --sha256 "$H" || post_verify_status=$?
+printf 'runner_status=%s post_verify_status=%s\n' "$runner_status" "$post_verify_status" || exit $?
+if [ "$runner_status" -ne 0 ] || [ "$post_verify_status" -ne 0 ]; then exit 1; fi
 ```
 
 These probes use real child processes. They check binary PTY output, processed byte offsets, forced incomplete drain, setup rejection, live-session capture rejection, captured restart rejection, and a regular-file write failure under `RLIMIT_FSIZE`. The probes do not count as application flows and do not change the four-flow or twelve-checkpoint denominators. The write-failure probe runs on Unix. It ignores and restores `SIGXFSZ` only in the probe process. PTY output newline processing is accounted for by using no carriage return or line feed in the exact-byte stream.

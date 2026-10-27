@@ -543,27 +543,55 @@ def boundaries_from_manifest(value):
         fail("reference application root equals source root")
     source = paths["source_root"]
     canonical = paths["canonical_root"]
-    reference = paths["reference_application_root"]
     candidate = paths["candidate_application_root"]
-    protected = [source, canonical, reference, candidate]
-    for index, (left, left_id) in enumerate(protected):
-        for right, right_id in protected[index + 1 :]:
-            allowed = (left == source and right == canonical) or (left == canonical and right == source)
-            allowed = allowed or (left == source and right == candidate and candidate[0] == source[0])
-            allowed = allowed or (left == candidate and right == source and candidate[0] == source[0])
-            allowed = allowed or (left == canonical and right == candidate and candidate[0] == source[0])
-            allowed = allowed or (left == candidate and right == canonical and candidate[0] == source[0])
+    if candidate[0] == source[0] and candidate[1] != source[1]:
+        fail("source and candidate application paths have different filesystem identities")
+    same_candidate_worktree = candidate[0] == source[0] and candidate[1] == source[1]
+    protected = [
+        ("source root", *source),
+        ("canonical suite root", *canonical),
+        ("reference application root", *paths["reference_application_root"]),
+        ("candidate application root", *candidate),
+    ]
+    for index, (left_label, left_path, left_id) in enumerate(protected):
+        for right_label, right_path, right_id in protected[index + 1 :]:
+            pair = (left_label, right_label)
+            allowed = pair == ("source root", "canonical suite root")
+            allowed = allowed or (
+                same_candidate_worktree
+                and pair in (
+                    ("source root", "candidate application root"),
+                    ("canonical suite root", "candidate application root"),
+                )
+            )
             if not allowed:
-                require_disjoint(left[0], "protected root", right[0], "protected root", left_id, right_id)
-    bin_roots = [paths["reference_bin_root"], paths["candidate_bin_root"]]
+                require_disjoint(
+                    left_path,
+                    left_label,
+                    right_path,
+                    right_label,
+                    left_id,
+                    right_id,
+                )
+    bin_roots = [
+        ("reference binary root", *paths["reference_bin_root"]),
+        ("candidate binary root", *paths["candidate_bin_root"]),
+    ]
     all_roots = [*protected, *bin_roots]
-    for index, (left, left_id) in enumerate(all_roots):
-        for right, right_id in all_roots[index + 1 :]:
-            if left in bin_roots or right in bin_roots:
-                require_disjoint(left[0], "binary root", right[0], "protected root", left_id, right_id)
+    for index, (left_label, left_path, left_id) in enumerate(all_roots):
+        for right_label, right_path, right_id in all_roots[index + 1 :]:
+            if left_label.endswith("binary root") or right_label.endswith("binary root"):
+                require_disjoint(
+                    left_path,
+                    left_label,
+                    right_path,
+                    right_label,
+                    left_id,
+                    right_id,
+                )
     for run_path, run_id in run_outputs:
-        for root, root_id in all_roots:
-            require_disjoint(run_path, "run-output root", root[0], "protected root", run_id, root_id)
+        for label, root_path, root_id in all_roots:
+            require_disjoint(run_path, "run-output root", root_path, label, run_id, root_id)
     for index, (left, left_id) in enumerate(run_outputs):
         for right, right_id in run_outputs[index + 1 :]:
             require_disjoint(left, "run-output root", right, "run-output root", left_id, right_id)
@@ -590,7 +618,7 @@ def validate_export_boundaries(root, boundaries):
         require_disjoint(engine_path, "engine root", path, "protected root", None, identity)
     bin_roots = [paths["reference_bin_root"], paths["candidate_bin_root"]]
     for bin_path, bin_identity in bin_roots:
-        require_disjoint(engine_path, "engine root", bin_path[0], "binary root", None, bin_identity)
+        require_disjoint(engine_path, "engine root", bin_path, "binary root", None, bin_identity)
     return export_path, paths, run_outputs
 
 
