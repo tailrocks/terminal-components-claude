@@ -3416,13 +3416,18 @@ mod root_100_nonoverflow_port_owner {
             Rect::new(0, 0, width, height)
         }
 
-        fn rows_area(self) -> Rect {
-            match self {
-                Self::W80H24 => Rect::new(1, 6, 78, 15),
-                Self::W100H30 => Rect::new(1, 6, 98, 21),
-                Self::W120H40 => Rect::new(1, 6, 118, 31),
-                Self::W160H50 => Rect::new(1, 6, 158, 41),
+        fn rows_area(self, scenario: Scenario) -> Rect {
+            let (width, height) = self.size();
+            if is_recent_parity_scenario(scenario) {
+                Rect::new(1, 9, width - 2, height - 12)
+            } else {
+                Rect::new(1, 6, width - 2, height - 9)
             }
+        }
+
+        fn recent_lead_area(self) -> Rect {
+            let (width, _) = self.size();
+            Rect::new(1, 6, width - 2, 3)
         }
     }
 
@@ -3480,6 +3485,12 @@ mod root_100_nonoverflow_port_owner {
         };
         const PARITY_BROWSER_W80_JUNIE_TRUECOLOR: Self = Self {
             scenario: Scenario::ParityBrowser,
+            viewport: OwnerViewport::W80H24,
+            source_theme: OwnerSourceTheme::Junie,
+            color: ColorLevel::TrueColor,
+        };
+        const RECENT_FILES_W80_JUNIE_TRUECOLOR: Self = Self {
+            scenario: Scenario::ParityFiles,
             viewport: OwnerViewport::W80H24,
             source_theme: OwnerSourceTheme::Junie,
             color: ColorLevel::TrueColor,
@@ -3780,9 +3791,9 @@ mod root_100_nonoverflow_port_owner {
 
     const RECENT_PARITY_SCENARIOS: [Scenario; 6] = [
         Scenario::ParityFiles,
-        Scenario::ParityDiskScan,
         Scenario::ParityBrewServices,
         Scenario::ParityUpgradeManagers,
+        Scenario::ParityDiskScan,
         Scenario::ParityPlatforms,
         Scenario::ParityPlatformsLinux,
     ];
@@ -3875,7 +3886,21 @@ mod root_100_nonoverflow_port_owner {
     }
 
     fn recent_parity_owner_cases() -> Vec<OwnerCase> {
-        let cases = concept_owner_cases(&RECENT_PARITY_SCENARIOS);
+        let cases: Vec<_> = RECENT_PARITY_SCENARIOS
+            .into_iter()
+            .flat_map(|scenario| {
+                CONCEPT_VIEWPORTS.into_iter().flat_map(move |viewport| {
+                    CONCEPT_SOURCE_THEMES
+                        .into_iter()
+                        .flat_map(move |source_theme| {
+                            CONCEPT_COLOR_LEVELS.into_iter().map(move |color| {
+                                recent_parity_owner_case(scenario, viewport, source_theme, color)
+                                    .expect("Recent product selectors accept their exact axes")
+                            })
+                        })
+                })
+            })
+            .collect();
         assert_eq!(cases.len(), 192, "exact six-scenario Recent exclusion");
         assert!(
             cases
@@ -3913,8 +3938,35 @@ mod root_100_nonoverflow_port_owner {
             .collect()
     }
 
+    fn is_recent_parity_scenario(scenario: Scenario) -> bool {
+        RECENT_PARITY_SCENARIOS.contains(&scenario)
+    }
+
+    fn recent_parity_owner_case(
+        scenario: Scenario,
+        viewport: OwnerViewport,
+        source_theme: OwnerSourceTheme,
+        color: ColorLevel,
+    ) -> Option<OwnerCase> {
+        if !is_recent_parity_scenario(scenario)
+            || !CONCEPT_VIEWPORTS.contains(&viewport)
+            || !CONCEPT_SOURCE_THEMES.contains(&source_theme)
+            || !CONCEPT_COLOR_LEVELS.contains(&color)
+        {
+            return None;
+        }
+        Some(OwnerCase {
+            scenario,
+            viewport,
+            source_theme,
+            color,
+        })
+    }
+
     fn has_per_arm_action_oracle(case: OwnerCase) -> bool {
-        case.scenario == Scenario::DockerCleanup || is_ordinary_parity_scenario(case.scenario)
+        case.scenario == Scenario::DockerCleanup
+            || is_ordinary_parity_scenario(case.scenario)
+            || is_recent_parity_scenario(case.scenario)
     }
 
     fn ordinary_parity_selected_is_exact(selected: Option<&str>) -> bool {
@@ -3941,6 +3993,22 @@ mod root_100_nonoverflow_port_owner {
         let mut expected_memory_b = memory_a.clone();
         expected_memory_b.hides.push(expected_pin);
         memory_b == &expected_memory_b
+    }
+
+    fn recent_parity_memory_pin_is_exact(
+        memory_a: &crate::domain::ranking::Memory,
+        memory_b: &crate::domain::ranking::Memory,
+        actual_pin: &Pin,
+        actual_cwd: &str,
+        actual_command: &str,
+    ) -> bool {
+        ordinary_parity_memory_pin_is_exact(
+            memory_a,
+            memory_b,
+            actual_pin,
+            actual_cwd,
+            actual_command,
+        )
     }
 
     fn ordinary_parity_discoveries_settled(discoveries: &[crate::sim::world::Discovery]) -> bool {
@@ -4002,6 +4070,120 @@ mod root_100_nonoverflow_port_owner {
         } else {
             [17, 4, scope, 9]
         }
+    }
+
+    fn recent_parity_expected_model(
+        include_port: bool,
+    ) -> (Vec<(String, String)>, Vec<VisualToken>) {
+        let mut rows = vec![
+            ("Explore".to_owned(), "flow.disk".to_owned()),
+            ("Explore".to_owned(), "flow.monitor".to_owned()),
+            ("Explore".to_owned(), PORT_ID.to_owned()),
+        ];
+        if !include_port {
+            rows.retain(|(_, id)| id != PORT_ID);
+        }
+        let mut tokens = vec![
+            VisualToken::Header("Explore".to_owned()),
+            VisualToken::Action("flow.disk".to_owned()),
+            VisualToken::Action("flow.monitor".to_owned()),
+        ];
+        if include_port {
+            tokens.push(VisualToken::Action(PORT_ID.to_owned()));
+        }
+        (rows, tokens)
+    }
+
+    fn recent_parity_model_is_exact(
+        case: OwnerCase,
+        rows_a: &[(String, String)],
+        rows_b: &[(String, String)],
+        tokens_a: &[VisualToken],
+        tokens_b: &[VisualToken],
+    ) -> bool {
+        if !is_recent_parity_scenario(case.scenario) {
+            return false;
+        }
+        let (expected_rows_a, expected_tokens_a) = recent_parity_expected_model(true);
+        let (expected_rows_b, expected_tokens_b) = recent_parity_expected_model(false);
+        rows_a == expected_rows_a
+            && rows_b == expected_rows_b
+            && tokens_a == expected_tokens_a
+            && tokens_b == expected_tokens_b
+            && tokens_a.len() == 4
+            && tokens_b.len() == 3
+            && tokens_a
+                .iter()
+                .all(|token| !matches!(token, VisualToken::Gap))
+            && tokens_b
+                .iter()
+                .all(|token| !matches!(token, VisualToken::Gap))
+    }
+
+    fn assert_recent_parity_model(
+        case: OwnerCase,
+        rows_a: &[(String, String)],
+        rows_b: &[(String, String)],
+        tokens_a: &[VisualToken],
+        tokens_b: &[VisualToken],
+    ) {
+        assert!(
+            recent_parity_model_is_exact(case, rows_a, rows_b, tokens_a, tokens_b),
+            "{} exact Recent Explore / disk / monitor / Port model",
+            case.key()
+        );
+    }
+
+    fn recent_parity_expected_columns(case: OwnerCase, include_port: bool) -> [u16; 4] {
+        assert!(is_recent_parity_scenario(case.scenario));
+        let scope = if case.scenario == Scenario::ParityPlatformsLinux {
+            11
+        } else {
+            8
+        };
+        if include_port {
+            [24, 6, scope, 9]
+        } else {
+            [17, 4, scope, 9]
+        }
+    }
+
+    fn recent_parity_columns_are_exact(
+        case: OwnerCase,
+        include_port: bool,
+        actual: [u16; 4],
+    ) -> bool {
+        is_recent_parity_scenario(case.scenario)
+            && actual == recent_parity_expected_columns(case, include_port)
+    }
+
+    fn recent_parity_selected_is_exact(selected: Option<&str>) -> bool {
+        selected == Some("flow.disk")
+    }
+
+    fn recent_parity_host_controls_exact(
+        host: &crate::domain::host::Host,
+        scenario: Scenario,
+    ) -> bool {
+        if !is_recent_parity_scenario(scenario) {
+            return false;
+        }
+        let expected_name = if scenario == Scenario::ParityPlatformsLinux {
+            "devbox"
+        } else {
+            "mbp"
+        };
+        host == &crate::sim::fixtures::host_for(scenario)
+            && host.name == expected_name
+            && host.kind == crate::domain::host::HostKind::Local
+            && host.env == crate::domain::host::Environment::Local
+    }
+
+    fn recent_parity_world_controls_exact(world: &World, case: OwnerCase) -> bool {
+        recent_parity_host_controls_exact(&world.host, case.scenario)
+            && world.cwd == crate::sim::fixtures::cwd_for(case.scenario)
+            && world.effect_revision == 0
+            && ordinary_parity_discoveries_settled(&world.discovery)
     }
 
     fn assert_ordinary_parity_model(
@@ -4208,6 +4390,12 @@ mod root_100_nonoverflow_port_owner {
     }
 
     #[derive(Clone, Copy)]
+    struct NativeRecentLead<'a> {
+        area: Rect,
+        paint: &'a Buffer,
+    }
+
+    #[derive(Clone, Copy)]
     struct FrameContract<'a> {
         frame_area: Rect,
         rows_area: Rect,
@@ -4217,6 +4405,7 @@ mod root_100_nonoverflow_port_owner {
         discovery_note_paint: Option<&'a Buffer>,
         tokens_a: &'a [VisualToken],
         tokens_b: &'a [VisualToken],
+        recent_lead: Option<NativeRecentLead<'a>>,
         per_arm_action_oracle: bool,
         action_paints_a: &'a [(String, Buffer)],
         action_paints_b: &'a [(String, Buffer)],
@@ -4372,11 +4561,19 @@ mod root_100_nonoverflow_port_owner {
             FRAME_MS as i64,
             "custom-renderer eligibility uses the held frame"
         );
-        assert_ne!(
-            world.scenario.boot_title(),
-            crate::screens::finder::RECENT,
-            "generic Home has no recent-items lead"
-        );
+        if is_recent_parity_scenario(case.scenario) {
+            assert_eq!(
+                world.scenario.boot_title(),
+                crate::screens::finder::RECENT,
+                "selected Recent owner has the Recent lead"
+            );
+        } else {
+            assert_ne!(
+                world.scenario.boot_title(),
+                crate::screens::finder::RECENT,
+                "non-Recent owner has no recent-items lead"
+            );
+        }
         assert!(
             !crate::sim::catalogue::docker_cleanup_tag_frame(world),
             "generic Home has no Docker cleanup query patch"
@@ -4604,7 +4801,12 @@ mod root_100_nonoverflow_port_owner {
             case.scenario,
             "{label} scenario"
         );
-        if is_ordinary_parity_scenario(case.scenario) {
+        if is_recent_parity_scenario(case.scenario) {
+            assert!(
+                recent_parity_world_controls_exact(&harness.app().world, case),
+                "{label} exact Recent fixture host/environment/cwd and settled state"
+            );
+        } else if is_ordinary_parity_scenario(case.scenario) {
             assert_eq!(
                 harness.app().world.host,
                 crate::sim::fixtures::host_for(case.scenario),
@@ -4699,7 +4901,12 @@ mod root_100_nonoverflow_port_owner {
                 .contains(StateFlags::FOCUSED)
         );
         let selected = harness.app().home.selected(&harness.app().world);
-        if is_ordinary_parity_scenario(case.scenario) {
+        if is_recent_parity_scenario(case.scenario) {
+            assert!(
+                recent_parity_selected_is_exact(selected.as_ref().map(|action| action.id.as_str())),
+                "{label} exact Recent selected action is flow.disk"
+            );
+        } else if is_ordinary_parity_scenario(case.scenario) {
             assert!(
                 ordinary_parity_selected_is_exact(
                     selected.as_ref().map(|action| action.id.as_str())
@@ -4731,7 +4938,7 @@ mod root_100_nonoverflow_port_owner {
         );
         assert_eq!(
             harness.area_of(crate::screens::home::ROWS),
-            Some(case.viewport.rows_area()),
+            Some(case.viewport.rows_area(case.scenario)),
             "{label} exact rows geometry"
         );
         assert!(
@@ -4747,7 +4954,7 @@ mod root_100_nonoverflow_port_owner {
             "{label} no scrollbar thumb"
         );
         assert!(
-            tokens.len() <= usize::from(case.viewport.rows_area().height),
+            tokens.len() <= usize::from(case.viewport.rows_area(case.scenario).height),
             "{label} model does not overflow"
         );
         if case.scenario == Scenario::HardCases {
@@ -4772,7 +4979,7 @@ mod root_100_nonoverflow_port_owner {
             );
         }
 
-        let positions = positioned(tokens, case.viewport.rows_area());
+        let positions = positioned(tokens, case.viewport.rows_area(case.scenario));
         for (_, action_id) in rows {
             let expected_y = action_position(&positions, action_id);
             assert!(
@@ -4785,7 +4992,7 @@ mod root_100_nonoverflow_port_owner {
                     crate::screens::home::ROWS,
                     PartRef::item(Part::ROW, termrock::ItemKey::text(action_id)),
                 ),
-                Some(row_rect(case.viewport.rows_area(), expected_y)),
+                Some(row_rect(case.viewport.rows_area(case.scenario), expected_y)),
                 "{label} zero-offset row geometry for {action_id}"
             );
         }
@@ -4846,6 +5053,86 @@ mod root_100_nonoverflow_port_owner {
                 ))
             })
             .collect()
+    }
+
+    const RECENT_LEAD_TEXT: [&str; 3] = [
+        "Recent here",
+        "nothing used here yet",
+        "Tasks   Git   Files   Disk   Services   System",
+    ];
+
+    fn paint_recent_lead_scratch(area: Rect, theme: Theme, case: OwnerCase) -> Buffer {
+        let (width, height) = case.viewport.size();
+        let mut scene = Scene::new(
+            "recent-lead-native-scratch",
+            theme,
+            case.color,
+            width,
+            height,
+        );
+        scene.draw(|ui, _| {
+            let base = ui.surface_style();
+            ui.fill(area, base);
+            crate::screens::finder::paint_recent_lead(ui, area);
+        });
+        scene.buffer().clone()
+    }
+
+    fn recent_lead_frame_errors(
+        frame: &Buffer,
+        lead: &NativeRecentLead<'_>,
+        label: &str,
+        errors: &mut Vec<String>,
+    ) {
+        let frame_area = *frame.area();
+        let expected_area = Rect::new(1, 6, frame_area.width.saturating_sub(2), 3);
+        if lead.area != expected_area {
+            errors.push(format!(
+                "{label} Recent lead geometry differs from native layout"
+            ));
+            return;
+        }
+        for (dy, text) in RECENT_LEAD_TEXT.into_iter().enumerate() {
+            let y = lead
+                .area
+                .y
+                .saturating_add(u16::try_from(dy).unwrap_or(u16::MAX));
+            let characters: Vec<_> = text.chars().collect();
+            for dx in 0..lead.area.width {
+                let x = lead.area.x.saturating_add(dx);
+                let position = (x, y);
+                let text_offset = usize::from(dx.saturating_sub(2));
+                let expected_symbol = if dx < 2 {
+                    " ".to_owned()
+                } else {
+                    characters
+                        .get(text_offset)
+                        .map(char::to_string)
+                        .unwrap_or_else(|| " ".to_owned())
+                };
+                let Some(actual) = frame.cell(position) else {
+                    errors.push(format!(
+                        "{label} Recent lead Cell at {position:?} is absent"
+                    ));
+                    continue;
+                };
+                if actual.symbol() != expected_symbol {
+                    errors.push(format!(
+                        "{label} Recent lead expected {expected_symbol:?} at {position:?}, found {:?}",
+                        actual.symbol()
+                    ));
+                }
+                match lead.paint.cell(position) {
+                    Some(expected) if actual == expected => {}
+                    Some(expected) => errors.push(format!(
+                        "{label} Recent native lead full Cell differs at {position:?}: actual={actual:?}, expected={expected:?}"
+                    )),
+                    None => errors.push(format!(
+                        "{label} Recent native lead oracle Cell at {position:?} is absent"
+                    )),
+                }
+            }
+        }
     }
 
     fn paint_blank_scratch(row: Rect, theme: Theme, case: OwnerCase) -> Buffer {
@@ -5119,6 +5406,10 @@ mod root_100_nonoverflow_port_owner {
                 "A composite discovery-note oracle",
                 &mut errors,
             );
+        }
+        if let Some(recent_lead) = contract.recent_lead {
+            recent_lead_frame_errors(a, &recent_lead, "A", &mut errors);
+            recent_lead_frame_errors(b, &recent_lead, "B", &mut errors);
         }
 
         let survivors_a: Vec<_> = positions_a
@@ -6352,6 +6643,226 @@ mod root_100_nonoverflow_port_owner {
         );
     }
 
+    struct RecentParityNegativeContext<'a> {
+        a: &'a Buffer,
+        b: &'a Buffer,
+        contract: FrameContract<'a>,
+        case: OwnerCase,
+        world: &'a World,
+        columns: ArmColumnMaxima,
+        runtime_theme: &'a Theme,
+        selected: Option<String>,
+    }
+
+    fn assert_recent_native_column_max_corruptions_rejected(
+        context: &RecentParityNegativeContext<'_>,
+    ) {
+        let (width, height) = context.case.viewport.size();
+        let expected_rows_area = Rect::new(1, 9, width - 2, height - 12);
+        assert_eq!(
+            context.contract.rows_area, expected_rows_area,
+            "Recent native max controls use y9 Rows geometry"
+        );
+        let (_, tokens_b) = recent_parity_expected_model(false);
+        let positions_b = positioned(&tokens_b, expected_rows_area);
+        let survivor_y = action_position(&positions_b, "flow.monitor")
+            .expect("Recent B model contains the flow.monitor survivor");
+        assert_eq!(
+            survivor_y,
+            expected_rows_area.y.saturating_add(2),
+            "Recent flow.monitor oracle row follows the y9 Header and disk rows"
+        );
+        let survivor_row = row_rect(expected_rows_area, survivor_y);
+        let action = visible_actions(context.world)
+            .into_iter()
+            .find(|action| action.id == "flow.monitor")
+            .expect("Recent world contains the native flow.monitor survivor");
+
+        for (column, label) in [(0, "title"), (1, "kind")] {
+            assert_ne!(
+                context.columns.a[column], context.columns.b[column],
+                "Recent A/B {label} maxima differ for the corruption control"
+            );
+            let mut wrong_columns = context.columns.b;
+            wrong_columns[column] = context.columns.a[column];
+            let wrong_paint = paint_home_row_scratch(
+                &action,
+                wrong_columns,
+                survivor_row,
+                context.runtime_theme.clone(),
+                context.case,
+            );
+            let mut wrong_action_paints_b = context.contract.action_paints_b.to_vec();
+            replace_action_paint(&mut wrong_action_paints_b, "flow.monitor", wrong_paint);
+            let wrong_contract = FrameContract {
+                action_paints_b: &wrong_action_paints_b,
+                ..context.contract
+            };
+            assert!(
+                frame_contract_errors(context.a, context.b, &wrong_contract)
+                    .iter()
+                    .any(|error| {
+                        error.contains("B action native paint flow.monitor")
+                            && error.contains("full Cell differs")
+                    }),
+                "B Recent native paint with A {label} maximum is rejected by full-Cell oracle"
+            );
+        }
+    }
+
+    fn assert_recent_parity_corruptions_rejected(context: RecentParityNegativeContext<'_>) {
+        let (rows_a, mut tokens_a) = recent_parity_expected_model(true);
+        let (rows_b, tokens_b) = recent_parity_expected_model(false);
+        tokens_a[0] = VisualToken::Header("Suggested here".to_owned());
+        assert!(
+            !recent_parity_model_is_exact(context.case, &rows_a, &rows_b, &tokens_a, &tokens_b,),
+            "wrong Explore header is rejected"
+        );
+
+        let (_, mut gap_tokens_a) = recent_parity_expected_model(true);
+        gap_tokens_a.insert(1, VisualToken::Gap);
+        assert!(
+            !recent_parity_model_is_exact(context.case, &rows_a, &rows_b, &gap_tokens_a, &tokens_b,),
+            "unexpected section Gap is rejected"
+        );
+
+        let (_, mut short_tokens_a) = recent_parity_expected_model(true);
+        short_tokens_a.pop();
+        assert!(
+            !recent_parity_model_is_exact(
+                context.case,
+                &rows_a,
+                &rows_b,
+                &short_tokens_a,
+                &tokens_b,
+            ),
+            "wrong Recent A extent is rejected"
+        );
+        assert!(recent_parity_selected_is_exact(context.selected.as_deref()));
+        assert!(
+            !recent_parity_selected_is_exact(Some("flow.monitor")),
+            "wrong selected action is rejected"
+        );
+
+        let mut wrong_host = context.world.host.clone();
+        wrong_host.name.push_str("-wrong");
+        assert!(
+            !recent_parity_host_controls_exact(&wrong_host, context.case.scenario),
+            "wrong Recent host name is rejected by host-only controls"
+        );
+        let mut wrong_host_kind = context.world.host.clone();
+        wrong_host_kind.kind = crate::domain::host::HostKind::Remote;
+        assert!(
+            !recent_parity_host_controls_exact(&wrong_host_kind, context.case.scenario),
+            "wrong Recent host kind is rejected by host-only controls"
+        );
+        let mut wrong_environment = context.world.host.clone();
+        wrong_environment.env = crate::domain::host::Environment::Staging;
+        assert!(
+            !recent_parity_host_controls_exact(&wrong_environment, context.case.scenario),
+            "wrong Recent environment is rejected by host-only controls"
+        );
+        let mut wrong_columns = context.columns.a;
+        wrong_columns[0] = wrong_columns[0].saturating_sub(1);
+        assert!(
+            !recent_parity_columns_are_exact(context.case, true, wrong_columns),
+            "wrong Recent title maximum is rejected"
+        );
+        assert!(context.contract.per_arm_action_oracle);
+        assert_recent_native_column_max_corruptions_rejected(&context);
+
+        let mut reversed_a = context.contract.action_paints_a.to_vec();
+        reversed_a.reverse();
+        let reversed_contract = FrameContract {
+            action_paints_a: &reversed_a,
+            ..context.contract
+        };
+        assert!(
+            frame_contract_errors(context.a, context.b, &reversed_contract)
+                .iter()
+                .any(|error| error.contains("A action native paint coverage differs from model")),
+            "reordered Recent A native action paints are rejected"
+        );
+
+        let mut omitted_b = context.contract.action_paints_b.to_vec();
+        omitted_b.remove(0);
+        let omitted_contract = FrameContract {
+            action_paints_b: &omitted_b,
+            ..context.contract
+        };
+        assert!(
+            frame_contract_errors(context.a, context.b, &omitted_contract)
+                .iter()
+                .any(|error| error.contains("B action native paint coverage differs from model")),
+            "missing Recent B native action paint is rejected"
+        );
+
+        let lead = context
+            .contract
+            .recent_lead
+            .expect("exact Recent owner has native lead scratch");
+        let mut glyph_a = context.a.clone();
+        if let Some(cell) = glyph_a.cell_mut((lead.area.x + 2, lead.area.y)) {
+            cell.set_symbol("X");
+        }
+        assert!(
+            frame_contract_errors(&glyph_a, context.b, &context.contract)
+                .iter()
+                .any(|error| error.contains("A Recent lead expected")),
+            "A-only Recent native glyph corruption is rejected"
+        );
+
+        let mut style_b = context.b.clone();
+        flip_foreground(&mut style_b, Position::new(lead.area.x + 2, lead.area.y));
+        assert!(
+            frame_contract_errors(context.a, &style_b, &context.contract)
+                .iter()
+                .any(|error| error.contains("B Recent native lead full Cell differs")),
+            "B-only Recent native lead style corruption is rejected"
+        );
+
+        let mut indent = context.a.clone();
+        if let Some(cell) = indent.cell_mut((lead.area.x + 1, lead.area.y)) {
+            cell.set_symbol("X");
+        }
+        assert!(
+            frame_contract_errors(&indent, context.b, &context.contract)
+                .iter()
+                .any(|error| error.contains("A Recent lead expected")),
+            "Recent lead indent corruption is rejected"
+        );
+
+        let trailing_x = lead.area.x
+            + 2
+            + u16::try_from(RECENT_LEAD_TEXT[0].len())
+                .expect("literal Recent lead text fits the configured viewport");
+        let mut trailing = context.b.clone();
+        if let Some(cell) = trailing.cell_mut((trailing_x, lead.area.y)) {
+            cell.fg = if cell.fg == Color::Reset {
+                Color::Indexed(1)
+            } else {
+                Color::Reset
+            };
+        }
+        assert!(
+            frame_contract_errors(context.a, &trailing, &context.contract)
+                .iter()
+                .any(|error| error.contains("B Recent native lead full Cell differs")),
+            "Recent lead trailing blank full Cell corruption is rejected"
+        );
+
+        let mut outside = context.a.clone();
+        if let Some(cell) = outside.cell_mut((0, 0)) {
+            cell.set_symbol("X");
+        }
+        assert!(
+            frame_contract_errors(&outside, context.b, &context.contract)
+                .iter()
+                .any(|error| error.contains("full Cell differs outside Home rows at (0,0)")),
+            "Recent lead owner preserves full-cell equality outside Rows"
+        );
+    }
+
     fn run_owner_case(case: OwnerCase, check_negative_controls: bool, replay: OwnerReplay) {
         assert_eq!(
             replay == OwnerReplay::JunieAnsi16Faint,
@@ -6401,7 +6912,19 @@ mod root_100_nonoverflow_port_owner {
         world_b.memory.hides.push(port_pin.clone());
         assert_eq!(world_a.memory, memory_a, "A Memory unchanged");
         assert_eq!(world_b.memory, memory_b, "B adds only actual cwd-local Pin");
-        if is_ordinary_parity_scenario(case.scenario) {
+        if is_recent_parity_scenario(case.scenario) {
+            assert!(
+                recent_parity_memory_pin_is_exact(
+                    &memory_a,
+                    &memory_b,
+                    &port_pin,
+                    raw_cwd.as_str(),
+                    &port_action.command,
+                ),
+                "{} exact Recent default Memory plus actual cwd-local raw Port Pin",
+                case.key()
+            );
+        } else if is_ordinary_parity_scenario(case.scenario) {
             assert!(
                 ordinary_parity_memory_pin_is_exact(
                     &memory_a,
@@ -6452,6 +6975,15 @@ mod root_100_nonoverflow_port_owner {
                 columns_b[1..],
                 "other ActionColumns maxima remain equal"
             );
+        } else if is_recent_parity_scenario(case.scenario) {
+            assert!(
+                recent_parity_columns_are_exact(case, true, columns_a,),
+                "Recent A ActionColumns maxima"
+            );
+            assert!(
+                recent_parity_columns_are_exact(case, false, columns_b,),
+                "Recent B ActionColumns maxima after actual Pin"
+            );
         } else if is_ordinary_parity_scenario(case.scenario) {
             assert_eq!(
                 columns_a,
@@ -6472,10 +7004,23 @@ mod root_100_nonoverflow_port_owner {
 
         let tokens_a = visual_tokens(&rows_a);
         let tokens_b = visual_tokens(&rows_b);
-        if is_ordinary_parity_scenario(case.scenario) {
+        if is_recent_parity_scenario(case.scenario) {
+            assert_recent_parity_model(case, &rows_a, &rows_b, &tokens_a, &tokens_b);
+            assert_eq!(
+                case.viewport.rows_area(case.scenario),
+                Rect::new(
+                    1,
+                    9,
+                    case.viewport.size().0 - 2,
+                    case.viewport.size().1 - 12
+                ),
+                "{} exact Recent Rows geometry",
+                case.key()
+            );
+        } else if is_ordinary_parity_scenario(case.scenario) {
             assert_ordinary_parity_model(case, &rows_a, &rows_b, &tokens_a, &tokens_b);
             assert_eq!(
-                case.viewport.rows_area(),
+                case.viewport.rows_area(case.scenario),
                 Rect::new(1, 6, case.viewport.size().0 - 2, case.viewport.size().1 - 9,),
                 "{} exact ordinary parity Rows geometry",
                 case.key()
@@ -6504,7 +7049,7 @@ mod root_100_nonoverflow_port_owner {
                 "HardCases B complete token model extent"
             );
         }
-        let rows_area = case.viewport.rows_area();
+        let rows_area = case.viewport.rows_area(case.scenario);
         assert!(
             tokens_a.len() <= usize::from(rows_area.height),
             "A model does not overflow"
@@ -6534,7 +7079,16 @@ mod root_100_nonoverflow_port_owner {
                 .expect("common blank suffix starts within rows area"),
         );
         let common_blank_suffix = suffix_rect(rows_area, common_blank_y);
-        if is_ordinary_parity_scenario(case.scenario) {
+        if is_recent_parity_scenario(case.scenario) {
+            assert_eq!(port_y, 12, "{} exact native Port row", case.key());
+            assert_eq!(blank_y, 12, "{} exact B blank suffix start", case.key());
+            assert_eq!(
+                common_blank_y,
+                13,
+                "{} exact common blank suffix start",
+                case.key()
+            );
+        } else if is_ordinary_parity_scenario(case.scenario) {
             assert_eq!(port_y, 9, "{} exact native Port row", case.key());
             assert_eq!(blank_y, 9, "{} exact B blank suffix start", case.key());
             assert_eq!(
@@ -6592,7 +7146,10 @@ mod root_100_nonoverflow_port_owner {
                 selected_a, selected_b,
                 "non-Root A/B preserve fixture-derived selected action identity"
             );
-            if is_ordinary_parity_scenario(case.scenario) {
+            if is_recent_parity_scenario(case.scenario) {
+                assert!(recent_parity_selected_is_exact(selected_a.as_deref()));
+                assert!(recent_parity_selected_is_exact(selected_b.as_deref()));
+            } else if is_ordinary_parity_scenario(case.scenario) {
                 assert!(ordinary_parity_selected_is_exact(selected_a.as_deref()));
                 assert!(ordinary_parity_selected_is_exact(selected_b.as_deref()));
             }
@@ -6663,6 +7220,17 @@ mod root_100_nonoverflow_port_owner {
             runtime_theme.clone(),
             case,
         );
+        let recent_lead_paint = is_recent_parity_scenario(case.scenario).then(|| {
+            paint_recent_lead_scratch(
+                case.viewport.recent_lead_area(),
+                runtime_theme.clone(),
+                case,
+            )
+        });
+        let recent_lead = recent_lead_paint.as_ref().map(|paint| NativeRecentLead {
+            area: case.viewport.recent_lead_area(),
+            paint,
+        });
         let action_paints_a = if has_per_arm_action_oracle(case) {
             paint_action_rows_scratch(
                 &harness_a.app().world,
@@ -6710,6 +7278,7 @@ mod root_100_nonoverflow_port_owner {
             discovery_note_paint: discovery_note_paint.as_ref(),
             tokens_a: &tokens_a,
             tokens_b: &tokens_b,
+            recent_lead,
             per_arm_action_oracle: has_per_arm_action_oracle(case),
             action_paints_a: &action_paints_a,
             action_paints_b: &action_paints_b,
@@ -6763,6 +7332,25 @@ mod root_100_nonoverflow_port_owner {
                         harness_b.runtime().theme(),
                         case,
                     );
+                }
+                OwnerCase::RECENT_FILES_W80_JUNIE_TRUECOLOR => {
+                    assert_recent_parity_corruptions_rejected(RecentParityNegativeContext {
+                        a: harness_a.buffer(),
+                        b: harness_b.buffer(),
+                        contract,
+                        case,
+                        world: &harness_a.app().world,
+                        columns: ArmColumnMaxima {
+                            a: columns_a,
+                            b: columns_b,
+                        },
+                        runtime_theme: harness_b.runtime().theme(),
+                        selected: harness_a
+                            .app()
+                            .home
+                            .selected(&harness_a.app().world)
+                            .map(|action| action.id.to_owned()),
+                    });
                 }
                 OwnerCase::PARITY_BROWSER_W80_JUNIE_TRUECOLOR => {
                     let action = visible_actions(&harness_b.app().world)
@@ -6947,6 +7535,13 @@ mod root_100_nonoverflow_port_owner {
                     replay_theme_a.clone(),
                     case,
                 );
+                let replay_recent_lead = is_recent_parity_scenario(case.scenario).then(|| {
+                    paint_recent_lead_scratch(
+                        case.viewport.recent_lead_area(),
+                        replay_theme_a.clone(),
+                        case,
+                    )
+                });
                 let replay_action_paints_a = if has_per_arm_action_oracle(case) {
                     paint_action_rows_scratch(
                         &harness_a.app().world,
@@ -6982,6 +7577,10 @@ mod root_100_nonoverflow_port_owner {
                     discovery_note_paint: None,
                     tokens_a: &tokens_a,
                     tokens_b: &tokens_b,
+                    recent_lead: replay_recent_lead.as_ref().map(|paint| NativeRecentLead {
+                        area: case.viewport.recent_lead_area(),
+                        paint,
+                    }),
                     per_arm_action_oracle: has_per_arm_action_oracle(case),
                     action_paints_a: &replay_action_paints_a,
                     action_paints_b: &replay_action_paints_b,
@@ -7080,6 +7679,154 @@ mod root_100_nonoverflow_port_owner {
             ordinary_keys.is_disjoint(other_keys),
             "ordinary parity owner keys are disjoint from {label}"
         );
+    }
+
+    #[test]
+    fn recent_parity192_owner_membership_is_exact() {
+        assert_eq!(
+            RECENT_PARITY_SCENARIOS,
+            [
+                Scenario::ParityFiles,
+                Scenario::ParityBrewServices,
+                Scenario::ParityUpgradeManagers,
+                Scenario::ParityDiskScan,
+                Scenario::ParityPlatforms,
+                Scenario::ParityPlatformsLinux,
+            ]
+        );
+        let cases = recent_parity_owner_cases();
+        assert_eq!(cases.len(), 192, "exact Recent owner product");
+        let linux_case = OwnerCase {
+            scenario: Scenario::ParityPlatformsLinux,
+            viewport: OwnerViewport::W100H30,
+            source_theme: OwnerSourceTheme::Junie,
+            color: ColorLevel::TrueColor,
+        };
+        assert_eq!(
+            recent_parity_expected_columns(linux_case, true),
+            [24, 6, 11, 9],
+            "Recent Platforms Linux keeps the local scope-column maximum"
+        );
+        assert_eq!(
+            recent_parity_expected_columns(linux_case, false),
+            [17, 4, 11, 9],
+            "Recent Platforms Linux B keeps the local scope-column maximum"
+        );
+        let expected_keys = owner_case_keys(&cases);
+        assert_eq!(expected_keys.len(), 192, "Recent owner keys are unique");
+        for scenario in RECENT_PARITY_SCENARIOS {
+            assert_eq!(
+                cases
+                    .iter()
+                    .filter(|case| case.scenario == scenario)
+                    .count(),
+                32,
+                "exact 32-case product for {}",
+                scenario.name()
+            );
+        }
+
+        let viewports = [
+            OwnerViewport::W80H24,
+            OwnerViewport::W100H30,
+            OwnerViewport::W120H40,
+            OwnerViewport::W160H50,
+        ];
+        let mut scanned = 0;
+        let mut selected = Vec::new();
+        for scenario in Scenario::ALL.iter().copied() {
+            for viewport in viewports {
+                for source_theme in CONCEPT_SOURCE_THEMES {
+                    for color in CONCEPT_COLOR_LEVELS {
+                        scanned += 1;
+                        let owner =
+                            recent_parity_owner_case(scenario, viewport, source_theme, color);
+                        assert_eq!(
+                            owner.is_some(),
+                            RECENT_PARITY_SCENARIOS.contains(&scenario),
+                            "Recent selector boundary: {} {} {} {:?}",
+                            scenario.name(),
+                            viewport.size().0,
+                            source_theme.label(),
+                            color
+                        );
+                        if let Some(owner) = owner {
+                            selected.push(owner);
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(scanned, 1_120, "complete independent scenario/axis scan");
+        assert_eq!(owner_case_keys(&selected), expected_keys);
+
+        let ordinary = ordinary_parity_owner_cases();
+        let activities_ordinary = remaining_activities_cases();
+        let activities_faint = excluded_activities_faint_cases();
+        assert_eq!(activities_ordinary.len(), 21);
+        assert_eq!(activities_faint.len(), 3);
+        let mut activities = activities_ordinary.clone();
+        activities.extend(activities_faint);
+        assert_eq!(activities.len(), 24);
+        assert_eq!(
+            owner_case_keys(&activities),
+            owner_case_keys(&all_owner_cases(Scenario::ActivitiesMulti))
+        );
+        for (label, prior) in [
+            ("Root24", all_owner_cases(Scenario::MonorepoRoot)),
+            ("Child24", all_owner_cases(Scenario::MonorepoChild)),
+            ("Activities24", activities),
+            ("Docker32", docker_cleanup_owner_cases()),
+            ("concept64", note_free_concept_cases()),
+            ("HardCases32", excluded_hard_cases_discovery_note_cases()),
+            ("ordinary512", ordinary),
+        ] {
+            assert!(
+                expected_keys.is_disjoint(&owner_case_keys(&prior)),
+                "Recent keys are disjoint from {label}"
+            );
+        }
+        let tracked: std::collections::BTreeSet<String> = PRIOR_TRACKED_PORT_KEYS
+            .into_iter()
+            .map(str::to_owned)
+            .collect();
+        let older: std::collections::BTreeSet<String> = PRIOR_EXISTING_OWNER_KEYS
+            .into_iter()
+            .map(str::to_owned)
+            .collect();
+        assert!(
+            expected_keys.is_disjoint(&tracked),
+            "Recent keys are disjoint from tracked-port11"
+        );
+        assert!(
+            expected_keys.is_disjoint(&older),
+            "Recent keys are disjoint from existing-owner6"
+        );
+    }
+
+    #[test]
+    fn parity_files32_nonoverflow_port_hide_smoke() {
+        let cases: Vec<_> = recent_parity_owner_cases()
+            .into_iter()
+            .filter(|case| case.scenario == Scenario::ParityFiles)
+            .collect();
+        assert_eq!(cases.len(), 32, "exact Recent Files smoke product");
+        for case in cases {
+            run_owner_case(
+                case,
+                case == OwnerCase::RECENT_FILES_W80_JUNIE_TRUECOLOR,
+                OwnerReplay::Ordinary,
+            );
+        }
+    }
+
+    #[test]
+    fn recent_parity192_nonoverflow_port_hide_preserves_held_frames() {
+        let cases = recent_parity_owner_cases();
+        assert_eq!(cases.len(), 192, "exact Recent owner product");
+        for case in cases {
+            run_owner_case(case, false, OwnerReplay::Ordinary);
+        }
     }
 
     #[test]
