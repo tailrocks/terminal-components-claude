@@ -4669,3 +4669,15 @@ termrock-runtime::ui::cx::Cx::refresh_hover_tooltip | Public native hover-Toolti
 termrock-theme::glyph::GlyphSet::more_titles | Public Toolbar More-title glyph getter; item-bound Showcase proof remains pending. | review
 termrock-theme::glyph::GlyphSet::set_more_titles | Public Toolbar More-title glyph setter; item-bound Showcase proof remains pending. | review
 termrock::composition::adapters::toolbar | Public Toolbar composition adapter; item-bound Showcase proof remains pending. | review
+termrock-runtime::tooltip::Tooltips | Public application-wide hover-tooltip policy type; Showcase tooltip-policy proof remains pending. | review
+termrock-runtime::tooltip::Tooltips::delay_ms | Public inherited tooltip delay control; Showcase tooltip-policy proof remains pending. | review
+termrock-runtime::tooltip::Tooltips::enabled | Public inherited tooltip enable control; Showcase tooltip-policy proof remains pending. | review
+termrock-runtime::tooltip::Tooltips::max_width | Public inherited tooltip width control; Showcase tooltip-policy proof remains pending. | review
+termrock-runtime::ui::Ui::tooltips | Public draw-context tooltip-policy getter; Showcase tooltip-policy proof remains pending. | review
+termrock-runtime::ui::cx::Cx::tooltips | Public update-context tooltip-policy getter; Showcase tooltip-policy proof remains pending. | review
+termrock::blocks::Toolbar::more_danger_hover | Public More pointer-danger builder; Showcase More-look proof remains pending. | review
+termrock::blocks::Toolbar::more_look | Public More appearance builder; Showcase More-look proof remains pending. | review
+termrock::blocks::Toolbar::more_style_selector | Public More appearance selector; Showcase More-look proof remains pending. | review
+termrock::blocks::ToolbarMoreLook | Public More appearance choice type; Showcase More-look proof remains pending. | review
+termrock::blocks::ToolbarMoreLook::Close | Public Close-style More appearance choice; Showcase More-look proof remains pending. | review
+termrock::blocks::ToolbarMoreLook::Title | Public Title-style More appearance choice; Showcase More-look proof remains pending. | review

@@ -780,7 +780,7 @@ impl Toolbar {
     /// Override the ambient hover-tip policy for this Toolbar.
     ///
     /// An explicit value replaces the application policy, including
-    /// [\`ToolbarTooltipPolicy::DEFAULT\`] and [\`ToolbarTooltipPolicy::OFF\`].
+    /// [`ToolbarTooltipPolicy::DEFAULT`] and [`ToolbarTooltipPolicy::OFF`].
     /// A newly created Toolbar inherits the policy from its runtime context.
     #[must_use]
     pub const fn tooltip_policy(mut self, policy: ToolbarTooltipPolicy) -> Self {
@@ -793,7 +793,7 @@ impl Toolbar {
         &self.more_tip
     }
 
-    /// Configured per-Toolbar override, or [\`ToolbarTooltipPolicy::DEFAULT\`]
+    /// Configured per-Toolbar override, or [`ToolbarTooltipPolicy::DEFAULT`]
     /// when this Toolbar inherits its runtime context's policy.
     ///
     /// The effective inherited policy is context-dependent. Use this getter
@@ -2045,70 +2045,9 @@ impl RowSource for VisibleStops<'_> {
 
 #[cfg(test)]
 mod tests {
-    use ratatui_core::buffer::Buffer;
-    use ratatui_core::layout::{Position, Rect};
-    use termrock_core::event::{Input, KeyModifiers, Mouse, MouseKind};
-    use termrock_core::id::{Id, ItemKey};
-    use termrock_core::response::Response;
-    use termrock_runtime::{App, Cx, LayerOpening, Runtime, Tooltips, Ui};
-    use termrock_theme::Theme;
+    use super::{ToolbarAction, ToolbarActionEvent, ToolbarActions};
+    use termrock_core::id::ItemKey;
 
-    use super::{
-        ToolItem, Toolbar, ToolbarAction, ToolbarActionEvent, ToolbarActions, ToolbarState,
-    };
-
-    const TOOLBAR: Id = Id::root("toolbar.tooltip.policy.runtime-test");
-    const TOOLTIP: Id = TOOLBAR.sub("hover-tooltip");
-    const SCREEN: Rect = Rect::new(0, 0, 32, 8);
-
-    struct PolicyHost {
-        toolbar: Toolbar,
-        state: ToolbarState,
-        tooltips: Tooltips,
-        stale_probe: Option<LayerOpening>,
-        stale_close: Option<bool>,
-    }
-
-    impl App for PolicyHost {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let response = self.toolbar.update(cx, &mut self.state).erase();
-            if let Some(opening) = self.stale_probe.take() {
-                self.stale_close = Some(cx.close_hover_tooltip(opening));
-            }
-            response
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            self.toolbar.draw(ui, Rect::new(3, 1, 24, 1), &self.state);
-        }
-
-        fn tooltips(&self) -> Tooltips {
-            self.tooltips
-        }
-    }
-
-    fn present(runtime: &mut Runtime<PolicyHost>, buffer: &mut Buffer) {
-        for _ in 0..32 {
-            if runtime.needs_settle() {
-                let _ = runtime.settle();
-            }
-            if runtime.needs_present() {
-                runtime.draw_buffer(SCREEN, buffer).commit_presented();
-            }
-            if !runtime.needs_settle() && !runtime.needs_present() {
-                return;
-            }
-        }
-        panic!("toolbar tooltip policy fixture did not settle");
-    }
-
-    fn tick(runtime: &mut Runtime<PolicyHost>, buffer: &mut Buffer) {
-        present(runtime, buffer);
-        let _ = runtime
-            .handle(Input::Tick)
-            .expect("presented runtime accepts tick");
-        present(runtime, buffer);
-    }
     #[test]
     fn repeated_toggle_intents_propose_values_from_one_controlled_seed() {
         let key = ItemKey::text("wrap");
@@ -2181,59 +2120,125 @@ mod tests {
         );
     }
 
-    #[test]
-    fn ambient_policy_replacement_retires_the_old_managed_opening_token() {
-        let host = PolicyHost {
-            toolbar: Toolbar::new(
-                TOOLBAR,
-                vec![ToolItem::new("Run").tip("A long explanation")],
-            ),
-            state: ToolbarState::default(),
-            tooltips: Tooltips::DEFAULT.delay_ms(0).max_width(20),
-            stale_probe: None,
-            stale_close: None,
-        };
-        let mut runtime = Runtime::new(host, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        present(&mut runtime, &mut buffer);
+    #[cfg(feature = "testing")]
+    mod runtime {
+        use ratatui_core::buffer::Buffer;
+        use ratatui_core::layout::{Position, Rect};
+        use termrock_core::event::{Input, KeyModifiers, Mouse, MouseKind};
+        use termrock_core::id::Id;
+        use termrock_core::response::Response;
+        use termrock_runtime::{App, Cx, LayerOpening, Runtime, Tooltips, Ui};
+        use termrock_theme::Theme;
 
-        let _ = runtime
-            .handle(Input::Mouse(Mouse {
-                kind: MouseKind::Move,
-                pos: Position::new(4, 1),
-                mods: KeyModifiers::NONE,
-            }))
-            .expect("presented runtime accepts pointer movement");
-        present(&mut runtime, &mut buffer);
-        present(&mut runtime, &mut buffer);
-        assert!(runtime.is_open(TOOLTIP));
+        use super::super::{ToolItem, Toolbar, ToolbarState};
 
-        let old = runtime
-            .app()
-            .state
-            .tooltip
-            .opening()
-            .expect("first tooltip opening has an exact token");
-        runtime.app_mut().tooltips = Tooltips::DEFAULT.delay_ms(0).max_width(8);
-        tick(&mut runtime, &mut buffer);
+        const TOOLBAR: Id = Id::root("toolbar.tooltip.policy.runtime-test");
+        const TOOLTIP: Id = TOOLBAR.sub("hover-tooltip");
+        const SCREEN: Rect = Rect::new(0, 0, 32, 8);
 
-        let current = runtime
-            .app()
-            .state
-            .tooltip
-            .opening()
-            .expect("policy reconciliation keeps an exact active token");
-        assert_ne!(old, current);
-        assert!(runtime.is_open(TOOLTIP));
+        struct PolicyHost {
+            toolbar: Toolbar,
+            state: ToolbarState,
+            tooltips: Tooltips,
+            stale_probe: Option<LayerOpening>,
+            stale_close: Option<bool>,
+        }
 
-        runtime.app_mut().stale_probe = Some(old);
-        tick(&mut runtime, &mut buffer);
-        assert_eq!(runtime.app().stale_close, Some(false));
-        assert_eq!(
-            runtime.app().state.tooltip.opening(),
-            Some(current),
-            "a stale owner token cannot close the replacement"
-        );
+        impl App for PolicyHost {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let response = self.toolbar.update(cx, &mut self.state).erase();
+                if let Some(opening) = self.stale_probe.take() {
+                    self.stale_close = Some(cx.close_hover_tooltip(opening));
+                }
+                response
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                self.toolbar.draw(ui, Rect::new(3, 1, 24, 1), &self.state);
+            }
+
+            fn tooltips(&self) -> Tooltips {
+                self.tooltips
+            }
+        }
+
+        fn present(runtime: &mut Runtime<PolicyHost>, buffer: &mut Buffer) {
+            for _ in 0..32 {
+                if runtime.needs_settle() {
+                    let _ = runtime.settle();
+                }
+                if runtime.needs_present() {
+                    runtime.draw_buffer(SCREEN, buffer).commit_presented();
+                }
+                if !runtime.needs_settle() && !runtime.needs_present() {
+                    return;
+                }
+            }
+            panic!("toolbar tooltip policy fixture did not settle");
+        }
+
+        fn tick(runtime: &mut Runtime<PolicyHost>, buffer: &mut Buffer) {
+            present(runtime, buffer);
+            let _ = runtime
+                .handle(Input::Tick)
+                .expect("presented runtime accepts tick");
+            present(runtime, buffer);
+        }
+
+        #[test]
+        fn ambient_policy_replacement_retires_the_old_managed_opening_token() {
+            let host = PolicyHost {
+                toolbar: Toolbar::new(
+                    TOOLBAR,
+                    vec![ToolItem::new("Run").tip("A long explanation")],
+                ),
+                state: ToolbarState::default(),
+                tooltips: Tooltips::DEFAULT.delay_ms(0).max_width(20),
+                stale_probe: None,
+                stale_close: None,
+            };
+            let mut runtime = Runtime::new(host, Theme::junie());
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(SCREEN);
+            present(&mut runtime, &mut buffer);
+
+            let _ = runtime
+                .handle(Input::Mouse(Mouse {
+                    kind: MouseKind::Move,
+                    pos: Position::new(4, 1),
+                    mods: KeyModifiers::NONE,
+                }))
+                .expect("presented runtime accepts pointer movement");
+            present(&mut runtime, &mut buffer);
+            present(&mut runtime, &mut buffer);
+            assert!(runtime.is_open(TOOLTIP));
+
+            let old = runtime
+                .app()
+                .state
+                .tooltip
+                .opening()
+                .expect("first tooltip opening has an exact token");
+            runtime.app_mut().tooltips = Tooltips::DEFAULT.delay_ms(0).max_width(8);
+            tick(&mut runtime, &mut buffer);
+
+            let current = runtime
+                .app()
+                .state
+                .tooltip
+                .opening()
+                .expect("policy reconciliation keeps an exact active token");
+            assert_ne!(old, current);
+            assert!(runtime.is_open(TOOLTIP));
+
+            runtime.app_mut().stale_probe = Some(old);
+            tick(&mut runtime, &mut buffer);
+            assert_eq!(runtime.app().stale_close, Some(false));
+            assert_eq!(
+                runtime.app().state.tooltip.opening(),
+                Some(current),
+                "a stale owner token cannot close the replacement"
+            );
+        }
     }
 }

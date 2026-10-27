@@ -113,7 +113,7 @@ pub(super) struct TooltipConfig<'a> {
 }
 
 impl TooltipController {
-    #[cfg(test)]
+    #[cfg(all(test, feature = "testing"))]
     pub(super) fn opening(&self) -> Option<LayerOpening> {
         self.active.as_ref().and_then(|active| active.opening)
     }
