@@ -27,8 +27,8 @@ ENGINE_BUNDLE_TREE = "d9957241869fcea938de9baa719de5f04d545453"
 ENGINE_RESULT_TREE = "5b39d021527da44190a94253fca2ace9f415eb91"
 ENGINE_BUNDLE_SHA256 = "246c93b389824a85a212cceb37e584c866b6615bd4f69fece6f241320cd26cca"
 ENGINE_PATCH_SHA256 = "ba409cfb2a7b2481a98068a36ed906a07059222c7c3ec1eccc18c19c6c5fef9e"
-TUISCOTTI_COMMIT = "f40513120727f83c0c9713ae8d04eac70dfc955e"
-SUITE_LOCK_SHA256 = "66ffb4a40092bcf2d6e70f3342bfb3982f7c081c7633f3b042007f0bf5d73e90"
+TUISCOTTI_COMMIT = "692fc227fd5d774535641622488366b9113de900"
+SUITE_LOCK_SHA256 = "bf8cc92db4b0301341bb1487173c0675bfa39c70f4454372f6c1747f8598eaf3"
 ENGINE_PATCH_FILES = (
     "crates/tui-test/src/api.rs",
     "crates/tui-test/src/engine.rs",
@@ -800,11 +800,9 @@ def verify_export_files(root, manifest):
 def read_engine_tree(engine_path):
     head = git_text(engine_path, ["rev-parse", "HEAD"])
     head_tree = git_text(engine_path, ["rev-parse", "HEAD^{tree}"])
-    result_tree = git_text(engine_path, ["write-tree"])
     if head != ENGINE_BASE_COMMIT or head_tree != ENGINE_BASE_TREE:
         fail(f"engine base identity differs: HEAD={head}, tree={head_tree}")
-    if result_tree != ENGINE_RESULT_TREE:
-        fail(f"engine patched index differs: tree={result_tree}")
+    result_tree = ENGINE_RESULT_TREE
     if git_text(engine_path, ["rev-parse", "--show-toplevel"]) != str(engine_path):
         fail("engine Git root differs from its sealed path")
     status = git_call(engine_path, ["status", "--porcelain=v1", "--untracked-files=all"])
@@ -850,6 +848,33 @@ def read_engine_tree(engine_path):
             fail(f"engine tree has a non-regular entry: {relative}")
         entries.append((relative, mode, object_id))
     entries.sort(key=lambda item: item[0])
+    if len({entry[0] for entry in entries}) != len(entries):
+        fail("engine Git tree has duplicate paths")
+    index_listing = git_call(engine_path, ["ls-files", "--stage", "-z"])
+    index_entries = []
+    for record in index_listing.split(b"\0"):
+        if not record:
+            continue
+        try:
+            metadata, raw_path = record.split(b"\t", 1)
+            mode_bytes, object_bytes, stage_bytes = metadata.split(b" ", 2)
+            relative = raw_path.decode("utf-8")
+            mode = mode_bytes.decode("ascii")
+            object_id = object_bytes.decode("ascii")
+            stage = stage_bytes.decode("ascii")
+        except (ValueError, UnicodeDecodeError) as error:
+            fail(f"engine Git index is malformed: {error}")
+        validate_relative(relative, "engine index path")
+        if mode not in ("100644", "100755") or not LOWER_HEX_40.fullmatch(object_id):
+            fail(f"engine index has a non-regular entry: {relative}")
+        if stage != "0":
+            fail(f"engine index has a non-stage-zero entry: {relative}")
+        index_entries.append((relative, mode, object_id))
+    index_entries.sort(key=lambda item: item[0])
+    if len({entry[0] for entry in index_entries}) != len(index_entries):
+        fail("engine Git index has duplicate paths")
+    if index_entries != entries:
+        fail("engine staged index differs from the sealed result tree")
     expected_files = [entry[0] for entry in entries]
     expected_directories = sorted(
         {
@@ -954,6 +979,9 @@ def create_engine(root, bundle_data, patch_data):
             fail("maintained engine base tree differs from the approved base tree")
         git_call(staging, ["checkout", "--quiet", "--detach", ENGINE_BASE_COMMIT])
         git_call(staging, ["apply", "--index", "--binary"], input_bytes=patch_data)
+        materialized_tree = git_text(staging, ["write-tree"])
+        if materialized_tree != ENGINE_RESULT_TREE:
+            fail(f"engine setup produced an unexpected result tree: {materialized_tree}")
         verify_engine(staging, bundle_data, patch_data)
         if os.path.lexists(engine_path):
             fail("engine destination appeared during materialization")

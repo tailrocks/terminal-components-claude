@@ -1,0 +1,6 @@
+nextest-version = "0.9.150"
+
+[profile.default]
+default-filter = "all()"
+fail-fast = false
+retries = 0

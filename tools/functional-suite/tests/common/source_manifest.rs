@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::error::Error;
-use std::ffi::OsString;
-use std::fs::{self, OpenOptions};
-use std::io::Write;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -19,55 +17,6 @@ const REQUIRED_BINARIES: [(&str, &str); 4] = [
 ];
 const HASH_EVIDENCE_NAMES: [&str; 5] =
     ["showcase", "holla", "jackin-preview", "tablepro", "jackin"];
-
-pub fn write(args: Vec<OsString>) -> Result<(), Box<dyn Error>> {
-    let options = parse_args(args)?;
-    let source_dir = canonical_directory(&options.source_dir)?;
-    let build_log = canonical_file(&options.build_log)?;
-    let binary_hashes_file = canonical_file(&options.binary_hashes_file)?;
-    let bin_dir = canonical_directory(&options.bin_dir)?;
-    let manifest_path = bin_dir.join(MANIFEST_FILE);
-    if manifest_path.exists() {
-        return Err(format!(
-            "refusing to replace an existing source manifest: {}",
-            manifest_path.display()
-        )
-        .into());
-    }
-
-    let manifest = json!({
-        "schema": SCHEMA,
-        "source_commit": options.source_commit,
-        "source_tree": options.source_tree,
-        "source_worktree": source_dir,
-        "source_clean": true,
-        "build_log": {
-            "path": build_log,
-            "sha256": sha256_file(&build_log)?,
-        },
-        "binary_sha256_file": {
-            "path": binary_hashes_file,
-            "sha256": sha256_file(&binary_hashes_file)?,
-        },
-        "binaries": staged_binary_entries(&bin_dir, &binary_hashes_file)?,
-    });
-    validate_value(&manifest, &bin_dir)?;
-
-    let bytes = serde_json::to_vec_pretty(&manifest)?;
-    let mut output = OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&manifest_path)?;
-    output.write_all(&bytes)?;
-    output.write_all(b"\n")?;
-    output.flush()?;
-    println!(
-        "created {} sha256={}",
-        manifest_path.display(),
-        sha256_file(&manifest_path)?
-    );
-    Ok(())
-}
 
 pub fn load_verified(bin_dir: &Path) -> Result<Value, Box<dyn Error>> {
     let bin_dir = canonical_directory(bin_dir)?;
@@ -229,46 +178,6 @@ fn validate_value(manifest: &Value, bin_dir: &Path) -> Result<(), Box<dyn Error>
     Ok(())
 }
 
-fn staged_binary_entries(
-    bin_dir: &Path,
-    binary_hashes_file: &Path,
-) -> Result<Vec<Value>, Box<dyn Error>> {
-    let built_hashes = parse_hash_file(binary_hashes_file)?;
-    if built_hashes.len() != HASH_EVIDENCE_NAMES.len()
-        || HASH_EVIDENCE_NAMES
-            .iter()
-            .any(|name| !built_hashes.contains_key(*name))
-    {
-        return Err(
-            format!("binary hash evidence must list exactly {HASH_EVIDENCE_NAMES:?}").into(),
-        );
-    }
-
-    REQUIRED_BINARIES
-        .iter()
-        .map(|(name, build_name)| {
-            let path = bin_dir.join(name);
-            if !path.is_file() {
-                return Err(format!("required staged binary is missing: {}", path.display()).into());
-            }
-            let staged_hash = sha256_file(&path)?;
-            let built_hash = built_hashes
-                .get(*build_name)
-                .ok_or_else(|| format!("build hash evidence is missing {build_name:?}"))?;
-            let staged_evidence_hash = built_hashes
-                .get(*name)
-                .ok_or_else(|| format!("staged hash evidence is missing {name:?}"))?;
-            if &staged_hash != built_hash || &staged_hash != staged_evidence_hash {
-                return Err(format!(
-                    "staged binary {name} does not match the build hash evidence: built={built_hash}, staged_evidence={staged_evidence_hash}, staged={staged_hash}"
-                )
-                .into());
-            }
-            Ok(json!({"name":name,"sha256":staged_hash}))
-        })
-        .collect()
-}
-
 fn verify_evidence_file(manifest: &Value, key: &str) -> Result<(), Box<dyn Error>> {
     require_keys(&manifest[key], &["path", "sha256"], key)?;
     let path = evidence_path(manifest, key)?;
@@ -340,81 +249,6 @@ fn parse_hash_file(path: &Path) -> Result<HashMap<String, String>, Box<dyn Error
         }
     }
     Ok(hashes)
-}
-
-fn parse_args(args: Vec<OsString>) -> Result<WriteOptions, Box<dyn Error>> {
-    let mut values = HashMap::<String, OsString>::new();
-    let mut args = args.into_iter();
-    while let Some(key) = args.next() {
-        let key = key
-            .into_string()
-            .map_err(|_| "source manifest option name must be valid UTF-8")?;
-        if !matches!(
-            key.as_str(),
-            "--bin-dir"
-                | "--source-dir"
-                | "--source-commit"
-                | "--source-tree"
-                | "--build-log"
-                | "--binary-sha256-file"
-        ) {
-            return Err(format!("unknown source manifest option {key:?}").into());
-        }
-        let value = args
-            .next()
-            .ok_or_else(|| format!("missing value after {key}"))?;
-        if values.insert(key.clone(), value).is_some() {
-            return Err(format!("duplicate source manifest option {key:?}").into());
-        }
-    }
-
-    let bin_dir = take_path(&mut values, "--bin-dir")?;
-    let source_dir = take_path(&mut values, "--source-dir")?;
-    let source_commit = take_string(&mut values, "--source-commit")?;
-    let source_tree = take_string(&mut values, "--source-tree")?;
-    let build_log = take_path(&mut values, "--build-log")?;
-    let binary_hashes_file = take_path(&mut values, "--binary-sha256-file")?;
-    if !values.is_empty() {
-        return Err("unexpected source manifest arguments remain".into());
-    }
-    require_hex(&source_commit, 40, "source commit")?;
-    require_hex(&source_tree, 40, "source tree")?;
-    Ok(WriteOptions {
-        bin_dir,
-        source_dir,
-        source_commit,
-        source_tree,
-        build_log,
-        binary_hashes_file,
-    })
-}
-
-fn take_string(
-    values: &mut HashMap<String, OsString>,
-    key: &str,
-) -> Result<String, Box<dyn Error>> {
-    let value = values
-        .remove(key)
-        .ok_or_else(|| format!("required source manifest option {key} is missing"))?;
-    value
-        .into_string()
-        .map_err(|_| format!("source manifest value for {key} must be valid UTF-8").into())
-}
-
-fn take_path(values: &mut HashMap<String, OsString>, key: &str) -> Result<PathBuf, Box<dyn Error>> {
-    values
-        .remove(key)
-        .map(PathBuf::from)
-        .ok_or_else(|| format!("required source manifest option {key} is missing").into())
-}
-
-struct WriteOptions {
-    bin_dir: PathBuf,
-    source_dir: PathBuf,
-    source_commit: String,
-    source_tree: String,
-    build_log: PathBuf,
-    binary_hashes_file: PathBuf,
 }
 
 fn require_keys(value: &Value, keys: &[&str], name: &str) -> Result<(), Box<dyn Error>> {

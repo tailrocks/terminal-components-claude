@@ -2,6 +2,17 @@
 
 lockfile_version = 3
 
+[[tools."aqua:nextest-rs/nextest/cargo-nextest"]]
+version = "0.9.150"
+backend = "aqua:nextest-rs/nextest/cargo-nextest"
+specifiers = ["0.9.150"]
+
+[tools."aqua:nextest-rs/nextest/cargo-nextest"."platforms.macos-arm64"]
+checksum = "sha256:82a759b4d218d38359424196ab244c470e8f7c7d149c814fbbeef4d67c3c301a"
+checksum_source = "mise-versions"
+url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.150/cargo-nextest-0.9.150-universal-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/nextest-rs/nextest/releases/assets/679078149"
+
 [[tools.mr-boxington]]
 version = "1.28.0"
 backend = "packslip:github.com/jdx/mr-boxington"
