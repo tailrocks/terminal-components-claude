@@ -12,10 +12,17 @@ pub struct Section {
 }
 
 pub fn catalogue(w: &World) -> Vec<Action> {
+    catalogue_with_history(w, history_enabled())
+}
+
+fn catalogue_with_history(w: &World, history: bool) -> Vec<Action> {
     if let Some(view) = parity_discovery(w) {
         return view.actions;
     }
     let mut out = vec![];
+    if w.scenario == Scenario::FirstUse {
+        first_use_actions(w, history, &mut out);
+    }
     mise_actions(w, &mut out);
     git_actions(w, &mut out);
     docker_actions(w, &mut out);
@@ -31,6 +38,10 @@ pub fn catalogue(w: &World) -> Vec<Action> {
 }
 
 pub fn sections(w: &World) -> Vec<Section> {
+    sections_with_history(w, history_enabled())
+}
+
+pub fn sections_with_history(w: &World, history: bool) -> Vec<Section> {
     if let Some(view) = parity_discovery(w) {
         let suggested = view
             .actions
@@ -55,8 +66,11 @@ pub fn sections(w: &World) -> Vec<Section> {
             },
         ];
     }
-    let mut all = catalogue(w);
-    rank(w, &mut all);
+    if w.scenario == Scenario::FirstUse {
+        return first_use_sections(w, history);
+    }
+    let mut all = catalogue_with_history(w, history);
+    rank_with_history(w, &mut all, history);
 
     for a in &mut all {
         if let Some(name) = w.memory.alias_for(&a.command) {
@@ -97,11 +111,15 @@ pub fn sections(w: &World) -> Vec<Section> {
     out
 }
 
+pub fn rank(w: &World, actions: &mut [Action]) {
+    rank_with_history(w, actions, history_enabled());
+}
+
 #[expect(
     clippy::arithmetic_side_effects,
-    reason = "Closed scope weights and capped usage bound the total score to 390"
+    reason = "Closed scope weights and capped memory and recommendation scores bound the total"
 )]
-pub fn rank(w: &World, actions: &mut [Action]) {
+pub fn rank_with_history(w: &World, actions: &mut [Action], history: bool) {
     let score = |a: &Action| -> i32 {
         let mut s = a.scope.weight();
 
@@ -112,6 +130,33 @@ pub fn rank(w: &World, actions: &mut [Action]) {
             s += 90;
         }
         s += w.memory.usage_at(&w.cwd, &a.command).min(10) as i32 * 2;
+        if history {
+            let count = w.memory.host_usage_count(&w.host.name, &a.id).min(5);
+            s += count as i32 * 40;
+            let recent = w
+                .memory
+                .host_usage_last_used_ms(&w.host.name, &a.id)
+                .is_some_and(|last| {
+                    let age = w.now_ms().saturating_sub(last);
+                    (0..=7 * 24 * 60 * 60 * 1_000).contains(&age)
+                });
+            if recent {
+                s += 30;
+            }
+        }
+        if w.scenario == Scenario::FirstUse {
+            match a.id.as_str() {
+                "system.monitor"
+                    if w.system.as_ref().is_some_and(|system| {
+                        system.btm_installed && system.pressure_minutes > 0
+                    }) =>
+                {
+                    s += 75;
+                }
+                "scope.system" => s += 45,
+                _ => {}
+            }
+        }
         if urgent(a) {
             s += 30;
         }
@@ -123,6 +168,196 @@ pub fn rank(w: &World, actions: &mut [Action]) {
             .then(a.kind.cmp(&b.kind))
             .then(a.title.cmp(&b.title))
     });
+}
+
+fn first_use_sections(w: &World, history: bool) -> Vec<Section> {
+    let mut all = catalogue_with_history(w, history);
+    rank_with_history(w, &mut all, history);
+    for action in &mut all {
+        if let Some(name) = w.memory.alias_for(&action.command) {
+            action.reason = format!("{} · alias {name}", action.reason);
+        }
+    }
+
+    let recent_ids: Vec<String> = if history {
+        all.iter()
+            .filter(|action| {
+                w.memory.host_usage_count(&w.host.name, &action.id) > 0
+                    && w.memory
+                        .host_usage_last_used_ms(&w.host.name, &action.id)
+                        .is_some_and(|last| {
+                            let age = w.now_ms().saturating_sub(last);
+                            (0..=30 * 24 * 60 * 60 * 1_000).contains(&age)
+                        })
+            })
+            .map(|action| action.id.clone())
+            .collect()
+    } else {
+        Vec::new()
+    };
+    let recent: Vec<Action> = all
+        .iter()
+        .filter(|action| recent_ids.contains(&action.id))
+        .cloned()
+        .collect();
+    let suggested: Vec<Action> = all
+        .iter()
+        .filter(|action| !recent_ids.contains(&action.id))
+        .take(if recent.is_empty() { 4 } else { 3 })
+        .cloned()
+        .collect();
+    let suggested_ids: Vec<String> = suggested.iter().map(|action| action.id.clone()).collect();
+    let explore: Vec<Action> = all
+        .into_iter()
+        .filter(|action| !recent_ids.contains(&action.id) && !suggested_ids.contains(&action.id))
+        .collect();
+
+    let mut sections = Vec::new();
+    if !recent.is_empty() {
+        sections.push(Section {
+            name: "Recent on this host",
+            actions: recent,
+        });
+    }
+    if !suggested.is_empty() {
+        sections.push(Section {
+            name: "Suggested here",
+            actions: suggested,
+        });
+    }
+    if !explore.is_empty() {
+        sections.push(Section {
+            name: "Explore",
+            actions: explore,
+        });
+    }
+    sections
+}
+
+fn first_use_actions(w: &World, history: bool, out: &mut Vec<Action>) {
+    let host = w.host.name.as_str();
+    let cwd = w.cwd.as_str();
+    let Some(system) = &w.system else { return };
+    let usage_count = if history {
+        w.memory.host_usage_count(host, "system.resources")
+    } else {
+        0
+    };
+    let last_used = if history {
+        w.memory.host_usage_last_used_ms(host, "system.resources")
+    } else {
+        None
+    };
+    let mut reason = format!(
+        "CPU {}% for {} min",
+        system.cpu_pct, system.pressure_minutes
+    );
+    if usage_count > 0 {
+        reason.push_str(&format!(" · used {} on this host", times(usage_count)));
+        if let Some(last_used) = last_used {
+            let age_ms = w.now_ms().saturating_sub(last_used);
+            if age_ms >= 0 {
+                let days = age_ms / (24 * 60 * 60 * 1_000);
+                let last_used = if days == 0 {
+                    "today".to_owned()
+                } else if days == 1 {
+                    "1 day ago".to_owned()
+                } else {
+                    format!("{days} days ago")
+                };
+                reason.push_str(&format!(" · last used {last_used}"));
+            }
+        }
+    }
+    let mut resources = Action::new(
+        "system.resources",
+        "Show system resources",
+        ActionKind::System,
+        Scope::Host,
+        &reason,
+        Risk::ReadOnly,
+        host,
+        "holla snapshot system",
+    );
+    resources.scope_label = host.to_owned();
+    resources.workdir = cwd.to_owned();
+    resources.keywords =
+        "system resources cpu memory load pressure what uses cpu what uses memory slow".into();
+    out.push(resources);
+
+    if let Some(disk) = &w.disk {
+        let pct = rounded_disk_percent(disk.used_bytes, disk.total_bytes);
+        let mut action = Action::new(
+            "disk.usage",
+            "Analyze disk usage",
+            ActionKind::Flow,
+            Scope::Here,
+            &format!("/ is {pct}% full"),
+            Risk::ReadOnly,
+            cwd,
+            "holla disk analyze",
+        );
+        action.workdir = cwd.to_owned();
+        action.keywords = "disk usage analyze space full".into();
+        out.push(action);
+    }
+
+    if system.btm_installed {
+        let mut action = Action::new(
+            "system.monitor",
+            "Open btm",
+            ActionKind::Flow,
+            Scope::Host,
+            "sustained pressure · continuous view fits",
+            Risk::ReadOnly,
+            host,
+            "btm",
+        );
+        action.scope_label = host.to_owned();
+        action.workdir = cwd.to_owned();
+        action.long_running = true;
+        action.keywords = "btm bottom monitor top htop processes system monitor".into();
+        out.push(action);
+    }
+
+    let mut scope = Action::new(
+        "scope.system",
+        &format!("System · {host}"),
+        ActionKind::System,
+        Scope::Host,
+        "available on this host",
+        Risk::ReadOnly,
+        host,
+        "",
+    );
+    scope.scope_label = host.to_owned();
+    scope.workdir = cwd.to_owned();
+    scope.keywords = "system host scope".into();
+    out.push(scope);
+
+    let mut processes = Action::new(
+        "system.processes",
+        "Show process tree",
+        ActionKind::System,
+        Scope::Host,
+        &format!("{} noted processes", system.processes.len()),
+        Risk::ReadOnly,
+        host,
+        "holla snapshot processes",
+    );
+    processes.scope_label = host.to_owned();
+    processes.workdir = cwd.to_owned();
+    processes.keywords = "process processes tree ps pid".into();
+    out.push(processes);
+}
+
+fn rounded_disk_percent(used_bytes: u64, total_bytes: u64) -> u32 {
+    if total_bytes == 0 {
+        return 0;
+    }
+    let numerator = u128::from(used_bytes).saturating_mul(100);
+    let denominator = u128::from(total_bytes);
+    u32::try_from(numerator.saturating_add(denominator / 2) / denominator).unwrap_or(u32::MAX)
 }
 
 fn urgent(a: &Action) -> bool {
@@ -614,6 +849,9 @@ fn inventory_note(
 }
 
 fn flow_actions(w: &World, out: &mut Vec<Action>) {
+    if w.scenario == Scenario::FirstUse {
+        return;
+    }
     let mut btm = Action::new(
         "flow.monitor",
         "Monitor this host",
@@ -843,7 +1081,7 @@ pub fn first_use_tag_frame(w: &World) -> bool {
 }
 
 pub fn history_enabled() -> bool {
-    std::env::var_os("HOLLA_NO_HISTORY").is_some_and(|value| value == "0")
+    !std::env::var_os("HOLLA_NO_HISTORY").is_some_and(|value| value == "1")
 }
 
 pub fn monorepo_root_tag_frame(w: &World) -> bool {
