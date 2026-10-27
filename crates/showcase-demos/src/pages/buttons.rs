@@ -9,7 +9,7 @@ use termrock::{
     Status, Tabs, TabsState, Ui, Variant, author::VerticalWindow, layout,
 };
 
-use super::{Page, PageStatus, PageUpdate, frame};
+use super::{Page, PageStatus, PageUpdate, frame_with_body_rows};
 
 const BUTTONS: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons");
 const PLAYGROUND_PANEL: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons.playground");
@@ -25,6 +25,7 @@ const ROW_GAP: Id = termrock::Id::root("showcase_ui::pages::buttons.row_gap");
 const STATE_BUTTONS: Id = termrock::Id::root("showcase_ui::pages::buttons.states.button");
 
 const PAGE_SECTIONS: &[&str] = &["Playground", "Options", "States"];
+const PAGE_BODY_START_ROW: u16 = 5;
 const FOCUS_VISIBILITY_ITEMS: &[&str] = &["Always", "Keyboard only"];
 const ACTION_FOCUS_ITEMS: &[&str] = &["In Tab order", "Pointer only"];
 const ROW_ALIGNMENT_ITEMS: &[&str] = &["Start", "End"];
@@ -206,9 +207,10 @@ fn matrix_reference(flags: StateFlags) -> Option<ReferenceState> {
 }
 
 fn section_tabs_area(area: Rect) -> Rect {
+    let y = area.y.saturating_add(2).min(area.bottom());
     Rect {
-        y: area.y.saturating_add(1),
-        height: area.height.saturating_sub(1).min(1),
+        y,
+        height: area.bottom().saturating_sub(y).min(2),
         ..area
     }
 }
@@ -645,21 +647,23 @@ impl Page for ButtonsPage {
             self.selected_section()
         };
         let mut options_view = None;
-        frame(
+        frame_with_body_rows(
             ui,
             area,
             self.title(),
             "Primary, secondary, subtle, danger, toggle, disabled, busy",
-            |ui, body| match section {
-                1 => options_view = self.draw_options(ui, body),
-                2 => self.draw_states(ui, body),
-                _ => self.draw_playground_section(ui, body, area),
+            PAGE_BODY_START_ROW,
+            |ui, body| {
+                if !tabs_layout.visible_area.is_empty() {
+                    let _ = tabs.draw_layout(ui, &tabs_layout);
+                }
+                match section {
+                    1 => options_view = self.draw_options(ui, body),
+                    2 => self.draw_states(ui, body),
+                    _ => self.draw_playground_section(ui, body, area),
+                }
             },
         );
-
-        if !tabs_layout.visible_area.is_empty() {
-            let _ = tabs.draw_layout(ui, &tabs_layout);
-        }
         self.drawn_layout.set(Some(ButtonsDrawFacts {
             section,
             options_view,

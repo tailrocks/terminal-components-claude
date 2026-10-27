@@ -82,6 +82,17 @@ pub fn frame(
     meta: &'static str,
     body: impl FnOnce(&mut Ui<'_>, Rect),
 ) {
+    frame_with_body_rows(ui, area, title, meta, 2, body);
+}
+
+pub(super) fn frame_with_body_rows(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    title: &'static str,
+    meta: &'static str,
+    body_start_row: u16,
+    body: impl FnOnce(&mut Ui<'_>, Rect),
+) {
     if area.is_empty() {
         return;
     }
@@ -100,9 +111,10 @@ pub fn frame(
         };
         paint_clipped_meta(ui, meta_area, meta, meta_style);
     }
+    let body_y = area.y.saturating_add(body_start_row).min(area.bottom());
     let body_area = Rect {
-        y: area.y.saturating_add(2),
-        height: area.height.saturating_sub(2),
+        y: body_y,
+        height: area.bottom().saturating_sub(body_y),
         ..area
     };
     body(ui, body_area);
