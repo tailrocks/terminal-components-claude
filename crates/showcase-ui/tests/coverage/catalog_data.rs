@@ -415,6 +415,10 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::variant("termrock-controls::split::SplitCmd::Grow"),
     Capability::variant("termrock-controls::split::SplitCmd::Reset"),
     Capability::variant("termrock-controls::split::SplitCmd::Shrink"),
+    // The bounded scanner omits exact `Self` returns without a by-value `self` receiver.
+    // This leaves `SplitFallback::new` and `SplitPane::resolved_for` outside the inventory.
+    Capability::ty("termrock-controls::split::SplitFallback"),
+    Capability::builder("termrock-controls::split::SplitFallback::gap"),
     Capability::ty("termrock-controls::split::SplitPane"),
     Capability::function("termrock-controls::split::SplitPane::axis"),
     Capability::function("termrock-controls::split::SplitPane::clear_drag_state"),
@@ -443,6 +447,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("termrock-controls::split::SplitPane::seam_end"),
     Capability::builder("termrock-controls::split::SplitPane::seam_start"),
     Capability::builder("termrock-controls::split::SplitPane::slot"),
+    Capability::builder("termrock-controls::split::SplitPane::undersized_fallback"),
     Capability::function("termrock-controls::split::SplitPane::update"),
     Capability::ty("termrock-controls::split::SplitPaneState"),
     Capability::function("termrock-controls::split::SplitPaneState::basis_points"),

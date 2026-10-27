@@ -166,7 +166,7 @@ pub use termrock_controls::{
     MasterDetailCmd, MasterDetailLayout, MasterDetailMode, Panel, PanelKind, PanelWindowError,
     Props, PropsAction, PropsCmd, PropsList, PropsRow, PropsState, PropsValue, RadioField,
     RadioGroup, RadioGroupAction, RadioGroupState, RadioNavigation, ResetPolicy, SplitAction,
-    SplitCmd, SplitPane, SplitPaneState, Toggle, TooSmall,
+    SplitCmd, SplitFallback, SplitPane, SplitPaneState, Toggle, TooSmall,
 };
 
 pub use termrock_fields::{

@@ -1,6 +1,6 @@
 use ratatui_core::layout::Rect;
 
-use termrock_controls::{SplitPane, SplitPaneState};
+use termrock_controls::{SplitFallback, SplitPane, SplitPaneState};
 use termrock_core::event::MouseKind;
 use termrock_core::id::{Id, Part, PartRef};
 use termrock_core::keys::KeyCode;
@@ -12,6 +12,7 @@ use termrock_test_support::Harness;
 use termrock_theme::{Role, Slot, StylePatch, Theme};
 const ID: Id = Id::root("seam.geometry");
 const LEFT: Id = Id::root("seam.left");
+const RIGHT: Id = Id::root("seam.right");
 const BODY: Rect = Rect::new(1, 2, 118, 36);
 #[derive(Clone, Copy)]
 enum Seam {
@@ -32,6 +33,9 @@ struct Page {
     disabled: bool,
     preserve_drag_offset: bool,
     sentinel: bool,
+    fallback: Option<SplitFallback>,
+    register_second: bool,
+    use_full_area: bool,
     state: SplitPaneState,
     observed_part: Option<Rect>,
     observed_area: Option<Rect>,
@@ -51,6 +55,9 @@ impl Default for Page {
             disabled: false,
             preserve_drag_offset: false,
             sentinel: false,
+            fallback: None,
+            register_second: false,
+            use_full_area: false,
             state: SplitPaneState::new(32),
             observed_part: None,
             observed_area: None,
@@ -67,6 +74,11 @@ impl Page {
             .resizable(self.resizable)
             .preserve_drag_offset(self.preserve_drag_offset)
             .disabled(self.disabled);
+        let pane = if let Some(fallback) = self.fallback {
+            pane.undersized_fallback(fallback)
+        } else {
+            pane
+        };
         let pane = if self.sentinel {
             pane.patch(&SENTINEL)
         } else {
@@ -80,9 +92,17 @@ impl Page {
         }
     }
     fn paint(&self, ui: &mut Ui<'_>) {
+        let area = if self.use_full_area {
+            ui.full()
+        } else {
+            self.area
+        };
         self.split()
-            .draw(ui, self.area, &self.state, |ui, first, _| {
+            .draw(ui, area, &self.state, |ui, first, second| {
                 ui.register_control(LEFT, first, Focusability::Focusable);
+                if self.register_second {
+                    ui.register_control(RIGHT, second, Focusability::Focusable);
+                }
             });
     }
 }
@@ -585,4 +605,143 @@ fn logical_facts_follow_successful_publication_only() {
                 );
             }),
     );
+}
+
+#[test]
+fn undersized_fallback_releases_drag_and_recovers_after_parent_area_changes() {
+    let mut h = harness(Page {
+        seam: Seam::Full,
+        preserve_drag_offset: true,
+        fallback: Some(SplitFallback::new(3, 2)),
+        register_second: true,
+        ..Page::default()
+    });
+    let initial_seam = seam(&h).expect("normal split publishes its seam");
+    let press_x = initial_seam.x + 1;
+    let press_y = initial_seam.y + 3;
+
+    let _ = h.mouse(MouseKind::Down, press_x, press_y);
+    assert_eq!(h.runtime().capture_owner(), Some(ID));
+    let _ = h.mouse(MouseKind::Drag, press_x + 5, press_y);
+    let durable = (h.app().state.percent(), h.app().state.basis_points());
+    assert_ne!(durable.1, 3_200);
+
+    // The parent changes the allocation and redraws without a Resize event.
+    h.app_mut().area = Rect::new(1, 2, 50, 36);
+    h.draw();
+
+    assert_eq!(h.runtime().capture_owner(), None);
+    assert_eq!(seam(&h), None);
+    assert!(!h.runtime().ring().is_registered(ID));
+    assert_ne!(h.runtime().focus(), Some(ID));
+    let first = h
+        .runtime()
+        .area_of(LEFT)
+        .expect("first fallback child is reachable");
+    let second = h
+        .runtime()
+        .area_of(RIGHT)
+        .expect("second fallback child is reachable");
+    assert_eq!(first.width, 50);
+    assert_eq!(second.width, 50);
+    assert_eq!(first.height, 21);
+    assert_eq!(second.height, 14);
+    assert!(first.bottom() <= second.y);
+
+    // A key update while the split is in fallback cannot change its ratio.
+    let _ = h.key(KeyCode::Left);
+    assert_eq!(
+        (h.app().state.percent(), h.app().state.basis_points()),
+        durable
+    );
+    let _ = h.mouse(MouseKind::Drag, press_x + 12, press_y);
+    let _ = h.mouse(MouseKind::Up, press_x + 12, press_y);
+    assert_eq!(
+        (h.app().state.percent(), h.app().state.basis_points()),
+        durable
+    );
+
+    h.app_mut().area = BODY;
+    h.draw();
+    let restored_seam = seam(&h).expect("normal allocation restores the seam");
+    assert!(h.runtime().ring().is_registered(ID));
+    assert_eq!(
+        (h.app().state.percent(), h.app().state.basis_points()),
+        durable
+    );
+    let press_y = restored_seam.y + 3;
+    let _ = h.mouse(MouseKind::Down, restored_seam.x, press_y);
+    assert_eq!(h.runtime().capture_owner(), Some(ID));
+    let _ = h.mouse(MouseKind::Drag, restored_seam.x + 3, press_y);
+    let moved_seam = seam(&h).expect("restored split publishes its seam");
+    assert_eq!(
+        moved_seam.x,
+        restored_seam.x + 3,
+        "a fresh drag after fallback must move the seam by the full pointer delta"
+    );
+    let _ = h.mouse(MouseKind::Up, restored_seam.x + 3, press_y);
+    assert_eq!(h.runtime().capture_owner(), None);
+}
+
+#[test]
+fn undersized_fallback_resize_releases_capture_and_fresh_drag_tracks_restored_seam() {
+    let mut h = harness(Page {
+        seam: Seam::Full,
+        preserve_drag_offset: true,
+        fallback: Some(SplitFallback::new(3, 2)),
+        register_second: true,
+        use_full_area: true,
+        ..Page::default()
+    });
+    let initial_seam = seam(&h).expect("normal split publishes its seam");
+    let press_y = initial_seam.y + 3;
+    let _ = h.mouse(MouseKind::Down, initial_seam.x + 1, press_y);
+    assert_eq!(h.runtime().capture_owner(), Some(ID));
+    let _ = h.mouse(MouseKind::Drag, initial_seam.x + 6, press_y);
+    let durable = (h.app().state.percent(), h.app().state.basis_points());
+    assert_ne!(durable.1, 3_200);
+
+    let _ = h.resize(50, 40);
+
+    assert_eq!(h.runtime().capture_owner(), None);
+    assert_eq!(seam(&h), None);
+    assert!(!h.runtime().ring().is_registered(ID));
+    assert_ne!(h.runtime().focus(), Some(ID));
+    assert_eq!(
+        h.runtime().area_of(LEFT),
+        Some(Rect::new(0, 0, 50, 24)),
+        "first child receives its weighted fallback pane"
+    );
+    assert_eq!(
+        h.runtime().area_of(RIGHT),
+        Some(Rect::new(0, 25, 50, 15)),
+        "second child receives its weighted fallback pane"
+    );
+    assert_eq!(
+        (h.app().state.percent(), h.app().state.basis_points()),
+        durable,
+        "resizing into fallback preserves the durable primary ratio"
+    );
+
+    let _ = h.resize(120, 40);
+
+    let restored_seam = seam(&h).expect("normal allocation restores the seam");
+    assert!(h.runtime().ring().is_registered(ID));
+    assert_eq!(
+        (h.app().state.percent(), h.app().state.basis_points()),
+        durable,
+        "resizing out of fallback preserves the durable primary ratio"
+    );
+    let press_y = restored_seam.y + 3;
+    let _ = h.mouse(MouseKind::Down, restored_seam.x, press_y);
+    assert_eq!(h.runtime().capture_owner(), Some(ID));
+    let _ = h.mouse(MouseKind::Drag, restored_seam.x + 3, press_y);
+    let moved_seam = seam(&h).expect("restored split publishes its seam");
+    assert_eq!(
+        moved_seam.x,
+        restored_seam.x + 3,
+        "stale drag offset must not shorten a new drag after Input::Resize"
+    );
+    let _ = h.mouse(MouseKind::Up, restored_seam.x + 3, press_y);
+    assert_eq!(h.runtime().capture_owner(), None);
 }

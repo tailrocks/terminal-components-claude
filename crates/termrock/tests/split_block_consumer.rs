@@ -5,7 +5,7 @@ use ratatui::backend::TestBackend;
 use ratatui_core::layout::{Position, Rect};
 use termrock::blocks::SplitBlock;
 use termrock::composition::{self, Group};
-use termrock::controls::{Button, SplitPane, SplitPaneState};
+use termrock::controls::{Button, SplitFallback, SplitPane, SplitPaneState};
 use termrock::layout::{Composition, Constraints, Insets, Size, SplitAxis};
 use termrock::{
     App, Cx, Id, Input, KeyModifiers, Maximized, Mouse, MouseKind, Response, Runtime, Theme,
@@ -632,4 +632,113 @@ fn live_split_measurement_and_maximize_policy_preserve_a_separate_initial_query(
     assert_eq!(live_initial_measurements(&runtime), after_drag);
     assert_eq!(runtime.app().initial_query, initial_state_before_input);
     assert_eq!(runtime.app().domain_actions, 0);
+}
+
+const FALLBACK_SPLIT: Id = Id::root("consumer.fallback.split");
+const FALLBACK_FIRST: [Id; 2] = [
+    Id::root("consumer.fallback.first.0"),
+    Id::root("consumer.fallback.first.1"),
+];
+const FALLBACK_SECOND: [Id; 3] = [
+    Id::root("consumer.fallback.second.0"),
+    Id::root("consumer.fallback.second.1"),
+    Id::root("consumer.fallback.second.2"),
+];
+
+struct FallbackConsumer {
+    state: SplitPaneState,
+    expected_minimum: Cell<u16>,
+    measured_minimum: Cell<(u16, u16)>,
+}
+
+impl FallbackConsumer {
+    fn pane() -> SplitPane<'static> {
+        SplitPane::new(FALLBACK_SPLIT, SplitAxis::Horizontal)
+            .gap(1)
+            .min_first(20)
+            .min_second(20)
+            .resizable(true)
+            .undersized_fallback(SplitFallback::new(3, 2))
+    }
+}
+
+impl App for FallbackConsumer {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        SplitBlock::new(Self::pane())
+            .update(cx, &mut self.state)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut termrock::Ui<'_>) {
+        let first_buttons = FALLBACK_FIRST.map(|id| Button::new(id, "Action"));
+        let second_buttons = FALLBACK_SECOND.map(|id| Button::new(id, "Action"));
+        let first = Group::wrap(first_buttons.iter().map(composition::button));
+        let second = Group::wrap(second_buttons.iter().map(composition::button));
+        let block = SplitBlock::new(Self::pane()).first(&first).second(&second);
+        let constraints = Constraints::loose(ui.full().width, ui.full().height);
+        let (first_pane, second_pane) = Self::pane().pane_constraints(&self.state, constraints);
+        assert_eq!(first_pane.max, (10, 7));
+        assert_eq!(second_pane.max, (10, 4));
+        let first_natural = first
+            .measure(ui, constraints)
+            .expect("first wrapped group has a valid measurement");
+        let second_natural = second
+            .measure(ui, constraints)
+            .expect("second wrapped group has a valid measurement");
+        let first_min = u64::from(first_natural.min.1);
+        let second_min = u64::from(second_natural.min.1);
+        let first_usable = if first_min == 0 {
+            0
+        } else {
+            ((first_min - 1) * 5 / 3) + 1
+        };
+        let second_usable = (second_min * 5).div_ceil(2);
+        self.expected_minimum
+            .set((first_usable.max(second_usable) + 1).min(u64::from(u16::MAX)) as u16);
+
+        let measured = block
+            .measure(ui, &self.state, constraints)
+            .expect("fallback block has valid wrapped measurements");
+        self.measured_minimum.set(measured.min);
+        block
+            .show(ui, &self.state)
+            .expect("fallback block fits within the supported composition depth");
+    }
+}
+
+#[test]
+fn split_block_measures_wrapped_content_on_the_effective_fallback_axis() {
+    let area = Rect::new(0, 0, 10, 12);
+    let mut runtime = Runtime::new(
+        FallbackConsumer {
+            state: SplitPaneState::new(38),
+            expected_minimum: Cell::new(0),
+            measured_minimum: Cell::new((0, 0)),
+        },
+        Theme::junie(),
+    );
+    let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+    render(&mut runtime, &mut terminal, area);
+
+    let measured = runtime.app().measured_minimum.get();
+    assert_eq!(measured.1, runtime.app().expected_minimum.get());
+    let first = runtime
+        .area_of(FALLBACK_FIRST[1])
+        .expect("wrapped first group remains reachable");
+    let second = runtime
+        .area_of(FALLBACK_SECOND[0])
+        .expect("wrapped second group remains reachable");
+    assert_eq!(first, Rect::new(0, 1, 8, 1));
+    assert_eq!(second, Rect::new(0, 8, 8, 1));
+    assert!(first.x >= area.x && first.right() <= area.right());
+    assert!(second.x >= area.x && second.right() <= area.right());
+    assert!(
+        first.bottom() <= second.y,
+        "fallback panes did not stack vertically"
+    );
+    assert!(
+        runtime
+            .area_of_part(FALLBACK_SPLIT, termrock::PartRef::of(termrock::Part::SEAM))
+            .is_none()
+    );
 }

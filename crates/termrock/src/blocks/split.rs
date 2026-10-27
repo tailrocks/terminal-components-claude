@@ -1,5 +1,6 @@
 //! A two-pane block that composes existing groups through a shared SplitPane.
 
+use ratatui_core::layout::Rect;
 use termrock_controls::{SplitAction, SplitPane, SplitPaneState};
 use termrock_layout::{Constraints, Maximized, Size, SplitAxis};
 use termrock_runtime::{Cx, Response, Ui};
@@ -68,8 +69,10 @@ impl<'a> SplitBlock<'a> {
         second.validate_depth()?;
         let first_natural = first.measure(ui, constraints)?;
         let second_natural = second.measure(ui, constraints)?;
-        let (first_constraints, second_constraints) =
-            self.pane.pane_constraints(state, constraints);
+        let area = Rect::new(0, 0, constraints.max.0, constraints.max.1);
+        let resolved = self.pane.resolved_for(state, area);
+        let axis = resolved.axis();
+        let (first_constraints, second_constraints) = resolved.pane_constraints(state, constraints);
         let first_allocated = if first_constraints == constraints {
             first_natural
         } else {
@@ -83,22 +86,21 @@ impl<'a> SplitBlock<'a> {
         let maximized = state.maximized();
         let visible_first = maximized != Maximized::Second;
         let visible_second = maximized != Maximized::First;
-        let first_min = axis_extent(first_natural.min, self.pane_axis());
-        let second_min = axis_extent(second_natural.min, self.pane_axis());
-        let first_preferred = axis_extent(first_natural.preferred, self.pane_axis()).max(first_min);
-        let second_preferred =
-            axis_extent(second_natural.preferred, self.pane_axis()).max(second_min);
-        let along_min = self.pane.required_extent(
+        let first_min = axis_extent(first_natural.min, axis);
+        let second_min = axis_extent(second_natural.min, axis);
+        let first_preferred = axis_extent(first_natural.preferred, axis).max(first_min);
+        let second_preferred = axis_extent(second_natural.preferred, axis).max(second_min);
+        let along_min = resolved.required_extent(
             state,
             if visible_first { first_min } else { 0 },
             if visible_second { second_min } else { 0 },
         );
-        let along_preferred = self.pane.required_extent(
+        let along_preferred = resolved.required_extent(
             state,
             if visible_first { first_preferred } else { 0 },
             if visible_second { second_preferred } else { 0 },
         );
-        let other_axis = match (self.pane_axis(), maximized) {
+        let other_axis = match (axis, maximized) {
             (SplitAxis::Horizontal, Maximized::None) => {
                 (first_allocated.min.1, second_allocated.min.1)
             }
@@ -110,7 +112,7 @@ impl<'a> SplitBlock<'a> {
             (SplitAxis::Vertical, Maximized::First) => (first_allocated.min.0, 0),
             (SplitAxis::Vertical, Maximized::Second) => (0, second_allocated.min.0),
         };
-        let other_preferred = match (self.pane_axis(), maximized) {
+        let other_preferred = match (axis, maximized) {
             (SplitAxis::Horizontal, Maximized::None) => {
                 (first_allocated.preferred.1, second_allocated.preferred.1)
             }
@@ -124,7 +126,7 @@ impl<'a> SplitBlock<'a> {
         };
         let other_min = other_axis.0.max(other_axis.1).max(1);
         let other_preferred = other_preferred.0.max(other_preferred.1).max(other_min);
-        let (min, preferred) = match self.pane_axis() {
+        let (min, preferred) = match axis {
             SplitAxis::Horizontal => (
                 (along_min, other_min),
                 (along_preferred.max(along_min), other_preferred),
@@ -157,10 +159,6 @@ impl<'a> SplitBlock<'a> {
                 }
             });
         result
-    }
-
-    fn pane_axis(&self) -> SplitAxis {
-        self.pane.axis()
     }
 }
 

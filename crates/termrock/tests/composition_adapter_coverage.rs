@@ -54,6 +54,7 @@ const NOT_COMPONENTS: &[&str] = &[
     "ResetPolicy",
     "SplitAction",
     "SplitCmd",
+    "SplitFallback",
     "SplitPaneState",
     // termrock_fields
     "BlurPolicy",
@@ -361,6 +362,7 @@ fn a_new_component_without_an_adapter_fails_the_coverage_gate() {
     for name in [
         "ListSelectionCmd",
         "PanelWindowError",
+        "SplitFallback",
         "TabCloseReveal",
         "TabMarks",
         "TabNavProfile",
@@ -375,7 +377,7 @@ fn a_new_component_without_an_adapter_fails_the_coverage_gate() {
         );
     }
 
-    for name in ["List", "Panel", "Tabs", "Toolbar"] {
+    for name in ["List", "Panel", "SplitPane", "Tabs", "Toolbar"] {
         assert!(exported.contains(name), "{name} must be facade-exported");
         assert!(
             !not_components.contains(name),
