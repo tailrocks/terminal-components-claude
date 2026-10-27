@@ -139,7 +139,7 @@ fn draw_resources(
             "Memory",
             f64::from(memory_pct) / 100.0,
             format!(
-                "{:.1} / {:.0} GB · swap {:.1} GB",
+                "{:.1} of {:.0} GB · swap {:.1} GB",
                 f64::from(world.host.metrics.mem_used_mb) / 1_024.0,
                 f64::from(world.host.metrics.mem_total_mb) / 1_024.0,
                 f64::from(system.swap_used_mb) / 1_024.0

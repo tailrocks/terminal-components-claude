@@ -523,7 +523,7 @@ fn system_actions(w: &World, out: &mut Vec<Action>) {
         format!("CPU pressure some {some}% · full {full}%")
     } else {
         format!(
-            "CPU {}% · memory {:.1} / {:.0} GB",
+            "CPU {}% · memory {:.1} of {:.0} GB",
             system.cpu_pct,
             f64::from(w.host.metrics.mem_used_mb) / 1_024.0,
             f64::from(w.host.metrics.mem_total_mb) / 1_024.0
@@ -1147,7 +1147,7 @@ pub fn action_preview(w: &World, action: &Action, history: bool) -> ActionPrevie
                 (format!("live · {} s ago", age / 1_000), PreviewTone::Muted)
             }
             Some(discovery) if discovery.failed => ("unavailable".to_owned(), PreviewTone::Danger),
-            _ => ("pending discovery".to_owned(), PreviewTone::Meta),
+            _ => ("still discovering…".to_owned(), PreviewTone::Meta),
         },
     );
     add("Data", data, tone, false);

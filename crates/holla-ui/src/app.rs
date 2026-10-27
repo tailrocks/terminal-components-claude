@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, io::Write};
+use std::collections::BTreeMap;
 
 use crate::{
     dispatch::{self, Destination},
@@ -515,6 +515,10 @@ impl std::fmt::Debug for App {
     }
 }
 const BAR_LABELS: [&str; 3] = ["File", "Go", "Help"];
+const MENU_BAR_TITLE_PARTS: &[(Part, StylePatch)] = &[(
+    Part::TITLE,
+    StylePatch::new().remove(termrock::Modifier::BOLD),
+)];
 
 fn menu_bar() -> MenuBar<'static> {
     const FILE: &[MenuItem<'static>] = &[MenuItem::new(QUIT, "Quit").chord(Chord::with(
@@ -536,6 +540,7 @@ fn menu_bar() -> MenuBar<'static> {
     ];
 
     MenuBar::new(MENU, MENUS)
+        .patch_part(MENU_BAR_TITLE_PARTS)
         .chord_case(termrock::ChordCase::UppercaseAscii)
         .hover_scope(MenuBarHoverScope::Title)
 }
@@ -4265,14 +4270,6 @@ impl termrock::App for App {
         clock_response | response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
-        if self.route == Route::Home
-            && self.overlay.is_none()
-            && std::io::IsTerminal::is_terminal(&std::io::stdout())
-        {
-            let mut out = std::io::stdout().lock();
-            let _ = out.write_all(b"\x1b[6 q");
-            let _ = out.flush();
-        }
         let area = ui.full();
         let base = ui.surface_style();
         ui.fill(area, base);

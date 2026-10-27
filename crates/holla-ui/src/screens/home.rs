@@ -5,11 +5,11 @@ use termrock::composition::{self, Group};
 use termrock::layout::{ColumnSpec, Track, solve_columns};
 use termrock::theme::CursorStyle;
 use termrock::{
-    BlurPolicy, Chord, Color, Cx, Family, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
-    KeyCode, KeyModifiers, MasterDetail, MasterDetailPolicy, MasterDetailState, NavList,
-    NavListAction, NavListState, Part, Rect, Response, Role, StateFlags, StylePatch, TextAction,
-    TextCmd, TextInput, TextInputState, TextSection, TextViewport, TypingPolicy, Ui, Variant,
-    ViewportAction, ViewportLine, ViewportState,
+    ActionKey, Binding, BlurPolicy, Chord, Color, Cx, Family, FgStep, FrameRead, Hint, HintKey,
+    HintLayer, Id, Intent, ItemKey, KeyCode, KeyModifiers, MasterDetail, MasterDetailPolicy,
+    MasterDetailState, NavList, NavListAction, NavListState, Part, Rect, Response, Role,
+    StateFlags, StylePatch, TextAction, TextCmd, TextInput, TextInputState, TextSection,
+    TextViewport, TypingPolicy, Ui, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::action::{Action, Availability, Scope};
@@ -19,6 +19,15 @@ pub(crate) const QUERY: Id = Id::root("home.query");
 pub(crate) const ROWS: Id = Id::root("home.rows");
 pub(crate) const DETAIL_VIEWPORT: Id = Id::root("home.detail.viewport");
 const MASTER_DETAIL: Id = Id::root("home.master-detail");
+const OPEN_PREVIEW: ActionKey = ActionKey::custom("holla.home.open-preview");
+const OPEN_PREVIEW_BINDINGS: &[Binding<ActionKey>] = &[Binding {
+    action: OPEN_PREVIEW,
+    chord: Some(Chord::key(KeyCode::Tab)),
+    cmd: OPEN_PREVIEW,
+    label: "Preview",
+    priority: 60,
+    visible: true,
+}];
 
 fn home_master_detail_policy() -> MasterDetailPolicy {
     MasterDetailPolicy::default()
@@ -346,9 +355,15 @@ impl HomeState {
     pub(crate) fn selected(&self, world: &World) -> Option<Action> {
         let rows = self.rows(world);
         self.rows
-            .cursor()
+            .current()
             .and_then(|key| rows.iter().find(|row| row_key(row) == key))
             .filter(|row| row.action.is_some())
+            .or_else(|| {
+                self.rows
+                    .cursor()
+                    .and_then(|key| rows.iter().find(|row| row_key(row) == key))
+                    .filter(|row| row.action.is_some())
+            })
             .or_else(|| rows.iter().find(|row| row.action.is_some()))
             .and_then(|row| row.action.clone())
     }
@@ -360,7 +375,11 @@ impl HomeState {
             .enumerate()
             .find(|(_, row)| row.action.is_some())
         {
-            self.rows.set_cursor(index, row_key(row));
+            let key = row_key(row);
+            self.rows.set_cursor(index, key);
+            if self.rows.current() != Some(key) {
+                self.rows.set_current(Some(key));
+            }
             cx.focus(ROWS);
         } else {
             cx.focus_next();
@@ -406,7 +425,10 @@ impl HomeState {
             .enumerate()
             .find(|(_, row)| row.action.is_some());
         if let Some((index, row)) = retained.or(first_action) {
-            self.rows.set_cursor(index, row_key(row));
+            let key = row_key(row);
+            if self.rows.cursor() != Some(key) {
+                self.rows.set_cursor(index, key);
+            }
         }
         let master_detail = MasterDetail::new(MASTER_DETAIL, ROWS, DETAIL_VIEWPORT)
             .policy(home_master_detail_policy())
@@ -433,21 +455,46 @@ impl HomeState {
         } else {
             nav_list().update(cx, &mut self.rows, &rows)
         };
+        let current_key = self
+            .rows
+            .cursor()
+            .and_then(|key| {
+                rows.iter()
+                    .find(|row| row_key(row) == key && row.action.is_some())
+                    .map(row_key)
+            })
+            .or_else(|| rows.iter().find(|row| row.action.is_some()).map(row_key));
+        if self.rows.current() != current_key {
+            self.rows.set_current(current_key);
+        }
+        let query_preview = cx
+            .intents(QUERY)
+            .any(|intent| matches!(intent, Intent::Binding(action) if action == OPEN_PREVIEW));
+        let rows_preview = cx
+            .intents(ROWS)
+            .any(|intent| matches!(intent, Intent::Binding(action) if action == OPEN_PREVIEW));
+        if master_detail_active && query_preview {
+            cx.focus_next();
+            response |= Response::consumed();
+        } else if master_detail_active && rows_preview {
+            let collapsed = home_area.is_some_and(|area| {
+                let (_, rows_area, _) = home_rows_layout(area, world, self.query());
+                home_master_detail_policy().is_collapsed(rows_area.width)
+            });
+            if collapsed {
+                response |= master_detail.open_detail(cx, &mut self.detail).erase();
+            } else {
+                cx.focus_next();
+                response |= Response::consumed();
+            }
+        }
         let chosen = match navigation.take_action() {
             Some(NavListAction::LeaveBackward) => {
                 cx.focus_prev();
                 None
             }
             Some(NavListAction::LeaveForward) => {
-                let collapsed = home_area.is_some_and(|area| {
-                    let (_, rows_area, _) = home_rows_layout(area, world, self.query());
-                    home_master_detail_policy().is_collapsed(rows_area.width)
-                });
-                if master_detail_active && collapsed {
-                    response |= master_detail.open_detail(cx, &mut self.detail).erase();
-                } else {
-                    cx.focus_next();
-                }
+                cx.focus_next();
                 None
             }
             Some(NavListAction::Chose(key) | NavListAction::EnterContent(key)) => {
@@ -700,6 +747,12 @@ impl HomeState {
                 .summary(&summary)
                 .detail_owns(&[DETAIL_VIEWPORT]);
             let _ = ui.with_area(rows_area, |ui| layout.show(ui, &self.detail));
+            if !ui.is_inert() && !ui.is_covered_by_native_layer() {
+                let query_state = ui.state(QUERY);
+                ui.publish_additional_bindings(QUERY, query_state, OPEN_PREVIEW_BINDINGS);
+                let rows_state = ui.state(ROWS);
+                ui.publish_additional_bindings(ROWS, rows_state, OPEN_PREVIEW_BINDINGS);
+            }
         } else {
             nav_list_with_row(|row, cells| {
                 let row_is_visible = !cells.area().intersection(clip).is_empty();
