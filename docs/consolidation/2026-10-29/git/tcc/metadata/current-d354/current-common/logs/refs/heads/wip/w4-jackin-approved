@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 62378ec97ee58821ddf2d7663e1da07d48258c0c Alexey Zhokhov <alexey@zhokhov.com> 1792651709 +0700	branch: Created from HEAD
+62378ec97ee58821ddf2d7663e1da07d48258c0c 2f412fb89e6924fa6acc460af16dd3813b18a069 Alexey Zhokhov <alexey@zhokhov.com> 1792651964 +0700	commit: refactor(jackin-preview): collapse manager approved gate into overlay_open

@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 0cf26d54ecf53adec8a925050882d6a65d736f02 Alexey Zhokhov <alexey@zhokhov.com> 1792505231 +0700	branch: Created from 0cf26d54ecf53adec8a925050882d6a65d736f02
+0cf26d54ecf53adec8a925050882d6a65d736f02 465f78d902247d85c9d1748dca4743a2b99ab5c3 Alexey Zhokhov <alexey@zhokhov.com> 1792505577 +0700	commit: fix(runtime): key caches by selected bindings
+465f78d902247d85c9d1748dca4743a2b99ab5c3 98900f3e11e4cd34835dec5902694ed260125aee Alexey Zhokhov <alexey@zhokhov.com> 1792505781 +0700	commit: fix(runtime): preserve binding table API variants

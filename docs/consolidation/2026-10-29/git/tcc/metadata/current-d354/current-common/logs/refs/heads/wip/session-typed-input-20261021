@@ -1,0 +1,11 @@
+0000000000000000000000000000000000000000 a71388ec365b5f6613550594c1acc6a4081f9b14 Alexey Zhokhov <alexey@zhokhov.com> 1792594706 +0700	branch: Created from a71388ec365b5f6613550594c1acc6a4081f9b14
+a71388ec365b5f6613550594c1acc6a4081f9b14 7150ed36bc5c972dd2e074dcc1b689a9fa1fa615 Alexey Zhokhov <alexey@zhokhov.com> 1792595194 +0700	commit: fix(session): preserve decoded key modifiers
+7150ed36bc5c972dd2e074dcc1b689a9fa1fa615 f36d2069e6a10dad92218f353c9d005dec9bf350 Alexey Zhokhov <alexey@zhokhov.com> 1792595199 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+f36d2069e6a10dad92218f353c9d005dec9bf350 80f10bf68d91046dd64fe2c6f398d339b2ea7ad1 Alexey Zhokhov <alexey@zhokhov.com> 1792595237 +0700	commit: docs: bind session input correction evidence
+80f10bf68d91046dd64fe2c6f398d339b2ea7ad1 d3eb946edc519377a2aba91b01801ce61747e6e3 Alexey Zhokhov <alexey@zhokhov.com> 1792595280 +0700	commit: docs: record pinned PTY runner mismatch
+d3eb946edc519377a2aba91b01801ce61747e6e3 2a8301d2b0aadcd0326bed6603be01aa80c18075 Alexey Zhokhov <alexey@zhokhov.com> 1792595522 +0700	merge 5478ecfc93e294ccd9ebd75058de7be09e2a389f: Merge made by the 'ort' strategy.
+2a8301d2b0aadcd0326bed6603be01aa80c18075 51fe8afbd347a4ac543e4c12320507cfe6c9799d Alexey Zhokhov <alexey@zhokhov.com> 1792595592 +0700	commit: docs: record session input publication evidence
+51fe8afbd347a4ac543e4c12320507cfe6c9799d 9da4c39e06ab0d8ef4c70930f09b61aa4eafb165 Alexey Zhokhov <alexey@zhokhov.com> 1792596493 +0700	commit: test(session): cover typed input production boundary
+9da4c39e06ab0d8ef4c70930f09b61aa4eafb165 77e93e43c318c11c95479ecbe0ed7cf09da0099a Alexey Zhokhov <alexey@zhokhov.com> 1792596541 +0700	commit: docs(audit): correct session regression evidence
+77e93e43c318c11c95479ecbe0ed7cf09da0099a 26255e048cca777de1a40d3bf7accacabffc69bb Alexey Zhokhov <alexey@zhokhov.com> 1792597029 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+26255e048cca777de1a40d3bf7accacabffc69bb 0abfee9e6882bfad5ee2549e761f89ebb2e5225c Alexey Zhokhov <alexey@zhokhov.com> 1792597143 +0700	commit: docs(session): record independent input review

@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 34b1e7008e581bd6fa2c69e6498ae2dbd24a2a8c Alexey Zhokhov <alexey@zhokhov.com> 1792227279 +0700	branch: Created from HEAD
+34b1e7008e581bd6fa2c69e6498ae2dbd24a2a8c c1a49af0f6ade36838c6330ce8a034e8d589ea79 Alexey Zhokhov <alexey@zhokhov.com> 1792227870 +0700	commit: fix(holla): a task's duration ignores the time a prompt waited

@@ -1,0 +1,21 @@
+0000000000000000000000000000000000000000 adc6d0e3f668818f6f8321310452db6806c123cc Alexey Zhokhov <alexey@zhokhov.com> 1792522202 +0700	branch: Created from HEAD
+adc6d0e3f668818f6f8321310452db6806c123cc a5ac5cf14c5ffcc2d28d62fadb46bbacddf0bdb9 Alexey Zhokhov <alexey@zhokhov.com> 1792522202 +0700	commit: fix(tablepro): remove scrolled cell repaint
+a5ac5cf14c5ffcc2d28d62fadb46bbacddf0bdb9 59e8cffb302c4f4734ecd640c671725b1a054069 Alexey Zhokhov <alexey@zhokhov.com> 1792522924 +0700	commit: fix(grid): embed inline text editor in cell geometry
+59e8cffb302c4f4734ecd640c671725b1a054069 fc3cab492412544028dda43e14ac87798d243af5 Alexey Zhokhov <alexey@zhokhov.com> 1792523998 +0700	commit: fix(grid): theme inline editor error underline
+fc3cab492412544028dda43e14ac87798d243af5 5a7ac2d94ebe22557bac93e694dbe67e2eda75c1 Alexey Zhokhov <alexey@zhokhov.com> 1792524031 +0700	commit (merge): Merge remote-tracking branch 'origin/parity/termrock-visual-baseline' into wip/tablepro-grid-scroll-embedded-input-20261021
+5a7ac2d94ebe22557bac93e694dbe67e2eda75c1 bddfbe63f5cb8fa77e363fb233ac5fe8d51c4907 Alexey Zhokhov <alexey@zhokhov.com> 1792524128 +0700	commit: docs: record exact Grid regression attribution
+bddfbe63f5cb8fa77e363fb233ac5fe8d51c4907 338ec251f2203a8e2ca482a29afae52e0ca4a17d Alexey Zhokhov <alexey@zhokhov.com> 1792524563 +0700	commit: fix(fields): preserve host underline clears
+338ec251f2203a8e2ca482a29afae52e0ca4a17d 4020da5f5e3ac3c54bfdd396911be23f22ff7b2c Alexey Zhokhov <alexey@zhokhov.com> 1792525154 +0700	commit: fix(grid): honor inherited underline clear in embedded editor
+4020da5f5e3ac3c54bfdd396911be23f22ff7b2c 26e4d54879fcd9b777df701bb65881f6f11a09a4 Alexey Zhokhov <alexey@zhokhov.com> 1792525776 +0700	commit: fix(theme): preserve canonical underline clear provenance
+26e4d54879fcd9b777df701bb65881f6f11a09a4 ecd8a8194af79787562d120305c90a6b58996da8 Alexey Zhokhov <alexey@zhokhov.com> 1792526126 +0700	commit: fix(fields): honor local embedded underline clear
+ecd8a8194af79787562d120305c90a6b58996da8 b812c769a1ebe4a941c88960171ce616e47da5c6 Alexey Zhokhov <alexey@zhokhov.com> 1792526980 +0700	commit (merge): Merge PR #38 and remove TablePro Grid repaint
+b812c769a1ebe4a941c88960171ce616e47da5c6 e250d6e2d214a03d4d833ada2034504aabaca6d0 Alexey Zhokhov <alexey@zhokhov.com> 1792526983 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+e250d6e2d214a03d4d833ada2034504aabaca6d0 7eb9f800afa0a998b305dc6dea66d5d8f7f4f5e5 Alexey Zhokhov <alexey@zhokhov.com> 1792527110 +0700	commit: docs: record shared TablePro Grid repaint removal
+7eb9f800afa0a998b305dc6dea66d5d8f7f4f5e5 a6377acd5ff850f051aeee42be0a0c77e9705c58 Alexey Zhokhov <alexey@zhokhov.com> 1792527162 +0700	commit: docs: record exact TablePro Grid rerun evidence
+a6377acd5ff850f051aeee42be0a0c77e9705c58 38736f17812eeaa5e011c34b7a72082228361b75 Alexey Zhokhov <alexey@zhokhov.com> 1792527195 +0700	commit: docs: record exact Grid gate rerun
+38736f17812eeaa5e011c34b7a72082228361b75 132d18171d4170af4c401c36c4b3fc2a26b9ff5e Alexey Zhokhov <alexey@zhokhov.com> 1792527451 +0700	commit: fix(theme): use generic nearest RGB downgrade
+132d18171d4170af4c401c36c4b3fc2a26b9ff5e 893a90ecb757ce5866eb4faf262f8b1debe6d31b Alexey Zhokhov <alexey@zhokhov.com> 1792528184 +0700	commit: fix(grid): preserve cell padding through aligned callbacks
+893a90ecb757ce5866eb4faf262f8b1debe6d31b c6c2ae7d9fe996dc17e6dedd3623c27dd2cdfc76 Alexey Zhokhov <alexey@zhokhov.com> 1792528376 +0700	commit: test(grid): preserve semantic padding through alignment
+c6c2ae7d9fe996dc17e6dedd3623c27dd2cdfc76 c37a3a2d7066c0004d139315b34d892a0769de8b Alexey Zhokhov <alexey@zhokhov.com> 1792528975 +0700	commit: fix(grid): preserve explicit callback padding styles
+c37a3a2d7066c0004d139315b34d892a0769de8b 4735927557e50e3e274d37f808754b7e7fbb4a8e Alexey Zhokhov <alexey@zhokhov.com> 1792529684 +0700	commit (merge): merge: preserve current PR 38 work with grid padding fix
+4735927557e50e3e274d37f808754b7e7fbb4a8e 5cd181530ba61781cf6a2c69d97895a9b0741275 Alexey Zhokhov <alexey@zhokhov.com> 1792529980 +0700	commit: fix(theme): restore frozen raw rgb color quantization

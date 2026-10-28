@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 7b073316c089c494e84db801d6bfb861db75224c Alexey Zhokhov <alexey@zhokhov.com> 1792536632 +0700	branch: Created from HEAD
+7b073316c089c494e84db801d6bfb861db75224c bd9f88b7d00de0104611d09b631f0aae5e9f4461 Alexey Zhokhov <alexey@zhokhov.com> 1792536878 +0700	commit: fix(runtime): preserve recolor channel provenance
+bd9f88b7d00de0104611d09b631f0aae5e9f4461 fb0675c15f146baff760e1bf04eb9e057354318c Alexey Zhokhov <alexey@zhokhov.com> 1792536917 +0700	commit: docs(runtime): clarify recolor role preservation
+fb0675c15f146baff760e1bf04eb9e057354318c 2149e0b54e39fcec98407008b53e190566ab76fa Alexey Zhokhov <alexey@zhokhov.com> 1792536926 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+2149e0b54e39fcec98407008b53e190566ab76fa dfb54cfc5dd9511b214a68677eb213492df897fd Alexey Zhokhov <alexey@zhokhov.com> 1792537015 +0700	commit: test(runtime): cover partial recolor provenance

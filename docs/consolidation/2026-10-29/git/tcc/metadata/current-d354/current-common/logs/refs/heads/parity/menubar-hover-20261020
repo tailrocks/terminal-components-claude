@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 6923311119e060176ee3cf07c585416556416024 Alexey Zhokhov <alexey@zhokhov.com> 1792487600 +0700	branch: Created from origin/parity/termrock-visual-baseline
+6923311119e060176ee3cf07c585416556416024 c33586f4a17796513b792f4c0892a1581b587c1a Alexey Zhokhov <alexey@zhokhov.com> 1792488517 +0700	commit: fix: preserve menu title hover boundaries
+c33586f4a17796513b792f4c0892a1581b587c1a 08fa43f888e803846929a3cb7a2ba37cb9aeb375 Alexey Zhokhov <alexey@zhokhov.com> 1792488986 +0700	commit: fix: scope hover styling to menu bar titles
+08fa43f888e803846929a3cb7a2ba37cb9aeb375 e7c9823442e50d7684a83acbd3fca83881d54a9a Alexey Zhokhov <alexey@zhokhov.com> 1792489534 +0700	commit: fix: preserve menu title style overrides
+e7c9823442e50d7684a83acbd3fca83881d54a9a 40c3eeaa8d8c01bb0de6ba7de8fea4075ae1bdfb Alexey Zhokhov <alexey@zhokhov.com> 1792492045 +0700	commit: fix: keep menu bar default rendering compatible
+40c3eeaa8d8c01bb0de6ba7de8fea4075ae1bdfb c715b3d66ea68c7960ab986afccaa0c88e8a6230 Alexey Zhokhov <alexey@zhokhov.com> 1792492087 +0700	commit: test: preserve menu bar title overrides in both hover scopes
+c715b3d66ea68c7960ab986afccaa0c88e8a6230 46fe23961ede647d856273ae5ccb8c6bde3d3286 Alexey Zhokhov <alexey@zhokhov.com> 1792492132 +0700	commit: fix: preserve menu bar title padding defaults
+46fe23961ede647d856273ae5ccb8c6bde3d3286 372177c3ee3b00f421b7facd7cfc0d93ba18f448 Alexey Zhokhov <alexey@zhokhov.com> 1792492144 +0700	rebase (finish): refs/heads/parity/menubar-hover-20261020 onto 5d9f5b1772e733dad4940c84fb9a06b3baaae0ce
+372177c3ee3b00f421b7facd7cfc0d93ba18f448 c02ea120935a9f5fba7bcc713b08136fc199b11e Alexey Zhokhov <alexey@zhokhov.com> 1792492288 +0700	commit: docs(audit): record default menu parity pilot

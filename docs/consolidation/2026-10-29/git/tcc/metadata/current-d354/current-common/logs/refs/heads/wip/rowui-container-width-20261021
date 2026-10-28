@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 7649ee7ed8e8645e49f859a171ea0193fccc1e82 Alexey Zhokhov <alexey@zhokhov.com> 1792582709 +0700	branch: Created from origin/parity/termrock-visual-baseline
+7649ee7ed8e8645e49f859a171ea0193fccc1e82 e7ac8d50809d60b6eb8a72c62481bdf828771955 Alexey Zhokhov <alexey@zhokhov.com> 1792583107 +0700	commit: feat(navigation): expose full row container width
+e7ac8d50809d60b6eb8a72c62481bdf828771955 40d1d89b7eb9a0abb1b789bde561ccb7cd6c3931 Alexey Zhokhov <alexey@zhokhov.com> 1792583149 +0700	merge e9375eb4fb4a761a0882d617d7d1889c161237af: Merge made by the 'ort' strategy.
+40d1d89b7eb9a0abb1b789bde561ccb7cd6c3931 e1d81b106cf69a947c19870bdc1e72c53eadf417 Alexey Zhokhov <alexey@zhokhov.com> 1792583859 +0700	commit: test(navigation): cover row width across list variants

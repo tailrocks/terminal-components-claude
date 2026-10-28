@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 2de0d01255390d2a02b7775ee452268782802a38 Alexey Zhokhov <alexey@zhokhov.com> 1792496105 +0700	branch: Created from 2de0d01255390d2a02b7775ee452268782802a38
+2de0d01255390d2a02b7775ee452268782802a38 b915cbdfb3e47f8dd7319061f2d9542262e88dcd Alexey Zhokhov <alexey@zhokhov.com> 1792496122 +0700	cherry-pick: feat(termrock): add typed picker layer slot
+b915cbdfb3e47f8dd7319061f2d9542262e88dcd 5e0981daedfb4bb20caea16f1192270c582a935d Alexey Zhokhov <alexey@zhokhov.com> 1792496122 +0700	cherry-pick: feat(picker): reuse shared query editing contracts
+5e0981daedfb4bb20caea16f1192270c582a935d 06750c565a4e9b585b6d05284a869cc73a3c4c7d Alexey Zhokhov <alexey@zhokhov.com> 1792496122 +0700	cherry-pick: fix(filter-list): propagate query editor repaint
+06750c565a4e9b585b6d05284a869cc73a3c4c7d 34d1ecd12553c8bca4f7b367e77f7f2176269e6b Alexey Zhokhov <alexey@zhokhov.com> 1792496122 +0700	cherry-pick: fix(picker): preserve query theme and editor repaint
+34d1ecd12553c8bca4f7b367e77f7f2176269e6b 02ba559f217a8f7b267fd2a01cc63d472a14a564 Alexey Zhokhov <alexey@zhokhov.com> 1792496326 +0700	cherry-pick: fix(picker): inherit row limit and avoid duplicate focus
+02ba559f217a8f7b267fd2a01cc63d472a14a564 654661c40496da91bb6e5244879bb161a8a84c81 Alexey Zhokhov <alexey@zhokhov.com> 1792496759 +0700	commit: refactor(tablepro): use shared picker for tab navigation
+654661c40496da91bb6e5244879bb161a8a84c81 ec3872d113fa34791d50d5b5968529a03484ed9a Alexey Zhokhov <alexey@zhokhov.com> 1792497307 +0700	cherry-pick: fix(picker): restore frozen dialog geometry
+ec3872d113fa34791d50d5b5968529a03484ed9a e292c4ae2d696cb2f2c535fc7e60604e6c704faf Alexey Zhokhov <alexey@zhokhov.com> 1792497445 +0700	commit: test(tablepro): assert frozen tab picker geometry
+e292c4ae2d696cb2f2c535fc7e60604e6c704faf aa7c7064f838a300f38eac539c0f9f7828c48485 Alexey Zhokhov <alexey@zhokhov.com> 1792497953 +0700	cherry-pick: fix(overlays): match picker geometry and hints
+aa7c7064f838a300f38eac539c0f9f7828c48485 d11975020d092a60ea9edaa47d5525c7a70366c0 Alexey Zhokhov <alexey@zhokhov.com> 1792498438 +0700	cherry-pick: feat(runtime): constrain layers to viewport margins
+d11975020d092a60ea9edaa47d5525c7a70366c0 366dc67c9546abb59176df9398ee0b772d87d99d Alexey Zhokhov <alexey@zhokhov.com> 1792498923 +0700	commit: refactor(tablepro): use shared picker contracts

@@ -1,0 +1,25 @@
+{
+  "assume_unchanged_lowercase_path_count": 0,
+  "assume_unchanged_paths": [],
+  "captured_at_utc": "2026-10-28T21:12:33.341687+00:00",
+  "epoch": "HEAD d3546b707e980a2810cc60f8a8965ca719cbddc9, clean worktree after five eligible group commit and before TCC metadata git add",
+  "limitations": "This is a current post-publication epoch, not the historical f629/c337 index raw bytes. Earlier raw stat-cache/extension bytes were not retained; they are covered only by sealed hash/size plus logical tree/stage reconstruction.",
+  "raw_index_copy": "index-after-five-group-commit.raw",
+  "raw_index_sha256": "5e1cc0d1be38013c0844878b8b8e14d4453cb452b9304d8ea5d6f0721ffd05ea",
+  "raw_index_size_bytes": 561674,
+  "schema_version": 1,
+  "skip_worktree_paths": [],
+  "skip_worktree_tagged_path_count": 0,
+  "source_head": "d3546b707e980a2810cc60f8a8965ca719cbddc9",
+  "source_index_path_alias": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/termrock-pr38-shared-20261028/index",
+  "stage0_list": "index-after-five-group-commit-stage0-list.zraw",
+  "stage0_list_sha256": "f00cd01649e29229cc03952e764cd17165517192169984b47c0e6f8fe872d713",
+  "stage0_list_size_bytes": 467771,
+  "tag_counts": {
+    "H": 4077
+  },
+  "tagged_index_paths": "index-after-five-group-commit-tagged-list.zraw",
+  "tagged_index_paths_sha256": "9ef63120b31b8e21db56b38ec00e376f7d69069859856b951806fc6b421c0239",
+  "tagged_index_paths_size_bytes": 272075,
+  "worktree_status_clean": true
+}

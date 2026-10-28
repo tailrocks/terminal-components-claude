@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 5c0075a09eec51b805f15d79ad945d4fb51fb5bf Alexey Zhokhov <alexey@zhokhov.com> 1792515931 +0700	branch: Created from 5c0075a09eec51b805f15d79ad945d4fb51fb5bf
+5c0075a09eec51b805f15d79ad945d4fb51fb5bf 7d5246b1b487dccfca76648bf13be13e2577026d Alexey Zhokhov <alexey@zhokhov.com> 1792516483 +0700	commit: fix(theme): keep custom RGB downgrade generic
+7d5246b1b487dccfca76648bf13be13e2577026d 3a8b18362954da068e1c3418817fcb9d25c0ab37 Alexey Zhokhov <alexey@zhokhov.com> 1792516896 +0700	commit: fix(grid): apply reference edge fade in shared renderer
+3a8b18362954da068e1c3418817fcb9d25c0ab37 148c32c1bd7b646b032b3eaa739d1ee1338ecf2e Alexey Zhokhov <alexey@zhokhov.com> 1792516977 +0700	commit: docs(audit): qualify TablePro grid fade status
+148c32c1bd7b646b032b3eaa739d1ee1338ecf2e 03933c60fda380f72fb97d400769b6f8c6103e63 Alexey Zhokhov <alexey@zhokhov.com> 1792517100 +0700	commit: docs(handoff): preserve palette and grid repair state
+03933c60fda380f72fb97d400769b6f8c6103e63 9bd668c40d9861f2b4bcac7c282545fba5e8b60d Alexey Zhokhov <alexey@zhokhov.com> 1792517706 +0700	commit: fix(theme): resolve semantic splitter seam profiles
+9bd668c40d9861f2b4bcac7c282545fba5e8b60d f61c76a35d6dee4ed88f90fbd075a3c03e7147d1 Alexey Zhokhov <alexey@zhokhov.com> 1792517849 +0700	commit: fix(theme): invalidate recipe cache after mutable edits
+f61c76a35d6dee4ed88f90fbd075a3c03e7147d1 bd4f0411fd890d18c39454f652233179fd62133f Alexey Zhokhov <alexey@zhokhov.com> 1792518212 +0700	commit: fix(theme): preserve authored mono profile colors
+bd4f0411fd890d18c39454f652233179fd62133f b26f548722fbb1d5f036d978a1519cfb0fa833ad Alexey Zhokhov <alexey@zhokhov.com> 1792518478 +0700	commit: fix(theme): carry profile provenance through cached styles

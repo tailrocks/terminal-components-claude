@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 a58eee178a4bffac33ce7e17125655f0de5e5b0b Alexey Zhokhov <alexey@zhokhov.com> 1792237739 +0700	branch: Created from FETCH_HEAD
+a58eee178a4bffac33ce7e17125655f0de5e5b0b 74c2f60d411a370701c5c91b62d02da8e1218d58 Alexey Zhokhov <alexey@zhokhov.com> 1792238157 +0700	commit: refactor(tablepro): pages on shell::Router, frame from shell::Chrome (S14, CO14, A17)
+74c2f60d411a370701c5c91b62d02da8e1218d58 9d7a6ddae43a7a461f8192bf4da3c1aa16b6fe08 Alexey Zhokhov <alexey@zhokhov.com> 1792238399 +0700	commit: fix(tablepro): disconnect and quit through the leave guard (S14, K4, A6)
+9d7a6ddae43a7a461f8192bf4da3c1aa16b6fe08 b653f81110e262b282a638725c041a8100a3c5ee Alexey Zhokhov <alexey@zhokhov.com> 1792238519 +0700	commit: fix(tablepro): copies reach the clipboard and report the truth (S14, SC34)
+b653f81110e262b282a638725c041a8100a3c5ee 7209d1b01e1db2fc075cafc3d731d776c6a57680 Alexey Zhokhov <alexey@zhokhov.com> 1792238571 +0700	commit: refactor(tablepro): the app menu carries its commands in shell::Menus (S14, M23)

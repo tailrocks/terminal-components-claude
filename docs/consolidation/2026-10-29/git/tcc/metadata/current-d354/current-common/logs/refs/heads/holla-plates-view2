@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 40bc297e5f1b18f58f1466d5aaa8d80f19c051a2 Alexey Zhokhov <alexey@zhokhov.com> 1792595513 +0700	branch: Created from HEAD
+40bc297e5f1b18f58f1466d5aaa8d80f19c051a2 2f7e8c880a1b3e9b22e2030b1ab4448db121cfb1 Alexey Zhokhov <alexey@zhokhov.com> 1792598476 +0700	commit: holla: fold remaining size-keyed plate gates into frame predicates
+2f7e8c880a1b3e9b22e2030b1ab4448db121cfb1 779a9277a9f3eb7329f0b26784e4758467639986 Alexey Zhokhov <alexey@zhokhov.com> 1792598533 +0700	commit: docs: record concept-family frozen drift and final plate-gate fold
+779a9277a9f3eb7329f0b26784e4758467639986 555cd49dfb2004dd88238cb23ff88573cb14d542 Alexey Zhokhov <alexey@zhokhov.com> 1792600418 +0700	rebase (finish): refs/heads/holla-plates-view2 onto af0168f367c0d329a6bd3ebfe8b359a4ae74a97f

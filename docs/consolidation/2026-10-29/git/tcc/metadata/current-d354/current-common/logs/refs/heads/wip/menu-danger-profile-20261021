@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 a708390e2f32cde313f36c8c915a0e8146558560 Alexey Zhokhov <alexey@zhokhov.com> 1792548750 +0700	branch: Created from HEAD
+a708390e2f32cde313f36c8c915a0e8146558560 0b8b8e6ac961211871c5647824e653586b38cd7d Alexey Zhokhov <alexey@zhokhov.com> 1792549460 +0700	commit: fix(theme): align Junie danger menu states
+0b8b8e6ac961211871c5647824e653586b38cd7d 12691de798ceeb12f3d51ca65769483f31c7f057 Alexey Zhokhov <alexey@zhokhov.com> 1792549489 +0700	rebase (finish): refs/heads/wip/menu-danger-profile-20261021 onto 5b9cffdb05fb257f7416dc872e24e75865ad98c2
+12691de798ceeb12f3d51ca65769483f31c7f057 06cacfabbc6dd02a02afe4bb80cb62aacc33ba5c Alexey Zhokhov <alexey@zhokhov.com> 1792549693 +0700	commit: fix(theme): contain disabled danger menu states
+06cacfabbc6dd02a02afe4bb80cb62aacc33ba5c e68dbca213a152e9f6a641c7188fc304819ac493 Alexey Zhokhov <alexey@zhokhov.com> 1792549702 +0700	rebase (finish): refs/heads/wip/menu-danger-profile-20261021 onto 501cd02170cfb6cebab9be4c6ecb9e69425b475c
+e68dbca213a152e9f6a641c7188fc304819ac493 1ab4a877a19447cecfe2f6db39ef377242d4f52a Alexey Zhokhov <alexey@zhokhov.com> 1792550524 +0700	commit: fix(theme): match disabled danger menu ink
+1ab4a877a19447cecfe2f6db39ef377242d4f52a c69a38f9c20fd7f551515a2c743ac5e018ddba9f Alexey Zhokhov <alexey@zhokhov.com> 1792550535 +0700	rebase (finish): refs/heads/wip/menu-danger-profile-20261021 onto 4f40bb294da89bbfcb2a6716c88a3158427aa0b2
+c69a38f9c20fd7f551515a2c743ac5e018ddba9f 5b71374913dc4204633e4a6edbe077292bacd190 Alexey Zhokhov <alexey@zhokhov.com> 1792550606 +0700	commit: docs(audit): record incoming formatting blocker
+5b71374913dc4204633e4a6edbe077292bacd190 ec82158cf42ce43e1b22f75ec889b33ed4053361 Alexey Zhokhov <alexey@zhokhov.com> 1792550690 +0700	commit (merge): Merge remote-tracking branch 'origin/wip/menu-danger-profile-20261021' into wip/menu-danger-profile-20261021
+ec82158cf42ce43e1b22f75ec889b33ed4053361 1011159a72fc652ac1d849683ac03f9305502b8c Alexey Zhokhov <alexey@zhokhov.com> 1792551540 +0700	commit: fix(theme): resolve disabled ink against surface
+1011159a72fc652ac1d849683ac03f9305502b8c 2333079d6ba6f79f00a814c1c28cb44fff2c0aa1 Alexey Zhokhov <alexey@zhokhov.com> 1792552010 +0700	commit: docs(audit): record independent menu review
+2333079d6ba6f79f00a814c1c28cb44fff2c0aa1 6e8c90fc23da761cfbdc7d73a09cfa92b21082a7 Alexey Zhokhov <alexey@zhokhov.com> 1792552357 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

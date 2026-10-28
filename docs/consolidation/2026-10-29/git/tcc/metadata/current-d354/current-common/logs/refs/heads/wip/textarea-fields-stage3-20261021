@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 1ceed23e0a597fa6ec6e74ff09a211de6a5567fc Alexey Zhokhov <alexey@zhokhov.com> 1792532276 +0700	branch: Created from origin/parity/termrock-visual-baseline
+1ceed23e0a597fa6ec6e74ff09a211de6a5567fc ea553177c2c38995bfebd50085d41a2a963f826c Alexey Zhokhov <alexey@zhokhov.com> 1792532343 +0700	merge origin/wip/textarea-parent-window-stage1: Merge made by the 'ort' strategy.
+ea553177c2c38995bfebd50085d41a2a963f826c 19f2c451dd6f87ecda16e3062f442d1f28b2f842 Alexey Zhokhov <alexey@zhokhov.com> 1792532987 +0700	commit: feat(fields): add clipped TextArea window adapter
+19f2c451dd6f87ecda16e3062f442d1f28b2f842 61426b83dbf509b2e08a9e93458bc5f068b684d6 Alexey Zhokhov <alexey@zhokhov.com> 1792532994 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+61426b83dbf509b2e08a9e93458bc5f068b684d6 598d6f3082267cfed494336e732f74c146fd6cb6 Alexey Zhokhov <alexey@zhokhov.com> 1792533086 +0700	commit: docs(audit): preserve TextArea probe failures
+598d6f3082267cfed494336e732f74c146fd6cb6 a01cd9589ad829d50695c4a401aa472abd2438bf Alexey Zhokhov <alexey@zhokhov.com> 1792533794 +0700	commit: fix(fields): preserve TextArea parent window contracts
+a01cd9589ad829d50695c4a401aa472abd2438bf 25724c71d1c6062db09f9d44f6407c232b8a4e8e Alexey Zhokhov <alexey@zhokhov.com> 1792533852 +0700	commit: docs(audit): record TextArea probe green run
+25724c71d1c6062db09f9d44f6407c232b8a4e8e 332f40d07e38512f91cfb038eb9174c413755686 Alexey Zhokhov <alexey@zhokhov.com> 1792534208 +0700	commit: fix(fields): preserve captured vertical drag extension

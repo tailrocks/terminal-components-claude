@@ -1,0 +1,13 @@
+0000000000000000000000000000000000000000 6f68e22a6666c44c9f9cf726b4ddb895e6daf68a Alexey Zhokhov <alexey@zhokhov.com> 1792529791 +0700	branch: Created from FETCH_HEAD
+6f68e22a6666c44c9f9cf726b4ddb895e6daf68a d6cb7c37fb855d9874a1d511bd70f51e47fce6e9 Alexey Zhokhov <alexey@zhokhov.com> 1792530216 +0700	commit: fix(controls): define button focus visibility and busy lane
+d6cb7c37fb855d9874a1d511bd70f51e47fce6e9 2b3ef2987690cf9cf1f5ff55cd550c828c42125b Alexey Zhokhov <alexey@zhokhov.com> 1792530227 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+2b3ef2987690cf9cf1f5ff55cd550c828c42125b aa1d11a19f2bc71b188839bc74bd0e133617086d Alexey Zhokhov <alexey@zhokhov.com> 1792530455 +0700	commit: fix(controls): preserve focus activation under keyboard-only visibility
+aa1d11a19f2bc71b188839bc74bd0e133617086d adec59ba6780bfb83a3e9959473dea3d959f3c93 Alexey Zhokhov <alexey@zhokhov.com> 1792530460 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+adec59ba6780bfb83a3e9959473dea3d959f3c93 536ac2603663bff241fe4f11ac121a4045a8843e Alexey Zhokhov <alexey@zhokhov.com> 1792530508 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+536ac2603663bff241fe4f11ac121a4045a8843e 69e39a4b5503ac13f87f5bd7a653739321198b50 Alexey Zhokhov <alexey@zhokhov.com> 1792531340 +0700	commit: feat(theme): add button dot glyphs and focus-visible recipe
+69e39a4b5503ac13f87f5bd7a653739321198b50 57680388c78003c3b726ac614718fba3c9ef5606 Alexey Zhokhov <alexey@zhokhov.com> 1792531345 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+57680388c78003c3b726ac614718fba3c9ef5606 be4c5f14a953dd7f26f04123964102508e0e97b0 Alexey Zhokhov <alexey@zhokhov.com> 1792531407 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+be4c5f14a953dd7f26f04123964102508e0e97b0 9cf76f4653b48d5f8e6049a63e7f26ea6ef9d1c4 Alexey Zhokhov <alexey@zhokhov.com> 1792531434 +0700	commit: docs: record merged-tip theme gate failure
+9cf76f4653b48d5f8e6049a63e7f26ea6ef9d1c4 1aafe8f2fcc7167ebf73284735a1181bf712b121 Alexey Zhokhov <alexey@zhokhov.com> 1792532042 +0700	commit: fix(theme): retain scrollbar mono rule filter
+1aafe8f2fcc7167ebf73284735a1181bf712b121 f05e34046300f66aab705c6b5b62b697a2af9a55 Alexey Zhokhov <alexey@zhokhov.com> 1792532081 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+f05e34046300f66aab705c6b5b62b697a2af9a55 57ca512b3796b04e518a73b5fdfe7391f312c6f3 Alexey Zhokhov <alexey@zhokhov.com> 1792532082 +0700	commit: test(theme): cover scrollbar mono scope

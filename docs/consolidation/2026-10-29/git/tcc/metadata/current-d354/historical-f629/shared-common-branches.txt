@@ -1,0 +1,758 @@
+34b1e7008e581bd6fa2c69e6498ae2dbd24a2a8c refs/heads/a1-16colour 
+8b78d786cff12270e190d17c4128ce9063d1b85e refs/heads/a1-16colour-v1 
+8996bcc6bd4a126d17025ededb70e9d640cf2dbc refs/heads/a29-alt-hints 
+262ac2f73393e58b4ef4d09d9187922912e701e8 refs/heads/adapter-fix-save 
+a2d52e0dbabef2df2397ce00e922744bbca97ce1 refs/heads/agents-cap 
+b4ec756dc48d2d9b746f0b6c2c4911047c29b52b refs/heads/agents-rule origin/design/interaction-polish
+85cec55af843c49536662a2d1eeec0b15340f0fa refs/heads/alt-click 
+2fd38db94fbfeacec416e91f48fc6309b6ff86af refs/heads/app-reapproval 
+59ad5b38a28a1e038a78c74b70260504c5ae5ad0 refs/heads/apps-work origin/design/interaction-polish
+9201e4c9135380b2867b72c81fae9bd620f32e18 refs/heads/archive/tabs-key-groups-reviewed-9201e4c 
+dd71671df5ef19664fe21c6df9614dd840e840ce refs/heads/archive/terminal-clock-pre-rebase-dd71671d 
+ba55f25707ba2c7aac6ad7686b139738b371a205 refs/heads/audit-sync 
+55824ec3ba5d62aa2a743be3d83f9ef5d98e61ee refs/heads/audit/replay-origin-current-source-20261020 origin/audit/replay-origin-current-source-20261020
+aafd1fe7be6890ceda7225de388b1497127ae8f3 refs/heads/backup-agent-a 
+5c4d0ef9d9dbdc30a2035f5cb62ea6b24ea072bd refs/heads/backup/tablepro-integration-resolved 
+5fbb42ad1dc50782181de127e529f4069f7ba015 refs/heads/backup/tabs-item-marks-prelatest-rebase-20261023 
+9cde839de737d0bc5a06ea426ea04cfcb6e29b86 refs/heads/c4-a22 
+1e40e1c0862d527b74546212c39fc83a272dcf03 refs/heads/card-heading 
+c7e1d78204b456f51c45a80e1cbd336d8f5e7e1a refs/heads/chore/design-comment-cleanup 
+343ba09a8085ef6957404dc56b5f7a925282ef98 refs/heads/chore/latest-dependencies origin/chore/latest-dependencies
+71f7fc47ce00daf9b3b68c0fe9a49d3e6d07ea90 refs/heads/chore/rust-comment-cleanup origin/chore/rust-comment-cleanup
+ed1519e0bf446a8b5ad0471b40d4986e2d1893fd refs/heads/ci-holla-flood 
+f2f6eb716c4a512be3dc9423742fa06e86879b32 refs/heads/ci/design-rust-timeout-20261020 origin/ci/design-rust-timeout-20261020
+59af1c4f760387be455bc79d44be75f4416a63f3 refs/heads/ci/velnor-0.1.29-design-reviewed-20261020 
+a6929aeba7479d0b3a746f69d412a1ab701b5242 refs/heads/ci/velnor-0.1.29-main-20261020 origin/ci/velnor-0.1.29-main-20261020
+f990b02017cb332836d678364e0c951d2dee1573 refs/heads/ci/velnor-0.1.29-parity-regenerated-20261020 
+407d727f9f952bafcbb842e8be341ffb32120e4e refs/heads/ci/velnor-0.1.29-parity-reviewed-20261020 
+0429e8faa48813959fd7a9fdc86575dea79b278c refs/heads/ci/velnor-actions-0.1.16 origin/ci/velnor-actions-0.1.16
+4860d0350d5faebd9298cb92c0154ecf585b3d83 refs/heads/ci/zizmor-design-20261020 origin/design/interaction-polish
+e1325c04f5ffaa99af981155c3be0f9155892761 refs/heads/close-button 
+ed5147275456e01b5b469b5eca0bad6a63ace97d refs/heads/cmd-edit-keys 
+e10c753926c371b4b7718f460b4345ea5621b3ee refs/heads/colour-holla-jackin 
+b68b376bda8043667303c14794588a42e09fe30d refs/heads/colour-lib 
+f49d783cd4739696580f9e870ac6225e113405dd refs/heads/colour-showcase 
+67ddac8a818dd183c169878e2654065dda7162ea refs/heads/colour-tablepro 
+fb0cbea3c9f14a3bdfc1fff3af18aa75c0c56c29 refs/heads/coord/pr38-20261021 origin/parity/termrock-visual-baseline
+676936c8a9ca32d88996aae5f3b58d9836d56fcb refs/heads/copy-work origin/design/interaction-polish
+0318719de01fbef8d78c8c908ea14b528b9d80af refs/heads/copy2-work origin/design/interaction-polish
+b4a88a07ae8b5089be7df3f1c054bd6198b6a6db refs/heads/ctx-holla 
+fe4cbcff21cf90bcf1e5740aff80c63761c5e4d3 refs/heads/ctx-jackin 
+a96b943c1d6d20fb8fdfba77bd3832e2c5d0edf3 refs/heads/ctx-showcase 
+80a5ebfc0c3bcab4e82ae3797f50eb447543f569 refs/heads/ctx-tablepro 
+b5708408435b3b65d1b5891ce28f471c6df57630 refs/heads/ctxmenu-work 
+b148d2098182f81c5f420c682843835c8a594a78 refs/heads/deps-bump 
+a312f64be20b966370b056506303202e8c4e18c3 refs/heads/deps-upgrade 
+5b3dbd7ae799f325efbb4f4cc11b2f5518dec948 refs/heads/design/interaction-polish origin/design/interaction-polish
+cf601d283150273864cb1673ec1acaa55d9948b2 refs/heads/dialog-a27-a28 
+c4b62deccf0ff32383253f597d020084dc180c03 refs/heads/docs/branch-authority-cleanup origin/docs/branch-authority-cleanup
+70c56f472988f69be9e4680da302260f05826213 refs/heads/docs/documentation-followups origin/docs/documentation-followups
+1d35481674bdd79f5508def12233d0c9b72285b6 refs/heads/docs/interaction-reference-cleanup origin/docs/interaction-reference-cleanup
+09df933dc31f8c92528e57ae6810c0377c83cfb6 refs/heads/docs/parity-ci-status-20261020 origin/parity/termrock-visual-baseline
+b0edda802880473f5541dc71d18d5cfe5ecd991c refs/heads/docs/unified-documentation origin/docs/unified-documentation
+d66ef160cee0fb7915edad40c389de5e7ae08fe4 refs/heads/docs/unified-eight-branches origin/docs/unified-eight-branches
+ee436beb7f59ba1f63ceeca420b1625426642508 refs/heads/edit-entry 
+2db0ebce9e366698dd399b514ea53bcb6ee6a855 refs/heads/fields-work 
+b26f548722fbb1d5f036d978a1519cfb0fa833ad refs/heads/fix/palette-grid-contract-20261021 
+56a8547a48647d7158f6a288df6db4708f7b0f0c refs/heads/fix/picker-focus-and-rows-20261020 
+d81b9e9696fe806cd11502eb78649959787e5421 refs/heads/fix/showcase-shell-chrome 
+8644321f3aa8b5697e8e4e55c4d972971949d967 refs/heads/flake-new-tab 
+17da8b036698ff2397e8b418ed6a072bae9953dd refs/heads/focus-work 
+b362cac9be920a114d8b0851d81726b546b57d9f refs/heads/followups-work 
+3018e067bb6f495a46f2f30e3e17c9bb86cd01e3 refs/heads/footer-peek 
+1d9d16a9b8e803e34976e63d888ecde8d034131d refs/heads/gate-via 
+8149379470465b4673860e7cd9c34e4d0f981f2a refs/heads/glyphs-work 
+8cc66a3c2750d4a5302fd17cc2b26c0080536f56 refs/heads/goal-doc 
+d9e569bf6fd33d90266db597c458442c729340ad refs/heads/handoff-docs origin/design/interaction-polish
+45bc3b2241bd4c388db3ed4d6d2e45d36ad031a7 refs/heads/harness-bugs 
+acc6b1e0c252987c5555168229ec1bdea7346e15 refs/heads/harness2 
+ab6631d90db142dc0b620ffb3bbafffaa4639be2 refs/heads/harness3 
+f0cb83a02f9bcebe3dcb00da87cd111ddb937825 refs/heads/hints-work origin/design/interaction-polish
+ac7ef0eac4cd81d8fabf0cda85585dc839e1d887 refs/heads/holla-accept 
+541bb0da05d6bf17f28d663cc61e0fdaaef8d3ee refs/heads/holla-plates-view origin/parity/termrock-visual-baseline
+555cd49dfb2004dd88238cb23ff88573cb14d542 refs/heads/holla-plates-view2 
+fbd55ba8f6a365386124f6078c73ef0cd6a8958b refs/heads/hscroll-work origin/design/interaction-polish
+d283a154967a823dda725dd3af615998bbd3ddb5 refs/heads/inactive-selection 
+ad86aaca1b987ecb395b7ca9f8717dd79f62f784 refs/heads/integrate/conformance-corrections-20261021 origin/parity/termrock-visual-baseline
+af0168f367c0d329a6bd3ebfe8b359a4ae74a97f refs/heads/integrate/theme-provenance-pr38-20261021 origin/parity/termrock-visual-baseline
+7013df32a8aeb041d0f7459b0357a1a0693f35c5 refs/heads/integrate/unique-0722f4f9 
+8d8051bad399b07136b60116a6b82bc0553aa994 refs/heads/integration/accounts-inspector-geometry-20261023 
+0536893d456e0458c0cdb37464b710ce029d1847 refs/heads/integration/showcase-heading-stage2-20261023 
+ff608ddebdc5df03b4919af24eb0226c405050df refs/heads/interact-work origin/design/interaction-polish
+9570530a3c6123269174311e20ca84dc3dfd6ac8 refs/heads/jackin-a25 
+5f5b64e75c639e869779bc4287e9a8b15990827c refs/heads/jackin-reapproval 
+83758d825a4dad339f67aa5523c4d8438bb1d0fe refs/heads/jackin-stale 
+7bace224b25d5d31a89488516fb3ddbdec7d2c2d refs/heads/kb-safety 
+0c13d9b7ad94e51de449d666f84ab35845fc9a67 refs/heads/keymap-work 
+0fad384c0850dd842ccc1db748a9303c3bbd9e4a refs/heads/land-reach-b 
+3f49fd33806c9e24af1488aa3e9f258edbf96e04 refs/heads/land-reach-b-full 
+bab5bf66bfd1ea5432b64823b2632bb4efa23ac8 refs/heads/layout-work origin/design/interaction-polish
+2d9eb4cc667e8948501b0400572f8bd1f0a5f488 refs/heads/ledger-finalize-20261020 
+a7c5b49bb77cc75ec7d5e38d7115bee57d42dddc refs/heads/main origin/main
+942b869d7b719773870687d5bc39f164110bfd59 refs/heads/mise-tools 
+1cee36e985543131a8956642cdf909027ee65270 refs/heads/mouse-f1 
+49ccae0acd807e83e1888c239154d816782745b3 refs/heads/mouse-f2 
+9315b44f123203e5e4cacaad7cfe5d5722618415 refs/heads/mouse-f3 
+47d7340f40940cf60a9117a0c13353620f4f3d38 refs/heads/mouse-f4 
+d92c2e6d8f7dc7b7a0edfd48d46aec34d8e9f2ad refs/heads/mouse-f5 
+c70ad727d00513785a018260ff26cc102e75c3d9 refs/heads/mouse-f6 
+476a89f235cb1415eb7e203b7281749d9cb3af88 refs/heads/mouse-nav 
+1e022b3a5cfd37c42843768f0200ba313530833f refs/heads/mouse-widgets 
+610d04b0e7c5211c06d5c29bc8daff92c95069f2 refs/heads/nav-followups 
+8207fbd009a3ced805e07ac734572cbd65078de7 refs/heads/ordinary-cli-profile-port-20261020 
+44d0ef0fd92a2883e4cf91da192191865a691b73 refs/heads/p0-filebrowser 
+804b9f8b4994ae02352a2c344fd8544dd8ed90f5 refs/heads/p0-layout 
+2ff3629ece9471685186f6ba6ea72f2c66cf8cdf refs/heads/p0-meters-notices 
+1303aea53850da3bb2020e33237808aab0de7954 refs/heads/p0-screens-a 
+706b4a68c0f2468123529bbb7ed387e8819108c0 refs/heads/p0-screens-b 
+08af0b70f47c53b068ebcca103d38a419b13e009 refs/heads/p0-screens-c 
+f0ca48e42f2cad982a91327646ff761fb4f4b1f2 refs/heads/p0-template 
+919cd85bb88dbc377e2aef823a4e9962f7797df2 refs/heads/panel-work origin/design/interaction-polish
+461c7d1e1a33ecbc6fad2ec143353bbd578e4aa0 refs/heads/parity/acceptance-architecture-20261020 origin/parity/termrock-visual-baseline
+42c4ccacb7bda4945ff44c901fdd079b485624d7 refs/heads/parity/audit-paths-20261020 origin/parity/termrock-visual-baseline
+98900f3e11e4cd34835dec5902694ed260125aee refs/heads/parity/binding-runtime-20261020 
+2d65740b717a86fbc5701c0286f7b35454ea5332 refs/heads/parity/button-contract-20261020 origin/parity/termrock-visual-baseline
+2289a4f4768a787af767da5fcf0819fe01cade66 refs/heads/parity/buttons-reference-decision-20261020 origin/parity/buttons-reference-decision-20261020
+2de0d01255390d2a02b7775ee452268782802a38 refs/heads/parity/ci-cleared-integration-20261020 origin/parity/termrock-visual-baseline
+8beaf2865b922fbea0ae082f914367d1fed64609 refs/heads/parity/ci-planning-fix-20261020 origin/parity/ci-planning-fix-20261020
+e7c4be2e52bc9877ba5edc9930235cceab19a336 refs/heads/parity/cleared-cli-integration-20261020 origin/parity/termrock-visual-baseline
+12e760e81ddf31d2956a2a05af567abfc64d7769 refs/heads/parity/code-completion-composite-20261020 origin/parity/termrock-visual-baseline
+1a150420b0faa8784f56ccdca3cda01d16d8778e refs/heads/parity/completion-manual-fixes-20261020 origin/parity/completion-manual-fixes-20261020
+cf1ff91536fdb402325eb6716856eec4688c106c refs/heads/parity/completion-primitives-20261020 origin/parity/completion-primitives-20261020
+8cecb53b26470f7de6edfe6bbc95b25711cf1570 refs/heads/parity/composition-fallible-20261020 
+69605184c97d34e10e937189743f5d2454be6d28 refs/heads/parity/composition-leaves-20261020 
+6e81c0034989b11321e64cc2da0bb617c37b896c refs/heads/parity/composition-plan-final-20261020 origin/parity/composition-plan-final-20261020
+be674ef8799c55bc3700cdd36f519cafebc95bed refs/heads/parity/composition-slots-20261020 origin/parity/termrock-visual-baseline
+10ab21cdb33939ec5ead16b1923c8f91a4bf5cb8 refs/heads/parity/composition-slots-runtime-20261020 origin/parity/composition-slots-runtime-20261020
+f2f6eb716c4a512be3dc9423742fa06e86879b32 refs/heads/parity/design-ci-audit-20261020 origin/design/interaction-polish
+27e1837a79d5035aaa1d2911d16b5921ca8ad643 refs/heads/parity/dialog-dismissal-contract-20261020 origin/parity/dialog-dismissal-contract-20261020
+86226a2442f37621bbef91dd50b9b7bc3104659b refs/heads/parity/dialog-layout-contract-20261020 origin/parity/dialog-layout-contract-20261020
+12a24761ff9da2019f2c04ad63b21db9e92da5c7 refs/heads/parity/edit-menu-overlay-20261020 origin/parity/edit-menu-overlay-20261020
+45b4ca679272b4b3c8948139cd87c1473d652bbf refs/heads/parity/empty-style-reference-fix-20261020 origin/parity/empty-style-reference-fix-20261020
+de7cc53dbe8483f7e44837e469efbc9577f1455b refs/heads/parity/field-continuation-20261020 origin/parity/field-continuation-20261020
+a60fb0b7e6e698a63d273e61d4fb12d71cca8da9 refs/heads/parity/fix-retired-layer-focus-20261020 
+12ab1458facd213bae7a8a1b1f2c1125e65b4261 refs/heads/parity/frame-semantics-20261020 
+8681124d2cbbc75ef8ed998b5918883039a022c5 refs/heads/parity/frozen-cli-design-20261020 origin/design/interaction-polish
+e6b4fc6f6df0b74c5f86e9c8817576ab5d88110d refs/heads/parity/frozen-cli-runner-20261020 origin/parity/termrock-visual-baseline
+b6d75a22d79dd20cdd12fb53f2e03a7c7bad02b6 refs/heads/parity/frozen-table-workflows-20261020 origin/parity/frozen-table-workflows-20261020
+ad5c91f97ec3039c9f5924dbf8e901a49ffb3bfc refs/heads/parity/full-cli-runner-20261020 origin/parity/termrock-visual-baseline
+adc6d0e3f668818f6f8321310452db6806c123cc refs/heads/parity/grid-cell-inset-20261021 origin/parity/termrock-visual-baseline
+23a3fac940f24a499b532b0ef580f19355715043 refs/heads/parity/item-row-palette-reference-20261020 origin/parity/item-row-palette-reference-20261020
+a01a99f3b89f8f00dfb72210fc62f608f7cec149 refs/heads/parity/layer-geometric-center-20261020 origin/parity/termrock-visual-baseline
+eba2423164e679a2b5cdfd842aad060bea0dff6d refs/heads/parity/layout-plan-20261020 
+29ff641f4598755d6897442a9191b3c031529646 refs/heads/parity/live-cli-integration-20261020 origin/parity/termrock-visual-baseline
+d9c631dad2cc6f7db0789d4747e1d871e95c088a refs/heads/parity/live-frame-support-20261020 origin/parity/termrock-visual-baseline
+1ca91e1421e812e582a9681e8ba2a56e66127e97 refs/heads/parity/master-detail-20261020 origin/parity/master-detail-20261020
+c4ad0be1edd08991c67a62ee5cd3b8acb045387d refs/heads/parity/menu-cleared-integration-20261020 origin/parity/termrock-visual-baseline
+c02ea120935a9f5fba7bcc713b08136fc199b11e refs/heads/parity/menubar-hover-20261020 origin/parity/termrock-visual-baseline
+ea9f6f4400af7ad57a9af9a7c1387eb00c6133ff refs/heads/parity/migration-matrix-20261020 origin/parity/termrock-visual-baseline
+7195d29782fba5ae5040cc56ac900bb48f517381 refs/heads/parity/nested-composition-20261020 origin/parity/nested-composition-20261020
+bfdcea778262df118dbd4554a580830ef72c2c8c refs/heads/parity/nested-composition-consumer-20261020 origin/parity/nested-composition-consumer-20261020
+d3e5647c87aeb33cab03b378fe0f7111718ff3a0 refs/heads/parity/nested-modal-reference-20261020 
+c0c0f148b54c3459ee157de19dd49ca84bb3b447 refs/heads/parity/note-reference-color-20261020 
+0d7f38bac1ce4420036d930e1f90ad05459732de refs/heads/parity/ordinary-cli-partition-20261020 origin/parity/ordinary-cli-partition-20261020
+d1c27e36b450fa2431c9106d3da29163d4e58691 refs/heads/parity/picker-baseline-policies-20261020 origin/parity/termrock-visual-baseline
+993853af454c3fa3d91fb06e874fd16494736c7e refs/heads/parity/picker-consumer-20261020 origin/parity/termrock-visual-baseline
+4ef7353f7985dcf171906913d26a33b83e037f09 refs/heads/parity/picker-contrast-integrate-20261021 
+0416a30146fc39b73ec320935620a692c4d88814 refs/heads/parity/picker-family-contracts-20261020 origin/parity/picker-family-contracts-20261020
+6b72d77a6e3914557e862d0f8490f9cfcc01c5b8 refs/heads/parity/picker-geometry-20261020 origin/parity/picker-geometry-20261020
+fe158fb56be6bffb30309521b5b71f778f26f39f refs/heads/parity/picker-query-component-20261020 origin/parity/picker-query-component-20261020
+3854a862ad3fdaa4d9a3a876e3679cea73e917a2 refs/heads/parity/picker-scope-20261020 
+801e6c94892703bde5309e3daa31f37c3a727910 refs/heads/parity/picker-stack-integration-20261020 
+f58da2694d8ebd85193930af89a291507d8a1f3b refs/heads/parity/picker-title-20261020 origin/parity/termrock-visual-baseline
+50c783569e9ec45c0c7f84679c33ebeb1a1d4250 refs/heads/parity/pr38-palette-final-20261020 origin/parity/termrock-visual-baseline
+636028fa130b2a0f841badb3ba93aa2330b907d6 refs/heads/parity/pr38-palette-reviewed-20261020 
+b0a3bea5a486c4b67a83a10ec5463c690c590208 refs/heads/parity/pr38-reviewed-merge-20261020 origin/parity/termrock-visual-baseline
+e597618d6576a725538a70d71250fd81c6599c28 refs/heads/parity/pr38-style-delivery-20261020 
+c52aafc2f266842c1743151dd379c3a38ca990bc refs/heads/parity/runtime-crate-timeout-15-20261020 origin/parity/termrock-visual-baseline
+7c1a092ab7cfa37002f06e505cd4577f133750f4 refs/heads/parity/runtime-fields-binding-query-current-20261020 origin/parity/shared-style-integration-current-20261020
+ffc3b25efb4879a598e180d924daa5d37d721aab refs/heads/parity/runtime-fields-integration-20261020 
+0cf26d54ecf53adec8a925050882d6a65d736f02 refs/heads/parity/runtime-layer-contracts-20261020 origin/parity/runtime-layer-contracts-20261020
+ce81e0adee987812788effd39d70acd242b0e95b refs/heads/parity/runtime-picker-allocation-20261020 origin/parity/runtime-picker-allocation-20261020
+94f937deb192d1678476b5b1d4c2e4511b75627e refs/heads/parity/session-cursor-parity-20261020 origin/parity/termrock-visual-baseline
+5b6a2312199c4b59c6d21a190d83f4e2069529cf refs/heads/parity/session-cursor-policy-20261020 origin/parity/termrock-visual-baseline
+5ca3c4f205aed4719d6558f2bbe9829a6321bdae refs/heads/parity/session-cursor-prepared-port-20261020 
+db31adf1e7329c63c8e81e6e9fc981803781ed3c refs/heads/parity/session-startup-20261020 origin/parity/session-startup-20261020
+a6c748e5283e2ce66de1713c204268970060bb45 refs/heads/parity/shared-components-20261020 origin/parity/termrock-visual-baseline
+1a947a251ab9b045610b47729bf481419b9fca8d refs/heads/parity/shared-semantic-integration-20261020 
+e72dbb15369d541ee86095f6caaee3f7e4680828 refs/heads/parity/shared-style-integration-20261020 origin/parity/shared-style-integration-20261020
+2863bf6e7f011c321088263cce12d423b16d73d3 refs/heads/parity/shared-style-integration-current-20261020 origin/parity/shared-style-integration-current-20261020
+708420d470cc333867efaf0738faf21a3cd15a79 refs/heads/parity/shared-style-regressions-20261020 origin/parity/shared-style-regressions-20261020
+4a0ab4983b84b4909d0182a323eb6e1714651691 refs/heads/parity/shared-style-review-20261020 origin/parity/shared-style-review-20261020
+60138e17c6a16814039fd3cd84074b5ab0f4b895 refs/heads/parity/showcase-button-consumer-20261020 origin/parity/showcase-button-consumer-20261020
+70b7f9e6c196b57d1b13aee56ac6d6a17e6db388 refs/heads/parity/strict-accounting-fix-20261020 
+f0899c71b1e06ebdd5181c85488c8f0fd916adea refs/heads/parity/table-component-20261020 origin/parity/table-component-20261020
+4de22cf527456ea7db0f03617651df9ef3ba003a refs/heads/parity/table-consumer-20261020 origin/parity/table-consumer-20261020
+000a510a73be466d6d149c3cc863c91da9963704 refs/heads/parity/tablepro-bless-20261023 
+1ac6dfced934a3015a7c90bc3006ccf2de0287a2 refs/heads/parity/tablepro-footer-focus-20261020 origin/parity/tablepro-footer-focus-20261020
+4ab81ae474b86ca3f3c74fe6e79328c20f7c6826 refs/heads/parity/tablepro-live-contracts-20261020 origin/parity/tablepro-live-contracts-20261020
+366dc67c9546abb59176df9398ee0b772d87d99d refs/heads/parity/tablepro-picker-live-20261020 origin/parity/tablepro-picker-live-20261020
+8462bf28aadabd76833e11395e6237e66468efe0 refs/heads/parity/termrock-reviewed-contract-integration-20261020 
+026ac39f01fbf9c6b673cf982feb51f71e5dfcfc refs/heads/parity/termrock-visual-baseline origin/parity/termrock-visual-baseline
+a099f3e242d262ea9f67f993450cde497746fbb3 refs/heads/parity/text-runtime-editing-20261020 origin/parity/termrock-visual-baseline
+14ba9bb35c4b48b232fbb672d73dcc8454c94239 refs/heads/parity/text-section-20261020 
+95cdc7bdb111dc1b683a638b421dae718bb29643 refs/heads/parity/theme-palette-baseline-20261020 origin/parity/theme-palette-baseline-20261020
+8533344520cfdf12734c1c149fc89ec946b3ea46 refs/heads/parity/velnor-design-upgrade-20261020 
+e7961cee0f377530e0aa5f35fcca63b5cfc76de5 refs/heads/parity/velnor-parity-20261020 
+9a17b2e0508eda9943f9303b7c14a607c7fdf0d6 refs/heads/perf-work origin/design/interaction-polish
+3ae37ec31527679670938a7a8829f1cf2941ba3b refs/heads/placement-work 
+697435886514a5f1de9e7517d00b339970393140 refs/heads/plan-s0 
+f78e2b60d81913795f173c0043d2792d28dab9e7 refs/heads/plan-s1 
+89adbb215e7021791b16233e56ea169dd76da4b0 refs/heads/plan-s10 origin/design/interaction-polish
+21b725e4559291fb20171ac541b10b4a4cf30d0f refs/heads/plan-s10-pre-a1 
+35dcf56c1962e577ee9f4e2437336656d0fc76f6 refs/heads/plan-s11 
+ae0accd41e918ae7b120a55d0fc11b35c7746a11 refs/heads/plan-s11-m31 
+8c3d468512f93cfbbe47e9551bd2b6c981ce7a63 refs/heads/plan-s12 
+b436c6ebf4317b4da84172c28587893d24804d8b refs/heads/plan-s12-a 
+791c8df9425c74e34f4a82219f8857d45df1a48c refs/heads/plan-s12-b 
+af51d1c29421263d2b5b33b34473db051af1fb2d refs/heads/plan-s12-c 
+74bb268ba94c3d42f0aa64567644905e6c7f6939 refs/heads/plan-s13 
+ce603b854e643cf10626100b000b6c23a145eb71 refs/heads/plan-s13-edit 
+d67f78dce6a50b78826a09dc8778d9c389b52881 refs/heads/plan-s13-edit2 
+fc7e40f2ddd6e72ed0bd47f159407c2f21d77986 refs/heads/plan-s14 
+49f36e9e86a1dfcae5f60eaabbbeceef24ac8178 refs/heads/plan-s14-holla 
+9e8f6a33a727f0801bdcbf675d43b873708ee081 refs/heads/plan-s14-jackin 
+7209d1b01e1db2fc075cafc3d731d776c6a57680 refs/heads/plan-s14-tablepro 
+2f014008a4c01fb46f7d83ca4184e9c4b286e3bd refs/heads/plan-s14b 
+b249a81be807879212bd4bf50a9246aff5c18d60 refs/heads/plan-s16 
+c46766dfa27dedb719846bb841b02554780c6214 refs/heads/plan-s17 
+25751aadb4d2c5c827ec2581bea91c8eee3b5519 refs/heads/plan-s2 
+87c0d55a2abfa4c96f05a5dfe059d716f708a334 refs/heads/plan-s3 
+86491237c47ff061b6cec6fd9205780375cc2e86 refs/heads/plan-s4 
+d9037390d1805438f09f15445cd5a37021550d54 refs/heads/plan-s5 
+7606cd962abd06a13fd4f99abae360fde4726108 refs/heads/plan-s5-holla 
+521e1437e1463d242a04603c9fc42c5bf1e451af refs/heads/plan-s5-jackin 
+742a84ff1c18df79a33a7c9dd23938c6832c4fd5 refs/heads/plan-s5-tablepro 
+e9d2406b7337118dfba7fd3252bad3811f9d753f refs/heads/plan-s6 
+639f351caf0630f3226586e1fc48cbcdc6bca746 refs/heads/plan-s7 
+0d1979d22df11df1599dad8ce80db813421a32de refs/heads/plan-s7b 
+8fd421ce8b525dd5f85a44cb4bcffe20d07796d4 refs/heads/plan-s7b-k8 
+850c3e95ffeb565761489cca81b81dd22b7bb9ea refs/heads/plan-s7b-showcase 
+1615bb31774dcae5b5c640bc1e296b2f1e061fea refs/heads/plan-s7c 
+bc99a174950df15fbb675be5357e6523878587fe refs/heads/plan-s8a 
+f48a9cf64448a4c5db9b32df36cafab7bc02d4de refs/heads/plan-s8b 
+4d4085811e1c79e297d53a3f0571ed1ab5660b19 refs/heads/plan-s9 
+bfa9b2a1020cc1b69f8e0e7ece6e6379f5c902a5 refs/heads/plan-work origin/design/interaction-polish
+14f74a3603477faaf589d118592e12f1123aa0fd refs/heads/preservation/recovery-custody-20261022 
+8dd608246fccdae1ee233d7abee3f8d53ca92e07 refs/heads/preservation/recovery-custody-continuation-20261022 
+7e8da69c0930b72ed4209576ece820b78301292e refs/heads/rapps-1-wip 
+d2493943c80a491bb923bd68a6b928993e0615bb refs/heads/rapps-2b 
+e0dd924b0b8a107f0785fc004493399bd54e3dfd refs/heads/rapps-458 
+454b7bff11679fb062c51d489df6850c3ee4dcac refs/heads/rapps-6-1 
+f55fd2274197c0a235e0885e3cc5827062b887e1 refs/heads/rapps-6b-2 
+362044c075d8b960630ee5eaf565221ebbc6f142 refs/heads/reach-a 
+81be99a79c5158a27713d4f6f0ed06f6f4e1faf0 refs/heads/reach-apps 
+6fb9e9d8d80e24a83bf4f1e101e1ce1d1ae74057 refs/heads/reach-apps-wip 
+13a64608cd0ab62fc62c5b20679e7dc614ab0540 refs/heads/reach-b 
+13a64608cd0ab62fc62c5b20679e7dc614ab0540 refs/heads/reach-b-wip 
+395b175a9b0f57e982cde410b56cb8043b7b75bf refs/heads/reach-c 
+267a8d08575765f4e77a732eaa87aeec27986719 refs/heads/reach-r34-r44 
+6f8a4b3af77c134092318b727cbecdf34fdc2c2a refs/heads/reach-r45-r51 
+d7d8b750a799b4e2f8c607cb1cd7d263c7b35565 refs/heads/recovery/accounts-inspector-click-stage2-20261023 
+05a703330be95565d07f55afaf8132eef727d87b refs/heads/recovery/accounts-inspector-geometry-20261023 
+5ec532e053ba0f35ae1161eab7c4bffe27a9d21e refs/heads/recovery/accounts-row-click-20261023 origin/parity/termrock-visual-baseline
+f1fbd446a12e7861fad29f304760b5cf137ba06c refs/heads/recovery/button-gutter-author-style-20261023 
+8363ebf4395d597ed01dc39b0d5e12ddafe0121d refs/heads/recovery/empty-loading-wrappers-20261023 origin/parity/termrock-visual-baseline
+60d24bd0891c9fba8635c70124b33b0d665c65e5 refs/heads/recovery/generic-wheel-event-local-20261023 
+14d45f8bc3f1612bf6549f5e415343124f9d203e refs/heads/recovery/list-fade-20261023 
+54031f6fa5e6ba9a8dc57d0baaff1f30115d256d refs/heads/recovery/list-fade-original-20261023 
+9bec50776796c7463544962389fd2ba97cd49ead refs/heads/recovery/list-single-chosen-cursor-20261023 
+7c314085aa5478249ad9fa169a5ec2c0f0fa7df0 refs/heads/recovery/list-single-enter-commit-20261023 origin/parity/termrock-visual-baseline
+baff81944881480320f9033be3d6bd8c4a806875 refs/heads/recovery/list-single-enter-integrated-20261023 
+207ec17a5d395c159909dc8a84d9eecd6763d323 refs/heads/recovery/lists-selectall-consumer-20261023 
+dbc450bd8b13b6e1db1aa1796613834fff61f27a refs/heads/recovery/middle-button-input-20261023 origin/parity/termrock-visual-baseline
+a7ce290643b9a86930032399c7d3e531adf93d93 refs/heads/recovery/no-false-parity-boundary-20261023 
+509186581ca6dbcc8f57a829dae9821ded803438 refs/heads/recovery/notice-cut-metadata-20261023 origin/parity/termrock-visual-baseline
+241d3fa0cbb5957d5846b3b9f9863f641f786bda refs/heads/recovery/notice-passive-hover-runtime-20261023 origin/parity/termrock-visual-baseline
+ed67f3969c53f9e8d3f14bc19cf7714adcf8fe3d refs/heads/recovery/notice-pre-window-20261023 
+29ceee4af1ea336d5a3b249c904089ea6b56ba50 refs/heads/recovery/notice-reveal-stage2-20261023 origin/parity/termrock-visual-baseline
+4dec34f1ab9d66e40b13a6fba6bb783400de090a refs/heads/recovery/pos-of-integrate-20261023 
+d34bd917cc6aee5b0cc12d75fec75f443ed4f7e0 refs/heads/recovery/rowui-glyph-before-meta-20261023 origin/parity/termrock-visual-baseline
+0c7f09eb2c9d09a57cd1098be065e4f32b17afb0 refs/heads/recovery/rowui-label-end-20261023 origin/parity/termrock-visual-baseline
+0dd22cb1303e89c4d26cdf8a5caef9373f240aa9 refs/heads/recovery/rowui-label-middle-20261023 origin/parity/termrock-visual-baseline
+8bb0ebb3085fdeff85d158bf0e1a519c959051b5 refs/heads/recovery/rowui-meta-outcome-20261023 
+101f8a6ddf0abdac362d6a66cb891b72b7406812 refs/heads/recovery/settings-short-height-20261023 
+5df07efec580756de3e33a276930022daaa0c7d5 refs/heads/recovery/showcase-heading-stage2-original-5df07ef 
+f70fc2330d069a93bd114be694450c202f101233 refs/heads/recovery/showcase-heading-stage2-original-f70fc233 
+887f0da5c22b25146a0ff5c5f8c566d1fad6d277 refs/heads/recovery/tablepro-null-order-20261023 
+cc08976e2675f476b6c03799716589fa6efbed1f refs/heads/recovery/tablepro-save-flow-20261022 
+c3edd7cf98fd849a7b8e413c8dbf3c3890c1693c refs/heads/recovery/tabs-auto-focus-context-stage-a-20261023 
+82f9c9b97409ef3241be779c2566591137efc035 refs/heads/recovery/tabs-passive-pre-tree-20261023 
+e63fe6e99012903bef4ee9786719c103ec10586c refs/heads/recovery/terminal-clock-20261023 
+c1f8c72e7a10f15bfa461440d39b4c4ad5f95a8c refs/heads/recovery/test-expectation-adaptation-20261022 
+9bf11df1f9150f1806a974009194aaa7b3b6eeca refs/heads/recovery/three-contract-docs-pre-rebase-20261024 
+1f678394e0cfb16d54f724e706e9fa25bfbf7891 refs/heads/recovery/visual-replay-20261022 
+3f49fd33806c9e24af1488aa3e9f258edbf96e04 refs/heads/ref-full 
+315a39522ae97857ec45a1b981da831e7a118706 refs/heads/remaining-work 
+f633191bf06c994d4bc6a4542b814c283e63376d refs/heads/reprioritize 
+ebc0ebaad86c3b473cbd8fd9f40d1ce255a759f9 refs/heads/responsive-apps 
+f35a07d699e1f19ed458e551044f9c7ffc5daf84 refs/heads/responsive-lib 
+3485a4e7a08c015229877d66c848bf96cac86e49 refs/heads/restore-reason origin/design/interaction-polish
+664cf12ecae72b8d68954b12ceeffbd42ac0c33f refs/heads/restore/holla-scenario-names 
+f70d6007441a0eaaa55ed30ad0f0c7822b236b23 refs/heads/reveal-b-fork origin/design/interaction-polish
+2c0a2c46a29e9163317f6ea535e66f25ead0d501 refs/heads/reveal-perf 
+2f874907478c40506793f18590ded87628f189c7 refs/heads/reveal-work origin/design/interaction-polish
+0e42f6b3d21d5d34e9a7f3d34c0597420cc1e6f2 refs/heads/rule-default 
+725c6ef7d195f716952aa91a2e26cc9eb3355c3f refs/heads/rules-shared 
+833e10e20a4149cb788e0dac8af1150213880197 refs/heads/rules-standards 
+95f62ca33eaf7b02fc5a2551572fa3258b81a880 refs/heads/s14-followups 
+57a5b17b77dccbf3e32a0a390c763e746dfb25ae refs/heads/s14b-tip 
+b0d8b45cc44d1f2db6acd41389e3da8e78e87953 refs/heads/s2-followups 
+5b9a37413adb97e67f78c44950f5ab3bec36dfa9 refs/heads/s6-contract 
+99808c45a0790268d4283b0e76247e8a7dab2cd7 refs/heads/s6-frame-backdrop 
+a2e19cf45f62ba2a7de98e45171f94d2748fa467 refs/heads/s6-holla 
+072b4eca83c1f6ad06bbb294be8585b0ddb5cec9 refs/heads/s6-jackin-preview 
+3da920200d6e5c89551d73a091b6d5bcadba69f7 refs/heads/s6-showcase 
+cd7d9791270aeeba8ce59250aa9cf6cfa232b4c3 refs/heads/s6-widgets 
+87ae53c037d78691bb877c75e62e663b96e818da refs/heads/sc-group-a 
+e69a21374a3cdddb267099cf9f3ab92ced534148 refs/heads/sc-group-b 
+13ffc575e5e17b794bc37e7b1848d5de5330cffe refs/heads/sc-group-c 
+7fb21545e19380c773871b567487b05e0154d66d refs/heads/sc-group-d 
+1ec63b73794283be6cbb88564e48c1f9a5da2b40 refs/heads/sc-group-e 
+dd07b59b25bb8245123fdde032b0857bd562fad8 refs/heads/sc-group-f 
+395e4d61f4e964e6a6644f1b87256f96c212c41d refs/heads/sc-group-g 
+9ae6afc7ecd226bca34f87ab6db9ad9edb7b0590 refs/heads/sc-group-h 
+71c5320eb912c21cd53e0bdb83905a2440b41d8e refs/heads/sc-group-h2 
+325b3fd89ca2bad4f060d71217d92ea76c0b1347 refs/heads/sc0-gate 
+106a2646340a7221173bddcb530f267b3e7d26af refs/heads/sc1-options 
+c7a5764cba0c907cdc888a1385fe4197f9f4e82e refs/heads/sc2-template 
+d583c135cadd3ea4bc4775a4b734e110e337c80f refs/heads/sc30-gate 
+59ce59886bf07b5c6e38de4218a00f980ba16175 refs/heads/scroll-track 
+3d9b58dc077d791e81f17989364404a0c0611baf refs/heads/select-all 
+56c802ccac07a43f30d14e35c6ecdf3cc93d3b62 refs/heads/selectable-table origin/design/interaction-polish
+76f6d52f58a98aac036ad9a3d1f69cc41b562f9f refs/heads/settings-drift 
+0149b3f936f61ab14b152c8d86ca512b79b663e9 refs/heads/shared-plan 
+5fea4ac9bce0d8db09c9af16246abff6c4bc1089 refs/heads/showcase-plan 
+ab8a9c67063038a1ba1851b361e38610ac8ded71 refs/heads/showcase-tables 
+a5794f06a5f36de0767ad866063ca4bf99e45b1b refs/heads/sidebar-panel 
+2d4262375cdedaf21af117f2eec49c0aff09fd5a refs/heads/splitter-states 
+82bbd1458c40f2d15fce9f07d494e45d2c128f39 refs/heads/states-work origin/design/interaction-polish
+f2f6eb716c4a512be3dc9423742fa06e86879b32 refs/heads/subagent-Branch---Architecture-Auditor-self-2f29cd74 
+e35912bb2f5e4380a08115d642218117622c7738 refs/heads/suspend-work origin/design/interaction-polish
+a6015a06e3261d5da0eeebc8183ec62a257a6d79 refs/heads/tab-gutter-decision 
+489508353e203551bb205c7295e8fc65d256d7fd refs/heads/table-t2-t3 
+0b371f9be4271eea751652739d78b154f5eac782 refs/heads/task/help-catalog-count-20261023 origin/parity/termrock-visual-baseline
+d8fd898fc1b12f65f2072bb8bfe362b4cd20ea58 refs/heads/task/paired-process-receipts-20261021 
+9c1e2dc77f0e60c7bada6c463656302ce491ebb1 refs/heads/task/receipt-delivery-20261021 origin/parity/termrock-visual-baseline
+bc3a9cfa91cbf20324a6077e2690cb43f51772a6 refs/heads/thumb-tabs 
+05f4f28b1c375191615654d5a7eb5fb6926997ce refs/heads/tuiscotti-adopt 
+078a8612dc00137f8a563e768ac0b4a3e97139c0 refs/heads/tuiscotti-work origin/design/interaction-polish
+8c66a19f24f65a9dcfb28a806c7022428f2370b3 refs/heads/typeahead-shortcuts 
+226ce5f990a0ca8fcb6f6ceb5f9c491755bc9c43 refs/heads/upstream-loop 
+9daa6f9387d0c0c0d916106953763e3e88b24707 refs/heads/upstream-prompts 
+922ec6753b358e10bfd99b052837acb6d2926deb refs/heads/upstream/tuiscotti-pr11-rereview origin/design/interaction-polish
+c1a49af0f6ade36838c6330ce8a034e8d589ea79 refs/heads/v1-showcase 
+cff6d79dec6b49daa329ee3819d61516d63140f9 refs/heads/v12-timed 
+684ee66809a4fff6f22921380b9904de53932c4f refs/heads/velnor-019 
+abaae3eea28d2056afffd58ce122832be7b71137 refs/heads/velnor-155-adopt 
+56a137c78907204f6086dff7436e7e5a63c2c04f refs/heads/velnor-rust-pin 
+70076d91bd3d2addbcad98f82cae03a2b96524b2 refs/heads/velnor-work origin/design/interaction-polish
+ca56bdc2ff3f380f6db828f50be687f0b01c2d2c refs/heads/viewport-hscroll origin/design/interaction-polish
+e5ac39fcd7548835ac04e7616f26172f7e253b45 refs/heads/visual-harness 
+19cc6edd7fef3daac844a8fa9b33c0a182c574e8 refs/heads/visual-v4-v6 
+7f64edff2a4a1366cb4e6154843ca3b09af2f194 refs/heads/widgets-work origin/design/interaction-polish
+f5b538137bc06624762a5901ecf0a16f63b931a9 refs/heads/wip-reach-pages-a 
+160b1c328fef990cda622d5c7fb9bb370ce50009 refs/heads/wip/action-variant-builder-20261021 origin/parity/termrock-visual-baseline
+cf48be987ee61680c14035d9b15e88dd8e1c9290 refs/heads/wip/ansi16-shell-chrome-20261021 origin/wip/ansi16-shell-chrome-20261021
+5018a764724ff275b7fd21cef58a23a4ac5e44f1 refs/heads/wip/arch-remediation-20261022 origin/parity/termrock-visual-baseline
+310a56de62e0d2e87a647ffd58b9b5cec9c0a744 refs/heads/wip/baseline-cohort-admission-20261021 origin/parity/termrock-visual-baseline
+37f704c9dfb6e485d5e75c9073deb41fb60fe016 refs/heads/wip/branch-consolidation-20261021 origin/wip/branch-consolidation-20261021
+98aa14d2d79322294b9f7b699b19999c838b823c refs/heads/wip/branch-consolidation-E-20261020 
+2ba9652954ee34479288a3d7aa65656e17fecce5 refs/heads/wip/button-mono-marker-20261021 
+be1ef0e320332b6ce32b8b0f8e3e401389451bb6 refs/heads/wip/button-narrow-unicode-20261021 origin/wip/button-shared-contract-20261021
+165ef0ef132527ac78897fb2cec57e8f9865abc4 refs/heads/wip/button-pressed-profile-20261021 origin/parity/termrock-visual-baseline
+57ca512b3796b04e518a73b5fdfe7391f312c6f3 refs/heads/wip/button-shared-contract-20261021 
+9cd3f9f733065b452d13926ca0ae28049c0840dd refs/heads/wip/canonical-stage1-owned-20261021 origin/parity/termrock-visual-baseline
+4e04be07a15377f902316633e859c41a9ba50d58 refs/heads/wip/canonical-stage2-owned-20261021 
+f82b2bf4a3983da8c6e11306bfd9dabbd6c9c9e4 refs/heads/wip/canonical-verify-owned-20261021 origin/wip/canonical-verify-owned-corrected-20261021
+ca4aff6fb5c0dc22416e88e6a1d6d90abea34375 refs/heads/wip/ci-doc-inventory-20261021 origin/parity/termrock-visual-baseline
+25f5792666cefcb1d51d56fcb973fd06a15b8741 refs/heads/wip/ci-testing-features-20261021 
+706c138339c22bbd113ea449cf28d1c23c119764 refs/heads/wip/ci-upgrade-handoff-20261020 origin/wip/ci-upgrade-handoff-20261020
+671443b89133dda618fb661cdf65e2d8edbd0664 refs/heads/wip/code-editor-meta-precedence-20261021 origin/wip/code-editor-meta-precedence-20261021
+979acbe0f3b7125d51f8f5cae2c25e786adbd544 refs/heads/wip/cohort-capture-adapter-20261021 origin/parity/termrock-visual-baseline
+1d27eaac67d12868291e58fb980836781f6adc42 refs/heads/wip/component-digest-drift-20261021 origin/wip/component-digest-drift-20261021
+5f4bca1279b017b91f476a7b944cc4710015c648 refs/heads/wip/conformance-cleanup-20261022 origin/parity/termrock-visual-baseline
+22366ab816b95ed71be970b4ea541fc332cb8e86 refs/heads/wip/conformance-driver-corrections-20261021 origin/wip/conformance-driver-corrections-20261021
+2e8f4b19e5865b663f7f5bdedcd40ecef3f65478 refs/heads/wip/conformance-semantic-fixes-20261021 
+160b582355a060f859e9ce64f4f71b12a1e82f80 refs/heads/wip/conformance-semantic-fixes-20261021b origin/wip/conformance-semantic-fixes-20261021b
+1dee009130ca11876a8d5e53e04fe1046edb9888 refs/heads/wip/context-menu-live-contract-20261021 
+64ef4a9d02e14aedd2c3ff1afbe9c02b06f8ef0e refs/heads/wip/controls-adopt-rate-limit-20261021 
+5b3097acab788ed4e189bc7e6aab27f1b6a6ee65 refs/heads/wip/coordinator-preserve-dirty-parity-20261021 
+11178e154f49243526014d5d41c55db468c917bc refs/heads/wip/danger-token-tag-wins-20261022 
+fa5f100a46df89bf0348b114ce649b72c2f432af refs/heads/wip/diagnose-component-digest-drift-20261021 origin/parity/termrock-visual-baseline
+05875f028f27b45805805b0529cd8b66b2dd1051 refs/heads/wip/dialog-header-contract-20261021 origin/parity/termrock-visual-baseline
+8a9af56bcb39d3fe810191fc8da85d149996eccf refs/heads/wip/dialog-primary-action-20261021 origin/parity/termrock-visual-baseline
+9eec48b778f11b89860e8025bb5f99308a4b4364 refs/heads/wip/diff-page-stage1-20261023 origin/parity/termrock-visual-baseline
+03dec11ba99ada90e9b5c4a33bb9a5e7e4b59813 refs/heads/wip/diff-review-responsive-20261023 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/wip/digest-base-20261021 
+849d26dad78477a7bb0e78a68d59794af4fca81f refs/heads/wip/digest-probe-20261021 
+d39b09e607eaa0a19b88853a07ae530da702593d refs/heads/wip/dim3-per-source-ink-20261022 origin/wip/dim3-per-source-ink-20261022
+45b8a8020663df109d71d84f39f553836d1a0b82 refs/heads/wip/dim4-page-paint-20261022 origin/parity/termrock-visual-baseline
+c9357a9efbaaf995eee00390183d3c82631caa03 refs/heads/wip/domain-seeded-lint-20261021 
+b82ce794deb7b4d2ca5fc16db8a03e5b1c4bd049 refs/heads/wip/editor-backtab-dedent-20261021 origin/wip/editor-backtab-dedent-20261021
+3133b9a984daa6a4dd2d03cf2aaf3397a8453a18 refs/heads/wip/editor-live-contract-20261021 origin/parity/termrock-visual-baseline
+d975bf6fe05958a2616f6eca246f4bdeda637caf refs/heads/wip/esc-vocabulary-integrity-20261021 
+fd1e65243d1f64ea2a6f54ffb09e072c8c369899 refs/heads/wip/external-public-consumer-20261021 origin/wip/external-public-consumer-20261021
+737c67aadc8dd154082a175ed4762deb61a476db refs/heads/wip/feedback-private-context-20261021 origin/parity/termrock-visual-baseline
+7b073316c089c494e84db801d6bfb861db75224c refs/heads/wip/fill-keep-fg-20261021 origin/parity/termrock-visual-baseline
+c346aff507351d1490f55caa3a6de7c8347a6853 refs/heads/wip/form-data-measure-20261021 origin/parity/termrock-visual-baseline
+7c46c63f0c6e99d26c872758fc941a3ffa270f23 refs/heads/wip/form-dialog-20261021 origin/wip/form-field-layout-20261021
+2f6193e6e2f396100a2a11cbdc83899a3acfd0ee refs/heads/wip/form-field-layout-20261021 origin/wip/form-field-layout-20261021
+1b9bd580e5f46dff23630a8c15c85e7f14cf7c4e refs/heads/wip/form-pointer-pr38-integration-20261021 origin/parity/termrock-visual-baseline
+ae32d3ff812aa436eb5d6c15eb155d9b8d59502a refs/heads/wip/form-textarea-window-20261021 
+19e626de813fa74872ba8eaf13d5df96f7b548dc refs/heads/wip/forms-dialog-combined-check-20261021 
+3a424a15cbc0e7213d92c0bab5e98f381296e555 refs/heads/wip/forms-dynamic-dialog-resize-20261021 origin/parity/termrock-visual-baseline
+2b99f81f670d6b1db06629c219732f65542f50a8 refs/heads/wip/four-app-comparison-run1-20261022 
+5498217f55cd6760583b434a82536a2a28017bf5 refs/heads/wip/holla-bless-adjudication-20261022 origin/wip/holla-bless-adjudication-20261022
+64d9a80f42d533ff57e3115c2bc1b6baa9e9024d refs/heads/wip/holla-clock-gates-2-20261022 origin/parity/termrock-visual-baseline
+d4133a38a054fab19a8ab012eb27276a62e6a254 refs/heads/wip/holla-clock-gates-20261021 origin/parity/termrock-visual-baseline
+2c58386344d73b4ac3552498f776ba428603f8c8 refs/heads/wip/holla-false-parity-20261021 origin/parity/termrock-visual-baseline
+63a0f9ccc69f4d3fda80dd46be8748677f886bc9 refs/heads/wip/holla-geometry-blocks-20261021 origin/wip/holla-geometry-blocks-20261021
+51a17fa1dd92d25f092e3bcf1121457df2766a5e refs/heads/wip/holla-home-migration-20261021 origin/wip/holla-home-migration-20261021
+06b9fe0b88722303ea6a4d00cf6adbe66a568cb8 refs/heads/wip/holla-home-row-composition-20261021 origin/wip/holla-home-row-composition-20261021
+378b7987798d82a708abc2619f899e620cc9b215 refs/heads/wip/holla-menu-patch-precedence-20261021 
+aec8661ec2e3ab9c602f1b4efed2806072a58751 refs/heads/wip/holla-nav-header-policy-20261021 origin/parity/termrock-visual-baseline
+098fcfcdab8e0ac33a45819b131bc1dd58098bf8 refs/heads/wip/holla-rate-limit-20261021 
+d5e8688bd3027b5bcff79494529bb17a86e238b0 refs/heads/wip/holla-rowui-column-contract-20261021 origin/parity/termrock-visual-baseline
+eb82d6e1526cd55f21cdc66590b9ff36d7606deb refs/heads/wip/itemrow-legacy-fixture-20261021 
+32628b360f6015fe4ef49c805c0e45e8264a874d refs/heads/wip/itemrow-metadata-contract-20261021 origin/parity/termrock-visual-baseline
+82f72560d850b95293b1539974fe377b496fe055 refs/heads/wip/jackin-accounts-fixes-20261022 origin/parity/termrock-visual-baseline
+4246661e5c57d79e7ca564cadb079dbd1be22535 refs/heads/wip/jackin-app-layer-20261021 origin/wip/jackin-app-layer-20261021
+64d9a80f42d533ff57e3115c2bc1b6baa9e9024d refs/heads/wip/jackin-bypasses-20261022 origin/parity/termrock-visual-baseline
+773a1ca1d161e2d3ed69f6700498adf3de9c4b84 refs/heads/wip/jackin-false-parity-20261021 origin/parity/termrock-visual-baseline
+62378ec97ee58821ddf2d7663e1da07d48258c0c refs/heads/wip/jackin-false-parity-removal-20261022 
+de819fb1ca4e30790e869b1b9eed004109cab3aa refs/heads/wip/jackin-live-capsule-menu-20261021 origin/wip/jackin-live-capsule-menu-20261021
+c2adfcd1e1db9ed5ac98534b17f9c808bc14d36c refs/heads/wip/jackin-rate-limit-20261021 
+45b8a8020663df109d71d84f39f553836d1a0b82 refs/heads/wip/jackin-size-gates-20261022 origin/parity/termrock-visual-baseline
+5dfff7f20f8adfeb9c0438040ee0b3db58bcc0b1 refs/heads/wip/jackin-usage-20261021 origin/parity/termrock-visual-baseline
+ef23c3303cba9f05e5bbd1a370a56128244ab79e refs/heads/wip/legacy-palette-probe 
+7126662c97dc2a49a41e3ab35a6bd23976e2e6de refs/heads/wip/list-multiline-viewport-20261021-v2 origin/wip/list-multiline-viewport-20261021-v2
+dc7d2ce76b12c6ca5ccb8cb50f5c8afa4964bf4d refs/heads/wip/local-plate-before-dialog-49da9ae 
+621997e7dd4885613d528a339b945a04c197e0a8 refs/heads/wip/manager-composition-interop-20261021 
+e0026278649d215d88ca3231ba4720f7c8ae16e7 refs/heads/wip/master-detail-block-stage1-20261021 origin/wip/master-detail-block-stage1-20261021
+f861b24518132a0f8e1ba177fab88f67da82a188 refs/heads/wip/master-detail-policy-20261021 origin/wip/master-detail-policy-20261021
+ababd6e737c8913ea718e4c37cb56117a3ddf8f3 refs/heads/wip/master-detail-pure-layout-20261021 
+9399ef27d05a46d06b5e978b5d145219a2765e03 refs/heads/wip/matrix-recovery-coordinator-20261021 
+8679d5c6138ab44330d7091cfad252de3707a4d2 refs/heads/wip/matrix-recovery-sparse-20261021 
+02dde9678d3d2d3a6940659025a6551735bdb8d7 refs/heads/wip/menu-cursor-theme-contract-20261021 origin/wip/menu-cursor-theme-contract-20261021
+6e8c90fc23da761cfbdc7d73a09cfa92b21082a7 refs/heads/wip/menu-danger-profile-20261021 
+38148abafc448e9f75f72f79339f86d650832895 refs/heads/wip/menu-disabled-reason-20261021-a7f2 origin/parity/termrock-visual-baseline
+098aacd5035a94eb739ed08ac17cc4fd279d95ff refs/heads/wip/menu-underlay-fill-20261021 origin/wip/menu-underlay-fill-20261021
+13556cdda90e516b2c95ab68c51b3f1eed9f0e90 refs/heads/wip/nav-column-rows-20261021 origin/parity/termrock-visual-baseline
+9a550edecc55ee99b170ff31ee51957895aeb1ee refs/heads/wip/nav-list-composition-20261021 origin/parity/termrock-visual-baseline
+fcb0d8d2fb32859c2aea03c3135fbe42955e9a7b refs/heads/wip/nextest-doc-inventory-guard-20261021 
+2f987b2a6018ffbe4827685bace94849e1f81d09 refs/heads/wip/oracle-adjudication-20261022 origin/wip/oracle-adjudication-20261022
+cab4b913271babbcae5aac35b92bdf9626dfc9a6 refs/heads/wip/overlay-dialog-tests-lint-20261021 
+1f0d0ce4f7294ce39173d1cc74f832ebfe60834e refs/heads/wip/owned-fresh-plan-lifecycle-20261021 
+ec0a422ba6b46ddd87091c948b5b44854dcc83ff refs/heads/wip/owned-runner-ordinary-phase-20261021 
+4a0f8da7f37e61ae1898d315e2f04bc2d0269646 refs/heads/wip/palette-rate-limit-20261021 
+c60830f8a3b7279aa2046be7d3e7b6ca9984896a refs/heads/wip/palette-test-integrity-20261021 origin/parity/termrock-visual-baseline
+ef7e04a91713739e99460bc4839d5c0fb066d855 refs/heads/wip/panel-composition-20261021 origin/wip/panel-composition-20261021
+6cd63d2270b85dac30c63018070e00ed80510925 refs/heads/wip/picker-card-layout-20261021 origin/parity/termrock-visual-baseline
+c932adb5ee29ef8ed9f90cc022c39cb9c0472e5d refs/heads/wip/picker-row-contrast-20261021 origin/wip/picker-row-contrast-20261021
+f46caa2ce68966d319ffbb4cf03428e8234368f3 refs/heads/wip/picker-row-default-precedence-20261021 origin/parity/termrock-visual-baseline
+cf854b9e5a3f73096e07f473cced123f59a3542e refs/heads/wip/picker-short-footer-regression-20261021 
+70e04be37adebd43a26af1e4ae14b73ee7298ca4 refs/heads/wip/plan-s16 origin/wip/plan-s16
+8e976098d1dda36acf446334c05e88a9d0e40c39 refs/heads/wip/pr38-completion-verify-20261021 origin/wip/pr38-completion-verify-20261021
+0fcfe667504b1e516c3beb43574f7d92a20b9e41 refs/heads/wip/pr38-digest-classify-20261021 
+0fcfe667504b1e516c3beb43574f7d92a20b9e41 refs/heads/wip/pr38-grid-mono-20261021 
+0fcfe667504b1e516c3beb43574f7d92a20b9e41 refs/heads/wip/pr38-help-overlay-20261021 
+15fe73ca71fc543eaa0773f34f5232366a36dff9 refs/heads/wip/pr38-integrate-20261021 origin/parity/termrock-visual-baseline
+0fcfe667504b1e516c3beb43574f7d92a20b9e41 refs/heads/wip/pr38-picker-hover-20261021 
+0fcfe667504b1e516c3beb43574f7d92a20b9e41 refs/heads/wip/pr38-scroll-thumb-20261021 
+585ed5c0906318d4aa58bb94979bebf7b6508325 refs/heads/wip/preserve-dirty-parity-20261021 
+60a68fd1eb5d2e5cefee174bc822eacbf8c7e28f refs/heads/wip/props-dialog-contract-stage1-20261021 origin/parity/termrock-visual-baseline
+fc861e15af48089fc606e83d3b7bf4bf28b0aacf refs/heads/wip/public-consumer-contracts-20261021 origin/wip/public-consumer-contracts-20261021
+bfdc8a1a14ddde6b5c869a5a6a8eb8a669fee361 refs/heads/wip/radio-navigation-contract-20261021 origin/wip/radio-navigation-contract-20261021
+b76517cec3a25d91d465329b5e99d6217beef93f refs/heads/wip/rapps-3-7-14 origin/wip/rapps-3-7-14
+3cb2198dd6ad26921dd519f4c420c7060d144f92 refs/heads/wip/reach-pages-a origin/wip/reach-pages-a
+37e21b8a4796b61208ec36ae563af7ac71e2a2d7 refs/heads/wip/reach-pages-a-2 origin/wip/reach-pages-a-2
+cb2e2a41bb1f4b7f5c1092cfaaa34041cb98e1f6 refs/heads/wip/readonly-caret-runtime-20261021 
+dfb54cfc5dd9511b214a68677eb213492df897fd refs/heads/wip/recolor-provenance-20261021 
+6db2d2dce2dc61273dfb24900d870ed3f7d4d84a refs/heads/wip/recover-composition-adapters-20261022 origin/parity/termrock-visual-baseline
+e2856d5d1daa707759c39659a9c564479a62b747 refs/heads/wip/recovery-toolchain-20261022 origin/parity/termrock-visual-baseline
+161284db95710d9d2d0290a28a31fc7fd53da838 refs/heads/wip/resize-presentation-guard-20261021 origin/parity/termrock-visual-baseline
+93cda321dbe57a046b26750bf983b16166555909 refs/heads/wip/review-api-boundaries-20261022 origin/wip/review-api-boundaries-20261022
+01e15c2a3fcef3f080e6ddbcad41b0350fc8803e refs/heads/wip/review-runtime-correctness-20261022 origin/wip/review-runtime-correctness-20261022
+c3e3637925db07019bef92277e64a4689a24dedf refs/heads/wip/review-test-integrity-20261022 origin/wip/review-test-integrity-20261022
+07c6df0ef6314839df29abaa020d7ff6b6fa3909 refs/heads/wip/review-ui-ux-20261021 origin/wip/review-ui-ux-20261021
+e1d81b106cf69a947c19870bdc1e72c53eadf417 refs/heads/wip/rowui-container-width-20261021 origin/parity/termrock-visual-baseline
+243af5b6e1f54993db4b84aa484c994b61c62623 refs/heads/wip/runner-atomic-step-20261021 origin/parity/termrock-visual-baseline
+482cdaf48c42d8355a173e1faeee74e159c46d0b refs/heads/wip/runner-failure-integrity-20261021 origin/wip/ci-doc-inventory-20261021
+067a253d19714f23559f0907e9b3f48a9bbcd72f refs/heads/wip/runtime-focus-measure-20261021 origin/wip/runtime-focus-measure-20261021
+02742e48d58ce319ce98e64095ad86cb1709f5a3 refs/heads/wip/runtime-modal-backdrop-20261021 origin/wip/runtime-modal-backdrop-20261021
+19fcb24b68137cf009ef16aa329da3250d73f1c6 refs/heads/wip/s14-followups origin/wip/s14-followups
+36b9a06509c991600956679e43295de27a2fd1ca refs/heads/wip/scroll-majority-correction-20261021 
+215c71df6caf22c2d28032b1f3c588fbfc780168 refs/heads/wip/select-composition-adapter-20261021 origin/wip/select-composition-adapter-20261021
+e2aa73189bb3f3a2509140f39e43eca8788b1731 refs/heads/wip/session-chrome-locked 
+9c0f151d60c508d931b2b4faa4bf93f61662aa1e refs/heads/wip/session-consolidation-20261021 origin/wip/session-consolidation-20261021
+0abfee9e6882bfad5ee2549e761f89ebb2e5225c refs/heads/wip/session-typed-input-20261021 
+ee669114e8ade4ba1ad7f882085741eeaa259f5f refs/heads/wip/shared-column-spec-20261021 
+1d7fdb224a7c68e5946e8747fb9f92365ebcbef1 refs/heads/wip/shared-design-working-tree-20261020 origin/wip/shared-design-working-tree-20261020
+b2bcf918cd013874199b4aaaa8d53d9aa43966ab refs/heads/wip/shell-empty-doc-guard-20261021 origin/parity/termrock-visual-baseline
+8e2761d096e3f92a7b9003d7918a5ce3236cf4f5 refs/heads/wip/shell-geometry-contract-20261021 origin/parity/termrock-visual-baseline
+92bd50821017f01d89612d0f3a78dd6dfa5af59b refs/heads/wip/shell-reach-rustdoc-20261021 
+d9968601420e3f8d7d2612a2f3ac7b01cda62431 refs/heads/wip/showcase-app-layer-cleanup-20261021 origin/wip/showcase-app-layer-cleanup-20261021
+f4518ac3a599a2666f99aa815fc41b6fa8147b38 refs/heads/wip/showcase-baseline-rebless-20261021 origin/wip/showcase-baseline-rebless-20261021
+6e68fb0cf87c3007b6853764ee2ee29656c20ed9 refs/heads/wip/showcase-coverage-gate-20261022 origin/parity/termrock-visual-baseline
+f4db11270438c9e3a4059561af27bb60e82e346b refs/heads/wip/showcase-dialog-kinds-restoration-20261021 origin/wip/showcase-dialog-kinds-restoration-20261021
+59a4eae3bfc4b3a420f3999864efb763a7523573 refs/heads/wip/showcase-editor-live-20261021 
+095cafc1e4fbe202dab61aa84f95e9ed412b8474 refs/heads/wip/showcase-false-parity-20261021 origin/parity/termrock-visual-baseline
+b40dd49bd3e2fbc57a4c647206351f920ca8ea9f refs/heads/wip/showcase-form-pointer-reveal-20261021 origin/wip/showcase-form-pointer-reveal-20261021
+3315102643548f247272e149199b8a575068882b refs/heads/wip/showcase-heading-fixtures-20261021 
+30001296a007e445dd65351549db070f45d9af35 refs/heads/wip/showcase-heading-fixtures-20261021b origin/wip/showcase-heading-fixtures-20261021b
+f70fc2330d069a93bd114be694450c202f101233 refs/heads/wip/showcase-heading-stage2-20261023 
+e2015b881437a1714af56a9570d99361610040a2 refs/heads/wip/showcase-page-fixes-20261022 origin/parity/termrock-visual-baseline
+8997fd295fac600597dea013a73a7d9e49548182 refs/heads/wip/showcase-pages-migration-20261021 origin/wip/showcase-pages-migration-20261021
+eb1eded0d48adb02dbcde1a741d3e6ab8e477c61 refs/heads/wip/showcase-progress-local-pause-20261023 origin/parity/termrock-visual-baseline
+04a37e1bb63583a34948620897655dd057d7dd86 refs/heads/wip/steps-shared-contract-20261021 origin/parity/termrock-visual-baseline
+c2396b45622d0ae2a3cb836756612d8354abb2db refs/heads/wip/style-conformance-20261020 
+fa02fa54a6151c43cccd56d61e096f4a87808f13 refs/heads/wip/table-consumer-baseline origin/wip/table-consumer-baseline
+6849f9a60122afe04c9902e04343a228f2a2e970 refs/heads/wip/tablepro-app-layer-20261021 origin/wip/tablepro-app-layer-20261021
+8992262f4c75c7eadf6730f7fa270385ad6003aa refs/heads/wip/tablepro-blank-database-validation-20261021 origin/wip/tablepro-blank-database-validation-20261021
+f0760cc204afc533e202604d0437f913b72bfd10 refs/heads/wip/tablepro-blank-domain-20261021 
+764f24da29d08208a10b61c1a4ba06fa5759791b refs/heads/wip/tablepro-false-parity-20261021 origin/wip/tablepro-false-parity-20261021
+3cdbc322f4f643731ffc78bcc797567101cb0139 refs/heads/wip/tablepro-geometry-blocks-20261021 origin/wip/tablepro-geometry-blocks-20261021
+136a567e89f90e7a17141945eff82ffc69b61ad0 refs/heads/wip/tablepro-grid-perf-20261021 
+5cd181530ba61781cf6a2c69d97895a9b0741275 refs/heads/wip/tablepro-grid-scroll-embedded-input-20261021 
+b51a6af038f9a8e77e57235291e98611ffe9d158 refs/heads/wip/tablepro-integration-20261022 origin/wip/tablepro-integration-20261022
+c8f92ea0c0df2bc13a507e97b14ef6f65a90ea48 refs/heads/wip/tablepro-name-prefix-20261021 
+d40f8e5fb7e47dca8c971c718559f840e9ba693d refs/heads/wip/tablepro-picker-scope-20261021 origin/wip/tablepro-picker-scope-20261021
+3bab23ecfcc9cedbdea22700328737282dfa06ae refs/heads/wip/tablepro-query-focus-contract-20261021 
+8ec5d042eb2a16e5d66ec49fd1291154e1cdd5e8 refs/heads/wip/tablepro-strict-clippy-20261021 origin/wip/tablepro-strict-clippy-20261021
+3a624d92329cc6c6d1bf9764f0bf5205b625962b refs/heads/wip/tabs-auto-focus-20261023 
+1b25a540764662457e553bbc478e98288b588930 refs/heads/wip/tabs-close-reveal-20261023 origin/parity/termrock-visual-baseline
+ebc8fb7be716ced621788a270eac310e728089ce refs/heads/wip/tabs-close-target-danger-20261023 origin/parity/termrock-visual-baseline
+959b667f4709288f757d02f56df668801bf5ca26 refs/heads/wip/tabs-close-target-danger-rest-20261023 
+1c75b543fb7067d654c1b4ad98540246aaef1f2f refs/heads/wip/tabs-digit-jump-20261023 
+7304b2e138cf06c894affba4455c6bb539b8d2a2 refs/heads/wip/tabs-item-closability-20261023 origin/parity/termrock-visual-baseline
+339b814b0c778cab95e3b0a05ba9efdd11323953 refs/heads/wip/tabs-item-marks-20261023 origin/parity/termrock-visual-baseline
+9201e4c9135380b2867b72c81fae9bd620f32e18 refs/heads/wip/tabs-keyboard-groups-20261023 origin/parity/termrock-visual-baseline
+4c855286e2ccb86447568bc40a4bad8c45150832 refs/heads/wip/tabs-middle-close-20261023 origin/parity/termrock-visual-baseline
+5a7110f634ddfdc5a7d736ed127c2bd9d8e5e723 refs/heads/wip/tabs-nav-profile-20261023 origin/parity/termrock-visual-baseline
+d90527663f0368e3f0f3f5d916aabd5114b313d5 refs/heads/wip/tabs-passive-20261023 origin/parity/termrock-visual-baseline
+0662e0a272fe670b2f201feb9b712ccdc8b43c75 refs/heads/wip/tabs-rule-policy-20261023 origin/parity/termrock-visual-baseline
+c4b5e3fc1ef162a11bcc0cfb5746e0cddf8a60b8 refs/heads/wip/tabs-semantic-layout-20261021 origin/wip/tabs-semantic-layout-20261021
+eb068f3a53b20ed12ab86d52aee73042948b940e refs/heads/wip/terminal-view-input-owner-20261021 
+045801f3f4fce84c4880085cf40ee783e0ae06bf refs/heads/wip/termrock-library-gaps-20261022 origin/parity/termrock-visual-baseline
+8e7480415a065eac03c0fdfbdd0810edeb85b186 refs/heads/wip/termrock-theme-typed-slots-20261021 
+c942fa0981f3c0accd728b485dad98719998d68b refs/heads/wip/test-integrity-repair-20261022 origin/parity/termrock-visual-baseline
+27f65eaef5be18313c6527c5ba5f9e32062d70d4 refs/heads/wip/text-input-focus-select-20261021 origin/parity/termrock-visual-baseline
+332f40d07e38512f91cfb038eb9174c413755686 refs/heads/wip/textarea-fields-stage3-20261021 origin/wip/textarea-fields-stage3-20261021
+67377aad3c3ab9b36acac47cb48f6c594172907a refs/heads/wip/textarea-parent-window-stage1 origin/wip/textarea-parent-window-stage1
+a178975dbd9aa899ae32f3ea3c820a6fbfb25882 refs/heads/wip/theme-declaration-provenance-stage2a-20261021 origin/parity/termrock-visual-baseline
+4507e7de2b730985bc3e8f5478f6cd68be9b51a3 refs/heads/wip/theme-field-hover-20261021 origin/wip/theme-field-hover-20261021
+2ce39f5cc33a9af53d2794ee429279fc17e75d1e refs/heads/wip/theme-literal-clippy-20261021 origin/parity/termrock-visual-baseline
+b16bc773de2a83a349f9f95f66daa3d485bb6a69 refs/heads/wip/theme-palette-adjudication-20261021 origin/wip/theme-palette-adjudication-20261021
+847ccc74208e5ed3277bc4f3dd8fa6958e682713 refs/heads/wip/theme-variant-profile-contract-20261021 origin/parity/termrock-visual-baseline
+92c4ac9b712e2b81214048adacf5472f286ef3ea refs/heads/wip/tree-composition-adapter-20261021 origin/wip/tree-composition-adapter-20261021
+6cc98ab0fbd2f5dc404115d8470a868a8d981665 refs/heads/wip/typed-dialog-props-slots-20261021 origin/parity/termrock-visual-baseline
+68651fba7168f5789ec72224ec76c312ed9f8fc9 refs/heads/wip/v1-showcase origin/wip/v1-showcase
+9cc5cba3b33176c46ff840f40d39c6650f683500 refs/heads/wip/velnor-0130-pr38-20261021 origin/wip/velnor-0130-pr38-20261021
+2e81cb9ee64f0073e849d862bbc0c85f6647fe15 refs/heads/wip/velnor-0131-pr38-20261021 
+bd517d7cda5a4178b84542d07fa7db7c61d48701 refs/heads/wip/velnor-0132-pr38-20261021 
+dc5ade35e5ffafc1b8df73eccbf7872144b6d1fc refs/heads/wip/velnor-actions-0135-20261021 origin/parity/termrock-visual-baseline
+507c232073b6877c6563b7d24e11450fbc2d56c4 refs/heads/wip/velnor-actions-0136-20261021 origin/parity/termrock-visual-baseline
+8a817200815d73fbc7ecc440c7e27011c5d52b10 refs/heads/wip/viewport-contract-repair-20261021 origin/parity/termrock-visual-baseline
+8be128f073c19076a2977e349e8732cd74f08821 refs/heads/wip/visible-terminal-cursor-20261021 origin/wip/visible-terminal-cursor-20261021
+b6edfb567ebf6939fc22892b4666b9717a446db0 refs/heads/wip/w4-holla-selector 
+2f412fb89e6924fa6acc460af16dd3813b18a069 refs/heads/wip/w4-jackin-approved origin/wip/w4-jackin-approved
+6e68fb0cf87c3007b6853764ee2ee29656c20ed9 refs/heads/wip/w4-jackin-settings 
+76cc2a972e3ecfea84c4b9b8caefcde3cbd15aeb refs/heads/wip/w4-lib-blocks origin/wip/w4-lib-blocks
+4e421879d3f6e482e321fe35e24602bb92e3e369 refs/heads/work/code-editor-fill-height-20261020 
+c102d1bac12f95a488d3ba7e60163ee20f36cdd7 refs/heads/work/editor-composition-adapter-20261020 
+29d50be85004200494b7cacd9dc9f563285cf1b6 refs/heads/work/grid-row-cell-style-20261021 
+759d0d411ed9148e3d04f700bcc81d7b90b97a4a refs/heads/work/split-block-contract-20261021 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a000ca1800a0cfc67 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a00b4e992f3eb5e8f 
+3579e28fb654ea02fcb5b0ec377e3fb87fe370eb refs/heads/worktree-agent-a01735528946e0989 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a018b2245437f8e4b 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a0371e3fe4378f28b 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a04e41cb5a5a9fc3b 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a06d918852c245f7f 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a0716e10495a1a889 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a085333ec8d3c4a27 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a0c8f016e96f4c9c9 
+3579e28fb654ea02fcb5b0ec377e3fb87fe370eb refs/heads/worktree-agent-a0c9ef12a290dc42f 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a0d046d97db20bb77 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a0eef352d00f3dce4 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a0f09bb3c074be331 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a0f59acc60150470f 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a0f85d78245f52f6a 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a10dd2958319e016a 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a10f49e4f880bff65 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a1198547f2b1c7807 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a12041ac1b7638ff8 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a12bdc55770b6e8d2 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a14a07f40ee3dd1c8 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a155d0ab4c3926f05 
+ea3dc3b702266c98b6a89de485161f9234e0bcfd refs/heads/worktree-agent-a170c40c698278620 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a17dae1f9ad8b831e 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a17e0f18f3e725373 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a188d42926e2a8c0e 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a196bea701a9a7e94 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a1a69438be91a74b0 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a1a89dd68c610d0b3 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a1b9f43bd0274fb03 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a1c80cbe3b1d0c797 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a1f614e4680e1c728 
+ea3dc3b702266c98b6a89de485161f9234e0bcfd refs/heads/worktree-agent-a1f948bf974170c2a 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a1fd8ffcbbe04f942 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a201a553aaa90071e 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a20baefc3f35c2ba3 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a24b789bc07e2f950 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a251725b9432e037d 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a2f8e39a21fe1f687 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a30dc61bb14086417 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a332246b2abdf8bed 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a33ece027b67d43e7 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a340ac052afac5e8e 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a34946bc4c2ac49c1 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a37aa8f5a040f3693 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a37d29bc7aa02cb93 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a38d63a3958517fc0 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a3909a1b1ab8561ed 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a3fe4e8449e6923e5 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a40b7de1198a4bd5e 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a41dfcae15763c101 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a429c878cf3ca6984 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a4448c7fcad56dbf9 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a45049d481c18b5a2 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a45c81267786c56c2 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a46e81d07e72f4579 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a47cceeae1afda376 
+ea3dc3b702266c98b6a89de485161f9234e0bcfd refs/heads/worktree-agent-a4a4b5db37cd7cb19 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a4c3f1333d4f5d4da 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a4c4b46036de74e57 
+3579e28fb654ea02fcb5b0ec377e3fb87fe370eb refs/heads/worktree-agent-a51dbe11512a3e54c 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a53193e10a57491f2 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a53710e1bebe7b249 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a5492670e07f93a50 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a551bc81c11a942ae 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a56e24e6778c581d1 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a589ceb0e2e659b40 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a59c2793acbcffe18 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a5c0f7fa0394c2974 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a6046a1dbcc417ca6 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a60acefc0fb5a2c52 
+ea3dc3b702266c98b6a89de485161f9234e0bcfd refs/heads/worktree-agent-a60eac37b4001f3c1 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a611239acf8e6d0b6 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a622e1465fb564004 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a66762748247a305f 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a68753072fbadab21 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a6906057be806474a 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a6aa2b64e30eaf9e5 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a6b380d68e2517571 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a6b4490bbba7add21 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a6bffb0f4c1746dce 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a6c11c29e9cfc2dbe 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a6fecfcc53aa4b819 
+3579e28fb654ea02fcb5b0ec377e3fb87fe370eb refs/heads/worktree-agent-a725897ba193e3dae 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a728333a905cab309 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a734aa873e34bf4a2 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a739b3e5d816e25be 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a73c7c58b5005fbc8 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a74b0b42a5df26bbe 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a793c7a75bc5c1ba1 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a7c439e075e44b296 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a7cd07a9cdd69321e 
+3579e28fb654ea02fcb5b0ec377e3fb87fe370eb refs/heads/worktree-agent-a7d600b76df9ccefe 
+ea3dc3b702266c98b6a89de485161f9234e0bcfd refs/heads/worktree-agent-a7eb5635c84dfdc76 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a7f01f7725e3d6f24 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a801d7f0020146c5a 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a808cd4da24404079 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a85dcbffe3fc26fe0 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a86656c3bcc7054c7 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a8674766018f5122d 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a8965366ce14cb5e2 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a8b2f298938d9d244 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a8c1c017c7dacab9d 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a8d6c2a26535bb90b 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a90a7d5e987dc094e 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a90c921c924c9b228 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a9247140139a0b7be 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a92cfb4ecb7eafe78 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a93d18806c0bc9f4b 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a949e4df90f23e8a6 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a957691ad6a489fc2 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a968cd5e7780c84f0 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a97ec5d3e930a7635 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a9b4e122664459c84 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a9c11bf27d306a96e 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-a9e04973801867d8d 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a9eca80645387f98e 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-a9ff438b825b9370a 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-aa0bb3a67a2b4ab71 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-aa0d86481157bf151 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-aa0dfd2fbf7aa7be8 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-aa1d691a47a8c9193 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-aa4bddc7678e3b518 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-aa6a7684fbb3fe80a 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-aa7672b7991216a0f 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-aa781bfcfec07d80f 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-aa7a43eff4805b617 
+ea3dc3b702266c98b6a89de485161f9234e0bcfd refs/heads/worktree-agent-aa7cce5e46ec9221a 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-aa92fa7b396fef5c0 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-aabda2ec0c65c8d1e 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-aace034a9abcf2a92 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-aaf73a23d6fe07a1c 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-ab14b95b8f9c71d2e 
+3579e28fb654ea02fcb5b0ec377e3fb87fe370eb refs/heads/worktree-agent-ab27a1ed7b4aa0ccf 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-ab6523459f38915fb 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-ab6a5e0d3d1f5b8a4 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-ab7ed10be68472967 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-ab869bb23a0047c63 
+3579e28fb654ea02fcb5b0ec377e3fb87fe370eb refs/heads/worktree-agent-ab996504abae3db06 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-abe04be4a8be7fce7 
+ea3dc3b702266c98b6a89de485161f9234e0bcfd refs/heads/worktree-agent-abe52b6ef2f4aa65c 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-abe9ff8bdaf0a7f24 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-abf8d9520a73f89a1 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-ac00b54e11b01faf5 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-ac0b666d8f7446fc6 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-ac340131df29c96ec 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-ac352ea31d8657eae 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-aca41572c32e1d5c7 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-aca42d65d157043d5 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-acbcac650ae09bc71 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-acc6fe94ccbe76f33 
+3579e28fb654ea02fcb5b0ec377e3fb87fe370eb refs/heads/worktree-agent-acdae2c4ea60c60e0 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-acfb54651fb88b4cc 
+ea3dc3b702266c98b6a89de485161f9234e0bcfd refs/heads/worktree-agent-ad17ff86b642c79dc 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-ad1aaa322b85ec056 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-ad1fb367ef5095c66 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-ad20de668a0ec211a 
+3579e28fb654ea02fcb5b0ec377e3fb87fe370eb refs/heads/worktree-agent-ad2450f0419a02619 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-ad2bf9ab88fc2476a 
+3579e28fb654ea02fcb5b0ec377e3fb87fe370eb refs/heads/worktree-agent-ad3210d96a6854d38 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-ad3f25b8a35cfa3a1 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-ad4149176a8654177 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-ad7422c41ffd47067 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-ad9d929674d8def99 
+3579e28fb654ea02fcb5b0ec377e3fb87fe370eb refs/heads/worktree-agent-ade7d167940197cfe 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-ae1119aad79f088ad 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-ae15a906a7f754d5f 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-ae464d40b8227b06d 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-ae52fddd0717d901c 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-ae7325b21a419b8f9 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-ae8d90a013216ccf0 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-aefceaf0073d17917 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-af061aa0df6f406b1 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-af161fffbd8c40493 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-af306c3483d114991 
+ea3dc3b702266c98b6a89de485161f9234e0bcfd refs/heads/worktree-agent-af3e445487c33c135 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-af5b17d0635ff77a1 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-af7efe3dd146bc17e 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-af7ffa2c7ccc2db25 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-af8637f3696f0d4d4 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-af9760687abda3f14 
+032e9faa3ab12e98fef3b3835757eba5f1feee43 refs/heads/worktree-agent-afbf5a5969ba77fcc 
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 refs/heads/worktree-agent-afe6ef9c21f4d29d6 
+136a567e89f90e7a17141945eff82ffc69b61ad0 refs/remotes/local/perf-fix 
+a97e351df736b576904bc450619ca347ea64d65b refs/remotes/origin/HEAD 
+5b3dbd7ae799f325efbb4f4cc11b2f5518dec948 refs/remotes/origin/design/interaction-polish 
+a97e351df736b576904bc450619ca347ea64d65b refs/remotes/origin/main 
+f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93 refs/remotes/origin/parity/termrock-visual-baseline 
+5b3dbd7ae799f325efbb4f4cc11b2f5518dec948 refs/remotes/origin/pr26-current 
+3e678eb2522bbf05156a49933f910f2832081353 refs/remotes/origin/pr38-current 
+c12da592103cb6f2ac82e7f25239049deb107ee1 refs/remotes/origin/wip/pr38-holla-c12da592 
+7f6321c6119e142f5bbe6908b825b2ecaccbde8e refs/remotes/origin/wip/pr38-suite-7f6321c6 

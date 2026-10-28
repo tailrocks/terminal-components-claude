@@ -1,0 +1,46 @@
+0000000000000000000000000000000000000000 697435886514a5f1de9e7517d00b339970393140 Alexey Zhokhov <alexey@zhokhov.com> 1792156430 +0700	branch: Created from HEAD
+697435886514a5f1de9e7517d00b339970393140 048e9ca4eefe0cd8b6fd78a708a149d99175d5b1 Alexey Zhokhov <alexey@zhokhov.com> 1792158227 +0700	commit: feat(hit): part-tagged hits; widgets register their parts (S1)
+048e9ca4eefe0cd8b6fd78a708a149d99175d5b1 7c072ac85110c58824611f0ccbc64a5529bfd0de Alexey Zhokhov <alexey@zhokhov.com> 1792158319 +0700	rebase (finish): refs/heads/plan-s1 onto 56a137c78907204f6086dff7436e7e5a63c2c04f
+7c072ac85110c58824611f0ccbc64a5529bfd0de 62b7d6a72d8d8dafbe8f86581c76fb7de54f72f4 Alexey Zhokhov <alexey@zhokhov.com> 1792158325 +0700	commit (amend): feat(hit): part-tagged hits; widgets register their parts (S1)
+62b7d6a72d8d8dafbe8f86581c76fb7de54f72f4 a9c7e90dd0bb4a409d8d15824b5036a4b13ab9af Alexey Zhokhov <alexey@zhokhov.com> 1792158339 +0700	rebase (finish): refs/heads/plan-s1 onto 226ce5f990a0ca8fcb6f6ceb5f9c491755bc9c43
+a9c7e90dd0bb4a409d8d15824b5036a4b13ab9af 8345d64e323f0435a72f3899783af77c828d25cb Alexey Zhokhov <alexey@zhokhov.com> 1792158715 +0700	rebase (finish): refs/heads/plan-s1 onto 325b3fd89ca2bad4f060d71217d92ea76c0b1347
+8345d64e323f0435a72f3899783af77c828d25cb e3ba44a0dfce444a12b66938b975e52153e97145 Alexey Zhokhov <alexey@zhokhov.com> 1792158748 +0700	commit: fix(jackin): roster rows are keyed by their instance (S1)
+e3ba44a0dfce444a12b66938b975e52153e97145 333075caf1b0a3447bbc88226d2c5f389aa85772 Alexey Zhokhov <alexey@zhokhov.com> 1792158755 +0700	commit (amend): refactor(jackin): roster rows are keyed by their instance (S1)
+333075caf1b0a3447bbc88226d2c5f389aa85772 fbac1f0f68d8b26a958512459f870ffdb5581584 Alexey Zhokhov <alexey@zhokhov.com> 1792158772 +0700	commit: docs(plan): record S1 status, deviations and notes for S3, S6 and S16
+fbac1f0f68d8b26a958512459f870ffdb5581584 b491e292e1575da6b4a468d1d088369cc9976ed2 Alexey Zhokhov <alexey@zhokhov.com> 1792158912 +0700	reset: moving to origin/design/interaction-polish
+b491e292e1575da6b4a468d1d088369cc9976ed2 6fabd437689c7952088e6110049f4eecde9a3e78 Alexey Zhokhov <alexey@zhokhov.com> 1792158912 +0700	commit: feat(hit): part-tagged hits; widgets register their parts (S1)
+6fabd437689c7952088e6110049f4eecde9a3e78 6a5dd5fbb6411e57408b579990a691266d6ca204 Alexey Zhokhov <alexey@zhokhov.com> 1792158913 +0700	commit: refactor(jackin): roster rows are keyed by their instance (S1)
+6a5dd5fbb6411e57408b579990a691266d6ca204 df0d86a292462053f8829911ddb30265ccb39a6e Alexey Zhokhov <alexey@zhokhov.com> 1792158926 +0700	commit: docs(plan): record S1 status, deviations and notes for S3, S6 and S16
+df0d86a292462053f8829911ddb30265ccb39a6e 333075caf1b0a3447bbc88226d2c5f389aa85772 Alexey Zhokhov <alexey@zhokhov.com> 1792158939 +0700	reset: moving to 333075caf
+333075caf1b0a3447bbc88226d2c5f389aa85772 c3a0b982689139ef60cd222e00ff388367327c5f Alexey Zhokhov <alexey@zhokhov.com> 1792158939 +0700	rebase (finish): refs/heads/plan-s1 onto b491e292e1575da6b4a468d1d088369cc9976ed2
+c3a0b982689139ef60cd222e00ff388367327c5f b491e292e1575da6b4a468d1d088369cc9976ed2 Alexey Zhokhov <alexey@zhokhov.com> 1792158947 +0700	reset: moving to HEAD~2
+b491e292e1575da6b4a468d1d088369cc9976ed2 23a2bf584b2a7ee80c8e966885e587d90243c0e1 Alexey Zhokhov <alexey@zhokhov.com> 1792158953 +0700	commit: feat(hit): part-tagged hits; widgets register their parts (S1)
+23a2bf584b2a7ee80c8e966885e587d90243c0e1 c21de34eae7bcce7da86320e8e3a628d256560af Alexey Zhokhov <alexey@zhokhov.com> 1792158953 +0700	commit: refactor(jackin): roster rows are keyed by their instance (S1)
+c21de34eae7bcce7da86320e8e3a628d256560af 372ed46ea9c58b0edb777fbc0e4b0f4fbb641881 Alexey Zhokhov <alexey@zhokhov.com> 1792158960 +0700	commit: docs(plan): record S1 status, deviations and notes for S3, S6 and S16
+372ed46ea9c58b0edb777fbc0e4b0f4fbb641881 c21de34eae7bcce7da86320e8e3a628d256560af Alexey Zhokhov <alexey@zhokhov.com> 1792159277 +0700	reset: moving to HEAD~1
+c21de34eae7bcce7da86320e8e3a628d256560af c398f7c7630502736a7dcee425adeade7f430e37 Alexey Zhokhov <alexey@zhokhov.com> 1792159277 +0700	rebase (finish): refs/heads/plan-s1 onto 4b62e40e7d1e142535d20ee8b80a69c58d71bf2a
+c398f7c7630502736a7dcee425adeade7f430e37 04e877382d77200134609b9c358d147212d331fe Alexey Zhokhov <alexey@zhokhov.com> 1792159284 +0700	commit: docs(plan): record S1 status, deviations and notes for S3, S6 and S16
+04e877382d77200134609b9c358d147212d331fe c398f7c7630502736a7dcee425adeade7f430e37 Alexey Zhokhov <alexey@zhokhov.com> 1792159581 +0700	reset: moving to HEAD~1
+c398f7c7630502736a7dcee425adeade7f430e37 ff2cbd848598b883539975839b94efe198894ac0 Alexey Zhokhov <alexey@zhokhov.com> 1792159582 +0700	rebase (finish): refs/heads/plan-s1 onto 262b70d6037b346075692f75470540f6c265f64f
+ff2cbd848598b883539975839b94efe198894ac0 f3feb4334bf5610052838e0db66d9a6199c9e2a3 Alexey Zhokhov <alexey@zhokhov.com> 1792159588 +0700	commit: docs(plan): record S1 status, deviations and notes for S3, S6 and S16
+f3feb4334bf5610052838e0db66d9a6199c9e2a3 ff2cbd848598b883539975839b94efe198894ac0 Alexey Zhokhov <alexey@zhokhov.com> 1792159904 +0700	reset: moving to HEAD~1
+ff2cbd848598b883539975839b94efe198894ac0 2eb4f6052933cfa50a1d78422ff9fd1b5eee3db0 Alexey Zhokhov <alexey@zhokhov.com> 1792159904 +0700	rebase (finish): refs/heads/plan-s1 onto 1fdf2e421111878d082a51d81b4afc95899a5d25
+2eb4f6052933cfa50a1d78422ff9fd1b5eee3db0 6c1e7e5d50aa3e95473ae17707f31743e3b336af Alexey Zhokhov <alexey@zhokhov.com> 1792159911 +0700	commit: docs(plan): record S1 status, deviations and notes for S3, S6 and S16
+6c1e7e5d50aa3e95473ae17707f31743e3b336af 2eb4f6052933cfa50a1d78422ff9fd1b5eee3db0 Alexey Zhokhov <alexey@zhokhov.com> 1792160234 +0700	reset: moving to HEAD~1
+2eb4f6052933cfa50a1d78422ff9fd1b5eee3db0 71c9b05baad2ed3e508c889f26c21fa3c7f101c0 Alexey Zhokhov <alexey@zhokhov.com> 1792160237 +0700	rebase (finish): refs/heads/plan-s1 onto 8396c3d1197ee70d5c8f7816ca9eab4849d32c7d
+71c9b05baad2ed3e508c889f26c21fa3c7f101c0 e85348e4a63bf9c19af3a4283e2cbc26cb99f0ba Alexey Zhokhov <alexey@zhokhov.com> 1792160238 +0700	commit: docs(plan): record S1 status, deviations and notes for S3, S6 and S16
+e85348e4a63bf9c19af3a4283e2cbc26cb99f0ba 71c9b05baad2ed3e508c889f26c21fa3c7f101c0 Alexey Zhokhov <alexey@zhokhov.com> 1792160550 +0700	reset: moving to HEAD~1
+71c9b05baad2ed3e508c889f26c21fa3c7f101c0 a8636351bfbb8c4c3801e2d311ec6a567eab181f Alexey Zhokhov <alexey@zhokhov.com> 1792160553 +0700	rebase (finish): refs/heads/plan-s1 onto e10c753926c371b4b7718f460b4345ea5621b3ee
+a8636351bfbb8c4c3801e2d311ec6a567eab181f 8be89525078c58e8086d94e9fa6233869b3c0bc5 Alexey Zhokhov <alexey@zhokhov.com> 1792160553 +0700	commit: docs(plan): record S1 status, deviations and notes for S3, S6 and S16
+8be89525078c58e8086d94e9fa6233869b3c0bc5 a8636351bfbb8c4c3801e2d311ec6a567eab181f Alexey Zhokhov <alexey@zhokhov.com> 1792160835 +0700	reset: moving to HEAD~1
+a8636351bfbb8c4c3801e2d311ec6a567eab181f 14c60d086a0c942ca6cedd7add6075e22f0ae354 Alexey Zhokhov <alexey@zhokhov.com> 1792160839 +0700	rebase (finish): refs/heads/plan-s1 onto ae4d7eb41b0a5d8e97a1406fbf4395d5153a8e33
+14c60d086a0c942ca6cedd7add6075e22f0ae354 7c6aea191a57a2d94a0718e86406674f1e01aa9d Alexey Zhokhov <alexey@zhokhov.com> 1792160839 +0700	commit: docs(plan): record S1 status, deviations and notes for S3, S6 and S16
+7c6aea191a57a2d94a0718e86406674f1e01aa9d 14c60d086a0c942ca6cedd7add6075e22f0ae354 Alexey Zhokhov <alexey@zhokhov.com> 1792161187 +0700	reset: moving to HEAD~1
+14c60d086a0c942ca6cedd7add6075e22f0ae354 301bcc9c3e16ab6d67d5710d428730ad00c363c8 Alexey Zhokhov <alexey@zhokhov.com> 1792161192 +0700	rebase (finish): refs/heads/plan-s1 onto 59ce59886bf07b5c6e38de4218a00f980ba16175
+301bcc9c3e16ab6d67d5710d428730ad00c363c8 518abcd859dcfd6f0bb8c6af6345a39003c807c6 Alexey Zhokhov <alexey@zhokhov.com> 1792161193 +0700	commit: docs(plan): record S1 status, deviations and notes for S3, S6 and S16
+518abcd859dcfd6f0bb8c6af6345a39003c807c6 301bcc9c3e16ab6d67d5710d428730ad00c363c8 Alexey Zhokhov <alexey@zhokhov.com> 1792161588 +0700	reset: moving to HEAD~1
+301bcc9c3e16ab6d67d5710d428730ad00c363c8 a83663c33802c958e3d3a0a396587449842aabdb Alexey Zhokhov <alexey@zhokhov.com> 1792161589 +0700	rebase (finish): refs/heads/plan-s1 onto 25751aadb4d2c5c827ec2581bea91c8eee3b5519
+a83663c33802c958e3d3a0a396587449842aabdb cf005a90705d0f77c35c8bf8b8d22c27aaceb9c1 Alexey Zhokhov <alexey@zhokhov.com> 1792161589 +0700	commit: docs(plan): record S1 status, deviations and notes for S3, S6 and S16
+cf005a90705d0f77c35c8bf8b8d22c27aaceb9c1 a83663c33802c958e3d3a0a396587449842aabdb Alexey Zhokhov <alexey@zhokhov.com> 1792161886 +0700	reset: moving to HEAD~1
+a83663c33802c958e3d3a0a396587449842aabdb 20f182ccda40c121e316f55678d9e656ada74581 Alexey Zhokhov <alexey@zhokhov.com> 1792161886 +0700	rebase (finish): refs/heads/plan-s1 onto f49d783cd4739696580f9e870ac6225e113405dd
+20f182ccda40c121e316f55678d9e656ada74581 f78e2b60d81913795f173c0043d2792d28dab9e7 Alexey Zhokhov <alexey@zhokhov.com> 1792161887 +0700	commit: docs(plan): record S1 status, deviations and notes for S3, S6 and S16

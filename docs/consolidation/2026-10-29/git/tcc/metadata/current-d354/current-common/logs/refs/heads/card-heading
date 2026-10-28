@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 f55fd2274197c0a235e0885e3cc5827062b887e1 Alexey Zhokhov <alexey@zhokhov.com> 1792250265 +0700	branch: Created from HEAD
+f55fd2274197c0a235e0885e3cc5827062b887e1 db5089a327b3c12620d63290148463212ba03ae2 Alexey Zhokhov <alexey@zhokhov.com> 1792250681 +0700	commit: feat(panel): CardHeading styles for a card's heading row (Plain default, Rule, Band, Emphasis)
+db5089a327b3c12620d63290148463212ba03ae2 ea33735620696377c4b21a9e8e697caa98319a98 Alexey Zhokhov <alexey@zhokhov.com> 1792250932 +0700	commit: feat(showcase): preview card heading styles (panels.heading, shell.card_heading)
+ea33735620696377c4b21a9e8e697caa98319a98 0610633874546fbd2fa3f16426e3ad7bd2faefec Alexey Zhokhov <alexey@zhokhov.com> 1792250983 +0700	rebase (finish): refs/heads/card-heading onto d2493943c80a491bb923bd68a6b928993e0615bb
+0610633874546fbd2fa3f16426e3ad7bd2faefec 1e40e1c0862d527b74546212c39fc83a272dcf03 Alexey Zhokhov <alexey@zhokhov.com> 1792251124 +0700	commit (amend): feat(showcase): preview card heading styles (panels.heading, shell.card_heading)

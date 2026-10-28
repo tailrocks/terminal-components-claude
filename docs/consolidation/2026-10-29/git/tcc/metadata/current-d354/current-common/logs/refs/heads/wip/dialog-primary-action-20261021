@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 5db26902a0cfd9d5cf0121edf3638fd643d57e1b Alexey Zhokhov <alexey@zhokhov.com> 1792586425 +0700	branch: Created from origin/parity/termrock-visual-baseline
+5db26902a0cfd9d5cf0121edf3638fd643d57e1b e2b1727fcb04f4b8579ce771f8a5c99b1e910d4a Alexey Zhokhov <alexey@zhokhov.com> 1792587372 +0700	commit: fix(overlays): honor configured prompt primary action
+e2b1727fcb04f4b8579ce771f8a5c99b1e910d4a 4722ef79754e1bb36345769aa11114b9e68c6514 Alexey Zhokhov <alexey@zhokhov.com> 1792587409 +0700	merge fc7e932cbfef57e0a92d935208b3fb7ab84ad752: Merge made by the 'ort' strategy.
+4722ef79754e1bb36345769aa11114b9e68c6514 e2b1727fcb04f4b8579ce771f8a5c99b1e910d4a Alexey Zhokhov <alexey@zhokhov.com> 1792587418 +0700	reset: moving to e2b1727fc
+e2b1727fcb04f4b8579ce771f8a5c99b1e910d4a 8a9af56bcb39d3fe810191fc8da85d149996eccf Alexey Zhokhov <alexey@zhokhov.com> 1792587793 +0700	commit: fix(overlays): preserve prompt draft on blur

@@ -1,0 +1,24 @@
+0000000000000000000000000000000000000000 87c0d55a2abfa4c96f05a5dfe059d716f708a334 Alexey Zhokhov <alexey@zhokhov.com> 1792169135 +0700	branch: Created from HEAD
+87c0d55a2abfa4c96f05a5dfe059d716f708a334 f712cee97f6164150fbbbe77ec4438d3c217069e Alexey Zhokhov <alexey@zhokhov.com> 1792169756 +0700	commit: wip-tmp
+f712cee97f6164150fbbbe77ec4438d3c217069e 87c0d55a2abfa4c96f05a5dfe059d716f708a334 Alexey Zhokhov <alexey@zhokhov.com> 1792170050 +0700	reset: moving to HEAD~1
+87c0d55a2abfa4c96f05a5dfe059d716f708a334 566452fe5ef8d36d6e2aa501ca0486437257c658 Alexey Zhokhov <alexey@zhokhov.com> 1792170220 +0700	commit: feat(scroll): one row of context by default; pointer moves reveal exactly (SVg9)
+566452fe5ef8d36d6e2aa501ca0486437257c658 d2b946a872aaf2d0bdcc12789c922787ae212a94 Alexey Zhokhov <alexey@zhokhov.com> 1792170246 +0700	commit: test(visual): selectable re-approval for one row of scroll context (SVg9)
+d2b946a872aaf2d0bdcc12789c922787ae212a94 1103cae0e58fc85f8d049c7d0f7c825c36501431 Alexey Zhokhov <alexey@zhokhov.com> 1792170257 +0700	commit (amend): test(visual): selectable re-approval for one row of scroll context (SVg9)
+1103cae0e58fc85f8d049c7d0f7c825c36501431 2046750966e3bd77c05a4d50e05144719ce5c2c6 Alexey Zhokhov <alexey@zhokhov.com> 1792170282 +0700	rebase (finish): refs/heads/sc-group-g onto 8c66a19f24f65a9dcfb28a806c7022428f2370b3
+2046750966e3bd77c05a4d50e05144719ce5c2c6 78a5b5f8c267b7e1c2e3485562520b05f872e3db Alexey Zhokhov <alexey@zhokhov.com> 1792170609 +0700	commit: test(visual): selectable re-approval for one row of scroll context (SVg9)
+78a5b5f8c267b7e1c2e3485562520b05f872e3db 8c66a19f24f65a9dcfb28a806c7022428f2370b3 Alexey Zhokhov <alexey@zhokhov.com> 1792170620 +0700	reset: moving to HEAD~2
+8c66a19f24f65a9dcfb28a806c7022428f2370b3 12fece7d1bddcb1eb8d5952c24db053f97029a7e Alexey Zhokhov <alexey@zhokhov.com> 1792170638 +0700	commit: feat(scroll): one row of context by default; pointer moves reveal exactly (SVg9)
+12fece7d1bddcb1eb8d5952c24db053f97029a7e 5df95d3b0dd81dc37c0ee5e2f644f285b1644941 Alexey Zhokhov <alexey@zhokhov.com> 1792170639 +0700	commit: test(visual): selectable re-approval for one row of scroll context (SVg9)
+5df95d3b0dd81dc37c0ee5e2f644f285b1644941 30cce2a55e02a8d9f1bafd449338f68ef1f03bdf Alexey Zhokhov <alexey@zhokhov.com> 1792170657 +0700	rebase (finish): refs/heads/sc-group-g onto ed0f7e549c5507b044f2d9e949b0eb9d5018c94e
+30cce2a55e02a8d9f1bafd449338f68ef1f03bdf 8979511302297a216cd12acadf3f37ebc799b419 Alexey Zhokhov <alexey@zhokhov.com> 1792172457 +0700	commit: wip-sc22
+8979511302297a216cd12acadf3f37ebc799b419 30cce2a55e02a8d9f1bafd449338f68ef1f03bdf Alexey Zhokhov <alexey@zhokhov.com> 1792172979 +0700	reset: moving to HEAD~1
+30cce2a55e02a8d9f1bafd449338f68ef1f03bdf bbee4b21c4b36c6950badc6d6a26c34ca1d9a480 Alexey Zhokhov <alexey@zhokhov.com> 1792173003 +0700	commit: feat(showcase): Panels and Scrolling on the template (SC22, SC29)
+bbee4b21c4b36c6950badc6d6a26c34ca1d9a480 d8fc6620cd854b17ac62eed7bd62a9bf5cfff884 Alexey Zhokhov <alexey@zhokhov.com> 1792173217 +0700	commit: test(visual): panels and scrolling re-approval
+d8fc6620cd854b17ac62eed7bd62a9bf5cfff884 0158b3c7a2e9dbda45bb719206f34e0604d1b968 Alexey Zhokhov <alexey@zhokhov.com> 1792173340 +0700	rebase (finish): refs/heads/sc-group-g onto d9037390d1805438f09f15445cd5a37021550d54
+0158b3c7a2e9dbda45bb719206f34e0604d1b968 d9037390d1805438f09f15445cd5a37021550d54 Alexey Zhokhov <alexey@zhokhov.com> 1792173567 +0700	reset: moving to HEAD~2
+d9037390d1805438f09f15445cd5a37021550d54 8acf27df9dbb014c85e3fb1c4ad1b4868898cac6 Alexey Zhokhov <alexey@zhokhov.com> 1792173567 +0700	commit: feat(showcase): Panels and Scrolling on the template (SC22, SC29)
+8acf27df9dbb014c85e3fb1c4ad1b4868898cac6 8d3ad0fef84307a93f64f9bc0b8b60ec6208ca26 Alexey Zhokhov <alexey@zhokhov.com> 1792173569 +0700	commit: test(visual): panels and scrolling re-approval
+8d3ad0fef84307a93f64f9bc0b8b60ec6208ca26 6cc64b115a968b7ca913a5664e9285c9e5c492cf Alexey Zhokhov <alexey@zhokhov.com> 1792174212 +0700	rebase (finish): refs/heads/sc-group-g onto 1ec63b73794283be6cbb88564e48c1f9a5da2b40
+6cc64b115a968b7ca913a5664e9285c9e5c492cf 1ec63b73794283be6cbb88564e48c1f9a5da2b40 Alexey Zhokhov <alexey@zhokhov.com> 1792174217 +0700	reset: moving to HEAD~2
+1ec63b73794283be6cbb88564e48c1f9a5da2b40 71273406cbbae7a47ccd6b97df1a960512d7cab4 Alexey Zhokhov <alexey@zhokhov.com> 1792174217 +0700	commit: feat(showcase): Panels and Scrolling on the template (SC22, SC29)
+71273406cbbae7a47ccd6b97df1a960512d7cab4 395e4d61f4e964e6a6644f1b87256f96c212c41d Alexey Zhokhov <alexey@zhokhov.com> 1792174220 +0700	commit: test(visual): panels and scrolling re-approval

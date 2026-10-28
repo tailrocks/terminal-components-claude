@@ -1,0 +1,106 @@
+{
+  "canonical_root": "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+  "confirmed_inventory": {
+    "assume_unchanged_paths": 0,
+    "extra_ignored_symlinks": 1,
+    "ignored_files_outside_docs_archive": 1,
+    "index_entries": 4077,
+    "index_tag_counts": {
+      "H": 4077
+    },
+    "max_regular_file_bytes": 5917554,
+    "missing_HEAD_paths_outside_docs_archive": 0,
+    "regular_file_bytes": 185316142,
+    "regular_file_executable_mode_mismatches": 0,
+    "regular_file_hash_read_errors": 0,
+    "regular_files": 3596,
+    "regular_files_exact_HEAD_blob_content": 3596,
+    "skip_worktree_paths": 0,
+    "special_files": 0,
+    "total_physical_regular_or_symlink_entries": 3599,
+    "tracked_symlinks_exact_HEAD_blob_content": 2,
+    "unstable_reads": 0
+  },
+  "created_utc": "2026-10-28T21:15:46.711949+00:00",
+  "head": "d3546b707e980a2810cc60f8a8965ca719cbddc9",
+  "historical_limit": "This read-only scan proves the current d354 worktree physical state only. It cannot retroactively prove that no hidden physical/ignored content existed at the earlier f629 epoch; the exact 36 frozen paths remain the only historical f629 source mapping previously established.",
+  "ignored_cache_reference": {
+    "classification": "ignored build-target cache mount/reference: the project path is exactly /target and the link points into /Users/donbeave/Library/Caches/mbx/targets/v1/<digest>. Only the symlink text is preserved. The external cache destination was not statted or traversed, as instructed; its payload reproducibility/completeness is not claimed.",
+    "external_object_bytes": 110,
+    "external_object_path": "/private/tmp/pr38-consolidation-inventory-20261029/canonical-worktree-closure-v2/objects/sha256/6897aa106a3977b547fa1843947f2fc8b9d04e8863a75eb8e9ef779c448523a6",
+    "external_object_sha256": "6897aa106a3977b547fa1843947f2fc8b9d04e8863a75eb8e9ef779c448523a6",
+    "git_blob_oid_of_link_text": "c4894823afdbd189ea8397563520a23f26bf193d",
+    "git_ignored": true,
+    "git_tree_entry": null,
+    "ignore_rule": ".gitignore:23:/target",
+    "index_entry": null,
+    "kind": "symlink",
+    "link_target": "/Users/donbeave/Library/Caches/mbx/targets/v1/046bf92bb6da38dfd7d23199048e541b8f2e3327a20f4b826e961eabe98a75c6",
+    "link_text_sha256": "6897aa106a3977b547fa1843947f2fc8b9d04e8863a75eb8e9ef779c448523a6",
+    "mode_octal_lstat": "0o755",
+    "path": "target",
+    "preservation_scope": "link-reference bytes only; external shared cache excluded",
+    "size_bytes_of_link_text": 110
+  },
+  "other_exclusions": {
+    "git_pointer": {
+      "common_odb": "/Users/donbeave/Projects/terminal-components-claude/.git/objects",
+      "common_odb_inventory_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+      "common_odb_typed_inventory": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/physical-objects.tsv",
+      "mode_octal": "0o644",
+      "path": ".git",
+      "sha256": "6245f7910dd30e3446fc6398587f069d9db7e4ed2b7f6372850c30163e365461",
+      "size_bytes": 105,
+      "text": "gitdir: /Users/donbeave/Projects/terminal-components-claude/.git/worktrees/termrock-pr38-shared-20261028"
+    },
+    "published_archive_subtree": {
+      "integration_non_tcc_receipt": "/private/tmp/pr38-consolidation-staging-20261029/publication/non-tcc-groups/github-post-push-verification.json",
+      "integration_non_tcc_receipt_sha256": "3d26408d2dc71914ce4e353fa920ad5a84850a0a85dc48adbb6e25ff98e67983",
+      "non_tcc_manifest_sha256": "95333e2b39a672ee680ae670a41dcd9ceefed22b8f40f84122ee08dac94e3f54",
+      "non_tcc_remote_head": "d3546b707e980a2810cc60f8a8965ca719cbddc9",
+      "non_tcc_remote_tree": "2bbb184decfa227eefc1d2fb5cc78ca680977927",
+      "path": "docs/consolidation/2026-10-29",
+      "paths_checked": 334,
+      "tcc_expected_map": "/private/tmp/pr38-consolidation-staging-20261029/publication/tcc-final/final-tcc-remote-expected-map.json",
+      "tcc_expected_map_sha256": "e0ae9d512d85ec09e9114b6abaf1f5d399d681f45dddaa03ff42f4b08febfdec",
+      "tcc_paths": 145,
+      "tcc_remote_head": "4a284735635773c460d65350feb825c42fe772a6",
+      "tree_entries": 479
+    }
+  },
+  "preservation_mapping": {
+    "classification": "All 3,596 regular files and two tracked symlinks exactly match d354 HEAD tree blobs. One extra ignored symlink is preserved as a separate 110-byte raw target-string object; no regular project/evidence bytes outside the current commit remain. No path from the external mbx cache is included.",
+    "content_group_index": "/private/tmp/pr38-consolidation-artifact-staging-20261029-v3/metadata/all-unique-content-disposition.jsonl.gz",
+    "content_group_index_sha256": "295f7e4ac8d30a89ecceb3feaad5b33c56043ff0713a2ceb1ab0881e41274891",
+    "full_per_path_manifest_sha256": "435a80dfc1676aa412b1fa9d3fbd5562f5ffb5fb2666ff0ac0898b8f50d763d7",
+    "full_per_path_physical_manifest": "/private/tmp/pr38-consolidation-inventory-20261029/canonical-worktree-closure-v2/physical-files.jsonl",
+    "tcc_physical_object_list": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/physical-objects.tsv",
+    "tcc_physical_object_list_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab"
+  },
+  "schema": "pr38-canonical-physical-closure-correction-v1",
+  "supersedes_interpretation_only": {
+    "correction": "The v2 summary compared symlink lstat permission bits (0o755 on this filesystem) with Git tree mode values and reported two false executable-bit mismatches. Git symlink entries use mode 120000; symlink permission bits are not the regular-file executable mode. Corrected regular-file mode mismatch count is zero.",
+    "source_physical_files_sha256": "435a80dfc1676aa412b1fa9d3fbd5562f5ffb5fb2666ff0ac0898b8f50d763d7",
+    "source_report_dir": "/private/tmp/pr38-consolidation-inventory-20261029/canonical-worktree-closure-v2",
+    "source_report_seal_sha256": "f48863bd921db40d1aeceab2e319d60de55a10ddc87366654da0edb75d8fb20d",
+    "source_summary_sha256": "c31f761ba597bc0cc030e5c59985449c885f5149ecc5c9327423eb4481cea2dd"
+  },
+  "tracked_symlinks": [
+    {
+      "git_blob_oid": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "git_mode": "120000",
+      "link_target": "AGENTS.md",
+      "mode_octal_lstat": "0o755",
+      "path": ".github/CLAUDE.md",
+      "sha256_link_text": "a54ff182c7e8acf56acfd6e4b9c3ff41e2c41a31c9b211b2deb9df75d9a478f9"
+    },
+    {
+      "git_blob_oid": "47dc3e3d863cfb5727b87d785d09abf9743c0a72",
+      "git_mode": "120000",
+      "link_target": "AGENTS.md",
+      "mode_octal_lstat": "0o755",
+      "path": "CLAUDE.md",
+      "sha256_link_text": "a54ff182c7e8acf56acfd6e4b9c3ff41e2c41a31c9b211b2deb9df75d9a478f9"
+    }
+  ]
+}

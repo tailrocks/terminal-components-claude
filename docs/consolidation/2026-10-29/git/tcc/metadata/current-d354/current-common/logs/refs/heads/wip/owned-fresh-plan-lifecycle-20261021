@@ -1,0 +1,25 @@
+0000000000000000000000000000000000000000 c07978771bc3f4e50c6e859a04bcb5cfae34309d Alexey Zhokhov <alexey@zhokhov.com> 1792560353 +0700	branch: Created from c07978771bc3f4e50c6e859a04bcb5cfae34309d
+c07978771bc3f4e50c6e859a04bcb5cfae34309d 4afcc6e63d5750695e51be2935af6c516192044b Alexey Zhokhov <alexey@zhokhov.com> 1792560857 +0700	commit: feat: bound fresh plan creation lifecycle
+4afcc6e63d5750695e51be2935af6c516192044b 0775a750acf6725779cecd97a4319d2f705cb4a8 Alexey Zhokhov <alexey@zhokhov.com> 1792560901 +0700	commit: fix: check deadlines during plan writes
+0775a750acf6725779cecd97a4319d2f705cb4a8 48a4b21a2fa695141a68a8d6943369d5bbd74d0f Alexey Zhokhov <alexey@zhokhov.com> 1792560933 +0700	commit: docs: record fresh plan lifecycle validation
+48a4b21a2fa695141a68a8d6943369d5bbd74d0f 17abfae6e3cafddeaea71ba7a6aea5df1499fdfa Alexey Zhokhov <alexey@zhokhov.com> 1792560957 +0700	commit: fix: postcheck plan publication work
+17abfae6e3cafddeaea71ba7a6aea5df1499fdfa b0134ba1d7590a6e1681a35d6cd90fd54dab220b Alexey Zhokhov <alexey@zhokhov.com> 1792561792 +0700	merge f24a0f7a97148056f3c2416343fd8516c8e4ef3c: Merge made by the 'ort' strategy.
+b0134ba1d7590a6e1681a35d6cd90fd54dab220b 3f8ca9b9e75aacadedd8f10223fc6027ad022424 Alexey Zhokhov <alexey@zhokhov.com> 1792562492 +0700	commit: fix: anchor interrupted fresh plan publication
+3f8ca9b9e75aacadedd8f10223fc6027ad022424 95c51f4817fc87802da918e5b0ba3ac50494685d Alexey Zhokhov <alexey@zhokhov.com> 1792562707 +0700	merge 25d2a36137be15e5aba140e280becbd918427bb9: Merge made by the 'ort' strategy.
+95c51f4817fc87802da918e5b0ba3ac50494685d b30b7cc77fc3d1de4c932a69c6c5b8d131f57f91 Alexey Zhokhov <alexey@zhokhov.com> 1792563765 +0700	commit: fix: persist fresh plan receipt before publication
+b30b7cc77fc3d1de4c932a69c6c5b8d131f57f91 0eea64185fef495917ab52bbb094fbf3ce545bb5 Alexey Zhokhov <alexey@zhokhov.com> 1792563867 +0700	merge ae81d5733d69173ac60ff5405e70c9d6c44e0460: Merge made by the 'ort' strategy.
+0eea64185fef495917ab52bbb094fbf3ce545bb5 8c0ae36c3fb58d948b1a4cdc8779ac1f3b08619f Alexey Zhokhov <alexey@zhokhov.com> 1792564381 +0700	commit: fix: bind fresh plan recovery to root identity
+8c0ae36c3fb58d948b1a4cdc8779ac1f3b08619f 0a1661bcbd2de14c3ace7324613435d835da0730 Alexey Zhokhov <alexey@zhokhov.com> 1792564394 +0700	merge 3854e3155ee341f0b4d1611aee9b59fed297ef25: Merge made by the 'ort' strategy.
+0a1661bcbd2de14c3ace7324613435d835da0730 07cb8c4273c854d0a93a0fd4e74c6b5298398f19 Alexey Zhokhov <alexey@zhokhov.com> 1792564580 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+07cb8c4273c854d0a93a0fd4e74c6b5298398f19 7328b530d0c9f2fc81c20aa8758bf4d38958598c Alexey Zhokhov <alexey@zhokhov.com> 1792564871 +0700	commit: fix runner verification root identity
+7328b530d0c9f2fc81c20aa8758bf4d38958598c ced804631786a2dca244dcb3d8db7dd51d3b0149 Alexey Zhokhov <alexey@zhokhov.com> 1792564926 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+ced804631786a2dca244dcb3d8db7dd51d3b0149 14bfb3891bf4197daabfbce9c0045c697bc7e22d Alexey Zhokhov <alexey@zhokhov.com> 1792565539 +0700	commit: feat runner: own fresh run initialization
+14bfb3891bf4197daabfbce9c0045c697bc7e22d 014d371620c362a3b455671d18a0c20c97844ecb Alexey Zhokhov <alexey@zhokhov.com> 1792565853 +0700	commit: feat runner: own fresh run verification
+014d371620c362a3b455671d18a0c20c97844ecb 1dad60ad0e03b07ccfb362416e39b26b9bfadc8c Alexey Zhokhov <alexey@zhokhov.com> 1792577191 +0700	commit: fix runner: anchor fresh-run failure markers
+1dad60ad0e03b07ccfb362416e39b26b9bfadc8c 489beb371a611461c7f9a9ab0012710d5612643b Alexey Zhokhov <alexey@zhokhov.com> 1792577700 +0700	commit: fix runner: create fresh run through bound root
+489beb371a611461c7f9a9ab0012710d5612643b 7a4b433587a8ff3ebdbb4e66befe6ee61f117798 Alexey Zhokhov <alexey@zhokhov.com> 1792579955 +0700	commit: fix runner: bind fresh-run nested paths
+7a4b433587a8ff3ebdbb4e66befe6ee61f117798 65796fa5a04ef02d6ee1f9379525fb74fd5c6e2b Alexey Zhokhov <alexey@zhokhov.com> 1792581082 +0700	commit: feat(runner): add owned file-backed selected checks
+65796fa5a04ef02d6ee1f9379525fb74fd5c6e2b 09e0c3b5a849588eb3e5ee3db28b98e1533b1357 Alexey Zhokhov <alexey@zhokhov.com> 1792583146 +0700	commit: feat(runner): add brokered rooted file publication
+09e0c3b5a849588eb3e5ee3db28b98e1533b1357 dbf726455e0565f3f2956db0fb8832bfc93d1b2e Alexey Zhokhov <alexey@zhokhov.com> 1792584233 +0700	commit: fix(runner): reject detached owned destination parents
+dbf726455e0565f3f2956db0fb8832bfc93d1b2e 69ebe3360b8410eb55070bc1fb7283409e3c71e9 Alexey Zhokhov <alexey@zhokhov.com> 1792584438 +0700	commit: fix(runner): verify owned file before accepting receipt
+69ebe3360b8410eb55070bc1fb7283409e3c71e9 1f0d0ce4f7294ce39173d1cc74f832ebfe60834e Alexey Zhokhov <alexey@zhokhov.com> 1792584696 +0700	commit: docs(audit): record rooted worker review evidence

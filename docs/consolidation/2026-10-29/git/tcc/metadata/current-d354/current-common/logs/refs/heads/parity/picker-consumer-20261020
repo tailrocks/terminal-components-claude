@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 501b91b087e12d69e420e816758042e0e91ed627 Alexey Zhokhov <alexey@zhokhov.com> 1792486912 +0700	branch: Created from origin/parity/termrock-visual-baseline
+501b91b087e12d69e420e816758042e0e91ed627 3cc3ffa24eeb4cc5a1e355e847043ffb4c45f29a Alexey Zhokhov <alexey@zhokhov.com> 1792487098 +0700	cherry-pick: feat(overlays): add picker scope caption
+3cc3ffa24eeb4cc5a1e355e847043ffb4c45f29a 0d30bea8594df614a7fa63dd5ddeb2f8ac0ca28f Alexey Zhokhov <alexey@zhokhov.com> 1792487621 +0700	cherry-pick: feat(runtime): add geometric layer centering
+0d30bea8594df614a7fa63dd5ddeb2f8ac0ca28f 8b752b0819196977f0ae956c7f504f99e01009e1 Alexey Zhokhov <alexey@zhokhov.com> 1792487880 +0700	commit: feat(showcase): use picker scope label API
+8b752b0819196977f0ae956c7f504f99e01009e1 0d30bea8594df614a7fa63dd5ddeb2f8ac0ca28f Alexey Zhokhov <alexey@zhokhov.com> 1792487999 +0700	reset: moving to HEAD^
+0d30bea8594df614a7fa63dd5ddeb2f8ac0ca28f a9dce8859e7e2d6952d17c53aac28e2ace4eefaa Alexey Zhokhov <alexey@zhokhov.com> 1792488142 +0700	commit: refactor(jackin): wire launch picker through termrock
+a9dce8859e7e2d6952d17c53aac28e2ace4eefaa faacc6ab93412635d0e2cb704f00478045ce5206 Alexey Zhokhov <alexey@zhokhov.com> 1792488698 +0700	commit: fix(jackin): retain picker launch context
+faacc6ab93412635d0e2cb704f00478045ce5206 22317efccdddb0feca438ddda63c1cc35070e0bb Alexey Zhokhov <alexey@zhokhov.com> 1792488718 +0700	commit: test(jackin): correct frozen mono failure probe
+22317efccdddb0feca438ddda63c1cc35070e0bb 8c0aee9d75243dd89c1d096d7256ebda6d8f3de4 Alexey Zhokhov <alexey@zhokhov.com> 1792488722 +0700	cherry-pick: feat(picker): expose baseline rendering policies
+8c0aee9d75243dd89c1d096d7256ebda6d8f3de4 993853af454c3fa3d91fb06e874fd16494736c7e Alexey Zhokhov <alexey@zhokhov.com> 1792488722 +0700	cherry-pick: test(picker): cover cursor and metadata policies

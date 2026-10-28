@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 2f014008a4c01fb46f7d83ca4184e9c4b286e3bd Alexey Zhokhov <alexey@zhokhov.com> 1792240491 +0700	branch: Created from HEAD
+2f014008a4c01fb46f7d83ca4184e9c4b286e3bd feb2ba99141b3cf3f6a589e53a8ae43c198a7838 Alexey Zhokhov <alexey@zhokhov.com> 1792241913 +0700	commit: fix(shell): Ctrl+C over a selection copies in every app (SI17)
+feb2ba99141b3cf3f6a589e53a8ae43c198a7838 95ac0ca05ab01f98a94b9e3751e76b27481ac859 Alexey Zhokhov <alexey@zhokhov.com> 1792241929 +0700	rebase (finish): refs/heads/s14-followups onto f35a07d699e1f19ed458e551044f9c7ffc5daf84
+95ac0ca05ab01f98a94b9e3751e76b27481ac859 a15e4b3ed15bdef6a84fc40843e20c3cb503b633 Alexey Zhokhov <alexey@zhokhov.com> 1792242809 +0700	commit: fix(shell): every app gets the real clipboard; holla and jackin copies are truthful
+a15e4b3ed15bdef6a84fc40843e20c3cb503b633 95f62ca33eaf7b02fc5a2551572fa3258b81a880 Alexey Zhokhov <alexey@zhokhov.com> 1792242825 +0700	commit (amend): fix(shell): every app gets the real clipboard; holla and jackin copies are truthful

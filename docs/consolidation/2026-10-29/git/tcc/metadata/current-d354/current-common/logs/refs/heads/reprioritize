@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 95ac0ca05ab01f98a94b9e3751e76b27481ac859 Alexey Zhokhov <alexey@zhokhov.com> 1792242854 +0700	branch: Created from HEAD
+95ac0ca05ab01f98a94b9e3751e76b27481ac859 292452fa09c98254e2bde48610b4640e5b82a25e Alexey Zhokhov <alexey@zhokhov.com> 1792242931 +0700	commit: docs: budget-constrained priority order
+292452fa09c98254e2bde48610b4640e5b82a25e d1e28abd870453c3d0bf672b3725a0d653b385c2 Alexey Zhokhov <alexey@zhokhov.com> 1792243805 +0700	commit (amend): docs: budget-constrained priority order
+d1e28abd870453c3d0bf672b3725a0d653b385c2 f633191bf06c994d4bc6a4542b814c283e63376d Alexey Zhokhov <alexey@zhokhov.com> 1792243809 +0700	rebase (finish): refs/heads/reprioritize onto 8644321f3aa8b5697e8e4e55c4d972971949d967

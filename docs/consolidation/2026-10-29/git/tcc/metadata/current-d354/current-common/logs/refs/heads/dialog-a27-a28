@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 bc99a174950df15fbb675be5357e6523878587fe Alexey Zhokhov <alexey@zhokhov.com> 1792218706 +0700	branch: Created from HEAD
+bc99a174950df15fbb675be5357e6523878587fe 429716c279aeb206ab6fc39bc6e0b0562e5e60ce Alexey Zhokhov <alexey@zhokhov.com> 1792219186 +0700	commit: fix(dialog): a destructive cancel refuses light dismissal
+429716c279aeb206ab6fc39bc6e0b0562e5e60ce ecbea7db7cb51c36876f7bbc0f3656464b0c4d2e Alexey Zhokhov <alexey@zhokhov.com> 1792219191 +0700	rebase (finish): refs/heads/dialog-a27-a28 onto 35dcf56c1962e577ee9f4e2437336656d0fc76f6
+ecbea7db7cb51c36876f7bbc0f3656464b0c4d2e 2d7ce5e8ccf0823539e31694739743290fc4526a Alexey Zhokhov <alexey@zhokhov.com> 1792219286 +0700	commit: fix(choice-dialog): a disabled default button is not fired by Enter or a double click
+2d7ce5e8ccf0823539e31694739743290fc4526a cf601d283150273864cb1673ec1acaa55d9948b2 Alexey Zhokhov <alexey@zhokhov.com> 1792219809 +0700	commit: fix(status): a job's progress status ends with the job

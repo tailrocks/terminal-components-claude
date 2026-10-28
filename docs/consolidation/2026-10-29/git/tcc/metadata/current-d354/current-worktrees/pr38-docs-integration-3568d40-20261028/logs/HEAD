@@ -1,0 +1,16 @@
+0000000000000000000000000000000000000000 3568d40f89e0b10f0f754f93cf8d6a7ee01ffd55 Muse Code <muse@example.com> 1793138548 +0700
+3568d40f89e0b10f0f754f93cf8d6a7ee01ffd55 3ab8c343df2ad8fd8f23a5ec0bd4bc97d1859076 Muse Code <muse@example.com> 1793138550 +0700	cherry-pick: docs: record Common suite current results
+3ab8c343df2ad8fd8f23a5ec0bd4bc97d1859076 de6ecb51a910b6240472ad20ca0811e3aa0be9ff Muse Code <muse@example.com> 1793142014 +0700	commit: feat: pin functional suite to TuiScotti 0.4
+de6ecb51a910b6240472ad20ca0811e3aa0be9ff dbd55994a7314df7f2eb4e47a6cb1cea0f758675 Muse Code <muse@example.com> 1793142088 +0700	commit: test: align suite with pinned engine APIs
+dbd55994a7314df7f2eb4e47a6cb1cea0f758675 b3a150f5a575071fb162717db4f091fd901401e0 Muse Code <muse@example.com> 1793142558 +0700	commit: docs: refresh PR38 coordination WIP
+b3a150f5a575071fb162717db4f091fd901401e0 07aeabcb9617f92150bda773fe2a6eb475cd90b3 Muse Code <muse@example.com> 1793142660 +0700	commit: docs: hand off TablePro selection ownership
+07aeabcb9617f92150bda773fe2a6eb475cd90b3 b59dc3618d296ee62ed983a0d4bf32ee086bc823 Muse Code <muse@example.com> 1793143111 +0700	commit: fix(functional-suite): remove unused mut
+b59dc3618d296ee62ed983a0d4bf32ee086bc823 c47412cc16e1fdc1201bef03847cfb5c99263d9c Muse Code <muse@example.com> 1793144633 +0700	commit: docs: reconcile PR 38 coordination register
+c47412cc16e1fdc1201bef03847cfb5c99263d9c 6d13476ab3383163a977dce19b143bc8dadfe8b4 Muse Code <muse@example.com> 1793145008 +0700	commit: docs: record Showcase status hints ownership
+6d13476ab3383163a977dce19b143bc8dadfe8b4 ea46c5ef5c0d5952ef0adf465fe81e5fc0c4cb92 Muse Code <muse@example.com> 1793146148 +0700	commit: docs: record Jackin and Holla ownership
+ea46c5ef5c0d5952ef0adf465fe81e5fc0c4cb92 b978d19b1eb4d203532cecbd360698df05079f98 Muse Code <muse@example.com> 1793146625 +0700	commit: docs: clarify app ownership handoffs
+b978d19b1eb4d203532cecbd360698df05079f98 777670f81558af9a4c6543600d830a61ec20fef6 Muse Code <muse@example.com> 1793148834 +0700	commit: fix(suite): exclude approval lock from source exports
+777670f81558af9a4c6543600d830a61ec20fef6 a8bfc480c3f71935ed723847ef2f2edae58bcbf0 Muse Code <muse@example.com> 1793151124 +0700	commit: test: add approved renderer 0.2 reference samples
+a8bfc480c3f71935ed723847ef2f2edae58bcbf0 9abc21cddc94db5aecd8448ed3b2379ddc299c44 Muse Code <muse@example.com> 1793151158 +0700	commit: fix: use live TablePro connection selection
+9abc21cddc94db5aecd8448ed3b2379ddc299c44 cf4fd261249125d69de4cd9ca4b4c1d1deb7bc52 Muse Code <muse@example.com> 1793151190 +0700	commit: docs: update integration ownership record
+cf4fd261249125d69de4cd9ca4b4c1d1deb7bc52 d0e441665993c4993ae8b8e01d9b51a53ddb1e12 Muse Code <muse@example.com> 1793154631 +0700	commit: docs: register native artifact forward-port

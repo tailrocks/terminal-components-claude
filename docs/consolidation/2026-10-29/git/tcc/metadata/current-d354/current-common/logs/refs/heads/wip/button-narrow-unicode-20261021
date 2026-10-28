@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 57ca512b3796b04e518a73b5fdfe7391f312c6f3 Alexey Zhokhov <alexey@zhokhov.com> 1792532876 +0700	branch: Created from origin/wip/button-shared-contract-20261021
+57ca512b3796b04e518a73b5fdfe7391f312c6f3 38a375bb4fbd0bd6f083bce9254fe181d96f8444 Alexey Zhokhov <alexey@zhokhov.com> 1792533281 +0700	commit: fix(controls): truncate narrow button labels by cells
+38a375bb4fbd0bd6f083bce9254fe181d96f8444 afd1caca3471cfa361f4e29cf0a9d3fae7f075bc Alexey Zhokhov <alexey@zhokhov.com> 1792533404 +0700	commit: docs: correct frozen button source revision
+afd1caca3471cfa361f4e29cf0a9d3fae7f075bc be1ef0e320332b6ce32b8b0f8e3e401389451bb6 Alexey Zhokhov <alexey@zhokhov.com> 1792533424 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

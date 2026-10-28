@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 400500a0440a2637a8f38cd9248e4763873d6e21 Alexey Zhokhov <alexey@zhokhov.com> 1792494395 +0700	branch: Created from HEAD
+400500a0440a2637a8f38cd9248e4763873d6e21 1a47d1342d43eeade4a5812be4c68a70de6e426e Alexey Zhokhov <alexey@zhokhov.com> 1792494503 +0700	commit: test: compare canonical semantic terminal frames
+1a47d1342d43eeade4a5812be4c68a70de6e426e 89b86363de72a52e1fb297345b8958465e966be5 Alexey Zhokhov <alexey@zhokhov.com> 1792495067 +0700	commit: test: pin diagnosed frozen approval conflict
+89b86363de72a52e1fb297345b8958465e966be5 47cc4b6d4f346449e5c1abd498fa2866893c6069 Alexey Zhokhov <alexey@zhokhov.com> 1792495549 +0700	commit: fix(tuiscotti): persist exact semantic mismatch frames
+47cc4b6d4f346449e5c1abd498fa2866893c6069 12ab1458facd213bae7a8a1b1f2c1125e65b4261 Alexey Zhokhov <alexey@zhokhov.com> 1792495793 +0700	commit: fix(tuiscotti): normalize semantic frame provenance

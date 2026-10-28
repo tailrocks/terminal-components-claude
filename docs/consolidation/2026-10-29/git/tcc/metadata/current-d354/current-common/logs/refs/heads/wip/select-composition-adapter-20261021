@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 6825b07e86bab75872866c6ed49e6877084db9bb Alexey Zhokhov <alexey@zhokhov.com> 1792557081 +0700	branch: Created from 6825b07e86bab75872866c6ed49e6877084db9bb
+6825b07e86bab75872866c6ed49e6877084db9bb 702df39700dd350143acaa1ab0592cbd5fd557eb Alexey Zhokhov <alexey@zhokhov.com> 1792557354 +0700	commit: feat(composition): adapt select fields
+702df39700dd350143acaa1ab0592cbd5fd557eb 526734524f7e4ae6c451e2d87a9c2e4286040188 Alexey Zhokhov <alexey@zhokhov.com> 1792557692 +0700	rebase (finish): refs/heads/wip/select-composition-adapter-20261021 onto 277c420e89e5c016e2f0cdf6385e86258a236d2b
+526734524f7e4ae6c451e2d87a9c2e4286040188 215c71df6caf22c2d28032b1f3c588fbfc780168 Alexey Zhokhov <alexey@zhokhov.com> 1792557702 +0700	commit (amend): feat(composition): adapt select fields

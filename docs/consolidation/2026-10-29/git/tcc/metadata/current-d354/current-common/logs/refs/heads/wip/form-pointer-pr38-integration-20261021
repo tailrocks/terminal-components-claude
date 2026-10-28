@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 9399ef27d05a46d06b5e978b5d145219a2765e03 Alexey Zhokhov <alexey@zhokhov.com> 1792597715 +0700	branch: Created from origin/parity/termrock-visual-baseline
+9399ef27d05a46d06b5e978b5d145219a2765e03 d6f9e0c6a4c0e6709b2031521bdca0c503bb5217 Alexey Zhokhov <alexey@zhokhov.com> 1792597715 +0700	merge b40dd49bd3e2fbc57a4c647206351f920ca8ea9f: Merge made by the 'ort' strategy.
+d6f9e0c6a4c0e6709b2031521bdca0c503bb5217 acad2fdbde902abd97847fb34b304766169236b8 Alexey Zhokhov <alexey@zhokhov.com> 1792597730 +0700	commit: docs: record Form pointer reveal integration evidence
+acad2fdbde902abd97847fb34b304766169236b8 1b9bd580e5f46dff23630a8c15c85e7f14cf7c4e Alexey Zhokhov <alexey@zhokhov.com> 1792598029 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

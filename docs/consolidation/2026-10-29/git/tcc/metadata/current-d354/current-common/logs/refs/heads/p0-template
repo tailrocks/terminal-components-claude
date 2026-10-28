@@ -1,0 +1,17 @@
+0000000000000000000000000000000000000000 6abad6305e3169db15c1a1b1a8be9be97b7934ef Alexey Zhokhov <alexey@zhokhov.com> 1792235899 +0700	branch: Created from HEAD
+6abad6305e3169db15c1a1b1a8be9be97b7934ef f81140ac40caa6cd8098ae7ad824d52c8d3e18f7 Alexey Zhokhov <alexey@zhokhov.com> 1792236085 +0700	commit: test(showcase): every registered page is on the template
+f81140ac40caa6cd8098ae7ad824d52c8d3e18f7 daa6452f5c711aedd92a8688f76d4fe09213888b Alexey Zhokhov <alexey@zhokhov.com> 1792236923 +0700	commit: feat(showcase): Sidebars on the Playground | Options | States template
+daa6452f5c711aedd92a8688f76d4fe09213888b 3bc085fc74f9fb4458e7c6d8ba88c6d69e686a42 Alexey Zhokhov <alexey@zhokhov.com> 1792236952 +0700	commit: test(visual): Sidebars re-approval (template strip)
+3bc085fc74f9fb4458e7c6d8ba88c6d69e686a42 c2dce8ccfa969fb779558648247ddc2b7a61da37 Alexey Zhokhov <alexey@zhokhov.com> 1792237586 +0700	commit: feat(showcase): Forms on the Playground | Options | States template
+c2dce8ccfa969fb779558648247ddc2b7a61da37 94e8a7cc4cb53a83f732a3725950072e03a9db36 Alexey Zhokhov <alexey@zhokhov.com> 1792238460 +0700	commit: feat(showcase): Task runner on the Playground | Options | States template
+94e8a7cc4cb53a83f732a3725950072e03a9db36 af3efa5afea54d352b042bebc2db65cbdee12127 Alexey Zhokhov <alexey@zhokhov.com> 1792238484 +0700	commit: test(visual): Task runner re-approval (template strip)
+af3efa5afea54d352b042bebc2db65cbdee12127 8f81ea96b4a6aa020c93cd89e8c8767c6bfec210 Alexey Zhokhov <alexey@zhokhov.com> 1792239116 +0700	commit: feat(showcase): Settings on the template; every page is on it
+8f81ea96b4a6aa020c93cd89e8c8767c6bfec210 3deda1f2b2ba044cedc6734a441b83c89f4ef5f4 Alexey Zhokhov <alexey@zhokhov.com> 1792239135 +0700	commit: test(visual): Settings re-approval (template strip)
+3deda1f2b2ba044cedc6734a441b83c89f4ef5f4 7d6f63d1521f6d44ac0546c58fa59cf4c06c4064 Alexey Zhokhov <alexey@zhokhov.com> 1792239221 +0700	rebase (finish): refs/heads/p0-template onto 38e6b9d0e3ff3868f2a5fd7d951f60bd0e25718c
+7d6f63d1521f6d44ac0546c58fa59cf4c06c4064 d33993113b23076faaa8ba32dcd92d7422090dec Alexey Zhokhov <alexey@zhokhov.com> 1792239380 +0700	commit: fixup! feat(showcase): Task runner on the Playground | Options | States template
+d33993113b23076faaa8ba32dcd92d7422090dec fd6d200097342e19db668d993e2c4129dddd2ace Alexey Zhokhov <alexey@zhokhov.com> 1792239380 +0700	commit: fixup! feat(showcase): Settings on the template; every page is on it
+fd6d200097342e19db668d993e2c4129dddd2ace 2cfd21e6d47edf07a864063b37cf50ed7d396c80 Alexey Zhokhov <alexey@zhokhov.com> 1792239384 +0700	rebase (finish): refs/heads/p0-template onto 38e6b9d0e3ff3868f2a5fd7d951f60bd0e25718c
+2cfd21e6d47edf07a864063b37cf50ed7d396c80 58eb4493b20a8ccaf5a218310f478211eb1b3483 Alexey Zhokhov <alexey@zhokhov.com> 1792239412 +0700	rebase (finish): refs/heads/p0-template onto 38e6b9d0e3ff3868f2a5fd7d951f60bd0e25718c
+58eb4493b20a8ccaf5a218310f478211eb1b3483 5f3307913b0ecf9ce0f8f0420c1353833b2ac197 Alexey Zhokhov <alexey@zhokhov.com> 1792239434 +0700	rebase (finish): refs/heads/p0-template onto 38e6b9d0e3ff3868f2a5fd7d951f60bd0e25718c
+5f3307913b0ecf9ce0f8f0420c1353833b2ac197 3e2cf87dce9fb6b0fecee8c20e4cd5e0be1e2bf5 Alexey Zhokhov <alexey@zhokhov.com> 1792239455 +0700	rebase (finish): refs/heads/p0-template onto 38e6b9d0e3ff3868f2a5fd7d951f60bd0e25718c
+3e2cf87dce9fb6b0fecee8c20e4cd5e0be1e2bf5 f0ca48e42f2cad982a91327646ff761fb4f4b1f2 Alexey Zhokhov <alexey@zhokhov.com> 1792240467 +0700	rebase (finish): refs/heads/p0-template onto 2f014008a4c01fb46f7d83ca4184e9c4b286e3bd

@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 8da9efa7fdf130437e6ff5927c91b6dc0b62f2e3 Alexey Zhokhov <alexey@zhokhov.com> 1792144155 +0700	branch: Created from HEAD
+8da9efa7fdf130437e6ff5927c91b6dc0b62f2e3 f7fb37189b2104a9f6b7002b188fa2fc819016c8 Alexey Zhokhov <alexey@zhokhov.com> 1792144653 +0700	commit: feat(table): toggle rows with Option+click on macOS
+f7fb37189b2104a9f6b7002b188fa2fc819016c8 46f277ced04f3c2c6a03b03030f56ada9edbf141 Alexey Zhokhov <alexey@zhokhov.com> 1792144678 +0700	rebase (finish): refs/heads/alt-click onto 80174ea3511ae305723b301ac6644575db568429
+46f277ced04f3c2c6a03b03030f56ada9edbf141 504cadd6c9edaf0cb7b3aa6aaa06f5c27ab575c0 Alexey Zhokhov <alexey@zhokhov.com> 1792144692 +0700	rebase (finish): refs/heads/alt-click onto e1efd0b65d9fcfc6a464da23b8f735321be1c537
+504cadd6c9edaf0cb7b3aa6aaa06f5c27ab575c0 e73ec3170d89b71aceddc569ee149dda8772e1f1 Alexey Zhokhov <alexey@zhokhov.com> 1792144760 +0700	commit (amend): feat(table): toggle rows with Option+click on macOS
+e73ec3170d89b71aceddc569ee149dda8772e1f1 39f88b14213b27874654dbdfec5cb0e46e4b7be5 Alexey Zhokhov <alexey@zhokhov.com> 1792144763 +0700	rebase (finish): refs/heads/alt-click onto b85109a1e3fed20b5268d8268b5669ffaeb70412
+39f88b14213b27874654dbdfec5cb0e46e4b7be5 06c9bd6d1838ee92212e86eaa14f6dceb6ecdfb1 Alexey Zhokhov <alexey@zhokhov.com> 1792144972 +0700	commit (amend): feat(table): toggle rows with Option+click on macOS clients
+06c9bd6d1838ee92212e86eaa14f6dceb6ecdfb1 19ac6bdc571bbb4fa9e1626b76e8965bfc75f6f9 Alexey Zhokhov <alexey@zhokhov.com> 1792145001 +0700	rebase (finish): refs/heads/alt-click onto 8149379470465b4673860e7cd9c34e4d0f981f2a
+19ac6bdc571bbb4fa9e1626b76e8965bfc75f6f9 85cec55af843c49536662a2d1eeec0b15340f0fa Alexey Zhokhov <alexey@zhokhov.com> 1792145015 +0700	commit (amend): feat(table): toggle rows with Option+click on macOS clients

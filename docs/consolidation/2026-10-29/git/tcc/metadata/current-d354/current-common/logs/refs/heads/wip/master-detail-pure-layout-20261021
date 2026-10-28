@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 332f40d07e38512f91cfb038eb9174c413755686 Alexey Zhokhov <alexey@zhokhov.com> 1792539078 +0700	branch: Created from HEAD
+332f40d07e38512f91cfb038eb9174c413755686 f142ba9b086b2c8eca9884aa1442ed83c9b7f25c Alexey Zhokhov <alexey@zhokhov.com> 1792539079 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+f142ba9b086b2c8eca9884aa1442ed83c9b7f25c 978a61fe33c26df77dfc74741b42815f5c896816 Alexey Zhokhov <alexey@zhokhov.com> 1792539315 +0700	commit: fix(controls): keep master detail drawing pure
+978a61fe33c26df77dfc74741b42815f5c896816 912681032b137dc6aa91757fada4abe60c572840 Alexey Zhokhov <alexey@zhokhov.com> 1792539339 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+912681032b137dc6aa91757fada4abe60c572840 8125c699530b7f42c51666021bdf288984af1128 Alexey Zhokhov <alexey@zhokhov.com> 1792539942 +0700	commit: refactor(layout): share master detail responsive state
+8125c699530b7f42c51666021bdf288984af1128 ababd6e737c8913ea718e4c37cb56117a3ddf8f3 Alexey Zhokhov <alexey@zhokhov.com> 1792539953 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

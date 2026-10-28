@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 8681124d2cbbc75ef8ed998b5918883039a022c5 Alexey Zhokhov <alexey@zhokhov.com> 1792500742 +0700	branch: Created from HEAD
+8681124d2cbbc75ef8ed998b5918883039a022c5 addc84e1ddd3a72b91aba8fc37653496753976b1 Alexey Zhokhov <alexey@zhokhov.com> 1792500742 +0700	cherry-pick: ci: upgrade design workflows with Velnor 0.1.29
+addc84e1ddd3a72b91aba8fc37653496753976b1 a792ea4ccd30181edd9df04c8b114559bb109905 Alexey Zhokhov <alexey@zhokhov.com> 1792500742 +0700	cherry-pick: docs: record Velnor preview reproduction
+a792ea4ccd30181edd9df04c8b114559bb109905 9b1c77b89e46b89f56632c841f1ade40371f03dc Alexey Zhokhov <alexey@zhokhov.com> 1792500742 +0700	cherry-pick: docs: clarify Velnor preview verification gap
+9b1c77b89e46b89f56632c841f1ade40371f03dc 59af1c4f760387be455bc79d44be75f4416a63f3 Alexey Zhokhov <alexey@zhokhov.com> 1792504791 +0700	cherry-pick: ci: update design zizmor pin to 1.31.1

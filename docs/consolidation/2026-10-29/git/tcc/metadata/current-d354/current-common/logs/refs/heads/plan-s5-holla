@@ -1,0 +1,11 @@
+0000000000000000000000000000000000000000 78bd45b9c42b883dc1667c32a304e7e77de7880b Alexey Zhokhov <alexey@zhokhov.com> 1792165850 +0700	branch: Created from HEAD
+78bd45b9c42b883dc1667c32a304e7e77de7880b ae4747b6c50d5de5bc24a72e52cab83fe839587c Alexey Zhokhov <alexey@zhokhov.com> 1792166217 +0700	commit: feat(dialog): chrome rows keep a layer-drawn dialog clear of app chrome
+ae4747b6c50d5de5bc24a72e52cab83fe839587c 25df1a18f8dbefeeb5501b7af4fb072b28635012 Alexey Zhokhov <alexey@zhokhov.com> 1792167069 +0700	commit: wip: holla layers
+25df1a18f8dbefeeb5501b7af4fb072b28635012 71ec1442092670f4e90b4a1f305be19818039fb9 Alexey Zhokhov <alexey@zhokhov.com> 1792167675 +0700	commit: wip: tests
+71ec1442092670f4e90b4a1f305be19818039fb9 ae4747b6c50d5de5bc24a72e52cab83fe839587c Alexey Zhokhov <alexey@zhokhov.com> 1792167694 +0700	reset: moving to ae4747b6c
+ae4747b6c50d5de5bc24a72e52cab83fe839587c d689ecd85c3c60ed647ade871711d4d06b1aef8c Alexey Zhokhov <alexey@zhokhov.com> 1792167725 +0700	commit: test(visual): overlay_sites counts LayerTag::new as an opener
+d689ecd85c3c60ed647ade871711d4d06b1aef8c 83ea6e33c0ef2fd0e0002a58b7081539c35e85f1 Alexey Zhokhov <alexey@zhokhov.com> 1792167729 +0700	commit: refactor(holla): every modal is a Layer on ShellLayers (S5)
+83ea6e33c0ef2fd0e0002a58b7081539c35e85f1 521e1437e1463d242a04603c9fc42c5bf1e451af Alexey Zhokhov <alexey@zhokhov.com> 1792167777 +0700	reset: moving to origin/design/interaction-polish
+521e1437e1463d242a04603c9fc42c5bf1e451af 6d0ac72643400da4a5cb8ea4f7c773bc871be5aa Alexey Zhokhov <alexey@zhokhov.com> 1792167778 +0700	cherry-pick: feat(dialog): chrome rows keep a layer-drawn dialog clear of app chrome
+6d0ac72643400da4a5cb8ea4f7c773bc871be5aa be85f7284c6f918b5f62ed4595d7fcf09c8a77a4 Alexey Zhokhov <alexey@zhokhov.com> 1792167778 +0700	cherry-pick: refactor(holla): every modal is a Layer on ShellLayers (S5)
+be85f7284c6f918b5f62ed4595d7fcf09c8a77a4 7606cd962abd06a13fd4f99abae360fde4726108 Alexey Zhokhov <alexey@zhokhov.com> 1792169432 +0700	rebase (finish): refs/heads/plan-s5-holla onto 13ffc575e5e17b794bc37e7b1848d5de5330cffe

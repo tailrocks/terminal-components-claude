@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 407d727f9f952bafcbb842e8be341ffb32120e4e Alexey Zhokhov <alexey@zhokhov.com> 1792502535 +0700	branch: Created from HEAD
+407d727f9f952bafcbb842e8be341ffb32120e4e a5766d24783c2b268e727497fe6861b6479c71cc Alexey Zhokhov <alexey@zhokhov.com> 1792502596 +0700	rebase (finish): refs/heads/parity/termrock-reviewed-contract-integration-20261020 onto a5766d24783c2b268e727497fe6861b6479c71cc
+a5766d24783c2b268e727497fe6861b6479c71cc 514297e8e97b42f138697b8b9002138bc769d572 Alexey Zhokhov <alexey@zhokhov.com> 1792502632 +0700	cherry-pick: fix(controls): share button state and busy rendering
+514297e8e97b42f138697b8b9002138bc769d572 d7f3610ecec6001e3ab05aee299981116eadf4a8 Alexey Zhokhov <alexey@zhokhov.com> 1792502632 +0700	cherry-pick: fix(controls): preserve button focus and marker patches
+d7f3610ecec6001e3ab05aee299981116eadf4a8 266ec095bf5d994eb05ce0f4c19ea970fe29437c Alexey Zhokhov <alexey@zhokhov.com> 1792502632 +0700	cherry-pick: fix(theme): match pressed button variant ink
+266ec095bf5d994eb05ce0f4c19ea970fe29437c 8462bf28aadabd76833e11395e6237e66468efe0 Alexey Zhokhov <alexey@zhokhov.com> 1792502632 +0700	cherry-pick: refactor(showcase): use shared button rendering

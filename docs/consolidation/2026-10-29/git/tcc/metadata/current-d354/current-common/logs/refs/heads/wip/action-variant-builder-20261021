@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 9399ef27d05a46d06b5e978b5d145219a2765e03 Alexey Zhokhov <alexey@zhokhov.com> 1792597710 +0700	branch: Created from origin/parity/termrock-visual-baseline
+9399ef27d05a46d06b5e978b5d145219a2765e03 9eca7efa5e23359dfdcea991b193e330ced54a65 Alexey Zhokhov <alexey@zhokhov.com> 1792597886 +0700	commit: feat(core): allow explicit action variants
+9eca7efa5e23359dfdcea991b193e330ced54a65 160b1c328fef990cda622d5c7fb9bb370ce50009 Alexey Zhokhov <alexey@zhokhov.com> 1792597903 +0700	rebase (finish): refs/heads/wip/action-variant-builder-20261021 onto ae193b855fc004944f390452f1338871b27cdfd7

@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 f9de4f443a32918fcead8c864d8470ae0d927613 Alexey Zhokhov <alexey@zhokhov.com> 1792597862 +0700	branch: Created from origin/wip/session-consolidation-20261021
+f9de4f443a32918fcead8c864d8470ae0d927613 30001296a007e445dd65351549db070f45d9af35 Alexey Zhokhov <alexey@zhokhov.com> 1792599154 +0700	commit: test(showcase): refresh the shell header and page heading fixtures to the tag reference

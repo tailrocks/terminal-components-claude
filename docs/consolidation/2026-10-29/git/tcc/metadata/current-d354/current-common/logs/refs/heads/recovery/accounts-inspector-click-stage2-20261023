@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 8d8051bad399b07136b60116a6b82bc0553aa994 Alexey Zhokhov <alexey@zhokhov.com> 1792748672 +0700	branch: Created from 8d8051bad399b07136b60116a6b82bc0553aa994
+8d8051bad399b07136b60116a6b82bc0553aa994 032a958453f9cf087a520cbf86d9c14f412c552f Alexey Zhokhov <alexey@zhokhov.com> 1792751035 +0700	commit: feat(jackin): open selected account inspector
+032a958453f9cf087a520cbf86d9c14f412c552f 04f7d8aa3441ee1a9d394c5a9c8d2d21553b08a9 Alexey Zhokhov <alexey@zhokhov.com> 1792756542 +0700	commit: fix(navigation): add focus-only list settling
+04f7d8aa3441ee1a9d394c5a9c8d2d21553b08a9 526eba3ebae5a0bb2ebd819f063b2962f9351c34 Alexey Zhokhov <alexey@zhokhov.com> 1792758363 +0700	commit: docs: preserve historical design and safety indexes
+526eba3ebae5a0bb2ebd819f063b2962f9351c34 87c8043bdf77eb57af5abc399962fd9e5b8dfb6d Alexey Zhokhov <alexey@zhokhov.com> 1792759607 +0700	commit: test(navigation): cover mixed focus settle fallback
+87c8043bdf77eb57af5abc399962fd9e5b8dfb6d 6bdfa1681e888ab243fd2512f7d654dd6dcc8ae2 Alexey Zhokhov <alexey@zhokhov.com> 1792767812 +0700	commit: fix(jackin): preserve accounts usage focus handoff
+6bdfa1681e888ab243fd2512f7d654dd6dcc8ae2 242a5247362fe7ff310641447ff5d935c6296e7a Alexey Zhokhov <alexey@zhokhov.com> 1792768348 +0700	commit: test(runtime): cover sole focus survivor removal
+242a5247362fe7ff310641447ff5d935c6296e7a d7d8b750a799b4e2f8c607cb1cd7d263c7b35565 Alexey Zhokhov <alexey@zhokhov.com> 1792769859 +0700	commit: fix(text): retain prefix for split UTF-8

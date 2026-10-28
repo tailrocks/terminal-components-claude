@@ -1,0 +1,13 @@
+0000000000000000000000000000000000000000 706b4a68c0f2468123529bbb7ed387e8819108c0 Alexey Zhokhov <alexey@zhokhov.com> 1792233827 +0700	branch: Created from HEAD
+706b4a68c0f2468123529bbb7ed387e8819108c0 6506400e37854437039c7877adf7d0765254ecad Alexey Zhokhov <alexey@zhokhov.com> 1792234908 +0700	commit: feat(list_core): ListCore and ContentState; ListBox on ListCore (S13, K37)
+6506400e37854437039c7877adf7d0765254ecad 1b15e8cb721cb9970ce451a5a39319e00165c3e0 Alexey Zhokhov <alexey@zhokhov.com> 1792235072 +0700	commit: fixup! feat(list_core): ListCore and ContentState; ListBox on ListCore (S13, K37)
+1b15e8cb721cb9970ce451a5a39319e00165c3e0 934f27c31eec4a812f91555a375cf707f9dbfe22 Alexey Zhokhov <alexey@zhokhov.com> 1792235074 +0700	commit: WIP tree props steps
+934f27c31eec4a812f91555a375cf707f9dbfe22 c0b98e04b520b87108f0472eaa2f19bb2382a6fa Alexey Zhokhov <alexey@zhokhov.com> 1792235075 +0700	rebase (finish): refs/heads/plan-s13 onto 706b4a68c0f2468123529bbb7ed387e8819108c0
+c0b98e04b520b87108f0472eaa2f19bb2382a6fa 489d7f04b262d1490003f4ba7e573bd47a41188b Alexey Zhokhov <alexey@zhokhov.com> 1792235157 +0700	commit: fixup! feat(list_core): ListCore and ContentState; ListBox on ListCore (S13, K37)
+489d7f04b262d1490003f4ba7e573bd47a41188b c1751a84fa167fd4c55c41e5c54061bc8eeaab21 Alexey Zhokhov <alexey@zhokhov.com> 1792235158 +0700	commit: fixup! WIP tree props steps
+c1751a84fa167fd4c55c41e5c54061bc8eeaab21 551c4d914aa4ef5f5d1ea81a08987d70e0f25ad5 Alexey Zhokhov <alexey@zhokhov.com> 1792235159 +0700	rebase (finish): refs/heads/plan-s13 onto 706b4a68c0f2468123529bbb7ed387e8819108c0
+551c4d914aa4ef5f5d1ea81a08987d70e0f25ad5 706b4a68c0f2468123529bbb7ed387e8819108c0 Alexey Zhokhov <alexey@zhokhov.com> 1792235182 +0700	reset: moving to 706b4a68c
+706b4a68c0f2468123529bbb7ed387e8819108c0 e9186b40db37a29f12b228a5103b35fa2cfcc6d2 Alexey Zhokhov <alexey@zhokhov.com> 1792235236 +0700	commit: feat(list_core): ListCore and ContentState; List, Tree, Props and Steps on it (S13, K37)
+e9186b40db37a29f12b228a5103b35fa2cfcc6d2 3e22f08565bdeb0e09d0f72f6096936719004886 Alexey Zhokhov <alexey@zhokhov.com> 1792235264 +0700	commit: docs: S13 outcome (ListCore, ContentState, K37); remaining-work S13 row
+3e22f08565bdeb0e09d0f72f6096936719004886 469473db6a6e463f89ff9c9273d9570f3bc4b0dc Alexey Zhokhov <alexey@zhokhov.com> 1792235778 +0700	rebase (finish): refs/heads/plan-s13 onto 6abad6305e3169db15c1a1b1a8be9be97b7934ef
+469473db6a6e463f89ff9c9273d9570f3bc4b0dc 74bb268ba94c3d42f0aa64567644905e6c7f6939 Alexey Zhokhov <alexey@zhokhov.com> 1792235790 +0700	rebase (finish): refs/heads/plan-s13 onto 6abad6305e3169db15c1a1b1a8be9be97b7934ef

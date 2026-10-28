@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 1dee009130ca11876a8d5e53e04fe1046edb9888 Alexey Zhokhov <alexey@zhokhov.com> 1792556661 +0700	branch: Created from wip/context-menu-live-contract-20261021
+1dee009130ca11876a8d5e53e04fe1046edb9888 de819fb1ca4e30790e869b1b9eed004109cab3aa Alexey Zhokhov <alexey@zhokhov.com> 1792557620 +0700	commit: refactor(jackin): use live capsule context menus

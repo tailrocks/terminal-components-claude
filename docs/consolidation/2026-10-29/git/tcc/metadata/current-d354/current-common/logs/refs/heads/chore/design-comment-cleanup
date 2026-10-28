@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 d9e569bf6fd33d90266db597c458442c729340ad Alexey Zhokhov <alexey@zhokhov.com> 1792321057 +0700	branch: Created from HEAD
+d9e569bf6fd33d90266db597c458442c729340ad 247a044f3d4147199a212b0c8d3c1dfd03e436f8 Alexey Zhokhov <alexey@zhokhov.com> 1792321229 +0700	commit: docs: clarify design branch authority and refactor plan
+247a044f3d4147199a212b0c8d3c1dfd03e436f8 bc3d825cd9298d7eb82cf61d516a0a2178741931 Alexey Zhokhov <alexey@zhokhov.com> 1792321297 +0700	commit: docs: clarify shared component plan status
+bc3d825cd9298d7eb82cf61d516a0a2178741931 200fe646c7507e637d41d079159ecb9539742570 Alexey Zhokhov <alexey@zhokhov.com> 1792321446 +0700	commit: docs: retire obsolete handoff and prompt reports
+200fe646c7507e637d41d079159ecb9539742570 b043559a4c17453604922fbf5e68f6dcce208d1c Alexey Zhokhov <alexey@zhokhov.com> 1792321531 +0700	commit: docs: retain scoped safety rationale record
+b043559a4c17453604922fbf5e68f6dcce208d1c c7e1d78204b456f51c45a80e1cbd336d8f5e7e1a Alexey Zhokhov <alexey@zhokhov.com> 1792322066 +0700	commit: refactor(cli): preserve help without Rust docs

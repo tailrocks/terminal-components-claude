@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 3fd30023b9983943c531d418977ab8016f5a9f22 Alexey Zhokhov <alexey@zhokhov.com> 1792517234 +0700	branch: Created from HEAD
+3fd30023b9983943c531d418977ab8016f5a9f22 34bc9f14f3b9eee30c89d271fc930b88cb91fa3b Alexey Zhokhov <alexey@zhokhov.com> 1792517956 +0700	commit: test: attest paired CLI process identities
+34bc9f14f3b9eee30c89d271fc930b88cb91fa3b fe1740d28874bc616188423127088b7263027e74 Alexey Zhokhov <alexey@zhokhov.com> 1792518513 +0700	commit: test: require paired child teardown evidence
+fe1740d28874bc616188423127088b7263027e74 0f800a86ff73cbff4a45d4830a66fb76f1b64f2e Alexey Zhokhov <alexey@zhokhov.com> 1792518867 +0700	commit: test: close paired CLI launch receipt gaps
+0f800a86ff73cbff4a45d4830a66fb76f1b64f2e d8fd898fc1b12f65f2072bb8bfe362b4cd20ea58 Alexey Zhokhov <alexey@zhokhov.com> 1792518957 +0700	commit: test: isolate paired adapter launch smoke

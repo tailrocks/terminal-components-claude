@@ -1,0 +1,11 @@
+0000000000000000000000000000000000000000 b148d2098182f81c5f420c682843835c8a594a78 Alexey Zhokhov <alexey@zhokhov.com> 1792210987 +0700	branch: Created from HEAD
+b148d2098182f81c5f420c682843835c8a594a78 73cc5ea7fb7167bd6231b75c49a486e7e338acad Alexey Zhokhov <alexey@zhokhov.com> 1792211294 +0700	commit: build(ci): commit mise.lock for velnor's install audit (C4)
+73cc5ea7fb7167bd6231b75c49a486e7e338acad a0720c1bf2c9ee196b546543a68278f0cdc7d2f3 Alexey Zhokhov <alexey@zhokhov.com> 1792211559 +0700	commit: feat(theme): pick ASCII glyphs for terminals without Unicode (A22)
+a0720c1bf2c9ee196b546543a68278f0cdc7d2f3 84cd2e704058735b822415499fccd38f201d3b99 Alexey Zhokhov <alexey@zhokhov.com> 1792211576 +0700	commit: docs: A22 and SVg6 done (theme::Charset)
+84cd2e704058735b822415499fccd38f201d3b99 3a3b72f6465139df463a3ebb43315b23aaf9555c Alexey Zhokhov <alexey@zhokhov.com> 1792212337 +0700	rebase (finish): refs/heads/c4-a22 onto d583c135cadd3ea4bc4775a4b734e110e337c80f
+3a3b72f6465139df463a3ebb43315b23aaf9555c cd85196508ddbc81357f70a97de995643c80363f Alexey Zhokhov <alexey@zhokhov.com> 1792212421 +0700	commit: tmp fix
+cd85196508ddbc81357f70a97de995643c80363f 69cbbc7f19698d676d573c46f2653cd1f5589c1e Alexey Zhokhov <alexey@zhokhov.com> 1792212423 +0700	reset: moving to 69cbbc7f1
+69cbbc7f19698d676d573c46f2653cd1f5589c1e 596e7ccbef36d72492e6d40fccc8ee82d2c5643b Alexey Zhokhov <alexey@zhokhov.com> 1792212424 +0700	commit (amend): feat(theme): pick ASCII glyphs for terminals without Unicode (A22)
+596e7ccbef36d72492e6d40fccc8ee82d2c5643b 7d9b87b06990536c786aef163c589e23a77ff336 Alexey Zhokhov <alexey@zhokhov.com> 1792219154 +0700	rebase (finish): refs/heads/c4-a22 onto 35dcf56c1962e577ee9f4e2437336656d0fc76f6
+7d9b87b06990536c786aef163c589e23a77ff336 2a9dd56a0c1e61678bd721e839de5f36dfbc9808 Alexey Zhokhov <alexey@zhokhov.com> 1792219183 +0700	commit (cherry-pick): docs: A22 and SVg6 done (theme::Charset)
+2a9dd56a0c1e61678bd721e839de5f36dfbc9808 9cde839de737d0bc5a06ea426ea04cfcb6e29b86 Alexey Zhokhov <alexey@zhokhov.com> 1792227657 +0700	rebase (finish): refs/heads/c4-a22 onto 791c8df9425c74e34f4a82219f8857d45df1a48c

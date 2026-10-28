@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 791c8df9425c74e34f4a82219f8857d45df1a48c Alexey Zhokhov <alexey@zhokhov.com> 1792228066 +0700	branch: Created from HEAD
+791c8df9425c74e34f4a82219f8857d45df1a48c ec2dcfa8323a29416d9a03aabcbcf70a77c2b0a1 Alexey Zhokhov <alexey@zhokhov.com> 1792229083 +0700	commit: feat(showcase): Query workbench screen (SC46)
+ec2dcfa8323a29416d9a03aabcbcf70a77c2b0a1 9a1163e64307d92df6f75a110fe3dade9acbfc34 Alexey Zhokhov <alexey@zhokhov.com> 1792229606 +0700	commit: feat(showcase): Connections screen (SC47)
+9a1163e64307d92df6f75a110fe3dade9acbfc34 621d706ca85f6801a7a4e30e4cf65c081fcd91cb Alexey Zhokhov <alexey@zhokhov.com> 1792229954 +0700	commit: feat(showcase): Finder screen (SC48)
+621d706ca85f6801a7a4e30e4cf65c081fcd91cb 4d052bc7461d68d5a0e819836ee2215d0d0c2e41 Alexey Zhokhov <alexey@zhokhov.com> 1792229968 +0700	rebase (finish): refs/heads/p0-screens-a onto 28de190dea34fa253a4d766778ee2d93d26f8520
+4d052bc7461d68d5a0e819836ee2215d0d0c2e41 c920111fe6fcb052c0af65233702602058ed5ea0 Alexey Zhokhov <alexey@zhokhov.com> 1792230223 +0700	rebase (finish): refs/heads/p0-screens-a onto 28de190dea34fa253a4d766778ee2d93d26f8520
+c920111fe6fcb052c0af65233702602058ed5ea0 73435bf3bd28f81336f342af4775f95da3dccf33 Alexey Zhokhov <alexey@zhokhov.com> 1792232341 +0700	rebase (finish): refs/heads/p0-screens-a onto af51d1c29421263d2b5b33b34473db051af1fb2d
+73435bf3bd28f81336f342af4775f95da3dccf33 92da2e57d8bb837c390830a5c76344e34b2566d0 Alexey Zhokhov <alexey@zhokhov.com> 1792232779 +0700	commit: test(visual): overlay rows for the Connections and Finder screens (SC47, SC48)
+92da2e57d8bb837c390830a5c76344e34b2566d0 1303aea53850da3bb2020e33237808aab0de7954 Alexey Zhokhov <alexey@zhokhov.com> 1792232870 +0700	rebase (finish): refs/heads/p0-screens-a onto 8c3d468512f93cfbbe47e9551bd2b6c981ce7a63

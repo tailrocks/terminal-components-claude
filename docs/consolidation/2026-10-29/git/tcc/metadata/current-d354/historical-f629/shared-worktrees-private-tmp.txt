@@ -1,0 +1,69 @@
+worktree /private/tmp/base-design
+HEAD f2f6eb716c4a512be3dc9423742fa06e86879b32
+detached
+
+worktree /private/tmp/base-parity
+HEAD a55c871475b85e7f0a3caff78dd9e8c5b4fed54d
+detached
+
+worktree /private/tmp/base-parity2
+HEAD 78a0915176420f4068f2f1c43d4c4cecd3d84299
+detached
+
+worktree /private/tmp/empty-diagnostic-20261022-approved-tests
+HEAD f1fbd446a12e7861fad29f304760b5cf137ba06c
+branch refs/heads/recovery/button-gutter-author-style-20261023
+prunable gitdir file points to non-existent location
+
+worktree /private/tmp/empty-diagnostic-20261022-current
+HEAD 195cfb65a010cd2b52f03dad5e807dc0d8964fdf
+detached
+prunable gitdir file points to non-existent location
+
+worktree /private/tmp/empty-diagnostic-20261022-f08
+HEAD f08d20e0f3780c54796414a1ec1bceb3d0054593
+detached
+prunable gitdir file points to non-existent location
+
+worktree /private/tmp/empty-diagnostic-20261022-historical
+HEAD 2ca2c7ad33e699cb5ce3edd78e2264ac42b67fb8
+detached
+prunable gitdir file points to non-existent location
+
+worktree /private/tmp/integ-design
+HEAD 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948
+detached
+
+worktree /private/tmp/integ-parity
+HEAD 026ac39f01fbf9c6b673cf982feb51f71e5dfcfc
+detached
+
+worktree /private/tmp/pr38-docs-integration-3568d40-20261028
+HEAD d0e441665993c4993ae8b8e01d9b51a53ddb1e12
+detached
+
+worktree /private/tmp/pr38-holla-successor12-publish-20261028-d0e44166
+HEAD 3e678eb2522bbf05156a49933f910f2832081353
+detached
+
+worktree /private/tmp/termrock-pr38-native-paired-build-20261028-c47412cc
+HEAD c47412cc16e1fdc1201bef03847cfb5c99263d9c
+detached
+
+worktree /private/tmp/termrock-pr38-status-hints-production-20261028-d0e44166
+HEAD d0e441665993c4993ae8b8e01d9b51a53ddb1e12
+detached
+
+worktree /private/tmp/termrock-pr38-velnor-0168-candidate-preview-20261029
+HEAD f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93
+detached
+
+worktree /private/tmp/termrock-push-audit.xeKwtF
+HEAD 972dc301916bc2c295d2f5d9a601ab892de3d83e
+detached
+locked initializing
+
+worktree /private/tmp/termrock-settings-old-control-20261022
+HEAD 6e471f142166d5df82bec7cb4b2dc419346ac640
+detached
+prunable gitdir file points to non-existent location

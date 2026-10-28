@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 9770084a9f968182cd14c57a5bf294fb1768fc38 Alexey Zhokhov <alexey@zhokhov.com> 1792598803 +0700	branch: Created from 9770084a9
+9770084a9f968182cd14c57a5bf294fb1768fc38 cfb58cbaa37751f5f333b95ddf5f08ab33a1c1e7 Alexey Zhokhov <alexey@zhokhov.com> 1792604420 +0700	commit: style(showcase): reformat the overview page imports
+cfb58cbaa37751f5f333b95ddf5f08ab33a1c1e7 1363740733efb2a46a24b77f43d8006b9f2c924b Alexey Zhokhov <alexey@zhokhov.com> 1792604438 +0700	commit: fix(feedback): reduce the page chrome palette to the frame's colour level
+1363740733efb2a46a24b77f43d8006b9f2c924b 51bfa5555c4c5ce30f74e5e2ebc5e79f02de3358 Alexey Zhokhov <alexey@zhokhov.com> 1792604459 +0700	commit: docs(audit): record the 16-colour Overview frame root cause
+51bfa5555c4c5ce30f74e5e2ebc5e79f02de3358 cf48be987ee61680c14035d9b15e88dd8e1c9290 Alexey Zhokhov <alexey@zhokhov.com> 1792605284 +0700	rebase (finish): refs/heads/wip/ansi16-shell-chrome-20261021 onto 511f8e127e533aee8710b08efb6cef540924fdfc

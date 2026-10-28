@@ -1,0 +1,3 @@
+fix(text): retain prefix for split UTF-8
+
+Invalid scalar-interior offsets retain valid leading text.

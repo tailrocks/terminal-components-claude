@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 8cecb53b26470f7de6edfe6bbc95b25711cf1570 Alexey Zhokhov <alexey@zhokhov.com> 1792508326 +0700	branch: Created from 8cecb53b26470f7de6edfe6bbc95b25711cf1570
+8cecb53b26470f7de6edfe6bbc95b25711cf1570 6e81c0034989b11321e64cc2da0bb617c37b896c Alexey Zhokhov <alexey@zhokhov.com> 1792508426 +0700	commit: refactor(runtime): retain final composition geometry

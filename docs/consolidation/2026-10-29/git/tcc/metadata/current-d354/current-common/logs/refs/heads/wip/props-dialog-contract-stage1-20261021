@@ -1,0 +1,11 @@
+0000000000000000000000000000000000000000 2a0cd21f6ca5dc052a1ac4343398db7bb5084cf9 Alexey Zhokhov <alexey@zhokhov.com> 1792540856 +0700	branch: Created from origin/parity/termrock-visual-baseline
+2a0cd21f6ca5dc052a1ac4343398db7bb5084cf9 4fa28cce76ca23b892553e7b897d07c8f7567101 Alexey Zhokhov <alexey@zhokhov.com> 1792541784 +0700	commit: feat(controls): add shared property sheet presentation
+4fa28cce76ca23b892553e7b897d07c8f7567101 e4b9194c85018964af350df54a634899c2f8bd5a Alexey Zhokhov <alexey@zhokhov.com> 1792541964 +0700	commit: fix(controls): preserve property cursor across reorder
+e4b9194c85018964af350df54a634899c2f8bd5a 386b895597b220d949304e506bd5c629792b8b25 Alexey Zhokhov <alexey@zhokhov.com> 1792542952 +0700	commit: fix(controls): preserve props sheet layout and style contracts
+386b895597b220d949304e506bd5c629792b8b25 7c738acca9c0f51758e6a4331075ba5aba4775e8 Alexey Zhokhov <alexey@zhokhov.com> 1792543122 +0700	commit: docs: record PropsList correction handoff
+7c738acca9c0f51758e6a4331075ba5aba4775e8 02ef73194ad1227f0a44462f49e4ea31053a99d9 Alexey Zhokhov <alexey@zhokhov.com> 1792543143 +0700	commit: docs: preserve and extend PropsList handoff
+02ef73194ad1227f0a44462f49e4ea31053a99d9 730c42131a4c8550df232e2cfe0b4b46cf31f2a2 Alexey Zhokhov <alexey@zhokhov.com> 1792543160 +0700	commit: docs: clarify PropsList implementation handoff tip
+730c42131a4c8550df232e2cfe0b4b46cf31f2a2 c1ed94e0e445908c27965ec581d2459c491ddc15 Alexey Zhokhov <alexey@zhokhov.com> 1792543673 +0700	commit: fix(controls): clip props values after wrapping
+c1ed94e0e445908c27965ec581d2459c491ddc15 a9fdf78ebd9ce72bc9c5fb1e2f6f70496d3166bf Alexey Zhokhov <alexey@zhokhov.com> 1792543681 +0700	commit: docs: hand off PropsList wrap correction
+a9fdf78ebd9ce72bc9c5fb1e2f6f70496d3166bf 8ff521660eb9297791264f7858fa3eeb493be4b2 Alexey Zhokhov <alexey@zhokhov.com> 1792543944 +0700	commit: fix(controls): respect props theme patch precedence
+8ff521660eb9297791264f7858fa3eeb493be4b2 60a68fd1eb5d2e5cefee174bc822eacbf8c7e28f Alexey Zhokhov <alexey@zhokhov.com> 1792543950 +0700	commit: docs: hand off props style precedence correction

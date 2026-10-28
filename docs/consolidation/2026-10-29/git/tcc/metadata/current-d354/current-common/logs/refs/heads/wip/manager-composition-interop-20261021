@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 4f0836ec6cf67fdf72318af6f2433b7f4834c3cd Alexey Zhokhov <alexey@zhokhov.com> 1792563692 +0700	branch: Created from FETCH_HEAD
+4f0836ec6cf67fdf72318af6f2433b7f4834c3cd f31bf05fa2eb04511726635758de1968d9dd81cc Alexey Zhokhov <alexey@zhokhov.com> 1792564025 +0700	commit: feat(termrock): compose master detail blocks
+f31bf05fa2eb04511726635758de1968d9dd81cc 360a2b3da08af93717a3045044b3d77634fc0469 Alexey Zhokhov <alexey@zhokhov.com> 1792564112 +0700	commit (merge): Merge remote-tracking branch 'origin/parity/termrock-visual-baseline' into wip/manager-composition-interop-20261021
+360a2b3da08af93717a3045044b3d77634fc0469 7be61372600e2ba17449aaa9db097f7d7aca3342 Alexey Zhokhov <alexey@zhokhov.com> 1792564267 +0700	commit: test(termrock): compile default composition consumer
+7be61372600e2ba17449aaa9db097f7d7aca3342 ea38906769eaa4c10026f1119b7f320c0f8a4e29 Alexey Zhokhov <alexey@zhokhov.com> 1792564362 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+ea38906769eaa4c10026f1119b7f320c0f8a4e29 c6ad25b25f83b2b557bd24fd8f3dfc3c99d65f13 Alexey Zhokhov <alexey@zhokhov.com> 1792565089 +0700	commit: fix(termrock): include master detail depth in composition
+c6ad25b25f83b2b557bd24fd8f3dfc3c99d65f13 621997e7dd4885613d528a339b945a04c197e0a8 Alexey Zhokhov <alexey@zhokhov.com> 1792565250 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

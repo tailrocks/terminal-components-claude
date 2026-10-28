@@ -1,0 +1,119 @@
+{
+  "all_blob_ids_sizes_and_modes_match": true,
+  "archive_paths_checked": 9,
+  "archive_prefix": "docs/consolidation/2026-10-29/git/tcc/opaque-tc-claude-tmp-pack/",
+  "checks": [
+    {
+      "expected_blob_sha1": "385278abcb0cb378504f2a88cc785852cd575659",
+      "expected_mode": "100644",
+      "expected_size_bytes": 878,
+      "match": true,
+      "path": "docs/consolidation/2026-10-29/git/tcc/opaque-tc-claude-tmp-pack/README.md",
+      "remote_blob_sha1": "385278abcb0cb378504f2a88cc785852cd575659",
+      "remote_mode": "100644",
+      "remote_size_bytes": 878
+    },
+    {
+      "expected_blob_sha1": "119e55d07cbd25a5974023dffe8d17b88d766548",
+      "expected_mode": "100644",
+      "expected_size_bytes": 50331648,
+      "match": true,
+      "path": "docs/consolidation/2026-10-29/git/tcc/opaque-tc-claude-tmp-pack/chunks/000001-21d8ed5641b6b9be72a0a11a7019182bdd1261342214abdc308e33f4a8caaa4e.chunk",
+      "remote_blob_sha1": "119e55d07cbd25a5974023dffe8d17b88d766548",
+      "remote_mode": "100644",
+      "remote_size_bytes": 50331648
+    },
+    {
+      "expected_blob_sha1": "71783992c42d2456a96de94d68660918cd1b85ab",
+      "expected_mode": "100644",
+      "expected_size_bytes": 50331648,
+      "match": true,
+      "path": "docs/consolidation/2026-10-29/git/tcc/opaque-tc-claude-tmp-pack/chunks/000002-ddd0724fbd71ef32eea45183684e0f37d763e72bd3e1b0733620e0f7437dcdf3.chunk",
+      "remote_blob_sha1": "71783992c42d2456a96de94d68660918cd1b85ab",
+      "remote_mode": "100644",
+      "remote_size_bytes": 50331648
+    },
+    {
+      "expected_blob_sha1": "607b2bad5adeed36c0069538201788e7fc224dad",
+      "expected_mode": "100644",
+      "expected_size_bytes": 50331648,
+      "match": true,
+      "path": "docs/consolidation/2026-10-29/git/tcc/opaque-tc-claude-tmp-pack/chunks/000003-bffd76219d23e7910a8e20be04dc8fac754e85727dfd1f1aef004d672f8325ae.chunk",
+      "remote_blob_sha1": "607b2bad5adeed36c0069538201788e7fc224dad",
+      "remote_mode": "100644",
+      "remote_size_bytes": 50331648
+    },
+    {
+      "expected_blob_sha1": "a65cfdb338cefdc82839cb0ddae8ba2b7e6050c0",
+      "expected_mode": "100644",
+      "expected_size_bytes": 50331648,
+      "match": true,
+      "path": "docs/consolidation/2026-10-29/git/tcc/opaque-tc-claude-tmp-pack/chunks/000004-08ccdfa99f2b8391b86d0118f2b9130a87f8477e9e9cece7da7b4b5252dc88d0.chunk",
+      "remote_blob_sha1": "a65cfdb338cefdc82839cb0ddae8ba2b7e6050c0",
+      "remote_mode": "100644",
+      "remote_size_bytes": 50331648
+    },
+    {
+      "expected_blob_sha1": "e8648dca11fc3103d7183a306ac01abf1c7fcd4b",
+      "expected_mode": "100644",
+      "expected_size_bytes": 50331648,
+      "match": true,
+      "path": "docs/consolidation/2026-10-29/git/tcc/opaque-tc-claude-tmp-pack/chunks/000005-4792be8deb44da6a87d6d9f6d197beed95a0fd64e96e5bccc23bc5f8c1777523.chunk",
+      "remote_blob_sha1": "e8648dca11fc3103d7183a306ac01abf1c7fcd4b",
+      "remote_mode": "100644",
+      "remote_size_bytes": 50331648
+    },
+    {
+      "expected_blob_sha1": "5bf827d8e4e770067216d6f17dcd4b9bc3d7ea29",
+      "expected_mode": "100644",
+      "expected_size_bytes": 27451391,
+      "match": true,
+      "path": "docs/consolidation/2026-10-29/git/tcc/opaque-tc-claude-tmp-pack/chunks/000006-83546f8523993dd3fd5e1f881e567f5d04cf62bbf6b58786ff0565c207b75177.chunk",
+      "remote_blob_sha1": "5bf827d8e4e770067216d6f17dcd4b9bc3d7ea29",
+      "remote_mode": "100644",
+      "remote_size_bytes": 27451391
+    },
+    {
+      "expected_blob_sha1": "d7ec2f777e2afab5ea4081ba174a2f432d584433",
+      "expected_mode": "100644",
+      "expected_size_bytes": 2893,
+      "match": true,
+      "path": "docs/consolidation/2026-10-29/git/tcc/opaque-tc-claude-tmp-pack/manifest.json",
+      "remote_blob_sha1": "d7ec2f777e2afab5ea4081ba174a2f432d584433",
+      "remote_mode": "100644",
+      "remote_size_bytes": 2893
+    },
+    {
+      "expected_blob_sha1": "e8f7e41f6edfade2a37224142eb4ff62ed917457",
+      "expected_mode": "100644",
+      "expected_size_bytes": 2193,
+      "match": true,
+      "path": "docs/consolidation/2026-10-29/git/tcc/opaque-tc-claude-tmp-pack/opaque-pack-publication-review.json",
+      "remote_blob_sha1": "e8f7e41f6edfade2a37224142eb4ff62ed917457",
+      "remote_mode": "100644",
+      "remote_size_bytes": 2193
+    }
+  ],
+  "commit": "f763df0de068ef19077da841709ccc386baa98c3",
+  "commit_message_and_signoff": "f763df0de068ef19077da841709ccc386baa98c3\nd3546b707e980a2810cc60f8a8965ca719cbddc9\narchive(custody): preserve tc-claude opaque pack bytes\nSigned-off-by: Muse Code <muse@example.com>\n\n",
+  "commit_object_tree_sha": "e062d36b0ac23a672049ffcb77e6911de4e2b9c2",
+  "commit_parent": "d3546b707e980a2810cc60f8a8965ca719cbddc9",
+  "github_commit_object_sha256": "2177b5bd0ba71be26bb805ae8e167d610a6d928c146249ffd524cf1c7a7a4ffe",
+  "ls_remote_response_sha256": "f856963796fbcbe7dc981e242e90727c1811b139a35c07617cff53d84981a2a4",
+  "pr_head": "f763df0de068ef19077da841709ccc386baa98c3",
+  "pr_response_sha256": "5edae5e0a7b87e27360779e04d9949b347fd1b1053291c903b96f1b7af48a19c",
+  "recursive_tree_entries": 4884,
+  "remote_head": "f763df0de068ef19077da841709ccc386baa98c3",
+  "remote_ref": "refs/heads/parity/termrock-visual-baseline",
+  "schema_version": 1,
+  "tool_command_exit_codes": {
+    "gh_pr_api": 0,
+    "gh_recursive_tree_api": 0,
+    "git_local_recursive_ls_tree": 0,
+    "git_ls_remote": 0
+  },
+  "tree_response_sha256": "80732ada00ea09da3c3dcb761fd85b03a6da269771d60a31355ced17790997c8",
+  "tree_sha": "e062d36b0ac23a672049ffcb77e6911de4e2b9c2",
+  "tree_truncated": false,
+  "verified_at_utc": "2026-10-28T21:20:12.667739+00:00"
+}

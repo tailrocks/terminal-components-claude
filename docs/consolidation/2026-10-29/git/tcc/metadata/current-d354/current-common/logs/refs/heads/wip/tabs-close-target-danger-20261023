@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 c3edd7cf98fd849a7b8e413c8dbf3c3890c1693c Alexey Zhokhov <alexey@zhokhov.com> 1792743895 +0700	branch: Created from origin/parity/termrock-visual-baseline
+c3edd7cf98fd849a7b8e413c8dbf3c3890c1693c ebc8fb7be716ced621788a270eac310e728089ce Alexey Zhokhov <alexey@zhokhov.com> 1792744889 +0700	commit: feat(navigation): add close target width and danger hover

@@ -1,0 +1,28 @@
+0000000000000000000000000000000000000000 1809d6ef4140003585f009eb68365bb8207cbb46 Alexey Zhokhov <alexey@zhokhov.com> 1792491262 +0700	branch: Created from origin/parity/termrock-visual-baseline
+1809d6ef4140003585f009eb68365bb8207cbb46 c66221530e5db76cf99b877c1a37b0b97ee691d3 Alexey Zhokhov <alexey@zhokhov.com> 1792491410 +0700	commit: fix: run isolation check against both binaries
+c66221530e5db76cf99b877c1a37b0b97ee691d3 9be2fc58833e913fbd5c988aac0e2e2c281d757d Alexey Zhokhov <alexey@zhokhov.com> 1792491767 +0700	commit: test: add table visual extension inventory
+9be2fc58833e913fbd5c988aac0e2e2c281d757d f0bee828e8556f9a9eeb25672d93bdfd60bf1f7f Alexey Zhokhov <alexey@zhokhov.com> 1792492400 +0700	commit: test: verify paired table extension coverage
+f0bee828e8556f9a9eeb25672d93bdfd60bf1f7f b2945bd1832ec08b92a7bc0ced42bba26e90a9e5 Alexey Zhokhov <alexey@zhokhov.com> 1792492817 +0700	commit: test: validate table extension paired checkpoints
+b2945bd1832ec08b92a7bc0ced42bba26e90a9e5 400500a0440a2637a8f38cd9248e4763873d6e21 Alexey Zhokhov <alexey@zhokhov.com> 1792493329 +0700	commit: test: require complete extension checkpoints
+400500a0440a2637a8f38cd9248e4763873d6e21 ca685f2c8e9b027698113237d728b9cd19db0fc1 Alexey Zhokhov <alexey@zhokhov.com> 1792493682 +0700	commit: docs: record current consumer paired pilot
+ca685f2c8e9b027698113237d728b9cd19db0fc1 901522ac3241c6876f9b3562c23bea9685d9ad61 Alexey Zhokhov <alexey@zhokhov.com> 1792495125 +0700	commit: test: bind frozen live frames to cursor-aware references
+901522ac3241c6876f9b3562c23bea9685d9ad61 2d0c89189f3f724195a896521c1ba13cffa6a847 Alexey Zhokhov <alexey@zhokhov.com> 1792495128 +0700	cherry-pick: test: compare canonical semantic terminal frames
+2d0c89189f3f724195a896521c1ba13cffa6a847 a1a7bb44b1c92f38e38efcfbbae627ab56e20ecb Alexey Zhokhov <alexey@zhokhov.com> 1792495128 +0700	cherry-pick: test: pin diagnosed frozen approval conflict
+a1a7bb44b1c92f38e38efcfbbae627ab56e20ecb b4abfac462d85bc29b4b26ca3755372d172ecbb0 Alexey Zhokhov <alexey@zhokhov.com> 1792495561 +0700	cherry-pick: fix(tuiscotti): persist exact semantic mismatch frames
+b4abfac462d85bc29b4b26ca3755372d172ecbb0 959c3f6b4ee0e37efdc94e5490a70a7c9187d8a9 Alexey Zhokhov <alexey@zhokhov.com> 1792495751 +0700	commit: test: seal live paired semantic artifacts
+959c3f6b4ee0e37efdc94e5490a70a7c9187d8a9 b5fe92e6e16b43bbd255bbeedd276678127ee0c8 Alexey Zhokhov <alexey@zhokhov.com> 1792495768 +0700	commit: test: normalize actual frame provenance in guards
+b5fe92e6e16b43bbd255bbeedd276678127ee0c8 d3f3f65fe6e28055afe98b01afbf24b5e7c70d16 Alexey Zhokhov <alexey@zhokhov.com> 1792495783 +0700	commit: docs: record semantic reference guard failures
+d3f3f65fe6e28055afe98b01afbf24b5e7c70d16 a4ac59da00b2e3bcb731be2b657f00b00136c217 Alexey Zhokhov <alexey@zhokhov.com> 1792495868 +0700	cherry-pick: fix(tuiscotti): normalize semantic frame provenance
+a4ac59da00b2e3bcb731be2b657f00b00136c217 07b5909add438180929be08583be43f47b1063f9 Alexey Zhokhov <alexey@zhokhov.com> 1792496156 +0700	commit: test: validate paired receipts across chunks
+07b5909add438180929be08583be43f47b1063f9 be7cc1980816d7d6d4e5dd2144660332654569ec Alexey Zhokhov <alexey@zhokhov.com> 1792496619 +0700	commit: test: validate serialized terminal colors
+be7cc1980816d7d6d4e5dd2144660332654569ec 955185ec6ddb4878966e8ae569f5b3aac12b6bad Alexey Zhokhov <alexey@zhokhov.com> 1792497192 +0700	commit: docs: record paired cursor lifecycle pilots
+955185ec6ddb4878966e8ae569f5b3aac12b6bad f96e65b066d45e450dbfe11ad4c06c5f69ee622d Alexey Zhokhov <alexey@zhokhov.com> 1792497221 +0700	commit: docs: note default-color CLI control
+f96e65b066d45e450dbfe11ad4c06c5f69ee622d 8eeec1f58077f51dc48befdd9ca18687da6682d5 Alexey Zhokhov <alexey@zhokhov.com> 1792498031 +0700	commit: test: control TERM profiles in paired CLI runs
+8eeec1f58077f51dc48befdd9ca18687da6682d5 da9acb3c1f32ddeab7ddee4546192ffcd393f6d0 Alexey Zhokhov <alexey@zhokhov.com> 1792498334 +0700	commit: test: set paired TERM on spawned CLI
+da9acb3c1f32ddeab7ddee4546192ffcd393f6d0 673ed6b5b53e88f1c2cfc7bc2f571f8dbacff422 Alexey Zhokhov <alexey@zhokhov.com> 1792498408 +0700	commit: fix: keep paired harness patch applicable
+673ed6b5b53e88f1c2cfc7bc2f571f8dbacff422 690071b2ab9933a3d8f6c1b3d4543e476f45d94b Alexey Zhokhov <alexey@zhokhov.com> 1792498594 +0700	commit: fix: close paired scroll helper patch hunk
+690071b2ab9933a3d8f6c1b3d4543e476f45d94b 7af9d63d39eb02ce8eafe330e8e3371176c0f2b9 Alexey Zhokhov <alexey@zhokhov.com> 1792498678 +0700	commit: fix: order paired harness patch hunks
+7af9d63d39eb02ce8eafe330e8e3371176c0f2b9 c2bc5a2c60f4ea78c1ed0966bcb63b4ac572c4ec Alexey Zhokhov <alexey@zhokhov.com> 1792499002 +0700	commit: docs: record terminal profile pilot evidence
+c2bc5a2c60f4ea78c1ed0966bcb63b4ac572c4ec a688d06f3c21b162838f92691a08b6d003b7a633 Alexey Zhokhov <alexey@zhokhov.com> 1792500549 +0700	commit: docs: record tablepro picker live comparison
+a688d06f3c21b162838f92691a08b6d003b7a633 8106bb7cb8acd78b68afe1dfc390894da5668cb7 Alexey Zhokhov <alexey@zhokhov.com> 1792500929 +0700	commit: docs: record follow-up tablepro candidate results
+8106bb7cb8acd78b68afe1dfc390894da5668cb7 0d7f38bac1ce4420036d930e1f90ad05459732de Alexey Zhokhov <alexey@zhokhov.com> 1792502720 +0700	commit: docs: record bcb51e8 TablePro paired evidence

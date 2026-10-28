@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 8363ebf4395d597ed01dc39b0d5e12ddafe0121d Alexey Zhokhov <alexey@zhokhov.com> 1792732165 +0700	branch: Created from origin/parity/termrock-visual-baseline
+8363ebf4395d597ed01dc39b0d5e12ddafe0121d 3cd4fa05f9e2f7d99cacae11adbbc788fd52f278 Alexey Zhokhov <alexey@zhokhov.com> 1792732832 +0700	commit: feat(navigation): close tabs by stable key
+3cd4fa05f9e2f7d99cacae11adbbc788fd52f278 7304b2e138cf06c894affba4455c6bb539b8d2a2 Alexey Zhokhov <alexey@zhokhov.com> 1792733080 +0700	rebase (finish): refs/heads/wip/tabs-item-closability-20261023 onto 241d3fa0cbb5957d5846b3b9f9863f641f786bda

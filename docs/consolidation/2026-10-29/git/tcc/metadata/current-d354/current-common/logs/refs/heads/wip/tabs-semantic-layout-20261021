@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 4cc10c3a7158123500fbe38435f2b68874b50561 Alexey Zhokhov <alexey@zhokhov.com> 1792558311 +0700	branch: Created from origin/parity/termrock-visual-baseline
+4cc10c3a7158123500fbe38435f2b68874b50561 5f6e92ef4c8e60f866868bcf45a745889432f7d7 Alexey Zhokhov <alexey@zhokhov.com> 1792559043 +0700	commit: feat(navigation): add semantic default tabs layout
+5f6e92ef4c8e60f866868bcf45a745889432f7d7 d403804b8831376c775478eb7b7826d6579bec68 Alexey Zhokhov <alexey@zhokhov.com> 1792559056 +0700	rebase (finish): refs/heads/wip/tabs-semantic-layout-20261021 onto 6841e67ed4d240d9b39478b2e99f39ff48b8189b
+d403804b8831376c775478eb7b7826d6579bec68 2e128eea6b26525429035cb75b606e9cfc9505d1 Alexey Zhokhov <alexey@zhokhov.com> 1792559475 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+2e128eea6b26525429035cb75b606e9cfc9505d1 c4b5e3fc1ef162a11bcc0cfb5746e0cddf8a60b8 Alexey Zhokhov <alexey@zhokhov.com> 1792559497 +0700	commit: fix(navigation): preserve clipped segmented tab labels

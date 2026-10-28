@@ -1,0 +1,19 @@
+0000000000000000000000000000000000000000 cff6d79dec6b49daa329ee3819d61516d63140f9 Alexey Zhokhov <alexey@zhokhov.com> 1792222758 +0700	branch: Created from HEAD
+cff6d79dec6b49daa329ee3819d61516d63140f9 c2f845f692faab51be1d09142cff8c9be44da7d4 Alexey Zhokhov <alexey@zhokhov.com> 1792223094 +0700	commit: feat(chips): the chip bar lead has a key (K38)
+c2f845f692faab51be1d09142cff8c9be44da7d4 b436c6ebf4317b4da84172c28587893d24804d8b Alexey Zhokhov <alexey@zhokhov.com> 1792224252 +0700	merge plan-s12-a: Fast-forward
+b436c6ebf4317b4da84172c28587893d24804d8b c5b0cc1b99404d79e3802200cc5123b566646521 Alexey Zhokhov <alexey@zhokhov.com> 1792224882 +0700	rebase (finish): refs/heads/plan-s12 onto f48a9cf64448a4c5db9b32df36cafab7bc02d4de
+c5b0cc1b99404d79e3802200cc5123b566646521 64c3c8e170b53538a48b964502c086103b27ac2b Alexey Zhokhov <alexey@zhokhov.com> 1792224937 +0700	commit (amend): refactor(completion): Completion's body is an OptionList, its rows are Item (S12)
+64c3c8e170b53538a48b964502c086103b27ac2b 9cde839de737d0bc5a06ea426ea04cfcb6e29b86 Alexey Zhokhov <alexey@zhokhov.com> 1792228254 +0700	merge origin/design/interaction-polish: Fast-forward
+9cde839de737d0bc5a06ea426ea04cfcb6e29b86 c15c581a54739be0b25d2342deea0fd248b9d868 Alexey Zhokhov <alexey@zhokhov.com> 1792228918 +0700	commit: refactor(select): Select's open list is an OptionList (S12, CO6)
+c15c581a54739be0b25d2342deea0fd248b9d868 f53437582c43b8c96adbc2f20d063e5f9199c83e Alexey Zhokhov <alexey@zhokhov.com> 1792229218 +0700	commit: WIP si13
+f53437582c43b8c96adbc2f20d063e5f9199c83e 4c0a30ebf6ade465b2f1ba8645ef0ba48d8925ff Alexey Zhokhov <alexey@zhokhov.com> 1792229355 +0700	commit: WIP si13 b
+4c0a30ebf6ade465b2f1ba8645ef0ba48d8925ff c15c581a54739be0b25d2342deea0fd248b9d868 Alexey Zhokhov <alexey@zhokhov.com> 1792229501 +0700	reset: moving to c15c581a5
+c15c581a54739be0b25d2342deea0fd248b9d868 63cde14f230a738d2d1de7ce5e6230e1aee177de Alexey Zhokhov <alexey@zhokhov.com> 1792229504 +0700	commit: feat(select): ↓ on a closed select opens its list (SI13)
+63cde14f230a738d2d1de7ce5e6230e1aee177de 6d2818b0522696ca7f1e97fa4a273b51bc7aee18 Alexey Zhokhov <alexey@zhokhov.com> 1792229512 +0700	commit (amend): feat(select): ↓ on a closed select opens its list (SI13)
+6d2818b0522696ca7f1e97fa4a273b51bc7aee18 53a282b27b98121da10f202adf379216578e8d30 Alexey Zhokhov <alexey@zhokhov.com> 1792229689 +0700	rebase (finish): refs/heads/plan-s12 onto 28de190dea34fa253a4d766778ee2d93d26f8520
+53a282b27b98121da10f202adf379216578e8d30 48b54bdaa3d509380cf3dff21e56145d055bb804 Alexey Zhokhov <alexey@zhokhov.com> 1792230715 +0700	commit: refactor(option_editor): the cell popup is an OptionList with a MouseTarget (S12, CO6, CO7)
+48b54bdaa3d509380cf3dff21e56145d055bb804 8cf613309c78022260ab348cd30fa6d4eaf8af7a Alexey Zhokhov <alexey@zhokhov.com> 1792231041 +0700	commit: fix(option_editor): the wheel over a cell popup scrolls its list (S12)
+8cf613309c78022260ab348cd30fa6d4eaf8af7a f8b7cfa183e15dbf5cef81ddd62e0f8e0fff39bb Alexey Zhokhov <alexey@zhokhov.com> 1792231112 +0700	rebase (finish): refs/heads/plan-s12 onto 2ff3629ece9471685186f6ba6ea72f2c66cf8cdf
+f8b7cfa183e15dbf5cef81ddd62e0f8e0fff39bb 914d847f588254cd0771b49f51437c5d66d02589 Alexey Zhokhov <alexey@zhokhov.com> 1792231588 +0700	commit: docs(plan): S12 progress — OptionList and the five popup bodies, SI13, K38, CO6, CO7 (part)
+914d847f588254cd0771b49f51437c5d66d02589 ac015fe52de8fec0e06784e75456bb79c9d75488 Alexey Zhokhov <alexey@zhokhov.com> 1792232381 +0700	rebase (finish): refs/heads/plan-s12 onto af51d1c29421263d2b5b33b34473db051af1fb2d
+ac015fe52de8fec0e06784e75456bb79c9d75488 8c3d468512f93cfbbe47e9551bd2b6c981ce7a63 Alexey Zhokhov <alexey@zhokhov.com> 1792232381 +0700	commit (amend): docs(plan): S12 done — OptionList and the five popup bodies; SI13, SI21/SV15, K38, CO6, CO7, CO15

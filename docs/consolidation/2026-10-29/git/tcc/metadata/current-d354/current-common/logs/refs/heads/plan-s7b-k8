@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 2cc3ef17caca30a54b370b59751821934a52be80 Alexey Zhokhov <alexey@zhokhov.com> 1792191984 +0700	branch: Created from HEAD
+2cc3ef17caca30a54b370b59751821934a52be80 fff01e405c1104fdab917ceaaf8fe44a3419e670 Alexey Zhokhov <alexey@zhokhov.com> 1792192680 +0700	commit: test(holla, jackin): a vanished control hands focus to its neighbour (K8)
+fff01e405c1104fdab917ceaaf8fe44a3419e670 8fd421ce8b525dd5f85a44cb4bcffe20d07796d4 Alexey Zhokhov <alexey@zhokhov.com> 1792192840 +0700	commit: test(showcase): a refused outside click on a dirty prompt flashes its frame

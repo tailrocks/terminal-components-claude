@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 078fffeb35a724d8d74c526d0b20756f41ff8498 Alexey Zhokhov <alexey@zhokhov.com> 1792489043 +0700	branch: Created from HEAD
+078fffeb35a724d8d74c526d0b20756f41ff8498 5c8d9cfd6a37ec7bf6d12d22a11f6b87a7f82110 Alexey Zhokhov <alexey@zhokhov.com> 1792489354 +0700	commit: fix(session): discard input queued before startup
+5c8d9cfd6a37ec7bf6d12d22a11f6b87a7f82110 21f6a93638a2353f96de86779790e49248367013 Alexey Zhokhov <alexey@zhokhov.com> 1792489363 +0700	rebase (finish): refs/heads/parity/session-startup-20261020 onto 5bfbd1e40fcf6de34d92a16df6a71b4e3fd55541
+21f6a93638a2353f96de86779790e49248367013 db31adf1e7329c63c8e81e6e9fc981803781ed3c Alexey Zhokhov <alexey@zhokhov.com> 1792489407 +0700	commit (amend): fix(session): discard input queued before startup

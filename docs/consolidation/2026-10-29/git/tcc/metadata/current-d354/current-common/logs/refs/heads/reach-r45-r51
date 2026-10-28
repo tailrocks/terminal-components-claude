@@ -1,0 +1,13 @@
+0000000000000000000000000000000000000000 2d4262375cdedaf21af117f2eec49c0aff09fd5a Alexey Zhokhov <alexey@zhokhov.com> 1792260886 +0700	branch: Created from HEAD
+2d4262375cdedaf21af117f2eec49c0aff09fd5a 76985c4473f3b53593c7f801283915d52f020237 Alexey Zhokhov <alexey@zhokhov.com> 1792261715 +0700	commit: feat(master-detail): panes_width and split_rects for owners that measure
+76985c4473f3b53593c7f801283915d52f020237 4ce6bd5c1496edae9d560c9bd22425941cdb2c6a Alexey Zhokhov <alexey@zhokhov.com> 1792261715 +0700	commit: feat(showcase): Disk cleanup Playground at its natural size (R45)
+4ce6bd5c1496edae9d560c9bd22425941cdb2c6a 50f74e44ed06c9d1e5232aa90c8bd3fe6c9db477 Alexey Zhokhov <alexey@zhokhov.com> 1792262057 +0700	commit: feat(measure): TextViewport and StepRail measure themselves
+50f74e44ed06c9d1e5232aa90c8bd3fe6c9db477 c3bde5d12df47c15e1770090f21eb34ecabbdb4e Alexey Zhokhov <alexey@zhokhov.com> 1792262057 +0700	commit: feat(showcase): Activity Playground at its natural size (R46)
+c3bde5d12df47c15e1770090f21eb34ecabbdb4e 84c59e767b5fa38e6893b0ab26dda67a08ea010d Alexey Zhokhov <alexey@zhokhov.com> 1792262361 +0700	commit: feat(master-detail): collapsed_mode, the narrow pane before layout
+84c59e767b5fa38e6893b0ab26dda67a08ea010d ed65b5b31ab08efe5bd48aa1a766d57213432f3d Alexey Zhokhov <alexey@zhokhov.com> 1792262361 +0700	commit: feat(showcase): Workspaces Playground at its natural size (R47)
+ed65b5b31ab08efe5bd48aa1a766d57213432f3d 0ab8b058b18db89081d41132a4f7f08a343f088a Alexey Zhokhov <alexey@zhokhov.com> 1792263271 +0700	commit: feat(showcase): Accounts & usage Playground at its natural size (R48)
+0ab8b058b18db89081d41132a4f7f08a343f088a 34490b79690346028dbface604393428876e51d0 Alexey Zhokhov <alexey@zhokhov.com> 1792263629 +0700	commit: feat(textarea): a long placeholder wraps over the rows; checkbox and radio widths
+34490b79690346028dbface604393428876e51d0 766ae4ddf19f15ae6cf104f4d309aa17c9773958 Alexey Zhokhov <alexey@zhokhov.com> 1792263637 +0700	commit (amend): feat(textarea): a long placeholder wraps over the rows; checkbox and radio widths
+766ae4ddf19f15ae6cf104f4d309aa17c9773958 de023acfc1fc4acd35d04ffabadf122d220b36d6 Alexey Zhokhov <alexey@zhokhov.com> 1792263691 +0700	commit: feat(showcase): Forms Playground at its natural size (R51)
+de023acfc1fc4acd35d04ffabadf122d220b36d6 be26655c3d2f438521d3a157652db00229d11f39 Alexey Zhokhov <alexey@zhokhov.com> 1792264018 +0700	commit: test(visual): tablepro connection form re-approval (placeholder wrap)
+be26655c3d2f438521d3a157652db00229d11f39 6f8a4b3af77c134092318b727cbecdf34fdc2c2a Alexey Zhokhov <alexey@zhokhov.com> 1792264029 +0700	rebase (finish): refs/heads/reach-r45-r51 onto 5629775d9b70a119a7944c75925db9fe7f4302f0

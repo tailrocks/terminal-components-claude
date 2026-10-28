@@ -1,0 +1,55 @@
+{
+  "captured_at_utc": "2026-10-28T18:44:03.680064+00:00",
+  "limitations": [
+    "The shared live-source target is under an evidence directory handled by a separate discovery owner and was not inspected.",
+    "Build target links resolve outside the project inventory scope into the user cache and were not traversed."
+  ],
+  "nested_symlink_directories_found": 7,
+  "schema_version": 1,
+  "scope": "Symlink-only follow-up within Termrock-named top-level Projects roots and home/Projects immediate roots. No symlink target was traversed.",
+  "symlink_directories": [
+    {
+      "classification": "build target cache symlink",
+      "followed": false,
+      "path": "/Users/donbeave/Projects/termrock-approved-integration-20261026/target",
+      "target": "/Users/donbeave/Library/Caches/mbx/targets/v1/c129fb3b97cf82fb09cd610b4ba9371ac8ae48353395ca88e037471dc2339338"
+    },
+    {
+      "classification": "build target cache symlink",
+      "followed": false,
+      "path": "/Users/donbeave/Projects/termrock-pr38-shared-20261028/target",
+      "target": "/Users/donbeave/Library/Caches/mbx/targets/v1/046bf92bb6da38dfd7d23199048e541b8f2e3327a20f4b826e961eabe98a75c6"
+    },
+    {
+      "classification": "build target cache symlink",
+      "followed": false,
+      "path": "/Users/donbeave/Projects/termrock-recovery-verify-20261027/target",
+      "target": "/Users/donbeave/Library/Caches/mbx/targets/v1/55062cd64790606013d04a06d16b71a2dbe2de70e03345e4d470b45862d88dd0"
+    },
+    {
+      "classification": "build target cache symlink",
+      "followed": false,
+      "path": "/Users/donbeave/Projects/termrock-recovery-verify-20261027/external-consumer-demo/target",
+      "target": "/Users/donbeave/Library/Caches/mbx/targets/v1/58ceeeac7829402f6fa11af3c85e5a0d416047887a9ba966d39582879fbdc43c"
+    },
+    {
+      "classification": "live evidence source link; destination not inspected",
+      "followed": false,
+      "path": "/Users/donbeave/Projects/termrock-live-hidden-cursor-proof-20261020/live-source",
+      "target": "/Users/donbeave/Projects/termrock-live-reference-proof-screen-20261020/live-source"
+    },
+    {
+      "classification": "live evidence source link; destination not inspected",
+      "followed": false,
+      "path": "/Users/donbeave/Projects/termrock-live-self-control-20261020/live-source",
+      "target": "/Users/donbeave/Projects/termrock-live-reference-proof-screen-20261020/live-source"
+    },
+    {
+      "classification": "live evidence source link; destination not inspected",
+      "followed": false,
+      "path": "/Users/donbeave/Projects/termrock-session-cursor-proof-20261020/live-source",
+      "target": "/Users/donbeave/Projects/termrock-live-reference-proof-screen-20261020/live-source"
+    }
+  ],
+  "top_level_symlink_directories_found": 0
+}

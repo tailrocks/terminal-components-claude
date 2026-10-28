@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 74cc40322e11d7af59d2124308d8fd1036aa464b Alexey Zhokhov <alexey@zhokhov.com> 1792482536 +0700	branch: Created from origin/parity/termrock-visual-baseline
+74cc40322e11d7af59d2124308d8fd1036aa464b d6811a1f1c2ebb2b7175141d985eedc03c003550 Alexey Zhokhov <alexey@zhokhov.com> 1792484491 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+d6811a1f1c2ebb2b7175141d985eedc03c003550 aff6f34730ffd4193c7d60611aeb07c0f6c51258 Alexey Zhokhov <alexey@zhokhov.com> 1792484492 +0700	cherry-pick: test: add pinned frozen CLI parity runner
+aff6f34730ffd4193c7d60611aeb07c0f6c51258 633630b5c678d55fae7da8a748e5558392abbac5 Alexey Zhokhov <alexey@zhokhov.com> 1792484696 +0700	commit (amend): test: add pinned frozen CLI parity runner
+633630b5c678d55fae7da8a748e5558392abbac5 7dcde66e65f6bf0d06968c543341f743004c9073 Alexey Zhokhov <alexey@zhokhov.com> 1792484840 +0700	commit: style: format relocated visual harness
+7dcde66e65f6bf0d06968c543341f743004c9073 a6c748e5283e2ce66de1713c204268970060bb45 Alexey Zhokhov <alexey@zhokhov.com> 1792484858 +0700	rebase (finish): refs/heads/parity/shared-components-20261020 onto 6b16734426511e25cb898830bb0f934d8d55d5b9

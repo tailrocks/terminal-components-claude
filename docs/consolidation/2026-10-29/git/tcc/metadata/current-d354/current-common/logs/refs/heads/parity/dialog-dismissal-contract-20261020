@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 86226a2442f37621bbef91dd50b9b7bc3104659b Alexey Zhokhov <alexey@zhokhov.com> 1792510377 +0700	branch: Created from 86226a2442f37621bbef91dd50b9b7bc3104659b
+86226a2442f37621bbef91dd50b9b7bc3104659b bb502a37bf2ed9d26c758349f056f0e981b9f7e4 Alexey Zhokhov <alexey@zhokhov.com> 1792510891 +0700	commit: fix(overlays): resolve dialog dismissal through cancel action
+bb502a37bf2ed9d26c758349f056f0e981b9f7e4 018c1a93f1d644a897cdcaa51c25660ad7f31752 Alexey Zhokhov <alexey@zhokhov.com> 1792511385 +0700	commit: fix(overlays): suppress actions after dialog close
+018c1a93f1d644a897cdcaa51c25660ad7f31752 1be6567aeaa7bfc80c81ee1f2f10eb39f66248d9 Alexey Zhokhov <alexey@zhokhov.com> 1792512262 +0700	commit: fix(overlays): expire dialog close receipt by update
+1be6567aeaa7bfc80c81ee1f2f10eb39f66248d9 50798d8f9298444040a7f07d545162d7bef7e7a1 Alexey Zhokhov <alexey@zhokhov.com> 1792513601 +0700	merge origin/parity/runtime-picker-allocation-20261020: Merge made by the 'ort' strategy.
+50798d8f9298444040a7f07d545162d7bef7e7a1 b2018b8ecbaa24de0ae7a4933168a7eca3bee889 Alexey Zhokhov <alexey@zhokhov.com> 1792514007 +0700	commit: fix(overlays): scope dialog close receipts to opening
+b2018b8ecbaa24de0ae7a4933168a7eca3bee889 2a97887d39a3a351714204161eca07243e9ef426 Alexey Zhokhov <alexey@zhokhov.com> 1792514013 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+2a97887d39a3a351714204161eca07243e9ef426 16b416f489db8183ef0ea3dcfb4077816af148e2 Alexey Zhokhov <alexey@zhokhov.com> 1792514073 +0700	commit: docs: record dialog dismissal regression evidence
+16b416f489db8183ef0ea3dcfb4077816af148e2 1cf63f30890b6cfb1071ef4abf122189c1f88fc5 Alexey Zhokhov <alexey@zhokhov.com> 1792514130 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+1cf63f30890b6cfb1071ef4abf122189c1f88fc5 27e1837a79d5035aaa1d2911d16b5921ca8ad643 Alexey Zhokhov <alexey@zhokhov.com> 1792514810 +0700	commit: test(tablepro): cover delete dialog dismissal

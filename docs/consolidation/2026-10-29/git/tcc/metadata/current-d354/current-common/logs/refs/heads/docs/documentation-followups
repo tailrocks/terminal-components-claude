@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 590dda6cfc8543656b47df200222da6206fb40af Alexey Zhokhov <alexey@zhokhov.com> 1792309419 +0700	branch: Created from origin/main
+590dda6cfc8543656b47df200222da6206fb40af 61d983adaed9c840e638398e62023d82e4702ba1 Alexey Zhokhov <alexey@zhokhov.com> 1792309740 +0700	commit: docs: align current project guidance
+61d983adaed9c840e638398e62023d82e4702ba1 32d2452e2f0793fb5dea4381d89fa33dc6668562 Alexey Zhokhov <alexey@zhokhov.com> 1792309754 +0700	commit: docs: label generated visibility records as historical
+32d2452e2f0793fb5dea4381d89fa33dc6668562 70c56f472988f69be9e4680da302260f05826213 Alexey Zhokhov <alexey@zhokhov.com> 1792309893 +0700	commit: docs: clarify visibility record regeneration

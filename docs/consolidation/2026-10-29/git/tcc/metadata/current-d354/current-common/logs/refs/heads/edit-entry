@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 762e33bc6a574a9b9795416839a7d7c971f57ddc Alexey Zhokhov <alexey@zhokhov.com> 1792144459 +0700	branch: Created from HEAD
+762e33bc6a574a9b9795416839a7d7c971f57ddc b74fcfa28b3e286ffb86519c94c8b34aea0f416d Alexey Zhokhov <alexey@zhokhov.com> 1792145475 +0700	commit: feat(edit): EditEntry, FieldKeys, undo and the focus-next request
+b74fcfa28b3e286ffb86519c94c8b34aea0f416d d5ad6ffb6a552ca98e3691d8c7bf1fe775cb0fdb Alexey Zhokhov <alexey@zhokhov.com> 1792145483 +0700	rebase (finish): refs/heads/edit-entry onto 6dc41693b6d49ca5de6e95dbaca96078fe26b349
+d5ad6ffb6a552ca98e3691d8c7bf1fe775cb0fdb 2d421f70c1052ef036e2f28cc3799b4567723b37 Alexey Zhokhov <alexey@zhokhov.com> 1792147817 +0700	commit: feat(edit): focus starts the edit by default (EditEntry::Immediate)
+2d421f70c1052ef036e2f28cc3799b4567723b37 521f646110a1f98d30829b8946c596569f462ce3 Alexey Zhokhov <alexey@zhokhov.com> 1792148033 +0700	rebase (finish): refs/heads/edit-entry onto 0149b3f936f61ab14b152c8d86ca512b79b663e9
+521f646110a1f98d30829b8946c596569f462ce3 17b8d833cf7a616e4a9e67a430b9721af4949652 Alexey Zhokhov <alexey@zhokhov.com> 1792148200 +0700	rebase (finish): refs/heads/edit-entry onto 46ed2b0d7d9cf9513e7e6eaf788cefd2b86ab3af
+17b8d833cf7a616e4a9e67a430b9721af4949652 8fce9ba514f6a685e3934c778a57184a5e46b868 Alexey Zhokhov <alexey@zhokhov.com> 1792148290 +0700	commit (amend): feat(edit): focus starts the edit by default (EditEntry::Immediate)
+8fce9ba514f6a685e3934c778a57184a5e46b868 ccaa0f86a57de6e196481d11fa87b305cefb5dff Alexey Zhokhov <alexey@zhokhov.com> 1792148477 +0700	rebase (finish): refs/heads/edit-entry onto 8e7c4f4f1b9c7c9310bf4f8fe08bf68d8e50d079
+ccaa0f86a57de6e196481d11fa87b305cefb5dff 1da20cc01cb4c40580a795836204e9f6bcadc7d3 Alexey Zhokhov <alexey@zhokhov.com> 1792148584 +0700	rebase (finish): refs/heads/edit-entry onto 0e99f5329bc846ed746d29aa894746b7113e1557
+1da20cc01cb4c40580a795836204e9f6bcadc7d3 c233b899b4c6ce18a5ecbf1e3b5bb565e2000d64 Alexey Zhokhov <alexey@zhokhov.com> 1792149410 +0700	commit: docs(audits): keyboard status for the caret rules and edit entry
+c233b899b4c6ce18a5ecbf1e3b5bb565e2000d64 8d7af63e2e583d44f110323d9c88f3095f5b1aa2 Alexey Zhokhov <alexey@zhokhov.com> 1792149414 +0700	rebase (finish): refs/heads/edit-entry onto 961abe9b43d9958320f9080c10e0c4d0166030a9
+8d7af63e2e583d44f110323d9c88f3095f5b1aa2 ee436beb7f59ba1f63ceeca420b1625426642508 Alexey Zhokhov <alexey@zhokhov.com> 1792149497 +0700	rebase (finish): refs/heads/edit-entry onto 49ccae0acd807e83e1888c239154d816782745b3

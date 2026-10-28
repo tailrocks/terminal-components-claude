@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 959b667f4709288f757d02f56df668801bf5ca26 Alexey Zhokhov <alexey@zhokhov.com> 1792746969 +0700	branch: Created from HEAD
+959b667f4709288f757d02f56df668801bf5ca26 3a624d92329cc6c6d1bf9764f0bf5205b625962b Alexey Zhokhov <alexey@zhokhov.com> 1792747776 +0700	commit: feat(navigation): add auto and focus-only tab rules

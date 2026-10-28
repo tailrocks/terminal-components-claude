@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 97c9265c91e8e48e47da476215cb3fce520a6a32 Alexey Zhokhov <alexey@zhokhov.com> 1792577947 +0700	branch: Created from 97c9265c91e8e48e47da476215cb3fce520a6a32
+97c9265c91e8e48e47da476215cb3fce520a6a32 a6cb8a4ff73ca2c7b244a12ba1efd8adee2f86d4 Alexey Zhokhov <alexey@zhokhov.com> 1792578195 +0700	commit: fix(tablepro): focus new query editor across viewport sizes
+a6cb8a4ff73ca2c7b244a12ba1efd8adee2f86d4 e282b66d8ce18992266bccfffa7ec40897881cd3 Alexey Zhokhov <alexey@zhokhov.com> 1792579843 +0700	merge 2ce39f5cc33a9af53d2794ee429279fc17e75d1e: Merge made by the 'ort' strategy.
+e282b66d8ce18992266bccfffa7ec40897881cd3 b8a33979e66370736664e82f404834d73cdd0e28 Alexey Zhokhov <alexey@zhokhov.com> 1792580102 +0700	commit: fix(tablepro): deliver focus out to inactive query editors
+b8a33979e66370736664e82f404834d73cdd0e28 af8869df7330b01dca162e3181d428e657001843 Alexey Zhokhov <alexey@zhokhov.com> 1792581214 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+af8869df7330b01dca162e3181d428e657001843 3bab23ecfcc9cedbdea22700328737282dfa06ae Alexey Zhokhov <alexey@zhokhov.com> 1792581227 +0700	commit: fix(editors): preserve edit sessions on configured blur

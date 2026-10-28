@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 34f73e3066da7a77eac2d4719a697dc085906dda Alexey Zhokhov <alexey@zhokhov.com> 1792542948 +0700	branch: Created from origin/parity/termrock-visual-baseline
+34f73e3066da7a77eac2d4719a697dc085906dda d5c8e655158cec48cf0e4ff24d3ac87f7157f048 Alexey Zhokhov <alexey@zhokhov.com> 1792544145 +0700	commit: feat(theme): add variant scoped level profiles
+d5c8e655158cec48cf0e4ff24d3ac87f7157f048 734c8662a015b85bcddf9f85081124ae5d1ae785 Alexey Zhokhov <alexey@zhokhov.com> 1792544591 +0700	commit: fix(theme): retain mono color quantization
+734c8662a015b85bcddf9f85081124ae5d1ae785 847ccc74208e5ed3277bc4f3dd8fa6958e682713 Alexey Zhokhov <alexey@zhokhov.com> 1792544973 +0700	commit: fix(theme): honor authored mono channel ownership

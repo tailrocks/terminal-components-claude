@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 bea5350ec99b0652335714275fd3f0d078399bca Alexey Zhokhov <alexey@zhokhov.com> 1792623194 +0700	branch: Created from HEAD
+bea5350ec99b0652335714275fd3f0d078399bca 05d8b61ff69a3028ce319fd4f684097a6ecc9c8d opencode-reviewer <reviewer@example.invalid> 1792623195 +0700	commit: docs(audit): independent API boundary and architecture direction review at bea5350ec9
+05d8b61ff69a3028ce319fd4f684097a6ecc9c8d 9eaec1d1cca85c1d07864d941bbf6c6c42fd1c4e Alexey Zhokhov <alexey@zhokhov.com> 1792623209 +0700	rebase (finish): refs/heads/wip/review-api-boundaries-20261022 onto d1e3d012612ba452ac9ab7c81fb9e84e6ec3f838
+9eaec1d1cca85c1d07864d941bbf6c6c42fd1c4e 554d8337b7b02f13f7f1f9e2c4147018f771e4a4 opencode-reviewer <reviewer@example.invalid> 1792623295 +0700	commit (amend): docs(audit): independent API boundary and architecture direction review at bea5350ec9
+554d8337b7b02f13f7f1f9e2c4147018f771e4a4 9eaec1d1cca85c1d07864d941bbf6c6c42fd1c4e Alexey Zhokhov <alexey@zhokhov.com> 1792623459 +0700	reset: moving to origin/wip/review-api-boundaries-20261022
+9eaec1d1cca85c1d07864d941bbf6c6c42fd1c4e 93cda321dbe57a046b26750bf983b16166555909 opencode-reviewer <reviewer@example.invalid> 1792623460 +0700	commit: docs(audit): record the post-review upstream state for the API boundary review

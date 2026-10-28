@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 cb3fa14bcd528c5a93bc28e8792a004ae9ea8ad7 Alexey Zhokhov <alexey@zhokhov.com> 1792482875 +0700	branch: Created from origin/parity/termrock-visual-baseline
+cb3fa14bcd528c5a93bc28e8792a004ae9ea8ad7 3aa34dfed47606826c31b2f414ad10f3c8b22d30 Alexey Zhokhov <alexey@zhokhov.com> 1792486974 +0700	commit: style(visual-harness): format baseline harness modules
+3aa34dfed47606826c31b2f414ad10f3c8b22d30 42c4ccacb7bda4945ff44c901fdd079b485624d7 Alexey Zhokhov <alexey@zhokhov.com> 1792487006 +0700	commit: test(visual-harness): discover modular production sources

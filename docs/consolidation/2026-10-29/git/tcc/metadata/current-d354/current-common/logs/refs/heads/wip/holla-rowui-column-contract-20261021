@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 ad86aaca1b987ecb395b7ca9f8717dd79f62f784 Alexey Zhokhov <alexey@zhokhov.com> 1792598861 +0700	branch: Created from origin/parity/termrock-visual-baseline
+ad86aaca1b987ecb395b7ca9f8717dd79f62f784 44c24e274c8c5de9e91424a1a5c133310c229d34 Alexey Zhokhov <alexey@zhokhov.com> 1792599313 +0700	commit: feat(runtime): compose rows with resolved columns
+44c24e274c8c5de9e91424a1a5c133310c229d34 fb01738e763b3078a6b5677a0a50d449a96ac3cb Alexey Zhokhov <alexey@zhokhov.com> 1792599326 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+fb01738e763b3078a6b5677a0a50d449a96ac3cb d5e8688bd3027b5bcff79494529bb17a86e238b0 Alexey Zhokhov <alexey@zhokhov.com> 1792599445 +0700	commit: docs: record merged RowUi validation

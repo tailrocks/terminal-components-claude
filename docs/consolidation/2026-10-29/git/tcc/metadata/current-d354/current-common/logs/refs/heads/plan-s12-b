@@ -1,0 +1,14 @@
+0000000000000000000000000000000000000000 c2f845f692faab51be1d09142cff8c9be44da7d4 Alexey Zhokhov <alexey@zhokhov.com> 1792224328 +0700	branch: Created from HEAD
+c2f845f692faab51be1d09142cff8c9be44da7d4 b436c6ebf4317b4da84172c28587893d24804d8b Alexey Zhokhov <alexey@zhokhov.com> 1792224330 +0700	merge plan-s12: Fast-forward
+b436c6ebf4317b4da84172c28587893d24804d8b 63d66ce6a2031a192b24c2208fa97b0749c78ea5 Alexey Zhokhov <alexey@zhokhov.com> 1792225033 +0700	commit: wip picker on option list
+63d66ce6a2031a192b24c2208fa97b0749c78ea5 b4e66f67328f0a0b05c921491228569dd95632cc Alexey Zhokhov <alexey@zhokhov.com> 1792225117 +0700	rebase (finish): refs/heads/plan-s12-b onto 64c3c8e170b53538a48b964502c086103b27ac2b
+b4e66f67328f0a0b05c921491228569dd95632cc 94cc2ded27812aba3df00382609a46df88366860 Alexey Zhokhov <alexey@zhokhov.com> 1792225295 +0700	commit (amend): refactor(picker): Picker's body is an OptionList, its rows are Item (S12)
+94cc2ded27812aba3df00382609a46df88366860 e0b5efa33dd05035653f4e790f9c719b24b44942 Alexey Zhokhov <alexey@zhokhov.com> 1792225645 +0700	commit: test(picker): the wheel over a row follows the list's WheelMode (S12)
+e0b5efa33dd05035653f4e790f9c719b24b44942 068fcc9f792990311c1cc99b280f2e5d80e68219 Alexey Zhokhov <alexey@zhokhov.com> 1792225943 +0700	commit: fix(tablepro): the tab list's filter only narrows the list it opened with
+068fcc9f792990311c1cc99b280f2e5d80e68219 b21236d3ed3ef075d98a4594494fc60f9ee460a0 Alexey Zhokhov <alexey@zhokhov.com> 1792225968 +0700	commit: fixup! refactor(picker): Picker's body is an OptionList, its rows are Item (S12)
+b21236d3ed3ef075d98a4594494fc60f9ee460a0 aa1a7690d4a3b4ab28bea60682826f8db19389d8 Alexey Zhokhov <alexey@zhokhov.com> 1792225976 +0700	rebase (finish): refs/heads/plan-s12-b onto 64c3c8e170b53538a48b964502c086103b27ac2b
+aa1a7690d4a3b4ab28bea60682826f8db19389d8 a1f83d3e75141dc72a781ae2bc86db02bce9c1c4 Alexey Zhokhov <alexey@zhokhov.com> 1792226076 +0700	commit: feat(picker): a picker without a query type-selects (A23)
+a1f83d3e75141dc72a781ae2bc86db02bce9c1c4 01c3e848d4c547626956314ba0ee8270a07211c6 Alexey Zhokhov <alexey@zhokhov.com> 1792226088 +0700	rebase (finish): refs/heads/plan-s12-b onto 287dd1ec8c268310b78042f3a3c414151cd12ab3
+01c3e848d4c547626956314ba0ee8270a07211c6 cfe1d5d9c085c3c26261207fbee07b554b507b97 Alexey Zhokhov <alexey@zhokhov.com> 1792226777 +0700	rebase (finish): refs/heads/plan-s12-b onto 07a4fa124d516c845a5236b7288df479d814a840
+cfe1d5d9c085c3c26261207fbee07b554b507b97 4a9805fa48e4daf9b5bee2d504432a04e9fdb574 Alexey Zhokhov <alexey@zhokhov.com> 1792226888 +0700	commit: refactor(option_list): rows paint through ui::row::RowUi (S12)
+4a9805fa48e4daf9b5bee2d504432a04e9fdb574 791c8df9425c74e34f4a82219f8857d45df1a48c Alexey Zhokhov <alexey@zhokhov.com> 1792227215 +0700	rebase (finish): refs/heads/plan-s12-b onto 34b1e7008e581bd6fa2c69e6498ae2dbd24a2a8c

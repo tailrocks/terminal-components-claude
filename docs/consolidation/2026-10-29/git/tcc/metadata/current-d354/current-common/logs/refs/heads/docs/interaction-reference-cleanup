@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 d9e569bf6fd33d90266db597c458442c729340ad Alexey Zhokhov <alexey@zhokhov.com> 1792301985 +0700	branch: Created from design/interaction-polish
+d9e569bf6fd33d90266db597c458442c729340ad f9bff48107f5d46ff6e34c56a4616a30ab374a82 Alexey Zhokhov <alexey@zhokhov.com> 1792302500 +0700	commit: chore: remove Rust comments without changing code tokens
+f9bff48107f5d46ff6e34c56a4616a30ab374a82 ba9914efe00bd065c467cf768ced9b6b51e7c7d9 Alexey Zhokhov <alexey@zhokhov.com> 1792302637 +0700	commit: docs: prohibit code comments on interaction design branch
+ba9914efe00bd065c467cf768ced9b6b51e7c7d9 7a6bd5ecbefbe06d431ed0895230f76975047487 Alexey Zhokhov <alexey@zhokhov.com> 1792303039 +0700
+7a6bd5ecbefbe06d431ed0895230f76975047487 7b7cfa04dffdd46b57fa85fff4677dba75928107 Alexey Zhokhov <alexey@zhokhov.com> 1792304469 +0700	commit: chore: preserve CLI metadata in comment-free Rust
+7b7cfa04dffdd46b57fa85fff4677dba75928107 1d35481674bdd79f5508def12233d0c9b72285b6 Alexey Zhokhov <alexey@zhokhov.com> 1792305692 +0700	commit: docs: reconcile branch authority and preserve planned work

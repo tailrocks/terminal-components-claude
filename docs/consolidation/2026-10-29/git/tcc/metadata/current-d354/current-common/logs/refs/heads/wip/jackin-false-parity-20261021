@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 f58d83e7102280616699916b59d2998142f2b1c2 Alexey Zhokhov <alexey@zhokhov.com> 1792596932 +0700	branch: Created from origin/parity/termrock-visual-baseline
+f58d83e7102280616699916b59d2998142f2b1c2 13df63bd7d02a9949dd442b768ad73e49c8a7df9 agent-a <agent-a@example.com> 1792603163 +0700	commit: feat(jackin-preview): live accounts page replaces the frozen accounts frames
+13df63bd7d02a9949dd442b768ad73e49c8a7df9 6c6459bbadf5ba00da5964342e7c839f0820831b Alexey Zhokhov <alexey@zhokhov.com> 1792603530 +0700	rebase (finish): refs/heads/wip/jackin-false-parity-20261021 onto 849d26dad78477a7bb0e78a68d59794af4fca81f
+6c6459bbadf5ba00da5964342e7c839f0820831b 5b3d592b0c70e638b144fe3fabe33f77c36608c2 agent-a <agent-a@example.com> 1792603970 +0700	commit: refactor(jackin-preview): take the 256 downgrade from the theme ladder
+5b3d592b0c70e638b144fe3fabe33f77c36608c2 83fb970c4d69ef73d357e3c36444f20a1cac88a5 agent-a <agent-a@example.com> 1792605416 +0700	commit: feat(jackin-preview): the accounts header carries the live message
+83fb970c4d69ef73d357e3c36444f20a1cac88a5 2acbe8ac5d2b06cb87a4318ed9b772ede69af21c agent-a <agent-a@example.com> 1792605826 +0700	commit: refactor(jackin-preview): name the accounts drawer entry for what it does
+2acbe8ac5d2b06cb87a4318ed9b772ede69af21c cd8b42c6150edb4948132c5763b2f4b0e79d90e1 Alexey Zhokhov <alexey@zhokhov.com> 1792605862 +0700	rebase (finish): refs/heads/wip/jackin-false-parity-20261021 onto fc2c3bd4e19029828234cce6352f2074624ac7c2
+cd8b42c6150edb4948132c5763b2f4b0e79d90e1 aafd1fe7be6890ceda7225de388b1497127ae8f3 agent-a <agent-a@example.com> 1792605913 +0700	commit (merge): merge: fold the pushed jackin accounts branch into the rebased one
+aafd1fe7be6890ceda7225de388b1497127ae8f3 b4b1a33468c35dc4c6abaf839275e04e361de3ff Alexey Zhokhov <alexey@zhokhov.com> 1792606038 +0700	branch: Reset to origin/parity/termrock-visual-baseline
+b4b1a33468c35dc4c6abaf839275e04e361de3ff c13982544fac1ec0f3b7606d17322426630fcfbe Alexey Zhokhov <alexey@zhokhov.com> 1792606039 +0700	cherry-pick: feat(jackin-preview): the accounts header carries the live message
+c13982544fac1ec0f3b7606d17322426630fcfbe 0df4fb2f79fb14263202ecb225fbe0b73f3c0e96 Alexey Zhokhov <alexey@zhokhov.com> 1792606048 +0700	cherry-pick: refactor(jackin-preview): name the accounts drawer entry for what it does
+0df4fb2f79fb14263202ecb225fbe0b73f3c0e96 773a1ca1d161e2d3ed69f6700498adf3de9c4b84 agent-a <agent-a@example.com> 1792606314 +0700	commit (merge): merge: keep the pushed jackin accounts branch in the history

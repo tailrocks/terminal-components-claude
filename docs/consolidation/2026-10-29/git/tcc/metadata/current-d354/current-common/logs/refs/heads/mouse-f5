@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 3ca689c22e7e5ecdf72a5faf4467dddcc80201e6 Alexey Zhokhov <alexey@zhokhov.com> 1792146716 +0700	branch: Created from HEAD
+3ca689c22e7e5ecdf72a5faf4467dddcc80201e6 69ad6c5257d6b333bd244cabcd4655b4a8b9e52b Alexey Zhokhov <alexey@zhokhov.com> 1792147306 +0700	commit: feat(pointer): tick-driven edge autoscroll for drag selection
+69ad6c5257d6b333bd244cabcd4655b4a8b9e52b bad57008f46f804590f919779238ba4aa997c20e Alexey Zhokhov <alexey@zhokhov.com> 1792147309 +0700	rebase (finish): refs/heads/mouse-f5 onto 4201feae14e9480d032018162d2f8583c6e9c4e3
+bad57008f46f804590f919779238ba4aa997c20e b289facfdb5aa096e7b099bc839e8a8326965177 Alexey Zhokhov <alexey@zhokhov.com> 1792147424 +0700	rebase (finish): refs/heads/mouse-f5 onto 8a8c202531aa6516b2d53f797d56af67e5c73f84
+b289facfdb5aa096e7b099bc839e8a8326965177 d92c2e6d8f7dc7b7a0edfd48d46aec34d8e9f2ad Alexey Zhokhov <alexey@zhokhov.com> 1792147561 +0700	rebase (finish): refs/heads/mouse-f5 onto c4847ed22519a8cc4f3b2db3e7c5306d62bef038

@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 bb3db3542933e1927376967c280fa920c92f8fdb Alexey Zhokhov <alexey@zhokhov.com> 1792585179 +0700	branch: Created from origin/parity/termrock-visual-baseline
+bb3db3542933e1927376967c280fa920c92f8fdb f46caa2ce68966d319ffbb4cf03428e8234368f3 Alexey Zhokhov <alexey@zhokhov.com> 1792585915 +0700	commit: fix(picker): resolve component ink below owner styles

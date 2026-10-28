@@ -1,0 +1,18 @@
+0000000000000000000000000000000000000000 106a2646340a7221173bddcb530f267b3e7d26af Alexey Zhokhov <alexey@zhokhov.com> 1792164190 +0700	branch: Created from HEAD
+106a2646340a7221173bddcb530f267b3e7d26af 30201761d7ccb566e3bca372bb9ec84201c18af2 Alexey Zhokhov <alexey@zhokhov.com> 1792164242 +0700	rebase (finish): refs/heads/sc-group-c onto 30201761d7ccb566e3bca372bb9ec84201c18af2
+30201761d7ccb566e3bca372bb9ec84201c18af2 e67e9ace6b0071c9241d59ec674ace0afdd5ca1f Alexey Zhokhov <alexey@zhokhov.com> 1792165252 +0700	commit: feat(showcase): page option tables in the Options section
+e67e9ace6b0071c9241d59ec674ace0afdd5ca1f a0ba8abb36ede2e5a6d5b20311e8b455a47c338d Alexey Zhokhov <alexey@zhokhov.com> 1792165257 +0700	commit: feat(showcase): Columns and Basic table pages (SC11)
+a0ba8abb36ede2e5a6d5b20311e8b455a47c338d 28bf6bba873efdc7354e7c6cce5f2c145c1a78f7 Alexey Zhokhov <alexey@zhokhov.com> 1792165274 +0700	commit: test(visual): showcase tables re-approval
+28bf6bba873efdc7354e7c6cce5f2c145c1a78f7 96fc26e08a59f8bad6e6f7dd38949a49cb292763 Alexey Zhokhov <alexey@zhokhov.com> 1792165412 +0700	commit: test(showcase): table tests follow the Basic table template
+96fc26e08a59f8bad6e6f7dd38949a49cb292763 e172d3b2f9467b3a14febd94c787768d74a9c1c1 Alexey Zhokhov <alexey@zhokhov.com> 1792165470 +0700	rebase (finish): refs/heads/sc-group-c onto abaae3eea28d2056afffd58ce122832be7b71137
+e172d3b2f9467b3a14febd94c787768d74a9c1c1 656d27da6c5651f41683e2e7095111c8b4d61cb5 Alexey Zhokhov <alexey@zhokhov.com> 1792166256 +0700	commit: fix(grid): a reference arrow never covers its value
+656d27da6c5651f41683e2e7095111c8b4d61cb5 3a2bee30059d051c1bd04f4f67a3485bbebe633a Alexey Zhokhov <alexey@zhokhov.com> 1792166256 +0700	commit: feat(showcase): Data grid page on the template (SC12)
+3a2bee30059d051c1bd04f4f67a3485bbebe633a 014d381157c037e031a7b29c3211351101146c82 Alexey Zhokhov <alexey@zhokhov.com> 1792166268 +0700	commit: test(visual): showcase datagrid re-approval
+014d381157c037e031a7b29c3211351101146c82 16d183da351a3c0de5e1f510dbeb52d999529d45 Alexey Zhokhov <alexey@zhokhov.com> 1792167252 +0700	commit: feat(showcase): Editable, Selection and Cell editors on the template (SC13)
+16d183da351a3c0de5e1f510dbeb52d999529d45 19d1ba47eab24dfa0aa4a67928bbef76dea11213 Alexey Zhokhov <alexey@zhokhov.com> 1792167263 +0700	commit: test(visual): showcase editable and selectable re-approval
+19d1ba47eab24dfa0aa4a67928bbef76dea11213 f78f5555d3c5626763e3c8fc866c722981351414 Alexey Zhokhov <alexey@zhokhov.com> 1792167318 +0700	rebase (finish): refs/heads/sc-group-c onto 742a84ff1c18df79a33a7c9dd23938c6832c4fd5
+f78f5555d3c5626763e3c8fc866c722981351414 3307d7c50fdd797dfa336eedce44bda9d03c7ca8 Alexey Zhokhov <alexey@zhokhov.com> 1792167415 +0700	commit: fix(showcase): table pages follow S4's desktop nav default
+3307d7c50fdd797dfa336eedce44bda9d03c7ca8 6213edfed1d4e9ba07e425f43efc1199cd6723e8 Alexey Zhokhov <alexey@zhokhov.com> 1792167569 +0700	commit: docs(plan): SC13 notes S4's new EditorConfig fields
+6213edfed1d4e9ba07e425f43efc1199cd6723e8 613f150647af85470e5a0613a98a4f4cd645b50d Alexey Zhokhov <alexey@zhokhov.com> 1792167730 +0700	commit: fix(showcase): Esc reads as a verb on Editable; the save review is an overlay site
+613f150647af85470e5a0613a98a4f4cd645b50d 2b18975eb1a5ad32be9edbee710fe25efc8acc48 Alexey Zhokhov <alexey@zhokhov.com> 1792167756 +0700	commit: test(visual): showcase editable Esc row re-approval
+2b18975eb1a5ad32be9edbee710fe25efc8acc48 13ffc575e5e17b794bc37e7b1848d5de5330cffe Alexey Zhokhov <alexey@zhokhov.com> 1792169129 +0700	rebase (finish): refs/heads/sc-group-c onto 87c0d55a2abfa4c96f05a5dfe059d716f708a334

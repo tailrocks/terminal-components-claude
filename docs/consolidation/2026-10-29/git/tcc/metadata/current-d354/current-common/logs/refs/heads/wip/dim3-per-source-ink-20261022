@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 8a01e304be975669a48a7487be298a2ed047f763 Alexey Zhokhov <alexey@zhokhov.com> 1792636679 +0700	branch: Created from HEAD
+8a01e304be975669a48a7487be298a2ed047f763 baf350993abf3c21ba37199eb7eaf7398a40eb0f Alexey Zhokhov <alexey@zhokhov.com> 1792636680 +0700	commit: fix(theme): author the frozen 256 ghost cell and dim the chrome fill per level
+baf350993abf3c21ba37199eb7eaf7398a40eb0f 0cd199f10fcec3e0fb240b04c0c6875dded6bdcc Alexey Zhokhov <alexey@zhokhov.com> 1792636688 +0700	rebase (finish): refs/heads/wip/dim3-per-source-ink-20261022 onto 6b47e20eb82a8c2448ad6d20d12671bbec58153d
+0cd199f10fcec3e0fb240b04c0c6875dded6bdcc 2e7f8020af6d2a26ad65bef7c20002c082441d4b Alexey Zhokhov <alexey@zhokhov.com> 1792641004 +0700	commit: fix(theme): dim-level chrome rewrite covers blank source cells
+2e7f8020af6d2a26ad65bef7c20002c082441d4b 9cb3d676e087b95878941bb5517999895610861a Alexey Zhokhov <alexey@zhokhov.com> 1792641004 +0700	commit: docs(audit): record dim wave 3 per-source-ink outcomes
+9cb3d676e087b95878941bb5517999895610861a d39b09e607eaa0a19b88853a07ae530da702593d Alexey Zhokhov <alexey@zhokhov.com> 1792641119 +0700	rebase (finish): refs/heads/wip/dim3-per-source-ink-20261022 onto 835170aad31b2ca4a6bb1166580be45a39787477

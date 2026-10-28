@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 0b371f9be4271eea751652739d78b154f5eac782 Alexey Zhokhov <alexey@zhokhov.com> 1792737268 +0700	branch: Created from origin/parity/termrock-visual-baseline
+0b371f9be4271eea751652739d78b154f5eac782 90478ec9ca867d93287bb207c2d4db72c9b7ec70 Alexey Zhokhov <alexey@zhokhov.com> 1792739218 +0700	commit: feat(navigation): add per-tab status marks
+90478ec9ca867d93287bb207c2d4db72c9b7ec70 0a143cc739c86543630900d8648e571f1565d747 Alexey Zhokhov <alexey@zhokhov.com> 1792739721 +0700	commit: fix(navigation): preserve unmarked tab content budget
+0a143cc739c86543630900d8648e571f1565d747 fe788b6b50ecd3f4f13f4740c1cc471ef5121217 Alexey Zhokhov <alexey@zhokhov.com> 1792739739 +0700	rebase (finish): refs/heads/wip/tabs-item-marks-20261023 onto eb1eded0d48adb02dbcde1a741d3e6ab8e477c61
+fe788b6b50ecd3f4f13f4740c1cc471ef5121217 5fbb42ad1dc50782181de127e529f4069f7ba015 Alexey Zhokhov <alexey@zhokhov.com> 1792740074 +0700	commit: test(navigation): cover marked tabs with middle close
+5fbb42ad1dc50782181de127e529f4069f7ba015 37ff12e47966faf5f3a2d2734639714e4b95ee83 Alexey Zhokhov <alexey@zhokhov.com> 1792740090 +0700	rebase (finish): refs/heads/wip/tabs-item-marks-20261023 onto 0dd22cb1303e89c4d26cdf8a5caef9373f240aa9
+37ff12e47966faf5f3a2d2734639714e4b95ee83 339b814b0c778cab95e3b0a05ba9efdd11323953 Alexey Zhokhov <alexey@zhokhov.com> 1792740257 +0700	rebase (finish): refs/heads/wip/tabs-item-marks-20261023 onto a7ce290643b9a86930032399c7d3e531adf93d93

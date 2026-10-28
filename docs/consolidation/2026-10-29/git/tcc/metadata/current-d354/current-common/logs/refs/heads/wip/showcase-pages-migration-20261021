@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 581d850df9665e141eea6b0f6e38e52a353ce376 Alexey Zhokhov <alexey@zhokhov.com> 1792591183 +0700	branch: Created from 581d850df9665e141eea6b0f6e38e52a353ce376
+581d850df9665e141eea6b0f6e38e52a353ce376 e59457fd30f4cbaba75c711284d4373a77395a1d Alexey Zhokhov <alexey@zhokhov.com> 1792593261 +0700	commit: refactor(showcase): draw the page frame and section strip with shared blocks
+e59457fd30f4cbaba75c711284d4373a77395a1d 8997fd295fac600597dea013a73a7d9e49548182 Alexey Zhokhov <alexey@zhokhov.com> 1792594238 +0700	commit: refactor(showcase): draw the card chrome with the shared block

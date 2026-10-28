@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 8681124d2cbbc75ef8ed998b5918883039a022c5 Alexey Zhokhov <alexey@zhokhov.com> 1792499025 +0700	branch: Created from HEAD
+8681124d2cbbc75ef8ed998b5918883039a022c5 417c5e884a96eab5f8bc8be305bc3219c18a14b3 Alexey Zhokhov <alexey@zhokhov.com> 1792499176 +0700	commit: ci: upgrade design workflows with Velnor 0.1.29
+417c5e884a96eab5f8bc8be305bc3219c18a14b3 96d93d920f264b2310e27b912995bb2359c1a5dd Alexey Zhokhov <alexey@zhokhov.com> 1792499588 +0700	commit: docs: record Velnor preview reproduction
+96d93d920f264b2310e27b912995bb2359c1a5dd 8533344520cfdf12734c1c149fc89ec946b3ea46 Alexey Zhokhov <alexey@zhokhov.com> 1792499670 +0700	commit: docs: clarify Velnor preview verification gap

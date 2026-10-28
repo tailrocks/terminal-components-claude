@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 b0504717c280a4bb141cc6043b35fce6664f8a6a Alexey Zhokhov <alexey@zhokhov.com> 1792494862 +0700	branch: Created from origin/parity/termrock-visual-baseline
+b0504717c280a4bb141cc6043b35fce6664f8a6a 2c2ae3d5ca594a0d72b971fb14c159d99dbf3c61 Alexey Zhokhov <alexey@zhokhov.com> 1792495325 +0700	commit: feat(text): add shared clipboard and pointer edit support
+2c2ae3d5ca594a0d72b971fb14c159d99dbf3c61 b10c6a6fc6b184e85d627c99c1ed116d6b3e2f1d Alexey Zhokhov <alexey@zhokhov.com> 1792495544 +0700	commit: fix(runtime): retain captured click sequences
+b10c6a6fc6b184e85d627c99c1ed116d6b3e2f1d b4113a6a0a1437a006877281b4aa363c6bbd6a97 Alexey Zhokhov <alexey@zhokhov.com> 1792495929 +0700	commit: fix(runtime): expire held double-clicks on release
+b4113a6a0a1437a006877281b4aa363c6bbd6a97 a099f3e242d262ea9f67f993450cde497746fbb3 Alexey Zhokhov <alexey@zhokhov.com> 1792496115 +0700	commit: fix(runtime): match baseline click release bounds

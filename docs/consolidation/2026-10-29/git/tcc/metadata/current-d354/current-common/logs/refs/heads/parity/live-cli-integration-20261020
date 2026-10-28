@@ -1,0 +1,31 @@
+0000000000000000000000000000000000000000 e6692e3ce7a333e884c5262e8423ff3c2d378c22 Alexey Zhokhov <alexey@zhokhov.com> 1792486805 +0700	branch: Created from origin/parity/termrock-visual-baseline
+e6692e3ce7a333e884c5262e8423ff3c2d378c22 c2cd02bc4def26a63041e0b2853a34f6a5bfd5df Alexey Zhokhov <alexey@zhokhov.com> 1792486817 +0700	cherry-pick: test: add live paired CLI frame helper
+c2cd02bc4def26a63041e0b2853a34f6a5bfd5df 224fc31b17379e8b9e5b418b9a801e18eb6fd9e4 Alexey Zhokhov <alexey@zhokhov.com> 1792486817 +0700	cherry-pick: test: preflight duplicate paired capture outputs
+224fc31b17379e8b9e5b418b9a801e18eb6fd9e4 5283a9c0248ee8624fec2bc69d83a9247c0ce074 Alexey Zhokhov <alexey@zhokhov.com> 1792486817 +0700	cherry-pick: test: reject paired frame path aliases
+5283a9c0248ee8624fec2bc69d83a9247c0ce074 dd8715a278e2e51a8d89893171a8841edf643f47 Alexey Zhokhov <alexey@zhokhov.com> 1792486817 +0700	cherry-pick: test: add full live paired CLI runner
+dd8715a278e2e51a8d89893171a8841edf643f47 d8151a359075627b340e7cbcc072611ca73de4a4 Alexey Zhokhov <alexey@zhokhov.com> 1792486835 +0700	cherry-pick: fix(test): bound paired checkpoint filenames
+d8151a359075627b340e7cbcc072611ca73de4a4 3ca142661f161c85e29d2eedf861ef89043717bb Alexey Zhokhov <alexey@zhokhov.com> 1792487047 +0700	cherry-pick: test: compare ordinary CLI controls against both builds
+3ca142661f161c85e29d2eedf861ef89043717bb 92a11e95f1afac80f2240e4ff074d5958cec5f2c Alexey Zhokhov <alexey@zhokhov.com> 1792487102 +0700	rebase (finish): refs/heads/parity/live-cli-integration-20261020 onto 501b91b087e12d69e420e816758042e0e91ed627
+92a11e95f1afac80f2240e4ff074d5958cec5f2c cd72edaccc81494dd5381f74ce3e79c2c6b84632 Alexey Zhokhov <alexey@zhokhov.com> 1792487342 +0700	rebase (finish): refs/heads/parity/live-cli-integration-20261020 onto 3600c0eeb0596ad61a5eef3bcb6ddab5a8020150
+cd72edaccc81494dd5381f74ce3e79c2c6b84632 a7ed36e40b61602f778e435c4bd69cd6218074a0 Alexey Zhokhov <alexey@zhokhov.com> 1792487503 +0700	cherry-pick: docs: record final paired CLI pilot evidence
+a7ed36e40b61602f778e435c4bd69cd6218074a0 832576f551cece00b366eaa929fc12047d8aa260 Alexey Zhokhov <alexey@zhokhov.com> 1792487541 +0700	cherry-pick: test(visual-harness): discover modular production sources
+832576f551cece00b366eaa929fc12047d8aa260 555fc1ee764ecc140ae9288e93b9c00579d87fab Alexey Zhokhov <alexey@zhokhov.com> 1792487620 +0700	cherry-pick: feat(overlays): add picker scope caption
+555fc1ee764ecc140ae9288e93b9c00579d87fab c03077536a2c31e73bf56ffc574cb7311f8adefe Alexey Zhokhov <alexey@zhokhov.com> 1792487620 +0700	cherry-pick: test(overlays): assert picker caption cells
+c03077536a2c31e73bf56ffc574cb7311f8adefe d52dcea82b49fed98b3d58c38e90e4d290bdce66 Alexey Zhokhov <alexey@zhokhov.com> 1792487620 +0700	cherry-pick: test(overlays): cover picker caption width boundary
+d52dcea82b49fed98b3d58c38e90e4d290bdce66 66948d83b6b0900b1542accd1d86c84d43f49026 Alexey Zhokhov <alexey@zhokhov.com> 1792487643 +0700	cherry-pick: feat(runtime): add geometric layer centering
+66948d83b6b0900b1542accd1d86c84d43f49026 bace9b949e99f07c5ab6aa019b5bea715c779f4a Alexey Zhokhov <alexey@zhokhov.com> 1792487659 +0700	rebase (finish): refs/heads/parity/live-cli-integration-20261020 onto 6923311119e060176ee3cf07c585416556416024
+bace9b949e99f07c5ab6aa019b5bea715c779f4a 8489d39e4753ebd96de21525cc012cd74306eb0d Alexey Zhokhov <alexey@zhokhov.com> 1792487799 +0700	cherry-pick: refactor(holla): share text section rendering
+8489d39e4753ebd96de21525cc012cd74306eb0d da911656e168b65cb0e4667138cbe0708ebbcd2d Alexey Zhokhov <alexey@zhokhov.com> 1792487826 +0700	rebase (finish): refs/heads/parity/live-cli-integration-20261020 onto d69507e6d2e48b3a700217ec7e0f7704cc21d372
+da911656e168b65cb0e4667138cbe0708ebbcd2d 6daa896c6f0ab817399a01880a631c57ecd9b10f Alexey Zhokhov <alexey@zhokhov.com> 1792489525 +0700	cherry-pick: feat(picker): expose baseline rendering policies
+6daa896c6f0ab817399a01880a631c57ecd9b10f 7ef542415f35c6e09e90841001d7b4a9ff7a8b8a Alexey Zhokhov <alexey@zhokhov.com> 1792489525 +0700	cherry-pick: test(picker): cover cursor and metadata policies
+7ef542415f35c6e09e90841001d7b4a9ff7a8b8a 98a1cc23b7d9fcffca220b3ada73a8d1d0735cab Alexey Zhokhov <alexey@zhokhov.com> 1792489525 +0700	cherry-pick: fix: preserve picker style and metadata overrides
+98a1cc23b7d9fcffca220b3ada73a8d1d0735cab 0d717d7b55a2e9ae8f9641572741b8a020cae01f Alexey Zhokhov <alexey@zhokhov.com> 1792489525 +0700	cherry-pick: fix(session): discard input queued before startup
+0d717d7b55a2e9ae8f9641572741b8a020cae01f 7448042317a8ee94e86b4565664320a25f29b6a1 Alexey Zhokhov <alexey@zhokhov.com> 1792489742 +0700	cherry-pick: fix: preserve menu title hover boundaries
+7448042317a8ee94e86b4565664320a25f29b6a1 d5b1f8e9a8d707ac738d6cddca3717472f97051c Alexey Zhokhov <alexey@zhokhov.com> 1792489742 +0700	cherry-pick: fix: scope hover styling to menu bar titles
+d5b1f8e9a8d707ac738d6cddca3717472f97051c bda2e655be11cb6e4835ca04d32d66395e300824 Alexey Zhokhov <alexey@zhokhov.com> 1792489742 +0700	cherry-pick: fix: preserve menu title style overrides
+bda2e655be11cb6e4835ca04d32d66395e300824 bd595964409608d2ff8161048b96fca9874cd1c1 Alexey Zhokhov <alexey@zhokhov.com> 1792489742 +0700	cherry-pick: feat(editors): support completion splicing
+bd595964409608d2ff8161048b96fca9874cd1c1 4869dff5a0ae5abc18632ebfac923a6a93cf7a20 Alexey Zhokhov <alexey@zhokhov.com> 1792489775 +0700	commit (cherry-pick): test(jackin): correct frozen mono failure probe
+4869dff5a0ae5abc18632ebfac923a6a93cf7a20 502a2c5cd7463a9c48e1e77c185c7712e6578896 Alexey Zhokhov <alexey@zhokhov.com> 1792489814 +0700	commit: docs: record independent workspace validation gaps
+502a2c5cd7463a9c48e1e77c185c7712e6578896 d5fb5c3e99fc61da976a9a3e9ebed4a45223741d Alexey Zhokhov <alexey@zhokhov.com> 1792490247 +0700	cherry-pick: fix: restore picker title baseline style
+d5fb5c3e99fc61da976a9a3e9ebed4a45223741d cad1c3cc49d341ee0455fa55db7428a16559abef Alexey Zhokhov <alexey@zhokhov.com> 1792490259 +0700	rebase (finish): refs/heads/parity/live-cli-integration-20261020 onto af29b053ca0a623c5d8cd9830e743a039fb715d1
+cad1c3cc49d341ee0455fa55db7428a16559abef 29ff641f4598755d6897442a9191b3c031529646 Alexey Zhokhov <alexey@zhokhov.com> 1792490588 +0700	commit: style: format showcase list and scroll helpers

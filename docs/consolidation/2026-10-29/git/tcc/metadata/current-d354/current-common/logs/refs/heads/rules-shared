@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 3ec122eb23d10821c262d86a5aed9ce813e32f05 Alexey Zhokhov <alexey@zhokhov.com> 1792146648 +0700	branch: Created from HEAD
+3ec122eb23d10821c262d86a5aed9ce813e32f05 fb494a7b8bff9cc6ba8c428a85d0c4189b405a24 Alexey Zhokhov <alexey@zhokhov.com> 1792146664 +0700	commit: docs(agents): shared, composable code only
+fb494a7b8bff9cc6ba8c428a85d0c4189b405a24 725c6ef7d195f716952aa91a2e26cc9eb3355c3f Alexey Zhokhov <alexey@zhokhov.com> 1792146667 +0700	rebase (finish): refs/heads/rules-shared onto e0bf4a14b83e5e51b174b38bba33f2bf6ad307da

@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 0abfee9e6882bfad5ee2549e761f89ebb2e5225c Alexey Zhokhov <alexey@zhokhov.com> 1792597225 +0700	branch: Created from origin/parity/termrock-visual-baseline
+0abfee9e6882bfad5ee2549e761f89ebb2e5225c 9a9e93ea17cc4760bf8a7586994960ef7c6870f0 agent <agent@local> 1792600283 +0700	commit: refactor(showcase): paint the chrome page from one responsive layout
+9a9e93ea17cc4760bf8a7586994960ef7c6870f0 8b045812dd433fcd444cc6fd3239b15136ba5cfd Alexey Zhokhov <alexey@zhokhov.com> 1792600293 +0700	rebase (finish): refs/heads/wip/showcase-false-parity-20261021 onto af0168f367c0d329a6bd3ebfe8b359a4ae74a97f
+8b045812dd433fcd444cc6fd3239b15136ba5cfd e96dcddb45ef4dd0a49a7c236ddc5c50005be205 agent <agent@local> 1792601185 +0700	commit: refactor(showcase): paint the task runner and terminal pages live
+e96dcddb45ef4dd0a49a7c236ddc5c50005be205 4bbce7d2730fd7ae924529a1be44432affc72f1a Alexey Zhokhov <alexey@zhokhov.com> 1792602045 +0700	rebase (finish): refs/heads/wip/showcase-false-parity-20261021 onto 8a9b2880762dd56a7cb33d45275067bb26c4caad
+4bbce7d2730fd7ae924529a1be44432affc72f1a dc2a3f98ea8cce4abe016b31d3d7bba50c1ea388 agent <agent@local> 1792602075 +0700	commit (merge): merge: keep the live chrome page over the rebased base
+dc2a3f98ea8cce4abe016b31d3d7bba50c1ea388 8a9b2880762dd56a7cb33d45275067bb26c4caad Alexey Zhokhov <alexey@zhokhov.com> 1792602184 +0700	branch: Reset to origin/parity/termrock-visual-baseline
+8a9b2880762dd56a7cb33d45275067bb26c4caad d169a576bda9b5cf1055bce9cec25a385f4fa899 Alexey Zhokhov <alexey@zhokhov.com> 1792602185 +0700	cherry-pick: refactor(showcase): paint the chrome page from one responsive layout
+d169a576bda9b5cf1055bce9cec25a385f4fa899 55c27358f333b43f8a70c0ca639533e662d68277 Alexey Zhokhov <alexey@zhokhov.com> 1792602185 +0700	cherry-pick: refactor(showcase): paint the task runner and terminal pages live
+55c27358f333b43f8a70c0ca639533e662d68277 095cafc1e4fbe202dab61aa84f95e9ed412b8474 agent <agent@local> 1792602191 +0700	commit (merge): merge: keep the live chrome page over the pushed base

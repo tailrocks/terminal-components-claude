@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 6375fcee053d7859279ce436efde98c258ae649f Alexey Zhokhov <alexey@zhokhov.com> 1792524011 +0700	branch: Created from origin/parity/termrock-visual-baseline
+6375fcee053d7859279ce436efde98c258ae649f eca0aee9f119be3ac238dbdc0d6f6a75594c5e35 Alexey Zhokhov <alexey@zhokhov.com> 1792524357 +0700	commit: feat(forms): measure live field placements
+eca0aee9f119be3ac238dbdc0d6f6a75594c5e35 b13049f7b2021b407b3eeb69dcccc8e8a935fff2 Alexey Zhokhov <alexey@zhokhov.com> 1792525933 +0700	commit: feat(forms): add borrowed field lane layouts
+b13049f7b2021b407b3eeb69dcccc8e8a935fff2 aa5ad1f98b26020f213494d9b4051ca9f8da3b17 Alexey Zhokhov <alexey@zhokhov.com> 1792526032 +0700	cherry-pick: feat(runtime): expose component layout diagnostics
+aa5ad1f98b26020f213494d9b4051ca9f8da3b17 451789d519caf396c16818ed50f571271255ccbe Alexey Zhokhov <alexey@zhokhov.com> 1792526134 +0700	commit: fix(forms): diagnose invalid lane layouts
+451789d519caf396c16818ed50f571271255ccbe a2ce7fc4b1aeb76ba935cae3ce044ea62e62ec80 Alexey Zhokhov <alexey@zhokhov.com> 1792526654 +0700	commit: fix(forms): reserve fill spacers and expose lane bounds
+a2ce7fc4b1aeb76ba935cae3ce044ea62e62ec80 a0e6e84efe53b4c33358c6196d021a5cec696a3d Alexey Zhokhov <alexey@zhokhov.com> 1792527433 +0700	commit: fix(forms): clip visible radio rows by source index
+a0e6e84efe53b4c33358c6196d021a5cec696a3d c346aff507351d1490f55caa3a6de7c8347a6853 Alexey Zhokhov <alexey@zhokhov.com> 1792528071 +0700	commit: fix(forms): keep lane controls pointer reachable

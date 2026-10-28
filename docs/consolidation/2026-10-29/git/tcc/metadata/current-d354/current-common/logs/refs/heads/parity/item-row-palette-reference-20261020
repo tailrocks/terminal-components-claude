@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 b0a3bea5a486c4b67a83a10ec5463c690c590208 Alexey Zhokhov <alexey@zhokhov.com> 1792510155 +0700	branch: Created from HEAD
+b0a3bea5a486c4b67a83a10ec5463c690c590208 23a3fac940f24a499b532b0ef580f19355715043 Alexey Zhokhov <alexey@zhokhov.com> 1792510400 +0700	commit: test: preserve legacy item row palette fixture

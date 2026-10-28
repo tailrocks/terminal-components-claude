@@ -1,0 +1,17 @@
+0000000000000000000000000000000000000000 683c835b16658ad75876e78831d3664caddc06f4 Alexey Zhokhov <alexey@zhokhov.com> 1792492744 +0700	branch: Created from origin/parity/termrock-visual-baseline
+683c835b16658ad75876e78831d3664caddc06f4 739fb2b6da489851d2ef63c2655e317bc80b1d36 Alexey Zhokhov <alexey@zhokhov.com> 1792492744 +0700	cherry-pick: fix: preserve menu title hover boundaries
+739fb2b6da489851d2ef63c2655e317bc80b1d36 a819abefb01ded2243a40e9a5cca4bc7cdeb3c12 Alexey Zhokhov <alexey@zhokhov.com> 1792492744 +0700	cherry-pick: fix: scope hover styling to menu bar titles
+a819abefb01ded2243a40e9a5cca4bc7cdeb3c12 81c783372e5722b06ce7bcd644be93108ae99d26 Alexey Zhokhov <alexey@zhokhov.com> 1792492744 +0700	cherry-pick: fix: preserve menu title style overrides
+81c783372e5722b06ce7bcd644be93108ae99d26 fff67f908e68b0a7713afd7dc0ab5ae2e59de8e9 Alexey Zhokhov <alexey@zhokhov.com> 1792492744 +0700	cherry-pick: fix: keep menu bar default rendering compatible
+fff67f908e68b0a7713afd7dc0ab5ae2e59de8e9 312151e6416ac7a7b8a1208e647bf67fa15348ea Alexey Zhokhov <alexey@zhokhov.com> 1792492744 +0700	cherry-pick: test: preserve menu bar title overrides in both hover scopes
+312151e6416ac7a7b8a1208e647bf67fa15348ea c61e94977aa2ed66610b8754e39f99d3c3b82e7b Alexey Zhokhov <alexey@zhokhov.com> 1792492744 +0700	cherry-pick: fix: preserve menu bar title padding defaults
+c61e94977aa2ed66610b8754e39f99d3c3b82e7b b9636d70f017d43e1ab89c9f422f3c00c3b94836 Alexey Zhokhov <alexey@zhokhov.com> 1792492745 +0700	cherry-pick: docs(audit): record default menu parity pilot
+b9636d70f017d43e1ab89c9f422f3c00c3b94836 2b56ca5aae6700b6b134898be9b98bdb741db39b Alexey Zhokhov <alexey@zhokhov.com> 1792492909 +0700	cherry-pick: test: add frozen CLI table sorting workflows
+2b56ca5aae6700b6b134898be9b98bdb741db39b 90859aab404c463b0b6422006ecfb7580efe0834 Alexey Zhokhov <alexey@zhokhov.com> 1792492909 +0700	cherry-pick: test: add table visual extension inventory
+90859aab404c463b0b6422006ecfb7580efe0834 63330b4e8c71719774f0a85abe59892f3c9a81a6 Alexey Zhokhov <alexey@zhokhov.com> 1792492914 +0700	cherry-pick: test: verify paired table extension coverage
+63330b4e8c71719774f0a85abe59892f3c9a81a6 12fee3c4e6438b70a9d292c59cee594e6a962b79 Alexey Zhokhov <alexey@zhokhov.com> 1792492934 +0700	commit (cherry-pick): test: validate table extension paired checkpoints
+12fee3c4e6438b70a9d292c59cee594e6a962b79 c7cad48b73e324531848b03633f3c372ce503155 Alexey Zhokhov <alexey@zhokhov.com> 1792493439 +0700	rebase (finish): refs/heads/parity/menu-cleared-integration-20261020 onto e7c4be2e52bc9877ba5edc9930235cceab19a336
+c7cad48b73e324531848b03633f3c372ce503155 881c37b133c6473efc819fc12ceb4a8c652825a5 Alexey Zhokhov <alexey@zhokhov.com> 1792493461 +0700	commit (cherry-pick): test: require complete extension checkpoints
+881c37b133c6473efc819fc12ceb4a8c652825a5 8c272789a50671c0fac4dfd174020fb192d24df2 Alexey Zhokhov <alexey@zhokhov.com> 1792493713 +0700	rebase (finish): refs/heads/parity/menu-cleared-integration-20261020 onto 0b8f4e32b24a137987307600b10d892bec0619c3
+8c272789a50671c0fac4dfd174020fb192d24df2 ce1fa342c47fbbd92985d215d574582999d36c08 Alexey Zhokhov <alexey@zhokhov.com> 1792494023 +0700	cherry-pick: docs: track termrock migration acceptance
+ce1fa342c47fbbd92985d215d574582999d36c08 c4ad0be1edd08991c67a62ee5cd3b8acb045387d Alexey Zhokhov <alexey@zhokhov.com> 1792494199 +0700	commit: docs: record native failures and current parity evidence

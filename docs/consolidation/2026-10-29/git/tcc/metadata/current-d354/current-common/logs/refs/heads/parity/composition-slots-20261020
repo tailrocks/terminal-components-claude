@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 b0504717c280a4bb141cc6043b35fce6664f8a6a Alexey Zhokhov <alexey@zhokhov.com> 1792493824 +0700	branch: Created from origin/parity/termrock-visual-baseline
+b0504717c280a4bb141cc6043b35fce6664f8a6a be674ef8799c55bc3700cdd36f519cafebc95bed Alexey Zhokhov <alexey@zhokhov.com> 1792494132 +0700	commit: feat(termrock): add typed picker layer slot

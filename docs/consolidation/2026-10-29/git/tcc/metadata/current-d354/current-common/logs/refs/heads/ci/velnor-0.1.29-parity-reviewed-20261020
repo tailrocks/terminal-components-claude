@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 1a947a251ab9b045610b47729bf481419b9fca8d Alexey Zhokhov <alexey@zhokhov.com> 1792499615 +0700	branch: Created from HEAD
+1a947a251ab9b045610b47729bf481419b9fca8d 90cd26402ffb421fd13db4418a8f9201c3a31d5e Alexey Zhokhov <alexey@zhokhov.com> 1792499615 +0700	cherry-pick: ci: upgrade parity workflows to velnor 0.1.29
+90cd26402ffb421fd13db4418a8f9201c3a31d5e 6dfb6a6c37789d2f33be29f3ce66d5af28300d05 Alexey Zhokhov <alexey@zhokhov.com> 1792500449 +0700	rebase (finish): refs/heads/ci/velnor-0.1.29-parity-reviewed-20261020 onto a848219fd858ed6352fcb403b2cc5d5953083e6f
+6dfb6a6c37789d2f33be29f3ce66d5af28300d05 928d3313518aedd4433aa06fb48d5905d12ee336 Alexey Zhokhov <alexey@zhokhov.com> 1792500650 +0700	cherry-pick: ci: regenerate parity workflows from full inputs
+928d3313518aedd4433aa06fb48d5905d12ee336 8283750a724b90f8b52cc15d81b648eed6f2c3d4 Alexey Zhokhov <alexey@zhokhov.com> 1792500743 +0700	cherry-pick: docs: clarify workflow source tips and proof
+8283750a724b90f8b52cc15d81b648eed6f2c3d4 99b719d85a0714c88484240dbc9184f110b518d4 Alexey Zhokhov <alexey@zhokhov.com> 1792500870 +0700	rebase (finish): refs/heads/ci/velnor-0.1.29-parity-reviewed-20261020 onto c0e88b7ada6946ce971c5857d3d40b251649f89e
+99b719d85a0714c88484240dbc9184f110b518d4 1fc906844c0d622e23013cc1192c3dc99d8b551e Alexey Zhokhov <alexey@zhokhov.com> 1792501196 +0700	commit: test: integrate reviewed architecture diagnostics and parity evidence
+1fc906844c0d622e23013cc1192c3dc99d8b551e 407d727f9f952bafcbb842e8be341ffb32120e4e Alexey Zhokhov <alexey@zhokhov.com> 1792501212 +0700	rebase (finish): refs/heads/ci/velnor-0.1.29-parity-reviewed-20261020 onto 0eee5e6707bfcb7ef78fd45b446e1f5e61140b2b

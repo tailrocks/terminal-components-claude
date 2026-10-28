@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 6841e67ed4d240d9b39478b2e99f39ff48b8189b Alexey Zhokhov <alexey@zhokhov.com> 1792558632 +0700	branch: Created from origin/parity/termrock-visual-baseline
+6841e67ed4d240d9b39478b2e99f39ff48b8189b 452ab302e4f9c72a9d0a189c105f4bce154eb31f Alexey Zhokhov <alexey@zhokhov.com> 1792559140 +0700	commit: feat(overlays): add disabled menu reasons
+452ab302e4f9c72a9d0a189c105f4bce154eb31f 2b941d092e0cf346bd0eadb532cde95a052efc08 Alexey Zhokhov <alexey@zhokhov.com> 1792559200 +0700	commit: docs(audit): identify inherited menu padding regression
+2b941d092e0cf346bd0eadb532cde95a052efc08 d14863fbdb74f1c648c9f4e60e762a7c0af9ec40 Alexey Zhokhov <alexey@zhokhov.com> 1792559266 +0700	commit: fix(overlays): keep menu title padding unstyled
+d14863fbdb74f1c648c9f4e60e762a7c0af9ec40 ce99ebea7b27a3e89b056dfc56722e30ab41ac57 Alexey Zhokhov <alexey@zhokhov.com> 1792559299 +0700	commit: docs(audit): record before-after menu regression proof
+ce99ebea7b27a3e89b056dfc56722e30ab41ac57 c78e449b5d4f7f41f1f53d94260bde9aff2c068f Alexey Zhokhov <alexey@zhokhov.com> 1792559376 +0700	commit: test(overlays): exercise disabled reasons as consumer
+c78e449b5d4f7f41f1f53d94260bde9aff2c068f 89fcb288f1c72b22fcebc2a30fd69db9e9f7ed11 Alexey Zhokhov <alexey@zhokhov.com> 1792560028 +0700	commit: fix(overlays): honor disabled reason fallback and state
+89fcb288f1c72b22fcebc2a30fd69db9e9f7ed11 cd6aecdf28e771b5464a7443dd11916fcc02ffc2 Alexey Zhokhov <alexey@zhokhov.com> 1792561030 +0700	merge ed051a90f77a35dc15554c42436c0cad6fe11ee6: Merge made by the 'ort' strategy.
+cd6aecdf28e771b5464a7443dd11916fcc02ffc2 7ab3d12e75341abaaae91d06861430608371fc9f Alexey Zhokhov <alexey@zhokhov.com> 1792561522 +0700	commit: fix(overlays): unify context menu underlay rendering
+7ab3d12e75341abaaae91d06861430608371fc9f 4a39a666022e14ee8cd4233ffb2ccf21a653ae13 Alexey Zhokhov <alexey@zhokhov.com> 1792562483 +0700	commit: fix(overlays): guard hidden menu activation
+4a39a666022e14ee8cd4233ffb2ccf21a653ae13 35cfdd8a8816400f6bb9a95ff20e904bcf9e5398 Alexey Zhokhov <alexey@zhokhov.com> 1792563257 +0700	commit: fix(overlays): gate hidden physical menu activation
+35cfdd8a8816400f6bb9a95ff20e904bcf9e5398 38148abafc448e9f75f72f79339f86d650832895 Alexey Zhokhov <alexey@zhokhov.com> 1792563760 +0700	commit: fix(overlays): keep blocked menu navigation hidden

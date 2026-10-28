@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 2b9ab242d6b399b3650e3b1087f47a9ad8f57f01 Alexey Zhokhov <alexey@zhokhov.com> 1792623012 +0700	branch: Created from origin/parity/termrock-visual-baseline
+2b9ab242d6b399b3650e3b1087f47a9ad8f57f01 03dd53100ddc29aad64b02ed02c56f6f132782a4 Alexey Zhokhov <alexey@zhokhov.com> 1792625494 +0700	commit: fix(conformance): narrow the legacy chord allowlist to the chords that need one
+03dd53100ddc29aad64b02ed02c56f6f132782a4 52184fd391ed487fbeb4e4a9094d2041cef610f3 Alexey Zhokhov <alexey@zhokhov.com> 1792627770 +0700	commit: fix(conformance): restore the code editor editing-table audit target verbatim
+52184fd391ed487fbeb4e4a9094d2041cef610f3 b3c3833084fc32b53c65f43cfad8d21bdc02b604 Alexey Zhokhov <alexey@zhokhov.com> 1792629256 +0700	rebase (finish): refs/heads/wip/test-integrity-repair-20261022 onto e2ba67866eed212a72bd6ea82adcd5151eb321c1
+b3c3833084fc32b53c65f43cfad8d21bdc02b604 0ad70c97fc947cc02942a1c45dd1f0b9546b44cc Alexey Zhokhov <alexey@zhokhov.com> 1792632309 +0700	reset: moving to origin/parity/termrock-visual-baseline
+0ad70c97fc947cc02942a1c45dd1f0b9546b44cc ffa89559fda5dc0ff238a7ebf9376bc5a4396e92 Alexey Zhokhov <alexey@zhokhov.com> 1792633058 +0700	commit: fix(conformance): narrow the remaining legacy chord allowlist to the chords that need one
+ffa89559fda5dc0ff238a7ebf9376bc5a4396e92 c942fa0981f3c0accd728b485dad98719998d68b Alexey Zhokhov <alexey@zhokhov.com> 1792633728 +0700	rebase (finish): refs/heads/wip/test-integrity-repair-20261022 onto f3121265549511fca67f5358dfb20a532695d87c

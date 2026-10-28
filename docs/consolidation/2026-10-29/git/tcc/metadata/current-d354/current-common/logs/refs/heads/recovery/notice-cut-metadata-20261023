@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 cf95a489d8d70fa4c4921650661f713bf7ef10ce Alexey Zhokhov <alexey@zhokhov.com> 1792703696 +0700	branch: Created from origin/parity/termrock-visual-baseline
+cf95a489d8d70fa4c4921650661f713bf7ef10ce 509186581ca6dbcc8f57a829dae9821ded803438 Alexey Zhokhov <alexey@zhokhov.com> 1792704298 +0700	commit: feat(feedback): expose borrowed notice cut metadata

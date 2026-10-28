@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 a5766d24783c2b268e727497fe6861b6479c71cc Alexey Zhokhov <alexey@zhokhov.com> 1792504981 +0700	branch: Created from origin/parity/termrock-visual-baseline
+a5766d24783c2b268e727497fe6861b6479c71cc 1b3199fa995d47d440fa3d78cb507c17a6b92952 Alexey Zhokhov <alexey@zhokhov.com> 1792505164 +0700	commit: ci: raise parity Rust job timeout to 15 minutes
+1b3199fa995d47d440fa3d78cb507c17a6b92952 d9fd22a09f3031f89ab1b35fd430b7c7e26c80ad Alexey Zhokhov <alexey@zhokhov.com> 1792505170 +0700	rebase (finish): refs/heads/parity/runtime-crate-timeout-15-20261020 onto 747db991dd4a0884460618dfca5fa6ea5c295bdb
+d9fd22a09f3031f89ab1b35fd430b7c7e26c80ad 4d0df7704dcb284d0c9726e78ea68bcca30838fc Alexey Zhokhov <alexey@zhokhov.com> 1792505232 +0700	commit (amend): ci: raise parity Rust job timeout to 15 minutes
+4d0df7704dcb284d0c9726e78ea68bcca30838fc c52aafc2f266842c1743151dd379c3a38ca990bc Alexey Zhokhov <alexey@zhokhov.com> 1792505515 +0700	commit: docs: record independent CI review and required gate blockers

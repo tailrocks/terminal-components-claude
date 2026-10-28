@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 8d76e14525be87bc3a10a5361f2b2f8b06cb8892 Alexey Zhokhov <alexey@zhokhov.com> 1792190573 +0700	branch: Created from HEAD
+8d76e14525be87bc3a10a5361f2b2f8b06cb8892 10fb1f1a9304fd3cf0f50699a9b5c3b6409120df Alexey Zhokhov <alexey@zhokhov.com> 1792190775 +0700	commit: fix(pointer): a click that keeps focus on purpose is not overridden
+10fb1f1a9304fd3cf0f50699a9b5c3b6409120df 0a5f0dd0fa049355657e48f3a5578a4ad80e7803 Alexey Zhokhov <alexey@zhokhov.com> 1792191132 +0700	commit: refactor(showcase): pages use the library Cx and Request
+0a5f0dd0fa049355657e48f3a5578a4ad80e7803 ebe8e09cf2ed57d2da4592a3dca7a77432273e65 Alexey Zhokhov <alexey@zhokhov.com> 1792191502 +0700	commit: refactor(showcase): the shell's dialog and keyboard reference on ShellLayers
+ebe8e09cf2ed57d2da4592a3dca7a77432273e65 850c3e95ffeb565761489cca81b81dd22b7bb9ea Alexey Zhokhov <alexey@zhokhov.com> 1792191769 +0700	commit: refactor(showcase): drive pages through shell::Page (the PageEvent adapter)

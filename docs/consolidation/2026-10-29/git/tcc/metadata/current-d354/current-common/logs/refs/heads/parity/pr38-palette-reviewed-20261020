@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 e597618d6576a725538a70d71250fd81c6599c28 Alexey Zhokhov <alexey@zhokhov.com> 1792510884 +0700	branch: Created from HEAD
+e597618d6576a725538a70d71250fd81c6599c28 01b689ed9d3814e5850ec730639865b4a7f37926 Alexey Zhokhov <alexey@zhokhov.com> 1792510885 +0700	cherry-pick: fix(theme): align Junie ANSI-256 text palette
+01b689ed9d3814e5850ec730639865b4a7f37926 d6002a69faa6c7f45360a848827927400ad51d9c Alexey Zhokhov <alexey@zhokhov.com> 1792510885 +0700	cherry-pick: fix(theme): match Junie mono faint palette
+d6002a69faa6c7f45360a848827927400ad51d9c 8587159e3887cef11d716d12be880614a5af5289 Alexey Zhokhov <alexey@zhokhov.com> 1792510886 +0700	cherry-pick: test(theme): align empty title owner expectation
+8587159e3887cef11d716d12be880614a5af5289 f08d20e0f3780c54796414a1ec1bceb3d0054593 Alexey Zhokhov <alexey@zhokhov.com> 1792510886 +0700	cherry-pick: test(theme): correct independently reviewed empty reference
+f08d20e0f3780c54796414a1ec1bceb3d0054593 331edaca9101c0ae597124d1ac14d4a174ac0324 Alexey Zhokhov <alexey@zhokhov.com> 1792510886 +0700	cherry-pick: docs(audit): correct empty test evidence labels
+331edaca9101c0ae597124d1ac14d4a174ac0324 0eaa1f8d5f0804e8b5faf8bf2faa51187c389e30 Alexey Zhokhov <alexey@zhokhov.com> 1792510887 +0700	cherry-pick: test(theme): correct nested layer baseline oracle
+0eaa1f8d5f0804e8b5faf8bf2faa51187c389e30 0b3558bca48e9e3f748b294fb37dae19fad60ad7 Alexey Zhokhov <alexey@zhokhov.com> 1792510887 +0700	cherry-pick: docs(audit): distinguish nested layer regression receipts
+0b3558bca48e9e3f748b294fb37dae19fad60ad7 4db496f327044a0fe37646dbb0c6c020a00e6bae Alexey Zhokhov <alexey@zhokhov.com> 1792510888 +0700	cherry-pick: test: preserve legacy item row palette fixture
+4db496f327044a0fe37646dbb0c6c020a00e6bae 636028fa130b2a0f841badb3ba93aa2330b907d6 Alexey Zhokhov <alexey@zhokhov.com> 1792511227 +0700	commit: docs: record independently verified palette reference decisions

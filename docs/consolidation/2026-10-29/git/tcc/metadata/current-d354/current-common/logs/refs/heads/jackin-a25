@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 d583c135cadd3ea4bc4775a4b734e110e337c80f Alexey Zhokhov <alexey@zhokhov.com> 1792213058 +0700	branch: Created from HEAD
+d583c135cadd3ea4bc4775a4b734e110e337c80f 8df36574dda8d148a2ded6cd25e4a8b6e141fad9 Alexey Zhokhov <alexey@zhokhov.com> 1792213403 +0700	commit: fix(jackin): Container info no longer panics on a short run id (A25)
+8df36574dda8d148a2ded6cd25e4a8b6e141fad9 3e9a1a5a20b151bb984bb3704221e1d25d16fddc Alexey Zhokhov <alexey@zhokhov.com> 1792213477 +0700	commit (amend): fix(jackin): Container info no longer panics on a short run id (A25)
+3e9a1a5a20b151bb984bb3704221e1d25d16fddc ae31ff286f639fb87b1f9ebe1842d2abfc3dbb8f Alexey Zhokhov <alexey@zhokhov.com> 1792214888 +0700	merge jackin-a26: Fast-forward
+ae31ff286f639fb87b1f9ebe1842d2abfc3dbb8f 9570530a3c6123269174311e20ca84dc3dfd6ac8 Alexey Zhokhov <alexey@zhokhov.com> 1792215060 +0700	rebase (finish): refs/heads/jackin-a25 onto 19cc6edd7fef3daac844a8fa9b33c0a182c574e8

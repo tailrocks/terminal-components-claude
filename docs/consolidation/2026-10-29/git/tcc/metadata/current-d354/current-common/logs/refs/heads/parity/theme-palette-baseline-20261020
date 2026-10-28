@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 e72dbb15369d541ee86095f6caaee3f7e4680828 Alexey Zhokhov <alexey@zhokhov.com> 1792508325 +0700	branch: Created from e72dbb15369d541ee86095f6caaee3f7e4680828
+e72dbb15369d541ee86095f6caaee3f7e4680828 737ecc836fc40d77b51d797bda9c3927b12eeee7 Alexey Zhokhov <alexey@zhokhov.com> 1792508527 +0700	commit: fix(theme): align Junie ANSI-256 text palette
+737ecc836fc40d77b51d797bda9c3927b12eeee7 95cdc7bdb111dc1b683a638b421dae718bb29643 Alexey Zhokhov <alexey@zhokhov.com> 1792509327 +0700	commit: fix(theme): match Junie mono faint palette

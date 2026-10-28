@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 b1195b4b0e1241bcac454c6332d45b6423f2f142 Alexey Zhokhov <alexey@zhokhov.com> 1792551869 +0700	branch: Created from origin/parity/termrock-visual-baseline
+b1195b4b0e1241bcac454c6332d45b6423f2f142 306d72f28627c39aa875ae14647ce6ddb68474b2 Alexey Zhokhov <alexey@zhokhov.com> 1792552249 +0700	commit: feat(editors): expose live find state and entry
+306d72f28627c39aa875ae14647ce6ddb68474b2 3133b9a984daa6a4dd2d03cf2aaf3397a8453a18 Alexey Zhokhov <alexey@zhokhov.com> 1792552614 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

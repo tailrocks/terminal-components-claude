@@ -1,0 +1,22 @@
+0000000000000000000000000000000000000000 b4c2baa86ffa1168512176ba2976c09f514f9082 Alexey Zhokhov <alexey@zhokhov.com> 1792768477 +0700	branch: Created from HEAD
+b4c2baa86ffa1168512176ba2976c09f514f9082 39f0aaf2ea7c2e97bbb21d10f8428c464b40c21e Alexey Zhokhov <alexey@zhokhov.com> 1792768482 +0700	commit: fix(tablepro): keep nulls last in descending sorts
+39f0aaf2ea7c2e97bbb21d10f8428c464b40c21e e9a668a3bc60c55491d3db7571c1e9cfe0cc5f3d Alexey Zhokhov <alexey@zhokhov.com> 1792768724 +0700	rebase (finish): refs/heads/recovery/tablepro-null-order-20261023 onto ef37e2f9f5bb1366fcabcc28595d6992c5bf589c
+e9a668a3bc60c55491d3db7571c1e9cfe0cc5f3d 39c7d50ae4c253eae657bd375d98d02251c47cff Alexey Zhokhov <alexey@zhokhov.com> 1792769784 +0700	commit: test(runtime): characterize pointer capture phases
+39c7d50ae4c253eae657bd375d98d02251c47cff 95495f6902721346a53a13e013233edd37ffa5c7 Alexey Zhokhov <alexey@zhokhov.com> 1792770075 +0700
+95495f6902721346a53a13e013233edd37ffa5c7 6cb9473dd1bf1491e8b808bdda35c973bf80ee46 Alexey Zhokhov <alexey@zhokhov.com> 1792772547 +0700	merge 6cb9473dd1bf1491e8b808bdda35c973bf80ee46: Fast-forward
+6cb9473dd1bf1491e8b808bdda35c973bf80ee46 6b40235a0d1b3ea3c68c869619e350a06803991f Alexey Zhokhov <alexey@zhokhov.com> 1792772671 +0700	commit: docs: document historical render recovery
+6b40235a0d1b3ea3c68c869619e350a06803991f 3cc0b6571ba719776ac28c6e5f69b49c6932384b Alexey Zhokhov <alexey@zhokhov.com> 1792772799 +0700	rebase (finish): refs/heads/recovery/tablepro-null-order-20261023 onto b0ab40ecc9a304c96699411504f13052429f1de2
+3cc0b6571ba719776ac28c6e5f69b49c6932384b b3159e1d24742cbe5bd0119d8009c5d814c23e9a Alexey Zhokhov <alexey@zhokhov.com> 1792773292 +0700	commit: test(runtime): cover pointer geometry after resize
+b3159e1d24742cbe5bd0119d8009c5d814c23e9a 03574346691d2367cd9ba1d6caa394025e5a2a94 Alexey Zhokhov <alexey@zhokhov.com> 1792773458 +0700	rebase (finish): refs/heads/recovery/tablepro-null-order-20261023 onto 24dd68f367442cace6fdd8b1a1b69fea3dbf829e
+03574346691d2367cd9ba1d6caa394025e5a2a94 4dec34f1ab9d66e40b13a6fba6bb783400de090a Alexey Zhokhov <alexey@zhokhov.com> 1792773699 +0700	commit: test(runtime): restore resize geometry matrix
+4dec34f1ab9d66e40b13a6fba6bb783400de090a 4526f8d0ef4111c5c1a8d4b5e447ae52aa5c706c Alexey Zhokhov <alexey@zhokhov.com> 1792774125 +0700	commit: feat(runtime): add scroll position label helper
+4526f8d0ef4111c5c1a8d4b5e447ae52aa5c706c 54daace12e750db17ca785f2a076e8fd2266d5ae Alexey Zhokhov <alexey@zhokhov.com> 1792774293 +0700	rebase (finish): refs/heads/recovery/tablepro-null-order-20261023 onto fb308b240f170c177f2d9511f6bb08ad1e28c69b
+54daace12e750db17ca785f2a076e8fd2266d5ae 598689eaf2dc77bd363e7ea9bf2306ea01e01b50 Alexey Zhokhov <alexey@zhokhov.com> 1792775245 +0700	commit: test(theme): cover caller-authored Mono palettes
+598689eaf2dc77bd363e7ea9bf2306ea01e01b50 3cdaf67d95a9e97137dfaa6638d48ee2c259b90d Alexey Zhokhov <alexey@zhokhov.com> 1792775783 +0700	commit: docs: map component authoring and migration contracts
+3cdaf67d95a9e97137dfaa6638d48ee2c259b90d 9bf11df1f9150f1806a974009194aaa7b3b6eeca Alexey Zhokhov <alexey@zhokhov.com> 1792775987 +0700	commit: docs: clarify FrameRead optionality
+9bf11df1f9150f1806a974009194aaa7b3b6eeca 7b2eb51c925a105f210c853e81b8ad440dad210f Alexey Zhokhov <alexey@zhokhov.com> 1792776133 +0700	rebase (finish): refs/heads/recovery/tablepro-null-order-20261023 onto 3f5e0da2c996634da9a1632df16118dc74e33575
+7b2eb51c925a105f210c853e81b8ad440dad210f abdd43b9a70daf944dd717ae6a1f8a6ed606efd4 Alexey Zhokhov <alexey@zhokhov.com> 1792778090 +0700	commit: docs: add source-bound tool runbooks
+abdd43b9a70daf944dd717ae6a1f8a6ed606efd4 a35e6285b77a0de21d7f48eafa0307c9af17d909 Alexey Zhokhov <alexey@zhokhov.com> 1792779530 +0700	commit: fix(xtask): resolve package README paths
+a35e6285b77a0de21d7f48eafa0307c9af17d909 3953e599d0d1e9e417139dff3bd2cdb2452ae8c6 Alexey Zhokhov <alexey@zhokhov.com> 1792781960 +0700	commit: test(theme): retain PaintStyle compile contract pilot
+3953e599d0d1e9e417139dff3bd2cdb2452ae8c6 6cb5f1e86b0bdcaf04640f41452523392bd0db73 Alexey Zhokhov <alexey@zhokhov.com> 1792785084 +0700	commit: fix(xtask): scope inline cfg(test) ownership ranges
+6cb5f1e86b0bdcaf04640f41452523392bd0db73 887f0da5c22b25146a0ff5c5f8c566d1fad6d277 Alexey Zhokhov <alexey@zhokhov.com> 1792792531 +0700	commit: fix(runtime): consume disabled primary pointer refusals

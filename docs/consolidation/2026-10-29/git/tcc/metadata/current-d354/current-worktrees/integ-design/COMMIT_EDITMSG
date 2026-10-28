@@ -1,0 +1,6 @@
+Revert unsigned showcase duration fix (re-landing with DCO sign-off)
+
+Reverts 396b40adb, pushed without a Signed-off-by trailer. Re-applied
+signed immediately after; net tree effect is zero.
+
+Signed-off-by: Muse Code <muse@example.com>

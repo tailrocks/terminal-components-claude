@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 43016c3cbc5a29a4e6479543ef29a02913add6cd Alexey Zhokhov <alexey@zhokhov.com> 1792546124 +0700	branch: Created from 43016c3cbc5a29a4e6479543ef29a02913add6cd
+43016c3cbc5a29a4e6479543ef29a02913add6cd ffa723642decc48fc62c11fd165af0f63ad46501 Alexey Zhokhov <alexey@zhokhov.com> 1792546151 +0700	reset: moving to ffa723642decc48fc62c11fd165af0f63ad46501
+ffa723642decc48fc62c11fd165af0f63ad46501 92bd50821017f01d89612d0f3a78dd6dfa5af59b Alexey Zhokhov <alexey@zhokhov.com> 1792546193 +0700	commit: docs(shell): fix testing-only reach module link

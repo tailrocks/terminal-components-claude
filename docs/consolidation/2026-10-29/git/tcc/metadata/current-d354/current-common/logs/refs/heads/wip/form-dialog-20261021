@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 2f6193e6e2f396100a2a11cbdc83899a3acfd0ee Alexey Zhokhov <alexey@zhokhov.com> 1792588074 +0700	branch: Created from origin/wip/form-field-layout-20261021
+2f6193e6e2f396100a2a11cbdc83899a3acfd0ee 4f12c155c2844e7b5ad1f13bcbc9c697f48e4f28 Alexey Zhokhov <alexey@zhokhov.com> 1792589147 +0700	commit: feat(forms): compose reusable modal form dialog
+4f12c155c2844e7b5ad1f13bcbc9c697f48e4f28 62f500b4a6a6edf6207a11d21f41381397d1d59a Alexey Zhokhov <alexey@zhokhov.com> 1792589150 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+62f500b4a6a6edf6207a11d21f41381397d1d59a 7a4a2eb2ffae0f864472a0ee7ef98c96ae31dfa0 Alexey Zhokhov <alexey@zhokhov.com> 1792589430 +0700	commit: feat(overlays): add opt-in dialog close button
+7a4a2eb2ffae0f864472a0ee7ef98c96ae31dfa0 4a4c0a90791c946b79c6d836bcf003de3ec21f70 Alexey Zhokhov <alexey@zhokhov.com> 1792589454 +0700	commit: docs(audit): record dialog close verification
+4a4c0a90791c946b79c6d836bcf003de3ec21f70 d0889a1774dc8e358670849b89413e3628f16d31 Alexey Zhokhov <alexey@zhokhov.com> 1792590300 +0700	commit: fix(overlays): omit empty composed dialog footer gap
+d0889a1774dc8e358670849b89413e3628f16d31 7c46c63f0c6e99d26c872758fc941a3ffa270f23 Alexey Zhokhov <alexey@zhokhov.com> 1792590318 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

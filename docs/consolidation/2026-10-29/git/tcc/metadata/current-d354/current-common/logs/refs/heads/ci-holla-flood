@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 cf21436e4d48a426a4cb0d3c9ec8e0bcc16d8189 Alexey Zhokhov <alexey@zhokhov.com> 1792166289 +0700	branch: Created from HEAD
+cf21436e4d48a426a4cb0d3c9ec8e0bcc16d8189 afe152c878b1ca0b881c087a79f3a0e8fccced53 Alexey Zhokhov <alexey@zhokhov.com> 1792167615 +0700	commit: fix(runtime): read input crossterm leaves queued in the terminal
+afe152c878b1ca0b881c087a79f3a0e8fccced53 d2bcdd17fc33b9d8452dc4c14608389fdd5e7aa5 Alexey Zhokhov <alexey@zhokhov.com> 1792171408 +0700	rebase (finish): refs/heads/ci-holla-flood onto 618bc65c45d46a3411cbfb604d71c148909a17fc
+d2bcdd17fc33b9d8452dc4c14608389fdd5e7aa5 489508353e203551bb205c7295e8fc65d256d7fd Alexey Zhokhov <alexey@zhokhov.com> 1792172922 +0700	rebase (finish): refs/heads/ci-holla-flood onto 489508353e203551bb205c7295e8fc65d256d7fd
+489508353e203551bb205c7295e8fc65d256d7fd e9a851f3424862e275248ba8a953e04f66c7adf7 Alexey Zhokhov <alexey@zhokhov.com> 1792173086 +0700	commit: fix(docs): resolve the intra-doc links rustdoc rejects in CI
+e9a851f3424862e275248ba8a953e04f66c7adf7 9ae6afc7ecd226bca34f87ab6db9ad9edb7b0590 Alexey Zhokhov <alexey@zhokhov.com> 1792173183 +0700	rebase (finish): refs/heads/ci-holla-flood onto d9037390d1805438f09f15445cd5a37021550d54
+9ae6afc7ecd226bca34f87ab6db9ad9edb7b0590 055447509d52f4aa3611c43a3e4a23137b732158 Alexey Zhokhov <alexey@zhokhov.com> 1792174487 +0700	commit: docs(upstream): velnor publish gate checks the GitHub default branch
+055447509d52f4aa3611c43a3e4a23137b732158 ed1519e0bf446a8b5ad0471b40d4986e2d1893fd Alexey Zhokhov <alexey@zhokhov.com> 1792174861 +0700	rebase (finish): refs/heads/ci-holla-flood onto 610d04b0e7c5211c06d5c29bc8daff92c95069f2

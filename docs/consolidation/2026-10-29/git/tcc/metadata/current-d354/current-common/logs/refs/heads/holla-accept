@@ -1,0 +1,17 @@
+0000000000000000000000000000000000000000 e57fe76e8ba45aa8bfd4320edef9c91ef6a73f84 Alexey Zhokhov <alexey@zhokhov.com> 1792186259 +0700	branch: Created from HEAD
+e57fe76e8ba45aa8bfd4320edef9c91ef6a73f84 c7b9e3f90d2845eb12569b18491f19a2a8bc1cd6 Alexey Zhokhov <alexey@zhokhov.com> 1792186519 +0700	commit: docs(plan): jackin's handoff cross-fade stays in jackin
+c7b9e3f90d2845eb12569b18491f19a2a8bc1cd6 62b5fc8b2730a5d3c8aeec9aff2ea6881345599c Alexey Zhokhov <alexey@zhokhov.com> 1792186617 +0700	commit: wip harness env
+62b5fc8b2730a5d3c8aeec9aff2ea6881345599c 6c19915bc5433eae4fa18336a10d1bf9dbf19240 Alexey Zhokhov <alexey@zhokhov.com> 1792186620 +0700	rebase (finish): refs/heads/holla-accept onto e9d2406b7337118dfba7fd3252bad3811f9d753f
+6c19915bc5433eae4fa18336a10d1bf9dbf19240 940c643547f0863765488926cc9c925a8363e203 Alexey Zhokhov <alexey@zhokhov.com> 1792186734 +0700	reset: moving to HEAD~1
+940c643547f0863765488926cc9c925a8363e203 72503e81f2be3918b3f030f779561237488f1667 Alexey Zhokhov <alexey@zhokhov.com> 1792186734 +0700	commit: test(visual): holla rows with the usage history on
+72503e81f2be3918b3f030f779561237488f1667 face71e4cbe869d8fcb67ffb77e828e2f127e688 Alexey Zhokhov <alexey@zhokhov.com> 1792188209 +0700	commit: test(visual): holla re-approval against visual-baseline
+face71e4cbe869d8fcb67ffb77e828e2f127e688 a0fcf41b1e96444c4d6e8e7fe424760007d8662f Alexey Zhokhov <alexey@zhokhov.com> 1792188218 +0700	commit (amend): test(visual): holla re-approval against visual-baseline
+a0fcf41b1e96444c4d6e8e7fe424760007d8662f 2604632a2c2eab2e6289ba765d29188821c766a5 Alexey Zhokhov <alexey@zhokhov.com> 1792188259 +0700	commit: docs(visual): holla re-approved; captures keep the history opt-out
+2604632a2c2eab2e6289ba765d29188821c766a5 a5946bda4740e523d6292ab37b26b26f1262aaa1 Alexey Zhokhov <alexey@zhokhov.com> 1792188382 +0700	rebase (finish): refs/heads/holla-accept onto 5e4728c8bd644f5cb3f3abdc30b4851cb2687538
+a5946bda4740e523d6292ab37b26b26f1262aaa1 712b4679677a6548e9dd2ea772914b07d2bef361 Alexey Zhokhov <alexey@zhokhov.com> 1792189201 +0700	commit: test(visual): holla cursor-row focus gutter keeps the focus ink at 256
+712b4679677a6548e9dd2ea772914b07d2bef361 48c7bd43e773251e2206648af8c6d151b6a69b91 Alexey Zhokhov <alexey@zhokhov.com> 1792189208 +0700	commit: docs(visual): holla 256-colour gutter follow-up after 7403f8920
+48c7bd43e773251e2206648af8c6d151b6a69b91 ec69c1f43407515de34abf3454ec13a8e8f5450c Alexey Zhokhov <alexey@zhokhov.com> 1792190242 +0700	rebase (finish): refs/heads/holla-accept onto 639f351caf0630f3226586e1fc48cbcdc6bca746
+ec69c1f43407515de34abf3454ec13a8e8f5450c bf07c5e6460d9e041385ad01f08eca307b8ded28 Alexey Zhokhov <alexey@zhokhov.com> 1792191988 +0700	rebase (finish): refs/heads/holla-accept onto 232a6b59f4b516d3d50317723accffddaed98a3f
+bf07c5e6460d9e041385ad01f08eca307b8ded28 0dd11dcc6584783d170989ede20f6fd7ee2d117f Alexey Zhokhov <alexey@zhokhov.com> 1792192234 +0700	rebase (finish): refs/heads/holla-accept onto 5f5b64e75c639e869779bc4287e9a8b15990827c
+0dd11dcc6584783d170989ede20f6fd7ee2d117f 3f64a35fc882e3ba762b9aae6cceea8cfc78c544 Alexey Zhokhov <alexey@zhokhov.com> 1792192966 +0700	rebase (finish): refs/heads/holla-accept onto 684ee66809a4fff6f22921380b9904de53932c4f
+3f64a35fc882e3ba762b9aae6cceea8cfc78c544 ac7ef0eac4cd81d8fabf0cda85585dc839e1d887 Alexey Zhokhov <alexey@zhokhov.com> 1792193931 +0700	rebase (finish): refs/heads/holla-accept onto 0d1979d22df11df1599dad8ce80db813421a32de

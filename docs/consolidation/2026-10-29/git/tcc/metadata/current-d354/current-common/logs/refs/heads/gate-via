@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 d583c135cadd3ea4bc4775a4b734e110e337c80f Alexey Zhokhov <alexey@zhokhov.com> 1792212234 +0700	branch: Created from HEAD
+d583c135cadd3ea4bc4775a4b734e110e337c80f 4df84836ea367d7ed92f9be1981e9e7559cd9782 Alexey Zhokhov <alexey@zhokhov.com> 1792212726 +0700	commit: test(showcase): cover functions via their owner's demo, not permanent (SC-G3)
+4df84836ea367d7ed92f9be1981e9e7559cd9782 6c56629e13afa804bd148620d2191f74f6e2e0c5 Alexey Zhokhov <alexey@zhokhov.com> 1792213564 +0700	rebase (finish): refs/heads/gate-via onto 4d4085811e1c79e297d53a3f0571ed1ab5660b19
+6c56629e13afa804bd148620d2191f74f6e2e0c5 1d9d16a9b8e803e34976e63d888ecde8d034131d Alexey Zhokhov <alexey@zhokhov.com> 1792213569 +0700	commit (amend): test(showcase): cover functions via their owner's demo, not permanent (SC-G3)

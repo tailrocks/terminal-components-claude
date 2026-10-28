@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 9399ef27d05a46d06b5e978b5d145219a2765e03 Alexey Zhokhov <alexey@zhokhov.com> 1792597919 +0700	branch: Created from 9399ef27
+9399ef27d05a46d06b5e978b5d145219a2765e03 cfc9820023769665f28a04b9006a503030afef71 Alexey Zhokhov <alexey@zhokhov.com> 1792597995 +0700	commit: docs: restore complete migration evidence after truncation
+cfc9820023769665f28a04b9006a503030afef71 8679d5c6138ab44330d7091cfad252de3707a4d2 Alexey Zhokhov <alexey@zhokhov.com> 1792597998 +0700	merge ae193b855fc004944f390452f1338871b27cdfd7: Merge made by the 'ort' strategy.

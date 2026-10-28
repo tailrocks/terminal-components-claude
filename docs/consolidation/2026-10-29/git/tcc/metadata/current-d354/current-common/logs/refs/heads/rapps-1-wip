@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 2800846124ca43bc01188509d3a0dfbe4f519d2c Alexey Zhokhov <alexey@zhokhov.com> 1792244390 +0700	branch: Created from HEAD
+2800846124ca43bc01188509d3a0dfbe4f519d2c daa763d8f6f5c14eb7282ef260493469318e312b Alexey Zhokhov <alexey@zhokhov.com> 1792244467 +0700	commit (amend): wip R-apps-1
+daa763d8f6f5c14eb7282ef260493469318e312b c78606e8b5c5070ca620b5c322fdede849c12c0f Alexey Zhokhov <alexey@zhokhov.com> 1792244529 +0700	commit (amend): wip R-apps-1
+c78606e8b5c5070ca620b5c322fdede849c12c0f c37997c1b4a72bee9bd11cfe3d84e687a1a51825 Alexey Zhokhov <alexey@zhokhov.com> 1792244747 +0700	commit (amend): wip R-apps-1
+c37997c1b4a72bee9bd11cfe3d84e687a1a51825 ab9790391d7b82f9b715eeaaf57f16397724d359 Alexey Zhokhov <alexey@zhokhov.com> 1792245055 +0700	rebase (finish): refs/heads/rapps-1-wip onto e0bb6fc10c86957a38960009125cebcd4a4078f5
+ab9790391d7b82f9b715eeaaf57f16397724d359 7e8da69c0930b72ed4209576ece820b78301292e Alexey Zhokhov <alexey@zhokhov.com> 1792245063 +0700	commit (amend): fix(strips): dropped segments and status items collapse into a revealing … (R-apps-1)

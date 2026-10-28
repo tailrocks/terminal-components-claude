@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 1f0d0ce4f7294ce39173d1cc74f832ebfe60834e Alexey Zhokhov <alexey@zhokhov.com> 1792598435 +0700	branch: Created from HEAD
+1f0d0ce4f7294ce39173d1cc74f832ebfe60834e 139bf1cd777c496392f7b106cc986eb4205e8018 Alexey Zhokhov <alexey@zhokhov.com> 1792598970 +0700	commit: feat: add ordinary checks to fresh baseline runs
+139bf1cd777c496392f7b106cc986eb4205e8018 76e157759fdd616fd440b9795a639de30e617f95 Alexey Zhokhov <alexey@zhokhov.com> 1792599884 +0700	commit: fix: bound ordinary child output capture
+76e157759fdd616fd440b9795a639de30e617f95 ec0a422ba6b46ddd87091c948b5b44854dcc83ff Alexey Zhokhov <alexey@zhokhov.com> 1792600291 +0700	commit: docs: record ordinary output quota review

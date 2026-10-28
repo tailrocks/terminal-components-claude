@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 9b0277bc62bd5035c4244c3721af1b1775250db2 Alexey Zhokhov <alexey@zhokhov.com> 1792546906 +0700	branch: Created from HEAD
+9b0277bc62bd5035c4244c3721af1b1775250db2 a7f5c2b53775d0470c798e4a3d80dde14cbab690 Alexey Zhokhov <alexey@zhokhov.com> 1792547168 +0700	commit: test(theme): pin Esc exception to frozen source contract
+a7f5c2b53775d0470c798e4a3d80dde14cbab690 d975bf6fe05958a2616f6eca246f4bdeda637caf Alexey Zhokhov <alexey@zhokhov.com> 1792547554 +0700	commit: test(theme): bound cfg test module scan by declaration

@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 d591748ac6ca2b676568a2de0b70d6162dc23a45 Alexey Zhokhov <alexey@zhokhov.com> 1792532713 +0700	branch: Created from origin/parity/termrock-visual-baseline
+d591748ac6ca2b676568a2de0b70d6162dc23a45 884b4381074486a77be7bf5e95543cbd37c54a28 Alexey Zhokhov <alexey@zhokhov.com> 1792533054 +0700	commit: fix(runtime): preserve fill foreground provenance
+884b4381074486a77be7bf5e95543cbd37c54a28 79667c8355884ac8761579f00d08d5adfd263cdb Alexey Zhokhov <alexey@zhokhov.com> 1792533079 +0700	rebase (finish): refs/heads/wip/fill-keep-fg-20261021 onto f2d66896f3341b115a217a1bdad6379badebccbb
+79667c8355884ac8761579f00d08d5adfd263cdb 7b073316c089c494e84db801d6bfb861db75224c Alexey Zhokhov <alexey@zhokhov.com> 1792536623 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward

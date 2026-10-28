@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 5f82c4d35d12e0fb77b0f580a8ef200240661602 Alexey Zhokhov <alexey@zhokhov.com> 1792542431 +0700	branch: Created from 5f82c4d35d12e0fb77b0f580a8ef200240661602
+5f82c4d35d12e0fb77b0f580a8ef200240661602 d911e577a1342729719a746a1b314bea7880be46 Alexey Zhokhov <alexey@zhokhov.com> 1792543183 +0700	commit: feat(picker): reset selection on filter changes
+d911e577a1342729719a746a1b314bea7880be46 371c2c0ed7a8eef4aff1e7fd3f200132ba70e282 Alexey Zhokhov <alexey@zhokhov.com> 1792543288 +0700	commit: perf(navigation): avoid default picker query retention
+371c2c0ed7a8eef4aff1e7fd3f200132ba70e282 1e30bd458dafc3f493cba207acb135ac964f85ce Alexey Zhokhov <alexey@zhokhov.com> 1792544560 +0700	commit: fix(picker): honor shifted BackTab and explicit resets
+1e30bd458dafc3f493cba207acb135ac964f85ce e87bb63aafb92ca3efbad1a2b71e40412d4186d4 Alexey Zhokhov <alexey@zhokhov.com> 1792544568 +0700	commit: docs: hand off Picker review fixes
+e87bb63aafb92ca3efbad1a2b71e40412d4186d4 0d821bda6345e29d4f481745d2cf815f8274c54c Alexey Zhokhov <alexey@zhokhov.com> 1792545012 +0700	commit: fix(runtime): use effective chords for keymap mutations
+0d821bda6345e29d4f481745d2cf815f8274c54c d40f8e5fb7e47dca8c971c718559f840e9ba693d Alexey Zhokhov <alexey@zhokhov.com> 1792545019 +0700	commit: docs: hand off keymap identity fix

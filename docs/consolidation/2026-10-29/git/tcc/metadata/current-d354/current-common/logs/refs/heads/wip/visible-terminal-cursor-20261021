@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 5b9cffdb05fb257f7416dc872e24e75865ad98c2 Alexey Zhokhov <alexey@zhokhov.com> 1792549322 +0700	branch: Created from HEAD
+5b9cffdb05fb257f7416dc872e24e75865ad98c2 43545341db107948cd857b9c9faf115d9e816a89 Alexey Zhokhov <alexey@zhokhov.com> 1792550435 +0700	commit: fix(overlays): retain visible terminal caret
+43545341db107948cd857b9c9faf115d9e816a89 dc30c3334f9b8a20802063452e357776ed39662e Alexey Zhokhov <alexey@zhokhov.com> 1792550481 +0700	commit: docs: hand off visible cursor retention WIP
+dc30c3334f9b8a20802063452e357776ed39662e d46d4b01f0a43f6be366317818efa20bebe486cb Alexey Zhokhov <alexey@zhokhov.com> 1792550503 +0700	rebase (finish): refs/heads/wip/visible-terminal-cursor-20261021 onto 4f40bb294da89bbfcb2a6716c88a3158427aa0b2
+d46d4b01f0a43f6be366317818efa20bebe486cb 8be128f073c19076a2977e349e8732cd74f08821 Alexey Zhokhov <alexey@zhokhov.com> 1792550561 +0700	commit: docs: refresh visible cursor handoff

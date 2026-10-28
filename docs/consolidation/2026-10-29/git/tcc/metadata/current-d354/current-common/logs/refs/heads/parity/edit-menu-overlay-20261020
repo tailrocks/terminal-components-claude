@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 0416a30146fc39b73ec320935620a692c4d88814 Alexey Zhokhov <alexey@zhokhov.com> 1792497156 +0700	branch: Created from 0416a30146fc39b73ec320935620a692c4d88814
+0416a30146fc39b73ec320935620a692c4d88814 20c9d9e01c6130c56c35f18e4abfcc8f1b762efa Alexey Zhokhov <alexey@zhokhov.com> 1792497628 +0700	commit: feat(overlays): add shared field edit menu
+20c9d9e01c6130c56c35f18e4abfcc8f1b762efa 12a24761ff9da2019f2c04ad63b21db9e92da5c7 Alexey Zhokhov <alexey@zhokhov.com> 1792497989 +0700	commit: fix(overlays): match edit menu capability rows

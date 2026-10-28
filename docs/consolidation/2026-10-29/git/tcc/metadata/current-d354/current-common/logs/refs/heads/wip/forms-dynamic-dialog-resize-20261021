@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 45f8d8ecefc81fcc25f87b7e7aa036363085c21b Alexey Zhokhov <alexey@zhokhov.com> 1792599536 +0700	branch: Created from origin/parity/termrock-visual-baseline
+45f8d8ecefc81fcc25f87b7e7aa036363085c21b 1b99c88145c42cfa80b5378e1ddb9367c30eb7db Alexey Zhokhov <alexey@zhokhov.com> 1792599795 +0700	commit: fix(forms): resize dialogs after live visibility updates
+1b99c88145c42cfa80b5378e1ddb9367c30eb7db f60b8a760096e871ce128e6ce5b182e4c72000e7 Alexey Zhokhov <alexey@zhokhov.com> 1792599798 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+f60b8a760096e871ce128e6ce5b182e4c72000e7 4399a54e293376ff3b318d38459a208db321bb6e Alexey Zhokhov <alexey@zhokhov.com> 1792599837 +0700	commit: docs: record FormDialog live sizing verification
+4399a54e293376ff3b318d38459a208db321bb6e 0e8b4324f07ad9ae6ba068da815db36990d02ffb Alexey Zhokhov <alexey@zhokhov.com> 1792599941 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+0e8b4324f07ad9ae6ba068da815db36990d02ffb cb74d6c412a1b7efee410ecce37ef9f56a5ed3f2 Alexey Zhokhov <alexey@zhokhov.com> 1792600000 +0700	commit: docs: record combined Showcase FormDialog result
+cb74d6c412a1b7efee410ecce37ef9f56a5ed3f2 3a424a15cbc0e7213d92c0bab5e98f381296e555 Alexey Zhokhov <alexey@zhokhov.com> 1792600008 +0700	commit: docs: correct combined diagnostic source ID

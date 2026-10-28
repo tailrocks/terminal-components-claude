@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 f0ca48e42f2cad982a91327646ff761fb4f4b1f2 Alexey Zhokhov <alexey@zhokhov.com> 1792241147 +0700	branch: Created from HEAD
+f0ca48e42f2cad982a91327646ff761fb4f4b1f2 b249a81be807879212bd4bf50a9246aff5c18d60 Alexey Zhokhov <alexey@zhokhov.com> 1792241919 +0700	commit: wip(s16a): RowMark, ListItem header/status/mark, TreeNode meta_tone/trailing/cells, TreeView::columns, Column::marker

@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 4de22cf527456ea7db0f03617651df9ef3ba003a Alexey Zhokhov <alexey@zhokhov.com> 1792492895 +0700	branch: Created from HEAD
+4de22cf527456ea7db0f03617651df9ef3ba003a 0b2183ce1eca286dc7c678611729dffdfe04d5be Alexey Zhokhov <alexey@zhokhov.com> 1792492896 +0700	commit: feat(showcase): route task table through shared Table
+0b2183ce1eca286dc7c678611729dffdfe04d5be 9f9c15d93b58761f6742f3035bbd9dcd7cf8449f Alexey Zhokhov <alexey@zhokhov.com> 1792492961 +0700	commit: test(showcase): verify shared task table sorting
+9f9c15d93b58761f6742f3035bbd9dcd7cf8449f e79395fbca40fdf8dba228ff667c7cc7fcf9d9e0 Alexey Zhokhov <alexey@zhokhov.com> 1792493200 +0700	cherry-pick: fix(grid): restore table baseline sort and tone styles
+e79395fbca40fdf8dba228ff667c7cc7fcf9d9e0 fa02fa54a6151c43cccd56d61e096f4a87808f13 Alexey Zhokhov <alexey@zhokhov.com> 1792493231 +0700	commit: fix(showcase): preserve baseline task status tone

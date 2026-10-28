@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 5bfbd1e40fcf6de34d92a16df6a71b4e3fd55541 Alexey Zhokhov <alexey@zhokhov.com> 1792489382 +0700	branch: Created from origin/parity/termrock-visual-baseline
+5bfbd1e40fcf6de34d92a16df6a71b4e3fd55541 71164fc03907972339e57707754716f34027ad9f Alexey Zhokhov <alexey@zhokhov.com> 1792489775 +0700	commit: feat(controls): add master detail container
+71164fc03907972339e57707754716f34027ad9f ec168641ff0fc5bab0a4ca701d5cb03b3ba49cfe Alexey Zhokhov <alexey@zhokhov.com> 1792490072 +0700	commit: fix(controls): preserve master detail interactions
+ec168641ff0fc5bab0a4ca701d5cb03b3ba49cfe 454c73a7913e68d92eca44fb54cc02f39874691e Alexey Zhokhov <alexey@zhokhov.com> 1792490370 +0700	commit: fix(controls): persist master detail drawer state
+454c73a7913e68d92eca44fb54cc02f39874691e 1e08b4b366f0d5fc8d4bfcdcbe64815a0084e0d3 Alexey Zhokhov <alexey@zhokhov.com> 1792491358 +0700	commit: test(controls): exercise modal drawer focus excursion
+1e08b4b366f0d5fc8d4bfcdcbe64815a0084e0d3 5645fd00515034eb6e34b628da596c25d3b5930d Alexey Zhokhov <alexey@zhokhov.com> 1792492665 +0700	commit: fix(controls): route master detail focus at every width
+5645fd00515034eb6e34b628da596c25d3b5930d b54751dec9a94198c7acb55e3584ffccb2c68c8f Alexey Zhokhov <alexey@zhokhov.com> 1792493208 +0700	commit: fix(runtime): preserve metadata in additive bindings
+b54751dec9a94198c7acb55e3584ffccb2c68c8f 1ca91e1421e812e582a9681e8ba2a56e66127e97 Alexey Zhokhov <alexey@zhokhov.com> 1792493377 +0700	commit: fix(runtime): shadow hidden chords in focused hints

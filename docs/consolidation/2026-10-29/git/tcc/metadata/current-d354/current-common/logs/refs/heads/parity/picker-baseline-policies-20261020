@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 da911656e168b65cb0e4667138cbe0708ebbcd2d Alexey Zhokhov <alexey@zhokhov.com> 1792488046 +0700	branch: Created from origin/parity/termrock-visual-baseline
+da911656e168b65cb0e4667138cbe0708ebbcd2d 4c099073db85015ae489674570b9527a1ee6519f Alexey Zhokhov <alexey@zhokhov.com> 1792488561 +0700	commit: feat(picker): expose baseline rendering policies
+4c099073db85015ae489674570b9527a1ee6519f 04262f1c5f16616ae17cc86a2c76cadca557ecd6 Alexey Zhokhov <alexey@zhokhov.com> 1792488569 +0700	rebase (finish): refs/heads/parity/picker-baseline-policies-20261020 onto 7c5714871f3a41666231f9bc5a920ac554cf17eb
+04262f1c5f16616ae17cc86a2c76cadca557ecd6 c2fefa9ce0298ffd27e928478ce9cf5cbe55469b Alexey Zhokhov <alexey@zhokhov.com> 1792488630 +0700	commit: test(picker): cover cursor and metadata policies
+c2fefa9ce0298ffd27e928478ce9cf5cbe55469b d1c27e36b450fa2431c9106d3da29163d4e58691 Alexey Zhokhov <alexey@zhokhov.com> 1792489116 +0700	commit: fix: preserve picker style and metadata overrides

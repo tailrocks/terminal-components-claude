@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 6b639c4dd8f83dc3b31449df0f5a49393900ccc0 Alexey Zhokhov <alexey@zhokhov.com> 1792552060 +0700	branch: Created from origin/parity/termrock-visual-baseline
+6b639c4dd8f83dc3b31449df0f5a49393900ccc0 fa1075639216addf7f5e6ef02e2300db2921360b Alexey Zhokhov <alexey@zhokhov.com> 1792552631 +0700	commit: feat: add panel composition adapter
+fa1075639216addf7f5e6ef02e2300db2921360b ef7e04a91713739e99460bc4839d5c0fb066d855 Alexey Zhokhov <alexey@zhokhov.com> 1792552651 +0700	rebase (finish): refs/heads/wip/panel-composition-20261021 onto 4db067a8a183bc7d7ee7027432d7afe82a613352

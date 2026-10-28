@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 1577933a2f4c20d0839d140920c7e7243eea1e0e Alexey Zhokhov <alexey@zhokhov.com> 1792624015 +0700	branch: Created from origin/parity/termrock-visual-baseline
+1577933a2f4c20d0839d140920c7e7243eea1e0e e2ba67866eed212a72bd6ea82adcd5151eb321c1 Alexey Zhokhov <alexey@zhokhov.com> 1792627876 +0700	reset: moving to origin/parity/termrock-visual-baseline
+e2ba67866eed212a72bd6ea82adcd5151eb321c1 5c4d0ef9d9dbdc30a2035f5cb62ea6b24ea072bd Alexey Zhokhov <alexey@zhokhov.com> 1792643039 +0700	commit (merge): fix(tablepro): land the shared footer and the explorer metadata gate
+5c4d0ef9d9dbdc30a2035f5cb62ea6b24ea072bd 2b99f81f670d6b1db06629c219732f65542f50a8 Alexey Zhokhov <alexey@zhokhov.com> 1792643129 +0700	branch: Reset to origin/parity/termrock-visual-baseline
+2b99f81f670d6b1db06629c219732f65542f50a8 b51a6af038f9a8e77e57235291e98611ffe9d158 Alexey Zhokhov <alexey@zhokhov.com> 1792646498 +0700	commit: fix(tablepro): land the shared footer and the explorer metadata gate

@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 a58eee178a4bffac33ce7e17125655f0de5e5b0b Alexey Zhokhov <alexey@zhokhov.com> 1792237749 +0700	branch: Created from FETCH_HEAD
+a58eee178a4bffac33ce7e17125655f0de5e5b0b dadfc7d60761776b1ea93dab347e1e0e9723a31b Alexey Zhokhov <alexey@zhokhov.com> 1792238774 +0700	commit: wip jackin s14
+dadfc7d60761776b1ea93dab347e1e0e9723a31b 9e8f6a33a727f0801bdcbf675d43b873708ee081 Alexey Zhokhov <alexey@zhokhov.com> 1792239260 +0700	commit (amend): refactor(jackin): pages on shell::Router, typed host menus, one quit and copy path (S14)

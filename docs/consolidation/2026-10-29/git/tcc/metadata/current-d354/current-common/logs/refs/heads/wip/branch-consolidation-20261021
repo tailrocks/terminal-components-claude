@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 300a97bf8ef78b079cc79acc948894029dbefc3b Alexey Zhokhov <alexey@zhokhov.com> 1792585086 +0700	branch: Created from 300a97bf8ef78b079cc79acc948894029dbefc3b
+300a97bf8ef78b079cc79acc948894029dbefc3b d48a7896bd422a72c3bf311f7a1476cdf7569dc4 Alexey Zhokhov <alexey@zhokhov.com> 1792586599 +0700	commit: fix(ownership): replace production expect calls in the library crates
+d48a7896bd422a72c3bf311f7a1476cdf7569dc4 4a30aa85e504f982137a568cffb15a84b38afd05 Alexey Zhokhov <alexey@zhokhov.com> 1792586611 +0700	rebase (finish): refs/heads/wip/branch-consolidation-20261021 onto 5ff78614a62cf4ec0dae3e96c192b7fef654f53a
+4a30aa85e504f982137a568cffb15a84b38afd05 bd16b5d1c0438f132932b26099787ac0edf141a9 Alexey Zhokhov <alexey@zhokhov.com> 1792586758 +0700	commit (merge): merge: land the external public consumer crate
+bd16b5d1c0438f132932b26099787ac0edf141a9 ffecb26341fc1cf5d912329a99d941f806f83a87 Alexey Zhokhov <alexey@zhokhov.com> 1792586849 +0700	commit: test(theme): land the picker title baseline coverage
+ffecb26341fc1cf5d912329a99d941f806f83a87 aad2184d54cff0e6a16f36e65b66345d2b59f558 Alexey Zhokhov <alexey@zhokhov.com> 1792587081 +0700	commit: docs(audit): record the branch consolidation sweep
+aad2184d54cff0e6a16f36e65b66345d2b59f558 eebfb34d19e59d4b63e9782aa8727bd5d134fe69 Alexey Zhokhov <alexey@zhokhov.com> 1792587207 +0700	rebase (finish): refs/heads/wip/branch-consolidation-20261021 onto fc7e932cbfef57e0a92d935208b3fb7ab84ad752
+eebfb34d19e59d4b63e9782aa8727bd5d134fe69 aad2184d54cff0e6a16f36e65b66345d2b59f558 Alexey Zhokhov <alexey@zhokhov.com> 1792587215 +0700	reset: moving to aad2184d54cff0e6a16f36e65b66345d2b59f558
+aad2184d54cff0e6a16f36e65b66345d2b59f558 37f704c9dfb6e485d5e75c9073deb41fb60fe016 Alexey Zhokhov <alexey@zhokhov.com> 1792587217 +0700	commit (merge): merge: fold the current parity tip into the consolidation branch

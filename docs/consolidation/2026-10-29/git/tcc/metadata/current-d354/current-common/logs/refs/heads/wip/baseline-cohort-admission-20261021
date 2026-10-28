@@ -1,0 +1,19 @@
+0000000000000000000000000000000000000000 7cd88891d978287ab775cf9e7b33746e3fe2b34c Alexey Zhokhov <alexey@zhokhov.com> 1792522711 +0700	branch: Created from origin/parity/termrock-visual-baseline
+7cd88891d978287ab775cf9e7b33746e3fe2b34c a4e7aa2ab2784e4c681998b912f13b52535a4ab7 Alexey Zhokhov <alexey@zhokhov.com> 1792523087 +0700	commit: test: record diagnostic frozen binary cohort
+a4e7aa2ab2784e4c681998b912f13b52535a4ab7 49241b350e41ea31bee733772c3780063bf11c91 Alexey Zhokhov <alexey@zhokhov.com> 1792523103 +0700	rebase (finish): refs/heads/wip/baseline-cohort-admission-20261021 onto cf9133c21a73b4bfe73a02e713a243614126a62a
+49241b350e41ea31bee733772c3780063bf11c91 d7db3946af796c7f7141dc28d53d542db794022e Alexey Zhokhov <alexey@zhokhov.com> 1792523353 +0700	commit: test: harden diagnostic cohort verification
+d7db3946af796c7f7141dc28d53d542db794022e 5053e6e83dc60cc7dda8ab1a8ae392af0d134099 Alexey Zhokhov <alexey@zhokhov.com> 1792523360 +0700	rebase (finish): refs/heads/wip/baseline-cohort-admission-20261021 onto 2a741b37878002d6f6cb32e8d624764a56635352
+5053e6e83dc60cc7dda8ab1a8ae392af0d134099 cf346dd4ba85b165cefcbec3bbeeccab21fb2a23 Alexey Zhokhov <alexey@zhokhov.com> 1792523398 +0700	commit (merge): Merge remote-tracking branch 'origin/wip/baseline-cohort-admission-20261021' into wip/baseline-cohort-admission-20261021
+cf346dd4ba85b165cefcbec3bbeeccab21fb2a23 9931b3dfda5cd1aac423589e6f73f70a8445c042 Alexey Zhokhov <alexey@zhokhov.com> 1792526423 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+9931b3dfda5cd1aac423589e6f73f70a8445c042 34d826d337108fffa5f03f191a7a2b82d5f6c841 Alexey Zhokhov <alexey@zhokhov.com> 1792526753 +0700	commit: test: register reviewed baseline capture cohort
+34d826d337108fffa5f03f191a7a2b82d5f6c841 4ad080c6486bdb05e491b3d250a5d482a4702779 Alexey Zhokhov <alexey@zhokhov.com> 1792526803 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+4ad080c6486bdb05e491b3d250a5d482a4702779 de156136f9e8e642809c99a35e7cee4259e0b047 Alexey Zhokhov <alexey@zhokhov.com> 1792526926 +0700	merge 85b19ebbbca341d36effdcaea9abfcd951c99c7b: Merge made by the 'ort' strategy.
+de156136f9e8e642809c99a35e7cee4259e0b047 063175d4a3fca9d6c483a8d9bdac4ff5ec980eee Alexey Zhokhov <alexey@zhokhov.com> 1792527627 +0700	commit: test: plan fresh frozen baseline capture
+063175d4a3fca9d6c483a8d9bdac4ff5ec980eee d2e21c58357a97e6ce3b7f9dc53d8bdd044487a6 Alexey Zhokhov <alexey@zhokhov.com> 1792529558 +0700	commit: fix(frozen-baseline): bind fresh plan creation and runtime
+d2e21c58357a97e6ce3b7f9dc53d8bdd044487a6 fff270fd0d2edcb0b06486fbcde07c88ee4feabe Alexey Zhokhov <alexey@zhokhov.com> 1792530243 +0700	commit: fix(frozen-baseline): precompute fresh plan creation digest
+fff270fd0d2edcb0b06486fbcde07c88ee4feabe ee879b2fc97ca1cf37b5ce010f218c72beed17c6 Alexey Zhokhov <alexey@zhokhov.com> 1792531042 +0700	commit: test(frozen-baseline): add authenticated fresh run metadata
+ee879b2fc97ca1cf37b5ce010f218c72beed17c6 98e59e117edd481bd9cfd2b3b028927f3ecc7235 Alexey Zhokhov <alexey@zhokhov.com> 1792532149 +0700	commit: fix(frozen-baseline): bind run custody and journal to plan
+98e59e117edd481bd9cfd2b3b028927f3ecc7235 7ecf708de7652306adaaaa6fbe05e7724876b208 Alexey Zhokhov <alexey@zhokhov.com> 1792532428 +0700	commit: fix(frozen-baseline): authenticate plan-bound run journal
+7ecf708de7652306adaaaa6fbe05e7724876b208 fa57d1a6d1984bd3b484b0de38488a73150d3b2b Alexey Zhokhov <alexey@zhokhov.com> 1792532595 +0700	commit: docs(audit): record exact fresh run custody proof
+fa57d1a6d1984bd3b484b0de38488a73150d3b2b cacb040598c3a398f0cc9d50cc531d46de8b44d1 Alexey Zhokhov <alexey@zhokhov.com> 1792534146 +0700	commit: feat(frozen-baseline): advance authenticated capture chunks
+cacb040598c3a398f0cc9d50cc531d46de8b44d1 310a56de62e0d2e87a647ffd58b9b5cec9c0a744 Alexey Zhokhov <alexey@zhokhov.com> 1792534641 +0700	commit: docs(audit): record fresh capture smoke receipt

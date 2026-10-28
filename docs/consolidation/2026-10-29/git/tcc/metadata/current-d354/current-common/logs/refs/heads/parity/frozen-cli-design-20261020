@@ -1,0 +1,16 @@
+0000000000000000000000000000000000000000 4169783ae883788186d161af09ba9c481bd84e5c Alexey Zhokhov <alexey@zhokhov.com> 1792483398 +0700	branch: Created from origin/design/interaction-polish
+4169783ae883788186d161af09ba9c481bd84e5c b00fbe3c3af9a6b9140fee9f87cfd1c96f604e78 Alexey Zhokhov <alexey@zhokhov.com> 1792484746 +0700	cherry-pick: test: add pinned frozen CLI parity runner
+b00fbe3c3af9a6b9140fee9f87cfd1c96f604e78 0d35964308e747eb08719cb79ade38635b7f3b97 Alexey Zhokhov <alexey@zhokhov.com> 1792486722 +0700	cherry-pick: test: add live paired CLI frame helper
+0d35964308e747eb08719cb79ade38635b7f3b97 480157954714c0454a00d4291fe2378b41d9dc3d Alexey Zhokhov <alexey@zhokhov.com> 1792486722 +0700	cherry-pick: test: preflight duplicate paired capture outputs
+480157954714c0454a00d4291fe2378b41d9dc3d 257b675ce32ba7ba10865f876d2375331a2aad78 Alexey Zhokhov <alexey@zhokhov.com> 1792486722 +0700	cherry-pick: test: reject paired frame path aliases
+257b675ce32ba7ba10865f876d2375331a2aad78 17ea4b68eebee18c06825d3347677b667ad0574a Alexey Zhokhov <alexey@zhokhov.com> 1792486801 +0700	cherry-pick: test: add full live paired CLI runner
+17ea4b68eebee18c06825d3347677b667ad0574a b693599c2c6614942eadeb4fa8ed6a82586afefc Alexey Zhokhov <alexey@zhokhov.com> 1792486835 +0700	cherry-pick: fix(test): bound paired checkpoint filenames
+b693599c2c6614942eadeb4fa8ed6a82586afefc 15c37b443a02dd92a1b9e5b9c75a37300b729c60 Alexey Zhokhov <alexey@zhokhov.com> 1792487047 +0700	cherry-pick: test: compare ordinary CLI controls against both builds
+15c37b443a02dd92a1b9e5b9c75a37300b729c60 859e44e97dd39c42d203838c60bf47e9f7b5b24e Alexey Zhokhov <alexey@zhokhov.com> 1792487503 +0700	cherry-pick: docs: record final paired CLI pilot evidence
+859e44e97dd39c42d203838c60bf47e9f7b5b24e f572c1b706d8433879cbcb764741f9873d12376f Alexey Zhokhov <alexey@zhokhov.com> 1792491533 +0700	cherry-pick: fix: run isolation check against both binaries
+f572c1b706d8433879cbcb764741f9873d12376f f4867e9b5f8a08a3bb61ce80d644198a29f51984 Alexey Zhokhov <alexey@zhokhov.com> 1792491669 +0700	commit: docs: record identical runner checks and native gaps
+f4867e9b5f8a08a3bb61ce80d644198a29f51984 63549695e3009e75c0e955baaa4d31135e74069f Alexey Zhokhov <alexey@zhokhov.com> 1792493490 +0700	commit: test: share frozen CLI table workflow suite
+63549695e3009e75c0e955baaa4d31135e74069f 721cefc444090c72441ae347ee7114919d7b2377 Alexey Zhokhov <alexey@zhokhov.com> 1792494023 +0700	cherry-pick: docs: track termrock migration acceptance
+721cefc444090c72441ae347ee7114919d7b2377 631c8f33a5c97a4b622e855874493a4107ac3c04 Alexey Zhokhov <alexey@zhokhov.com> 1792494199 +0700	commit: docs: record native failures and current parity evidence
+631c8f33a5c97a4b622e855874493a4107ac3c04 46ff0ebbf457ed46da301706229d941ee985a102 Alexey Zhokhov <alexey@zhokhov.com> 1792496931 +0700	commit: test: share complete paired terminal frame checks
+46ff0ebbf457ed46da301706229d941ee985a102 8681124d2cbbc75ef8ed998b5918883039a022c5 Alexey Zhokhov <alexey@zhokhov.com> 1792497382 +0700	commit: docs: share paired control and lifecycle evidence

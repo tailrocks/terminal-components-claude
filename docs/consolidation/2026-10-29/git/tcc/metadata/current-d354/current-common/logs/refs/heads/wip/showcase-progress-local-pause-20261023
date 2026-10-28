@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 4c855286e2ccb86447568bc40a4bad8c45150832 Alexey Zhokhov <alexey@zhokhov.com> 1792739281 +0700	branch: Created from origin/parity/termrock-visual-baseline
+4c855286e2ccb86447568bc40a4bad8c45150832 eb1eded0d48adb02dbcde1a741d3e6ab8e477c61 Alexey Zhokhov <alexey@zhokhov.com> 1792739493 +0700	commit: test(showcase): cover locally paused progress animation

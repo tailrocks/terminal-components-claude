@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 1c17d8f262330753f8fdb4d514a070123af2b95e Alexey Zhokhov <alexey@zhokhov.com> 1792622662 +0700	branch: Created from HEAD
+1c17d8f262330753f8fdb4d514a070123af2b95e fe0a1d88565ef3b3874ed39eb8a0aa695a28bf0b Alexey Zhokhov <alexey@zhokhov.com> 1792622665 +0700	commit: docs: record the query resize geometry resolution
+fe0a1d88565ef3b3874ed39eb8a0aa695a28bf0b 64ed46b1c2ab3b4803317c1993a530b3a9cbde4d Alexey Zhokhov <alexey@zhokhov.com> 1792623397 +0700	rebase (finish): refs/heads/parity/tablepro-bless-20261023 onto d1e3d012612ba452ac9ab7c81fb9e84e6ec3f838
+64ed46b1c2ab3b4803317c1993a530b3a9cbde4d b149ae107740e5a430219757bdb1a7427ba42648 Alexey Zhokhov <alexey@zhokhov.com> 1792623998 +0700	commit: test(tablepro): bless the remaining stale tab-list-picker digest rows
+b149ae107740e5a430219757bdb1a7427ba42648 e5fd2a0c29e2ed6b33bfbbb3bd777729d1e95ebb Alexey Zhokhov <alexey@zhokhov.com> 1792624018 +0700	rebase (finish): refs/heads/parity/tablepro-bless-20261023 onto 1577933a2f4c20d0839d140920c7e7243eea1e0e
+e5fd2a0c29e2ed6b33bfbbb3bd777729d1e95ebb 000a510a73be466d6d149c3cc863c91da9963704 Alexey Zhokhov <alexey@zhokhov.com> 1792624966 +0700	rebase (finish): refs/heads/parity/tablepro-bless-20261023 onto b9acbda242f8fa8bc7c0db1c48ae6fb1022a01e9

@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 300a97bf8ef78b079cc79acc948894029dbefc3b Alexey Zhokhov <alexey@zhokhov.com> 1792582065 +0700	branch: Created from 300a97bf8ef78b079cc79acc948894029dbefc3b
+300a97bf8ef78b079cc79acc948894029dbefc3b df3a7fcce52fb48ca5d198a6b61e8f2018903f2a Alexey Zhokhov <alexey@zhokhov.com> 1792585872 +0700	commit: fix(theme): restore the frozen menu title and reduced-tier ink
+df3a7fcce52fb48ca5d198a6b61e8f2018903f2a 7a6cebc34c19b01ff8ee161a3f344a264a509e3f Alexey Zhokhov <alexey@zhokhov.com> 1792585880 +0700	commit: fix(holla): keep the discovery footer's meta overflow in every band
+7a6cebc34c19b01ff8ee161a3f344a264a509e3f 72f620c4ebe998d45ac2a8197b74ac8659c7f71f Alexey Zhokhov <alexey@zhokhov.com> 1792585882 +0700	commit: feat(shell): add the shared text report block
+72f620c4ebe998d45ac2a8197b74ac8659c7f71f d5afb9cf75bf0f06f80410efd172bb28d323989b Alexey Zhokhov <alexey@zhokhov.com> 1792585980 +0700	commit: refactor(holla): render the disk and cleanup reports through the shared block
+d5afb9cf75bf0f06f80410efd172bb28d323989b 63a0f9ccc69f4d3fda80dd46be8748677f886bc9 Alexey Zhokhov <alexey@zhokhov.com> 1792585980 +0700	commit: fix(shell): drop the expect calls from the router and the reach probe

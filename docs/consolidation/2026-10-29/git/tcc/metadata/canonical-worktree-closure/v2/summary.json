@@ -1,0 +1,177 @@
+{
+  "counts": {
+    "directories_traversed": 553,
+    "excluded_archive_subtree_entries": 1,
+    "excluded_archive_tree_entries": 479,
+    "regular_bytes_hashed": 185316142,
+    "regular_files": 3596,
+    "special_files": 0,
+    "symlinks": 3
+  },
+  "coverage": {
+    "existing_v3_content_group_matches_for_non_HEAD_content": 0,
+    "head_paths_missing_from_physical_tree": 0,
+    "mode_mismatches": 2,
+    "new_unique_content_payloads_required": 1,
+    "non_HEAD_content_only_in_TCC_physical_object_list": 0,
+    "physical_entries_exact_HEAD_blob_content": 3598,
+    "physical_entries_not_exact_HEAD_blob": 1,
+    "unstable_or_read_errors": 0
+  },
+  "created_utc": "2026-10-28T21:14:45.027909+00:00",
+  "excluded_paths": {
+    "git_pointer": {
+      "path": ".git",
+      "pointer_text": "gitdir: /Users/donbeave/Projects/terminal-components-claude/.git/worktrees/termrock-pr38-shared-20261028",
+      "reason": "worktree pointer; common ODB and worktree Git metadata separately covered"
+    },
+    "published_archive_subtree": {
+      "integration_receipt": "/private/tmp/pr38-consolidation-staging-20261029/publication/non-tcc-groups/github-post-push-verification.json",
+      "integration_receipt_sha256": "3d26408d2dc71914ce4e353fa920ad5a84850a0a85dc48adbb6e25ff98e67983",
+      "path": "docs/consolidation/2026-10-29",
+      "paths_checked": 334,
+      "reason": "Integration-published custody scope",
+      "remote_head": "d3546b707e980a2810cc60f8a8965ca719cbddc9",
+      "remote_manifest_sha256": "95333e2b39a672ee680ae670a41dcd9ceefed22b8f40f84122ee08dac94e3f54",
+      "remote_tree": "2bbb184decfa227eefc1d2fb5cc78ca680977927",
+      "remote_tree_entries": 4872,
+      "tcc_expected_map": "/private/tmp/pr38-consolidation-staging-20261029/publication/tcc-final/final-tcc-remote-expected-map.json",
+      "tcc_expected_map_sha256": "e0ae9d512d85ec09e9114b6abaf1f5d399d681f45dddaa03ff42f4b08febfdec",
+      "tcc_paths": 145,
+      "tcc_prior_head": "4a284735635773c460d65350feb825c42fe772a6"
+    }
+  },
+  "git_maps": {
+    "head_tree_entries": 4077,
+    "ignored_file_path_b64": [
+      "dGFyZ2V0"
+    ],
+    "ignored_file_path_count": 1,
+    "index_paths": 4077,
+    "index_tag_counts": {
+      "H": 4077
+    },
+    "lowercase_assume_unchanged_path_b64": [],
+    "lowercase_assume_unchanged_path_count": 0,
+    "queries": {
+      "head": {
+        "argv": [
+          "git",
+          "-C",
+          "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+          "rev-parse",
+          "HEAD"
+        ],
+        "exit_code": 0,
+        "stderr_bytes": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 41,
+        "stdout_sha256": "b47b7a1d17be3bf606f837b980c7ba3ed7be9318a457f4b57a3b1267fd448c06"
+      },
+      "head-tree": {
+        "argv": [
+          "git",
+          "-C",
+          "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+          "ls-tree",
+          "-rz",
+          "--full-tree",
+          "HEAD"
+        ],
+        "exit_code": 0,
+        "stderr_bytes": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 480002,
+        "stdout_sha256": "1bebcaae6c4be0d9050afa9269e4212ea8f918b1bb2383470ed4f6f4b7627457"
+      },
+      "ignored-files": {
+        "argv": [
+          "git",
+          "-C",
+          "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+          "ls-files",
+          "--others",
+          "--ignored",
+          "--exclude-standard",
+          "-z"
+        ],
+        "exit_code": 0,
+        "stderr_bytes": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 7,
+        "stdout_sha256": "f7117ad754602040c399fd8c556f7b852fa7de86f90138f336cab48167955943"
+      },
+      "index-flags": {
+        "argv": [
+          "git",
+          "-C",
+          "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+          "ls-files",
+          "-v",
+          "--sparse",
+          "-z"
+        ],
+        "exit_code": 0,
+        "stderr_bytes": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 272075,
+        "stdout_sha256": "9ef63120b31b8e21db56b38ec00e376f7d69069859856b951806fc6b421c0239"
+      },
+      "index-stage": {
+        "argv": [
+          "git",
+          "-C",
+          "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+          "ls-files",
+          "--stage",
+          "--sparse",
+          "-z"
+        ],
+        "exit_code": 0,
+        "stderr_bytes": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 467771,
+        "stdout_sha256": "f00cd01649e29229cc03952e764cd17165517192169984b47c0e6f8fe872d713"
+      },
+      "object-format": {
+        "argv": [
+          "git",
+          "-C",
+          "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+          "rev-parse",
+          "--show-object-format"
+        ],
+        "exit_code": 0,
+        "stderr_bytes": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 5,
+        "stdout_sha256": "335277ee77cfc8d51d6602e4137232cf6041aac2bc663777e384b90d5ae74d51"
+      }
+    },
+    "skip_worktree_path_b64": [],
+    "skip_worktree_path_count": 0
+  },
+  "head": "d3546b707e980a2810cc60f8a8965ca719cbddc9",
+  "metadata_inputs": {
+    "tcc_physical_object_list": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/physical-objects.tsv",
+    "tcc_physical_object_list_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+    "v3_group_index": "/private/tmp/pr38-consolidation-artifact-staging-20261029-v3/metadata/all-unique-content-disposition.jsonl.gz",
+    "v3_group_index_sha256": "295f7e4ac8d30a89ecceb3feaad5b33c56043ff0713a2ceb1ab0881e41274891"
+  },
+  "object_format": "sha1",
+  "path_lists": {
+    "errors": [],
+    "head_missing_physical_paths": [],
+    "mode_mismatch_paths": [
+      "CLAUDE.md",
+      ".github/CLAUDE.md"
+    ],
+    "non_HEAD_content_paths": [
+      "target"
+    ],
+    "special_paths": []
+  },
+  "schema": "pr38-canonical-worktree-physical-closure-v2",
+  "source_custody": "Every regular-file byte and symlink-target byte outside exclusions is hashed without following symlinks. Exact HEAD-blob matches are recoverable from the commit tree. Non-HEAD bytes are mapped to prior content groups or the typed TCC object inventory where possible; otherwise exact raw content-addressed copies are emitted.",
+  "source_root": "/Users/donbeave/Projects/termrock-pr38-shared-20261028"
+}

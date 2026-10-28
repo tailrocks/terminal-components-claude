@@ -1,0 +1,22 @@
+0000000000000000000000000000000000000000 106a2646340a7221173bddcb530f267b3e7d26af Alexey Zhokhov <alexey@zhokhov.com> 1792164191 +0700	branch: Created from HEAD
+106a2646340a7221173bddcb530f267b3e7d26af 30201761d7ccb566e3bca372bb9ec84201c18af2 Alexey Zhokhov <alexey@zhokhov.com> 1792164263 +0700	rebase (finish): refs/heads/sc-group-d onto 30201761d7ccb566e3bca372bb9ec84201c18af2
+30201761d7ccb566e3bca372bb9ec84201c18af2 0c0f4ca83289ce604bea035ed29b1e929e6e3a89 Alexey Zhokhov <alexey@zhokhov.com> 1792165115 +0700	commit: feat(showcase): Tabs page (SC14)
+0c0f4ca83289ce604bea035ed29b1e929e6e3a89 c90d10dc22ff8bd2a40a16831a4e70cab797ca3a Alexey Zhokhov <alexey@zhokhov.com> 1792165567 +0700	commit: feat(showcase): Menus page (SC16)
+c90d10dc22ff8bd2a40a16831a4e70cab797ca3a df9f38f578fdfd40c85616e71ccd159da06e95b1 Alexey Zhokhov <alexey@zhokhov.com> 1792165904 +0700	rebase (finish): refs/heads/sc-group-d onto e172d3b2f9467b3a14febd94c787768d74a9c1c1
+df9f38f578fdfd40c85616e71ccd159da06e95b1 2ba0d6b78b2a8fd6b1524cacf397f577eaa8832b Alexey Zhokhov <alexey@zhokhov.com> 1792165953 +0700	commit (amend): feat(showcase): Menus page (SC16)
+2ba0d6b78b2a8fd6b1524cacf397f577eaa8832b f254781579a6d662b2f60e7439b2972d436d66f0 Alexey Zhokhov <alexey@zhokhov.com> 1792166001 +0700	commit (amend): feat(showcase): Menus page (SC16)
+f254781579a6d662b2f60e7439b2972d436d66f0 c6c2375fd40abb36d06d6d53bd1b1766c8c5ed0e Alexey Zhokhov <alexey@zhokhov.com> 1792166042 +0700	commit (amend): feat(showcase): Menus page (SC16)
+c6c2375fd40abb36d06d6d53bd1b1766c8c5ed0e 15423b3854ad22d91eb739db4ea0a8c845da790a Alexey Zhokhov <alexey@zhokhov.com> 1792166325 +0700	rebase (finish): refs/heads/sc-group-d onto cf21436e4d48a426a4cb0d3c9ec8e0bcc16d8189
+15423b3854ad22d91eb739db4ea0a8c845da790a 32440602ade13542aa7a0f51a010d5e9555a425b Alexey Zhokhov <alexey@zhokhov.com> 1792166633 +0700	rebase (finish): refs/heads/sc-group-d onto 1679f6c4973b269e91af9345bdc32a3391f647f0
+32440602ade13542aa7a0f51a010d5e9555a425b dde07b2fcbc76bbc4e8f6db7834049830908ec04 Alexey Zhokhov <alexey@zhokhov.com> 1792166847 +0700	rebase (finish): refs/heads/sc-group-d onto 86491237c47ff061b6cec6fd9205780375cc2e86
+dde07b2fcbc76bbc4e8f6db7834049830908ec04 7a103719f867e3e350a6d01a5654b607a5755117 Alexey Zhokhov <alexey@zhokhov.com> 1792166900 +0700	commit (amend): feat(showcase): Menus page (SC16)
+7a103719f867e3e350a6d01a5654b607a5755117 615f43d826da80a610520b7f77cef5e626d0f452 Alexey Zhokhov <alexey@zhokhov.com> 1792167194 +0700	rebase (finish): refs/heads/sc-group-d onto 742a84ff1c18df79a33a7c9dd23938c6832c4fd5
+615f43d826da80a610520b7f77cef5e626d0f452 c579c49e47f31d0e18f4dc39156f77c997cba4fd Alexey Zhokhov <alexey@zhokhov.com> 1792167552 +0700	commit: fix(showcase): Tabs and Menus nav options pick desktop or vim
+c579c49e47f31d0e18f4dc39156f77c997cba4fd 67e141f0764dfa3de714dc46f21930ca8297eb5a Alexey Zhokhov <alexey@zhokhov.com> 1792169020 +0700	commit: feat(showcase): Focus & navigation page (SC28)
+67e141f0764dfa3de714dc46f21930ca8297eb5a 92953f5f940eeab1a5513a937283a452c7c413b3 Alexey Zhokhov <alexey@zhokhov.com> 1792169195 +0700	commit: feat(showcase): Settings dirty tab and Task runner quit guard (SC27)
+92953f5f940eeab1a5513a937283a452c7c413b3 0a6a1fa8d8a30a622d17aa46f2bb7dd585f957ea Alexey Zhokhov <alexey@zhokhov.com> 1792169602 +0700	commit: test(visual): the Settings overlay site follows handle_event
+0a6a1fa8d8a30a622d17aa46f2bb7dd585f957ea 1293b60bc407f4b752b07a5a6ce832e8a54e9746 Alexey Zhokhov <alexey@zhokhov.com> 1792169602 +0700	commit: feat(toolbar): Toolbar widget and Toolbars page (SC28)
+1293b60bc407f4b752b07a5a6ce832e8a54e9746 f79adb091142772719e0a81ab4bb33018aa5c985 Alexey Zhokhov <alexey@zhokhov.com> 1792169845 +0700	rebase (finish): refs/heads/sc-group-d onto 13ffc575e5e17b794bc37e7b1848d5de5330cffe
+f79adb091142772719e0a81ab4bb33018aa5c985 e641059ee7098ab0340ba3111954990aa7ce735c Alexey Zhokhov <alexey@zhokhov.com> 1792169866 +0700	commit: docs(plan): SC27 and SC28 rows in the step table
+e641059ee7098ab0340ba3111954990aa7ce735c 163b480088637827f839333e3f2f0e09a7c60838 Alexey Zhokhov <alexey@zhokhov.com> 1792170134 +0700	commit: fix(showcase): Focus & navigation reads the same on every host
+163b480088637827f839333e3f2f0e09a7c60838 7fb21545e19380c773871b567487b05e0154d66d Alexey Zhokhov <alexey@zhokhov.com> 1792170139 +0700	rebase (finish): refs/heads/sc-group-d onto 8c66a19f24f65a9dcfb28a806c7022428f2370b3

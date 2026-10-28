@@ -1,0 +1,13 @@
+0000000000000000000000000000000000000000 f02d43e299278db7980a2cc2bf0a303868aa24cc Alexey Zhokhov <alexey@zhokhov.com> 1792489634 +0700	branch: Created from origin/parity/termrock-visual-baseline
+f02d43e299278db7980a2cc2bf0a303868aa24cc 526a07c4ffbb37e4b0bacffe4da80cea26f28fce Alexey Zhokhov <alexey@zhokhov.com> 1792489791 +0700	commit: docs: record showcase task table migration contract
+526a07c4ffbb37e4b0bacffe4da80cea26f28fce 93d6854059c45e6183da586d89fd1d074a4d8611 Alexey Zhokhov <alexey@zhokhov.com> 1792489801 +0700	rebase (finish): refs/heads/parity/table-consumer-20261020 onto 574c740fc44341b867cabccc4cb591c8985843d7
+93d6854059c45e6183da586d89fd1d074a4d8611 24b44be11dc50f5ee66ba318ba0e792dd0318c7b Alexey Zhokhov <alexey@zhokhov.com> 1792489917 +0700	commit: refactor(showcase): model task table cells as grid data
+24b44be11dc50f5ee66ba318ba0e792dd0318c7b 7d2c90b17d6e7cef5fb6f10c8ee176924683eb45 Alexey Zhokhov <alexey@zhokhov.com> 1792490063 +0700	commit: test(showcase): verify task table status mapping
+7d2c90b17d6e7cef5fb6f10c8ee176924683eb45 e3cccd8a277adac55efc0e75ae0291a0a358d624 Alexey Zhokhov <alexey@zhokhov.com> 1792490153 +0700	commit: docs: record table API stage and consumer state
+e3cccd8a277adac55efc0e75ae0291a0a358d624 d668d18e6e3fbc2701a844f86344e79ec971242e Alexey Zhokhov <alexey@zhokhov.com> 1792492577 +0700	cherry-pick: feat(grid): add reusable table sorting behavior
+d668d18e6e3fbc2701a844f86344e79ec971242e 73ed22e0add3f556135a00a975bde7413effba13 Alexey Zhokhov <alexey@zhokhov.com> 1792492578 +0700	cherry-pick: fix(grid): reconcile table keys and sort events
+73ed22e0add3f556135a00a975bde7413effba13 f321fee18f7588003f9efe28b77474e7c2281d43 Alexey Zhokhov <alexey@zhokhov.com> 1792492578 +0700	cherry-pick: feat(grid): add baseline table geometry and range metadata
+f321fee18f7588003f9efe28b77474e7c2281d43 49b25bbcc8283fab4795c56711b556945118c81c Alexey Zhokhov <alexey@zhokhov.com> 1792492579 +0700	cherry-pick: fix(grid): restore table bounds after horizontal layout
+49b25bbcc8283fab4795c56711b556945118c81c b50b8d7d3f2bf6cb53ea544841b3d3dd96b657dd Alexey Zhokhov <alexey@zhokhov.com> 1792492579 +0700	cherry-pick: fix(table): make horizontal scrolling reliable
+b50b8d7d3f2bf6cb53ea544841b3d3dd96b657dd de7c1444dcd30fcb63a6a17376bdcf00ac03c14f Alexey Zhokhov <alexey@zhokhov.com> 1792492580 +0700	cherry-pick: fix(table): reset horizontal scroll after resize
+de7c1444dcd30fcb63a6a17376bdcf00ac03c14f 4de22cf527456ea7db0f03617651df9ef3ba003a Alexey Zhokhov <alexey@zhokhov.com> 1792492581 +0700	cherry-pick: test(table): verify resize and axis isolation

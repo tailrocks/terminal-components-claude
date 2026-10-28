@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 25751aadb4d2c5c827ec2581bea91c8eee3b5519 Alexey Zhokhov <alexey@zhokhov.com> 1792161544 +0700	branch: Created from HEAD
+25751aadb4d2c5c827ec2581bea91c8eee3b5519 b8050034728484fad50e664054399db9babe2b0b Alexey Zhokhov <alexey@zhokhov.com> 1792162072 +0700	commit: test(shell): startup discards stale input
+b8050034728484fad50e664054399db9babe2b0b 26a486c3584b1b71543d3bc000981149f88e6d26 Alexey Zhokhov <alexey@zhokhov.com> 1792162076 +0700	rebase (finish): refs/heads/s2-followups onto f78e2b60d81913795f173c0043d2792d28dab9e7
+26a486c3584b1b71543d3bc000981149f88e6d26 1f492faf38cab159e7fbb593a6e1fa952864067a Alexey Zhokhov <alexey@zhokhov.com> 1792162393 +0700	commit: refactor(apps): call the text helpers directly
+1f492faf38cab159e7fbb593a6e1fa952864067a 0e8d8c0a000774938408f2c91e66838c1502c4c9 Alexey Zhokhov <alexey@zhokhov.com> 1792162407 +0700	rebase (finish): refs/heads/s2-followups onto 83758d825a4dad339f67aa5523c4d8438bb1d0fe
+0e8d8c0a000774938408f2c91e66838c1502c4c9 947da97c374495b3cf06d44818ac0d4cd1c07ba8 Alexey Zhokhov <alexey@zhokhov.com> 1792162662 +0700	commit: feat(text): one duration formatter with styles
+947da97c374495b3cf06d44818ac0d4cd1c07ba8 b0d8b45cc44d1f2db6acd41389e3da8e78e87953 Alexey Zhokhov <alexey@zhokhov.com> 1792164236 +0700	rebase (finish): refs/heads/s2-followups onto 30201761d7ccb566e3bca372bb9ec84201c18af2

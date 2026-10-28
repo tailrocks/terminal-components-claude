@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 e57fe76e8ba45aa8bfd4320edef9c91ef6a73f84 Alexey Zhokhov <alexey@zhokhov.com> 1792184406 +0700	branch: Created from e57fe76e8
+e57fe76e8ba45aa8bfd4320edef9c91ef6a73f84 7efcf8e4522a0492521199c3a7560b415e75a23a Alexey Zhokhov <alexey@zhokhov.com> 1792184742 +0700	commit: refactor(scroll): delete the Scrollable Outcome adapters
+7efcf8e4522a0492521199c3a7560b415e75a23a 69383ed6eb3c215047fcbc5daa8e80636b5c495d Alexey Zhokhov <alexey@zhokhov.com> 1792185396 +0700	commit: refactor(pointer): delete the widgets' public owns and locate
+69383ed6eb3c215047fcbc5daa8e80636b5c495d 5b9a37413adb97e67f78c44950f5ab3bec36dfa9 Alexey Zhokhov <alexey@zhokhov.com> 1792185799 +0700	commit: refactor(hit): PartMap leaves the public API

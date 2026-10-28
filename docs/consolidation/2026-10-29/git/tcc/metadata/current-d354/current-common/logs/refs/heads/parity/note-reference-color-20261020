@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 801e6c94892703bde5309e3daa31f37c3a727910 Alexey Zhokhov <alexey@zhokhov.com> 1792507559 +0700	branch: Created from 801e6c94892703bde5309e3daa31f37c3a727910
+801e6c94892703bde5309e3daa31f37c3a727910 f773fb8b230f165b21432093408a7998e9122b19 Alexey Zhokhov <alexey@zhokhov.com> 1792507691 +0700	commit: test(fields): align note muted color with baseline
+f773fb8b230f165b21432093408a7998e9122b19 c0c0f148b54c3459ee157de19dd49ca84bb3b447 Alexey Zhokhov <alexey@zhokhov.com> 1792507863 +0700	commit: docs(audit): clarify note baseline evidence

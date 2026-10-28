@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 8ec895f9ea9cf78e5484d80f96b7189d5b716f00 Alexey Zhokhov <alexey@zhokhov.com> 1792317341 +0700	branch: Created from origin/main
+8ec895f9ea9cf78e5484d80f96b7189d5b716f00 c7b7db59c926b218d2d5b699979300f1d13fc0a5 Alexey Zhokhov <alexey@zhokhov.com> 1792318026 +0700	commit: chore: remove Rust comments while preserving documentation metadata
+c7b7db59c926b218d2d5b699979300f1d13fc0a5 9ee542a366b509f397e4215ac6494504b791f42e Alexey Zhokhov <alexey@zhokhov.com> 1792318199 +0700	commit: style: remove spacing left by safety comment cleanup
+9ee542a366b509f397e4215ac6494504b791f42e 0b1142a2fb2462e597588b34b4845c812c9c12c2 Alexey Zhokhov <alexey@zhokhov.com> 1792320222 +0700	commit: style: preserve strict Clippy after comment removal
+0b1142a2fb2462e597588b34b4845c812c9c12c2 554ad60a3e79ae47df252fee0402e586af5bd18c Alexey Zhokhov <alexey@zhokhov.com> 1792320886 +0700	commit: docs: allow only necessary Rust source comments
+554ad60a3e79ae47df252fee0402e586af5bd18c 6c0d4e4736fd46d77a628307a002500a3e380273 Alexey Zhokhov <alexey@zhokhov.com> 1792320959 +0700	commit: test: preserve API compile contracts without comments
+6c0d4e4736fd46d77a628307a002500a3e380273 71f7fc47ce00daf9b3b68c0fe9a49d3e6d07ea90 Alexey Zhokhov <alexey@zhokhov.com> 1792321064 +0700	commit: test: retain monochrome glyph API example

@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 1d7b8eb291e37cb4806ce1369a8a0abab08a81ac Alexey Zhokhov <alexey@zhokhov.com> 1792509693 +0700	branch: Created from 1d7b8eb291e37cb4806ce1369a8a0abab08a81ac
+1d7b8eb291e37cb4806ce1369a8a0abab08a81ac 27de89d3af887b200dc813514fc1680d68aa78f1 Alexey Zhokhov <alexey@zhokhov.com> 1792509916 +0700	commit: test(theme): correct nested layer baseline oracle
+27de89d3af887b200dc813514fc1680d68aa78f1 d3e5647c87aeb33cab03b378fe0f7111718ff3a0 Alexey Zhokhov <alexey@zhokhov.com> 1792510157 +0700	commit: docs(audit): distinguish nested layer regression receipts

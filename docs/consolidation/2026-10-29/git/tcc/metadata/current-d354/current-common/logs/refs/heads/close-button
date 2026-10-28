@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 45bc3b2241bd4c388db3ed4d6d2e45d36ad031a7 Alexey Zhokhov <alexey@zhokhov.com> 1792155779 +0700	branch: Created from HEAD
+45bc3b2241bd4c388db3ed4d6d2e45d36ad031a7 50210aa9e55857ed2a4d36916ebf5b1477956cc4 Alexey Zhokhov <alexey@zhokhov.com> 1792155991 +0700	commit: docs(design): close buttons share one padded plate
+50210aa9e55857ed2a4d36916ebf5b1477956cc4 a97e9fdb2a8e0c5ac5a8362d3082494851a4ad11 Alexey Zhokhov <alexey@zhokhov.com> 1792156001 +0700	commit (amend): docs(design): close buttons share one padded plate
+a97e9fdb2a8e0c5ac5a8362d3082494851a4ad11 441bb1ec69f6703598eee178a863011c053dfeb1 Alexey Zhokhov <alexey@zhokhov.com> 1792156011 +0700	rebase (finish): refs/heads/close-button onto a6343ba8ee5ee0cfa0e802e1746e5c55ffaf9663
+441bb1ec69f6703598eee178a863011c053dfeb1 965c69451255083c1d8e69294a5935394e0e23a5 Alexey Zhokhov <alexey@zhokhov.com> 1792156491 +0700	commit: feat(widgets): IconButton, a padded glyph plate for close and +
+965c69451255083c1d8e69294a5935394e0e23a5 b3c966e7f2b48eb72aa3edd644976d9ddb7ce569 Alexey Zhokhov <alexey@zhokhov.com> 1792156491 +0700	commit: feat(close): every close control draws its full hit plate
+b3c966e7f2b48eb72aa3edd644976d9ddb7ce569 d4c87b709151823f675b256b56f11aa360f62ce4 Alexey Zhokhov <alexey@zhokhov.com> 1792156499 +0700	rebase (finish): refs/heads/close-button onto 697435886514a5f1de9e7517d00b339970393140
+d4c87b709151823f675b256b56f11aa360f62ce4 e1325c04f5ffaa99af981155c3be0f9155892761 Alexey Zhokhov <alexey@zhokhov.com> 1792156638 +0700	rebase (finish): refs/heads/close-button onto 8f12ad218a1cd13b6127d946df7dc5cdf8d964cc

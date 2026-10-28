@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 7bdf030be05eae9927166cace1c233a721524161 Alexey Zhokhov <alexey@zhokhov.com> 1792610455 +0700	branch: Created from 7bdf030be
+7bdf030be05eae9927166cace1c233a721524161 60aca3f0dfabaae9d86e59b053416082f99efd09 Alexey Zhokhov <alexey@zhokhov.com> 1792613981 +0700	commit: test(showcase): re-bless the visual baseline against the frozen tag
+60aca3f0dfabaae9d86e59b053416082f99efd09 cc6602900b1f72a2f8d65e76ffb5d8e6bcf2791e Alexey Zhokhov <alexey@zhokhov.com> 1792613993 +0700	commit: test(showcase): re-record the eleven moved page parity frames
+cc6602900b1f72a2f8d65e76ffb5d8e6bcf2791e 7bdf030be05eae9927166cace1c233a721524161 Alexey Zhokhov <alexey@zhokhov.com> 1792614375 +0700	reset: moving to HEAD~2
+7bdf030be05eae9927166cace1c233a721524161 15dfd7d693a3d2a4e475756257feae56896c53d6 Alexey Zhokhov <alexey@zhokhov.com> 1792614426 +0700	commit: test(showcase): re-bless the visual baseline against the frozen tag
+15dfd7d693a3d2a4e475756257feae56896c53d6 ae4a1345baecd9b50382ad9d30c9bfac65d2d4c4 Alexey Zhokhov <alexey@zhokhov.com> 1792614428 +0700	commit: test(showcase): re-record the eleven moved page parity frames
+ae4a1345baecd9b50382ad9d30c9bfac65d2d4c4 f4518ac3a599a2666f99aa815fc41b6fa8147b38 Alexey Zhokhov <alexey@zhokhov.com> 1792615570 +0700	commit: docs(audit): keep the re-bless evidence out of the Rust example inventory

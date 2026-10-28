@@ -1,0 +1,29 @@
+0000000000000000000000000000000000000000 697435886514a5f1de9e7517d00b339970393140 Alexey Zhokhov <alexey@zhokhov.com> 1792156433 +0700	branch: Created from HEAD
+697435886514a5f1de9e7517d00b339970393140 26c3c168aec6a4da4435ac5dd4bc3f5db6046fb7 Alexey Zhokhov <alexey@zhokhov.com> 1792157026 +0700	commit: feat(shell): add the S2 shell leaf pieces
+26c3c168aec6a4da4435ac5dd4bc3f5db6046fb7 5948d22f6a9cbb340c5790afbe68b06b5fccb850 Alexey Zhokhov <alexey@zhokhov.com> 1792157032 +0700	rebase (finish): refs/heads/plan-s2 onto 023018f9117ee6d1349fb8784cd7b2dff82560cf
+5948d22f6a9cbb340c5790afbe68b06b5fccb850 10e1249e93cdbe8942176ef9780b5c35b959bcec Alexey Zhokhov <alexey@zhokhov.com> 1792157104 +0700	commit (amend): feat(shell): add the S2 shell leaf pieces
+10e1249e93cdbe8942176ef9780b5c35b959bcec 80a711ae78724637469cdb5f2ae7056bb322b2fa Alexey Zhokhov <alexey@zhokhov.com> 1792157109 +0700	rebase (finish): refs/heads/plan-s2 onto b68b376bda8043667303c14794588a42e09fe30d
+80a711ae78724637469cdb5f2ae7056bb322b2fa 5a77b6725a296d363425753850eb70bf07a350bb Alexey Zhokhov <alexey@zhokhov.com> 1792157448 +0700	rebase (finish): refs/heads/plan-s2 onto 5fea4ac9bce0d8db09c9af16246abff6c4bc1089
+5a77b6725a296d363425753850eb70bf07a350bb b2d9050825e0488cba28b2ce18fe03d180299464 Alexey Zhokhov <alexey@zhokhov.com> 1792157738 +0700	rebase (finish): refs/heads/plan-s2 onto a312f64be20b966370b056506303202e8c4e18c3
+b2d9050825e0488cba28b2ce18fe03d180299464 03b8698f57bfb9b0ae02654b5c5d6b5ed24138b9 Alexey Zhokhov <alexey@zhokhov.com> 1792158020 +0700	rebase (finish): refs/heads/plan-s2 onto 56a137c78907204f6086dff7436e7e5a63c2c04f
+03b8698f57bfb9b0ae02654b5c5d6b5ed24138b9 2bba6f50b2f7359c88a29818090b526897b558a9 Alexey Zhokhov <alexey@zhokhov.com> 1792158343 +0700	rebase (finish): refs/heads/plan-s2 onto 226ce5f990a0ca8fcb6f6ceb5f9c491755bc9c43
+2bba6f50b2f7359c88a29818090b526897b558a9 7634c514bed7c89cadb4862529fd1db6a6ad575a Alexey Zhokhov <alexey@zhokhov.com> 1792158878 +0700	commit: refactor(apps): parse the shared CLI through CommonArgs
+7634c514bed7c89cadb4862529fd1db6a6ad575a 853092ea6bfb2957a93b83ec73d0626d3ffd663f Alexey Zhokhov <alexey@zhokhov.com> 1792158908 +0700	rebase (finish): refs/heads/plan-s2 onto b491e292e1575da6b4a468d1d088369cc9976ed2
+853092ea6bfb2957a93b83ec73d0626d3ffd663f 64b0823dd60bed2a470f4aebb6d33b82d80bb81d Alexey Zhokhov <alexey@zhokhov.com> 1792158923 +0700	commit: fixup lib.rs
+64b0823dd60bed2a470f4aebb6d33b82d80bb81d 94b7ad28326c263b9917c51c6d9f60e97a68b9be Alexey Zhokhov <alexey@zhokhov.com> 1792158927 +0700	reset: moving to 94b7ad283
+94b7ad28326c263b9917c51c6d9f60e97a68b9be 75dc9ea6d4597bd62ce782bb8c4c287e62721486 Alexey Zhokhov <alexey@zhokhov.com> 1792158928 +0700	commit (amend): feat(shell): add the S2 shell leaf pieces
+75dc9ea6d4597bd62ce782bb8c4c287e62721486 8ae6c0c49dd31fbb0a3f1da82ff15365094b0151 Alexey Zhokhov <alexey@zhokhov.com> 1792158929 +0700	cherry-pick: refactor(apps): parse the shared CLI through CommonArgs
+8ae6c0c49dd31fbb0a3f1da82ff15365094b0151 571e14227931d1c89d63f56cf09c983a6dcd5f66 Alexey Zhokhov <alexey@zhokhov.com> 1792158991 +0700	commit: fixup catalog
+571e14227931d1c89d63f56cf09c983a6dcd5f66 75dc9ea6d4597bd62ce782bb8c4c287e62721486 Alexey Zhokhov <alexey@zhokhov.com> 1792158994 +0700	reset: moving to 75dc9ea6d
+75dc9ea6d4597bd62ce782bb8c4c287e62721486 afa804afc5cb3845afbefdbd3be576900df45863 Alexey Zhokhov <alexey@zhokhov.com> 1792158996 +0700	commit (amend): feat(shell): add the S2 shell leaf pieces
+afa804afc5cb3845afbefdbd3be576900df45863 17088f5f620865ba7e6e9d0665039b58d648cc8e Alexey Zhokhov <alexey@zhokhov.com> 1792158997 +0700	cherry-pick: refactor(apps): parse the shared CLI through CommonArgs
+17088f5f620865ba7e6e9d0665039b58d648cc8e 262b70d6037b346075692f75470540f6c265f64f Alexey Zhokhov <alexey@zhokhov.com> 1792159181 +0700	rebase (finish): refs/heads/plan-s2 onto 4b62e40e7d1e142535d20ee8b80a69c58d71bf2a
+262b70d6037b346075692f75470540f6c265f64f 6613c8b5323cea1086b25263f477a4048c8ca715 Alexey Zhokhov <alexey@zhokhov.com> 1792159428 +0700	commit: fix(apps): reduced motion, NO_MOTION and a clean start in every app
+6613c8b5323cea1086b25263f477a4048c8ca715 edb565b4b4104dfee173d1cedf35c77c025023b3 Alexey Zhokhov <alexey@zhokhov.com> 1792159575 +0700	commit: refactor(apps): read time from the library clocks
+edb565b4b4104dfee173d1cedf35c77c025023b3 8396c3d1197ee70d5c8f7816ca9eab4849d32c7d Alexey Zhokhov <alexey@zhokhov.com> 1792159755 +0700	rebase (finish): refs/heads/plan-s2 onto 1fdf2e421111878d082a51d81b4afc95899a5d25
+8396c3d1197ee70d5c8f7816ca9eab4849d32c7d 4c3183163b10ff08629675d1e91d33f97a8adcd2 Alexey Zhokhov <alexey@zhokhov.com> 1792160207 +0700	commit: fix(apps): one status line: 5 s on the shell clock, errors persist
+4c3183163b10ff08629675d1e91d33f97a8adcd2 75958b8a9e4eebf4646b033616610a56d1eeaae8 Alexey Zhokhov <alexey@zhokhov.com> 1792160398 +0700	rebase (finish): refs/heads/plan-s2 onto e10c753926c371b4b7718f460b4345ea5621b3ee
+75958b8a9e4eebf4646b033616610a56d1eeaae8 ae4d7eb41b0a5d8e97a1406fbf4395d5153a8e33 Alexey Zhokhov <alexey@zhokhov.com> 1792160598 +0700	rebase (finish): refs/heads/plan-s2 onto 9c59a31bf5fcfa4bfcbaddd8533e9feaec19874e
+ae4d7eb41b0a5d8e97a1406fbf4395d5153a8e33 e1505a22c47d235009af39818b3f9d0d37c63bdd Alexey Zhokhov <alexey@zhokhov.com> 1792160920 +0700	commit: refactor(apps): too-small screen, centred hints and text helpers from the library
+e1505a22c47d235009af39818b3f9d0d37c63bdd 798729beda693bf6f43e0bde218a0fdb7b033c61 Alexey Zhokhov <alexey@zhokhov.com> 1792160975 +0700	commit: docs(plan): record S2 status, drift fixes and deviations
+798729beda693bf6f43e0bde218a0fdb7b033c61 25751aadb4d2c5c827ec2581bea91c8eee3b5519 Alexey Zhokhov <alexey@zhokhov.com> 1792161158 +0700	rebase (finish): refs/heads/plan-s2 onto 59ce59886bf07b5c6e38de4218a00f980ba16175

@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 Alexey Zhokhov <alexey@zhokhov.com> 1792306639 +0700	branch: Created from HEAD
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 3cc78c854cb0b1be79037e8609b503a13b0dcd8b Alexey Zhokhov <alexey@zhokhov.com> 1792307040 +0700	commit: docs: unify documentation and remove obsolete development reports
+3cc78c854cb0b1be79037e8609b503a13b0dcd8b 5d04d8e070e7315c337766d51a8f75149c812cca Alexey Zhokhov <alexey@zhokhov.com> 1792307161 +0700	commit: docs: describe safety records independently of comment cleanup
+5d04d8e070e7315c337766d51a8f75149c812cca 599e64f4f60e9a7b0c0c5eb04f106ade31977b0d Alexey Zhokhov <alexey@zhokhov.com> 1792307461 +0700	commit: docs: map current package and dependency ownership
+599e64f4f60e9a7b0c0c5eb04f106ade31977b0d b0edda802880473f5541dc71d18d5cfe5ecd991c Alexey Zhokhov <alexey@zhokhov.com> 1792307668 +0700	commit: docs: use the current facade package in pull request checks

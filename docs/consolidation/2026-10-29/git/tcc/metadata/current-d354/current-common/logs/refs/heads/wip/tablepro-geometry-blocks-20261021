@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 300a97bf8ef78b079cc79acc948894029dbefc3b Alexey Zhokhov <alexey@zhokhov.com> 1792582056 +0700	branch: Created from 300a97bf8ef78b079cc79acc948894029dbefc3b
+300a97bf8ef78b079cc79acc948894029dbefc3b 61aff6ed23c0cc861edd9eb4a9e490545aa93d04 Alexey Zhokhov <alexey@zhokhov.com> 1792583454 +0700	commit: fix(tablepro): re-bless the stale quick-switcher frame digests
+61aff6ed23c0cc861edd9eb4a9e490545aa93d04 96236401accb236cc67c01851ff83d61e691eb6a Alexey Zhokhov <alexey@zhokhov.com> 1792583459 +0700	commit: refactor(tablepro): move the grid viewport geometry into termrock-grid
+96236401accb236cc67c01851ff83d61e691eb6a b999ddc03d712e579eac287403634f3397086447 Alexey Zhokhov <alexey@zhokhov.com> 1792584190 +0700	commit (amend): refactor(tablepro): move the grid viewport geometry into termrock-grid
+b999ddc03d712e579eac287403634f3397086447 96236401accb236cc67c01851ff83d61e691eb6a Alexey Zhokhov <alexey@zhokhov.com> 1792584325 +0700	reset: moving to 96236401accb236cc67c01851ff83d61e691eb6a
+96236401accb236cc67c01851ff83d61e691eb6a e8f1930a37702a32841a3e0432f512595df657b2 Alexey Zhokhov <alexey@zhokhov.com> 1792584331 +0700	commit: refactor(tablepro): hand the filter bar and status text to the shared viewport
+e8f1930a37702a32841a3e0432f512595df657b2 3cdbc322f4f643731ffc78bcc797567101cb0139 Alexey Zhokhov <alexey@zhokhov.com> 1792585151 +0700	commit: refactor(tablepro): let the shared viewport own the grid viewport's size checks

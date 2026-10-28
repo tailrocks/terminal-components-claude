@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 86491237c47ff061b6cec6fd9205780375cc2e86 Alexey Zhokhov <alexey@zhokhov.com> 1792166991 +0700	branch: Created from HEAD
+86491237c47ff061b6cec6fd9205780375cc2e86 09ecf95effb6f31239accb108aac0165ad7bfc82 Alexey Zhokhov <alexey@zhokhov.com> 1792168583 +0700	commit: wip
+09ecf95effb6f31239accb108aac0165ad7bfc82 c871135ad02e7c1b5b1b10217fa1600fa1488b61 Alexey Zhokhov <alexey@zhokhov.com> 1792168602 +0700	rebase (finish): refs/heads/typeahead-shortcuts onto e69a21374a3cdddb267099cf9f3ab92ced534148
+c871135ad02e7c1b5b1b10217fa1600fa1488b61 87ae53c037d78691bb877c75e62e663b96e818da Alexey Zhokhov <alexey@zhokhov.com> 1792168881 +0700	reset: moving to origin/design/interaction-polish
+87ae53c037d78691bb877c75e62e663b96e818da e69a21374a3cdddb267099cf9f3ab92ced534148 Alexey Zhokhov <alexey@zhokhov.com> 1792168888 +0700	reset: moving to e69a21374
+e69a21374a3cdddb267099cf9f3ab92ced534148 a1fba925fe16d92c2d4eb0f64147632b55ebf00a Alexey Zhokhov <alexey@zhokhov.com> 1792168898 +0700	commit: fix(list): single-letter shortcuts win over type-ahead (keymap first)
+a1fba925fe16d92c2d4eb0f64147632b55ebf00a 4870cd857514fe918c2209ec661fef136bcc3e6d Alexey Zhokhov <alexey@zhokhov.com> 1792168898 +0700	commit: docs(keyboard): decision log for type-ahead vs single-letter shortcuts
+4870cd857514fe918c2209ec661fef136bcc3e6d 8be889f59ce13dc55dec9f3aa51c9cc441300158 Alexey Zhokhov <alexey@zhokhov.com> 1792168911 +0700	rebase (finish): refs/heads/typeahead-shortcuts onto 87ae53c037d78691bb877c75e62e663b96e818da
+8be889f59ce13dc55dec9f3aa51c9cc441300158 8c66a19f24f65a9dcfb28a806c7022428f2370b3 Alexey Zhokhov <alexey@zhokhov.com> 1792169720 +0700	rebase (finish): refs/heads/typeahead-shortcuts onto 7606cd962abd06a13fd4f99abae360fde4726108

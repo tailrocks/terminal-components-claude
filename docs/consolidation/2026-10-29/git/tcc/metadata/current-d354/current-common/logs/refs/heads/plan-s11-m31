@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 1d9d16a9b8e803e34976e63d888ecde8d034131d Alexey Zhokhov <alexey@zhokhov.com> 1792214568 +0700	branch: Created from HEAD
+1d9d16a9b8e803e34976e63d888ecde8d034131d fe7e3bc98106c71f91d7eff570be4ca3013a78ae Alexey Zhokhov <alexey@zhokhov.com> 1792214954 +0700	commit: feat(choice-dialog): a double click on an option confirms it (M39)
+fe7e3bc98106c71f91d7eff570be4ca3013a78ae 0ffb50bf45aa8b86cb879c46c9688e04ec46fc91 Alexey Zhokhov <alexey@zhokhov.com> 1792215339 +0700	commit: wip m31
+0ffb50bf45aa8b86cb879c46c9688e04ec46fc91 ae0accd41e918ae7b120a55d0fc11b35c7746a11 Alexey Zhokhov <alexey@zhokhov.com> 1792216428 +0700	commit (amend): feat(text): ScrollPanel selects like TextViewport; Shift-click and triple click (M31)

@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 5478ecfc93e294ccd9ebd75058de7be09e2a389f Alexey Zhokhov <alexey@zhokhov.com> 1792595751 +0700	branch: Created from origin/parity/termrock-visual-baseline
+5478ecfc93e294ccd9ebd75058de7be09e2a389f 84c953083dec754d40b384a41c0a782e4eb62363 Alexey Zhokhov <alexey@zhokhov.com> 1792596804 +0700	commit: fix(forms): defer focus reveal during pointer holds
+84c953083dec754d40b384a41c0a782e4eb62363 b40dd49bd3e2fbc57a4c647206351f920ca8ea9f Alexey Zhokhov <alexey@zhokhov.com> 1792596812 +0700	rebase (finish): refs/heads/wip/showcase-form-pointer-reveal-20261021 onto f58d83e7102280616699916b59d2998142f2b1c2

@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 b521748360a2a056d95c79090707ded595f53a6a Alexey Zhokhov <alexey@zhokhov.com> 1792543966 +0700	branch: Created from origin/parity/termrock-visual-baseline
+b521748360a2a056d95c79090707ded595f53a6a b2bcf918cd013874199b4aaaa8d53d9aa43966ab Codex <codex@openai.com> 1792544158 +0700	commit: ci: disable empty termrock-shell doctests

@@ -1,0 +1,16 @@
+0000000000000000000000000000000000000000 791c8df9425c74e34f4a82219f8857d45df1a48c Alexey Zhokhov <alexey@zhokhov.com> 1792228064 +0700	branch: Created from HEAD
+791c8df9425c74e34f4a82219f8857d45df1a48c 8a5168c93ee115deab99e6a27018ddf800d2b1db Alexey Zhokhov <alexey@zhokhov.com> 1792229346 +0700	commit: feat(showcase): Master-detail page on the library MasterDetail and SplitKeys (SC38, S19)
+8a5168c93ee115deab99e6a27018ddf800d2b1db 6232e205e071bd491922ad808bdd0281ee732883 Alexey Zhokhov <alexey@zhokhov.com> 1792229802 +0700	commit: refactor(holla): finder, cleanup, disk and files on the library MasterDetail (S19)
+6232e205e071bd491922ad808bdd0281ee732883 2b80af0da9b1aadfb5964df127dbd36d123a9200 Alexey Zhokhov <alexey@zhokhov.com> 1792230145 +0700	commit: refactor(jackin): accounts and manager on the library MasterDetail (S19)
+2b80af0da9b1aadfb5964df127dbd36d123a9200 4242323224be6a8b44109e3fce2500d86bd4bb48 Alexey Zhokhov <alexey@zhokhov.com> 1792230189 +0700	commit: test(visual): jackin drawer re-approval for MasterDetail (S19)
+4242323224be6a8b44109e3fce2500d86bd4bb48 2716fef82794b841428c660fcb75c7129ffed542 Alexey Zhokhov <alexey@zhokhov.com> 1792230625 +0700	commit: feat(showcase): Pane tree page on the library PaneTree (SC45, S26)
+2716fef82794b841428c660fcb75c7129ffed542 dee2cd6b321d8026e4ebff5b458167fcbeaf2b54 Alexey Zhokhov <alexey@zhokhov.com> 1792230646 +0700	commit: docs(plan): S19 migrations done and open (SC38)
+dee2cd6b321d8026e4ebff5b458167fcbeaf2b54 03af45161aa5cc58e77525ee3255ca7095e15419 Alexey Zhokhov <alexey@zhokhov.com> 1792230744 +0700	commit: refactor(jackin): the capsule's pane tree is the library's (S26)
+03af45161aa5cc58e77525ee3255ca7095e15419 4cbfa540308cd17e413a62f00f8f44c3af9e0b57 Alexey Zhokhov <alexey@zhokhov.com> 1792230757 +0700	commit: docs(plan): S26 status after the capsule tree moved (SC45)
+4cbfa540308cd17e413a62f00f8f44c3af9e0b57 7d848330e841da9493b7181069bd59ec8d398b8a Alexey Zhokhov <alexey@zhokhov.com> 1792230779 +0700	rebase (finish): refs/heads/p0-layout onto 408142c5f47dc69c2ff7e602ce9b8aff1f91a124
+7d848330e841da9493b7181069bd59ec8d398b8a a19af248f63155cfa6dd77a88275dbaa05f68370 Alexey Zhokhov <alexey@zhokhov.com> 1792230823 +0700	commit: fixup! feat(showcase): Master-detail page on the library MasterDetail and SplitKeys (SC38, S19)
+a19af248f63155cfa6dd77a88275dbaa05f68370 cec1d30f6a34b0a5a9c90b2b48eb8af5620d594e Alexey Zhokhov <alexey@zhokhov.com> 1792230824 +0700	rebase (finish): refs/heads/p0-layout onto 408142c5f47dc69c2ff7e602ce9b8aff1f91a124
+cec1d30f6a34b0a5a9c90b2b48eb8af5620d594e f4b34f5fb23e88b0c6f38ac8fe833f2a39d17a14 Alexey Zhokhov <alexey@zhokhov.com> 1792230912 +0700	commit: test(visual): jackin drawer re-approval for MasterDetail (S19)
+f4b34f5fb23e88b0c6f38ac8fe833f2a39d17a14 e7e1479ab1929f886249c985c4ceec6ff609b196 Alexey Zhokhov <alexey@zhokhov.com> 1792231123 +0700	rebase (finish): refs/heads/p0-layout onto 2ff3629ece9471685186f6ba6ea72f2c66cf8cdf
+e7e1479ab1929f886249c985c4ceec6ff609b196 01c1bd122838001aa080d3b507ea38669ed97a91 Alexey Zhokhov <alexey@zhokhov.com> 1792231196 +0700	commit: refactor(pane_tree): pane frames are framed Panels
+01c1bd122838001aa080d3b507ea38669ed97a91 804b9f8b4994ae02352a2c344fd8544dd8ed90f5 Alexey Zhokhov <alexey@zhokhov.com> 1792231532 +0700	rebase (finish): refs/heads/p0-layout onto f8b7cfa183e15dbf5cef81ddd62e0f8e0fff39bb

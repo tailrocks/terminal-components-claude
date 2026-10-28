@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 ae193b855fc004944f390452f1338871b27cdfd7 Alexey Zhokhov <alexey@zhokhov.com> 1792597865 +0700	branch: Created from origin/parity/termrock-visual-baseline
+ae193b855fc004944f390452f1338871b27cdfd7 8679d5c6138ab44330d7091cfad252de3707a4d2 Alexey Zhokhov <alexey@zhokhov.com> 1792598018 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+8679d5c6138ab44330d7091cfad252de3707a4d2 b64420ffaa39d30a1cc2ee7a4afbf23e9f244617 Alexey Zhokhov <alexey@zhokhov.com> 1792598018 +0700	merge origin/wip/conformance-driver-corrections-20261021: Merge made by the 'ort' strategy.
+b64420ffaa39d30a1cc2ee7a4afbf23e9f244617 7d43c8834d9cca3d98079e3143f655b81b7b80b0 Alexey Zhokhov <alexey@zhokhov.com> 1792598359 +0700	commit: docs: record conformance integration review
+7d43c8834d9cca3d98079e3143f655b81b7b80b0 c29b2f7f547776769cc581e0456746b9e5dbd7c2 Alexey Zhokhov <alexey@zhokhov.com> 1792598374 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+c29b2f7f547776769cc581e0456746b9e5dbd7c2 b9970fe1b34653250716f51ea365a5c87e81efdb Alexey Zhokhov <alexey@zhokhov.com> 1792598427 +0700	commit: docs: refresh conformance integration receipts
+b9970fe1b34653250716f51ea365a5c87e81efdb 74f9fef2b4449d1f4d728dbf690c0c0291723d32 Alexey Zhokhov <alexey@zhokhov.com> 1792598499 +0700	commit: docs: record final conformance gate receipts
+74f9fef2b4449d1f4d728dbf690c0c0291723d32 ad86aaca1b987ecb395b7ca9f8717dd79f62f784 Alexey Zhokhov <alexey@zhokhov.com> 1792598532 +0700	commit: docs: pin conformance publication candidate

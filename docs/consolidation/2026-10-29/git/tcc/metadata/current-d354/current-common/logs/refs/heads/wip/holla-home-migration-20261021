@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 581d850df9665e141eea6b0f6e38e52a353ce376 Alexey Zhokhov <alexey@zhokhov.com> 1792591175 +0700	branch: Created from 581d850df9665e141eea6b0f6e38e52a353ce376
+581d850df9665e141eea6b0f6e38e52a353ce376 8e384b8fbc3a3599b5b1052547b31f77b3de3aaa Alexey Zhokhov <alexey@zhokhov.com> 1792592839 +0700	commit: feat(termrock-shell): the finder plate and the finder screen become shared blocks
+8e384b8fbc3a3599b5b1052547b31f77b3de3aaa 0d31780304e4277dbe59a7dd6dc64d8d9dfedb5e Alexey Zhokhov <alexey@zhokhov.com> 1792593330 +0700	commit: feat(termrock-shell): the scope band and the screen area become shared blocks
+0d31780304e4277dbe59a7dd6dc64d8d9dfedb5e 51a17fa1dd92d25f092e3bcf1121457df2766a5e Alexey Zhokhov <alexey@zhokhov.com> 1792593717 +0700	commit: test(termrock-shell): the band policy and the screen grid get unit tests

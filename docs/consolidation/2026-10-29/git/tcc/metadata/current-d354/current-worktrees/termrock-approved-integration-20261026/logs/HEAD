@@ -1,0 +1,36 @@
+0000000000000000000000000000000000000000 0df53c8df6d58325349f3f665b1a8157b8e29c25 Muse Code <muse@example.com> 1793017737 +0700
+0df53c8df6d58325349f3f665b1a8157b8e29c25 14d45f8bc3f1612bf6549f5e415343124f9d203e Muse Code <muse@example.com> 1793018252 +0700	commit: chore(toolchain): pin mbx 1.28.0
+14d45f8bc3f1612bf6549f5e415343124f9d203e 74bb8d4dcb2e2d193ca5d536461d3e21a4e4eb7f Muse Code <muse@example.com> 1793018642 +0700	commit: feat(controls): add SplitPane cell resize and drag reset
+74bb8d4dcb2e2d193ca5d536461d3e21a4e4eb7f 1c4ca9e9dc8d26be053a004a25102294e09c3f20 Muse Code <muse@example.com> 1793018968 +0700	commit: feat(controls): add public PaneTree model
+1c4ca9e9dc8d26be053a004a25102294e09c3f20 d520ff5cdd789ec88c1fe0c6488b01d94f64054f Muse Code <muse@example.com> 1793019369 +0700	commit: fix(visual-harness): recognize root cfg test sources
+d520ff5cdd789ec88c1fe0c6488b01d94f64054f 47ac5199a09f15765a7567f295ee481e0116b41c Muse Code <muse@example.com> 1793019704 +0700	commit: test(holla-ui): mark historical tests cfg(test)
+47ac5199a09f15765a7567f295ee481e0116b41c d5247085d1cf120aa176fe2b824d1bd180b42751 Muse Code <muse@example.com> 1793021653 +0700	commit: test(termrock): restore W06 adapter coverage
+d5247085d1cf120aa176fe2b824d1bd180b42751 82b32e379b6525d910be9a6b4345dc78055d2757 Muse Code <muse@example.com> 1793022276 +0700	commit: test(showcase-ui): assert TextAreas native heading contract
+82b32e379b6525d910be9a6b4345dc78055d2757 ae1842484fff4f520cefdc9047ff0dcc3413ba8e Muse Code <muse@example.com> 1793023122 +0700	commit: ci: align mr-boxington pin in Velnor config
+ae1842484fff4f520cefdc9047ff0dcc3413ba8e f257d19982ea0203b5333f717be1ef30dfa96621 Muse Code <muse@example.com> 1793023542 +0700	commit: feat(runtime): add managed tooltip lifecycle
+f257d19982ea0203b5333f717be1ef30dfa96621 4b716b01b701a2d381368288514037dcc6a735b6 Muse Code <muse@example.com> 1793024357 +0700	commit: feat(overlays): return menu selection receipts
+4b716b01b701a2d381368288514037dcc6a735b6 c4eb8ed4812a30c68bfe791be78c6ab70fec7133 Muse Code <muse@example.com> 1793025497 +0700	commit: test(overlays): cover menu selection receipt controls
+c4eb8ed4812a30c68bfe791be78c6ab70fec7133 060c1312bed44f66025cf4cde17fee547e20d549 Muse Code <muse@example.com> 1793026013 +0700	commit: fix(holla): preserve disk chooser lifecycle coverage
+060c1312bed44f66025cf4cde17fee547e20d549 ba42aa89b5c714cfe8e429f8619bf4aaf4c28a35 Muse Code <muse@example.com> 1793028127 +0700	commit: feat(toolbar): add shared native toolbar control
+ba42aa89b5c714cfe8e429f8619bf4aaf4c28a35 fec1f1e8592ca7bca251e0e903d4a63a4ef5f82b Muse Code <muse@example.com> 1793029470 +0700	commit: fix(termrock): retire toolbar menu receipts
+fec1f1e8592ca7bca251e0e903d4a63a4ef5f82b e37f289589abdd70fcb60384228eed2a2e788cda Muse Code <muse@example.com> 1793031262 +0700	commit: test(showcase): register recovered public API coverage
+e37f289589abdd70fcb60384228eed2a2e788cda 058693fac83fe40aa03a7a0c877f8a715603dc9b Muse Code <muse@example.com> 1793031394 +0700	commit: feat(showcase): add shared toolbars page
+058693fac83fe40aa03a7a0c877f8a715603dc9b 5451703d34f36858cedbeed6872c84f24b438373 Muse Code <muse@example.com> 1793034424 +0700	commit: test(termrock): gate toolbar tests on testing
+5451703d34f36858cedbeed6872c84f24b438373 b4c4f9277e0d208b1b9414cc6f2341d2f2404f2d Muse Code <muse@example.com> 1793035260 +0700	commit: feat(runtime): scope exact-part hit precedence
+b4c4f9277e0d208b1b9414cc6f2341d2f2404f2d 2846eb9e04397eaa0c19d41c19a9478bda6047fc Muse Code <muse@example.com> 1793035729 +0700	commit: feat(showcase): add pane tree pilot route
+2846eb9e04397eaa0c19d41c19a9478bda6047fc a1255dfb567dd83b0132a22b7a42a2bda135ed2e Muse Code <muse@example.com> 1793037676 +0700	commit: test(holla): preserve hidden-port border history
+a1255dfb567dd83b0132a22b7a42a2bda135ed2e 8eaa0558b96f480e236ae494995e159979a34013 Muse Code <muse@example.com> 1793038734 +0700	commit: test(holla): derive border palette locality from model
+8eaa0558b96f480e236ae494995e159979a34013 51aa16f8a1f9352073ab514c91d7c57a67bf2aa0 Muse Code <muse@example.com> 1793040029 +0700	commit: feat(viewport): expose routed draw projection metadata
+51aa16f8a1f9352073ab514c91d7c57a67bf2aa0 dda01ffb1b7f73cd466d5fcf6b2e9ec415d2886f Muse Code <muse@example.com> 1793043418 +0700	commit: test(holla-ui): verify quiet Port locality
+dda01ffb1b7f73cd466d5fcf6b2e9ec415d2886f eab6f13875848dee8b159e38536f468d85bd7192 Muse Code <muse@example.com> 1793043866 +0700	commit: test(holla-ui): relocate exact root TrueColor digest
+eab6f13875848dee8b159e38536f468d85bd7192 7977bb1f82ee20d89dafbec959075498ed6cbfcd Muse Code <muse@example.com> 1793044850 +0700	commit: test(holla): preserve port locality controls
+7977bb1f82ee20d89dafbec959075498ed6cbfcd 573a595e97451646cdd910ec392274c6a425f23b Muse Code <muse@example.com> 1793045228 +0700	commit: test(holla): preserve ANSI16 Port visibility key
+573a595e97451646cdd910ec392274c6a425f23b 494d6cee914ab536fa713b28d2a55f37f98a0652 Muse Code <muse@example.com> 1793058329 +0700	commit: test(holla-ui): retain tracked Port held-frame ownership
+494d6cee914ab536fa713b28d2a55f37f98a0652 e5910d7024ae3fd2559408aa03c138ffc0d6cc38 Muse Code <muse@example.com> 1793059050 +0700	commit: test(holla-ui): route tracked Port frames to checked owners
+e5910d7024ae3fd2559408aa03c138ffc0d6cc38 9863ed91338a0282f12ff19134ed823f613897b5 Muse Code <muse@example.com> 1793060769 +0700	commit: feat(toolbar): recover scoped More looks and pointer danger styling
+9863ed91338a0282f12ff19134ed823f613897b5 8b3809bb225ba9491dac0b4367cbfda6899ecc18 Muse Code <muse@example.com> 1793062124 +0700	commit: test(holla-ui): retain Root100 Port owner coverage
+8b3809bb225ba9491dac0b4367cbfda6899ecc18 1efa92af1284bfad3f9a34cd1c89e41c13ba358a Muse Code <muse@example.com> 1793062273 +0700	commit: test(termrock): track ToolbarMoreLook facade ownership
+1efa92af1284bfad3f9a34cd1c89e41c13ba358a b7066fe6cca51c6fe08b1891bc1022ea71bf1580 Muse Code <muse@example.com> 1793062884 +0700	commit: test(holla-ui): verify Root 100 Port frame owners
+b7066fe6cca51c6fe08b1891bc1022ea71bf1580 8a5a86d5495837f7a24b3bbe29c2f5e17af4033f Muse Code <muse@example.com> 1793063450 +0700	commit: fix(runtime): handle scroll registry ID exhaustion
+8a5a86d5495837f7a24b3bbe29c2f5e17af4033f f1a428ca02884e239cdbda47ec18a775115ece1f Muse Code <muse@example.com> 1793063859 +0700	commit: test(holla-ui): cover remaining Root Port viewports
+f1a428ca02884e239cdbda47ec18a775115ece1f 0989397d96776c3bf6a650ae566b3da56bb0a2f5 Muse Code <muse@example.com> 1793064898 +0700	commit: test(holla-ui): cover remaining Root normal-A owner keys
