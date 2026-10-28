@@ -1,0 +1,80 @@
+{
+  "TCC_baseline": {
+    "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/physical-objects.tsv",
+    "queried_again": false,
+    "sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+    "typed_object_count": 257216
+  },
+  "archive_group": "termrock-product-rust-cargo",
+  "checkout_ODB_manifest": {
+    "absent_candidate_count": 58,
+    "candidate_count": 100,
+    "existing_count": 42,
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v1/checkout-odb-paths.jsonl",
+    "sha256": "60e2f9b4f453deb441e5bea52de8603f319b3886debf3b427ee8d3e944ddfe5c"
+  },
+  "checkout_status_manifest": {
+    "existing_checkout_untracked_marker_count": 42,
+    "marker_name": ".cargo-ok",
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v1/worktree-status.jsonl",
+    "sha256": "02a37d0c42a3b2d77b898040da491c56fc7f0b3b18b59761b9a22be657dc9731",
+    "tracked_differences": 0
+  },
+  "classification": "separate TermRock Rust product history; do not mix with terminal-components-claude repo identity",
+  "comparison": {
+    "TCC_missing": 16912,
+    "TCC_present": 2,
+    "objects_over_100MiB": 0,
+    "type_size_mismatches": 0
+  },
+  "full_unique_typed_object_set": {
+    "count": 16914,
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v2/objects/termrock-product-rust-cargo-full.tsv",
+    "sha256": "c76469a8bf88a708c58fad316bc591fe47df02b05d5c137bb2b6816d881cc977"
+  },
+  "identity": "https://github.com/tailrocks/termrock (Cargo.toml repository field)",
+  "no_mutation": true,
+  "pack_identity_manifest": {
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v1/metadata/checkout-odb-pack-identities.jsonl",
+    "physical_pack_files": 44,
+    "sha256": "b0996fb6734c58ee58f64e8bd3d3527553c4e9cca4f27fad3e99aec5f70b92ee",
+    "unique_pack_sha_groups": 4
+  },
+  "reference_closure": "Three representative physical ODB object walks report zero missing referenced objects; full physical typed set also includes unreferenced stored objects. Refs/reflogs/index/status remain per exact alias path in cited manifests.",
+  "revision": "git-store-groups-addendum-v4",
+  "root_and_path_alias_manifest": {
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v2/object-group-path-aliases.jsonl",
+    "selected_alias_count": 84,
+    "selectors": [
+      "ODB-GROUP-007",
+      "ODB-GROUP-008",
+      "CHECKOUT-ODB-GROUP-001"
+    ],
+    "sha256": "7b7e129bdaa6dfe257e3945ee067238647b10bd9589b2c30f0f2edbac3a348e8"
+  },
+  "typed_store_manifests": [
+    {
+      "group_id": "ODB-GROUP-007",
+      "objects": 16802,
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-v1/objects/ODB-GROUP-007.typed-oid-type-size.tsv",
+      "sha256": "fe4cadf475ebe3191488773afeedc2a1b08e03ad8ba515bdeb45b3b4e7e6ef0b"
+    },
+    {
+      "group_id": "ODB-GROUP-008",
+      "objects": 16852,
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-v1/objects/ODB-GROUP-008.typed-oid-type-size.tsv",
+      "sha256": "71153d6dc1ccbc01191be06598ecbf7f5debf30483f93aeae9a1bbe73834a6e1"
+    },
+    {
+      "group_id": "CHECKOUT-ODB-GROUP-001",
+      "objects": 16914,
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v1/checkout-odb-objects/CHECKOUT-ODB-GROUP-001.typed-oid-type-size.tsv",
+      "sha256": "c76469a8bf88a708c58fad316bc591fe47df02b05d5c137bb2b6816d881cc977"
+    }
+  ],
+  "unique_TCC_missing_typed_object_set": {
+    "count": 16912,
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v2/objects/termrock-product-rust-cargo-missing-from-tcc.tsv",
+    "sha256": "19def1f9acd0f48833ba851dd9b630e11c41c35065ec2e283895851ca5b14579"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "binding_map_path": "docs/implementation/pr38-final/results/t01-evidence-custody/bindings-stage4.json",
+  "failure": "commit parent edge declarations are incomplete or substituted",
+  "failure_type": "CustodyError",
+  "manifest_path": "docs/implementation/pr38-final/results/t01-evidence-custody/archive-v5/plan/manifest.json",
+  "requested_final_path": "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/post-import-retry-v2-mtb38irx/final.git",
+  "schema": "termrock.pr38.t01.evidence-custody.publication-failure.v1",
+  "status": "UNVERIFIED"
+}

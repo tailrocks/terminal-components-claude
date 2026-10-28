@@ -1,0 +1,616 @@
+{
+  "TCC_baseline": {
+    "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/physical-objects.tsv",
+    "queried_again": false,
+    "sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+    "typed_object_count": 257216
+  },
+  "all_git_file_metadata_manifest": {
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/repositories-tmp/additional-git-candidate-state.jsonl",
+    "sha256": "7d38a0e6ecbdce9cf0f36c7e0783c523f9775e5eaff4456308f792c257c1165d"
+  },
+  "archive_group": "source-preimages",
+  "classification": "three independent no-origin dirty repositories; preserve each working tree, index, refs/reflogs, and object store; deduplicate only exact typed object identities",
+  "full_unique_typed_object_set": {
+    "count": 42,
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v2/objects/source-preimages-union-full.tsv",
+    "sha256": "16e68a7ca266e10986165b099ca3e93a20933be75b56cd5addbefe65a3967ecc"
+  },
+  "loose_object_file_manifest": {
+    "filter": "group_id in ODB-GROUP-003, ODB-GROUP-004, ODB-GROUP-005",
+    "filtered_object_file_count": 80,
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v1/metadata/loose-object-files.jsonl",
+    "sha256": "9d726658e72efcb537e89c4b9e382a87aba3a94e07e2771aab2966315dde6580"
+  },
+  "no_mutation": true,
+  "overlap": "Group003\u2229004=18; 004\u2229005=20; 003\u2229005=0; union=42; no type-size conflicts. Preserve three independent refs/status despite shared object IDs.",
+  "per_repo_objects": [
+    {
+      "TCC_missing": 9,
+      "TCC_present": 10,
+      "count": 19,
+      "full_typed_list": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-v1/objects/ODB-GROUP-003.typed-oid-type-size.tsv",
+      "full_typed_sha256": "41f37910f2a8f3e454b3961fd0f6ad48e871c370bbeb7f5b1b27e991216104c2",
+      "group_id": "ODB-GROUP-003",
+      "storage": "all loose; no pack"
+    },
+    {
+      "TCC_missing": 22,
+      "TCC_present": 18,
+      "count": 40,
+      "full_typed_list": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-v1/objects/ODB-GROUP-004.typed-oid-type-size.tsv",
+      "full_typed_sha256": "cc22971239693e53d18a72234ab0bdd87f5eac7a7237101318757941be2f1145",
+      "group_id": "ODB-GROUP-004",
+      "storage": "all loose; no pack"
+    },
+    {
+      "TCC_missing": 13,
+      "TCC_present": 8,
+      "count": 21,
+      "full_typed_list": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-v1/objects/ODB-GROUP-005.typed-oid-type-size.tsv",
+      "full_typed_sha256": "79ccab61cc17b6c1b093e65a90a7d0ee95adfbf526fa39b8f970f31a67a34e19",
+      "group_id": "ODB-GROUP-005",
+      "storage": "all loose; no pack"
+    }
+  ],
+  "repositories": [
+    {
+      "HEAD_oid": "2a2349b121f13b3113902147aa332c4560439d21",
+      "common_dir": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-full-reconstruction/.git",
+      "git_dir": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-full-reconstruction/.git",
+      "index": {
+        "bytes": 1361,
+        "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-full-reconstruction/.git/index",
+        "sha256": "2c35090aebab86997aa02d72f2a0bbe076f40f9f1d5ea94c1711be6d01d39b84"
+      },
+      "object_boundaries": {
+        "alternates": {
+          "bytes": null,
+          "exists": false,
+          "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-full-reconstruction/.git/objects/info/alternates",
+          "sha256": null
+        },
+        "grafts": {
+          "bytes": null,
+          "exists": false,
+          "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-full-reconstruction/.git/info/grafts",
+          "sha256": null
+        },
+        "http-alternates": {
+          "bytes": null,
+          "exists": false,
+          "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-full-reconstruction/.git/objects/info/http-alternates",
+          "sha256": null
+        },
+        "shallow": {
+          "bytes": null,
+          "exists": false,
+          "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-full-reconstruction/.git/shallow",
+          "sha256": null
+        }
+      },
+      "object_format": "sha1",
+      "pack_files": [],
+      "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-full-reconstruction",
+      "promisor_config": {
+        "keys": [],
+        "returncode": 1
+      },
+      "reflog_file_manifest": {
+        "files": [
+          {
+            "bytes": 174,
+            "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-full-reconstruction/.git/logs/HEAD",
+            "relative_path": "HEAD",
+            "sha256": "5eb4d86a0d1767eb01e4f3dc1eebeeb172a25cae8fa5a3c3671758db09d7d8d6"
+          },
+          {
+            "bytes": 174,
+            "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-full-reconstruction/.git/logs/refs/heads/main",
+            "relative_path": "refs/heads/main",
+            "sha256": "5eb4d86a0d1767eb01e4f3dc1eebeeb172a25cae8fa5a3c3671758db09d7d8d6"
+          }
+        ],
+        "label": "source-preimage-full",
+        "logs_file_count": 2,
+        "logs_manifest_sha256": "2138828b002dd2a53f9859dfa4098eb92d869a6c77631700f437be78c510614c",
+        "logs_root": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-full-reconstruction/.git/logs",
+        "reflog_entry_count": 2,
+        "reflog_output_sha256": "477f2fb5ea049fff3bbeb5ce00f86b47f9e3546514efeeea02183a76694ce818",
+        "reflog_returncode": 0,
+        "reflog_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "repository_path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-full-reconstruction"
+      },
+      "reflogs": {
+        "entries": 2,
+        "files_count": 2,
+        "files_manifest_sha256": "2138828b002dd2a53f9859dfa4098eb92d869a6c77631700f437be78c510614c",
+        "output_sha256": "477f2fb5ea049fff3bbeb5ce00f86b47f9e3546514efeeea02183a76694ce818",
+        "returncode": 0
+      },
+      "refmap": {
+        "count": 1,
+        "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-v1/metadata/refmaps/8ed2e17512d0e485c6f527dda0824e77f1f063e9abf263be8400d18a363fe9eb.raw",
+        "sha256": "8ed2e17512d0e485c6f527dda0824e77f1f063e9abf263be8400d18a363fe9eb"
+      },
+      "refs": [
+        {
+          "object_type": "commit",
+          "oid": "2a2349b121f13b3113902147aa332c4560439d21",
+          "refname": "refs/heads/main",
+          "symref": null,
+          "upstream": null
+        }
+      ],
+      "status": {
+        "cached_diff": {
+          "rc": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "entries": [
+          {
+            "path": "crates/showcase-demos/src/pages/mod.rs",
+            "path_bytes_sha256": "178da4c2be9493f1cd804c81206b4bc70160b7ed9a042ec33f2c95ba38c57639",
+            "record": "1",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "ae4b33e3aa77fddb89606b63a667de5164649c6573c6b9eecf1c530095389721",
+              "size": 14016
+            },
+            "xy": ".M"
+          },
+          {
+            "path": "crates/showcase-ui/src/app.rs",
+            "path_bytes_sha256": "9aa9cf44e3973ee532ab90bd17fa846090ce0f79ecf15a13d7244a1e8461e9bd",
+            "record": "1",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "79d0098d7ad315b6ae948c2685ca541fdd511b002a6e1b0a560abbf9c5966268",
+              "size": 130012
+            },
+            "xy": ".M"
+          },
+          {
+            "path": "crates/showcase-ui/tests/app_tests.rs",
+            "path_bytes_sha256": "2e01a9dc6b3cdbd9984360d5672d36f11e3d47ec949defe0d98ab12089d1cc1c",
+            "record": "1",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "c33dda3e14c894cafbf5c072c2e13cb0186cef01984888a05804281cc55b9611",
+              "size": 88187
+            },
+            "xy": ".M"
+          },
+          {
+            "path": "crates/showcase-ui/tests/checks_radios_route.rs",
+            "path_bytes_sha256": "6651a35d8b75732e2c6d3eb3225b07abb0cff26ed4eebedc2fc3e611e9e71589",
+            "record": "1",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "8578afd6bf84529d6a084aa0b5d330053d5da25475a5f21f0bb16d0f9504aa72",
+              "size": 14352
+            },
+            "xy": ".M"
+          },
+          {
+            "path": "crates/showcase-ui/tests/diff_route.rs",
+            "path_bytes_sha256": "f6b7ff60737ac261fd12ef204856adb936887384ac11e3effc51247deabbae4c",
+            "record": "1",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "0619657d29841de0538e8826c0763399559ff361d35da90b3c2a0fc3976b4611",
+              "size": 6722
+            },
+            "xy": ".M"
+          },
+          {
+            "path": "crates/showcase-ui/tests/empty_error_route.rs",
+            "path_bytes_sha256": "bbfc8864c9a378e53d7d357f6d71dc00bd86132442f4be18c4c55882be28ed61",
+            "record": "1",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "5f21994136ba3712535677ac8a2e04640f0c8de0c6296a326e6c7f5c34274984",
+              "size": 6313
+            },
+            "xy": ".M"
+          },
+          {
+            "path": "crates/showcase-ui/tests/master_detail_route.rs",
+            "path_bytes_sha256": "dd8af4d46812e5226344b2815475e569d55517f6bae671d1a8dc0a0715b14cdb",
+            "record": "1",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "dfb97a65ef86a45df273acee175f146b1b325ccaff947725e4327ed610c26d58",
+              "size": 7226
+            },
+            "xy": ".M"
+          },
+          {
+            "path": "crates/showcase-ui/tests/notices_route.rs",
+            "path_bytes_sha256": "af5e873451f3e894f4ccac822661a398a2a2862b45a0a1e20b3192ffc8eb9c07",
+            "record": "1",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "9658c1ee65f20910bbc7a6bbfd9f4bad0f0a0e7ac3bbf13da82a0f06707243d1",
+              "size": 21009
+            },
+            "xy": ".M"
+          },
+          {
+            "path": "crates/showcase-ui/tests/pane_tree_route.rs",
+            "path_bytes_sha256": "fd19f72c1bc075d48fca05a97fe592e2ac3b426a2dd662acbad30661df5b7882",
+            "record": "1",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "c26b92a8442c83b9e6fb999d5c7902f4ac6a68259fe255575c372ca1f8024fa6",
+              "size": 40529
+            },
+            "xy": ".M"
+          },
+          {
+            "path": "crates/showcase-ui/tests/toolbars_route.rs",
+            "path_bytes_sha256": "c2b8866afc940e708a3d82c843855118ef6c8cba5b121d0e1dd7a833512dc085",
+            "record": "1",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "bb236ad6141f9f5bac453c5fe81daeb36cb03ef06a815eadb4635be33a951c9b",
+              "size": 22236
+            },
+            "xy": ".M"
+          },
+          {
+            "path": "crates/showcase-demos/src/pages/query_workbench.rs",
+            "path_bytes_sha256": "f4ce5556652bfcb3a379bfbd8b9840e800b5cad7a686393a0cdf8efc542fa876",
+            "record": "?",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "ec2a1df96186ba0a8682ce35f9692efbed5c79ac770ed8bd969ba2e8d9812525",
+              "size": 27609
+            },
+            "xy": "? "
+          },
+          {
+            "path": "crates/showcase-ui/tests/query_workbench_route.rs",
+            "path_bytes_sha256": "7624e5f9c26f0040e1f29baa5c031da1903977405ee6aa894bb34926a297991a",
+            "record": "?",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "f7e8a16f81f8d67717483f74398e447e1450d9065365de4278d435dd7a57cadb",
+              "size": 11045
+            },
+            "xy": "? "
+          }
+        ],
+        "entry_count": 12,
+        "raw_path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v1/status-raw/e5e088956f9a83c922a485e6dcc86b0124217fb1636f78717604837c67a3c3c8.porcelain-v2-z.raw",
+        "raw_sha256": "d44ecaee1bd68e156cb0fe19c98523a09c3d8f5502d98d4b4a42512064cde1af",
+        "tracked_diff": {
+          "rc": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 15539,
+          "stdout_sha256": "5f8d7c55cec766e797c43b2cc7f2d23416817d4145774f9f5b42bd8630cb10da"
+        }
+      },
+      "stored_object_count": 19,
+      "symbolic_HEAD": "refs/heads/main"
+    },
+    {
+      "HEAD_oid": "8440ea1f7985f54c622f14167bc2adccaec33391",
+      "common_dir": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-guard-scratch/.git",
+      "git_dir": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-guard-scratch/.git",
+      "index": {
+        "bytes": 1594,
+        "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-guard-scratch/.git/index",
+        "sha256": "56e2ea6e93ca47c8e268fe2cbc72666dca31dc2fcf6b84c09199ea4c72fce5a9"
+      },
+      "object_boundaries": {
+        "alternates": {
+          "bytes": null,
+          "exists": false,
+          "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-guard-scratch/.git/objects/info/alternates",
+          "sha256": null
+        },
+        "grafts": {
+          "bytes": null,
+          "exists": false,
+          "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-guard-scratch/.git/info/grafts",
+          "sha256": null
+        },
+        "http-alternates": {
+          "bytes": null,
+          "exists": false,
+          "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-guard-scratch/.git/objects/info/http-alternates",
+          "sha256": null
+        },
+        "shallow": {
+          "bytes": null,
+          "exists": false,
+          "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-guard-scratch/.git/shallow",
+          "sha256": null
+        }
+      },
+      "object_format": "sha1",
+      "pack_files": [],
+      "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-guard-scratch",
+      "promisor_config": {
+        "keys": [],
+        "returncode": 1
+      },
+      "reflog_file_manifest": {
+        "files": [
+          {
+            "bytes": 340,
+            "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-guard-scratch/.git/logs/HEAD",
+            "relative_path": "HEAD",
+            "sha256": "2a40a34a5e75c0430849e902780097865064fda720ec2d00c3d9eb79b8eb2e3e"
+          },
+          {
+            "bytes": 340,
+            "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-guard-scratch/.git/logs/refs/heads/main",
+            "relative_path": "refs/heads/main",
+            "sha256": "2a40a34a5e75c0430849e902780097865064fda720ec2d00c3d9eb79b8eb2e3e"
+          }
+        ],
+        "label": "source-preimage-guard",
+        "logs_file_count": 2,
+        "logs_manifest_sha256": "2b411993c7f97e21bae6818a90ac6d171b10bcfaafc431d1d4e267ae34a53715",
+        "logs_root": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-guard-scratch/.git/logs",
+        "reflog_entry_count": 4,
+        "reflog_output_sha256": "536b5f218b4ce7c07fc650b3c51be9f268590d6738e58bc22e23955e0c23b318",
+        "reflog_returncode": 0,
+        "reflog_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "repository_path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-guard-scratch"
+      },
+      "reflogs": {
+        "entries": 4,
+        "files_count": 2,
+        "files_manifest_sha256": "2b411993c7f97e21bae6818a90ac6d171b10bcfaafc431d1d4e267ae34a53715",
+        "output_sha256": "536b5f218b4ce7c07fc650b3c51be9f268590d6738e58bc22e23955e0c23b318",
+        "returncode": 0
+      },
+      "refmap": {
+        "count": 1,
+        "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-v1/metadata/refmaps/b1c7f7a0c84ccf32923a08c3686140b99456816546b7a6ac10becac0722e1965.raw",
+        "sha256": "b1c7f7a0c84ccf32923a08c3686140b99456816546b7a6ac10becac0722e1965"
+      },
+      "refs": [
+        {
+          "object_type": "commit",
+          "oid": "8440ea1f7985f54c622f14167bc2adccaec33391",
+          "refname": "refs/heads/main",
+          "symref": null,
+          "upstream": null
+        }
+      ],
+      "status": {
+        "cached_diff": {
+          "rc": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "entries": [
+          {
+            "path": "crates/showcase-ui/src/app.rs",
+            "path_bytes_sha256": "9aa9cf44e3973ee532ab90bd17fa846090ce0f79ecf15a13d7244a1e8461e9bd",
+            "record": "1",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "79d0098d7ad315b6ae948c2685ca541fdd511b002a6e1b0a560abbf9c5966268",
+              "size": 130012
+            },
+            "xy": ".M"
+          },
+          {
+            "path": "crates/showcase-ui/tests/query_workbench_route.rs",
+            "path_bytes_sha256": "7624e5f9c26f0040e1f29baa5c031da1903977405ee6aa894bb34926a297991a",
+            "record": "1",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "f7e8a16f81f8d67717483f74398e447e1450d9065365de4278d435dd7a57cadb",
+              "size": 11045
+            },
+            "xy": ".M"
+          }
+        ],
+        "entry_count": 2,
+        "raw_path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v1/status-raw/4bf66ae19d97366858603bd12b1c16ad37012fea961af9c368e5b38fe910b0ec.porcelain-v2-z.raw",
+        "raw_sha256": "e553d2e21e3e104c8cf699a70ad91329b4859331939f0f751d16af25d0dfc2b0",
+        "tracked_diff": {
+          "rc": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 4138,
+          "stdout_sha256": "822f16c757e7200dadc2736f7f27921aeadbe022a65ebf0a88f703dbc4e90446"
+        }
+      },
+      "stored_object_count": 40,
+      "symbolic_HEAD": "refs/heads/main"
+    },
+    {
+      "HEAD_oid": "c1f0442121c0310df22c78ca324d3e8c6f17c81e",
+      "common_dir": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-delta-reconstruction/.git",
+      "git_dir": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-delta-reconstruction/.git",
+      "index": {
+        "bytes": 1594,
+        "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-delta-reconstruction/.git/index",
+        "sha256": "588a7d75e9029023c162bafd591e06e2c3ad1d9432b18bcae790fff83cb2e185"
+      },
+      "object_boundaries": {
+        "alternates": {
+          "bytes": null,
+          "exists": false,
+          "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-delta-reconstruction/.git/objects/info/alternates",
+          "sha256": null
+        },
+        "grafts": {
+          "bytes": null,
+          "exists": false,
+          "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-delta-reconstruction/.git/info/grafts",
+          "sha256": null
+        },
+        "http-alternates": {
+          "bytes": null,
+          "exists": false,
+          "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-delta-reconstruction/.git/objects/info/http-alternates",
+          "sha256": null
+        },
+        "shallow": {
+          "bytes": null,
+          "exists": false,
+          "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-delta-reconstruction/.git/shallow",
+          "sha256": null
+        }
+      },
+      "object_format": "sha1",
+      "pack_files": [],
+      "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-delta-reconstruction",
+      "promisor_config": {
+        "keys": [],
+        "returncode": 1
+      },
+      "reflog_file_manifest": {
+        "files": [
+          {
+            "bytes": 173,
+            "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-delta-reconstruction/.git/logs/HEAD",
+            "relative_path": "HEAD",
+            "sha256": "774f5e6161d3f667808e386757c666865ac7e5b65e5b5ff4d42b77830bc95939"
+          },
+          {
+            "bytes": 173,
+            "path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-delta-reconstruction/.git/logs/refs/heads/main",
+            "relative_path": "refs/heads/main",
+            "sha256": "774f5e6161d3f667808e386757c666865ac7e5b65e5b5ff4d42b77830bc95939"
+          }
+        ],
+        "label": "source-preimage-delta",
+        "logs_file_count": 2,
+        "logs_manifest_sha256": "c3e12044a3a0714d5ca653c528a663f851c695a1e2794d36161530ee44dab1c8",
+        "logs_root": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-delta-reconstruction/.git/logs",
+        "reflog_entry_count": 2,
+        "reflog_output_sha256": "849ab85aca052a1ad772e0fe7a69978174898d3a3e024f0ad9a698c77c05c875",
+        "reflog_returncode": 0,
+        "reflog_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "repository_path": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-delta-reconstruction"
+      },
+      "reflogs": {
+        "entries": 2,
+        "files_count": 2,
+        "files_manifest_sha256": "c3e12044a3a0714d5ca653c528a663f851c695a1e2794d36161530ee44dab1c8",
+        "output_sha256": "849ab85aca052a1ad772e0fe7a69978174898d3a3e024f0ad9a698c77c05c875",
+        "returncode": 0
+      },
+      "refmap": {
+        "count": 1,
+        "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-v1/metadata/refmaps/6dc4e918958bec416560fa2e5d34b82a554fea518fe47a6a3e5335503d8fd22b.raw",
+        "sha256": "6dc4e918958bec416560fa2e5d34b82a554fea518fe47a6a3e5335503d8fd22b"
+      },
+      "refs": [
+        {
+          "object_type": "commit",
+          "oid": "c1f0442121c0310df22c78ca324d3e8c6f17c81e",
+          "refname": "refs/heads/main",
+          "symref": null,
+          "upstream": null
+        }
+      ],
+      "status": {
+        "cached_diff": {
+          "rc": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "entries": [
+          {
+            "path": "crates/showcase-ui/src/app.rs",
+            "path_bytes_sha256": "9aa9cf44e3973ee532ab90bd17fa846090ce0f79ecf15a13d7244a1e8461e9bd",
+            "record": "1",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "79d0098d7ad315b6ae948c2685ca541fdd511b002a6e1b0a560abbf9c5966268",
+              "size": 130012
+            },
+            "xy": ".M"
+          },
+          {
+            "path": "crates/showcase-ui/tests/query_workbench_route.rs",
+            "path_bytes_sha256": "7624e5f9c26f0040e1f29baa5c031da1903977405ee6aa894bb34926a297991a",
+            "record": "1",
+            "working_path_info": {
+              "exists": true,
+              "kind": "file",
+              "mode": "0o644",
+              "sha256": "f7e8a16f81f8d67717483f74398e447e1450d9065365de4278d435dd7a57cadb",
+              "size": 11045
+            },
+            "xy": ".M"
+          }
+        ],
+        "entry_count": 2,
+        "raw_path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v1/status-raw/5f801c1823e85f4a075b088dde83a0f6b95c0d9ea470c62e5eea3a72fb710fec.porcelain-v2-z.raw",
+        "raw_sha256": "e553d2e21e3e104c8cf699a70ad91329b4859331939f0f751d16af25d0dfc2b0",
+        "tracked_diff": {
+          "rc": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 4138,
+          "stdout_sha256": "822f16c757e7200dadc2736f7f27921aeadbe022a65ebf0a88f703dbc4e90446"
+        }
+      },
+      "stored_object_count": 21,
+      "symbolic_HEAD": "refs/heads/main"
+    }
+  ],
+  "revision": "git-store-groups-addendum-v4",
+  "source_worktree_git_state_manifest": {
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/repositories-tmp/source-preimage-git-state.jsonl",
+    "sha256": "1c08bf7607576776fd0d3330c1ad8458c60fe0e99021f9eeee33161e900bc685"
+  },
+  "unique_TCC_missing_typed_object_set": {
+    "count": 24,
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v2/objects/source-preimages-union-missing-from-tcc.tsv",
+    "sha256": "de697565fd857d14a2199577e63e3a8dc97f109a6820d88b66324846895de251"
+  },
+  "worktree_status_manifest": {
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v1/worktree-status.jsonl",
+    "sha256": "02a37d0c42a3b2d77b898040da491c56fc7f0b3b18b59761b9a22be657dc9731"
+  }
+}

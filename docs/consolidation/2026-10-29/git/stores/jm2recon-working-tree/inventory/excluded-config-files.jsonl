@@ -1,0 +1,15 @@
+{"path": "config", "reason": "configuration or hook content excluded", "sha256": "cae33efdb02cf774435c1ff9cb16bcc1014606908530c6e1dc727615fe3e8cda", "size_bytes": 137}
+{"path": "hooks/commit-msg.sample", "reason": "configuration or hook content excluded", "sha256": "efc1401b0e99d1ff51494d154d98b46c1e99059bcd8bf9f73cecde19fd3eb23b", "size_bytes": 1972}
+{"path": "hooks/pre-rebase.sample", "reason": "configuration or hook content excluded", "sha256": "4febce867790052338076f4e66cc47efb14879d18097d1d61c8261859eaaa7b3", "size_bytes": 4898}
+{"path": "hooks/sendemail-validate.sample", "reason": "configuration or hook content excluded", "sha256": "44ebfc923dc5466bc009602f0ecf067b9c65459abfe8868ddc49b78e6ced7a92", "size_bytes": 2308}
+{"path": "hooks/pre-commit.sample", "reason": "configuration or hook content excluded", "sha256": "57185b7b9f05239d7ab52db045f5b89eb31348d7b2177eab214f5eb872e1971b", "size_bytes": 1649}
+{"path": "hooks/applypatch-msg.sample", "reason": "configuration or hook content excluded", "sha256": "0223497a0b8b033aa58a3a521b8629869386cf7ab0e2f101963d328aa62193f7", "size_bytes": 478}
+{"path": "hooks/fsmonitor-watchman.sample", "reason": "configuration or hook content excluded", "sha256": "9159720099ad5595b8e66645cbfd47763c1e920f46e0b50ae75e642bbec57ef0", "size_bytes": 4611}
+{"path": "hooks/pre-receive.sample", "reason": "configuration or hook content excluded", "sha256": "a4c3d2b9c7bb3fd8d1441c31bd4ee71a595d66b44fcf49ddb310252320169989", "size_bytes": 544}
+{"path": "hooks/prepare-commit-msg.sample", "reason": "configuration or hook content excluded", "sha256": "e9ddcaa4189fddd25ed97fc8c789eca7b6ca16390b2392ae3276f0c8e1aa4619", "size_bytes": 1492}
+{"path": "hooks/post-update.sample", "reason": "configuration or hook content excluded", "sha256": "81765af2daef323061dcbc5e61fc16481cb74b3bac9ad8a174b186523586f6c5", "size_bytes": 189}
+{"path": "hooks/pre-merge-commit.sample", "reason": "configuration or hook content excluded", "sha256": "d3825a70337940ebbd0a5c072984e13245920cdf8898bd225c8d27a6dfc9cb53", "size_bytes": 416}
+{"path": "hooks/pre-applypatch.sample", "reason": "configuration or hook content excluded", "sha256": "e15c5b469ea3e0a695bea6f2c82bcf8e62821074939ddd85b77e0007ff165475", "size_bytes": 424}
+{"path": "hooks/pre-push.sample", "reason": "configuration or hook content excluded", "sha256": "ecce9c7e04d3f5dd9d8ada81753dd1d549a9634b26770042b58dda00217d086a", "size_bytes": 1374}
+{"path": "hooks/update.sample", "reason": "configuration or hook content excluded", "sha256": "8d5f2fa83e103cf08b57eaa67521df9194f45cbdbcb37da52ad586097a14d106", "size_bytes": 3650}
+{"path": "hooks/push-to-checkout.sample", "reason": "configuration or hook content excluded", "sha256": "a53d0741798b287c6dd7afa64aee473f305e65d3f49463bb9d7408ec3b12bf5f", "size_bytes": 2783}

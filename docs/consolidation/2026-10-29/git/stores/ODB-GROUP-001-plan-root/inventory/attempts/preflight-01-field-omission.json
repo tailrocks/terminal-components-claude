@@ -1,0 +1,10 @@
+{
+  "attempt": "preflight-01",
+  "corrective_followup": "preflight-02 added upstream but ordered it after symref; preflight-03 uses upstream then symref",
+  "final_archive_created": false,
+  "inventory_refmap_sha256": "0042debff66b9d4fc6b6ffadbc66b6aeb98789d6b70b5d7c6c12742943a044ff",
+  "reason": "initial one-off command omitted %(upstream) from frozen ref map comparison",
+  "result": "failed-before-output-creation",
+  "source_head": "5af24dcb49a7983eb504ff7db647e099fb491b3a",
+  "source_mutation": "none"
+}

@@ -1,0 +1,32 @@
+{
+  "TCC_baseline_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+  "aliases": 84,
+  "archive_group": "termrock-product-rust-cargo",
+  "archive_write": "external staging only",
+  "checkout_marker_alias_count": 42,
+  "checkout_worktrees": 42,
+  "created_utc": "2026-10-28T20:34:42Z",
+  "index_alias_count": 42,
+  "metadata_file_alias_count": 546,
+  "pack_file_alias_count": 172,
+  "raw_git_config_hooks_excluded": true,
+  "ref_state_alias_count": 84,
+  "repository_identity": "https://github.com/tailrocks/termrock (Cargo.toml repository field)",
+  "source_mutation": "none",
+  "tcc_missing_typed_objects": 16912,
+  "unique_pack_bytes_by_sha256": {
+    "22344a5e2a9cb0f2d68fac2c39c4f9acdf4f91e7db75f6c3635bed4b5b3a4468": 14817668,
+    "5399bc21b744fead195a004a14762a9a7a2225f3e90679b577a6a8fa29a830c3": 471528,
+    "7607f8b34c03d415c8886e61b2c6e15621c57d1b7138508300238cdee8eabb38": 2528,
+    "c145c6a7f73c3543e41028d22bfc4fd3fc8b1d4a4e9087b7dede9959efc0fc2e": 2892,
+    "cf7c8f863bd8832f20b565848b0d83d21b3f9565d931daffd6a133491c2d7217": 14660571,
+    "d15b0ffd1e8529dc004648e310fe57056dd42b2999266a7be16e9b1200a475bc": 472928,
+    "daf7b17c9dc0981098e2260f083ef1b76cdde4419b55b1e66cbf6d5d8f2eca07": 13825840,
+    "e38a49ff7325fb498bb640d260c235aa9abe6239d8903acef848ffeaf783f78e": 48783,
+    "e71ea3aedefb2cf5be0ca727b7a822fbf1db11caf0003d1a438994a7eb6188ca": 471528,
+    "fec2cfbf74871a5bdc5d0e218c69f9beb7c62328d8ed65e14ad91068ff82b085": 881451
+  },
+  "unique_pack_file_sha256_count": 10,
+  "unique_typed_objects": 16914,
+  "worktree_semantics": "all42 checkout worktrees verified tracked-clean; each has only the preserved untracked .cargo-ok marker; exact tracked trees reconstruct from the captured ODB pack payloads, refs and indexes"
+}
