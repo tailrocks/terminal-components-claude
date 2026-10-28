@@ -162,3 +162,28 @@ The proposed immutable mailbox is `/Users/donbeave/.local/state/termrock-pr38-co
 `/root/showcase_status_hints_recovery` is the sole future writer for exactly `crates/showcase-ui/src/app.rs`, `crates/showcase-demos/src/pages/mod.rs`, and new `crates/showcase-demos/src/pages/status_hints.rs`. The owner may implement the native live Status & Hints page through the existing private placeholder-route pattern, preserve public `PageId`, Buttons, and all existing routes, and provide Playground, Options, and States with all 12 reference options. If needed, add defaulted Page hooks while preserving `PageStatus(pub String)` and existing `PageUpdate` construction. Reuse the existing `StatusLine` bridge and reduced-motion handling. Do not edit HintBar/library exports, manifests, or Suite files; library capability gaps need a separate owner and reproduction. The two existing files were clean and the new page file was absent when this handoff was recorded. Ownership starts after this WIP update is published and synced to the active register; this records no source change or runtime result.
 
 The earlier candidate-era sentence that this register had not been applied described the state before commit `c47412cc16e1fdc1201bef03847cfb5c99263d9c`; that commit was later synced to the active WIP after verifying the prior 6,146-byte snapshot and its recovery copy.
+
+
+## Ownership update — Jackin Settings and Holla source status (2026-10-28)
+
+### Jackin Settings route
+
+- Peer `codex-pr38-01a174de` (`01a174de-b6a5-7a20-8ac2-96f2e50db875`) confirmed its Jackin work is read-only complete, no Jackin writer or compiler reservation remains, and acknowledged the bounded app-file handoff. This is a source-scope acknowledgment, not an authentication claim for the mailbox protocol.
+- `/root/jackin_settings_recovery` is the sole writer of `crates/jackin-preview-app/src/app.rs` for the Settings route only: `]` opens Settings, `[` returns to the prior route, and `Esc` returns cleanly. Start from the preserved candidate SHA `d341ec009ae19e09a30e6f6099d04d37f722a959b9d271cec11a7c9a8e851d2`; retain peer handoff SHA `578fb3af2ee8fcacdcefa77e7cafadfba59bc4cb02b6b5e4546bb675fbbd11e7`. This assignment grants source edits only, no Cargo lease.
+- Do not change `rain.rs`, selected-editor identity, or broad bare-`q` behavior. The bounded Settings route does not complete the General configuration visual contract; that remaining gap stays explicit for separate reviewed work.
+
+### Holla frozen successor06 source
+
+- Preserve `/private/tmp/holla-native-first-use-successor06-20261028.ngsaeA/` and its cumulative patch SHA `fa26911211cae90b9c2dd0d3e06e5350a20938122566caf713e3dde765b940e2`. The source-hash receipt SHA is `ef57ec02a79391c59897e73f33986453d4dc7f1dbeb8ac929892d5c161970d07`; it records base HEAD `4f8d17c2a1c7642d3b90e77dd74a55e2566f234a`, exact before/after bytes, and reverse-apply checks. No peer Holla edits are approved against the older `app.rs`/`home.rs` postimages; retain those candidate bytes without attribution or overwrite.
+- The approved postimage SHA-256 values are:
+  - `crates/holla-sim/src/catalogue.rs`: `369b9f82e80997a176fb86d922fa8f16293ddd27be59bbb19fccf027d7d35ac7`
+  - `crates/holla-sim/src/fixtures.rs`: `3708af2ff1469ec3407da5ebf392413aadacc63c507c419e31d634f1300bd6f9`
+  - `crates/holla-sim/src/world.rs`: `0b75bb740ff0bb345eb7ecfbee5975ce206f1b62140891a3b572760bde97ed28`
+  - `crates/holla-ui/src/app.rs`: `1e0c8811d8d8eb75c9f138ca8629a43ccb1d18ce6da39a4dfd3bc427cee99ce4`
+  - `crates/holla-ui/src/dispatch.rs`: `de68a94ed058a10a926d4dfd2dc62c6ada20b812c5c6c9f54a76a15839408755`
+  - `crates/holla-ui/src/screens/home.rs`: `aee51b19a25f1af4bb68831ea66bde3582b91499820798f0ac6838e94dcc934f`
+  - `crates/holla-ui/src/screens/snapshot.rs`: `3298938f3cf37504455be494a863e767ad635aa88d86d6c6e227fcd61c10c363`
+  - `crates/holla/src/main.rs`: `d4c0ec95f2779786e19d5a71c714b57779c7716a67b86deb07e15ffad81531ca`
+- These eight postimages were applied to the fresh detached native workspace based on `c47412cc16e1fdc1201bef03847cfb5c99263d9c`; combined source receipt SHA `cf0ca3fb3d990dd86e12eb47d6d6fffdab5c565fd79a0efb1107d5b731291bb2` also binds the separate reviewed TablePro app overlay. Fresh native build/runtime proof is pending. A previous Cargo invocation reported `Fresh` and did not run rustc; do not treat its old tool metadata as proof.
+
+- **NO GO on Holla peer source transfer.** No peer install, write, or build authorization is active for Holla. Root sent the bounded `STOP_BEFORE_INSTALL` notice `2decf0ba-9f40-448b-b5f4-8409ace63bd0` (record SHA-256 `e798afc980e80b0be45038484f8b76b8c195a27d9856b55fc9cdbe259eaac033`; queue ID `01a17fd6-2b16-7251-8220-d5be0f1d0f58`); it is a queued notice, not peer acknowledgment. Resolve the stale-source report by comparing the exact realpath, observation time, HEAD, and opened-file hash. Preserve the frozen successor06 files and all peer candidates without attribution or replacement.
