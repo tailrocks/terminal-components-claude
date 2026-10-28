@@ -1,0 +1,23 @@
+{
+  "schema": "ordered-chunks-v1",
+  "source_sha256": "6828da74633a9d9e15b45682b1e17ac8efb035691aa13c1c1da9a84b749e36ad",
+  "source_size_bytes": 68749298,
+  "chunk_size_limit_bytes": 50331648,
+  "reconstruction": "concatenate chunk paths in ascending index order; verify source SHA-256 and byte size",
+  "chunks": [
+    {
+      "index": 1,
+      "path": "000001-7bb57e6282fa4e21712812163ef8d6a23156986d0c01a8b4e6addc98d34b1d2e.chunk",
+      "offset_bytes": 0,
+      "size_bytes": 50331648,
+      "sha256": "7bb57e6282fa4e21712812163ef8d6a23156986d0c01a8b4e6addc98d34b1d2e"
+    },
+    {
+      "index": 2,
+      "path": "000002-041c11539f89444639c5f79a13733a0e3766b5b78a809a815ce0a464939319e4.chunk",
+      "offset_bytes": 50331648,
+      "size_bytes": 18417650,
+      "sha256": "041c11539f89444639c5f79a13733a0e3766b5b78a809a815ce0a464939319e4"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 3887a75dee4463ce0122c37eb278ab7ebb71aeaf Alexey Zhokhov <alexey@zhokhov.com> 1793122168 +0700	clone: from https://github.com/donbeave/tui-test.git
+3887a75dee4463ce0122c37eb278ab7ebb71aeaf 3887a75dee4463ce0122c37eb278ab7ebb71aeaf Alexey Zhokhov <alexey@zhokhov.com> 1793122325 +0700	checkout: moving from fix/r2-quiet-wait-interrupt to common-raw-388
+3887a75dee4463ce0122c37eb278ab7ebb71aeaf 4e51249f5fb6baa33495972b8b8ee924a9122ded Codex <codex@localhost> 1793122341 +0700	commit: capture: rebase raw bundle base on engine 3887
+4e51249f5fb6baa33495972b8b8ee924a9122ded 3887a75dee4463ce0122c37eb278ab7ebb71aeaf Alexey Zhokhov <alexey@zhokhov.com> 1793122349 +0700	checkout: moving from common-raw-388 to capture-v3-388
+3887a75dee4463ce0122c37eb278ab7ebb71aeaf 391646397bd83cd772a5bf03811e09dcab47b05b Codex <codex@localhost> 1793122366 +0700	commit: capture: rebase approved capture patch on engine 3887

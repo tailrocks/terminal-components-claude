@@ -1,0 +1,51 @@
+{
+  "schema": "pr38-git-store-candidate-v2-assembly-receipt",
+  "started_utc": "2026-10-28T21:55:53Z",
+  "completed_utc": "2026-10-28T21:55:53Z",
+  "input_candidate": "/private/tmp/pr38-consolidation-staging-20261029/git-store-groups-r14-r17-v1",
+  "input_candidate_sums_sha256": "9b0c77cbc41ab388fb27d1c915da258e6297fbef25b696ad18d2080f4bb1c2e2",
+  "output_candidate": "/private/tmp/pr38-consolidation-staging-20261029/git-store-groups-r14-r17-v2",
+  "oversized_payload_source_sha256": "6828da74633a9d9e15b45682b1e17ac8efb035691aa13c1c1da9a84b749e36ad",
+  "oversized_payload_source_size_bytes": 68749298,
+  "chunk_limit_bytes": 50331648,
+  "chunks": [
+    {
+      "index": 1,
+      "path": "000001-7bb57e6282fa4e21712812163ef8d6a23156986d0c01a8b4e6addc98d34b1d2e.chunk",
+      "offset_bytes": 0,
+      "size_bytes": 50331648,
+      "sha256": "7bb57e6282fa4e21712812163ef8d6a23156986d0c01a8b4e6addc98d34b1d2e"
+    },
+    {
+      "index": 2,
+      "path": "000002-041c11539f89444639c5f79a13733a0e3766b5b78a809a815ce0a464939319e4.chunk",
+      "offset_bytes": 50331648,
+      "size_bytes": 18417650,
+      "sha256": "041c11539f89444639c5f79a13733a0e3766b5b78a809a815ce0a464939319e4"
+    }
+  ],
+  "object_file_map_rows_updated": 3,
+  "source_candidate_mutated": false,
+  "source_payload_sha256_verified_before_copy": true,
+  "source_payload_sha256_verified_after_copy": true,
+  "candidate_version": "v4",
+  "previous_candidate": "/private/tmp/pr38-consolidation-staging-20261029/git-store-groups-r14-r17-v3",
+  "previous_candidate_sha256sums_sha256": "cebf8debed2419c6858c7de83285fef8c15abf8cb52e07570075c4c06c2ff57e",
+  "decoded_size_evidence_source": "/private/tmp/pr38-consolidation-inventory-20261029/engine-git-custody-review-r14-r17-v2",
+  "decoded_size_seal_sha256": "26690eeb40fcf8f522c601eb795d375215e03a57d75bfcbbfb21d05eff65aaba",
+  "decoded_object_inventory_sha256": "461b628a0b02de12117d741188013e92029ca1cdf1835ed5f6c68548850e3b0f",
+  "decoded_corrections_sha256": "c81a0ea5002fc03075d59d925a7dfe9ef023d07e528d9e4c46c69b323862b45c",
+  "decoded_correction_provenance_sha256": "4fbcad89b9a1972ef15913cdcc623134495afb2e70b5dce1426c896a1935d6ff",
+  "decoded_union_oid_count": 9026,
+  "decoded_unique_correction_count": 4510,
+  "reviewed_pack_count": 11,
+  "nested_downloads_v4_checksum_added_to_outer_manifest": true,
+  "outer_checksum_rule": "all regular files except the root SHA256SUMS file; nested SHA256SUMS files are included",
+  "completed_metadata_update_utc": "2026-10-28T22:11:33Z",
+  "r18_correction_source_sums_sha256": "4d501c7454573393beade08c6e1bf970bee0b54ff154340bf5af1f89ccbf4832",
+  "r18_correction_record_sha256": "647e64bae33ce4657392d7156b487ff0ed6902e650ddb975016c6666e8f57299",
+  "r18_payloads_copied_unchanged": true,
+  "schema_attestation_path": "inputs/decoded-size-review-v2/schema-attestation.json",
+  "schema_attestation_sha256": "ba20e7d7f3ffa680cfffcfe1ec137775bde149077d2b7bb12151295579bb791c",
+  "r18_source_bytes_modified": false
+}

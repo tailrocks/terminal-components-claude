@@ -1,0 +1,78 @@
+{
+  "counts": {
+    "all_r13_common_dirs": 85,
+    "custom_non_template_hooks": 0,
+    "distinct_pack_index_plus_pack_hash_pairs": 11,
+    "excluded_tcc_common_dirs": 2,
+    "global_physical_file_sha_groups": 289,
+    "non_tcc_common_dirs": 83,
+    "non_tcc_markers": 83,
+    "object_integrity_or_enum_errors": 0,
+    "object_store_bytes_with_repeated_copies": 1136052967,
+    "object_store_files": 584,
+    "object_walk_errors": 0,
+    "reflog_files": 109,
+    "refs": 249,
+    "union_local_object_oids": 9026,
+    "union_oids_absent_from_tcc": 8873,
+    "worktree_admin_records": 83
+  },
+  "created_utc": "2026-10-28T21:31:54.769353+00:00",
+  "files": {
+    "all_local_object_oids": "local-object-oids.jsonl.gz",
+    "common_stores": "common-stores.jsonl",
+    "object_files": "object-files.jsonl",
+    "object_sha_groups": "object-file-sha-groups.jsonl",
+    "pack_oids_dir": "pack-oids/",
+    "reflogs": "reflogs.jsonl",
+    "refs": "refs.jsonl",
+    "source_custody_requests": "source-custody-requests.jsonl",
+    "worktree_admin": "worktree-admin.jsonl"
+  },
+  "inputs": {
+    "canonical_tcc_oid_manifest": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/physical-objects.tsv",
+    "canonical_tcc_oid_manifest_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+    "existing_git_store_groups": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-v1/metadata/object-groups.jsonl",
+    "existing_git_store_groups_sha256": "81470052bb3ae2a49274a2d945d9ad652caea7964e819798c228de1aea8b000f",
+    "r13_common_dirs": "/private/tmp/pr38-consolidation-inventory-20261029/global-addendum-20261029-r13/all-marker-common-dir-groups.jsonl",
+    "r13_common_dirs_sha256": "bd4f532f3af75e7a970058d7eb67d5f1cc65318e63893c8b5a3adcfb79273b5c",
+    "r13_marker_identities": "/private/tmp/pr38-consolidation-inventory-20261029/global-addendum-20261029-r13/marker-repository-identity-classification.jsonl",
+    "r13_marker_identities_sha256": "9ac662b37c38b9b54c65eb9c3867b7f08ba1324dfbb373bfad7db05b2e16a982"
+  },
+  "known_group_comparison": {
+    "canonical_tcc_objects": 257216,
+    "exact_match_common_dirs": 2,
+    "groups_loaded": [
+      "ODB-GROUP-001",
+      "ODB-GROUP-002",
+      "ODB-GROUP-003",
+      "ODB-GROUP-004",
+      "ODB-GROUP-005",
+      "ODB-GROUP-006",
+      "ODB-GROUP-007",
+      "ODB-GROUP-008",
+      "ODB-GROUP-009",
+      "ODB-GROUP-010",
+      "ODB-GROUP-011"
+    ],
+    "groups_with_object_enumeration_error": [],
+    "stores_with_any_tcc_oid_overlap": 81
+  },
+  "limitations": [
+    "Object set membership only describes physically indexed packs and validated loose files; alternates are separately recorded and must be included if present.",
+    "A complete preservation/archive and privacy review by Integration remains required before cleanup.",
+    "Do not interpret no-origin or identical HEAD as proof of unrelatedness; classification is by exact object-set, byte, refs, and sanitized source identity comparisons."
+  ],
+  "privacy_and_custody": {
+    "all_present_object_file_bytes_mapped_by_path_and_sha256": true,
+    "archive_and_remote_publication_not_performed": true,
+    "config_field_names_normalized_and_sensitive_values_not_emitted": true,
+    "default_sample_hooks_only_provenance_recorded": true,
+    "hooks_never_executed": true,
+    "raw_config_values_excluded": true,
+    "raw_indexes_hashed_and_exact_source_paths_recorded_for_byte-preserving_archive": true,
+    "raw_reflog_messages_not_emitted_but_exact_source_paths_and_hashes_recorded_for_static_privacy_screen": true
+  },
+  "revision": "git-store-census-r14-20261029",
+  "scope": "Read-only exact inventory of the 83 non-TCC common Git object stores represented by 125 V3 markers / 85 common dirs, excluding the two TCC shared stores. No source, Git, cache, or deletion mutations. Inventory outputs only."
+}

@@ -1,0 +1,106 @@
+{
+  "assembly_validation": {
+    "high_confidence_admin_pattern_findings": 0,
+    "object_source_rows_hashed_and_stable": 584,
+    "raw_admin_payloads_hash_checked": 129,
+    "raw_admin_source_rows_matching_sealed_capture": 387
+  },
+  "config_and_hooks": "Raw Git config values, hooks, credentials and include contents are excluded. Sanitized key-class/path metadata remains in R14 inputs.",
+  "counts": {
+    "common_stores": 83,
+    "oid_set_equivalence_classes": 11,
+    "physical_object_source_bytes_total": 1136052967,
+    "physical_object_source_files": 584,
+    "raw_admin_source_bytes_total": 3575564,
+    "raw_admin_source_records": 387,
+    "unique_physical_object_payload_bytes": 128937944,
+    "unique_physical_object_payloads": 289,
+    "unique_raw_admin_payload_bytes": 1653362,
+    "unique_raw_admin_payloads": 129,
+    "chunked_physical_object_payloads": 1,
+    "chunked_payload_bytes": 68749298
+  },
+  "portable_payload_convention": "Direct payloads use content-addressed objects/sha256/<sha256> files when <=48 MiB. Larger payloads use ordered chunks under objects/chunks/sha256/<sha256>/ and an adjacent chunk-map.json; concatenate in index order and verify the original size and SHA-256. All locators are relative to this directory.",
+  "publication_status": "external staging only; exact v3 metadata and payload review pending",
+  "ref_only_store_closure": {
+    "distinct_oids": 44,
+    "downloads_group_remains_separate": true,
+    "later_downloads_v4_resolves": true,
+    "pending_r17_oids_resolved_via_downloads_closure_v4": 30,
+    "r14_r17_empty_store_oid_map_path": "inputs/downloads-v4/empty-ref-only-store-46-reference-object-map.jsonl",
+    "r17_pending_state_retained_unchanged": true,
+    "ref_rows": 46
+  },
+  "schema": "pr38-related-git-store-preservation-candidate-v4",
+  "source_inputs": [
+    {
+      "id": "R14",
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-census-r14-20261029",
+      "sha256_sums": "e3cc00f81b64d4ebf86a6b7798756d1f997879c6a18e1c1825c21131eaed0f02"
+    },
+    {
+      "id": "R15",
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-relations-r15-20261029",
+      "sha256_sums": "1bf835fb3b165b747ba7aaf59d0a37cb71a5339ff90f48300c7bb47d57341dad"
+    },
+    {
+      "id": "R17",
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/global-addendum-20261029-r17",
+      "sha256_sums": "ce1d8bdf3f5fae7f9413e6286c62b0f4d4c50c6c49ccc07d7cc5efecc35148e6"
+    },
+    {
+      "id": "Downloads-TCC-v4-ref-closure",
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/downloads-tcc-common-store-closure-v4",
+      "ref_map_sha256": "ebd00392ba25e9840af69a7312126832e83aff9370ac0bc93baaf3429c6c3628",
+      "seal_sha256": "bf0ebec7a7d5bbd2b9427455a72821861dd3da64944b65e728f3d3b9799e57a6"
+    },
+    {
+      "id": "R18-R14-decoded-size-correction",
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/r18-r14-decoded-size-correction-20261029",
+      "sha256_sums": "4d501c7454573393beade08c6e1bf970bee0b54ff154340bf5af1f89ccbf4832",
+      "portable_copy_prefix": "inputs/r18"
+    }
+  ],
+  "validation_limits": [
+    "This is a byte-preservation candidate, not a reconstructed or executable repository.",
+    "No Git import/reconstruction/fsck of the 83 source stores was performed in this assembly.",
+    "R17 source rows assert stable reads and match R14; current-path observations are supplemental and may differ after capture.",
+    "No local clone/source/store was modified.",
+    "No publication, cleanup or deletion authorization is implied.",
+    "Safety privacy/eligibility review is pending.",
+    "One 68,749,298-byte pack payload is stored as two ordered chunks (50,331,648 and 18,417,650 bytes); exact source SHA-256 is preserved. No individual payload chunk exceeds 48 MiB.",
+    "The original R14 pack-OID manifests remain byte-identical. Their size_bytes values are pack delta-representation sizes for 4,510 unique OIDs; consult the separately sealed decoded-size correction table for logical sizes.",
+    "All 11 pack/index imports and the 9,026 OID/type/logical-size inventory were checked in an isolated verifier. Some OID sets require cross-group or canonical TCC/Downloads dependencies; this candidate is not a standalone runnable repository.",
+    "The R18 correction record is retained byte-for-byte. Its declared field names/nesting differ from the serialized JSON; consult the supplemental schema-attestation for exact field names and nested provenance shape. The 4,510 correction rows are unique OIDs; the 15,588 figure is pack-row mismatch occurrences."
+  ],
+  "decoded_object_size_evidence": {
+    "seal_path": "inputs/decoded-size-review-v2/DECODED-SIZE-SEAL.json",
+    "seal_sha256": "26690eeb40fcf8f522c601eb795d375215e03a57d75bfcbbfb21d05eff65aaba",
+    "decoded_inventory_path": "inputs/decoded-size-review-v2/decoded-object-inventory.json",
+    "decoded_inventory_sha256": "461b628a0b02de12117d741188013e92029ca1cdf1835ed5f6c68548850e3b0f",
+    "decoded_oid_count": 9026,
+    "corrected_unique_size_rows": 4510,
+    "provenance_path": "inputs/decoded-size-review-v2/decoded-size-corrections-provenance.json",
+    "provenance_sha256": "4fbcad89b9a1972ef15913cdcc623134495afb2e70b5dce1426c896a1935d6ff",
+    "raw_r14_pack_oid_manifests_preserved_unchanged": true,
+    "source_candidate_sha256sums_sha256": "02107c7a2c3e15681dcfd371842515449600774a3f0a043f12bcfd29ef36139f",
+    "r18_correction_record_path": "inputs/r18/r14-size-semantics-correction.json",
+    "r18_correction_record_sha256": "647e64bae33ce4657392d7156b487ff0ed6902e650ddb975016c6666e8f57299",
+    "schema_attestation_path": "inputs/decoded-size-review-v2/schema-attestation.json",
+    "schema_attestation_sha256": "ba20e7d7f3ffa680cfffcfe1ec137775bde149077d2b7bb12151295579bb791c",
+    "unique_mismatched_oids": 4510,
+    "pack_row_mismatch_occurrences": 15588
+  },
+  "pack_verification": {
+    "unique_pack_count": 11,
+    "all_pack_index_imports_passed": true,
+    "union_oid_type_count": 9026,
+    "detail_path": "inputs/decoded-size-review-v2/pack-verification.json",
+    "graph_edges_path": "inputs/decoded-size-review-v2/graph-links-by-class.json",
+    "group_local_link_limits": {
+      "OIDSET-007": "1734 links are not in this group but all referenced OIDs exist in the wider 83-store union",
+      "OIDSET-009": "1 link is not in this group but its referenced OID exists in the wider 83-store union",
+      "OIDSET-011": "empty; refs require canonical TCC and separate Downloads-TCC dependencies"
+    }
+  }
+}

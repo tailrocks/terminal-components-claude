@@ -1,0 +1,176 @@
+{
+  "counts": {
+    "common_dirs": 83,
+    "distinct_oid_set_groups": 11,
+    "distinct_physical_object_tree_signatures": 11,
+    "exact_ref_rows": 249,
+    "head_ref_oid_membership_rows": 83,
+    "heads_not_present_in_each_own_store": 1,
+    "local_object_oid_union": 9026,
+    "markers": 83,
+    "oids_absent_canonical_tcc": 8873,
+    "oids_absent_tcc_and_prior_known_groups": 8796,
+    "physical_file_sha_groups_with_duplicates": 24,
+    "proper_subset_or_overlap_pairs_between_distinct_store_instances": 1304,
+    "reflog_file_rows": 109,
+    "refs_not_present_in_each_own_store": 46
+  },
+  "created_utc": "2026-10-28T21:35:02.243859+00:00",
+  "custody_decision": "The 83 common dirs reduce to 11 local OID-set and physical object-tree classes. Archive one byte-exact object payload per exact physical class, then preserve refs, reflogs, raw indexes, HEAD/admin files per store after privacy screening. Distinct OID sets and all OIDs absent from the canonical TCC ODB remain in scope. Empty-store refs must be retained even though local object closure is absent.",
+  "files": {
+    "head_and_ref_closure": "head-and-ref-closure.jsonl",
+    "oid_membership": "oid-membership-by-set-group.jsonl.gz",
+    "oid_set_equivalence_classes": "oid-set-equivalence-classes.jsonl",
+    "pairwise_object_set_relations": "pairwise-object-set-relations.jsonl.gz",
+    "ref_relation_to_downloads_tcc": "ref-relation-to-downloads-tcc.jsonl",
+    "store_lineage_and_custody": "store-lineage-and-custody.jsonl"
+  },
+  "inputs": {
+    "canonical_tcc_object_manifest": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/physical-objects.tsv",
+    "canonical_tcc_object_manifest_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+    "downloads_tcc_ref_manifest": "/private/tmp/pr38-consolidation-inventory-20261029/global-addendum-20261029-r12/downloads-tcc-refs.jsonl",
+    "downloads_tcc_ref_manifest_sha256": "4ade383b2ebc2c4c2e3d04ed0bd50d55d5057672a4778decd89053c03d7dd492",
+    "downloads_tcc_reflog_manifest": "/private/tmp/pr38-consolidation-inventory-20261029/global-addendum-20261029-r12/downloads-tcc-reflogs.jsonl",
+    "downloads_tcc_reflog_manifest_sha256": "2286507b991059ac298978182ceb29578a4c39722b70e3bf1f9ccbdb09a8b391",
+    "r14_checksums_sha256": "e3cc00f81b64d4ebf86a6b7798756d1f997879c6a18e1c1825c21131eaed0f02",
+    "r14_directory": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-census-r14-20261029",
+    "r14_summary_sha256": "e3ed58ff60b388232eb94a9dfa2eccd5aa1369f0d5b7d9d7a525d428b30fce24"
+  },
+  "oid_set_group_sizes": [
+    {
+      "object_oid_count": 5969,
+      "oid_set_group_id": "OIDSET-001",
+      "oid_set_sha256": "9f363f1652309e284d77a5c2ef842c6c772130d2d0c5df688f9ed876e9ab2a7f",
+      "physical_byte_exact": true,
+      "sample_common_dir": "/Users/donbeave/Downloads/termrock-live-results-20261027/exports/capture-v3-red-8d4d0e0e/.engine/tui-test/.git",
+      "store_count": 61
+    },
+    {
+      "object_oid_count": 5977,
+      "oid_set_group_id": "OIDSET-002",
+      "oid_set_sha256": "493398c95945ced6132e130950656ff56381eebdf0ed386f0d5c4fb99306e8e3",
+      "physical_byte_exact": true,
+      "sample_common_dir": "/Users/donbeave/Downloads/termrock-live-results-20261027/exports/capture-v3-5b54fae0-5532d71e-20261027T140337Z/.engine/tui-test/.git",
+      "store_count": 7
+    },
+    {
+      "object_oid_count": 5985,
+      "oid_set_group_id": "OIDSET-003",
+      "oid_set_sha256": "455c8636a54b43b2726b0f332d555bc116040ca4b2d0788d1d1efb755da37d94",
+      "physical_byte_exact": true,
+      "sample_common_dir": "/Users/donbeave/Downloads/termrock-live-results-20261027/exports/current-suite-c921-validation-1de2c3a/.engine/tui-test/.git",
+      "store_count": 3
+    },
+    {
+      "object_oid_count": 1761,
+      "oid_set_group_id": "OIDSET-004",
+      "oid_set_sha256": "a69a00933e3e0b2b1d4803ca21f0491c554cee4826bf4787572b6951e8074675",
+      "physical_byte_exact": true,
+      "sample_common_dir": "/private/tmp/termrock-pr38-suite-export-e1-20261028/forks/tuiscotti-upstream/.git",
+      "store_count": 3
+    },
+    {
+      "object_oid_count": 7016,
+      "oid_set_group_id": "OIDSET-005",
+      "oid_set_sha256": "f23eb1fba27b81bebd42558544a763c612eb8b96ce7b24b7b9d79737a0742496",
+      "physical_byte_exact": true,
+      "sample_common_dir": "/private/tmp/termrock-pr38-suite-export-e1-20261028/forks/tui-test-upstream/.git",
+      "store_count": 3
+    },
+    {
+      "object_oid_count": 5986,
+      "oid_set_group_id": "OIDSET-006",
+      "oid_set_sha256": "3ca638ed4917a81947e6cfad79d531ab1cc3b76d2d83efceb6f51d3085c105f7",
+      "physical_byte_exact": true,
+      "sample_common_dir": "/Users/donbeave/Downloads/termrock-live-pr38-capture-v3-engine-3887-20261028/.git",
+      "store_count": 1
+    },
+    {
+      "object_oid_count": 1157,
+      "oid_set_group_id": "OIDSET-007",
+      "oid_set_sha256": "638024b93b27eac3711dad0a31ed970de315b2cdba606b748debaae1e542295f",
+      "physical_byte_exact": true,
+      "sample_common_dir": "/private/tmp/pr38-engine-pin-audit-20261028/tui-test/.git",
+      "store_count": 1
+    },
+    {
+      "object_oid_count": 77,
+      "oid_set_group_id": "OIDSET-008",
+      "oid_set_sha256": "692e4016f687381a65903a8d554770ae5e2876138d4e033db7197df5a6fc6dba",
+      "physical_byte_exact": true,
+      "sample_common_dir": "/Users/donbeave/Downloads/termrock-pr38-plan/.git",
+      "store_count": 1
+    },
+    {
+      "object_oid_count": 184,
+      "oid_set_group_id": "OIDSET-009",
+      "oid_set_sha256": "8fe9f073fdbebc92cb36bc5389af92f3dc3709db2d6d8807292663e1bc3e2ef0",
+      "physical_byte_exact": true,
+      "sample_common_dir": "/private/tmp/pr38-engine-pin-audit-20261028/tuiscotti/.git",
+      "store_count": 1
+    },
+    {
+      "object_oid_count": 146,
+      "oid_set_group_id": "OIDSET-010",
+      "oid_set_sha256": "dab541187bf22b349746c0c38f06be8bb1d338a0a224a688db0bee5657473f42",
+      "physical_byte_exact": true,
+      "sample_common_dir": "/Users/donbeave/Downloads/termrock-live-suite-20261027/.git",
+      "store_count": 1
+    },
+    {
+      "object_oid_count": 0,
+      "oid_set_group_id": "OIDSET-011",
+      "oid_set_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "physical_byte_exact": true,
+      "sample_common_dir": "/Users/donbeave/Downloads/termrock-live-results-20261027/streams/suite-export-validation/mutations/365d3539/unlisted-pr38-source-cc9e/.git",
+      "store_count": 1
+    }
+  ],
+  "revision": "git-store-relations-r15-20261029",
+  "scope": "Read-only relation and closure addendum for all 83 non-TCC common dirs. No mutation to source or Git stores.",
+  "unresolved_cases": [
+    {
+      "classification": "TCC-related test evidence by exact full-OID refs and fixture path; empty local object store is incomplete. Downloads-TCC object-set inclusion for the one reflog-only OID awaits the separate Git-store owner.",
+      "common_dir": "/Users/donbeave/Downloads/termrock-live-results-20261027/streams/suite-export-validation/mutations/365d3539/unlisted-pr38-source-cc9e/.git",
+      "downloads_tcc_metadata_refs_or_reflogs_cover_unique_oids_absent_canonical": [
+        "03cdec864621a1929a0e3d8d6ba86c53470c912f",
+        "0ebbf61d1c6b6b945b8d96ab69851166d99088be",
+        "1023449d82844a03edf0993714fd786b51f7da08",
+        "1dd1cf4d9ac1edfe79afabddd22104ca0c821d46",
+        "2ef29058bcaa4e162ded927ee78273cd1e6f372c",
+        "34cbad0123c13612f06cf18a882465e8f108d607",
+        "383ad59b44baf95232005551b4d70f136bef3fea",
+        "46ce5fde11b10ee38994a3779ed486eaeafc5a36",
+        "4890b3d9ae40323b07f8d112d0fcf038e22059c3",
+        "4ba8fd58f69a1d65546f77184a97997fa91a8d90",
+        "66728b43068c1ca54deba2a9cbd4d9a9973af182",
+        "668f9704ce18ee01dc4b47c5763ad82b2bde35cb",
+        "68c9e09aa2f57ce0acad5fd40e6d0aca36f58d65",
+        "71b857175ca709cc0483b1b528ef093ec18d071c",
+        "7f6fa8e5e2643f6c9de0b0a6ec9752f800cbcfc7",
+        "9178596b036846fcf52c88815d29de06f109db9b",
+        "a94b93128ab71d2f1be43733a1b68d21792820ff",
+        "aa168c5e3d89759925aa4814111903d53c223850",
+        "ae32524b29baf638d8790ec0f7b320dfd05ee0f1",
+        "b2183a222424a1ae4645e6bf8d3a0518c47fa725",
+        "b9a6507e9894d32f0a2c10a819981e811e554b8e",
+        "bf1b52a7fe9274593e2dfaf0332b367fb860dfef",
+        "c234bc6f231c251dc515f84076934e0e4bf95abc",
+        "cb1a928cb7863597ded56adbd33c77e45713f780",
+        "cfe0587ad034d9f0fd18694934f071f6f50c7dc5",
+        "d200455b9cc90c28f1b29363ea3fa4011ee79a48",
+        "ddeceda0a3e03a6aa454b23c961e28cbb84871fb",
+        "f57a5803db0b3934bf514e3dac5cfd4f97315582",
+        "fae3cea7e6c4e93326bf6c0139f86daa12a7bd70",
+        "fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a"
+      ],
+      "head": [
+        "cc9e629b60015752ddab0a2f1c1af7eefbf7ee12"
+      ],
+      "local_oid_count": 0,
+      "other_missing_full_oids": [],
+      "refs_absent_from_own_store": 46,
+      "refs_count": 46
+    }
+  ]
+}

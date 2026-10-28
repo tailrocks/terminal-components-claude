@@ -1,0 +1,16 @@
+0000000000000000000000000000000000000000 61f6588398cdaaf9d526a5666fa30c118bca49f5 Alexey Zhokhov <alexey@zhokhov.com> 1793058022 +0700	commit (initial): Add canonical common live suite
+61f6588398cdaaf9d526a5666fa30c118bca49f5 81b2cec2dfb0afad867701d0980d85810f20c73c Alexey Zhokhov <alexey@zhokhov.com> 1793058556 +0700	commit: fix: gate live captures on visible startup
+81b2cec2dfb0afad867701d0980d85810f20c73c 51a0120838e7ee2741a0bd7131328e5890f69556 Alexey Zhokhov <alexey@zhokhov.com> 1793058860 +0700	commit: fix: align help capture with visible UI
+51a0120838e7ee2741a0bd7131328e5890f69556 a93f25ee76c8f8a6229badbe6fd0303d61ef107d Alexey Zhokhov <alexey@zhokhov.com> 1793061238 +0700	commit: test: add live raw capture probes
+a93f25ee76c8f8a6229badbe6fd0303d61ef107d 6ebc17e81e9cd30c63515380a87f92279db27443 Alexey Zhokhov <alexey@zhokhov.com> 1793063713 +0700	commit: chore(toolchain): require mise 2026.10.20
+6ebc17e81e9cd30c63515380a87f92279db27443 8783c197566c96b6af3e30100fbc1a4831e0bfcb Alexey Zhokhov <alexey@zhokhov.com> 1793064425 +0700	commit: feat: bind live suite to current source artifacts
+8783c197566c96b6af3e30100fbc1a4831e0bfcb 1fd2f9ad4c5080c70e17f6b9ad7a0d62c13d2999 Alexey Zhokhov <alexey@zhokhov.com> 1793064710 +0700	commit: docs: record current common live captures
+1fd2f9ad4c5080c70e17f6b9ad7a0d62c13d2999 8783c197566c96b6af3e30100fbc1a4831e0bfcb Alexey Zhokhov <alexey@zhokhov.com> 1793064868 +0700	checkout: moving from main to 8783c197566c96b6af3e30100fbc1a4831e0bfcb
+8783c197566c96b6af3e30100fbc1a4831e0bfcb 8783c197566c96b6af3e30100fbc1a4831e0bfcb Alexey Zhokhov <alexey@zhokhov.com> 1793070699 +0700	checkout: moving from 8783c197566c96b6af3e30100fbc1a4831e0bfcb to codex/showcase-help-80x24-v1
+8783c197566c96b6af3e30100fbc1a4831e0bfcb 675986a2a602a4e26506f8b3c8bad668431db766 Alexey Zhokhov <alexey@zhokhov.com> 1793070794 +0700	commit: test: track approved first-group references
+675986a2a602a4e26506f8b3c8bad668431db766 3331e264102eb694c121e1891294dba872660ca5 Alexey Zhokhov <alexey@zhokhov.com> 1793071436 +0700	commit: feat: add bounded showcase help journey
+3331e264102eb694c121e1891294dba872660ca5 3331e264102eb694c121e1891294dba872660ca5 Alexey Zhokhov <alexey@zhokhov.com> 1793083454 +0700	checkout: moving from codex/showcase-help-80x24-v1 to codex/holla-first-use-action-v1
+3331e264102eb694c121e1891294dba872660ca5 b0cbff86e73e3fa59e4f2a6a0bb006e8f08a5415 Alexey Zhokhov <alexey@zhokhov.com> 1793084153 +0700	commit: test: add Holla first-use action journey
+b0cbff86e73e3fa59e4f2a6a0bb006e8f08a5415 6e0a14e2b66de45db70a0dc6582e4a3607ebc737 Alexey Zhokhov <alexey@zhokhov.com> 1793085079 +0700	commit: test: bind Holla assertions to captured state
+6e0a14e2b66de45db70a0dc6582e4a3607ebc737 51a37ff4a0dbd467f2944ae486b23eb2592592b8 Alexey Zhokhov <alexey@zhokhov.com> 1793085402 +0700	commit: test: remove Holla layout comments
+51a37ff4a0dbd467f2944ae486b23eb2592592b8 bb055bfcdb1ac37e9855e700497fd955b4a32f4b Alexey Zhokhov <alexey@zhokhov.com> 1793087313 +0700	commit: test: install approved Holla first-use references

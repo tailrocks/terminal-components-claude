@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 3887a75dee4463ce0122c37eb278ab7ebb71aeaf Alexey Zhokhov <alexey@zhokhov.com> 1793122325 +0700	branch: Created from HEAD
+3887a75dee4463ce0122c37eb278ab7ebb71aeaf 4e51249f5fb6baa33495972b8b8ee924a9122ded Codex <codex@localhost> 1793122341 +0700	commit: capture: rebase raw bundle base on engine 3887

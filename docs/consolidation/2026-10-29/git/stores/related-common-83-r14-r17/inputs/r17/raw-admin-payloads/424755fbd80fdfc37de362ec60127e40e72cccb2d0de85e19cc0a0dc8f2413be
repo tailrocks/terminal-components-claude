@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 22c7bbcbc46fa576c8583325524ebf7740e83e1e Alexey Zhokhov <alexey@zhokhov.com> 1792959922 +0700	commit (initial): docs: add PR 38 plan with unconditional Astra ban
+22c7bbcbc46fa576c8583325524ebf7740e83e1e 3cdfd775128ba707cb53fd39b7c6ba4bc0cab023 Alexey Zhokhov <alexey@zhokhov.com> 1792959933 +0700	commit: docs: normalize final newlines and refresh checksums
+3cdfd775128ba707cb53fd39b7c6ba4bc0cab023 b98b61c0b366db8542abbf915cf5718e58d52b39 Alexey Zhokhov <alexey@zhokhov.com> 1792960196 +0700	commit: docs: assign architecture changes to GPT-6.1-Sol high
+b98b61c0b366db8542abbf915cf5718e58d52b39 e4fc75891ca16d895b3a99a2982344ddd715a4d9 Alexey Zhokhov <alexey@zhokhov.com> 1792961206 +0700	commit: docs: require cleanup-first reviewed functional testing
+e4fc75891ca16d895b3a99a2982344ddd715a4d9 5af24dcb49a7983eb504ff7db647e099fb491b3a Alexey Zhokhov <alexey@zhokhov.com> 1792962043 +0700	commit: docs: configure reviewed goal launch and scoped agent roles

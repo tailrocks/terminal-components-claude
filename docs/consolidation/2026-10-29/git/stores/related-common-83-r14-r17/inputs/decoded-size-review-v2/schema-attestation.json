@@ -1,0 +1,76 @@
+{
+  "schema": "pr38-r14-decoded-size-schema-attestation-v1",
+  "status": "supplemental clarification; source R18 remains verbatim",
+  "candidate_v3_outer_sums_sha256": "cebf8debed2419c6858c7de83285fef8c15abf8cb52e07570075c4c06c2ff57e",
+  "source_r18": {
+    "path": "inputs/r18/r14-size-semantics-correction.json",
+    "sha256": "647e64bae33ce4657392d7156b487ff0ed6902e650ddb975016c6666e8f57299",
+    "sums_path": "inputs/r18/SHA256SUMS.txt",
+    "sums_sha256": "4d501c7454573393beade08c6e1bf970bee0b54ff154340bf5af1f89ccbf4832",
+    "original_r14_sums_sha256": "e3cc00f81b64d4ebf86a6b7798756d1f997879c6a18e1c1825c21131eaed0f02"
+  },
+  "actual_copied_json_shapes": {
+    "decoded_object_inventory": {
+      "path": "inputs/decoded-size-review-v2/decoded-object-inventory.json",
+      "sha256": "461b628a0b02de12117d741188013e92029ca1cdf1835ed5f6c68548850e3b0f",
+      "row_count": 9026,
+      "record_fields": [
+        "decoded_size_bytes",
+        "oid",
+        "screened_new_unique",
+        "type"
+      ]
+    },
+    "decoded_size_corrections": {
+      "path": "inputs/decoded-size-review-v2/decoded-size-corrections.json",
+      "sha256": "c81a0ea5002fc03075d59d925a7dfe9ef023d07e528d9e4c46c69b323862b45c",
+      "row_count": 4510,
+      "unique_oid_count": 4510,
+      "record_fields": [
+        "decoded_size_bytes",
+        "oid",
+        "recorded_size_bytes",
+        "type"
+      ]
+    },
+    "decoded_size_correction_provenance": {
+      "path": "inputs/decoded-size-review-v2/decoded-size-corrections-provenance.json",
+      "sha256": "4fbcad89b9a1972ef15913cdcc623134495afb2e70b5dce1426c896a1935d6ff",
+      "row_count": 4510,
+      "record_fields": [
+        "decoded_size_bytes",
+        "oid",
+        "pack_manifest_provenance",
+        "recorded_size_bytes",
+        "type"
+      ],
+      "nested_pack_manifest_provenance_item_fields": [
+        "pack_index_sha256",
+        "pack_oid_manifest",
+        "pack_oid_manifest_sha256",
+        "recorded_size_bytes",
+        "row_number"
+      ]
+    }
+  },
+  "count_semantics": {
+    "unique_mismatched_oids": 4510,
+    "correction_rows": 4510,
+    "pack_row_mismatch_occurrences": 15588,
+    "unique_packs": 11,
+    "packs_with_size_mismatch_rows": 9
+  },
+  "r18_clarification": {
+    "schema_field_lists_in_r18_are_descriptive_but_do_not_match_actual_serialized_key_names_or_nesting": true,
+    "r18_says_4510_pack_oid_rows_where_correct_count_is_4510_unique_oids_and_15588_pack_row_occurrences": true,
+    "use_actual_copied_json_shapes_above_for_machine_consumers": true,
+    "r18_bytes_modified": false
+  },
+  "evidence_bindings": {
+    "decoded_size_seal_sha256": "26690eeb40fcf8f522c601eb795d375215e03a57d75bfcbbfb21d05eff65aaba",
+    "pack_inventory_size_review_sha256": "abb1692e52f9349f521f65cfe48978b28b5d21a9b2ffcedfb4a3edd08a15ddc8",
+    "pack_verification_sha256": "ff640558864bcf9d113fe15ac86e90529c7be194895640ce8c6b12a64fc0879c",
+    "chunk_verification_sha256": "7bedea325d53b5d60b679240cb6e13913c6484d5622d02ed3cfe6226d3873af0",
+    "graph_links_by_class_sha256": "6107c8ef2b1b7ba6a7c1cdb430f1abf7f39f53ecf78b561f75bf908fda0cd741"
+  }
+}

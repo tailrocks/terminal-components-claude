@@ -1,0 +1,21 @@
+{
+  "chunks": [
+    {
+      "index": 1,
+      "offset_bytes": 0,
+      "path": "000001-7bb57e6282fa4e21712812163ef8d6a23156986d0c01a8b4e6addc98d34b1d2e.chunk",
+      "sha256": "7bb57e6282fa4e21712812163ef8d6a23156986d0c01a8b4e6addc98d34b1d2e",
+      "size_bytes": 50331648
+    },
+    {
+      "index": 2,
+      "offset_bytes": 50331648,
+      "path": "000002-041c11539f89444639c5f79a13733a0e3766b5b78a809a815ce0a464939319e4.chunk",
+      "sha256": "041c11539f89444639c5f79a13733a0e3766b5b78a809a815ce0a464939319e4",
+      "size_bytes": 18417650
+    }
+  ],
+  "exact_reconstruction": true,
+  "sha256": "6828da74633a9d9e15b45682b1e17ac8efb035691aa13c1c1da9a84b749e36ad",
+  "size_bytes": 68749298
+}

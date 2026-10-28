@@ -1,0 +1,31 @@
+{
+  "created_utc": "2026-10-28T21:41:35.942844+00:00",
+  "findings": [],
+  "patterns": [
+    "pem_private_key",
+    "github_token",
+    "aws_access_key",
+    "slack_token",
+    "bearer_credential",
+    "credential_url"
+  ],
+  "payload_bytes_unique": 1653362,
+  "schema": "pr38-git-store-r14-r17-admin-static-screen-v1",
+  "scope_limit": "Static pattern screening only; no secret values emitted. Raw configs and hooks were excluded by the source inventory. Independent Safety eligibility review is still required.",
+  "source_inventory": {
+    "admin_map_sha256": "ff123fa740c80da1ddb7ef6bb01cd38c9c78509805d240aef669baf90af2d321",
+    "r17_sha256_sums": "ce1d8bdf3f5fae7f9413e6286c62b0f4d4c50c6c49ccc07d7cc5efecc35148e6"
+  },
+  "source_kind_counts": {
+    "HEAD": 83,
+    "loose-ref-file": 26,
+    "objects-alternates": 1,
+    "packed-refs": 10,
+    "pseudoref-FETCH_HEAD": 73,
+    "raw-index": 83,
+    "raw-reflog": 109,
+    "shallow": 2
+  },
+  "source_record_count": 387,
+  "unique_admin_payload_count": 129
+}

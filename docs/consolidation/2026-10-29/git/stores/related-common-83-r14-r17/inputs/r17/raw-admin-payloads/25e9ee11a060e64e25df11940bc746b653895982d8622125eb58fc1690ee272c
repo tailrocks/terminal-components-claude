@@ -1,0 +1,5 @@
+# pack-refs with: peeled fully-peeled sorted 
+d8d54155947f6303a41dfd6079b53c0abc16f29a refs/remotes/origin/main
+fd028e32f4d6fdc943da014b4d304f7eed2d0d91 refs/remotes/origin/release-plz-2026-10-27T23-39-21Z
+da8946fdd4e7c6fe5447494cce41bfce55e2a186 refs/tags/tuiscotti-cli-v0.4.0
+da8946fdd4e7c6fe5447494cce41bfce55e2a186 refs/tags/tuiscotti-v0.4.0
