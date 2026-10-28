@@ -6,8 +6,8 @@
     "intended_file_inventory": [
       {
         "path": "README.md",
-        "sha256": "496723d33bcfe82c6e4802ab219adf0cdf0e3ecc3e19e97588efcbfe231f9dbe",
-        "size_bytes": 2866
+        "sha256": "ad2042e351051e44a600929ad03fbc5a4a3180ada3623af524a25117c322665e",
+        "size_bytes": 2784
       },
       {
         "path": "chunks/000001-27ec99009255f4d75b5845022e2ca712dc02d77573701913f8a4a0d5d21a7cef.chunk",
@@ -729,7 +729,7 @@
     "chunk_publication": {
       "expected_chunk_count": 97,
       "note": "Counts are per immutable commit tree. Ordered chunk batches are being pushed; later commits advance this field.",
-      "published_chunk_count_in_this_tree": 82
+      "published_chunk_count_in_this_tree": 97
     },
     "chunks": [
       {
@@ -1339,7 +1339,7 @@
     "f629 pre-publication index raw bytes were not retained in the captured external inventory; captured hash/size and clean staged/worktree preimage exist, and any semantic reconstruction will be labeled as such",
     "final remote branch tree/chunk presence/hash verification for all 97 chunks"
   ],
-  "publication_status": "partial-payload-publication; complete refs/reflogs/stashes/worktree/index metadata and final remote-custody verification pending",
+  "publication_status": "payload complete; complete refs/reflogs/stashes/worktree/index metadata and final remote-custody verification pending",
   "restore_prerequisite": {
     "process": "Fetch the exact f629 commit and its reachable closure into a fresh object database, concatenate the 97 chunks in order, then validate/import the pack against that base. Do not infer original refs from the pack; those are pending the separate metadata commit.",
     "required_base_closure_count": 104389,
