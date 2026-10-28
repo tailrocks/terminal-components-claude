@@ -14,7 +14,7 @@ use crate::domain::ranking::{Alias, Memory, Pin, Usage};
 use crate::domain::ssh::{HostKeyPolicy, SshHost};
 use crate::listeners::{ListenerModel, ListenerModelError, ListenerRecord, PortConflict};
 use crate::scenario::Scenario;
-use crate::world::{Discovery, Domain, World};
+use crate::world::{Discovery, Domain, SystemFacts, World};
 
 pub const HOME: &str = "/home/dev";
 
@@ -92,7 +92,7 @@ pub fn files_for_cwd(cwd: &str) -> crate::files::FilesSnapshot {
 pub fn cwd_for(scenario: Scenario) -> &'static str {
     match scenario {
         Scenario::ParityActivityStop => "~/work/activity-stop",
-        Scenario::FirstUse => "~/scratch/empty",
+        Scenario::FirstUse => "~/scratch",
         Scenario::RustDirty | Scenario::LaunchFailure => "~/work/pave",
         Scenario::MonorepoRoot | Scenario::ActivitiesMulti => "~/work/monorepo",
         Scenario::MonorepoChild => "~/work/monorepo/apps/frontend",
@@ -131,8 +131,7 @@ pub fn host_for(scenario: Scenario) -> Host {
         Scenario::UpgradePlan => Host::remote("devbox-deb", Environment::Dev),
         Scenario::ParityTaskInput => Host::remote("devbox", Environment::Production),
         Scenario::ParityPlatformsLinux => Host::local("devbox"),
-        Scenario::FirstUse
-        | Scenario::RustDirty
+        Scenario::RustDirty
         | Scenario::MonorepoRoot
         | Scenario::MonorepoChild
         | Scenario::DockerCleanup
@@ -148,6 +147,16 @@ pub fn host_for(scenario: Scenario) -> Host {
 pub fn world_for(scenario: Scenario) -> World {
     let mut w = World::new(scenario, host_for(scenario), cwd_for(scenario));
     w.discovery = match scenario {
+        Scenario::FirstUse => World::default_schedule()
+            .into_iter()
+            .map(|mut discovery| {
+                if discovery.domain == Domain::Disk {
+                    discovery.at_ms = 0;
+                    discovery.done = true;
+                }
+                discovery
+            })
+            .collect(),
         Scenario::HardCases => World::default_schedule()
             .into_iter()
             .map(|d| {
@@ -161,7 +170,7 @@ pub fn world_for(scenario: Scenario) -> World {
         _ => World::default_schedule(),
     };
     match scenario {
-        Scenario::FirstUse => {}
+        Scenario::FirstUse => seed_first_use(&mut w),
         Scenario::RustDirty => seed_rust_dirty(&mut w),
         Scenario::LaunchFailure => {
             seed_rust_dirty(&mut w);
@@ -340,6 +349,29 @@ fn child_repo(
 
 const GB: u64 = 1_073_741_824;
 const MB: u64 = 1_048_576;
+
+fn seed_first_use(world: &mut World) {
+    world.host.metrics.load_x100 = (940, 780, 510);
+    world.host.metrics.mem_used_mb = 12_698;
+    world.host.metrics.mem_total_mb = 16_384;
+    world.disk = Some(DiskState {
+        total_bytes: 926 * GB,
+        used_bytes: 842 * GB,
+        candidates: Vec::new(),
+    });
+    world.system = Some(SystemFacts {
+        cpu_percent: 78,
+        swap_used_mb: 1_126,
+        pressure_minutes: 4,
+        btm_installed: true,
+        network: vec![("en0".into(), "rx 1.2 MB/s · tx 240 KB/s".into())],
+    });
+    world.memory.usage.push(Usage {
+        path: world.cwd.clone(),
+        command: "holla snapshot system".into(),
+        count: 2,
+    });
+}
 
 fn ssh_hosts_devbox() -> Vec<SshHost> {
     vec![

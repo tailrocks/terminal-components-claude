@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, io::Write};
+use std::collections::BTreeMap;
 
 use crate::{
     dispatch::{self, Destination},
@@ -173,7 +173,7 @@ enum Route {
     Files,
     Cleanup,
     Review,
-    Snapshot,
+    Snapshot(snapshot::Kind),
     DiskScan,
     TaskRun,
 }
@@ -185,7 +185,7 @@ fn opening_route(scenario: Scenario) -> Route {
         Screen::Files => Route::Files,
         Screen::Cleanup => Route::Cleanup,
         Screen::Review => Route::Review,
-        Screen::Snapshot => Route::Snapshot,
+        Screen::Snapshot => Route::Snapshot(snapshot::Kind::Overview),
         Screen::Finder | Screen::Plan => Route::Home,
     }
 }
@@ -333,43 +333,6 @@ fn brand() -> Brand<'static> {
     Brand::new(BRAND, "holla❯").clickable(true)
 }
 
-fn rest_tag_menu(world: &crate::sim::World) -> bool {
-    use crate::sim::catalogue::{
-        parity_browser_tag_frame, parity_cargo_tag_frame, parity_files_tag_frame,
-        parity_git_batch_tag_frame, parity_git_current_tag_frame, parity_history_tag_frame,
-    };
-    parity_git_current_tag_frame(world)
-        || parity_cargo_tag_frame(world)
-        || parity_git_batch_tag_frame(world)
-        || parity_files_tag_frame(world)
-        || parity_browser_tag_frame(world)
-        || parity_history_tag_frame(world)
-}
-
-fn paint_rest_menu_titles(ui: &mut Ui<'_>, menu_x: u16, y: u16) {
-    let plain = ui.paint_patch(
-        &StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Secondary))
-            .remove(termrock::Modifier::BOLD),
-    );
-    let gap = ui.paint_patch(
-        &StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Primary))
-            .remove(termrock::Modifier::BOLD),
-    );
-    let mut x = menu_x;
-    ui.paint_str(Rect::new(x, y, 1, 1), " ", gap);
-    x = x.saturating_add(1);
-    for label in BAR_LABELS {
-        let text = format!(" {label} ");
-        let width = termrock::width(&text);
-        ui.paint_str(Rect::new(x, y, width, 1), &text, plain);
-        x = x.saturating_add(width);
-        ui.paint_str(Rect::new(x, y, 1, 1), " ", gap);
-        x = x.saturating_add(1);
-    }
-}
-
 const MENU_CHROME_EDGE: u16 = 2;
 const MENU_SEGMENT_GAP: u16 = 2;
 
@@ -494,6 +457,71 @@ fn paint_size_label(ui: &mut Ui<'_>, area: Rect) -> u16 {
         .saturating_sub(size_w);
     paint_status_text(ui, area, size_x, &size, STATUS_GREY, false);
     size_x
+}
+
+fn paint_model_home_status(ui: &mut Ui<'_>, area: Rect, world: &World) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, status_ink(ui, STATUS_FG, false));
+
+    let path_x = area.x.saturating_add(STATUS_EDGE);
+    let size_x = paint_size_label(ui, area);
+    let mut disk_meter = None;
+    if let Some(disk) = &world.disk {
+        let percent = if disk.total_bytes == 0 {
+            0
+        } else {
+            let rounded = u128::from(disk.used_bytes)
+                .saturating_mul(100)
+                .saturating_add(u128::from(disk.total_bytes) / 2)
+                .checked_div(u128::from(disk.total_bytes))
+                .unwrap_or(0)
+                .min(100);
+            u32::try_from(rounded).unwrap_or(100)
+        };
+        let filled =
+            usize::try_from(percent.saturating_mul(10).saturating_add(50) / 100).unwrap_or(10);
+        let bar = format!(
+            "{}{}",
+            "━".repeat(filled),
+            "─".repeat(10usize.saturating_sub(filled))
+        );
+        let mark = if percent >= 90 {
+            format!("{percent}% ▲")
+        } else {
+            format!("{percent}%")
+        };
+        let meter_width = termrock::width("/")
+            .saturating_add(1)
+            .saturating_add(termrock::width(&bar))
+            .saturating_add(1)
+            .saturating_add(termrock::width(&mark));
+        let meter_x = size_x
+            .saturating_sub(STATUS_GAP)
+            .saturating_sub(meter_width);
+        if meter_x >= path_x.saturating_add(STATUS_GAP).saturating_add(4) {
+            let mark_color = if percent >= 90 {
+                STATUS_AMBER
+            } else {
+                STATUS_GREY
+            };
+            disk_meter = Some((meter_x, bar, mark, mark_color));
+        }
+    }
+
+    let path_end = disk_meter
+        .as_ref()
+        .map_or_else(|| size_x.saturating_sub(STATUS_GAP), |(x, ..)| *x);
+    let path_width = path_end.saturating_sub(path_x).saturating_sub(STATUS_GAP);
+    let path = termrock::truncate_middle(&world.cwd, path_width);
+    let _ = paint_status_text(ui, area, path_x, &path, STATUS_FG, true);
+
+    if let Some((mut x, bar, mark, mark_color)) = disk_meter {
+        x = paint_status_text(ui, area, x, "/", STATUS_GREY, false).saturating_add(1);
+        x = paint_status_text(ui, area, x, &bar, STATUS_AMBER, false).saturating_add(1);
+        let _ = paint_status_text(ui, area, x, &mark, mark_color, false);
+    }
 }
 
 fn parity_history_tag_plate(world: &World, width: u16, _height: u16) -> bool {
@@ -673,35 +701,6 @@ fn paint_parity_history_status(ui: &mut Ui<'_>, area: Rect) {
         false,
     );
     let _ = paint_size_label(ui, area);
-}
-
-fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let _ = paint_status_text(
-        ui,
-        area,
-        area.x.saturating_add(STATUS_EDGE),
-        "~/scratch",
-        STATUS_FG,
-        true,
-    );
-    let size_x = paint_size_label(ui, area);
-    let mark = "91% ▲";
-    let mark_w = termrock::width(mark);
-    let bar_w = 11u16;
-    let meter_w = 1u16
-        .saturating_add(1)
-        .saturating_add(bar_w)
-        .saturating_add(1)
-        .saturating_add(mark_w);
-    let mut x = size_x.saturating_sub(STATUS_GAP).saturating_sub(meter_w);
-    x = paint_status_text(ui, area, x, "/", STATUS_GREY, false).saturating_add(1);
-    x = paint_status_text(ui, area, x, &"━".repeat(10), STATUS_AMBER, false);
-    x = paint_status_text(ui, area, x, "─", Color::Rgb(0x3a, 0x3a, 0x3a), false).saturating_add(1);
-    let _ = paint_status_text(ui, area, x, mark, STATUS_AMBER, false);
 }
 
 fn paint_remote_host_status(ui: &mut Ui<'_>, area: Rect) {
@@ -1178,6 +1177,12 @@ fn tag_hints(confirm: &'static str, status: Option<&'static str>) -> HintLayer {
 }
 
 fn menu_project(world: &World) -> String {
+    if world.system.is_some()
+        && world.git.is_none()
+        && world.mise.as_ref().is_none_or(|mise| mise.tasks.is_empty())
+    {
+        return "no project".to_owned();
+    }
     match world.scenario {
         Scenario::ParityDiscovery => "probe · Rust project".to_owned(),
         Scenario::ParityHistory => "holla · Rust project".to_owned(),
@@ -1203,9 +1208,6 @@ fn menu_project(world: &World) -> String {
         | Scenario::ParityDiskScan
         | Scenario::ParityPlatforms
         | Scenario::ParityPlatformsLinux => "no project".to_owned(),
-        Scenario::FirstUse if crate::sim::catalogue::first_use_tag_frame(world) => {
-            "no project".to_owned()
-        }
         Scenario::MonorepoRoot if crate::sim::catalogue::monorepo_root_tag_frame(world) => {
             "acme · mise monorepo".to_owned()
         }
@@ -1286,9 +1288,16 @@ impl App {
         let token_recipes = termrock::Theme::from_tokens(source_theme.color).recipes;
         let paper_recipes = termrock::Theme::paper().recipes;
         let junie_recipes = termrock::Theme::junie().recipes;
+        let mut holla_junie_recipes = junie_recipes.clone();
+        let menu_title = holla_junie_recipes
+            .get_mut(termrock::Family::MENU)
+            .variant_mut(termrock::Variant::custom("termrock.menu-bar-title"))
+            .entry(Part::TITLE);
+        menu_title.base = menu_title.base.remove(termrock::Modifier::BOLD);
         let recipes_are_known = source_theme.recipes == token_recipes
             || source_theme.recipes == paper_recipes
-            || source_theme.recipes == junie_recipes;
+            || source_theme.recipes == junie_recipes
+            || source_theme.recipes == holla_junie_recipes;
         let source_foreground = source_theme
             .resolve(
                 termrock::Family::HINTBAR,
@@ -1590,6 +1599,17 @@ impl App {
                 self.plan = Some(PlanState::new(*review));
                 self.route = Route::Plan;
                 cx.focus(plan::STEPS);
+            }
+            Destination::Snapshot(kind) => {
+                self.route = Route::Snapshot(kind);
+                cx.focus(home::QUERY);
+            }
+            Destination::DiskScan => self.open_disk_scan(cx, None),
+            Destination::HostScope => {
+                self.home.scope = Some(Scope::Host);
+                self.home.reconcile_rows(&self.world);
+                self.route = Route::Home;
+                cx.focus(home::ROWS);
             }
             Destination::Activity {
                 id,
@@ -2514,7 +2534,7 @@ impl App {
             }
             Route::Files => Some(files::LIST),
 
-            Route::Disk | Route::Cleanup | Route::Review | Route::Snapshot => {
+            Route::Disk | Route::Cleanup | Route::Review | Route::Snapshot(_) => {
                 location.focus.filter(|focus| *focus == MENU)
             }
             Route::DiskScan => None,
@@ -2617,6 +2637,7 @@ impl App {
                             .and_then(|index| Scope::ORDER.get(index.saturating_add(1)).copied())
                     },
                 );
+                self.home.reconcile_rows(&self.world);
                 self.set_status(format!(
                     "Scope: {}",
                     self.home.scope.map_or("all", Scope::label)
@@ -2656,10 +2677,15 @@ impl App {
             PREVIOUS if self.route == Route::Home => cx.focus_prev(),
             QUERY_ESCAPE if self.route == Route::Home => {
                 if self.home.scope.take().is_some() {
+                    self.home.reconcile_rows(&self.world);
                     self.set_status("Scope: all".into());
                 } else {
-                    self.home.clear_query();
+                    self.home.clear_query(&self.world);
                 }
+            }
+            QUERY_ESCAPE if matches!(self.route, Route::Snapshot(_)) => {
+                self.route = Route::Home;
+                cx.focus(home::QUERY);
             }
             command if self.route == Route::Activity => {
                 if let Some(index) = ACTIVITY_SHORTCUTS
@@ -3005,12 +3031,6 @@ impl App {
             .min(menu_room);
         menu.draw(ui, Rect::new(menu_x, header.y, menu_width, 1), &self.menu);
 
-        if (self.route == Route::Disk && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world))
-            || launch_failure_activity_open(&self.world, ui)
-            || rest_tag_menu(&self.world)
-        {
-            paint_rest_menu_titles(ui, menu_x, header.y);
-        }
         let menu_right = menu_x.saturating_add(menu_width).saturating_sub(1);
         let brand_right = lockup_x.saturating_add(brand_width);
         let used = menu_right.max(brand_right);
@@ -3021,7 +3041,6 @@ impl App {
             menu_project(&self.world)
         };
         let host = if launch_failure_activity_open(&self.world, ui)
-            || crate::sim::catalogue::first_use_tag_frame(&self.world)
             || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
             || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
             || crate::sim::catalogue::activities_multi_tag_frame(&self.world)
@@ -3074,8 +3093,6 @@ impl App {
         let status = Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1);
         if self.world.scenario == Scenario::ParityDiscovery {
             self.paint_parity_status(ui, status);
-        } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
-            paint_first_use_status(ui, status);
         } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
             paint_monorepo_status(ui, status);
         } else if crate::sim::catalogue::activities_multi_tag_frame(&self.world) {
@@ -3108,6 +3125,8 @@ impl App {
             && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
         {
             paint_disk_cleanup_status(ui, status);
+        } else if self.route == Route::Home && self.world.system.is_some() {
+            paint_model_home_status(ui, status, &self.world);
         }
         let footer = regions.footer;
         self.footer_draw(ui, footer, peek);
@@ -3253,8 +3272,6 @@ impl App {
         }
         let tag_confirm = if self.world.scenario == Scenario::ParityDiscovery {
             Some(("Confirm…", None))
-        } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
-            Some(("Open", None))
         } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
             let narrow = layout::Band::of(ui.full().width).is_narrow();
             let mid = layout::Band::of(ui.full().width).is_mid();
@@ -3509,6 +3526,11 @@ impl App {
             && (self.home.scope.is_some() || !self.home.query().is_empty())
         {
             self.keymap.add(KeyPhase::Capture, escape, QUERY_ESCAPE);
+        } else if matches!(self.route, Route::Snapshot(_))
+            && self.overlay.is_none()
+            && !self.menu.is_open()
+        {
+            self.keymap.add(KeyPhase::Capture, escape, QUERY_ESCAPE);
         }
     }
     fn set_status(&mut self, message: String) {
@@ -3595,9 +3617,21 @@ impl App {
         let port_review = self.poll_pending_port_review(cx);
 
         let viewport = cx.viewport();
-        let (home_response, home_action) =
+        let home_active = self.route == Route::Home
+            && !too_small(viewport)
+            && cx.top_layer() == termrock::LayerId::PAGE
+            && !menu_was_open
+            && !self.menu.is_open()
+            && self.overlay.is_none()
+            && self.retired_overlay.is_none()
+            && self.pending_port_review.is_none()
+            && self.port_args_opening.is_none();
+        let (home_response, home_action, home_copy) = if home_active {
             self.home
-                .update(&self.world, cx, home_allocation(viewport), viewport.width);
+                .update(&self.world, cx, home_allocation(viewport), viewport.width)
+        } else {
+            (Response::ignored(), None, None)
+        };
         let (plan_response, plan_event) = self
             .plan
             .as_mut()
@@ -3759,6 +3793,9 @@ impl App {
         let strip = self.strip_update(cx);
         match self.route {
             Route::Home => {
+                if let Some(value) = home_copy {
+                    self.copy_osc52(&value);
+                }
                 if let Some(action) = home_action {
                     let destination = dispatch::invoke(&mut self.world, &action);
                     self.destination(destination, cx);
@@ -3775,7 +3812,7 @@ impl App {
             | Route::Files
             | Route::Cleanup
             | Route::Review
-            | Route::Snapshot => {}
+            | Route::Snapshot(_) => {}
             Route::TaskRun => {}
         }
         controls | menu.erase() | brand.erase() | strip
@@ -3845,14 +3882,6 @@ impl termrock::App for App {
         clock_response | response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
-        if self.route == Route::Home
-            && self.overlay.is_none()
-            && std::io::IsTerminal::is_terminal(&std::io::stdout())
-        {
-            let mut out = std::io::stdout().lock();
-            let _ = out.write_all(b"\x1b[6 q");
-            let _ = out.flush();
-        }
         let area = ui.full();
         let base = ui.surface_style();
         ui.fill(area, base);
@@ -3893,8 +3922,8 @@ impl termrock::App for App {
                 review::draw(&self.world, ui, body);
                 None
             }
-            Route::Snapshot => {
-                snapshot::draw(&self.world, ui, body);
+            Route::Snapshot(kind) => {
+                snapshot::draw(&self.world, ui, body, kind);
                 None
             }
             Route::DiskScan => {
@@ -3998,10 +4027,11 @@ impl termrock::App for App {
             return Response::changed();
         }
         if self.home.scope.take().is_some() {
+            self.home.reconcile_rows(&self.world);
             return Response::changed();
         }
         if !self.home.query().is_empty() {
-            self.home.clear_query();
+            self.home.clear_query(&self.world);
             return Response::changed();
         }
         Response::ignored()

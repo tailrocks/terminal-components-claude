@@ -49,6 +49,9 @@ pub(crate) enum Destination {
     Database,
     Monitor,
     Clone,
+    Snapshot(crate::screens::snapshot::Kind),
+    DiskScan,
+    HostScope,
     Activity {
         id: u32,
         message: String,
@@ -136,6 +139,12 @@ pub(crate) fn invoke(world: &mut World, row: &Action) -> Destination {
         Err(error) => return Destination::Notice(error.to_string()),
     };
     match action.intent_id() {
+        Some("system.resources") => {
+            return Destination::Snapshot(crate::screens::snapshot::Kind::Resources);
+        }
+        Some("disk.usage") => return Destination::DiskScan,
+        Some("scope.system") => return Destination::HostScope,
+        Some("system.monitor") => {}
         Some("pg.locks") => return Destination::Database,
         Some("flow.monitor") => return Destination::Monitor,
         Some("gh.clone") => return Destination::Clone,

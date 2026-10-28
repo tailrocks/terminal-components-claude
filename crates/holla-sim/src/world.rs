@@ -85,6 +85,15 @@ pub enum Msg {
     DiscoveryFailed(Domain),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SystemFacts {
+    pub cpu_percent: u32,
+    pub swap_used_mb: u32,
+    pub pressure_minutes: u32,
+    pub btm_installed: bool,
+    pub network: Vec<(String, String)>,
+}
+
 pub struct World {
     pub effect_revision: u64,
     pub scenario: Scenario,
@@ -93,6 +102,7 @@ pub struct World {
     pub host: Host,
     pub cwd: String,
     pub discovery: Vec<Discovery>,
+    pub system: Option<SystemFacts>,
 
     pub mise: Option<MiseState>,
     pub git: Option<GitRepo>,
@@ -117,6 +127,7 @@ impl World {
             host,
             cwd: cwd.to_owned(),
             discovery: vec![],
+            system: None,
             mise: None,
             git: None,
             ssh: vec![],

@@ -1,13 +1,16 @@
 use std::cell::RefCell;
 
 use termrock::RowUi;
+use termrock::composition::{self, Group};
 use termrock::layout::{ColumnSpec, Track, solve_columns};
 use termrock::theme::CursorStyle;
 use termrock::{
-    BlurPolicy, Chord, Color, Cx, Family, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
-    KeyCode, KeyModifiers, NavList, NavListAction, NavListState, Part, Rect, Response, Role,
-    StateFlags, StylePatch, TextAction, TextCmd, TextInput, TextInputState, TypingPolicy, Ui,
-    Variant,
+    ActionKey, Binding, BlurPolicy, Chord, Color, Cx, Empty, EmptyState, Family, FgStep, FrameRead,
+    Hint, HintKey, HintLayer, Id, Intent, ItemKey, KeyCode, KeyModifiers, MasterDetail,
+    MasterDetailPolicy, MasterDetailState, NavList, NavListAction, NavListState, Panel, Part,
+    Reconcile, Rect, Response, Role, StateFlags, StylePatch, TextAction, TextCmd, TextInput,
+    TextInputState, TextSection, TextViewport, TypingPolicy, Ui, Variant, ViewportAction,
+    ViewportLine, ViewportState,
 };
 
 use crate::domain::action::{Action, Availability, Scope};
@@ -15,6 +18,40 @@ use crate::sim::{catalogue, world::World};
 
 pub(crate) const QUERY: Id = Id::root("home.query");
 pub(crate) const ROWS: Id = Id::root("home.rows");
+pub(crate) const DETAIL_VIEWPORT: Id = Id::root("home.detail.viewport");
+const MASTER_DETAIL: Id = Id::root("home.master-detail");
+const HOME_EMPTY: Id = Id::root("home.empty");
+const DETAIL_EMPTY: Id = Id::root("home.detail.empty");
+const DETAIL_PANEL: Id = Id::root("home.detail.panel");
+const EMPTY_PREVIEW_PANEL_MIN_HEIGHT: u16 = 7;
+const EMPTY_PREVIEW_PANEL_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::GUTTER,
+        StylePatch {
+            glyph: termrock::theme::Slot::Clear,
+            ..StylePatch::new()
+        },
+    ),
+    (
+        Part::TITLE,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Secondary))
+            .remove(termrock::Modifier::BOLD),
+    ),
+];
+const OPEN_PREVIEW: ActionKey = ActionKey::custom("holla.home.open-preview");
+const OPEN_PREVIEW_BINDINGS: &[Binding<ActionKey>] = &[Binding {
+    action: OPEN_PREVIEW,
+    chord: Some(Chord::key(KeyCode::Tab)),
+    cmd: OPEN_PREVIEW,
+    label: "Preview",
+    priority: 60,
+    visible: true,
+}];
+
+fn home_master_detail_policy() -> MasterDetailPolicy {
+    MasterDetailPolicy::default()
+}
 
 const PARITY_ACTION_IDS: [&str; 6] = [
     "git.pull",
@@ -33,6 +70,9 @@ pub(crate) struct HomeState {
     value: String,
     editor: TextInputState,
     rows: NavListState,
+    selected_action: Option<Action>,
+    detail: MasterDetailState,
+    detail_viewport: ViewportState,
     pub(crate) scope: Option<Scope>,
 
     pub(crate) history: bool,
@@ -46,6 +86,9 @@ impl Default for HomeState {
             value: String::new(),
             editor,
             rows: NavListState::default(),
+            selected_action: None,
+            detail: MasterDetailState::default(),
+            detail_viewport: ViewportState::default(),
             scope: None,
             history: false,
         }
@@ -54,8 +97,26 @@ impl Default for HomeState {
 
 pub(crate) struct HomeRow {
     section: &'static str,
-    action: Action,
+    content: HomeRowContent,
     columns: ActionColumns,
+}
+
+enum HomeRowContent {
+    Action(Action),
+    SectionHint(&'static str),
+}
+
+impl HomeRow {
+    fn action(&self) -> Option<&Action> {
+        match &self.content {
+            HomeRowContent::Action(action) => Some(action),
+            HomeRowContent::SectionHint(_) => None,
+        }
+    }
+
+    fn is_disabled(&self) -> bool {
+        self.action().is_none()
+    }
 }
 
 enum ParityItem {
@@ -83,22 +144,26 @@ impl ActionColumns {
         let columns = Self {
             title: rows
                 .iter()
-                .map(|row| termrock::width(&row.action.title))
+                .filter_map(HomeRow::action)
+                .map(|action| termrock::width(&action.title))
                 .max()
                 .unwrap_or(14),
             kind: rows
                 .iter()
-                .map(|row| termrock::width(action_kind_label(row.action.kind)))
+                .filter_map(HomeRow::action)
+                .map(|action| termrock::width(action_kind_label(action.kind)))
                 .max()
                 .unwrap_or(4),
             scope: rows
                 .iter()
-                .map(|row| termrock::width(&scope_text(&row.action)))
+                .filter_map(HomeRow::action)
+                .map(|action| termrock::width(&scope_text(action)))
                 .max()
                 .unwrap_or(4),
             risk: rows
                 .iter()
-                .map(|row| termrock::width(&risk_text(&row.action)))
+                .filter_map(HomeRow::action)
+                .map(|action| termrock::width(&risk_text(action)))
                 .max()
                 .unwrap_or(0),
         };
@@ -110,7 +175,10 @@ impl ActionColumns {
 
 impl std::fmt::Display for HomeRow {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.action.title)
+        match &self.content {
+            HomeRowContent::Action(action) => f.write_str(&action.title),
+            HomeRowContent::SectionHint(hint) => f.write_str(hint),
+        }
     }
 }
 
@@ -119,38 +187,106 @@ impl HomeState {
         self.editor.draft_text().unwrap_or(&self.value)
     }
 
-    pub(crate) fn clear_query(&mut self) {
+    pub(crate) fn clear_query(&mut self, world: &World) {
         self.value.clear();
         self.editor.cancel();
         self.editor.begin("");
+        self.reconcile_rows(world);
+    }
+
+    pub(crate) fn reconcile_rows(&mut self, world: &World) {
+        let rows = self.rows(world);
+        self.reconcile_selection(&rows);
+    }
+
+    fn reconcile_selection(&mut self, rows: &[HomeRow]) {
+        let selected = self
+            .rows
+            .cursor()
+            .and_then(|key| {
+                rows.iter()
+                    .enumerate()
+                    .find(|(_, row)| row_key(row) == key && row.action().is_some())
+            })
+            .or_else(|| {
+                self.rows.current().and_then(|key| {
+                    rows.iter()
+                        .enumerate()
+                        .find(|(_, row)| row_key(row) == key && row.action().is_some())
+                })
+            })
+            .or_else(|| {
+                self.selected_action.as_ref().and_then(|selected| {
+                    rows.iter().enumerate().find(|(_, row)| {
+                        row.action().is_some_and(|action| action.id == selected.id)
+                    })
+                })
+            })
+            .or_else(|| {
+                rows.iter()
+                    .enumerate()
+                    .find(|(_, row)| row.action().is_some())
+            });
+        if let Some((index, row)) = selected {
+            let key = row_key(row);
+            if self.rows.cursor() != Some(key) {
+                self.rows.set_cursor(index, key);
+            }
+            if self.rows.current() != Some(key) {
+                self.rows.set_current(Some(key));
+            }
+            self.selected_action = row.action().cloned();
+        } else {
+            let _ = self.rows.reconcile(0, |_| ItemKey::index(0));
+            self.rows.set_current(None);
+        }
     }
 
     pub(crate) fn rows(&self, world: &World) -> Vec<HomeRow> {
         let recent_first =
             self.query().trim().is_empty() && world.scenario.boot_title() == super::finder::RECENT;
-        catalogue::sections(world)
+        let projected_sections =
+            catalogue::sections_with_filter_state(world, self.query(), self.scope);
+        let sections: Vec<_> = projected_sections
             .into_iter()
-            .flat_map(|section| {
+            .map(|section| {
                 let name = if recent_first && section.name == "Suggested here" {
                     "Explore"
                 } else {
                     section.name
                 };
-                catalogue::visible(
+                let actions = catalogue::visible(
                     &section.actions,
                     self.scope,
                     self.query(),
                     &world.memory,
                     &world.cwd,
-                )
-                .into_iter()
-                .map(move |action| HomeRow {
-                    section: name,
-                    action,
-                    columns: ActionColumns::default(),
-                })
+                );
+                (name, section.empty_hint, actions)
             })
-            .collect()
+            .collect();
+        let show_empty_hints = self.query().trim().is_empty()
+            && self.scope.is_none()
+            && sections.iter().any(|(_, _, actions)| !actions.is_empty());
+        let mut rows = Vec::new();
+        for (section, empty_hint, actions) in sections {
+            let section_is_empty = actions.is_empty();
+            rows.extend(actions.into_iter().map(|action| HomeRow {
+                section,
+                content: HomeRowContent::Action(action),
+                columns: ActionColumns::default(),
+            }));
+            if show_empty_hints && section_is_empty {
+                if let Some(hint) = empty_hint {
+                    rows.push(HomeRow {
+                        section,
+                        content: HomeRowContent::SectionHint(hint),
+                        columns: ActionColumns::default(),
+                    });
+                }
+            }
+        }
+        rows
     }
 
     pub(crate) fn hints(world: &World, rows_focused: bool) -> HintLayer {
@@ -209,7 +345,8 @@ impl HomeState {
         let live_rows = self.rows(world);
         let mut live_ids = Vec::with_capacity(live_rows.len());
         for row in &live_rows {
-            let id = row.action.id.as_str();
+            let action = row.action()?;
+            let id = action.id.as_str();
             if !PARITY_ACTION_IDS.contains(&id) || live_ids.contains(&id) {
                 return None;
             }
@@ -241,8 +378,11 @@ impl HomeState {
                         return None;
                     }
                     action_index = action_index.saturating_add(1);
-                    if let Some(row) = live_rows.iter().find(|row| row.action.id == expected_id) {
-                        if row.action != action {
+                    if let Some(row) = live_rows.iter().find(|row| {
+                        row.action()
+                            .is_some_and(|live_action| live_action.id == expected_id)
+                    }) {
+                        if row.action()? != &action {
                             return None;
                         }
                         items.push(ParityItem::Action {
@@ -273,16 +413,49 @@ impl HomeState {
 
     pub(crate) fn selected(&self, world: &World) -> Option<Action> {
         let rows = self.rows(world);
-        self.rows
+        let selected = self
+            .rows
             .cursor()
             .and_then(|key| rows.iter().find(|row| row_key(row) == key))
-            .or_else(|| rows.first())
-            .map(|row| row.action.clone())
+            .and_then(HomeRow::action)
+            .or_else(|| {
+                self.rows
+                    .current()
+                    .and_then(|key| rows.iter().find(|row| row_key(row) == key))
+                    .and_then(HomeRow::action)
+            })
+            .or_else(|| rows.iter().find_map(HomeRow::action));
+        selected.cloned()
+    }
+
+    fn selected_visible(&self, world: &World) -> Option<Action> {
+        let rows = self.rows(world);
+        let selected = self
+            .rows
+            .cursor()
+            .and_then(|key| rows.iter().find(|row| row_key(row) == key))
+            .and_then(HomeRow::action)
+            .or_else(|| {
+                self.rows
+                    .current()
+                    .and_then(|key| rows.iter().find(|row| row_key(row) == key))
+                    .and_then(HomeRow::action)
+            })
+            .or_else(|| rows.iter().find_map(HomeRow::action));
+        selected.cloned()
     }
 
     pub(crate) fn focus_first(&mut self, world: &World, cx: &mut Cx<'_>) {
-        if let Some(row) = self.rows(world).first() {
-            self.rows.set_cursor(0, row_key(row));
+        let rows = self.rows(world);
+        if let Some((index, row)) = rows
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.action().is_some())
+        {
+            let key = row_key(row);
+            self.rows.set_cursor(index, key);
+            self.rows.set_current(Some(key));
+            self.selected_action = row.action().cloned();
             cx.focus(ROWS);
         } else {
             cx.focus_next();
@@ -290,10 +463,11 @@ impl HomeState {
     }
 
     pub(crate) fn subject(&self, world: &World, cx: &Cx<'_>) -> Option<Action> {
-        if cx.state(QUERY).contains(StateFlags::FOCUSED) {
-            self.rows(world).into_iter().next().map(|row| row.action)
-        } else if cx.state(ROWS).contains(StateFlags::FOCUSED) {
-            self.selected(world)
+        if cx.state(QUERY).contains(StateFlags::FOCUSED)
+            || cx.state(ROWS).contains(StateFlags::FOCUSED)
+            || cx.state(DETAIL_VIEWPORT).contains(StateFlags::FOCUSED)
+        {
+            self.selected_visible(world)
         } else {
             None
         }
@@ -305,7 +479,8 @@ impl HomeState {
         cx: &mut Cx<'_>,
         home_area: Option<Rect>,
         viewport_width: u16,
-    ) -> (Response<()>, Option<Action>) {
+    ) -> (Response<()>, Option<Action>, Option<String>) {
+        let previous_selected = self.selected(world).map(|action| action.id);
         let rows_own_navigation = cx.state(ROWS).contains(StateFlags::FOCUSED)
             && catalogue::parity_discovery(world).is_some();
         let mut text =
@@ -316,6 +491,33 @@ impl HomeState {
             self.editor.begin(&self.value);
         }
         let rows = self.rows(world);
+        let retained = previous_selected.as_ref().and_then(|id| {
+            rows.iter().enumerate().find(|(_, row)| {
+                row.action()
+                    .is_some_and(|action| action.id.as_str() == id.as_str())
+            })
+        });
+        let first_action = rows
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.action().is_some());
+        if let Some((index, row)) = retained.or(first_action) {
+            let key = row_key(row);
+            if self.rows.cursor() != Some(key) {
+                self.rows.set_cursor(index, key);
+            }
+        }
+        let master_detail = MasterDetail::new(MASTER_DETAIL, ROWS, DETAIL_VIEWPORT)
+            .policy(home_master_detail_policy())
+            .detail_owns(&[DETAIL_VIEWPORT]);
+        let master_detail_active = home_area.is_some()
+            && cx.layout(MASTER_DETAIL).is_some()
+            && cx.top_layer() == termrock::LayerId::PAGE;
+        let mut response = if master_detail_active {
+            master_detail.update(cx, &mut self.detail).erase()
+        } else {
+            Response::ignored()
+        };
         let discovery = home_area.and_then(|area| {
             let (_, rows_area, _) = home_rows_layout(area, world, self.query());
             let layout = parity_action_layout(rows_area, viewport_width, !rows.is_empty())?;
@@ -330,6 +532,28 @@ impl HomeState {
         } else {
             nav_list().update(cx, &mut self.rows, &rows)
         };
+        self.reconcile_selection(&rows);
+        let query_preview = cx
+            .intents(QUERY)
+            .any(|intent| matches!(intent, Intent::Binding(action) if action == OPEN_PREVIEW));
+        let rows_preview = cx
+            .intents(ROWS)
+            .any(|intent| matches!(intent, Intent::Binding(action) if action == OPEN_PREVIEW));
+        if master_detail_active && query_preview {
+            cx.focus_next();
+            response |= Response::consumed();
+        } else if master_detail_active && rows_preview {
+            let collapsed = home_area.is_some_and(|area| {
+                let (_, rows_area, _) = home_rows_layout(area, world, self.query());
+                home_master_detail_policy().is_collapsed(rows_area.width)
+            });
+            if collapsed {
+                response |= master_detail.open_detail(cx, &mut self.detail).erase();
+            } else {
+                cx.focus_next();
+                response |= Response::consumed();
+            }
+        }
         let chosen = match navigation.take_action() {
             Some(NavListAction::LeaveBackward) => {
                 cx.focus_prev();
@@ -349,13 +573,34 @@ impl HomeState {
                 } else {
                     rows.iter()
                         .find(|row| row_key(row) == key)
-                        .map(|row| row.action.clone())
+                        .and_then(HomeRow::action)
+                        .cloned()
                 }
             }
-            _ if submit => rows.first().map(|row| row.action.clone()),
+            _ if submit => self.selected_visible(world),
             _ => None,
         };
-        (text.erase() | navigation.erase(), chosen)
+        let mut copy = None;
+        if master_detail_active && let Some(area) = home_area {
+            let (_, rows_area, _) = home_rows_layout(area, world, self.query());
+            let visible = !home_master_detail_policy().is_collapsed(rows_area.width)
+                || self.detail.drawer_open();
+            if visible {
+                let text_lines =
+                    detail_text_lines(self.selected(world).as_ref(), world, self.history);
+                let viewport_lines = viewport_lines(&text_lines);
+                let viewport = TextViewport::new(DETAIL_VIEWPORT)
+                    .wrap(true)
+                    .reserve_gutter(false);
+                let detail_response =
+                    viewport.update(cx, &mut self.detail_viewport, &viewport_lines);
+                if let Some(ViewportAction::Copy(value)) = detail_response.action_ref() {
+                    copy = Some(value.clone());
+                }
+                response |= detail_response.erase();
+            }
+        }
+        (text.erase() | navigation.erase() | response, chosen, copy)
     }
 
     #[expect(
@@ -412,11 +657,6 @@ impl HomeState {
         }
         if paints_recent_lead {
             super::finder::paint_recent_lead(ui, lead_area);
-        }
-        if let Some(view) = catalogue::first_use_view(world, ui.full().width, self.history)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return None;
         }
         if let Some(view) = catalogue::monorepo_root_view(world, ui.full().width, self.history)
             && paint_narrow_tag_list(ui, rows_area, &view)
@@ -505,8 +745,7 @@ impl HomeState {
         {
             return None;
         }
-        if let Some(view) = catalogue::first_use_plate(world, self.history)
-            .or_else(|| catalogue::monorepo_root_plate(world, self.history))
+        if let Some(view) = catalogue::monorepo_root_plate(world, self.history)
             .or_else(|| catalogue::monorepo_child_tag(world))
             .or_else(|| catalogue::activities_multi_plate(world, self.history))
             .or_else(|| catalogue::remote_host_tag(world))
@@ -524,7 +763,118 @@ impl HomeState {
         let collect_peek = !ui.is_inert()
             && !ui.is_covered_by_native_layer()
             && ui.owner_has_focus_presentation(ROWS);
-        if rows.is_empty() {
+        if catalogue::parity_discovery(world).is_none() {
+            let selected = self.selected_visible(world);
+            let preview = selected
+                .as_ref()
+                .map(|action| catalogue::action_preview(world, action, self.history));
+            let selected_title = selected
+                .as_ref()
+                .map_or("Nothing to preview", |action| action.title.as_str());
+            let selected_meta = preview
+                .as_ref()
+                .map_or("Esc clears the query", |preview| preview.meta.as_str());
+            let lines = preview
+                .as_ref()
+                .map(|preview| {
+                    preview
+                        .lines
+                        .iter()
+                        .map(|line| format!("{}: {}", line.label, line.value))
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
+            let line_refs = viewport_lines(&lines);
+            let list = nav_list_with_row(|row, cells| {
+                let row_is_visible = !cells.area().intersection(clip).is_empty();
+                let collector = (collect_peek && row_is_visible).then_some(&peek);
+                paint_action_with_peek(row, cells, collector);
+            });
+            let empty_title = empty_result_title(self.query(), self.scope);
+            let empty_hint = empty_result_hint(self.query(), self.scope);
+            let empty_slot = |ui: &mut Ui<'_>, empty_area: Rect| {
+                let _ = list.draw(ui, empty_area, &self.rows, &rows);
+                let empty_state = EmptyState::Empty {
+                    title: &empty_title,
+                    hint: Some(&empty_hint),
+                };
+                let _ = Empty::new(HOME_EMPTY, empty_state).draw(ui, empty_area);
+            };
+            let empty = Empty::new(
+                HOME_EMPTY,
+                EmptyState::Empty {
+                    title: &empty_title,
+                    hint: Some(&empty_hint),
+                },
+            )
+            .slot(Part::EMPTY, &empty_slot);
+            let master = if rows.is_empty() {
+                Group::column([composition::empty(&empty).flex(1)])
+            } else {
+                Group::column([composition::nav_list(&list, &self.rows, &rows).flex(1)])
+            };
+            let summary = TextSection::new(selected_title).inset(1);
+            let summary = Group::column([composition::text_section(&summary)]);
+            let viewport = TextViewport::new(DETAIL_VIEWPORT)
+                .wrap(true)
+                .reserve_gutter(false);
+            let panel = Panel::new(DETAIL_PANEL)
+                .title("Preview")
+                .focused(ui.state(DETAIL_VIEWPORT).contains(StateFlags::FOCUSED));
+            let empty_panel = Panel::new(DETAIL_PANEL)
+                .title("Preview")
+                .focused(ui.state(DETAIL_VIEWPORT).contains(StateFlags::FOCUSED))
+                .patch_part(EMPTY_PREVIEW_PANEL_PARTS);
+            let heading = TextSection::new(selected_title)
+                .subtitle(selected_meta)
+                .inset(1);
+            let empty_preview_hint = home_clear_hint(self.query(), self.scope);
+            let empty_preview_slot = |ui: &mut Ui<'_>, detail_area: Rect| {
+                let _ = viewport.draw(ui, detail_area, &self.detail_viewport, &line_refs);
+                let empty_state = EmptyState::Empty {
+                    title: "Nothing to preview",
+                    hint: empty_preview_hint,
+                };
+                let empty = Empty::new(DETAIL_EMPTY, empty_state);
+                let _ = empty.draw(ui, detail_area);
+            };
+            let empty_preview = Empty::new(
+                DETAIL_EMPTY,
+                EmptyState::Empty {
+                    title: "Nothing to preview",
+                    hint: empty_preview_hint,
+                },
+            )
+            .slot(Part::EMPTY, &empty_preview_slot);
+            let detail = if selected.is_some() {
+                let body = Group::column([
+                    composition::text_section(&heading),
+                    composition::text_viewport(&viewport, &self.detail_viewport, &line_refs)
+                        .flex(1),
+                ]);
+                let detail_panel = composition::panel(&panel, body.into_child());
+                Group::column([detail_panel.flex(1)])
+            } else {
+                let detail_panel =
+                    composition::panel(&empty_panel, composition::empty(&empty_preview).flex(1));
+                Group::column([detail_panel
+                    .min(0, EMPTY_PREVIEW_PANEL_MIN_HEIGHT)
+                    .max(None, Some(EMPTY_PREVIEW_PANEL_MIN_HEIGHT))])
+            };
+            let layout = MasterDetail::new(MASTER_DETAIL, ROWS, DETAIL_VIEWPORT)
+                .policy(home_master_detail_policy())
+                .master(&master)
+                .detail(&detail)
+                .summary(&summary)
+                .detail_owns(&[DETAIL_VIEWPORT]);
+            let _ = ui.with_area(rows_area, |ui| layout.show(ui, &self.detail));
+            if !ui.is_inert() && !ui.is_covered_by_native_layer() {
+                let query_state = ui.state(QUERY);
+                ui.publish_additional_bindings(QUERY, query_state, OPEN_PREVIEW_BINDINGS);
+                let rows_state = ui.state(ROWS);
+                ui.publish_additional_bindings(ROWS, rows_state, OPEN_PREVIEW_BINDINGS);
+            }
+        } else if rows.is_empty() {
             paint_empty_home_rows(ui, rows_area, self.query(), self.scope);
         } else {
             nav_list_with_row(|row, cells| {
@@ -639,6 +989,7 @@ where
         .leave_at_boundary(true)
         .header_indent(SECTION_INDENT)
         .section(&section)
+        .disabled_item(&home_row_disabled)
         .patch_part(HEADER_PARTS)
         .header_text_patch(&HEADER_TEXT)
         .key(row_key)
@@ -649,7 +1000,14 @@ fn nav_list()
     nav_list_with_row(paint_action)
 }
 fn row_key(row: &HomeRow) -> ItemKey {
-    ItemKey::text(&row.action.id)
+    match &row.content {
+        HomeRowContent::Action(action) => ItemKey::text(&action.id),
+        HomeRowContent::SectionHint(_) => ItemKey::text("home.section.recent.empty"),
+    }
+}
+
+fn home_row_disabled(row: &HomeRow) -> bool {
+    row.is_disabled()
 }
 
 fn parity_item_key(item: &ParityItem) -> ItemKey {
@@ -722,14 +1080,7 @@ fn paint_parity_item(
 }
 
 fn paint_empty_home_rows(ui: &mut Ui<'_>, area: Rect, query: &str, scope: Option<Scope>) {
-    let note = if query.trim().is_empty() {
-        scope.map_or_else(
-            || "Nothing discovered here yet".to_owned(),
-            |scope| format!("Nothing in scope {} here", scope.label()),
-        )
-    } else {
-        format!("Nothing matches “{}” here", query.trim())
-    };
+    let note = empty_home_message(query, scope);
     let style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
     ui.paint_str(
         Rect::new(
@@ -743,6 +1094,63 @@ fn paint_empty_home_rows(ui: &mut Ui<'_>, area: Rect, query: &str, scope: Option
     );
 }
 
+fn empty_home_message(query: &str, scope: Option<Scope>) -> String {
+    if query.trim().is_empty() {
+        scope.map_or_else(
+            || "Nothing discovered here yet".to_owned(),
+            |scope| format!("Nothing in scope {} here", scope.label()),
+        )
+    } else {
+        format!("Nothing matches “{}” here", query.trim())
+    }
+}
+
+fn empty_result_title(query: &str, scope: Option<Scope>) -> String {
+    let query = query.trim();
+    if !query.is_empty() {
+        format!("No matches for “{query}”")
+    } else {
+        scope.map_or_else(
+            || "Nothing discovered here yet".to_owned(),
+            |scope| format!("Nothing discovered in {} scope", scope.label()),
+        )
+    }
+}
+
+fn home_clear_hint(query: &str, scope: Option<Scope>) -> Option<&'static str> {
+    if scope.is_some() {
+        Some("Esc clears the scope")
+    } else if !query.trim().is_empty() {
+        Some("Esc clears the query")
+    } else {
+        None
+    }
+}
+
+fn empty_result_hint(query: &str, scope: Option<Scope>) -> String {
+    home_clear_hint(query, scope).map_or_else(
+        || "Ctrl+S changes scope".to_owned(),
+        |clear_hint| format!("{clear_hint} · Ctrl+S changes scope"),
+    )
+}
+
+fn viewport_lines(lines: &[String]) -> Vec<ViewportLine<'_>> {
+    lines
+        .iter()
+        .map(|line| ViewportLine::from(line.as_str()))
+        .collect()
+}
+
+fn detail_text_lines(action: Option<&Action>, world: &World, history: bool) -> Vec<String> {
+    action.map_or_else(Vec::new, |action| {
+        catalogue::action_preview(world, action, history)
+            .lines
+            .into_iter()
+            .map(|line| format!("{}: {}", line.label, line.value))
+            .collect()
+    })
+}
+
 fn paint_action(row: &HomeRow, cells: &mut RowUi<'_>) {
     paint_action_with_peek(row, cells, None);
 }
@@ -752,11 +1160,17 @@ fn paint_action_with_peek(
     cells: &mut RowUi<'_>,
     peek: Option<&RefCell<Option<String>>>,
 ) {
+    let action = match &row.content {
+        HomeRowContent::Action(action) => action,
+        HomeRowContent::SectionHint(hint) => {
+            cells.label_patched(hint, &StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
+            return;
+        }
+    };
     let candidate_eligible = peek.is_some()
         && cells.flags().contains(StateFlags::FOCUSED)
         && !cells.flags().contains(StateFlags::DISABLED)
         && !cells.area().is_empty();
-    let action = &row.action;
     let kind = action_kind_label(action.kind);
     let scope = scope_text(action);
     let risk = risk_text(action);

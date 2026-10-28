@@ -1,4 +1,4 @@
-use crate::domain::action::{Action, ActionKind, Availability, Risk, Scope};
+use crate::domain::action::{Action, ActionIntent, ActionKind, Availability, Risk, Scope};
 use crate::domain::docker::Health;
 use crate::domain::human_bytes;
 use crate::domain::mise::Trust;
@@ -9,6 +9,7 @@ use crate::world::{Domain, World};
 pub struct Section {
     pub name: &'static str,
     pub actions: Vec<Action>,
+    pub empty_hint: Option<&'static str>,
 }
 
 pub fn catalogue(w: &World) -> Vec<Action> {
@@ -20,17 +21,25 @@ pub fn catalogue(w: &World) -> Vec<Action> {
     git_actions(w, &mut out);
     docker_actions(w, &mut out);
     disk_actions(w, &mut out);
+    first_use_actions(w, &mut out);
     pg_actions(w, &mut out);
     ssh_actions(w, &mut out);
     github_actions(w, &mut out);
     debian_actions(w, &mut out);
     flow_actions(w, &mut out);
     out.push(crate::port_args::catalogue_action(w));
-    recent_actions(w, &mut out);
+    if history_enabled() {
+        recent_actions(w, &mut out);
+    }
     out
 }
 
 pub fn sections(w: &World) -> Vec<Section> {
+    sections_with_filter_state(w, "", None)
+}
+
+pub fn sections_with_filter_state(w: &World, query: &str, scope: Option<Scope>) -> Vec<Section> {
+    let deduplicate_recent = query.trim().is_empty() && scope.is_none();
     if let Some(view) = parity_discovery(w) {
         let suggested = view
             .actions
@@ -48,60 +57,129 @@ pub fn sections(w: &World) -> Vec<Section> {
             Section {
                 name: "Suggested here",
                 actions: suggested,
+                empty_hint: None,
             },
             Section {
                 name: "Explore",
                 actions: explore,
+                empty_hint: None,
             },
         ];
     }
     let mut all = catalogue(w);
     rank(w, &mut all);
+    let history = history_enabled();
 
     for a in &mut all {
+        if history && !a.id.starts_with("recent:") && !a.id.starts_with("pin:") {
+            let count = w.memory.usage_at(&w.cwd, &a.command);
+            if count > 0 {
+                a.reason
+                    .push_str(&format!(" · used {} on {}", times(count), w.host.name));
+            }
+        }
         if let Some(name) = w.memory.alias_for(&a.command) {
             a.reason = format!("{} · alias {name}", a.reason);
         }
     }
-    let suggested: Vec<Action> = all.iter().take(4).cloned().collect();
-    let suggested_ids: Vec<&str> = suggested.iter().map(|a| a.id.as_str()).collect();
-    let recent: Vec<Action> = all
+    let suggested_candidates: Vec<Action> = all.iter().take(4).cloned().collect();
+    let suggested: Vec<Action> = suggested_candidates
         .iter()
-        .filter(|a| a.id.starts_with("recent:") && !suggested_ids.contains(&a.id.as_str()))
+        .filter(|action| {
+            !deduplicate_recent
+                || !action.id.starts_with("recent:")
+                || !suggested_candidates.iter().any(|candidate| {
+                    is_canonical_action(candidate) && same_canonical_intent(action, candidate)
+                })
+        })
         .cloned()
         .collect();
+    let suggested_ids: Vec<&str> = suggested.iter().map(|a| a.id.as_str()).collect();
+    let recent_records: Vec<&Action> = all
+        .iter()
+        .filter(|action| action.id.starts_with("recent:"))
+        .collect();
+    let deduplicated_recent_ids: Vec<String> = recent_records
+        .iter()
+        .filter(|action| {
+            deduplicate_recent
+                && suggested.iter().any(|candidate| {
+                    is_canonical_action(candidate) && same_canonical_intent(action, candidate)
+                })
+        })
+        .map(|action| action.id.clone())
+        .collect();
+    let has_recent_records = !recent_records.is_empty();
+    let recent: Vec<Action> = recent_records
+        .iter()
+        .filter(|action| {
+            !suggested_ids.contains(&action.id.as_str())
+                && !deduplicated_recent_ids.contains(&action.id)
+        })
+        .map(|action| (**action).clone())
+        .collect();
+    let recent_empty_hint = if deduplicate_recent && history && recent.is_empty() {
+        Some(if !has_recent_records {
+            "nothing used here yet"
+        } else {
+            "everything used here is suggested above"
+        })
+    } else {
+        None
+    };
     let recent_ids: Vec<&str> = recent.iter().map(|a| a.id.as_str()).collect();
     let explore: Vec<Action> = all
         .into_iter()
-        .filter(|a| !suggested_ids.contains(&a.id.as_str()) && !recent_ids.contains(&a.id.as_str()))
+        .filter(|a| {
+            !suggested_ids.contains(&a.id.as_str())
+                && !recent_ids.contains(&a.id.as_str())
+                && !deduplicated_recent_ids.contains(&a.id)
+        })
         .collect();
     let mut out = vec![];
     if !suggested.is_empty() {
         out.push(Section {
             name: "Suggested here",
             actions: suggested,
+            empty_hint: None,
         });
     }
-    if !recent.is_empty() {
+    if !recent.is_empty() || recent_empty_hint.is_some() {
         out.push(Section {
             name: "Recent here",
             actions: recent,
+            empty_hint: recent_empty_hint,
         });
     }
     if !explore.is_empty() {
         out.push(Section {
             name: "Explore",
             actions: explore,
+            empty_hint: None,
         });
     }
     out
 }
 
+fn is_canonical_action(action: &Action) -> bool {
+    !action.id.starts_with("recent:")
+        && !action.id.starts_with("pin:")
+        && matches!(action.intent(), ActionIntent::Canonical(_))
+}
+
+fn same_canonical_intent(left: &Action, right: &Action) -> bool {
+    matches!(
+        (left.intent(), right.intent()),
+        (ActionIntent::Canonical(left), ActionIntent::Canonical(right)) if left == right
+    )
+}
+
 #[expect(
     clippy::arithmetic_side_effects,
-    reason = "Closed scope weights and capped usage bound the total score to 390"
+    reason = "Closed scope, bounded memory, urgency, and system facts cap scores at 880"
 )]
 pub fn rank(w: &World, actions: &mut [Action]) {
+    let history = history_enabled();
     let score = |a: &Action| -> i32 {
         let mut s = a.scope.weight();
 
@@ -111,7 +189,19 @@ pub fn rank(w: &World, actions: &mut [Action]) {
         if w.memory.alias_for(&a.command).is_some() {
             s += 90;
         }
-        s += w.memory.usage_at(&w.cwd, &a.command).min(10) as i32 * 2;
+        if history {
+            let usage = w.memory.usage_at(&w.cwd, &a.command).min(10) as i32;
+            s += usage * if a.scope == Scope::Host { 40 } else { 2 };
+        }
+        if a.id == "system.resources"
+            && let Some(system) = &w.system
+        {
+            s += i32::try_from(system.cpu_percent.min(100) / 5).unwrap_or_default();
+            s += i32::try_from(system.pressure_minutes.min(4)).unwrap_or_default() * 20;
+            if system.swap_used_mb > 0 {
+                s += 10;
+            }
+        }
         if urgent(a) {
             s += 30;
         }
@@ -492,6 +582,107 @@ fn disk_actions(w: &World, out: &mut Vec<Action>) {
     }
 }
 
+fn first_use_actions(w: &World, out: &mut Vec<Action>) {
+    let Some(system) = &w.system else { return };
+    let host = w.host.name.as_str();
+    let reason = if system.pressure_minutes > 0 {
+        format!(
+            "CPU {}% for {} min",
+            system.cpu_percent, system.pressure_minutes
+        )
+    } else {
+        format!(
+            "CPU {}% · memory {:.1} of {:.1} GiB",
+            system.cpu_percent,
+            f64::from(w.host.metrics.mem_used_mb) / 1_024.0,
+            f64::from(w.host.metrics.mem_total_mb) / 1_024.0
+        )
+    };
+    let mut resources = Action::new(
+        "system.resources",
+        "Show system resources",
+        ActionKind::System,
+        Scope::Host,
+        &reason,
+        Risk::ReadOnly,
+        host,
+        "holla snapshot system",
+    );
+    resources.scope_label = host.to_owned();
+    resources.workdir.clone_from(&w.cwd);
+    resources.keywords =
+        "system resources cpu memory load pressure what uses cpu what uses memory slow".into();
+    out.push(resources);
+
+    if system.btm_installed {
+        let mut monitor = Action::new(
+            "system.monitor",
+            "Open btm",
+            ActionKind::Flow,
+            Scope::Host,
+            if system.pressure_minutes > 0 {
+                "sustained pressure · continuous view fits"
+            } else {
+                "btm installed · continuous view available"
+            },
+            Risk::ReadOnly,
+            host,
+            "btm",
+        );
+        monitor.scope_label = host.to_owned();
+        monitor.workdir.clone_from(&w.cwd);
+        monitor.long_running = true;
+        monitor.keywords = "btm bottom monitor top htop processes system monitor".into();
+        out.push(monitor);
+    }
+
+    let mut scope = Action::new(
+        "scope.system",
+        &format!("System · {host}"),
+        ActionKind::System,
+        Scope::Host,
+        "available on this host",
+        Risk::ReadOnly,
+        host,
+        "",
+    );
+    scope.scope_label = host.to_owned();
+    scope.workdir.clone_from(&w.cwd);
+    scope.keywords = "system host scope".into();
+    out.push(scope);
+
+    let Some(disk) = &w.disk else { return };
+    if disk.validate(&w.cwd).is_err() {
+        return;
+    }
+    let percent = rounded_percent(disk.used_bytes, disk.total_bytes);
+    let mut disk_usage = Action::new(
+        "disk.usage",
+        "Analyze disk usage",
+        ActionKind::Flow,
+        Scope::Here,
+        &format!("/ is {percent}% full"),
+        Risk::ReadOnly,
+        &w.cwd,
+        "holla disk analyze",
+    );
+    disk_usage.workdir.clone_from(&w.cwd);
+    disk_usage.keywords = "disk usage why disk full space largest du analyze full scan here".into();
+    out.push(disk_usage);
+}
+
+fn rounded_percent(used: u64, total: u64) -> u32 {
+    if total == 0 {
+        return 0;
+    }
+    let rounded = u128::from(used)
+        .saturating_mul(100)
+        .saturating_add(u128::from(total) / 2)
+        .checked_div(u128::from(total))
+        .unwrap_or(0);
+    u32::try_from(rounded).unwrap_or(u32::MAX)
+}
+
 fn pg_actions(w: &World, out: &mut Vec<Action>) {
     if !w.discovered(Domain::Pg) {
         return;
@@ -614,18 +805,20 @@ fn inventory_note(
 }
 
 fn flow_actions(w: &World, out: &mut Vec<Action>) {
-    let mut btm = Action::new(
-        "flow.monitor",
-        "Monitor this host",
-        ActionKind::Flow,
-        Scope::Host,
-        "btm available on this host · hands off and returns",
-        Risk::ReadOnly,
-        &w.host.name,
-        "btm",
-    );
-    btm.scope_label.clone_from(&w.host.name);
-    out.push(btm);
+    if w.system.is_none() {
+        let mut btm = Action::new(
+            "flow.monitor",
+            "Monitor this host",
+            ActionKind::Flow,
+            Scope::Host,
+            "btm available on this host · hands off and returns",
+            Risk::ReadOnly,
+            &w.host.name,
+            "btm",
+        );
+        btm.scope_label.clone_from(&w.host.name);
+        out.push(btm);
+    }
     if w.disk.is_none() && w.discovered(Domain::Disk) {
         out.push(Action::new(
             "flow.disk",
@@ -838,12 +1031,234 @@ pub struct ParityDiscovery {
     pub suggested_len: usize,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActionPreview {
+    pub lines: Vec<PreviewLine>,
+    pub meta: String,
+}
+
+pub fn action_preview(w: &World, action: &Action, history: bool) -> ActionPreview {
+    let mut lines = Vec::new();
+    let mut add = |label, value: String, tone, wraps| {
+        lines.push(PreviewLine {
+            label,
+            value,
+            tone,
+            wraps,
+        });
+    };
+    let does = match action.command.as_str() {
+        "holla snapshot system" => {
+            "CPU, load, memory, swap, pressure, disk and network snapshot with a separate btm handoff"
+        }
+        "holla snapshot processes" => "processes by CPU and memory",
+        "holla disk analyze" => {
+            "largest-first tree of this folder that deepens as the scan streams"
+        }
+        "btm" if action.long_running => {
+            "continuous host monitoring through the simulated activity lifecycle"
+        }
+        _ if action.command.is_empty() && action.scope == Scope::Host => {
+            "show actions for the current host"
+        }
+        _ => &action.reason,
+    };
+    add("Does", does.to_owned(), PreviewTone::Text, true);
+    add(
+        "Runs",
+        if action.command.is_empty() {
+            "no command · opens inside holla".to_owned()
+        } else {
+            format!("'{}'", action.command)
+        },
+        PreviewTone::Secondary,
+        true,
+    );
+    let workdir = if action.workdir.is_empty() {
+        &action.target
+    } else {
+        &action.workdir
+    };
+    add(
+        "In",
+        if !action.workdir.is_empty() {
+            action.workdir.clone()
+        } else {
+            workdir.to_owned()
+        },
+        PreviewTone::Text,
+        true,
+    );
+    if action.scope == Scope::Host {
+        add("Host", w.host.identity(), PreviewTone::Text, false);
+    }
+    if !action.scope_label.is_empty()
+        && (action.scope != Scope::Host || action.scope_label != w.host.name)
+    {
+        add(
+            "Place",
+            action.scope_label.clone(),
+            PreviewTone::Text,
+            false,
+        );
+    }
+    add(
+        "Scope",
+        action.scope.label().to_owned(),
+        PreviewTone::Text,
+        false,
+    );
+    let mut reason = action.reason.clone();
+    if history {
+        let count = w.memory.usage_at(&w.cwd, &action.command);
+        if count > 0 && !reason.contains("used ") {
+            reason.push_str(&format!(" · used {} on {}", times(count), w.host.name));
+        }
+    }
+    add("Why", reason, PreviewTone::Text, true);
+    add(
+        "Changes",
+        if action.risk == Risk::ReadOnly {
+            "none · read-only".into()
+        } else {
+            action.changes()
+        },
+        PreviewTone::Text,
+        true,
+    );
+    add(
+        "Risk",
+        match action.risk {
+            Risk::ReadOnly => "read-only",
+            Risk::Bounded => "bounded",
+            Risk::Broad => "broad",
+        }
+        .into(),
+        PreviewTone::Meta,
+        false,
+    );
+    add(
+        "Gate",
+        match &action.availability {
+            Availability::NeedsTrust(file) => {
+                format!("trust {} before this action can run", file)
+            }
+            Availability::Blocked(reason) => format!("blocked · {reason}"),
+            Availability::Ready => match action.command.as_str() {
+                "holla snapshot system" | "holla disk analyze" => {
+                    "opens a modeled Holla screen · nothing executed".to_owned()
+                }
+                "btm" if action.long_running => {
+                    "starts a simulated activity · nothing executed".to_owned()
+                }
+                _ if action.command.is_empty() && action.scope == Scope::Host => {
+                    "changes the native host scope · nothing executed".to_owned()
+                }
+                _ => action.risk.confirmation().to_owned(),
+            },
+        },
+        PreviewTone::Meta,
+        true,
+    );
+    match action.command.as_str() {
+        "holla disk analyze" => {
+            let (data, tone) = w.disk.as_ref().map_or_else(
+                || ("disk inventory unavailable".to_owned(), PreviewTone::Danger),
+                |disk| {
+                    (
+                        format!(
+                            "{}% full · {} used of {}",
+                            rounded_percent(disk.used_bytes, disk.total_bytes),
+                            human_bytes(disk.used_bytes),
+                            human_bytes(disk.total_bytes)
+                        ),
+                        PreviewTone::Muted,
+                    )
+                },
+            );
+            add("Data", data, tone, true);
+        }
+        "holla snapshot system" => {
+            if let Some(system) = &w.system {
+                let metrics = &w.host.metrics;
+                let disk = w.disk.as_ref().map_or_else(
+                    || "disk unavailable".to_owned(),
+                    |disk| {
+                        format!(
+                            "disk {}%",
+                            rounded_percent(disk.used_bytes, disk.total_bytes)
+                        )
+                    },
+                );
+                add(
+                    "Data",
+                    format!(
+                        "CPU {}% · load {}.{:02} {}.{:02} {}.{:02} · memory {:.1}/{:.1} GiB · swap {:.1} GiB · {disk} · pressure {} min",
+                        system.cpu_percent,
+                        metrics.load_x100.0 / 100,
+                        metrics.load_x100.0 % 100,
+                        metrics.load_x100.1 / 100,
+                        metrics.load_x100.1 % 100,
+                        metrics.load_x100.2 / 100,
+                        metrics.load_x100.2 % 100,
+                        f64::from(metrics.mem_used_mb) / 1_024.0,
+                        f64::from(metrics.mem_total_mb) / 1_024.0,
+                        f64::from(system.swap_used_mb) / 1_024.0,
+                        system.pressure_minutes
+                    ),
+                    PreviewTone::Muted,
+                    true,
+                );
+                if !system.network.is_empty() {
+                    add(
+                        "Network",
+                        system
+                            .network
+                            .iter()
+                            .map(|(name, detail)| format!("{name} · {detail}"))
+                            .collect::<Vec<_>>()
+                            .join(" · "),
+                        PreviewTone::Muted,
+                        true,
+                    );
+                }
+            } else {
+                add(
+                    "Data",
+                    "system snapshot unavailable".into(),
+                    PreviewTone::Danger,
+                    true,
+                );
+            }
+        }
+        _ => add(
+            "Data",
+            "current catalogue".to_owned(),
+            PreviewTone::Muted,
+            false,
+        ),
+    }
+    let kind = match action.kind {
+        ActionKind::Task => "task",
+        ActionKind::Git => "git",
+        ActionKind::Plan => "plan",
+        ActionKind::Connect => "connect",
+        ActionKind::Flow => "flow",
+        ActionKind::Clone => "clone",
+        ActionKind::System => "system",
+    };
+    ActionPreview {
+        lines,
+        meta: format!("{kind} · {}", action.scope.label()),
+    }
+}
+
 pub fn first_use_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::FirstUse && w.now_ms() == 80
 }
 
 pub fn history_enabled() -> bool {
-    std::env::var_os("HOLLA_NO_HISTORY").is_some_and(|value| value == "0")
+    std::env::var_os("HOLLA_NO_HISTORY").is_none_or(|value| value == "0")
 }
 
 pub fn monorepo_root_tag_frame(w: &World) -> bool {
